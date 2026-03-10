@@ -185,13 +185,6 @@ body::after{
   font-family:var(--fm);font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;
   position:relative;z-index:200;
 }
-#bar .x{
-  position:absolute;right:1.2rem;
-  background:none;border:none;color:var(--ink);
-  font-size:1rem;opacity:.35;transition:opacity .2s;
-  line-height:1;padding:.2rem;
-}
-#bar .x:hover{opacity:1}
 .bar-sep{opacity:.25}
 
 /* ─────────────────────────────────────────────
@@ -215,7 +208,7 @@ nav#nav.scrolled{
   font-size:1.6rem;letter-spacing:.12em;
   color:var(--paper);
 }
-.nav-logo img{height:32px;width:auto;display:block}
+.nav-logo img{height:32px;width:auto;display:block;filter:invert(1)}
 .nav-right{display:flex;align-items:center;gap:.4rem}
 .nbtn{
   font-family:var(--fm);font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;
@@ -922,7 +915,6 @@ footer{
   <span class="bar-sep">✦</span>
   ALL THE DEVILS ARE HERE
   <span class="bar-sep">✦</span>
-  <button class="x" id="bar-x">&#215;</button>
 </div>
 
 <!-- NAV -->
@@ -1351,18 +1343,11 @@ function showToast(msg) {
 const nav = document.getElementById('nav');
 window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 50), { passive: true });
 
-/* BAR */
+/* BAR — always visible */
 (function() {
   const bar = document.getElementById('bar');
-  if (sessionStorage.getItem('bar-off')) { bar.remove(); return; }
-  // push nav down
   nav.style.top = bar.offsetHeight + 'px';
-  document.getElementById('bar-x').addEventListener('click', () => {
-    bar.style.transition = 'opacity .3s'; bar.style.opacity = '0';
-    setTimeout(() => { bar.remove(); nav.style.top = '0'; }, 300);
-    sessionStorage.setItem('bar-off', '1');
-  });
-  window.addEventListener('resize', () => { if (bar.isConnected) nav.style.top = bar.offsetHeight + 'px'; });
+  window.addEventListener('resize', () => { nav.style.top = bar.offsetHeight + 'px'; });
 })();
 
 /* SUPABASE */
