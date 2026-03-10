@@ -179,7 +179,7 @@ body::after{
    ANNOUNCEMENT
 ───────────────────────────────────────────── */
 #bar{
-  background:var(--paper);color:var(--ink);
+  background:var(--ink);color:var(--paper);border-bottom:1px solid rgba(244,241,235,.1);
   padding:.45rem 2rem;
   display:flex;align-items:center;justify-content:center;gap:1.5rem;
   font-family:var(--fm);font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;
@@ -208,7 +208,7 @@ nav#nav.scrolled{
   font-size:1.6rem;letter-spacing:.12em;
   color:var(--paper);
 }
-.nav-logo img{height:32px;width:auto;display:block;filter:invert(1)}
+.nav-logo img{height:32px;width:auto;display:block;filter:invert(1);mix-blend-mode:screen}
 .nav-right{display:flex;align-items:center;gap:.4rem}
 .nbtn{
   font-family:var(--fm);font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;
@@ -590,7 +590,7 @@ footer{
   font-family:var(--fw);font-weight:900;font-style:italic;
   font-size:1.4rem;letter-spacing:.12em;opacity:.7;
 }
-.flogo img{height:28px;width:auto;display:block;opacity:.7}
+.flogo img{height:28px;width:auto;display:block;opacity:.7;filter:invert(1);mix-blend-mode:screen}
 .flinks{display:flex;gap:2rem;justify-content:center;flex-wrap:wrap}
 .flinks a{
   font-family:var(--fm);font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;
