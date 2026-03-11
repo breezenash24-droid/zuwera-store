@@ -1,0 +1,6 @@
+# Route /api/* to Netlify functions — keeps the URL scheme consistent across
+# Netlify, Vercel, and Cloudflare Pages (all platforms serve functions at /api/).
+/api/*  /.netlify/functions/:splat  200
+
+# All other unmatched routes → 404 (also defined in netlify.toml; Netlify
+# deduplicates, so this is only used by platforms that read _redirects directly).

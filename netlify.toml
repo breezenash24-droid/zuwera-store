@@ -1,0 +1,81 @@
+[build]
+  command = "npm install"
+  publish = "."
+  functions = "netlify/functions"
+
+# ── Redirects ─────────────────────────────────────────────────────
+[[redirects]]
+  from = "/*"
+  to = "/404.html"
+  status = 404
+
+# ── Function-specific settings ────────────────────────────────────
+# stripe-webhook needs raw body (not parsed) for signature verification
+[functions."stripe-webhook"]
+  included_files = []
+
+# ── Security headers (all routes) ────────────────────────────────
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "payment=(*)"
+
+# ── Cache: HTML — always revalidate ──────────────────────────────
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# ── Cache: CSS & JS — 1 year (filenames should include hash or version) ──
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# ── Cache: Fonts ──────────────────────────────────────────────────
+[[headers]]
+  for = "/*.woff2"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.woff"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# ── Cache: Images & video ─────────────────────────────────────────
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"   # 30 days
+
+[[headers]]
+  for = "/*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+
+[[headers]]
+  for = "/*.webp"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+
+[[headers]]
+  for = "/*.mp4"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+
+# ── Apple Pay domain verification ────────────────────────────────
+# (Stripe serves this automatically once you register your domain in
+#  the Stripe Dashboard → Settings → Payment methods → Apple Pay → Add domain)
+[[headers]]
+  for = "/.well-known/apple-developer-merchantid-domain-association"
+  [headers.values]
+    Content-Type = "text/plain"

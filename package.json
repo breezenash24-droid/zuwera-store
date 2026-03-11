@@ -1,0 +1,9 @@
+{
+  "name": "zuwera-store",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Zuwera athletic sportswear e-commerce site",
+  "dependencies": {
+    "stripe": "^16.0.0"
+  }
+}

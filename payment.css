@@ -1,0 +1,148 @@
+/* ===================== PAYMENT MODAL ===================== */
+#payment-modal {
+  background: rgba(10,10,10,0.92);
+  backdrop-filter: blur(12px);
+}
+.payment-box {
+  background: #141414;
+  border: 1px solid var(--border);
+  padding: 2.5rem;
+  width: min(560px, 96vw);
+  max-height: 92vh;
+  overflow-y: auto;
+  position: relative;
+}
+.payment-box h2 {
+  font-family: var(--font-head);
+  font-size: 1.8rem;
+  letter-spacing: 0.12em;
+  margin-bottom: 0.3rem;
+}
+.payment-box .pay-subtitle {
+  font-size: 0.78rem;
+  color: var(--c40);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 1.8rem;
+}
+.pay-field { margin-bottom: 1.1rem; }
+.pay-field label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c45);
+  margin-bottom: 0.4rem;
+}
+.pay-field input {
+  width: 100%;
+  background: rgba(245,245,240,0.04);
+  border: 1px solid var(--c14);
+  color: var(--white);
+  padding: 0.75rem 0.9rem;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+  border-radius: 2px;
+}
+.pay-field input:focus { border-color: var(--c45); }
+.pay-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+#stripe-card-element {
+  background: rgba(245,245,240,0.04);
+  border: 1px solid var(--c14);
+  padding: 0.82rem 0.9rem;
+  border-radius: 2px;
+  transition: border-color 0.2s;
+}
+#stripe-card-element.StripeElement--focus  { border-color: var(--c45); }
+#stripe-card-element.StripeElement--invalid { border-color: var(--err); }
+#pay-error {
+  color: var(--err);
+  font-size: 0.78rem;
+  min-height: 1rem;
+  margin: 0.5rem 0;
+}
+.rate-option {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 0 0.8rem;
+  padding: 0.75rem 0.9rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--c12);
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s;
+  border-radius: 2px;
+  background: rgba(245,245,240,0.02);
+}
+.rate-option:hover    { border-color: var(--c30); background: rgba(245,245,240,0.04); }
+.rate-option.selected { border-color: var(--c55); background: rgba(245,245,240,0.06); }
+.rate-name  { font-size: 0.85rem; font-weight: 500; grid-column: 1; grid-row: 1; }
+.rate-meta  { font-size: 0.7rem;  color: var(--c40); grid-column: 1; grid-row: 2; }
+.rate-price { font-size: 0.9rem;  font-weight: 500;  grid-column: 2; grid-row: 1 / 3; justify-self: end; }
+#pay-submit {
+  width: 100%;
+  background: var(--white);
+  color: var(--black);
+  border: none;
+  padding: 1rem;
+  font-family: var(--font-head);
+  font-size: 1.15rem;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: var(--trans);
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+}
+#pay-submit:hover    { opacity: 0.85; }
+#pay-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+.pay-secure-note {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--c30);
+  letter-spacing: 0.08em;
+  margin-top: 1rem;
+}
+
+/* ===================== SUCCESS SCREEN ===================== */
+#payment-success {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: var(--black);
+  z-index: 300;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+}
+#payment-success.open { display: flex; }
+.success-icon { font-size: 3.5rem; margin-bottom: 1.5rem; }
+#payment-success h2 {
+  font-family: var(--font-head);
+  font-size: 2.8rem;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.8rem;
+}
+#payment-success p {
+  color: var(--c50);
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  margin-bottom: 2rem;
+  max-width: 340px;
+}
+#success-continue {
+  background: var(--white);
+  color: var(--black);
+  border: none;
+  padding: 0.9rem 2.5rem;
+  font-family: var(--font-head);
+  font-size: 1.1rem;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  transition: var(--trans);
+}
+#success-continue:hover { opacity: 0.85; }

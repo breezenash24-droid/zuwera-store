@@ -1,0 +1,213 @@
+/* ===================== REVIEWS ===================== */
+
+/* ── Toggle button on product card ── */
+.review-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.6rem 0;
+  margin-top: 0.5rem;
+  color: rgba(244,241,235,0.5);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: color 0.2s;
+  width: 100%;
+  text-align: left;
+  border-top: 1px solid rgba(244,241,235,0.08);
+}
+.review-toggle-btn:hover { color: rgba(244,241,235,0.85); }
+
+/* ── Star display (read-only avg) ── */
+.review-stars-avg {
+  color: #F891A5;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+}
+.review-count {
+  color: rgba(244,241,235,0.4);
+  font-size: 0.62rem;
+  letter-spacing: 0.15em;
+}
+
+/* ── Reviews panel (inline under card) ── */
+.reviews-panel {
+  padding: 0.8rem 0 0.4rem;
+  border-top: 1px solid rgba(244,241,235,0.06);
+}
+.reviews-loading {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.65rem;
+  color: rgba(244,241,235,0.3);
+  padding: 0.4rem 0;
+  letter-spacing: 0.12em;
+}
+.reviews-empty {
+  font-size: 0.75rem;
+  color: rgba(244,241,235,0.3);
+  padding: 0.4rem 0;
+  font-style: italic;
+}
+
+/* ── Individual review card ── */
+.review-item {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(244,241,235,0.06);
+}
+.review-item:last-child { border-bottom: none; }
+.review-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+}
+.review-item-stars { color: #F891A5; font-size: 0.75rem; }
+.review-item-meta {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.58rem;
+  color: rgba(244,241,235,0.3);
+  letter-spacing: 0.1em;
+}
+.review-item-body {
+  font-size: 0.8rem;
+  color: rgba(244,241,235,0.6);
+  line-height: 1.65;
+}
+.review-item-author {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.6rem;
+  color: rgba(244,241,235,0.35);
+  letter-spacing: 0.1em;
+  margin-top: 0.25rem;
+  text-transform: uppercase;
+}
+
+/* ── Write a Review button ── */
+.write-review-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.8rem;
+  background: none;
+  border: 1px solid rgba(244,241,235,0.2);
+  color: rgba(244,241,235,0.7);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.write-review-btn:hover {
+  border-color: rgba(244,241,235,0.5);
+  color: rgba(244,241,235,1);
+}
+
+/* ===================== REVIEW MODAL ===================== */
+.review-mbox {
+  max-width: 480px;
+  width: 96vw;
+}
+.review-mbox h2 {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+.review-product-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.65rem;
+  color: rgba(244,241,235,0.4);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 1.4rem;
+}
+
+/* ── Interactive star selector ── */
+.star-selector {
+  display: flex;
+  gap: 0.2rem;
+  margin-bottom: 1.2rem;
+}
+.star-selector button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.8rem;
+  color: rgba(244,241,235,0.15);
+  transition: color 0.15s, transform 0.1s;
+  padding: 0 0.05rem;
+  line-height: 1;
+}
+.star-selector button.lit     { color: #F891A5; }
+.star-selector button:hover,
+.star-selector button.hover   { color: #F891A5; transform: scale(1.15); }
+
+/* ── Review textarea ── */
+.review-body-field {
+  width: 100%;
+  background: rgba(244,241,235,0.04);
+  border: 1px solid rgba(244,241,235,0.14);
+  color: rgba(244,241,235,0.9);
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  padding: 0.8rem 1rem;
+  resize: vertical;
+  min-height: 100px;
+  outline: none;
+  border-radius: 2px;
+  transition: border-color 0.2s;
+  margin-bottom: 0.8rem;
+}
+.review-body-field:focus { border-color: rgba(244,241,235,0.4); }
+.review-body-field::placeholder { color: rgba(244,241,235,0.25); }
+
+/* ── Submit button ── */
+.review-submit-btn {
+  width: 100%;
+  background: rgba(244,241,235,0.95);
+  color: #09090b;
+  border: none;
+  padding: 0.9rem;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.review-submit-btn:hover    { opacity: 0.85; }
+.review-submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Error ── */
+.review-error {
+  color: #e07060;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem;
+  min-height: 1rem;
+  margin-bottom: 0.6rem;
+  letter-spacing: 0.08em;
+}
+
+/* ── Sign-in prompt inside modal ── */
+.review-signin-prompt {
+  text-align: center;
+  padding: 1rem 0 0.5rem;
+  font-size: 0.8rem;
+  color: rgba(244,241,235,0.45);
+  line-height: 1.8;
+}
+.review-signin-prompt a {
+  color: rgba(244,241,235,0.85);
+  text-decoration: underline;
+  cursor: pointer;
+}

@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Block internal / functional routes
+Disallow: /.netlify/
+Disallow: /api/
+
+Sitemap: https://zuwera.store/sitemap.xml
