@@ -387,6 +387,7 @@
       .countdown-number { font-size: clamp(1.8rem, 13vw, 2.8rem); }
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -443,68 +444,9 @@
       <span>Dropping 09 / 20 / 2026</span>
     </div>
 
-    <div class="products-grid">
-
-      <div class="product-card">
-        <div class="product-img">
-          <div class="product-img-placeholder">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-              <path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/>
-            </svg>
-            <span>Image Coming Soon</span>
-          </div>
-          <div class="product-overlay">
-            <span class="coming-soon-badge">Coming Soon</span>
-          </div>
-        </div>
-        <div class="product-info">
-          <p class="product-category">Jackets</p>
-          <p class="product-name">Zuwera Jacket 001</p>
-          <p class="product-price">Price TBA</p>
-          <span class="product-notify" onclick="scrollToNotify()">Notify Me When Live →</span>
-        </div>
-      </div>
-
-      <div class="product-card">
-        <div class="product-img">
-          <div class="product-img-placeholder">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-              <path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/>
-            </svg>
-            <span>Image Coming Soon</span>
-          </div>
-          <div class="product-overlay">
-            <span class="coming-soon-badge">Coming Soon</span>
-          </div>
-        </div>
-        <div class="product-info">
-          <p class="product-category">Jackets</p>
-          <p class="product-name">Zuwera Jacket 002</p>
-          <p class="product-price">Price TBA</p>
-          <span class="product-notify" onclick="scrollToNotify()">Notify Me When Live →</span>
-        </div>
-      </div>
-
-      <div class="product-card">
-        <div class="product-img">
-          <div class="product-img-placeholder">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-              <path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/>
-            </svg>
-            <span>Image Coming Soon</span>
-          </div>
-          <div class="product-overlay">
-            <span class="coming-soon-badge">Coming Soon</span>
-          </div>
-        </div>
-        <div class="product-info">
-          <p class="product-category">Jackets</p>
-          <p class="product-name">Zuwera Jacket 003</p>
-          <p class="product-price">Price TBA</p>
-          <span class="product-notify" onclick="scrollToNotify()">Notify Me When Live →</span>
-        </div>
-      </div>
-
+    <div class="products-grid" id="products-grid">
+      <!-- Products loaded dynamically from Supabase -->
+      <div class="product-card" style="opacity:.3;text-align:center;padding:3rem;grid-column:1/-1">Loading products...</div>
     </div>
   </section>
 
@@ -557,6 +499,48 @@
       document.getElementById('notify-email').scrollIntoView({behavior:'smooth', block:'center'});
       setTimeout(() => document.getElementById('notify-email').focus(), 600);
     }
+
+    // Load products from Supabase
+    (async function() {
+      const SUPABASE_URL  = 'https://qmfgnrsifcwdubkolsgsq.supabase.co';
+      const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFtZmducnNpZmN3ZHVia29sc2dzcSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzczMDA4MzE1LCJleHAiOjIwODg1ODQzMTV9.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+      if (typeof supabase === 'undefined') return;
+      const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+      const grid = document.getElementById('products-grid');
+      const { data: products, error } = await sb
+        .from('products')
+        .select('*')
+        .eq('drop_number', '001')
+        .order('sort_order', { ascending: true });
+
+      if (error || !products) {
+        grid.innerHTML = '<div class="product-card" style="opacity:.3;text-align:center;padding:3rem;grid-column:1/-1">Could not load products.</div>';
+        return;
+      }
+
+      grid.innerHTML = products.map(p => {
+        const badge = p.status === 'coming_soon' ? 'Coming Soon' : (p.status === 'live' ? 'Available' : p.status);
+        const imgHtml = p.image_url
+          ? `<img src="${p.image_url}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover">`
+          : `<div class="product-img-placeholder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
+              <span>Image Coming Soon</span>
+            </div>`;
+        return `
+          <div class="product-card">
+            <div class="product-img">
+              ${imgHtml}
+              <div class="product-overlay"><span class="coming-soon-badge">${badge}</span></div>
+            </div>
+            <div class="product-info">
+              <p class="product-category">${p.category}</p>
+              <p class="product-name">${p.name}</p>
+              <p class="product-price">${p.price || 'Price TBA'}</p>
+              <span class="product-notify" onclick="scrollToNotify()">Notify Me When Live →</span>
+            </div>
+          </div>`;
+      }).join('');
+    })();
   </script>
 </body>
 </html>

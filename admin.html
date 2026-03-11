@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Zuwera</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --black: #09090b;
+      --white: #f4f1eb;
+      --muted: rgba(244,241,235,0.5);
+      --border: rgba(244,241,235,0.1);
+      --accent: #F891A5;
+    }
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      min-height: 100vh;
+    }
+
+    /* NAV */
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1rem 2.5rem;
+      background: rgba(9,9,11,.95);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.4rem; letter-spacing: .15em;
+      color: var(--white); text-decoration: none;
+    }
+    .nav-right { display: flex; align-items: center; gap: 1rem; }
+    .nav-btn {
+      font-family: 'DM Sans', sans-serif; font-size: .75rem;
+      letter-spacing: .12em; text-transform: uppercase;
+      color: var(--muted); background: none; border: none; cursor: pointer;
+      transition: color .2s; text-decoration: none;
+    }
+    .nav-btn:hover { color: var(--white); }
+
+    /* LAYOUT */
+    .container { max-width: 900px; margin: 0 auto; padding: 3rem 2rem; }
+    h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.2rem; letter-spacing: .08em; margin-bottom: .5rem;
+    }
+    .subtitle { color: var(--muted); font-size: .85rem; margin-bottom: 2.5rem; }
+
+    /* AUTH GATE */
+    #auth-gate {
+      text-align: center; padding: 6rem 2rem;
+    }
+    #auth-gate h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.8rem; letter-spacing: .1em; margin-bottom: 1rem;
+    }
+    #auth-gate p { color: var(--muted); margin-bottom: 2rem; }
+    .auth-form { max-width: 360px; margin: 0 auto; }
+    .auth-form input {
+      width: 100%; padding: .8rem 1rem; margin-bottom: .8rem;
+      background: rgba(244,241,235,.05); border: 1px solid var(--border);
+      color: var(--white); font-family: 'DM Sans', sans-serif; font-size: .9rem;
+      outline: none; transition: border-color .2s;
+    }
+    .auth-form input:focus { border-color: rgba(244,241,235,.3); }
+    .auth-form input::placeholder { color: rgba(244,241,235,.25); }
+
+    /* BUTTONS */
+    .btn {
+      display: inline-flex; align-items: center; gap: .4rem;
+      padding: .7rem 1.4rem;
+      font-family: 'DM Sans', sans-serif; font-size: .75rem; font-weight: 500;
+      letter-spacing: .12em; text-transform: uppercase;
+      cursor: pointer; transition: all .2s; border: none;
+    }
+    .btn-primary { background: var(--white); color: var(--black); }
+    .btn-primary:hover { opacity: .85; }
+    .btn-outline {
+      background: none; color: var(--white);
+      border: 1px solid rgba(244,241,235,.2);
+    }
+    .btn-outline:hover { border-color: rgba(244,241,235,.5); }
+    .btn-danger {
+      background: none; color: #e07060;
+      border: 1px solid rgba(224,112,96,.3);
+    }
+    .btn-danger:hover { border-color: #e07060; }
+    .btn-sm { padding: .45rem .8rem; font-size: .65rem; }
+
+    /* TABLE */
+    .products-table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
+    .products-table th {
+      text-align: left; padding: .8rem .6rem;
+      font-size: .65rem; letter-spacing: .18em; text-transform: uppercase;
+      color: var(--muted); border-bottom: 1px solid var(--border);
+    }
+    .products-table td {
+      padding: .8rem .6rem; border-bottom: 1px solid var(--border);
+      font-size: .85rem; vertical-align: middle;
+    }
+    .products-table tr:hover td { background: rgba(244,241,235,.02); }
+    .product-thumb {
+      width: 40px; height: 50px; object-fit: cover; background: #111;
+      display: block;
+    }
+    .badge {
+      display: inline-block; padding: .2rem .6rem;
+      font-size: .6rem; letter-spacing: .12em; text-transform: uppercase;
+      border-radius: 2px;
+    }
+    .badge-soon { background: rgba(244,241,235,.08); color: var(--muted); }
+    .badge-live { background: rgba(80,200,120,.15); color: #50c878; }
+    .actions { display: flex; gap: .4rem; }
+
+    /* MODAL / FORM */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: var(--black); border: 1px solid var(--border);
+      width: 100%; max-width: 520px; padding: 2.5rem;
+      position: relative; max-height: 90vh; overflow-y: auto;
+    }
+    .modal-box h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem; letter-spacing: .08em; margin-bottom: 1.5rem;
+    }
+    .modal-close {
+      position: absolute; top: 1rem; right: 1.2rem;
+      background: none; border: none; color: var(--muted);
+      font-size: 1.4rem; cursor: pointer; transition: color .2s;
+    }
+    .modal-close:hover { color: var(--white); }
+    .form-group { margin-bottom: 1.2rem; }
+    .form-group label {
+      display: block; font-size: .65rem; letter-spacing: .15em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: .4rem;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%; padding: .7rem .9rem;
+      background: rgba(244,241,235,.05); border: 1px solid var(--border);
+      color: var(--white); font-family: 'DM Sans', sans-serif; font-size: .85rem;
+      outline: none; transition: border-color .2s;
+    }
+    .form-group input:focus,
+    .form-group select:focus { border-color: rgba(244,241,235,.3); }
+    .form-group select { cursor: pointer; }
+    .form-group select option { background: var(--black); }
+    .form-actions { display: flex; gap: .8rem; margin-top: 1.5rem; }
+
+    /* TOAST */
+    .toast {
+      position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+      background: var(--white); color: var(--black);
+      padding: .6rem 1.5rem; font-size: .8rem; letter-spacing: .05em;
+      opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 300;
+    }
+    .toast.show { opacity: 1; }
+
+    /* RESPONSIVE */
+    @media (max-width: 600px) {
+      .container { padding: 2rem 1rem; }
+      .nav { padding: .8rem 1rem; }
+      .products-table { font-size: .75rem; }
+      .products-table th, .products-table td { padding: .5rem .3rem; }
+      .modal-box { margin: 1rem; padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <a href="index.html" class="nav-logo">ZUWERA</a>
+    <div class="nav-right">
+      <a href="index.html" class="nav-btn">← Back to Site</a>
+      <button class="nav-btn" id="signout-btn" style="display:none">Sign Out</button>
+    </div>
+  </nav>
+
+  <!-- AUTH GATE (shown when not logged in) -->
+  <div id="auth-gate">
+    <h2>Admin Access</h2>
+    <p>Sign in with your Zuwera account to manage products.</p>
+    <div class="auth-form">
+      <input type="email" id="auth-email" placeholder="Email">
+      <input type="password" id="auth-password" placeholder="Password">
+      <p id="auth-error" style="color:#e07060;font-size:.8rem;margin-bottom:.8rem;display:none"></p>
+      <button class="btn btn-primary" style="width:100%" onclick="signIn()">Sign In</button>
+    </div>
+  </div>
+
+  <!-- ADMIN PANEL (shown when logged in) -->
+  <div id="admin-panel" style="display:none">
+    <div class="container">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem">
+        <div>
+          <h1>Products</h1>
+          <p class="subtitle">Manage your product catalog. Changes go live instantly — no redeploy needed.</p>
+        </div>
+        <button class="btn btn-primary" onclick="openForm()">+ Add Product</button>
+      </div>
+
+      <table class="products-table">
+        <thead>
+          <tr>
+            <th>Image</th>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th>Drop</th>
+            <th>Status</th>
+            <th>Order</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="products-tbody">
+          <tr><td colspan="8" style="text-align:center;opacity:.3;padding:3rem">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ADD/EDIT MODAL -->
+  <div class="modal-overlay" id="product-modal">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeForm()">&#215;</button>
+      <h2 id="modal-title">Add Product</h2>
+      <div class="form-group">
+        <label>Product ID (slug)</label>
+        <input type="text" id="f-id" placeholder="e.g. jacket-004">
+      </div>
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="f-name" placeholder="e.g. Zuwera Jacket 004">
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <input type="text" id="f-category" value="Jackets" placeholder="e.g. Jackets">
+      </div>
+      <div class="form-group">
+        <label>Price</label>
+        <input type="text" id="f-price" value="Price TBA" placeholder="e.g. $120 or Price TBA">
+      </div>
+      <div class="form-group">
+        <label>Drop Number</label>
+        <input type="text" id="f-drop" value="001" placeholder="e.g. 001">
+      </div>
+      <div class="form-group">
+        <label>Image URL (optional)</label>
+        <input type="text" id="f-image" placeholder="https://...">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="f-status">
+          <option value="coming_soon">Coming Soon</option>
+          <option value="live">Live</option>
+          <option value="sold_out">Sold Out</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Sort Order</label>
+        <input type="number" id="f-order" value="0" min="0">
+      </div>
+      <p id="form-error" style="color:#e07060;font-size:.8rem;display:none"></p>
+      <div class="form-actions">
+        <button class="btn btn-primary" id="form-submit" onclick="saveProduct()">Save Product</button>
+        <button class="btn btn-outline" onclick="closeForm()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE CONFIRM MODAL -->
+  <div class="modal-overlay" id="delete-modal">
+    <div class="modal-box" style="max-width:400px;text-align:center">
+      <h2>Delete Product?</h2>
+      <p style="color:var(--muted);margin-bottom:1.5rem" id="delete-msg">This action cannot be undone.</p>
+      <div class="form-actions" style="justify-content:center">
+        <button class="btn btn-danger" id="delete-confirm" onclick="confirmDelete()">Delete</button>
+        <button class="btn btn-outline" onclick="closeDelete()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL  = 'https://qmfgnrsifcwdubkolsgsq.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFtZmducnNpZmN3ZHVia29sc2dzcSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzczMDA4MzE1LCJleHAiOjIwODg1ODQzMTV9.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let _user = null;
+let _editing = null; // null = adding, string = editing product id
+let _deleteId = null;
+
+// ── AUTH ──
+sb.auth.onAuthStateChange((_, session) => {
+  _user = session?.user ?? null;
+  document.getElementById('auth-gate').style.display = _user ? 'none' : '';
+  document.getElementById('admin-panel').style.display = _user ? '' : 'none';
+  document.getElementById('signout-btn').style.display = _user ? '' : 'none';
+  if (_user) loadProducts();
+});
+
+async function signIn() {
+  const email = document.getElementById('auth-email').value.trim();
+  const pass = document.getElementById('auth-password').value;
+  const err = document.getElementById('auth-error');
+  if (!email || !pass) { err.textContent = 'Enter email and password.'; err.style.display = ''; return; }
+  err.style.display = 'none';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) { err.textContent = error.message; err.style.display = ''; }
+}
+
+document.getElementById('signout-btn').addEventListener('click', async () => {
+  await sb.auth.signOut();
+  toast('Signed out.');
+});
+
+// ── PRODUCTS ──
+async function loadProducts() {
+  const tbody = document.getElementById('products-tbody');
+  const { data, error } = await sb
+    .from('products')
+    .select('*')
+    .order('drop_number', { ascending: true })
+    .order('sort_order', { ascending: true });
+
+  if (error) {
+    tbody.innerHTML = `<tr><td colspan="8" style="color:#e07060;padding:2rem;text-align:center">${error.message}</td></tr>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;opacity:.3;padding:3rem">No products yet. Click "+ Add Product" to get started.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = data.map(p => {
+    const statusClass = p.status === 'live' ? 'badge-live' : 'badge-soon';
+    const statusLabel = p.status === 'coming_soon' ? 'Coming Soon' : p.status === 'live' ? 'Live' : p.status;
+    const thumb = p.image_url
+      ? `<img src="${p.image_url}" class="product-thumb" alt="">`
+      : `<div class="product-thumb" style="display:flex;align-items:center;justify-content:center;font-size:.5rem;color:var(--muted)">No img</div>`;
+    return `<tr>
+      <td>${thumb}</td>
+      <td><strong>${p.name}</strong><br><span style="font-size:.7rem;color:var(--muted)">${p.id}</span></td>
+      <td>${p.category}</td>
+      <td>${p.price}</td>
+      <td>${p.drop_number}</td>
+      <td><span class="badge ${statusClass}">${statusLabel}</span></td>
+      <td>${p.sort_order}</td>
+      <td>
+        <div class="actions">
+          <button class="btn btn-outline btn-sm" onclick="editProduct('${p.id}')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}','${p.name}')">Del</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── FORM ──
+function openForm() {
+  _editing = null;
+  document.getElementById('modal-title').textContent = 'Add Product';
+  document.getElementById('f-id').value = '';
+  document.getElementById('f-id').disabled = false;
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-category').value = 'Jackets';
+  document.getElementById('f-price').value = 'Price TBA';
+  document.getElementById('f-drop').value = '001';
+  document.getElementById('f-image').value = '';
+  document.getElementById('f-status').value = 'coming_soon';
+  document.getElementById('f-order').value = '0';
+  document.getElementById('form-error').style.display = 'none';
+  document.getElementById('product-modal').classList.add('open');
+}
+
+async function editProduct(id) {
+  const { data, error } = await sb.from('products').select('*').eq('id', id).single();
+  if (error || !data) { toast('Could not load product.'); return; }
+  _editing = id;
+  document.getElementById('modal-title').textContent = 'Edit Product';
+  document.getElementById('f-id').value = data.id;
+  document.getElementById('f-id').disabled = true;
+  document.getElementById('f-name').value = data.name;
+  document.getElementById('f-category').value = data.category;
+  document.getElementById('f-price').value = data.price;
+  document.getElementById('f-drop').value = data.drop_number;
+  document.getElementById('f-image').value = data.image_url || '';
+  document.getElementById('f-status').value = data.status;
+  document.getElementById('f-order').value = data.sort_order;
+  document.getElementById('form-error').style.display = 'none';
+  document.getElementById('product-modal').classList.add('open');
+}
+
+function closeForm() {
+  document.getElementById('product-modal').classList.remove('open');
+}
+
+async function saveProduct() {
+  const err = document.getElementById('form-error');
+  const id = document.getElementById('f-id').value.trim();
+  const name = document.getElementById('f-name').value.trim();
+  const category = document.getElementById('f-category').value.trim();
+  const price = document.getElementById('f-price').value.trim();
+  const drop_number = document.getElementById('f-drop').value.trim();
+  const image_url = document.getElementById('f-image').value.trim() || null;
+  const status = document.getElementById('f-status').value;
+  const sort_order = parseInt(document.getElementById('f-order').value) || 0;
+
+  if (!id || !name) {
+    err.textContent = 'ID and Name are required.';
+    err.style.display = '';
+    return;
+  }
+
+  const row = { id, name, category, price, drop_number, image_url, status, sort_order };
+
+  let result;
+  if (_editing) {
+    // Update existing
+    const { id: _, ...updates } = row;
+    result = await sb.from('products').update(updates).eq('id', _editing);
+  } else {
+    // Insert new
+    result = await sb.from('products').insert(row);
+  }
+
+  if (result.error) {
+    err.textContent = result.error.message;
+    err.style.display = '';
+    return;
+  }
+
+  closeForm();
+  toast(_editing ? 'Product updated!' : 'Product added!');
+  loadProducts();
+}
+
+// ── DELETE ──
+function deleteProduct(id, name) {
+  _deleteId = id;
+  document.getElementById('delete-msg').textContent = `Delete "${name}"? This cannot be undone.`;
+  document.getElementById('delete-modal').classList.add('open');
+}
+
+function closeDelete() {
+  document.getElementById('delete-modal').classList.remove('open');
+  _deleteId = null;
+}
+
+async function confirmDelete() {
+  if (!_deleteId) return;
+  const { error } = await sb.from('products').delete().eq('id', _deleteId);
+  closeDelete();
+  if (error) { toast('Error: ' + error.message); return; }
+  toast('Product deleted.');
+  loadProducts();
+}
+
+// ── TOAST ──
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => {
+    if (e.target === m) {
+      m.classList.remove('open');
+    }
+  });
+});
+</script>
+</body>
+</html>

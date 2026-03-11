@@ -4,5 +4,6 @@ Allow: /
 # Block internal / functional routes
 Disallow: /.netlify/
 Disallow: /api/
+Disallow: /admin.html
 
 Sitemap: https://zuwera.store/sitemap.xml
