@@ -19,6 +19,19 @@
 -- The existing products table is being completely replaced with a Nike-style
 -- schema supporting SKUs, detailed specifications, sustainability, and pricing tiers.
 
+-- Drop old triggers first
+DROP TRIGGER IF EXISTS products_updated_at_trigger ON products;
+DROP TRIGGER IF EXISTS profiles_updated_at_trigger ON profiles;
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+-- Drop all existing tables first (in reverse dependency order)
+DROP TABLE IF EXISTS reviews CASCADE;
+DROP TABLE IF EXISTS size_charts CASCADE;
+DROP TABLE IF EXISTS product_sizes CASCADE;
+DROP TABLE IF EXISTS color_variants CASCADE;
+DROP TABLE IF EXISTS product_images CASCADE;
+DROP TABLE IF EXISTS profiles CASCADE;
+
 DROP TABLE IF EXISTS products CASCADE;
 
 CREATE TABLE products (
