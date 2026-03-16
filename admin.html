@@ -1124,7 +1124,7 @@
         // Initialize Supabase
         const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // State Management
         let currentUser = null;
@@ -1169,7 +1169,7 @@
 
         // Auth State
         async function checkAuthState() {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await sb.auth.getSession();
             if (session) {
                 currentUser = session.user;
                 await checkAdminRole();
@@ -1221,7 +1221,7 @@
             const password = document.getElementById('authPassword').value;
 
             try {
-                const { data, error } = await supabase.auth.signInWithPassword({
+                const { data, error } = await sb.auth.signInWithPassword({
                     email,
                     password
                 });
@@ -1237,7 +1237,7 @@
 
         // Logout
         async function logout() {
-            await supabase.auth.signOut();
+            await sb.auth.signOut();
             currentUser = null;
             showAuthGate();
             document.getElementById('authForm').reset();
@@ -1283,14 +1283,14 @@
         // Dashboard
         async function loadDashboard() {
             try {
-                const { data: products } = await supabase.from('products').select('id, status');
-                const { data: inventory } = await supabase.from('product_inventory').select('stock_quantity');
+                const { data: products } = await sb.from('products').select('id, status');
+                const { data: inventory } = await sb.from('product_inventory').select('stock_quantity');
 
                 const totalProducts = products?.length || 0;
                 const liveProducts = products?.filter(p => p.status === 'Live').length || 0;
                 const totalInventory = inventory?.reduce((sum, i) => sum + (i.stock_quantity || 0), 0) || 0;
 
-                const { data: lowStockProducts } = await supabase.from('products').select('id, low_stock_threshold');
+                const { data: lowStockProducts } = await sb.from('products').select('id, low_stock_threshold');
                 let lowStockAlerts = 0;
                 if (lowStockProducts) {
                     for (const product of lowStockProducts) {
@@ -1317,7 +1317,7 @@
         // Products
         async function loadProducts() {
             try {
-                const { data: products } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+                const { data: products } = await sb.from('products').select('*').order('created_at', { ascending: false });
                 displayProductsTable(products || []);
             } catch (error) {
                 console.error('Error loading products:', error);
@@ -1362,7 +1362,7 @@
         // Products Search
         document.getElementById('productSearch').addEventListener('input', async (e) => {
             const query = e.target.value.toLowerCase();
-            const { data: products } = await supabase.from('products').select('*');
+            const { data: products } = await sb.from('products').select('*');
             const filtered = (products || []).filter(p =>
                 (p.sku || '').toLowerCase().includes(query) ||
                 (p.title || '').toLowerCase().includes(query) ||
@@ -1381,7 +1381,7 @@
 
         // Edit Product
         async function editProduct(id) {
-            const { data: product } = await supabase.from('products').select('*').eq('id', id).single();
+            const { data: product } = await sb.from('products').select('*').eq('id', id).single();
             if (!product) return;
 
             currentProduct = product;
@@ -1658,33 +1658,33 @@
 
                 let productId;
                 if (currentProduct) {
-                    const { error } = await supabase.from('products').update(productData).eq('id', currentProduct.id);
+                    const { error } = await sb.from('products').update(productData).eq('id', currentProduct.id);
                     if (error) throw error;
                     productId = currentProduct.id;
                 } else {
-                    const { data, error } = await supabase.from('products').insert([productData]).select();
+                    const { data, error } = await sb.from('products').insert([productData]).select();
                     if (error) throw error;
                     productId = data[0].id;
                 }
 
-                await supabase.from('product_images').delete().eq('product_id', productId);
+                await sb.from('product_images').delete().eq('product_id', productId);
                 const imageUrls = Array.from(document.querySelectorAll('.product-image-url')).map(i => i.value).filter(v => v);
                 for (let i = 0; i < imageUrls.length; i++) {
-                    await supabase.from('product_images').insert([{
+                    await sb.from('product_images').insert([{
                         product_id: productId,
                         image_url: imageUrls[i],
                         sort_order: i
                     }]);
                 }
 
-                await supabase.from('product_colors').delete().eq('product_id', productId);
+                await sb.from('product_colors').delete().eq('product_id', productId);
                 const colorItems = document.querySelectorAll('.color-variant-item');
                 for (let i = 0; i < colorItems.length; i++) {
                     const colorName = colorItems[i].querySelector('.form-input').value;
                     const hexColor = colorItems[i].querySelector('[placeholder="#000000"]').value;
                     const rgbColor = colorItems[i].querySelector('[placeholder="0,0,0"]').value;
                     if (colorName && hexColor) {
-                        await supabase.from('product_colors').insert([{
+                        await sb.from('product_colors').insert([{
                             product_id: productId,
                             color_name: colorName,
                             hex_color: hexColor,
@@ -1694,13 +1694,13 @@
                     }
                 }
 
-                await supabase.from('product_inventory').delete().eq('product_id', productId);
+                await sb.from('product_inventory').delete().eq('product_id', productId);
                 const sizeItems = document.querySelectorAll('.size-item');
                 for (const item of sizeItems) {
                     const checkbox = item.querySelector('.size-checkbox');
                     const stock = item.querySelector('.size-stock');
                     if (checkbox.checked && stock.value) {
-                        await supabase.from('product_inventory').insert([{
+                        await sb.from('product_inventory').insert([{
                             product_id: productId,
                             size: checkbox.value,
                             stock_quantity: parseInt(stock.value)
@@ -1754,7 +1754,7 @@
             document.getElementById('specialtyPlus').checked = product.specialty_sizing?.includes('Plus');
             document.getElementById('specialtyMaternity').checked = product.specialty_sizing?.includes('Maternity');
 
-            supabase.from('product_images').select('*').eq('product_id', product.id).then(({ data }) => {
+            sb.from('product_images').select('*').eq('product_id', product.id).then(({ data }) => {
                 const container = document.getElementById('imagesContainer');
                 container.innerHTML = '';
                 if (data && data.length > 0) {
@@ -1773,7 +1773,7 @@
                 }
             });
 
-            supabase.from('product_colors').select('*').eq('product_id', product.id).then(({ data }) => {
+            sb.from('product_colors').select('*').eq('product_id', product.id).then(({ data }) => {
                 const container = document.getElementById('colorVariantsContainer');
                 container.innerHTML = '';
                 if (data && data.length > 0) {
@@ -1793,7 +1793,7 @@
             });
 
             renderSizeGrid(product.gender);
-            supabase.from('product_inventory').select('*').eq('product_id', product.id).then(({ data }) => {
+            sb.from('product_inventory').select('*').eq('product_id', product.id).then(({ data }) => {
                 if (data && data.length > 0) {
                     data.forEach(inv => {
                         const items = document.querySelectorAll('.size-item');
@@ -1834,10 +1834,10 @@
 
         document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
             try {
-                await supabase.from('product_images').delete().eq('product_id', deleteProductId);
-                await supabase.from('product_colors').delete().eq('product_id', deleteProductId);
-                await supabase.from('product_inventory').delete().eq('product_id', deleteProductId);
-                const { error } = await supabase.from('products').delete().eq('id', deleteProductId);
+                await sb.from('product_images').delete().eq('product_id', deleteProductId);
+                await sb.from('product_colors').delete().eq('product_id', deleteProductId);
+                await sb.from('product_inventory').delete().eq('product_id', deleteProductId);
+                const { error } = await sb.from('products').delete().eq('id', deleteProductId);
                 if (error) throw error;
 
                 showToast('Product deleted successfully', 'success');
