@@ -1179,7 +1179,7 @@
         }
 
         async function checkAdminRole() {
-            const { data: profile } = await supabase
+            const { data: profile } = await sb
                 .from('profiles')
                 .select('role')
                 .eq('id', currentUser.id)
@@ -1294,7 +1294,7 @@
                 let lowStockAlerts = 0;
                 if (lowStockProducts) {
                     for (const product of lowStockProducts) {
-                        const { data: inv } = await supabase
+                        const { data: inv } = await sb
                             .from('product_inventory')
                             .select('stock_quantity')
                             .eq('product_id', product.id);
@@ -1348,7 +1348,7 @@
                 tbody.appendChild(row);
 
                 // Load stock
-                supabase
+                sb
                     .from('product_inventory')
                     .select('stock_quantity')
                     .eq('product_id', product.id)
@@ -1442,7 +1442,7 @@
                 }
             }
 
-            const { data: products } = await supabase
+            const { data: products } = await sb
                 .from('products')
                 .select('sku')
                 .ilike('sku', `ZW-${genderCode}${categoryCode}%`);
