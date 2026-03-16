@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Zuwera Analytics Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --black: #09090b;
+      --white: #f4f1eb;
+      --accent: #F891A5;
+      --dark-bg: #0f0f12;
+      --card-border: #1a1a1e;
+      --text-secondary: #a0a0a0;
+      --success: #4ade80;
+      --warning: #facc15;
+      --error: #ef4444;
+      --info: #3b82f6;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background-color: var(--black);
+      color: var(--white);
+      line-height: 1.6;
+    }
+
+    body.light-mode {
+      --black: #ffffff;
+      --white: #09090b;
+      --dark-bg: #f9f9f9;
+      --card-border: #e0e0e0;
+      --text-secondary: #666666;
+    }
+
+    /* Navigation */
+    nav {
+      background-color: var(--dark-bg);
+      border-bottom: 1px solid var(--card-border);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-brand {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+    }
+
+    .nav-links a, .nav-links button {
+      color: var(--white);
+      text-decoration: none;
+      font-size: 0.95rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: color 0.3s ease;
+    }
+
+    .nav-links a:hover, .nav-links button:hover {
+      color: var(--accent);
+    }
+
+    .theme-toggle {
+      background: var(--card-border);
+      border: 1px solid var(--card-border);
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .theme-toggle:hover {
+      background: var(--accent);
+      color: var(--black);
+    }
+
+    /* Main container */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.5rem;
+      margin-bottom: 2rem;
+      letter-spacing: 0.05em;
+    }
+
+    h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.05em;
+    }
+
+    /* Overview Cards */
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .card {
+      background-color: var(--dark-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      border-color: var(--accent);
+    }
+
+    .card-label {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .card-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .card-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-top: 0.5rem;
+    }
+
+    /* Charts */
+    .chart-section {
+      background-color: var(--dark-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .chart-container {
+      margin-top: 1.5rem;
+    }
+
+    .bar-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 1rem;
+      height: 300px;
+      margin-top: 1rem;
+    }
+
+    .bar-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .bar {
+      width: 100%;
+      border-radius: 4px 4px 0 0;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .bar:hover {
+      opacity: 0.8;
+    }
+
+    .bar-label {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      text-align: center;
+      width: 100%;
+    }
+
+    .bar-value {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--white);
+      position: absolute;
+      top: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      text-align: center;
+    }
+
+    /* Status colors */
+    .bar-draft { background-color: #6366f1; }
+    .bar-coming { background-color: #f59e0b; }
+    .bar-live { background-color: #10b981; }
+    .bar-sold { background-color: #ef4444; }
+
+    .bar-men { background-color: #3b82f6; }
+    .bar-women { background-color: #ec4899; }
+    .bar-unisex { background-color: #8b5cf6; }
+    .bar-kids { background-color: #14b8a6; }
+
+    /* Tables */
+    .table-section {
+      background-color: var(--dark-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      overflow-x: auto;
+    }
+
+    .table-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .filter-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .filter-btn {
+      background-color: var(--card-border);
+      border: 1px solid var(--card-border);
+      color: var(--white);
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+    }
+
+    .filter-btn.active {
+      background-color: var(--accent);
+      color: var(--black);
+      border-color: var(--accent);
+    }
+
+    .filter-btn:hover {
+      border-color: var(--accent);
+    }
+
+    .export-btn {
+      background-color: var(--accent);
+      border: 1px solid var(--accent);
+      color: var(--black);
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .export-btn:hover {
+      opacity: 0.9;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    thead {
+      background-color: var(--card-border);
+      border-bottom: 2px solid var(--card-border);
+    }
+
+    th {
+      padding: 1rem;
+      text-align: left;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    th:hover {
+      color: var(--accent);
+    }
+
+    td {
+      padding: 1rem;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    tbody tr:hover {
+      background-color: var(--card-border);
+    }
+
+    .low-stock {
+      background-color: rgba(239, 68, 68, 0.1);
+    }
+
+    .low-stock td {
+      color: var(--error);
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-draft { background-color: rgba(99, 102, 241, 0.2); color: #6366f1; }
+    .badge-coming { background-color: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    .badge-live { background-color: rgba(16, 185, 129, 0.2); color: #10b981; }
+    .badge-sold { background-color: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+    /* Loading and error states */
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 400px;
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+    }
+
+    .spinner {
+      border: 4px solid var(--card-border);
+      border-top: 4px solid var(--accent);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin-right: 1rem;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .error {
+      background-color: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--error);
+      color: var(--error);
+      padding: 1rem;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+
+    .auth-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .auth-card {
+      background-color: var(--dark-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      max-width: 400px;
+    }
+
+    .sign-in-btn {
+      background-color: var(--accent);
+      border: 1px solid var(--accent);
+      color: var(--black);
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .sign-in-btn:hover {
+      opacity: 0.9;
+    }
+
+    /* Stats grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background-color: var(--dark-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 1.5rem;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .stat-row:last-child {
+      border-bottom: none;
+    }
+
+    .stat-label {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .stat-value {
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .stat-big {
+      font-size: 2rem;
+      margin-top: 0.5rem;
+    }
+
+    /* Top products */
+    .top-products {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+    }
+
+    .product-card {
+      background-color: var(--card-border);
+      border-radius: 4px;
+      padding: 1rem;
+    }
+
+    .product-title {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--accent);
+    }
+
+    .product-rating {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .stars {
+      color: var(--warning);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+
+      h1 {
+        font-size: 1.8rem;
+      }
+
+      h2 {
+        font-size: 1.2rem;
+      }
+
+      .overview-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .nav-links {
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      table {
+        font-size: 0.8rem;
+      }
+
+      th, td {
+        padding: 0.75rem 0.5rem;
+      }
+
+      .card-value {
+        font-size: 1.8rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .overview-grid {
+        grid-template-columns: 1fr;
+      }
+
+      nav {
+        padding: 1rem;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .nav-links {
+        justify-content: center;
+        gap: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav>
+    <div class="nav-brand">ZUWERA</div>
+    <div class="nav-links">
+      <a href="index.html" id="backLink" style="display: none;">← Back to Admin</a>
+      <button class="theme-toggle" id="themeToggle">🌙 Dark</button>
+      <button class="nav-links" id="signOutBtn">Sign Out</button>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container">
+    <h1>Analytics Dashboard</h1>
+
+    <!-- Auth Container -->
+    <div id="authContainer" style="display: none;">
+      <div class="auth-container">
+        <div class="auth-card">
+          <h2>Admin Access Required</h2>
+          <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Please sign in to access the analytics dashboard.</p>
+          <button class="sign-in-btn" id="signInBtn">Sign In with Supabase</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div id="dashboardContainer" style="display: none;">
+      <!-- Error Message -->
+      <div id="errorContainer"></div>
+
+      <!-- Overview Cards -->
+      <div class="overview-grid">
+        <div class="card">
+          <div class="card-label">Total Products</div>
+          <div class="card-value" id="totalProducts">-</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Live Products</div>
+          <div class="card-value" id="liveProducts">-</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Total Inventory</div>
+          <div class="card-value" id="totalInventory">-</div>
+          <div class="card-subtitle">units</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Low Stock Alerts</div>
+          <div class="card-value" id="lowStockAlerts">-</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Avg Product Price</div>
+          <div class="card-value" id="avgPrice">-</div>
+          <div class="card-subtitle">current price</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Color Variants</div>
+          <div class="card-value" id="colorVariants">-</div>
+        </div>
+      </div>
+
+      <!-- Product Status Distribution -->
+      <div class="chart-section">
+        <h2>Product Status Distribution</h2>
+        <div class="chart-container">
+          <div class="bar-chart" id="statusChart"></div>
+        </div>
+      </div>
+
+      <!-- Gender Distribution -->
+      <div class="chart-section">
+        <h2>Gender Distribution</h2>
+        <div class="chart-container">
+          <div class="bar-chart" id="genderChart"></div>
+        </div>
+      </div>
+
+      <!-- Inventory Report -->
+      <div class="table-section">
+        <div>
+          <h2>Inventory Report</h2>
+          <div class="table-controls">
+            <div class="filter-group">
+              <button class="filter-btn active" data-filter="all">All Products</button>
+              <button class="filter-btn" data-filter="low">Low Stock Only</button>
+            </div>
+          </div>
+        </div>
+        <div id="inventoryTableContainer" class="loading">
+          <div class="spinner"></div>
+          <span>Loading inventory...</span>
+        </div>
+      </div>
+
+      <!-- Price Analysis -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div style="font-weight: 600; margin-bottom: 1rem;">Price Analysis</div>
+          <div class="stat-row">
+            <span class="stat-label">Average MSRP</span>
+            <span class="stat-value" id="avgMSRP">-</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Average Current Price</span>
+            <span class="stat-value" id="avgCurrentPrice">-</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Average Member Price</span>
+            <span class="stat-value" id="avgMemberPrice">-</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Products on Sale</span>
+            <span class="stat-value" id="productsOnSale">-</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Sale Percentage</span>
+            <span class="stat-value" id="salePercentage">-</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Avg Discount %</span>
+            <span class="stat-value" id="avgDiscount">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product Catalog Summary -->
+      <div class="table-section">
+        <div>
+          <h2>Product Catalog Summary</h2>
+          <div class="table-controls">
+            <button class="export-btn" id="exportBtn">📥 Export to CSV</button>
+          </div>
+        </div>
+        <div id="catalogTableContainer" class="loading">
+          <div class="spinner"></div>
+          <span>Loading catalog...</span>
+        </div>
+      </div>
+
+      <!-- Reviews Summary -->
+      <div class="chart-section">
+        <h2>Reviews Summary</h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-row">
+              <span class="stat-label">Average Rating</span>
+              <span class="stat-value" id="avgRating">-</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Total Reviews</span>
+              <span class="stat-value" id="totalReviews">-</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Products with No Reviews</span>
+              <span class="stat-value" id="noReviewsCount">-</span>
+            </div>
+          </div>
+        </div>
+
+        <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Top Rated Products</h3>
+        <div class="top-products" id="topProductsContainer"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supabase Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.0/dist/module.js"></script>
+
+  <script>
+    // Supabase configuration
+    const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+
+    // Initialize Supabase
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // DOM Elements
+    const authContainer = document.getElementById('authContainer');
+    const dashboardContainer = document.getElementById('dashboardContainer');
+    const signInBtn = document.getElementById('signInBtn');
+    const signOutBtn = document.getElementById('signOutBtn');
+    const themeToggle = document.getElementById('themeToggle');
+    const backLink = document.getElementById('backLink');
+    const errorContainer = document.getElementById('errorContainer');
+
+    // State
+    let currentUser = null;
+    let allProducts = [];
+    let catalogSortConfig = { key: 'title', direction: 'asc' };
+    let inventorySortConfig = { key: 'stock', direction: 'asc' };
+    let currentInventoryFilter = 'all';
+
+    // Theme handling
+    const initTheme = () => {
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      if (savedTheme === 'light') {
+        document.body.classList.add('light-mode');
+        themeToggle.textContent = '☀️ Light';
+      } else {
+        document.body.classList.remove('light-mode');
+        themeToggle.textContent = '🌙 Dark';
+      }
+    };
+
+    themeToggle.addEventListener('click', () => {
+      const isLight = document.body.classList.toggle('light-mode');
+      const theme = isLight ? 'light' : 'dark';
+      localStorage.setItem('theme', theme);
+      themeToggle.textContent = isLight ? '☀️ Light' : '🌙 Dark';
+    });
+
+    // Authentication
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        showAuthContainer();
+        return false;
+      }
+
+      currentUser = session.user;
+
+      // Check if user is admin
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', currentUser.id)
+        .single();
+
+      if (error || !profile || profile.role !== 'admin') {
+        showError('Unauthorized: Admin access required.');
+        signOutBtn.click();
+        return false;
+      }
+
+      showDashboard();
+      backLink.style.display = 'inline-block';
+      return true;
+    };
+
+    const showAuthContainer = () => {
+      authContainer.style.display = 'block';
+      dashboardContainer.style.display = 'none';
+    };
+
+    const showDashboard = () => {
+      authContainer.style.display = 'none';
+      dashboardContainer.style.display = 'block';
+      loadDashboardData();
+    };
+
+    const showError = (message) => {
+      errorContainer.innerHTML = `<div class="error">${message}</div>`;
+    };
+
+    signInBtn.addEventListener('click', async () => {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+      });
+      if (error) {
+        showError('Sign-in failed: ' + error.message);
+      }
+    });
+
+    signOutBtn.addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      currentUser = null;
+      showAuthContainer();
+    });
+
+    // Data Loading
+    const loadDashboardData = async () => {
+      try {
+        await Promise.all([
+          loadProducts(),
+          loadInventory(),
+          loadReviews(),
+        ]);
+
+        updateOverviewCards();
+        updateStatusChart();
+        updateGenderChart();
+        updatePriceAnalysis();
+        updateReviewsSummary();
+      } catch (error) {
+        showError('Failed to load dashboard data: ' + error.message);
+      }
+    };
+
+    const loadProducts = async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          product_colors (id, color),
+          product_images (id),
+          product_inventory (id, size, stock, low_stock_threshold)
+        `);
+
+      if (error) throw error;
+      allProducts = data || [];
+    };
+
+    const loadInventory = async () => {
+      await renderInventoryTable();
+      await renderCatalogTable();
+    };
+
+    const loadReviews = async () => {
+      // Reviews are loaded as needed for summary
+    };
+
+    // Overview Cards
+    const updateOverviewCards = async () => {
+      // Total Products
+      const totalProducts = allProducts.length;
+      document.getElementById('totalProducts').textContent = totalProducts;
+
+      // Live Products
+      const liveProducts = allProducts.filter(p => p.status === 'live').length;
+      document.getElementById('liveProducts').textContent = liveProducts;
+
+      // Total Inventory
+      let totalInventory = 0;
+      allProducts.forEach(p => {
+        p.product_inventory?.forEach(inv => {
+          totalInventory += inv.stock || 0;
+        });
+      });
+      document.getElementById('totalInventory').textContent = totalInventory.toLocaleString();
+
+      // Low Stock Alerts
+      let lowStockCount = 0;
+      allProducts.forEach(p => {
+        p.product_inventory?.forEach(inv => {
+          if (inv.stock <= (inv.low_stock_threshold || 10)) {
+            lowStockCount++;
+          }
+        });
+      });
+      document.getElementById('lowStockAlerts').textContent = lowStockCount;
+
+      // Average Price
+      const validPrices = allProducts.filter(p => p.current_price).map(p => p.current_price);
+      const avgPrice = validPrices.length > 0 ? validPrices.reduce((a, b) => a + b) / validPrices.length : 0;
+      document.getElementById('avgPrice').textContent = `$${avgPrice.toFixed(2)}`;
+
+      // Color Variants
+      let totalColors = 0;
+      allProducts.forEach(p => {
+        totalColors += p.product_colors?.length || 0;
+      });
+      document.getElementById('colorVariants').textContent = totalColors;
+    };
+
+    // Status Chart
+    const updateStatusChart = () => {
+      const statuses = {
+        draft: 0,
+        coming_soon: 0,
+        live: 0,
+        sold_out: 0
+      };
+
+      allProducts.forEach(p => {
+        statuses[p.status] = (statuses[p.status] || 0) + 1;
+      });
+
+      const chartContainer = document.getElementById('statusChart');
+      chartContainer.innerHTML = '';
+
+      const statusLabels = {
+        draft: 'Draft',
+        coming_soon: 'Coming Soon',
+        live: 'Live',
+        sold_out: 'Sold Out'
+      };
+
+      const statusClasses = {
+        draft: 'bar-draft',
+        coming_soon: 'bar-coming',
+        live: 'bar-live',
+        sold_out: 'bar-sold'
+      };
+
+      const maxValue = Math.max(...Object.values(statuses), 1);
+
+      Object.keys(statuses).forEach(status => {
+        const count = statuses[status];
+        const percentage = (count / maxValue) * 100;
+
+        const item = document.createElement('div');
+        item.className = 'bar-item';
+        item.innerHTML = `
+          <div class="bar ${statusClasses[status]}" style="height: ${percentage}%">
+            <div class="bar-value">${count}</div>
+          </div>
+          <div class="bar-label">${statusLabels[status]}</div>
+        `;
+        chartContainer.appendChild(item);
+      });
+    };
+
+    // Gender Chart
+    const updateGenderChart = () => {
+      const genders = {
+        men: 0,
+        women: 0,
+        unisex: 0,
+        kids: 0
+      };
+
+      allProducts.forEach(p => {
+        if (p.gender && genders.hasOwnProperty(p.gender)) {
+          genders[p.gender]++;
+        }
+      });
+
+      const chartContainer = document.getElementById('genderChart');
+      chartContainer.innerHTML = '';
+
+      const genderLabels = {
+        men: 'Men',
+        women: 'Women',
+        unisex: 'Unisex',
+        kids: 'Kids'
+      };
+
+      const genderClasses = {
+        men: 'bar-men',
+        women: 'bar-women',
+        unisex: 'bar-unisex',
+        kids: 'bar-kids'
+      };
+
+      const maxValue = Math.max(...Object.values(genders), 1);
+
+      Object.keys(genders).forEach(gender => {
+        const count = genders[gender];
+        const percentage = (count / maxValue) * 100;
+
+        const item = document.createElement('div');
+        item.className = 'bar-item';
+        item.innerHTML = `
+          <div class="bar ${genderClasses[gender]}" style="height: ${percentage}%">
+            <div class="bar-value">${count}</div>
+          </div>
+          <div class="bar-label">${genderLabels[gender]}</div>
+        `;
+        chartContainer.appendChild(item);
+      });
+    };
+
+    // Inventory Table
+    const renderInventoryTable = async () => {
+      const container = document.getElementById('inventoryTableContainer');
+
+      // Flatten inventory data
+      let inventoryData = [];
+      allProducts.forEach(product => {
+        (product.product_inventory || []).forEach(inv => {
+          inventoryData.push({
+            productTitle: product.title,
+            sku: product.sku,
+            size: inv.size,
+            stock: inv.stock || 0,
+            threshold: inv.low_stock_threshold || 10,
+            status: product.status
+          });
+        });
+      });
+
+      // Filter data
+      if (currentInventoryFilter === 'low') {
+        inventoryData = inventoryData.filter(item => item.stock <= item.threshold);
+      }
+
+      // Sort by stock ascending
+      inventoryData.sort((a, b) => a.stock - b.stock);
+
+      // Render table
+      let html = `
+        <table>
+          <thead>
+            <tr>
+              <th>Product Title</th>
+              <th>SKU</th>
+              <th>Size</th>
+              <th>Stock</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      inventoryData.forEach(item => {
+        const isLowStock = item.stock <= item.threshold;
+        const rowClass = isLowStock ? 'low-stock' : '';
+        const statusClass = `badge-${item.status}`;
+
+        html += `
+          <tr class="${rowClass}">
+            <td>${item.productTitle}</td>
+            <td>${item.sku}</td>
+            <td>${item.size}</td>
+            <td>${item.stock}</td>
+            <td><span class="status-badge ${statusClass}">${item.status}</span></td>
+          </tr>
+        `;
+      });
+
+      html += `</tbody></table>`;
+      container.innerHTML = html;
+
+      // Attach filter listeners
+      document.querySelectorAll('[data-filter]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+          e.target.classList.add('active');
+          currentInventoryFilter = e.target.dataset.filter;
+          renderInventoryTable();
+        });
+      });
+    };
+
+    // Catalog Table
+    const renderCatalogTable = async () => {
+      const container = document.getElementById('catalogTableContainer');
+
+      // Prepare catalog data
+      let catalogData = allProducts.map(p => ({
+        id: p.id,
+        sku: p.sku,
+        title: p.title,
+        gender: p.gender || 'N/A',
+        colorway: p.colorway || 'N/A',
+        msrp: p.msrp || 0,
+        currentPrice: p.current_price || 0,
+        status: p.status,
+        totalStock: (p.product_inventory || []).reduce((sum, inv) => sum + (inv.stock || 0), 0),
+        colorCount: p.product_colors?.length || 0,
+        imageCount: p.product_images?.length || 0
+      }));
+
+      // Sort
+      catalogData.sort((a, b) => {
+        const aVal = a[catalogSortConfig.key];
+        const bVal = b[catalogSortConfig.key];
+
+        if (typeof aVal === 'string') {
+          return catalogSortConfig.direction === 'asc'
+            ? aVal.localeCompare(bVal)
+            : bVal.localeCompare(aVal);
+        }
+
+        return catalogSortConfig.direction === 'asc'
+          ? aVal - bVal
+          : bVal - aVal;
+      });
+
+      // Render table
+      let html = `
+        <table>
+          <thead>
+            <tr>
+              <th class="sortable" data-key="sku">SKU</th>
+              <th class="sortable" data-key="title">Title</th>
+              <th class="sortable" data-key="gender">Gender</th>
+              <th class="sortable" data-key="colorway">Colorway</th>
+              <th class="sortable" data-key="msrp">MSRP</th>
+              <th class="sortable" data-key="currentPrice">Current Price</th>
+              <th class="sortable" data-key="status">Status</th>
+              <th class="sortable" data-key="totalStock">Total Stock</th>
+              <th class="sortable" data-key="colorCount"># Colors</th>
+              <th class="sortable" data-key="imageCount"># Images</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      catalogData.forEach(item => {
+        const statusClass = `badge-${item.status}`;
+        html += `
+          <tr>
+            <td>${item.sku}</td>
+            <td>${item.title}</td>
+            <td>${item.gender}</td>
+            <td>${item.colorway}</td>
+            <td>$${item.msrp.toFixed(2)}</td>
+            <td>$${item.currentPrice.toFixed(2)}</td>
+            <td><span class="status-badge ${statusClass}">${item.status}</span></td>
+            <td>${item.totalStock}</td>
+            <td>${item.colorCount}</td>
+            <td>${item.imageCount}</td>
+          </tr>
+        `;
+      });
+
+      html += `</tbody></table>`;
+      container.innerHTML = html;
+
+      // Attach sort listeners
+      container.querySelectorAll('[data-key]').forEach(th => {
+        th.addEventListener('click', () => {
+          const key = th.dataset.key;
+          if (catalogSortConfig.key === key) {
+            catalogSortConfig.direction = catalogSortConfig.direction === 'asc' ? 'desc' : 'asc';
+          } else {
+            catalogSortConfig.key = key;
+            catalogSortConfig.direction = 'asc';
+          }
+          renderCatalogTable();
+        });
+      });
+    };
+
+    // Price Analysis
+    const updatePriceAnalysis = () => {
+      const prices = allProducts.filter(p => p.msrp && p.current_price && p.member_price);
+
+      const avgMSRP = prices.length > 0
+        ? prices.reduce((sum, p) => sum + p.msrp, 0) / prices.length
+        : 0;
+
+      const avgCurrentPrice = prices.length > 0
+        ? prices.reduce((sum, p) => sum + p.current_price, 0) / prices.length
+        : 0;
+
+      const avgMemberPrice = prices.length > 0
+        ? prices.reduce((sum, p) => sum + p.member_price, 0) / prices.length
+        : 0;
+
+      const productsOnSale = allProducts.filter(p => p.current_price < p.msrp).length;
+      const salePercentage = allProducts.length > 0
+        ? ((productsOnSale / allProducts.length) * 100).toFixed(1)
+        : 0;
+
+      const avgDiscount = prices.length > 0
+        ? prices.reduce((sum, p) => sum + ((p.msrp - p.current_price) / p.msrp * 100), 0) / prices.length
+        : 0;
+
+      document.getElementById('avgMSRP').textContent = `$${avgMSRP.toFixed(2)}`;
+      document.getElementById('avgCurrentPrice').textContent = `$${avgCurrentPrice.toFixed(2)}`;
+      document.getElementById('avgMemberPrice').textContent = `$${avgMemberPrice.toFixed(2)}`;
+      document.getElementById('productsOnSale').textContent = productsOnSale;
+      document.getElementById('salePercentage').textContent = `${salePercentage}%`;
+      document.getElementById('avgDiscount').textContent = `${avgDiscount.toFixed(1)}%`;
+    };
+
+    // Reviews Summary
+    const updateReviewsSummary = async () => {
+      try {
+        const { data: reviews, error } = await supabase
+          .from('reviews')
+          .select('rating, product_id');
+
+        if (error) throw error;
+
+        const reviewsByProduct = {};
+        const ratings = [];
+
+        (reviews || []).forEach(review => {
+          if (!reviewsByProduct[review.product_id]) {
+            reviewsByProduct[review.product_id] = [];
+          }
+          reviewsByProduct[review.product_id].push(review);
+          if (review.rating) ratings.push(review.rating);
+        });
+
+        const avgRating = ratings.length > 0
+          ? (ratings.reduce((a, b) => a + b) / ratings.length).toFixed(2)
+          : 0;
+
+        const noReviewsCount = allProducts.filter(p => !reviewsByProduct[p.id]).length;
+
+        document.getElementById('avgRating').textContent = `${avgRating} ⭐`;
+        document.getElementById('totalReviews').textContent = reviews?.length || 0;
+        document.getElementById('noReviewsCount').textContent = noReviewsCount;
+
+        // Top rated products
+        const topProducts = allProducts
+          .filter(p => reviewsByProduct[p.id])
+          .map(p => {
+            const productReviews = reviewsByProduct[p.id];
+            const avgRating = productReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / productReviews.length;
+            return { ...p, avgRating, reviewCount: productReviews.length };
+          })
+          .sort((a, b) => b.avgRating - a.avgRating)
+          .slice(0, 5);
+
+        const topProductsContainer = document.getElementById('topProductsContainer');
+        topProductsContainer.innerHTML = topProducts.map(p => `
+          <div class="product-card">
+            <div class="product-title">${p.title}</div>
+            <div class="product-rating">
+              <span class="stars">${'⭐'.repeat(Math.round(p.avgRating))}</span>
+              <span>${p.avgRating.toFixed(1)}</span>
+            </div>
+            <div style="color: var(--text-secondary); font-size: 0.85rem;">${p.reviewCount} reviews</div>
+          </div>
+        `).join('');
+
+      } catch (error) {
+        console.error('Error loading reviews:', error);
+      }
+    };
+
+    // Export to CSV
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      let catalogData = allProducts.map(p => ({
+        sku: p.sku,
+        title: p.title,
+        gender: p.gender || 'N/A',
+        colorway: p.colorway || 'N/A',
+        msrp: p.msrp || 0,
+        currentPrice: p.current_price || 0,
+        status: p.status,
+        totalStock: (p.product_inventory || []).reduce((sum, inv) => sum + (inv.stock || 0), 0),
+        colorCount: p.product_colors?.length || 0,
+        imageCount: p.product_images?.length || 0
+      }));
+
+      const headers = ['SKU', 'Title', 'Gender', 'Colorway', 'MSRP', 'Current Price', 'Status', 'Total Stock', '# Colors', '# Images'];
+      const rows = catalogData.map(item => [
+        item.sku,
+        item.title,
+        item.gender,
+        item.colorway,
+        item.msrp,
+        item.currentPrice,
+        item.status,
+        item.totalStock,
+        item.colorCount,
+        item.imageCount
+      ]);
+
+      let csv = headers.join(',') + '\n';
+      rows.forEach(row => {
+        csv += row.map(cell => `"${cell}"`).join(',') + '\n';
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `zuwera-catalog-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // Initialize
+    initTheme();
+    checkAuth();
+
+    // Listen for auth changes
+    supabase.auth.onAuthStateChanged((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        currentUser = null;
+        showAuthContainer();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -7,17 +7,17 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#000000">
-  <title>Drop 001 — Zuwera</title>
-  <meta name="description" content="Zuwera Drop 001 — Jackets. Launching September 20, 2026. Sign up to be notified.">
+  <title>Release 001 — Zuwera</title>
+  <meta name="description" content="Zuwera Release 001 — Jackets. Launching September 20, 2026. Sign up to be notified.">
   <meta name="robots" content="index, follow">
-  <meta property="og:title" content="Drop 001 — Zuwera">
-  <meta property="og:description" content="Zuwera Drop 001 — Jackets. Launching September 20, 2026. Sign up to be notified.">
+  <meta property="og:title" content="Release 001 — Zuwera">
+  <meta property="og:description" content="Zuwera Release 001 — Jackets. Launching September 20, 2026. Sign up to be notified.">
   <meta property="og:url" content="https://zuwera.store/drop001.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Zuwera">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Drop 001 — Zuwera">
-  <meta name="twitter:description" content="Zuwera Drop 001 — Jackets. Launching September 20, 2026. Sign up to be notified.">
+  <meta name="twitter:title" content="Release 001 — Zuwera">
+  <meta name="twitter:description" content="Zuwera Release 001 — Jackets. Launching September 20, 2026. Sign up to be notified.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -236,7 +236,7 @@
       background: var(--black);
       position: relative;
       overflow: hidden;
-      cursor: default;
+      cursor: pointer;
     }
     .product-img {
       aspect-ratio: 3/4;
@@ -398,9 +398,9 @@
 
   <!-- DROP HERO -->
   <section class="drop-hero">
-    <p class="drop-label">Zuwera — Drop 001</p>
+    <p class="drop-label">Zuwera — Release 001</p>
     <h1 class="drop-title">
-      Drop<br>001
+      Release<br>001
       <span>Jackets</span>
     </h1>
     <p class="drop-date-label">Launching In</p>
@@ -433,15 +433,15 @@
       <input type="email" id="notify-email" placeholder="Enter your email to get notified">
       <button onclick="notifyMe()">Notify Me</button>
     </div>
-    <p class="notify-note">Be first to know when Drop 001 goes live. No spam, ever.</p>
+    <p class="notify-note">Be first to know when Release 001 goes live. No spam, ever.</p>
     <p class="notify-success" id="notify-success">✓ You're on the list.</p>
   </section>
 
   <!-- PRODUCTS GRID -->
   <section class="products-section">
     <div class="section-header">
-      <h2>Drop 001 — Jackets</h2>
-      <span>Dropping 09 / 20 / 2026</span>
+      <h2>Release 001 — Jackets</h2>
+      <span>Releasing 09 / 20 / 2026</span>
     </div>
 
     <div class="products-grid" id="products-grid">
@@ -495,7 +495,9 @@
       document.getElementById('notify-success').style.display = 'block';
     }
 
-    function scrollToNotify() {
+    function scrollToNotify(event) {
+      event.preventDefault();
+      event.stopPropagation();
       document.getElementById('notify-email').scrollIntoView({behavior:'smooth', block:'center'});
       setTimeout(() => document.getElementById('notify-email').focus(), 600);
     }
@@ -527,18 +529,20 @@
               <span>Image Coming Soon</span>
             </div>`;
         return `
-          <div class="product-card">
-            <div class="product-img">
-              ${imgHtml}
-              <div class="product-overlay"><span class="coming-soon-badge">${badge}</span></div>
+          <a href="product.html?id=${p.id}" style="text-decoration:none;color:inherit">
+            <div class="product-card">
+              <div class="product-img">
+                ${imgHtml}
+                <div class="product-overlay"><span class="coming-soon-badge">${badge}</span></div>
+              </div>
+              <div class="product-info">
+                <p class="product-category">${p.category}</p>
+                <p class="product-name">${p.name}</p>
+                <p class="product-price">${p.price || 'Price TBA'}</p>
+                <span class="product-notify" onclick="scrollToNotify(event)">Notify Me When Live →</span>
+              </div>
             </div>
-            <div class="product-info">
-              <p class="product-category">${p.category}</p>
-              <p class="product-name">${p.name}</p>
-              <p class="product-price">${p.price || 'Price TBA'}</p>
-              <span class="product-notify" onclick="scrollToNotify()">Notify Me When Live →</span>
-            </div>
-          </div>`;
+          </a>`;
       }).join('');
     })();
   </script>

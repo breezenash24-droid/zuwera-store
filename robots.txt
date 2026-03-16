@@ -5,5 +5,7 @@ Allow: /
 Disallow: /.netlify/
 Disallow: /api/
 Disallow: /admin.html
+Disallow: /analytics.html
+Disallow: /sw.js
 
 Sitemap: https://zuwera.store/sitemap.xml

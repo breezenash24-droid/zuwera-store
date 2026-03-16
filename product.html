@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product — ZUWERA</title>
+<meta name="description" content="Explore ZUWERA athletic sportswear products.">
+
+<!-- ── Open Graph ──────────────────────────────────────────────── -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ZUWERA">
+<meta property="og:url" content="https://zuwera.store/">
+<meta property="og:title" content="Product — ZUWERA">
+<meta property="og:description" content="Explore ZUWERA athletic sportswear products.">
+
+<!-- ── Canonical ─────────────────────────────────────────────────── -->
+<link rel="canonical" href="https://zuwera.store/product.html">
+
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+<!-- Stylesheets -->
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="nav.css">
+<link rel="stylesheet" href="product.css">
+
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- ANNOUNCEMENT BAR                                                 -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="announcement-bar" id="announcementBar">
+  Free standard shipping on orders $50+ <span>•</span> 60-day returns for members
+  <button class="announcement-close" onclick="this.parentElement.style.display='none'; document.body.classList.remove('has-bar')">×</button>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- NAVIGATION BAR                                                   -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<nav class="nav">
+  <div class="nav-left">
+    <a href="index.html">
+      <img src="images/logo.png" alt="ZUWERA" class="logo">
+    </a>
+  </div>
+  <div class="nav-right">
+    <button onclick="window.location.href='drop001.html'">Shop</button>
+    <button onclick="window.location.href='drop001.html'">Release 001</button>
+    <button id="cart-btn" onclick="window.location.href='cart.html'">
+      <span>Cart</span>
+      <span class="cart-count" id="cartCount">0</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- MAIN PRODUCT PAGE                                                -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<main class="product-page">
+
+  <!-- LOADING STATE -->
+  <div class="loading-state" id="loadingState">
+    <div class="spinner"></div>
+    <p>Loading product...</p>
+  </div>
+
+  <!-- ERROR STATE -->
+  <div class="error-state hidden" id="errorState">
+    <p id="errorMessage"></p>
+    <button onclick="window.location.href='drop001.html'">Back to Shop</button>
+  </div>
+
+  <!-- PRODUCT CONTAINER (hidden until loaded) -->
+  <div class="product-container hidden" id="productContainer">
+
+    <!-- ──────────────────────────────────────────────────────────── -->
+    <!-- PRODUCT LAYOUT: Gallery Left, Info Right                     -->
+    <!-- ──────────────────────────────────────────────────────────── -->
+    <div class="product-layout">
+
+      <!-- LEFT: IMAGE GALLERY -->
+      <div class="gallery-section">
+        <div class="gallery-main">
+          <img id="mainImage" src="" alt="Product" class="main-image">
+          <div class="low-stock-badge hidden" id="lowStockBadge">Low Stock</div>
+        </div>
+        <div class="gallery-thumbnails" id="galleryThumbnails"></div>
+      </div>
+
+      <!-- RIGHT: PRODUCT INFO -->
+      <div class="info-section">
+
+        <!-- PRODUCT HEADER -->
+        <div class="product-header">
+          <p class="product-subtitle" id="productSubtitle"></p>
+          <h1 class="product-title" id="productTitle"></h1>
+          <div class="product-gender-tag">
+            <span id="genderTag"></span>
+          </div>
+        </div>
+
+        <!-- PRICE SECTION -->
+        <div class="price-section">
+          <div class="price-current" id="priceDisplay"></div>
+          <p class="price-msrp" id="msrpDisplay"></p>
+          <p class="price-member" id="memberPrice"></p>
+        </div>
+
+        <!-- COLORWAY SELECTION -->
+        <div class="colorway-section">
+          <p class="section-label">Colorway</p>
+          <div class="color-swatches" id="colorSwatches"></div>
+          <p class="selected-color" id="selectedColor"></p>
+        </div>
+
+        <!-- SIZE SELECTION -->
+        <div class="size-section">
+          <div class="size-header">
+            <p class="section-label">Select Size</p>
+            <a href="sizeguide.html" class="size-guide-link">Size Guide</a>
+          </div>
+          <div class="size-grid" id="sizeGrid"></div>
+          <p class="stock-info" id="stockInfo"></p>
+        </div>
+
+        <!-- ADD TO CART BUTTON -->
+        <button class="add-to-cart-btn" id="addToCartBtn" onclick="addToCart()">
+          Add to Bag
+        </button>
+
+        <!-- PRODUCT ACCORDIONS -->
+        <div class="accordions-section">
+
+          <!-- SIZE & FIT -->
+          <div class="accordion">
+            <button class="accordion-header" onclick="toggleAccordion(this)">
+              <span>Size & Fit</span>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div class="accordion-body">
+              <p id="fitType"></p>
+              <p id="modelInfo"></p>
+              <p id="materialInfo"></p>
+            </div>
+          </div>
+
+          <!-- FABRIC & MATERIALS -->
+          <div class="accordion">
+            <button class="accordion-header" onclick="toggleAccordion(this)">
+              <span>Fabric & Materials</span>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div class="accordion-body">
+              <p id="materialComposition"></p>
+              <p id="fabricTech"></p>
+              <div id="sustainabilityTags" class="tags-group"></div>
+              <div id="certifications" class="tags-group"></div>
+            </div>
+          </div>
+
+          <!-- SHIPPING & RETURNS -->
+          <div class="accordion">
+            <button class="accordion-header" onclick="toggleAccordion(this)">
+              <span>Shipping & Returns</span>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div class="accordion-body">
+              <p>Free standard shipping on orders $50+</p>
+              <p>60-day returns for members, 30-day for non-members</p>
+            </div>
+          </div>
+
+          <!-- REVIEWS -->
+          <div class="accordion">
+            <button class="accordion-header" onclick="toggleAccordion(this)">
+              <span id="reviewsHeader">Reviews</span>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div class="accordion-body">
+              <div id="reviewsContent"></div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</main>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- FOOTER                                                           -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<footer>
+  <img src="images/logo.png" alt="ZUWERA" class="footer-logo">
+  <p>&copy; 2026 ZUWERA. All rights reserved.</p>
+</footer>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- COOKIE CONSENT BANNER                                            -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="cookie-consent-banner" id="cookieConsent">
+  <p>We use cookies to enhance your experience. By continuing, you agree to our use of cookies.</p>
+  <div class="cookie-buttons">
+    <button class="cookie-decline" onclick="handleCookieDecline()">Decline</button>
+    <button class="cookie-accept" onclick="handleCookieAccept()">Accept</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- SCRIPTS                                                          -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+
+// ══════════════════════════════════════════════════════════════════
+// SUPABASE INITIALIZATION
+// ══════════════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ══════════════════════════════════════════════════════════════════
+// STATE MANAGEMENT
+// ══════════════════════════════════════════════════════════════════
+let currentProduct = null;
+let selectedSize = null;
+let selectedColor = null;
+let selectedColorSku = null;
+let cartCount = 0;
+
+// ══════════════════════════════════════════════════════════════════
+// INITIALIZATION
+// ══════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async () => {
+  loadCartCount();
+  initializeCookieConsent();
+  document.body.classList.add('has-bar');
+
+  try {
+    await loadProduct();
+    renderProduct();
+  } catch (err) {
+    showError(err.message || 'Failed to load product');
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════
+// LOAD PRODUCT FROM SUPABASE
+// ══════════════════════════════════════════════════════════════════
+async function loadProduct() {
+  const params = new URLSearchParams(window.location.search);
+  const productId = params.get('id');
+  const sku = params.get('sku');
+
+  let query = supabase.from('products').select('*');
+
+  if (productId) {
+    query = query.eq('id', productId);
+  } else if (sku) {
+    query = query.eq('sku', sku);
+  } else {
+    throw new Error('No product ID or SKU provided');
+  }
+
+  const { data: productData, error } = await query.single();
+
+  if (error || !productData) {
+    throw new Error('Product not found');
+  }
+
+  currentProduct = productData;
+
+  // Load related data
+  const [imagesRes, colorsRes, inventoryRes, reviewsRes] = await Promise.all([
+    supabase
+      .from('product_images')
+      .select('*')
+      .eq('product_id', currentProduct.id)
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('product_colors')
+      .select('*')
+      .eq('product_id', currentProduct.id)
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('product_inventory')
+      .select('*')
+      .eq('product_id', currentProduct.id),
+    supabase
+      .from('reviews')
+      .select('*')
+      .eq('product_id', currentProduct.id)
+      .order('created_at', { ascending: false })
+  ]);
+
+  currentProduct.images = imagesRes.data || [];
+  currentProduct.colors = colorsRes.data || [];
+  currentProduct.inventory = inventoryRes.data || [];
+  currentProduct.reviews = reviewsRes.data || [];
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RENDER PRODUCT
+// ══════════════════════════════════════════════════════════════════
+function renderProduct() {
+  if (!currentProduct) return;
+
+  document.getElementById('loadingState').classList.add('hidden');
+  document.getElementById('productContainer').classList.remove('hidden');
+
+  // ── Product Header ──
+  document.getElementById('productSubtitle').textContent = currentProduct.gender || 'Apparel';
+  document.getElementById('productTitle').textContent = currentProduct.title;
+  document.getElementById('genderTag').textContent = (currentProduct.gender || 'All').toUpperCase();
+
+  // ── Price ──
+  renderPrice();
+
+  // ── Gallery ──
+  renderGallery();
+
+  // ── Colors ──
+  renderColors();
+
+  // ── Inventory & Sizes ──
+  renderSizes();
+
+  // ── Accordions ──
+  renderAccordions();
+
+  // ── Check low stock ──
+  checkLowStock();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RENDER PRICE
+// ══════════════════════════════════════════════════════════════════
+function renderPrice() {
+  const current = currentProduct.current_price;
+  const msrp = currentProduct.msrp;
+  const member = currentProduct.member_price;
+
+  document.getElementById('priceDisplay').innerHTML = `
+    $${current.toFixed(2)}
+  `;
+
+  if (msrp && msrp > current) {
+    document.getElementById('msrpDisplay').innerHTML = `
+      MSRP: <strike>$${msrp.toFixed(2)}</strike>
+    `;
+  } else {
+    document.getElementById('msrpDisplay').innerHTML = '';
+  }
+
+  if (member && member < current) {
+    document.getElementById('memberPrice').innerHTML = `
+      Member Price: $${member.toFixed(2)}
+    `;
+  } else {
+    document.getElementById('memberPrice').innerHTML = '';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RENDER GALLERY
+// ══════════════════════════════════════════════════════════════════
+function renderGallery() {
+  const mainImage = document.getElementById('mainImage');
+  const thumbContainer = document.getElementById('galleryThumbnails');
+  thumbContainer.innerHTML = '';
+
+  if (currentProduct.images.length === 0) {
+    mainImage.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"%3E%3Crect fill="%23111" width="400" height="500"/%3E%3C/svg%3E';
+    mainImage.alt = 'No image available';
+    return;
+  }
+
+  // Set first image as main
+  mainImage.src = currentProduct.images[0].image_url;
+  mainImage.alt = currentProduct.images[0].alt_text || currentProduct.title;
+
+  // Create thumbnails
+  currentProduct.images.forEach((img, idx) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'thumbnail';
+    if (idx === 0) thumb.classList.add('active');
+
+    const thumbImg = document.createElement('img');
+    thumbImg.src = img.image_url;
+    thumbImg.alt = img.alt_text || `${currentProduct.title} - View ${idx + 1}`;
+
+    thumb.appendChild(thumbImg);
+    thumb.addEventListener('click', () => {
+      document.querySelectorAll('.thumbnail').forEach(t => t.classList.remove('active'));
+      thumb.classList.add('active');
+      mainImage.src = img.image_url;
+      mainImage.alt = img.alt_text || currentProduct.title;
+    });
+
+    thumbContainer.appendChild(thumb);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RENDER COLORS
+// ══════════════════════════════════════════════════════════════════
+function renderColors() {
+  const container = document.getElementById('colorSwatches');
+  container.innerHTML = '';
+
+  if (currentProduct.colors.length === 0) {
+    document.querySelector('.colorway-section').style.display = 'none';
+    return;
+  }
+
+  currentProduct.colors.forEach((color, idx) => {
+    const swatch = document.createElement('button');
+    swatch.className = 'color-swatch';
+    if (idx === 0) {
+      swatch.classList.add('active');
+      selectedColor = color;
+      selectedColorSku = color.variant_sku;
+    }
+
+    swatch.style.backgroundColor = color.hex_color;
+    swatch.title = color.color_name;
+    swatch.setAttribute('data-color-name', color.color_name);
+
+    swatch.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+      swatch.classList.add('active');
+      selectedColor = color;
+      selectedColorSku = color.variant_sku;
+      document.getElementById('selectedColor').textContent = color.color_name;
+      selectedSize = null; // Reset size when color changes
+    });
+
+    container.appendChild(swatch);
+  });
+
+  document.getElementById('selectedColor').textContent = currentProduct.colors[0]?.color_name || '';
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RENDER SIZES
+// ══════════════════════════════════════════════════════════════════
+function renderSizes() {
+  const sizeGrid = document.getElementById('sizeGrid');
+  sizeGrid.innerHTML = '';
+
+  // Get unique sizes and their stock
+  const sizeMap = new Map();
+  currentProduct.inventory.forEach(inv => {
+    sizeMap.set(inv.size, inv.stock_quantity);
+  });
+
+  // Standard size order
+  const standardSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+  const sizes = [...new Set([...sizeMap.keys(), ...standardSizes])].filter(s => sizeMap.has(s));
+
+  if (sizes.length === 0) {
+    sizeGrid.innerHTML = '<p style="opacity: 0.5;">No sizes available</p>';
+    return;
+  }
+
+  sizes.forEach(size => {
+    const stock = sizeMap.get(size) || 0;
+    const btn = document.createElement('button');
+    btn.className = 'size-btn';
+    btn.textContent = size;
+    btn.dataset.size = size;
+
+    if (stock === 0) {
+      btn.classList.add('disabled');
+      btn.disabled = true;
+    }
+
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedSize = size;
+      updateStockInfo();
+    });
+
+    sizeGrid.appendChild(btn);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// UPDATE STOCK INFO
+// ══════════════════════════════════════════════════════════════════
+function updateStockInfo() {
+  if (!selectedSize) {
+    document.getElementById('stockInfo').textContent = '';
+    return;
+  }
+
+  const inventory = currentProduct.inventory.find(inv => inv.size === selectedSize);
+  const stock = inventory?.stock_quantity || 0;
+  const threshold = currentProduct.low_stock_threshold || 10;
+
+  if (stock === 0) {
+    document.getElementById('stockInfo').textContent = 'Out of stock';
+    document.getElementById('addToCartBtn').disabled = true;
+    document.getElementById('addToCartBtn').classList.add('disabled');
+  } else if (stock <= threshold) {
+    document.getElementById('stockInfo').textContent = `Only ${stock} left in stock`;
+    document.getElementById('addToCartBtn').disabled = false;
+    document.getElementById('addToCartBtn').classList.remove('disabled');
+  } else {
+    document.getElementById('stockInfo').textContent = '';
+    document.getElementById('addToCartBtn').disabled = false;
+    document.getElementById('addToCartBtn').classList.remove('disabled');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CHECK LOW STOCK
+// ══════════════════════════════════════════════════════════════════
+function checkLowStock() {
+  const threshold = currentProduct.low_stock_threshold || 10;
+  const hasLowStock = currentProduct.inventory.some(inv => inv.stock_quantity > 0 && inv.stock_quantity <= threshold);
+
+  if (hasLowStock) {
+    document.getElementById('lowStockBadge').classList.remove('hidden');
+  } else {
+    document.getElementById('lowStockBadge').classList.add('hidden');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RENDER ACCORDIONS
+// ══════════════════════════════════════════════════════════════════
+function renderAccordions() {
+  // Size & Fit
+  document.getElementById('fitType').textContent = `Fit: ${currentProduct.fit_type || 'Standard fit'}`;
+
+  if (currentProduct.model_height && currentProduct.model_size_worn) {
+    document.getElementById('modelInfo').textContent =
+      `Model is ${currentProduct.model_height} tall and wearing size ${currentProduct.model_size_worn}`;
+  } else {
+    document.getElementById('modelInfo').textContent = '';
+  }
+
+  document.getElementById('materialInfo').textContent =
+    `Material: ${currentProduct.material_composition || 'High-quality athletic fabric'}`;
+
+  // Fabric & Materials
+  document.getElementById('materialComposition').textContent =
+    `Material: ${currentProduct.material_composition || 'N/A'}`;
+
+  if (currentProduct.fabric_technology) {
+    document.getElementById('fabricTech').innerHTML = `
+      <strong>Fabric Technology:</strong><br>
+      ${currentProduct.fabric_technology}
+    `;
+  }
+
+  // Sustainability & Certifications
+  renderTags('sustainabilityTags', currentProduct.sustainability_tags, 'Sustainability');
+  renderTags('certifications', currentProduct.certifications, 'Certifications');
+
+  // Reviews
+  renderReviews();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RENDER TAGS
+// ══════════════════════════════════════════════════════════════════
+function renderTags(elementId, tags, label) {
+  const container = document.getElementById(elementId);
+  container.innerHTML = '';
+
+  if (!tags || tags.length === 0) {
+    return;
+  }
+
+  const heading = document.createElement('p');
+  heading.innerHTML = `<strong>${label}:</strong>`;
+  container.appendChild(heading);
+
+  const tagsContainer = document.createElement('div');
+  tagsContainer.className = 'tags-list';
+
+  tags.forEach(tag => {
+    const tagEl = document.createElement('span');
+    tagEl.className = 'tag';
+    tagEl.textContent = tag;
+    tagsContainer.appendChild(tagEl);
+  });
+
+  container.appendChild(tagsContainer);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RENDER REVIEWS
+// ══════════════════════════════════════════════════════════════════
+function renderReviews() {
+  const content = document.getElementById('reviewsContent');
+  content.innerHTML = '';
+
+  if (!currentProduct.reviews || currentProduct.reviews.length === 0) {
+    content.innerHTML = '<p style="opacity: 0.6;">No reviews yet</p>';
+    return;
+  }
+
+  // Calculate average rating
+  const avgRating = (currentProduct.reviews.reduce((sum, r) => sum + r.rating, 0) / currentProduct.reviews.length).toFixed(1);
+
+  // Update header
+  document.getElementById('reviewsHeader').textContent =
+    `Reviews (${avgRating} • ${currentProduct.reviews.length})`;
+
+  // Show latest 3 reviews
+  const displayReviews = currentProduct.reviews.slice(0, 3);
+
+  displayReviews.forEach(review => {
+    const reviewEl = document.createElement('div');
+    reviewEl.className = 'review-item';
+    reviewEl.innerHTML = `
+      <div class="review-header">
+        <div class="review-rating">${renderStars(review.rating)}</div>
+        <span class="review-author">${review.nickname || 'Anonymous'}</span>
+        ${review.verified_purchase ? '<span class="verified-badge">Verified Purchase</span>' : ''}
+      </div>
+      <p class="review-title">${review.title}</p>
+      <p class="review-body">${review.body}</p>
+    `;
+    content.appendChild(reviewEl);
+  });
+
+  if (currentProduct.reviews.length > 3) {
+    const moreBtn = document.createElement('button');
+    moreBtn.className = 'more-reviews-btn';
+    moreBtn.textContent = `View All ${currentProduct.reviews.length} Reviews`;
+    moreBtn.onclick = () => expandReviews();
+    content.appendChild(moreBtn);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RENDER STARS
+// ══════════════════════════════════════════════════════════════════
+function renderStars(rating) {
+  let html = '';
+  for (let i = 1; i <= 5; i++) {
+    if (i <= rating) {
+      html += '★';
+    } else if (i - 0.5 <= rating) {
+      html += '✦';
+    } else {
+      html += '☆';
+    }
+  }
+  return html;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// EXPAND REVIEWS
+// ══════════════════════════════════════════════════════════════════
+function expandReviews() {
+  const content = document.getElementById('reviewsContent');
+  content.innerHTML = '';
+
+  currentProduct.reviews.forEach(review => {
+    const reviewEl = document.createElement('div');
+    reviewEl.className = 'review-item';
+    reviewEl.innerHTML = `
+      <div class="review-header">
+        <div class="review-rating">${renderStars(review.rating)}</div>
+        <span class="review-author">${review.nickname || 'Anonymous'}</span>
+        ${review.verified_purchase ? '<span class="verified-badge">Verified Purchase</span>' : ''}
+      </div>
+      <p class="review-title">${review.title}</p>
+      <p class="review-body">${review.body}</p>
+    `;
+    content.appendChild(reviewEl);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ACCORDION TOGGLE
+// ══════════════════════════════════════════════════════════════════
+function toggleAccordion(header) {
+  const body = header.nextElementSibling;
+  const isOpen = body.style.maxHeight;
+
+  // Close all other accordions
+  document.querySelectorAll('.accordion-body').forEach(b => {
+    b.style.maxHeight = null;
+  });
+  document.querySelectorAll('.accordion-header').forEach(h => {
+    h.classList.remove('open');
+  });
+
+  // Toggle current
+  if (!isOpen) {
+    header.classList.add('open');
+    body.style.maxHeight = body.scrollHeight + 'px';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ADD TO CART
+// ══════════════════════════════════════════════════════════════════
+function addToCart() {
+  if (!selectedSize) {
+    alert('Please select a size');
+    return;
+  }
+
+  const cartItem = {
+    productId: currentProduct.id,
+    sku: selectedColorSku || currentProduct.sku,
+    title: currentProduct.title,
+    size: selectedSize,
+    colorName: selectedColor?.color_name || 'Standard',
+    price: currentProduct.current_price,
+    image: currentProduct.images[0]?.image_url || '',
+    quantity: 1
+  };
+
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+  // Check if item already in cart
+  const existingIdx = cart.findIndex(
+    item => item.productId === cartItem.productId &&
+             item.size === cartItem.size &&
+             item.colorName === cartItem.colorName
+  );
+
+  if (existingIdx > -1) {
+    cart[existingIdx].quantity += 1;
+  } else {
+    cart.push(cartItem);
+  }
+
+  localStorage.setItem('cart', JSON.stringify(cart));
+  loadCartCount();
+
+  // Show success toast
+  showToast('Added to bag');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// LOAD CART COUNT
+// ══════════════════════════════════════════════════════════════════
+function loadCartCount() {
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  document.getElementById('cartCount').textContent = cartCount;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SHOW TOAST
+// ══════════════════════════════════════════════════════════════════
+function showToast(message) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.className = 'toast show';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 2000);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ERROR HANDLING
+// ══════════════════════════════════════════════════════════════════
+function showError(message) {
+  document.getElementById('loadingState').classList.add('hidden');
+  document.getElementById('errorState').classList.remove('hidden');
+  document.getElementById('errorMessage').textContent = message;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// COOKIE CONSENT
+// ══════════════════════════════════════════════════════════════════
+function initializeCookieConsent() {
+  const consent = localStorage.getItem('cookieConsent');
+  if (consent) {
+    document.getElementById('cookieConsent').style.display = 'none';
+  }
+}
+
+function handleCookieAccept() {
+  localStorage.setItem('cookieConsent', 'accepted');
+  document.getElementById('cookieConsent').style.display = 'none';
+}
+
+function handleCookieDecline() {
+  localStorage.setItem('cookieConsent', 'declined');
+  document.getElementById('cookieConsent').style.display = 'none';
+}
+
+</script>
+
+</body>
+</html>

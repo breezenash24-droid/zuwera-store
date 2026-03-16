@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ZUWERA — For Those Who Dream</title>
-<meta name="description" content="Bold athletic sportswear. Drop 001 launching September 20, 2026.">
+<meta name="description" content="Bold athletic sportswear. Release 001 launching September 20, 2026.">
 
 <!-- ── Open Graph ──────────────────────────────────────────────── -->
 <meta property="og:type"        content="website">
 <meta property="og:site_name"   content="ZUWERA">
 <meta property="og:url"         content="https://zuwera.store/">
 <meta property="og:title"       content="ZUWERA — For Those Who Dream">
-<meta property="og:description" content="Bold athletic sportswear. Drop 001 launching September 20, 2026.">
+<meta property="og:description" content="Bold athletic sportswear. Release 001 launching September 20, 2026.">
 <meta property="og:image"       content="https://zuwera.store/images/og-image.jpg">
 <meta property="og:image:width"  content="1200">
 <meta property="og:image:height" content="630">
@@ -20,7 +20,7 @@
 <meta name="twitter:card"        content="summary_large_image">
 <meta name="twitter:site"        content="@Zuwera">
 <meta name="twitter:title"       content="ZUWERA — For Those Who Dream">
-<meta name="twitter:description" content="Bold athletic sportswear. Drop 001 launching September 20, 2026.">
+<meta name="twitter:description" content="Bold athletic sportswear. Release 001 launching September 20, 2026.">
 <meta name="twitter:image"       content="https://zuwera.store/images/og-image.jpg">
 
 <!-- ── Canonical ─────────────────────────────────────────────────── -->
@@ -49,8 +49,8 @@
     },
     {
       "@type": "ItemList",
-      "name": "Drop 001 — Jackets",
-      "description": "Zuwera's debut drop, launching September 20 2026.",
+      "name": "Release 001 — Jackets",
+      "description": "Zuwera's debut release, launching September 20 2026.",
       "url": "https://zuwera.store/#drop001",
       "itemListElement": [
         {
@@ -117,6 +117,13 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-DCVWDZ8ZBC"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-DCVWDZ8ZBC');</script>
+
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#09090b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
 <style>
 /* ─────────────────────────────────────────────
    RESET & VARIABLES
@@ -208,7 +215,7 @@ nav#nav.scrolled{
   font-size:1.6rem;letter-spacing:.12em;
   color:var(--paper);
 }
-.nav-logo img{height:32px;width:auto;display:block;filter:invert(1);mix-blend-mode:screen}
+.nav-logo img{height:32px;width:auto;display:block}
 .nav-right{display:flex;align-items:center;gap:.4rem}
 .nbtn{
   font-family:var(--fm);font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;
@@ -590,7 +597,7 @@ footer{
   font-family:var(--fw);font-weight:900;font-style:italic;
   font-size:1.4rem;letter-spacing:.12em;opacity:.7;
 }
-.flogo img{height:28px;width:auto;display:block;opacity:.7;filter:invert(1);mix-blend-mode:screen}
+.flogo img{height:28px;width:auto;display:block;opacity:.7}
 .flinks{display:flex;gap:2rem;justify-content:center;flex-wrap:wrap}
 .flinks a{
   font-family:var(--fm);font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;
@@ -938,12 +945,12 @@ footer{
     <img src="images/hero.jpg" alt="" fetchpriority="high">
   </div>
   <div class="hero-inner">
-    <p class="hero-kicker">Drop 001 — Sept 20, 2026</p>
+    <p class="hero-kicker">Release 001 — Sept 20, 2026</p>
     <h1 class="hero-h1">For Those<br><em>Who Dream.</em></h1>
     <p class="hero-sub">Bold athletic sportswear built for the relentless. Those who move with purpose.</p>
     <div class="hero-cta-row">
       <button class="btn-outline" onclick="document.getElementById('drop001').scrollIntoView({behavior:'smooth'})">
-        Explore Drop 001
+        Explore Release 001
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </button>
       <button class="btn-ghost" onclick="document.getElementById('home-notify-email').scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>document.getElementById('home-notify-email').focus(),600)">
@@ -964,17 +971,17 @@ footer{
 <div class="marquee">
   <div class="marquee-track">
     <span class="marquee-item">ZUWERA</span><span class="marquee-item accent">✦</span>
-    <span class="marquee-item">DROP 001</span><span class="marquee-item accent">✦</span>
+    <span class="marquee-item">RELEASE 001</span><span class="marquee-item accent">✦</span>
     <span class="marquee-item">FOR THOSE WHO DREAM</span><span class="marquee-item accent">✦</span>
     <span class="marquee-item">SEP 20 2026</span><span class="marquee-item accent">✦</span>
     <span class="marquee-item">ATHLETIC SPORTSWEAR</span><span class="marquee-item accent">✦</span>
     <span class="marquee-item">ZUWERA</span><span class="marquee-item accent">✦</span>
-    <span class="marquee-item">DROP 001</span><span class="marquee-item accent">✦</span>
+    <span class="marquee-item">RELEASE 001</span><span class="marquee-item accent">✦</span>
     <span class="marquee-item">FOR THOSE WHO DREAM</span><span class="marquee-item accent">✦</span>
     <span class="marquee-item">SEP 20 2026</span><span class="marquee-item accent">✦</span>
     <span class="marquee-item">ATHLETIC SPORTSWEAR</span><span class="marquee-item accent">✦</span>
     <span class="marquee-item">ZUWERA</span><span class="marquee-item accent">✦</span>
-    <span class="marquee-item">DROP 001</span><span class="marquee-item accent">✦</span>
+    <span class="marquee-item">RELEASE 001</span><span class="marquee-item accent">✦</span>
     <span class="marquee-item">FOR THOSE WHO DREAM</span><span class="marquee-item accent">✦</span>
     <span class="marquee-item">SEP 20 2026</span><span class="marquee-item accent">✦</span>
     <span class="marquee-item">ATHLETIC SPORTSWEAR</span><span class="marquee-item accent">✦</span>
@@ -990,10 +997,10 @@ footer{
   <div>
     <div class="about-body">
       <p>Bold, athletic, and designed for those who dream big. Zuwera is sportswear built for the relentless — those who push past limits and never stop.</p>
-      <p>Drop 001 is the beginning. A collection of jackets crafted for those who move with purpose and style.</p>
+      <p>Release 001 is the beginning. A collection of jackets crafted for those who move with purpose and style.</p>
     </div>
     <div class="about-stats">
-      <div><div class="stat-n">001</div><div class="stat-l">First Drop</div></div>
+      <div><div class="stat-n">001</div><div class="stat-l">First Release</div></div>
       <div><div class="stat-n">2026</div><div class="stat-l">Launching</div></div>
       <div><div class="stat-n">3</div><div class="stat-l">Styles</div></div>
     </div>
@@ -1005,9 +1012,9 @@ footer{
   <div class="drop-bg-num">001</div>
   <div class="drop-inner">
     <div>
-      <p class="drop-eyebrow">Zuwera Drop 001</p>
+      <p class="drop-eyebrow">Zuwera Release 001</p>
       <div class="drop-title">
-        Drop<br><span>001</span>
+        Release<br><span>001</span>
       </div>
     </div>
     <div class="drop-right">
@@ -1035,8 +1042,8 @@ footer{
   <!-- Products -->
   <div class="products-section">
     <div class="sec-head">
-      <h2>Drop 001 — Jackets</h2>
-      <span>Dropping 09 / 20 / 2026</span>
+      <h2>Release 001 — Jackets</h2>
+      <span>Releasing 09 / 20 / 2026</span>
     </div>
     <div class="pgrid" id="products-grid">
       <!-- Products loaded dynamically from Supabase -->
@@ -1052,7 +1059,7 @@ footer{
     <span style="display:none">ZUWERA</span>
   </div>
   <nav class="flinks">
-    <a href="drop001.html">Drop 001</a>
+    <a href="drop001.html">Release 001</a>
     <a href="sizeguide.html">Size Guide</a>
     <a href="policies.html">Policies</a>
     <a href="mailto:nasirubreeze@zuwera.store">Contact</a>
@@ -1665,5 +1672,28 @@ function scrollToNotify() {
 }
 </script>
 <script src="reviews.js" defer></script>
+
+<!-- PWA Service Worker -->
+<script>
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{})}
+</script>
+
+<!-- Cookie Consent / GDPR -->
+<div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#111;border-top:1px solid rgba(244,241,235,.1);padding:1rem 2rem;font-family:'DM Sans',sans-serif;font-size:.8rem;color:rgba(244,241,235,.7);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem">
+  <p style="margin:0;flex:1;min-width:200px">We use cookies to improve your experience. By continuing, you agree to our <a href="/policies.html" style="color:#F891A5;text-decoration:underline">Privacy Policy</a>.</p>
+  <div style="display:flex;gap:.5rem">
+    <button onclick="acceptCookies()" style="padding:.5rem 1.2rem;background:#f4f1eb;color:#09090b;border:none;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif">Accept</button>
+    <button onclick="declineCookies()" style="padding:.5rem 1.2rem;background:none;color:rgba(244,241,235,.5);border:1px solid rgba(244,241,235,.15);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif">Decline</button>
+  </div>
+</div>
+<script>
+(function(){
+  if(!localStorage.getItem('zw_cookie_consent')){
+    document.getElementById('cookie-banner').style.display='flex';
+  }
+})();
+function acceptCookies(){localStorage.setItem('zw_cookie_consent','accepted');document.getElementById('cookie-banner').style.display='none'}
+function declineCookies(){localStorage.setItem('zw_cookie_consent','declined');document.getElementById('cookie-banner').style.display='none'}
+</script>
 </body>
 </html>
