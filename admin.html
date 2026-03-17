@@ -741,7 +741,61 @@
                 height: 40px;
             }
         }
-    </style>
+    
+        /* ============ Enhanced Polish ============ */
+        .stat-card { transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s; }
+        .stat-card:hover { transform: translateY(-2px); }
+        
+        .sidebar-logo {
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .tab-button {
+            border-radius: 20px;
+            padding: 8px 18px;
+            transition: all 0.2s;
+        }
+
+        .tab-button.active {
+            background-color: var(--accent);
+            color: #fff;
+        }
+
+        .products-table tbody tr { cursor: pointer; }
+
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+
+        .section-title {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--text-muted);
+            font-weight: 700;
+            margin: 28px 0 16px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.4; }
+
+        .auth-form h1 {
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-link .nav-icon { font-size: 1.1rem; width: 22px; text-align: center; }
+
+        .status-badge { border-radius: 20px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px; }
+</style>
 </head>
 <body>
     <!-- Auth Gate -->
@@ -867,7 +921,7 @@
                     <button type="button" class="tab-button" data-tab="colors">Color Variants</button>
                     <button type="button" class="tab-button" data-tab="inventory">Sizes & Inventory</button>
                     <button type="button" class="tab-button" data-tab="technical">Technical</button>
-                    <button type="button" class="tab-button" data-tab="status">Status</button>
+                    <button type="button" class="tab-button" data-tab="tab-status">Status</button>
                 </div>
 
                 <!-- Tab: Core Identity -->
@@ -884,8 +938,50 @@
                         <input type="text" id="title" class="form-input" placeholder="e.g., Classic Crew Neck Tee" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Subtitle / Category <span class="required">*</span></label>
-                        <input type="text" id="subtitle" class="form-input" placeholder="e.g., Essentials" required>
+                        <label class="form-label">Category <span class="required">*</span></label>
+                        <select id="subtitle" class="form-select" required>
+                        <option value="">Select Category</option>
+                        <optgroup label="Tops">
+                            <option value="T-Shirts">T-Shirts</option>
+                            <option value="Tank Tops">Tank Tops</option>
+                            <option value="Long Sleeve Tops">Long Sleeve Tops</option>
+                            <option value="Polo Shirts">Polo Shirts</option>
+                            <option value="Crop Tops">Crop Tops</option>
+                            <option value="Sports Bras">Sports Bras</option>
+                        </optgroup>
+                        <optgroup label="Hoodies & Sweaters">
+                            <option value="Hoodies">Hoodies</option>
+                            <option value="Zip-Up Hoodies">Zip-Up Hoodies</option>
+                            <option value="Crewneck Sweaters">Crewneck Sweaters</option>
+                            <option value="Pullovers">Pullovers</option>
+                        </optgroup>
+                        <optgroup label="Bottoms">
+                            <option value="Joggers">Joggers</option>
+                            <option value="Sweatpants">Sweatpants</option>
+                            <option value="Shorts">Shorts</option>
+                            <option value="Leggings">Leggings</option>
+                            <option value="Track Pants">Track Pants</option>
+                            <option value="Cargo Pants">Cargo Pants</option>
+                        </optgroup>
+                        <optgroup label="Outerwear">
+                            <option value="Jackets">Jackets</option>
+                            <option value="Windbreakers">Windbreakers</option>
+                            <option value="Puffer Jackets">Puffer Jackets</option>
+                            <option value="Vests">Vests</option>
+                        </optgroup>
+                        <optgroup label="Sets & Matching">
+                            <option value="Tracksuits">Tracksuits</option>
+                            <option value="Matching Sets">Matching Sets</option>
+                            <option value="Co-ord Sets">Co-ord Sets</option>
+                        </optgroup>
+                        <optgroup label="Accessories">
+                            <option value="Caps">Caps</option>
+                            <option value="Bags">Bags</option>
+                            <option value="Socks">Socks</option>
+                            <option value="Headbands">Headbands</option>
+                            <option value="Wristbands">Wristbands</option>
+                        </optgroup>
+                    </select>
                     </div>
                     <div class="form-grid">
                         <div class="form-group">
@@ -978,6 +1074,22 @@
                             <input type="number" id="pomWaist" class="form-input" placeholder="Waist" step="0.1">
                             <input type="number" id="pomInseam" class="form-input" placeholder="Inseam" step="0.1">
                         </div>
+                            <div class="form-group">
+                                <label class="form-label">Hips (cm)</label>
+                                <input type="number" id="pomHips" class="form-input" step="0.1" min="0" placeholder="e.g., 96">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Length (cm)</label>
+                                <input type="number" id="pomLength" class="form-input" step="0.1" min="0" placeholder="e.g., 70">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Shoulder (cm)</label>
+                                <input type="number" id="pomShoulder" class="form-input" step="0.1" min="0" placeholder="e.g., 45">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Sleeve (cm)</label>
+                                <input type="number" id="pomSleeve" class="form-input" step="0.1" min="0" placeholder="e.g., 65">
+                            </div>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Specialty Sizing</label>
@@ -1069,11 +1181,11 @@
                 </div>
 
                 <!-- Tab: Status -->
-                <div id="status" class="tab-content">
+                <div id="tab-status" class="tab-content">
                     <div class="form-grid">
                         <div class="form-group">
                             <label class="form-label">Status <span class="required">*</span></label>
-                            <select id="status" class="form-select" required>
+                            <select id="productStatus" class="form-select" required>
                                 <option value="">Select Status</option>
                                 <option value="Draft">Draft</option>
                                 <option value="Coming Soon">Coming Soon</option>
@@ -1584,7 +1696,7 @@
         });
 
         async function saveProduct(publish) {
-            const mandatoryFields = ['sku', 'title', 'subtitle', 'gender', 'colorway', 'materialComposition', 'msrp', 'currentPrice', 'status'];
+            const mandatoryFields = ['sku', 'title', 'subtitle', 'gender', 'colorway', 'materialComposition', 'msrp', 'currentPrice', 'productStatus'];
             const form = document.getElementById('productForm');
 
             let isValid = true;
@@ -1629,11 +1741,15 @@
                     breathability_mvtr: document.getElementById('breathabilityMvtr').value ? parseFloat(document.getElementById('breathabilityMvtr').value) : null,
                     pom_chest: document.getElementById('pomChest').value ? parseFloat(document.getElementById('pomChest').value) : null,
                     pom_waist: document.getElementById('pomWaist').value ? parseFloat(document.getElementById('pomWaist').value) : null,
-                    pom_inseam: document.getElementById('pomInseam').value ? parseFloat(document.getElementById('pomInseam').value) : null,
+                    pom_inseam: document.getElementById('pomInseam').value ? parseFloat(document.getElementById('pomInseam').value) : null,,
+                    pom_hips: document.getElementById('pomHips').value ? parseFloat(document.getElementById('pomHips').value) : null,
+                    pom_length: document.getElementById('pomLength').value ? parseFloat(document.getElementById('pomLength').value) : null,
+                    pom_shoulder: document.getElementById('pomShoulder').value ? parseFloat(document.getElementById('pomShoulder').value) : null,
+                    pom_sleeve: document.getElementById('pomSleeve').value ? parseFloat(document.getElementById('pomSleeve').value) : null
                     country_of_origin: document.getElementById('countryOfOrigin').value,
                     care_instructions: document.getElementById('careInstructions').value,
                     drop_number: document.getElementById('dropNumber').value,
-                    status: publish ? document.getElementById('status').value : 'Draft',
+                    status: publish ? document.getElementById('productStatus').value : 'Draft',
                     sort_order: document.getElementById('sortOrder').value ? parseInt(document.getElementById('sortOrder').value) : null,
                     low_stock_threshold: parseInt(document.getElementById('lowStockThreshold').value) || 10
                 };
@@ -1737,10 +1853,14 @@
             document.getElementById('pomChest').value = product.pom_chest || '';
             document.getElementById('pomWaist').value = product.pom_waist || '';
             document.getElementById('pomInseam').value = product.pom_inseam || '';
+            document.getElementById('pomHips').value = product.pom_hips || '';
+            document.getElementById('pomLength').value = product.pom_length || '';
+            document.getElementById('pomShoulder').value = product.pom_shoulder || '';
+            document.getElementById('pomSleeve').value = product.pom_sleeve || '';
             document.getElementById('countryOfOrigin').value = product.country_of_origin || '';
             document.getElementById('careInstructions').value = product.care_instructions || '';
             document.getElementById('dropNumber').value = product.drop_number || '';
-            document.getElementById('status').value = product.status;
+            document.getElementById('productStatus').value = product.status;
             document.getElementById('sortOrder').value = product.sort_order || '';
             document.getElementById('lowStockThreshold').value = product.low_stock_threshold || 10;
 
