@@ -770,10 +770,10 @@
             <nav class="sidebar-nav">
                 <div class="nav-section">
                     <div class="nav-section-title">Main</div>
-                    <a class="nav-link active" data-page="dashboard">Dashboard</a>
-                    <a class="nav-link" data-page="products">Products</a>
-                    <a class="nav-link" data-page="analytics">Analytics</a>
-                    <a class="nav-link" data-page="settings">Settings</a>
+                    <a class="nav-link active" data-page="dashboard" onclick="navigateTo('dashboard')">Dashboard</a>
+                    <a class="nav-link" data-page="products" onclick="navigateTo('products')">Products</a>
+                    <a class="nav-link" data-page="analytics" onclick="navigateTo('analytics')">Analytics</a>
+                    <a class="nav-link" data-page="settings" onclick="navigateTo('settings')">Settings</a>
                 </div>
             </nav>
             <div class="sidebar-bottom">
@@ -1284,7 +1284,7 @@
         async function loadDashboard() {
             try {
                 const { data: products } = await sb.from('products').select('id, status');
-                const { data: inventory } = await sb.from('product_inventory').select('stock_quantity');
+                const { data: inventory } = await sb.from('product_sizes').select('stock_quantity');
 
                 const totalProducts = products?.length || 0;
                 const liveProducts = products?.filter(p => p.status === 'Live').length || 0;
@@ -1295,7 +1295,7 @@
                 if (lowStockProducts) {
                     for (const product of lowStockProducts) {
                         const { data: inv } = await sb
-                            .from('product_inventory')
+                            .from('product_sizes')
                             .select('stock_quantity')
                             .eq('product_id', product.id);
                         const total = inv?.reduce((sum, i) => sum + (i.stock_quantity || 0), 0) || 0;
@@ -1349,7 +1349,7 @@
 
                 // Load stock
                 sb
-                    .from('product_inventory')
+                    .from('product_sizes')
                     .select('stock_quantity')
                     .eq('product_id', product.id)
                     .then(({ data }) => {
@@ -1694,13 +1694,13 @@
                     }
                 }
 
-                await sb.from('product_inventory').delete().eq('product_id', productId);
+                await sb.from('product_sizes').delete().eq('product_id', productId);
                 const sizeItems = document.querySelectorAll('.size-item');
                 for (const item of sizeItems) {
                     const checkbox = item.querySelector('.size-checkbox');
                     const stock = item.querySelector('.size-stock');
                     if (checkbox.checked && stock.value) {
-                        await sb.from('product_inventory').insert([{
+                        await sb.from('product_sizes').insert([{
                             product_id: productId,
                             size: checkbox.value,
                             stock_quantity: parseInt(stock.value)
@@ -1793,7 +1793,7 @@
             });
 
             renderSizeGrid(product.gender);
-            sb.from('product_inventory').select('*').eq('product_id', product.id).then(({ data }) => {
+            sb.from('product_sizes').select('*').eq('product_id', product.id).then(({ data }) => {
                 if (data && data.length > 0) {
                     data.forEach(inv => {
                         const items = document.querySelectorAll('.size-item');
@@ -1836,7 +1836,7 @@
             try {
                 await sb.from('product_images').delete().eq('product_id', deleteProductId);
                 await sb.from('product_colors').delete().eq('product_id', deleteProductId);
-                await sb.from('product_inventory').delete().eq('product_id', deleteProductId);
+                await sb.from('product_sizes').delete().eq('product_id', deleteProductId);
                 const { error } = await sb.from('products').delete().eq('id', deleteProductId);
                 if (error) throw error;
 
