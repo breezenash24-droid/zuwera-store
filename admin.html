@@ -1148,8 +1148,8 @@
                                 <label for="sustainRecycled">Recycled Content</label>
                             </div>
                             <div class="checkbox-item">
-                                <input type="checkbox" id="sustainMoveToZero" value="Move to Zero">
-                                <label for="sustainMoveToZero">Move to Zero</label>
+                                <input type="checkbox" id="sustainOriginal" value="Original">
+                                <label for="sustainOriginal">Original</label>
                             </div>
                         </div>
                     </div>
@@ -1756,7 +1756,7 @@
 
                 const sustainTags = [];
                 if (document.getElementById('sustainRecycled').checked) sustainTags.push('Recycled Content');
-                if (document.getElementById('sustainMoveToZero').checked) sustainTags.push('Move to Zero');
+                if (document.getElementById('sustainOriginal').checked) sustainTags.push('Original');
                 productData.sustainability_tags = sustainTags;
 
                 const certs = [];
@@ -1865,7 +1865,7 @@
             document.getElementById('lowStockThreshold').value = product.low_stock_threshold || 10;
 
             document.getElementById('sustainRecycled').checked = product.sustainability_tags?.includes('Recycled Content');
-            document.getElementById('sustainMoveToZero').checked = product.sustainability_tags?.includes('Move to Zero');
+            document.getElementById('sustainOriginal').checked = product.sustainability_tags?.includes('Original');
             document.getElementById('certGRS').checked = product.certifications?.includes('GRS');
             document.getElementById('certOEKO').checked = product.certifications?.includes('OEKO-TEX');
             document.getElementById('certBluesign').checked = product.certifications?.includes('Bluesign');
