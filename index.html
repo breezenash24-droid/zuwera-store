@@ -945,9 +945,9 @@ footer{
     <img src="images/hero.jpg" alt="" fetchpriority="high">
   </div>
   <div class="hero-inner">
-    <p class="hero-kicker">Release 001 — Sept 20, 2026</p>
-    <h1 class="hero-h1">For Those<br><em>Who Dream.</em></h1>
-    <p class="hero-sub">Bold athletic sportswear built for the relentless. Those who move with purpose.</p>
+    <p class="hero-kicker" id="hero-kicker">Release 001 — Sept 20, 2026</p>
+    <h1 class="hero-h1" id="hero-heading">For Those<br><em>Who Dream.</em></h1>
+    <p class="hero-sub" id="hero-subtext">Bold athletic sportswear built for the relentless. Those who move with purpose.</p>
     <div class="hero-cta-row">
       <button class="btn-outline" onclick="document.getElementById('drop001').scrollIntoView({behavior:'smooth'})">
         Explore Release 001
@@ -1277,7 +1277,7 @@ async function loadProducts() {
   if (!_sb || !grid) return;
   const { data: products, error } = await _sb
     .from('products')
-    .select('*')
+    .select('*, product_images(image_url, sort_order)')
     .eq('drop_number', '001')
     .order('sort_order', { ascending: true });
 
@@ -1287,26 +1287,27 @@ async function loadProducts() {
   }
 
   grid.innerHTML = products.map(p => {
-    const badge = p.status === 'coming_soon' ? 'Coming Soon' : (p.status === 'live' ? 'Available' : p.status);
-    const imgHtml = p.image_url
-      ? `<img src="${p.image_url}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover">`
+    const badge = p.status === 'Coming Soon' ? 'Coming Soon' : (p.status === 'Live' ? 'Available' : p.status);
+    const firstImg = (p.product_images && p.product_images.length > 0) ? p.product_images.sort((a,b) => (a.sort_order||0)-(b.sort_order||0))[0].image_url : p.image_url;
+    const imgHtml = firstImg
+      ? `<img src="${firstImg}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover">`
       : `<div class="pcard-img-placeholder">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
             <p>Image Coming Soon</p>
           </div>`;
-    const priceDisplay = p.price || 'Price TBA';
+    const priceDisplay = p.current_price ? '
     return `
       <div class="pcard">
         <div class="pcard-img">
           ${imgHtml}
           <div class="pcard-badge">${badge}</div>
-          <button class="heart-btn" data-product-id="${p.id}" data-product-name="${p.name}" data-price="${priceDisplay}" aria-label="Save">
+          <button class="heart-btn" data-product-id="${p.id}" data-product-name="${p.title}" data-price="${priceDisplay}" aria-label="Save">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           </button>
         </div>
         <div class="pcard-info">
-          <p class="pcard-cat">${p.category}</p>
-          <p class="pcard-name">${p.name}</p>
+          <p class="pcard-cat">${p.subtitle || ''}</p>
+          <p class="pcard-name">${p.title}</p>
           <p class="pcard-price">${priceDisplay}</p>
           <span class="pcard-action" onclick="scrollToNotify()">Notify Me When Live →</span>
         </div>
@@ -1317,7 +1318,429 @@ async function loadProducts() {
           </button>
           <div class="reviews-panel" id="panel-${p.id}" style="display:none">
             <div class="reviews-list" id="list-${p.id}"></div>
-            <button class="write-review-btn" onclick="openReviewForm('${p.id}','${p.name}')">+ Write a Review</button>
+            <button class="write-review-btn" onclick="openReviewForm('${p.id}','${p.title}')">+ Write a Review</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Re-init hearts & reviews for dynamically loaded cards
+  if (typeof refreshHearts === 'function') refreshHearts();
+  if (typeof initReviews === 'function') initReviews();
+  // Re-bind heart button listeners
+  document.querySelectorAll('.heart-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      if (typeof toggleFav === 'function') toggleFav(this);
+    });
+  });
+}
+
+// Load products on page load
+if (_sb) loadProducts();
+
+// Load hero content from site_settings
+async function loadHero() {
+  if (!_sb) return;
+  const { data, error } = await _sb
+    .from('site_settings')
+    .select('*')
+    .eq('key', 'hero')
+    .single();
+  if (error || !data || !data.value) return;
+  const h = data.value;
+  if (h.kicker) document.getElementById('hero-kicker').textContent = h.kicker;
+  if (h.heading) document.getElementById('hero-heading').innerHTML = h.heading;
+  if (h.subtext) document.getElementById('hero-subtext').textContent = h.subtext;
+  if (h.image) document.querySelector('.hero-img-wrap img').src = h.image;
+  if (h.cta_text) document.querySelector('.btn-outline').childNodes[0].textContent = h.cta_text + ' ';
+}
+if (_sb) loadHero();
+
+
+function setDisabled(id, dis, label) {
+  const b = document.getElementById(id);
+  b.disabled = dis; b.textContent = dis ? label + '…' : label;
+}
+
+if (_sb) {
+  _sb.auth.onAuthStateChange(async (_, session) => {
+    _user = session?.user ?? null;
+    updateNav();
+    if (_user) await loadFavs();
+    else { _favs = []; refreshHearts(); refreshCartFavs(); }
+  });
+}
+
+function updateNav() {
+  const li = document.getElementById('login-btn');
+  const ac = document.getElementById('account-btn');
+  const lo = document.getElementById('logout-btn');
+  const on = !!_user;
+  li.style.display = on ? 'none' : '';
+  ac.style.display = on ? '' : 'none';
+  lo.style.display = on ? '' : 'none';
+  if (on && _user.email) ac.textContent = _user.email.split('@')[0];
+}
+
+/* AUTH MODAL */
+function openAuth(tab) { document.getElementById('auth-modal').classList.add('open'); switchAuthTab(tab || 'signin'); }
+function closeAuth() { document.getElementById('auth-modal').classList.remove('open'); }
+function switchAuthTab(t) {
+  document.querySelectorAll('#auth-modal .atab').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
+  document.querySelectorAll('#auth-modal .apanel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + t)?.classList.add('active');
+  ['signin-error','signup-error','forgot-error'].forEach(id => { const e = document.getElementById(id); if(e) e.textContent = ''; });
+  const fs = document.getElementById('forgot-success'); if(fs) fs.style.display = 'none';
+}
+document.querySelectorAll('#auth-modal .atab').forEach(b => b.addEventListener('click', () => switchAuthTab(b.dataset.tab)));
+document.getElementById('auth-modal-close').addEventListener('click', closeAuth);
+document.getElementById('auth-modal').addEventListener('click', e => { if(e.target === e.currentTarget) closeAuth(); });
+document.getElementById('login-btn').addEventListener('click', () => openAuth('signin'));
+document.getElementById('forgot-link').addEventListener('click', e => { e.preventDefault(); switchAuthTab('forgot'); });
+document.getElementById('back-to-signin').addEventListener('click', e => { e.preventDefault(); switchAuthTab('signin'); });
+
+document.getElementById('signin-submit').addEventListener('click', async () => {
+  const email = document.getElementById('signin-email').value.trim();
+  const pass = document.getElementById('signin-password').value;
+  const err = document.getElementById('signin-error');
+  err.textContent = '';
+  if (!email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
+  setDisabled('signin-submit', true, 'Sign In');
+  if (_sb) { const { error } = await _sb.auth.signInWithPassword({ email, password: pass }); if (error) { err.textContent = error.message; setDisabled('signin-submit', false, 'Sign In'); return; } }
+  setDisabled('signin-submit', false, 'Sign In'); closeAuth(); showToast('Welcome back!');
+});
+
+document.getElementById('signup-submit').addEventListener('click', async () => {
+  const name = document.getElementById('signup-name').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
+  const pass = document.getElementById('signup-password').value;
+  const err = document.getElementById('signup-error');
+  err.textContent = '';
+  if (!name || !email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
+  if (pass.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
+  setDisabled('signup-submit', true, 'Create Account');
+  if (_sb) { const { error } = await _sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } }); if (error) { err.textContent = error.message; setDisabled('signup-submit', false, 'Create Account'); return; } }
+  setDisabled('signup-submit', false, 'Create Account'); closeAuth(); showToast('Account created! Check your email.');
+});
+
+document.getElementById('forgot-submit').addEventListener('click', async () => {
+  const email = document.getElementById('forgot-email').value.trim();
+  const err = document.getElementById('forgot-error'), suc = document.getElementById('forgot-success');
+  err.textContent = ''; suc.style.display = 'none';
+  if (!email) { err.textContent = 'Please enter your email.'; return; }
+  setDisabled('forgot-submit', true, 'Send Reset Link');
+  if (_sb) { const { error } = await _sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://zuwera.store' }); if (error) { err.textContent = error.message; setDisabled('forgot-submit', false, 'Send Reset Link'); return; } }
+  setDisabled('forgot-submit', false, 'Send Reset Link'); suc.style.display = 'block';
+});
+
+document.getElementById('logout-btn').addEventListener('click', async () => { if (_sb) await _sb.auth.signOut(); showToast('Signed out.'); });
+
+/* ACCOUNT MODAL */
+document.getElementById('account-btn').addEventListener('click', () => {
+  document.getElementById('account-modal').classList.add('open');
+  switchAcctTab('orders'); loadOrders();
+});
+document.getElementById('account-modal-close').addEventListener('click', () => document.getElementById('account-modal').classList.remove('open'));
+document.getElementById('account-modal').addEventListener('click', e => { if(e.target===e.currentTarget) document.getElementById('account-modal').classList.remove('open'); });
+function switchAcctTab(t) {
+  document.querySelectorAll('#account-modal .atab').forEach(b => b.classList.toggle('active', b.dataset.acctab === t));
+  document.querySelectorAll('#account-modal .apanel').forEach(p => p.classList.remove('active'));
+  document.getElementById('acct-panel-' + t)?.classList.add('active');
+}
+document.querySelectorAll('#account-modal .atab').forEach(b => b.addEventListener('click', () => {
+  switchAcctTab(b.dataset.acctab);
+  if(b.dataset.acctab === 'orders') loadOrders();
+  if(b.dataset.acctab === 'favorites') renderAcctFavs();
+}));
+async function loadOrders() {
+  if(!_sb || !_user) return;
+  const loading = document.getElementById('orders-loading');
+  const empty = document.getElementById('orders-empty');
+  const list = document.getElementById('orders-list');
+  loading.style.display = 'block'; empty.style.display = 'none'; list.innerHTML = '';
+  const { data } = await _sb.from('orders').select('id,created_at,status').eq('user_id',_user.id).order('created_at',{ascending:false});
+  loading.style.display = 'none';
+  if(!data?.length){ empty.style.display = 'block'; return; }
+  list.innerHTML = data.map(o => `<div style="padding:.9rem 0;border-bottom:1px solid rgba(244,241,235,.07);font-family:var(--fm);font-size:.68rem"><div style="letter-spacing:.1em">Order #${(o.id||'').slice(-8).toUpperCase()}</div><div style="opacity:.35;margin-top:.2rem">${new Date(o.created_at).toLocaleDateString()}</div><div style="opacity:.5;margin-top:.15rem">${o.status||'Confirmed'}</div></div>`).join('');
+}
+function renderAcctFavs() {
+  document.getElementById('acct-favs-loading').style.display = 'none';
+  const empty = document.getElementById('acct-favs-empty');
+  const list = document.getElementById('acct-favs-list');
+  if(!_favs.length){ empty.style.display = 'block'; list.innerHTML=''; return; }
+  empty.style.display = 'none';
+  list.innerHTML = _favs.map(f => `<div style="display:flex;align-items:center;justify-content:space-between;padding:.7rem 0;border-bottom:1px solid rgba(244,241,235,.07);font-family:var(--fm);font-size:.72rem"><span>${f.product_name}</span><button onclick="removeFav('${f.product_id}',null)" style="background:none;border:none;color:rgba(244,241,235,.3);font-size:1rem">✕</button></div>`).join('');
+}
+
+/* FAVORITES */
+async function loadFavs() {
+  if(!_sb || !_user) return;
+  const { data } = await _sb.from('favorites').select('product_id,product_name,price').eq('user_id',_user.id);
+  _favs = data || []; refreshHearts(); refreshCartFavs();
+}
+function refreshHearts() {
+  const ids = new Set(_favs.map(f => f.product_id));
+  document.querySelectorAll('.heart-btn').forEach(b => b.classList.toggle('active', ids.has(b.dataset.productId)));
+}
+function refreshCartFavs() {
+  const out = document.getElementById('fav-logged-out-msg');
+  const inn = document.getElementById('fav-logged-in-area');
+  const empty = document.getElementById('cart-favs-empty');
+  const list = document.getElementById('cart-favs-list');
+  if(!_user){ if(out) out.style.display='block'; if(inn) inn.style.display='none'; return; }
+  if(out) out.style.display='none'; if(inn) inn.style.display='block';
+  if(!_favs.length){ if(empty) empty.style.display='block'; if(list) list.innerHTML=''; return; }
+  if(empty) empty.style.display='none';
+  list.innerHTML = _favs.map(f => `<li style="display:flex;align-items:center;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid rgba(244,241,235,.07);font-family:var(--fm);font-size:.7rem"><span>${f.product_name}</span><button onclick="removeFav('${f.product_id}',null)" style="background:none;border:none;color:rgba(244,241,235,.3)">✕</button></li>`).join('');
+}
+async function toggleFav(btn) {
+  if(!_user){ openAuth('signin'); return; }
+  const pid = btn.dataset.productId, pname = btn.dataset.productName, price = btn.dataset.price;
+  if(_favs.some(f => f.product_id === pid)){ await removeFav(pid, null); }
+  else {
+    if(_sb) await _sb.from('favorites').upsert({ user_id:_user.id, product_id:pid, product_name:pname, price });
+    _favs.push({ product_id:pid, product_name:pname, price });
+    refreshHearts(); refreshCartFavs(); showToast('Saved!');
+  }
+}
+async function removeFav(pid, el) {
+  if(_sb && _user) await _sb.from('favorites').delete().eq('user_id',_user.id).eq('product_id',pid);
+  _favs = _favs.filter(f => f.product_id !== pid);
+  if(el) el.remove(); refreshHearts(); refreshCartFavs(); showToast('Removed from saved.');
+}
+document.querySelectorAll('.heart-btn').forEach(b => b.addEventListener('click', () => toggleFav(b)));
+
+/* CART */
+let cartItems = [];
+document.getElementById('cart-btn').addEventListener('click', () => { document.getElementById('cart-modal').classList.add('open'); document.body.style.overflow='hidden'; });
+document.getElementById('cart-close').addEventListener('click', () => { document.getElementById('cart-modal').classList.remove('open'); document.body.style.overflow=''; });
+document.getElementById('fav-join-link').addEventListener('click', () => { document.getElementById('cart-modal').classList.remove('open'); document.body.style.overflow=''; openAuth('signup'); });
+document.getElementById('fav-signin-link').addEventListener('click', () => { document.getElementById('cart-modal').classList.remove('open'); document.body.style.overflow=''; openAuth('signin'); });
+document.getElementById('checkout-btn').addEventListener('click', () => {
+  document.getElementById('cart-modal').classList.remove('open');
+  document.getElementById('payment-modal').classList.add('open');
+  document.body.style.overflow='hidden';
+  document.getElementById('pay-error').textContent = '';
+  const sub = Math.round(parseFloat((document.getElementById('summary-subtotal')?.textContent||'0').replace(/[^0-9.]/g,''))*100);
+  initPR(sub || 100);
+});
+
+/* STRIPE */
+const stripe = Stripe('pk_live_51T8ct20oFp4PJGitDcNMSLu9jQMFajtwqib8dTX4WhubBon2Pso2VgkHhTHcbuKNUi9ljfwMX8Bx2uhEp1Fp2VfY00LFKvLEy4');
+const elements = stripe.elements();
+const card = elements.create('card', {
+  style: {
+    base: { color:'#f4f1eb', fontFamily:'"Barlow",sans-serif', fontSmoothing:'antialiased', fontSize:'15px', '::placeholder':{ color:'rgba(244,241,235,.25)' } },
+    invalid: { color:'#c0392b', iconColor:'#c0392b' }
+  }
+});
+card.mount('#stripe-card-element');
+
+async function post(url, body) {
+  const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+  return r.json();
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
+
+let payReq = null, selRate = null;
+function initPR(subtotalCents) {
+  if(payReq) return;
+  payReq = stripe.paymentRequest({ country:'US', currency:'usd', total:{ label:'Zuwera', amount:subtotalCents, pending:true }, requestPayerName:true, requestPayerEmail:true, requestShipping:true, shippingOptions:[] });
+  payReq.on('shippingaddresschange', async ev => {
+    const a = ev.shippingAddress;
+    try {
+      const d = await post('/.netlify/functions/shippo-rates', { address:{ name:'', line1:a.addressLine?.[0]||'', city:a.city, state:a.region, zip:a.postalCode, country:a.country } });
+      if(!d.rates?.length){ ev.updateWith({status:'invalid_shipping_address'}); return; }
+      const opts = d.rates.slice(0,4).map(r => ({ id:r.objectId, label:`${r.provider} ${r.servicelevel}`, detail:r.days?`Est. ${r.days} business days`:'', amount:Math.round(parseFloat(r.amount)*100) }));
+      selRate = d.rates[0];
+      ev.updateWith({ status:'success', shippingOptions:opts, total:{ label:'Zuwera', amount:subtotalCents+opts[0].amount } });
+    } catch { ev.updateWith({status:'fail'}); }
+  });
+  payReq.on('shippingoptionchange', ev => ev.updateWith({ status:'success', total:{ label:'Zuwera', amount:subtotalCents+ev.shippingOption.amount } }));
+  payReq.on('paymentmethod', async ev => {
+    try {
+      const a = ev.shippingAddress||{};
+      const d = await post('/.netlify/functions/create-payment-intent', { items:cartItems, shippingRate:selRate, address:{ name:ev.payerName||'', email:ev.payerEmail||'', line1:a.addressLine?.[0]||'', line2:a.addressLine?.[1]||'', city:a.city||'', state:a.region||'', zip:a.postalCode||'', country:a.country||'US' } });
+      if(d.error){ ev.complete('fail'); return; }
+      const { error } = await stripe.confirmCardPayment(d.clientSecret, { payment_method:ev.paymentMethod.id }, { handleActions:false });
+      if(error){ ev.complete('fail'); document.getElementById('pay-error').textContent=error.message; }
+      else { ev.complete('success'); showConfirmed(d.orderId, ev.payerEmail); }
+    } catch(e){ ev.complete('fail'); }
+  });
+  const prBtn = elements.create('paymentRequestButton', { paymentRequest:payReq, style:{ paymentRequestButton:{ type:'buy', theme:'light', height:'48px' } } });
+  payReq.canMakePayment().then(r => {
+    if(r){ prBtn.mount('#payment-request-btn'); document.getElementById('payment-request-btn').style.display='block'; document.getElementById('pay-divider').style.display='block'; }
+  });
+}
+
+let rateTimer = null;
+function maybeLoadRates() {
+  const zip = document.getElementById('pay-zip').value.trim();
+  const state = document.getElementById('pay-state').value.trim();
+  if(zip.length < 5 || state.length < 2) return;
+  clearTimeout(rateTimer);
+  rateTimer = setTimeout(async () => {
+    document.getElementById('shipping-rates-field').style.display = 'none';
+    document.getElementById('shipping-rates-loading').style.display = 'block';
+    try {
+      const d = await post('/.netlify/functions/shippo-rates', { address:{ name:document.getElementById('pay-name').value.trim(), line1:document.getElementById('pay-addr1').value.trim(), city:document.getElementById('pay-city').value.trim(), state, zip, country:'US' } });
+      document.getElementById('shipping-rates-loading').style.display = 'none';
+      if(!d.rates?.length) return;
+      const list = document.getElementById('shipping-rates-list'); list.innerHTML='';
+      d.rates.slice(0,5).forEach((rate, i) => {
+        const el = document.createElement('div');
+        el.className = 'rate-opt' + (i===0?' selected':'');
+        el.innerHTML = `<span class="rate-name">${rate.provider} ${rate.servicelevel}</span><span class="rate-meta">${rate.days?rate.days+' business days':''}</span><span class="rate-price">$${parseFloat(rate.amount).toFixed(2)}</span>`;
+        el.addEventListener('click', () => { document.querySelectorAll('.rate-opt').forEach(x => x.classList.remove('selected')); el.classList.add('selected'); selRate=rate; updateShip(rate.amount); });
+        list.appendChild(el);
+      });
+      selRate = d.rates[0]; updateShip(d.rates[0].amount);
+      document.getElementById('shipping-rates-field').style.display = 'block';
+    } catch(e){ document.getElementById('shipping-rates-loading').style.display='none'; }
+  }, 600);
+}
+function updateShip(amount) {
+  const p = el => parseFloat((document.getElementById(el)?.textContent||'0').replace(/[^0-9.]/g,''));
+  const se = document.getElementById('summary-shipping');
+  const te = document.getElementById('summary-total');
+  if(se) se.textContent = '$'+parseFloat(amount).toFixed(2);
+  if(te) te.textContent = '$'+(p('summary-subtotal')+parseFloat(amount)+p('summary-tax')).toFixed(2);
+}
+document.getElementById('pay-zip').addEventListener('input', maybeLoadRates);
+document.getElementById('pay-state').addEventListener('input', maybeLoadRates);
+document.getElementById('payment-close').addEventListener('click', () => { closeModal('payment-modal'); document.getElementById('pay-error').textContent=''; });
+document.getElementById('payment-modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal('payment-modal'); });
+
+document.getElementById('pay-submit').addEventListener('click', async () => {
+  const g = id => document.getElementById(id).value.trim();
+  const name=g('pay-name'),email=g('pay-email'),addr1=g('pay-addr1'),addr2=g('pay-addr2'),city=g('pay-city'),state=g('pay-state'),zip=g('pay-zip');
+  const err=document.getElementById('pay-error'),btxt=document.getElementById('pay-btn-text'),btn=document.getElementById('pay-submit');
+  err.textContent='';
+  if(!name||!email){ err.textContent='Please enter your name and email.'; return; }
+  if(!addr1||!city||!state||!zip){ err.textContent='Please enter your full shipping address.'; return; }
+  if(!selRate){ err.textContent='Please enter your ZIP code to load shipping options.'; return; }
+  btn.disabled=true; btxt.textContent='Processing…';
+  try {
+    const d = await post('/.netlify/functions/create-payment-intent', { items:cartItems, shippingRate:selRate, address:{name,email,line1:addr1,line2:addr2,city,state,zip,country:'US'} });
+    if(d.error){ err.textContent=d.error; btn.disabled=false; btxt.textContent='Pay Now'; return; }
+    const { error, paymentIntent } = await stripe.confirmCardPayment(d.clientSecret, { payment_method:{ card, billing_details:{name,email} }, receipt_email:email, shipping:{name,address:{line1:addr1,line2:addr2,city,state,postal_code:zip,country:'US'}} });
+    if(error){ err.textContent=error.message; btn.disabled=false; btxt.textContent='Pay Now'; return; }
+    closeModal('payment-modal'); showConfirmed(paymentIntent.id, email);
+  } catch(e){ err.textContent='Something went wrong. Please try again.'; btn.disabled=false; btxt.textContent='Pay Now'; }
+});
+
+function showConfirmed(piId, email) {
+  const oid = (piId||'').slice(-8).toUpperCase();
+  document.getElementById('success-order').textContent = oid ? 'Order #' + oid : '';
+  document.getElementById('success-msg').textContent = `Thank you! A confirmation has been sent to ${email||'your email'}.`;
+  document.getElementById('payment-success').classList.add('open');
+  document.body.style.overflow='hidden';
+  cartItems=[];
+  document.getElementById('cart-items-list').innerHTML='';
+  document.getElementById('cart-empty-msg').style.display='block';
+  document.querySelector('.cc').textContent='0';
+}
+document.getElementById('success-continue').addEventListener('click', () => { document.getElementById('payment-success').classList.remove('open'); document.body.style.overflow=''; });
+
+/* COUNTDOWN */
+const dropDate = new Date('2026-09-20T00:00:00');
+const els = {
+  d: document.getElementById('hcd-days'),
+  h: document.getElementById('hcd-hours'),
+  m: document.getElementById('hcd-mins'),
+  s: document.getElementById('hcd-secs'),
+};
+// Only update + animate when the displayed value actually changes,
+// so the flip fires on the seconds every second, and on minutes/hours/days
+// only when they roll over — not on every tick.
+function setUnit(el, n) {
+  if (!el) return;
+  const val = String(Math.floor(n)).padStart(2, '0');
+  if (el.textContent === val) return;
+  el.textContent = val;
+  el.classList.remove('flip');
+  void el.offsetWidth; // force reflow so animation restarts
+  el.classList.add('flip');
+}
+function tick() {
+  const diff = dropDate - new Date();
+  if (diff <= 0) { clearInterval(cdI); return; }
+  setUnit(els.d, diff / 864e5);
+  setUnit(els.h, (diff % 864e5) / 36e5);
+  setUnit(els.m, (diff % 36e5) / 6e4);
+  setUnit(els.s, (diff % 6e4) / 1e3);
+}
+tick(); const cdI = setInterval(tick, 1000);
+
+/* NOTIFY */
+async function homeNotifyMe() {
+  const inp = document.getElementById('home-notify-email');
+  const email = inp.value.trim();
+  if(!email||!email.includes('@')){ inp.style.outlineColor='var(--red)'; inp.focus(); return; }
+  inp.style.outlineColor='';
+  if(_sb){ try{ await _sb.from('waitlist').upsert({ email, source:'drop001_home' }); } catch{} }
+  inp.closest('.notify-row').style.display='none';
+  document.querySelector('.notify-hint').style.display='none';
+  document.getElementById('home-notify-success').style.display='block';
+}
+
+/* SCROLL TO NOTIFY */
+function scrollToNotify() {
+  const el = document.getElementById('home-notify-email');
+  el.scrollIntoView({ behavior:'smooth', block:'center' });
+  setTimeout(() => el.focus(), 600);
+}
+</script>
+<script src="reviews.js" defer></script>
+
+<!-- PWA Service Worker -->
+<script>
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{})}
+</script>
+
+<!-- Cookie Consent / GDPR -->
+<div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#111;border-top:1px solid rgba(244,241,235,.1);padding:1rem 2rem;font-family:'DM Sans',sans-serif;font-size:.8rem;color:rgba(244,241,235,.7);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem">
+  <p style="margin:0;flex:1;min-width:200px">We use cookies to improve your experience. By continuing, you agree to our <a href="/policies.html" style="color:#F891A5;text-decoration:underline">Privacy Policy</a>.</p>
+  <div style="display:flex;gap:.5rem">
+    <button onclick="acceptCookies()" style="padding:.5rem 1.2rem;background:#f4f1eb;color:#09090b;border:none;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif">Accept</button>
+    <button onclick="declineCookies()" style="padding:.5rem 1.2rem;background:none;color:rgba(244,241,235,.5);border:1px solid rgba(244,241,235,.15);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif">Decline</button>
+  </div>
+</div>
+<script>
+(function(){
+  if(!localStorage.getItem('zw_cookie_consent')){
+    document.getElementById('cookie-banner').style.display='flex';
+  }
+})();
+function acceptCookies(){localStorage.setItem('zw_cookie_consent','accepted');document.getElementById('cookie-banner').style.display='none'}
+function declineCookies(){localStorage.setItem('zw_cookie_consent','declined');document.getElementById('cookie-banner').style.display='none'}
+</script>
+</body>
+</html>
+ + Number(p.current_price).toFixed(2) : 'Price TBA';
+    return `
+      <div class="pcard">
+        <div class="pcard-img">
+          ${imgHtml}
+          <div class="pcard-badge">${badge}</div>
+          <button class="heart-btn" data-product-id="${p.id}" data-product-name="${p.title}" data-price="${priceDisplay}" aria-label="Save">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </button>
+        </div>
+        <div class="pcard-info">
+          <p class="pcard-cat">${p.subtitle || ''}</p>
+          <p class="pcard-name">${p.title}</p>
+          <p class="pcard-price">${priceDisplay}</p>
+          <span class="pcard-action" onclick="scrollToNotify()">Notify Me When Live →</span>
+        </div>
+        <div data-review-pid="${p.id}">
+          <button class="review-toggle-btn" onclick="toggleReviews('${p.id}')">
+            <span id="avg-${p.id}"><span style="color:rgba(244,241,235,.2)">☆☆☆☆☆</span></span>
+            <span id="cnt-${p.id}">Be the first to review</span>
+          </button>
+          <div class="reviews-panel" id="panel-${p.id}" style="display:none">
+            <div class="reviews-list" id="list-${p.id}"></div>
+            <button class="write-review-btn" onclick="openReviewForm('${p.id}','${p.title}')">+ Write a Review</button>
           </div>
         </div>
       </div>`;
