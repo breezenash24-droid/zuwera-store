@@ -1277,7 +1277,7 @@ async function loadProducts() {
   if (!_sb || !grid) return;
   const { data: products, error } = await _sb
     .from('products')
-    .select('*, product_images(image_url, sort_order)')
+    .select('*')
     .eq('drop_number', '001')
     .order('sort_order', { ascending: true });
 
@@ -1288,9 +1288,8 @@ async function loadProducts() {
 
   grid.innerHTML = products.map(p => {
     const badge = p.status === 'Coming Soon' ? 'Coming Soon' : (p.status === 'Live' ? 'Available' : p.status);
-    const firstImg = (p.product_images && p.product_images.length > 0) ? p.product_images.sort((a,b) => (a.sort_order||0)-(b.sort_order||0))[0].image_url : p.image_url;
-    const imgHtml = firstImg
-      ? `<img src="${firstImg}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover">`
+    const imgHtml = p.image_url
+      ? `<img src="${p.image_url}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover">`
       : `<div class="pcard-img-placeholder">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
             <p>Image Coming Soon</p>
