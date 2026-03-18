@@ -920,7 +920,7 @@ footer{
 <!-- ANNOUNCEMENT BAR -->
 <div id="bar">
   <span class="bar-sep">✦</span>
-  ALL THE DEVILS ARE HERE
+  <span id="banner-text">ALL THE DEVILS ARE HERE</span>
   <span class="bar-sep">✦</span>
 </div>
 
@@ -1352,6 +1352,7 @@ async function loadHero() {
   if (h.subtext) document.getElementById('hero-subtext').textContent = h.subtext;
   if (h.image) document.querySelector('.hero-img-wrap img').src = h.image;
   if (h.cta_text) document.querySelector('.btn-outline').childNodes[0].textContent = h.cta_text + ' ';
+      if (h.banner_text) document.getElementById('banner-text').textContent = h.banner_text;
 }
 if (_sb) loadHero();
 
