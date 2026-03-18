@@ -828,6 +828,7 @@
                     <a class="nav-link" data-page="products" onclick="navigateTo('products')">Products</a>
                     <a class="nav-link" data-page="analytics" onclick="navigateTo('analytics')">Analytics</a>
                     <a class="nav-link" data-page="settings" onclick="navigateTo('settings')">Settings</a>
+                    <a class="nav-item" data-page="website" onclick="navigateTo('website')">Website</a>
                 </div>
             </nav>
             <div class="sidebar-bottom">
@@ -1232,7 +1233,43 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
+    
+            <!-- Website Settings Page -->
+            <div id="website" class="page" style="display:none">
+                <div class="page-header">
+                    <h2>Website Settings</h2>
+                    <p class="page-subtitle">Edit your homepage hero section and other site content</p>
+                </div>
+                <div class="card" style="margin-bottom:24px">
+                    <h3 style="margin-bottom:16px;font-size:1.1rem">Hero Section</h3>
+                    <div class="form-group">
+                        <label class="form-label">Kicker Text</label>
+                        <input type="text" class="form-input" id="heroKicker" placeholder="Release 001 — Sept 20, 2026">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Main Heading (HTML allowed)</label>
+                        <input type="text" class="form-input" id="heroHeading" placeholder="For Those&lt;br&gt;&lt;em&gt;Who Dream.&lt;/em&gt;">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Subtext</label>
+                        <textarea class="form-input" id="heroSubtext" rows="3" placeholder="Bold athletic sportswear built for the relentless."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Hero Image URL</label>
+                        <input type="url" class="form-input" id="heroImage" placeholder="images/hero.jpg">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">CTA Button Text</label>
+                        <input type="text" class="form-input" id="heroCtaText" placeholder="Explore Release 001">
+                    </div>
+                    <div style="display:flex;gap:12px;margin-top:20px">
+                        <button class="btn btn-primary" onclick="saveHeroSettings()">Save Hero Settings</button>
+                        <button class="btn btn-secondary" onclick="window.open('https://zuwera.store','_blank')">Preview Site</button>
+                    </div>
+                </div>
+            </div>
+
+<script>
         // Initialize Supabase
         const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
@@ -1370,6 +1407,7 @@
         }
 
         function navigateTo(page) {
+            if (page === 'website') setTimeout(loadHeroSettings, 100);
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(page).classList.add('active');
 
@@ -1751,7 +1789,8 @@
                     drop_number: document.getElementById('dropNumber').value,
                     status: publish ? document.getElementById('productStatus').value : 'Draft',
                     sort_order: document.getElementById('sortOrder').value ? parseInt(document.getElementById('sortOrder').value) : null,
-                    low_stock_threshold: parseInt(document.getElementById('lowStockThreshold').value) || 10
+                    low_stock_threshold: parseInt(document.getElementById('lowStockThreshold').value) || 10,
+                    image_url: (Array.from(document.querySelectorAll('.product-image-url')).map(i => i.value).filter(v => v))[0] || null
                 };
 
                 const sustainTags = [];
@@ -1980,6 +2019,43 @@
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
         }
-    </script>
+    
+
+        // ===== WEBSITE / HERO SETTINGS =====
+        async function loadHeroSettings() {
+            const { data, error } = await sb.from('site_settings').select('*').eq('key', 'hero').single();
+            if (error || !data) return;
+            const h = data.value;
+            if (h.kicker) document.getElementById('heroKicker').value = h.kicker;
+            if (h.heading) document.getElementById('heroHeading').value = h.heading;
+            if (h.subtext) document.getElementById('heroSubtext').value = h.subtext;
+            if (h.image) document.getElementById('heroImage').value = h.image;
+            if (h.cta_text) document.getElementById('heroCtaText').value = h.cta_text;
+        }
+
+        async function saveHeroSettings() {
+            const heroData = {
+                kicker: document.getElementById('heroKicker').value,
+                heading: document.getElementById('heroHeading').value,
+                subtext: document.getElementById('heroSubtext').value,
+                image: document.getElementById('heroImage').value,
+                cta_text: document.getElementById('heroCtaText').value
+            };
+            const { error } = await sb.from('site_settings').upsert({
+                key: 'hero',
+                value: heroData,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'key' });
+            if (error) {
+                showToast('Error saving hero: ' + error.message, 'error');
+            } else {
+                showToast('Hero settings saved!', 'success');
+            }
+        }
+
+        // Load hero settings when navigating to website page
+        const origNavigateTo = window.navigateTo || navigateTo;
+        const _origNav = navigateTo;
+</script>
 </body>
 </html>
