@@ -1295,7 +1295,7 @@ async function loadProducts() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
             <p>Image Coming Soon</p>
           </div>`;
-    const priceDisplay = p.current_price ? ('\x24' + Number(p.current_price).toFixed(2)) : 'Price TBA';
+    const priceDisplay = p.current_price ? p.current_price.toLocaleString('en-US', {style: 'currency', currency: 'USD'}) : 'Price TBA';
     return `
       <div class="pcard">
         <div class="pcard-img">
