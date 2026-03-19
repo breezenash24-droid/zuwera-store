@@ -141,6 +141,13 @@
   --fm: 'IBM Plex Mono', monospace;
   --fb: 'Barlow', sans-serif;
 }
+        body.dark-mode {
+            --ink: #f4f1eb;
+            --paper: #09090b;
+            --warm: #1a1a1e;
+            --dim: rgba(244,241,235,0.4);
+            --line: rgba(244,241,235,0.1);
+        }
 html{scroll-behavior:smooth;font-size:16px}
 body{
   background:var(--ink);
@@ -1340,6 +1347,7 @@ if (_sb) loadProducts();
 // Load hero content from site_settings
 async function loadHero() {
   if (!_sb) return;
+            loadTheme();
   const { data, error } = await _sb
     .from('site_settings')
     .select('*')
@@ -1354,6 +1362,21 @@ async function loadHero() {
   if (h.cta_text) document.querySelector('.btn-outline').childNodes[0].textContent = h.cta_text + ' ';
       if (h.banner_text) document.getElementById('banner-text').textContent = h.banner_text;
 }
+
+        async function loadTheme() {
+            if (!_sb) return;
+            const { data, error } = await _sb
+                .from('site_settings')
+                .select('*')
+                .eq('key', 'theme')
+                .single();
+            if (error || !data || !data.value) return;
+            if (data.value.mode === 'dark') {
+                document.body.classList.add('dark-mode');
+            } else {
+                document.body.classList.remove('dark-mode');
+            }
+        }
 if (_sb) loadHero();
 
 
