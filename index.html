@@ -141,7 +141,7 @@
   --fm: 'IBM Plex Mono', monospace;
   --fb: 'Barlow', sans-serif;
 }
-        body.dark-mode {
+        body.light-mode {
             --ink: #f4f1eb;
             --paper: #09090b;
             --warm: #1a1a1e;
@@ -917,6 +917,9 @@ footer{
   .cart-hd{padding:1.2rem}
   footer{padding:2rem 1.2rem}
 }
+
+.product-link:hover div:first-child { transform: scale(1.02); transition: transform .3s; }
+.product-link div:first-child { transition: transform .3s; }
 </style>
 </head>
 <body>
@@ -1280,66 +1283,28 @@ let _user = null, _favs = [];
 
 /* ── LOAD PRODUCTS FROM SUPABASE ── */
 async function loadProducts() {
-  const grid = document.getElementById('products-grid');
-  if (!_sb || !grid) return;
-  const { data: products, error } = await _sb
-    .from('products')
-    .select('*')
-    
-    .order('sort_order', { ascending: true });
+      const grid = document.querySelector('#products-grid');
+      if (!grid) return;
+      const { data, error } = await _sb
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-  if (error || !products) {
-    grid.innerHTML = '<div class="pcard" style="opacity:.3;text-align:center;padding:3rem">Could not load products.</div>';
-    return;
-  }
+      if (error || !data || data.length === 0) {
+        grid.innerHTML = '<p style="text-align:center;opacity:.5">No products yet.</p>';
+        return;
+      }
 
-  grid.innerHTML = products.map(p => {
-    const badge = p.status === 'Coming Soon' ? 'Coming Soon' : (p.status === 'Live' ? 'Available' : p.status);
-    const imgHtml = p.image_url
-      ? `<img src="${p.image_url}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover">`
-      : `<div class="pcard-img-placeholder">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
-            <p>Image Coming Soon</p>
-          </div>`;
-    const priceDisplay = p.current_price ? p.current_price.toLocaleString('en-US', {style: 'currency', currency: 'USD'}) : 'Price TBA';
-    return `
-      <div class="pcard">
-        <div class="pcard-img">
-          ${imgHtml}
-          <div class="pcard-badge">${badge}</div>
-          <button class="heart-btn" data-product-id="${p.id}" data-product-name="${p.title}" data-price="${priceDisplay}" aria-label="Save">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          </button>
-        </div>
-        <div class="pcard-info">
-          <p class="pcard-cat">${p.subtitle || ''}</p>
-          <p class="pcard-name">${p.title}</p>
-          <p class="pcard-price">${priceDisplay}</p>
-          <span class="pcard-action" onclick="scrollToNotify()">Notify Me When Live →</span>
-        </div>
-        <div data-review-pid="${p.id}">
-          <button class="review-toggle-btn" onclick="toggleReviews('${p.id}')">
-            <span id="avg-${p.id}"><span style="color:rgba(244,241,235,.2)">☆☆☆☆☆</span></span>
-            <span id="cnt-${p.id}">Be the first to review</span>
-          </button>
-          <div class="reviews-panel" id="panel-${p.id}" style="display:none">
-            <div class="reviews-list" id="list-${p.id}"></div>
-            <button class="write-review-btn" onclick="openReviewForm('${p.id}','${p.title}')">+ Write a Review</button>
-          </div>
-        </div>
-      </div>`;
-  }).join('');
-
-  // Re-init hearts & reviews for dynamically loaded cards
-  if (typeof refreshHearts === 'function') refreshHearts();
-  if (typeof initReviews === 'function') initReviews();
-  // Re-bind heart button listeners
-  document.querySelectorAll('.heart-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      if (typeof toggleFav === 'function') toggleFav(this);
-    });
-  });
-}
+      grid.innerHTML = data.map(p => {
+        const images = p.image_url ? (p.image_url.startsWith('[') ? JSON.parse(p.image_url) : [p.image_url]) : [];
+        const imgHtml = images.length > 0
+          ? '<img src="' + images[0] + '" alt="' + (p.title || '') + '" style="width:100%;height:100%;object-fit:cover;">'
+          : '<div style="display:flex;align-items:center;justify-content:center;height:100%;opacity:.3;font-family:var(--fm);font-size:.75rem;letter-spacing:.1em;">IMAGE COMING SOON</div>';
+        const badge = p.status === 'live' ? '<span style="position:absolute;top:16px;left:16px;background:var(--gold);color:#000;font-family:var(--fm);font-size:.65rem;letter-spacing:.15em;padding:6px 14px;z-index:2;">SHOP NOW</span>' : '<span style="position:absolute;top:16px;left:16px;border:1px solid var(--paper);color:var(--paper);font-family:var(--fm);font-size:.65rem;letter-spacing:.15em;padding:6px 14px;z-index:2;">COMING SOON</span>';
+        const price = p.current_price ? '$' + Number(p.current_price).toFixed(2) : '';
+        return '<a href="product.html?id=' + p.id + '" style="text-decoration:none;color:inherit;cursor:pointer;" class="product-link"><div style="position:relative;aspect-ratio:3/4;background:var(--warm);overflow:hidden;margin-bottom:16px;">' + badge + imgHtml + '</div><div style="padding:0 4px;"><p style="font-family:var(--fm);font-size:.65rem;letter-spacing:.15em;opacity:.5;margin:0 0 6px;">' + (p.subtitle || '').toUpperCase() + '</p><h3 style="font-family:var(--fw);font-size:1.3rem;font-weight:700;font-style:italic;margin:0 0 6px;">' + (p.title || '') + '</h3><p style="font-family:var(--fm);font-size:.85rem;margin:0 0 12px;">' + price + '</p></div></a>';
+      }).join('');
+    }
 
 // Load products on page load
 if (_sb) loadProducts();
@@ -1371,10 +1336,10 @@ async function loadHero() {
                 .eq('key', 'theme')
                 .single();
             if (error || !data || !data.value) return;
-            if (data.value.mode === 'dark') {
-                document.body.classList.add('dark-mode');
+            if (data.value.mode === 'light') {
+                document.body.classList.add('light-mode');
             } else {
-                document.body.classList.remove('dark-mode');
+                document.body.classList.remove('light-mode');
             }
         }
 if (_sb) loadHero();
