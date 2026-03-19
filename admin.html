@@ -1769,7 +1769,7 @@
             }
         }
 
-        function saveProduct(publish) {
+        async function saveProduct(publish) {
             const mandatoryFields = ['sku', 'title', 'subtitle', 'gender', 'colorway', 'materialComposition', 'msrp', 'currentPrice', 'productStatus'];
             const form = document.getElementById('productForm');
 
