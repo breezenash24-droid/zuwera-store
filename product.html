@@ -3,818 +3,326 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Product — ZUWERA</title>
-<meta name="description" content="Explore ZUWERA athletic sportswear products.">
-
-<!-- ── Open Graph ──────────────────────────────────────────────── -->
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="ZUWERA">
-<meta property="og:url" content="https://zuwera.store/">
-<meta property="og:title" content="Product — ZUWERA">
-<meta property="og:description" content="Explore ZUWERA athletic sportswear products.">
-
-<!-- ── Canonical ─────────────────────────────────────────────────── -->
-<link rel="canonical" href="https://zuwera.store/product.html">
-
-<!-- Google Fonts -->
+<title>ZUWERA â Product</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:#09090b;
+  --paper:#f4f1eb;
+  --warm:#e8e2d8;
+  --dim:rgba(9,9,11,0.4);
+  --line:rgba(9,9,11,0.1);
+  --gold:#F891A5;
+  --red:#c0392b;
+  --fw:'Barlow Condensed', sans-serif;
+  --fm:'IBM Plex Mono', monospace;
+  --fb:'Barlow', sans-serif;
+}
+body.light-mode {
+  --ink:#f4f1eb;
+  --paper:#09090b;
+  --warm:#1a1a1e;
+  --dim:rgba(244,241,235,0.4);
+  --line:rgba(244,241,235,0.1);
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:var(--ink);
+  color:var(--paper);
+  font-family:var(--fb);
+  font-weight:300;
+  min-height:100vh;
+}
+a { color:var(--paper); text-decoration:none; }
 
-<!-- Stylesheets -->
-<link rel="stylesheet" href="base.css">
-<link rel="stylesheet" href="nav.css">
-<link rel="stylesheet" href="product.css">
+/* Back button */
+.back-link {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:20px 40px;
+  font-family:var(--fm);
+  font-size:12px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  opacity:0.6;
+  transition:opacity .3s;
+}
+.back-link:hover { opacity:1; }
+.back-link svg { width:16px; height:16px; }
 
+/* Main layout */
+.product-page {
+  max-width:1200px;
+  margin:0 auto;
+  padding:0 40px 80px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:60px;
+  align-items:start;
+}
+
+/* Image gallery */
+.gallery {
+  position:sticky;
+  top:20px;
+}
+.gallery-main {
+  width:100%;
+  aspect-ratio:3/4;
+  background:var(--warm);
+  border-radius:4px;
+  overflow:hidden;
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.gallery-main img {
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  transition:opacity .4s;
+}
+.gallery-main .no-image {
+  font-family:var(--fm);
+  font-size:11px;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  opacity:0.4;
+}
+.gallery-nav {
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  width:44px;
+  height:44px;
+  background:rgba(0,0,0,0.5);
+  border:1px solid rgba(255,255,255,0.2);
+  border-radius:50%;
+  color:#fff;
+  font-size:18px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:all .3s;
+  z-index:2;
+}
+.gallery-nav:hover {
+  background:rgba(0,0,0,0.8);
+  border-color:var(--gold);
+}
+.gallery-nav.prev { left:12px; }
+.gallery-nav.next { right:12px; }
+.gallery-nav.hidden { display:none; }
+
+.gallery-counter {
+  position:absolute;
+  bottom:12px;
+  right:12px;
+  background:rgba(0,0,0,0.6);
+  color:#fff;
+  font-family:var(--fm);
+  font-size:11px;
+  padding:4px 10px;
+  border-radius:20px;
+  letter-spacing:1px;
+}
+.gallery-counter.hidden { display:none; }
+
+.gallery-thumbs {
+  display:flex;
+  gap:8px;
+  margin-top:12px;
+  overflow-x:auto;
+}
+.gallery-thumbs img {
+  width:64px;
+  height:80px;
+  object-fit:cover;
+  border-radius:3px;
+  cursor:pointer;
+  opacity:0.5;
+  transition:opacity .3s, border-color .3s;
+  border:2px solid transparent;
+}
+.gallery-thumbs img.active {
+  opacity:1;
+  border-color:var(--gold);
+}
+
+/* Product info */
+.product-info {
+  padding-top:20px;
+}
+.product-info .badge {
+  display:inline-block;
+  font-family:var(--fm);
+  font-size:10px;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  padding:6px 16px;
+  border:1px solid var(--gold);
+  color:var(--gold);
+  border-radius:20px;
+  margin-bottom:20px;
+}
+.product-info h1 {
+  font-family:var(--fw);
+  font-size:clamp(32px, 5vw, 52px);
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:2px;
+  line-height:1.1;
+  margin-bottom:8px;
+}
+.product-info .subtitle {
+  font-size:16px;
+  opacity:0.6;
+  margin-bottom:24px;
+  font-weight:300;
+}
+.product-info .price-block {
+  display:flex;
+  align-items:baseline;
+  gap:16px;
+  margin-bottom:8px;
+}
+.product-info .price {
+  font-family:var(--fw);
+  font-size:32px;
+  font-weight:600;
+}
+.product-info .msrp {
+  font-size:16px;
+  opacity:0.4;
+  text-decoration:line-through;
+}
+.product-info .member-price {
+  font-family:var(--fm);
+  font-size:12px;
+  color:var(--gold);
+  margin-bottom:32px;
+  letter-spacing:1px;
+}
+
+.divider {
+  border:none;
+  border-top:1px solid var(--line);
+  margin:24px 0;
+}
+
+/* Detail sections */
+.detail-section { margin-bottom:24px; }
+.detail-section h3 {
+  font-family:var(--fm);
+  font-size:11px;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  opacity:0.5;
+  margin-bottom:10px;
+}
+.detail-section p, .detail-section li {
+  font-size:15px;
+  line-height:1.7;
+  opacity:0.85;
+}
+.detail-section ul {
+  list-style:none;
+  padding:0;
+}
+.detail-section ul li::before {
+  content:'201400a0';
+  opacity:0.3;
+}
+
+.detail-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:20px;
+}
+
+.tag {
+  display:inline-block;
+  font-family:var(--fm);
+  font-size:10px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  padding:4px 12px;
+  border:1px solid var(--dim);
+  border-radius:16px;
+  margin:0 6px 6px 0;
+  opacity:0.7;
+}
+
+/* Loading */
+.loading-screen {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:60vh;
+  font-family:var(--fm);
+  font-size:12px;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  opacity:0.4;
+}
+
+/* Mobile */
+@media (max-width:768px) {
+  .product-page {
+    grid-template-columns:1fr;
+    gap:32px;
+    padding:0 20px 60px;
+  }
+  .gallery { position:static; }
+  .back-link { padding:16px 20px; }
+  .detail-grid { grid-template-columns:1fr; }
+}
+</style>
 </head>
 <body>
 
-<!-- ════════════════════════════════════════════════════════════════ -->
-<!-- ANNOUNCEMENT BAR                                                 -->
-<!-- ════════════════════════════════════════════════════════════════ -->
-<div class="announcement-bar" id="announcementBar">
-  Free standard shipping on orders $50+ <span>•</span> 60-day returns for members
-  <button class="announcement-close" onclick="this.parentElement.style.display='none'; document.body.classList.remove('has-bar')">×</button>
-</div>
+<a href="/" class="back-link">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+  Back to Store
+</a>
 
-<!-- ════════════════════════════════════════════════════════════════ -->
-<!-- NAVIGATION BAR                                                   -->
-<!-- ════════════════════════════════════════════════════════════════ -->
-<nav class="nav">
-  <div class="nav-left">
-    <a href="index.html">
-      <img src="images/logo.png" alt="ZUWERA" class="logo">
-    </a>
-  </div>
-  <div class="nav-right">
-    <button onclick="window.location.href='drop001.html'">Shop</button>
-    <button onclick="window.location.href='drop001.html'">Release 001</button>
-    <button id="cart-btn" onclick="window.location.href='cart.html'">
-      <span>Cart</span>
-      <span class="cart-count" id="cartCount">0</span>
-    </button>
-  </div>
-</nav>
+<div id="loading" class="loading-screen">Loading product...</div>
 
-<!-- ════════════════════════════════════════════════════════════════ -->
-<!-- MAIN PRODUCT PAGE                                                -->
-<!-- ════════════════════════════════════════════════════════════════ -->
-<main class="product-page">
-
-  <!-- LOADING STATE -->
-  <div class="loading-state" id="loadingState">
-    <div class="spinner"></div>
-    <p>Loading product...</p>
-  </div>
-
-  <!-- ERROR STATE -->
-  <div class="error-state hidden" id="errorState">
-    <p id="errorMessage"></p>
-    <button onclick="window.location.href='drop001.html'">Back to Shop</button>
-  </div>
-
-  <!-- PRODUCT CONTAINER (hidden until loaded) -->
-  <div class="product-container hidden" id="productContainer">
-
-    <!-- ──────────────────────────────────────────────────────────── -->
-    <!-- PRODUCT LAYOUT: Gallery Left, Info Right                     -->
-    <!-- ──────────────────────────────────────────────────────────── -->
-    <div class="product-layout">
-
-      <!-- LEFT: IMAGE GALLERY -->
-      <div class="gallery-section">
-        <div class="gallery-main">
-          <img id="mainImage" src="" alt="Product" class="main-image">
-          <div class="low-stock-badge hidden" id="lowStockBadge">Low Stock</div>
-        </div>
-        <div class="gallery-thumbnails" id="galleryThumbnails"></div>
-      </div>
-
-      <!-- RIGHT: PRODUCT INFO -->
-      <div class="info-section">
-
-        <!-- PRODUCT HEADER -->
-        <div class="product-header">
-          <p class="product-subtitle" id="productSubtitle"></p>
-          <h1 class="product-title" id="productTitle"></h1>
-          <div class="product-gender-tag">
-            <span id="genderTag"></span>
-          </div>
-        </div>
-
-        <!-- PRICE SECTION -->
-        <div class="price-section">
-          <div class="price-current" id="priceDisplay"></div>
-          <p class="price-msrp" id="msrpDisplay"></p>
-          <p class="price-member" id="memberPrice"></p>
-        </div>
-
-        <!-- COLORWAY SELECTION -->
-        <div class="colorway-section">
-          <p class="section-label">Colorway</p>
-          <div class="color-swatches" id="colorSwatches"></div>
-          <p class="selected-color" id="selectedColor"></p>
-        </div>
-
-        <!-- SIZE SELECTION -->
-        <div class="size-section">
-          <div class="size-header">
-            <p class="section-label">Select Size</p>
-            <a href="sizeguide.html" class="size-guide-link">Size Guide</a>
-          </div>
-          <div class="size-grid" id="sizeGrid"></div>
-          <p class="stock-info" id="stockInfo"></p>
-        </div>
-
-        <!-- ADD TO CART BUTTON -->
-        <button class="add-to-cart-btn" id="addToCartBtn" onclick="addToCart()">
-          Add to Bag
-        </button>
-
-        <!-- PRODUCT ACCORDIONS -->
-        <div class="accordions-section">
-
-          <!-- SIZE & FIT -->
-          <div class="accordion">
-            <button class="accordion-header" onclick="toggleAccordion(this)">
-              <span>Size & Fit</span>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
-            <div class="accordion-body">
-              <p id="fitType"></p>
-              <p id="modelInfo"></p>
-              <p id="materialInfo"></p>
-            </div>
-          </div>
-
-          <!-- FABRIC & MATERIALS -->
-          <div class="accordion">
-            <button class="accordion-header" onclick="toggleAccordion(this)">
-              <span>Fabric & Materials</span>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
-            <div class="accordion-body">
-              <p id="materialComposition"></p>
-              <p id="fabricTech"></p>
-              <div id="sustainabilityTags" class="tags-group"></div>
-              <div id="certifications" class="tags-group"></div>
-            </div>
-          </div>
-
-          <!-- SHIPPING & RETURNS -->
-          <div class="accordion">
-            <button class="accordion-header" onclick="toggleAccordion(this)">
-              <span>Shipping & Returns</span>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
-            <div class="accordion-body">
-              <p>Free standard shipping on orders $50+</p>
-              <p>60-day returns for members, 30-day for non-members</p>
-            </div>
-          </div>
-
-          <!-- REVIEWS -->
-          <div class="accordion">
-            <button class="accordion-header" onclick="toggleAccordion(this)">
-              <span id="reviewsHeader">Reviews</span>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
-            <div class="accordion-body">
-              <div id="reviewsContent"></div>
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-
+<div id="product-container" class="product-page" style="display:none;">
+  <!-- Gallery -->
+  <div class="gallery">
+    <div class="gallery-main" id="gallery-main">
+      <button class="gallery-nav prev hidden" id="prev-btn" onclick="changeImage(-1)">&#8249;</button>
+      <img id="main-image" src="" alt="" style="display:none;">
+      <div class="no-image" id="no-image">Image Coming Soon</div>
+      <button class="gallery-nav next hidden" id="next-btn" onclick="changeImage(1)">&#8250;</button>
+      <div class="gallery-counter hidden" id="gallery-counter">1 / 1</div>
     </div>
-
+    <div class="gallery-thumbs" id="gallery-thumbs"></div>
   </div>
 
-</main>
+  <!-- Product Info -->
+  <div class="product-info">
+    <div class="badge" id="product-badge">COMING SOON</div>
+    <h1 id="product-title"></h1>
+    <p class="subtitle" id="product-subtitle"></p>
+    <div class="price-block">
+      <span class="price" id="product-price"></span>
+      <span class="msrp" id="product-msrp"></span>
+    </div>
+    <p class="member-price" id="product-member-price"></p>
 
-<!-- ════════════════════════════════════════════════════════════════ -->
-<!-- FOOTER                                                           -->
-<!-- ════════════════════════════════════════════════════════════════ -->
-<footer>
-  <img src="images/logo.png" alt="ZUWERA" class="footer-logo">
-  <p>&copy; 2026 ZUWERA. All rights reserved.</p>
-</footer>
+    <hr class="divider">
 
-<!-- ════════════════════════════════════════════════════════════════ -->
-<!-- COOKIE CONSENT BANNER                                            -->
-<!-- ════════════════════════════════════════════════════════════════ -->
-<div class="cookie-consent-banner" id="cookieConsent">
-  <p>We use cookies to enhance your experience. By continuing, you agree to our use of cookies.</p>
-  <div class="cookie-buttons">
-    <button class="cookie-decline" onclick="handleCookieDecline()">Decline</button>
-    <button class="cookie-accept" onclick="handleCookieAccept()">Accept</button>
+    <div id="details-container"></div>
   </div>
 </div>
 
-<!-- ════════════════════════════════════════════════════════════════ -->
-<!-- SCRIPTS                                                          -->
-<!-- ════════════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-
-// ══════════════════════════════════════════════════════════════════
-// SUPABASE INITIALIZATION
-// ══════════════════════════════════════════════════════════════════
-const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// ══════════════════════════════════════════════════════════════════
-// STATE MANAGEMENT
-// ══════════════════════════════════════════════════════════════════
-let currentProduct = null;
-let selectedSize = null;
-let selectedColor = null;
-let selectedColorSku = null;
-let cartCount = 0;
-
-// ══════════════════════════════════════════════════════════════════
-// INITIALIZATION
-// ══════════════════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', async () => {
-  loadCartCount();
-  initializeCookieConsent();
-  document.body.classList.add('has-bar');
-
-  try {
-    await loadProduct();
-    renderProduct();
-  } catch (err) {
-    showError(err.message || 'Failed to load product');
-  }
-});
-
-// ══════════════════════════════════════════════════════════════════
-// LOAD PRODUCT FROM SUPABASE
-// ══════════════════════════════════════════════════════════════════
-async function loadProduct() {
-  const params = new URLSearchParams(window.location.search);
-  const productId = params.get('id');
-  const sku = params.get('sku');
-
-  let query = supabase.from('products').select('*');
-
-  if (productId) {
-    query = query.eq('id', productId);
-  } else if (sku) {
-    query = query.eq('sku', sku);
-  } else {
-    throw new Error('No product ID or SKU provided');
-  }
-
-  const { data: productData, error } = await query.single();
-
-  if (error || !productData) {
-    throw new Error('Product not found');
-  }
-
-  currentProduct = productData;
-
-  // Load related data
-  const [imagesRes, colorsRes, inventoryRes, reviewsRes] = await Promise.all([
-    supabase
-      .from('product_images')
-      .select('*')
-      .eq('product_id', currentProduct.id)
-      .order('sort_order', { ascending: true }),
-    supabase
-      .from('product_colors')
-      .select('*')
-      .eq('product_id', currentProduct.id)
-      .order('sort_order', { ascending: true }),
-    supabase
-      .from('product_inventory')
-      .select('*')
-      .eq('product_id', currentProduct.id),
-    supabase
-      .from('reviews')
-      .select('*')
-      .eq('product_id', currentProduct.id)
-      .order('created_at', { ascending: false })
-  ]);
-
-  currentProduct.images = imagesRes.data || [];
-  currentProduct.colors = colorsRes.data || [];
-  currentProduct.inventory = inventoryRes.data || [];
-  currentProduct.reviews = reviewsRes.data || [];
-}
-
-// ══════════════════════════════════════════════════════════════════
-// RENDER PRODUCT
-// ══════════════════════════════════════════════════════════════════
-function renderProduct() {
-  if (!currentProduct) return;
-
-  document.getElementById('loadingState').classList.add('hidden');
-  document.getElementById('productContainer').classList.remove('hidden');
-
-  // ── Product Header ──
-  document.getElementById('productSubtitle').textContent = currentProduct.gender || 'Apparel';
-  document.getElementById('productTitle').textContent = currentProduct.title;
-  document.getElementById('genderTag').textContent = (currentProduct.gender || 'All').toUpperCase();
-
-  // ── Price ──
-  renderPrice();
-
-  // ── Gallery ──
-  renderGallery();
-
-  // ── Colors ──
-  renderColors();
-
-  // ── Inventory & Sizes ──
-  renderSizes();
-
-  // ── Accordions ──
-  renderAccordions();
-
-  // ── Check low stock ──
-  checkLowStock();
-}
-
-// ══════════════════════════════════════════════════════════════════
-// RENDER PRICE
-// ══════════════════════════════════════════════════════════════════
-function renderPrice() {
-  const current = currentProduct.current_price;
-  const msrp = currentProduct.msrp;
-  const member = currentProduct.member_price;
-
-  document.getElementById('priceDisplay').innerHTML = `
-    $${current.toFixed(2)}
-  `;
-
-  if (msrp && msrp > current) {
-    document.getElementById('msrpDisplay').innerHTML = `
-      MSRP: <strike>$${msrp.toFixed(2)}</strike>
-    `;
-  } else {
-    document.getElementById('msrpDisplay').innerHTML = '';
-  }
-
-  if (member && member < current) {
-    document.getElementById('memberPrice').innerHTML = `
-      Member Price: $${member.toFixed(2)}
-    `;
-  } else {
-    document.getElementById('memberPrice').innerHTML = '';
-  }
-}
-
-// ══════════════════════════════════════════════════════════════════
-// RENDER GALLERY
-// ══════════════════════════════════════════════════════════════════
-function renderGallery() {
-  const mainImage = document.getElementById('mainImage');
-  const thumbContainer = document.getElementById('galleryThumbnails');
-  thumbContainer.innerHTML = '';
-
-  if (currentProduct.images.length === 0) {
-    mainImage.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"%3E%3Crect fill="%23111" width="400" height="500"/%3E%3C/svg%3E';
-    mainImage.alt = 'No image available';
-    return;
-  }
-
-  // Set first image as main
-  mainImage.src = currentProduct.images[0].image_url;
-  mainImage.alt = currentProduct.images[0].alt_text || currentProduct.title;
-
-  // Create thumbnails
-  currentProduct.images.forEach((img, idx) => {
-    const thumb = document.createElement('div');
-    thumb.className = 'thumbnail';
-    if (idx === 0) thumb.classList.add('active');
-
-    const thumbImg = document.createElement('img');
-    thumbImg.src = img.image_url;
-    thumbImg.alt = img.alt_text || `${currentProduct.title} - View ${idx + 1}`;
-
-    thumb.appendChild(thumbImg);
-    thumb.addEventListener('click', () => {
-      document.querySelectorAll('.thumbnail').forEach(t => t.classList.remove('active'));
-      thumb.classList.add('active');
-      mainImage.src = img.image_url;
-      mainImage.alt = img.alt_text || currentProduct.title;
-    });
-
-    thumbContainer.appendChild(thumb);
-  });
-}
-
-// ══════════════════════════════════════════════════════════════════
-// RENDER COLORS
-// ══════════════════════════════════════════════════════════════════
-function renderColors() {
-  const container = document.getElementById('colorSwatches');
-  container.innerHTML = '';
-
-  if (currentProduct.colors.length === 0) {
-    document.querySelector('.colorway-section').style.display = 'none';
-    return;
-  }
-
-  currentProduct.colors.forEach((color, idx) => {
-    const swatch = document.createElement('button');
-    swatch.className = 'color-swatch';
-    if (idx === 0) {
-      swatch.classList.add('active');
-      selectedColor = color;
-      selectedColorSku = color.variant_sku;
-    }
-
-    swatch.style.backgroundColor = color.hex_color;
-    swatch.title = color.color_name;
-    swatch.setAttribute('data-color-name', color.color_name);
-
-    swatch.addEventListener('click', (e) => {
-      e.preventDefault();
-      document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
-      swatch.classList.add('active');
-      selectedColor = color;
-      selectedColorSku = color.variant_sku;
-      document.getElementById('selectedColor').textContent = color.color_name;
-      selectedSize = null; // Reset size when color changes
-    });
-
-    container.appendChild(swatch);
-  });
-
-  document.getElementById('selectedColor').textContent = currentProduct.colors[0]?.color_name || '';
-}
-
-// ══════════════════════════════════════════════════════════════════
-// RENDER SIZES
-// ══════════════════════════════════════════════════════════════════
-function renderSizes() {
-  const sizeGrid = document.getElementById('sizeGrid');
-  sizeGrid.innerHTML = '';
-
-  // Get unique sizes and their stock
-  const sizeMap = new Map();
-  currentProduct.inventory.forEach(inv => {
-    sizeMap.set(inv.size, inv.stock_quantity);
-  });
-
-  // Standard size order
-  const standardSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
-  const sizes = [...new Set([...sizeMap.keys(), ...standardSizes])].filter(s => sizeMap.has(s));
-
-  if (sizes.length === 0) {
-    sizeGrid.innerHTML = '<p style="opacity: 0.5;">No sizes available</p>';
-    return;
-  }
-
-  sizes.forEach(size => {
-    const stock = sizeMap.get(size) || 0;
-    const btn = document.createElement('button');
-    btn.className = 'size-btn';
-    btn.textContent = size;
-    btn.dataset.size = size;
-
-    if (stock === 0) {
-      btn.classList.add('disabled');
-      btn.disabled = true;
-    }
-
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
-      selectedSize = size;
-      updateStockInfo();
-    });
-
-    sizeGrid.appendChild(btn);
-  });
-}
-
-// ══════════════════════════════════════════════════════════════════
-// UPDATE STOCK INFO
-// ══════════════════════════════════════════════════════════════════
-function updateStockInfo() {
-  if (!selectedSize) {
-    document.getElementById('stockInfo').textContent = '';
-    return;
-  }
-
-  const inventory = currentProduct.inventory.find(inv => inv.size === selectedSize);
-  const stock = inventory?.stock_quantity || 0;
-  const threshold = currentProduct.low_stock_threshold || 10;
-
-  if (stock === 0) {
-    document.getElementById('stockInfo').textContent = 'Out of stock';
-    document.getElementById('addToCartBtn').disabled = true;
-    document.getElementById('addToCartBtn').classList.add('disabled');
-  } else if (stock <= threshold) {
-    document.getElementById('stockInfo').textContent = `Only ${stock} left in stock`;
-    document.getElementById('addToCartBtn').disabled = false;
-    document.getElementById('addToCartBtn').classList.remove('disabled');
-  } else {
-    document.getElementById('stockInfo').textContent = '';
-    document.getElementById('addToCartBtn').disabled = false;
-    document.getElementById('addToCartBtn').classList.remove('disabled');
-  }
-}
-
-// ══════════════════════════════════════════════════════════════════
-// CHECK LOW STOCK
-// ══════════════════════════════════════════════════════════════════
-function checkLowStock() {
-  const threshold = currentProduct.low_stock_threshold || 10;
-  const hasLowStock = currentProduct.inventory.some(inv => inv.stock_quantity > 0 && inv.stock_quantity <= threshold);
-
-  if (hasLowStock) {
-    document.getElementById('lowStockBadge').classList.remove('hidden');
-  } else {
-    document.getElementById('lowStockBadge').classList.add('hidden');
-  }
-}
-
-// ══════════════════════════════════════════════════════════════════
-// RENDER ACCORDIONS
-// ══════════════════════════════════════════════════════════════════
-function renderAccordions() {
-  // Size & Fit
-  document.getElementById('fitType').textContent = `Fit: ${currentProduct.fit_type || 'Standard fit'}`;
-
-  if (currentProduct.model_height && currentProduct.model_size_worn) {
-    document.getElementById('modelInfo').textContent =
-      `Model is ${currentProduct.model_height} tall and wearing size ${currentProduct.model_size_worn}`;
-  } else {
-    document.getElementById('modelInfo').textContent = '';
-  }
-
-  document.getElementById('materialInfo').textContent =
-    `Material: ${currentProduct.material_composition || 'High-quality athletic fabric'}`;
-
-  // Fabric & Materials
-  document.getElementById('materialComposition').textContent =
-    `Material: ${currentProduct.material_composition || 'N/A'}`;
-
-  if (currentProduct.fabric_technology) {
-    document.getElementById('fabricTech').innerHTML = `
-      <strong>Fabric Technology:</strong><br>
-      ${currentProduct.fabric_technology}
-    `;
-  }
-
-  // Sustainability & Certifications
-  renderTags('sustainabilityTags', currentProduct.sustainability_tags, 'Sustainability');
-  renderTags('certifications', currentProduct.certifications, 'Certifications');
-
-  // Reviews
-  renderReviews();
-}
-
-// ══════════════════════════════════════════════════════════════════
-// RENDER TAGS
-// ══════════════════════════════════════════════════════════════════
-function renderTags(elementId, tags, label) {
-  const container = document.getElementById(elementId);
-  container.innerHTML = '';
-
-  if (!tags || tags.length === 0) {
-    return;
-  }
-
-  const heading = document.createElement('p');
-  heading.innerHTML = `<strong>${label}:</strong>`;
-  container.appendChild(heading);
-
-  const tagsContainer = document.createElement('div');
-  tagsContainer.className = 'tags-list';
-
-  tags.forEach(tag => {
-    const tagEl = document.createElement('span');
-    tagEl.className = 'tag';
-    tagEl.textContent = tag;
-    tagsContainer.appendChild(tagEl);
-  });
-
-  container.appendChild(tagsContainer);
-}
-
-// ══════════════════════════════════════════════════════════════════
-// RENDER REVIEWS
-// ══════════════════════════════════════════════════════════════════
-function renderReviews() {
-  const content = document.getElementById('reviewsContent');
-  content.innerHTML = '';
-
-  if (!currentProduct.reviews || currentProduct.reviews.length === 0) {
-    content.innerHTML = '<p style="opacity: 0.6;">No reviews yet</p>';
-    return;
-  }
-
-  // Calculate average rating
-  const avgRating = (currentProduct.reviews.reduce((sum, r) => sum + r.rating, 0) / currentProduct.reviews.length).toFixed(1);
-
-  // Update header
-  document.getElementById('reviewsHeader').textContent =
-    `Reviews (${avgRating} • ${currentProduct.reviews.length})`;
-
-  // Show latest 3 reviews
-  const displayReviews = currentProduct.reviews.slice(0, 3);
-
-  displayReviews.forEach(review => {
-    const reviewEl = document.createElement('div');
-    reviewEl.className = 'review-item';
-    reviewEl.innerHTML = `
-      <div class="review-header">
-        <div class="review-rating">${renderStars(review.rating)}</div>
-        <span class="review-author">${review.nickname || 'Anonymous'}</span>
-        ${review.verified_purchase ? '<span class="verified-badge">Verified Purchase</span>' : ''}
-      </div>
-      <p class="review-title">${review.title}</p>
-      <p class="review-body">${review.body}</p>
-    `;
-    content.appendChild(reviewEl);
-  });
-
-  if (currentProduct.reviews.length > 3) {
-    const moreBtn = document.createElement('button');
-    moreBtn.className = 'more-reviews-btn';
-    moreBtn.textContent = `View All ${currentProduct.reviews.length} Reviews`;
-    moreBtn.onclick = () => expandReviews();
-    content.appendChild(moreBtn);
-  }
-}
-
-// ══════════════════════════════════════════════════════════════════
-// RENDER STARS
-// ══════════════════════════════════════════════════════════════════
-function renderStars(rating) {
-  let html = '';
-  for (let i = 1; i <= 5; i++) {
-    if (i <= rating) {
-      html += '★';
-    } else if (i - 0.5 <= rating) {
-      html += '✦';
-    } else {
-      html += '☆';
-    }
-  }
-  return html;
-}
-
-// ══════════════════════════════════════════════════════════════════
-// EXPAND REVIEWS
-// ══════════════════════════════════════════════════════════════════
-function expandReviews() {
-  const content = document.getElementById('reviewsContent');
-  content.innerHTML = '';
-
-  currentProduct.reviews.forEach(review => {
-    const reviewEl = document.createElement('div');
-    reviewEl.className = 'review-item';
-    reviewEl.innerHTML = `
-      <div class="review-header">
-        <div class="review-rating">${renderStars(review.rating)}</div>
-        <span class="review-author">${review.nickname || 'Anonymous'}</span>
-        ${review.verified_purchase ? '<span class="verified-badge">Verified Purchase</span>' : ''}
-      </div>
-      <p class="review-title">${review.title}</p>
-      <p class="review-body">${review.body}</p>
-    `;
-    content.appendChild(reviewEl);
-  });
-}
-
-// ══════════════════════════════════════════════════════════════════
-// ACCORDION TOGGLE
-// ══════════════════════════════════════════════════════════════════
-function toggleAccordion(header) {
-  const body = header.nextElementSibling;
-  const isOpen = body.style.maxHeight;
-
-  // Close all other accordions
-  document.querySelectorAll('.accordion-body').forEach(b => {
-    b.style.maxHeight = null;
-  });
-  document.querySelectorAll('.accordion-header').forEach(h => {
-    h.classList.remove('open');
-  });
-
-  // Toggle current
-  if (!isOpen) {
-    header.classList.add('open');
-    body.style.maxHeight = body.scrollHeight + 'px';
-  }
-}
-
-// ══════════════════════════════════════════════════════════════════
-// ADD TO CART
-// ══════════════════════════════════════════════════════════════════
-function addToCart() {
-  if (!selectedSize) {
-    alert('Please select a size');
-    return;
-  }
-
-  const cartItem = {
-    productId: currentProduct.id,
-    sku: selectedColorSku || currentProduct.sku,
-    title: currentProduct.title,
-    size: selectedSize,
-    colorName: selectedColor?.color_name || 'Standard',
-    price: currentProduct.current_price,
-    image: currentProduct.images[0]?.image_url || '',
-    quantity: 1
-  };
-
-  let cart = JSON.parse(localStorage.getItem('cart')) || [];
-
-  // Check if item already in cart
-  const existingIdx = cart.findIndex(
-    item => item.productId === cartItem.productId &&
-             item.size === cartItem.size &&
-             item.colorName === cartItem.colorName
-  );
-
-  if (existingIdx > -1) {
-    cart[existingIdx].quantity += 1;
-  } else {
-    cart.push(cartItem);
-  }
-
-  localStorage.setItem('cart', JSON.stringify(cart));
-  loadCartCount();
-
-  // Show success toast
-  showToast('Added to bag');
-}
-
-// ══════════════════════════════════════════════════════════════════
-// LOAD CART COUNT
-// ══════════════════════════════════════════════════════════════════
-function loadCartCount() {
-  const cart = JSON.parse(localStorage.getItem('cart')) || [];
-  cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-  document.getElementById('cartCount').textContent = cartCount;
-}
-
-// ══════════════════════════════════════════════════════════════════
-// SHOW TOAST
-// ══════════════════════════════════════════════════════════════════
-function showToast(message) {
-  const existing = document.querySelector('.toast');
-  if (existing) existing.remove();
-
-  const toast = document.createElement('div');
-  toast.className = 'toast show';
-  toast.textContent = message;
-  document.body.appendChild(toast);
-
-  setTimeout(() => {
-    toast.classList.remove('show');
-    setTimeout(() => toast.remove(), 300);
-  }, 2000);
-}
-
-// ══════════════════════════════════════════════════════════════════
-// ERROR HANDLING
-// ══════════════════════════════════════════════════════════════════
-function showError(message) {
-  document.getElementById('loadingState').classList.add('hidden');
-  document.getElementById('errorState').classList.remove('hidden');
-  document.getElementById('errorMessage').textContent = message;
-}
-
-// ══════════════════════════════════════════════════════════════════
-// COOKIE CONSENT
-// ══════════════════════════════════════════════════════════════════
-function initializeCookieConsent() {
-  const consent = localStorage.getItem('cookieConsent');
-  if (consent) {
-    document.getElementById('cookieConsent').style.display = 'none';
-  }
-}
-
-function handleCookieAccept() {
-  localStorage.setItem('cookieConsent', 'accepted');
-  document.getElementById('cookieConsent').style.display = 'none';
-}
-
-function handleCookieDecline() {
-  localStorage.setItem('cookieConsent', 'declined');
-  document.getElementById('cookieConsent').style.display = 'none';
-}
-
-</script>
-
-</body>
-</html>
+(function() {
+  var SUPA_URL = 'https://daÆöÆöÖÖ¶gv&''vç7W&6Ræ6òs°¢f"5UôäôâÒvW¦$v6ö¤W¤æ4å#V44d·d4£æW§34Öö§¦E&Ôg¥¥44ä¦Å¦dÕ&$s6#$cV%s%¦äcVC$¦6æFôv6Ó5¥4dÔgV##FÄ4§ö¤S4äDÖ¤4Ö¦w4ÕcF44dÖ¤ç¦³Tæ¦7ôägÔdÖætçUeõuô$¶wtÔdgFçTô%dfu45fòs°¢f"÷6"Ò7W&6Ræ7&VFT6ÆVçB5UõU$ÂÂ5UôäôâÂ°¢WF¢²WFõ&Vg&W6Fö¶Vã¢fÇ6RÂW'67E6W76öã¢fÇ6RÂFWFV7E6W76öäåW&Ã¢fÇ6RÐ¢Ò° ¢f"ÖvW2ÒµÓ°¢f"7W'&VçDæFWÒ° ¢òòÆöBFVÖP¢÷6"æg&öÒw6FU÷6WGFæw2rç6VÆV7BwfÇVRræWv¶WrÂwFVÖRrç6ævÆRçFVâgVæ7Föâ&W2°¢b&W2æFFbb&W2æFFçfÇVRbb&W2æFFçfÇVRæÖöFRÓÓÒvÆvBr°¢Fö7VÖVçBæ&öGæ6Æ74Æ7BæFBvÆvBÖÖöFRr°¢Ð¢Ò° ¢òòvWB&öGV7BBg&öÒU$À¢f"&×2ÒæWrU$Å6V&6&×2væF÷ræÆö6Föâç6V&6°¢f"&öGV7DBÒ&×2ævWBvBr° ¢b&öGV7DB°¢Fö7VÖVçBævWDVÆVÖVçD'BvÆöFærrçFWD6öçFVçBÒu&öGV7Bæ÷Bf÷VæBâs°¢&WGW&ã°¢Ð ¢òòfWF6&öGV7@¢÷6"æg&öÒw&öGV7G2rç6VÆV7Br¢ræWvBrÂ&öGV7DBç6ævÆRçFVâgVæ7Föâ&W2°¢b&W2æW'&÷"ÇÂ&W2æFF°¢Fö7VÖVçBævWDVÆVÖVçD'BvÆöFærrçFWD6öçFVçBÒu&öGV7Bæ÷Bf÷VæBâs°¢&WGW&ã°¢Ð¢f"Ò&W2æFF°¢Fö7VÖVçBçFFÆRÒu¥UtU$ÇS#Br²çFFÆRÇÂu&öGV7Br° ¢òò'6RÖvW0¢bæÖvU÷W&Â°¢G'°¢bæÖvU÷W&Âç7F'G5vFu²r°¢ÖvW2Ò¥4ôâç'6RæÖvU÷W&Â°¢ÒVÇ6R°¢ÖvW2Ò·æÖvU÷W&ÅÓ°¢Ð¢Ò6F6R°¢ÖvW2Ò·æÖvU÷W&ÅÓ°¢Ð¢Ð ¢òò6WGWvÆÆW'¢bÖvW2æÆVæwFâ°¢Fö7VÖVçBævWDVÆVÖVçD'BvæòÖÖvRrç7GÆRæF7ÆÒvæöæRs°¢f"ÖäÖrÒFö7VÖVçBævWDVÆVÖVçD'BvÖâÖÖvRr°¢ÖäÖrç7&2ÒÖvW5³Ó°¢ÖäÖræÇBÒçFFÆRÇÂrs°¢ÖäÖrç7GÆRæF7ÆÒv&Æö6²s° ¢bÖvW2æÆVæwFâ°¢Fö7VÖVçBævWDVÆVÖVçD'BvæWBÖ'Fâræ6Æ74Æ7Bç&VÖ÷fRvFFVâr°¢Fö7VÖVçBævWDVÆVÖVçD'BvvÆÆW'Ö6÷VçFW"ræ6Æ74Æ7Bç&VÖ÷fRvFFVâr°¢WFFT6÷VçFW"° ¢òòFVÖ&æÇ0¢f"FVÖ'4VÂÒFö7VÖVçBævWDVÆVÖVçD'BvvÆÆW'×FVÖ'2r°¢ÖvW2æf÷$V6gVæ7FöâW&ÂÂ°¢f"FVÖ"ÒFö7VÖVçBæ7&VFTVÆVÖVçBvÖrr°¢FVÖ"ç7&2ÒW&Ã°¢FVÖ"æÇBÒtÖvRr²²°¢bÓÓÒFVÖ"æ6Æ74Æ7BæFBv7FfRr°¢FVÖ"æöæ6Æ6²ÒgVæ7Föâ²võFôÖvR²Ó°¢FVÖ'4VÂæVæD6ÆBFVÖ"°¢Ò°¢Ð¢Ð ¢òò&FvP¢f"&FvTVÂÒFö7VÖVçBævWDVÆVÖVçD'Bw&öGV7BÖ&FvRr°¢bç7FGW2ÓÓÒvÆfRr°¢&FvTVÂçFWD6öçFVçBÒu4õäõrs°¢ÒVÇ6R°¢&FvTVÂçFWD6öçFVçBÒt4ôÔär4ôôâs°¢Ð ¢òòFFÆRb7V'FFÆP¢Fö7VÖVçBævWDVÆVÖVçD'Bw&öGV7B×FFÆRrçFWD6öçFVçBÒçFFÆRÇÂrs°¢Fö7VÖVçBævWDVÆVÖVçD'Bw&öGV7B×7V'FFÆRrçFWD6öçFVçBÒç7V'FFÆRÇÂrs° ¢òò&6W0¢f"&6TVÂÒFö7VÖVçBævWDVÆVÖVçD'Bw&öGV7B×&6Rr°¢f"×7'VÂÒFö7VÖVçBævWDVÆVÖVçD'Bw&öGV7BÖ×7'r°¢f"ÖVÖ&W$VÂÒFö7VÖVçBævWDVÆVÖVçD'Bw&öGV7BÖÖVÖ&W"×&6Rr° ¢bæ7W'&VçE÷&6R°¢&6TVÂçFWD6öçFVçBÒrBr²çVÖ&W"æ7W'&VçE÷&6RçFôfVB"°¢Ð¢bæ×7'bbæ7W'&VçE÷&6RbbçVÖ&W"æ×7'âçVÖ&W"æ7W'&VçE÷&6R°¢×7'VÂçFWD6öçFVçBÒrBr²çVÖ&W"æ×7'çFôfVB"°¢Ð¢bæÖVÖ&W%÷&6R°¢ÖVÖ&W$VÂçFWD6öçFVçBÒtÖVÖ&W"&6S¢Br²çVÖ&W"æÖVÖ&W%÷&6RçFôfVB"°¢Ð ¢òò'VÆBFWFÂ6V7Föç0¢f"FWFÇ4FÖÂÒrs° ¢òòFWFÇ2w&@¢f"w&DFV×2ÒµÓ°¢bç6·Rw&DFV×2çW6¶Æ&VÃ¢u4µRrÂfÃ§ç6·WÒ°¢bævVæFW"w&DFV×2çW6¶Æ&VÃ¢tvVæFW"rÂfÃ§ævVæFW'Ò°¢bæ6öÆ÷'vw&DFV×2çW6¶Æ&VÃ¢t6öÆ÷'vrÂfÃ§æ6öÆ÷'vÒ°¢bæÖFW&Åö6ö×÷6Föâw&DFV×2çW6¶Æ&VÃ¢tÖFW&ÂrÂfÃ§æÖFW&Åö6ö×÷6FöçÒ°¢bæÖöFVÅöVvBw&DFV×2çW6¶Æ&VÃ¢tÖöFVÂVvBrÂfÃ§æÖöFVÅöVvGÒ°¢bæÖöFVÅ÷6¦U÷v÷&âw&DFV×2çW6¶Æ&VÃ¢tÖöFVÂ6¦RrÂfÃ§æÖöFVÅ÷6¦U÷v÷&çÒ° ¢bw&DFV×2æÆVæwFâ°¢FWFÇ4FÖÂ³ÒsÆFb6Æ73Ò&FWFÂÖw&B#âs°¢w&DFV×2æf÷$V6gVæ7FöâFVÒ°¢FWFÇ4FÖÂ³ÒsÆFb6Æ73Ò&FWFÂ×6V7Föâ#ãÆ3âr²FVÒæÆ&VÂ²sÂö3ãÇâr²FVÒçfÂ²sÂ÷ãÂöFcâs°¢Ò°¢FWFÇ4FÖÂ³ÒsÂöFcãÆ"6Æ73Ò&FfFW"#âs°¢Ð ¢òòÖV7W&VÖVçG0¢f"ÖV7W&VÖVçG2ÒµÓ°¢bçöÕö6W7BÖV7W&VÖVçG2çW6t6W7C¢r²çöÕö6W7B°¢bçöÕ÷v7BÖV7W&VÖVçG2çW6uv7C¢r²çöÕ÷v7B°¢bçöÕö2ÖV7W&VÖVçG2çW6t3¢r²çöÕö2°¢bçöÕöç6VÒÖV7W&VÖVçG2çW6tç6VÓ¢r²çöÕöç6VÒ°¢bçöÕöÆVæwFÖV7W&VÖVçG2çW6tÆVæwF¢r²çöÕöÆVæwF° ¢bÖV7W&VÖVçG2æÆVæwFâ°¢FWFÇ4FÖÂ³ÒsÆFb6Æ73Ò&FWFÂ×6V7Föâ#ãÆ3äÖV7W&VÖVçG3Âö3ãÇVÃâs°¢ÖV7W&VÖVçG2æf÷$V6gVæ7FöâÒ²FWFÇ4FÖÂ³ÒsÆÆâr²Ò²sÂöÆâs²Ò°¢FWFÇ4FÖÂ³ÒsÂ÷VÃãÂöFcãÆ"6Æ73Ò&FfFW"#âs°¢Ð ¢òòW&f÷&Öæ6P¢bæ'&VF&ÆGö×gG"°¢FWFÇ4FÖÂ³ÒsÆFb6Æ73Ò&FWFÂ×6V7Föâ#ãÆ3ä'&VF&ÆGÕeE"Âö3ãÇâr²æ'&VF&ÆGö×gG"²sÂ÷ãÂöFcãÆ"6Æ73Ò&FfFW"#âs°¢Ð ¢òòFw0¢f"Fw2ÒµÓ°¢bç7W7Fæ&ÆG÷Fw2°¢f"7BÒç7W7Fæ&ÆG÷Fw3°¢bGVöb7BÓÓÒw7G&ærr²G'²7BÒ¥4ôâç'6R7B²Ò6F6R²7BÒ·7EÓ²ÒÐ¢b'&æ4'&7BFw2ÒFw2æ6öæ6B7B°¢Ð¢bæ6W'Ff6Föç2°¢f"7BÒæ6W'Ff6Föç3°¢bGVöb7BÓÓÒw7G&ærr²G'²7BÒ¥4ôâç'6R7B²Ò6F6R²7BÒ¶7EÓ²ÒÐ¢b'&æ4'&7BFw2ÒFw2æ6öæ6B7B°¢Ð¢bFw2æÆVæwFâ°¢FWFÇ4FÖÂ³ÒsÆFb6Æ73Ò&FWFÂ×6V7Föâ#ãÆ3åFw2b6W'Ff6Föç3Âö3ãÆFcâs°¢Fw2æf÷$V6gVæ7FöâB²FWFÇ4FÖÂ³ÒsÇ7â6Æ73Ò'Fr#âr²B²sÂ÷7ãâs²Ò°¢FWFÇ4FÖÂ³ÒsÂöFcãÂöFcâs°¢Ð ¢Fö7VÖVçBævWDVÆVÖVçD'BvFWFÇ2Ö6öçFæW"ræææW$DÔÂÒFWFÇ4FÖÃ° ¢òò6÷r&öGV7BÂFRÆöFæp¢Fö7VÖVçBævWDVÆVÖVçD'BvÆöFærrç7GÆRæF7ÆÒvæöæRs°¢Fö7VÖVçBævWDVÆVÖVçD'Bw&öGV7BÖ6öçFæW"rç7GÆRæF7ÆÒvw&Bs°¢Ò° ¢òòvÆÆW'æfvFöâgVæ7Föç0¢væF÷ræ6ævTÖvRÒgVæ7FöâF"°¢7W'&VçDæFW³ÒF#°¢b7W'&VçDæFWÂ7W'&VçDæFWÒ°¢b7W'&VçDæFWãÒÖvW2æÆVæwF7W'&VçDæFWÒÖvW2æÆVæwFÒ°¢WFFTvÆÆW'°¢Ó° ¢væF÷rævõFôÖvRÒgVæ7Föâ°¢7W'&VçDæFWÒ°¢WFFTvÆÆW'°¢Ó° ¢gVæ7FöâWFFTvÆÆW'°¢Fö7VÖVçBævWDVÆVÖVçD'BvÖâÖÖvRrç7&2ÒÖvW5¶7W'&VçDæFWÓ° ¢òòæb'WGFöç0¢Fö7VÖVçBævWDVÆVÖVçD'Bw&WbÖ'Fâræ6Æ74Æ7BçFövvÆRvFFVârÂ7W'&VçDæFWÓÓÒ°¢Fö7VÖVçBævWDVÆVÖVçD'BvæWBÖ'Fâræ6Æ74Æ7BçFövvÆRvFFVârÂ7W'&VçDæFWÓÓÒÖvW2æÆVæwFÒ° ¢òò6÷VçFW ¢WFFT6÷VçFW"° ¢òòFVÖ'0¢f"FVÖ'2ÒFö7VÖVçBçVW'6VÆV7F÷$ÆÂrævÆÆW'×FVÖ'2Örr°¢FVÖ'2æf÷$V6gVæ7FöâBÂ°¢Bæ6Æ74Æ7BçFövvÆRv7FfRrÂÓÓÒ7W'&VçDæFW°¢Ò°¢Ð ¢gVæ7FöâWFFT6÷VçFW"°¢Fö7VÖVçBævWDVÆVÖVçD'BvvÆÆW'Ö6÷VçFW"rçFWD6öçFVçBÒ7W'&VçDæFW²²ròr²ÖvW2æÆVæwF°¢Ð§Ò°£Â÷67&Cà£Âö&öGà£ÂöFÖÃ
