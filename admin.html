@@ -795,7 +795,12 @@
         .nav-link .nav-icon { font-size: 1.1rem; width: 22px; text-align: center; }
 
         .status-badge { border-radius: 20px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px; }
-</style>
+.image-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+        .image-row .form-input { flex: 1; }
+        .image-row .btn-upload { padding: 8px 12px; font-size: 0.85rem; white-space: nowrap; background: var(--accent); color: #000; border: none; border-radius: 6px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+        .image-row .btn-upload:hover { opacity: 0.9; }
+        .image-preview { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); }
+    </style>
 </head>
 <body>
     <!-- Auth Gate -->
@@ -1033,7 +1038,7 @@
                 <!-- Tab: Visuals & Model -->
                 <div id="visuals" class="tab-content">
                     <div class="form-group">
-                        <label class="form-label">Images (URLs) <span class="required">*</span></label>
+                        <label class="form-label">Images <span class="required">*</span></label>
                         <div id="imagesContainer"></div>
                         <button type="button" class="btn btn-secondary btn-sm" id="addImageBtn">+ Add Image</button>
                     </div>
@@ -1313,6 +1318,11 @@
                 document.getElementById('themeLabel').textContent = 'Light';
             }
             localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+        
+            // Save theme to Supabase for main site
+            if (typeof sb !== 'undefined' && sb) {
+                sb.from('site_settings').upsert({ key: 'theme', value: { mode: isDark ? 'dark' : 'light' } }, { onConflict: 'key' }).then(function(){});
+            }
         }
 
         document.getElementById('themeToggle').addEventListener('click', () => {
@@ -1620,20 +1630,17 @@
         });
 
         // Images Management
-        document.getElementById('addImageBtn').addEventListener('click', (e) => {
-            e.preventDefault();
+        document.getElementById('addImageBtn').addEventListener('click', () => {
             const container = document.getElementById('imagesContainer');
-            const index = container.children.length + 1;
-            const imageDiv = document.createElement('div');
-            imageDiv.className = 'form-group';
-            imageDiv.innerHTML = `
-                <label class="form-label">Image ${index}</label>
-                <div style="display: flex; gap: 10px;">
-                    <input type="url" class="form-input product-image-url" placeholder="https://...">
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="this.parentElement.parentElement.remove()">Remove</button>
-                </div>
-            `;
-            container.appendChild(imageDiv);
+            const count = container.children.length + 1;
+            const row = document.createElement('div');
+            row.className = 'image-row';
+            row.innerHTML = '<span style="font-weight:600;min-width:60px;">Image ' + count + '</span>' +
+                '<input type="text" class="form-input product-image-url" placeholder="Paste image URL...">' +
+                '<label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label>' +
+                '<img class="image-preview" style="display:none">' +
+                '<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(\'\'.image-row\'\').remove()">Remove</button>';
+            container.appendChild(row);
         });
 
         // Color Variants
@@ -1737,7 +1744,32 @@
             await saveProduct(false);
         });
 
-        async function saveProduct(publish) {
+        async async function handleImageUpload(fileInput) {
+            const file = fileInput.files[0];
+            if (!file) return;
+            const row = fileInput.closest('.image-row');
+            const urlInput = row.querySelector('.product-image-url');
+            const preview = row.querySelector('.image-preview');
+            const uploadBtn = row.querySelector('.btn-upload');
+            uploadBtn.textContent = 'Uploading...';
+            try {
+                const ext = file.name.split('.').pop();
+                const fileName = Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '.' + ext;
+                const { data, error } = await sb.storage.from('product-images').upload(fileName, file, { cacheControl: '3600', upsert: false });
+                if (error) throw error;
+                const { data: urlData } = sb.storage.from('product-images').getPublicUrl(fileName);
+                urlInput.value = urlData.publicUrl;
+                if (preview) { preview.src = urlData.publicUrl; preview.style.display = 'block'; }
+                uploadBtn.textContent = 'Upload';
+                showToast('Image uploaded successfully', 'success');
+            } catch (err) {
+                console.error('Upload error:', err);
+                uploadBtn.textContent = 'Upload';
+                showToast('Upload failed: ' + err.message, 'error');
+            }
+        }
+
+        function saveProduct(publish) {
             const mandatoryFields = ['sku', 'title', 'subtitle', 'gender', 'colorway', 'materialComposition', 'msrp', 'currentPrice', 'productStatus'];
             const form = document.getElementById('productForm');
 
@@ -1918,21 +1950,18 @@
             document.getElementById('specialtyMaternity').checked = product.specialty_sizing?.includes('Maternity');
 
             sb.from('product_images').select('*').eq('product_id', product.id).then(({ data }) => {
-                const container = document.getElementById('imagesContainer');
-                container.innerHTML = '';
-                if (data && data.length > 0) {
-                    data.forEach((img, idx) => {
-                        const imageDiv = document.createElement('div');
-                        imageDiv.className = 'form-group';
-                        imageDiv.innerHTML = `
-                            <label class="form-label">Image ${idx + 1}</label>
-                            <div style="display: flex; gap: 10px;">
-                                <input type="url" class="form-input product-image-url" value="${img.image_url}" placeholder="https://...">
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="this.parentElement.parentElement.remove()">Remove</button>
-                            </div>
-                        `;
-                        container.appendChild(imageDiv);
-                    });
+            // Load images
+            const container = document.getElementById('imagesContainer');
+            container.innerHTML = '';
+            const imgUrl = product.image_url || '';
+            const row = document.createElement('div');
+            row.className = 'image-row';
+            row.innerHTML = '<span style="font-weight:600;min-width:60px;">Image 1</span>' +
+                '<input type="text" class="form-input product-image-url" placeholder="Paste image URL..." value="' + imgUrl + '">' +
+                '<label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label>' +
+                (imgUrl ? '<img class="image-preview" src="' + imgUrl + '" style="display:block">' : '<img class="image-preview" style="display:none">') +
+                '<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(\'\'.image-row\'\').remove()">Remove</button>';
+            container.appendChild(row);
                 }
             });
 
@@ -1974,7 +2003,7 @@
 
         function resetProductForm() {
             document.getElementById('productForm').reset();
-            document.getElementById('imagesContainer').innerHTML = '';
+            document.getElementById('imagesContainer').innerHTML = '<div class="image-row"><span style="font-weight:600;min-width:60px;">Image 1</span><input type="text" class="form-input product-image-url" placeholder="Paste image URL..."><label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label><img class="image-preview" style="display:none"><button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(\'\'.image-row\'\').remove()">Remove</button></div>';
             document.getElementById('colorVariantsContainer').innerHTML = '';
             document.getElementById('sizeGridContainer').innerHTML = '';
             document.querySelectorAll('.form-input.error, .form-select.error').forEach(el => el.classList.remove('error'));
