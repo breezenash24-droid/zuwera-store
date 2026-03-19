@@ -1949,7 +1949,6 @@
             document.getElementById('specialtyPlus').checked = product.specialty_sizing?.includes('Plus');
             document.getElementById('specialtyMaternity').checked = product.specialty_sizing?.includes('Maternity');
 
-            sb.from('product_images').select('*').eq('product_id', product.id).then(({ data }) => {
             // Load images
             const container = document.getElementById('imagesContainer');
             container.innerHTML = '';
@@ -1962,8 +1961,6 @@
                 (imgUrl ? '<img class="image-preview" src="' + imgUrl + '" style="display:block">' : '<img class="image-preview" style="display:none">') +
                 '<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button>';
             container.appendChild(row);
-                }
-            });
 
             sb.from('product_colors').select('*').eq('product_id', product.id).then(({ data }) => {
                 const container = document.getElementById('colorVariantsContainer');
