@@ -1639,7 +1639,7 @@
                 '<input type="text" class="form-input product-image-url" placeholder="Paste image URL...">' +
                 '<label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label>' +
                 '<img class="image-preview" style="display:none">' +
-                '<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(\'\'.image-row\'\').remove()">Remove</button>';
+                '<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button>';
             container.appendChild(row);
         });
 
@@ -1960,7 +1960,7 @@
                 '<input type="text" class="form-input product-image-url" placeholder="Paste image URL..." value="' + imgUrl + '">' +
                 '<label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label>' +
                 (imgUrl ? '<img class="image-preview" src="' + imgUrl + '" style="display:block">' : '<img class="image-preview" style="display:none">') +
-                '<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(\'\'.image-row\'\').remove()">Remove</button>';
+                '<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button>';
             container.appendChild(row);
                 }
             });
@@ -2003,7 +2003,7 @@
 
         function resetProductForm() {
             document.getElementById('productForm').reset();
-            document.getElementById('imagesContainer').innerHTML = '<div class="image-row"><span style="font-weight:600;min-width:60px;">Image 1</span><input type="text" class="form-input product-image-url" placeholder="Paste image URL..."><label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label><img class="image-preview" style="display:none"><button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(\'\'.image-row\'\').remove()">Remove</button></div>';
+            document.getElementById('imagesContainer').innerHTML = '<div class="image-row"><span style="font-weight:600;min-width:60px;">Image 1</span><input type="text" class="form-input product-image-url" placeholder="Paste image URL..."><label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label><img class="image-preview" style="display:none"><button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button></div>';
             document.getElementById('colorVariantsContainer').innerHTML = '';
             document.getElementById('sizeGridContainer').innerHTML = '';
             document.querySelectorAll('.form-input.error, .form-select.error').forEach(el => el.classList.remove('error'));
