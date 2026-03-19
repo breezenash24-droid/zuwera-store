@@ -1306,7 +1306,7 @@
             applyTheme();
         }
 
-        function applyTheme() {
+        function applyTheme(isDark) {
             const body = document.body;
             if (isDarkMode) {
                 body.classList.remove('light-mode');
@@ -1858,14 +1858,8 @@
                     productId = data[0].id;
                 }
 
-                await sb.from('product_images').delete().eq('product_id', productId);
                 const imageUrls = Array.from(document.querySelectorAll('.product-image-url')).map(i => i.value).filter(v => v);
                 for (let i = 0; i < imageUrls.length; i++) {
-                    await sb.from('product_images').insert([{
-                        product_id: productId,
-                        image_url: imageUrls[i],
-                        sort_order: i
-                    }]);
                 }
 
                 await sb.from('product_colors').delete().eq('product_id', productId);
@@ -2023,7 +2017,6 @@
 
         document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
             try {
-                await sb.from('product_images').delete().eq('product_id', deleteProductId);
                 await sb.from('product_colors').delete().eq('product_id', deleteProductId);
                 await sb.from('product_sizes').delete().eq('product_id', deleteProductId);
                 const { error } = await sb.from('products').delete().eq('id', deleteProductId);
