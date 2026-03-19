@@ -1744,7 +1744,7 @@
             await saveProduct(false);
         });
 
-        async async function handleImageUpload(fileInput) {
+        async function handleImageUpload(fileInput) {
             const file = fileInput.files[0];
             if (!file) return;
             const row = fileInput.closest('.image-row');
