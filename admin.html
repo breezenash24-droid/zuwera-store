@@ -1229,45 +1229,6 @@
                 <button type="button" class="btn btn-secondary" id="cancelDeleteBtn">Cancel</button>
                 <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
             </div>
-    
-            <!-- Website Settings Page -->
-            <div id="website" class="page" style="display:none">
-                <div class="page-header">
-                    <h2>Website Settings</h2>
-                    <p class="page-subtitle">Edit your homepage hero section and other site content</p>
-                </div>
-                <div class="card" style="margin-bottom:24px">
-                    <h3 style="margin-bottom:16px;font-size:1.1rem">Hero Section</h3>
-                    <div class="form-group">
-                        <label class="form-label">Kicker Text</label>
-                        <input type="text" class="form-input" id="heroKicker" placeholder="Release 001 — Sept 20, 2026">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Main Heading (HTML allowed)</label>
-                        <input type="text" class="form-input" id="heroHeading" placeholder="For Those&lt;br&gt;&lt;em&gt;Who Dream.&lt;/em&gt;">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Subtext</label>
-                        <textarea class="form-input" id="heroSubtext" rows="3" placeholder="Bold athletic sportswear built for the relentless."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Hero Image URL</label>
-                        <input type="url" class="form-input" id="heroImage" placeholder="images/hero.jpg">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">CTA Button Text</label>
-                        <input type="text" class="form-input" id="heroCtaText" placeholder="Explore Release 001">
-                    </div>
-                        <div class="form-group">
-                        <label class="form-label">Announcement Banner Text</label>
-                        <input type="text" class="form-input" id="heroBannerText" placeholder="ALL THE DEVILS ARE HERE">
-                        </div>
-                    <div style="display:flex;gap:12px;margin-top:20px">
-                        <button class="btn btn-primary" onclick="saveHeroSettings()">Save Hero Settings</button>
-                        <button class="btn btn-secondary" onclick="window.open('https://zuwera.store','_blank')">Preview Site</button>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -1311,7 +1272,77 @@
                     </div>
                 </div>
             </div>
-           }
+
+<script>
+        // Initialize Supabase
+        const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // State Management
+        let currentUser = null;
+        let currentProduct = null;
+        let deleteProductId = null;
+        let isDarkMode = true;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeTheme();
+            checkAuthState();
+            setupEventListeners();
+        });
+
+        // Theme Management
+        function initializeTheme() {
+            const saved = localStorage.getItem('theme');
+            if (saved) {
+                isDarkMode = saved === 'dark';
+            }
+            applyTheme();
+        }
+
+        function applyTheme() {
+            const body = document.body;
+            if (isDarkMode) {
+                body.classList.remove('light-mode');
+                document.getElementById('themeIcon').textContent = '🌙';
+                document.getElementById('themeLabel').textContent = 'Dark';
+            } else {
+                body.classList.add('light-mode');
+                document.getElementById('themeIcon').textContent = '☀️';
+                document.getElementById('themeLabel').textContent = 'Light';
+            }
+            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+        }
+
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            isDarkMode = !isDarkMode;
+            applyTheme();
+        });
+
+        // Auth State
+        async function checkAuthState() {
+            const { data: { session } } = await sb.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                await checkAdminRole();
+            } else {
+                showAuthGate();
+            }
+        }
+
+        async function checkAdminRole() {
+            const { data: profile } = await sb
+                .from('profiles')
+                .select('role')
+                .eq('id', currentUser.id)
+                .single();
+
+            if (profile && profile.role === 'admin') {
+                showAdminPanel();
+            } else {
+                showAccessDenied();
+            }
         }
 
         function showAuthGate() {
