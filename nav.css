@@ -114,3 +114,39 @@ body.has-bar .hero { padding-top: 32px; }
   display: none;
 }
 .logout-btn:hover { color: var(--white); }
+
+/* ===================== LIGHT MODE ===================== */
+body.light-mode .announcement-bar {
+  background: var(--white);
+  color: var(--black);
+}
+body.light-mode .announcement-close {
+  color: var(--black);
+}
+body.light-mode .nav {
+  background: var(--black);
+  border-bottom-color: var(--c08);
+  box-shadow: 0 1px 12px rgba(0,0,0,0.06);
+}
+body.light-mode .logo {
+  filter: invert(1);
+}
+body.light-mode .nav-right button {
+  color: var(--white);
+}
+body.light-mode #cart-btn {
+  border-color: var(--c30) !important;
+}
+body.light-mode .cart-count {
+  background: var(--white);
+  color: var(--black);
+}
+body.light-mode #account-btn {
+  color: var(--white);
+}
+body.light-mode .logout-btn {
+  color: var(--c35);
+}
+body.light-mode .logout-btn:hover {
+  color: var(--white);
+}
