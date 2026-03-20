@@ -6,6 +6,7 @@
   padding-bottom: 60px;
   min-height: 100vh;
   background: var(--black);
+  transition: background 0.3s, color 0.3s;
 }
 
 .loading-state, .error-state {
@@ -821,4 +822,27 @@ footer p {
   .section-label {
     font-size: 0.75rem;
   }
+}
+
+/* ===================== LIGHT MODE ===================== */
+body.light-mode .gallery-main {
+  background: #eee;
+}
+body.light-mode .thumbnail {
+  background: #eee;
+}
+body.light-mode .low-stock-badge {
+  background: rgba(245,245,240,0.9);
+  border-color: var(--white);
+  color: var(--white);
+}
+body.light-mode .cookie-consent-banner {
+  background: #e8e8e8;
+  border-top-color: var(--c10);
+}
+body.light-mode .footer-logo {
+  filter: invert(1);
+}
+body.light-mode footer {
+  border-top-color: var(--c10);
 }
