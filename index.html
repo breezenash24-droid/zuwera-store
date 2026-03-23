@@ -1445,7 +1445,6 @@ async function loadProducts() {
   const { data: products, error } = await _sb
     .from('products')
     .select('*')
-    .eq('drop_number', '001')
     .order('sort_order', { ascending: true });
 
   if (error || !products) {
