@@ -582,7 +582,7 @@
               <span>Image Coming Soon</span>
             </div>`;
         return `
-          <a href="product.html?id=${p.id}" style="text-decoration:none;color:inherit">
+          <a href="product.html?sku=${p.sku || p.id}" style="text-decoration:none;color:inherit">
             <div class="product-card">
               <div class="product-img">
                 ${imgHtml}
