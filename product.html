@@ -33,7 +33,7 @@
 <!-- ANNOUNCEMENT BAR                                                 -->
 <!-- ════════════════════════════════════════════════════════════════ -->
 <div class="announcement-bar" id="announcementBar">
-  Free standard shipping on orders $50+ <span>•</span> 60-day returns for members
+  ALL THE DEVILS ARE HERE
   <button class="announcement-close" onclick="this.parentElement.style.display='none'; document.body.classList.remove('has-bar')">×</button>
 </div>
 
@@ -507,23 +507,23 @@ function renderSizes() {
     sizeMap.set(inv.size, inv.stock_quantity);
   });
 
-  // Standard size order
+  // Standard size order — always show these
   const standardSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
-  const sizes = [...new Set([...sizeMap.keys(), ...standardSizes])].filter(s => sizeMap.has(s));
 
-  if (sizes.length === 0) {
-    sizeGrid.innerHTML = '<p style="opacity: 0.5;">No sizes available</p>';
-    return;
-  }
+  // If inventory exists, use those sizes; otherwise show all standard sizes
+  const hasInventory = sizeMap.size > 0;
+  const sizes = hasInventory
+    ? standardSizes.filter(s => sizeMap.has(s))
+    : standardSizes;
 
   sizes.forEach(size => {
-    const stock = sizeMap.get(size) || 0;
+    const stock = hasInventory ? (sizeMap.get(size) || 0) : -1; // -1 means no inventory data
     const btn = document.createElement('button');
     btn.className = 'size-btn';
     btn.textContent = size;
     btn.dataset.size = size;
 
-    if (stock === 0) {
+    if (hasInventory && stock === 0) {
       btn.classList.add('disabled');
       btn.disabled = true;
     }
