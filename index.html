@@ -1692,7 +1692,7 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 let payReq = null, selRate = null;
 function initPR(subtotalCents) {
   if(payReq) return;
-  payReq = stripe.paymentRequest({ country:'US', currency:wusd', total:{ label:'Zuwera', amount:subtotalCents, pending:true }, requestPayerName:true, requestPayerEmail:true, requestShipping:true, shippingOptions:[] });
+  payReq = stripe.paymentRequest({ country:'US', currency:'usd', total:{ label:'Zuwera', amount:subtotalCents, pending:true }, requestPayerName:true, requestPayerEmail:true, requestShipping:true, shippingOptions:[] });
   payReq.on('shippingaddresschange', async ev => {
     const a = ev.shippingAddress;
     try {
