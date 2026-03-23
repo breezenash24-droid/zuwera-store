@@ -3,30 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ZUWERA â For Those Who Dream</title>
+<title>ZUWERA — For Those Who Dream</title>
 <meta name="description" content="Bold athletic sportswear. Release 001 launching September 20, 2026.">
 
-<!-- ââ Open Graph ââââââââââââââââââââââââââââââââââââââââââââââââ -->
+<!-- ── Open Graph ──────────────────────────────────────────────── -->
 <meta property="og:type"        content="website">
 <meta property="og:site_name"   content="ZUWERA">
 <meta property="og:url"         content="https://zuwera.store/">
-<meta property="og:title"       content="ZUWERA â For Those Who Dream">
+<meta property="og:title"       content="ZUWERA — For Those Who Dream">
 <meta property="og:description" content="Bold athletic sportswear. Release 001 launching September 20, 2026.">
 <meta property="og:image"       content="https://zuwera.store/images/og-image.jpg">
 <meta property="og:image:width"  content="1200">
 <meta property="og:image:height" content="630">
 
-<!-- ââ Twitter / X Card ââââââââââââââââââââââââââââââââââââââââââââ -->
+<!-- ── Twitter / X Card ──────────────────────────────────────────── -->
 <meta name="twitter:card"        content="summary_large_image">
 <meta name="twitter:site"        content="@Zuwera">
-<meta name="twitter:title"       content="ZUWERA â For Those Who Dream">
+<meta name="twitter:title"       content="ZUWERA — For Those Who Dream">
 <meta name="twitter:description" content="Bold athletic sportswear. Release 001 launching September 20, 2026.">
 <meta name="twitter:image"       content="https://zuwera.store/images/og-image.jpg">
 
-<!-- ââ Canonical âââââââââââââââââââââââââââââââââââââââââââââââââââ -->
+<!-- ── Canonical ─────────────────────────────────────────────────── -->
 <link rel="canonical" href="https://zuwera.store/">
 
-<!-- ââ JSON-LD Structured Data âââââââââââââââââââââââââââââââââââââ -->
+<!-- ── JSON-LD Structured Data ───────────────────────────────────── -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -49,7 +49,7 @@
     },
     {
       "@type": "ItemList",
-      "name": "Release 001 â Jackets",
+      "name": "Release 001 — Jackets",
       "description": "Zuwera's debut release, launching September 20 2026.",
       "url": "https://zuwera.store/#drop001",
       "itemListElement": [
@@ -97,7 +97,7 @@
      single biggest LCP (Largest Contentful Paint) improvement. -->
 <link rel="preload" as="image" href="images/hero.jpg">
 
-<!-- DNS + connection warm-ups â eliminates one full round-trip for
+<!-- DNS + connection warm-ups — eliminates one full round-trip for
      each third-party domain the first time it's needed. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -108,10 +108,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500&family=Barlow:wght@300;400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="reviews.css">
 
-<!-- Stripe must stay non-deferred â Stripe loads it early intentionally
+<!-- Stripe must stay non-deferred — Stripe loads it early intentionally
      for fraud detection signals. -->
 <script src="https://js.stripe.com/v3/"></script>
-<!-- defer moves Supabase off the critical path â it was previously
+<!-- defer moves Supabase off the critical path — it was previously
      render-blocking (parsing stopped until this ~200 KB bundle downloaded
      and executed). defer lets HTML continue parsing in parallel. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -125,9 +125,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
 <style>
-/* âââââââââââââââââââââââââââââââââââââââââââââ
+/* ─────────────────────────────────────────────
    RESET & VARIABLES
-âââââââââââââââââââââââââââââââââââââââââââââ */
+───────────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --ink:#09090b;
@@ -155,9 +155,9 @@ button{cursor:none;font-family:inherit;border:none;background:none}
 input,textarea{font-family:inherit}
 img{display:block;max-width:100%}
 
-/* âââââââââââââââââââââââââââââââââââââââââââââ
+/* ─────────────────────────────────────────────
    CUSTOM CURSOR
-âââââââââââââââââââââââââââââââââââââââââââââ */
+───────────────────────────────────────────── */
 #cursor{
   width:8px;height:8px;
   background:var(--paper);
@@ -170,9 +170,9 @@ img{display:block;max-width:100%}
 }
 #cursor.hover{width:36px;height:36px}
 
-/* âââââââââââââââââââââââââââââââââââââââââââââ
+/* ─────────────────────────────────────────────
    NOISE OVERLAY
-âââââââââââââââââââââââââââââââââââââââââââââ */
+───────────────────────────────────────────── */
 body::after{
   content:'';
   position:fixed;inset:0;z-index:9998;
@@ -182,9 +182,9 @@ body::after{
   opacity:0.35;
 }
 
-/* âââââââââââââââââââââââââââââââââââââââââââââ
+/* ─────────────────────────────────────────────
    ANNOUNCEMENT
-âââââââââââââââââââââââââââââââââââââââââââââ */
+───────────────────────────────────────────── */
 #bar{
   background:var(--ink);color:var(--paper);border-bottom:1px solid rgba(244,241,235,.1);
   padding:.45rem 2rem;
@@ -194,9 +194,9 @@ body::after{
 }
 .bar-sep{opacity:.25}
 
-/* âââââââââââââââââââââââââââââââââââââââââââââ
+/* ─────────────────────────────────────────────
    NAV
-âââââââââââââââââââââââââââââââââââââââââââââ */
+───────────────────────────────────────────── */
 nav#nav{
   position:fixed;top:0;left:0;right:0;z-index:100;
   display:flex;justify-content:space-between;align-items:center;
@@ -239,9 +239,9 @@ nav#nav.scrolled{
 #logout-btn{display:none!important}
 #account-btn.show,#logout-btn.show{display:flex!important}
 
-/* âââââââââââââââââââââââââââââââââââââââââââââ
+/* ─────────────────────────────────────────────
    HERO
-âââââââââââââââââââââââââââââââââââââââââââââ */
+───────────────────────────────────────────── */
 .hero{
   min-height:100svh;
   background:var(--ink);
@@ -291,7 +291,7 @@ nav#nav.scrolled{
   color:var(--paper);
   opacity:0;animation:up .9s cubic-bezier(.22,1,.36,1) .35s forwards;
 }
-.hero-h1{font-style:normal;color:transparent;-webkit-text-stroke:2px rgba(244,241,235,.85)}
+.hero-h1 em{font-style:normal;color:transparent;-webkit-text-stroke:2px rgba(244,241,235,.85)}
 .hero-sub{
   font-family:var(--fb);font-weight:300;
   font-size:clamp(.9rem,1.5vw,1.1rem);
@@ -343,9 +343,9 @@ nav#nav.scrolled{
 @keyframes up{to{opacity:1;transform:none}from{opacity:0;transform:translateY(28px)}}
 @keyframes fadeIn{to{opacity:1}from{opacity:0}}
 
-/* âââââââââââââââââââââââââââââââââââââââââââââ
+/* ─────────────────────────────────────────────
    MARQUEE
-âââââââââââââââââââââââââââââââââââââââââââââ */
+───────────────────────────────────────────── */
 .marquee{
   overflow:hidden;border-top:1px solid rgba(244,241,235,.08);
   border-bottom:1px solid rgba(244,241,235,.08);
@@ -363,9 +363,9 @@ nav#nav.scrolled{
 .marquee-item.accent{color:var(--gold);opacity:.6}
 @keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
-/* âââââââââââââââââââââââââââââââââââââââââââââ
+/* ─────────────────────────────────────────────
    SECTION: ABOUT
-âââââââââââââââââââââââââââââââââââââââââââââ */
+───────────────────────────────────────────── */
 .section-about{
   padding:9rem 2.5rem;
   max-width:1200px;margin:0 auto;
@@ -380,8 +380,7 @@ nav#nav.scrolled{
 .about-h2{
   font-family:var(--fw);font-weight:900;font-style:italic;
   font-size:clamp(3.5rem,7vw,7rem);
-  line-height:.95;letter-spacing:.02em;
-  margin-bottom:2.5rem;
+  line-height:.9;letter-spacing:.02em;
 }
 .about-body p{
   font-size:1rem;line-height:1.9;
@@ -392,7 +391,7 @@ nav#nav.scrolled{
   display:flex;gap:3rem;margin-top:3rem;
   padding-top:2.5rem;border-top:1px solid rgba(244,241,235,.08);
 }
-.stat-n{ 
+.stat-n{
   font-family:var(--fw);font-weight:900;font-style:italic;
   font-size:3.5rem;line-height:1;
 }
@@ -402,9 +401,9 @@ nav#nav.scrolled{
   color:rgba(244,241,235,.3);margin-top:.35rem;
 }
 
-/* âââââââââââââââââââââââââââââââââââââââââââââ
+/* ─────────────────────────────────────────────
    SECTION: DROP HERO
-âââââââââââââââââââââââââââââââââââââââââââââ */
+───────────────────────────────────────────── */
 .drop-wrap{
   background:var(--ink);
   border-top:1px solid rgba(244,241,235,.07);
@@ -419,7 +418,7 @@ nav#nav.scrolled{
   letter-spacing:-.05em;
 }
 .drop-inner{
-  max-width:1200px;margin:0 auto;\padding:7rem 2.5rem;
+  max-width:1200px;margin:0 auto;padding:7rem 2.5rem;
   display:grid;grid-template-columns:1fr 1fr;gap:6rem;align-items:center;
   position:relative;z-index:1;
 }
@@ -459,7 +458,7 @@ nav#nav.scrolled{
   letter-spacing:-.02em;
   will-change:transform,opacity;
 }
-/* Flip animation â fired by JS only when the displayed value changes */
+/* Flip animation — fired by JS only when the displayed value changes */
 @keyframes cdnFlip{
   0%  {opacity:1;transform:translateY(0)}
   30% {opacity:0;transform:translateY(-6px)}
@@ -502,9 +501,9 @@ nav#nav.scrolled{
   letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-top:.4rem;
 }
 
-/* âââââââââââââââââââââââââââââââââââââââââââââ
+/* ─────────────────────────────────────────────
    PRODUCTS
-âââââââââââââââââââââââââââââââââââââââââââââ */
+───────────────────────────────────────────── */
 .products-section{
   max-width:1200px;margin:0 auto;
   padding:3rem 2.5rem 8rem;
@@ -585,9 +584,9 @@ nav#nav.scrolled{
 }
 .pcard-action:hover{border-color:var(--gold)}
 
-/* âââââââââââââââââââââââââââââââââââââââââââââ
+/* ─────────────────────────────────────────────
    FOOTER
-âââââââââââââââââââââââââââââââââââââââââââââ */
+───────────────────────────────────────────── */
 footer{
   border-top:1px solid rgba(244,241,235,.07);
   padding:2.5rem 2.5rem;
@@ -614,9 +613,9 @@ footer{
 .fig:hover{color:var(--paper)}
 .fcopy{font-family:var(--fm);font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.15)}
 
-/* âââââââââââââââââââââââââââââââââââââââââââââ
+/* ─────────────────────────────────────────────
    TOAST
-âââââââââââââââââââââââââââââââââââââââââââââ */
+───────────────────────────────────────────── */
 #toast{
   position:fixed;bottom:2rem;left:50%;
   transform:translateX(-50%) translateY(16px);
@@ -627,9 +626,9 @@ footer{
 }
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* âââââââââââââââââââââââââââââââââââââââââââââ
+/* ─────────────────────────────────────────────
    MODALS
-âââââââââââââââââââââââââââââââââââââââââââââ */
+───────────────────────────────────────────── */
 .modal{
   display:none;position:fixed;inset:0;z-index:500;
   background:rgba(9,9,11,.88);backdrop-filter:blur(12px);
@@ -722,9 +721,9 @@ footer{
 .alink a{color:rgba(244,241,235,.7);text-decoration:none;border-bottom:1px solid rgba(244,241,235,.2);padding-bottom:1px;transition:color .2s,border-color .2s;cursor:pointer}
 .alink a:hover{color:var(--gold);border-color:var(--gold)}
 
-/* âââââââââââââââââââââââââââââââââââââââââââââ
+/* ─────────────────────────────────────────────
    CART
-âââââââââââââââââââââââââââââââââââââââââââââ */
+───────────────────────────────────────────── */
 #cart-modal{
   background:var(--ink);flex-direction:column;
   overflow-y:auto;align-items:stretch;justify-content:flex-start;
@@ -791,9 +790,9 @@ footer{
 }
 #checkout-btn:hover{opacity:.85}
 
-/* âââââââââââââââââââââââââââââââââââââââââââââ
+/* ─────────────────────────────────────────────
    PAYMENT
-âââââââââââââââââââââââââââââââââââââââââââââ */
+───────────────────────────────────────────── */
 #payment-modal{background:rgba(9,9,11,.96);backdrop-filter:blur(18px)}
 .pbox{
   background:#111;border:1px solid rgba(244,241,235,.08);
@@ -855,9 +854,9 @@ footer{
   color:rgba(244,241,235,.2);letter-spacing:.08em;margin-top:.9rem;
 }
 
-/* âââââââââââââââââââââââââââââââââââââââââââââ
+/* ─────────────────────────────────────────────
    SUCCESS
-âââââââââââââââââââââââââââââââââââââââââââââ */
+───────────────────────────────────────────── */
 #payment-success{
   display:none;position:fixed;inset:0;
   background:var(--ink);z-index:600;
@@ -886,9 +885,9 @@ footer{
 }
 #success-continue:hover{opacity:.85}
 
-/* âââââââââââââââââââââââââââââââââââââââââââââ
+/* ─────────────────────────────────────────────
    RESPONSIVE
-âââââââââââââââââââââââââââââââââââââââââââââ */
+───────────────────────────────────────────── */
 @media(max-width:900px){
   .section-about{grid-template-columns:1fr;gap:4rem;padding:6rem 1.5rem}
   .drop-inner{grid-template-columns:1fr;gap:3.5rem;padding:5rem 1.5rem}
@@ -912,9 +911,9 @@ footer{
   footer{padding:2rem 1.2rem}
 }
 
-/* âââââââââââââââââââââââââââââââââââââââââââââ
+/* ─────────────────────────────────────────────
    LIGHT MODE
-âââââââââââââââââââââââââââââââââââââââââââââ */
+───────────────────────────────────────────── */
 body.light-mode{
   --ink:#f4f1eb;
   --paper:#09090b;
@@ -1084,9 +1083,9 @@ body.light-mode::after{opacity:0.15}
 
 <!-- ANNOUNCEMENT BAR -->
 <div id="bar">
-  <span class="bar-sep">â¦</span>
+  <span class="bar-sep">✦</span>
   ALL THE DEVILS ARE HERE
-  <span class="bar-sep">â¦</span>
+  <span class="bar-sep">✦</span>
 </div>
 
 <!-- NAV -->
@@ -1110,7 +1109,7 @@ body.light-mode::after{opacity:0.15}
     <img src="images/hero.jpg" alt="" fetchpriority="high">
   </div>
   <div class="hero-inner">
-    <p class="hero-kicker">Release 001 â Sept 20, 2026</p>
+    <p class="hero-kicker">Release 001 — Sept 20, 2026</p>
     <h1 class="hero-h1">For Those<br><em>Who Dream.</em></h1>
     <p class="hero-sub">Bold athletic sportswear built for the relentless. Those who move with purpose.</p>
     <div class="hero-cta-row">
@@ -1119,7 +1118,7 @@ body.light-mode::after{opacity:0.15}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </button>
       <button class="btn-ghost" onclick="document.getElementById('home-notify-email').scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>document.getElementById('home-notify-email').focus(),600)">
-        Get Early Access â
+        Get Early Access →
       </button>
     </div>
   </div>
@@ -1128,28 +1127,28 @@ body.light-mode::after{opacity:0.15}
       <div class="scroll-bar"></div>
       Scroll
     </div>
-    <div class="hero-year">Zuwera Â· Est. 2026</div>
+    <div class="hero-year">Zuwera · Est. 2026</div>
   </div>
 </section>
 
 <!-- MARQUEE -->
 <div class="marquee">
   <div class="marquee-track">
-    <span class="marquee-item">ZUWERA</span><span class="marquee-item accent">â¦</span>
-    <span class="marquee-item">RELEASE 001</span><span class="marquee-item accent">â¦</span>
-    <span class="marquee-item">FOR THOSE WHO DREAM</span><span class="marquee-item accent">â¦</span>
-    <span class="marquee-item">SEP 20 2026</span><span class="marquee-item accent">â¦</span>
-    <span class="marquee-item">ATHLETIC SPORTSWEAR</span><span class="marquee-item accent">â¦</span>
-    <span class="marquee-item">ZUWERA</span><span class="marquee-item accent">â¦</span>
-    <span class="marquee-item">RELEASE 001</span><span class="marquee-item accent">â¦</span>
-    <span class="marquee-item">FOR THOSE WHO DREAM</span><span class="marquee-item accent">â¦</span>
-    <span class="marquee-item">SEP 20 2026</span><span class="marquee-item accent">â¦</span>
-    <span class="marquee-item">ATHLETIC SPORTSWEAR</span><span class="marquee-item accent">â¦</span>
-    <span class="marquee-item">ZUWERA</span><span class="marquee-item accent">â¦</span>
-    <span class="marquee-item">RELEASE 001</span><span class="marquee-item accent">â¦</span>
-    <span class="marquee-item">FOR THOSE WHO DREAM</span><span class="marquee-item accent">â¦</span>
-    <span class="marquee-item">SEP 20 2026</span><span class="marquee-item accent">â¦</span>
-    <span class="marquee-item">ATHLETIC SPORTSWEAR</span><span class="marquee-item accent">â¦</span>
+    <span class="marquee-item">ZUWERA</span><span class="marquee-item accent">✦</span>
+    <span class="marquee-item">RELEASE 001</span><span class="marquee-item accent">✦</span>
+    <span class="marquee-item">FOR THOSE WHO DREAM</span><span class="marquee-item accent">✦</span>
+    <span class="marquee-item">SEP 20 2026</span><span class="marquee-item accent">✦</span>
+    <span class="marquee-item">ATHLETIC SPORTSWEAR</span><span class="marquee-item accent">✦</span>
+    <span class="marquee-item">ZUWERA</span><span class="marquee-item accent">✦</span>
+    <span class="marquee-item">RELEASE 001</span><span class="marquee-item accent">✦</span>
+    <span class="marquee-item">FOR THOSE WHO DREAM</span><span class="marquee-item accent">✦</span>
+    <span class="marquee-item">SEP 20 2026</span><span class="marquee-item accent">✦</span>
+    <span class="marquee-item">ATHLETIC SPORTSWEAR</span><span class="marquee-item accent">✦</span>
+    <span class="marquee-item">ZUWERA</span><span class="marquee-item accent">✦</span>
+    <span class="marquee-item">RELEASE 001</span><span class="marquee-item accent">✦</span>
+    <span class="marquee-item">FOR THOSE WHO DREAM</span><span class="marquee-item accent">✦</span>
+    <span class="marquee-item">SEP 20 2026</span><span class="marquee-item accent">✦</span>
+    <span class="marquee-item">ATHLETIC SPORTSWEAR</span><span class="marquee-item accent">✦</span>
   </div>
 </div>
 
@@ -1161,7 +1160,7 @@ body.light-mode::after{opacity:0.15}
   </div>
   <div>
     <div class="about-body">
-      <p>Bold, athletic, and designed for those who dream big. Zuwera is sportswear built for the relentless â those who push past limits and never stop.</p>
+      <p>Bold, athletic, and designed for those who dream big. Zuwera is sportswear built for the relentless — those who push past limits and never stop.</p>
       <p>Release 001 is the beginning. A collection of jackets crafted for those who move with purpose and style.</p>
     </div>
     <div class="about-stats">
@@ -1199,7 +1198,7 @@ body.light-mode::after{opacity:0.15}
           <button onclick="homeNotifyMe()">Notify Me</button>
         </div>
         <p class="notify-hint">No spam, ever. Unsubscribe anytime.</p>
-        <p id="home-notify-success">â You're on the list.</p>
+        <p id="home-notify-success">✓ You're on the list.</p>
       </div>
     </div>
   </div>
@@ -1207,7 +1206,7 @@ body.light-mode::after{opacity:0.15}
   <!-- Products -->
   <div class="products-section">
     <div class="sec-head">
-      <h2>Release 001 â Jackets</h2>
+      <h2>Release 001 — Jackets</h2>
       <span>Releasing 09 / 20 / 2026</span>
     </div>
     <div class="pgrid" id="products-grid">
@@ -1234,7 +1233,7 @@ body.light-mode::after{opacity:0.15}
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
       @Zuw.era
     </a>
-    <p class="fcopy">Â© 2026 Zuwera. All rights reserved.</p>
+    <p class="fcopy">© 2026 Zuwera. All rights reserved.</p>
   </div>
 </footer>
 
@@ -1247,16 +1246,16 @@ body.light-mode::after{opacity:0.15}
 
     <!-- Star selector -->
     <div class="star-selector" id="star-selector" role="group" aria-label="Star rating">
-      <button type="button" data-v="1" aria-label="1 star">â</button>
-      <button type="button" data-v="2" aria-label="2 stars">â</button>
-      <button type="button" data-v="3" aria-label="3 stars">â</button>
-      <button type="button" data-v="4" aria-label="4 stars">â</button>
-      <button type="button" data-v="5" aria-label="5 stars">â</button>
+      <button type="button" data-v="1" aria-label="1 star">★</button>
+      <button type="button" data-v="2" aria-label="2 stars">★</button>
+      <button type="button" data-v="3" aria-label="3 stars">★</button>
+      <button type="button" data-v="4" aria-label="4 stars">★</button>
+      <button type="button" data-v="5" aria-label="5 stars">★</button>
     </div>
 
     <!-- Review body -->
     <textarea id="review-body-input" class="review-body-field"
-      placeholder="Share your thoughts about this pieceâ¦" maxlength="1000"></textarea>
+      placeholder="Share your thoughts about this piece…" maxlength="1000"></textarea>
 
     <!-- Error + submit -->
     <p id="review-error" class="review-error"></p>
@@ -1296,9 +1295,9 @@ body.light-mode::after{opacity:0.15}
       <div class="msubtitle">We'll send a link to your email</div>
       <div class="fgroup"><label>Email</label><input type="email" id="forgot-email" placeholder="you@example.com" autocomplete="email"></div>
       <p id="forgot-error" class="ferr"></p>
-      <p id="forgot-success" style="display:none;color:#6fcf6f;font-family:var(--fm);font-size:.68rem;letter-spacing:.08em;margin-bottom:.6rem">â Check your email for a reset link.</p>
+      <p id="forgot-success" style="display:none;color:#6fcf6f;font-family:var(--fm);font-size:.68rem;letter-spacing:.08em;margin-bottom:.6rem">✓ Check your email for a reset link.</p>
       <button id="forgot-submit" class="auth-submit-btn">Send Reset Link</button>
-      <p class="alink"><a id="back-to-signin">â Back to Sign In</a></p>
+      <p class="alink"><a id="back-to-signin">← Back to Sign In</a></p>
     </div>
   </div>
 </div>
@@ -1313,12 +1312,12 @@ body.light-mode::after{opacity:0.15}
       <button class="atab" data-acctab="favorites">Saved Items</button>
     </div>
     <div class="apanel active" id="acct-panel-orders">
-      <div id="orders-loading" style="padding:2rem 0;font-family:var(--fm);font-size:.68rem;color:rgba(244,241,235,.3)">Loading ordersâ¦</div>
+      <div id="orders-loading" style="padding:2rem 0;font-family:var(--fm);font-size:.68rem;color:rgba(244,241,235,.3)">Loading orders…</div>
       <div id="orders-empty" style="display:none;padding:.5rem 0;font-family:var(--fm);font-size:.72rem;color:rgba(244,241,235,.35)">No orders yet.</div>
       <div id="orders-list"></div>
     </div>
     <div class="apanel" id="acct-panel-favorites">
-      <div id="acct-favs-loading" style="padding:2rem 0;font-family:var(--fm);font-size:.68rem;color:rgba(244,241,235,.3)">Loading saved itemsâ¦</div>
+      <div id="acct-favs-loading" style="padding:2rem 0;font-family:var(--fm);font-size:.68rem;color:rgba(244,241,235,.3)">Loading saved items…</div>
       <div id="acct-favs-empty" style="display:none;padding:.5rem 0;font-family:var(--fm);font-size:.72rem;color:rgba(244,241,235,.35)">No saved items yet.</div>
       <div id="acct-favs-list"></div>
     </div>
@@ -1351,13 +1350,13 @@ body.light-mode::after{opacity:0.15}
     </div>
     <div class="csummary">
       <h2 class="csec-t">Summary</h2>
-      <div class="srow"><span>Subtotal</span><span id="summary-subtotal">â</span></div>
+      <div class="srow"><span>Subtotal</span><span id="summary-subtotal">—</span></div>
       <div class="srow">
-        <div><div>Shipping</div><div class="ship-note">Standard 5â7 days<br>Free on orders over $100</div></div>
-        <span id="summary-shipping">â</span>
+        <div><div>Shipping</div><div class="ship-note">Standard 5–7 days<br>Free on orders over $100</div></div>
+        <span id="summary-shipping">—</span>
       </div>
-      <div class="srow"><span>Tax</span><span id="summary-tax">â</span></div>
-      <div class="srow stotal"><span>Total</span><span id="summary-total">â</span></div>
+      <div class="srow"><span>Tax</span><span id="summary-tax">—</span></div>
+      <div class="srow stotal"><span>Total</span><span id="summary-total">—</span></div>
       <button id="checkout-btn">Checkout</button>
     </div>
   </div>
@@ -1368,9 +1367,9 @@ body.light-mode::after{opacity:0.15}
   <div class="pbox">
     <button class="mclose" id="payment-close">&#215;</button>
     <h2>Secure Checkout</h2>
-    <p class="psub">Powered by Stripe â 256-bit SSL encryption</p>
+    <p class="psub">Powered by Stripe — 256-bit SSL encryption</p>
     <div id="payment-request-btn" style="margin-bottom:1rem;display:none"></div>
-    <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0;font-family:var(--fm);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.28)">â or pay with card â</div>
+    <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0;font-family:var(--fm);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.28)">— or pay with card —</div>
     <div class="pgrow">
       <div class="pfield"><label>Full Name</label><input type="text" id="pay-name" placeholder="Jane Smith" autocomplete="name"></div>
       <div class="pfield"><label>Email</label><input type="email" id="pay-email" placeholder="jane@example.com" autocomplete="email"></div>
@@ -1383,26 +1382,26 @@ body.light-mode::after{opacity:0.15}
       <div class="pfield"><label>ZIP</label><input type="text" id="pay-zip" placeholder="10001" maxlength="10" autocomplete="postal-code"></div>
     </div>
     <div class="pfield" id="shipping-rates-field" style="display:none"><label>Shipping Method</label><div id="shipping-rates-list"></div></div>
-    <div id="shipping-rates-loading" style="display:none;font-family:var(--fm);font-size:.68rem;color:rgba(244,241,235,.35);margin-bottom:1rem">Fetching shipping ratesâ¦</div>
+    <div id="shipping-rates-loading" style="display:none;font-family:var(--fm);font-size:.68rem;color:rgba(244,241,235,.35);margin-bottom:1rem">Fetching shipping rates…</div>
     <div class="pfield"><label>Card Details</label><div id="stripe-card-element"></div></div>
     <p id="pay-error"></p>
     <button id="pay-submit"><span id="pay-btn-text">Pay Now</span></button>
-    <p class="psecure">ð Your card is never stored on our servers.</p>
+    <p class="psecure">🔒 Your card is never stored on our servers.</p>
   </div>
 </div>
 
 <!-- SUCCESS -->
 <div id="payment-success">
-  <div class="success-check">â</div>
+  <div class="success-check">✓</div>
   <h2>Order Confirmed!</h2>
   <p id="success-msg">Thank you for your purchase. A confirmation has been sent to your email.</p>
   <p id="success-order"></p>
   <button id="success-continue">Continue Shopping</button>
 </div>
 
-<!-- ââââââââââââââââââââââââââââââââââââââââââââ
+<!-- ════════════════════════════════════════════
      JAVASCRIPT
-ââââââââââââââââââââââââââââââââââââââââââââ -->
+════════════════════════════════════════════ -->
 <script>
 /* CURSOR */
 const cur = document.getElementById('cursor');
@@ -1423,7 +1422,7 @@ function showToast(msg) {
 const nav = document.getElementById('nav');
 window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 50), { passive: true });
 
-/* BAR â always visible */
+/* BAR — always visible */
 (function() {
   const bar = document.getElementById('bar');
   nav.style.top = bar.offsetHeight + 'px';
@@ -1433,10 +1432,13 @@ window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.
 /* SUPABASE */
 const SUPABASE_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
-const _sb = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON) : null;
+const _sb = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+  auth: { persistSession: true, storageKey: 'zuwera-auth', flowType: 'implicit' },
+  global: { headers: { 'X-Client-Info': 'zuwera-store' } }
+}) : null;
 let _user = null, _favs = [];
 
-/* ââ LOAD PRODUCTS FROM SUPABASE ââ */
+/* ── LOAD PRODUCTS FROM SUPABASE ── */
 async function loadProducts() {
   const grid = document.getElementById('products-grid');
   if (!_sb || !grid) return;
@@ -1456,7 +1458,7 @@ async function loadProducts() {
     const imgHtml = p.image_url
       ? `<img src="${p.image_url}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover">`
       : `<div class="pcard-img-placeholder">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1 3h4l1 3h4l2 5v11H3V9z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
             <p>Image Coming Soon</p>
           </div>`;
     const priceDisplay = p.price || 'Price TBA';
@@ -1473,11 +1475,11 @@ async function loadProducts() {
           <p class="pcard-cat">${p.category}</p>
           <p class="pcard-name">${p.name}</p>
           <p class="pcard-price">${priceDisplay}</p>
-          <span class="pcard-action" onclick="scrollToNotify()">Notify Me When Live â</span>
+          <span class="pcard-action" onclick="scrollToNotify()">Notify Me When Live →</span>
         </div>
         <div data-review-pid="${p.id}">
           <button class="review-toggle-btn" onclick="toggleReviews('${p.id}')">
-            <span id="avg-${p.id}"><span style="color:rgba(244,241,235,.2)">âââââ</span></span>
+            <span id="avg-${p.id}"><span style="color:rgba(244,241,235,.2)">☆☆☆☆☆</span></span>
             <span id="cnt-${p.id}">Be the first to review</span>
           </button>
           <div class="reviews-panel" id="panel-${p.id}" style="display:none">
@@ -1504,7 +1506,7 @@ if (_sb) loadProducts();
 
 function setDisabled(id, dis, label) {
   const b = document.getElementById(id);
-  b.disabled = dis; b.textContent = dis ? label + 'â¦' : label;
+  b.disabled = dis; b.textContent = dis ? label + '…' : label;
 }
 
 if (_sb) {
@@ -1614,7 +1616,7 @@ function renderAcctFavs() {
   const list = document.getElementById('acct-favs-list');
   if(!_favs.length){ empty.style.display = 'block'; list.innerHTML=''; return; }
   empty.style.display = 'none';
-  list.innerHTML = _favs.map(f => `<div style="display:flex;align-items:center;justify-content:space-between;padding:.7rem 0;border-bottom:1px solid rgba(244,241,235,.07);font-family:var(--fm);font-size:.72rem"><span>${f.product_name}</span><button onclick="removeFav('${f.product_id}',null)" style="background:none;border:none;color:rgba(244,241,235,.3);font-size:1rem">â</button></div>`).join('');
+  list.innerHTML = _favs.map(f => `<div style="display:flex;align-items:center;justify-content:space-between;padding:.7rem 0;border-bottom:1px solid rgba(244,241,235,.07);font-family:var(--fm);font-size:.72rem"><span>${f.product_name}</span><button onclick="removeFav('${f.product_id}',null)" style="background:none;border:none;color:rgba(244,241,235,.3);font-size:1rem">✕</button></div>`).join('');
 }
 
 /* FAVORITES */
@@ -1636,7 +1638,7 @@ function refreshCartFavs() {
   if(out) out.style.display='none'; if(inn) inn.style.display='block';
   if(!_favs.length){ if(empty) empty.style.display='block'; if(list) list.innerHTML=''; return; }
   if(empty) empty.style.display='none';
-  list.innerHTML = _favs.map(f => `<li style="display:flex;align-items:center;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid rgba(244,241,235,.07);font-family:var(--fm);font-size:.7rem"><span>${f.product_name}</span><button onclick="removeFav('${f.product_id}',null)" style="background:none;border:none;color:rgba(244,241,235,.3)">â</button></li>`).join('');
+  list.innerHTML = _favs.map(f => `<li style="display:flex;align-items:center;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid rgba(244,241,235,.07);font-family:var(--fm);font-size:.7rem"><span>${f.product_name}</span><button onclick="removeFav('${f.product_id}',null)" style="background:none;border:none;color:rgba(244,241,235,.3)">✕</button></li>`).join('');
 }
 async function toggleFav(btn) {
   if(!_user){ openAuth('signin'); return; }
@@ -1690,7 +1692,7 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 let payReq = null, selRate = null;
 function initPR(subtotalCents) {
   if(payReq) return;
-  payReq = stripe.paymentRequest({ country:'US', currency:'usd', total:{ label:'Zuwera', amount:subtotalCents, pending:true }, requestPayerName:true, requestPayerEmail:true, requestShipping:true, shippingOptions:[] });
+  payReq = stripe.paymentRequest({ country:'US', currency:wusd', total:{ label:'Zuwera', amount:subtotalCents, pending:true }, requestPayerName:true, requestPayerEmail:true, requestShipping:true, shippingOptions:[] });
   payReq.on('shippingaddresschange', async ev => {
     const a = ev.shippingAddress;
     try {
@@ -1764,7 +1766,7 @@ document.getElementById('pay-submit').addEventListener('click', async () => {
   if(!name||!email){ err.textContent='Please enter your name and email.'; return; }
   if(!addr1||!city||!state||!zip){ err.textContent='Please enter your full shipping address.'; return; }
   if(!selRate){ err.textContent='Please enter your ZIP code to load shipping options.'; return; }
-  btn.disabled=true; btxt.textContent='Processingâ¦';
+  btn.disabled=true; btxt.textContent='Processing…';
   try {
     const d = await post('/.netlify/functions/create-payment-intent', { items:cartItems, shippingRate:selRate, address:{name,email,line1:addr1,line2:addr2,city,state,zip,country:'US'} });
     if(d.error){ err.textContent=d.error; btn.disabled=false; btxt.textContent='Pay Now'; return; }
@@ -1797,7 +1799,7 @@ const els = {
 };
 // Only update + animate when the displayed value actually changes,
 // so the flip fires on the seconds every second, and on minutes/hours/days
-// only when they roll over â not on every tick.
+// only when they roll over — not on every tick.
 function setUnit(el, n) {
   if (!el) return;
   const val = String(Math.floor(n)).padStart(2, '0');
@@ -1824,7 +1826,7 @@ async function homeNotifyMe() {
   if(!email||!email.includes('@')){ inp.style.outlineColor='var(--red)'; inp.focus(); return; }
   inp.style.outlineColor='';
   if(_sb){ try{ await _sb.from('waitlist').upsert({ email, source:'drop001_home' }); } catch{} }
-  inp.closest('.notify-rov').style.display='none';
+  inp.closest('.notify-row').style.display='none';
   document.querySelector('.notify-hint').style.display='none';
   document.getElementById('home-notify-success').style.display='block';
 }
