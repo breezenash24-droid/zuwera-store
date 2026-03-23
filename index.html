@@ -1465,7 +1465,7 @@ async function loadProducts() {
           </div>`;
     const priceDisplay = productPrice ? `$${Number(productPrice).toFixed(2)}` : 'Price TBA';
     return `
-      <div class="pcard" onclick="window.location.href='product.html?id=${p.id}'" style="cursor:pointer">
+      <div class="pcard" onclick="window.location.href='product.html?sku=${p.sku || p.id}'" style="cursor:pointer">
         <div class="pcard-img">
           ${imgHtml}
           <div class="pcard-badge">${badge}</div>
@@ -1477,7 +1477,7 @@ async function loadProducts() {
           <p class="pcard-cat">${productCategory}</p>
           <p class="pcard-name">${productName}</p>
           <p class="pcard-price">${priceDisplay}</p>
-          <span class="pcard-action" onclick="event.stopPropagation();window.location.href='product.html?id=${p.id}'">View Details \u2192</span>
+          <span class="pcard-action" onclick="event.stopPropagation();window.location.href='product.html?sku=${p.sku || p.id}'">View Details \u2192</span>
         </div>
         <div data-review-pid="${p.id}">
           <button class="review-toggle-btn" onclick="event.stopPropagation();toggleReviews('${p.id}')">
