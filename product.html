@@ -323,7 +323,7 @@ async function loadProduct() {
         .eq('product_id', currentProduct.id)
         .order('sort_order', { ascending: true }),
       sb
-        .from('product_inventory')
+        .from('product_sizes')
         .select('*')
         .eq('product_id', currentProduct.id),
       sb
@@ -345,9 +345,17 @@ async function loadProduct() {
     currentProduct.reviews = currentProduct.reviews || [];
   }
 
-  // Fallback: if no product_images but product has image_url, use it
-  if (currentProduct.images.length === 0 && currentProduct.image_url) {
-    currentProduct.images = [{ image_url: currentProduct.image_url, alt_text: currentProduct.title }];
+  // Always use the product's main image_url as the primary image
+  // product_images table may have stale/different images
+  if (currentProduct.image_url) {
+    const mainImg = { image_url: currentProduct.image_url, alt_text: currentProduct.title };
+    // Filter out any product_images entry that duplicates the main image
+    const extraImages = currentProduct.images.filter(
+      img => img.image_url !== currentProduct.image_url
+    );
+    currentProduct.images = [mainImg, ...extraImages];
+  } else if (currentProduct.images.length === 0) {
+    currentProduct.images = [];
   }
 }
 
@@ -545,6 +553,14 @@ function renderSizes() {
 function updateStockInfo() {
   if (!selectedSize) {
     document.getElementById('stockInfo').textContent = '';
+    return;
+  }
+
+  // If no inventory data exists at all, allow adding to cart
+  if (currentProduct.inventory.length === 0) {
+    document.getElementById('stockInfo').textContent = '';
+    document.getElementById('addToCartBtn').disabled = false;
+    document.getElementById('addToCartBtn').classList.remove('disabled');
     return;
   }
 
