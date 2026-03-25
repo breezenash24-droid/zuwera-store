@@ -441,8 +441,39 @@ function renderPrice() {
 // ══════════════════════════════════════════════════════════════════
 function renderGallery() {
   const mainImage = document.getElementById('mainImage');
-  const thumbContainer = document.getElementById('gallery.images = [];
+  const thumbContainer = document.getElementById('galleryThumbnails');
+  thumbContainer.innerHTML = '';
+
+  if (currentProduct.images.length === 0) {
+    mainImage.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"%3E%3Crect fill="%23111" width="400" height="500"/%3E%3C/svg%3E';
+    mainImage.alt = 'No image available';
+    return;
   }
+
+  // Set first image as main
+  mainImage.src = currentProduct.images[0].image_url;
+  mainImage.alt = currentProduct.images[0].alt_text || currentProduct.title;
+
+  // Create thumbnails
+  currentProduct.images.forEach((img, idx) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'thumbnail';
+    if (idx === 0) thumb.classList.add('active');
+
+    const thumbImg = document.createElement('img');
+    thumbImg.src = img.image_url;
+    thumbImg.alt = img.alt_text || `${currentProduct.title} - View ${idx + 1}`;
+
+    thumb.appendChild(thumbImg);
+    thumb.addEventListener('click', () => {
+      document.querySelectorAll('.thumbnail').forEach(t => t.classList.remove('active'));
+      thumb.classList.add('active');
+      mainImage.src = img.image_url;
+      mainImage.alt = img.alt_text || currentProduct.title;
+    });
+
+    thumbContainer.appendChild(thumb);
+  });
 }
 
 // ══════════════════════════════════════════════════════════════════
