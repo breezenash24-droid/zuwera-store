@@ -1439,6 +1439,11 @@ const _sb = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_U
 let _user = null, _favs = [];
 
 /* ── LOAD PRODUCTS FROM SUPABASE ── */
+function productSlug(title) {
+  if (!title) return '';
+  return title.replace(/^zuwera\s+/i, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
 async function loadProducts() {
   const grid = document.getElementById('products-grid');
   if (!_sb || !grid) return;
@@ -1465,7 +1470,7 @@ async function loadProducts() {
           </div>`;
     const priceDisplay = productPrice ? `$${Number(productPrice).toFixed(2)}` : 'Price TBA';
     return `
-      <div class="pcard" onclick="window.location.href='product.html?sku=${p.sku || p.id}'" style="cursor:pointer">
+      <div class="pcard" onclick="window.location.href='/${productSlug(p.title)}'" style="cursor:pointer">
         <div class="pcard-img">
           ${imgHtml}
           <div class="pcard-badge">${badge}</div>
@@ -1477,10 +1482,7 @@ async function loadProducts() {
           <p class="pcard-cat">${productCategory}</p>
           <p class="pcard-name">${productName}</p>
           <p class="pcard-price">${priceDisplay}</p>
-          <span class="pcard-action" onclick="event.stopPropagation();window.location.href='product.html?sku=${p.sku || p.id}'">View Details \u2192</span>
-        </div>
-        <div data-review-pid="${p.id}">
-          <button class="review-toggle-btn" onclick="event.stopPropagation();toggleReviews('${p.id}')">
+          <span class="pcard-action" onclick="event.stopPropagation();window.location.href='/${productSlug(p.title)}'${p.id}')">
             <span id="avg-${p.id}"><span style="color:rgba(244,241,235,.2)">\u2606\u2606\u2606\u2606\u2606</span></span>
             <span id="cnt-${p.id}">Be the first to review</span>
           </button>
