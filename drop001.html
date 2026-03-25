@@ -510,7 +510,12 @@
     // Countdown to Sept 20 2026
     const dropDate = new Date('2026-09-20T00:00:00');
 
-    function updateCountdown() {
+    function productSlug(title) {
+  if (!title) return '';
+  return title.replace(/^zuwera\s+/i, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function updateCountdown() {
       const now = new Date();
       const diff = dropDate - now;
       if (diff <= 0) {
@@ -582,7 +587,7 @@
               <span>Image Coming Soon</span>
             </div>`;
         return `
-          <a href="product.html?sku=${p.sku || p.id}" style="text-decoration:none;color:inherit">
+          <a href="/${productSlug(p.title)}" style="text-decoration:none;color:inherit">
             <div class="product-card">
               <div class="product-img">
                 ${imgHtml}
