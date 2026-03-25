@@ -1084,7 +1084,7 @@ body.light-mode::after{opacity:0.15}
 <!-- ANNOUNCEMENT BAR -->
 <div id="bar">
   <span class="bar-sep">✦</span>
-  ALL THE DEVILS ARE HERE
+  <span id="announcementText">ALL THE DEVILS ARE HERE</span>
   <span class="bar-sep">✦</span>
 </div>
 
@@ -1436,6 +1436,25 @@ const _sb = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_U
   auth: { persistSession: true, storageKey: 'zuwera-auth', flowType: 'implicit' },
   global: { headers: { 'X-Client-Info': 'zuwera-store' } }
 }) : null;
+
+/* -- LOAD SITE SETTINGS (announcement bar) -- */
+(async function loadSiteSettings() {
+  if (!_sb) return;
+  try {
+    const { data } = await _sb.from('site_settings').select('*');
+    if (!data) return;
+    data.forEach(row => {
+      if (row.key === 'announcement_bar') {
+        const msg = typeof row.value === 'string' ? row.value : '';
+        if (msg) {
+          const el = document.getElementById('announcementText');
+          if (el) el.textContent = msg;
+        }
+      }
+    });
+  } catch (e) { console.log('Settings load skipped:', e); }
+})();
+
 let _user = null, _favs = [];
 
 /* ── LOAD PRODUCTS FROM SUPABASE ── */
