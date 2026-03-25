@@ -479,17 +479,9 @@ async function loadProduct() {
     currentProduct.reviews = currentProduct.reviews || [];
   }
 
-  // Only use the product's main image_url — ignore product_images table
-  // (admin sets one image via image_url; product_images may have stale data)
     if (currentProduct.images.length === 0 && currentProduct.image_url) {
       currentProduct.images = [{ image_url: currentProduct.image_url, alt_text: currentProduct.title }];
-    }];
-  } else if (currentProduct.images.length > 0) {
-    currentProduct.images = [currentProduct.images[0]];
-  } else {
-    currentProduct.images = [];
-  }
-}
+    }
 
 // ══════════════════════════════════════════════════════════════════
 // RENDER PRODUCT
