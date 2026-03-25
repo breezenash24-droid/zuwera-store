@@ -37,6 +37,46 @@
 .modal.open{display:flex}
 #payment-success{display:none;position:fixed;inset:0;z-index:10000;background:var(--black,#09090b);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem}
 #payment-success.open{display:flex}
+
+/* -- Review Form -- */
+.write-review-btn{
+  display:inline-flex;align-items:center;gap:6px;margin-top:16px;padding:10px 20px;
+  background:transparent;border:1px solid rgba(255,255,255,.15);color:#f4f1eb;
+  font-family:'DM Sans',sans-serif;font-size:.85rem;letter-spacing:.04em;
+  border-radius:6px;cursor:pointer;transition:all .2s;
+}
+.write-review-btn:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.25)}
+.review-form-container{
+  margin-top:20px;padding:24px;background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.08);border-radius:10px;
+}
+.review-form-container.hidden{display:none}
+.review-form-container h4{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:.06em;margin-bottom:16px;color:#f4f1eb}
+.review-form-row{margin-bottom:14px}
+.review-form-row label{display:block;font-size:.78rem;color:rgba(255,255,255,.5);margin-bottom:6px;letter-spacing:.03em}
+.review-form-row input,.review-form-row textarea{
+  width:100%;padding:10px 14px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.1);border-radius:6px;color:#f4f1eb;
+  font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s;
+}
+.review-form-row input:focus,.review-form-row textarea:focus{border-color:rgba(248,145,165,.5)}
+.review-form-row textarea{resize:vertical;min-height:80px}
+.star-picker{display:flex;gap:4px;margin-top:4px}
+.star-picker span{font-size:1.5rem;cursor:pointer;color:rgba(255,255,255,.2);transition:color .15s;user-select:none}
+.star-picker span.active{color:#F891A5}
+.star-picker span:hover,.star-picker span:hover~span{color:rgba(248,145,165,.5)}
+.review-submit-btn{
+  padding:12px 28px;background:#F891A5;color:#09090b;border:none;
+  font-family:'DM Sans',sans-serif;font-weight:700;font-size:.85rem;
+  letter-spacing:.04em;border-radius:6px;cursor:pointer;transition:all .2s;
+}
+.review-submit-btn:hover{background:#fbb3c4}
+.review-submit-btn:disabled{opacity:.5;cursor:not-allowed}
+.review-success-msg{
+  margin-top:12px;padding:12px 16px;background:rgba(16,185,129,.1);
+  border:1px solid rgba(16,185,129,.2);border-radius:6px;
+  color:#10b981;font-size:.85rem;
+}
 </style>
 
 </head>
@@ -187,8 +227,8 @@
               </svg>
             </button>
             <div class="accordion-body">
-              <p>Free standard shipping on orders $50+</p>
-              <p>60-day returns for members, 30-day for non-members</p>
+              <p id="shippingPolicyText1">Free standard shipping on orders $100+</p>
+              <p id="shippingPolicyText2">60-day returns for members, 30-day for non-members</p>
             </div>
           </div>
 
@@ -202,6 +242,37 @@
             </button>
             <div class="accordion-body">
               <div id="reviewsContent"></div>
+              <button class="write-review-btn" id="writeReviewBtn" onclick="toggleReviewForm()">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.5 2.5l-1-1-9 9-.5 2.5 2.5-.5 9-9z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Write a Review
+              </button>
+              <div class="review-form-container hidden" id="reviewFormContainer">
+                <h4>Share Your Experience</h4>
+                <div class="review-form-row">
+                  <label>Rating</label>
+                  <div class="star-picker" id="starPicker">
+                    <span data-star="1" onclick="setReviewRating(1)">&#9733;</span>
+                    <span data-star="2" onclick="setReviewRating(2)">&#9733;</span>
+                    <span data-star="3" onclick="setReviewRating(3)">&#9733;</span>
+                    <span data-star="4" onclick="setReviewRating(4)">&#9733;</span>
+                    <span data-star="5" onclick="setReviewRating(5)">&#9733;</span>
+                  </div>
+                </div>
+                <div class="review-form-row">
+                  <label>Nickname</label>
+                  <input type="text" id="reviewNickname" placeholder="Your name" maxlength="50">
+                </div>
+                <div class="review-form-row">
+                  <label>Review Title</label>
+                  <input type="text" id="reviewTitle" placeholder="Sum it up in a few words" maxlength="100">
+                </div>
+                <div class="review-form-row">
+                  <label>Your Review</label>
+                  <textarea id="reviewBody" placeholder="What did you like or dislike? How did the sizing feel?" maxlength="1000"></textarea>
+                </div>
+                <button class="review-submit-btn" id="submitReviewBtn" onclick="submitReview()">Submit Review</button>
+                <div class="review-success-msg hidden" id="reviewSuccessMsg">Thanks for your review! It has been submitted.</div>
+              </div>
             </div>
           </div>
 
@@ -257,6 +328,43 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: true, storageKey: 'zuwera-product-auth', flowType: 'implicit' },
   global: { headers: { 'X-Client-Info': 'zuwera-store' } }
 });
+
+// ══════════════════════════════════════════════════════════════════
+// LOAD SITE SETTINGS (announcement bar + shipping)
+// ══════════════════════════════════════════════════════════════════
+async function loadSiteSettings() {
+  try {
+    const { data } = await sb.from('site_settings').select('*');
+    if (!data) return;
+    data.forEach(row => {
+      if (row.key === 'announcement_bar') {
+        const msg = typeof row.value === 'string' ? row.value : '';
+        if (msg) {
+          const bar = document.getElementById('announcementBar');
+          if (bar) bar.childNodes[0].textContent = msg + ' ';
+        }
+      } else if (row.key === 'shipping_policy') {
+        const v = row.value;
+        if (!v) return;
+        const thresh = v.free_threshold || 100;
+        const rate = v.standard_rate || 8;
+        const days = v.delivery_days || '5-7';
+        const retMem = v.return_days_member || 60;
+        const retNon = v.return_days_nonmember || 30;
+        const el1 = document.getElementById('shippingPolicyText1');
+        const el2 = document.getElementById('shippingPolicyText2');
+        if (el1) el1.textContent = 'Free standard shipping on orders $' + thresh + '+';
+        if (el2) el2.textContent = retMem + '-day returns for members, ' + retNon + '-day for non-members';
+        window.zwShippingThreshold = thresh;
+        window.zwShippingRate = rate;
+        const cartNote = document.querySelector('.cart-note');
+        if (cartNote) cartNote.textContent = 'Standard ' + days + ' days / Free on orders over $' + thresh;
+      }
+    });
+  } catch (e) { console.log('Settings load skipped:', e); }
+}
+loadSiteSettings();
+
 
 // ══════════════════════════════════════════════════════════════════
 // STATE MANAGEMENT
@@ -373,8 +481,9 @@ async function loadProduct() {
 
   // Only use the product's main image_url — ignore product_images table
   // (admin sets one image via image_url; product_images may have stale data)
-  if (currentProduct.image_url) {
-    currentProduct.images = [{ image_url: currentProduct.image_url, alt_text: currentProduct.title }];
+    if (currentProduct.images.length === 0 && currentProduct.image_url) {
+      currentProduct.images = [{ image_url: currentProduct.image_url, alt_text: currentProduct.title }];
+    }];
   } else if (currentProduct.images.length > 0) {
     currentProduct.images = [currentProduct.images[0]];
   } else {
@@ -873,6 +982,98 @@ function expandReviews() {
 }
 
 // ══════════════════════════════════════════════════════════════════
+// WRITE A REVIEW
+// ══════════════════════════════════════════════════════════════════
+let selectedRating = 0;
+
+function toggleReviewForm() {
+  const container = document.getElementById('reviewFormContainer');
+  container.classList.toggle('hidden');
+  if (!container.classList.contains('hidden')) {
+    container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+function setReviewRating(star) {
+  selectedRating = star;
+  document.querySelectorAll('#starPicker span').forEach((el, i) => {
+    el.classList.toggle('active', i < star);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const picker = document.getElementById('starPicker');
+  if (picker) {
+    picker.querySelectorAll('span').forEach(span => {
+      span.addEventListener('mouseenter', () => {
+        const star = parseInt(span.dataset.star);
+        picker.querySelectorAll('span').forEach((s, i) => {
+          s.style.color = i < star ? '#F891A5' : 'rgba(255,255,255,.2)';
+        });
+      });
+    });
+    picker.addEventListener('mouseleave', () => {
+      picker.querySelectorAll('span').forEach((s, i) => {
+        s.style.color = i < selectedRating ? '#F891A5' : 'rgba(255,255,255,.2)';
+      });
+    });
+  }
+});
+
+async function submitReview() {
+  const nickname = document.getElementById('reviewNickname').value.trim();
+  const title = document.getElementById('reviewTitle').value.trim();
+  const body = document.getElementById('reviewBody').value.trim();
+  const btn = document.getElementById('submitReviewBtn');
+
+  if (selectedRating === 0) { alert('Please select a star rating'); return; }
+  if (!title) { alert('Please add a review title'); return; }
+  if (!body) { alert('Please write your review'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  try {
+    const { error } = await sb.from('reviews').insert({
+      product_id: currentProduct.id,
+      rating: selectedRating,
+      nickname: nickname || 'Anonymous',
+      title: title,
+      body: body,
+      verified_purchase: false,
+      created_at: new Date().toISOString()
+    });
+    if (error) throw error;
+
+    document.getElementById('reviewSuccessMsg').classList.remove('hidden');
+    btn.textContent = 'Submitted!';
+
+    setTimeout(async () => {
+      const { data } = await sb.from('reviews')
+        .select('*')
+        .eq('product_id', currentProduct.id)
+        .order('created_at', { ascending: false });
+      currentProduct.reviews = data || [];
+      renderReviews();
+      document.getElementById('reviewFormContainer').classList.add('hidden');
+      document.getElementById('reviewNickname').value = '';
+      document.getElementById('reviewTitle').value = '';
+      document.getElementById('reviewBody').value = '';
+      selectedRating = 0;
+      document.querySelectorAll('#starPicker span').forEach(s => s.classList.remove('active'));
+      document.getElementById('reviewSuccessMsg').classList.add('hidden');
+      btn.disabled = false;
+      btn.textContent = 'Submit Review';
+    }, 2000);
+  } catch (err) {
+    console.error('Review submit error:', err);
+    alert('Could not submit review. Please try again.');
+    btn.disabled = false;
+    btn.textContent = 'Submit Review';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
 // ACCORDION TOGGLE
 // ══════════════════════════════════════════════════════════════════
 function toggleAccordion(header) {
@@ -1136,8 +1337,10 @@ function handleCookieDecline() {
 
   function updateSummary(subtotal) {
     document.getElementById('summary-subtotal').textContent = subtotal > 0 ? '$' + subtotal.toFixed(2) : '—';
-    document.getElementById('summary-shipping').textContent = subtotal >= 100 ? 'Free' : (subtotal > 0 ? '$8.00' : '—');
-    const shipping = subtotal >= 100 ? 0 : (subtotal > 0 ? 8 : 0);
+    const freeAt = window.zwShippingThreshold || 100;
+    const shipRate = window.zwShippingRate || 8;
+    document.getElementById('summary-shipping').textContent = subtotal >= freeAt ? 'Free' : (subtotal > 0 ? '$' + shipRate.toFixed(2) : '\u2014');
+    const shipping = subtotal >= freeAt ? 0 : (subtotal > 0 ? shipRate : 0);
     const tax = subtotal * 0.08;
     document.getElementById('summary-tax').textContent = subtotal > 0 ? '$' + tax.toFixed(2) : '—';
     document.getElementById('summary-total').textContent = subtotal > 0 ? '$' + (subtotal + shipping + tax).toFixed(2) : '—';
