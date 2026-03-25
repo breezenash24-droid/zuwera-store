@@ -291,7 +291,15 @@ async function loadProduct() {
   const params = new URLSearchParams(window.location.search);
   const productId = params.get('id');
   const sku = params.get('sku');
-  const slug = params.get('slug');
+  let slug = params.get('slug');
+
+  // Fallback: extract slug from pathname for clean URLs (e.g. /vogue)
+  if (!productId && !sku && !slug) {
+    const pathSlug = window.location.pathname.replace(/^\//, '').replace(/\/$/, '');
+    if (pathSlug && pathSlug !== 'product.html' && pathSlug !== 'product') {
+      slug = pathSlug;
+    }
+  }
 
   let query = sb.from('products').select('*');
 
