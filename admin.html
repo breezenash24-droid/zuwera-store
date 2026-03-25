@@ -909,7 +909,47 @@
                 <!-- Settings Page -->
                 <div id="settings" class="page">
                     <h2>Settings</h2>
-                    <p style="color: var(--text-secondary); margin-top: 20px;">Settings coming soon...</p>
+                    <div class="page-header" style="margin-bottom:24px;">
+                        <h2>Site Settings</h2>
+                    </div>
+
+                    <!-- Announcement Bar -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
+                        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:16px;">Announcement Bar</div>
+                        <div style="margin-bottom:12px;">
+                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Message displayed at the top of your site</label>
+                            <input type="text" id="settAnnouncementBar" class="form-input" placeholder="e.g. FREE SHIPPING ON ALL ORDERS" style="width:100%;">
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" id="saveAnnouncementBtn">Save Announcement</button>
+                    </div>
+
+                    <!-- Shipping Policy -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
+                        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:16px;">Shipping &amp; Returns Policy</div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+                            <div>
+                                <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Free shipping threshold ($)</label>
+                                <input type="number" id="settFreeThreshold" class="form-input" placeholder="100" min="0">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Standard shipping rate ($)</label>
+                                <input type="number" id="settStandardRate" class="form-input" placeholder="8" min="0" step="0.01">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Delivery days (e.g. 5-7)</label>
+                                <input type="text" id="settDeliveryDays" class="form-input" placeholder="5-7">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Member return days</label>
+                                <input type="number" id="settReturnMember" class="form-input" placeholder="60" min="0">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Non-member return days</label>
+                                <input type="number" id="settReturnNonmember" class="form-input" placeholder="30" min="0">
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" id="saveShippingBtn">Save Shipping Policy</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1495,7 +1535,7 @@
             products.forEach(product => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td><div class="product-image" style="background: linear-gradient(135deg, #e5e5e5, #f0f0f0);"></div></td>
+                    <td><div class="product-image" style="${product.image_url ? `background-image:url('${product.image_url}');background-size:cover;background-position:center;` : 'background:linear-gradient(135deg,#1a1a1e,#2a2a2f);'}"></div></td>
                     <td><strong>${product.sku || 'N/A'}</strong></td>
                     <td>${product.title || 'N/A'}</td>
                     <td>${product.colorway || 'N/A'}</td>
@@ -1544,7 +1584,8 @@
         });
 
         // Edit Product
-        async function editProduct(id) {
+        window.editProduct = editProduct;
+    async function editProduct(id) {
             const { data: product } = await sb.from('products').select('*').eq('id', id).single();
             if (!product) return;
 
@@ -2005,7 +2046,8 @@
         }
 
         // Delete
-        function openDeleteModal(id) {
+        window.openDeleteModal = openDeleteModal;
+    function openDeleteModal(id) {
             deleteProductId = id;
             document.getElementById('deleteModal').classList.add('active');
         }
@@ -2031,7 +2073,59 @@
         });
 
         // Toast
-        function showToast(message, type = 'info') {
+        // ══════════════════════════════════════════════════════════════════
+    // SETTINGS - Load & Save
+    // ══════════════════════════════════════════════════════════════════
+    async function loadSettings() {
+        const { data } = await sb.from('site_settings').select('*');
+        if (!data) return;
+        data.forEach(row => {
+            if (row.key === 'announcement_bar') {
+                const v = typeof row.value === 'string' ? row.value : '';
+                document.getElementById('settAnnouncementBar').value = v;
+            } else if (row.key === 'shipping_policy') {
+                const v = row.value || {};
+                if (v.free_threshold !== undefined) document.getElementById('settFreeThreshold').value = v.free_threshold;
+                if (v.standard_rate !== undefined) document.getElementById('settStandardRate').value = v.standard_rate;
+                if (v.delivery_days) document.getElementById('settDeliveryDays').value = v.delivery_days;
+                if (v.return_days_member !== undefined) document.getElementById('settReturnMember').value = v.return_days_member;
+                if (v.return_days_nonmember !== undefined) document.getElementById('settReturnNonmember').value = v.return_days_nonmember;
+            }
+        });
+    }
+
+    document.getElementById('saveAnnouncementBtn').addEventListener('click', async () => {
+        const val = document.getElementById('settAnnouncementBar').value.trim();
+        const { error } = await sb.from('site_settings').upsert(
+            { key: 'announcement_bar', value: JSON.stringify(val), updated_at: new Date().toISOString() },
+            { onConflict: 'key' }
+        );
+        if (error) { showToast('Error saving announcement', 'error'); console.error(error); }
+        else showToast('Announcement saved!', 'success');
+    });
+
+    document.getElementById('saveShippingBtn').addEventListener('click', async () => {
+        const val = {
+            free_threshold: parseFloat(document.getElementById('settFreeThreshold').value) || 100,
+            standard_rate: parseFloat(document.getElementById('settStandardRate').value) || 8,
+            delivery_days: document.getElementById('settDeliveryDays').value || '5-7',
+            return_days_member: parseInt(document.getElementById('settReturnMember').value) || 60,
+            return_days_nonmember: parseInt(document.getElementById('settReturnNonmember').value) || 30
+        };
+        const { error } = await sb.from('site_settings').upsert(
+            { key: 'shipping_policy', value: val, updated_at: new Date().toISOString() },
+            { onConflict: 'key' }
+        );
+        if (error) { showToast('Error saving shipping policy', 'error'); console.error(error); }
+        else showToast('Shipping policy saved!', 'success');
+    });
+
+    // Load settings when Settings page is shown
+    document.querySelector('[data-page="settings"]')?.addEventListener('click', () => {
+        setTimeout(loadSettings, 100);
+    });
+
+    function showToast(message, type = 'info') {
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
             toast.textContent = message;
