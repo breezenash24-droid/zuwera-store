@@ -1,5 +1,6 @@
 # Clean product URLs — e.g. /vogue → product.html?slug=vogue
-# Cloudflare Pages serves static files first, so index.html, admin.html, etc. still work.
-# Functions at /api/* are handled by Cloudflare Pages file-based routing (functions/api/).
-# This catch-all only fires for paths that don't match a real file or function.
-/*  /product.html?slug=:splat  200
+# Only match single-segment paths (no slashes after the first one).
+# Known static files (index.html, product.html, etc.) are served first by CF Pages.
+# Functions at /api/* are handled by Cloudflare Pages file-based routing.
+# The :slug placeholder matches a single path segment (no nested paths).
+/:slug  /product.html?slug=:slug  200
