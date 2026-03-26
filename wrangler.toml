@@ -1,9 +1,0 @@
-# Cloudflare Pages configuration
-# https://developers.cloudflare.com/pages/functions/wrangler-configuration/
-name = "zuwera-store"
-compatibility_date = "2024-09-23"
-compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = "."
-
-[build]
-command = "npm install"
