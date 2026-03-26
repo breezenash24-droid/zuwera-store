@@ -1,6 +1,0 @@
-# Clean product URLs — e.g. /vogue → product.html?slug=vogue
-# Only match single-segment paths (no slashes after the first one).
-# Known static files (index.html, product.html, etc.) are served first by CF Pages.
-# Functions at /api/* are handled by Cloudflare Pages file-based routing.
-# The :slug placeholder matches a single path segment (no nested paths).
-/:slug  /product.html?slug=:slug  200
