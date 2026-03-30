@@ -1489,7 +1489,7 @@ async function loadProducts() {
           </div>`;
     const priceDisplay = productPrice ? `$${Number(productPrice).toFixed(2)}` : 'Price TBA';
     return `
-      <div class="pcard" onclick="window.location.href='/${productSlug(p.title)}'" style="cursor:pointer">
+      <div class="pcard" onclick="window.location.href='/product/${productSlug(p.title)}'" style="cursor:pointer">
         <div class="pcard-img">
           ${imgHtml}
           <div class="pcard-badge">${badge}</div>
@@ -1501,7 +1501,7 @@ async function loadProducts() {
           <p class="pcard-cat">${productCategory}</p>
           <p class="pcard-name">${productName}</p>
           <p class="pcard-price">${priceDisplay}</p>
-          <span class="pcard-action" onclick="event.stopPropagation();window.location.href='/${productSlug(p.title)}'${p.id}')">
+          <span class="pcard-action" onclick="event.stopPropagation();window.location.href='/product/${productSlug(p.title)}'${p.id}')">
             <span id="avg-${p.id}"><span style="color:rgba(244,241,235,.2)">\u2606\u2606\u2606\u2606\u2606</span></span>
             <span id="cnt-${p.id}">Be the first to review</span>
           </button>
