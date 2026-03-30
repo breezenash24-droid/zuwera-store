@@ -1,4 +1,2 @@
-# Clean product URLs — e.g. /product/vogue -> product.html?slug=vogue
-# Using /product/:slug prefix avoids conflicts with static pages like /sizeguide, /policies, etc.
-# Static pages are served normally by CF Pages' pretty URL feature.
-/product/:slug  /product.html?slug=:slug  200
+# Product URLs are handled by the Pages Function at functions/product/[slug].js
+# Static pages (sizeguide, policies, drop001, etc.) are served by CF Pages pretty URL feature.
