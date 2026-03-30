@@ -401,11 +401,16 @@ async function loadProduct() {
   const sku = params.get('sku');
   let slug = params.get('slug');
 
-  // Fallback: extract slug from pathname for clean URLs (e.g. /vogue)
+  // Fallback: extract slug from pathname for clean URLs (e.g. /product/vogue)
   if (!productId && !sku && !slug) {
-    const pathSlug = window.location.pathname.replace(/^\//, '').replace(/\/$/, '');
-    if (pathSlug && pathSlug !== 'product.html' && pathSlug !== 'product') {
-      slug = pathSlug;
+    const pathParts = window.location.pathname.replace(/^\//, '').replace(/\/$/, '').split('/');
+    // Support /product/slug pattern
+    if (pathParts.length === 2 && pathParts[0] === 'product' && pathParts[1]) {
+      slug = pathParts[1];
+    }
+    // Also support legacy /slug pattern (single segment, not a known page)
+    else if (pathParts.length === 1 && pathParts[0] && pathParts[0] !== 'product.html' && pathParts[0] !== 'product') {
+      slug = pathParts[0];
     }
   }
 
