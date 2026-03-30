@@ -1,12 +1,4 @@
-# Static pages — serve the actual HTML file (prevents /:slug from catching them)
-/sizeguide /sizeguide.html 200
-/policies /policies.html 200
-/drop001 /drop001.html 200
-/admin /admin.html 200
-/analytics /analytics.html 200
-/product /product.html 200
-
-# Clean product URLs — e.g. /vogue -> product.html?slug=vogue
-# The :slug placeholder matches a single path segment (no nested paths).
-# Static files with extensions (.html, .css, .js, etc.) are served directly by CF Pages.
-/:slug /product.html?slug=:slug 200
+# Clean product URLs — e.g. /product/vogue -> product.html?slug=vogue
+# Using /product/:slug prefix avoids conflicts with static pages like /sizeguide, /policies, etc.
+# Static pages are served normally by CF Pages' pretty URL feature.
+/product/:slug  /product.html?slug=:slug  200
