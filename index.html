@@ -1719,7 +1719,7 @@ function initPR(subtotalCents) {
   payReq.on('shippingaddresschange', async ev => {
     const a = ev.shippingAddress;
     try {
-      const d = await post('/.netlify/functions/shippo-rates', { address:{ name:'', line1:a.addressLine?.[0]||'', city:a.city, state:a.region, zip:a.postalCode, country:a.country } });
+      const d = await post('/api/shippo-rates', { address:{ name:'', line1:a.addressLine?.[0]||'', city:a.city, state:a.region, zip:a.postalCode, country:a.country } });
       if(!d.rates?.length){ ev.updateWith({status:'invalid_shipping_address'}); return; }
       const opts = d.rates.slice(0,4).map(r => ({ id:r.objectId, label:`${r.provider} ${r.servicelevel}`, detail:r.days?`Est. ${r.days} business days`:'', amount:Math.round(parseFloat(r.amount)*100) }));
       selRate = d.rates[0];
@@ -1730,7 +1730,7 @@ function initPR(subtotalCents) {
   payReq.on('paymentmethod', async ev => {
     try {
       const a = ev.shippingAddress||{};
-      const d = await post('/.netlify/functions/create-payment-intent', { items:cartItems, shippingRate:selRate, address:{ name:ev.payerName||'', email:ev.payerEmail||'', line1:a.addressLine?.[0]||'', line2:a.addressLine?.[1]||'', city:a.city||'', state:a.region||'', zip:a.postalCode||'', country:a.country||'US' } });
+      const d = await post('/api/create-payment-intent', { items:cartItems, shippingRate:selRate, address:{ name:ev.payerName||'', email:ev.payerEmail||'', line1:a.addressLine?.[0]||'', line2:a.addressLine?.[1]||'', city:a.city||'', state:a.region||'', zip:a.postalCode||'', country:a.country||'US' } });
       if(d.error){ ev.complete('fail'); return; }
       const { error } = await stripe.confirmCardPayment(d.clientSecret, { payment_method:ev.paymentMethod.id }, { handleActions:false });
       if(error){ ev.complete('fail'); document.getElementById('pay-error').textContent=error.message; }
@@ -1753,7 +1753,7 @@ function maybeLoadRates() {
     document.getElementById('shipping-rates-field').style.display = 'none';
     document.getElementById('shipping-rates-loading').style.display = 'block';
     try {
-      const d = await post('/.netlify/functions/shippo-rates', { address:{ name:document.getElementById('pay-name').value.trim(), line1:document.getElementById('pay-addr1').value.trim(), city:document.getElementById('pay-city').value.trim(), state, zip, country:'US' } });
+      const d = await post('/api/shippo-rates', { address:{ name:document.getElementById('pay-name').value.trim(), line1:document.getElementById('pay-addr1').value.trim(), city:document.getElementById('pay-city').value.trim(), state, zip, country:'US' } });
       document.getElementById('shipping-rates-loading').style.display = 'none';
       if(!d.rates?.length) return;
       const list = document.getElementById('shipping-rates-list'); list.innerHTML='';
@@ -1791,7 +1791,7 @@ document.getElementById('pay-submit').addEventListener('click', async () => {
   if(!selRate){ err.textContent='Please enter your ZIP code to load shipping options.'; return; }
   btn.disabled=true; btxt.textContent='Processing…';
   try {
-    const d = await post('/.netlify/functions/create-payment-intent', { items:cartItems, shippingRate:selRate, address:{name,email,line1:addr1,line2:addr2,city,state,zip,country:'US'} });
+    const d = await post('/api/create-payment-intent', { items:cartItems, shippingRate:selRate, address:{name,email,line1:addr1,line2:addr2,city,state,zip,country:'US'} });
     if(d.error){ err.textContent=d.error; btn.disabled=false; btxt.textContent='Pay Now'; return; }
     const { error, paymentIntent } = await stripe.confirmCardPayment(d.clientSecret, { payment_method:{ card, billing_details:{name,email} }, receipt_email:email, shipping:{name,address:{line1:addr1,line2:addr2,city,state,postal_code:zip,country:'US'}} });
     if(error){ err.textContent=error.message; btn.disabled=false; btxt.textContent='Pay Now'; return; }
