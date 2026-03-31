@@ -601,6 +601,19 @@ function renderColors() {
   container.innerHTML = '';
 
   if (currentProduct.colors.length === 0) {
+    // Fall back to colorway field from main product data
+    if (currentProduct.colorway && currentProduct.colorway.trim()) {
+      container.innerHTML = '';
+      document.getElementById('selectedColor').textContent = currentProduct.colorway.trim();
+      // Create a single swatch for the colorway
+      const swatch = document.createElement('button');
+      swatch.className = 'color-swatch active';
+      swatch.title = currentProduct.colorway.trim();
+      swatch.style.backgroundColor = currentProduct.colorway.trim().toLowerCase();
+      swatch.setAttribute('data-color-name', currentProduct.colorway.trim());
+      container.appendChild(swatch);
+      return;
+    }
     document.querySelector('.colorway-section').style.display = 'none';
     return;
   }
