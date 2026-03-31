@@ -2,7 +2,6 @@ User-agent: *
 Allow: /
 
 # Block internal / functional routes
-Disallow: /.netlify/
 Disallow: /api/
 Disallow: /admin.html
 Disallow: /analytics.html
