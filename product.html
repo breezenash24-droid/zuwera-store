@@ -488,107 +488,6 @@ async function loadProduct() {
     if (currentProduct.images.length === 0 && currentProduct.image_url) {
       currentProduct.images = [{ image_url: currentProduct.image_url, alt_text: currentProduct.title }];
     }
-
-// ══════════════════════════════════════════════════════════════════
-// RENDER PRODUCT
-// ══════════════════════════════════════════════════════════════════
-function renderProduct() {
-  if (!currentProduct) return;
-
-  document.getElementById('loadingState').classList.add('hidden');
-  document.getElementById('productContainer').classList.remove('hidden');
-
-  // ── Product Header ──
-  document.getElementById('productSubtitle').textContent = currentProduct.gender || 'Apparel';
-  document.getElementById('productTitle').textContent = currentProduct.title;
-  document.getElementById('genderTag').textContent = (currentProduct.gender || 'All').toUpperCase();
-
-  // ── Price ──
-  renderPrice();
-
-  // ── Gallery ──
-  renderGallery();
-
-  // ── Colors ──
-  renderColors();
-
-  // ── Inventory & Sizes ──
-  renderSizes();
-
-  // ── Accordions ──
-  renderAccordions();
-
-  // ── Check low stock ──
-  checkLowStock();
-}
-
-// ══════════════════════════════════════════════════════════════════
-// RENDER PRICE
-// ══════════════════════════════════════════════════════════════════
-function renderPrice() {
-  const current = parseFloat(currentProduct.current_price) || 0;
-  const msrp = parseFloat(currentProduct.msrp) || 0;
-  const member = parseFloat(currentProduct.member_price) || 0;
-
-  document.getElementById('priceDisplay').innerHTML = current > 0
-    ? `$${current.toFixed(2)}`
-    : 'Price TBA';
-
-  if (msrp && msrp > current) {
-    document.getElementById('msrpDisplay').innerHTML = `
-      MSRP: <strike>$${msrp.toFixed(2)}</strike>
-    `;
-  } else {
-    document.getElementById('msrpDisplay').innerHTML = '';
-  }
-
-  if (member && member < current) {
-    document.getElementById('memberPrice').innerHTML = `
-      Member Price: $${member.toFixed(2)}
-    `;
-  } else {
-    document.getElementById('memberPrice').innerHTML = '';
-  }
-}
-
-// ══════════════════════════════════════════════════════════════════
-// RENDER GALLERY
-// ══════════════════════════════════════════════════════════════════
-function renderGallery() {
-  const mainImage = document.getElementById('mainImage');
-  const thumbContainer = document.getElementById('galleryThumbnails');
-  thumbContainer.innerHTML = '';
-
-  if (currentProduct.images.length === 0) {
-    mainImage.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"%3E%3Crect fill="%23111" width="400" height="500"/%3E%3C/svg%3E';
-    mainImage.alt = 'No image available';
-    return;
-  }
-
-  // Set first image as main
-  mainImage.src = currentProduct.images[0].image_url;
-  mainImage.alt = currentProduct.images[0].alt_text || currentProduct.title;
-
-  // Create thumbnails
-  currentProduct.images.forEach((img, idx) => {
-    const thumb = document.createElement('div');
-    thumb.className = 'thumbnail';
-    if (idx === 0) thumb.classList.add('active');
-
-    const thumbImg = document.createElement('img');
-    thumbImg.src = img.image_url;
-    thumbImg.alt = img.alt_text || `${currentProduct.title} - View ${idx + 1}`;
-
-    thumb.appendChild(thumbImg);
-    thumb.addEventListener('click', () => {
-      document.querySelectorAll('.thumbnail').forEach(t => t.classList.remove('active'));
-      thumb.classList.add('active');
-      mainImage.src = img.image_url;
-      mainImage.alt = img.alt_text || currentProduct.title;
-    });
-
-    thumbContainer.appendChild(thumb);
-  });
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -692,6 +591,7 @@ function renderGallery() {
     thumbContainer.appendChild(thumb);
   });
 }
+
 
 // ══════════════════════════════════════════════════════════════════
 // RENDER COLORS
