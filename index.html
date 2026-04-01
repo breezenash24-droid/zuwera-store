@@ -1524,7 +1524,7 @@ async function loadProducts() {
           <p class="pcard-cat">${productCategory}</p>
           <p class="pcard-name">${productName}</p>
           <p class="pcard-price">${priceDisplay}</p>
-          <span class="pcard-action" onclick="event.stopPropagation();window.location.href='/product/${productSlug(p.title)}'${p.id}')">
+          <button class="pcard-action" onclick="event.stopPropagation();toggleReviews('${p.id}')">
             <span id="avg-${p.id}"><span style="color:rgba(244,241,235,.2)">\u2606\u2606\u2606\u2606\u2606</span></span>
             <span id="cnt-${p.id}">Be the first to review</span>
           </button>
@@ -1534,7 +1534,7 @@ async function loadProducts() {
           </div>
         </div>
       </div>`;
-  }).join('')
+  }).join('');
 
   // Re-init hearts & reviews for dynamically loaded cards
   if (typeof refreshHearts === 'function') refreshHearts();
@@ -1570,8 +1570,8 @@ function updateNav() {
   const lo = document.getElementById('logout-btn');
   const on = !!_user;
   li.style.display = on ? 'none' : '';
-  ac.style.display = on ? '' : 'none';
-  lo.style.display = on ? '' : 'none';
+  if (on) { ac.classList.add('show'); lo.classList.add('show'); }
+  else { ac.classList.remove('show'); lo.classList.remove('show'); }
   if (on && _user.email) ac.textContent = _user.email.split('@')[0];
 }
 

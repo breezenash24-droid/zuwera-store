@@ -116,9 +116,9 @@ async function toggleReviews(pid) {
 
 // ── Open the write-a-review modal ─────────────────────────────────
 function openReviewForm(pid, pname) {
-  if (!_currentUser) {
+  if (typeof _user === 'undefined' || !_user) {
     // Not logged in — show auth modal instead
-    openAuthModal('signin');
+    if (typeof openAuth === 'function') openAuth('signin');
     return;
   }
   _reviewProductId   = pid;
@@ -132,7 +132,7 @@ function openReviewForm(pid, pname) {
   document.getElementById('review-submit-btn').textContent = 'Submit Review';
   setStarSelection(0);
 
-  _openModal('review-modal');
+  document.getElementById('review-modal').classList.add('open');
 }
 
 // ── Star selector interaction ──────────────────────────────────────
@@ -165,17 +165,17 @@ async function submitReview() {
 
   if (!_reviewRating)        { errEl.textContent = 'Please select a star rating.'; return; }
   if (!_reviewProductId)     { errEl.textContent = 'No product selected.'; return; }
-  if (!_sb || !_currentUser) { errEl.textContent = 'Please sign in to leave a review.'; return; }
+  if (!_sb || typeof _user === 'undefined' || !_user) { errEl.textContent = 'Please sign in to leave a review.'; return; }
 
   btn.disabled    = true;
   btn.textContent = 'Submitting…';
 
-  const reviewerName = _currentUser.user_metadata?.full_name
-    || _currentUser.email?.split('@')[0]
+  const reviewerName = _user.user_metadata?.full_name
+    || _user.email?.split('@')[0]
     || 'Anonymous';
 
   const { error } = await _sb.from('reviews').insert({
-    user_id:       _currentUser.id,
+    user_id:       _user.id,
     product_id:    _reviewProductId,
     rating:        _reviewRating,
     body:          body || null,
@@ -192,7 +192,7 @@ async function submitReview() {
   // Bust cache so the new review shows immediately
   delete _reviewCache[_reviewProductId];
 
-  _closeModal('review-modal');
+  document.getElementById('review-modal').classList.remove('open');
   showToast('Review submitted — thank you!');
 
   // Refresh the panel if it's open
@@ -231,8 +231,8 @@ function escHtml(str) {
 
 // ── Close review modal on backdrop click ─────────────────────────
 document.getElementById('review-modal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) _closeModal('review-modal');
+  if (e.target === e.currentTarget) document.getElementById('review-modal').classList.remove('open');
 });
 document.getElementById('review-modal-close').addEventListener('click', () => {
-  _closeModal('review-modal');
+  document.getElementById('review-modal').classList.remove('open');
 });
