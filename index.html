@@ -158,6 +158,14 @@ img{display:block;max-width:100%}
 /* ─────────────────────────────────────────────
    CUSTOM CURSOR
 ───────────────────────────────────────────── */
+@media (hover: hover) and (pointer: fine) {
+  body, button, a, .pcard-action { cursor: none !important; }
+}
+@media (hover: none) {
+  #cursor { display: none !important; }
+  body, button, a, .pcard-action { cursor: auto !important; }
+}
+
 #cursor{
   width:8px;height:8px;
   background:var(--paper);
@@ -524,6 +532,14 @@ nav#nav.scrolled{
 .pgrid{
   display:grid;grid-template-columns:repeat(3,1fr);
   gap:1px;background:rgba(244,241,235,.06);
+}
+.pgrid.single-item {
+  display: flex;
+  justify-content: center;
+  padding: 1px;
+}
+.pgrid.single-item .pcard {
+  width: 100%; max-width: 450px;
 }
 .pcard{background:var(--ink);position:relative;overflow:hidden;transition:background .3s}
 .pcard:hover{background:#111}
@@ -1468,7 +1484,7 @@ async function loadProducts() {
   if (!_sb || !grid) return;
   const { data: products, error } = await _sb
     .from('products')
-    .select('*')
+    .select('*, product_images(image_url), color_variants(*)')
     .order('sort_order', { ascending: true });
 
   if (error || !products) {
@@ -1476,13 +1492,20 @@ async function loadProducts() {
     return;
   }
 
+  if (products.length === 1) {
+    grid.classList.add('single-item');
+  } else {
+    grid.classList.remove('single-item');
+  }
+
   grid.innerHTML = products.map(p => {
     const productName = p.title || p.name || 'Untitled';
     const productCategory = p.subtitle || p.category || 'Jackets';
     const productPrice = p.current_price || p.msrp || p.price;
     const badge = (p.status === 'coming_soon' || p.status === 'Coming Soon') ? 'Coming Soon' : (p.status === 'live' || p.status === 'Live' ? 'Available' : (p.status || 'Coming Soon'));
-    const imgHtml = p.image_url
-      ? `<img src="${p.image_url}" alt="${productName}" style="width:100%;height:100%;object-fit:cover">`
+    const firstImg = (p.product_images && p.product_images.length > 0) ? p.product_images[0].image_url : p.image_url;
+    const imgHtml = firstImg
+      ? `<img src="${firstImg}" alt="${productName}" style="width:100%;height:100%;object-fit:cover">`
       : `<div class="pcard-img-placeholder">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
             <p>Image Coming Soon</p>

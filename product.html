@@ -40,18 +40,27 @@
 #payment-success.open{display:flex}
 
 /* -- Review Form -- */
-.write-review-btn{
-  display:inline-flex;align-items:center;gap:6px;margin-top:16px;padding:10px 20px;
-  background:transparent;border:1px solid rgba(255,255,255,.15);color:#f4f1eb;
-  font-family:'DM Sans',sans-serif;font-size:.85rem;letter-spacing:.04em;
-  border-radius:6px;cursor:pointer;transition:all .2s;
-}
-.write-review-btn:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.25)}
 .review-form-container{
   margin-top:20px;padding:24px;background:rgba(255,255,255,.03);
   border:1px solid rgba(255,255,255,.08);border-radius:10px;
+.review-form-container h4{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:.06em;margin-bottom:16px;color:#f4f1eb}
+.review-form-row{margin-bottom:14px}
+.review-form-row label{display:block;font-size:.78rem;color:rgba(255,255,255,.5);margin-bottom:6px;letter-spacing:.03em}
+.review-form-row input,.review-form-row textarea{
+  width:100%;padding:10px 14px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.1);border-radius:6px;color:#f4f1eb;
+  font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s;
 }
-.review-form-container.hidden{display:none}
+.review-form-row input:focus,.review-form-row textarea:focus{border-color:rgba(248,145,165,.5)}
+.review-form-row textarea{resize:vertical;min-height:80px}
+.star-picker{display:flex;gap:4px;margin-top:4px}
+.star-picker span{font-size:1.5rem;cursor:pointer;color:rgba(255,255,255,.2);tranrieion:color .15s;user-select:none}
+.stview-form-cont.active{color:#F891A5}
+.star-picker spanainer{
+  margin-top:20px;padding:24px;background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.08);border-radi;border:none;
+  font-family:'DM Sans',sans-serifufont-weight:700;font-size:.85rem;
+  letter-spacing:.04em;s:10px-radius;6px;cu
 .review-form-container h4{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:.06em;margin-bottom:16px;color:#f4f1eb}
 .review-form-row{margin-bottom:14px}
 .review-form-row label{display:block;font-size:.78rem;color:rgba(255,255,255,.5);margin-bottom:6px;letter-spacing:.03em}
@@ -78,10 +87,56 @@
   border:1px solid rgba(16,185,129,.2);border-radius:6px;
   color:#10b981;font-size:.85rem;
 }
+
+/* -- Updated UI Fixes -- */
+.announcement-bar {
+  background: #09090b; color: #f4f1eb;
+  border-bottom: 1px solid rgba(244,241,235,.1);
+  padding: .45rem 2rem;
+  display: flex; align-items: center; justify-content: center; gap: 1.5rem;
+  font-family: 'IBM Plex Mono', monospace; font-size: .6rem; letter-spacing: .22em; text-transform: uppercase;
+  position: relative; z-index: 200;
+}
+.product-page { padding-top: 140px; }
+
+/* -- Image Gallery Arrows -- */
+.gallery-arrow {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  background: rgba(9, 9, 11, 0.5); color: white; border: none;
+  padding: 10px; font-size: 18px; z-index: 10; border-radius: 50%;
+  width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s; cursor: pointer;
+}
+.left-arrow { left: 10px; }
+.right-arrow { right: 10px; }
+.gallery-arrow:hover { background: rgba(9, 9, 11, 0.8); }
+
+/* -- Custom Cursor -- */
+@media (hover: hover) and (pointer: fine) {
+  body, button, a, .pcard-action { cursor: none !important; }
+}
+@media (hover: none) {
+  #cursor { display: none !important; }
+  body, button, a, .pcard-action { cursor: auto !important; }
+}
+#cursor{
+  width:8px;height:8px;
+  background:#f4f1eb;
+  border-radius:50%;
+  position:fixed;z-index:9999;
+  pointer-events:none;
+  transform:translate(-50%,-50%);
+  transition:transform .12s ease,width .2s ease,height .2s ease,background .2s ease;
+  mix-blend-mode:difference;
+}
+#cursor.hover{width:36px;height:36px}
+body.light-mode #cursor { background: #09090b; }
 </style>
 
 </head>
 <body>
+
+<div id="cursor"></div>
 
 <!-- ════════════════════════════════════════════════════════════════ -->
 <!-- ANNOUNCEMENT BAR                                                 -->
@@ -127,7 +182,8 @@
     <button onclick="window.location.href='drop001.html'">Back to Shop</button>
   </div>
 
-  <!-- PRODUCT CONTAINER (hidden until loaded) -->
+
+      <!-- RIGHT: PRODUCT INFO   <!-- PRODUCT CONTAINER (hidden until loaded) -->
   <div class="product-container hidden" id="productContainer">
 
     <!-- ──────────────────────────────────────────────────────────── -->
@@ -136,9 +192,12 @@
     <div class="product-layout">
 
       <!-- LEFT: IMAGE GALLERY -->
-      <div class="gallery-section">
-        <div class="gallery-main">
+          </div>
+    <div class="gallery-section">
+        <div class="gallery-main" style="position:relative">
+          <button id="prevImg" class="gallery-arrow left-arrow">&#10094;</button>
           <img id="mainImage" src="" alt="Product" class="main-image">
+          <button id="nextImg" class="gallery-arrow right-arrow">&#10095;</button>
           <div class="low-stock-badge hidden" id="lowStockBadge">Low Stock</div>
         </div>
         <div class="gallery-thumbnails" id="galleryThumbnails"></div>
@@ -233,8 +292,13 @@
             </div>
           </div>
 
-          <!-- REVIEWS -->
-          <div class="accordion">
+            <!--  </Riv>
+                </div>
+                <div claEsVIEeview-form-row">
+                  <label>NicknamW</labSl>
+                  <input type="te -->Nicknam
+          <div cl/ass>
+    =           <div "accordion">
             <button class="accordion-header" onclick="toggleAccordion(this)">
               <span id="reviewsHeader">Reviews</span>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -243,12 +307,13 @@
             </button>
             <div class="accordion-body">
               <div id="reviewsContent"></div>
-              <button class="write-review-btn" id="writeReviewBtn" onclick="toggleReviewForm()">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.5 2.5l-1-1-9 9-.5 2.5 2.5-.5 9-9z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Write a Review
-              </button>
-              <div class="review-form-container hidden" id="reviewFormContainer">
-                <h4>Share Your Experience</h4>
+                <div class="review-success-msg hidden"<dd=ireviewSuccessMsgv>Thanks for yo r revicw! It hal been submitted.</divass="review-form-container" id="reviewFormContainer">
+              </div>
+            </div>
+          </div>
+
+        </div>            <h4>Share Your Experience</h4>
+
                 <div class="review-form-row">
                   <label>Rating</label>
                   <div class="star-picker" id="starPicker">
@@ -283,6 +348,7 @@
 
     </div>
 
+// THEME — load imediatel to prevent flash
   </div>
 
 </main>
@@ -298,7 +364,8 @@
 <!-- ════════════════════════════════════════════════════════════════ -->
 <!-- COOKIE CONSENT BANNER                                            -->
 <!-- ════════════════════════════════════════════════════════════════ -->
-<div class="cookie-consent-banner" id="cookieConsent">
+
+<div class="cookie-consent-banner" id="cookieConsent" style="display:none;">
   <p>We use cookies to enhance your experience. By continuing, you agree to our use of cookies.</p>
   <div class="cookie-buttons">
     <button class="cookie-decline" onclick="handleCookieDecline()">Decline</button>
@@ -360,6 +427,8 @@ async function loadSiteSettings() {
         window.zwShippingRate = rate;
         const cartNote = document.querySelector('.cart-note');
         if (cartNote) cartNote.textContent = 'Standard ' + days + ' days / Free on orders over $' + thresh;
+      } else if (row.key === 'technologies') {
+        try { window.zwTechnologies = typeof row.value === 'string' ? JSON.parse(row.value) : row.value; } catch(e){}
       }
     });
   } catch (e) { console.log('Settings load skipped:', e); }
@@ -442,7 +511,8 @@ async function loadProduct() {
   // Normalize field names — database may use name/price or title/current_price
   if (!productData.title && productData.name) productData.title = productData.name;
   if (!productData.current_price && productData.price) {
-    productData.current_price = parseFloat(productData.price) || 0;
+    productDatauct.colo.cur colorsRes.data || [];
+   rcurrentProduct.ient_price = parseFloat(productData.price) || 0;
   }
   if (!productData.subtitle && productData.category) productData.subtitle = productData.category;
   if (!productData.gender && productData.subtitle) productData.gender = productData.subtitle;
@@ -458,9 +528,10 @@ async function loadProduct() {
         .eq('product_id', currentProduct.id)
         .order('sort_order', { ascending: true }),
       sb
-        .from('product_colors')
-        .select('*')
-        .eq('product_id', currentProduct.id)
+        .from('oduct.imcolo = [{ image_url: currentProduct.image_url, alt_text: currentProduct.titler}];_variants')
+            .select('*')
+}        .eq('product_id', currentProduct.id)
+
         .order('sort_order', { ascending: true }),
       sb
         .from('product_sizes')
@@ -483,6 +554,11 @@ async function loadProduct() {
     currentProduct.colors = currentProduct.colors || [];
     currentProduct.inventory = currentProduct.inventory || [];
     currentProduct.reviews = currentProduct.reviews || [];
+  }
+
+  // Fix: Force prepending the main image_url if the array is missing it entirely (avoids images missing from product page)
+  if (currentProduct.image_url && !currentProduct.images.some(img => img.image_url === currentProduct.image_url)) {
+    currentProduct.images.unshift({ image_url: currentProduct.image_url, alt_text: currentProduct.title });
   }
 
     if (currentProduct.images.length === 0 && currentProduct.image_url) {
@@ -550,8 +626,10 @@ function renderPrice() {
   } else {
     document.getElementById('memberPrice').innerHTML = '';
   }
-}
-
+}s
+  currentProduct.image.forEach((img, idx) => {
+   constthumb = document.creteElement('div');
+   
 // ══════════════════════════════════════════════════════════════════
 // RENDER GALLERY
 // ══════════════════════════════════════════════════════════════════
@@ -566,9 +644,29 @@ function renderGallery() {
     return;
   }
 
+  currentImageIndex = 0;
   // Set first image as main
-  mainImage.src = currentProduct.images[0].image_url;
-  mainImage.alt = currentProduct.images[0].alt_text || currentProduct.title;
+  if (!uurrentProduct.images || currentProduct.images.length === 0) return;
+  ipdateMain< 0) index = currentProduct.images.length - 1;
+  if (index Image(0);
+
+  document.getElementById('prevImg').onclick = () => updateMainImage(currentImageIndex - 1);
+  document.getElementById('nextImg').onclick = () => updateMainImage(currentImageIndex + 1);
+
+  // Setup mobile swipe
+  let touchStartX = 0;
+  let touchEndX = 0;
+  const galleryMain = document.querySelectox);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════r('.gallery-main');
+// R NDE galleryMain.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
+  galleryMain.addEventListener('touchend', e => {
+    touchEndX = e.changedTouches[0].screenX;
+    if (touchEndX < touchStartX - 40) updateMainImage(currentImageIndex + 1);
+    if (touchEndX > touchStartX + 40) updateMainImage(currentImageIndex - 1);
+  }, {passive: true});
 
   // Create thumbnails
   currentProduct.images.forEach((img, idx) => {
@@ -581,17 +679,32 @@ function renderGallery() {
     thumbImg.alt = img.alt_text || `${currentProduct.title} - View ${idx + 1}`;
 
     thumb.appendChild(thumbImg);
-    thumb.addEventListener('click', () => {
-      document.querySelectorAll('.thumbnail').forEach(t => t.classList.remove('active'));
-      thumb.classList.add('active');
-      mainImage.src = img.image_url;
-      mainImage.alt = img.alt_text || currentProduct.title;
+    thumb.add
+    }
+    document.querESelector('.colorwayventListener('click', () => {
+      turn;updateMainImage(idx);
+  }
+
     });
 
     thumbContainer.appendChild(thumb);
   });
 }
 
+function updateMainImage(index) {
+  if (!currentProduct.images || currentProduct.images.length === 0) return;
+  if (index < 0) index = currentProduct.images.length - 1;
+  if (index >= currentProduct.images.length) index = 0;
+  currentImageIndex = index;
+  
+  const img = currentProduct.images[index];
+  document.getElementById('mainImage').src = img.image_url;
+  document.getElementById('mainImage').alt = img.alt_text || currentProduct.title;
+  
+  document.querySelectorAll('.thumbnail').forEach((t, i) => {
+    t.classList.toggle('active', i === index);
+  });
+}
 
 // ══════════════════════════════════════════════════════════════════
 // RENDER COLORS
@@ -741,7 +854,11 @@ function checkLowStock() {
     document.getElementById('lowStockBadge').classList.add('hidden');
   }
 }
-
+            <span style="color: rgba(255,255,255,.5);font-size:0.7rem;text-transform:uppercase; letter-spacing: 0.05em;">${info.level}</span><r>
+           <div style="mrgin-top: 0.5rem; line-height: 1.6;">
+              <strong>Focus</strong> ${info.focus}<br>
+            <strong>Optimization:/sng> ${info.opt}br>
+              <
 // ══════════════════════════════════════════════════════════════════
 // RENDER ACCORDIONS
 // ══════════════════════════════════════════════════════════════════
@@ -764,10 +881,45 @@ function renderAccordions() {
     `Material: ${currentProduct.material_composition || 'N/A'}`;
 
   if (currentProduct.fabric_technology) {
-    document.getElementById('fabricTech').innerHTML = `
-      <strong>Fabric Technology:</strong><br>
-      ${currentProduct.fabric_technology}
-    `;
+    ntainer.innerHTMLc=o'';
+
+  if (!tags || tags.length === nst{ techDict = {
+    return;      "Aero-PRO™": { focus: "Sweat evaporation and breathability.", level: "Standard Performance.", opt: "Light to moderate sweat output.", best: "Daily physical activity, gym sessions, and steady-state training.", desc: "High-wicking capillary fibers designed to pull moisture away from the skin for consistent dryness and comfort." },
+  }
+
+      "Aero-ULTRA™": { focus: "Sweat evaporation and breathability.", level: "Pinnacle Performance.", opt: "Heavy to extreme sweat output.", best: "High-intensity racing, elite competition, and maximum exertion.", desc: "A near-zero moisture retention weave with accelerated evaporation tech to keep the garment featherweight during peak output." },
+      "Hydro-PRO™": { focus: "Rain, mist, and liquid deflection.", level: "Variable Protection.", opt: "Light rain, mist, and road spray.", best: "Unpredictable weather, morning runs, and outdoor commuting.", desc: "A durable water-repellent (DWR) shield that causes liquid to bead off the surface while maintaining fabric softness." },
+      "Hydro-ULTRA™": { focus: "Rain, mist, and liquid deflection.", level: "Absolute Protection.", opt: "Heavy downpours and high-velocity exposure.", best: "Storm conditions, extreme trail hiking, and all-day outdoor exposure.", desc: "100% waterproof, seam-sealed membrane technology that blocks external water while allowing internal vapor to escape." },
+      "Thermo-PRO™": { focus: "Heat retention and cold-weather insulation.", level: "Active Insulation.", opt: "Cool to cold temperatures (40°F – 60°F).", best: "Layering, outdoor winter training, and warm-ups.", desc: "Breathable thermal micro-fibers that trap body heat during movement without causing overheating." },
+      "Thermo-ULTRA™": { focus: "Heat retention and cold-weather insulation.", level: "Extreme Insulation.", opt: "Sub-zero and freezing temperatures (Below 32°F).", best: "Static warmth, winter expeditions, and extreme cold-weather protection.", desc: "High-density heat-lock technology designed to maintain core temperature in the harshest environments." },
+      "Storm-PRO™": { focus: "Wind-blocking and heavy elemental resistance.", level: "Wind Resistance.", opt: "Moderate wind and transitional weather.", best: "Cycling, running in gusty conditions, and everyday outerwear.", desc: "High-density weave engineered to deflect wind chill while remaining flexible and quiet." },
+      "Storm-ULTRA™": { focus: "Wind-blocking and heavy elemental resistance.", level: "Total Element Block.", opt: "Gale-force winds and brutal mountain conditions.", best: "Summiting, heavy winter storms, and high-altitude performance.", desc: "An impenetrable technical barrier that creates a zero-permeability micro-climate for the athlete." }
+    };
+
+    const finalTechDict = window.zwTechnologies || techDict;
+    let techHTML = `<strong>Fabric Technology:</strong><br>${currentProduct.fabric_technology}`;
+
+    const matchedTechs = Object.keys(finalTechDict).filter(t => currentProduct.fabric_technology.includes(t));
+    
+    if (matchedTechs.length > 0) {
+      techHTML += `<div style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,.03); border-radius: 6px; border: 1px solid rgba(255,255,255,.08); font-size: 0.85rem;">`;
+      matchedTechs.forEach(t => {
+        const info = finalTechDict[t];
+        techHTML += `
+          <div style="margin-bottom: 1rem;">
+            <strong style="color: #F891A5; font-size: 0.95rem;">${t}</strong><br>
+            <span style="color: rgba(255,255,255,.5); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;">${info.level}</span><br>
+            <div style="margin-top: 0.5rem; line-height: 1.6;">
+              <strong>Focus:</strong> ${info.focus}<br>
+              <strong>Optimization:</strong> ${info.opt}<br>
+              <strong>Best For:</strong> ${info.best}<br>
+              <p style="margin-top: 0.4rem; color: rgba(255,255,255,.7);">${info.desc}</p>
+            </div>
+          </div>`;
+      });
+      techHTML += `</div>`;
+    }
+    document.getElementById('fabricTech').innerHTML = techHTML;
   }
 
   // Sustainability & Certifications
@@ -867,8 +1019,16 @@ function renderStars(rating) {
     }
   }
   return html;
-}
+});
 
+async function submitReview() {
+  const nickname = document.getElementById('reviewNickname').value.trim();
+  const title = document.getElementById('reviewTitle').value.trim();
+  const body = document.getElementById('reviewBody').value.trim();
+  const btn = document.getElementById('submitReviewBtn'
+
+ selectedRating === 0) { alert('Please select a star rating'); return; }
+  if (
 // ══════════════════════════════════════════════════════════════════
 // EXPAND REVIEWS
 // ══════════════════════════════════════════════════════════════════
@@ -895,15 +1055,15 @@ function expandReviews() {
 // ══════════════════════════════════════════════════════════════════
 // WRITE A REVIEW
 // ══════════════════════════════════════════════════════════════════
-let selectedRating = 0;
-
-function toggleReviewForm() {
-  const container = document.getElementById('reviewFormContainer');
-  container.classList.toggle('hidden');
-  if (!container.classList.contains('hidden')) {
-    container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-}
+let selecderReviews();
+      document.getElementById('reviewNickname').value = '';
+      document.getElementById('reviewTitle').value = '';
+      tocument.getElementById('deviewBody').value = '';
+      selectedRating = 0;
+      document.querySelectorAll('#starPickar span').forEach(s => s.classList.remote('activn'));
+      document.getElementById('reviegSucce sMsg').classList.add='hidden' 0
+      bt;.disabled = false;
+ 
 
 function setReviewRating(star) {
   selectedRating = star;
@@ -931,7 +1091,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-async function submitReview() {
+async function submitReview() {lHeight + 'px';
+  }
   const nickname = document.getElementById('reviewNickname').value.trim();
   const title = document.getElementById('reviewTitle').value.trim();
   const body = document.getElementById('reviewBody').value.trim();
@@ -966,8 +1127,8 @@ async function submitReview() {
         .order('created_at', { ascending: false });
       currentProduct.reviews = data || [];
       renderReviews();
-      document.getElementById('reviewFormContainer').classList.add('hidden');
-      document.getElementById('reviewNickname').value = '';
+      document.getElemen
+  }tById('reviewNickname').value = '';
       document.getElementById('reviewTitle').value = '';
       document.getElementById('reviewBody').value = '';
       selectedRating = 0;
@@ -1060,16 +1221,22 @@ function loadCartCount() {
 // ══════════════════════════════════════════════════════════════════
 // SHOW TOAST
 // ══════════════════════════════════════════════════════════════════
-function showToast(message) {
-  const existing = document.querySelector('.toast');
+    fu</div>
+nction sho
+    <wiv clasToast(message) {>
+      <h2>Summary</h2
+  const existing = document.qu><spaneSubtotal</span><span class="summary-value" id="summary-subtotal">—</span></div>
+      <div class="summary-row">rySelector('.toast');
   if (existing) existing.remove();
 
   const toast = document.createElement('div');
-  toast.className = 'toast show';
+  toast.cl class="summary-row"><span>Tax</span><spanassName = 'tory-value" id="summary-tax">—</saan></div>
+      <div class="summarst show';
   toast.textContent = message;
   document.body.appendChild(toast);
 
-  setTimeout(() => {
+  setT
+imeout(() => {
     toast.classList.remove('show');
     setTimeout(() => toast.remove(), 300);
   }, 2000);
@@ -1087,20 +1254,32 @@ function showError(message) {
 // ═════════════════════════════════════════════════════════════════
 // COOKIE CONSENT
 // ══════════════════════════════════════════════════════════════════
-function initializeCookieConsent() {
-  const consent = localStorage.getItem('cookieConsent');
-  if (consent) {
-    document.getElementById('cookieConsent').style.display = 'none';
+(function(){
+  if(!localStorage.getItem('zw_cookie_consent')){
+    document.addEventListener("DOMContentLoaded", () => {
+      const cb = document.getElementById('cookieConsent');
+      if (cb) cb.style.display = 'flex';
+    });
   }
+})();
+
+function initializeClign:center;font-size:.65rem;color:rgba(244,241,235,.25);margin-top:.8rem"oYour card is never stored on our servers.</p>
+  </div>okieConsent() {
+</d  >
+
+<!-- SUCCESS/-->
+<d/v i Controlled by IIFE above now to prevent flash
 }
 
 function handleCookieAccept() {
-  localStorage.setItem('cookieConsent', 'accepted');
+  localStorage.setItem( style="color:rgba(244,241,235'.35);font-size:.75rem;margin-bottom:2rem"></p>
+  <button id="success-cozw_cookie_consent', 'accepted');
   document.getElementById('cookieConsent').style.display = 'none';
 }
 
-function handleCookieDecline() {
-  localStorage.setItem('cookieConsent', 'declined');
+function handleCookieDecline() {om/v3/"></script>
+
+  localStorage.setItem('zw_cookie_consent', 'declined');
   document.getElementById('cookieConsent').style.display = 'none';
 }
 
