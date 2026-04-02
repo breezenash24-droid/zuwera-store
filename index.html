@@ -510,12 +510,10 @@ nav#nav.scrolled{
   gap:1px;background:rgba(244,241,235,.06);
 }
 .pgrid.single-item {
-  display: flex;
-  justify-content: center;
-  padding: 1px;
+  display: block;
 }
 .pgrid.single-item .pcard {
-  width: 100%; max-width: 450px;
+  width: 100%; max-width: 450px; margin: 0 auto;
 }
 .pgrid.two-items {
   grid-template-columns: 1fr 1fr;
@@ -901,7 +899,7 @@ footer{
   nav#nav{padding:1rem 1.2rem}
   .hero-inner{padding:2rem 1.2rem 1.5rem}
   .hero-bottom{padding:1rem 1.2rem 2rem}
-  .pgrid{grid-template-columns:1fr}
+  .pgrid, .pgrid.two-items{grid-template-columns:1fr}
   .cart-hd{padding:1.2rem}
   footer{padding:2rem 1.2rem}
   .mbox { padding: 2rem 1.2rem 1.8rem; }
@@ -1462,10 +1460,11 @@ async function loadProducts() {
     return;
   }
 
+  grid.classList.remove('single-item', 'two-items');
   if (products.length === 1) {
     grid.classList.add('single-item');
-  } else {
-    grid.classList.remove('single-item');
+  } else if (products.length === 2) {
+    grid.classList.add('two-items');
   }
 
   grid.innerHTML = products.map(p => {

@@ -233,11 +233,11 @@
       background: var(--border);
     }
     .products-grid.single-item {
-      display: flex;
-      justify-content: center;
-      gap: 0;
+      display: block;
     }
     .products-grid.single-item > a {
+      display: block;
+      margin: 0 auto;
       width: 100%;
       max-width: 450px;
     }
@@ -369,7 +369,7 @@
       .countdown-item { min-width: 60px; }
       .countdown-number { font-size: clamp(2rem, 12vw, 3.5rem); }
       .products-section { padding: 3rem 1rem; }
-      .products-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+      .products-grid, .products-grid.two-items { grid-template-columns: 1fr; gap: 1.5rem; }
       .product-card { padding: 1.2rem; }
       .notify-section { padding: 3rem 1rem; }
       .notify-form { flex-direction: column; gap: 0; }
@@ -587,6 +587,7 @@ function updateCountdown() {
         return;
       }
 
+      grid.classList.remove('single-item', 'two-items');
       if (products.length === 1) {
         grid.classList.add('single-item');
       } else if (products.length === 2) {
