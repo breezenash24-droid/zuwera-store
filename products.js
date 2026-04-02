@@ -113,7 +113,7 @@ function renderProducts(grid, products) {
 
     return `
       <div class="pcard" data-product-slug="${(p.slug || productName.toLowerCase().replace(/[^a-z0-9]/g,'-')).slice(0,50)}" onclick="window.location.href='product.html?slug=${encodeURIComponent(productName.toLowerCase().replace(/[^a-z0-9]/g,'-'))}' style="cursor:pointer">
-        <div class="pcard-img" style="background:linear-gradient(135deg,#1a1a1a 0%,#0d0d0d 100%)">
+        <div class="pcard-img" style="background:transparent">
           <img src="${firstImg || ''}" alt="${productName}" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:center" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
           <div style="display:none;align-items:center;justify-content:center;flex-direction:column;gap:.8rem;height:100%;opacity:.08">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:48px;height:48px"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
