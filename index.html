@@ -1635,9 +1635,8 @@ document.getElementById('forgot-submit').addEventListener('click', async () => {
   err.textContent = ''; suc.style.display = 'none';
   if (!email) { err.textContent = 'Please enter your email.'; return; }
   setDisabled('forgot-submit', true, 'Send Reset Link');
-  if (_sb) { const { error } = await _sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://zuwera.store' }); if (error) { err.textContent = error.message; setDisabled('forgot-submit', false, 'Send Reset Link'); return; } }
+  if (_sb) { const { error } = await _sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin }); if (error) { err.textContent = error.message; setDisabled('forgot-submit', false, 'Send Reset Link'); return; } }
   setDisabled('forgot-submit', false, 'Send Reset Link'); suc.style.display = 'block';
-});
 
 document.getElementById('logout-btn').addEventListener('click', async () => { if (_sb) await _sb.auth.signOut(); showToast('Signed out.'); });
 
