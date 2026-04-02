@@ -507,7 +507,8 @@ nav#nav.scrolled{
 }
 .pgrid{
   display:grid;grid-template-columns:repeat(3,1fr);
-  gap:1px;background:rgba(244,241,235,.06);
+  border-top:1px solid rgba(244,241,235,.06);
+  border-left:1px solid rgba(244,241,235,.06);
 }
 .pgrid.single-item {
   display: block;
@@ -518,8 +519,12 @@ nav#nav.scrolled{
 .pgrid.two-items {
   grid-template-columns: 1fr 1fr;
 }
-.pcard{background:var(--ink);position:relative;overflow:hidden;transition:background .3s}
-.pcard:hover{background:#111}
+.pcard{
+  background:transparent;position:relative;overflow:hidden;transition:background .3s;
+  border-right:1px solid rgba(244,241,235,.06);
+  border-bottom:1px solid rgba(244,241,235,.06);
+}
+.pcard:hover{background:rgba(244,241,235,.02)}
 .pcard-img{
   aspect-ratio:3/4;
   background:transparent;
