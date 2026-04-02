@@ -1700,7 +1700,7 @@
                     <td>${product.title || 'N/A'}</td>
                     <td>${product.colorway || 'N/A'}</td>
                     <td>$${(Number(product.current_price) || 0).toFixed(2)}</td>
-                    <td><span class="status-badge status-${product.status.toLowerCase().replace(' ', '-')}">${product.status}</span></td>
+                    <td><span class="status-badge status-${(product.status || 'draft').toLowerCase().replace(/\s+/g, '-')}">${product.status || 'Draft'}</span></td>
                     <td id="stock-${product.id}">-</td>
                     <td>
                         <div class="action-buttons">

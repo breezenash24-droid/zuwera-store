@@ -737,6 +737,12 @@
       err.innerHTML = `<b>CRITICAL ERROR:</b> ${e.message} at line ${e.lineno}`;
       document.body.prepend(err);
     });
+    window.addEventListener('unhandledrejection', function(e) {
+      const err = document.createElement('div');
+      err.style = 'background:#ef4444;color:white;padding:15px;z-index:9999;position:fixed;top:0;left:0;right:0;font-family:monospace;';
+      err.innerHTML = `<b>ASYNC ERROR:</b> ${e.reason}`;
+      document.body.prepend(err);
+    });
 
     // Supabase configuration
     const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
@@ -790,19 +796,27 @@
 
       currentUser = session.user;
 
-      // Check if user is admin
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', currentUser.id)
-        .single();
+      try {
+        // Check if user is admin
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', currentUser.id)
+          .single();
 
-      if (error || !profile || profile.role !== 'admin') {
-        showError('Unauthorized: Admin access required.');
+        if (error) {
+          if (error.code === 'PGRST200') throw new Error('The "profiles" table is missing from your database. Please run the Supabase migration script to create it.');
+          if (error.code === 'PGRST116') throw new Error('Your profile is missing from the database. Please run the Admin Sync SQL script in Supabase.');
+          throw error;
+        }
+        if (!profile || profile.role !== 'admin') throw new Error('Your account does not have Admin privileges in the profiles table.');
+
+      } catch (e) {
+        showError('Unauthorized: ' + e.message);
         showAuthContainer();
         const msg = document.createElement('div');
         msg.style = 'color: var(--error); margin-top: 15px; font-weight: bold; background: rgba(239,68,68,0.1); padding: 10px; border-radius: 4px; border: 1px solid var(--error);';
-        msg.innerHTML = 'Access Denied: Your account does not have Admin privileges.';
+        msg.innerHTML = 'Access Denied: ' + e.message;
         document.querySelector('.auth-card').appendChild(msg);
         await supabase.auth.signOut();
         return false;
@@ -860,17 +874,23 @@
     };
 
     const loadProducts = async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          *, 
-          product_images(id), 
-          color_variants(id, color_name), 
-          product_sizes(id, size, stock_quantity)
-        `);
-
-      if (error) throw error;
-      allProducts = data || [];
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select(`
+            *, 
+            product_images(id), 
+            color_variants(id, color_name), 
+            product_sizes(id, size, stock_quantity)
+          `);
+        if (error) throw error;
+        allProducts = data || [];
+      } catch (err) {
+        console.warn("Extended schema not found, trying basic products...", err);
+        const { data, error } = await supabase.from('products').select('*');
+        if (error) throw error;
+        allProducts = data || [];
+      }
     };
 
     const loadInventory = async () => {
@@ -1053,9 +1073,9 @@
       // Apply Search Filter
       if (searchTerm) {
         inventoryData = inventoryData.filter(item => 
-          (item.sku && item.sku.toLowerCase().includes(searchTerm)) ||
-          (item.productTitle && item.productTitle.toLowerCase().includes(searchTerm)) ||
-          (item.size && item.size.toLowerCase().includes(searchTerm))
+          String(item.sku || '').toLowerCase().includes(searchTerm) ||
+          String(item.productTitle || '').toLowerCase().includes(searchTerm) ||
+          String(item.size || '').toLowerCase().includes(searchTerm)
         );
       }
 
@@ -1159,9 +1179,9 @@
       // Apply Search Filter
       if (searchTerm) {
         catalogData = catalogData.filter(item => 
-          (item.sku && item.sku.toLowerCase().includes(searchTerm)) ||
-          (item.title && item.title.toLowerCase().includes(searchTerm)) ||
-          (item.colorway && item.colorway.toLowerCase().includes(searchTerm))
+          String(item.sku || '').toLowerCase().includes(searchTerm) ||
+          String(item.title || '').toLowerCase().includes(searchTerm) ||
+          String(item.colorway || '').toLowerCase().includes(searchTerm)
         );
       }
 
@@ -1264,7 +1284,7 @@
 
       const saleProducts = allProducts.filter(p => Number(p.msrp) > Number(p.current_price) && Number(p.current_price) > 0);
       const avgDiscount = saleProducts.length > 0
-        ? saleProducts.reduce((sum, p) => sum + ((Number(p.msrp) - Number(p.current_price)) / Number(p.msrp) * 100), 0) / saleProducts.length
+        ? saleProducts.reduce((sum, p) => sum + ((Number(p.msrp) - Number(p.current_price)) / (Number(p.msrp) || 1) * 100), 0) / saleProducts.length
         : 0;
 
       document.getElementById('avgMSRP').textContent = `$${avgMSRP.toFixed(2)}`;
@@ -1281,7 +1301,6 @@
         const { data: reviews, error } = await supabase
           .from('reviews')
           .select('rating, product_id');
-
         if (error) throw error;
 
         const reviewsByProduct = {};
@@ -1330,6 +1349,10 @@
 
       } catch (error) {
         console.error('Error loading reviews:', error);
+        document.getElementById('avgRating').textContent = `0 ⭐`;
+        document.getElementById('totalReviews').textContent = `0`;
+        document.getElementById('noReviewsCount').textContent = allProducts.length;
+        document.getElementById('topProductsContainer').innerHTML = '<p style="color:var(--text-secondary)">No reviews data available.</p>';
       }
     };
 
