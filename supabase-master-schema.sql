@@ -228,6 +228,11 @@ CREATE POLICY "Users manage own reviews" ON reviews FOR ALL USING (auth.uid() = 
 CREATE POLICY "Users manage own favorites" ON favorites FOR ALL USING (auth.uid() = user_id);
 CREATE POLICY "Users manage own orders" ON orders FOR ALL USING (auth.uid() = user_id);
 
+-- Admin Write/Read for User Specific Data
+CREATE POLICY "Admin full access" ON reviews FOR ALL USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
+CREATE POLICY "Admin full access" ON favorites FOR ALL USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
+CREATE POLICY "Admin full access" ON orders FOR ALL USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
+
 -- Waitlist (Public can insert, only admins can view)
 CREATE POLICY "Public can join waitlist" ON waitlist FOR INSERT WITH CHECK (true);
 CREATE POLICY "Admins view waitlist" ON waitlist FOR SELECT USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
