@@ -135,14 +135,14 @@ function renderProducts(grid, products) {
             <p style="font-family:var(--fm);font-size:.58rem;letter-spacing:.2em;text-transform:uppercase">Image Soon</p>
           </div>
           <div class="pcard-badge">${badgeText}</div>
-          <button class="heart-btn" data-product-id="${p.id}" data-product-name="${productName}" data-price="$${productPrice.toFixed(2)}" aria-label="Toggle favorite">
+                  <button class="heart-btn" data-product-id="${p.id}" data-product-name="${productName}" data-price="$${Number(productPrice).toFixed(2)}" aria-label="Toggle favorite">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           </button>
         </div>
         <div class="pcard-info">
           <p class="pcard-cat">${productCategory}</p>
           <p class="pcard-name">${productName}</p>
-          <p class="pcard-price">${productPrice > 0 ? '$' + productPrice.toFixed(0) : 'Price TBA'}</p>
+                  <p class="pcard-price">${Number(productPrice) > 0 ? '$' + Number(productPrice).toFixed(0) : 'Price TBA'}</p>
           <div class="pcard-action" onclick="event.stopPropagation(); toggleReviews('${p.id}')">
             <span id="avg-${p.id}" style="color:rgba(244,241,235,.2)">☆☆☆☆☆</span>
             <span id="cnt-${p.id}">Be the first to review</span>

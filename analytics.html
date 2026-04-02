@@ -580,7 +580,7 @@
         <div class="auth-card">
           <h2>Admin Access Required</h2>
           <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Please sign in to access the analytics dashboard.</p>
-          <button class="sign-in-btn" id="signInBtn">Sign In with Supabase</button>
+          <button class="sign-in-btn" id="signInBtn">Go to Admin Login</button>
         </div>
       </div>
     </div>
@@ -816,12 +816,7 @@
     };
 
     signInBtn.addEventListener('click', async () => {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-      });
-      if (error) {
-        showError('Sign-in failed: ' + error.message);
-      }
+      window.location.href = 'admin.html';
     });
 
     signOutBtn.addEventListener('click', async () => {
@@ -1140,8 +1135,8 @@
         title: p.title,
         gender: p.gender || 'N/A',
         colorway: p.colorway || 'N/A',
-        msrp: p.msrp || 0,
-        currentPrice: p.current_price || 0,
+        msrp: Number(p.msrp) || 0,
+        currentPrice: Number(p.current_price) || 0,
         status: p.status,
         totalStock: (p.product_sizes || []).reduce((sum, inv) => sum + (inv.stock_quantity || 0), 0),
         colorCount: p.color_variants?.length || 0,
@@ -1233,9 +1228,9 @@
 
     // Price Analysis
     const updatePriceAnalysis = () => {
-      const withMSRP = allProducts.filter(p => p.msrp > 0);
-      const withCurrent = allProducts.filter(p => p.current_price > 0);
-      const withMember = allProducts.filter(p => p.member_price > 0);
+      const withMSRP = allProducts.filter(p => Number(p.msrp) > 0);
+      const withCurrent = allProducts.filter(p => Number(p.current_price) > 0);
+      const withMember = allProducts.filter(p => Number(p.member_price) > 0);
 
       const avgMSRP = withMSRP.length > 0
         ? withMSRP.reduce((sum, p) => sum + Number(p.msrp), 0) / withMSRP.length
@@ -1249,14 +1244,14 @@
         ? withMember.reduce((sum, p) => sum + Number(p.member_price), 0) / withMember.length
         : 0;
 
-      const productsOnSale = allProducts.filter(p => p.current_price < p.msrp).length;
+      const productsOnSale = allProducts.filter(p => Number(p.current_price) < Number(p.msrp)).length;
       const salePercentage = allProducts.length > 0
         ? ((productsOnSale / allProducts.length) * 100).toFixed(1)
         : 0;
 
-      const saleProducts = allProducts.filter(p => p.msrp > p.current_price && p.current_price > 0);
+      const saleProducts = allProducts.filter(p => Number(p.msrp) > Number(p.current_price) && Number(p.current_price) > 0);
       const avgDiscount = saleProducts.length > 0
-        ? saleProducts.reduce((sum, p) => sum + ((p.msrp - p.current_price) / p.msrp * 100), 0) / saleProducts.length
+        ? saleProducts.reduce((sum, p) => sum + ((Number(p.msrp) - Number(p.current_price)) / Number(p.msrp) * 100), 0) / saleProducts.length
         : 0;
 
       document.getElementById('avgMSRP').textContent = `$${avgMSRP.toFixed(2)}`;
@@ -1340,8 +1335,8 @@
         title: p.title,
         gender: p.gender || 'N/A',
         colorway: p.colorway || 'N/A',
-        msrp: p.msrp || 0,
-        currentPrice: p.current_price || 0,
+        msrp: Number(p.msrp) || 0,
+        currentPrice: Number(p.current_price) || 0,
         status: p.status,
         totalStock: (p.product_sizes || []).reduce((sum, inv) => sum + (inv.stock_quantity || 0), 0),
         colorCount: p.color_variants?.length || 0,

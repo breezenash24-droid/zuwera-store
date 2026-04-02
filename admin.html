@@ -1699,7 +1699,7 @@
                     <td><strong>${product.sku || 'N/A'}</strong></td>
                     <td>${product.title || 'N/A'}</td>
                     <td>${product.colorway || 'N/A'}</td>
-                    <td>$${(product.current_price || 0).toFixed(2)}</td>
+                    <td>$${(Number(product.current_price) || 0).toFixed(2)}</td>
                     <td><span class="status-badge status-${product.status.toLowerCase().replace(' ', '-')}">${product.status}</span></td>
                     <td id="stock-${product.id}">-</td>
                     <td>
