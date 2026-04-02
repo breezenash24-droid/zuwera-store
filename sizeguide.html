@@ -1283,16 +1283,22 @@
       let gender = genderSelect.value;
       let category = categorySelect.value;
 
-      // Auto-switch to Women if Sports Bras is selected
-      if (category === 'sports_bras' && (gender === 'men' || gender === '')) {
-        genderSelect.value = 'women';
-        gender = 'women';
+      // If gender is Men, and category is Sports Bras, reset category
+      if (gender === 'men' && category === 'sports_bras') {
+        categorySelect.value = '';
+        category = '';
       }
 
-      // Disable Sports Bras option for Men
+      // Disable/Hide Sports Bras option for Men
       Array.from(categorySelect.options).forEach(opt => {
         if (opt.value === 'sports_bras') {
-          opt.disabled = (gender === 'men');
+          if (gender === 'men') {
+            opt.style.display = 'none';
+            opt.disabled = true;
+          } else {
+            opt.style.display = '';
+            opt.disabled = false;
+          }
         }
       });
 
@@ -1415,53 +1421,82 @@
     }
 
     function findMenSize(chest, waist) {
-      for (let row of sizeChartData.men_tops) {
-        const [chestMin, chestMax] = row.chest_in.split('-').map(parseFloat);
-        const [waistMin, waistMax] = row.waist_in.split('-').map(parseFloat);
-
-        if (chest >= chestMin && chest <= chestMax && waist >= waistMin && waist <= waistMax) {
-          return row.size_label;
-        }
+      let chestIdx = -1, waistIdx = -1;
+      let cChest = Infinity, cWaist = Infinity;
+      
+      sizeChartData.men_tops.forEach((row, idx) => {
+        const chestVals = row.chest_in.split('-').map(parseFloat);
+        const waistVals = row.waist_in.split('-').map(parseFloat);
+        
+        if (chest >= chestVals[0] && chest <= (chestVals[1] || chestVals[0])) chestIdx = idx;
+        if (waist >= waistVals[0] && waist <= (waistVals[1] || waistVals[0])) waistIdx = idx;
+        
+        const cC = (chestVals[0] + (chestVals[1] || chestVals[0])) / 2;
+        const wC = (waistVals[0] + (waistVals[1] || waistVals[0])) / 2;
+        
+        if (Math.abs(chest - cC) < cChest) { cChest = Math.abs(chest - cC); if (chestIdx === -1) chestIdx = idx; }
+        if (Math.abs(waist - wC) < cWaist) { cWaist = Math.abs(waist - wC); if (waistIdx === -1) waistIdx = idx; }
+      });
+      
+      const recommendedIdx = Math.max(chestIdx, waistIdx);
+      if (recommendedIdx >= 0 && recommendedIdx < sizeChartData.men_tops.length) {
+        return sizeChartData.men_tops[recommendedIdx].size_label;
       }
       return null;
     }
 
     function findWomenSize(bust, waist, hips) {
-      for (let row of sizeChartData.women_tops) {
-        const [bustMin, bustMax] = row.bust_in.split('-').map(parseFloat);
-        const [waistMin, waistMax] = row.waist_in.split('-').map(parseFloat);
-        const [hipsMin, hipsMax] = row.hips_in.split('-').map(parseFloat);
-
-        if (bust >= bustMin && bust <= bustMax && waist >= waistMin && waist <= waistMax && hips >= hipsMin && hips <= hipsMax) {
-          return row.size_label;
-        }
+      let bustIdx = -1, waistIdx = -1, hipsIdx = -1;
+      let cBust = Infinity, cWaist = Infinity, cHips = Infinity;
+      
+      sizeChartData.women_tops.forEach((row, idx) => {
+        const bustVals = row.bust_in.split('-').map(parseFloat);
+        const waistVals = row.waist_in.split('-').map(parseFloat);
+        const hipsVals = row.hips_in.split('-').map(parseFloat);
+        
+        if (bust >= bustVals[0] && bust <= (bustVals[1] || bustVals[0])) bustIdx = idx;
+        if (waist >= waistVals[0] && waist <= (waistVals[1] || waistVals[0])) waistIdx = idx;
+        if (hips >= hipsVals[0] && hips <= (hipsVals[1] || hipsVals[0])) hipsIdx = idx;
+        
+        const bC = (bustVals[0] + (bustVals[1] || bustVals[0])) / 2;
+        const wC = (waistVals[0] + (waistVals[1] || waistVals[0])) / 2;
+        const hC = (hipsVals[0] + (hipsVals[1] || hipsVals[0])) / 2;
+        
+        if (Math.abs(bust - bC) < cBust) { cBust = Math.abs(bust - bC); if (bustIdx === -1) bustIdx = idx; }
+        if (Math.abs(waist - wC) < cWaist) { cWaist = Math.abs(waist - wC); if (waistIdx === -1) waistIdx = idx; }
+        if (Math.abs(hips - hC) < cHips) { cHips = Math.abs(hips - hC); if (hipsIdx === -1) hipsIdx = idx; }
+      });
+      
+      const recommendedIdx = Math.max(bustIdx, waistIdx, hipsIdx);
+      if (recommendedIdx >= 0 && recommendedIdx < sizeChartData.women_tops.length) {
+        return sizeChartData.women_tops[recommendedIdx].size_label;
       }
       return null;
     }
 
     function findClosestKidsSize(age, height) {
-      let closest = null;
-      let closestDiff = Infinity;
-
-      for (let row of sizeChartData.kids) {
-        const [ageMin, ageMax] = row.numeric_size.split('-').map(parseFloat);
-        const [heightMin, heightMax] = row.height_in.split('-').map(parseFloat);
-
-        if (age >= ageMin && age <= ageMax && height >= heightMin && height <= heightMax) {
-          return row.size_label;
-        }
-
-        // Find closest if exact match not found
-        const ageCenter = (ageMin + ageMax) / 2;
-        const heightCenter = (heightMin + heightMax) / 2;
-        const diff = Math.abs(age - ageCenter) + Math.abs(height - heightCenter);
-        if (diff < closestDiff) {
-          closestDiff = diff;
-          closest = row.size_label;
-        }
+      let ageIdx = -1, heightIdx = -1;
+      let cAge = Infinity, cHeight = Infinity;
+      
+      sizeChartData.kids.forEach((row, idx) => {
+        const ageVals = row.numeric_size.split('-').map(parseFloat);
+        const heightVals = row.height_in.split('-').map(parseFloat);
+        
+        if (age >= ageVals[0] && age <= (ageVals[1] || ageVals[0])) ageIdx = idx;
+        if (height >= heightVals[0] && height <= (heightVals[1] || heightVals[0])) heightIdx = idx;
+        
+        const aC = (ageVals[0] + (ageVals[1] || ageVals[0])) / 2;
+        const hC = (heightVals[0] + (heightVals[1] || heightVals[0])) / 2;
+        
+        if (Math.abs(age - aC) < cAge) { cAge = Math.abs(age - aC); if (ageIdx === -1) ageIdx = idx; }
+        if (Math.abs(height - hC) < cHeight) { cHeight = Math.abs(height - hC); if (heightIdx === -1) heightIdx = idx; }
+      });
+      
+      const recommendedIdx = Math.max(ageIdx, heightIdx);
+      if (recommendedIdx >= 0 && recommendedIdx < sizeChartData.kids.length) {
+        return sizeChartData.kids[recommendedIdx].size_label;
       }
-
-      return closest;
+      return null;
     }
 
     function findSportsBraSize(band, cup) {
@@ -1478,13 +1513,18 @@
     }
 
     function findHatSize(headCirc) {
+      let closest = null;
+      let minDiff = Infinity;
       for (let row of sizeChartData.hats) {
-        const [min, max] = row.head_circ_in.split('-').map(parseFloat);
-        if (headCirc >= min && headCirc <= max) {
-          return row.size_label;
+        const vals = row.head_circ_in.split('-').map(parseFloat);
+        if (headCirc >= vals[0] && headCirc <= (vals[1] || vals[0])) return row.size_label;
+        const center = (vals[0] + (vals[1] || vals[0])) / 2;
+        if (Math.abs(headCirc - center) < minDiff) {
+            minDiff = Math.abs(headCirc - center);
+            closest = row.size_label;
         }
       }
-      return null;
+      return closest;
     }
 
     function getTabIdFromGender(gender) {

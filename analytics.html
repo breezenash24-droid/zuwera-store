@@ -595,7 +595,32 @@
       <!-- Error Message -->
       <div id="errorContainer"></div>
 
-      <!-- Overview Cards -->
+      <h2 style="margin-bottom: 1.5rem;">Sales Overview</h2>
+      <div class="overview-grid" id="salesOverviewGrid">
+        <div class="card">
+          <div class="card-label">Total Revenue</div>
+          <div class="card-value" id="totalRevenue">$0.00</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Total Orders</div>
+          <div class="card-value" id="totalOrders">0</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Avg Order Value</div>
+          <div class="card-value" id="avgOrderValue">$0.00</div>
+        </div>
+      </div>
+
+      <!-- Recent Orders -->
+      <div class="table-section">
+        <h2>Recent Orders</h2>
+        <div id="ordersTableContainer" class="loading">
+          <div class="spinner"></div>
+          <span>Loading orders...</span>
+        </div>
+      </div>
+
+      <h2 style="margin-top: 2.5rem; margin-bottom: 1.5rem;">Inventory & Catalog</h2>
       <div class="overview-grid">
         <div class="card">
           <div class="card-label">Total Products</div>
@@ -768,6 +793,7 @@
     // State
     let currentUser = null;
     let allProducts = [];
+    let allOrders = [];
     let catalogSortConfig = { key: 'title', direction: 'asc' };
     let inventorySortConfig = { key: 'stock', direction: 'asc' };
     let currentInventoryFilter = 'all';
@@ -848,7 +874,11 @@
     };
 
     signInBtn.addEventListener('click', async () => {
-      window.location.href = 'admin.html';
+      if (window.location.search.includes('embed=true')) {
+        window.top.location.href = 'admin.html';
+      } else {
+        window.location.href = 'admin.html';
+      }
     });
 
     signOutBtn.addEventListener('click', async () => {
@@ -866,6 +896,7 @@
         await Promise.all([
           loadInventory(),
           loadReviews(),
+          loadOrders()
         ]);
 
         updateOverviewCards();
@@ -873,6 +904,8 @@
         updateGenderChart();
         updatePriceAnalysis();
         await updateReviewsSummary();
+        updateOrderAnalytics();
+        renderOrdersTable();
       } catch (error) {
         showError('Failed to load dashboard data: ' + error.message);
       }
@@ -905,6 +938,16 @@
 
     const loadReviews = async () => {
       // Reviews are loaded as needed for summary
+    };
+
+    const loadOrders = async () => {
+      try {
+        const { data, error } = await supabase.from('orders').select('*');
+        if (error) throw error;
+        allOrders = data || [];
+      } catch (err) {
+        console.warn("Could not load orders:", err);
+      }
     };
 
     // Overview Cards
@@ -948,6 +991,63 @@
         totalColors += p.color_variants?.length || 0;
       });
       document.getElementById('colorVariants').textContent = totalColors;
+    };
+
+    const updateOrderAnalytics = () => {
+      const totalOrders = allOrders.length;
+      const totalRevenue = allOrders.reduce((sum, order) => {
+        const amount = Number(order.total) || Number(order.total_amount) || 0;
+        return sum + amount;
+      }, 0);
+
+      const aov = totalOrders > 0 ? (totalRevenue / totalOrders) : 0;
+
+      document.getElementById('totalOrders').textContent = totalOrders;
+      document.getElementById('totalRevenue').textContent = `$${totalRevenue.toFixed(2)}`;
+      document.getElementById('avgOrderValue').textContent = `$${aov.toFixed(2)}`;
+    };
+
+    const renderOrdersTable = () => {
+      const container = document.getElementById('ordersTableContainer');
+      if (allOrders.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No orders yet. Once customers start buying, their orders will appear here.</p>';
+        return;
+      }
+
+      let html = `
+        <table>
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Date</th>
+              <th>Customer</th>
+              <th>Total</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      const sortedOrders = [...allOrders].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 10);
+
+      sortedOrders.forEach(order => {
+        const amount = Number(order.total) || Number(order.total_amount) || 0;
+        const email = order.email || 'Guest User';
+        const date = new Date(order.created_at).toLocaleDateString();
+        const shortId = (order.id || '').substring(0, 8).toUpperCase();
+        
+        html += `
+          <tr>
+            <td style="font-family: monospace;">#${shortId}</td>
+            <td>${date}</td>
+            <td>${email}</td>
+            <td>$${amount.toFixed(2)}</td>
+            <td><span class="status-badge badge-live">${order.status || 'Confirmed'}</span></td>
+          </tr>
+        `;
+      });
+      html += `</tbody></table>`;
+      container.innerHTML = html;
     };
 
     // Status Chart
@@ -1423,7 +1523,9 @@
 
     // Listen for auth changes
     supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        checkAuth();
+      } else if (event === 'SIGNED_OUT') {
         currentUser = null;
         showAuthContainer();
       }

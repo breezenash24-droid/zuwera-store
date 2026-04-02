@@ -1710,6 +1710,13 @@
                 loadProducts();
             } else if (page === 'sizecharts') {
                 loadSizeCharts();
+            } else if (page === 'analytics') {
+                // Force the iframe to reload once to ensure it captures the active login session
+                const iframe = document.querySelector('#analytics iframe');
+                if (iframe && !iframe.dataset.loaded) {
+                    iframe.src = iframe.src;
+                    iframe.dataset.loaded = 'true';
+                }
             }
         }
 
