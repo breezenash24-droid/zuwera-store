@@ -103,10 +103,12 @@ function renderProducts(grid, products) {
     const productCategory = p.subtitle || p.category || 'Jackets'; 
     const productPrice = p.current_price || p.price || 0;
     const badgeText = p.status?.toLowerCase().includes('soon') ? 'Coming Soon' : (p.status === 'live' ? 'Available' : 'Coming Soon');
+    let firstImg = p.image_url;
     if (p.product_images && p.product_images.length > 0) {
       p.product_images.sort((a, b) => a.sort_order - b.sort_order);
+      if (p.product_images[0].image_url) firstImg = p.product_images[0].image_url;
     }
-    const firstImg = p.image_url || (p.product_images && p.product_images.length > 0 ? p.product_images[0].image_url : null);
+
 
     return `
       <div class="pcard" data-product-slug="${(p.slug || productName.toLowerCase().replace(/[^a-z0-9]/g,'-')).slice(0,50)}" onclick="window.location.href='product.html?slug=${encodeURIComponent(productName.toLowerCase().replace(/[^a-z0-9]/g,'-'))}' style="cursor:pointer">
