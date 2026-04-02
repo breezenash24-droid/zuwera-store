@@ -455,6 +455,46 @@
       margin-bottom: 0;
     }
 
+    /* ────── FABRIC TECH ────── */
+    .tech-card {
+      background: rgba(244, 241, 235, 0.02);
+      border: 1px solid var(--border);
+      padding: 1.5rem;
+      border-radius: 2px;
+    }
+    .tech-card h3 {
+      font-family: 'Bebas Neue', sans-serif;
+      color: var(--accent);
+      font-size: 1.4rem;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.2rem;
+    }
+    .tech-level {
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+      display: block;
+    }
+    .tech-detail {
+      font-size: 0.85rem;
+      line-height: 1.6;
+      margin-bottom: 0.5rem;
+    }
+    .tech-detail strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+    .tech-desc {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
     /* ────── LOADING ────── */
     .loading {
       display: inline-block;
@@ -713,6 +753,7 @@
       <button class="tab-btn" data-tab="kids">Kids</button>
       <button class="tab-btn" data-tab="sports_bras">Sports Bras</button>
       <button class="tab-btn" data-tab="hats">Hats</button>
+      <button class="tab-btn" data-tab="technologies">Fabric Tech</button>
     </div>
 
     <!-- MEN'S APPAREL -->
@@ -816,6 +857,16 @@
             </thead>
             <tbody></tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- FABRIC TECHNOLOGIES -->
+    <div class="tab-panel" id="tab-technologies">
+      <div class="table-section">
+        <h2>Fabric Technologies</h2>
+        <div id="techGuideContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+          <div class="loading">Loading technologies...</div>
         </div>
       </div>
     </div>
@@ -944,6 +995,19 @@
     let sizeChartData = { ...fallbackData };
     let recommendedSize = null;
     let currentTab = 'mens';
+    
+    // Default fallback technologies just in case Supabase errors out
+    const fallbackTechDict = {
+      "Aero-PRO™": { focus: "Sweat evaporation and breathability.", level: "Standard Performance.", opt: "Light to moderate sweat output.", best: "Daily physical activity, gym sessions, and steady-state training.", desc: "High-wicking capillary fibers designed to pull moisture away from the skin for consistent dryness and comfort." },
+      "Aero-ULTRA™": { focus: "Sweat evaporation and breathability.", level: "Pinnacle Performance.", opt: "Heavy to extreme sweat output.", best: "High-intensity racing, elite competition, and maximum exertion.", desc: "A near-zero moisture retention weave with accelerated evaporation tech to keep the garment featherweight during peak output." },
+      "Hydro-PRO™": { focus: "Rain, mist, and liquid deflection.", level: "Variable Protection.", opt: "Light rain, mist, and road spray.", best: "Unpredictable weather, morning runs, and outdoor commuting.", desc: "A durable water-repellent (DWR) shield that causes liquid to bead off the surface while maintaining fabric softness." },
+      "Hydro-ULTRA™": { focus: "Rain, mist, and liquid deflection.", level: "Absolute Protection.", opt: "Heavy downpours and high-velocity exposure.", best: "Storm conditions, extreme trail hiking, and all-day outdoor exposure.", desc: "100% waterproof, seam-sealed membrane technology that blocks external water while allowing internal vapor to escape." },
+      "Thermo-PRO™": { focus: "Heat retention and cold-weather insulation.", level: "Active Insulation.", opt: "Cool to cold temperatures (40°F – 60°F).", best: "Layering, outdoor winter training, and warm-ups.", desc: "Breathable thermal micro-fibers that trap body heat during movement without causing overheating." },
+      "Thermo-ULTRA™": { focus: "Heat retention and cold-weather insulation.", level: "Extreme Insulation.", opt: "Sub-zero and freezing temperatures (Below 32°F).", best: "Static warmth, winter expeditions, and extreme cold-weather protection.", desc: "High-density heat-lock technology designed to maintain core temperature in the harshest environments." },
+      "Storm-PRO™": { focus: "Wind-blocking and heavy elemental resistance.", level: "Wind Resistance.", opt: "Moderate wind and transitional weather.", best: "Cycling, running in gusty conditions, and everyday outerwear.", desc: "High-density weave engineered to deflect wind chill while remaining flexible and quiet." },
+      "Storm-ULTRA™": { focus: "Wind-blocking and heavy elemental resistance.", level: "Total Element Block.", opt: "Gale-force winds and brutal mountain conditions.", best: "Summiting, heavy winter storms, and high-altitude performance.", desc: "An impenetrable technical barrier that creates a zero-permeability micro-climate for the athlete." }
+    };
+    let siteTechs = null;
 
     // ────── COOKIE CONSENT ──────
     function initCookieConsent() {
@@ -989,6 +1053,39 @@
       }
 
       renderAllTables();
+    }
+    
+    async function fetchSiteSettings() {
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?key=eq.technologies`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.length > 0 && data[0].value) {
+            siteTechs = typeof data[0].value === 'string' ? JSON.parse(data[0].value) : data[0].value;
+          }
+        }
+      } catch (error) { console.log('Failed to fetch site settings', error); }
+      
+      const container = document.getElementById('techGuideContainer');
+      if (!container) return;
+      container.innerHTML = '';
+      const techData = (siteTechs && Object.keys(siteTechs).length > 0) ? siteTechs : fallbackTechDict;
+      Object.keys(techData).forEach(key => {
+        const info = techData[key];
+        const card = document.createElement('div');
+        card.className = 'tech-card';
+        card.innerHTML = `
+          <h3>${key}</h3>
+          <span class="tech-level">${info.level || 'Performance Tech'}</span>
+          <div class="tech-detail"><strong>Focus:</strong> ${info.focus || 'N/A'}</div>
+          <div class="tech-detail"><strong>Optimization:</strong> ${info.opt || 'N/A'}</div>
+          <div class="tech-detail"><strong>Best For:</strong> ${info.best || 'N/A'}</div>
+          <div class="tech-desc">${info.desc || ''}</div>
+        `;
+        container.appendChild(card);
+      });
     }
 
     function processSizeChartData(data) {
@@ -1383,6 +1480,7 @@
     function init() {
       initCookieConsent();
       fetchSizeCharts();
+      fetchSiteSettings();
       setupCalculator();
       setupTabs();
     }

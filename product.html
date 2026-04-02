@@ -809,7 +809,7 @@ function renderAccordions() {
       "Storm-ULTRA™": { focus: "Wind-blocking and heavy elemental resistance.", level: "Total Element Block.", opt: "Gale-force winds and brutal mountain conditions.", best: "Summiting, heavy winter storms, and high-altitude performance.", desc: "An impenetrable technical barrier that creates a zero-permeability micro-climate for the athlete." }
     };
 
-    const finalTechDict = window.zwTechnologies || techDict;
+    const finalTechDict = (window.zwTechnologies && Object.keys(window.zwTechnologies).length > 0) ? window.zwTechnologies : techDict;
     let techHTML = `<strong>Fabric Technology:</strong><br>${currentProduct.fabric_technology}`;
 
     const matchedTechs = Object.keys(finalTechDict).filter(t => currentProduct.fabric_technology.includes(t));

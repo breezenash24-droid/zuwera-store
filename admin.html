@@ -831,6 +831,7 @@
                     <div class="nav-section-title">Main</div>
                     <a class="nav-link active" data-page="dashboard" onclick="navigateTo('dashboard')">Dashboard</a>
                     <a class="nav-link" data-page="products" onclick="navigateTo('products')">Products</a>
+                    <a class="nav-link" data-page="sizecharts" onclick="navigateTo('sizecharts')">Size Charts</a>
                     <a class="nav-link" data-page="analytics" onclick="navigateTo('analytics')">Analytics</a>
                     <a class="nav-link" data-page="settings" onclick="navigateTo('settings')">Settings</a>
                     <a class="nav-item" data-page="website" onclick="navigateTo('website')">Website</a>
@@ -900,6 +901,28 @@
                     </table>
                 </div>
 
+                <!-- Size Charts Page -->
+                <div id="sizecharts" class="page">
+                    <div class="products-header">
+                        <h2>Size Charts</h2>
+                        <button class="btn btn-primary" id="addSizeChartBtn">+ Add Size</button>
+                    </div>
+                    <div class="search-filter">
+                        <select id="sizeChartCategoryFilter" class="form-select" style="width: 250px;">
+                            <option value="men_tops">Men's Tops</option>
+                            <option value="women_tops">Women's Tops</option>
+                            <option value="kids">Kids</option>
+                            <option value="sports_bras">Sports Bras</option>
+                            <option value="hats">Hats</option>
+                        </select>
+                    </div>
+                    <table class="products-table">
+                        <thead><tr id="sizeChartTableHeader"></tr></thead>
+                        <tbody id="sizeChartTableBody">
+                        </tbody>
+                    </table>
+                </div>
+
                 <!-- Analytics Page -->
                 <div id="analytics" class="page">
                     <h2>Analytics</h2>
@@ -949,6 +972,16 @@
                             </div>
                         </div>
                         <button type="button" class="btn btn-primary btn-sm" id="saveShippingBtn">Save Shipping Policy</button>
+                    </div>
+                    
+                    <!-- Fabric Technologies -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                            <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.08em;">Fabric Technologies</div>
+                            <button type="button" class="btn btn-secondary btn-sm" id="addTechBtn">+ Add Tech</button>
+                        </div>
+                        <div id="techListContainer" style="display:flex;flex-direction:column;gap:16px;margin-bottom:16px;"></div>
+                        <button type="button" class="btn btn-primary btn-sm" id="saveTechBtn">Save Technologies</button>
                     </div>
                 </div>
             </div>
@@ -1167,9 +1200,12 @@
                 <!-- Tab: Technical -->
                 <div id="technical" class="tab-content">
                     <div class="form-grid">
-                        <div class="form-group">
+                        <div class="form-group" style="grid-column: 1 / -1;">
                             <label class="form-label">Fabric Technology</label>
-                            <input type="text" id="fabricTechnology" class="form-input" placeholder="e.g., Dri-FIT">
+                            <div class="checkbox-group" id="fabricTechCheckboxes" style="margin-bottom: 12px;">
+                                <!-- Populated dynamically -->
+                            </div>
+                            <input type="text" id="fabricTechnology" class="form-input" placeholder="Other technologies (comma separated)">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Fabric Weight (GSM)</label>
@@ -1265,6 +1301,34 @@
         </div>
     </div>
 
+    <!-- Size Chart Form Modal -->
+    <div id="sizeChartFormModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header" id="sizeChartFormTitle">Add Size Chart Entry</div>
+            <form id="sizeChartForm">
+                <div class="form-group">
+                    <label class="form-label">Category <span class="required">*</span></label>
+                    <select id="scCategory" class="form-select" required>
+                        <option value="men_tops">Men's Tops</option>
+                        <option value="women_tops">Women's Tops</option>
+                        <option value="kids">Kids</option>
+                        <option value="sports_bras">Sports Bras</option>
+                        <option value="hats">Hats</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Size Label <span class="required">*</span></label>
+                    <input type="text" id="scSizeLabel" class="form-input" placeholder="e.g., M, L, XL" required>
+                </div>
+                <div class="form-grid" id="scDynamicFields"></div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="closeSizeChartFormBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Delete Confirmation Modal -->
     <div id="deleteModal" class="modal">
         <div class="modal-content" style="max-width: 400px;">
@@ -1329,6 +1393,20 @@
         let currentProduct = null;
         let deleteProductId = null;
         let isDarkMode = true;
+        let sizeChartsData = [];
+        let currentSizeChart = null;
+        
+        const fallbackTechDict = {
+            "Aero-PRO™": { focus: "Sweat evaporation and breathability.", level: "Standard Performance.", opt: "Light to moderate sweat output.", best: "Daily physical activity, gym sessions, and steady-state training.", desc: "High-wicking capillary fibers designed to pull moisture away from the skin for consistent dryness and comfort." },
+            "Aero-ULTRA™": { focus: "Sweat evaporation and breathability.", level: "Pinnacle Performance.", opt: "Heavy to extreme sweat output.", best: "High-intensity racing, elite competition, and maximum exertion.", desc: "A near-zero moisture retention weave with accelerated evaporation tech to keep the garment featherweight during peak output." },
+            "Hydro-PRO™": { focus: "Rain, mist, and liquid deflection.", level: "Variable Protection.", opt: "Light rain, mist, and road spray.", best: "Unpredictable weather, morning runs, and outdoor commuting.", desc: "A durable water-repellent (DWR) shield that causes liquid to bead off the surface while maintaining fabric softness." },
+            "Hydro-ULTRA™": { focus: "Rain, mist, and liquid deflection.", level: "Absolute Protection.", opt: "Heavy downpours and high-velocity exposure.", best: "Storm conditions, extreme trail hiking, and all-day outdoor exposure.", desc: "100% waterproof, seam-sealed membrane technology that blocks external water while allowing internal vapor to escape." },
+            "Thermo-PRO™": { focus: "Heat retention and cold-weather insulation.", level: "Active Insulation.", opt: "Cool to cold temperatures (40°F – 60°F).", best: "Layering, outdoor winter training, and warm-ups.", desc: "Breathable thermal micro-fibers that trap body heat during movement without causing overheating." },
+            "Thermo-ULTRA™": { focus: "Heat retention and cold-weather insulation.", level: "Extreme Insulation.", opt: "Sub-zero and freezing temperatures (Below 32°F).", best: "Static warmth, winter expeditions, and extreme cold-weather protection.", desc: "High-density heat-lock technology designed to maintain core temperature in the harshest environments." },
+            "Storm-PRO™": { focus: "Wind-blocking and heavy elemental resistance.", level: "Wind Resistance.", opt: "Moderate wind and transitional weather.", best: "Cycling, running in gusty conditions, and everyday outerwear.", desc: "High-density weave engineered to deflect wind chill while remaining flexible and quiet." },
+            "Storm-ULTRA™": { focus: "Wind-blocking and heavy elemental resistance.", level: "Total Element Block.", opt: "Gale-force winds and brutal mountain conditions.", best: "Summiting, heavy winter storms, and high-altitude performance.", desc: "An impenetrable technical barrier that creates a zero-permeability micro-climate for the athlete." }
+        };
+        let globalTechs = {};
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -1400,9 +1478,20 @@
             document.getElementById('adminPanel').style.display = 'none';
         }
 
-        function showAdminPanel() {
+        async function fetchGlobalTechs() {
+            try {
+                const { data } = await sb.from('site_settings').select('*').eq('key', 'technologies').single();
+                if (data && data.value) {
+                    globalTechs = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+                }
+            } catch (e) { }
+            if (!globalTechs || Object.keys(globalTechs).length === 0) globalTechs = fallbackTechDict;
+        }
+
+        async function showAdminPanel() {
             document.getElementById('authGate').style.display = 'none';
             document.getElementById('adminPanel').style.display = 'flex';
+            await fetchGlobalTechs();
             loadDashboard();
         }
 
@@ -1453,7 +1542,7 @@
         function setupEventListeners() {
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.addEventListener('click', (e) => {
-                    e.preventDefault();h
+                    e.preventDefault();
                     const page = link.dataset.page;
                     navigateTo(page);
                 });
@@ -1471,16 +1560,20 @@
             const titles = {
                 dashboard: 'Dashboard',
                 products: 'Product Inventory',
+                sizecharts: 'Size Charts',
                 analytics: 'Analytics',
-                settings: 'Settings'
+                settings: 'Settings',
+                website: 'Website Settings'
             };
 
-            document.getElementById('pageTitle').textContent = titles[page];
+            document.getElementById('pageTitle').textContent = titles[page] || 'Dashboard';
 
             if (page === 'dashboard') {
                 loadDashboard();
             } else if (page === 'products') {
                 loadProducts();
+            } else if (page === 'sizecharts') {
+                loadSizeCharts();
             }
         }
 
@@ -1580,10 +1673,26 @@
             displayProductsTable(filtered);
         });
 
+        function populateTechCheckboxes() {
+            const container = document.getElementById('fabricTechCheckboxes');
+            container.innerHTML = '';
+            Object.keys(globalTechs).forEach(techName => {
+                const id = 'tech_' + techName.replace(/[^a-zA-Z0-9]/g, '');
+                const item = document.createElement('div');
+                item.className = 'checkbox-item';
+                item.innerHTML = `
+                    <input type="checkbox" id="${id}" value="${techName}" class="tech-checkbox">
+                    <label for="${id}">${techName}</label>
+                `;
+                container.appendChild(item);
+            });
+        }
+
         // Add Product
         document.getElementById('addProductBtn').addEventListener('click', () => {
             currentProduct = null;
             resetProductForm();
+            populateTechCheckboxes();
             document.getElementById('formModalTitle').textContent = 'Add Product';
             openProductForm();
         });
@@ -1595,6 +1704,7 @@
             if (!product) return;
 
             currentProduct = product;
+            populateTechCheckboxes();
             loadProductIntoForm(product);
             document.getElementById('formModalTitle').textContent = 'Edit Product';
             openProductForm();
@@ -1840,6 +1950,10 @@
                 showToast('Please fill all mandatory fields', 'error');
                 return;
             }
+            
+            const selectedTechs = Array.from(document.querySelectorAll('.tech-checkbox:checked')).map(cb => cb.value);
+            const otherTechsInput = document.getElementById('fabricTechnology').value.split(',').map(s => s.trim()).filter(s => s);
+            const allTechs = [...new Set([...selectedTechs, ...otherTechsInput])].join(', ');
 
             try {
                 const productData = {
@@ -1855,7 +1969,7 @@
                     model_height: document.getElementById('modelHeight').value,
                     model_size_worn: document.getElementById('modelSizeWorn').value,
                     fit_type: document.getElementById('fitType').value,
-                    fabric_technology: document.getElementById('fabricTechnology').value,
+                    fabric_technology: allTechs,
                     fabric_weight_gsm: document.getElementById('fabricWeightGsm').value ? parseFloat(document.getElementById('fabricWeightGsm').value) : null,
                     upf_rating: document.getElementById('upfRating').value ? parseInt(document.getElementById('upfRating').value) : null,
                     breathability_mvtr: document.getElementById('breathabilityMvtr').value ? parseFloat(document.getElementById('breathabilityMvtr').value) : null,
@@ -1967,7 +2081,17 @@
             document.getElementById('modelHeight').value = product.model_height || '';
             document.getElementById('modelSizeWorn').value = product.model_size_worn || '';
             document.getElementById('fitType').value = product.fit_type || '';
-            document.getElementById('fabricTechnology').value = product.fabric_technology || '';
+            
+            const productTechs = (product.fabric_technology || '').split(',').map(s => s.trim()).filter(s => s);
+            let otherTechs = [];
+            document.querySelectorAll('.tech-checkbox').forEach(cb => {
+                if (productTechs.includes(cb.value)) cb.checked = true;
+            });
+            productTechs.forEach(t => {
+                if (!Object.keys(globalTechs).includes(t)) otherTechs.push(t);
+            });
+            document.getElementById('fabricTechnology').value = otherTechs.join(', ');
+            
             document.getElementById('fabricWeightGsm').value = product.fabric_weight_gsm || '';
             document.getElementById('upfRating').value = product.upf_rating || '';
             document.getElementById('breathabilityMvtr').value = product.breathability_mvtr || '';
@@ -2065,6 +2189,7 @@
             document.getElementById('imagesContainer').innerHTML = '<div class="image-row"><span style="font-weight:600;min-width:60px;">Image 1</span><input type="text" class="form-input product-image-url" placeholder="Paste image URL..."><label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label><img class="image-preview" style="display:none"><button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button></div>';
             document.getElementById('colorVariantsContainer').innerHTML = '';
             document.getElementById('sizeGridContainer').innerHTML = '';
+            document.querySelectorAll('.tech-checkbox').forEach(cb => cb.checked = false);
             document.querySelectorAll('.form-input.error, .form-select.error').forEach(el => el.classList.remove('error'));
             document.querySelector('.tab-button.active')?.classList.remove('active');
             document.querySelector('.tab-button')?.classList.add('active');
@@ -2106,6 +2231,7 @@
     // ══════════════════════════════════════════════════════════════════
     async function loadSettings() {
         const { data } = await sb.from('site_settings').select('*');
+        let hasTechs = false;
         if (!data) return;
         data.forEach(row => {
             if (row.key === 'announcement_bar') {
@@ -2118,8 +2244,17 @@
                 if (v.delivery_days) document.getElementById('settDeliveryDays').value = v.delivery_days;
                 if (v.return_days_member !== undefined) document.getElementById('settReturnMember').value = v.return_days_member;
                 if (v.return_days_nonmember !== undefined) document.getElementById('settReturnNonmember').value = v.return_days_nonmember;
+            } else if (row.key === 'technologies') {
+                const v = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+                window._loadedTechs = v || {};
+                if (Object.keys(window._loadedTechs).length > 0) hasTechs = true;
+                renderTechList();
             }
         });
+        if (!hasTechs) {
+            window._loadedTechs = fallbackTechDict;
+            renderTechList();
+        }
     }
 
     document.getElementById('saveAnnouncementBtn').addEventListener('click', async () => {
@@ -2146,6 +2281,58 @@
         );
         if (error) { showToast('Error saving shipping policy', 'error'); console.error(error); }
         else showToast('Shipping policy saved!', 'success');
+    });
+
+    function renderTechList() {
+        const container = document.getElementById('techListContainer');
+        container.innerHTML = '';
+        const techs = window._loadedTechs || {};
+        for (const [name, info] of Object.entries(techs)) {
+            addTechDOM(name, info);
+        }
+    }
+
+    function addTechDOM(name = '', info = {level:'', focus:'', opt:'', best:'', desc:''}) {
+        const container = document.getElementById('techListContainer');
+        const el = document.createElement('div');
+        el.className = 'tech-item-admin';
+        el.style.cssText = 'background:var(--bg-primary);border:1px solid var(--border);padding:16px;border-radius:6px;position:relative;';
+        el.innerHTML = `
+            <button type="button" class="btn btn-danger btn-sm" style="position:absolute;top:16px;right:16px;" onclick="this.parentElement.remove()">Remove</button>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;padding-right:70px;">
+                <div><label style="font-size:0.75rem;color:var(--text-secondary)">Name (e.g. Aero-PRO™)</label><input type="text" class="form-input t-name" value="${name}"></div>
+                <div><label style="font-size:0.75rem;color:var(--text-secondary)">Level</label><input type="text" class="form-input t-level" value="${info.level || ''}"></div>
+                <div><label style="font-size:0.75rem;color:var(--text-secondary)">Focus</label><input type="text" class="form-input t-focus" value="${info.focus || ''}"></div>
+                <div><label style="font-size:0.75rem;color:var(--text-secondary)">Optimization</label><input type="text" class="form-input t-opt" value="${info.opt || ''}"></div>
+                <div style="grid-column:1/-1;"><label style="font-size:0.75rem;color:var(--text-secondary)">Best For</label><input type="text" class="form-input t-best" value="${info.best || ''}"></div>
+                <div style="grid-column:1/-1;"><label style="font-size:0.75rem;color:var(--text-secondary)">Description</label><textarea class="form-textarea t-desc" rows="2">${info.desc || ''}</textarea></div>
+            </div>
+        `;
+        container.appendChild(el);
+    }
+
+    document.getElementById('addTechBtn').addEventListener('click', () => addTechDOM());
+
+    document.getElementById('saveTechBtn').addEventListener('click', async () => {
+        const techs = {};
+        document.querySelectorAll('.tech-item-admin').forEach(el => {
+            const name = el.querySelector('.t-name').value.trim();
+            if (name) {
+                techs[name] = {
+                    level: el.querySelector('.t-level').value.trim(),
+                    focus: el.querySelector('.t-focus').value.trim(),
+                    opt: el.querySelector('.t-opt').value.trim(),
+                    best: el.querySelector('.t-best').value.trim(),
+                    desc: el.querySelector('.t-desc').value.trim()
+                };
+            }
+        });
+        const { error } = await sb.from('site_settings').upsert(
+            { key: 'technologies', value: techs, updated_at: new Date().toISOString() },
+            { onConflict: 'key' }
+        );
+        if (error) { showToast('Error saving technologies', 'error'); console.error(error); }
+        else showToast('Technologies saved!', 'success');
     });
 
     // Load settings when Settings page is shown
@@ -2200,9 +2387,6 @@
             }
         }
 
-        // Load hero settings when navigating to website page
-        const origNavigateTo = window.navigateTo || navigateTo;
-        const _origNav = navigateTo;
 </script>
 </body>
 </html>
