@@ -53,6 +53,7 @@ async function loadReviews(pid) {
   const { data, error } = await _sb
     .from('reviews')
     .select('id, rating, body, reviewer_name, created_at')
+    .select('id, rating, body, reviewer_name, created_at, admin_response')
     .eq('product_id', pid)
     .order('created_at', { ascending: false });
 
@@ -84,16 +85,25 @@ function renderReviewsList(domId, reviews) {
     listEl.innerHTML = '<p class="reviews-empty">No reviews yet — be the first!</p>';
     return;
   }
-  listEl.innerHTML = reviews.map(r => `
-    <div class="review-item">
-      <div class="review-item-header">
-        <span class="review-item-stars">${starsHtml(r.rating)}</span>
-        <span class="review-item-meta">${formatDate(r.created_at)}</span>
+  listEl.innerHTML = reviews.map(r => {
+    const adminResponseHtml = r.admin_response ? `
+      <div class="admin-response" style="margin-top: 10px; padding: 10px; background: rgba(248,145,165,0.05); border-left: 2px solid #F891A5; border-radius: 4px;">
+        <strong style="color: #F891A5; font-size: 0.8rem; letter-spacing: 0.05em; font-family: 'Bebas Neue', sans-serif;">Zuwera Team</strong>
+        <p style="margin-top: 4px; font-size: 0.85rem; color: rgba(244,241,235,0.7);">${escHtml(r.admin_response)}</p>
       </div>
-      ${r.body ? `<p class="review-item-body">${escHtml(r.body)}</p>` : ''}
-      <p class="review-item-author">${escHtml(r.reviewer_name || 'Anonymous')}</p>
-    </div>
-  `).join('');
+    ` : '';
+    return `
+      <div class="review-item">
+        <div class="review-item-header">
+          <span class="review-item-stars">${starsHtml(r.rating)}</span>
+          <span class="review-item-meta">${formatDate(r.created_at)}</span>
+        </div>
+        ${r.body ? `<p class="review-item-body">${escHtml(r.body)}</p>` : ''}
+        <p class="review-item-author">${escHtml(r.reviewer_name || 'Anonymous')}</p>
+        ${adminResponseHtml}
+      </div>
+    `;
+  }).join('');
 }
 
 // ── Toggle reviews panel open / closed ────────────────────────────
