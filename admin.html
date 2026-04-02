@@ -1594,8 +1594,10 @@
             await sb.auth.signOut();
             currentUser = null;
             showAuthGate();
-            document.getElementById('authForm').reset();
-            document.getElementById('authError').style.display = 'none';
+            const form = document.getElementById('authForm');
+            if (form) form.reset();
+            const err = document.getElementById('authError');
+            if (err) err.style.display = 'none';
         }
 
         document.getElementById('logoutBtn').addEventListener('click', logout);
