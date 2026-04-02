@@ -1024,21 +1024,9 @@
                     <div class="products-header">
                         <h2>Customer Reviews</h2>
                     </div>
-                    <table class="products-table">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Rating</th>
-                                <th>Reviewer</th>
-                                <th>Title</th>
-                                <th>Review Body</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="reviewsTableBody">
-                            <tr><td colspan="6" style="text-align:center;color:var(--text-secondary);">Loading reviews...</td></tr>
-                        </tbody>
-                    </table>
+                    <div id="reviewsContainer">
+                        <p style="text-align:center;color:var(--text-secondary);">Loading reviews...</p>
+                    </div>
                 </div>
 
                 <!-- Analytics Page -->
@@ -1167,6 +1155,14 @@
                                 </div>
                                 <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:8px">Upload a square image (PNG or ICO). Recommended size: 32x32 or 64x64.</p>
                             </div>
+                            <div class="form-group" style="margin-top: 20px;">
+                                <label class="form-label">Admin Review Response Background</label>
+                                <input type="color" class="form-input" id="adminResBg" value="#2a1419" style="height: 40px; padding: 4px; width: 100px;">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Admin Review Response Text</label>
+                                <input type="color" class="form-input" id="adminResText" value="#f891a5" style="height: 40px; padding: 4px; width: 100px;">
+                            </div>
                             <div style="display:flex;gap:12px;margin-top:20px">
                                 <button class="btn btn-primary" onclick="saveBrandSettings()">Save Brand Assets</button>
                             </div>
@@ -1193,14 +1189,6 @@
                             <div class="form-group">
                                 <label class="form-label">CTA Button Text</label>
                                 <input type="text" class="form-input" id="heroCtaText" placeholder="Explore Release 001">
-                            </div>
-                            <div class="form-group" style="margin-top: 20px;">
-                                <label class="form-label">Admin Review Response Background</label>
-                                <input type="color" class="form-input" id="adminResBg" value="#2a1419" style="height: 40px; padding: 4px; width: 100px;">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Admin Review Response Text</label>
-                                <input type="color" class="form-input" id="adminResText" value="#f891a5" style="height: 40px; padding: 4px; width: 100px;">
                             </div>
                             <div style="display:flex;gap:12px;margin-top:20px">
                                 <button class="btn btn-primary" onclick="saveHeroSettings()">Save Hero Settings</button>
@@ -1853,15 +1841,9 @@
                         if (total < (product.low_stock_threshold || 10)) {
                             lowStockAlerts++;
                         }
-                        if (b.admin_res_bg) {
-                            document.getElementById('adminResBg').value = b.admin_res_bg;
-                            document.documentElement.style.setProperty('--admin-res-bg', b.admin_res_bg);
-                        }
-                        if (b.admin_res_text) {
-                            document.getElementById('adminResText').value = b.admin_res_text;
-                            document.documentElement.style.setProperty('--admin-res-text', b.admin_res_text);
-                        }
                     }
+                    if (b && b.admin_res_bg) document.getElementById('adminResBg').value = b.admin_res_bg;
+                    if (b && b.admin_res_text) document.getElementById('adminResText').value = b.admin_res_text;
                 }
 
                 document.getElementById('totalProducts').textContent = totalProducts;
@@ -1881,42 +1863,96 @@
         // Reviews
         async function loadAdminReviews() {
             try {
-                const tbody = document.getElementById('reviewsTableBody');
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-secondary);">Loading reviews...</td></tr>';
+                const container = document.getElementById('reviewsContainer');
+                container.innerHTML = '<p style="text-align:center;color:var(--text-secondary);">Loading reviews...</p>';
                 
-                const { data: reviews, error } = await sb.from('reviews').select('*').order('created_at', { ascending: false });
+                const { data: reviews, error } = await sb.from('reviews')
+                    .select('*, products(title, sku)')
+                    .order('created_at', { ascending: false });
+
                 if (error) throw error;
                 
                 if (!reviews || reviews.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-secondary);">No reviews found.</td></tr>';
+                    container.innerHTML = '<p style="text-align:center;color:var(--text-secondary);">No reviews found.</p>';
                     return;
                 }
                 
-                tbody.innerHTML = reviews.map(r => {
-                    const date = new Date(r.created_at).toLocaleDateString();
-                    const rating = '⭐'.repeat(r.rating);
-                    const safeTitle = (r.title || '').replace(/'/g, '&apos;').replace(/"/g, '&quot;');
-                    const safeBody = (r.body || '').replace(/'/g, '&apos;').replace(/"/g, '&quot;');
-                    const safeAdminResponse = (r.admin_response || '').replace(/'/g, '&apos;').replace(/"/g, '&quot;');
+                // Group by product
+                const grouped = {};
+                reviews.forEach(r => {
+                    const pid = r.product_id;
+                    if (!grouped[pid]) {
+                        grouped[pid] = {
+                            product: r.products || { title: 'Unknown Product', sku: 'N/A' },
+                            reviews: []
+                        };
+                    }
+                    grouped[pid].reviews.push(r);
+                });
+
+                container.innerHTML = Object.keys(grouped).map(pid => {
+                    const group = grouped[pid];
+                    const avg = (group.reviews.reduce((sum, r) => sum + r.rating, 0) / group.reviews.length).toFixed(1);
                     
-                    return `
-                        <tr>
-                            <td style="white-space: nowrap;">${date}</td>
-                            <td style="color: var(--warning);">${rating}</td>
-                            <td>${r.nickname || r.reviewer_name || 'Anonymous'}</td>
-                            <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><strong>${r.title || ''}</strong></td>
-                                <td style="max-width: 250px;">
-                                    <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${r.body || ''}</div>
-                                    ${r.admin_response ? `<div style="margin-top: 8px; padding: 8px; background: var(--admin-res-bg, rgba(248,145,165,0.1)); border-left: 2px solid var(--accent); border-radius: 4px;"><strong style="color: var(--accent); font-size: 0.8rem;">Zuwera Team</strong><p style="margin-top: 4px; font-size: 0.8rem; color: var(--admin-res-text, var(--text-secondary)); white-space: normal;">${safeAdminResponse}</p></div>` : ''}
-                                </td>
-                            <td>
-                                <div class="action-buttons">
-                                    <button class="btn btn-secondary btn-sm" onclick="openEditReview('${r.id}', '${safeTitle}', '${safeBody}', '${safeAdminResponse}')">Edit/Reply</button>
-                                    <button class="btn btn-danger btn-sm" onclick="deleteReview('${r.id}')">Delete</button>
+                    let html = `
+                        <details class="review-product-accordion">
+                            <summary>
+                                <span>${group.product.title} <span style="color:var(--text-secondary);font-weight:normal;margin-left:8px;">${group.product.sku || ''}</span></span>
+                                <div class="review-summary-stats">
+                                    <span class="rating">⭐ ${avg}</span>
+                                    <span>${group.reviews.length} Review${group.reviews.length !== 1 ? 's' : ''}</span>
                                 </div>
-                            </td>
-                        </tr>
+                            </summary>
+                            <div class="review-table-wrapper">
+                                <table class="products-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Rating</th>
+                                            <th>Reviewer</th>
+                                            <th>Title</th>
+                                            <th>Review Body</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
                     `;
+
+                    html += group.reviews.map(r => {
+                        const date = new Date(r.created_at).toLocaleDateString();
+                        const rating = '⭐'.repeat(r.rating);
+                        const safeTitle = (r.title || '').replace(/'/g, '&apos;').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
+                        const safeBody = (r.body || '').replace(/'/g, '&apos;').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
+                        const safeAdminResponse = (r.admin_response || '').replace(/'/g, '&apos;').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
+                        const displayAdminResponse = (r.admin_response || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        
+                        return `
+                            <tr>
+                                <td style="white-space: nowrap;">${date}</td>
+                                <td style="color: var(--warning);">${rating}</td>
+                                <td>${r.nickname || r.reviewer_name || 'Anonymous'}</td>
+                                <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><strong>${r.title || ''}</strong></td>
+                                <td style="max-width: 250px;">
+                                    <div style="overflow: hidden; text-overflow: ellipsis; white-space: normal;">${r.body || ''}</div>
+                                    ${r.admin_response ? `<div style="margin-top: 8px; padding: 8px; background: var(--admin-res-bg, rgba(248,145,165,0.1)); border-left: 2px solid var(--accent); border-radius: 4px;"><strong style="color: var(--accent); font-size: 0.8rem;">Zuwera Team</strong><p style="margin-top: 4px; font-size: 0.8rem; color: var(--admin-res-text, var(--text-secondary)); white-space: normal;">${displayAdminResponse}</p></div>` : ''}
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn btn-secondary btn-sm" onclick="openEditReview('${r.id}', '${safeTitle}', '${safeBody}', '${safeAdminResponse}')">Edit/Reply</button>
+                                        <button class="btn btn-danger btn-sm" onclick="deleteReview('${r.id}')">Delete</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+
+                    html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </details>
+                    `;
+                    return html;
                 }).join('');
             } catch (err) {
                 console.error('Error loading reviews:', err);
@@ -2963,7 +2999,11 @@
         }
 
         async function saveBrandSettings() {
-            const brandData = { favicon: document.getElementById('faviconImage').value };
+            const brandData = { 
+                favicon: document.getElementById('faviconImage').value,
+                admin_res_bg: document.getElementById('adminResBg').value,
+                admin_res_text: document.getElementById('adminResText').value
+            };
             const { error } = await sb.from('site_settings').upsert({ key: 'brand', value: brandData, updated_at: new Date().toISOString() }, { onConflict: 'key' });
             if (error) {
                 showToast('Error saving brand: ' + error.message, 'error');
@@ -2978,34 +3018,10 @@
                     }
                     link.href = brandData.favicon;
                 }
-                document.documentElement.style.setProperty('--admin-res-bg', brandData.admin_res_bg);
-                document.documentElement.style.setProperty('--admin-res-text', brandData.admin_res_text);
+                if (brandData.admin_res_bg) document.documentElement.style.setProperty('--admin-res-bg', brandData.admin_res_bg);
+                if (brandData.admin_res_text) document.documentElement.style.setProperty('--admin-res-text', brandData.admin_res_text);
             }
         }
-
-        async function saveHeroSettings() {
-            const heroData = {
-                kicker: document.getElementById('heroKicker').value,
-                heading: document.getElementById('heroHeading').value,
-                subtext: document.getElementById('heroSubtext').value,
-                image: document.getElementById('heroImage').value,
-                cta_text: document.getElementById('heroCtaText').value
-            };
-            const { error } = await sb.from('site_settings').upsert({
-                key: 'hero',
-                value: heroData,
-                updated_at: new Date().toISOString()
-            }, { onConflict: 'key' });
-            if (error) {
-                showToast('Error saving hero: ' + error.message, 'error');
-            } else {
-                showToast('Hero settings saved!', 'success');
-            }
-        }
-
-</script>
-</body>
-</html>
 
         async function saveHeroSettings() {
             const heroData = {
