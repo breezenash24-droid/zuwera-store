@@ -637,9 +637,60 @@
       .cookie-buttons { flex-direction: column; width: 100%; }
       .cookie-btn { flex: 1; }
     }
+
+    .tech-guide-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+    @media (max-width: 768px) {
+      .tech-guide-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ────── LIGHT MODE ────── */
+    body.light-mode {
+      --bg: #F0EEE9;
+      --text: #09090b;
+      --muted: rgba(9, 9, 11, 0.6);
+      --border: rgba(9, 9, 11, 0.15);
+      --hover: rgba(9, 9, 11, 0.08);
+    }
+    body.light-mode .nav { background: #F0EEE9; border-bottom-color: rgba(9,9,11,0.08); }
+    body.light-mode .nav-logo-img { filter: invert(1); }
+    body.light-mode .calculator { background: rgba(9,9,11,0.02); }
+    body.light-mode .calc-input, body.light-mode .calc-select {
+      background-color: rgba(9,9,11,0.04);
+      color: #09090b;
+    }
+    body.light-mode .calc-select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2309090b' stroke-width='1.5' fill='none' opacity='0.4'/%3E%3C/svg%3E");
+    }
+    body.light-mode .calc-select option { background: #F0EEE9; color: #09090b; }
+    body.light-mode .calc-input:focus, body.light-mode .calc-select:focus {
+      background: rgba(9,9,11,0.06);
+      border-color: rgba(9,9,11,0.4);
+    }
+    body.light-mode thead tr { background: rgba(9,9,11,0.04); }
+    body.light-mode tbody tr { border-bottom-color: rgba(9,9,11,0.04); }
+    body.light-mode tbody tr:hover { background: rgba(9,9,11,0.04); }
+    body.light-mode tbody td { color: rgba(9,9,11,0.65); }
+    body.light-mode .measure-letter { color: rgba(9,9,11,0.15); }
+    body.light-mode .sizing-notes { background: rgba(9,9,11,0.03); }
+    body.light-mode .tech-card { background: rgba(9,9,11,0.02); }
+    body.light-mode .cookie-consent { background: rgba(240,238,233,0.95); }
+    body.light-mode footer p, body.light-mode footer a { color: rgba(9,9,11,0.4); }
   </style>
 </head>
 <body>
+
+  <script>
+    // Load theme immediately to prevent flash
+    (function() {
+      var saved = localStorage.getItem('theme');
+      if (saved === 'light') document.body.classList.add('light-mode');
+    })();
+  </script>
 
   <!-- NAV -->
   <header class="nav">
@@ -880,7 +931,7 @@
     <div class="tab-panel" id="tab-technologies">
       <div class="table-section">
         <h2>Fabric Technologies</h2>
-        <div id="techGuideContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+        <div id="techGuideContainer" class="tech-guide-grid">
           <div class="loading">Loading technologies...</div>
         </div>
       </div>
@@ -1079,15 +1130,16 @@
           const data = await response.json();
           if (data && data.length > 0 && data[0].value) {
             siteTechs = typeof data[0].value === 'string' ? JSON.parse(data[0].value) : data[0].value;
-      }
-      const themeRes = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?key=eq.theme`, {
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-      });
-      if (themeRes.ok) {
-        const themeData = await themeRes.json();
-        if (themeData && themeData.length > 0 && themeData[0].value && themeData[0].value.mode === 'light') document.body.classList.add('light-mode');
-        else document.body.classList.remove('light-mode');
           }
+        }
+        
+        const themeRes = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?key=eq.theme`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+        });
+        if (themeRes.ok) {
+          const themeData = await themeRes.json();
+          if (themeData && themeData.length > 0 && themeData[0].value && themeData[0].value.mode === 'light') document.body.classList.add('light-mode');
+          else document.body.classList.remove('light-mode');
         }
       } catch (error) { console.log('Failed to fetch site settings', error); }
       

@@ -7,7 +7,7 @@
     <title>Zuwera Admin Panel</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DhM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-primary: #09090b;
@@ -834,7 +834,7 @@
                     <a class="nav-link" data-page="sizecharts" onclick="navigateTo('sizecharts')">Size Charts</a>
                     <a class="nav-link" data-page="analytics" onclick="navigateTo('analytics')">Analytics</a>
                     <a class="nav-link" data-page="settings" onclick="navigateTo('settings')">Settings</a>
-                    <a class="nav-item" data-page="website" onclick="navigateTo('website')">Website</a>
+                    <a class="nav-link" data-page="website" onclick="navigateTo('website')">Website</a>
                 </div>
             </nav>
             <div class="sidebar-bottom">
@@ -991,23 +991,29 @@
                     <!-- Legal Policies -->
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
                         <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:16px;">Legal Policies</div>
-                        <div class="form-group">
-                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Shipping Policy Text (HTML allowed)</label>
-                            <textarea id="settShippingText" class="form-textarea" rows="6"></textarea>
+                        <div class="tabs" id="legalTabs" style="margin-bottom: 16px;">
+                            <button type="button" class="tab-button active" data-tab="legal-shipping">Shipping</button>
+                            <button type="button" class="tab-button" data-tab="legal-returns">Returns</button>
+                            <button type="button" class="tab-button" data-tab="legal-privacy">Privacy</button>
+                            <button type="button" class="tab-button" data-tab="legal-terms">Terms</button>
                         </div>
-                        <div class="form-group">
-                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Return Policy Text (HTML allowed)</label>
-                            <textarea id="settReturnsText" class="form-textarea" rows="6"></textarea>
+                        <div id="legal-shipping" class="tab-content active">
+                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Shipping Policy (HTML allowed)</label>
+                            <textarea id="settShippingText" class="form-textarea" style="height: 300px; font-family: monospace; font-size: 0.85rem;"></textarea>
                         </div>
-                        <div class="form-group">
-                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Privacy Policy Text (HTML allowed)</label>
-                            <textarea id="settPrivacyText" class="form-textarea" rows="6"></textarea>
+                        <div id="legal-returns" class="tab-content">
+                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Return Policy (HTML allowed)</label>
+                            <textarea id="settReturnsText" class="form-textarea" style="height: 300px; font-family: monospace; font-size: 0.85rem;"></textarea>
                         </div>
-                        <div class="form-group">
-                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Terms of Service Text (HTML allowed)</label>
-                            <textarea id="settTermsText" class="form-textarea" rows="6"></textarea>
+                        <div id="legal-privacy" class="tab-content">
+                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Privacy Policy (HTML allowed)</label>
+                            <textarea id="settPrivacyText" class="form-textarea" style="height: 300px; font-family: monospace; font-size: 0.85rem;"></textarea>
                         </div>
-                        <button type="button" class="btn btn-primary btn-sm" id="saveLegalBtn">Save Policies</button>
+                        <div id="legal-terms" class="tab-content">
+                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Terms of Service (HTML allowed)</label>
+                            <textarea id="settTermsText" class="form-textarea" style="height: 300px; font-family: monospace; font-size: 0.85rem;"></textarea>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" id="saveLegalBtn" style="margin-top: 16px;">Save Policies</button>
                     </div>
 
                     <!-- FAQ -->
@@ -1601,7 +1607,7 @@
         }
 
         function navigateTo(page) {
-            if (page === 'website') setTimeout(loadWebsiteSettings, 100);
+            if (page === 'website') setTimeout(loadHeroSettings, 100);
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(page).classList.add('active');
 
@@ -1783,17 +1789,19 @@
             });
         });
 
-            // Website Tabs
-            document.querySelectorAll('#websiteTabs .tab-button').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const tab = button.dataset.tab;
-                    document.querySelectorAll('#websiteTabs .tab-button').forEach(b => b.classList.remove('active'));
-                    button.classList.add('active');
-                    document.querySelectorAll('#website .tab-content').forEach(c => c.classList.remove('active'));
-                    document.getElementById(tab).classList.add('active');
+        // Legal Tabs
+        document.querySelectorAll('#legalTabs .tab-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                const tab = button.dataset.tab;
+                document.querySelectorAll('#legalTabs .tab-button').forEach(b => b.classList.remove('active'));
+                button.classList.add('active');
+                document.querySelectorAll('#settings .tab-content').forEach(c => {
+                    if(c.id.startsWith('legal-')) c.classList.remove('active');
                 });
+                document.getElementById(tab).classList.add('active');
             });
+        });
 
         // Auto Generate SKU
         document.getElementById('autoGenSkuBtn').addEventListener('click', async (e) => {

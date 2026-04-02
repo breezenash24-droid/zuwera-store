@@ -199,7 +199,7 @@ nav#nav.scrolled{
   font-size:1.6rem;letter-spacing:.12em;
   color:var(--paper);
 }
-.nav-logo img{height:32px;width:auto;display:block}
+.nav-logo img{height:32px;width:auto;display:block;transition:filter .35s}
 .nav-right{display:flex;align-items:center;gap:.4rem}
 .nbtn{
   font-family:var(--fm);font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;
@@ -228,7 +228,7 @@ nav#nav.scrolled{
 ───────────────────────────────────────────── */
 .hero{
   min-height:100svh;
-  background:var(--ink);
+  background:#09090b;
   display:grid;grid-template-rows:1fr auto;
   position:relative;overflow:hidden;
   padding-top:80px;
@@ -272,7 +272,7 @@ nav#nav.scrolled{
   font-family:var(--fw);font-weight:900;font-style:italic;
   font-size:clamp(5rem,14vw,14rem);
   line-height:.88;letter-spacing:-.01em;
-  color:var(--paper);
+  color:#f4f1eb;
   opacity:0;animation:up .9s cubic-bezier(.22,1,.36,1) .35s forwards;
 }
 .hero-h1 em{font-style:normal;color:transparent;-webkit-text-stroke:2px rgba(244,241,235,.85)}
@@ -291,17 +291,17 @@ nav#nav.scrolled{
   display:inline-flex;align-items:center;gap:.5rem;
   font-family:var(--fm);font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;
   border:1px solid rgba(244,241,235,.25);
-  padding:.8rem 1.6rem;color:var(--paper);
+  padding:.8rem 1.6rem;color:#f4f1eb;
   transition:all .25s;
 }
-.btn-outline:hover{border-color:var(--paper);background:var(--paper);color:var(--ink)}
+.btn-outline:hover{border-color:#f4f1eb;background:#f4f1eb;color:#09090b}
 .btn-ghost{
   font-family:var(--fm);font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;
   color:rgba(244,241,235,.35);
   display:inline-flex;align-items:center;gap:.4rem;
   transition:color .2s;
 }
-.btn-ghost:hover{color:var(--paper)}
+.btn-ghost:hover{color:#f4f1eb}
 .hero-bottom{
   position:relative;z-index:2;
   display:flex;align-items:flex-end;justify-content:space-between;
@@ -932,35 +932,18 @@ body.light-mode nav#nav.scrolled{
   background:rgba(240,238,233,.92);
   border-color:rgba(9,9,11,.07);
 }
-body.light-mode .nav-logo img{filter:invert(1)}
-body.light-mode .nbtn{color:rgba(9,9,11,.55)}
-body.light-mode .nbtn:hover{color:var(--paper)}
-body.light-mode #cart-btn{border-color:rgba(9,9,11,.2);color:var(--paper)}
-body.light-mode #cart-btn:hover{border-color:rgba(9,9,11,.5)}
-body.light-mode .cc{background:var(--paper);color:var(--ink)}
+body.light-mode nav#nav.scrolled .nav-logo img{filter:invert(1)}
+body.light-mode nav#nav.scrolled .nbtn{color:rgba(9,9,11,.55)}
+body.light-mode nav#nav.scrolled .nbtn:hover{color:var(--paper)}
+body.light-mode nav#nav.scrolled #cart-btn{border-color:rgba(9,9,11,.2);color:var(--paper)}
+body.light-mode nav#nav.scrolled #cart-btn:hover{border-color:rgba(9,9,11,.5)}
+body.light-mode nav#nav.scrolled .cc{background:var(--paper);color:var(--ink)}
 
 /* Announcement */
 body.light-mode #bar{
   background:var(--paper);color:var(--ink);
   border-bottom-color:rgba(9,9,11,.1);
 }
-
-/* Hero */
-body.light-mode .hero{background:var(--ink)}
-body.light-mode .hero-img-wrap img{opacity:.2;filter:contrast(.6) saturate(.6) brightness(1.2)}
-body.light-mode .hero-img-wrap::after{
-  background:linear-gradient(to bottom, rgba(240,238,233,.6) 0%, transparent 30%, transparent 50%, rgba(240,238,233,.95) 100%),
-             radial-gradient(ellipse 60% 60% at 50% 50%, transparent 0%, rgba(240,238,233,.7) 100%);
-}
-body.light-mode .hero-h1 em{-webkit-text-stroke-color:rgba(9,9,11,.85)}
-body.light-mode .hero-sub{color:rgba(9,9,11,.45)}
-body.light-mode .btn-outline{border-color:rgba(9,9,11,.25);color:var(--paper)}
-body.light-mode .btn-outline:hover{border-color:var(--paper);background:var(--paper);color:var(--ink)}
-body.light-mode .btn-ghost{color:rgba(9,9,11,.35)}
-body.light-mode .btn-ghost:hover{color:var(--paper)}
-body.light-mode .hero-scroll-hint{color:rgba(9,9,11,.25)}
-body.light-mode .scroll-bar{background:rgba(9,9,11,.15)}
-body.light-mode .hero-year{color:rgba(9,9,11,.2)}
 
 /* Marquee */
 body.light-mode .marquee{border-color:rgba(9,9,11,.08)}
@@ -1449,12 +1432,12 @@ const _sb = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_U
           const el = document.getElementById('announcementText');
           if (el) el.textContent = msgText;
         }
-    } else if (row.key === 'theme') {
-      if (row.value && row.value.mode === 'light') document.body.classList.add('light-mode');
-      else document.body.classList.remove('light-mode');
-        } else if (row.key === 'hero') {
-          const h = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
-          if (h.kicker) {
+      } else if (row.key === 'theme') {
+        if (row.value && row.value.mode === 'light') document.body.classList.add('light-mode');
+        else document.body.classList.remove('light-mode');
+      } else if (row.key === 'hero') {
+        const h = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+        if (h.kicker) {
             const el = document.querySelector('.hero-kicker');
             if (el) el.innerHTML = h.kicker;
           }
