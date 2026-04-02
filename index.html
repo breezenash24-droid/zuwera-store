@@ -148,35 +148,11 @@ body{
   font-family:var(--fb);
   font-weight:300;
   overflow-x:hidden;
-  cursor:none;
 }
 a{color:inherit;text-decoration:none}
-button{cursor:none;font-family:inherit;border:none;background:none}
+button{cursor:pointer;font-family:inherit;border:none;background:none}
 input,textarea{font-family:inherit}
 img{display:block;max-width:100%}
-
-/* ─────────────────────────────────────────────
-   CUSTOM CURSOR
-───────────────────────────────────────────── */
-@media (hover: hover) and (pointer: fine) {
-  body, button, a, .pcard-action { cursor: none !important; }
-}
-@media (hover: none) {
-  #cursor { display: none !important; }
-  body, button, a, .pcard-action { cursor: auto !important; }
-}
-
-#cursor{
-  width:8px;height:8px;
-  background:var(--paper);
-  border-radius:50%;
-  position:fixed;z-index:9999;
-  pointer-events:none;
-  transform:translate(-50%,-50%);
-  transition:transform .12s ease,width .2s ease,height .2s ease,background .2s ease;
-  mix-blend-mode:difference;
-}
-#cursor.hover{width:36px;height:36px}
 
 /* ─────────────────────────────────────────────
    NOISE OVERLAY
@@ -1078,9 +1054,6 @@ body.light-mode #payment-success p{color:rgba(9,9,11,.45)}
 body.light-mode #success-order{color:rgba(9,9,11,.25)}
 body.light-mode #success-continue{background:var(--paper);color:var(--ink)}
 
-/* Cursor */
-body.light-mode #cursor{background:var(--paper)}
-
 /* Noise overlay */
 body.light-mode::after{opacity:0.15}
 </style>
@@ -1094,7 +1067,6 @@ body.light-mode::after{opacity:0.15}
 })();
 </script>
 
-<div id="cursor"></div>
 <div id="toast"></div>
 
 <!-- ANNOUNCEMENT BAR -->
@@ -1419,14 +1391,6 @@ body.light-mode::after{opacity:0.15}
      JAVASCRIPT
 ════════════════════════════════════════════ -->
 <script>
-/* CURSOR */
-const cur = document.getElementById('cursor');
-document.addEventListener('mousemove', e => { cur.style.left = e.clientX + 'px'; cur.style.top = e.clientY + 'px'; });
-document.querySelectorAll('a,button,.pcard-action,.heart-btn,.rate-opt').forEach(el => {
-  el.addEventListener('mouseenter', () => cur.classList.add('hover'));
-  el.addEventListener('mouseleave', () => cur.classList.remove('hover'));
-});
-
 /* TOAST */
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -1484,7 +1448,7 @@ async function loadProducts() {
   if (!_sb || !grid) return;
   const { data: products, error } = await _sb
     .from('products')
-    .select('*, product_images(image_url), color_variants(*)')
+    .select('*')
     .order('sort_order', { ascending: true });
 
   if (error || !products) {
@@ -1905,8 +1869,8 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catc
     document.getElementById('cookie-banner').style.display='flex';
   }
 })();
-function acceptCookies(){localStorage.setItem('zw_cookie_consent','accepted');document.getElementById('cookie-banner').style.display='none'}
-function declineCookies(){localStorage.setItem('zw_cookie_consent','declined');document.getElementById('cookie-banner').style.display='none'}
+function acceptCookies(){try{localStorage.setItem('zw_cookie_consent','accepted');}catch(e){}document.getElementById('cookie-banner').style.display='none'}
+function declineCookies(){try{localStorage.setItem('zw_cookie_consent','declined');}catch(e){}document.getElementById('cookie-banner').style.display='none'}
 </script>
 </body>
 </html>
