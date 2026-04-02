@@ -112,7 +112,7 @@ function renderProducts(grid, products) {
 
 
     return `
-      <div class="pcard" data-product-slug="${(p.slug || productName.toLowerCase().replace(/[^a-z0-9]/g,'-')).slice(0,50)}" onclick="window.location.href='product.html?slug=${encodeURIComponent(productName.toLowerCase().replace(/[^a-z0-9]/g,'-'))}' style="cursor:pointer">
+      <div class="pcard" data-product-slug="${(p.slug || productName.toLowerCase().replace(/[^a-z0-9]/g,'-')).slice(0,50)}" onclick="window.location.href='product.html?slug=${encodeURIComponent(productName.toLowerCase().replace(/[^a-z0-9]/g,'-'))}'" style="cursor:pointer">
         <div class="pcard-img" style="background:transparent">
           <img src="${firstImg || ''}" alt="${productName}" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:center" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
           <div style="display:none;align-items:center;justify-content:center;flex-direction:column;gap:.8rem;height:100%;opacity:.08">
