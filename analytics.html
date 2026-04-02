@@ -908,21 +908,23 @@
 
     const loadProducts = async () => {
       try {
-        const { data, error } = await supabase
-          .from('products')
-          .select(`
-            *, 
-            product_images(id), 
-            color_variants(id, color_name), 
-            product_sizes(id, size, stock_quantity)
-          `);
+        // Fetch products and related data independently to bypass any PostgREST relationship caching issues
+        const { data: products, error } = await supabase.from('products').select('*');
         if (error) throw error;
-        allProducts = data || [];
+        
+        const { data: sizes } = await supabase.from('product_sizes').select('*');
+        const { data: colors } = await supabase.from('color_variants').select('*');
+        const { data: images } = await supabase.from('product_images').select('*');
+
+        allProducts = (products || []).map(p => ({
+          ...p,
+          product_sizes: (sizes || []).filter(s => s.product_id === p.id),
+          color_variants: (colors || []).filter(c => c.product_id === p.id),
+          product_images: (images || []).filter(i => i.product_id === p.id)
+        }));
       } catch (err) {
-        console.warn("Extended schema not found, trying basic products...", err);
-        const { data, error } = await supabase.from('products').select('*');
-        if (error) throw error;
-        allProducts = data || [];
+        showError('Failed to load products: ' + err.message);
+        allProducts = [];
       }
     };
 
@@ -967,11 +969,15 @@
       // Low Stock Alerts
       let lowStockCount = 0;
       allProducts.forEach(p => {
-        p.product_sizes?.forEach(inv => {
-          if (inv.stock_quantity <= (p.low_stock_threshold || 10)) {
-            lowStockCount++;
-          }
-        });
+        if (!p.product_sizes || p.product_sizes.length === 0) {
+          lowStockCount++;
+        } else {
+          p.product_sizes.forEach(inv => {
+            if (inv.stock_quantity <= (p.low_stock_threshold || 10)) {
+              lowStockCount++;
+            }
+          });
+        }
       });
       document.getElementById('lowStockAlerts').textContent = lowStockCount;
 
@@ -1062,6 +1068,11 @@
       const chartContainer = document.getElementById('statusChart');
       chartContainer.innerHTML = '';
 
+      if (allProducts.length === 0) {
+        chartContainer.innerHTML = '<p style="color: var(--text-secondary); width: 100%; text-align: center; margin-top: 2rem;">No data available.</p>';
+        return;
+      }
+
       const statusLabels = {
         draft: 'Draft',
         coming_soon: 'Coming Soon',
@@ -1113,6 +1124,11 @@
       const chartContainer = document.getElementById('genderChart');
       chartContainer.innerHTML = '';
 
+      if (allProducts.length === 0) {
+        chartContainer.innerHTML = '<p style="color: var(--text-secondary); width: 100%; text-align: center; margin-top: 2rem;">No data available.</p>';
+        return;
+      }
+
       const genderLabels = {
         men: 'Men',
         women: 'Women',
@@ -1153,16 +1169,27 @@
       // Flatten inventory data
       let inventoryData = [];
       allProducts.forEach(product => {
-        (product.product_sizes || []).forEach(inv => {
+        if (!product.product_sizes || product.product_sizes.length === 0) {
           inventoryData.push({
             productTitle: product.title,
             sku: product.sku,
-            size: inv.size,
-          stock: inv.stock_quantity || 0,
-          threshold: product.low_stock_threshold || 10,
+            size: 'N/A',
+            stock: 0,
+            threshold: product.low_stock_threshold || 10,
             status: product.status
           });
-        });
+        } else {
+          product.product_sizes.forEach(inv => {
+            inventoryData.push({
+              productTitle: product.title,
+              sku: product.sku,
+              size: inv.size,
+              stock: inv.stock_quantity || 0,
+              threshold: product.low_stock_threshold || 10,
+              status: product.status
+            });
+          });
+        }
       });
 
       // Filter data
@@ -1196,6 +1223,11 @@
           ? aVal - bVal
           : bVal - aVal;
       });
+
+      if (inventoryData.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No inventory records found.</p>';
+        return;
+      }
 
       // Render table
       let html = `
@@ -1302,6 +1334,11 @@
           ? aVal - bVal
           : bVal - aVal;
       });
+
+      if (catalogData.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No products found in the catalog.</p>';
+        return;
+      }
 
       // Render table
       let html = `
@@ -1436,16 +1473,20 @@
           .slice(0, 5);
 
         const topProductsContainer = document.getElementById('topProductsContainer');
-        topProductsContainer.innerHTML = topProducts.map(p => `
-          <div class="product-card">
-            <div class="product-title">${p.title}</div>
-            <div class="product-rating">
-              <span class="stars">${'⭐'.repeat(Math.round(p.avgRating))}</span>
-              <span>${p.avgRating.toFixed(1)}</span>
+        if (topProducts.length === 0) {
+          topProductsContainer.innerHTML = '<p style="color:var(--text-secondary); padding: 1rem 0;">No reviews available yet.</p>';
+        } else {
+          topProductsContainer.innerHTML = topProducts.map(p => `
+            <div class="product-card">
+              <div class="product-title">${p.title}</div>
+              <div class="product-rating">
+                <span class="stars">${'⭐'.repeat(Math.round(p.avgRating))}</span>
+                <span>${p.avgRating.toFixed(1)}</span>
+              </div>
+              <div style="color: var(--text-secondary); font-size: 0.85rem;">${p.reviewCount} reviews</div>
             </div>
-            <div style="color: var(--text-secondary); font-size: 0.85rem;">${p.reviewCount} reviews</div>
-          </div>
-        `).join('');
+          `).join('');
+        }
 
       } catch (error) {
         console.error('Error loading reviews:', error);
