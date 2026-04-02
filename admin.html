@@ -1521,7 +1521,7 @@
         // Products
         async function loadProducts() {
             try {
-                const { data: products } = await sb.from('products').select('*').order('created_at', { ascending: false });
+                const { data: products } = await sb.from('products').select('*, product_images(*)').order('created_at', { ascending: false });
                 displayProductsTable(products || []);
             } catch (error) {
                 console.error('Error loading products:', error);
@@ -1533,9 +1533,14 @@
             tbody.innerHTML = '';
 
             products.forEach(product => {
+                let firstImg = product.image_url;
+                if (product.product_images && product.product_images.length > 0) {
+                    product.product_images.sort((a, b) => a.sort_order - b.sort_order);
+                    if (product.product_images[0].image_url) firstImg = product.product_images[0].image_url;
+                }
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td><div class="product-image" style="${product.image_url ? `background-image:url('${product.image_url}');background-size:cover;background-position:center;` : 'background:linear-gradient(135deg,#1a1a1e,#2a2a2f);'}"></div></td>
+                    <td><div class="product-image" style="${firstImg ? `background-image:url('${firstImg}');background-size:cover;background-position:center;` : 'background:linear-gradient(135deg,#1a1a1e,#2a2a2f);'}"></div></td>
                     <td><strong>${product.sku || 'N/A'}</strong></td>
                     <td>${product.title || 'N/A'}</td>
                     <td>${product.colorway || 'N/A'}</td>
@@ -1566,7 +1571,7 @@
         // Products Search
         document.getElementById('productSearch').addEventListener('input', async (e) => {
             const query = e.target.value.toLowerCase();
-            const { data: products } = await sb.from('products').select('*');
+            const { data: products } = await sb.from('products').select('*, product_images(*)');
             const filtered = (products || []).filter(p =>
                 (p.sku || '').toLowerCase().includes(query) ||
                 (p.title || '').toLowerCase().includes(query) ||
