@@ -815,8 +815,10 @@
     // Data Loading
     const loadDashboardData = async () => {
       try {
+        // Load products first so other functions have data to work with
+        await loadProducts();
+
         await Promise.all([
-          loadProducts(),
           loadInventory(),
           loadReviews(),
         ]);
@@ -825,7 +827,7 @@
         updateStatusChart();
         updateGenderChart();
         updatePriceAnalysis();
-        updateReviewsSummary();
+        await updateReviewsSummary();
       } catch (error) {
         showError('Failed to load dashboard data: ' + error.message);
       }
@@ -886,7 +888,7 @@
 
       // Average Price
       const validPrices = allProducts.filter(p => p.current_price).map(p => p.current_price);
-      const avgPrice = validPrices.length > 0 ? validPrices.reduce((a, b) => a + b) / validPrices.length : 0;
+      const avgPrice = validPrices.length > 0 ? validPrices.reduce((a, b) => a + b, 0) / validPrices.length : 0;
       document.getElementById('avgPrice').textContent = `$${avgPrice.toFixed(2)}`;
 
       // Color Variants
@@ -1000,6 +1002,7 @@
     // Inventory Table
     const renderInventoryTable = async () => {
       const container = document.getElementById('inventoryTableContainer');
+      const searchTerm = (document.getElementById('inventorySearch')?.value || '').toLowerCase();
 
       // Flatten inventory data
       let inventoryData = [];
@@ -1009,8 +1012,8 @@
             productTitle: product.title,
             sku: product.sku,
             size: inv.size,
-            stock: inv.stock_quantity || 0,
-            threshold: inv.low_stock_threshold || 10,
+          stock: inv.stock_quantity || 0,
+          threshold: product.low_stock_threshold || 10,
             status: product.status
           });
         });
@@ -1021,19 +1024,43 @@
         inventoryData = inventoryData.filter(item => item.stock <= item.threshold);
       }
 
-      // Sort by stock ascending
-      inventoryData.sort((a, b) => a.stock - b.stock);
+      // Apply Search Filter
+      if (searchTerm) {
+        inventoryData = inventoryData.filter(item => 
+          (item.sku && item.sku.toLowerCase().includes(searchTerm)) ||
+          (item.productTitle && item.productTitle.toLowerCase().includes(searchTerm)) ||
+          (item.size && item.size.toLowerCase().includes(searchTerm))
+        );
+      }
+
+      // Sort
+      inventoryData.sort((a, b) => {
+        const aVal = a[inventorySortConfig.key];
+        const bVal = b[inventorySortConfig.key];
+
+        if (typeof aVal === 'string' || typeof bVal === 'string') {
+          const strA = String(aVal || '');
+          const strB = String(bVal || '');
+          return inventorySortConfig.direction === 'asc'
+            ? strA.localeCompare(strB)
+            : strB.localeCompare(strA);
+        }
+
+        return inventorySortConfig.direction === 'asc'
+          ? aVal - bVal
+          : bVal - aVal;
+      });
 
       // Render table
       let html = `
         <table>
           <thead>
             <tr>
-              <th>Product Title</th>
-              <th>SKU</th>
-              <th>Size</th>
-              <th>Stock</th>
-              <th>Status</th>
+              <th class="sortable" data-key="productTitle">Product Title</th>
+              <th class="sortable" data-key="sku">SKU</th>
+              <th class="sortable" data-key="size">Size</th>
+              <th class="sortable" data-key="stock">Stock</th>
+              <th class="sortable" data-key="status">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -1067,11 +1094,26 @@
           renderInventoryTable();
         });
       });
+
+      // Attach sort listeners
+      container.querySelectorAll('[data-key]').forEach(th => {
+        th.addEventListener('click', () => {
+          const key = th.dataset.key;
+          if (inventorySortConfig.key === key) {
+            inventorySortConfig.direction = inventorySortConfig.direction === 'asc' ? 'desc' : 'asc';
+          } else {
+            inventorySortConfig.key = key;
+            inventorySortConfig.direction = 'asc';
+          }
+          renderInventoryTable();
+        });
+      });
     };
 
     // Catalog Table
     const renderCatalogTable = async () => {
       const container = document.getElementById('catalogTableContainer');
+      const searchTerm = (document.getElementById('catalogSearch')?.value || '').toLowerCase();
 
       // Prepare catalog data
       let catalogData = allProducts.map(p => ({
@@ -1088,15 +1130,26 @@
         imageCount: p.product_images?.length || 0
       }));
 
+      // Apply Search Filter
+      if (searchTerm) {
+        catalogData = catalogData.filter(item => 
+          (item.sku && item.sku.toLowerCase().includes(searchTerm)) ||
+          (item.title && item.title.toLowerCase().includes(searchTerm)) ||
+          (item.colorway && item.colorway.toLowerCase().includes(searchTerm))
+        );
+      }
+
       // Sort
       catalogData.sort((a, b) => {
         const aVal = a[catalogSortConfig.key];
         const bVal = b[catalogSortConfig.key];
 
-        if (typeof aVal === 'string') {
+        if (typeof aVal === 'string' || typeof bVal === 'string') {
+          const strA = String(aVal || '');
+          const strB = String(bVal || '');
           return catalogSortConfig.direction === 'asc'
-            ? aVal.localeCompare(bVal)
-            : bVal.localeCompare(aVal);
+            ? strA.localeCompare(strB)
+            : strB.localeCompare(strA);
         }
 
         return catalogSortConfig.direction === 'asc'
@@ -1162,18 +1215,20 @@
 
     // Price Analysis
     const updatePriceAnalysis = () => {
-      const prices = allProducts.filter(p => p.msrp && p.current_price && p.member_price);
+      const withMSRP = allProducts.filter(p => p.msrp > 0);
+      const withCurrent = allProducts.filter(p => p.current_price > 0);
+      const withMember = allProducts.filter(p => p.member_price > 0);
 
-      const avgMSRP = prices.length > 0
-        ? prices.reduce((sum, p) => sum + p.msrp, 0) / prices.length
+      const avgMSRP = withMSRP.length > 0
+        ? withMSRP.reduce((sum, p) => sum + Number(p.msrp), 0) / withMSRP.length
         : 0;
 
-      const avgCurrentPrice = prices.length > 0
-        ? prices.reduce((sum, p) => sum + p.current_price, 0) / prices.length
+      const avgCurrentPrice = withCurrent.length > 0
+        ? withCurrent.reduce((sum, p) => sum + Number(p.current_price), 0) / withCurrent.length
         : 0;
 
-      const avgMemberPrice = prices.length > 0
-        ? prices.reduce((sum, p) => sum + p.member_price, 0) / prices.length
+      const avgMemberPrice = withMember.length > 0
+        ? withMember.reduce((sum, p) => sum + Number(p.member_price), 0) / withMember.length
         : 0;
 
       const productsOnSale = allProducts.filter(p => p.current_price < p.msrp).length;
@@ -1181,8 +1236,9 @@
         ? ((productsOnSale / allProducts.length) * 100).toFixed(1)
         : 0;
 
-      const avgDiscount = prices.length > 0
-        ? prices.reduce((sum, p) => sum + ((p.msrp - p.current_price) / p.msrp * 100), 0) / prices.length
+      const saleProducts = allProducts.filter(p => p.msrp > p.current_price && p.current_price > 0);
+      const avgDiscount = saleProducts.length > 0
+        ? saleProducts.reduce((sum, p) => sum + ((p.msrp - p.current_price) / p.msrp * 100), 0) / saleProducts.length
         : 0;
 
       document.getElementById('avgMSRP').textContent = `$${avgMSRP.toFixed(2)}`;
@@ -1214,7 +1270,7 @@
         });
 
         const avgRating = ratings.length > 0
-          ? (ratings.reduce((a, b) => a + b) / ratings.length).toFixed(2)
+          ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(2)
           : 0;
 
         const noReviewsCount = allProducts.filter(p => !reviewsByProduct[p.id]).length;
@@ -1251,6 +1307,12 @@
       }
     };
 
+    // Search Filter for Inventory Table
+    document.getElementById('inventorySearch').addEventListener('input', renderInventoryTable);
+
+    // Search Filter for Catalog Table
+    document.getElementById('catalogSearch').addEventListener('input', renderCatalogTable);
+
     // Export to CSV
     document.getElementById('exportBtn').addEventListener('click', () => {
       let catalogData = allProducts.map(p => ({
@@ -1261,8 +1323,8 @@
         msrp: p.msrp || 0,
         currentPrice: p.current_price || 0,
         status: p.status,
-        totalStock: (p.product_inventory || []).reduce((sum, inv) => sum + (inv.stock || 0), 0),
-        colorCount: p.product_colors?.length || 0,
+        totalStock: (p.product_sizes || []).reduce((sum, inv) => sum + (inv.stock_quantity || 0), 0),
+        colorCount: p.color_variants?.length || 0,
         imageCount: p.product_images?.length || 0
       }));
 
