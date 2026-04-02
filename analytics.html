@@ -248,6 +248,22 @@
       gap: 1rem;
     }
 
+    .search-input {
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      border: 1px solid var(--card-border);
+      background-color: var(--dark-bg);
+      color: var(--white);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      min-width: 250px;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
     .filter-group {
       display: flex;
       gap: 0.5rem;
@@ -625,6 +641,7 @@
         <div>
           <h2>Inventory Report</h2>
           <div class="table-controls">
+            <input type="text" id="inventorySearch" placeholder="Search SKU, title, or size..." class="search-input">
             <div class="filter-group">
               <button class="filter-btn active" data-filter="all">All Products</button>
               <button class="filter-btn" data-filter="low">Low Stock Only</button>
@@ -673,6 +690,7 @@
         <div>
           <h2>Product Catalog Summary</h2>
           <div class="table-controls">
+            <input type="text" id="catalogSearch" placeholder="Search SKU, title, or colorway..." class="search-input">
             <button class="export-btn" id="exportBtn">📥 Export to CSV</button>
           </div>
         </div>
@@ -1308,10 +1326,12 @@
     };
 
     // Search Filter for Inventory Table
-    document.getElementById('inventorySearch').addEventListener('input', renderInventoryTable);
+    const invSearch = document.getElementById('inventorySearch');
+    if (invSearch) invSearch.addEventListener('input', renderInventoryTable);
 
     // Search Filter for Catalog Table
-    document.getElementById('catalogSearch').addEventListener('input', renderCatalogTable);
+    const catSearch = document.getElementById('catalogSearch');
+    if (catSearch) catSearch.addEventListener('input', renderCatalogTable);
 
     // Export to CSV
     document.getElementById('exportBtn').addEventListener('click', () => {
