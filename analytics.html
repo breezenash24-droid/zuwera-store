@@ -1559,9 +1559,18 @@
     
     // Fetch Brand Assets
     supabase.from('site_settings').select('value').eq('key', 'brand').single().then(({data}) => {
-      if (data && data.value && data.value.favicon) {
-        const link = document.querySelector('link[rel="icon"]');
-        if (link) link.href = data.value.favicon;
+      if (data && data.value) {
+        let b = data.value;
+        try { if (typeof b === 'string') b = JSON.parse(b); } catch(e){}
+        if (b && b.favicon) {
+          let link = document.querySelector('link[rel="icon"]');
+          if (!link) {
+            link = document.createElement('link');
+            link.rel = 'icon';
+            document.head.appendChild(link);
+          }
+          link.href = b.favicon;
+        }
       }
     });
 

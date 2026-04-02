@@ -997,17 +997,47 @@
                 <!-- Analytics Page -->
                 <div id="analytics" class="page">
                     <div class="page-header" style="margin-bottom:24px;">
-                        <h2>Analytics & Reports</h2>
-                        <p class="page-subtitle" style="color: var(--text-secondary);">View your sales, track inventory, and analyze store performance.</p>
+                        <h2>Analytics Dashboard</h2>
+                        <p class="page-subtitle" style="color: var(--text-secondary);">Real-time overview of your store's performance.</p>
                     </div>
-                    <div style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 60px 40px; text-align: center; margin-top: 24px;">
-                        <svg style="width: 64px; height: 64px; color: var(--accent); margin-bottom: 20px; opacity: 0.8;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>
-                        <h3 style="font-family: 'Bebas Neue', sans-serif; font-size: 2rem; margin-bottom: 15px; letter-spacing: 1px;">Analytics Dashboard</h3>
-                        <p style="color: var(--text-secondary); margin-bottom: 30px; max-width: 450px; margin-left: auto; margin-right: auto; line-height: 1.6;">For security and performance reasons, modern browsers block complex dashboards from running inside embedded frames on live servers. Click below to open your dashboard securely in a new tab.</p>
-                        <a href="analytics.html" target="_blank" class="btn btn-primary" style="padding: 16px 32px; font-size: 1.1rem; display: inline-flex; align-items: center; gap: 10px; text-decoration: none;">
-                            Launch Dashboard
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                        </a>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-card-title">Total Revenue</div>
+                            <div class="stat-card-value" id="analyticsRev">$0.00</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-title">Total Orders</div>
+                            <div class="stat-card-value" id="analyticsOrders">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-title">Avg Order Value</div>
+                            <div class="stat-card-value" id="analyticsAov">$0.00</div>
+                        </div>
+                    </div>
+            
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-top:24px;">
+                        <h3 style="margin-bottom:16px;font-size:1.1rem;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;">Recent Orders</h3>
+                        <table class="products-table">
+                            <thead>
+                                <tr><th>Order ID</th><th>Date</th><th>Amount</th><th>Status</th></tr>
+                            </thead>
+                            <tbody id="analyticsOrdersBody">
+                                <tr><td colspan="4" style="text-align:center;color:var(--text-secondary);">Loading orders...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-top:24px;">
+                        <h3 style="margin-bottom:16px;font-size:1.1rem;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;">Inventory Status</h3>
+                        <table class="products-table">
+                            <thead>
+                                <tr><th>SKU</th><th>Title</th><th>Total Stock</th><th>Status</th></tr>
+                            </thead>
+                            <tbody id="analyticsInvBody">
+                                <tr><td colspan="4" style="text-align:center;color:var(--text-secondary);">Loading inventory...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
@@ -1736,6 +1766,8 @@
                 loadProducts();
             } else if (page === 'sizecharts') {
                 loadSizeCharts();
+                } else if (page === 'analytics') {
+                    loadAnalytics();
             }
         }
 
@@ -1770,6 +1802,65 @@
                 document.getElementById('lowStockAlerts').textContent = lowStockAlerts;
             } catch (error) {
                 console.error('Error loading dashboard:', error);
+            }
+        }
+
+        // Analytics
+        async function loadAnalytics() {
+            try {
+                const { data: orders, error } = await sb.from('orders').select('*');
+                if (error) throw error;
+                
+                const totalOrders = orders ? orders.length : 0;
+                const totalRevenue = (orders || []).reduce((sum, order) => {
+                    const amount = Number(order.total) || Number(order.total_amount) || 0;
+                    return sum + amount;
+                }, 0);
+                const aov = totalOrders > 0 ? (totalRevenue / totalOrders) : 0;
+
+                document.getElementById('analyticsRev').textContent = `$${totalRevenue.toFixed(2)}`;
+                document.getElementById('analyticsOrders').textContent = totalOrders;
+                document.getElementById('analyticsAov').textContent = `$${aov.toFixed(2)}`;
+
+                const tbody = document.getElementById('analyticsOrdersBody');
+                if (orders && orders.length > 0) {
+                    const sortedOrders = [...orders].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 10);
+                    tbody.innerHTML = sortedOrders.map(o => `
+                        <tr>
+                            <td>#${(o.id || '').substring(0, 8).toUpperCase()}</td>
+                            <td>${new Date(o.created_at).toLocaleDateString()}</td>
+                            <td>$${(Number(o.total) || Number(o.total_amount) || 0).toFixed(2)}</td>
+                            <td><span class="status-badge status-live">${o.status || 'Confirmed'}</span></td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-secondary);">No orders yet.</td></tr>';
+                }
+
+                // Inventory Status
+                const { data: products } = await sb.from('products').select('id, sku, title, status');
+                const { data: inventory } = await sb.from('product_sizes').select('product_id, stock_quantity');
+                
+                const invBody = document.getElementById('analyticsInvBody');
+                if (products && products.length > 0) {
+                    const invSummary = products.map(p => {
+                        const stock = (inventory || []).filter(i => i.product_id === p.id).reduce((sum, i) => sum + (i.stock_quantity || 0), 0);
+                        return { ...p, stock };
+                    }).sort((a, b) => a.stock - b.stock).slice(0, 10);
+
+                    invBody.innerHTML = invSummary.map(p => `
+                        <tr>
+                            <td>${p.sku || 'N/A'}</td>
+                            <td>${p.title || 'N/A'}</td>
+                            <td style="color:${p.stock < 10 ? 'var(--error)' : 'inherit'}">${p.stock}</td>
+                            <td><span class="status-badge status-${(p.status || 'draft').toLowerCase().replace(/\s+/g, '-')}">${p.status || 'Draft'}</span></td>
+                        </tr>
+                    `).join('');
+                } else {
+                    invBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-secondary);">No inventory found.</td></tr>';
+                }
+            } catch (err) {
+                console.error('Error loading analytics:', err);
             }
         }
 
@@ -2752,15 +2843,21 @@
                     if (h.image) document.getElementById('heroImage').value = h.image;
                     if (h.cta_text) document.getElementById('heroCtaText').value = h.cta_text;
                 } else if (row.key === 'brand') {
-                    const b = row.value;
-                    if (b.favicon) {
+                    let b = row.value;
+                    try { if (typeof b === 'string') b = JSON.parse(b); } catch(e){}
+                    if (b && b.favicon) {
                         const favInput = document.getElementById('faviconImage');
                         const favPreview = favInput.parentElement.querySelector('.image-preview');
                         favInput.value = b.favicon;
                         favPreview.src = b.favicon;
                         favPreview.style.display = 'block';
-                        const link = document.querySelector('link[rel="icon"]');
-                        if (link) link.href = b.favicon;
+                        let link = document.querySelector('link[rel="icon"]');
+                        if (!link) {
+                            link = document.createElement('link');
+                            link.rel = 'icon';
+                            document.head.appendChild(link);
+                        }
+                        link.href = b.favicon;
                     }
                 }
             });
@@ -2773,7 +2870,15 @@
                 showToast('Error saving brand: ' + error.message, 'error');
             } else {
                 showToast('Brand settings saved!', 'success');
-                if (brandData.favicon) { const link = document.querySelector('link[rel="icon"]'); if (link) link.href = brandData.favicon; }
+                if (brandData.favicon) {
+                    let link = document.querySelector('link[rel="icon"]');
+                    if (!link) {
+                        link = document.createElement('link');
+                        link.rel = 'icon';
+                        document.head.appendChild(link);
+                    }
+                    link.href = brandData.favicon;
+                }
             }
         }
 

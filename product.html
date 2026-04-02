@@ -287,7 +287,11 @@ body.light-mode #bar {
                 <div class="review-form-row">
                   <label>Rating</label>
                   <div class="star-picker" id="starPicker">
-                    <span data-star="1" onclick="setReviewRating(1)">&#9733;</span><span data-star="2" onclick="setReviewRating(2)">&#9733;</span><span data-star="3" onclick="setReviewRating(3)">&#9733;</span><span data-star="4" onclick="setReviewRating(4)">&#9733;</span><span data-star="5" onclick="setReviewRating(5)">&#9733;</span>
+                    <span role="button" tabindex="0" data-star="1" onclick="setReviewRating(1)" onkeydown="if(event.key==='Enter') setReviewRating(1)">&#9733;</span>
+                    <span role="button" tabindex="0" data-star="2" onclick="setReviewRating(2)" onkeydown="if(event.key==='Enter') setReviewRating(2)">&#9733;</span>
+                    <span role="button" tabindex="0" data-star="3" onclick="setReviewRating(3)" onkeydown="if(event.key==='Enter') setReviewRating(3)">&#9733;</span>
+                    <span role="button" tabindex="0" data-star="4" onclick="setReviewRating(4)" onkeydown="if(event.key==='Enter') setReviewRating(4)">&#9733;</span>
+                    <span role="button" tabindex="0" data-star="5" onclick="setReviewRating(5)" onkeydown="if(event.key==='Enter') setReviewRating(5)">&#9733;</span>
                   </div>
                 </div>
                 <div class="review-form-row"><label>Nickname</label><input type="text" id="reviewNickname" placeholder="Your name" maxlength="50"></div>
@@ -391,9 +395,16 @@ async function loadSiteSettings() {
       } else if (row.key === 'technologies') {
         try { window.zwTechnologies = typeof row.value === 'string' ? JSON.parse(row.value) : row.value; } catch(e){}
       } else if (row.key === 'brand') {
-        if (row.value && row.value.favicon) {
-          const link = document.querySelector('link[rel="icon"]');
-          if (link) link.href = row.value.favicon;
+        let b = row.value;
+        try { if (typeof b === 'string') b = JSON.parse(b); } catch(e){}
+        if (b && b.favicon) {
+          let link = document.querySelector('link[rel="icon"]');
+          if (!link) {
+            link = document.createElement('link');
+            link.rel = 'icon';
+            document.head.appendChild(link);
+          }
+          link.href = b.favicon;
         }
       }
     });

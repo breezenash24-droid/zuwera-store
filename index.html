@@ -1458,9 +1458,16 @@ const _sb = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_U
             if (el) el.src = h.image;
           }
       } else if (row.key === 'brand') {
-        if (row.value && row.value.favicon) {
-          const link = document.querySelector('link[rel="icon"]');
-          if (link) link.href = row.value.favicon;
+        let b = row.value;
+        try { if (typeof b === 'string') b = JSON.parse(b); } catch(e){}
+        if (b && b.favicon) {
+          let link = document.querySelector('link[rel="icon"]');
+          if (!link) {
+            link = document.createElement('link');
+            link.rel = 'icon';
+            document.head.appendChild(link);
+          }
+          link.href = b.favicon;
         }
       }
     });
