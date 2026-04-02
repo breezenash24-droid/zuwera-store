@@ -952,16 +952,8 @@ function renderStars(rating) {
     }
   }
   return html;
-});
+}
 
-async function submitReview() {
-  const nickname = document.getElementById('reviewNickname').value.trim();
-  const title = document.getElementById('reviewTitle').value.trim();
-  const body = document.getElementById('reviewBody').value.trim();
-  const btn = document.getElementById('submitReviewBtn'
-
- selectedRating === 0) { alert('Please select a star rating'); return; }
-  if (
 // ══════════════════════════════════════════════════════════════════
 // EXPAND REVIEWS
 // ══════════════════════════════════════════════════════════════════
@@ -1124,14 +1116,10 @@ function loadCartCount() {
 // SHOW TOAST
 // ══════════════════════════════════════════════════════════════════
 function showToast(message) {
-  const existing = document.qu><spaneSubtotal</span><span class="summary-value" id="summary-subtotal">—</span></div>
-      <div class="summary-row">rySelector('.toast');
   const existing = document.querySelector('.toast');
   if (existing) existing.remove();
 
   const toast = document.createElement('div');
-  toast.cl class="summary-row"><span>Tax</span><spanassName = 'tory-value" id="summary-tax">—</saan></div>
-      <div class="summarst show';
   toast.className = 'toast show';
   toast.textContent = message;
   document.body.appendChild(toast);
