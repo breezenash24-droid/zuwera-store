@@ -906,7 +906,7 @@
 
       // Average Price
       const validPrices = allProducts.filter(p => p.current_price).map(p => p.current_price);
-      const avgPrice = validPrices.length > 0 ? validPrices.reduce((a, b) => a + b, 0) / validPrices.length : 0;
+      const avgPrice = validPrices.length > 0 ? validPrices.reduce((a, b) => Number(a) + Number(b), 0) / validPrices.length : 0;
       document.getElementById('avgPrice').textContent = `$${avgPrice.toFixed(2)}`;
 
       // Color Variants
@@ -1381,7 +1381,7 @@
     checkAuth();
 
     // Listen for auth changes
-    supabase.auth.onAuthStateChanged((event, session) => {
+    supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
         currentUser = null;
         showAuthContainer();
