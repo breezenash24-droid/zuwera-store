@@ -556,6 +556,15 @@ function renderProduct() {
 
   // ── Check low stock ──
   checkLowStock();
+
+  // ── Update Size Guide Link ──
+  const sizeGuideLink = document.querySelector('.size-guide-link');
+  if (sizeGuideLink && currentProduct) {
+    const params = new URLSearchParams();
+    if (currentProduct.gender) params.set('gender', currentProduct.gender.toLowerCase());
+    if (currentProduct.subtitle) params.set('category', currentProduct.subtitle.toLowerCase());
+    sizeGuideLink.href = `sizeguide.html?${params.toString()}`;
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════

@@ -1567,6 +1567,43 @@
       });
     }
 
+    function applyUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      const genderParam = params.get('gender');
+      const categoryParam = params.get('category');
+
+      if (!genderParam && !categoryParam) return;
+
+      let tabId = 'mens';
+      if (genderParam === 'women') tabId = 'womens';
+      if (genderParam === 'kids') tabId = 'kids';
+
+      if (categoryParam) {
+        const cat = categoryParam.toLowerCase();
+        if (cat.includes('bra')) tabId = 'sports_bras';
+        if (cat.includes('hat') || cat.includes('cap')) tabId = 'hats';
+      }
+
+      const targetTab = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+      if (targetTab) targetTab.click();
+
+      const calcGender = document.getElementById('calcGender');
+      const calcCategory = document.getElementById('calcCategory');
+
+      if (calcGender && genderParam && ['men', 'women', 'kids'].includes(genderParam)) {
+        calcGender.value = genderParam;
+      }
+
+      if (calcCategory && categoryParam) {
+        const cat = categoryParam.toLowerCase();
+        if (cat.includes('top') || cat.includes('shirt') || cat.includes('hoodie') || cat.includes('jacket')) calcCategory.value = 'tops';
+        else if (cat.includes('bottom') || cat.includes('pant') || cat.includes('short') || cat.includes('jogger') || cat.includes('legging')) calcCategory.value = 'bottoms';
+        else if (cat.includes('bra')) { calcCategory.value = 'sports_bras'; if (calcGender) calcGender.value = 'women'; }
+        else if (cat.includes('hat') || cat.includes('cap')) calcCategory.value = 'hats';
+      }
+      if (typeof updateCalculatorFields === 'function') updateCalculatorFields();
+    }
+
     // ────── INIT ──────
     function init() {
       initCookieConsent();
@@ -1574,6 +1611,7 @@
       fetchSiteSettings();
       setupCalculator();
       setupTabs();
+      applyUrlParams();
     }
 
     document.addEventListener('DOMContentLoaded', init);
