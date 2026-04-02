@@ -1016,6 +1016,45 @@
                         <button type="button" class="btn btn-primary btn-sm" id="saveFaqBtn">Save FAQ</button>
                     </div>
                 </div>
+
+                    <!-- Website Settings Page -->
+                    <div id="website" class="page">
+                        <div class="page-header" style="margin-bottom:24px;">
+                            <h2>Website Settings</h2>
+                            <p class="page-subtitle" style="color: var(--text-secondary);">Edit your homepage hero section and other site content</p>
+                        </div>
+                        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:24px">
+                            <h3 style="margin-bottom:16px;font-size:1.1rem;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;">Hero Section</h3>
+                            <div class="form-group">
+                                <label class="form-label">Kicker Text</label>
+                                <input type="text" class="form-input" id="heroKicker" placeholder="Release 001 — Sept 20, 2026">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Main Heading (HTML allowed)</label>
+                                <input type="text" class="form-input" id="heroHeading" placeholder="For Those<br><em>Who Dream.</em>">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Subtext</label>
+                                <textarea class="form-textarea" id="heroSubtext" rows="3" placeholder="Bold athletic sportswear built for the relentless."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Hero Image URL</label>
+                                <input type="url" class="form-input" id="heroImage" placeholder="images/hero.jpg">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">CTA Button Text</label>
+                                <input type="text" class="form-input" id="heroCtaText" placeholder="Explore Release 001">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Announcement Banner Text</label>
+                                <input type="text" class="form-input" id="heroBannerText" placeholder="ALL THE DEVILS ARE HERE">
+                            </div>
+                            <div style="display:flex;gap:12px;margin-top:20px">
+                                <button class="btn btn-primary" onclick="saveHeroSettings()">Save Hero Settings</button>
+                                <button class="btn btn-secondary" onclick="window.open('https://zuwera.store','_blank')">Preview Site</button>
+                            </div>
+                        </div>
+                    </div>
             </div>
         </div>
     </div>
@@ -1374,45 +1413,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-            <!-- Website Settings Page -->
-            <div id="website" class="page">
-                <div class="page-header">
-                    <h2>Website Settings</h2>
-                    <p class="page-subtitle">Edit your homepage hero section and other site content</p>
-                </div>
-                <div class="card" style="margin-bottom:24px">
-                    <h3 style="margin-bottom:16px;font-size:1.1rem">Hero Section</h3>
-                    <div class="form-group">
-                        <label class="form-label">Kicker Text</label>
-                        <input type="text" class="form-input" id="heroKicker" placeholder="Release 001 — Sept 20, 2026">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Main Heading (HTML allowed)</label>
-                        <input type="text" class="form-input" id="heroHeading" placeholder="For Those&lt;br&gt;&lt;em&gt;Who Dream.&lt;/em&gt;">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Subtext</label>
-                        <textarea class="form-input" id="heroSubtext" rows="3" placeholder="Bold athletic sportswear built for the relentless."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Hero Image URL</label>
-                        <input type="url" class="form-input" id="heroImage" placeholder="images/hero.jpg">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">CTA Button Text</label>
-                        <input type="text" class="form-input" id="heroCtaText" placeholder="Explore Release 001">
-                    </div>
-                        <div class="form-group">
-                        <label class="form-label">Announcement Banner Text</label>
-                        <input type="text" class="form-input" id="heroBannerText" placeholder="ALL THE DEVILS ARE HERE">
-                        </div>
-                    <div style="display:flex;gap:12px;margin-top:20px">
-                        <button class="btn btn-primary" onclick="saveHeroSettings()">Save Hero Settings</button>
-                        <button class="btn btn-secondary" onclick="window.open('https://zuwera.store','_blank')">Preview Site</button>
-                    </div>
-                </div>
-            </div>
 
 <script>
         // Initialize Supabase
@@ -1490,7 +1490,7 @@
         
             // Save theme to Supabase for main site
             if (typeof sb !== 'undefined' && sb) {
-                sb.from('site_settings').upsert({ key: 'theme', value: { mode: isDark ? 'dark' : 'light' } }, { onConflict: 'key' }).then(function(){});
+                sb.from('site_settings').upsert({ key: 'theme', value: { mode: isDarkMode ? 'dark' : 'light' } }, { onConflict: 'key' }).then(function(){});
             }
         }
 
@@ -2286,6 +2286,127 @@
             } catch (error) {
                 showToast('Error deleting product: ' + error.message, 'error');
             }
+        });
+
+        // ===== SIZE CHARTS =====
+        const sizeChartColumns = {
+            men_tops: ['Size', 'Chest (in)', 'Waist (in)', 'Hips (in)'],
+            women_tops: ['Size', 'US Size', 'Bust (in)', 'Waist (in)', 'Hips (in)'],
+            kids: ['Size', 'Age', 'Height (in)', 'Chest (in)', 'Waist (in)', 'Hips (in)'],
+            sports_bras: ['Size', 'Band Size', 'Cup Size'],
+            hats: ['Size', 'Head Circ (in)', 'Head Circ (cm)']
+        };
+
+        const sizeChartDbCols = {
+            men_tops: ['size_label', 'chest_in', 'waist_in', 'hips_in'],
+            women_tops: ['size_label', 'us_size', 'bust_in', 'waist_in', 'hips_in'],
+            kids: ['size_label', 'numeric_size', 'height_in', 'chest_in', 'waist_in', 'hips_in'],
+            sports_bras: ['size_label', 'band_size', 'cup_size'],
+            hats: ['size_label', 'head_circ_in', 'head_circ_cm']
+        };
+
+        async function loadSizeCharts() {
+            const category = document.getElementById('sizeChartCategoryFilter').value;
+            try {
+                const { data, error } = await sb.from('size_charts').select('*').eq('category', category);
+                if (error) throw error;
+                sizeChartsData = data || [];
+                displaySizeChartTable(category);
+            } catch (error) {
+                console.error('Error loading size charts:', error);
+                showToast('Error loading size charts: ' + error.message, 'error');
+            }
+        }
+
+        function displaySizeChartTable(category) {
+            const thead = document.getElementById('sizeChartTableHeader');
+            const tbody = document.getElementById('sizeChartTableBody');
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+            const columns = sizeChartColumns[category];
+            const dbCols = sizeChartDbCols[category];
+            columns.forEach(col => { const th = document.createElement('th'); th.textContent = col; thead.appendChild(th); });
+            thead.innerHTML += '<th>Actions</th>';
+            sizeChartsData.forEach(row => {
+                const tr = document.createElement('tr');
+                dbCols.forEach(col => { const td = document.createElement('td'); td.textContent = row[col] || '-'; tr.appendChild(td); });
+                tr.innerHTML += `<td><div class="action-buttons"><button class="btn btn-secondary btn-sm" onclick="editSizeChart('${row.id}')">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteSizeChart('${row.id}')">Delete</button></div></td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('sizeChartCategoryFilter').addEventListener('change', loadSizeCharts);
+
+        document.getElementById('addSizeChartBtn').addEventListener('click', () => {
+            currentSizeChart = null;
+            document.getElementById('sizeChartFormTitle').textContent = 'Add Size Chart Entry';
+            document.getElementById('sizeChartForm').reset();
+            updateSizeChartFormFields();
+            document.getElementById('sizeChartFormModal').classList.add('active');
+        });
+
+        document.getElementById('closeSizeChartFormBtn').addEventListener('click', () => document.getElementById('sizeChartFormModal').classList.remove('active'));
+        document.getElementById('scCategory').addEventListener('change', updateSizeChartFormFields);
+
+        function updateSizeChartFormFields() {
+            const category = document.getElementById('scCategory').value;
+            const container = document.getElementById('scDynamicFields');
+            container.innerHTML = '';
+            const dbCols = sizeChartDbCols[category];
+            const labels = sizeChartColumns[category];
+            dbCols.forEach((col, index) => {
+                if (col !== 'size_label') {
+                    const div = document.createElement('div');
+                    div.className = 'form-group';
+                    div.innerHTML = `<label class="form-label">${labels[index]}</label><input type="text" id="sc-${col}" class="form-input" placeholder="${labels[index]}">`;
+                    container.appendChild(div);
+                }
+            });
+        }
+
+        window.editSizeChart = function(id) {
+            currentSizeChart = sizeChartsData.find(s => s.id === id);
+            if (!currentSizeChart) return;
+            document.getElementById('sizeChartFormTitle').textContent = 'Edit Size Chart Entry';
+            document.getElementById('scCategory').value = currentSizeChart.category;
+            document.getElementById('scSizeLabel').value = currentSizeChart.size_label;
+            updateSizeChartFormFields();
+            sizeChartDbCols[currentSizeChart.category].forEach(col => {
+                if (col !== 'size_label') { const input = document.getElementById(`sc-${col}`); if (input) input.value = currentSizeChart[col] || ''; }
+            });
+            document.getElementById('sizeChartFormModal').classList.add('active');
+        }
+
+        window.deleteSizeChart = async function(id) {
+            if (confirm('Are you sure you want to delete this size entry?')) {
+                try {
+                    const { error } = await sb.from('size_charts').delete().eq('id', id);
+                    if (error) throw error;
+                    showToast('Size entry deleted', 'success');
+                    loadSizeCharts();
+                } catch (err) { showToast('Error deleting size entry: ' + err.message, 'error'); }
+            }
+        }
+
+        document.getElementById('sizeChartForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const category = document.getElementById('scCategory').value;
+            const sizeLabel = document.getElementById('scSizeLabel').value;
+            if (!sizeLabel) { showToast('Size Label is required', 'error'); return; }
+            const dbCols = sizeChartDbCols[category];
+            const data = { category, size_label: sizeLabel };
+            dbCols.forEach(col => {
+                if (col !== 'size_label') { const input = document.getElementById(`sc-${col}`); if (input) data[col] = input.value || null; }
+            });
+            try {
+                let error;
+                if (currentSizeChart) { ({ error } = await sb.from('size_charts').update(data).eq('id', currentSizeChart.id)); }
+                else { ({ error } = await sb.from('size_charts').insert([data])); }
+                if (error) throw error;
+                showToast('Size chart entry saved!', 'success');
+                document.getElementById('sizeChartFormModal').classList.remove('active');
+                loadSizeCharts();
+            } catch (err) { showToast('Error saving size chart: ' + err.message, 'error'); }
         });
 
         // Toast

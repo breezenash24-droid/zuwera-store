@@ -1079,6 +1079,14 @@
           const data = await response.json();
           if (data && data.length > 0 && data[0].value) {
             siteTechs = typeof data[0].value === 'string' ? JSON.parse(data[0].value) : data[0].value;
+      }
+      const themeRes = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?key=eq.theme`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      if (themeRes.ok) {
+        const themeData = await themeRes.json();
+        if (themeData && themeData.length > 0 && themeData[0].value && themeData[0].value.mode === 'light') document.body.classList.add('light-mode');
+        else document.body.classList.remove('light-mode');
           }
         }
       } catch (error) { console.log('Failed to fetch site settings', error); }

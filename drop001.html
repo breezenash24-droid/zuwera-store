@@ -585,6 +585,13 @@ function updateCountdown() {
         auth: { persistSession: true, storageKey: 'zuwera-drop-auth', flowType: 'implicit' },
         global: { headers: { 'X-Client-Info': 'zuwera-store' } }
       });
+
+    try {
+      const { data } = await sb.from('site_settings').select('*').eq('key', 'theme').single();
+      if (data && data.value && data.value.mode === 'light') document.body.classList.add('light-mode');
+      else document.body.classList.remove('light-mode');
+    } catch (e) {}
+
       const grid = document.getElementById('products-grid');
       const { data: products, error } = await sb
         .from('products')

@@ -1444,6 +1444,35 @@ const _sb = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_U
           const el = document.getElementById('announcementText');
           if (el) el.textContent = msg;
         }
+    } else if (row.key === 'theme') {
+      if (row.value && row.value.mode === 'light') document.body.classList.add('light-mode');
+      else document.body.classList.remove('light-mode');
+        } else if (row.key === 'hero') {
+          const h = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+          if (h.kicker) {
+            const el = document.querySelector('.hero-kicker');
+            if (el) el.innerHTML = h.kicker;
+          }
+          if (h.heading) {
+            const el = document.querySelector('.hero-h1');
+            if (el) el.innerHTML = h.heading;
+          }
+          if (h.subtext) {
+            const el = document.querySelector('.hero-sub');
+            if (el) el.textContent = h.subtext;
+          }
+          if (h.cta_text) {
+            const el = document.querySelector('.hero-cta-row .btn-outline');
+            if (el) el.innerHTML = h.cta_text + '\n        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+          }
+          if (h.image) {
+            const el = document.querySelector('.hero-img-wrap img');
+            if (el) el.src = h.image;
+          }
+          if (h.banner_text) {
+            const el = document.getElementById('announcementText');
+            if (el) el.textContent = h.banner_text;
+          }
       }
     });
   } catch (e) { console.log('Settings load skipped:', e); }
