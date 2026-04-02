@@ -866,6 +866,30 @@
         .nav-link .nav-icon { font-size: 1.1rem; width: 22px; text-align: center; }
 
         .status-badge { border-radius: 20px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px; }
+        .review-product-accordion {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+        .review-product-accordion summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .review-product-accordion summary:hover {
+            background-color: var(--bg-primary);
+        }
+        .review-product-accordion[open] summary {
+            border-bottom: 1px solid var(--border);
+        }
+        .review-table-wrapper { padding: 16px; overflow-x: auto; }
+        .review-summary-stats { display: flex; align-items: center; gap: 1rem; font-size: 0.85rem; color: var(--text-secondary); }
+        .review-summary-stats .rating { color: var(--warning); }
 .image-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
         .image-row .form-input { flex: 1; }
         .image-row .btn-upload { padding: 8px 12px; font-size: 0.85rem; white-space: nowrap; background: var(--accent); color: #000; border: none; border-radius: 6px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
@@ -2958,6 +2982,30 @@
                 document.documentElement.style.setProperty('--admin-res-text', brandData.admin_res_text);
             }
         }
+
+        async function saveHeroSettings() {
+            const heroData = {
+                kicker: document.getElementById('heroKicker').value,
+                heading: document.getElementById('heroHeading').value,
+                subtext: document.getElementById('heroSubtext').value,
+                image: document.getElementById('heroImage').value,
+                cta_text: document.getElementById('heroCtaText').value
+            };
+            const { error } = await sb.from('site_settings').upsert({
+                key: 'hero',
+                value: heroData,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'key' });
+            if (error) {
+                showToast('Error saving hero: ' + error.message, 'error');
+            } else {
+                showToast('Hero settings saved!', 'success');
+            }
+        }
+
+</script>
+</body>
+</html>
 
         async function saveHeroSettings() {
             const heroData = {
