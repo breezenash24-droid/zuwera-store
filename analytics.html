@@ -819,6 +819,11 @@
 
     // Authentication
     const checkAuth = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        
+        const session = data?.session;
         if (!session) {
           showAuthContainer();
           return false;
@@ -827,18 +832,25 @@
         currentUser = session.user;
 
         // Check if user is admin
-        c          .from('profiles')
-
-          .eq('id', currentUser.id)          .single();
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', currentUser.id)
+          .single();
 
         if (profileError) {
+          if (profileError.code === 'PGRST200') throw new Error('The "profiles" table is missing from your database. Please run the Supabase migration script to create it.');
           if (profileError.code === 'PGRST116') throw new Error('Your profile is missing from the database. Please run the Admin Sync SQL script in Supabase.');
           throw profileError;
         }
         if (!profile || profile.role !== 'admin') throw new Error('Your account does not have Admin privileges in the profiles table.');
 
-le.display = 'inline-block';
-        tu );
+        showDashboard();
+        backLink.style.display = 'inline-block';
+        return true;
+
+      } catch (e) {
+        showAuthContainer();
         const msg = document.createElement('div');
         msg.style = 'color: var(--error); margin-top: 15px; font-weight: bold; background: rgba(239,68,68,0.1); padding: 10px; border-radius: 4px; border: 1px solid var(--error);';
         msg.innerHTML = 'Access Denied: ' + e.message;
@@ -849,7 +861,8 @@ le.display = 'inline-block';
     };
 
     const showAuthContainer = () => {
-      authContainer
+      authContainer.style.display = 'block';
+      dashboardContainer.style.display = 'none';
     };
 
     const showDashboard = () => {
