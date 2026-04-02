@@ -114,7 +114,7 @@
 <!-- defer moves Supabase off the critical path — it was previously
      render-blocking (parsing stopped until this ~200 KB bundle downloaded
      and executed). defer lets HTML continue parsing in parallel. -->
-<!-- Supabase handled by products.js -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-DCVWDZ8ZBC"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-DCVWDZ8ZBC');</script>
 
@@ -1848,7 +1848,6 @@ function scrollToNotify() {
   setTimeout(() => el.focus(), 600);
 }
 </script>
-<script src="products.js" defer></script>
 <script src="reviews.js" defer></script>
 
 <!-- PWA Service Worker -->

@@ -6,8 +6,10 @@
 const PRODUCTS_SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
 const PRODUCTS_SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 
-// Reuse existing _sb if available (from auth.js), else init
-const _sb = window._sb || (typeof supabase !== 'undefined' ? supabase.createClient(PRODUCTS_SUPABASE_URL, PRODUCTS_SUPABASE_ANON) : null);
+// Reuse existing _sb if available, else init safely without redeclaring const
+if (!window._sb && typeof supabase !== 'undefined') {
+  window._sb = supabase.createClient(PRODUCTS_SUPABASE_URL, PRODUCTS_SUPABASE_ANON);
+}
 
 // Demo fallback products (if Supabase empty/fails)
 const FALLBACK_PRODUCTS = [
@@ -56,9 +58,9 @@ async function loadProducts(gridSelector = '#products-grid') {
   grid.innerHTML = '<div class="pcard" style="opacity:.6;text-align:center;padding:4rem;font-family:var(--fm);font-size:.85rem">🔄 Loading Release 001…</div>';
 
   try {
-    if (!_sb) throw new Error('Supabase not loaded');
+    if (!window._sb) throw new Error('Supabase not loaded');
 
-    const { data, error } = await _sb
+    let { data, error } = await window._sb
       .from('products')
       .select('*')
       .order('sort_order', { ascending: true });
@@ -169,5 +171,4 @@ if (document.readyState === 'loading') {
 
 // Export for product.html/manual calls
 window.loadProducts = loadProducts;
-window._products_sb = _sb; // share client
-
+window._products_sb = window._sb; // share client
