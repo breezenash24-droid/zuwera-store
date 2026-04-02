@@ -91,10 +91,11 @@ async function loadProducts(gridSelector = '#products-grid') {
 }
 
 function renderProducts(grid, products) {
+  grid.classList.remove('single-item', 'two-items');
   if (products.length === 1) {
     grid.classList.add('single-item');
-  } else {
-    grid.classList.remove('single-item');
+  } else if (products.length === 2) {
+    grid.classList.add('two-items');
   }
 
   grid.innerHTML = products.map(p => {

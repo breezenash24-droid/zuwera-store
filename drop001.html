@@ -232,6 +232,18 @@
       gap: 1px;
       background: var(--border);
     }
+    .products-grid.single-item {
+      display: flex;
+      justify-content: center;
+      gap: 0;
+    }
+    .products-grid.single-item > a {
+      width: 100%;
+      max-width: 450px;
+    }
+    .products-grid.two-items {
+      grid-template-columns: 1fr 1fr;
+    }
     .product-card {
       background: var(--black);
       position: relative;
@@ -573,6 +585,12 @@ function updateCountdown() {
       if (error || !products) {
         grid.innerHTML = '<div class="product-card" style="opacity:.3;text-align:center;padding:3rem;grid-column:1/-1">Could not load products.</div>';
         return;
+      }
+
+      if (products.length === 1) {
+        grid.classList.add('single-item');
+      } else if (products.length === 2) {
+        grid.classList.add('two-items');
       }
 
       grid.innerHTML = products.map(p => {
