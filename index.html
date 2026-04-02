@@ -456,7 +456,6 @@ nav#nav.scrolled{
 }
 
 /* Notify */
-.notify-box{}
 .notify-label{
   font-family:var(--fm);font-size:.58rem;letter-spacing:.22em;text-transform:uppercase;
   color:rgba(244,241,235,.28);margin-bottom:.8rem;
@@ -507,8 +506,7 @@ nav#nav.scrolled{
 }
 .pgrid{
   display:grid;grid-template-columns:repeat(3,1fr);
-  border-top:1px solid rgba(244,241,235,.06);
-  border-left:1px solid rgba(244,241,235,.06);
+  gap: 1.5rem;
 }
 .pgrid.single-item {
   display: block;
@@ -521,8 +519,6 @@ nav#nav.scrolled{
 }
 .pcard{
   background:transparent;position:relative;overflow:hidden;transition:background .3s;
-  border-right:1px solid rgba(244,241,235,.06);
-  border-bottom:1px solid rgba(244,241,235,.06);
 }
 .pcard:hover{background:rgba(244,241,235,.02)}
 .pcard-img{
@@ -904,7 +900,13 @@ footer{
   nav#nav{padding:1rem 1.2rem}
   .hero-inner{padding:2rem 1.2rem 1.5rem}
   .hero-bottom{padding:1rem 1.2rem 2rem}
-  .pgrid, .pgrid.two-items{grid-template-columns:1fr}
+  .pgrid, .pgrid.two-items{
+    display:flex; overflow-x:auto; scroll-snap-type:x mandatory;
+    gap:1rem; padding-bottom:1rem;
+    scrollbar-width:none; -ms-overflow-style:none;
+  }
+  .pgrid::-webkit-scrollbar { display:none; }
+  .pgrid .pcard { flex:0 0 85%; scroll-snap-align:start; }
   .cart-hd{padding:1.2rem}
   footer{padding:2rem 1.2rem}
   .mbox { padding: 2rem 1.2rem 1.8rem; }
@@ -991,10 +993,8 @@ body.light-mode .sec-head{border-bottom-color:rgba(9,9,11,.08)}
 body.light-mode .sec-head span{color:rgba(9,9,11,.3)}
 body.light-mode .pgrid{
   background:transparent;
-  border-top-color:rgba(9,9,11,.06);
-  border-left-color:rgba(9,9,11,.06);
 }
-body.light-mode .pcard{background:transparent;border-right-color:rgba(9,9,11,.06);border-bottom-color:rgba(9,9,11,.06)}
+body.light-mode .pcard{background:transparent;}
 body.light-mode .pcard:hover{background:rgba(9,9,11,.03)}
 body.light-mode .pcard-img{background:transparent}
 body.light-mode .pcard-badge{
@@ -1469,14 +1469,29 @@ async function loadProducts() {
     return;
   }
 
+  let renderList = products;
+  // If only 1 product, show its different images as separate cards
+  if (products.length === 1 && products[0].product_images && products[0].product_images.length > 1) {
+    const p = products[0];
+    let allImages = [...p.product_images].sort((a, b) => a.sort_order - b.sort_order);
+    if (p.image_url && !allImages.some(img => img.image_url === p.image_url)) {
+      allImages.unshift({ image_url: p.image_url, sort_order: -1 });
+    }
+    renderList = allImages.map(img => ({
+      ...p,
+      image_url: img.image_url,
+      product_images: [img] // force this image to be the primary one for this card
+    }));
+  }
+
   grid.classList.remove('single-item', 'two-items');
-  if (products.length === 1) {
+  if (renderList.length === 1) {
     grid.classList.add('single-item');
-  } else if (products.length === 2) {
+  } else if (renderList.length === 2) {
     grid.classList.add('two-items');
   }
 
-  grid.innerHTML = products.map(p => {
+  grid.innerHTML = renderList.map(p => {
     const productName = p.title || p.name || 'Untitled';
     const productCategory = p.subtitle || p.category || 'Jackets';
     const productPrice = p.current_price || p.msrp || p.price;

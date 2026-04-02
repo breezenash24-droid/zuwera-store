@@ -84,7 +84,7 @@
   position: relative;
   aspect-ratio: 3/4;
   background: transparent;
-  border: 1px solid var(--c08);
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -121,7 +121,7 @@
 .thumbnail {
   aspect-ratio: 1;
   background: transparent;
-  border: 1px solid var(--c08);
+  border: 1px solid transparent;
   cursor: pointer;
   overflow: hidden;
   transition: border-color 0.2s;

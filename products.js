@@ -74,8 +74,23 @@ async function loadProducts(gridSelector = '#products-grid') {
       data = FALLBACK_PRODUCTS;
     }
 
-    renderProducts(grid, data);
-    return { data, error: null };
+    let renderList = data;
+    // If only 1 product, show its different images as separate cards
+    if (data.length === 1 && data[0].product_images && data[0].product_images.length > 1) {
+      const p = data[0];
+      let allImages = [...p.product_images].sort((a, b) => a.sort_order - b.sort_order);
+      if (p.image_url && !allImages.some(img => img.image_url === p.image_url)) {
+        allImages.unshift({ image_url: p.image_url, sort_order: -1 });
+      }
+      renderList = allImages.map(img => ({
+        ...p,
+        image_url: img.image_url,
+        product_images: [img]
+      }));
+    }
+
+    renderProducts(grid, renderList);
+    return { data: renderList, error: null };
 
   } catch (error) {
     console.error('❌ Products load failed:', error.message);

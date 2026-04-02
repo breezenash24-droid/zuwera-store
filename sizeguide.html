@@ -1200,8 +1200,24 @@
     }
 
     function updateCalculatorFields() {
-      const gender = document.getElementById('calcGender').value;
-      const category = document.getElementById('calcCategory').value;
+      const genderSelect = document.getElementById('calcGender');
+      const categorySelect = document.getElementById('calcCategory');
+      
+      let gender = genderSelect.value;
+      let category = categorySelect.value;
+
+      // Auto-switch to Women if Sports Bras is selected
+      if (category === 'sports_bras' && (gender === 'men' || gender === '')) {
+        genderSelect.value = 'women';
+        gender = 'women';
+      }
+
+      // Disable Sports Bras option for Men
+      Array.from(categorySelect.options).forEach(opt => {
+        if (opt.value === 'sports_bras') {
+          opt.disabled = (gender === 'men');
+        }
+      });
 
       // Hide all fields
       document.getElementById('heightField').style.display = 'none';

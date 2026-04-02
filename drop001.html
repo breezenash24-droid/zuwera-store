@@ -229,8 +229,8 @@
     .products-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 1px;
-      background: var(--border);
+      gap: 1.5rem;
+      background: transparent;
     }
     .products-grid.single-item {
       display: block;
@@ -245,7 +245,7 @@
       grid-template-columns: 1fr 1fr;
     }
     .product-card {
-      background: var(--black);
+      background: transparent;
       position: relative;
       overflow: hidden;
       cursor: pointer;
@@ -369,7 +369,16 @@
       .countdown-item { min-width: 60px; }
       .countdown-number { font-size: clamp(2rem, 12vw, 3.5rem); }
       .products-section { padding: 3rem 1rem; }
-      .products-grid, .products-grid.two-items { grid-template-columns: 1fr; gap: 1.5rem; }
+      .products-grid, .products-grid.two-items { 
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        gap: 1rem;
+        padding-bottom: 1rem;
+        scrollbar-width: none;
+      }
+      .products-grid::-webkit-scrollbar { display: none; }
+      .products-grid > a { flex: 0 0 85%; scroll-snap-align: start; }
       .product-card { padding: 1.2rem; }
       .notify-section { padding: 3rem 1rem; }
       .notify-form { flex-direction: column; gap: 0; }
@@ -428,7 +437,7 @@
     body.light-mode .notify-note { color: rgba(10,10,10,0.3); }
     body.light-mode .notify-success { color: rgba(10,10,10,0.6); }
     body.light-mode .product-img { background: transparent; }
-    body.light-mode .product-card { background: var(--black); }
+    body.light-mode .product-card { background: transparent; }
     body.light-mode .coming-soon-badge {
       background: rgba(245,245,240,0.85);
       border-color: rgba(10,10,10,0.2);
@@ -587,14 +596,28 @@ function updateCountdown() {
         return;
       }
 
+      let renderList = products;
+      if (products.length === 1 && products[0].product_images && products[0].product_images.length > 1) {
+        const p = products[0];
+        let allImages = [...p.product_images].sort((a, b) => a.sort_order - b.sort_order);
+        if (p.image_url && !allImages.some(img => img.image_url === p.image_url)) {
+          allImages.unshift({ image_url: p.image_url, sort_order: -1 });
+        }
+        renderList = allImages.map(img => ({
+          ...p,
+          image_url: img.image_url,
+          product_images: [img]
+        }));
+      }
+
       grid.classList.remove('single-item', 'two-items');
-      if (products.length === 1) {
+      if (renderList.length === 1) {
         grid.classList.add('single-item');
-      } else if (products.length === 2) {
+      } else if (renderList.length === 2) {
         grid.classList.add('two-items');
       }
 
-      grid.innerHTML = products.map(p => {
+      grid.innerHTML = renderList.map(p => {
         const productName = p.title || p.name || 'Untitled';
         const productCategory = p.subtitle || p.category || 'Jackets';
         const productPrice = p.current_price || p.msrp || p.price;
