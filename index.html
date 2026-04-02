@@ -1470,7 +1470,7 @@ async function loadProducts() {
     if (p.product_images && p.product_images.length > 0) {
       p.product_images.sort((a, b) => a.sort_order - b.sort_order);
     }
-    const firstImg = (p.product_images && p.product_images.length > 0) ? p.product_images[0].image_url : p.image_url;
+    const firstImg = p.image_url || (p.product_images && p.product_images.length > 0 ? p.product_images[0].image_url : null);
     const imgHtml = firstImg
       ? `<img src="${firstImg}" alt="${productName}" style="width:100%;height:100%;object-fit:cover">`
       : `<div class="pcard-img-placeholder">
