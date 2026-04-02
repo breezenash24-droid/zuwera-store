@@ -558,11 +558,16 @@ function renderProduct() {
   checkLowStock();
 
   // ── Update Size Guide Link ──
+  updateSizeGuideLink();
+}
+
+function updateSizeGuideLink() {
   const sizeGuideLink = document.querySelector('.size-guide-link');
   if (sizeGuideLink && currentProduct) {
     const params = new URLSearchParams();
     if (currentProduct.gender) params.set('gender', currentProduct.gender.toLowerCase());
     if (currentProduct.subtitle) params.set('category', currentProduct.subtitle.toLowerCase());
+    if (selectedSize) params.set('size', selectedSize);
     sizeGuideLink.href = `sizeguide.html?${params.toString()}`;
   }
 }
@@ -749,6 +754,7 @@ function renderSizes() {
       btn.classList.add('selected');
       selectedSize = size;
       updateStockInfo();
+      updateSizeGuideLink();
     });
 
     sizeGrid.appendChild(btn);

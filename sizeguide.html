@@ -1119,6 +1119,8 @@
       }
 
       renderAllTables();
+      updateHighlightCard();
+      updatePlaceholdersFromSize();
     }
     
     async function fetchSiteSettings() {
@@ -1405,6 +1407,7 @@
 
         // Show highlight card for current tab
         updateHighlightCard();
+        updatePlaceholdersFromSize();
       } else {
         resultText.textContent = 'Could not determine size. Please check your measurements.';
         result.classList.add('visible');
@@ -1521,6 +1524,27 @@
       }
     }
 
+    function updatePlaceholdersFromSize() {
+      // Set defaults first
+      document.getElementById('calcChest').placeholder = 'e.g., 40';
+      document.getElementById('calcWaist').placeholder = 'e.g., 34';
+      document.getElementById('calcHips').placeholder = 'e.g., 40';
+      document.getElementById('calcHeight').placeholder = 'e.g., 70';
+      document.getElementById('calcHeadCirc').placeholder = 'e.g., 22';
+      
+      if (window.recommendedSize && window.currentTab) {
+        const data = getDataForTab(window.currentTab);
+        const sizeData = data.find(row => row.size_label.toUpperCase() === window.recommendedSize.toUpperCase());
+        if (sizeData) {
+          if (sizeData.chest_in) document.getElementById('calcChest').placeholder = `Size ${window.recommendedSize}: ${sizeData.chest_in}`;
+          if (sizeData.waist_in) document.getElementById('calcWaist').placeholder = `Size ${window.recommendedSize}: ${sizeData.waist_in}`;
+          if (sizeData.hips_in) document.getElementById('calcHips').placeholder = `Size ${window.recommendedSize}: ${sizeData.hips_in}`;
+          if (sizeData.height_in) document.getElementById('calcHeight').placeholder = `Size ${window.recommendedSize}: ${sizeData.height_in}`;
+          if (sizeData.head_circ_in) document.getElementById('calcHeadCirc').placeholder = `Size ${window.recommendedSize}: ${sizeData.head_circ_in}`;
+        }
+      }
+    }
+
     function getDataForTab(tabId) {
       const mapping = {
         'mens': sizeChartData.men_tops,
@@ -1563,6 +1587,7 @@
           document.getElementById(`tab-${tabId}`).classList.add('active');
 
           updateHighlightCard();
+          updatePlaceholdersFromSize();
         });
       });
     }
@@ -1571,8 +1596,9 @@
       const params = new URLSearchParams(window.location.search);
       const genderParam = params.get('gender');
       const categoryParam = params.get('category');
+      const sizeParam = params.get('size');
 
-      if (!genderParam && !categoryParam) return;
+      if (!genderParam && !categoryParam && !sizeParam) return;
 
       let tabId = 'mens';
       if (genderParam === 'women') tabId = 'womens';
@@ -1582,6 +1608,11 @@
         const cat = categoryParam.toLowerCase();
         if (cat.includes('bra')) tabId = 'sports_bras';
         if (cat.includes('hat') || cat.includes('cap')) tabId = 'hats';
+      }
+
+      if (sizeParam) {
+        window.recommendedSize = sizeParam.toUpperCase();
+        window.currentTab = tabId;
       }
 
       const targetTab = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
