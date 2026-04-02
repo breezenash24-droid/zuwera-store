@@ -25,6 +25,7 @@
 
 <!-- ── Canonical ─────────────────────────────────────────────────── -->
 <link rel="canonical" href="https://zuwera.store/">
+<link rel="icon" type="image/png" href="images/logo.png" id="site-favicon">
 
 <!-- ── JSON-LD Structured Data ───────────────────────────────────── -->
 <script type="application/ld+json">
@@ -1467,7 +1468,7 @@ const _sb = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_U
             link.rel = 'icon';
             document.head.appendChild(link);
           }
-          link.href = b.favicon;
+            link.href = b.favicon + '?v=' + new Date().getTime(); // Force browser tab refresh
         }
       }
     });
@@ -1649,6 +1650,7 @@ document.getElementById('forgot-submit').addEventListener('click', async () => {
   setDisabled('forgot-submit', true, 'Send Reset Link');
   if (_sb) { const { error } = await _sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin }); if (error) { err.textContent = error.message; setDisabled('forgot-submit', false, 'Send Reset Link'); return; } }
   setDisabled('forgot-submit', false, 'Send Reset Link'); suc.style.display = 'block';
+});
 
 document.getElementById('logout-btn').addEventListener('click', async () => { if (_sb) await _sb.auth.signOut(); showToast('Signed out.'); });
 

@@ -891,7 +891,8 @@
         await Promise.all([
           loadInventory(),
           loadReviews(),
-          loadOrders()
+          loadOrders(),
+          loadEngagement()
         ]);
 
         updateOverviewCards();
@@ -900,6 +901,7 @@
         updatePriceAnalysis();
         await updateReviewsSummary();
         updateOrderAnalytics();
+        updateRevenueChart();
         renderOrdersTable();
       } catch (error) {
         showError('Failed to load dashboard data: ' + error.message);
@@ -944,6 +946,37 @@
         allOrders = data || [];
       } catch (err) {
         console.warn("Could not load orders:", err);
+      }
+    };
+
+    const loadEngagement = async () => {
+      try {
+        const { data: favs } = await supabase.from('favorites').select('*');
+        const { data: waitlist } = await supabase.from('waitlist').select('*');
+        
+        document.getElementById('totalFavorites').textContent = favs ? favs.length : 0;
+        document.getElementById('totalWaitlist').textContent = waitlist ? waitlist.length : 0;
+
+        const favCounts = {};
+        (favs || []).forEach(f => {
+            favCounts[f.product_name] = (favCounts[f.product_name] || 0) + 1;
+        });
+
+        const topFavs = Object.entries(favCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+        const favContainer = document.getElementById('topFavoritesContainer');
+        
+        if (topFavs.length === 0) {
+            favContainer.innerHTML = '<p style="color:var(--text-secondary); padding: 1rem 0;">No favorites saved yet.</p>';
+        } else {
+            favContainer.innerHTML = topFavs.map(f => `
+                <div class="product-card">
+                    <div class="product-title">${f[0] || 'Unknown Product'}</div>
+                    <div style="color: var(--text-secondary); font-size: 0.85rem;">${f[1]} Saves</div>
+                </div>
+            `).join('');
+        }
+      } catch (err) {
+        console.error('Failed to load engagement data:', err);
       }
     };
 
@@ -1156,6 +1189,41 @@
             <div class="bar-value">${count}</div>
           </div>
           <div class="bar-label">${genderLabels[gender]}</div>
+        `;
+        chartContainer.appendChild(item);
+      });
+    };
+
+    // Revenue Timeline Chart
+    const updateRevenueChart = () => {
+      const chartContainer = document.getElementById('revenueChart');
+      if (allOrders.length === 0) {
+        chartContainer.innerHTML = '<p style="color: var(--text-secondary); width: 100%; text-align: center; margin-top: 2rem;">No sales data available yet.</p>';
+        return;
+      }
+
+      const salesByDate = {};
+      allOrders.forEach(o => {
+        const d = new Date(o.created_at).toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' });
+        const amt = Number(o.total) || Number(o.total_amount) || 0;
+        salesByDate[d] = (salesByDate[d] || 0) + amt;
+      });
+
+      const sortedDates = Object.keys(salesByDate).sort((a, b) => new Date(a) - new Date(b)).slice(-7);
+      const maxValue = Math.max(...sortedDates.map(d => salesByDate[d]), 1);
+
+      chartContainer.innerHTML = '';
+      sortedDates.forEach(date => {
+        const total = salesByDate[date];
+        const percentage = (total / maxValue) * 100;
+
+        const item = document.createElement('div');
+        item.className = 'bar-item';
+        item.innerHTML = `
+          <div class="bar" style="height: ${percentage}%; background-color: var(--accent);">
+            <div class="bar-value">$${Math.round(total)}</div>
+          </div>
+          <div class="bar-label" style="font-size:0.75rem">${date}</div>
         `;
         chartContainer.appendChild(item);
       });
@@ -1459,6 +1527,8 @@
 
         document.getElementById('avgRating').textContent = `${avgRating} ⭐`;
         document.getElementById('totalReviews').textContent = reviews?.length || 0;
+        const trb = document.getElementById('totalReviewsBig');
+        if (trb) trb.textContent = reviews?.length || 0;
         document.getElementById('noReviewsCount').textContent = noReviewsCount;
 
         // Top rated products
