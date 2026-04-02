@@ -760,19 +760,10 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
-    // Global error catcher to display raw crashes on screen
-    window.addEventListener('error', function(e) {
-      const err = document.createElement('div');
-      err.style = 'background:#ef4444;color:white;padding:15px;z-index:9999;position:fixed;top:0;left:0;right:0;font-family:monospace;';
-      err.innerHTML = `<b>CRITICAL ERROR:</b> ${e.message} at line ${e.lineno}`;
-      document.body.prepend(err);
-    });
-    window.addEventListener('unhandledrejection', function(e) {
-      const err = document.createElement('div');
-      err.style = 'background:#ef4444;color:white;padding:15px;z-index:9999;position:fixed;top:0;left:0;right:0;font-family:monospace;';
-      err.innerHTML = `<b>ASYNC ERROR:</b> ${e.reason}`;
-      document.body.prepend(err);
-    });
+    if (typeof window.supabase === 'undefined') {
+      document.body.innerHTML = '<div style="padding:40px;text-align:center;color:#ef4444;font-family:sans-serif;"><h3>Failed to load Supabase SDK.</h3><p>Please check your internet connection or disable adblockers (e.g., uBlock Origin) which may block the CDN.</p></div>';
+      throw new Error('Supabase SDK not loaded');
+    }
 
     // Supabase configuration
     const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
@@ -869,6 +860,13 @@
       authContainer.style.display = 'none';
       dashboardContainer.style.display = 'block';
       loadDashboardData();
+    };
+    
+    const showError = (msg) => {
+      const err = document.createElement('div');
+      err.className = 'error';
+      err.textContent = msg;
+      document.getElementById('errorContainer').appendChild(err);
     };
 
     signInBtn.addEventListener('click', async () => {
