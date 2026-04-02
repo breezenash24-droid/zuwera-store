@@ -308,6 +308,7 @@
       background: var(--bg);
       border: 1px solid rgba(248, 145, 165, 0.2);
       border-radius: 2px;
+  text-align: center;
     }
     .highlight-label {
       font-size: 0.7rem;
@@ -389,6 +390,20 @@
       color: var(--text);
       font-weight: 500;
     }
+/* Center all size chart table content for consistency */
+.table-wrap th,
+.table-wrap td {
+  text-align: center !important;
+  padding-left: 1rem !important;
+  min-width: auto !important;
+  white-space: normal;
+  line-height: 1.6;
+}
+#calcBandSize, #calcCupSize {
+  text-align: center;
+  text-align-last: center;
+  padding-left: 2.5rem; /* Balances the 2.5rem right-padding from the arrow icon */
+}
 
     /* ────── HOW TO MEASURE ────── */
     .how-to-measure {

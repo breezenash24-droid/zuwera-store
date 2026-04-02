@@ -918,9 +918,9 @@ footer{
    LIGHT MODE
 ───────────────────────────────────────────── */
 body.light-mode{
-  --ink:#f4f1eb;
+  --ink:#F0EEE9;
   --paper:#09090b;
-  --warm:#e8e2d8;
+  --warm:#e4e1db;
   --dim:rgba(9,9,11,0.4);
   --line:rgba(9,9,11,0.1);
   background:var(--ink);
@@ -929,7 +929,7 @@ body.light-mode{
 
 /* Nav */
 body.light-mode nav#nav.scrolled{
-  background:rgba(244,241,235,.92);
+  background:rgba(240,238,233,.92);
   border-color:rgba(9,9,11,.07);
 }
 body.light-mode .nav-logo img{filter:invert(1)}
@@ -947,9 +947,10 @@ body.light-mode #bar{
 
 /* Hero */
 body.light-mode .hero{background:var(--ink)}
+body.light-mode .hero-img-wrap img{opacity:.6;filter:contrast(.85) saturate(.8)}
 body.light-mode .hero-img-wrap::after{
-  background:linear-gradient(to bottom, rgba(244,241,235,.4) 0%, transparent 30%, transparent 50%, rgba(244,241,235,.85) 100%),
-             radial-gradient(ellipse 60% 60% at 50% 50%, transparent 0%, rgba(244,241,235,.5) 100%);
+  background:linear-gradient(to bottom, rgba(240,238,233,.4) 0%, transparent 30%, transparent 50%, rgba(240,238,233,.85) 100%),
+             radial-gradient(ellipse 60% 60% at 50% 50%, transparent 0%, rgba(240,238,233,.5) 100%);
 }
 body.light-mode .hero-h1 em{-webkit-text-stroke-color:rgba(9,9,11,.85)}
 body.light-mode .hero-sub{color:rgba(9,9,11,.45)}
@@ -998,10 +999,10 @@ body.light-mode .pcard{background:transparent;}
 body.light-mode .pcard:hover{background:rgba(9,9,11,.03)}
 body.light-mode .pcard-img{background:transparent}
 body.light-mode .pcard-badge{
-  background:rgba(244,241,235,.85);border-color:rgba(9,9,11,.1);
+  background:rgba(240,238,233,.85);border-color:rgba(9,9,11,.1);
 }
 body.light-mode .heart-btn{
-  background:rgba(244,241,235,.7);border-color:rgba(9,9,11,.1);
+  background:rgba(240,238,233,.7);border-color:rgba(9,9,11,.1);
   color:rgba(9,9,11,.3);
 }
 body.light-mode .pcard-info{border-top-color:rgba(9,9,11,.06)}
@@ -1021,8 +1022,8 @@ body.light-mode .fcopy{color:rgba(9,9,11,.15)}
 body.light-mode #toast{background:var(--paper);color:var(--ink)}
 
 /* Modals */
-body.light-mode .modal{background:rgba(244,241,235,.88)}
-body.light-mode .mbox{background:#f0ece4;border-color:rgba(9,9,11,.08)}
+body.light-mode .modal{background:rgba(240,238,233,.88)}
+body.light-mode .mbox{background:#F0EEE9;border-color:rgba(9,9,11,.08)}
 body.light-mode .mclose{background:rgba(9,9,11,.05);border-color:rgba(9,9,11,.08);color:var(--paper)}
 body.light-mode .mclose:hover{background:rgba(9,9,11,.1)}
 body.light-mode .fgroup input{background:rgba(9,9,11,.03);border-color:rgba(9,9,11,.1);color:var(--paper)}
@@ -1038,7 +1039,7 @@ body.light-mode .alink a{color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,.
 
 /* Cart */
 body.light-mode #cart-modal{background:var(--ink)}
-body.light-mode .cart-hd{background:rgba(244,241,235,.96);border-bottom-color:rgba(9,9,11,.07)}
+body.light-mode .cart-hd{background:rgba(240,238,233,.96);border-bottom-color:rgba(9,9,11,.07)}
 body.light-mode #cart-items-list{border-top-color:rgba(9,9,11,.07)}
 body.light-mode #cart-items-list li{border-bottom-color:rgba(9,9,11,.07);color:rgba(9,9,11,.7)}
 body.light-mode .csummary{border-color:rgba(9,9,11,.08);background:rgba(9,9,11,.02)}

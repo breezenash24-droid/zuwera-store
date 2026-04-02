@@ -24,8 +24,8 @@
         }
 
         body.light-mode {
-            --bg-primary: #f9f9f9;
-            --bg-secondary: #ffffff;
+            --bg-primary: #F0EEE9;
+            --bg-secondary: #fdfdfc;
             --text-primary: #111;
             --text-secondary: #666;
             --border: #e5e5e5;
@@ -1379,120 +1379,37 @@
             <div id="website" class="page">
                 <div class="page-header">
                     <h2>Website Settings</h2>
-                        <p class="page-subtitle">Customize your site content, layout, and global options</p>
+                    <p class="page-subtitle">Edit your homepage hero section and other site content</p>
                 </div>
-                    
-                    <div class="tabs" id="websiteTabs" style="margin-top: 20px;">
-                        <button type="button" class="tab-button active" data-tab="web-hero">Hero Section</button>
-                        <button type="button" class="tab-button" data-tab="web-global">Global</button>
-                        <button type="button" class="tab-button" data-tab="web-drop">Drop / Launch</button>
-                        <button type="button" class="tab-button" data-tab="web-footer">Footer</button>
-                        <button type="button" class="tab-button" data-tab="web-seo">SEO</button>
+                <div class="card" style="margin-bottom:24px">
+                    <h3 style="margin-bottom:16px;font-size:1.1rem">Hero Section</h3>
+                    <div class="form-group">
+                        <label class="form-label">Kicker Text</label>
+                        <input type="text" class="form-input" id="heroKicker" placeholder="Release 001 — Sept 20, 2026">
                     </div>
-
-                    <div class="card" style="margin-bottom:24px; padding:24px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:8px;">
-                        
-                        <!-- HERO -->
-                        <div id="web-hero" class="tab-content active">
-                            <h3 style="margin-bottom:16px;font-size:1.1rem;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;">Hero Section</h3>
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label class="form-label">Kicker Text</label>
-                                    <input type="text" class="form-input" id="heroKicker" placeholder="Release 001 — Sept 20, 2026">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">CTA Button Text</label>
-                                    <input type="text" class="form-input" id="heroCtaText" placeholder="Explore Release 001">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Main Heading (HTML allowed)</label>
-                                <input type="text" class="form-input" id="heroHeading" placeholder="For Those&lt;br&gt;&lt;em&gt;Who Dream.&lt;/em&gt;">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Subtext</label>
-                                <textarea class="form-input" id="heroSubtext" rows="3" placeholder="Bold athletic sportswear built for the relentless."></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Hero Image URL</label>
-                                <input type="url" class="form-input" id="heroImage" placeholder="images/hero.jpg">
-                            </div>
+                    <div class="form-group">
+                        <label class="form-label">Main Heading (HTML allowed)</label>
+                        <input type="text" class="form-input" id="heroHeading" placeholder="For Those&lt;br&gt;&lt;em&gt;Who Dream.&lt;/em&gt;">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Subtext</label>
+                        <textarea class="form-input" id="heroSubtext" rows="3" placeholder="Bold athletic sportswear built for the relentless."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Hero Image URL</label>
+                        <input type="url" class="form-input" id="heroImage" placeholder="images/hero.jpg">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">CTA Button Text</label>
+                        <input type="text" class="form-input" id="heroCtaText" placeholder="Explore Release 001">
+                    </div>
+                        <div class="form-group">
+                        <label class="form-label">Announcement Banner Text</label>
+                        <input type="text" class="form-input" id="heroBannerText" placeholder="ALL THE DEVILS ARE HERE">
                         </div>
-
-                        <!-- GLOBAL -->
-                        <div id="web-global" class="tab-content">
-                            <h3 style="margin-bottom:16px;font-size:1.1rem;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;">Global Settings</h3>
-                            <div class="form-group">
-                                <label class="form-label">Announcement Banner Text</label>
-                                <input type="text" class="form-input" id="heroBannerText" placeholder="ALL THE DEVILS ARE HERE">
-                            </div>
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label class="form-label">Store Logo URL</label>
-                                    <input type="text" class="form-input" id="siteLogo" placeholder="images/logo.png">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Background Noise Opacity</label>
-                                    <input type="number" class="form-input" id="noiseOpacity" placeholder="0.35" step="0.05" min="0" max="1">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- DROP -->
-                        <div id="web-drop" class="tab-content">
-                            <h3 style="margin-bottom:16px;font-size:1.1rem;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;">Drop / Launch Settings</h3>
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label class="form-label">Drop Title</label>
-                                    <input type="text" class="form-input" id="dropTitle" placeholder="Release 001">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Launch Date (YYYY-MM-DD HH:MM:SS)</label>
-                                    <input type="text" class="form-input" id="dropDate" placeholder="2026-09-20 00:00:00">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Product Section Header</label>
-                                <input type="text" class="form-input" id="dropProductHeader" placeholder="Release 001 — Jackets">
-                            </div>
-                        </div>
-
-                        <!-- FOOTER -->
-                        <div id="web-footer" class="tab-content">
-                            <h3 style="margin-bottom:16px;font-size:1.1rem;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;">Footer Settings</h3>
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label class="form-label">Instagram URL</label>
-                                    <input type="text" class="form-input" id="footerInstagram" placeholder="https://instagram.com/Zuw.era">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Contact Email</label>
-                                    <input type="email" class="form-input" id="footerEmail" placeholder="nasirubreeze@zuwera.store">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Copyright Text</label>
-                                <input type="text" class="form-input" id="footerCopyright" placeholder="© 2026 Zuwera. All rights reserved.">
-                            </div>
-                        </div>
-
-                        <!-- SEO -->
-                        <div id="web-seo" class="tab-content">
-                            <h3 style="margin-bottom:16px;font-size:1.1rem;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;">SEO & Meta</h3>
-                            <div class="form-group">
-                                <label class="form-label">Site Title (Browser Tab)</label>
-                                <input type="text" class="form-input" id="seoTitle" placeholder="ZUWERA — For Those Who Dream">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Site Meta Description</label>
-                                <textarea class="form-input" id="seoDesc" rows="3" placeholder="Bold athletic sportswear..."></textarea>
-                            </div>
-                        </div>
-                        
-                        <div style="display:flex;gap:12px;margin-top:20px;border-top:1px solid var(--border);padding-top:20px;">
-                            <button class="btn btn-primary" id="saveSiteBtn" onclick="saveAllWebsiteSettings()">Save Site Settings</button>
-                            <button class="btn btn-secondary" onclick="window.open('https://zuwera.store','_blank')">Preview Site</button>
-                        </div>
+                    <div style="display:flex;gap:12px;margin-top:20px">
+                        <button class="btn btn-primary" onclick="saveHeroSettings()">Save Hero Settings</button>
+                        <button class="btn btn-secondary" onclick="window.open('https://zuwera.store','_blank')">Preview Site</button>
                     </div>
                 </div>
             </div>
@@ -1684,7 +1601,7 @@
         }
 
         function navigateTo(page) {
-            if (page === 'website') setTimeout(loadHeroSettings, 100);
+            if (page === 'website') setTimeout(loadWebsiteSettings, 100);
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(page).classList.add('active');
 
@@ -1853,18 +1770,30 @@
         });
 
         // Form Tabs
-        document.querySelectorAll('.tab-button').forEach(button => {
+            document.querySelectorAll('#productFormModal .tab-button').forEach(button => {
             button.addEventListener('click', (e) => {
                 e.preventDefault();
                 const tab = button.dataset.tab;
 
-                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('#productFormModal .tab-button').forEach(b => b.classList.remove('active'));
                 button.classList.add('active');
 
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    document.querySelectorAll('#productFormModal .tab-content').forEach(c => c.classList.remove('active'));
                 document.getElementById(tab).classList.add('active');
             });
         });
+
+            // Website Tabs
+            document.querySelectorAll('#websiteTabs .tab-button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const tab = button.dataset.tab;
+                    document.querySelectorAll('#websiteTabs .tab-button').forEach(b => b.classList.remove('active'));
+                    button.classList.add('active');
+                    document.querySelectorAll('#website .tab-content').forEach(c => c.classList.remove('active'));
+                    document.getElementById(tab).classList.add('active');
+                });
+            });
 
         // Auto Generate SKU
         document.getElementById('autoGenSkuBtn').addEventListener('click', async (e) => {
@@ -2456,7 +2385,7 @@
         el.style.cssText = 'background:var(--bg-primary);border:1px solid var(--border);padding:16px;border-radius:6px;position:relative;';
         el.innerHTML = `
             <button type="button" class="btn btn-danger btn-sm" style="position:absolute;top:16px;right:16px;" onclick="this.parentElement.remove()">Remove</button>
-        w    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;padding-right:70px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;padding-right:70px;">
                 <div><label style="font-size:0.75rem;color:var(--text-secondary)">Name (e.g. Aero-PRO™)</label><input type="text" class="form-input t-name" value="${name}"></div>
                 <div><label style="font-size:0.75rem;color:var(--text-secondary)">Level</label><input type="text" class="form-input t-level" value="${info.level || ''}"></div>
                 <div><label style="font-size:0.75rem;color:var(--text-secondary)">Focus</label><input type="text" class="form-input t-focus" value="${info.focus || ''}"></div>
