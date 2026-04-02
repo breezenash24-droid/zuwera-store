@@ -928,6 +928,7 @@
                     <a class="nav-link" data-page="products" onclick="navigateTo('products')">Products</a>
                     <a class="nav-link" data-page="sizecharts" onclick="navigateTo('sizecharts')">Size Charts</a>
                     <a class="nav-link" data-page="reviews" onclick="navigateTo('reviews')">Reviews</a>
+                    <a class="nav-link" data-page="users" onclick="navigateTo('users')">Users</a>
                     <a class="nav-link" data-page="analytics" onclick="navigateTo('analytics')">Analytics</a>
                     <a class="nav-link" data-page="settings" onclick="navigateTo('settings')">Settings</a>
                     <a class="nav-link" data-page="website" onclick="navigateTo('website')">Website</a>
@@ -1026,6 +1027,49 @@
                     </div>
                     <div id="reviewsContainer">
                         <p style="text-align:center;color:var(--text-secondary);">Loading reviews...</p>
+                    </div>
+                </div>
+
+                <!-- Users Page -->
+                <div id="users" class="page">
+                    <div class="products-header">
+                        <h2>User Management</h2>
+                    </div>
+                    <div class="tabs" id="usersTabs" style="margin-bottom: 20px;">
+                        <button type="button" class="tab-button active" data-tab="users-customers">Customers</button>
+                        <button type="button" class="tab-button" data-tab="users-admins">Admins</button>
+                    </div>
+                    
+                    <div id="users-customers" class="tab-content active">
+                        <table class="products-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Joined</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customersTableBody">
+                                <tr><td colspan="4" style="text-align:center;color:var(--text-secondary);">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="users-admins" class="tab-content">
+                        <table class="products-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Joined</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminsTableBody">
+                                <tr><td colspan="4" style="text-align:center;color:var(--text-secondary);">Loading...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
@@ -1799,6 +1843,7 @@
                 products: 'Product Inventory',
                 sizecharts: 'Size Charts',
                 reviews: 'Customer Reviews',
+                users: 'User Management',
                 analytics: 'Analytics',
                 settings: 'Settings',
                 website: 'Website Settings'
@@ -1814,6 +1859,8 @@
                 loadSizeCharts();
             } else if (page === 'reviews') {
                 loadAdminReviews();
+                } else if (page === 'users') {
+                    loadUsers();
                 } else if (page === 'analytics') {
                     loadAnalytics();
             }
@@ -1998,6 +2045,76 @@
                 showToast('Error updating review: ' + err.message, 'error');
             }
         });
+
+        // Users Management
+        document.querySelectorAll('#usersTabs .tab-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                const tab = button.dataset.tab;
+                document.querySelectorAll('#usersTabs .tab-button').forEach(b => b.classList.remove('active'));
+                button.classList.add('active');
+                document.querySelectorAll('#users .tab-content').forEach(c => c.classList.remove('active'));
+                document.getElementById(tab).classList.add('active');
+            });
+        });
+
+        async function loadUsers() {
+            try {
+                const { data: profiles, error } = await sb.from('profiles').select('*').order('created_at', { ascending: false });
+                if (error) throw error;
+                
+                const customers = profiles.filter(p => p.role === 'customer');
+                const admins = profiles.filter(p => p.role === 'admin');
+                
+                renderUsersTable('customersTableBody', customers);
+                renderUsersTable('adminsTableBody', admins);
+            } catch (err) {
+                console.error('Error loading users:', err);
+                showToast('Failed to load users', 'error');
+            }
+        }
+
+        function renderUsersTable(tbodyId, users) {
+            const tbody = document.getElementById(tbodyId);
+            if (!users || users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-secondary);">No users found.</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = users.map(u => {
+                const date = new Date(u.created_at).toLocaleDateString();
+                const isCurrentUser = currentUser && currentUser.id === u.id;
+                const toggleRoleBtn = u.role === 'admin' 
+                    ? `<button class="btn btn-secondary btn-sm" onclick="toggleUserRole('${u.id}', 'customer')" ${isCurrentUser ? 'disabled title="Cannot demote yourself"' : ''}>Make Customer</button>`
+                    : `<button class="btn btn-secondary btn-sm" onclick="toggleUserRole('${u.id}', 'admin')">Make Admin</button>`;
+                
+                return `
+                    <tr>
+                        <td><strong>${u.full_name || 'No Name'}</strong> ${isCurrentUser ? '<span class="status-badge status-live" style="margin-left:8px;font-size:0.6rem;padding:2px 6px;">You</span>' : ''}</td>
+                        <td>${u.email || 'N/A'}</td>
+                        <td>${date}</td>
+                        <td>
+                            <div class="action-buttons">
+                                ${toggleRoleBtn}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        window.toggleUserRole = async function(userId, newRole) {
+            if (confirm(`Are you sure you want to make this user a ${newRole}?`)) {
+                try {
+                    const { error } = await sb.from('profiles').update({ role: newRole }).eq('id', userId);
+                    if (error) throw error;
+                    showToast(`User role updated to ${newRole}`, 'success');
+                    loadUsers();
+                } catch (err) {
+                    showToast('Error updating role: ' + err.message, 'error');
+                }
+            }
+        };
 
         // Products
         async function loadProducts() {
