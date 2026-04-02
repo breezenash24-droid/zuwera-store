@@ -261,7 +261,7 @@ footer p {
 .product-card { background: var(--black); position: relative; overflow: hidden; cursor: default; }
 .product-img {
   aspect-ratio: 3/4;
-  background: #111;
+  background: transparent;
   display: flex; align-items: center; justify-content: center;
   position: relative; overflow: hidden;
 }

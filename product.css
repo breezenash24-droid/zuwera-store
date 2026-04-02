@@ -5,7 +5,7 @@
   padding-top: 80px;
   padding-bottom: 60px;
   min-height: 100vh;
-  background: var(--black);
+  background: transparent;
   transition: background 0.3s, color 0.3s;
 }
 
@@ -83,7 +83,7 @@
 .gallery-main {
   position: relative;
   aspect-ratio: 3/4;
-  background: #111;
+  background: transparent;
   border: 1px solid var(--c08);
   display: flex;
   align-items: center;
@@ -120,7 +120,7 @@
 
 .thumbnail {
   aspect-ratio: 1;
-  background: #111;
+  background: transparent;
   border: 1px solid var(--c08);
   cursor: pointer;
   overflow: hidden;
@@ -826,10 +826,10 @@ footer p {
 
 /* ===================== LIGHT MODE ===================== */
 body.light-mode .gallery-main {
-  background: #eee;
+  background: transparent;
 }
 body.light-mode .thumbnail {
-  background: #eee;
+  background: transparent;
 }
 body.light-mode .low-stock-badge {
   background: rgba(245,245,240,0.9);

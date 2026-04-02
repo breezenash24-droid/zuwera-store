@@ -573,7 +573,7 @@ function renderGallery() {
   thumbContainer.innerHTML = '';
 
   if (currentProduct.images.length === 0) {
-    mainImage.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"%3E%3Crect fill="%23111" width="400" height="500"/%3E%3C/svg%3E';
+    mainImage.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"%3E%3Crect fill="transparent" width="400" height="500"/%3E%3C/svg%3E';
     mainImage.alt = 'No image available';
     return;
   }
