@@ -1019,49 +1019,7 @@
 
                 <!-- Analytics Page -->
                 <div id="analytics" class="page">
-                    <div class="page-header" style="margin-bottom:24px;">
-                        <h2>Analytics Dashboard</h2>
-                        <p class="page-subtitle" style="color: var(--text-secondary);">Real-time overview of your store's performance.</p>
-                    </div>
-                    
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-card-title">Total Revenue</div>
-                            <div class="stat-card-value" id="analyticsRev">$0.00</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-card-title">Total Orders</div>
-                            <div class="stat-card-value" id="analyticsOrders">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-card-title">Avg Order Value</div>
-                            <div class="stat-card-value" id="analyticsAov">$0.00</div>
-                        </div>
-                    </div>
-            
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-top:24px;">
-                        <h3 style="margin-bottom:16px;font-size:1.1rem;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;">Recent Orders</h3>
-                        <table class="products-table">
-                            <thead>
-                                <tr><th>Order ID</th><th>Date</th><th>Amount</th><th>Status</th></tr>
-                            </thead>
-                            <tbody id="analyticsOrdersBody">
-                                <tr><td colspan="4" style="text-align:center;color:var(--text-secondary);">Loading orders...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-top:24px;">
-                        <h3 style="margin-bottom:16px;font-size:1.1rem;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;">Inventory Status</h3>
-                        <table class="products-table">
-                            <thead>
-                                <tr><th>SKU</th><th>Title</th><th>Total Stock</th><th>Status</th></tr>
-                            </thead>
-                            <tbody id="analyticsInvBody">
-                                <tr><td colspan="4" style="text-align:center;color:var(--text-secondary);">Loading inventory...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    <iframe src="analytics.html?embed=true" style="width: 100%; height: calc(100vh - 120px); border: none; border-radius: 8px; background: transparent;"></iframe>
                 </div>
 
                 <!-- Settings Page -->
@@ -1537,7 +1495,7 @@
     <!-- Edit Review Modal -->
     <div id="editReviewModal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">Edit/Reply to Review</div>
+            <div class="modal-header">Moderate & Reply to Review</div>
             <form id="editReviewForm">
                 <input type="hidden" id="editReviewId">
                 <div class="form-group">

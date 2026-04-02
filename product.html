@@ -947,7 +947,8 @@ function renderReviews() {
     const reviewEl = document.createElement('div');
     reviewEl.className = 'review-item';
     const adminResponseHtml = review.admin_response ? `
-      <div class="admin-response" style="margin-top: 12px; padding: 12px; background: rgba(248,145,165,0.05); border-left: 2px solid var(--accent, #F891A5); border-radius: 4px;">
+      <div class="admin-response" style="margin-top: 12px; padding: 12px; background: rgba(248,145,165,0.08); border-left: 2px solid var(--accent, #F891A5); border-radius: 4px;">
+      <div class="admin-response" style="margin-top: 12px; padding: 12px; background: rgba(248,145,165,0.08); border-left: 2px solid var(--accent, #F891A5); border-radius: 4px;">
         <strong style="color: var(--accent, #F891A5); font-size: 0.85rem; letter-spacing: 0.05em; font-family: 'Bebas Neue', sans-serif;">Zuwera Team</strong>
         <p style="margin-top: 4px; font-size: 0.85rem; color: rgba(255,255,255,0.7);">${review.admin_response}</p>
       </div>

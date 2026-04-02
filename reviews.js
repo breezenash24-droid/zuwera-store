@@ -52,7 +52,6 @@ async function loadReviews(pid) {
 
   const { data, error } = await _sb
     .from('reviews')
-    .select('id, rating, body, reviewer_name, created_at')
     .select('id, rating, body, reviewer_name, created_at, admin_response')
     .eq('product_id', pid)
     .order('created_at', { ascending: false });
