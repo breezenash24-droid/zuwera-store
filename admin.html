@@ -1019,7 +1019,10 @@
 
                 <!-- Analytics Page -->
                 <div id="analytics" class="page">
-                    <iframe src="analytics.html?embed=true" style="width: 100%; height: calc(100vh - 120px); border: none; border-radius: 8px; background: transparent;"></iframe>
+                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;text-align:center;">
+                        <h2 style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:1px;margin-bottom:16px;">Analytics Dashboard</h2>
+                        <p style="color:var(--text-secondary);margin-bottom:24px;">Opening full-screen analytics dashboard...</p>
+                    </div>
                 </div>
 
                 <!-- Settings Page -->
@@ -1749,6 +1752,10 @@
         }
 
         function navigateTo(page) {
+            if (page === 'analytics') {
+                window.location.href = 'analytics.html';
+                return;
+            }
             if (page === 'website') setTimeout(loadWebsiteSettings, 100);
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(page).classList.add('active');

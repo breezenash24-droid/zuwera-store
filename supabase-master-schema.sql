@@ -126,6 +126,7 @@ CREATE TABLE reviews (
   body TEXT,
   nickname TEXT,
   reviewer_name TEXT,
+  admin_response TEXT,
   verified_purchase BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now()
 );
