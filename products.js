@@ -62,7 +62,7 @@ async function loadProducts(gridSelector = '#products-grid') {
 
     let { data, error } = await window._sb
       .from('products')
-      .select('*')
+      .select('*, product_images(*)')
       .order('sort_order', { ascending: true });
 
     if (error) throw error;
@@ -103,7 +103,10 @@ function renderProducts(grid, products) {
     const productCategory = p.subtitle || p.category || 'Jackets'; 
     const productPrice = p.current_price || p.price || 0;
     const badgeText = p.status?.toLowerCase().includes('soon') ? 'Coming Soon' : (p.status === 'live' ? 'Available' : 'Coming Soon');
-    const firstImg = p.image_url || (p.product_images?.[0]?.image_url) || 'data:image/svg+xml;base64,...'; // placeholder SVG
+    if (p.product_images && p.product_images.length > 0) {
+      p.product_images.sort((a, b) => a.sort_order - b.sort_order);
+    }
+    const firstImg = (p.product_images && p.product_images.length > 0) ? p.product_images[0].image_url : p.image_url || 'data:image/svg+xml;base64,...'; // placeholder SVG
 
     return `
       <div class="pcard" data-product-slug="${(p.slug || productName.toLowerCase().replace(/[^a-z0-9]/g,'-')).slice(0,50)}" onclick="window.location.href='product.html?slug=${encodeURIComponent(productName.toLowerCase().replace(/[^a-z0-9]/g,'-'))}' style="cursor:pointer">

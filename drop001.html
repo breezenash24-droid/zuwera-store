@@ -567,7 +567,7 @@ function updateCountdown() {
       const grid = document.getElementById('products-grid');
       const { data: products, error } = await sb
         .from('products')
-        .select('*')
+        .select('*, product_images(*)')
         .order('sort_order', { ascending: true });
 
       if (error || !products) {
@@ -580,8 +580,12 @@ function updateCountdown() {
         const productCategory = p.subtitle || p.category || 'Jackets';
         const productPrice = p.current_price || p.msrp || p.price;
         const badge = (p.status === 'coming_soon' || p.status === 'Coming Soon') ? 'Coming Soon' : (p.status === 'live' || p.status === 'Live' ? 'Available' : (p.status || 'Coming Soon'));
-        const imgHtml = p.image_url
-          ? `<img src="${p.image_url}" alt="${productName}" style="width:100%;height:100%;object-fit:cover">`
+        if (p.product_images && p.product_images.length > 0) {
+          p.product_images.sort((a, b) => a.sort_order - b.sort_order);
+        }
+        const firstImg = (p.product_images && p.product_images.length > 0) ? p.product_images[0].image_url : p.image_url;
+        const imgHtml = firstImg
+          ? `<img src="${firstImg}" alt="${productName}" style="width:100%;height:100%;object-fit:cover">`
           : `<div class="product-img-placeholder">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
               <span>Image Coming Soon</span>
