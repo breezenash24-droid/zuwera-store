@@ -61,9 +61,9 @@ async function loadReviews(pid) {
   return _reviewCache[pid];
 }
 
-function updateProductStarDisplay(pid, reviews) {
-  const avgEl = document.getElementById(`avg-${pid}`);
-  const cntEl = document.getElementById(`cnt-${pid}`);
+function updateProductStarDisplay(domId, reviews) {
+  const avgEl = document.getElementById(`avg-${domId}`);
+  const cntEl = document.getElementById(`cnt-${domId}`);
   if (!avgEl || !cntEl) return;
 
   if (!reviews.length) {
@@ -76,8 +76,8 @@ function updateProductStarDisplay(pid, reviews) {
   cntEl.textContent = `${reviews.length} review${reviews.length !== 1 ? 's' : ''} · ${avg.toFixed(1)}`;
 }
 
-function renderReviewsList(pid, reviews) {
-  const listEl = document.getElementById(`list-${pid}`);
+function renderReviewsList(domId, reviews) {
+  const listEl = document.getElementById(`list-${domId}`);
   if (!listEl) return;
 
   if (!reviews.length) {
@@ -97,9 +97,9 @@ function renderReviewsList(pid, reviews) {
 }
 
 // ── Toggle reviews panel open / closed ────────────────────────────
-async function toggleReviews(pid) {
-  const panel   = document.getElementById(`panel-${pid}`);
-  const listEl  = document.getElementById(`list-${pid}`);
+async function toggleReviews(pid, domId = pid) {
+  const panel   = document.getElementById(`panel-${domId}`);
+  const listEl  = document.getElementById(`list-${domId}`);
   if (!panel) return;
 
   const isOpen = panel.style.display !== 'none';
@@ -109,8 +109,8 @@ async function toggleReviews(pid) {
     // Show loading state then fetch
     listEl.innerHTML = '<p class="reviews-loading">Loading reviews…</p>';
     const reviews = await loadReviews(pid);
-    renderReviewsList(pid, reviews);
-    updateProductStarDisplay(pid, reviews);
+    renderReviewsList(domId, reviews);
+    updateProductStarDisplay(domId, reviews);
   }
 }
 
@@ -195,17 +195,19 @@ async function submitReview() {
   document.getElementById('review-modal').classList.remove('open');
   showToast('Review submitted — thank you!');
 
-  // Refresh the panel if it's open
-  const panel = document.getElementById(`panel-${_reviewProductId}`);
-  if (panel && panel.style.display !== 'none') {
-    const reviews = await loadReviews(_reviewProductId);
-    renderReviewsList(_reviewProductId, reviews);
-    updateProductStarDisplay(_reviewProductId, reviews);
-  } else {
-    // Still update the star summary in the toggle button
-    const reviews = await loadReviews(_reviewProductId);
-    updateProductStarDisplay(_reviewProductId, reviews);
-  }
+  // Refresh all instances of panels and stars for this product
+  const reviews = await loadReviews(_reviewProductId);
+  document.querySelectorAll(`[id^="panel-${_reviewProductId}"]`).forEach(panel => {
+      if (panel.style.display !== 'none') {
+          const domId = panel.id.replace('panel-', '');
+          renderReviewsList(domId, reviews);
+          updateProductStarDisplay(domId, reviews);
+      }
+  });
+  document.querySelectorAll(`[id^="avg-${_reviewProductId}"]`).forEach(el => {
+      const domId = el.id.replace('avg-', '');
+      updateProductStarDisplay(domId, reviews);
+  });
 }
 
 // ── Init: load star averages for all product cards on page load ───

@@ -556,6 +556,11 @@
         gap: 1rem;
       }
     }
+
+    /* Embedded Mode */
+    body.embedded nav { display: none !important; }
+    body.embedded .container { padding: 0 !important; }
+    body.embedded h1 { display: none !important; }
   </style>
 </head>
 <body>
@@ -1406,6 +1411,11 @@
       a.click();
       URL.revokeObjectURL(url);
     });
+
+    // Check if embedded
+    if (window.location.search.includes('embed=true')) {
+      document.body.classList.add('embedded');
+    }
 
     // Initialize
     initTheme();

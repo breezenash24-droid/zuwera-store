@@ -930,6 +930,7 @@
                         <p style="color: var(--text-secondary); margin-bottom: 20px;">The full analytics suite is available on a dedicated dashboard page.</p>
                         <a href="analytics.html" class="btn btn-primary">Open Analytics Dashboard</a>
                     </div>
+                    <iframe src="analytics.html?embed=true" style="width: 100%; height: calc(100vh - 120px); border: none; background: transparent;"></iframe>
                 </div>
 
                 <!-- Settings Page -->
@@ -2142,7 +2143,11 @@
                 loadProducts();
             } catch (error) {
                 console.error('Error saving product:', error);
-                showToast('Error saving product: ' + error.message, 'error');
+                let msg = error.message;
+                if (msg && msg.includes('duplicate key value')) {
+                    msg = 'A product with this SKU already exists. Please use a unique SKU.';
+                }
+                showToast('Error saving product: ' + msg, 'error');
             }
         }
 

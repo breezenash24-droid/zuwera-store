@@ -82,10 +82,11 @@ async function loadProducts(gridSelector = '#products-grid') {
       if (p.image_url && !allImages.some(img => img.image_url === p.image_url)) {
         allImages.unshift({ image_url: p.image_url, sort_order: -1 });
       }
-      renderList = allImages.map(img => ({
+      renderList = allImages.slice(0, 2).map((img, idx) => ({
         ...p,
         image_url: img.image_url,
-        product_images: [img]
+        product_images: [img],
+        unique_id: `${p.id}-${idx}`
       }));
     }
 
@@ -143,12 +144,12 @@ function renderProducts(grid, products) {
           <p class="pcard-cat">${productCategory}</p>
           <p class="pcard-name">${productName}</p>
                   <p class="pcard-price">${Number(productPrice) > 0 ? '$' + Number(productPrice).toFixed(0) : 'Price TBA'}</p>
-          <div class="pcard-action" onclick="event.stopPropagation(); toggleReviews('${p.id}')">
-            <span id="avg-${p.id}" style="color:rgba(244,241,235,.2)">☆☆☆☆☆</span>
-            <span id="cnt-${p.id}">Be the first to review</span>
+          <div class="pcard-action" onclick="event.stopPropagation(); toggleReviews('${p.id}', '${domId}')">
+            <span id="avg-${domId}" style="color:rgba(244,241,235,.2)">☆☆☆☆☆</span>
+            <span id="cnt-${domId}">Be the first to review</span>
           </div>
-          <div class="reviews-panel" id="panel-${p.id}" style="display:none;margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(244,241,235,.06)">
-            <div class="reviews-list" id="list-${p.id}" style="margin-bottom:1rem"></div>
+          <div class="reviews-panel" id="panel-${domId}" style="display:none;margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(244,241,235,.06)">
+            <div class="reviews-list" id="list-${domId}" style="margin-bottom:1rem"></div>
             <button class="write-review-btn" onclick="event.stopPropagation(); openReviewForm('${p.id}', '${productName}')">✎ Write a Review</button>
           </div>
         </div>

@@ -1491,10 +1491,11 @@ async function loadProducts() {
     if (p.image_url && !allImages.some(img => img.image_url === p.image_url)) {
       allImages.unshift({ image_url: p.image_url, sort_order: -1 });
     }
-    renderList = allImages.map(img => ({
+      renderList = allImages.slice(0, 2).map((img, idx) => ({
       ...p,
       image_url: img.image_url,
-      product_images: [img] // force this image to be the primary one for this card
+        product_images: [img], // force this image to be the primary one for this card
+        unique_id: `${p.id}-${idx}`
     }));
   }
 
@@ -1522,6 +1523,7 @@ async function loadProducts() {
             <p>Image Coming Soon</p>
           </div>`;
     const priceDisplay = productPrice ? `$${Number(productPrice).toFixed(2)}` : 'Price TBA';
+    const domId = p.unique_id || p.id;
     return `
       <div class="pcard" onclick="window.location.href='/product/${productSlug(p.title)}'" style="cursor:pointer">
         <div class="pcard-img">
@@ -1535,12 +1537,12 @@ async function loadProducts() {
           <p class="pcard-cat">${productCategory}</p>
           <p class="pcard-name">${productName}</p>
           <p class="pcard-price">${priceDisplay}</p>
-          <button class="pcard-action" onclick="event.stopPropagation();toggleReviews('${p.id}')">
-            <span id="avg-${p.id}"><span style="color:rgba(244,241,235,.2)">\u2606\u2606\u2606\u2606\u2606</span></span>
-            <span id="cnt-${p.id}">Be the first to review</span>
+          <button class="pcard-action" onclick="event.stopPropagation();toggleReviews('${p.id}', '${domId}')">
+            <span id="avg-${domId}"><span style="color:rgba(244,241,235,.2)">\u2606\u2606\u2606\u2606\u2606</span></span>
+            <span id="cnt-${domId}">Be the first to review</span>
           </button>
-          <div class="reviews-panel" id="panel-${p.id}" style="display:none">
-            <div class="reviews-list" id="list-${p.id}"></div>
+          <div class="reviews-panel" id="panel-${domId}" style="display:none">
+            <div class="reviews-list" id="list-${domId}"></div>
             <button class="write-review-btn" onclick="event.stopPropagation();openReviewForm('${p.id}','${productName}')">+ Write a Review</button>
           </div>
         </div>

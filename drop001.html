@@ -610,10 +610,11 @@ function updateCountdown() {
         if (p.image_url && !allImages.some(img => img.image_url === p.image_url)) {
           allImages.unshift({ image_url: p.image_url, sort_order: -1 });
         }
-        renderList = allImages.map(img => ({
+        renderList = allImages.slice(0, 2).map((img, idx) => ({
           ...p,
           image_url: img.image_url,
-          product_images: [img]
+          product_images: [img],
+          unique_id: `${p.id}-${idx}`
         }));
       }
 
