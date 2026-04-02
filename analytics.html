@@ -361,9 +361,9 @@
     }
 
     .badge-draft { background-color: rgba(99, 102, 241, 0.2); color: #6366f1; }
-    .badge-coming { background-color: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    .badge-coming-soon { background-color: rgba(245, 158, 11, 0.2); color: #f59e0b; }
     .badge-live { background-color: rgba(16, 185, 129, 0.2); color: #10b981; }
-    .badge-sold { background-color: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .badge-sold-out { background-color: rgba(239, 68, 68, 0.2); color: #ef4444; }
 
     /* Loading and error states */
     .loading {
@@ -566,7 +566,7 @@
     <div class="nav-links">
       <a href="admin.html" id="backLink" style="display: none;">← Back to Admin</a>
       <button class="theme-toggle" id="themeToggle">🌙 Dark</button>
-      <button class="nav-links" id="signOutBtn">Sign Out</button>
+      <button id="signOutBtn" style="background:none;border:none;color:var(--white);cursor:pointer;font-size:0.95rem;">Sign Out</button>
     </div>
   </nav>
 
@@ -730,6 +730,14 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
+    // Global error catcher to display raw crashes on screen
+    window.addEventListener('error', function(e) {
+      const err = document.createElement('div');
+      err.style = 'background:#ef4444;color:white;padding:15px;z-index:9999;position:fixed;top:0;left:0;right:0;font-family:monospace;';
+      err.innerHTML = `<b>CRITICAL ERROR:</b> ${e.message} at line ${e.lineno}`;
+      document.body.prepend(err);
+    });
+
     // Supabase configuration
     const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
@@ -791,7 +799,12 @@
 
       if (error || !profile || profile.role !== 'admin') {
         showError('Unauthorized: Admin access required.');
-        signOutBtn.click();
+        showAuthContainer();
+        const msg = document.createElement('div');
+        msg.style = 'color: var(--error); margin-top: 15px; font-weight: bold; background: rgba(239,68,68,0.1); padding: 10px; border-radius: 4px; border: 1px solid var(--error);';
+        msg.innerHTML = 'Access Denied: Your account does not have Admin privileges.';
+        document.querySelector('.auth-card').appendChild(msg);
+        await supabase.auth.signOut();
         return false;
       }
 
@@ -1082,7 +1095,7 @@
       inventoryData.forEach(item => {
         const isLowStock = item.stock <= item.threshold;
         const rowClass = isLowStock ? 'low-stock' : '';
-        const statusClass = `badge-${item.status}`;
+        const statusClass = `badge-${(item.status || 'draft').toLowerCase().replace(/\s+/g, '-')}`;
 
         html += `
           <tr class="${rowClass}">
@@ -1191,7 +1204,7 @@
       `;
 
       catalogData.forEach(item => {
-        const statusClass = `badge-${item.status}`;
+        const statusClass = `badge-${(item.status || 'draft').toLowerCase().replace(/\s+/g, '-')}`;
         html += `
           <tr>
             <td>${item.sku}</td>
@@ -1297,8 +1310,8 @@
           .filter(p => reviewsByProduct[p.id])
           .map(p => {
             const productReviews = reviewsByProduct[p.id];
-            const avgRating = productReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / productReviews.length;
-            return { ...p, avgRating, reviewCount: productReviews.length };
+            const productAvgRating = productReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / productReviews.length;
+            return { ...p, avgRating: productAvgRating, reviewCount: productReviews.length };
           })
           .sort((a, b) => b.avgRating - a.avgRating)
           .slice(0, 5);
@@ -1383,7 +1396,5 @@
       }
     });
   </script>
-</body>
-</html>
 </body>
 </html>
