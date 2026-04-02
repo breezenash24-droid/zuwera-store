@@ -112,6 +112,25 @@
 #cursor.hover{width:36px;height:36px}
 body.light-mode #cursor { background: #09090b; }
 </style>
+<style>
+/* Toast notification */
+.toast {
+  position: fixed; bottom: 2rem; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #f4f1eb; color: #09090b;
+  padding: .8rem 1.5rem;
+  border-radius: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  font-size: .85rem;
+  letter-spacing: .05em;
+  opacity: 0;
+  transition: all .3s ease;
+  z-index: 10000;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
 
 </head>
 <body>
@@ -163,7 +182,7 @@ body.light-mode #cursor { background: #09090b; }
   </div>
 
 
-      <!-- RIGHT: PRODUCT INFO   <!-- PRODUCT CONTAINER (hidden until loaded) -->
+  <!-- PRODUCT CONTAINER (hidden until loaded) -->
   <div class="product-container hidden" id="productContainer">
 
     <!-- ──────────────────────────────────────────────────────────── -->
@@ -796,16 +815,11 @@ function renderAccordions() {
     `Material: ${currentProduct.material_composition || 'High-quality athletic fabric'}`;
 
   // Fabric & Materials
-  document.getElementById('materialComposition').textContent =
-    `Material: ${currentProduct.material_composition || 'N/A'}`;
+  document.getElementById('materialComposition').textContent = `Material: ${currentProduct.material_composition || 'N/A'}`;
 
   if (currentProduct.fabric_technology) {
-    ntainer.innerHTMLc=o'';
-
-  if (!tags || tags.length === nst{ techDict = {
-    return;      "Aero-PRO™": { focus: "Sweat evaporation and breathability.", level: "Standard Performance.", opt: "Light to moderate sweat output.", best: "Daily physical activity, gym sessions, and steady-state training.", desc: "High-wicking capillary fibers designed to pull moisture away from the skin for consistent dryness and comfort." },
-  }
-
+    const techDict = {
+      "Aero-PRO™": { focus: "Sweat evaporation and breathability.", level: "Standard Performance.", opt: "Light to moderate sweat output.", best: "Daily physical activity, gym sessions, and steady-state training.", desc: "High-wicking capillary fibers designed to pull moisture away from the skin for consistent dryness and comfort." },
       "Aero-ULTRA™": { focus: "Sweat evaporation and breathability.", level: "Pinnacle Performance.", opt: "Heavy to extreme sweat output.", best: "High-intensity racing, elite competition, and maximum exertion.", desc: "A near-zero moisture retention weave with accelerated evaporation tech to keep the garment featherweight during peak output." },
       "Hydro-PRO™": { focus: "Rain, mist, and liquid deflection.", level: "Variable Protection.", opt: "Light rain, mist, and road spray.", best: "Unpredictable weather, morning runs, and outdoor commuting.", desc: "A durable water-repellent (DWR) shield that causes liquid to bead off the surface while maintaining fabric softness." },
       "Hydro-ULTRA™": { focus: "Rain, mist, and liquid deflection.", level: "Absolute Protection.", opt: "Heavy downpours and high-velocity exposure.", best: "Storm conditions, extreme trail hiking, and all-day outdoor exposure.", desc: "100% waterproof, seam-sealed membrane technology that blocks external water while allowing internal vapor to escape." },
@@ -819,7 +833,7 @@ function renderAccordions() {
     let techHTML = `<strong>Fabric Technology:</strong><br>${currentProduct.fabric_technology}`;
 
     const matchedTechs = Object.keys(finalTechDict).filter(t => currentProduct.fabric_technology.includes(t));
-
+    
     if (matchedTechs.length > 0) {
       techHTML += `<div style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,.03); border-radius: 6px; border: 1px solid rgba(255,255,255,.08); font-size: 0.85rem;">`;
       matchedTechs.forEach(t => {
@@ -982,27 +996,7 @@ function setReviewRating(star) {
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  const picker = document.getElementById('starPicker');
-  if (picker) {
-    picker.querySelectorAll('span').forEach(span => {
-      span.addEventListener('mouseenter', () => {
-        const star = parseInt(span.dataset.star);
-        picker.querySelectorAll('span').forEach((s, i) => {
-          s.style.color = i < star ? '#F891A5' : 'rgba(255,255,255,.2)';
-        });
-      });
-    });
-    picker.addEventListener('mouseleave', () => {
-      picker.querySelectorAll('span').forEach((s, i) => {
-        s.style.color = i < selectedRating ? '#F891A5' : 'rgba(255,255,255,.2)';
-      });
-    });
-  }
-});
-
-async function submitReview() {lHeight + 'px';
-  }
+async function submitReview() {
   const nickname = document.getElementById('reviewNickname').value.trim();
   const title = document.getElementById('reviewTitle').value.trim();
   const body = document.getElementById('reviewBody').value.trim();
@@ -1132,11 +1126,13 @@ function loadCartCount() {
 function showToast(message) {
   const existing = document.qu><spaneSubtotal</span><span class="summary-value" id="summary-subtotal">—</span></div>
       <div class="summary-row">rySelector('.toast');
+  const existing = document.querySelector('.toast');
   if (existing) existing.remove();
 
   const toast = document.createElement('div');
   toast.cl class="summary-row"><span>Tax</span><spanassName = 'tory-value" id="summary-tax">—</saan></div>
       <div class="summarst show';
+  toast.className = 'toast show';
   toast.textContent = message;
   document.body.appendChild(toast);
 
