@@ -835,10 +835,10 @@
       const { data, error } = await supabase
         .from('products')
         .select(`
-          *,
-          product_colors (id, color),
-          product_images (id),
-          product_inventory (id, size, stock, low_stock_threshold)
+          *, 
+          product_images(id), 
+          color_variants(id, color_name), 
+          product_sizes(id, size, stock_quantity)
         `);
 
       if (error) throw error;
@@ -867,8 +867,8 @@
       // Total Inventory
       let totalInventory = 0;
       allProducts.forEach(p => {
-        p.product_inventory?.forEach(inv => {
-          totalInventory += inv.stock || 0;
+        p.product_sizes?.forEach(inv => {
+          totalInventory += inv.stock_quantity || 0;
         });
       });
       document.getElementById('totalInventory').textContent = totalInventory.toLocaleString();
@@ -876,8 +876,8 @@
       // Low Stock Alerts
       let lowStockCount = 0;
       allProducts.forEach(p => {
-        p.product_inventory?.forEach(inv => {
-          if (inv.stock <= (inv.low_stock_threshold || 10)) {
+        p.product_sizes?.forEach(inv => {
+          if (inv.stock_quantity <= (p.low_stock_threshold || 10)) {
             lowStockCount++;
           }
         });
@@ -892,7 +892,7 @@
       // Color Variants
       let totalColors = 0;
       allProducts.forEach(p => {
-        totalColors += p.product_colors?.length || 0;
+        totalColors += p.color_variants?.length || 0;
       });
       document.getElementById('colorVariants').textContent = totalColors;
     };
@@ -907,7 +907,8 @@
       };
 
       allProducts.forEach(p => {
-        statuses[p.status] = (statuses[p.status] || 0) + 1;
+        const statusKey = p.status ? p.status.toLowerCase().replace(/\s/g, '_') : 'draft';
+        if (statuses.hasOwnProperty(statusKey)) statuses[statusKey]++;
       });
 
       const chartContainer = document.getElementById('statusChart');
@@ -955,8 +956,9 @@
       };
 
       allProducts.forEach(p => {
-        if (p.gender && genders.hasOwnProperty(p.gender)) {
-          genders[p.gender]++;
+        const genderKey = p.gender ? p.gender.toLowerCase() : null;
+        if (genderKey && genders.hasOwnProperty(genderKey)) {
+          genders[genderKey]++;
         }
       });
 
@@ -1002,12 +1004,12 @@
       // Flatten inventory data
       let inventoryData = [];
       allProducts.forEach(product => {
-        (product.product_inventory || []).forEach(inv => {
+        (product.product_sizes || []).forEach(inv => {
           inventoryData.push({
             productTitle: product.title,
             sku: product.sku,
             size: inv.size,
-            stock: inv.stock || 0,
+            stock: inv.stock_quantity || 0,
             threshold: inv.low_stock_threshold || 10,
             status: product.status
           });
@@ -1081,8 +1083,8 @@
         msrp: p.msrp || 0,
         currentPrice: p.current_price || 0,
         status: p.status,
-        totalStock: (p.product_inventory || []).reduce((sum, inv) => sum + (inv.stock || 0), 0),
-        colorCount: p.product_colors?.length || 0,
+        totalStock: (p.product_sizes || []).reduce((sum, inv) => sum + (inv.stock_quantity || 0), 0),
+        colorCount: p.color_variants?.length || 0,
         imageCount: p.product_images?.length || 0
       }));
 
