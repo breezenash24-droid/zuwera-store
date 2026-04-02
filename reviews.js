@@ -86,9 +86,9 @@ function renderReviewsList(domId, reviews) {
   }
   listEl.innerHTML = reviews.map(r => {
     const adminResponseHtml = r.admin_response ? `
-      <div class="admin-response" style="margin-top: 10px; padding: 10px; background: rgba(248,145,165,0.05); border-left: 2px solid #F891A5; border-radius: 4px;">
+      <div class="admin-response" style="margin-top: 10px; padding: 10px; background: var(--admin-res-bg, rgba(248,145,165,0.08)); border-left: 2px solid #F891A5; border-radius: 4px;">
         <strong style="color: #F891A5; font-size: 0.8rem; letter-spacing: 0.05em; font-family: 'Bebas Neue', sans-serif;">Zuwera Team</strong>
-        <p style="margin-top: 4px; font-size: 0.85rem; color: rgba(244,241,235,0.7);">${escHtml(r.admin_response)}</p>
+        <p style="margin-top: 4px; font-size: 0.85rem; color: var(--admin-res-text, rgba(244,241,235,0.7));">${escHtml(r.admin_response)}</p>
       </div>
     ` : '';
     return `

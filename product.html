@@ -406,6 +406,8 @@ async function loadSiteSettings() {
           }
           link.href = b.favicon;
         }
+          if (b.admin_res_bg) document.documentElement.style.setProperty('--admin-res-bg', b.admin_res_bg);
+          if (b.admin_res_text) document.documentElement.style.setProperty('--admin-res-text', b.admin_res_text);
       }
     });
   } catch (e) { console.log('Settings load skipped:', e); }
@@ -947,10 +949,9 @@ function renderReviews() {
     const reviewEl = document.createElement('div');
     reviewEl.className = 'review-item';
     const adminResponseHtml = review.admin_response ? `
-      <div class="admin-response" style="margin-top: 12px; padding: 12px; background: rgba(248,145,165,0.08); border-left: 2px solid var(--accent, #F891A5); border-radius: 4px;">
-      <div class="admin-response" style="margin-top: 12px; padding: 12px; background: rgba(248,145,165,0.08); border-left: 2px solid var(--accent, #F891A5); border-radius: 4px;">
+      <div class="admin-response" style="margin-top: 12px; padding: 12px; background: var(--admin-res-bg, rgba(248,145,165,0.08)); border-left: 2px solid var(--accent, #F891A5); border-radius: 4px;">
         <strong style="color: var(--accent, #F891A5); font-size: 0.85rem; letter-spacing: 0.05em; font-family: 'Bebas Neue', sans-serif;">Zuwera Team</strong>
-        <p style="margin-top: 4px; font-size: 0.85rem; color: rgba(255,255,255,0.7);">${review.admin_response}</p>
+        <p style="margin-top: 4px; font-size: 0.85rem; color: var(--admin-res-text, rgba(255,255,255,0.7));">${review.admin_response}</p>
       </div>
     ` : '';
     reviewEl.innerHTML = `
@@ -1003,9 +1004,9 @@ function expandReviews() {
     const reviewEl = document.createElement('div');
     reviewEl.className = 'review-item';
     const adminResponseHtml = review.admin_response ? `
-      <div class="admin-response" style="margin-top: 12px; padding: 12px; background: rgba(248,145,165,0.05); border-left: 2px solid var(--accent, #F891A5); border-radius: 4px;">
+      <div class="admin-response" style="margin-top: 12px; padding: 12px; background: var(--admin-res-bg, rgba(248,145,165,0.08)); border-left: 2px solid var(--accent, #F891A5); border-radius: 4px;">
         <strong style="color: var(--accent, #F891A5); font-size: 0.85rem; letter-spacing: 0.05em; font-family: 'Bebas Neue', sans-serif;">Zuwera Team</strong>
-        <p style="margin-top: 4px; font-size: 0.85rem; color: rgba(255,255,255,0.7);">${review.admin_response}</p>
+        <p style="margin-top: 4px; font-size: 0.85rem; color: var(--admin-res-text, rgba(255,255,255,0.7));">${review.admin_response}</p>
       </div>
     ` : '';
     reviewEl.innerHTML = `

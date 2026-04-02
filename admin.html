@@ -1170,6 +1170,14 @@
                                 <label class="form-label">CTA Button Text</label>
                                 <input type="text" class="form-input" id="heroCtaText" placeholder="Explore Release 001">
                             </div>
+                            <div class="form-group" style="margin-top: 20px;">
+                                <label class="form-label">Admin Review Response Background</label>
+                                <input type="color" class="form-input" id="adminResBg" value="#2a1419" style="height: 40px; padding: 4px; width: 100px;">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Admin Review Response Text</label>
+                                <input type="color" class="form-input" id="adminResText" value="#f891a5" style="height: 40px; padding: 4px; width: 100px;">
+                            </div>
                             <div style="display:flex;gap:12px;margin-top:20px">
                                 <button class="btn btn-primary" onclick="saveHeroSettings()">Save Hero Settings</button>
                                 <button class="btn btn-secondary" onclick="window.open(window.location.origin,'_blank')">Preview Site</button>
@@ -1692,6 +1700,17 @@
             document.getElementById('authGate').style.display = 'none';
             document.getElementById('adminPanel').style.display = 'flex';
             await fetchGlobalTechs();
+            
+            // Load Brand CSS Variables for Reviews
+            try {
+                const { data } = await sb.from('site_settings').select('value').eq('key', 'brand').single();
+                if (data && data.value) {
+                    let b = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+                    if (b.admin_res_bg) document.documentElement.style.setProperty('--admin-res-bg', b.admin_res_bg);
+                    if (b.admin_res_text) document.documentElement.style.setProperty('--admin-res-text', b.admin_res_text);
+                }
+            } catch (e) {}
+            
             loadDashboard();
         }
 
@@ -1810,6 +1829,14 @@
                         if (total < (product.low_stock_threshold || 10)) {
                             lowStockAlerts++;
                         }
+                        if (b.admin_res_bg) {
+                            document.getElementById('adminResBg').value = b.admin_res_bg;
+                            document.documentElement.style.setProperty('--admin-res-bg', b.admin_res_bg);
+                        }
+                        if (b.admin_res_text) {
+                            document.getElementById('adminResText').value = b.admin_res_text;
+                            document.documentElement.style.setProperty('--admin-res-text', b.admin_res_text);
+                        }
                     }
                 }
 
@@ -1854,7 +1881,10 @@
                             <td style="color: var(--warning);">${rating}</td>
                             <td>${r.nickname || r.reviewer_name || 'Anonymous'}</td>
                             <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><strong>${r.title || ''}</strong></td>
-                            <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${r.body || ''}</td>
+                                <td style="max-width: 250px;">
+                                    <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${r.body || ''}</div>
+                                    ${r.admin_response ? `<div style="margin-top: 8px; padding: 8px; background: var(--admin-res-bg, rgba(248,145,165,0.1)); border-left: 2px solid var(--accent); border-radius: 4px;"><strong style="color: var(--accent); font-size: 0.8rem;">Zuwera Team</strong><p style="margin-top: 4px; font-size: 0.8rem; color: var(--admin-res-text, var(--text-secondary)); white-space: normal;">${safeAdminResponse}</p></div>` : ''}
+                                </td>
                             <td>
                                 <div class="action-buttons">
                                     <button class="btn btn-secondary btn-sm" onclick="openEditReview('${r.id}', '${safeTitle}', '${safeBody}', '${safeAdminResponse}')">Edit/Reply</button>
@@ -2924,6 +2954,8 @@
                     }
                     link.href = brandData.favicon;
                 }
+                document.documentElement.style.setProperty('--admin-res-bg', brandData.admin_res_bg);
+                document.documentElement.style.setProperty('--admin-res-text', brandData.admin_res_text);
             }
         }
 
