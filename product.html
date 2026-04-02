@@ -90,30 +90,6 @@
 .left-arrow { left: 10px; }
 .right-arrow { right: 10px; }
 .gallery-arrow:hover { background: rgba(9, 9, 11, 0.8); }
-
-/* -- Custom Cursor -- */
-@media (hover: hover) and (pointer: fine) {
-  body, button, a, .pcard-action { cursor: none !important; }
-}
-@media (hover: none) {
-  #cursor { display: none !important; }
-  body, button, a, .pcard-action { cursor: auto !important; }
-}
-#cursor{
-  width:12px;height:12px;
-  background:#f4f1eb;
-  border-radius:50%;
-  position:fixed;z-index:9999;
-  pointer-events:none;
-  top:0;left:0;
-  transform:translate3d(-100px,-100px,0);
-  transition:transform 0.15s ease-out,width 0.3s cubic-bezier(0.25,1,0.5,1),height 0.3s cubic-bezier(0.25,1,0.5,1),background 0.3s ease;
-  mix-blend-mode:difference;
-  will-change:transform,width,height;
-}
-#cursor.hover{width:48px;height:48px;background:#F891A5;}
-body.light-mode #cursor { background: #09090b; }
-body.light-mode #cursor.hover { background: #F891A5; }
 </style>
 <style>
 /* Toast notification */
@@ -137,8 +113,6 @@ body.light-mode #cursor.hover { background: #F891A5; }
 
 </head>
 <body>
-
-<div id="cursor"></div>
 
 <!-- ════════════════════════════════════════════════════════════════ -->
 <!-- ANNOUNCEMENT BAR                                                 -->
@@ -428,24 +402,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadCartCount();
   initializeCookieConsent();
   document.body.classList.add('has-bar');
-
-  // Initialize smooth custom cursor
-  const cursor = document.getElementById('cursor');
-  if (cursor) {
-    document.addEventListener('mousemove', (e) => {
-      cursor.style.transform = `translate3d(calc(${e.clientX}px - 50%), calc(${e.clientY}px - 50%), 0)`;
-    });
-    document.addEventListener('mouseover', (e) => {
-      if (e.target.closest('a, button, .pcard-action, .gallery-arrow, .color-swatch, .size-btn, .thumbnail, .accordion-header, .add-to-cart-btn, .nav-logo-link')) {
-        cursor.classList.add('hover');
-      }
-    });
-    document.addEventListener('mouseout', (e) => {
-      if (e.target.closest('a, button, .pcard-action, .gallery-arrow, .color-swatch, .size-btn, .thumbnail, .accordion-header, .add-to-cart-btn, .nav-logo-link')) {
-        cursor.classList.remove('hover');
-      }
-    });
-  }
 
   try {
     await loadProduct();
