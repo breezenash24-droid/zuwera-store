@@ -35,50 +35,30 @@
   background:rgba(9,9,11,.88);backdrop-filter:blur(12px);
   align-items:center;justify-content:center;
 }
-.modal.open{display:flex}
-#payment-success{display:none;position:fixed;inset:0;z-index:10000;background:var(--black,#09090b);flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem}
-#payment-success.open{display:flex}
+.modal.open { display:flex }
+#payment-success { display:none; position:fixed; inset:0; z-index:10000; background:var(--black,#09090b); flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem }
+#payment-success.open { display:flex }
 
-/* -- Review Form -- */
-.review-form-container{
-  margin-top:20px;padding:24px;background:rgba(255,255,255,.03);
-  border:1px solid rgba(255,255,255,.08);border-radius:10px;
-.review-form-container h4{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:.06em;margin-bottom:16px;color:#f4f1eb}
-.review-form-row{margin-bottom:14px}
-.review-form-row label{display:block;font-size:.78rem;color:rgba(255,255,255,.5);margin-bottom:6px;letter-spacing:.03em}
-.review-form-row input,.review-form-row textarea{
-  width:100%;padding:10px 14px;background:rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.1);border-radius:6px;color:#f4f1eb;
-  font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s;
+/* Review Form */
+.review-form-container { margin-top:20px; padding:24px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); border-radius:10px; }
+.review-form-container h4 { font-family:'Bebas Neue',sans-serif; font-size:1.2rem; letter-spacing:.06em; margin-bottom:16px; color:#f4f1eb }
+.review-form-row { margin-bottom:14px }
+.review-form-row label { display:block; font-size:.78rem; color:rgba(255,255,255,.5); margin-bottom:6px; letter-spacing:.03em }
+.review-form-row input, .review-form-row textarea {
+  width:100%; padding:10px 14px; background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.1); border-radius:6px; color:#f4f1eb;
+  font-family:'DM Sans',sans-serif; font-size:.9rem; outline:none; transition:border-color .2s;
 }
-.review-form-row input:focus,.review-form-row textarea:focus{border-color:rgba(248,145,165,.5)}
-.review-form-row textarea{resize:vertical;min-height:80px}
-.star-picker{display:flex;gap:4px;margin-top:4px}
-.star-picker span{font-size:1.5rem;cursor:pointer;color:rgba(255,255,255,.2);tranrieion:color .15s;user-select:none}
-.stview-form-cont.active{color:#F891A5}
-.star-picker spanainer{
-  margin-top:20px;padding:24px;background:rgba(255,255,255,.03);
-  border:1px solid rgba(255,255,255,.08);border-radi;border:none;
-  font-family:'DM Sans',sans-serifufont-weight:700;font-size:.85rem;
-  letter-spacing:.04em;s:10px-radius;6px;cu
-.review-form-container h4{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:.06em;margin-bottom:16px;color:#f4f1eb}
-.review-form-row{margin-bottom:14px}
-.review-form-row label{display:block;font-size:.78rem;color:rgba(255,255,255,.5);margin-bottom:6px;letter-spacing:.03em}
-.review-form-row input,.review-form-row textarea{
-  width:100%;padding:10px 14px;background:rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.1);border-radius:6px;color:#f4f1eb;
-  font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s;
-}
-.review-form-row input:focus,.review-form-row textarea:focus{border-color:rgba(248,145,165,.5)}
-.review-form-row textarea{resize:vertical;min-height:80px}
-.star-picker{display:flex;gap:4px;margin-top:4px}
-.star-picker span{font-size:1.5rem;cursor:pointer;color:rgba(255,255,255,.2);transition:color .15s;user-select:none}
-.star-picker span.active{color:#F891A5}
-.star-picker span:hover,.star-picker span:hover~span{color:rgba(248,145,165,.5)}
-.review-submit-btn{
-  padding:12px 28px;background:#F891A5;color:#09090b;border:none;
-  font-family:'DM Sans',sans-serif;font-weight:700;font-size:.85rem;
-  letter-spacing:.04em;border-radius:6px;cursor:pointer;transition:all .2s;
+.review-form-row input:focus, .review-form-row textarea:focus { border-color:rgba(248,145,165,.5) }
+.review-form-row textarea { resize:vertical; min-height:80px }
+.star-picker { display:flex; gap:4px; margin-top:4px }
+.star-picker span { font-size:1.5rem; cursor:pointer; color:rgba(255,255,255,.2); transition:color .15s; user-select:none }
+.star-picker span.active { color:#F891A5 }
+.star-picker span:hover, .star-picker span:hover ~ span { color:rgba(248,145,165,.5) }
+.review-submit-btn {
+  padding:12px 28px; background:#F891A5; color:#09090b; border:none;
+  font-family:'DM Sans',sans-serif; font-weight:700; font-size:.85rem;
+  letter-spacing:.04em; border-radius:6px; cursor:pointer; transition:all .2s;
 }
 .review-submit-btn:hover{background:#fbb3c4}
 .review-submit-btn:disabled{opacity:.5;cursor:not-allowed}
@@ -190,9 +170,7 @@ body.light-mode #cursor { background: #09090b; }
     <!-- PRODUCT LAYOUT: Gallery Left, Info Right                     -->
     <!-- ──────────────────────────────────────────────────────────── -->
     <div class="product-layout">
-
       <!-- LEFT: IMAGE GALLERY -->
-          </div>
     <div class="gallery-section">
         <div class="gallery-main" style="position:relative">
           <button id="prevImg" class="gallery-arrow left-arrow">&#10094;</button>
@@ -201,7 +179,6 @@ body.light-mode #cursor { background: #09090b; }
           <div class="low-stock-badge hidden" id="lowStockBadge">Low Stock</div>
         </div>
         <div class="gallery-thumbnails" id="galleryThumbnails"></div>
-      </div>
 
       <!-- RIGHT: PRODUCT INFO -->
       <div class="info-section">
@@ -292,13 +269,8 @@ body.light-mode #cursor { background: #09090b; }
             </div>
           </div>
 
-            <!--  </Riv>
-                </div>
-                <div claEsVIEeview-form-row">
-                  <label>NicknamW</labSl>
-                  <input type="te -->Nicknam
-          <div cl/ass>
-    =           <div "accordion">
+          <!-- REVIEWS -->
+          <div class="accordion">
             <button class="accordion-header" onclick="toggleAccordion(this)">
               <span id="reviewsHeader">Reviews</span>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -307,35 +279,17 @@ body.light-mode #cursor { background: #09090b; }
             </button>
             <div class="accordion-body">
               <div id="reviewsContent"></div>
-                <div class="review-success-msg hidden"<dd=ireviewSuccessMsgv>Thanks for yo r revicw! It hal been submitted.</divass="review-form-container" id="reviewFormContainer">
-              </div>
-            </div>
-          </div>
-
-        </div>            <h4>Share Your Experience</h4>
-
+              <div class="review-form-container" id="reviewFormContainer">
+                <h4>Share Your Experience</h4>
                 <div class="review-form-row">
                   <label>Rating</label>
                   <div class="star-picker" id="starPicker">
-                    <span data-star="1" onclick="setReviewRating(1)">&#9733;</span>
-                    <span data-star="2" onclick="setReviewRating(2)">&#9733;</span>
-                    <span data-star="3" onclick="setReviewRating(3)">&#9733;</span>
-                    <span data-star="4" onclick="setReviewRating(4)">&#9733;</span>
-                    <span data-star="5" onclick="setReviewRating(5)">&#9733;</span>
+                    <span data-star="1" onclick="setReviewRating(1)">&#9733;</span><span data-star="2" onclick="setReviewRating(2)">&#9733;</span><span data-star="3" onclick="setReviewRating(3)">&#9733;</span><span data-star="4" onclick="setReviewRating(4)">&#9733;</span><span data-star="5" onclick="setReviewRating(5)">&#9733;</span>
                   </div>
                 </div>
-                <div class="review-form-row">
-                  <label>Nickname</label>
-                  <input type="text" id="reviewNickname" placeholder="Your name" maxlength="50">
-                </div>
-                <div class="review-form-row">
-                  <label>Review Title</label>
-                  <input type="text" id="reviewTitle" placeholder="Sum it up in a few words" maxlength="100">
-                </div>
-                <div class="review-form-row">
-                  <label>Your Review</label>
-                  <textarea id="reviewBody" placeholder="What did you like or dislike? How did the sizing feel?" maxlength="1000"></textarea>
-                </div>
+                <div class="review-form-row"><label>Nickname</label><input type="text" id="reviewNickname" placeholder="Your name" maxlength="50"></div>
+                <div class="review-form-row"><label>Review Title</label><input type="text" id="reviewTitle" placeholder="Sum it up in a few words" maxlength="100"></div>
+                <div class="review-form-row"><label>Your Review</label><textarea id="reviewBody" placeholder="What did you like or dislike? How did the sizing feel?" maxlength="1000"></textarea></div>
                 <button class="review-submit-btn" id="submitReviewBtn" onclick="submitReview()">Submit Review</button>
                 <div class="review-success-msg hidden" id="reviewSuccessMsg">Thanks for your review! It has been submitted.</div>
               </div>
@@ -345,10 +299,8 @@ body.light-mode #cursor { background: #09090b; }
         </div>
 
       </div>
-
     </div>
 
-// THEME — load imediatel to prevent flash
   </div>
 
 </main>
@@ -510,10 +462,8 @@ async function loadProduct() {
 
   // Normalize field names — database may use name/price or title/current_price
   if (!productData.title && productData.name) productData.title = productData.name;
-  if (!productData.current_price && productData.price) {
-    productDatauct.colo.cur colorsRes.data || [];
-   rcurrentProduct.ient_price = parseFloat(productData.price) || 0;
-  }
+  if (!productData.current_price && productData.price) { productData.current_price = parseFloat(productData.price) || 0; }
+
   if (!productData.subtitle && productData.category) productData.subtitle = productData.category;
   if (!productData.gender && productData.subtitle) productData.gender = productData.subtitle;
 
@@ -528,10 +478,9 @@ async function loadProduct() {
         .eq('product_id', currentProduct.id)
         .order('sort_order', { ascending: true }),
       sb
-        .from('oduct.imcolo = [{ image_url: currentProduct.image_url, alt_text: currentProduct.titler}];_variants')
-            .select('*')
-}        .eq('product_id', currentProduct.id)
-
+        .from('color_variants')
+        .select('*')
+        .eq('product_id', currentProduct.id)
         .order('sort_order', { ascending: true }),
       sb
         .from('product_sizes')
@@ -544,10 +493,7 @@ async function loadProduct() {
         .order('created_at', { ascending: false })
     ]);
 
-    currentProduct.images = imagesRes.data || [];
-    currentProduct.colors = colorsRes.data || [];
-    currentProduct.inventory = inventoryRes.data || [];
-    currentProduct.reviews = reviewsRes.data || [];
+    currentProduct.images = imagesRes.data || []; currentProduct.colors = colorsRes.data || []; currentProduct.inventory = inventoryRes.data || []; currentProduct.reviews = reviewsRes.data || [];
   } catch (relatedErr) {
     console.warn('Could not load related product data:', relatedErr);
     currentProduct.images = currentProduct.images || [];
@@ -556,14 +502,9 @@ async function loadProduct() {
     currentProduct.reviews = currentProduct.reviews || [];
   }
 
-  // Fix: Force prepending the main image_url if the array is missing it entirely (avoids images missing from product page)
-  if (currentProduct.image_url && !currentProduct.images.some(img => img.image_url === currentProduct.image_url)) {
-    currentProduct.images.unshift({ image_url: currentProduct.image_url, alt_text: currentProduct.title });
-  }
-
-    if (currentProduct.images.length === 0 && currentProduct.image_url) {
-      currentProduct.images = [{ image_url: currentProduct.image_url, alt_text: currentProduct.title }];
-    }
+  // Ensure main product image is in the gallery
+  if (currentProduct.image_url && !currentProduct.images.some(img => img.image_url === currentProduct.image_url)) { currentProduct.images.unshift({ image_url: currentProduct.image_url, alt_text: currentProduct.title }); }
+  if (currentProduct.images.length === 0 && currentProduct.image_url) { currentProduct.images = [{ image_url: currentProduct.image_url, alt_text: currentProduct.title }]; }
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -618,18 +559,12 @@ function renderPrice() {
   } else {
     document.getElementById('msrpDisplay').innerHTML = '';
   }
-
-  if (member && member < current) {
-    document.getElementById('memberPrice').innerHTML = `
-      Member Price: $${member.toFixed(2)}
-    `;
+  if (member && member < current) { document.getElementById('memberPrice').innerHTML = `Member Price: $${member.toFixed(2)}`;
   } else {
     document.getElementById('memberPrice').innerHTML = '';
   }
-}s
-  currentProduct.image.forEach((img, idx) => {
-   constthumb = document.creteElement('div');
-   
+}
+
 // ══════════════════════════════════════════════════════════════════
 // RENDER GALLERY
 // ══════════════════════════════════════════════════════════════════
@@ -645,10 +580,8 @@ function renderGallery() {
   }
 
   currentImageIndex = 0;
-  // Set first image as main
-  if (!uurrentProduct.images || currentProduct.images.length === 0) return;
-  ipdateMain< 0) index = currentProduct.images.length - 1;
-  if (index Image(0);
+  if (!currentProduct.images || currentProduct.images.length === 0) return;
+  updateMainImage(0);
 
   document.getElementById('prevImg').onclick = () => updateMainImage(currentImageIndex - 1);
   document.getElementById('nextImg').onclick = () => updateMainImage(currentImageIndex + 1);
@@ -656,12 +589,8 @@ function renderGallery() {
   // Setup mobile swipe
   let touchStartX = 0;
   let touchEndX = 0;
-  const galleryMain = document.querySelectox);
-  });
-}
-
-// ══════════════════════════════════════════════════════════════════r('.gallery-main');
-// R NDE galleryMain.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
+  const galleryMain = document.querySelector('.gallery-main');
+  galleryMain.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
   galleryMain.addEventListener('touchend', e => {
     touchEndX = e.changedTouches[0].screenX;
     if (touchEndX < touchStartX - 40) updateMainImage(currentImageIndex + 1);
@@ -679,13 +608,7 @@ function renderGallery() {
     thumbImg.alt = img.alt_text || `${currentProduct.title} - View ${idx + 1}`;
 
     thumb.appendChild(thumbImg);
-    thumb.add
-    }
-    document.querESelector('.colorwayventListener('click', () => {
-      turn;updateMainImage(idx);
-  }
-
-    });
+    thumb.addEventListener('click', () => { updateMainImage(idx); });
 
     thumbContainer.appendChild(thumb);
   });
@@ -696,11 +619,11 @@ function updateMainImage(index) {
   if (index < 0) index = currentProduct.images.length - 1;
   if (index >= currentProduct.images.length) index = 0;
   currentImageIndex = index;
-  
+
   const img = currentProduct.images[index];
   document.getElementById('mainImage').src = img.image_url;
   document.getElementById('mainImage').alt = img.alt_text || currentProduct.title;
-  
+
   document.querySelectorAll('.thumbnail').forEach((t, i) => {
     t.classList.toggle('active', i === index);
   });
@@ -854,11 +777,7 @@ function checkLowStock() {
     document.getElementById('lowStockBadge').classList.add('hidden');
   }
 }
-            <span style="color: rgba(255,255,255,.5);font-size:0.7rem;text-transform:uppercase; letter-spacing: 0.05em;">${info.level}</span><r>
-           <div style="mrgin-top: 0.5rem; line-height: 1.6;">
-              <strong>Focus</strong> ${info.focus}<br>
-            <strong>Optimization:/sng> ${info.opt}br>
-              <
+
 // ══════════════════════════════════════════════════════════════════
 // RENDER ACCORDIONS
 // ══════════════════════════════════════════════════════════════════
@@ -900,7 +819,7 @@ function renderAccordions() {
     let techHTML = `<strong>Fabric Technology:</strong><br>${currentProduct.fabric_technology}`;
 
     const matchedTechs = Object.keys(finalTechDict).filter(t => currentProduct.fabric_technology.includes(t));
-    
+
     if (matchedTechs.length > 0) {
       techHTML += `<div style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,.03); border-radius: 6px; border: 1px solid rgba(255,255,255,.08); font-size: 0.85rem;">`;
       matchedTechs.forEach(t => {
@@ -1055,16 +974,7 @@ function expandReviews() {
 // ══════════════════════════════════════════════════════════════════
 // WRITE A REVIEW
 // ══════════════════════════════════════════════════════════════════
-let selecderReviews();
-      document.getElementById('reviewNickname').value = '';
-      document.getElementById('reviewTitle').value = '';
-      tocument.getElementById('deviewBody').value = '';
-      selectedRating = 0;
-      document.querySelectorAll('#starPickar span').forEach(s => s.classList.remote('activn'));
-      document.getElementById('reviegSucce sMsg').classList.add='hidden' 0
-      bt;.disabled = false;
- 
-
+let selectedRating = 0;
 function setReviewRating(star) {
   selectedRating = star;
   document.querySelectorAll('#starPicker span').forEach((el, i) => {
@@ -1125,10 +1035,8 @@ async function submitReview() {lHeight + 'px';
         .select('*')
         .eq('product_id', currentProduct.id)
         .order('created_at', { ascending: false });
-      currentProduct.reviews = data || [];
-      renderReviews();
-      document.getElemen
-  }tById('reviewNickname').value = '';
+      currentProduct.reviews = data || []; renderReviews();
+      document.getElementById('reviewNickname').value = '';
       document.getElementById('reviewTitle').value = '';
       document.getElementById('reviewBody').value = '';
       selectedRating = 0;
@@ -1221,10 +1129,7 @@ function loadCartCount() {
 // ══════════════════════════════════════════════════════════════════
 // SHOW TOAST
 // ══════════════════════════════════════════════════════════════════
-    fu</div>
-nction sho
-    <wiv clasToast(message) {>
-      <h2>Summary</h2
+function showToast(message) {
   const existing = document.qu><spaneSubtotal</span><span class="summary-value" id="summary-subtotal">—</span></div>
       <div class="summary-row">rySelector('.toast');
   if (existing) existing.remove();
@@ -1235,8 +1140,7 @@ nction sho
   toast.textContent = message;
   document.body.appendChild(toast);
 
-  setT
-imeout(() => {
+  setTimeout(() => {
     toast.classList.remove('show');
     setTimeout(() => toast.remove(), 300);
   }, 2000);
@@ -1254,31 +1158,19 @@ function showError(message) {
 // ═════════════════════════════════════════════════════════════════
 // COOKIE CONSENT
 // ══════════════════════════════════════════════════════════════════
-(function(){
+function initializeCookieConsent() {
   if(!localStorage.getItem('zw_cookie_consent')){
-    document.addEventListener("DOMContentLoaded", () => {
-      const cb = document.getElementById('cookieConsent');
-      if (cb) cb.style.display = 'flex';
-    });
+    const cb = document.getElementById('cookieConsent');
+    if (cb) cb.style.display = 'flex';
   }
-})();
-
-function initializeClign:center;font-size:.65rem;color:rgba(244,241,235,.25);margin-top:.8rem"oYour card is never stored on our servers.</p>
-  </div>okieConsent() {
-</d  >
-
-<!-- SUCCESS/-->
-<d/v i Controlled by IIFE above now to prevent flash
 }
 
 function handleCookieAccept() {
-  localStorage.setItem( style="color:rgba(244,241,235'.35);font-size:.75rem;margin-bottom:2rem"></p>
-  <button id="success-cozw_cookie_consent', 'accepted');
+  localStorage.setItem('zw_cookie_consent', 'accepted');
   document.getElementById('cookieConsent').style.display = 'none';
 }
 
-function handleCookieDecline() {om/v3/"></script>
-
+function handleCookieDecline() {
   localStorage.setItem('zw_cookie_consent', 'declined');
   document.getElementById('cookieConsent').style.display = 'none';
 }
