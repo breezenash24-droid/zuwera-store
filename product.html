@@ -198,6 +198,7 @@ body.light-mode #cursor { background: #09090b; }
           <div class="low-stock-badge hidden" id="lowStockBadge">Low Stock</div>
         </div>
         <div class="gallery-thumbnails" id="galleryThumbnails"></div>
+      </div>
 
       <!-- RIGHT: PRODUCT INFO -->
       <div class="info-section">
@@ -415,6 +416,7 @@ let selectedSize = null;
 let selectedColor = null;
 let selectedColorSku = null;
 let cartCount = 0;
+let currentImageIndex = 0;
 
 // ══════════════════════════════════════════════════════════════════
 // INITIALIZATION
@@ -469,7 +471,8 @@ async function loadProduct() {
     throw new Error('No product ID or SKU provided');
   }
 
-  const { data: productData, error } = await query.single();
+  const { data, error } = await query.limit(1);
+  const productData = data ? data[0] : null;
 
   if (error) {
     console.error('Supabase product query error:', error);

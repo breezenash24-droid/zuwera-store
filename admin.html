@@ -1903,14 +1903,14 @@
                 for (let i = 0; i < imageUrls.length; i++) {
                 }
 
-                await sb.from('product_colors').delete().eq('product_id', productId);
+                await sb.from('color_variants').delete().eq('product_id', productId);
                 const colorItems = document.querySelectorAll('.color-variant-item');
                 for (let i = 0; i < colorItems.length; i++) {
                     const colorName = colorItems[i].querySelector('.form-input').value;
                     const hexColor = colorItems[i].querySelector('[placeholder="#000000"]').value;
                     const rgbColor = colorItems[i].querySelector('[placeholder="0,0,0"]').value;
                     if (colorName && hexColor) {
-                        await sb.from('product_colors').insert([{
+                        await sb.from('color_variants').insert([{
                             product_id: productId,
                             color_name: colorName,
                             hex_color: hexColor,
@@ -1997,7 +1997,7 @@
                 '<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button>';
             container.appendChild(row);
 
-            sb.from('product_colors').select('*').eq('product_id', product.id).then(({ data }) => {
+            sb.from('color_variants').select('*').eq('product_id', product.id).then(({ data }) => {
                 const container = document.getElementById('colorVariantsContainer');
                 container.innerHTML = '';
                 if (data && data.length > 0) {
@@ -2059,7 +2059,7 @@
 
         document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
             try {
-                await sb.from('product_colors').delete().eq('product_id', deleteProductId);
+                await sb.from('color_variants').delete().eq('product_id', deleteProductId);
                 await sb.from('product_sizes').delete().eq('product_id', deleteProductId);
                 const { error } = await sb.from('products').delete().eq('id', deleteProductId);
                 if (error) throw error;
