@@ -424,10 +424,17 @@ let selectedColor = null;
 let selectedColorSku = null;
 let cartCount = 0;
 let currentImageIndex = 0;
+let currentUser = null;
+let editingReviewId = null;
 
 // ══════════════════════════════════════════════════════════════════
 // INITIALIZATION
 // ══════════════════════════════════════════════════════════════════
+sb.auth.onAuthStateChange((event, session) => {
+  currentUser = session?.user || null;
+  if (currentProduct && currentProduct.reviews) renderReviews();
+});
+
 document.addEventListener('DOMContentLoaded', async () => {
   const bar = document.getElementById('bar');
   const nav = document.querySelector('.nav');
@@ -949,16 +956,23 @@ function renderReviews() {
     const reviewEl = document.createElement('div');
     reviewEl.className = 'review-item';
     const adminResponseHtml = review.admin_response ? `
-      <div class="admin-response" style="margin-top: 12px; padding: 12px; background: var(--admin-res-bg, rgba(248,145,165,0.08)); border-left: 2px solid var(--accent, #F891A5); border-radius: 4px;">
-        <strong style="color: var(--accent, #F891A5); font-size: 0.85rem; letter-spacing: 0.05em; font-family: 'Bebas Neue', sans-serif;">Zuwera Team</strong>
+      <div class="admin-response" style="margin-top: 12px; padding: 12px; background: var(--admin-res-bg, rgba(248,145,165,0.08)); border-left: 2px solid var(--admin-res-text, #F891A5); border-radius: 4px;">
+        <strong style="color: var(--admin-res-text, #F891A5); font-size: 0.85rem; letter-spacing: 0.05em; font-family: 'Bebas Neue', sans-serif;">Zuwera Team</strong>
         <p style="margin-top: 4px; font-size: 0.85rem; color: var(--admin-res-text, rgba(255,255,255,0.7));">${review.admin_response}</p>
       </div>
     ` : '';
+
+    let editBtnHtml = '';
+    if (currentUser && review.user_id === currentUser.id) {
+      editBtnHtml = `<button onclick="editProductReview('${review.id}')" style="background:none;border:none;color:#F891A5;font-size:0.75rem;cursor:pointer;margin-left:10px;text-decoration:underline;">Edit</button>`;
+    }
+
     reviewEl.innerHTML = `
       <div class="review-header">
         <div class="review-rating">${renderStars(review.rating)}</div>
         <span class="review-author">${review.nickname || 'Anonymous'}</span>
         ${review.verified_purchase ? '<span class="verified-badge">Verified Purchase</span>' : ''}
+        ${editBtnHtml}
       </div>
       <p class="review-title">${review.title}</p>
       <p class="review-body">${review.body}</p>
@@ -1004,16 +1018,23 @@ function expandReviews() {
     const reviewEl = document.createElement('div');
     reviewEl.className = 'review-item';
     const adminResponseHtml = review.admin_response ? `
-      <div class="admin-response" style="margin-top: 12px; padding: 12px; background: var(--admin-res-bg, rgba(248,145,165,0.08)); border-left: 2px solid var(--accent, #F891A5); border-radius: 4px;">
-        <strong style="color: var(--accent, #F891A5); font-size: 0.85rem; letter-spacing: 0.05em; font-family: 'Bebas Neue', sans-serif;">Zuwera Team</strong>
+      <div class="admin-response" style="margin-top: 12px; padding: 12px; background: var(--admin-res-bg, rgba(248,145,165,0.08)); border-left: 2px solid var(--admin-res-text, #F891A5); border-radius: 4px;">
+        <strong style="color: var(--admin-res-text, #F891A5); font-size: 0.85rem; letter-spacing: 0.05em; font-family: 'Bebas Neue', sans-serif;">Zuwera Team</strong>
         <p style="margin-top: 4px; font-size: 0.85rem; color: var(--admin-res-text, rgba(255,255,255,0.7));">${review.admin_response}</p>
       </div>
     ` : '';
+
+    let editBtnHtml = '';
+    if (currentUser && review.user_id === currentUser.id) {
+      editBtnHtml = `<button onclick="editProductReview('${review.id}')" style="background:none;border:none;color:#F891A5;font-size:0.75rem;cursor:pointer;margin-left:10px;text-decoration:underline;">Edit</button>`;
+    }
+
     reviewEl.innerHTML = `
       <div class="review-header">
         <div class="review-rating">${renderStars(review.rating)}</div>
         <span class="review-author">${review.nickname || 'Anonymous'}</span>
         ${review.verified_purchase ? '<span class="verified-badge">Verified Purchase</span>' : ''}
+        ${editBtnHtml}
       </div>
       <p class="review-title">${review.title}</p>
       <p class="review-body">${review.body}</p>
@@ -1034,7 +1055,28 @@ function setReviewRating(star) {
   });
 }
 
+function editProductReview(id) {
+  const review = currentProduct.reviews.find(r => r.id === id);
+  if (!review) return;
+  editingReviewId = id;
+  document.getElementById('reviewNickname').value = review.nickname || '';
+  document.getElementById('reviewTitle').value = review.title || '';
+  document.getElementById('reviewBody').value = review.body || '';
+  setReviewRating(review.rating);
+  document.getElementById('submitReviewBtn').textContent = 'Update Review';
+  
+  const container = document.getElementById('reviewFormContainer');
+  if (container) {
+    // Ensure accordion is open
+    const header = container.closest('.accordion-body').previousElementSibling;
+    if (!header.classList.contains('open')) toggleAccordion(header);
+    container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
 async function submitReview() {
+  if (!currentUser) { alert('Please sign in to leave a review.'); return; }
+
   const nickname = document.getElementById('reviewNickname').value.trim();
   const title = document.getElementById('reviewTitle').value.trim();
   const body = document.getElementById('reviewBody').value.trim();
@@ -1072,6 +1114,7 @@ async function submitReview() {
       document.getElementById('reviewTitle').value = '';
       document.getElementById('reviewBody').value = '';
       selectedRating = 0;
+      editingReviewId = null;
       document.querySelectorAll('#starPicker span').forEach(s => s.classList.remove('active'));
       document.getElementById('reviewSuccessMsg').classList.add('hidden');
       btn.disabled = false;

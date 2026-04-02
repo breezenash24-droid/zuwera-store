@@ -29,6 +29,7 @@
 let _reviewProductId   = null;   // currently open form target
 let _reviewProductName = null;
 let _reviewRating      = 0;
+let _reviewIdToEdit    = null;
 
 // Cache of loaded reviews per product to avoid redundant DB calls
 const _reviewCache = {};
@@ -52,7 +53,7 @@ async function loadReviews(pid) {
 
   const { data, error } = await _sb
     .from('reviews')
-    .select('id, rating, body, reviewer_name, created_at, admin_response')
+    .select('id, user_id, rating, title, body, reviewer_name, created_at, admin_response')
     .eq('product_id', pid)
     .order('created_at', { ascending: false });
 
@@ -85,18 +86,27 @@ function renderReviewsList(domId, reviews) {
     return;
   }
   listEl.innerHTML = reviews.map(r => {
+    let editBtn = '';
+    if (typeof _user !== 'undefined' && _user && r.user_id === _user.id) {
+      editBtn = `<button onclick="openEditReviewForm('${r.id}', ${r.rating}, '${escHtml(r.body||'')}')" style="background:none;border:none;color:#F891A5;font-size:0.65rem;cursor:pointer;margin-left:8px;text-decoration:underline;text-transform:uppercase;letter-spacing:0.05em;font-family:'IBM Plex Mono', monospace;">Edit</button>`;
+    }
+
     const adminResponseHtml = r.admin_response ? `
-      <div class="admin-response" style="margin-top: 10px; padding: 10px; background: var(--admin-res-bg, rgba(248,145,165,0.08)); border-left: 2px solid #F891A5; border-radius: 4px;">
-        <strong style="color: #F891A5; font-size: 0.8rem; letter-spacing: 0.05em; font-family: 'Bebas Neue', sans-serif;">Zuwera Team</strong>
+      <div class="admin-response" style="margin-top: 10px; padding: 10px; background: var(--admin-res-bg, rgba(248,145,165,0.08)); border-left: 2px solid var(--admin-res-text, #F891A5); border-radius: 4px;">
+        <strong style="color: var(--admin-res-text, #F891A5); font-size: 0.8rem; letter-spacing: 0.05em; font-family: 'Bebas Neue', sans-serif;">Zuwera Team</strong>
         <p style="margin-top: 4px; font-size: 0.85rem; color: var(--admin-res-text, rgba(244,241,235,0.7));">${escHtml(r.admin_response)}</p>
       </div>
     ` : '';
     return `
       <div class="review-item">
         <div class="review-item-header">
+        <div>
           <span class="review-item-stars">${starsHtml(r.rating)}</span>
+          ${editBtn}
+        </div>
           <span class="review-item-meta">${formatDate(r.created_at)}</span>
         </div>
+      ${r.title ? `<p class="review-item-title" style="font-weight:bold;font-size:0.85rem;margin-bottom:0.2rem;color:rgba(244,241,235,0.9);">${escHtml(r.title)}</p>` : ''}
         ${r.body ? `<p class="review-item-body">${escHtml(r.body)}</p>` : ''}
         <p class="review-item-author">${escHtml(r.reviewer_name || 'Anonymous')}</p>
         ${adminResponseHtml}
@@ -133,6 +143,7 @@ function openReviewForm(pid, pname) {
   _reviewProductId   = pid;
   _reviewProductName = pname;
   _reviewRating      = 0;
+  _reviewIdToEdit    = null;
 
   document.getElementById('review-product-label').textContent = pname;
   document.getElementById('review-body-input').value = '';
@@ -141,6 +152,23 @@ function openReviewForm(pid, pname) {
   document.getElementById('review-submit-btn').textContent = 'Submit Review';
   setStarSelection(0);
 
+  document.getElementById('review-modal').classList.add('open');
+}
+
+function openEditReviewForm(id, rating, body) {
+  _reviewIdToEdit = id;
+  _reviewRating = rating;
+
+  const bodyInput = document.getElementById('review-body-input');
+  if (bodyInput) bodyInput.value = body || '';
+
+  document.getElementById('review-error').textContent = '';
+  const btn = document.getElementById('review-submit-btn');
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = 'Update Review';
+  }
+  setStarSelection(rating);
   document.getElementById('review-modal').classList.add('open');
 }
 
@@ -183,13 +211,23 @@ async function submitReview() {
     || _user.email?.split('@')[0]
     || 'Anonymous';
 
-  const { error } = await _sb.from('reviews').insert({
-    user_id:       _user.id,
-    product_id:    _reviewProductId,
-    rating:        _reviewRating,
-    body:          body || null,
-    reviewer_name: reviewerName,
-  });
+  let error;
+  if (_reviewIdToEdit) {
+    const res = await _sb.from('reviews').update({
+      rating: _reviewRating,
+      body:   body || null
+    }).eq('id', _reviewIdToEdit);
+    error = res.error;
+  } else {
+    const res = await _sb.from('reviews').insert({
+      user_id:       _user.id,
+      product_id:    _reviewProductId,
+      rating:        _reviewRating,
+      body:          body || null,
+      reviewer_name: reviewerName,
+    });
+    error = res.error;
+  }
 
   if (error) {
     errEl.textContent = error.message || 'Could not submit review. Please try again.';
@@ -197,6 +235,8 @@ async function submitReview() {
     btn.textContent = 'Submit Review';
     return;
   }
+
+  _reviewIdToEdit = null;
 
   // Bust cache so the new review shows immediately
   delete _reviewCache[_reviewProductId];
