@@ -995,8 +995,20 @@
                 </div>
 
                 <!-- Analytics Page -->
-                <div id="analytics" class="page" style="height: calc(100% + 60px); margin: -30px;">
-                    <iframe src="dashboard.html?embed=true" style="width: 100%; height: 100%; border: none; display: block;"></iframe>
+                <div id="analytics" class="page">
+                    <div class="page-header" style="margin-bottom:24px;">
+                        <h2>Analytics & Reports</h2>
+                        <p class="page-subtitle" style="color: var(--text-secondary);">View your sales, track inventory, and analyze store performance.</p>
+                    </div>
+                    <div style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 60px 40px; text-align: center; margin-top: 24px;">
+                        <svg style="width: 64px; height: 64px; color: var(--accent); margin-bottom: 20px; opacity: 0.8;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>
+                        <h3 style="font-family: 'Bebas Neue', sans-serif; font-size: 2rem; margin-bottom: 15px; letter-spacing: 1px;">Analytics Dashboard</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: 30px; max-width: 450px; margin-left: auto; margin-right: auto; line-height: 1.6;">For security and performance reasons, modern browsers block complex dashboards from running inside embedded frames on live servers. Click below to open your dashboard securely in a new tab.</p>
+                        <a href="analytics.html" target="_blank" class="btn btn-primary" style="padding: 16px 32px; font-size: 1.1rem; display: inline-flex; align-items: center; gap: 10px; text-decoration: none;">
+                            Launch Dashboard
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Settings Page -->
@@ -1103,6 +1115,25 @@
                             <h2>Website Settings</h2>
                             <p class="page-subtitle" style="color: var(--text-secondary);">Edit your homepage hero section and other site content</p>
                         </div>
+                        
+                        <!-- Brand Assets -->
+                        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:24px">
+                            <h3 style="margin-bottom:16px;font-size:1.1rem;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;">Brand Assets</h3>
+                            <div class="form-group">
+                                <label class="form-label">Favicon URL</label>
+                                <div class="image-row" style="margin-bottom:0">
+                                    <input type="url" class="form-input product-image-url" id="faviconImage" placeholder="images/logo.png">
+                                    <label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label>
+                                    <img class="image-preview" style="display:none">
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('faviconImage').value='';this.previousElementSibling.style.display='none'">Clear</button>
+                                </div>
+                                <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:8px">Upload a square image (PNG or ICO). Recommended size: 32x32 or 64x64.</p>
+                            </div>
+                            <div style="display:flex;gap:12px;margin-top:20px">
+                                <button class="btn btn-primary" onclick="saveBrandSettings()">Save Brand Assets</button>
+                            </div>
+                        </div>
+
                         <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:24px">
                             <h3 style="margin-bottom:16px;font-size:1.1rem;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;">Hero Section</h3>
                             <div class="form-group">
@@ -1681,7 +1712,7 @@
         }
 
         function navigateTo(page) {
-            if (page === 'website') setTimeout(loadHeroSettings, 100);
+            if (page === 'website') setTimeout(loadWebsiteSettings, 100);
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(page).classList.add('active');
 
@@ -2709,15 +2740,41 @@
     
 
         // ===== WEBSITE / HERO SETTINGS =====
-        async function loadHeroSettings() {
-            const { data, error } = await sb.from('site_settings').select('*').eq('key', 'hero').single();
+        async function loadWebsiteSettings() {
+            const { data, error } = await sb.from('site_settings').select('*').in('key', ['hero', 'brand']);
             if (error || !data) return;
-            const h = data.value;
-            if (h.kicker) document.getElementById('heroKicker').value = h.kicker;
-            if (h.heading) document.getElementById('heroHeading').value = h.heading;
-            if (h.subtext) document.getElementById('heroSubtext').value = h.subtext;
-            if (h.image) document.getElementById('heroImage').value = h.image;
-            if (h.cta_text) document.getElementById('heroCtaText').value = h.cta_text;
+            data.forEach(row => {
+                if (row.key === 'hero') {
+                    const h = row.value;
+                    if (h.kicker) document.getElementById('heroKicker').value = h.kicker;
+                    if (h.heading) document.getElementById('heroHeading').value = h.heading;
+                    if (h.subtext) document.getElementById('heroSubtext').value = h.subtext;
+                    if (h.image) document.getElementById('heroImage').value = h.image;
+                    if (h.cta_text) document.getElementById('heroCtaText').value = h.cta_text;
+                } else if (row.key === 'brand') {
+                    const b = row.value;
+                    if (b.favicon) {
+                        const favInput = document.getElementById('faviconImage');
+                        const favPreview = favInput.parentElement.querySelector('.image-preview');
+                        favInput.value = b.favicon;
+                        favPreview.src = b.favicon;
+                        favPreview.style.display = 'block';
+                        const link = document.querySelector('link[rel="icon"]');
+                        if (link) link.href = b.favicon;
+                    }
+                }
+            });
+        }
+
+        async function saveBrandSettings() {
+            const brandData = { favicon: document.getElementById('faviconImage').value };
+            const { error } = await sb.from('site_settings').upsert({ key: 'brand', value: brandData, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+            if (error) {
+                showToast('Error saving brand: ' + error.message, 'error');
+            } else {
+                showToast('Brand settings saved!', 'success');
+                if (brandData.favicon) { const link = document.querySelector('link[rel="icon"]'); if (link) link.href = brandData.favicon; }
+            }
         }
 
         async function saveHeroSettings() {

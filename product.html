@@ -390,6 +390,11 @@ async function loadSiteSettings() {
         if (cartNote) cartNote.textContent = 'Standard ' + days + ' days / Free on orders over $' + thresh;
       } else if (row.key === 'technologies') {
         try { window.zwTechnologies = typeof row.value === 'string' ? JSON.parse(row.value) : row.value; } catch(e){}
+      } else if (row.key === 'brand') {
+        if (row.value && row.value.favicon) {
+          const link = document.querySelector('link[rel="icon"]');
+          if (link) link.href = row.value.favicon;
+        }
       }
     });
   } catch (e) { console.log('Settings load skipped:', e); }

@@ -631,7 +631,7 @@
 
     async function loadPolicies() {
       try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?key=in.(legal_policies,faq,theme)`, {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?key=in.(legal_policies,faq,theme,brand)`, {
           headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` }
         });
         if (!response.ok) return;
@@ -659,6 +659,11 @@
           } else if (row.key === 'theme') {
             if (row.value && row.value.mode === 'light') document.body.classList.add('light-mode');
             else document.body.classList.remove('light-mode');
+          } else if (row.key === 'brand') {
+            if (row.value && row.value.favicon) {
+              const link = document.querySelector('link[rel="icon"]');
+              if (link) link.href = row.value.favicon;
+            }
           }
         });
       } catch(e) { console.error('Failed to load dynamic policies', e); }

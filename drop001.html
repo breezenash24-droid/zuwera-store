@@ -587,9 +587,16 @@ function updateCountdown() {
       });
 
     try {
-      const { data } = await sb.from('site_settings').select('*').eq('key', 'theme').single();
-      if (data && data.value && data.value.mode === 'light') document.body.classList.add('light-mode');
-      else document.body.classList.remove('light-mode');
+      const { data } = await sb.from('site_settings').select('*').in('key', ['theme', 'brand']);
+      if (data) {
+        data.forEach(row => {
+          if (row.key === 'theme' && row.value && row.value.mode === 'light') document.body.classList.add('light-mode');
+          else if (row.key === 'brand' && row.value && row.value.favicon) {
+            const link = document.querySelector('link[rel="icon"]');
+            if (link) link.href = row.value.favicon;
+          }
+        });
+      }
     } catch (e) {}
 
       const grid = document.getElementById('products-grid');

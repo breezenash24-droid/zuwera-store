@@ -1556,6 +1556,14 @@
     // Initialize
     initTheme();
     checkAuth();
+    
+    // Fetch Brand Assets
+    supabase.from('site_settings').select('value').eq('key', 'brand').single().then(({data}) => {
+      if (data && data.value && data.value.favicon) {
+        const link = document.querySelector('link[rel="icon"]');
+        if (link) link.href = data.value.favicon;
+      }
+    });
 
     // Listen for auth changes
     supabase.auth.onAuthStateChange((event, session) => {

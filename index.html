@@ -1457,6 +1457,11 @@ const _sb = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_U
             const el = document.querySelector('.hero-img-wrap img');
             if (el) el.src = h.image;
           }
+      } else if (row.key === 'brand') {
+        if (row.value && row.value.favicon) {
+          const link = document.querySelector('link[rel="icon"]');
+          if (link) link.href = row.value.favicon;
+        }
       }
     });
   } catch (e) { console.log('Settings load skipped:', e); }
