@@ -484,7 +484,7 @@
     <!-- FAQ -->
     <div class="tab-panel" id="tab-faq">
 
-      <div class="policy-section" style="border-bottom:none; margin-bottom:0; padding-bottom:0;">
+      <div class="policy-section" id="faq-container" style="border-bottom:none; margin-bottom:0; padding-bottom:0;">
 
         <div class="faq-item">
           <button class="faq-question">
@@ -582,15 +582,56 @@
       });
     });
 
-    // FAQ accordion toggle
-    document.querySelectorAll('.faq-question').forEach(q => {
-      q.addEventListener('click', () => {
-        const item = q.closest('.faq-item');
-        const wasOpen = item.classList.contains('open');
-        document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
-        if (!wasOpen) item.classList.add('open');
+    function attachFaqListeners() {
+      document.querySelectorAll('.faq-question').forEach(q => {
+        const newQ = q.cloneNode(true);
+        q.parentNode.replaceChild(newQ, q);
+        newQ.addEventListener('click', () => {
+          const item = newQ.closest('.faq-item');
+          const wasOpen = item.classList.contains('open');
+          document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+          if (!wasOpen) item.classList.add('open');
+        });
       });
-    });
+    }
+
+    const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+
+    async function loadPolicies() {
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?key=in.(legal_policies,faq)`, {
+          headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` }
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        data.forEach(row => {
+          if (row.key === 'legal_policies') {
+            const p = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+            if (p.shipping) document.getElementById('tab-shipping').innerHTML = p.shipping;
+            if (p.returns) document.getElementById('tab-returns').innerHTML = p.returns;
+            if (p.privacy) document.getElementById('tab-privacy').innerHTML = p.privacy;
+            if (p.terms) document.getElementById('tab-terms').innerHTML = p.terms;
+          } else if (row.key === 'faq') {
+            const faqs = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+            if (faqs && faqs.length > 0) {
+              const container = document.getElementById('faq-container');
+              if (container) {
+                container.innerHTML = faqs.map(f => `
+                  <div class="faq-item">
+                    <button class="faq-question">${f.q}<span class="faq-icon">+</span></button>
+                    <div class="faq-answer">${f.a}</div>
+                  </div>
+                `).join('');
+              }
+            }
+          }
+        });
+      } catch(e) { console.error('Failed to load dynamic policies', e); }
+      attachFaqListeners();
+    }
+
+    document.addEventListener('DOMContentLoaded', loadPolicies);
   </script>
 
 </body>

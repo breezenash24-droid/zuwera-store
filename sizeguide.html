@@ -1015,18 +1015,18 @@
       const cookieAccept = document.getElementById('cookieAccept');
       const cookieDecline = document.getElementById('cookieDecline');
 
-      const consentGiven = localStorage.getItem('cookieConsent');
+      const consentGiven = localStorage.getItem('zw_cookie_consent');
       if (!consentGiven) {
         cookieConsent.classList.add('visible');
       }
 
       cookieAccept.addEventListener('click', () => {
-        localStorage.setItem('cookieConsent', 'true');
+        localStorage.setItem('zw_cookie_consent', 'accepted');
         cookieConsent.classList.remove('visible');
       });
 
       cookieDecline.addEventListener('click', () => {
-        localStorage.setItem('cookieConsent', 'false');
+        localStorage.setItem('zw_cookie_consent', 'declined');
         cookieConsent.classList.remove('visible');
       });
     }

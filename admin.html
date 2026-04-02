@@ -983,6 +983,38 @@
                         <div id="techListContainer" style="display:flex;flex-direction:column;gap:16px;margin-bottom:16px;"></div>
                         <button type="button" class="btn btn-primary btn-sm" id="saveTechBtn">Save Technologies</button>
                     </div>
+
+                    <!-- Legal Policies -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
+                        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:16px;">Legal Policies</div>
+                        <div class="form-group">
+                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Shipping Policy Text (HTML allowed)</label>
+                            <textarea id="settShippingText" class="form-textarea" rows="6"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Return Policy Text (HTML allowed)</label>
+                            <textarea id="settReturnsText" class="form-textarea" rows="6"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Privacy Policy Text (HTML allowed)</label>
+                            <textarea id="settPrivacyText" class="form-textarea" rows="6"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Terms of Service Text (HTML allowed)</label>
+                            <textarea id="settTermsText" class="form-textarea" rows="6"></textarea>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" id="saveLegalBtn">Save Policies</button>
+                    </div>
+
+                    <!-- FAQ -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                            <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.08em;">Frequently Asked Questions</div>
+                            <button type="button" class="btn btn-secondary btn-sm" id="addFaqBtn">+ Add FAQ</button>
+                        </div>
+                        <div id="faqListContainer" style="display:flex;flex-direction:column;gap:16px;margin-bottom:16px;"></div>
+                        <button type="button" class="btn btn-primary btn-sm" id="saveFaqBtn">Save FAQ</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1406,6 +1438,25 @@
             "Storm-PRO™": { focus: "Wind-blocking and heavy elemental resistance.", level: "Wind Resistance.", opt: "Moderate wind and transitional weather.", best: "Cycling, running in gusty conditions, and everyday outerwear.", desc: "High-density weave engineered to deflect wind chill while remaining flexible and quiet." },
             "Storm-ULTRA™": { focus: "Wind-blocking and heavy elemental resistance.", level: "Total Element Block.", opt: "Gale-force winds and brutal mountain conditions.", best: "Summiting, heavy winter storms, and high-altitude performance.", desc: "An impenetrable technical barrier that creates a zero-permeability micro-climate for the athlete." }
         };
+        
+        const defaultPolicies = {
+            shipping: `<div class="policy-section">\n  <h2>Shipping Policy</h2>\n  <p>All Zuwera orders are processed within 1–3 business days after your order is confirmed. Orders placed on weekends or US public holidays will begin processing the next business day.</p>\n  <div class="policy-highlight">\n    Once your order ships, you will receive a confirmation email with a tracking number. Please allow up to 24 hours for tracking to update.\n  </div>\n</div>\n\n<div class="policy-section">\n  <h2>Domestic Shipping (United States)</h2>\n  <ul>\n    <li>Standard Shipping — 5 to 7 business days</li>\n    <li>Free standard shipping on all orders over $100</li>\n    <li>Orders under $100 — flat rate of $6.99</li>\n  </ul>\n  <p>Zuwera currently ships to all 50 US states including Alaska and Hawaii. PO Boxes and APO/FPO addresses are accepted for standard shipping.</p>\n</div>\n\n<div class="policy-section">\n  <h2>International Shipping</h2>\n  <p>International shipping is not yet available but is coming soon. Sign up for our newsletter to be notified when we expand to your country.</p>\n</div>\n\n<div class="policy-section">\n  <h2>Order Issues</h2>\n  <p>If your order arrives damaged, incorrect, or does not arrive within the estimated window, please contact us at <strong><a href="mailto:nasirubreeze@zuwera.store">nasirubreeze@zuwera.store</a></strong> within 7 days of the expected delivery date and we will make it right.</p>\n  <p>Zuwera is not responsible for delays caused by carrier disruptions, weather events, or incorrect shipping addresses provided at checkout.</p>\n</div>`,
+            returns: `<div class="policy-section">\n  <h2>Return Policy</h2>\n  <p>We want you to love what you wear. If you are not completely satisfied with your Zuwera purchase, you may return eligible items within <strong>30 days</strong> of the delivery date for a full refund or exchange.</p>\n  <div class="policy-highlight">\n    Items must be unworn, unwashed, and in their original condition with all tags attached to be eligible for a return.\n  </div>\n</div>\n\n<div class="policy-section">\n  <h2>How to Start a Return</h2>\n  <ul>\n    <li>Email us at <a href="mailto:nasirubreeze@zuwera.store">nasirubreeze@zuwera.store</a> with your order number and reason for return</li>\n    <li>We will send you a prepaid return shipping label within 1–2 business days</li>\n    <li>Pack your item securely and drop it off at any USPS location</li>\n    <li>Refunds are processed within 5–7 business days of receiving the return</li>\n  </ul>\n  <p>Refunds will be issued to the original payment method. Depending on your bank or card provider, it may take an additional 3–5 business days to appear on your statement.</p>\n</div>\n\n<div class="policy-section">\n  <h2>Non-Returnable Items</h2>\n  <ul>\n    <li>Items marked Final Sale at time of purchase</li>\n    <li>Items that have been worn, washed, or altered</li>\n    <li>Items without original tags or packaging</li>\n    <li>Gift cards</li>\n  </ul>\n</div>\n\n<div class="policy-section">\n  <h2>Exchanges</h2>\n  <p>We currently process exchanges as a return and repurchase. Start a return for the original item and place a new order for the size or style you need. This ensures you get the item before stock runs out.</p>\n</div>`,
+            privacy: `<div class="policy-section">\n  <h2>Privacy Policy</h2>\n  <p>Zuwera ("we", "us", "our") is committed to protecting your personal information. This policy explains what data we collect, how we use it, and your rights regarding it.</p>\n</div>\n\n<div class="policy-section">\n  <h2>Information We Collect</h2>\n  <ul>\n    <li>Name, email address, and shipping address when you place an order</li>\n    <li>Payment information — processed securely by Stripe, we never store your card details</li>\n    <li>Browsing behavior on our site via analytics tools (e.g. Google Analytics)</li>\n    <li>Email address if you subscribe to our newsletter</li>\n  </ul>\n</div>\n\n<div class="policy-section">\n  <h2>How We Use Your Information</h2>\n  <ul>\n    <li>To fulfill and ship your orders</li>\n    <li>To send order confirmations and shipping updates</li>\n    <li>To send marketing emails if you have opted in (you can unsubscribe at any time)</li>\n    <li>To improve our website and customer experience</li>\n  </ul>\n  <p>We do not sell, rent, or trade your personal information to third parties for their marketing purposes.</p>\n</div>\n\n<div class="policy-section">\n  <h2>Cookies</h2>\n  <p>Our website uses cookies to improve your browsing experience and analyze site traffic. By using our site, you consent to our use of cookies. You can disable cookies in your browser settings at any time.</p>\n</div>\n\n<div class="policy-section">\n  <h2>Your Rights</h2>\n  <p>You have the right to access, correct, or delete your personal data at any time. To make a request, email us at <a href="mailto:nasirubreeze@zuwera.store">nasirubreeze@zuwera.store</a> and we will respond within 30 days.</p>\n</div>`,
+            terms: `<div class="policy-section">\n  <h2>Terms of Service</h2>\n  <p>By accessing or purchasing from zuwera.com you agree to be bound by the following terms. Please read them carefully.</p>\n</div>\n\n<div class="policy-section">\n  <h2>Use of Our Site</h2>\n  <p>You may use our site for lawful purposes only. You agree not to use the site in any way that could damage, disable, or impair it, or interfere with any other user's access.</p>\n  <p>All content on this site — including text, images, logos, and design — is the property of Zuwera and may not be reproduced or used without written permission.</p>\n</div>\n\n<div class="policy-section">\n  <h2>Orders & Pricing</h2>\n  <p>We reserve the right to refuse or cancel any order at our discretion, including in cases of pricing errors, suspected fraud, or product unavailability. If your order is cancelled, you will receive a full refund.</p>\n  <p>Prices are listed in US dollars and are subject to change without notice. Sales tax is calculated at checkout based on your shipping address.</p>\n</div>\n\n<div class="policy-section">\n  <h2>Limitation of Liability</h2>\n  <p>Zuwera is not liable for any indirect, incidental, or consequential damages arising from the use of our products or website. Our total liability to you for any claim shall not exceed the amount paid for the relevant order.</p>\n</div>\n\n<div class="policy-section">\n  <h2>Governing Law</h2>\n  <p>These terms are governed by the laws of the United States. Any disputes shall be resolved in the applicable courts of the United States.</p>\n</div>`
+        };
+
+        const defaultFaq = [
+            { q: "When will my order ship?", a: "Orders are processed within 1–3 business days. Once shipped, standard delivery takes 5–7 business days within the United States. You will receive a tracking number by email as soon as your order leaves our facility." },
+            { q: "How do I return an item?", a: "Email us at <a href=\"mailto:nasirubreeze@zuwera.store\">nasirubreeze@zuwera.store</a> with your order number and we will send you a prepaid return label within 1–2 business days. Items must be returned within 30 days of delivery and must be unworn and in original condition with tags attached." },
+            { q: "Is my payment information secure?", a: "Yes. All payments are processed by Stripe, one of the world's most trusted payment processors. Your card details are encrypted and never stored on our servers. We use 256-bit SSL encryption on all transactions." },
+            { q: "Do you ship internationally?", a: "International shipping is not yet available but is coming soon. Sign up for our newsletter to be the first to know when we expand globally." },
+            { q: "What sizes do you carry?", a: "Our first collection is launching soon. We will carry a full size range and publish a detailed size guide before the release so you can order with confidence. Sign up to be notified." },
+            { q: "Can I change or cancel my order?", a: "We can make changes or cancellations within 12 hours of placing your order. After that, the order may already be in fulfillment. Email <a href=\"mailto:nasirubreeze@zuwera.store\">nasirubreeze@zuwera.store</a> as soon as possible and we will do our best to help." },
+            { q: "How do I track my order?", a: "Once your order ships you will receive an email with a tracking number. You can use this number on the carrier's website to follow your package in real time. Allow up to 24 hours after receiving the email for tracking to activate." },
+            { q: "What if my item arrives damaged or incorrect?", a: "We are sorry to hear that — please email <a href=\"mailto:nasirubreeze@zuwera.store\">nasirubreeze@zuwera.store</a> within 7 days of delivery with a photo of the issue and your order number. We will send a replacement or issue a full refund immediately, no return required." }
+        ];
+
         let globalTechs = {};
 
         // Initialize
@@ -2232,6 +2283,7 @@
     async function loadSettings() {
         const { data } = await sb.from('site_settings').select('*');
         let hasTechs = false;
+        let hasLegal = false, hasFaq = false;
         if (!data) return;
         data.forEach(row => {
             if (row.key === 'announcement_bar') {
@@ -2249,11 +2301,33 @@
                 window._loadedTechs = v || {};
                 if (Object.keys(window._loadedTechs).length > 0) hasTechs = true;
                 renderTechList();
+            } else if (row.key === 'legal_policies') {
+                const v = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+                document.getElementById('settShippingText').value = v.shipping || '';
+                document.getElementById('settReturnsText').value = v.returns || '';
+                document.getElementById('settPrivacyText').value = v.privacy || '';
+                document.getElementById('settTermsText').value = v.terms || '';
+                hasLegal = true;
+            } else if (row.key === 'faq') {
+                const v = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+                window._loadedFaq = v || [];
+                if (window._loadedFaq.length > 0) hasFaq = true;
+                renderFaqList();
             }
         });
         if (!hasTechs) {
             window._loadedTechs = fallbackTechDict;
             renderTechList();
+        }
+        if (!hasLegal) {
+            document.getElementById('settShippingText').value = defaultPolicies.shipping;
+            document.getElementById('settReturnsText').value = defaultPolicies.returns;
+            document.getElementById('settPrivacyText').value = defaultPolicies.privacy;
+            document.getElementById('settTermsText').value = defaultPolicies.terms;
+        }
+        if (!hasFaq) {
+            window._loadedFaq = defaultFaq;
+            renderFaqList();
         }
     }
 
@@ -2333,6 +2407,59 @@
         );
         if (error) { showToast('Error saving technologies', 'error'); console.error(error); }
         else showToast('Technologies saved!', 'success');
+    });
+    
+    function renderFaqList() {
+        const container = document.getElementById('faqListContainer');
+        container.innerHTML = '';
+        (window._loadedFaq || []).forEach(f => addFaqDOM(f.q, f.a));
+    }
+
+    function addFaqDOM(q = '', a = '') {
+        const container = document.getElementById('faqListContainer');
+        const el = document.createElement('div');
+        el.className = 'faq-item-admin';
+        el.style.cssText = 'background:var(--bg-primary);border:1px solid var(--border);padding:16px;border-radius:6px;position:relative;';
+        el.innerHTML = `
+            <button type="button" class="btn btn-danger btn-sm" style="position:absolute;top:16px;right:16px;" onclick="this.parentElement.remove()">Remove</button>
+            <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:12px;padding-right:70px;">
+                <div><label style="font-size:0.75rem;color:var(--text-secondary)">Question</label><input type="text" class="form-input f-q" value="${q.replace(/"/g, '&quot;')}"></div>
+                <div><label style="font-size:0.75rem;color:var(--text-secondary)">Answer (HTML allowed)</label><textarea class="form-textarea f-a" rows="3">${a}</textarea></div>
+            </div>
+        `;
+        container.appendChild(el);
+    }
+
+    document.getElementById('addFaqBtn')?.addEventListener('click', () => addFaqDOM());
+
+    document.getElementById('saveFaqBtn')?.addEventListener('click', async () => {
+        const faqs = [];
+        document.querySelectorAll('.faq-item-admin').forEach(el => {
+            const q = el.querySelector('.f-q').value.trim();
+            const a = el.querySelector('.f-a').value.trim();
+            if (q) faqs.push({ q, a });
+        });
+        const { error } = await sb.from('site_settings').upsert(
+            { key: 'faq', value: faqs, updated_at: new Date().toISOString() },
+            { onConflict: 'key' }
+        );
+        if (error) { showToast('Error saving FAQ', 'error'); console.error(error); }
+        else showToast('FAQ saved!', 'success');
+    });
+
+    document.getElementById('saveLegalBtn')?.addEventListener('click', async () => {
+        const val = {
+            shipping: document.getElementById('settShippingText').value.trim(),
+            returns: document.getElementById('settReturnsText').value.trim(),
+            privacy: document.getElementById('settPrivacyText').value.trim(),
+            terms: document.getElementById('settTermsText').value.trim()
+        };
+        const { error } = await sb.from('site_settings').upsert(
+            { key: 'legal_policies', value: val, updated_at: new Date().toISOString() },
+            { onConflict: 'key' }
+        );
+        if (error) { showToast('Error saving policies', 'error'); console.error(error); }
+        else showToast('Policies saved!', 'success');
     });
 
     // Load settings when Settings page is shown
