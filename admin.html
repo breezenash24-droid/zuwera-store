@@ -1899,8 +1899,14 @@
                     productId = data[0].id;
                 }
 
+                await sb.from('product_images').delete().eq('product_id', productId);
                 const imageUrls = Array.from(document.querySelectorAll('.product-image-url')).map(i => i.value).filter(v => v);
                 for (let i = 0; i < imageUrls.length; i++) {
+                    await sb.from('product_images').insert([{
+                        product_id: productId,
+                        image_url: imageUrls[i],
+                        sort_order: i
+                    }]);
                 }
 
                 await sb.from('color_variants').delete().eq('product_id', productId);
@@ -1987,15 +1993,31 @@
             // Load images
             const container = document.getElementById('imagesContainer');
             container.innerHTML = '';
-            const imgUrl = product.image_url || '';
-            const row = document.createElement('div');
-            row.className = 'image-row';
-            row.innerHTML = '<span style="font-weight:600;min-width:60px;">Image 1</span>' +
-                '<input type="text" class="form-input product-image-url" placeholder="Paste image URL..." value="' + imgUrl + '">' +
-                '<label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label>' +
-                (imgUrl ? '<img class="image-preview" src="' + imgUrl + '" style="display:block">' : '<img class="image-preview" style="display:none">') +
-                '<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button>';
-            container.appendChild(row);
+
+            sb.from('product_images').select('*').eq('product_id', product.id).order('sort_order', { ascending: true }).then(({ data }) => {
+                if (data && data.length > 0) {
+                    data.forEach((img, idx) => {
+                        const row = document.createElement('div');
+                        row.className = 'image-row';
+                        row.innerHTML = '<span style="font-weight:600;min-width:60px;">Image ' + (idx + 1) + '</span>' +
+                            '<input type="text" class="form-input product-image-url" placeholder="Paste image URL..." value="' + img.image_url + '">' +
+                            '<label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label>' +
+                            '<img class="image-preview" src="' + img.image_url + '" style="display:block">' +
+                            '<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button>';
+                        container.appendChild(row);
+                    });
+                } else {
+                    const imgUrl = product.image_url || '';
+                    const row = document.createElement('div');
+                    row.className = 'image-row';
+                    row.innerHTML = '<span style="font-weight:600;min-width:60px;">Image 1</span>' +
+                        '<input type="text" class="form-input product-image-url" placeholder="Paste image URL..." value="' + imgUrl + '">' +
+                        '<label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label>' +
+                        (imgUrl ? '<img class="image-preview" src="' + imgUrl + '" style="display:block">' : '<img class="image-preview" style="display:none">') +
+                        '<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button>';
+                    container.appendChild(row);
+                }
+            });
 
             sb.from('color_variants').select('*').eq('product_id', product.id).then(({ data }) => {
                 const container = document.getElementById('colorVariantsContainer');
@@ -2059,6 +2081,7 @@
 
         document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
             try {
+                await sb.from('product_images').delete().eq('product_id', deleteProductId);
                 await sb.from('color_variants').delete().eq('product_id', deleteProductId);
                 await sb.from('product_sizes').delete().eq('product_id', deleteProductId);
                 const { error } = await sb.from('products').delete().eq('id', deleteProductId);

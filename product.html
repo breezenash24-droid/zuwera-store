@@ -100,17 +100,20 @@
   body, button, a, .pcard-action { cursor: auto !important; }
 }
 #cursor{
-  width:8px;height:8px;
+  width:12px;height:12px;
   background:#f4f1eb;
   border-radius:50%;
   position:fixed;z-index:9999;
   pointer-events:none;
-  transform:translate(-50%,-50%);
-  transition:transform .12s ease,width .2s ease,height .2s ease,background .2s ease;
+  top:0;left:0;
+  transform:translate3d(-100px,-100px,0);
+  transition:transform 0.15s ease-out,width 0.3s cubic-bezier(0.25,1,0.5,1),height 0.3s cubic-bezier(0.25,1,0.5,1),background 0.3s ease;
   mix-blend-mode:difference;
+  will-change:transform,width,height;
 }
-#cursor.hover{width:36px;height:36px}
+#cursor.hover{width:48px;height:48px;background:#F891A5;}
 body.light-mode #cursor { background: #09090b; }
+body.light-mode #cursor.hover { background: #F891A5; }
 </style>
 <style>
 /* Toast notification */
