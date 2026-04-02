@@ -947,10 +947,10 @@ body.light-mode #bar{
 
 /* Hero */
 body.light-mode .hero{background:var(--ink)}
-body.light-mode .hero-img-wrap img{opacity:.6;filter:contrast(.85) saturate(.8)}
+body.light-mode .hero-img-wrap img{opacity:.2;filter:contrast(.6) saturate(.6) brightness(1.2)}
 body.light-mode .hero-img-wrap::after{
-  background:linear-gradient(to bottom, rgba(240,238,233,.4) 0%, transparent 30%, transparent 50%, rgba(240,238,233,.85) 100%),
-             radial-gradient(ellipse 60% 60% at 50% 50%, transparent 0%, rgba(240,238,233,.5) 100%);
+  background:linear-gradient(to bottom, rgba(240,238,233,.6) 0%, transparent 30%, transparent 50%, rgba(240,238,233,.95) 100%),
+             radial-gradient(ellipse 60% 60% at 50% 50%, transparent 0%, rgba(240,238,233,.7) 100%);
 }
 body.light-mode .hero-h1 em{-webkit-text-stroke-color:rgba(9,9,11,.85)}
 body.light-mode .hero-sub{color:rgba(9,9,11,.45)}
@@ -1439,10 +1439,15 @@ const _sb = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_U
     if (!data) return;
     data.forEach(row => {
       if (row.key === 'announcement_bar') {
-        const msg = typeof row.value === 'string' ? row.value : '';
-        if (msg) {
+        let v = row.value;
+        try {
+          if (typeof v === 'string') v = JSON.parse(v);
+        } catch(e) {}
+        // Main page ONLY uses main banner
+        const msgText = (typeof v === 'object' && v !== null) ? v.main : v;
+        if (msgText) {
           const el = document.getElementById('announcementText');
-          if (el) el.textContent = msg;
+          if (el) el.textContent = msgText;
         }
     } else if (row.key === 'theme') {
       if (row.value && row.value.mode === 'light') document.body.classList.add('light-mode');
@@ -1468,10 +1473,6 @@ const _sb = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_U
           if (h.image) {
             const el = document.querySelector('.hero-img-wrap img');
             if (el) el.src = h.image;
-          }
-          if (h.banner_text) {
-            const el = document.getElementById('announcementText');
-            if (el) el.textContent = h.banner_text;
           }
       }
     });

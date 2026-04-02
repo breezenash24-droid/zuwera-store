@@ -940,8 +940,12 @@
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
                         <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:16px;">Announcement Bar</div>
                         <div style="margin-bottom:12px;">
-                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Message displayed at the top of your site</label>
-                            <input type="text" id="settAnnouncementBar" class="form-input" placeholder="e.g. FREE SHIPPING ON ALL ORDERS" style="width:100%;">
+                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Main Page Banner</label>
+                            <input type="text" id="settAnnouncementBarMain" class="form-input" placeholder="e.g. ALL THE DEVILS ARE HERE" style="width:100%;">
+                        </div>
+                        <div style="margin-bottom:12px;">
+                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Product Page Banner (optional, defaults to main)</label>
+                            <input type="text" id="settAnnouncementBarProduct" class="form-input" placeholder="e.g. EARLY ACCESS DROP 001 - SHIPS FREE" style="width:100%;">
                         </div>
                         <button type="button" class="btn btn-primary btn-sm" id="saveAnnouncementBtn">Save Announcement</button>
                     </div>
@@ -1044,10 +1048,6 @@
                             <div class="form-group">
                                 <label class="form-label">CTA Button Text</label>
                                 <input type="text" class="form-input" id="heroCtaText" placeholder="Explore Release 001">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Announcement Banner Text</label>
-                                <input type="text" class="form-input" id="heroBannerText" placeholder="ALL THE DEVILS ARE HERE">
                             </div>
                             <div style="display:flex;gap:12px;margin-top:20px">
                                 <button class="btn btn-primary" onclick="saveHeroSettings()">Save Hero Settings</button>
@@ -2420,8 +2420,14 @@
         if (!data) return;
         data.forEach(row => {
             if (row.key === 'announcement_bar') {
-                const v = typeof row.value === 'string' ? row.value : '';
-                document.getElementById('settAnnouncementBar').value = v;
+                let v = row.value;
+                try { if (typeof v === 'string') v = JSON.parse(v); } catch(e) {}
+                if (typeof v === 'object' && v !== null) {
+                    document.getElementById('settAnnouncementBarMain').value = v.main || '';
+                    document.getElementById('settAnnouncementBarProduct').value = v.product || '';
+                } else {
+                    document.getElementById('settAnnouncementBarMain').value = typeof v === 'string' ? v : '';
+                }
             } else if (row.key === 'shipping_policy') {
                 const v = row.value || {};
                 if (v.free_threshold !== undefined) document.getElementById('settFreeThreshold').value = v.free_threshold;
@@ -2465,7 +2471,10 @@
     }
 
     document.getElementById('saveAnnouncementBtn').addEventListener('click', async () => {
-        const val = document.getElementById('settAnnouncementBar').value.trim();
+        const val = {
+            main: document.getElementById('settAnnouncementBarMain').value.trim(),
+            product: document.getElementById('settAnnouncementBarProduct').value.trim()
+        };
         const { error } = await sb.from('site_settings').upsert(
             { key: 'announcement_bar', value: JSON.stringify(val), updated_at: new Date().toISOString() },
             { onConflict: 'key' }
@@ -2623,7 +2632,6 @@
             if (h.subtext) document.getElementById('heroSubtext').value = h.subtext;
             if (h.image) document.getElementById('heroImage').value = h.image;
             if (h.cta_text) document.getElementById('heroCtaText').value = h.cta_text;
-        if (h.banner_text) document.getElementById('heroBannerText').value = h.banner_text;
         }
 
         async function saveHeroSettings() {
@@ -2632,8 +2640,7 @@
                 heading: document.getElementById('heroHeading').value,
                 subtext: document.getElementById('heroSubtext').value,
                 image: document.getElementById('heroImage').value,
-                cta_text: document.getElementById('heroCtaText').value,
-           banner_text: document.getElementById('heroBannerText').value
+                cta_text: document.getElementById('heroCtaText').value
             };
             const { error } = await sb.from('site_settings').upsert({
                 key: 'hero',
