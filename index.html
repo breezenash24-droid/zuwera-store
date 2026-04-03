@@ -118,6 +118,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-DCVWDZ8ZBC"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-DCVWDZ8ZBC');</script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
 <!-- PWA -->
 <link rel="manifest" href="/manifest.json">
@@ -1107,6 +1108,13 @@ body.light-mode::after{opacity:0.15}
         Get Early Access →
       </button>
     </div>
+            <div class="apanel" id="panel-update-password">
+              <div class="mtitle">New Password</div>
+              <div class="msubtitle">Enter your new password below</div>
+              <div class="fgroup"><label>New Password</label><input type="password" id="update-password-input" placeholder="Min 6 characters"></div>
+              <p id="update-password-error" class="ferr"></p>
+              <button id="update-password-submit" class="auth-submit-btn">Update Password</button>
+            </div>
   </div>
   <div class="hero-bottom">
     <div class="hero-scroll-hint">
@@ -1273,6 +1281,7 @@ body.light-mode::after{opacity:0.15}
       <div class="fgroup"><label>Full Name</label><input type="text" id="signup-name" placeholder="Your name" autocomplete="name"></div>
       <div class="fgroup"><label>Email</label><input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email"></div>
       <div class="fgroup"><label>Password</label><input type="password" id="signup-password" placeholder="Min 6 characters" autocomplete="new-password"></div>
+      <div class="cf-turnstile" data-sitekey="YOUR_TURNSTILE_SITE_KEY" data-theme="dark" style="margin-bottom: 1rem;"></div>
       <p id="signup-error" class="ferr"></p>
       <button id="signup-submit" class="auth-submit-btn">Create Account</button>
     </div>
@@ -1587,6 +1596,9 @@ if (_sb) {
   _sb.auth.onAuthStateChange(async (_, session) => {
     _user = session?.user ?? null;
     updateNav();
+            if (_ === 'PASSWORD_RECOVERY') {
+              openAuth('update-password');
+            }
     if (_user) await loadFavs();
     else { _favs = []; refreshHearts(); refreshCartFavs(); }
   });
@@ -1610,7 +1622,7 @@ function switchAuthTab(t) {
   document.querySelectorAll('#auth-modal .atab').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
   document.querySelectorAll('#auth-modal .apanel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + t)?.classList.add('active');
-  ['signin-error','signup-error','forgot-error'].forEach(id => { const e = document.getElementById(id); if(e) e.textContent = ''; });
+          ['signin-error','signup-error','forgot-error','update-password-error'].forEach(id => { const e = document.getElementById(id); if(e) e.textContent = ''; });
   const fs = document.getElementById('forgot-success'); if(fs) fs.style.display = 'none';
 }
 document.querySelectorAll('#auth-modal .atab').forEach(b => b.addEventListener('click', () => switchAuthTab(b.dataset.tab)));
@@ -1619,6 +1631,13 @@ document.getElementById('auth-modal').addEventListener('click', e => { if(e.targ
 document.getElementById('login-btn').addEventListener('click', () => openAuth('signin'));
 document.getElementById('forgot-link').addEventListener('click', e => { e.preventDefault(); switchAuthTab('forgot'); });
 document.getElementById('back-to-signin').addEventListener('click', e => { e.preventDefault(); switchAuthTab('signin'); });
+
+const _urlParams = new URLSearchParams(window.location.search);
+const _authAction = _urlParams.get('auth');
+if (_authAction === 'signin' || _authAction === 'signup') {
+  setTimeout(() => openAuth(_authAction), 100);
+  window.history.replaceState({}, document.title, window.location.pathname);
+}
 
 document.getElementById('signin-submit').addEventListener('click', async () => {
   const email = document.getElementById('signin-email').value.trim();
@@ -1636,12 +1655,15 @@ document.getElementById('signup-submit').addEventListener('click', async () => {
   const email = document.getElementById('signup-email').value.trim();
   const pass = document.getElementById('signup-password').value;
   const err = document.getElementById('signup-error');
+  const captchaToken = document.querySelector('[name="cf-turnstile-response"]')?.value;
   err.textContent = '';
   if (!name || !email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
   if (pass.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
+  if (!captchaToken) { err.textContent = 'Please complete the CAPTCHA verification.'; return; }
   setDisabled('signup-submit', true, 'Create Account');
-  if (_sb) { const { error } = await _sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } }); if (error) { err.textContent = error.message; setDisabled('signup-submit', false, 'Create Account'); return; } }
-  setDisabled('signup-submit', false, 'Create Account'); closeAuth(); showToast('Account created! Check your email.');
+  if (_sb) { const { error } = await _sb.auth.signUp({ email, password: pass, options: { data: { full_name: name }, captchaToken } }); if (error) { err.textContent = error.message; setDisabled('signup-submit', false, 'Create Account'); if(window.turnstile) turnstile.reset(); return; } }
+  setDisabled('signup-submit', false, 'Create Account'); closeAuth(); showToast('Account created! Check your email to verify.');
+  if(window.turnstile) turnstile.reset();
 });
 
 document.getElementById('forgot-submit').addEventListener('click', async () => {

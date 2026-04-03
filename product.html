@@ -1350,12 +1350,12 @@ function handleCookieDecline() {
   document.getElementById('fav-join-link').addEventListener('click', () => {
     document.getElementById('cart-modal').classList.remove('open');
     document.body.style.overflow = '';
-    window.location.href = 'index.html';
+    window.location.href = 'index.html?auth=signup';
   });
   document.getElementById('fav-signin-link').addEventListener('click', () => {
     document.getElementById('cart-modal').classList.remove('open');
     document.body.style.overflow = '';
-    window.location.href = 'index.html';
+    window.location.href = 'index.html?auth=signin';
   });
 
   // Render cart items from localStorage

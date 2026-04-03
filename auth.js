@@ -31,6 +31,9 @@ if (_sb) {
   _sb.auth.onAuthStateChange(async (event, session) => {
     _currentUser = session?.user ?? null;
     updateHeaderForAuth();
+    if (event === 'PASSWORD_RECOVERY') {
+      openAuthModal('update-password');
+    }
     if (_currentUser) {
       await loadFavorites();
     } else {
@@ -65,7 +68,7 @@ function switchAuthTab(tab) {
   });
   document.querySelectorAll('#auth-modal .auth-panel').forEach(p => p.classList.remove('active'));
   $('panel-' + tab)?.classList.add('active');
-  ['signin-error', 'signup-error', 'forgot-error'].forEach(id => {
+  ['signin-error', 'signup-error', 'forgot-error', 'update-password-error'].forEach(id => {
     const el = $(id);
     if (el) el.textContent = '';
   });
@@ -105,17 +108,20 @@ $('signup-submit').addEventListener('click', async () => {
   const email = $('signup-email').value.trim();
   const pass  = $('signup-password').value;
   const err   = $('signup-error');
+  const captchaToken = document.querySelector('[name="cf-turnstile-response"]')?.value;
   err.textContent = '';
   if (!name || !email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
   if (pass.length < 6)         { err.textContent = 'Password must be at least 6 characters.'; return; }
+  if (!captchaToken)           { err.textContent = 'Please complete the CAPTCHA verification.'; return; }
   setBtn('signup-submit', true, 'Create Account');
   if (_sb) {
-    const { error } = await _sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
-    if (error) { err.textContent = error.message; setBtn('signup-submit', false, 'Create Account'); return; }
+    const { error } = await _sb.auth.signUp({ email, password: pass, options: { data: { full_name: name }, captchaToken } });
+    if (error) { err.textContent = error.message; setBtn('signup-submit', false, 'Create Account'); if (window.turnstile) turnstile.reset(); return; }
   }
   setBtn('signup-submit', false, 'Create Account');
   closeAuthModal();
-  showToast('Account created! Check your email to confirm.');
+  showToast('Account created! Check your email to verify.');
+  if (window.turnstile) turnstile.reset();
 });
 
 // ── Forgot Password ────────────────────────────────────────────────
@@ -134,6 +140,21 @@ $('forgot-submit').addEventListener('click', async () => {
   setBtn('forgot-submit', false, 'Send Reset Link');
   suc.style.display = 'block';
 });
+
+// ── Update Password ────────────────────────────────────────────────
+const updatePassBtn = $('update-password-submit');
+if (updatePassBtn) {
+  updatePassBtn.addEventListener('click', async () => {
+    const pass = $('update-password-input').value;
+    const err = $('update-password-error');
+    err.textContent = '';
+    if (pass.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
+    setBtn('update-password-submit', true, 'Updating');
+    if (_sb) { const { error } = await _sb.auth.updateUser({ password: pass }); if (error) { err.textContent = error.message; setBtn('update-password-submit', false, 'Update Password'); return; } }
+    setBtn('update-password-submit', false, 'Update Password');
+    closeAuthModal(); showToast('Password updated successfully!');
+  });
+}
 
 // ── Logout ─────────────────────────────────────────────────────────
 _authEls.logoutBtn.addEventListener('click', async () => {
