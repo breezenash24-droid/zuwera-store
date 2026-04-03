@@ -1566,6 +1566,10 @@
             <form id="editReviewForm">
                 <input type="hidden" id="editReviewId">
                 <div class="form-group">
+                    <label class="form-label">Reviewer Name</label>
+                    <input type="text" id="editReviewNickname" class="form-input" required>
+                </div>
+                <div class="form-group">
                     <label class="form-label">Review Title</label>
                     <input type="text" id="editReviewTitle" class="form-input" required>
                 </div>
@@ -1724,7 +1728,7 @@
         }
 
         async function checkAdminRole() {
-            const { data: profile } = await sb
+            const { data: profile, error } = await sb
                 .from('profiles')
                 .select('role')
                 .eq('id', currentUser.id)
@@ -1733,7 +1737,7 @@
             if (profile && profile.role === 'admin') {
                 showAdminPanel();
             } else {
-                showAccessDenied();
+                showAccessDenied(error ? error.message : null);
             }
         }
 
@@ -1770,11 +1774,12 @@
             loadDashboard();
         }
 
-        function showAccessDenied() {
+        function showAccessDenied(errorMsg = null) {
             document.getElementById('authGate').innerHTML = `
                 <div class="access-denied">
                     <h1>ACCESS DENIED</h1>
                     <p>You do not have admin privileges.</p>
+                    ${errorMsg ? `<p style="color:var(--error); font-size:0.85rem; margin-top:-15px; margin-bottom:30px; max-width:400px; word-wrap:break-word;">Database Error: ${errorMsg}</p>` : ''}
                     <button class="btn btn-primary" id="signOutAccessBtn">Sign Out</button>
                 </div>
             `;
@@ -1972,6 +1977,7 @@
                         const safeBody = (r.body || '').replace(/'/g, '&apos;').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
                         const safeAdminResponse = (r.admin_response || '').replace(/'/g, '&apos;').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
                         const displayAdminResponse = (r.admin_response || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        const safeNickname = (r.nickname || r.reviewer_name || 'Anonymous').replace(/'/g, '&apos;').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
                         
                         return `
                             <tr>
@@ -1985,7 +1991,7 @@
                                 </td>
                                 <td>
                                     <div class="action-buttons">
-                                        <button class="btn btn-secondary btn-sm" onclick="openEditReview('${r.id}', '${safeTitle}', '${safeBody}', '${safeAdminResponse}')">Edit/Reply</button>
+                                        <button class="btn btn-secondary btn-sm" onclick="openEditReview('${r.id}', '${safeTitle}', '${safeBody}', '${safeAdminResponse}', '${safeNickname}')">Edit/Reply</button>
                                         <button class="btn btn-danger btn-sm" onclick="deleteReview('${r.id}')">Delete</button>
                                     </div>
                                 </td>
@@ -2020,8 +2026,9 @@
             }
         };
 
-        window.openEditReview = function(id, title, body, adminResponse) {
+        window.openEditReview = function(id, title, body, adminResponse, nickname) {
             document.getElementById('editReviewId').value = id;
+            document.getElementById('editReviewNickname').value = nickname || '';
             document.getElementById('editReviewTitle').value = title;
             document.getElementById('editReviewBody').value = body;
             document.getElementById('editReviewAdminResponse').value = adminResponse || '';
@@ -2031,12 +2038,13 @@
         document.getElementById('editReviewForm')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('editReviewId').value;
+            const nickname = document.getElementById('editReviewNickname').value;
             const title = document.getElementById('editReviewTitle').value;
             const body = document.getElementById('editReviewBody').value;
             const admin_response = document.getElementById('editReviewAdminResponse').value;
             
             try {
-                const { error } = await sb.from('reviews').update({ title, body, admin_response }).eq('id', id);
+                const { error } = await sb.from('reviews').update({ nickname, reviewer_name: nickname, title, body, admin_response }).eq('id', id);
                 if (error) throw error;
                 showToast('Review updated successfully', 'success');
                 document.getElementById('editReviewModal').classList.remove('active');
