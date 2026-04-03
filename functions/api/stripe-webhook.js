@@ -7,7 +7,7 @@
  *
  * Environment variables (set in CF Pages Dashboard > Settings > Environment variables):
  *   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
- *   SENDGRID_API_KEY, SENDGRID_FROM_EMAIL,
+ *   RESEND_API_KEY, RESEND_FROM_EMAIL,
  *   SHIPPO_API_KEY, SHIPPO_FROM_*, SHIPPO_CARRIER_ACCOUNT,
  *   SUPABASE_URL, SUPABASE_SERVICE_KEY
  *
@@ -121,7 +121,7 @@ async function createShippingLabel(pi, meta, env, stripe) {
 }
 
 async function sendConfirmationEmail(pi, meta, env) {
-  if (!env.SENDGRID_API_KEY) return null;
+  if (!env.RESEND_API_KEY) return null;
 
   const orderId      = pi.id.slice(-8).toUpperCase();
   const totalDollars = (pi.amount / 100).toFixed(2);
@@ -137,19 +137,19 @@ async function sendConfirmationEmail(pi, meta, env) {
     ).join('');
   } catch (_) { itemsHtml = '<tr><td colspan="2">Your Zuwera order</td></tr>'; }
 
-  const resp = await fetch('https://api.sendgrid.com/v3/mail/send', {
+  const resp = await fetch('https://api.resend.com/emails', {
     method: 'POST',
-    headers: { Authorization: 'Bearer ' + env.SENDGRID_API_KEY, 'Content-Type': 'application/json' },
+    headers: { Authorization: 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      personalizations: [{ to: [{ email: toEmail, name: toName }] }],
-      from:     { email: env.SENDGRID_FROM_EMAIL || 'orders@zuwera.store', name: 'Zuwera' },
-      reply_to: { email: 'nasirubreeze@zuwera.store', name: 'Zuwera Support' },
-      subject:  'Order Confirmed -- #' + orderId,
-      content:  [{ type: 'text/html', value: '<p>Order #' + orderId + ' confirmed for ' + toName + '. Total: $' + totalDollars + '. Shipping via ' + shippingLine + '.</p>' }],
+      from:     `Zuwera <${env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`,
+      to:       [toEmail],
+      reply_to: 'nasirubreeze@zuwera.store',
+      subject:  `Order Confirmed -- #${orderId}`,
+      html:     `<p>Order #${orderId} confirmed for ${toName}. Total: $${totalDollars}. Shipping via ${shippingLine}.</p>`
     }),
   });
 
-  if (!resp.ok) throw new Error('SendGrid error ' + resp.status);
+  if (!resp.ok) throw new Error('Resend error ' + resp.status + ': ' + await resp.text());
   return true;
 }
 

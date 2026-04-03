@@ -1108,13 +1108,6 @@ body.light-mode::after{opacity:0.15}
         Get Early Access →
       </button>
     </div>
-            <div class="apanel" id="panel-update-password">
-              <div class="mtitle">New Password</div>
-              <div class="msubtitle">Enter your new password below</div>
-              <div class="fgroup"><label>New Password</label><input type="password" id="update-password-input" placeholder="Min 6 characters"></div>
-              <p id="update-password-error" class="ferr"></p>
-              <button id="update-password-submit" class="auth-submit-btn">Update Password</button>
-            </div>
   </div>
   <div class="hero-bottom">
     <div class="hero-scroll-hint">
@@ -1270,7 +1263,15 @@ body.light-mode::after{opacity:0.15}
       <div class="mtitle">Welcome Back</div>
       <div class="msubtitle">Sign in to your account</div>
       <div class="fgroup"><label>Email</label><input type="email" id="signin-email" placeholder="you@example.com" autocomplete="email"></div>
-      <div class="fgroup"><label>Password</label><input type="password" id="signin-password" placeholder="Password" autocomplete="current-password"></div>
+      <div class="fgroup">
+        <label>Password</label>
+        <div style="position:relative;">
+          <input type="password" id="signin-password" placeholder="Password" autocomplete="current-password" style="padding-right:40px;">
+          <button type="button" onclick="togglePwd('signin-password', this)" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:rgba(244,241,235,0.4); cursor:pointer; padding:0; display:flex; align-items:center;" aria-label="Toggle password visibility">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
+        </div>
+      </div>
       <p id="signin-error" class="ferr"></p>
       <button id="signin-submit" class="auth-submit-btn">Sign In</button>
       <p class="alink"><a id="forgot-link">Forgot password?</a></p>
@@ -1280,7 +1281,15 @@ body.light-mode::after{opacity:0.15}
       <div class="msubtitle">For those who dream</div>
       <div class="fgroup"><label>Full Name</label><input type="text" id="signup-name" placeholder="Your name" autocomplete="name"></div>
       <div class="fgroup"><label>Email</label><input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email"></div>
-      <div class="fgroup"><label>Password</label><input type="password" id="signup-password" placeholder="Min 6 characters" autocomplete="new-password"></div>
+      <div class="fgroup">
+        <label>Password</label>
+        <div style="position:relative;">
+          <input type="password" id="signup-password" placeholder="Min 6 characters" autocomplete="new-password" style="padding-right:40px;">
+          <button type="button" onclick="togglePwd('signup-password', this)" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:rgba(244,241,235,0.4); cursor:pointer; padding:0; display:flex; align-items:center;" aria-label="Toggle password visibility">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
+        </div>
+      </div>
       <div class="cf-turnstile" data-sitekey="0x4AAAAAACzvvg-l2dT2z35l" data-theme="dark" style="margin-bottom: 1rem;"></div>
       <p id="signup-error" class="ferr"></p>
       <button id="signup-submit" class="auth-submit-btn">Create Account</button>
@@ -1293,6 +1302,21 @@ body.light-mode::after{opacity:0.15}
       <p id="forgot-success" style="display:none;color:#6fcf6f;font-family:var(--fm);font-size:.68rem;letter-spacing:.08em;margin-bottom:.6rem">✓ Check your email for a reset link.</p>
       <button id="forgot-submit" class="auth-submit-btn">Send Reset Link</button>
       <p class="alink"><a id="back-to-signin">← Back to Sign In</a></p>
+    </div>
+    <div class="apanel" id="panel-update-password">
+      <div class="mtitle">New Password</div>
+      <div class="msubtitle">Enter your new password below</div>
+      <div class="fgroup">
+        <label>New Password</label>
+        <div style="position:relative;">
+          <input type="password" id="update-password-input" placeholder="Min 6 characters" style="padding-right:40px;">
+          <button type="button" onclick="togglePwd('update-password-input', this)" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:rgba(244,241,235,0.4); cursor:pointer; padding:0; display:flex; align-items:center;" aria-label="Toggle password visibility">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
+        </div>
+      </div>
+      <p id="update-password-error" class="ferr"></p>
+      <button id="update-password-submit" class="auth-submit-btn">Update Password</button>
     </div>
   </div>
 </div>
@@ -1639,6 +1663,18 @@ if (_authAction === 'signin' || _authAction === 'signup') {
   window.history.replaceState({}, document.title, window.location.pathname);
 }
 
+/* TOGGLE PASSWORD VISIBILITY */
+function togglePwd(id, btn) {
+  const inp = document.getElementById(id);
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
+  } else {
+    inp.type = 'password';
+    btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+  }
+}
+
 document.getElementById('signin-submit').addEventListener('click', async () => {
   const email = document.getElementById('signin-email').value.trim();
   const pass = document.getElementById('signin-password').value;
@@ -1659,9 +1695,10 @@ document.getElementById('signup-submit').addEventListener('click', async () => {
   err.textContent = '';
   if (!name || !email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
   if (pass.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
-  if (!captchaToken) { err.textContent = 'Please complete the CAPTCHA verification.'; return; }
   setDisabled('signup-submit', true, 'Create Account');
-  if (_sb) { const { error } = await _sb.auth.signUp({ email, password: pass, options: { data: { full_name: name }, captchaToken } }); if (error) { err.textContent = error.message; setDisabled('signup-submit', false, 'Create Account'); if(window.turnstile) turnstile.reset(); return; } }
+  const opts = { data: { full_name: name } };
+  if (captchaToken) opts.captchaToken = captchaToken;
+  if (_sb) { const { error } = await _sb.auth.signUp({ email, password: pass, options: opts }); if (error) { err.textContent = error.message; setDisabled('signup-submit', false, 'Create Account'); if(window.turnstile) turnstile.reset(); return; } }
   setDisabled('signup-submit', false, 'Create Account'); closeAuth(); showToast('Account created! Check your email to verify.');
   if(window.turnstile) turnstile.reset();
 });

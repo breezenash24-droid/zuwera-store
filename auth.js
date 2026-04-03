@@ -112,10 +112,11 @@ $('signup-submit').addEventListener('click', async () => {
   err.textContent = '';
   if (!name || !email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
   if (pass.length < 6)         { err.textContent = 'Password must be at least 6 characters.'; return; }
-  if (!captchaToken)           { err.textContent = 'Please complete the CAPTCHA verification.'; return; }
   setBtn('signup-submit', true, 'Create Account');
   if (_sb) {
-    const { error } = await _sb.auth.signUp({ email, password: pass, options: { data: { full_name: name }, captchaToken } });
+    const opts = { data: { full_name: name } };
+    if (captchaToken) opts.captchaToken = captchaToken;
+    const { error } = await _sb.auth.signUp({ email, password: pass, options: opts });
     if (error) { err.textContent = error.message; setBtn('signup-submit', false, 'Create Account'); if (window.turnstile) turnstile.reset(); return; }
   }
   setBtn('signup-submit', false, 'Create Account');

@@ -11,7 +11,7 @@
  *     URL: https://zuwera.store/api/stripe-webhook
  *     Events: payment_intent.succeeded, payment_intent.payment_failed
  *  2. Copy the webhook signing secret → STRIPE_WEBHOOK_SECRET env var
- *  3. Add SENDGRID_API_KEY + SENDGRID_FROM_EMAIL env vars
+ *  3. Add RESEND_API_KEY + RESEND_FROM_EMAIL env vars
  *  4. Add SHIPPO_API_KEY + SHIPPO_FROM_* env vars
  *  5. Add SUPABASE_URL + SUPABASE_SERVICE_KEY env vars
  */
@@ -115,11 +115,11 @@ async function createShippingLabel(pi, meta) {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Send confirmation email via SendGrid
+// Send confirmation email via Resend
 // ─────────────────────────────────────────────────────────────────
 async function sendConfirmationEmail(pi, meta) {
-  if (!process.env.SENDGRID_API_KEY) {
-    console.warn('SENDGRID_API_KEY not set — skipping confirmation email');
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY not set — skipping confirmation email');
     return null;
   }
 
@@ -209,22 +209,22 @@ async function sendConfirmationEmail(pi, meta) {
 </body>
 </html>`;
 
-  const resp = await fetch('https://api.sendgrid.com/v3/mail/send', {
+  const resp = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
-      Authorization:  `Bearer ${process.env.SENDGRID_API_KEY}`,
+      Authorization:  `Bearer ${process.env.RESEND_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      personalizations: [{ to: [{ email: toEmail, name: toName }] }],
-      from:     { email: process.env.SENDGRID_FROM_EMAIL || 'orders@zuwera.store', name: 'Zuwera' },
-      reply_to: { email: 'nasirubreeze@zuwera.store', name: 'Zuwera Support' },
+      from:     `Zuwera <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`,
+      to:       [toEmail],
+      reply_to: 'nasirubreeze@zuwera.store',
       subject:  `Order Confirmed — #${orderId}`,
-      content:  [{ type: 'text/html', value: emailHtml }],
+      html:     emailHtml,
     }),
   });
 
-  if (!resp.ok) throw new Error(`SendGrid error ${resp.status}: ${await resp.text()}`);
+  if (!resp.ok) throw new Error(`Resend error ${resp.status}: ${await resp.text()}`);
   console.log(`📧 Confirmation email sent to ${toEmail}`);
   return true;
 }
