@@ -93,12 +93,13 @@ $('signin-submit').addEventListener('click', async () => {
   const captchaToken = document.querySelector('#panel-signin [name="cf-turnstile-response"]')?.value;
   err.textContent = '';
   if (!email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
+  if (!captchaToken) { err.textContent = 'Please complete the CAPTCHA security check.'; return; }
   setBtn('signin-submit', true, 'Sign In');
   const opts = {};
   if (captchaToken) opts.captchaToken = captchaToken;
   if (_sb) {
     const { error } = await _sb.auth.signInWithPassword({ email, password: pass, options: opts });
-    if (error) { err.textContent = error.message; setBtn('signin-submit', false, 'Sign In'); if (window.turnstile) turnstile.reset(); return; }
+    if (error) { err.textContent = error.message === 'Email not confirmed' ? 'Please check your email and verify your account.' : error.message; setBtn('signin-submit', false, 'Sign In'); if (window.turnstile) turnstile.reset(); return; }
   }
   setBtn('signin-submit', false, 'Sign In');
   closeAuthModal();
@@ -138,6 +139,7 @@ $('forgot-submit').addEventListener('click', async () => {
   err.textContent = '';
   suc.style.display = 'none';
   if (!email) { err.textContent = 'Please enter your email.'; return; }
+  if (!captchaToken) { err.textContent = 'Please complete the CAPTCHA security check.'; return; }
   setBtn('forgot-submit', true, 'Send Reset Link');
   const opts = { redirectTo: 'https://zuwera.store' };
   if (captchaToken) opts.captchaToken = captchaToken;

@@ -1684,10 +1684,11 @@ document.getElementById('signin-submit').addEventListener('click', async () => {
   const captchaToken = document.querySelector('#panel-signin [name="cf-turnstile-response"]')?.value;
   err.textContent = '';
   if (!email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
+  if (!captchaToken) { err.textContent = 'Please complete the CAPTCHA security check.'; return; }
   setDisabled('signin-submit', true, 'Sign In');
   const opts = {};
   if (captchaToken) opts.captchaToken = captchaToken;
-  if (_sb) { const { error } = await _sb.auth.signInWithPassword({ email, password: pass, options: opts }); if (error) { err.textContent = error.message; setDisabled('signin-submit', false, 'Sign In'); if(window.turnstile) turnstile.reset(); return; } }
+  if (_sb) { const { error } = await _sb.auth.signInWithPassword({ email, password: pass, options: opts }); if (error) { err.textContent = error.message === 'Email not confirmed' ? 'Please check your email and verify your account.' : error.message; setDisabled('signin-submit', false, 'Sign In'); if(window.turnstile) turnstile.reset(); return; } }
   setDisabled('signin-submit', false, 'Sign In'); closeAuth(); showToast('Welcome back!');
   if(window.turnstile) turnstile.reset();
 });
@@ -1718,6 +1719,7 @@ document.getElementById('forgot-submit').addEventListener('click', async () => {
   const captchaToken = document.querySelector('#panel-forgot [name="cf-turnstile-response"]')?.value;
   err.textContent = ''; suc.style.display = 'none';
   if (!email) { err.textContent = 'Please enter your email.'; return; }
+  if (!captchaToken) { err.textContent = 'Please complete the CAPTCHA security check.'; return; }
   setDisabled('forgot-submit', true, 'Send Reset Link');
   const opts = { redirectTo: window.location.origin };
   if (captchaToken) opts.captchaToken = captchaToken;

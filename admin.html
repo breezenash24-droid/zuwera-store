@@ -1810,6 +1810,14 @@
             const email = document.getElementById('authEmail').value;
             const password = document.getElementById('authPassword').value;
             const captchaToken = document.querySelector('[name="cf-turnstile-response"]')?.value;
+            const errEl = document.getElementById('authError');
+            errEl.style.display = 'none';
+
+            if (!captchaToken) {
+                errEl.textContent = 'Please complete the CAPTCHA security check.';
+                errEl.style.display = 'block';
+                return;
+            }
 
             try {
                 const opts = {};
@@ -1823,14 +1831,15 @@
 
                 if (error) {
                     if (window.turnstile) turnstile.reset();
+                    if (error.message === 'Email not confirmed') throw new Error('Please verify your email address before logging in.');
                     throw error;
                 }
                 currentUser = data.user;
                 if (window.turnstile) turnstile.reset();
                 await checkAdminRole();
             } catch (error) {
-                document.getElementById('authError').textContent = error.message;
-                document.getElementById('authError').style.display = 'block';
+                errEl.textContent = error.message;
+                errEl.style.display = 'block';
             }
         });
 
