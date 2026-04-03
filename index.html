@@ -1272,6 +1272,7 @@ body.light-mode::after{opacity:0.15}
           </button>
         </div>
       </div>
+      <div class="cf-turnstile" data-sitekey="0x4AAAAAACzvvg-l2dT2z35l" data-theme="dark" style="margin-bottom: 1rem;"></div>
       <p id="signin-error" class="ferr"></p>
       <button id="signin-submit" class="auth-submit-btn">Sign In</button>
       <p class="alink"><a id="forgot-link">Forgot password?</a></p>
@@ -1298,6 +1299,7 @@ body.light-mode::after{opacity:0.15}
       <div class="mtitle">Reset Password</div>
       <div class="msubtitle">We'll send a link to your email</div>
       <div class="fgroup"><label>Email</label><input type="email" id="forgot-email" placeholder="you@example.com" autocomplete="email"></div>
+      <div class="cf-turnstile" data-sitekey="0x4AAAAAACzvvg-l2dT2z35l" data-theme="dark" style="margin-bottom: 1rem;"></div>
       <p id="forgot-error" class="ferr"></p>
       <p id="forgot-success" style="display:none;color:#6fcf6f;font-family:var(--fm);font-size:.68rem;letter-spacing:.08em;margin-bottom:.6rem">✓ Check your email for a reset link.</p>
       <button id="forgot-submit" class="auth-submit-btn">Send Reset Link</button>
@@ -1679,11 +1681,15 @@ document.getElementById('signin-submit').addEventListener('click', async () => {
   const email = document.getElementById('signin-email').value.trim();
   const pass = document.getElementById('signin-password').value;
   const err = document.getElementById('signin-error');
+  const captchaToken = document.querySelector('#panel-signin [name="cf-turnstile-response"]')?.value;
   err.textContent = '';
   if (!email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
   setDisabled('signin-submit', true, 'Sign In');
-  if (_sb) { const { error } = await _sb.auth.signInWithPassword({ email, password: pass }); if (error) { err.textContent = error.message; setDisabled('signin-submit', false, 'Sign In'); return; } }
+  const opts = {};
+  if (captchaToken) opts.captchaToken = captchaToken;
+  if (_sb) { const { error } = await _sb.auth.signInWithPassword({ email, password: pass, options: opts }); if (error) { err.textContent = error.message; setDisabled('signin-submit', false, 'Sign In'); if(window.turnstile) turnstile.reset(); return; } }
   setDisabled('signin-submit', false, 'Sign In'); closeAuth(); showToast('Welcome back!');
+  if(window.turnstile) turnstile.reset();
 });
 
 document.getElementById('signup-submit').addEventListener('click', async () => {
@@ -1691,26 +1697,33 @@ document.getElementById('signup-submit').addEventListener('click', async () => {
   const email = document.getElementById('signup-email').value.trim();
   const pass = document.getElementById('signup-password').value;
   const err = document.getElementById('signup-error');
-  const captchaToken = document.querySelector('[name="cf-turnstile-response"]')?.value;
+  const captchaToken = document.querySelector('#panel-signup [name="cf-turnstile-response"]')?.value;
   err.textContent = '';
   if (!name || !email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
   if (pass.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
   setDisabled('signup-submit', true, 'Create Account');
   const opts = { data: { full_name: name } };
   if (captchaToken) opts.captchaToken = captchaToken;
-  if (_sb) { const { error } = await _sb.auth.signUp({ email, password: pass, options: opts }); if (error) { err.textContent = error.message; setDisabled('signup-submit', false, 'Create Account'); if(window.turnstile) turnstile.reset(); return; } }
-  setDisabled('signup-submit', false, 'Create Account'); closeAuth(); showToast('Account created! Check your email to verify.');
+  if (_sb) { 
+    const { data, error } = await _sb.auth.signUp({ email, password: pass, options: opts }); 
+    if (error) { err.textContent = error.message; setDisabled('signup-submit', false, 'Create Account'); if(window.turnstile) turnstile.reset(); return; } 
+    setDisabled('signup-submit', false, 'Create Account'); closeAuth(); showToast(data?.session ? 'Account created! Welcome to Zuwera.' : 'Account created! Check your email to verify.'); 
+  }
   if(window.turnstile) turnstile.reset();
 });
 
 document.getElementById('forgot-submit').addEventListener('click', async () => {
   const email = document.getElementById('forgot-email').value.trim();
   const err = document.getElementById('forgot-error'), suc = document.getElementById('forgot-success');
+  const captchaToken = document.querySelector('#panel-forgot [name="cf-turnstile-response"]')?.value;
   err.textContent = ''; suc.style.display = 'none';
   if (!email) { err.textContent = 'Please enter your email.'; return; }
   setDisabled('forgot-submit', true, 'Send Reset Link');
-  if (_sb) { const { error } = await _sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin }); if (error) { err.textContent = error.message; setDisabled('forgot-submit', false, 'Send Reset Link'); return; } }
+  const opts = { redirectTo: window.location.origin };
+  if (captchaToken) opts.captchaToken = captchaToken;
+  if (_sb) { const { error } = await _sb.auth.resetPasswordForEmail(email, opts); if (error) { err.textContent = error.message; setDisabled('forgot-submit', false, 'Send Reset Link'); if(window.turnstile) turnstile.reset(); return; } }
   setDisabled('forgot-submit', false, 'Send Reset Link'); suc.style.display = 'block';
+  if(window.turnstile) turnstile.reset();
 });
 
 document.getElementById('logout-btn').addEventListener('click', async () => { if (_sb) await _sb.auth.signOut(); showToast('Signed out.'); });

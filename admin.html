@@ -916,6 +916,7 @@
                     </button>
                 </div>
             </div>
+            <div class="cf-turnstile" data-sitekey="0x4AAAAAACzvvg-l2dT2z35l" data-theme="dark" style="margin-bottom: 20px;"></div>
             <button type="submit" class="btn btn-primary" style="width: 100%;">Sign In</button>
             <div id="authError" style="color: var(--error); margin-top: 16px; font-size: 0.9rem; display: none;"></div>
         </form>
@@ -1635,6 +1636,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
 <script>
         // Initialize Supabase
@@ -1807,15 +1809,24 @@
             e.preventDefault();
             const email = document.getElementById('authEmail').value;
             const password = document.getElementById('authPassword').value;
+            const captchaToken = document.querySelector('[name="cf-turnstile-response"]')?.value;
 
             try {
+                const opts = {};
+                if (captchaToken) opts.captchaToken = captchaToken;
+                
                 const { data, error } = await sb.auth.signInWithPassword({
                     email,
-                    password
+                    password,
+                    options: opts
                 });
 
-                if (error) throw error;
+                if (error) {
+                    if (window.turnstile) turnstile.reset();
+                    throw error;
+                }
                 currentUser = data.user;
+                if (window.turnstile) turnstile.reset();
                 await checkAdminRole();
             } catch (error) {
                 document.getElementById('authError').textContent = error.message;
