@@ -153,6 +153,7 @@ function openReviewForm(pid, pname) {
   setStarSelection(0);
 
   document.getElementById('review-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 
 function openEditReviewForm(id, rating, body) {
@@ -164,12 +165,247 @@ function openEditReviewForm(id, rating, body) {
 
   document.getElementById('review-error').textContent = '';
   const btn = document.getElementById('review-submit-btn');
-  if (btn) {
+Account home
+
+Recents
+Turnstile
+Application securi...
+
+Workers & Pages
+Compute
+
+Overview
+Domains
+
+Edge Certificates
+zuwera.store
+/
+SSL/TLS
+
+Overview
+zuwera.store
+/
+Rules
+
+
+Analytics & logs
+
+Domains
+Build
+
+Compute
+Workers & Pages
+Observability
+Workers for Platforms
+Containers
+Beta
+Durable Objects
+Queues
+Workflows
+Browser Rendering
+VPC
+Beta
+
+Email Service
+Workers plans
+
+AI
+
+Storage & databases
+
+Media
+Protect & Connect
+
+Application security
+Zero Trust
+
+Networking
+
+Delivery & performance
+
+Manage account
+Workers & Pages
+zuwera-store
+Deployments
+Metrics
+Custom domains
+Settings
+Build
+Variables and Secrets
+Bindings
+Runtime
+General
+Pages configuration
+Give feedback
+Choose Environment:
+Build
+Git repository
+
+breezenash24-droid/zuwera-store
+Build configuration
+Build command:
+npm install
+Build output:
+.
+Root directory:
+Build comments:
+Enabled
+Build cache
+Disabled
+Branch control
+Production branch:
+main
+Automatic deployments:
+Enabled
+Build watch paths
+Include paths:
+*
+Build system version
+Version 3
+Deploy Hooks
+No deploy hooks defined
+Variables and Secrets
+Define the text, secret or build variables for your project
+
+Type
+Name
+Value
+Secret
+SENDGRID_API_KEY
+Value encrypted
+
+
+Plaintext
+SENDGRID_FROM_EMAIL
+orders@zuwera.store
+
+
+Secret
+SHIPPO_API_KEY
+Value encrypted
+
+
+Plaintext
+SHIPPO_FROM_CITY
+Los Angeles
+
+
+Plaintext
+SHIPPO_FROM_COUNTRY
+US
+
+
+Plaintext
+SHIPPO_FROM_EMAIL
+orders@zuwera.store
+
+
+Plaintext
+SHIPPO_FROM_NAME
+Zuwera
+
+
+Plaintext
+SHIPPO_FROM_STATE
+CA
+
+
+Plaintext
+SHIPPO_FROM_STREET1
+123 Brand St
+
+
+Plaintext
+SHIPPO_FROM_ZIP
+90001
+
+
+Plaintext
+SITE_URL
+https://zuwera.store
+
+
+Secret
+STRIPE_SECRET_KEY
+Value encrypted
+
+
+Secret
+STRIPE_WEBHOOK_SECRET
+Value encrypted
+
+
+Secret
+SUPABASE_SERVICE_KEY
+Value encrypted
+
+
+Plaintext
+SUPABASE_URL
+https://ebrqmtghprdxwjgnuqsm.supabase.co
+
+
+Bindings
+Define the set of resources available to your Pages Functions
+
+
+Configure ways to interact with storage, databases, AI and more from your Worker
+Runtime
+Define the runtime configuration for your Pages Functions
+
+Placement
+Default
+Compatibility date
+Sep 23, 2024
+Compatibility flags
+nodejs_compat
+Fail open/closed
+Fail open
+General
+Name
+zuwera-store
+Notifications
+Subscribe to specific events by adding a notification to your project
+Access policy
+Control access to preview deployments with Cloudflare Access.
+Permanently delete this Pages project including all deployments, assets, functions and configurations associated with it.
+Support
+System status
+Careers
+Terms of Use
+Report Security Issues
+Privacy Policy
+A blue and white pill with a checkmark and an x, representing privacy choicesYour Privacy Choices
+© 2026 Cloudflare, Inc.
+Need more help?
+
+Good evening.
+What are we doing today?
+
+
+Transfer a domain
+Walk me through the process
+
+Durable Objects
+Explain how they work
+
+Domain settings
+Show my configuration
+
+Find my account ID
+Locate account and zone IDs
+
+Orange vs Gray Cloud
+What is the difference?
+Chats are recorded to improve the service and are processed in accordance with our Privacy Policy.
+
+What can we help you with?
     btn.disabled = false;
     btn.textContent = 'Update Review';
   }
   setStarSelection(rating);
   document.getElementById('review-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 
 // ── Star selector interaction ──────────────────────────────────────
@@ -242,6 +478,7 @@ async function submitReview() {
   delete _reviewCache[_reviewProductId];
 
   document.getElementById('review-modal').classList.remove('open');
+  document.body.style.overflow = '';
   showToast('Review submitted — thank you!');
 
   // Refresh all instances of panels and stars for this product
@@ -282,8 +519,12 @@ function escHtml(str) {
 
 // ── Close review modal on backdrop click ─────────────────────────
 document.getElementById('review-modal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) document.getElementById('review-modal').classList.remove('open');
+  if (e.target === e.currentTarget) {
+    document.getElementById('review-modal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
 });
 document.getElementById('review-modal-close').addEventListener('click', () => {
   document.getElementById('review-modal').classList.remove('open');
+  document.body.style.overflow = '';
 });

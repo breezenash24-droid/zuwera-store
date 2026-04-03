@@ -1640,8 +1640,8 @@ function updateNav() {
 }
 
 /* AUTH MODAL */
-function openAuth(tab) { document.getElementById('auth-modal').classList.add('open'); switchAuthTab(tab || 'signin'); }
-function closeAuth() { document.getElementById('auth-modal').classList.remove('open'); }
+function openAuth(tab) { document.getElementById('auth-modal').classList.add('open'); document.body.style.overflow = 'hidden'; switchAuthTab(tab || 'signin'); }
+function closeAuth() { document.getElementById('auth-modal').classList.remove('open'); document.body.style.overflow = ''; }
 function switchAuthTab(t) {
   document.querySelectorAll('#auth-modal .atab').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
   document.querySelectorAll('#auth-modal .apanel').forEach(p => p.classList.remove('active'));
@@ -1718,10 +1718,11 @@ document.getElementById('logout-btn').addEventListener('click', async () => { if
 /* ACCOUNT MODAL */
 document.getElementById('account-btn').addEventListener('click', () => {
   document.getElementById('account-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
   switchAcctTab('orders'); loadOrders();
 });
-document.getElementById('account-modal-close').addEventListener('click', () => document.getElementById('account-modal').classList.remove('open'));
-document.getElementById('account-modal').addEventListener('click', e => { if(e.target===e.currentTarget) document.getElementById('account-modal').classList.remove('open'); });
+document.getElementById('account-modal-close').addEventListener('click', () => { document.getElementById('account-modal').classList.remove('open'); document.body.style.overflow = ''; });
+document.getElementById('account-modal').addEventListener('click', e => { if(e.target===e.currentTarget) { document.getElementById('account-modal').classList.remove('open'); document.body.style.overflow = ''; } });
 function switchAcctTab(t) {
   document.querySelectorAll('#account-modal .atab').forEach(b => b.classList.toggle('active', b.dataset.acctab === t));
   document.querySelectorAll('#account-modal .apanel').forEach(p => p.classList.remove('active'));
