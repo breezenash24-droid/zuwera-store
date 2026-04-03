@@ -2088,6 +2088,8 @@
                     ? `<button class="btn btn-secondary btn-sm" onclick="toggleUserRole('${u.id}', 'customer')" ${isCurrentUser ? 'disabled title="Cannot demote yourself"' : ''}>Make Customer</button>`
                     : `<button class="btn btn-secondary btn-sm" onclick="toggleUserRole('${u.id}', 'admin')">Make Admin</button>`;
                 
+                const deleteBtn = `<button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}')" ${isCurrentUser ? 'disabled title="Cannot delete yourself"' : ''}>Delete</button>`;
+                
                 return `
                     <tr>
                         <td><strong>${u.full_name || 'No Name'}</strong> ${isCurrentUser ? '<span class="status-badge status-live" style="margin-left:8px;font-size:0.6rem;padding:2px 6px;">You</span>' : ''}</td>
@@ -2096,12 +2098,26 @@
                         <td>
                             <div class="action-buttons">
                                 ${toggleRoleBtn}
+                                ${deleteBtn}
                             </div>
                         </td>
                     </tr>
                 `;
             }).join('');
         }
+
+        window.deleteUser = async function(userId) {
+            if (confirm('Are you sure you want to permanently delete this user? This cannot be undone.')) {
+                try {
+                    const { error } = await sb.rpc('delete_user', { target_user_id: userId });
+                    if (error) throw error;
+                    showToast('User deleted successfully', 'success');
+                    loadUsers();
+                } catch (err) {
+                    showToast('Error deleting user: ' + err.message, 'error');
+                }
+            }
+        };
 
         window.toggleUserRole = async function(userId, newRole) {
             if (confirm(`Are you sure you want to make this user a ${newRole}?`)) {
