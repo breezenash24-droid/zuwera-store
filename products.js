@@ -126,6 +126,7 @@ function renderProducts(grid, products) {
       if (p.product_images[0].image_url) firstImg = p.product_images[0].image_url;
     }
 
+    const domId = p.unique_id || p.id;
 
     return `
       <div class="pcard" data-product-slug="${(p.slug || productName.toLowerCase().replace(/[^a-z0-9]/g,'-')).slice(0,50)}" onclick="window.location.href='product.html?slug=${encodeURIComponent(productName.toLowerCase().replace(/[^a-z0-9]/g,'-'))}'" style="cursor:pointer">

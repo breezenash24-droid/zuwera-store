@@ -1308,61 +1308,6 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('rm-search')?.addEventListener('input', () => { rmCurrentPage = 1; renderModalReviews(); });
-  document.getElementById('rm-sort')?.addEventListener('change', () => { rmCurrentPage = 1; renderModalReviews(); });
-  document.getElementById('rm-filter')?.addEventListener('change', () => { rmCurrentPage = 1; renderModalReviews(); });
-  document.getElementById('rm-prev')?.addEventListener('click', () => { rmCurrentPage--; renderModalReviews(); });
-  document.getElementById('rm-next')?.addEventListener('click', () => { rmCurrentPage++; renderModalReviews(); });
-  
-  document.getElementById('rm-translate-btn')?.addEventListener('click', async () => {
-    const btn = document.getElementById('rm-translate-btn');
-    const originalText = btn.textContent;
-    btn.textContent = 'Translating...';
-    btn.disabled = true;
-
-    try {
-      // 1. Gather all titles and bodies that haven't been translated yet
-      const itemsToTranslate = [];
-      currentProduct.reviews.forEach((r, idx) => {
-        if (r.body && !r.original_body) itemsToTranslate.push({ type: 'body', index: idx, text: r.body });
-        if (r.title && !r.original_title) itemsToTranslate.push({ type: 'title', index: idx, text: r.title });
-      });
-
-      if (itemsToTranslate.length === 0) {
-        showToast('Reviews are already translated.');
-        btn.textContent = 'Translated ✓';
-        return;
-      }
-
-      // 2. Send to our secure Cloudflare Function
-      const res = await fetch('/api/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texts: itemsToTranslate.map(i => i.text), target_lang: 'EN-US' })
-      });
-      if (!res.ok) throw new Error('Translation failed');
-      const data = await res.json();
-
-      // 3. Inject the English text back into the reviews
-      itemsToTranslate.forEach((item, i) => {
-        const review = currentProduct.reviews[item.index];
-        if (item.type === 'body') { review.original_body = review.body; review.body = data.translations[i].text; }
-        else if (item.type === 'title') { review.original_title = review.title; review.title = data.translations[i].text; }
-      });
-
-      renderModalReviews();
-      showToast('Reviews translated to English!');
-      btn.textContent = 'Translated ✓';
-    } catch (err) {
-      console.error(err);
-      showToast('Failed to translate reviews.');
-      btn.textContent = originalText;
-      btn.disabled = false;
-    }
-  });
-});
-
 </script>
 
 <!-- ════════════════════════════════════════════════════════════════ -->
