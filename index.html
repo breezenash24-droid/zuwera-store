@@ -1464,11 +1464,30 @@ const _sb = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_U
         try {
           if (typeof v === 'string') v = JSON.parse(v);
         } catch(e) {}
-        // Main page ONLY uses main banner
-        const msgText = (typeof v === 'object' && v !== null) ? v.main : v;
-        if (msgText) {
-          const el = document.getElementById('announcementText');
-          if (el) el.textContent = msgText;
+        
+        let isEnabled = true;
+        let msgText = '';
+        if (typeof v === 'object' && v !== null) {
+          isEnabled = v.enabled !== false;
+          msgText = v.main || '';
+        } else {
+          msgText = v;
+        }
+        
+        const barEl = document.getElementById('bar');
+        const navEl = document.getElementById('nav');
+        if (barEl) {
+          if (!isEnabled) {
+            barEl.style.display = 'none';
+            if (navEl) navEl.style.top = '0';
+          } else {
+            barEl.style.display = 'flex';
+            if (msgText) {
+              const textEl = document.getElementById('announcementText');
+              if (textEl) textEl.textContent = msgText;
+            }
+            if (navEl) navEl.style.top = barEl.offsetHeight + 'px';
+          }
         }
       } else if (row.key === 'theme') {
         if (row.value && row.value.mode === 'light') document.body.classList.add('light-mode');
@@ -1723,6 +1742,7 @@ document.getElementById('signup-submit').addEventListener('click', async () => {
   if (_sb) { 
     const { data, error } = await _sb.auth.signUp({ email, password: pass, options: opts }); 
     if (error) { err.textContent = error.message; setDisabled('signup-submit', false, 'Create Account'); if(window.turnstile) turnstile.reset(); return; } 
+    if (typeof gtag === 'function') gtag('event', 'sign_up', { method: 'Email' });
     setDisabled('signup-submit', false, 'Create Account'); closeAuth(); showToast(data?.session ? 'Account created! Welcome to Zuwera.' : 'Account created! Check your email to verify.'); 
   }
   if(window.turnstile) turnstile.reset();

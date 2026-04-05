@@ -1081,10 +1081,7 @@
 
                 <!-- Analytics Page -->
                 <div id="analytics" class="page">
-                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;text-align:center;">
-                        <h2 style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:1px;margin-bottom:16px;">Analytics Dashboard</h2>
-                        <p style="color:var(--text-secondary);margin-bottom:24px;">Opening full-screen analytics dashboard...</p>
-                    </div>
+                    <iframe id="analyticsFrame" src="analytics.html?embed=true" style="width: 100%; height: calc(100vh - 120px); border: none; border-radius: 8px; background: var(--bg-secondary);"></iframe>
                 </div>
 
                 <!-- Settings Page -->
@@ -1097,6 +1094,10 @@
                     <!-- Announcement Bar -->
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
                         <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:16px;">Announcement Bar</div>
+                        <div style="margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+                            <input type="checkbox" id="settAnnouncementBarEnabled" checked style="width:16px; height:16px; cursor:pointer; accent-color:var(--accent);">
+                            <label for="settAnnouncementBarEnabled" style="font-size:.85rem; color:var(--text-primary); cursor:pointer; font-weight:600;">Enable Announcement Bar site-wide</label>
+                        </div>
                         <div style="margin-bottom:12px;">
                             <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Main Page Banner</label>
                             <input type="text" id="settAnnouncementBarMain" class="form-input" placeholder="e.g. ALL THE DEVILS ARE HERE" style="width:100%;">
@@ -1642,7 +1643,9 @@
         // Initialize Supabase
         const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
-        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: { persistSession: true, storageKey: 'zuwera-auth' }
+        });
 
         // State Management
         let currentUser = null;
@@ -1716,6 +1719,9 @@
             if (typeof sb !== 'undefined' && sb) {
                 sb.from('site_settings').upsert({ key: 'theme', value: { mode: isDarkMode ? 'dark' : 'light' } }, { onConflict: 'key' }).then(function(){});
             }
+            
+            const frame = document.getElementById('analyticsFrame');
+            if (frame) frame.src = frame.src; // Reload iframe to match theme
         }
 
         document.getElementById('themeToggle').addEventListener('click', () => {
@@ -1868,10 +1874,6 @@
         }
 
         function navigateTo(page) {
-            if (page === 'analytics') {
-                window.location.href = 'analytics.html';
-                return;
-            }
             if (page === 'website') setTimeout(loadWebsiteSettings, 100);
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(page).classList.add('active');
@@ -2943,8 +2945,10 @@
                 if (typeof v === 'object' && v !== null) {
                     document.getElementById('settAnnouncementBarMain').value = v.main || '';
                     document.getElementById('settAnnouncementBarProduct').value = v.product || '';
+                    document.getElementById('settAnnouncementBarEnabled').checked = v.enabled !== false;
                 } else {
                     document.getElementById('settAnnouncementBarMain').value = typeof v === 'string' ? v : '';
+                    document.getElementById('settAnnouncementBarEnabled').checked = true;
                 }
             } else if (row.key === 'shipping_policy') {
                 const v = row.value || {};
@@ -2991,7 +2995,8 @@
     document.getElementById('saveAnnouncementBtn').addEventListener('click', async () => {
         const val = {
             main: document.getElementById('settAnnouncementBarMain').value.trim(),
-            product: document.getElementById('settAnnouncementBarProduct').value.trim()
+            product: document.getElementById('settAnnouncementBarProduct').value.trim(),
+            enabled: document.getElementById('settAnnouncementBarEnabled').checked
         };
         const { error } = await sb.from('site_settings').upsert(
             { key: 'announcement_bar', value: JSON.stringify(val), updated_at: new Date().toISOString() },

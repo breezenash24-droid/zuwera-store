@@ -370,11 +370,29 @@ async function loadSiteSettings() {
           if (typeof v === 'string') v = JSON.parse(v);
         } catch(e) {}
         
-        // Product page falls back to main banner if product banner is empty
-        const msgText = (typeof v === 'object' && v !== null) ? (v.product || v.main) : v;
-        if (msgText) {
-          const el = document.getElementById('announcementText');
-          if (el) el.textContent = msgText;
+        let isEnabled = true;
+        let msgText = '';
+        if (typeof v === 'object' && v !== null) {
+          isEnabled = v.enabled !== false;
+          msgText = v.product || v.main || '';
+        } else {
+          msgText = v;
+        }
+        
+        const barEl = document.getElementById('bar');
+        const navEl = document.querySelector('.nav');
+        if (barEl) {
+          if (!isEnabled) {
+            barEl.style.display = 'none';
+            if (navEl) navEl.style.top = '0';
+          } else {
+            barEl.style.display = 'flex';
+            if (msgText) {
+              const textEl = document.getElementById('announcementText');
+              if (textEl) textEl.textContent = msgText;
+            }
+            if (navEl) navEl.style.top = barEl.offsetHeight + 'px';
+          }
         }
       } else if (row.key === 'shipping_policy') {
         const v = row.value;
@@ -1261,6 +1279,75 @@ function handleCookieDecline() {
   document.getElementById('cookieConsent').style.display = 'none';
 }
 
+// ══════════════════════════════════════════════════════════════════
+// GLOBAL ESCAPE KEY (Close Modals)
+// ══════════════════════════════════════════════════════════════════
+document.addEventListener('keydown', (e) => {
+  // Ignore if user is typing in a form
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'ArrowLeft') { const p = document.getElementById('prevImg'); if (p && p.offsetParent !== null) updateMainImage(currentImageIndex - 1); }
+  if (e.key === 'ArrowRight') { const n = document.getElementById('nextImg'); if (n && n.offsetParent !== null) updateMainImage(currentImageIndex + 1); }
+
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal.open').forEach(m => { m.classList.remove('open'); document.body.style.overflow = ''; });
+  }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('rm-search')?.addEventListener('input', () => { rmCurrentPage = 1; renderModalReviews(); });
+  document.getElementById('rm-sort')?.addEventListener('change', () => { rmCurrentPage = 1; renderModalReviews(); });
+  document.getElementById('rm-filter')?.addEventListener('change', () => { rmCurrentPage = 1; renderModalReviews(); });
+  document.getElementById('rm-prev')?.addEventListener('click', () => { rmCurrentPage--; renderModalReviews(); });
+  document.getElementById('rm-next')?.addEventListener('click', () => { rmCurrentPage++; renderModalReviews(); });
+  
+  document.getElementById('rm-translate-btn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('rm-translate-btn');
+    const originalText = btn.textContent;
+    btn.textContent = 'Translating...';
+    btn.disabled = true;
+
+    try {
+      // 1. Gather all titles and bodies that haven't been translated yet
+      const itemsToTranslate = [];
+      currentProduct.reviews.forEach((r, idx) => {
+        if (r.body && !r.original_body) itemsToTranslate.push({ type: 'body', index: idx, text: r.body });
+        if (r.title && !r.original_title) itemsToTranslate.push({ type: 'title', index: idx, text: r.title });
+      });
+
+      if (itemsToTranslate.length === 0) {
+        showToast('Reviews are already translated.');
+        btn.textContent = 'Translated ✓';
+        return;
+      }
+
+      // 2. Send to our secure Cloudflare Function
+      const res = await fetch('/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texts: itemsToTranslate.map(i => i.text), target_lang: 'EN-US' })
+      });
+      if (!res.ok) throw new Error('Translation failed');
+      const data = await res.json();
+
+      // 3. Inject the English text back into the reviews
+      itemsToTranslate.forEach((item, i) => {
+        const review = currentProduct.reviews[item.index];
+        if (item.type === 'body') { review.original_body = review.body; review.body = data.translations[i].text; }
+        else if (item.type === 'title') { review.original_title = review.title; review.title = data.translations[i].text; }
+      });
+
+      renderModalReviews();
+      showToast('Reviews translated to English!');
+      btn.textContent = 'Translated ✓';
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to translate reviews.');
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
+  });
+});
+
 </script>
 
 <!-- ════════════════════════════════════════════════════════════════ -->
@@ -1358,6 +1445,18 @@ function handleCookieDecline() {
     document.getElementById('cart-modal').classList.remove('open');
     document.body.style.overflow = '';
   });
+  document.getElementById('cart-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) { document.getElementById('cart-modal').classList.remove('open'); document.body.style.overflow = ''; }
+  });
+
+  // All Reviews modal interactions
+  document.getElementById('all-reviews-close')?.addEventListener('click', () => {
+    document.getElementById('all-reviews-modal').classList.remove('open');
+    document.body.style.overflow = '';
+  });
+  document.getElementById('all-reviews-modal')?.addEventListener('click', e => {
+    if (e.target === e.currentTarget) { document.getElementById('all-reviews-modal').classList.remove('open'); document.body.style.overflow = ''; }
+  });
 
   // Favorites links (placeholder — no auth modal on product page)
   document.getElementById('fav-join-link').addEventListener('click', () => {
@@ -1392,7 +1491,12 @@ function handleCookieDecline() {
         <div style="flex:1">
           <div style="font-family:var(--font-head);font-size:.95rem;letter-spacing:.08em">${item.title}</div>
           <div style="font-size:.75rem;color:rgba(244,241,235,.4);margin-top:.2rem">${item.colorName} / ${item.size}</div>
-          <div style="font-size:.75rem;color:rgba(244,241,235,.4);margin-top:.15rem">Qty: ${item.quantity}</div>
+          <div style="font-size:.75rem;color:inherit;margin-top:.3rem;display:flex;align-items:center;gap:8px">
+            <span style="opacity:0.6">Qty:</span>
+            <button onclick="updateCartQuantity(${idx}, -1)" style="background:none;border:1px solid rgba(150,150,150,.3);color:inherit;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:2px;font-size:1rem;line-height:1">-</button>
+            <span style="min-width:12px;text-align:center">${item.quantity}</span>
+            <button onclick="updateCartQuantity(${idx}, 1)" style="background:none;border:1px solid rgba(150,150,150,.3);color:inherit;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:2px;font-size:1rem;line-height:1">+</button>
+          </div>
           <div style="margin-top:.4rem;font-size:.85rem">$${(parseFloat(item.price) * item.quantity).toFixed(2)}</div>
         </div>
         <button onclick="removeCartItem(${idx})" style="background:none;border:none;color:rgba(244,241,235,.3);cursor:pointer;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase">Remove</button>
@@ -1402,6 +1506,17 @@ function handleCookieDecline() {
     const subtotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
     updateSummary(subtotal);
   }
+
+  window.updateCartQuantity = function(idx, delta) {
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+    if (cart[idx]) {
+      cart[idx].quantity += delta;
+      if (cart[idx].quantity <= 0) cart.splice(idx, 1);
+      localStorage.setItem('cart', JSON.stringify(cart));
+      loadCartCount();
+      renderCartItems();
+    }
+  };
 
   function updateSummary(subtotal) {
     document.getElementById('summary-subtotal').textContent = subtotal > 0 ? '$' + subtotal.toFixed(2) : '—';

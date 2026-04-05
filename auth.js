@@ -147,6 +147,7 @@ $('signup-submit').addEventListener('click', async () => {
     const { data, error } = await _sb.auth.signUp({ email, password: pass, options: opts });
     if (error) { err.textContent = error.message; setBtn('signup-submit', false, 'Create Account'); if (window.turnstile) turnstile.reset(); return; }
     setBtn('signup-submit', false, 'Create Account');
+    if (typeof gtag === 'function') gtag('event', 'sign_up', { method: 'Email' });
     
     if (!data?.session) {
       if (suc) suc.style.display = 'block';
