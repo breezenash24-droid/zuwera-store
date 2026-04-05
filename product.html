@@ -317,6 +317,15 @@ body.light-mode #bar {
 
 </main>
 
+<!-- ALL REVIEWS MODAL -->
+<div id="all-reviews-modal" class="modal" role="dialog" aria-modal="true">
+  <div class="mbox" style="max-width: 600px; max-height: 85vh; overflow-y: auto; padding: 2rem;">
+    <button class="mclose" id="all-reviews-close">&#215;</button>
+    <h2 style="font-family: var(--fw); font-size: 2rem; font-style: italic; margin-bottom: 1.5rem; letter-spacing: 0.05em;">All Reviews</h2>
+    <div id="all-reviews-list"></div>
+  </div>
+</div>
+
 <!-- ════════════════════════════════════════════════════════════════ -->
 <!-- FOOTER                                                           -->
 <!-- ════════════════════════════════════════════════════════════════ -->
@@ -1039,12 +1048,16 @@ function renderStars(rating) {
 // EXPAND REVIEWS
 // ══════════════════════════════════════════════════════════════════
 function expandReviews() {
-  const content = document.getElementById('reviewsContent');
-  content.innerHTML = '';
+  const modal = document.getElementById('all-reviews-modal');
+  const list = document.getElementById('all-reviews-list');
+  if (!modal || !list) return;
+
+  list.innerHTML = '';
 
   currentProduct.reviews.forEach(review => {
     const reviewEl = document.createElement('div');
     reviewEl.className = 'review-item';
+    reviewEl.style.cssText = 'padding: 1.5rem 0; border-bottom: 1px solid rgba(244,241,235,.08);';
     const adminResponseHtml = review.admin_response ? `
       <div class="admin-response" style="margin-top: 12px; padding: 12px; background: var(--admin-res-bg, rgba(248,145,165,0.08)); border-left: 2px solid var(--admin-res-text, #F891A5); border-radius: 4px;">
         <strong style="color: var(--admin-res-text, #F891A5); font-size: 0.85rem; letter-spacing: 0.05em; font-family: 'Bebas Neue', sans-serif;">Zuwera Team</strong>
@@ -1054,22 +1067,25 @@ function expandReviews() {
 
     let editBtnHtml = '';
     if (currentUser && review.user_id === currentUser.id) {
-      editBtnHtml = `<button onclick="editProductReview('${review.id}')" style="background:none;border:none;color:#F891A5;font-size:0.75rem;cursor:pointer;margin-left:10px;text-decoration:underline;">Edit</button>`;
+      editBtnHtml = `<button onclick="editProductReview('${review.id}'); document.getElementById('all-reviews-modal').classList.remove('open'); document.body.style.overflow='';" style="background:none;border:none;color:#F891A5;font-size:0.75rem;cursor:pointer;margin-left:10px;text-decoration:underline;">Edit</button>`;
     }
 
     reviewEl.innerHTML = `
-      <div class="review-header">
-        <div class="review-rating">${renderStars(review.rating)}</div>
-        <span class="review-author">${review.nickname || 'Anonymous'}</span>
-        ${review.verified_purchase ? '<span class="verified-badge">Verified Purchase</span>' : ''}
+      <div class="review-header" style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div class="review-rating" style="color:var(--gold);">${renderStars(review.rating)}</div>
+        <span class="review-author" style="font-size:0.85rem;opacity:0.8;">${review.nickname || 'Anonymous'}</span>
+        ${review.verified_purchase ? '<span class="verified-badge" style="font-size:0.65rem;background:rgba(16,185,129,.1);color:#10b981;padding:2px 6px;border-radius:4px;">Verified</span>' : ''}
         ${editBtnHtml}
       </div>
-      <p class="review-title">${review.title}</p>
-      <p class="review-body">${review.body}</p>
+      <p class="review-title" style="font-weight:700;font-size:1rem;margin-bottom:6px;">${review.title}</p>
+      <p class="review-body" style="font-size:0.9rem;line-height:1.6;opacity:0.8;">${review.body}</p>
       ${adminResponseHtml}
     `;
-    content.appendChild(reviewEl);
+    list.appendChild(reviewEl);
   });
+
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 
 // ══════════════════════════════════════════════════════════════════

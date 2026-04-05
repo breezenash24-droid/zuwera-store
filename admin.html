@@ -1739,32 +1739,44 @@
 
         // Auth State
         async function checkAuthState() {
-            const { data: { session } } = await sb.auth.getSession();
-            if (session) {
-                currentUser = session.user;
-                await checkAdminRole();
-            } else {
+            try {
+                const { data: { session }, error } = await sb.auth.getSession();
+                if (error) throw error;
+                if (session) {
+                    currentUser = session.user;
+                    await checkAdminRole();
+                } else {
+                    showAuthGate();
+                }
+            } catch (err) {
+                console.error('Auth check error:', err);
                 showAuthGate();
             }
         }
 
         async function checkAdminRole() {
-            const { data: profile, error } = await sb
-                .from('profiles')
-                .select('role')
-                .eq('id', currentUser.id)
-                .single();
+            try {
+                const { data: profile, error } = await sb
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', currentUser.id)
+                    .single();
 
-            if (profile && profile.role === 'admin') {
-                showAdminPanel();
-            } else {
-                // Dev mode bypass: If testing locally, auto-grant admin
-                if (window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                    await sb.from('profiles').update({ role: 'admin' }).eq('id', currentUser.id);
+                if (profile && profile.role === 'admin') {
                     showAdminPanel();
-                    return;
+                } else {
+                    // Dev mode bypass: If testing locally, auto-grant admin
+                    const isLocal = window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.');
+                    if (isLocal) {
+                        await sb.from('profiles').update({ role: 'admin' }).eq('id', currentUser.id);
+                        showAdminPanel();
+                        return;
+                    }
+                    showAccessDenied(error ? error.message : null);
                 }
-                showAccessDenied(error ? error.message : null);
+            } catch (err) {
+                console.error('Admin role check error:', err);
+                showAccessDenied(err.message);
             }
         }
 
@@ -2019,11 +2031,11 @@
                     html += group.reviews.map(r => {
                         const date = new Date(r.created_at).toLocaleDateString();
                         const rating = '⭐'.repeat(r.rating);
-                        const safeTitle = (r.title || '').replace(/'/g, '&apos;').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
-                        const safeBody = (r.body || '').replace(/'/g, '&apos;').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
-                        const safeAdminResponse = (r.admin_response || '').replace(/'/g, '&apos;').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
+                        const safeTitle = (r.title || '').replace(/\\/g, '\\\\').replace(/'/g, '\\\'').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
+                        const safeBody = (r.body || '').replace(/\\/g, '\\\\').replace(/'/g, '\\\'').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
+                        const safeAdminResponse = (r.admin_response || '').replace(/\\/g, '\\\\').replace(/'/g, '\\\'').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
                         const displayAdminResponse = (r.admin_response || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                        const safeNickname = (r.nickname || r.reviewer_name || 'Anonymous').replace(/'/g, '&apos;').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
+                        const safeNickname = (r.nickname || r.reviewer_name || 'Anonymous').replace(/\\/g, '\\\\').replace(/'/g, '\\\'').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
                         
                         return `
                             <tr>
