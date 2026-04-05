@@ -1623,6 +1623,16 @@ function setDisabled(id, dis, label) {
 if (_sb) {
   _sb.auth.onAuthStateChange(async (_, session) => {
     _user = session?.user ?? null;
+    // Check if the user was deleted on the server
+    if (_user) {
+      const { data, error } = await _sb.auth.getUser();
+      if (error || !data?.user) {
+            await _sb.auth.signOut().catch(()=>{});
+            localStorage.removeItem('zuwera-auth');
+        _user = null;
+      }
+    }
+
     updateNav();
             if (_ === 'PASSWORD_RECOVERY') {
               openAuth('update-password');
@@ -1640,7 +1650,10 @@ function updateNav() {
   li.style.display = on ? 'none' : '';
   if (on) { ac.classList.add('show'); lo.classList.add('show'); }
   else { ac.classList.remove('show'); lo.classList.remove('show'); }
-  if (on && _user.email) ac.textContent = _user.email.split('@')[0];
+  if (on && _user) {
+    const name = _user.user_metadata?.full_name || _user.email.split('@')[0];
+    ac.textContent = name.split(' ')[0];
+  }
 }
 
 /* AUTH MODAL */
@@ -1730,7 +1743,11 @@ document.getElementById('forgot-submit').addEventListener('click', async () => {
   if(window.turnstile) turnstile.reset();
 });
 
-document.getElementById('logout-btn').addEventListener('click', async () => { if (_sb) await _sb.auth.signOut(); showToast('Signed out.'); });
+document.getElementById('logout-btn').addEventListener('click', async () => { 
+  if (_sb) { await _sb.auth.signOut().catch(()=>{}); localStorage.removeItem('zuwera-auth'); } 
+  showToast('Signed out.'); 
+  _user = null; updateNav();
+});
 
 /* ACCOUNT MODAL */
 document.getElementById('account-btn').addEventListener('click', () => {
@@ -1977,6 +1994,7 @@ async function homeNotifyMe() {
   if(!email||!email.includes('@')){ inp.style.outlineColor='var(--red)'; inp.focus(); return; }
   inp.style.outlineColor='';
   if(_sb){ try{ await _sb.from('waitlist').upsert({ email, source:'drop001_home' }); } catch{} }
+  if (typeof gtag === 'function') gtag('event', 'generate_lead', { content_name: 'waitlist', source: 'home' });
   inp.closest('.notify-row').style.display='none';
   document.querySelector('.notify-hint').style.display='none';
   document.getElementById('home-notify-success').style.display='block';

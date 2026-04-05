@@ -30,6 +30,17 @@ const _authEls = {
 if (_sb) {
   _sb.auth.onAuthStateChange(async (event, session) => {
     _currentUser = session?.user ?? null;
+
+    // Check if the user was deleted on the server
+    if (_currentUser) {
+      const { data, error } = await _sb.auth.getUser();
+      if (error || !data?.user) {
+        await _sb.auth.signOut().catch(()=>{});
+        localStorage.removeItem('zuwera-auth');
+        _currentUser = null;
+      }
+    }
+
     updateHeaderForAuth();
     if (event === 'PASSWORD_RECOVERY') {
       openAuthModal('update-password');
@@ -49,7 +60,10 @@ function updateHeaderForAuth() {
   if (_authEls.loginBtn)   _authEls.loginBtn.style.display   = loggedIn ? 'none' : 'inline-flex';
   if (_authEls.accountBtn) {
     _authEls.accountBtn.style.display = loggedIn ? 'inline-flex' : 'none';
-    if (loggedIn) _authEls.accountBtn.textContent = _currentUser.email.split('@')[0];
+    if (loggedIn) {
+      const name = _currentUser.user_metadata?.full_name || _currentUser.email.split('@')[0];
+      _authEls.accountBtn.textContent = name.split(' ')[0];
+    }
   }
   if (_authEls.logoutBtn)  _authEls.logoutBtn.style.display  = loggedIn ? 'inline-flex' : 'none';
 }
@@ -96,14 +110,22 @@ $('signin-submit').addEventListener('click', async () => {
   err.textContent = '';
   if (!email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
   if (!captchaToken) { err.textContent = 'Please complete the CAPTCHA security check.'; return; }
-  setBtn('signin-submit', true, '
+  setBtn('signin-submit', true, 'Login');
+  const opts = {};
   if (captchaToken) opts.captchaToken = captchaToken;
   if (_sb) {
     const { error } = await _sb.auth.signInWithPassword({ email, password: pass, options: opts });
-    if (error) { err.textContent = error.message === 'Email not confirmed' ? 'Please check your 
+    if (error) { 
+      err.textContent = error.message === 'Email not confirmed' ? 'Please check your email and verify your account.' : error.message; 
+      setBtn('signin-submit', false, 'Login'); 
+      if (window.turnstile) turnstile.reset(); 
+      return; 
+    }
+  }
   setBtn('signin-submit', false, 'Login');
   closeAuthModal();
-  showToast('Welcome back!');reset();
+  showToast('Welcome back!');
+  if (window.turnstile) turnstile.reset();
 });
 
 // ── Sign Up ────────────────────────────────────────────────────────
@@ -127,7 +149,9 @@ $('signup-submit').addEventListener('click', async () => {
     setBtn('signup-submit', false, 'Create Account');
     
     if (!data?.session) {
-      if (suc) suc.style.display = 'block';g
+      if (suc) suc.style.display = 'block';
+      $('signup-submit').style.display = 'none';
+    } else {
       closeAuthModal();
       showToast('Account created! Welcome to Zuwera.');
     }
@@ -174,8 +198,13 @@ if (updatePassBtn) {
 
 // ── Logout ─────────────────────────────────────────────────────────
 _authEls.logoutBtn.addEventListener('click', async () => {
-  if (_sb) await _sb.auth.signOut();
+  if (_sb) {
+    await _sb.auth.signOut().catch(()=>{});
+    localStorage.removeItem('zuwera-auth');
+  }
   showToast('Signed out.');
+  _currentUser = null;
+  updateHeaderForAuth();
 });
 
 // ── Account Modal ──────────────────────────────────────────────────

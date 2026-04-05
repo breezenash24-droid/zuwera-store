@@ -286,6 +286,21 @@ function showOrderConfirmed(paymentIntentId, email) {
     `Thank you for your purchase. A confirmation has been sent to ${email || 'your email'}.`;
   _openModal('payment-success');
 
+  if (typeof gtag === 'function') {
+    const totalValue = cartItems.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
+    gtag('event', 'purchase', {
+      transaction_id: paymentIntentId,
+      value: totalValue,
+      currency: 'USD',
+      items: cartItems.map(item => ({
+        item_id: item.productId,
+        item_name: item.title,
+        price: item.price,
+        quantity: item.quantity
+      }))
+    });
+  }
+
   // Clear cart
   cartItems = [];
   _cart.itemsList.innerHTML = '';
