@@ -135,11 +135,13 @@ async function toggleReviews(pid, domId = pid) {
 
 // ── Open the write-a-review modal ─────────────────────────────────
 function openReviewForm(pid, pname) {
+  /*
   if (typeof _user === 'undefined' || !_user) {
     // Not logged in — show auth modal instead
     if (typeof openAuth === 'function') openAuth('signin');
     return;
   }
+  */
   _reviewProductId   = pid;
   _reviewProductName = pname;
   _reviewRating      = 0;
@@ -438,14 +440,13 @@ async function submitReview() {
 
   if (!_reviewRating)        { errEl.textContent = 'Please select a star rating.'; return; }
   if (!_reviewProductId)     { errEl.textContent = 'No product selected.'; return; }
-  if (!_sb || typeof _user === 'undefined' || !_user) { errEl.textContent = 'Please sign in to leave a review.'; return; }
+  // if (!_sb || typeof _user === 'undefined' || !_user) { errEl.textContent = 'Please sign in to leave a review.'; return; }
 
   btn.disabled    = true;
   btn.textContent = 'Submitting…';
 
-  const reviewerName = _user.user_metadata?.full_name
-    || _user.email?.split('@')[0]
-    || 'Anonymous';
+  const reviewerName = (typeof _user !== 'undefined' && _user) ? (_user.user_metadata?.full_name
+    || _user.email?.split('@')[0]) : 'Anonymous';
 
   let error;
   if (_reviewIdToEdit) {
@@ -456,7 +457,7 @@ async function submitReview() {
     error = res.error;
   } else {
     const res = await _sb.from('reviews').insert({
-      user_id:       _user.id,
+      user_id:       (typeof _user !== 'undefined' && _user) ? _user.id : null,
       product_id:    _reviewProductId,
       rating:        _reviewRating,
       body:          body || null,

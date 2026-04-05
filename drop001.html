@@ -606,70 +606,81 @@ function updateCountdown() {
     } catch (e) {}
 
       const grid = document.getElementById('products-grid');
+      
+      const cached = sessionStorage.getItem('zw_drop001_products');
+      if (cached) {
+        try { renderProducts(JSON.parse(cached)); } catch(e){}
+      }
+
       const { data: products, error } = await sb
         .from('products')
         .select('*, product_images(*)')
         .order('sort_order', { ascending: true });
 
       if (error || !products) {
-        grid.innerHTML = '<div class="product-card" style="opacity:.3;text-align:center;padding:3rem;grid-column:1/-1">Could not load products.</div>';
+        if (!cached) grid.innerHTML = '<div class="product-card" style="opacity:.3;text-align:center;padding:3rem;grid-column:1/-1">Could not load products.</div>';
         return;
       }
 
-      let renderList = products;
-      if (products.length === 1 && products[0].product_images && products[0].product_images.length > 1) {
-        const p = products[0];
-        let allImages = [...p.product_images].sort((a, b) => a.sort_order - b.sort_order);
-        if (p.image_url && !allImages.some(img => img.image_url === p.image_url)) {
-          allImages.unshift({ image_url: p.image_url, sort_order: -1 });
-        }
-        renderList = allImages.slice(0, 2).map((img, idx) => ({
-          ...p,
-          image_url: img.image_url,
-          product_images: [img],
-          unique_id: `${p.id}-${idx}`
-        }));
-      }
+      sessionStorage.setItem('zw_drop001_products', JSON.stringify(products));
+      renderProducts(products);
 
-      grid.classList.remove('single-item', 'two-items');
-      if (renderList.length === 1) {
-        grid.classList.add('single-item');
-      } else if (renderList.length === 2) {
-        grid.classList.add('two-items');
-      }
-
-      grid.innerHTML = renderList.map(p => {
-        const productName = p.title || p.name || 'Untitled';
-        const productCategory = p.subtitle || p.category || 'Jackets';
-        const productPrice = p.current_price || p.msrp || p.price;
-        const badge = (p.status === 'coming_soon' || p.status === 'Coming Soon') ? 'Coming Soon' : (p.status === 'live' || p.status === 'Live' ? 'Available' : (p.status || 'Coming Soon'));
-        let firstImg = p.image_url;
-        if (p.product_images && p.product_images.length > 0) {
-          p.product_images.sort((a, b) => a.sort_order - b.sort_order);
-          if (p.product_images[0].image_url) firstImg = p.product_images[0].image_url;
+      function renderProducts(productsList) {
+        let renderList = productsList;
+        if (productsList.length === 1 && productsList[0].product_images && productsList[0].product_images.length > 1) {
+          const p = productsList[0];
+          let allImages = [...p.product_images].sort((a, b) => a.sort_order - b.sort_order);
+          if (p.image_url && !allImages.some(img => img.image_url === p.image_url)) {
+            allImages.unshift({ image_url: p.image_url, sort_order: -1 });
+          }
+          renderList = allImages.slice(0, 2).map((img, idx) => ({
+            ...p,
+            image_url: img.image_url,
+            product_images: [img],
+            unique_id: `${p.id}-${idx}`
+          }));
         }
-        const imgHtml = firstImg
-          ? `<img src="${firstImg}" alt="${productName}" style="width:100%;height:100%;object-fit:cover">`
-          : `<div class="product-img-placeholder">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
-              <span>Image Coming Soon</span>
-            </div>`;
-        return `
-          <a href="/product/${productSlug(p.title)}" style="text-decoration:none;color:inherit">
-            <div class="product-card">
-              <div class="product-img">
-                ${imgHtml}
-                <div class="product-overlay"><span class="coming-soon-badge">${badge}</span></div>
+
+        grid.classList.remove('single-item', 'two-items');
+        if (renderList.length === 1) {
+          grid.classList.add('single-item');
+        } else if (renderList.length === 2) {
+          grid.classList.add('two-items');
+        }
+
+        grid.innerHTML = renderList.map(p => {
+          const productName = p.title || p.name || 'Untitled';
+          const productCategory = p.subtitle || p.category || 'Jackets';
+          const productPrice = p.current_price || p.msrp || p.price;
+          const badge = (p.status === 'coming_soon' || p.status === 'Coming Soon') ? 'Coming Soon' : (p.status === 'live' || p.status === 'Live' ? 'Available' : (p.status || 'Coming Soon'));
+          let firstImg = p.image_url;
+          if (p.product_images && p.product_images.length > 0) {
+            p.product_images.sort((a, b) => a.sort_order - b.sort_order);
+            if (p.product_images[0].image_url) firstImg = p.product_images[0].image_url;
+          }
+          const imgHtml = firstImg
+            ? `<img src="${firstImg}" alt="${productName}" style="width:100%;height:100%;object-fit:cover">`
+            : `<div class="product-img-placeholder">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
+                <span>Image Coming Soon</span>
+              </div>`;
+          return `
+            <a href="/product/${productSlug(p.title)}" style="text-decoration:none;color:inherit">
+              <div class="product-card">
+                <div class="product-img">
+                  ${imgHtml}
+                  <div class="product-overlay"><span class="coming-soon-badge">${badge}</span></div>
+                </div>
+                <div class="product-info">
+                  <p class="product-category">${productCategory}</p>
+                  <p class="product-name">${productName}</p>
+                  <p class="product-price">${productPrice ? Number(productPrice).toFixed(2) : 'Price TBA'}</p>
+                  <span class="product-notify" onclick="scrollToNotify(event)">Notify Me When Live →</span>
+                </div>
               </div>
-              <div class="product-info">
-                <p class="product-category">${productCategory}</p>
-                <p class="product-name">${productName}</p>
-                <p class="product-price">${productPrice ? Number(productPrice).toFixed(2) : 'Price TBA'}</p>
-                <span class="product-notify" onclick="scrollToNotify(event)">Notify Me When Live →</span>
-              </div>
-            </div>
-          </a>`;
-      }).join('');
+            </a>`;
+        }).join('');
+      }
     })();
   </script>
 </body>

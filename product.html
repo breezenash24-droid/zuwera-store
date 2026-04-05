@@ -1103,7 +1103,7 @@ function editProductReview(id) {
 }
 
 async function submitReview() {
-  if (!currentUser) { alert('Please sign in to leave a review.'); return; }
+  // if (!currentUser) { alert('Please sign in to leave a review.'); return; }
 
   const nickname = document.getElementById('reviewNickname').value.trim();
   const title = document.getElementById('reviewTitle').value.trim();
@@ -1119,6 +1119,7 @@ async function submitReview() {
 
   try {
     const { error } = await sb.from('reviews').insert({
+    const payload = {
       product_id: currentProduct.id,
       rating: selectedRating,
       nickname: nickname || 'Anonymous',
@@ -1127,6 +1128,10 @@ async function submitReview() {
       verified_purchase: false,
       created_at: new Date().toISOString()
     });
+    };
+    if (currentUser) payload.user_id = currentUser.id;
+
+    const { error } = await sb.from('reviews').insert(payload);
     if (error) throw error;
 
     document.getElementById('reviewSuccessMsg').classList.remove('hidden');
