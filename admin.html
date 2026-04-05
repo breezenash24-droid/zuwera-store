@@ -920,6 +920,12 @@
             <button type="submit" class="btn btn-primary" style="width: 100%;">Sign In</button>
             <div id="authError" style="color: var(--error); margin-top: 16px; font-size: 0.9rem; display: none;"></div>
         </form>
+        <div id="accessDenied" class="access-denied" style="display: none; width: 100%; max-width: 400px; padding: 40px; background-color: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border);">
+            <h1 style="font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; margin-bottom: 20px; letter-spacing: 1px; color: var(--error);">ACCESS DENIED</h1>
+            <p style="color: var(--text-secondary); margin-bottom: 30px;">You do not have admin privileges.</p>
+            <p id="accessDeniedError" style="color:var(--error); font-size:0.85rem; margin-top:-15px; margin-bottom:30px; word-wrap:break-word; display:none;"></p>
+            <button class="btn btn-primary" id="signOutAccessBtn" style="width: 100%;">Sign Out</button>
+        </div>
     </div>
 
     <!-- Admin Panel -->
@@ -1756,6 +1762,8 @@
 
         function showAuthGate() {
             document.getElementById('authGate').style.display = 'flex';
+            document.getElementById('authForm').style.display = 'block';
+            document.getElementById('accessDenied').style.display = 'none';
             document.getElementById('adminPanel').style.display = 'none';
         }
 
@@ -1788,15 +1796,18 @@
         }
 
         function showAccessDenied(errorMsg = null) {
-            document.getElementById('authGate').innerHTML = `
-                <div class="access-denied">
-                    <h1>ACCESS DENIED</h1>
-                    <p>You do not have admin privileges.</p>
-                    ${errorMsg ? `<p style="color:var(--error); font-size:0.85rem; margin-top:-15px; margin-bottom:30px; max-width:400px; word-wrap:break-word;">Database Error: ${errorMsg}</p>` : ''}
-                    <button class="btn btn-primary" id="signOutAccessBtn">Sign Out</button>
-                </div>
-            `;
-            document.getElementById('signOutAccessBtn').addEventListener('click', logout);
+            document.getElementById('authGate').style.display = 'flex';
+            document.getElementById('authForm').style.display = 'none';
+            document.getElementById('accessDenied').style.display = 'block';
+            document.getElementById('adminPanel').style.display = 'none';
+            
+            const errEl = document.getElementById('accessDeniedError');
+            if (errorMsg) {
+                errEl.textContent = 'Database Error: ' + errorMsg;
+                errEl.style.display = 'block';
+            } else {
+                errEl.style.display = 'none';
+            }
         }
 
         function toggleAdminPwd(id, btn) {
@@ -1861,6 +1872,7 @@
         }
 
         document.getElementById('logoutBtn').addEventListener('click', logout);
+        document.getElementById('signOutAccessBtn').addEventListener('click', logout);
 
         // Navigation
         function setupEventListeners() {

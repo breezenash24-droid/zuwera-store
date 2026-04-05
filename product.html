@@ -20,6 +20,11 @@
 <!-- Google Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<!-- API Preconnects (Warms up SSL connections to speed up data fetches) -->
+<link rel="preconnect" href="https://qfgnrsifcwdubkolsgsq.supabase.co">
+<link rel="preconnect" href="https://js.stripe.com">
+
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 
 <!-- Stylesheets -->
@@ -176,7 +181,7 @@ body.light-mode #bar {
     <div class="gallery-section">
         <div class="gallery-main" style="position:relative">
           <button id="prevImg" class="gallery-arrow left-arrow">&#10094;</button>
-          <img id="mainImage" src="" alt="Product" class="main-image">
+          <img id="mainImage" src="" alt="Product" class="main-image" fetchpriority="high" decoding="sync">
           <button id="nextImg" class="gallery-arrow right-arrow">&#10095;</button>
           <div class="low-stock-badge hidden" id="lowStockBadge">Low Stock</div>
         </div>
@@ -674,6 +679,10 @@ function renderGallery() {
 
   // Create thumbnails
   currentProduct.images.forEach((img, idx) => {
+    // Preload image into browser cache for instant gallery swapping
+    const preloader = new Image();
+    preloader.src = img.image_url;
+
     const thumb = document.createElement('div');
     thumb.className = 'thumbnail';
     if (idx === 0) thumb.classList.add('active');
@@ -681,6 +690,7 @@ function renderGallery() {
     const thumbImg = document.createElement('img');
     thumbImg.src = img.image_url;
     thumbImg.alt = img.alt_text || `${currentProduct.title} - View ${idx + 1}`;
+    thumbImg.loading = 'lazy';
 
     thumb.appendChild(thumbImg);
     thumb.addEventListener('click', () => { updateMainImage(idx); });

@@ -102,6 +102,7 @@
      each third-party domain the first time it's needed. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://qfgnrsifcwdubkolsgsq.supabase.co">
 <link rel="preconnect" href="https://js.stripe.com">
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 <link rel="dns-prefetch" href="https://www.googletagmanager.com">
@@ -1544,16 +1545,27 @@ function productSlug(title) {
 async function loadProducts() {
   const grid = document.getElementById('products-grid');
   if (!_sb || !grid) return;
+  
+  const cached = sessionStorage.getItem('zw_home_products');
+  if (cached) {
+    try { renderProductCards(JSON.parse(cached), grid); } catch(e){}
+  }
+
   const { data: products, error } = await _sb
     .from('products')
     .select('*, product_images(*)')
     .order('sort_order', { ascending: true });
 
   if (error || !products) {
-    grid.innerHTML = '<div class="pcard" style="opacity:.3;text-align:center;padding:3rem">Could not load products.</div>';
+    if (!cached) grid.innerHTML = '<div class="pcard" style="opacity:.3;text-align:center;padding:3rem">Could not load products.</div>';
     return;
   }
 
+  sessionStorage.setItem('zw_home_products', JSON.stringify(products));
+  renderProductCards(products, grid);
+}
+
+function renderProductCards(products, grid) {
   let renderList = products;
   // If only 1 product, show its different images as separate cards
   if (products.length === 1 && products[0].product_images && products[0].product_images.length > 1) {
@@ -1588,7 +1600,7 @@ async function loadProducts() {
       if (p.product_images[0].image_url) firstImg = p.product_images[0].image_url;
     }
     const imgHtml = firstImg
-      ? `<img src="${firstImg}" alt="${productName}" style="width:100%;height:100%;object-fit:cover">`
+      ? `<img src="${firstImg}" alt="${productName}" style="width:100%;height:100%;object-fit:cover" loading="lazy">`
       : `<div class="pcard-img-placeholder">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
             <p>Image Coming Soon</p>
