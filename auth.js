@@ -112,7 +112,11 @@ $('signin-submit').addEventListener('click', async () => {
   if (_sb) {
     const { error } = await _sb.auth.signInWithPassword({ email, password: pass });
     if (error) { 
-      err.textContent = error.message === 'Email not confirmed' ? 'Please check your email and verify your account.' : error.message; 
+      if (error.message.toLowerCase().includes('captcha')) {
+        err.textContent = 'CAPTCHA Blocked: Disable CAPTCHA in your Supabase Dashboard (Auth -> Providers).';
+      } else {
+        err.textContent = error.message === 'Email not confirmed' ? 'Please check your email and verify your account.' : error.message; 
+      }
       setBtn('signin-submit', false, 'Login'); 
       return; 
     }
@@ -136,7 +140,10 @@ $('signup-submit').addEventListener('click', async () => {
   setBtn('signup-submit', true, 'Create Account');
   if (_sb) {
     const { data, error } = await _sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
-    if (error) { err.textContent = error.message; setBtn('signup-submit', false, 'Create Account'); return; }
+    if (error) { 
+      err.textContent = error.message.toLowerCase().includes('captcha') ? 'CAPTCHA Blocked: Disable CAPTCHA in your Supabase Dashboard.' : error.message; 
+      setBtn('signup-submit', false, 'Create Account'); return; 
+    }
     setBtn('signup-submit', false, 'Create Account');
     if (typeof gtag === 'function') gtag('event', 'sign_up', { method: 'Email' });
     

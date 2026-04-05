@@ -1184,7 +1184,8 @@ function toggleAccordion(header) {
   // Toggle current
   if (!isOpen) {
     header.classList.add('open');
-    body.style.maxHeight = body.scrollHeight + 'px';
+    // Add a large flexible buffer so the review forms and dynamic content don't get clipped
+    body.style.maxHeight = (body.scrollHeight + 3000) + 'px';
   }
 }
 

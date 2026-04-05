@@ -1729,7 +1729,13 @@ document.getElementById('signin-submit').addEventListener('click', async () => {
   err.textContent = '';
   if (!email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
   setDisabled('signin-submit', true, 'Sign In');
-  if (_sb) { const { error } = await _sb.auth.signInWithPassword({ email, password: pass }); if (error) { err.textContent = error.message === 'Email not confirmed' ? 'Please check your email and verify your account.' : error.message; setDisabled('signin-submit', false, 'Sign In'); return; } }
+  if (_sb) { 
+    const { error } = await _sb.auth.signInWithPassword({ email, password: pass }); 
+    if (error) { 
+      err.textContent = error.message.toLowerCase().includes('captcha') ? 'CAPTCHA Blocked: Disable CAPTCHA in your Supabase Dashboard.' : (error.message === 'Email not confirmed' ? 'Please check your email and verify your account.' : error.message); 
+      setDisabled('signin-submit', false, 'Sign In'); return; 
+    } 
+  }
   setDisabled('signin-submit', false, 'Sign In'); closeAuth(); showToast('Welcome back!');
 });
 
@@ -1744,7 +1750,10 @@ document.getElementById('signup-submit').addEventListener('click', async () => {
   setDisabled('signup-submit', true, 'Create Account');
   if (_sb) { 
     const { data, error } = await _sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } }); 
-    if (error) { err.textContent = error.message; setDisabled('signup-submit', false, 'Create Account'); return; } 
+    if (error) { 
+      err.textContent = error.message.toLowerCase().includes('captcha') ? 'CAPTCHA Blocked: Disable CAPTCHA in your Supabase Dashboard.' : error.message; 
+      setDisabled('signup-submit', false, 'Create Account'); return; 
+    } 
     if (typeof gtag === 'function') gtag('event', 'sign_up', { method: 'Email' });
     setDisabled('signup-submit', false, 'Create Account'); closeAuth(); showToast(data?.session ? 'Account created! Welcome to Zuwera.' : 'Account created! Check your email to verify.'); 
   }

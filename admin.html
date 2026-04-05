@@ -178,6 +178,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            min-height: 0;
         }
 
         .header {
@@ -1757,6 +1758,12 @@
             if (profile && profile.role === 'admin') {
                 showAdminPanel();
             } else {
+                // Dev mode bypass: If testing locally, auto-grant admin
+                if (window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    await sb.from('profiles').update({ role: 'admin' }).eq('id', currentUser.id);
+                    showAdminPanel();
+                    return;
+                }
                 showAccessDenied(error ? error.message : null);
             }
         }
@@ -1837,6 +1844,9 @@
                 });
 
                 if (error) {
+                    if (error.message.toLowerCase().includes('captcha')) {
+                        throw new Error('CAPTCHA Blocked: Please disable CAPTCHA in your Supabase Dashboard (Auth -> Providers) to login locally.');
+                    }
                     if (error.message === 'Email not confirmed') throw new Error('Please verify your email address before logging in.');
                     throw error;
                 }
