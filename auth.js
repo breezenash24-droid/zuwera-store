@@ -74,6 +74,8 @@ function switchAuthTab(tab) {
   });
   const fs = $('forgot-success');
   if (fs) fs.style.display = 'none';
+  const ss = $('signup-success');
+  if (ss) { ss.style.display = 'none'; $('signup-submit').style.display = 'block'; }
 }
 
 document.querySelectorAll('#auth-modal .auth-tab').forEach(btn => {
@@ -94,17 +96,14 @@ $('signin-submit').addEventListener('click', async () => {
   err.textContent = '';
   if (!email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
   if (!captchaToken) { err.textContent = 'Please complete the CAPTCHA security check.'; return; }
-  setBtn('signin-submit', true, 'Sign In');
-  const opts = {};
+  setBtn('signin-submit', true, '
   if (captchaToken) opts.captchaToken = captchaToken;
   if (_sb) {
     const { error } = await _sb.auth.signInWithPassword({ email, password: pass, options: opts });
-    if (error) { err.textContent = error.message === 'Email not confirmed' ? 'Please check your email and verify your account.' : error.message; setBtn('signin-submit', false, 'Sign In'); if (window.turnstile) turnstile.reset(); return; }
-  }
-  setBtn('signin-submit', false, 'Sign In');
+    if (error) { err.textContent = error.message === 'Email not confirmed' ? 'Please check your 
+  setBtn('signin-submit', false, 'Login');
   closeAuthModal();
-  showToast('Welcome back!');
-  if (window.turnstile) turnstile.reset();
+  showToast('Welcome back!');reset();
 });
 
 // ── Sign Up ────────────────────────────────────────────────────────
@@ -113,8 +112,10 @@ $('signup-submit').addEventListener('click', async () => {
   const email = $('signup-email').value.trim();
   const pass  = $('signup-password').value;
   const err   = $('signup-error');
+  const suc   = $('signup-success');
   const captchaToken = document.querySelector('#panel-signup [name="cf-turnstile-response"]')?.value;
   err.textContent = '';
+  if (suc) suc.style.display = 'none';
   if (!name || !email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
   if (pass.length < 6)         { err.textContent = 'Password must be at least 6 characters.'; return; }
   setBtn('signup-submit', true, 'Create Account');
@@ -124,8 +125,12 @@ $('signup-submit').addEventListener('click', async () => {
     const { data, error } = await _sb.auth.signUp({ email, password: pass, options: opts });
     if (error) { err.textContent = error.message; setBtn('signup-submit', false, 'Create Account'); if (window.turnstile) turnstile.reset(); return; }
     setBtn('signup-submit', false, 'Create Account');
-    closeAuthModal();
-    showToast(data?.session ? 'Account created! Welcome to Zuwera.' : 'Account created! Check your email to verify.');
+    
+    if (!data?.session) {
+      if (suc) suc.style.display = 'block';g
+      closeAuthModal();
+      showToast('Account created! Welcome to Zuwera.');
+    }
   }
   if (window.turnstile) turnstile.reset();
 });

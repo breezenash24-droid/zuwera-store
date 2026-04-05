@@ -1257,12 +1257,12 @@ body.light-mode::after{opacity:0.15}
     <button class="mclose" id="auth-modal-close">&#215;</button>
     <div class="auth-brand">Zuwera</div>
     <div class="atabs">
-      <button class="atab active" data-tab="signin">Sign In</button>
+      <button class="atab active" data-tab="signin">Login</button>
       <button class="atab" data-tab="signup">Create Account</button>
     </div>
     <div class="apanel active" id="panel-signin">
       <div class="mtitle">Welcome Back</div>
-      <div class="msubtitle">Sign in to your account</div>
+      <div class="msubtitle">Login to your account</div>
       <div class="fgroup"><label>Email</label><input type="email" id="signin-email" placeholder="you@example.com" autocomplete="email"></div>
       <div class="fgroup">
         <label>Password</label>
@@ -1275,7 +1275,7 @@ body.light-mode::after{opacity:0.15}
       </div>
       <div class="cf-turnstile" data-sitekey="0x4AAAAAACzvvg-l2dT2z35l" data-theme="dark" style="margin-bottom: 1rem;"></div>
       <p id="signin-error" class="ferr"></p>
-      <button id="signin-submit" class="auth-submit-btn">Sign In</button>
+      <button id="signin-submit" class="auth-submit-btn">Login</button>
       <p class="alink"><a id="forgot-link">Forgot password?</a></p>
     </div>
     <div class="apanel" id="panel-signup">
@@ -1294,6 +1294,7 @@ body.light-mode::after{opacity:0.15}
       </div>
       <div class="cf-turnstile" data-sitekey="0x4AAAAAACzvvg-l2dT2z35l" data-theme="dark" style="margin-bottom: 1rem;"></div>
       <p id="signup-error" class="ferr"></p>
+      <p id="signup-success" style="display:none;color:#6fcf6f;font-family:var(--fm);font-size:.68rem;letter-spacing:.08em;margin-bottom:.6rem">✓ Account created! Please check your email to verify.</p>
       <button id="signup-submit" class="auth-submit-btn">Create Account</button>
     </div>
     <div class="apanel" id="panel-forgot">
@@ -1304,7 +1305,7 @@ body.light-mode::after{opacity:0.15}
       <p id="forgot-error" class="ferr"></p>
       <p id="forgot-success" style="display:none;color:#6fcf6f;font-family:var(--fm);font-size:.68rem;letter-spacing:.08em;margin-bottom:.6rem">✓ Check your email for a reset link.</p>
       <button id="forgot-submit" class="auth-submit-btn">Send Reset Link</button>
-      <p class="alink"><a id="back-to-signin">← Back to Sign In</a></p>
+      <p class="alink"><a id="back-to-signin">← Back to Login</a></p>
     </div>
     <div class="apanel" id="panel-update-password">
       <div class="mtitle">New Password</div>
