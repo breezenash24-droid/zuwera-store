@@ -8,7 +8,10 @@ const PRODUCTS_SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ
 
 // Reuse existing _sb if available, else init safely without redeclaring const
 if (!window._sb && typeof supabase !== 'undefined') {
-  window._sb = supabase.createClient(PRODUCTS_SUPABASE_URL, PRODUCTS_SUPABASE_ANON);
+  window._sb = supabase.createClient(PRODUCTS_SUPABASE_URL, PRODUCTS_SUPABASE_ANON, {
+    auth: { persistSession: true, storageKey: 'zuwera-auth', flowType: 'implicit' },
+    global: { headers: { 'X-Client-Info': 'zuwera-store' } }
+  });
 }
 
 // Demo fallback products (if Supabase empty/fails)
@@ -171,16 +174,7 @@ function initHeartButtons() {
     newBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       if (typeof toggleFavorite === 'function') toggleFavorite(newBtn);
-    });
-  });
-}
-
-function initReviewToggles() {
-  document.querySelectorAll('.pcard-action').forEach(action => {
-    action.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const pid = e.currentTarget.parentElement.parentElement.querySelector('.heart-btn')?.dataset.productId;
-      if (pid && typeof toggleReviews === 'function') toggleReviews(pid);
+      else if (typeof toggleFav === 'function') toggleFav(newBtn);
     });
   });
 }

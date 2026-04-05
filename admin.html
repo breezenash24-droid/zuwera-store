@@ -2629,7 +2629,7 @@
                 for (const item of sizeItems) {
                     const checkbox = item.querySelector('.size-checkbox');
                     const stock = item.querySelector('.size-stock');
-                    if (checkbox.checked && stock.value) {
+                    if (checkbox.checked && stock.value !== '') {
                         await sb.from('product_sizes').insert([{
                             product_id: productId,
                             size: checkbox.value,

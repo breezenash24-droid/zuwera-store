@@ -1118,7 +1118,6 @@ async function submitReview() {
   btn.textContent = 'Submitting...';
 
   try {
-    const { error } = await sb.from('reviews').insert({
     const payload = {
       product_id: currentProduct.id,
       rating: selectedRating,
@@ -1127,12 +1126,18 @@ async function submitReview() {
       body: body,
       verified_purchase: false,
       created_at: new Date().toISOString()
-    });
     };
     if (currentUser) payload.user_id = currentUser.id;
 
-    const { error } = await sb.from('reviews').insert(payload);
-    if (error) throw error;
+    let dbError;
+    if (editingReviewId) {
+      const { error } = await sb.from('reviews').update({ rating: selectedRating, nickname: nickname || 'Anonymous', title: title, body: body }).eq('id', editingReviewId);
+      dbError = error;
+    } else {
+      const { error } = await sb.from('reviews').insert(payload);
+      dbError = error;
+    }
+    if (dbError) throw dbError;
 
     document.getElementById('reviewSuccessMsg').classList.remove('hidden');
     btn.textContent = 'Submitted!';

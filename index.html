@@ -119,7 +119,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-DCVWDZ8ZBC"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-DCVWDZ8ZBC');</script>
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
 <!-- PWA -->
 <link rel="manifest" href="/manifest.json">
@@ -1600,7 +1599,7 @@ function renderProductCards(products, grid) {
       if (p.product_images[0].image_url) firstImg = p.product_images[0].image_url;
     }
     const imgHtml = firstImg
-      ? `<img src="${firstImg}" alt="${productName}" style="width:100%;height:100%;object-fit:cover">`
+      ? `<img src="${firstImg}" alt="${productName}" loading="lazy" style="width:100%;height:100%;object-fit:cover">`
       : `<div class="pcard-img-placeholder">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
             <p>Image Coming Soon</p>
@@ -1749,16 +1748,26 @@ document.getElementById('signup-submit').addEventListener('click', async () => {
     if (typeof gtag === 'function') gtag('event', 'sign_up', { method: 'Email' });
     setDisabled('signup-submit', false, 'Create Account'); closeAuth(); showToast(data?.session ? 'Account created! Welcome to Zuwera.' : 'Account created! Check your email to verify.'); 
   }
+});
 
 document.getElementById('forgot-submit').addEventListener('click', async () => {
   const email = document.getElementById('forgot-email').value.trim();
   const err = document.getElementById('forgot-error'), suc = document.getElementById('forgot-success');
   err.textContent = ''; suc.style.display = 'none';
-tx'Pisabled('forgot-submit', true, 'Send Reset Link');
-  if (_sb) { const { error } = await _sb.auth.resetPassws ';
-});t
+  if (!email) { err.textContent = 'Please enter your email.'; return; }
+  setDisabled('forgot-submit', true, 'Send Reset Link');
+  if (_sb) { 
+    const { error } = await _sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin }); 
+    if (error) { err.textContent = error.message; setDisabled('forgot-submit', false, 'Send Reset Link'); return; } 
+  }
+  setDisabled('forgot-submit', false, 'Send Reset Link'); suc.style.display = 'block';
+});
+
+document.getElementById('logout-btn').addEventListener('click', async () => {
+  if (_sb) await _sb.auth.signOut();
   showToast('Signed out.'); 
   _user = null; updateNav();
+});
 
 /* ACCOUNT MODAL */
 document.getElementById('account-btn').addEventListener('click', () => {
@@ -1838,7 +1847,49 @@ document.querySelectorAll('.heart-btn').forEach(b => b.addEventListener('click',
 
 /* CART */
 let cartItems = [];
-document.getElementById('cart-btn').addEventListener('click', () => { document.getElementById('cart-modal').classList.add('open'); document.body.style.overflow='hidden'; });
+
+function renderCart() {
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  cartItems = cart;
+  const list = document.getElementById('cart-items-list');
+  const emptyMsg = document.getElementById('cart-empty-msg');
+  if (cart.length === 0) { list.innerHTML = ''; emptyMsg.style.display = 'block'; updateCartSummary(0); return; }
+  emptyMsg.style.display = 'none';
+  list.innerHTML = cart.map((item, idx) => `
+    <li style="display:flex;gap:1rem;align-items:flex-start">
+      <img src="${item.image}" alt="${item.title}" style="width:60px;height:75px;object-fit:cover;border:1px solid rgba(244,241,235,.08)">
+      <div style="flex:1">
+        <div style="font-family:var(--fw);font-style:italic;font-weight:700;font-size:1.1rem">${item.title}</div>
+        <div style="font-family:var(--fm);font-size:.65rem;color:rgba(244,241,235,.4);margin-top:.2rem;text-transform:uppercase">${item.colorName} / ${item.size}</div>
+        <div style="font-size:.85rem;margin-top:.4rem;display:flex;align-items:center;gap:8px">
+          <button onclick="updateCartQuantity(${idx}, -1)" style="background:none;border:1px solid rgba(244,241,235,.3);color:inherit;width:20px;height:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:2px;font-size:.9rem;line-height:1">-</button>
+          <span>${item.quantity}</span>
+          <button onclick="updateCartQuantity(${idx}, 1)" style="background:none;border:1px solid rgba(244,241,235,.3);color:inherit;width:20px;height:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:2px;font-size:.9rem;line-height:1">+</button>
+        </div>
+        <div style="font-size:.85rem;margin-top:.4rem">$${(parseFloat(item.price) * item.quantity).toFixed(2)}</div>
+      </div>
+      <button onclick="removeCartItem(${idx})" style="background:none;border:none;color:rgba(244,241,235,.3);cursor:pointer;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase">Remove</button>
+    </li>
+  `).join('');
+  const subtotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
+  updateCartSummary(subtotal);
+  document.querySelector('.cc').textContent = cart.reduce((sum, item) => sum + item.quantity, 0);
+}
+
+function updateCartSummary(subtotal) {
+  document.getElementById('summary-subtotal').textContent = subtotal > 0 ? '$' + subtotal.toFixed(2) : '—';
+  const shipRate = 8;
+  document.getElementById('summary-shipping').textContent = subtotal >= 100 ? 'Free' : (subtotal > 0 ? '$' + shipRate.toFixed(2) : '—');
+  const shipping = subtotal >= 100 ? 0 : (subtotal > 0 ? shipRate : 0);
+  const tax = subtotal * 0.08;
+  document.getElementById('summary-tax').textContent = subtotal > 0 ? '$' + tax.toFixed(2) : '—';
+  document.getElementById('summary-total').textContent = subtotal > 0 ? '$' + (subtotal + shipping + tax).toFixed(2) : '—';
+}
+
+window.updateCartQuantity = function(idx, delta) { let cart = JSON.parse(localStorage.getItem('cart')) || []; if (cart[idx]) { cart[idx].quantity += delta; if (cart[idx].quantity <= 0) cart.splice(idx, 1); localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); } };
+window.removeCartItem = function(idx) { let cart = JSON.parse(localStorage.getItem('cart')) || []; cart.splice(idx, 1); localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); };
+
+document.getElementById('cart-btn').addEventListener('click', () => { renderCart(); document.getElementById('cart-modal').classList.add('open'); document.body.style.overflow='hidden'; });
 document.getElementById('cart-close').addEventListener('click', () => { document.getElementById('cart-modal').classList.remove('open'); document.body.style.overflow=''; });
 document.getElementById('fav-join-link').addEventListener('click', () => { document.getElementById('cart-modal').classList.remove('open'); document.body.style.overflow=''; openAuth('signup'); });
 document.getElementById('fav-signin-link').addEventListener('click', () => { document.getElementById('cart-modal').classList.remove('open'); document.body.style.overflow=''; openAuth('signin'); });
@@ -1850,6 +1901,7 @@ document.getElementById('checkout-btn').addEventListener('click', () => {
   const sub = Math.round(parseFloat((document.getElementById('summary-subtotal')?.textContent||'0').replace(/[^0-9.]/g,''))*100);
   initPR(sub || 100);
 });
+window.addEventListener('DOMContentLoaded', renderCart);
 
 /* STRIPE */
 const stripe = Stripe('pk_live_51T8ct20oFp4PJGitDcNMSLu9jQMFajtwqib8dTX4WhubBon2Pso2VgkHhTHcbuKNUi9ljfwMX8Bx2uhEp1Fp2VfY00LFKvLEy4');
