@@ -1626,15 +1626,61 @@ function showError(message) {
 // ══════════════════════════════════════════════════════════════════
 window.translateReviews = async function() {
   const select = document.getElementById('translate-lang');
+  const langCode = select ? select.value : 'es';
   const lang = select ? select.options[select.selectedIndex].text : 'English';
   const btn = document.getElementById('translate-reviews-btn');
+  
+  if (!currentProduct || !currentProduct.reviews || currentProduct.reviews.length === 0) return;
+  
   if(btn) { btn.textContent = 'Translating...'; btn.disabled = true; }
   
-  // Simulate API call to translation service
-  setTimeout(() => {
+  try {
+    const textsToTranslate = [];
+    const map = []; 
+    
+    // Gather all titles and bodies
+    currentProduct.reviews.forEach((r, i) => {
+      if (r.original_title === undefined) r.original_title = r.title;
+      if (r.original_body === undefined) r.original_body = r.body;
+
+      if (r.original_title) { textsToTranslate.push(r.original_title); map.push({ index: i, field: 'title' }); }
+      if (r.original_body) { textsToTranslate.push(r.original_body); map.push({ index: i, field: 'body' }); }
+    });
+
+    if (textsToTranslate.length === 0) {
+      if(btn) { btn.textContent = 'Translated ✓'; btn.disabled = false; }
+      return;
+    }
+
+    // Call our Netlify function
+    const res = await fetch('/api/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texts: textsToTranslate, target: langCode })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    // Map translated text back to the reviews array (decode html entities)
+    data.translations.forEach((translatedText, i) => {
+      const mapping = map[i];
+      const txt = document.createElement('textarea');
+      txt.innerHTML = translatedText;
+      currentProduct.reviews[mapping.index][mapping.field] = txt.value;
+    });
+
+    // Re-render the UI
+    renderReviews();
+    expandReviews();
+
     showToast('Reviews translated to ' + lang + '!');
     if(btn) { btn.textContent = 'Translated ✓'; btn.disabled = false; }
-  }, 1500);
+  } catch (err) {
+    console.error('Translation failed:', err);
+    showToast('Translation failed. Please try again later.');
+    if(btn) { btn.textContent = 'Translate'; btn.disabled = false; }
+  }
 };
 
 window.openSizeFitModal = function() {

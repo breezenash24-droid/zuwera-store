@@ -33,6 +33,7 @@ let _reviewIdToEdit    = null;
 
 // Cache of loaded reviews per product to avoid redundant DB calls
 const _reviewCache = {};
+const _domIdToPid = {};
 
 // ── Stars helpers ──────────────────────────────────────────────────
 function starsHtml(rating, size = 'sm') {
@@ -185,6 +186,7 @@ async function toggleReviews(pid, domId = pid) {
   const listEl  = document.getElementById(`list-${domId}`);
   if (!panel) return;
 
+  _domIdToPid[domId] = pid;
   const isOpen = panel.style.display !== 'none';
   panel.style.display = isOpen ? 'none' : 'block';
 
@@ -391,14 +393,55 @@ window.translateReviews = async function(domId) {
   const selectId = domId ? 'translate-lang-' + domId : 'translate-lang';
   const btnId = domId ? 'translate-reviews-btn-' + domId : 'translate-reviews-btn';
   const select = document.getElementById(selectId);
+  const langCode = select ? select.value : 'es';
   const lang = select ? select.options[select.selectedIndex].text : 'English';
   const btn = document.getElementById(btnId);
+  
+  const pid = _domIdToPid[domId];
+  const reviews = _reviewCache[pid];
+  if (!reviews || reviews.length === 0) return;
+  
   if(btn) { btn.textContent = 'Translating...'; btn.disabled = true; }
   
-  setTimeout(() => {
+  try {
+    const textsToTranslate = [];
+    const map = [];
+    
+    reviews.forEach((r, i) => {
+      if (r.original_title === undefined) r.original_title = r.title;
+      if (r.original_body === undefined) r.original_body = r.body;
+
+      if (r.original_title) { textsToTranslate.push(r.original_title); map.push({ index: i, field: 'title' }); }
+      if (r.original_body) { textsToTranslate.push(r.original_body); map.push({ index: i, field: 'body' }); }
+    });
+
+    if (textsToTranslate.length > 0) {
+      const res = await fetch('/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texts: textsToTranslate, target: langCode })
+      });
+
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      data.translations.forEach((translatedText, i) => {
+        const mapping = map[i];
+        const txt = document.createElement('textarea');
+        txt.innerHTML = translatedText;
+        reviews[mapping.index][mapping.field] = txt.value;
+      });
+    }
+
+    renderReviewsList(domId, reviews);
+    
     if (typeof showToast === 'function') showToast('Reviews translated to ' + lang + '!');
     if(btn) { btn.textContent = 'Translated ✓'; btn.disabled = false; }
-  }, 1500);
+  } catch (err) {
+    console.error('Translation failed:', err);
+    if (typeof showToast === 'function') showToast('Translation failed. Check API keys.');
+    if(btn) { btn.textContent = 'Translate'; btn.disabled = false; }
+  }
 };
 
 // ── Close review modal on backdrop click ─────────────────────────
