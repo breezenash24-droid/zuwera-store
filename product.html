@@ -85,6 +85,11 @@
 .rs-metric-bar { height: 4px; background: rgba(244,241,235,0.1); border-radius: 2px; position: relative; margin-bottom: 0.4rem; overflow: hidden; }
 .rs-metric-fill { position: absolute; top: 0; left: 0; height: 100%; background: #F891A5; border-radius: 2px; }
 .rs-metric-labels { display: flex; justify-content: space-between; font-size: 0.7rem; color: rgba(244,241,235,0.5); text-transform: uppercase; letter-spacing: 0.05em; }
+.rs-recommend { }
+.rs-recommend-pills { display: flex; gap: 0.75rem; margin-top: 0.5rem; }
+.rs-recommend-pill { display: flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.78rem; font-weight: 500; }
+.rs-recommend-pill.yes { background: rgba(74,222,128,0.12); border: 1px solid rgba(74,222,128,0.3); color: #4ade80; }
+.rs-recommend-pill.no { background: rgba(248,145,165,0.1); border: 1px solid rgba(248,145,165,0.2); color: #F891A5; }
 .translate-btn { background: rgba(244,241,235,0.05); border: 1px solid rgba(244,241,235,0.2); color: #f4f1eb; padding: 0.8rem; font-size: 0.8rem; letter-spacing: 0.05em; border-radius: 4px; cursor: pointer; transition: all 0.2s; width: 100%; font-family: 'DM Sans', sans-serif; text-transform: uppercase; margin-bottom: 1.5rem; }
 .translate-btn:hover { border-color: #F891A5; color: #F891A5; background: rgba(248,145,165,0.05); }
 
@@ -642,19 +647,19 @@ async function loadSiteSettings() {
           if (typeof v === 'string') v = JSON.parse(v);
         } catch(e) {}
         
-        let isEnabled = true;
+        let mode = 'on';
         let msgText = '';
         if (typeof v === 'object' && v !== null) {
-          isEnabled = v.enabled !== false;
+          mode = v.mode || (v.enabled === false ? 'off' : 'on');
           msgText = v.product || v.main || '';
         } else {
           msgText = v;
         }
-        
+
         const barEl = document.getElementById('bar');
         const navEl = document.querySelector('.nav');
         if (barEl) {
-          if (!isEnabled) {
+          if (mode === 'off') {
             barEl.style.display = 'none';
             if (navEl) navEl.style.top = '0';
           } else {
@@ -664,6 +669,22 @@ async function loadSiteSettings() {
               if (textEl) textEl.textContent = msgText;
             }
             if (navEl) navEl.style.top = barEl.offsetHeight + 'px';
+            if (mode === 'scroll') {
+              barEl.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+              window.addEventListener('scroll', function onBarScroll() {
+                if (window.scrollY > 60) {
+                  barEl.style.transform = 'translateY(-100%)';
+                  barEl.style.opacity = '0';
+                  barEl.style.pointerEvents = 'none';
+                  if (navEl) navEl.style.top = '0';
+                } else {
+                  barEl.style.transform = '';
+                  barEl.style.opacity = '1';
+                  barEl.style.pointerEvents = '';
+                  if (navEl) navEl.style.top = barEl.offsetHeight + 'px';
+                }
+              }, { passive: true });
+            }
           }
         }
       } else if (row.key === 'shipping_policy') {
@@ -1282,7 +1303,10 @@ function generateReviewSummaryHtml(reviews) {
         </div>
         <div class="rs-recommend">
           <div class="rs-metric-title">Would you recommend this product?</div>
-          <div class="rs-metric-subtitle">Yes (${recYes}) / No (${recNo})</div>
+          <div class="rs-recommend-pills">
+            <span class="rs-recommend-pill yes">✓ Yes &nbsp;${recYes}</span>
+            <span class="rs-recommend-pill no">✗ No &nbsp;${recNo}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -1731,17 +1755,18 @@ window.openSizeFitModal = function() {
 window.openSizeGuideModal = function() {
   const modal = document.getElementById('size-guide-modal');
   const iframe = document.getElementById('size-guide-iframe');
-  // Build the size guide URL with product params so it pre-selects the right gender
-  let guideUrl = 'sizeguide.html';
+  // Build the size guide URL with product params so it pre-selects the right category
+  // Use absolute path so it works from /product/:slug clean URLs
+  const params = new URLSearchParams();
   if (currentProduct) {
-    const p = new URLSearchParams();
-    if (currentProduct.gender) p.set('gender', currentProduct.gender);
-    if (currentProduct.id) p.set('id', currentProduct.id);
-    guideUrl = `sizeguide.html?${p.toString()}`;
+    if (currentProduct.gender) params.set('gender', currentProduct.gender);
+    if (currentProduct.category || currentProduct.subtitle) params.set('category', currentProduct.category || currentProduct.subtitle || '');
+    if (currentProduct.id) params.set('id', currentProduct.id);
   }
-  if (iframe.src !== location.origin + '/' + guideUrl && iframe.getAttribute('data-loaded') !== guideUrl) {
+  const paramStr = params.toString();
+  const guideUrl = location.origin + '/sizeguide.html' + (paramStr ? '?' + paramStr : '');
+  if (iframe.src !== guideUrl) {
     iframe.src = guideUrl;
-    iframe.setAttribute('data-loaded', guideUrl);
   }
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';

@@ -844,22 +844,20 @@
             }
         }
 
-      } catch (e) {        }
+      showDashboard();
+      backLink.style.display = 'inline-block';
+      return true;
 
-        showDashboard();
-        backLink.style.display = 'inline-block';
-        return true;
-
-      } catch (e) {
-        showAuthContainer();
-        const msg = document.createElement('div');
-        msg.style = 'color: var(--error); margin-top: 15px; font-weight: bold; background: rgba(239,68,68,0.1); padding: 10px; border-radius: 4px; border: 1px solid var(--error);';
-        msg.innerHTML = 'Access Denied: ' + e.message;
-        document.querySelector('.auth-card').appendChild(msg);
-        await supabase.auth.signOut();
-        return false;
-      }
-    };
+    } catch (e) {
+      showAuthContainer();
+      const msg = document.createElement('div');
+      msg.style = 'color: var(--error); margin-top: 15px; font-weight: bold; background: rgba(239,68,68,0.1); padding: 10px; border-radius: 4px; border: 1px solid var(--error);';
+      msg.innerHTML = 'Access Denied: ' + (e.message || 'Unknown error');
+      document.querySelector('.auth-card').appendChild(msg);
+      await supabase.auth.signOut();
+      return false;
+    }
+  };
 
     const showAuthContainer = () => {
       authContainer.style.display = 'block';

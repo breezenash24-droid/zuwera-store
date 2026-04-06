@@ -1105,9 +1105,22 @@
                     <!-- Announcement Bar -->
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
                         <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:16px;">Announcement Bar</div>
-                        <div style="margin-bottom:16px; display:flex; align-items:center; gap:8px;">
-                            <input type="checkbox" id="settAnnouncementBarEnabled" checked style="width:16px; height:16px; cursor:pointer; accent-color:var(--accent);">
-                            <label for="settAnnouncementBarEnabled" style="font-size:.85rem; color:var(--text-primary); cursor:pointer; font-weight:600;">Enable Announcement Bar site-wide</label>
+                        <div style="margin-bottom:16px;">
+                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:8px;">Banner Mode</label>
+                            <div style="display:flex; flex-direction:column; gap:8px;">
+                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);">
+                                    <input type="radio" name="announcementBarMode" id="settAnnouncementModeOn" value="on" checked style="accent-color:var(--accent);cursor:pointer;">
+                                    <span><strong>On</strong> — Banner always visible</span>
+                                </label>
+                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);">
+                                    <input type="radio" name="announcementBarMode" id="settAnnouncementModeScroll" value="scroll" style="accent-color:var(--accent);cursor:pointer;">
+                                    <span><strong>On until scroll</strong> — Hides when user scrolls down</span>
+                                </label>
+                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);">
+                                    <input type="radio" name="announcementBarMode" id="settAnnouncementModeOff" value="off" style="accent-color:var(--accent);cursor:pointer;">
+                                    <span><strong>Off</strong> — Banner hidden</span>
+                                </label>
+                            </div>
                         </div>
                         <div style="margin-bottom:12px;">
                             <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Main Page Banner</label>
@@ -2996,10 +3009,14 @@
                 if (typeof v === 'object' && v !== null) {
                     document.getElementById('settAnnouncementBarMain').value = v.main || '';
                     document.getElementById('settAnnouncementBarProduct').value = v.product || '';
-                    document.getElementById('settAnnouncementBarEnabled').checked = v.enabled !== false;
+                    // Support legacy 'enabled' boolean as well as new 'mode'
+                    let mode = v.mode;
+                    if (!mode) mode = (v.enabled === false) ? 'off' : 'on';
+                    const modeRadio = document.querySelector(`input[name="announcementBarMode"][value="${mode}"]`);
+                    if (modeRadio) modeRadio.checked = true;
                 } else {
                     document.getElementById('settAnnouncementBarMain').value = typeof v === 'string' ? v : '';
-                    document.getElementById('settAnnouncementBarEnabled').checked = true;
+                    document.getElementById('settAnnouncementModeOn').checked = true;
                 }
             } else if (row.key === 'shipping_policy') {
                 const v = row.value || {};
@@ -3044,10 +3061,13 @@
     }
 
     document.getElementById('saveAnnouncementBtn').addEventListener('click', async () => {
+        const selectedMode = document.querySelector('input[name="announcementBarMode"]:checked');
+        const mode = selectedMode ? selectedMode.value : 'on';
         const val = {
             main: document.getElementById('settAnnouncementBarMain').value.trim(),
             product: document.getElementById('settAnnouncementBarProduct').value.trim(),
-            enabled: document.getElementById('settAnnouncementBarEnabled').checked
+            mode: mode,
+            enabled: mode !== 'off'   // keep for backwards compat
         };
         const { error } = await sb.from('site_settings').upsert(
             { key: 'announcement_bar', value: JSON.stringify(val), updated_at: new Date().toISOString() },

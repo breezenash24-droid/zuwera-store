@@ -1491,19 +1491,19 @@ const _sb = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_U
           if (typeof v === 'string') v = JSON.parse(v);
         } catch(e) {}
         
-        let isEnabled = true;
+        let mode = 'on';
         let msgText = '';
         if (typeof v === 'object' && v !== null) {
-          isEnabled = v.enabled !== false;
+          mode = v.mode || (v.enabled === false ? 'off' : 'on');
           msgText = v.main || '';
         } else {
           msgText = v;
         }
-        
+
         const barEl = document.getElementById('bar');
         const navEl = document.getElementById('nav');
         if (barEl) {
-          if (!isEnabled) {
+          if (mode === 'off') {
             barEl.style.display = 'none';
             if (navEl) navEl.style.top = '0';
           } else {
@@ -1513,6 +1513,25 @@ const _sb = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_U
               if (textEl) textEl.textContent = msgText;
             }
             if (navEl) navEl.style.top = barEl.offsetHeight + 'px';
+            if (mode === 'scroll') {
+              // Add scroll-away transition styles
+              barEl.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+              let lastScrollY = window.scrollY;
+              window.addEventListener('scroll', function onBarScroll() {
+                if (window.scrollY > 60) {
+                  barEl.style.transform = 'translateY(-100%)';
+                  barEl.style.opacity = '0';
+                  barEl.style.pointerEvents = 'none';
+                  if (navEl) navEl.style.top = '0';
+                } else {
+                  barEl.style.transform = '';
+                  barEl.style.opacity = '1';
+                  barEl.style.pointerEvents = '';
+                  if (navEl) navEl.style.top = barEl.offsetHeight + 'px';
+                }
+                lastScrollY = window.scrollY;
+              }, { passive: true });
+            }
           }
         }
       } else if (row.key === 'theme') {
@@ -1569,25 +1588,31 @@ function productSlug(title) {
 
 async function loadProducts() {
   const grid = document.getElementById('products-grid');
-  if (!_sb || !grid) return;
-  
+  if (!grid) return;
+
   const cached = sessionStorage.getItem('zw_home_products');
   if (cached) {
     try { renderProductCards(JSON.parse(cached), grid); } catch(e){}
   }
 
-  const { data: products, error } = await _sb
-    .from('products')
-    .select('*, product_images(*)')
-    .order('sort_order', { ascending: true });
-
-  if (error || !products) {
+  // Use direct fetch instead of Supabase JS client to avoid auth-state blocking
+  try {
+    const resp = await fetch(
+      `${SUPABASE_URL}/rest/v1/products?select=*,product_images(*)&order=sort_order.asc`,
+      { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` } }
+    );
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const products = await resp.json();
+    if (!Array.isArray(products) || products.length === 0) {
+      if (!cached) grid.innerHTML = '<div class="pcard" style="opacity:.3;text-align:center;padding:3rem">No products yet.</div>';
+      return;
+    }
+    sessionStorage.setItem('zw_home_products', JSON.stringify(products));
+    renderProductCards(products, grid);
+  } catch(e) {
+    console.error('loadProducts error:', e);
     if (!cached) grid.innerHTML = '<div class="pcard" style="opacity:.3;text-align:center;padding:3rem">Could not load products.</div>';
-    return;
   }
-
-  sessionStorage.setItem('zw_home_products', JSON.stringify(products));
-  renderProductCards(products, grid);
 }
 
 function renderProductCards(products, grid) {

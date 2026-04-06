@@ -618,20 +618,23 @@ function updateCountdown() {
         try { renderProducts(JSON.parse(cached)); } catch(e){}
       }
 
-      let { data: products, error } = await sb
-        .from('products')
-        .select('*, product_images(*)')
-        .order('sort_order', { ascending: true });
-
-      if (error || !products) {
+      let products;
+      try {
+        const resp = await fetch(
+          `${SUPABASE_URL}/rest/v1/products?select=*,product_images(*)&order=sort_order.asc`,
+          { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` } }
+        );
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        products = await resp.json();
+      } catch(e) {
+        console.error('loadProducts error:', e);
         if (!cached) grid.innerHTML = '<div class="product-card" style="opacity:.3;text-align:center;padding:3rem;grid-column:1/-1">Could not load products.</div>';
         return;
-        console.warn('Using fallback data');
-        products = [
-          { id: 'jacket-001', title: 'Zuwera Jacket 001', subtitle: 'Jackets', current_price: 248, status: 'coming_soon', image_url: 'https://zuwera.store/assets/jacket-001.jpg', sort_order: 1 },
-          { id: 'jacket-002', title: 'Zuwera Jacket 002', subtitle: 'Jackets', current_price: 248, status: 'coming_soon', image_url: 'https://zuwera.store/assets/jacket-002.jpg', sort_order: 2 },
-          { id: 'jacket-003', title: 'Zuwera Jacket 003', subtitle: 'Jackets', current_price: 248, status: 'coming_soon', image_url: 'https://zuwera.store/assets/jacket-003.jpg', sort_order: 3 }
-        ];
+      }
+
+      if (!Array.isArray(products) || products.length === 0) {
+        if (!cached) grid.innerHTML = '<div class="product-card" style="opacity:.3;text-align:center;padding:3rem;grid-column:1/-1">No products yet.</div>';
+        return;
       }
 
       sessionStorage.setItem('zw_drop001_products', JSON.stringify(products));
