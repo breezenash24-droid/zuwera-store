@@ -1,5 +1,5 @@
 /**
- * reviews.js — Product reviews powered by Supabase
+ * reviews.js â Product reviews powered by Supabase
  *
  * Requires:
  *  - Supabase client (_sb) already initialised in auth.js
@@ -7,7 +7,7 @@
  *  - showToast() from cart.js
  *
  * Supabase table (run once in the Supabase SQL editor):
- * ─────────────────────────────────────────────────────
+ * âââââââââââââââââââââââââââââââââââââââââââââââââââââ
  *  create table reviews (
  *    id            uuid    default gen_random_uuid() primary key,
  *    user_id       uuid    references auth.users(id) on delete cascade,
@@ -25,7 +25,7 @@
  *  create policy "Owner delete"  on reviews for delete using (auth.uid() = user_id);
  */
 
-// ── State ──────────────────────────────────────────────────────────
+// ââ State ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 let _reviewProductId   = null;   // currently open form target
 let _reviewProductName = null;
 let _reviewRating      = 0;
@@ -35,11 +35,11 @@ let _reviewIdToEdit    = null;
 const _reviewCache = {};
 const _domIdToPid = {};
 
-// ── Stars helpers ──────────────────────────────────────────────────
+// ââ Stars helpers ââââââââââââââââââââââââââââââââââââââââââââââââââ
 function starsHtml(rating, size = 'sm') {
   const full  = Math.round(rating);
-  const filled = '★'.repeat(full);
-  const empty  = '☆'.repeat(5 - full);
+  const filled = 'â'.repeat(full);
+  const empty  = 'â'.repeat(5 - full);
   return `<span style="color:#F891A5">${filled}</span><span style="color:rgba(244,241,235,.15)">${empty}</span>`;
 }
 
@@ -47,7 +47,7 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-// ── Load & render reviews for a product ───────────────────────────
+// ââ Load & render reviews for a product âââââââââââââââââââââââââââ
 async function loadReviews(pid) {
   if (!_sb) return [];
   if (_reviewCache[pid]) return _reviewCache[pid];
@@ -69,13 +69,13 @@ function updateProductStarDisplay(domId, reviews) {
   if (!avgEl || !cntEl) return;
 
   if (!reviews.length) {
-    avgEl.innerHTML = '<span style="color:rgba(244,241,235,.2)">☆☆☆☆☆</span>';
+    avgEl.innerHTML = '<span style="color:rgba(244,241,235,.2)">âââââ</span>';
     cntEl.textContent = 'Be the first to review';
     return;
   }
   const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
   avgEl.innerHTML = starsHtml(avg);
-  cntEl.textContent = `${reviews.length} review${reviews.length !== 1 ? 's' : ''} · ${avg.toFixed(1)}`;
+  cntEl.textContent = `${reviews.length} review${reviews.length !== 1 ? 's' : ''} Â· ${avg.toFixed(1)}`;
 }
 
 function generateReviewSummaryHtml(reviews) {
@@ -134,13 +134,13 @@ function renderReviewsList(domId, reviews) {
   if (!listEl) return;
 
   if (!reviews.length) {
-    listEl.innerHTML = '<p class="reviews-empty">No reviews yet — be the first!</p>';
+    listEl.innerHTML = '<p class="reviews-empty">No reviews yet â be the first!</p>';
     return;
   }
   const summaryHtml = generateReviewSummaryHtml(reviews);
   const listHtml = reviews.map(r => {
     let editBtn = '';
-    if (typeof _user !== 'undefined' && _user && r.user_id === _user.id) {
+    if (typeof _currentUser !== 'undefined' && _currentUser && r.user_id === _currentUser.id) {
       editBtn = `<button onclick="openEditReviewForm('${r.id}', ${r.rating}, '${escHtml(r.body||'')}')" style="background:none;border:none;color:#F891A5;font-size:0.65rem;cursor:pointer;margin-left:8px;text-decoration:underline;text-transform:uppercase;letter-spacing:0.05em;font-family:'IBM Plex Mono', monospace;">Edit</button>`;
     }
 
@@ -180,7 +180,7 @@ function renderReviewsList(domId, reviews) {
   listEl.innerHTML = summaryHtml + translateHtml + listHtml;
 }
 
-// ── Toggle reviews panel open / closed ────────────────────────────
+// ââ Toggle reviews panel open / closed ââââââââââââââââââââââââââââ
 async function toggleReviews(pid, domId = pid) {
   const panel   = document.getElementById(`panel-${domId}`);
   const listEl  = document.getElementById(`list-${domId}`);
@@ -192,18 +192,18 @@ async function toggleReviews(pid, domId = pid) {
 
   if (!isOpen) {
     // Show loading state then fetch
-    listEl.innerHTML = '<p class="reviews-loading">Loading reviews…</p>';
+    listEl.innerHTML = '<p class="reviews-loading">Loading reviewsâ¦</p>';
     const reviews = await loadReviews(pid);
     renderReviewsList(domId, reviews);
     updateProductStarDisplay(domId, reviews);
   }
 }
 
-// ── Open the write-a-review modal ─────────────────────────────────
+// ââ Open the write-a-review modal âââââââââââââââââââââââââââââââââ
 function openReviewForm(pid, pname) {
   /*
-  if (typeof _user === 'undefined' || !_user) {
-    // Not logged in — show auth modal instead
+  if (typeof _currentUser === 'undefined' || !_currentUser) {
+    // Not logged in â show auth modal instead
     if (typeof openAuth === 'function') openAuth('signin');
     return;
   }
@@ -270,7 +270,7 @@ function openEditReviewForm(id, rating, body) {
   document.body.style.overflow = 'hidden';
 }
 
-// ── Star selector interaction ──────────────────────────────────────
+// ââ Star selector interaction ââââââââââââââââââââââââââââââââââââââ
 function setStarSelection(val) {
   _reviewRating = val;
   document.querySelectorAll('#star-selector button').forEach(btn => {
@@ -291,7 +291,7 @@ document.querySelectorAll('#star-selector button').forEach(btn => {
   });
 });
 
-// ── Submit review ─────────────────────────────────────────────────
+// ââ Submit review âââââââââââââââââââââââââââââââââââââââââââââââââ
 async function submitReview() {
   const errEl  = document.getElementById('review-error');
   const btn    = document.getElementById('review-submit-btn');
@@ -308,10 +308,10 @@ async function submitReview() {
   // if (!_sb || typeof _user === 'undefined' || !_user) { errEl.textContent = 'Please sign in to leave a review.'; return; }
 
   btn.disabled    = true;
-  btn.textContent = 'Submitting…';
+  btn.textContent = 'Submittingâ¦';
 
-  const reviewerName = (typeof _user !== 'undefined' && _user) ? (_user.user_metadata?.full_name
-    || _user.email?.split('@')[0]) : 'Anonymous';
+  const reviewerName = (typeof _currentUser !== 'undefined' && _currentUser) ? (_currentUser.user_metadata?.full_name
+    || _currentUser.email?.split('@')[0]) : 'Anonymous';
 
   let error;
   if (_reviewIdToEdit) {
@@ -325,7 +325,7 @@ async function submitReview() {
     error = res.error;
   } else {
     const res = await _sb.from('reviews').insert({
-      user_id:       (typeof _user !== 'undefined' && _user) ? _user.id : null,
+      user_id:       (typeof _currentUser !== 'undefined' && _currentUser) ? _currentUser.id : null,
       product_id:    _reviewProductId,
       rating:        _reviewRating,
       body:          body || null,
@@ -351,7 +351,7 @@ async function submitReview() {
 
   document.getElementById('review-modal').classList.remove('open');
   document.body.style.overflow = '';
-  showToast('Review submitted — thank you!');
+  showToast('Review submitted â thank you!');
 
   // Refresh all instances of panels and stars for this product
   const reviews = await loadReviews(_reviewProductId);
@@ -368,7 +368,7 @@ async function submitReview() {
   });
 }
 
-// ── Init: load star averages for all product cards on page load ───
+// ââ Init: load star averages for all product cards on page load âââ
 (async function initReviewSummaries() {
   const pids = Array.from(document.querySelectorAll('[data-review-pid]'))
     .map(el => el.dataset.reviewPid);
@@ -379,7 +379,7 @@ async function submitReview() {
   }));
 })();
 
-// ── Utility: escape HTML to prevent XSS in review text ───────────
+// ââ Utility: escape HTML to prevent XSS in review text âââââââââââ
 function escHtml(str) {
   return String(str)
     .replace(/&/g, '&amp;')
@@ -436,7 +436,7 @@ window.translateReviews = async function(domId) {
     renderReviewsList(domId, reviews);
     
     if (typeof showToast === 'function') showToast('Reviews translated to ' + lang + '!');
-    if(btn) { btn.textContent = 'Translated ✓'; btn.disabled = false; }
+    if(btn) { btn.textContent = 'Translated â'; btn.disabled = false; }
   } catch (err) {
     console.error('Translation failed:', err);
     if (typeof showToast === 'function') showToast('Translation failed. Check API keys.');
@@ -444,7 +444,7 @@ window.translateReviews = async function(domId) {
   }
 };
 
-// ── Close review modal on backdrop click ─────────────────────────
+// ââ Close review modal on backdrop click âââââââââââââââââââââââââ
 document.getElementById('review-modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) {
     document.getElementById('review-modal').classList.remove('open');
