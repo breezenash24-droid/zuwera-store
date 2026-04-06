@@ -612,6 +612,10 @@ body.light-mode .alink a {color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,
 <!-- SCRIPTS                                                          -->
 <!-- ════════════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Cloudflare Turnstile — invisible protection for login/signup/review -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=_zwTsLoad&render=explicit" defer async></script>
+<!-- Turnstile invisible widget (shared across all forms on this page) -->
+<div id="zw-ts-widget" style="display:none;visibility:hidden;" aria-hidden="true"></div>
 <script src="auth.js" defer></script>
 <script>
 
@@ -1504,6 +1508,17 @@ async function submitReview() {
   if (!body) { alert('Please write your review'); return; }
 
   btn.disabled = true;
+  btn.textContent = 'Verifying...';
+
+  // Run Turnstile check before submitting review
+  if (typeof zwRunTurnstile === 'function') {
+    await zwRunTurnstile(async () => { await _doSubmitReview(btn, selectedRating, nickname, title, body, fit, comfort, recommend); });
+    return;
+  }
+  await _doSubmitReview(btn, selectedRating, nickname, title, body, fit, comfort, recommend);
+}
+
+async function _doSubmitReview(btn, selectedRating, nickname, title, body, fit, comfort, recommend) {
   btn.textContent = 'Submitting...';
 
   try {

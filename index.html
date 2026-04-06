@@ -2116,6 +2116,18 @@ async function homeNotifyMe() {
   const email = inp.value.trim();
   if(!email||!email.includes('@')){ inp.style.outlineColor='var(--red)'; inp.focus(); return; }
   inp.style.outlineColor='';
+
+  // Run Turnstile verification before inserting into waitlist
+  if (window._zwHomeTs) {
+    window._zwHomeTs(async () => {
+      if(_sb){ try{ await _sb.from('waitlist').upsert({ email, source:'drop001_home' }); } catch{} }
+      if (typeof gtag === 'function') gtag('event', 'generate_lead', { content_name: 'waitlist', source: 'home' });
+      inp.closest('.notify-row').style.display='none';
+      document.querySelector('.notify-hint').style.display='none';
+      document.getElementById('home-notify-success').style.display='block';
+    });
+    return;
+  }
   if(_sb){ try{ await _sb.from('waitlist').upsert({ email, source:'drop001_home' }); } catch{} }
   if (typeof gtag === 'function') gtag('event', 'generate_lead', { content_name: 'waitlist', source: 'home' });
   inp.closest('.notify-row').style.display='none';
@@ -2129,6 +2141,52 @@ function scrollToNotify() {
   el.scrollIntoView({ behavior:'smooth', block:'center' });
   setTimeout(() => el.focus(), 600);
 }
+</script>
+<!-- Cloudflare Turnstile — invisible bot protection for waitlist -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=_zwHomeTsLoad&render=explicit" defer async></script>
+<div id="zw-home-ts-widget" style="display:none;visibility:hidden;" aria-hidden="true"></div>
+<script>
+(function() {
+  const ZW_TS_KEY = '0x4AAAAAACzvvg-l2dT2z35l';
+  let _widgetId = null, _pending = null;
+
+  function _tsCb(token) {
+    if (_pending) { const fn = _pending; _pending = null; fn(token); }
+  }
+  function _tsErr() {
+    if (_pending) { const fn = _pending; _pending = null; fn(null); }
+  }
+  function _init() {
+    const el = document.getElementById('zw-home-ts-widget');
+    if (!el || !window.turnstile || _widgetId !== null) return;
+    _widgetId = window.turnstile.render(el, {
+      sitekey: ZW_TS_KEY, size: 'invisible',
+      callback: _tsCb, 'error-callback': _tsErr,
+      'expired-callback': function() { if (_widgetId !== null) window.turnstile.reset(_widgetId); }
+    });
+  }
+  window._zwHomeTsLoad = _init;
+  document.addEventListener('DOMContentLoaded', function() { setTimeout(_init, 800); });
+
+  window._zwHomeTs = async function(action) {
+    if (!window.turnstile || _widgetId === null) { await action(); return; }
+    _pending = async (token) => {
+      if (token) {
+        try {
+          const r = await fetch('/api/verify-turnstile', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+          });
+          const d = await r.json();
+          if (!d.success) console.warn('[Turnstile] home:', d.error);
+        } catch(e) { console.warn('[Turnstile] home error:', e); }
+      }
+      await action();
+      if (_widgetId !== null) window.turnstile.reset(_widgetId);
+    };
+    window.turnstile.execute(_widgetId);
+  };
+})();
 </script>
 <script src="reviews.js" defer></script>
 

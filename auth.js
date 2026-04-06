@@ -125,6 +125,82 @@ _authEls.loginBtn.addEventListener('click', () => openAuthModal('signin'));
 $('forgot-link').addEventListener('click', e => { e.preventDefault(); switchAuthTab('forgot'); });
 $('back-to-signin').addEventListener('click', e => { e.preventDefault(); switchAuthTab('signin'); });
 
+// ── Cloudflare Turnstile Helper ────────────────────────────────────
+const ZW_TS_KEY = '0x4AAAAAACzvvg-l2dT2z35l';
+let _zwTsWidgetId = null;
+let _zwTsPendingCb = null;
+
+// Called by Turnstile on success
+window._zwTsSuccess = function(token) {
+  if (_zwTsPendingCb) {
+    const cb = _zwTsPendingCb;
+    _zwTsPendingCb = null;
+    cb(token);
+  }
+};
+
+// Called by Turnstile on error/expiry — fail open so UX is not broken
+window._zwTsError = function() {
+  if (_zwTsPendingCb) {
+    const cb = _zwTsPendingCb;
+    _zwTsPendingCb = null;
+    cb(null); // proceed without token
+  }
+};
+
+// Initialize the invisible widget once Turnstile SDK loads
+function _zwInitTurnstile() {
+  const el = document.getElementById('zw-ts-widget');
+  if (!el || !window.turnstile || _zwTsWidgetId !== null) return;
+  _zwTsWidgetId = window.turnstile.render(el, {
+    sitekey: ZW_TS_KEY,
+    size: 'invisible',
+    callback: '_zwTsSuccess',
+    'error-callback': '_zwTsError',
+    'expired-callback': function() {
+      if (_zwTsWidgetId !== null) window.turnstile.reset(_zwTsWidgetId);
+    }
+  });
+}
+
+// Retry init if SDK loads asynchronously
+window._zwTsLoad = function() { _zwInitTurnstile(); };
+document.addEventListener('DOMContentLoaded', function() {
+  // Try after small delay in case SDK script is still loading
+  setTimeout(_zwInitTurnstile, 800);
+});
+
+// Verify token server-side and execute action
+async function zwRunTurnstile(action) {
+  if (!window.turnstile || _zwTsWidgetId === null) {
+    // Turnstile not available — fail open
+    await action();
+    return;
+  }
+  _zwTsPendingCb = async (token) => {
+    if (token) {
+      try {
+        const res = await fetch('/api/verify-turnstile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        });
+        const data = await res.json();
+        if (!data.success) {
+          console.warn('[Turnstile] Server rejected token:', data.error);
+          // Fail open — don't block legitimate users if server has issues
+        }
+      } catch(e) {
+        console.warn('[Turnstile] Verify error:', e);
+      }
+    }
+    await action();
+    // Reset widget for next use
+    if (_zwTsWidgetId !== null) window.turnstile.reset(_zwTsWidgetId);
+  };
+  window.turnstile.execute(_zwTsWidgetId);
+}
+
 // ── Sign In ────────────────────────────────────────────────────────
 $('signin-submit').addEventListener('click', async () => {
   const email = $('signin-email').value.trim();
@@ -133,21 +209,24 @@ $('signin-submit').addEventListener('click', async () => {
   err.textContent = '';
   if (!email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
   setBtn('signin-submit', true, 'Login');
-  if (_sb) {
-    const { error } = await _sb.auth.signInWithPassword({ email, password: pass });
-    if (error) { 
-      if (error.message.toLowerCase().includes('captcha')) {
-        err.textContent = 'CAPTCHA Blocked: Disable CAPTCHA in your Supabase Dashboard (Auth -> Providers).';
-      } else {
-        err.textContent = error.message === 'Email not confirmed' ? 'Please check your email and verify your account.' : error.message; 
+
+  await zwRunTurnstile(async () => {
+    if (_sb) {
+      const { error } = await _sb.auth.signInWithPassword({ email, password: pass });
+      if (error) {
+        if (error.message.toLowerCase().includes('captcha')) {
+          err.textContent = 'CAPTCHA Blocked: Disable CAPTCHA in your Supabase Dashboard (Auth -> Providers).';
+        } else {
+          err.textContent = error.message === 'Email not confirmed' ? 'Please check your email and verify your account.' : error.message;
+        }
+        setBtn('signin-submit', false, 'Login');
+        return;
       }
-      setBtn('signin-submit', false, 'Login'); 
-      return; 
     }
-  }
-  setBtn('signin-submit', false, 'Login');
-  closeAuthModal();
-  showToast('Welcome back!');
+    setBtn('signin-submit', false, 'Login');
+    closeAuthModal();
+    showToast('Welcome back!');
+  });
 });
 
 // ── Sign Up ────────────────────────────────────────────────────────
@@ -162,23 +241,26 @@ $('signup-submit').addEventListener('click', async () => {
   if (!name || !email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
   if (pass.length < 6)         { err.textContent = 'Password must be at least 6 characters.'; return; }
   setBtn('signup-submit', true, 'Create Account');
-  if (_sb) {
-    const { data, error } = await _sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
-    if (error) { 
-      err.textContent = error.message.toLowerCase().includes('captcha') ? 'CAPTCHA Blocked: Disable CAPTCHA in your Supabase Dashboard.' : error.message; 
-      setBtn('signup-submit', false, 'Create Account'); return; 
+
+  await zwRunTurnstile(async () => {
+    if (_sb) {
+      const { data, error } = await _sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
+      if (error) {
+        err.textContent = error.message.toLowerCase().includes('captcha') ? 'CAPTCHA Blocked: Disable CAPTCHA in your Supabase Dashboard.' : error.message;
+        setBtn('signup-submit', false, 'Create Account'); return;
+      }
+      setBtn('signup-submit', false, 'Create Account');
+      if (typeof gtag === 'function') gtag('event', 'sign_up', { method: 'Email' });
+
+      if (!data?.session) {
+        if (suc) suc.style.display = 'block';
+        $('signup-submit').style.display = 'none';
+      } else {
+        closeAuthModal();
+        showToast('Account created! Welcome to Zuwera.');
+      }
     }
-    setBtn('signup-submit', false, 'Create Account');
-    if (typeof gtag === 'function') gtag('event', 'sign_up', { method: 'Email' });
-    
-    if (!data?.session) {
-      if (suc) suc.style.display = 'block';
-      $('signup-submit').style.display = 'none';
-    } else {
-      closeAuthModal();
-      showToast('Account created! Welcome to Zuwera.');
-    }
-  }
+  });
 });
 
 // ── Forgot Password ────────────────────────────────────────────────
