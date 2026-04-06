@@ -21,7 +21,13 @@ export async function onRequestPost(context) {
       );
     }
 
-    const API_KEY = context.env.DEEPL_API_KEY || '21a6e204-5ef0-4493-9a58-c5cb2365fb74:fx';
+    const API_KEY = context.env.DEEPL_API_KEY;
+    if (!API_KEY) {
+      return new Response(
+        JSON.stringify({ error: 'DEEPL_API_KEY environment variable is not set. Please add it in your Cloudflare Pages project settings.' }),
+        { status: 500, headers: corsHeaders }
+      );
+    }
     const isFree = API_KEY.endsWith(':fx');
     const endpoint = isFree
       ? 'https://api-free.deepl.com/v2/translate'
