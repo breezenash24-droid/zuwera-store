@@ -423,6 +423,7 @@ body.light-mode .alink a {color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,
               <p id="fitType"></p>
               <p id="modelInfo"></p>
               <p id="materialInfo"></p>
+              <button class="add-to-cart-btn" style="min-height:40px; padding:0.8rem; font-size:0.85rem; margin-top:1rem; margin-bottom:1rem; background:rgba(244,241,235,0.05); color:#f4f1eb; border:1px solid rgba(244,241,235,0.2);" onclick="openSizeFitModal()">View Fit Ratings from Reviews</button>
             </div>
           </div>
 
@@ -482,21 +483,29 @@ body.light-mode .alink a {color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,
                 <div class="review-form-row"><label>Review Title</label><input type="text" id="reviewTitle" placeholder="Sum it up in a few words" maxlength="100"></div>
                 <div class="review-form-row"><label>Your Review</label><textarea id="reviewBody" placeholder="What did you like or dislike? How did the sizing feel?" maxlength="1000"></textarea></div>
                 
-                <div class="review-form-row">
-                  <label>How did this product fit?</label>
-                  <input type="range" id="reviewFit" class="review-slider" min="1" max="5" value="3">
-                  <div class="review-slider-wrap"><span>Runs Small</span><span>Runs Big</span></div>
+                <div class="review-form-row" style="margin-bottom:1.5rem;">
+                  <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;color:rgba(244,241,235,0.9);cursor:pointer;text-transform:none;letter-spacing:normal;">
+                    <input type="checkbox" id="rateFitToggle" onchange="document.getElementById('advancedRatings').style.display = this.checked ? 'block' : 'none'" style="width:auto;margin:0;accent-color:#F891A5;">
+                    Rate Size, Comfort & Recommendation (Optional)
+                  </label>
                 </div>
-                <div class="review-form-row">
-                  <label>How comfortable was this product?</label>
-                  <input type="range" id="reviewComfort" class="review-slider" min="1" max="5" value="5">
-                  <div class="review-slider-wrap"><span>Uncomfortable</span><span>Very Comfortable</span></div>
-                </div>
-                <div class="review-form-row">
-                  <label>Would you recommend this product?</label>
-                  <div class="review-radio-group">
-                    <label><input type="radio" name="reviewRecommend" value="yes" checked> Yes</label>
-                    <label><input type="radio" name="reviewRecommend" value="no"> No</label>
+                <div id="advancedRatings" style="display:none; padding:1.2rem; background:rgba(244,241,235,0.02); border:1px solid rgba(244,241,235,0.08); border-radius:6px; margin-bottom:1.5rem;">
+                  <div class="review-form-row">
+                    <label>How did this product fit?</label>
+                    <input type="range" id="reviewFit" class="review-slider" min="1" max="5" value="3">
+                    <div class="review-slider-wrap"><span>Runs Small</span><span>Runs Big</span></div>
+                  </div>
+                  <div class="review-form-row">
+                    <label>How comfortable was this product?</label>
+                    <input type="range" id="reviewComfort" class="review-slider" min="1" max="5" value="5">
+                    <div class="review-slider-wrap"><span>Uncomfortable</span><span>Very Comfortable</span></div>
+                  </div>
+                  <div class="review-form-row">
+                    <label>Would you recommend this product?</label>
+                    <div class="review-radio-group">
+                      <label><input type="radio" name="reviewRecommend" value="yes" checked> Yes</label>
+                      <label><input type="radio" name="reviewRecommend" value="no"> No</label>
+                    </div>
                   </div>
                 </div>
 
@@ -521,8 +530,24 @@ body.light-mode .alink a {color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,
     <button id="all-reviews-close" style="position:absolute; top:1rem; right:1.2rem; width:30px; height:30px; display:flex; align-items:center; justify-content:center; background:rgba(244,241,235,.05); border:1px solid rgba(244,241,235,.08); color:#f4f1eb; font-size:1rem; cursor:pointer;">&#215;</button>
     <h2 style="font-family: var(--fw); font-size: 2rem; font-style: italic; margin-bottom: 1.5rem; letter-spacing: 0.05em;">All Reviews</h2>
     <div id="all-reviews-summary"></div>
-    <button id="translate-reviews-btn" class="translate-btn" onclick="translateReviews()">Translate All Reviews to English</button>
+    <div style="display:flex; gap:10px; margin-bottom:1.5rem;">
+      <select id="translate-lang" style="flex:1; background:rgba(244,241,235,0.05); color:#f4f1eb; border:1px solid rgba(244,241,235,0.2); padding:0.8rem 1rem; border-radius:4px; font-family:'DM Sans', sans-serif; outline:none; -webkit-appearance:none; appearance:none; background-image:url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'7\'><path d=\'M1 1l5 5 5-5\' stroke=\'%23f4f1eb\' stroke-width=\'1.5\' fill=\'none\' opacity=\'0.4\'/></svg>'); background-repeat:no-repeat; background-position:right 1rem center; cursor:pointer;">
+        <option value="es" style="background:#09090b;">Spanish</option>
+        <option value="fr" style="background:#09090b;">French</option>
+        <option value="zh" style="background:#09090b;">Mandarin Chinese</option>
+      </select>
+      <button id="translate-reviews-btn" class="translate-btn" style="margin-bottom:0; width:auto; padding:0.8rem 1.5rem;" onclick="translateReviews()">Translate</button>
+    </div>
     <div id="all-reviews-list"></div>
+  </div>
+</div>
+
+<!-- SIZE & FIT MODAL -->
+<div id="size-fit-modal" class="modal" role="dialog" aria-modal="true">
+  <div class="mbox" style="max-width: 600px; width: 90vw; max-height: 85vh; overflow-y: auto; padding: 2rem; border-radius: 8px;">
+    <button style="position:absolute; top:1rem; right:1.2rem; width:30px; height:30px; display:flex; align-items:center; justify-content:center; background:rgba(244,241,235,.05); border:1px solid rgba(244,241,235,.08); color:#f4f1eb; font-size:1rem; cursor:pointer;" onclick="document.getElementById('size-fit-modal').classList.remove('open'); document.body.style.overflow='';">&#215;</button>
+    <h2 style="font-family: var(--fw); font-size: 2rem; font-style: italic; margin-bottom: 1.5rem; letter-spacing: 0.05em;">Size & Fit Ratings</h2>
+    <div id="size-fit-summary-content"></div>
   </div>
 </div>
 
@@ -1374,6 +1399,12 @@ function editProductReview(id) {
   document.getElementById('reviewTitle').value = review.title || '';
   document.getElementById('reviewBody').value = review.body || '';
   
+  const hasAdvanced = review.fit_rating || review.comfort_rating || review.recommend !== null;
+  const fitToggle = document.getElementById('rateFitToggle');
+  const adv = document.getElementById('advancedRatings');
+  if (fitToggle) fitToggle.checked = !!hasAdvanced;
+  if (adv) adv.style.display = hasAdvanced ? 'block' : 'none';
+
   if (review.fit_rating) document.getElementById('reviewFit').value = review.fit_rating;
   if (review.comfort_rating) document.getElementById('reviewComfort').value = review.comfort_rating;
   if (review.recommend !== null) {
@@ -1404,9 +1435,10 @@ async function submitReview() {
   const title = document.getElementById('reviewTitle').value.trim();
   const body = document.getElementById('reviewBody').value.trim();
   
-  const fit = document.getElementById('reviewFit')?.value;
-  const comfort = document.getElementById('reviewComfort')?.value;
-  const recommend = document.querySelector('input[name="reviewRecommend"]:checked')?.value;
+  const isAdvancedChecked = document.getElementById('rateFitToggle')?.checked;
+  const fit = isAdvancedChecked ? document.getElementById('reviewFit')?.value : null;
+  const comfort = isAdvancedChecked ? document.getElementById('reviewComfort')?.value : null;
+  const recommend = isAdvancedChecked ? document.querySelector('input[name="reviewRecommend"]:checked')?.value : null;
   
   const btn = document.getElementById('submitReviewBtn');
 
@@ -1454,6 +1486,8 @@ async function submitReview() {
       document.getElementById('reviewNickname').value = '';
       document.getElementById('reviewTitle').value = '';
       document.getElementById('reviewBody').value = '';
+      if(document.getElementById('rateFitToggle')) document.getElementById('rateFitToggle').checked = false;
+      if(document.getElementById('advancedRatings')) document.getElementById('advancedRatings').style.display = 'none';
       document.getElementById('reviewFit').value = "3";
       document.getElementById('reviewComfort').value = "5";
       document.querySelector('input[name="reviewRecommend"][value="yes"]').checked = true;
@@ -1591,14 +1625,28 @@ function showError(message) {
 // TRANSLATE REVIEWS MOCK
 // ══════════════════════════════════════════════════════════════════
 window.translateReviews = async function() {
+  const select = document.getElementById('translate-lang');
+  const lang = select ? select.options[select.selectedIndex].text : 'English';
   const btn = document.getElementById('translate-reviews-btn');
   if(btn) { btn.textContent = 'Translating...'; btn.disabled = true; }
   
   // Simulate API call to translation service
   setTimeout(() => {
-    showToast('Reviews translated to English!');
-    if(btn) btn.textContent = 'Translated ✓';
+    showToast('Reviews translated to ' + lang + '!');
+    if(btn) { btn.textContent = 'Translated ✓'; btn.disabled = false; }
   }, 1500);
+};
+
+window.openSizeFitModal = function() {
+  const modal = document.getElementById('size-fit-modal');
+  const content = document.getElementById('size-fit-summary-content');
+  if (!currentProduct || !currentProduct.reviews || currentProduct.reviews.length === 0) {
+    content.innerHTML = '<p style="color:rgba(244,241,235,0.5);">No reviews available to show fit ratings.</p>';
+  } else {
+    content.innerHTML = generateReviewSummaryHtml(currentProduct.reviews);
+  }
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
 };
 
 // ═════════════════════════════════════════════════════════════════

@@ -166,7 +166,17 @@ function renderReviewsList(domId, reviews) {
     `;
   }).join('');
   
-  listEl.innerHTML = summaryHtml + '<button id="translate-reviews-btn" class="translate-btn" onclick="translateReviews()" style="margin-top:1rem">Translate All Reviews to English</button>' + listHtml;
+  const translateHtml = `
+    <div style="display:flex; gap:10px; margin-bottom:1.5rem; margin-top:1rem;">
+      <select id="translate-lang-${domId}" style="flex:1; background:rgba(244,241,235,0.05); color:#f4f1eb; border:1px solid rgba(244,241,235,0.2); padding:0.8rem 1rem; border-radius:4px; font-family:'DM Sans', sans-serif; outline:none; -webkit-appearance:none; appearance:none; background-image:url('data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'12\\' height=\\'7\\'><path d=\\'M1 1l5 5 5-5\\' stroke=\\'%23f4f1eb\\' stroke-width=\\'1.5\\' fill=\\'none\\' opacity=\\'0.4\\'/></svg>'); background-repeat:no-repeat; background-position:right 1rem center; cursor:pointer;">
+        <option value="es" style="background:#09090b;">Spanish</option>
+        <option value="fr" style="background:#09090b;">French</option>
+        <option value="zh" style="background:#09090b;">Mandarin Chinese</option>
+      </select>
+      <button id="translate-reviews-btn-${domId}" class="translate-btn" style="margin-bottom:0; width:auto; padding:0.8rem 1.5rem;" onclick="translateReviews('${domId}')">Translate</button>
+    </div>
+  `;
+  listEl.innerHTML = summaryHtml + translateHtml + listHtml;
 }
 
 // ── Toggle reviews panel open / closed ────────────────────────────
@@ -207,6 +217,13 @@ function openReviewForm(pid, pname) {
   document.getElementById('review-submit-btn').disabled = false;
   document.getElementById('review-submit-btn').textContent = 'Submit Review';
   
+  const fitToggle = document.getElementById('rateFitToggle');
+  if (fitToggle) {
+    fitToggle.checked = false;
+    const adv = document.getElementById('advancedRatings');
+    if (adv) adv.style.display = 'none';
+  }
+
   if (document.getElementById('reviewFit')) document.getElementById('reviewFit').value = "3";
   if (document.getElementById('reviewComfort')) document.getElementById('reviewComfort').value = "5";
   if (document.querySelector('input[name="reviewRecommend"][value="yes"]')) document.querySelector('input[name="reviewRecommend"][value="yes"]').checked = true;
@@ -225,7 +242,13 @@ function openEditReviewForm(id, rating, body) {
   if (bodyInput) bodyInput.value = body || '';
 
   const review = _reviewCache[_reviewProductId]?.find(r => r.id === id);
+  const fitToggle = document.getElementById('rateFitToggle');
+  const adv = document.getElementById('advancedRatings');
   if (review) {
+    const hasAdvanced = review.fit_rating || review.comfort_rating || review.recommend !== null;
+    if (fitToggle) fitToggle.checked = !!hasAdvanced;
+    if (adv) adv.style.display = hasAdvanced ? 'block' : 'none';
+
     if (document.getElementById('reviewFit') && review.fit_rating) document.getElementById('reviewFit').value = review.fit_rating;
     if (document.getElementById('reviewComfort') && review.comfort_rating) document.getElementById('reviewComfort').value = review.comfort_rating;
     if (review.recommend !== null) {
@@ -272,9 +295,10 @@ async function submitReview() {
   const btn    = document.getElementById('review-submit-btn');
   const body   = document.getElementById('review-body-input').value.trim();
   
-  const fit = document.getElementById('reviewFit')?.value;
-  const comfort = document.getElementById('reviewComfort')?.value;
-  const recommend = document.querySelector('input[name="reviewRecommend"]:checked')?.value;
+  const isAdvancedChecked = document.getElementById('rateFitToggle')?.checked;
+  const fit = isAdvancedChecked ? document.getElementById('reviewFit')?.value : null;
+  const comfort = isAdvancedChecked ? document.getElementById('reviewComfort')?.value : null;
+  const recommend = isAdvancedChecked ? document.querySelector('input[name="reviewRecommend"]:checked')?.value : null;
   errEl.textContent = '';
 
   if (!_reviewRating)        { errEl.textContent = 'Please select a star rating.'; return; }
@@ -363,13 +387,17 @@ function escHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
-window.translateReviews = async function() {
-  const btn = document.getElementById('translate-reviews-btn');
+window.translateReviews = async function(domId) {
+  const selectId = domId ? 'translate-lang-' + domId : 'translate-lang';
+  const btnId = domId ? 'translate-reviews-btn-' + domId : 'translate-reviews-btn';
+  const select = document.getElementById(selectId);
+  const lang = select ? select.options[select.selectedIndex].text : 'English';
+  const btn = document.getElementById(btnId);
   if(btn) { btn.textContent = 'Translating...'; btn.disabled = true; }
   
   setTimeout(() => {
-    if (typeof showToast === 'function') showToast('Reviews translated to English!');
-    if(btn) btn.textContent = 'Translated ✓';
+    if (typeof showToast === 'function') showToast('Reviews translated to ' + lang + '!');
+    if(btn) { btn.textContent = 'Translated ✓'; btn.disabled = false; }
   }, 1500);
 };
 

@@ -1245,21 +1245,29 @@ body.light-mode::after{opacity:0.15}
     <textarea id="review-body-input" class="review-body-field"
       placeholder="Share your thoughts about this piece…" maxlength="1000"></textarea>
       
-    <div class="review-form-row">
-      <label style="display:block;font-size:0.8rem;color:rgba(244,241,235,0.7);margin-bottom:0.5rem;">How did this product fit?</label>
-      <input type="range" id="reviewFit" class="review-slider" min="1" max="5" value="3">
-      <div class="review-slider-wrap"><span>Runs Small</span><span>Runs Big</span></div>
+    <div class="review-form-row" style="margin-bottom:1.5rem;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;color:rgba(244,241,235,0.9);cursor:pointer;text-transform:none;letter-spacing:normal;">
+        <input type="checkbox" id="rateFitToggle" onchange="document.getElementById('advancedRatings').style.display = this.checked ? 'block' : 'none'" style="width:auto;margin:0;accent-color:#F891A5;">
+        Rate Size, Comfort & Recommendation (Optional)
+      </label>
     </div>
-    <div class="review-form-row">
-      <label style="display:block;font-size:0.8rem;color:rgba(244,241,235,0.7);margin-bottom:0.5rem;margin-top:1rem;">How comfortable was this product?</label>
-      <input type="range" id="reviewComfort" class="review-slider" min="1" max="5" value="5">
-      <div class="review-slider-wrap"><span>Uncomfortable</span><span>Very Comfortable</span></div>
-    </div>
-    <div class="review-form-row" style="margin-top:1rem;margin-bottom:1rem;">
-      <label style="display:block;font-size:0.8rem;color:rgba(244,241,235,0.7);margin-bottom:0.5rem;">Would you recommend this product?</label>
-      <div class="review-radio-group">
-        <label><input type="radio" name="reviewRecommend" value="yes" checked> Yes</label>
-        <label><input type="radio" name="reviewRecommend" value="no"> No</label>
+    <div id="advancedRatings" style="display:none; padding:1.2rem; background:rgba(244,241,235,0.02); border:1px solid rgba(244,241,235,0.08); border-radius:6px; margin-bottom:1.5rem;">
+      <div class="review-form-row">
+        <label style="display:block;font-size:0.8rem;color:rgba(244,241,235,0.7);margin-bottom:0.5rem;">How did this product fit?</label>
+        <input type="range" id="reviewFit" class="review-slider" min="1" max="5" value="3">
+        <div class="review-slider-wrap"><span>Runs Small</span><span>Runs Big</span></div>
+      </div>
+      <div class="review-form-row">
+        <label style="display:block;font-size:0.8rem;color:rgba(244,241,235,0.7);margin-bottom:0.5rem;margin-top:1rem;">How comfortable was this product?</label>
+        <input type="range" id="reviewComfort" class="review-slider" min="1" max="5" value="5">
+        <div class="review-slider-wrap"><span>Uncomfortable</span><span>Very Comfortable</span></div>
+      </div>
+      <div class="review-form-row" style="margin-top:1rem;margin-bottom:1rem;">
+        <label style="display:block;font-size:0.8rem;color:rgba(244,241,235,0.7);margin-bottom:0.5rem;">Would you recommend this product?</label>
+        <div class="review-radio-group">
+          <label><input type="radio" name="reviewRecommend" value="yes" checked> Yes</label>
+          <label><input type="radio" name="reviewRecommend" value="no"> No</label>
+        </div>
       </div>
     </div>
 
