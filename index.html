@@ -1244,6 +1244,24 @@ body.light-mode::after{opacity:0.15}
     <!-- Review body -->
     <textarea id="review-body-input" class="review-body-field"
       placeholder="Share your thoughts about this piece…" maxlength="1000"></textarea>
+      
+    <div class="review-form-row">
+      <label style="display:block;font-size:0.8rem;color:rgba(244,241,235,0.7);margin-bottom:0.5rem;">How did this product fit?</label>
+      <input type="range" id="reviewFit" class="review-slider" min="1" max="5" value="3">
+      <div class="review-slider-wrap"><span>Runs Small</span><span>Runs Big</span></div>
+    </div>
+    <div class="review-form-row">
+      <label style="display:block;font-size:0.8rem;color:rgba(244,241,235,0.7);margin-bottom:0.5rem;margin-top:1rem;">How comfortable was this product?</label>
+      <input type="range" id="reviewComfort" class="review-slider" min="1" max="5" value="5">
+      <div class="review-slider-wrap"><span>Uncomfortable</span><span>Very Comfortable</span></div>
+    </div>
+    <div class="review-form-row" style="margin-top:1rem;margin-bottom:1rem;">
+      <label style="display:block;font-size:0.8rem;color:rgba(244,241,235,0.7);margin-bottom:0.5rem;">Would you recommend this product?</label>
+      <div class="review-radio-group">
+        <label><input type="radio" name="reviewRecommend" value="yes" checked> Yes</label>
+        <label><input type="radio" name="reviewRecommend" value="no"> No</label>
+      </div>
+    </div>
 
     <!-- Error + submit -->
     <p id="review-error" class="review-error"></p>

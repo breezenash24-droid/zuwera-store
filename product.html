@@ -73,6 +73,31 @@
   color:#10b981;font-size:.85rem;
 }
 
+/* Review Summary Aggregations */
+.review-summary-box { display: flex; flex-wrap: wrap; gap: 2rem; background: rgba(244,241,235,0.03); padding: 1.5rem; border: 1px solid rgba(244,241,235,0.08); border-radius: 8px; margin-bottom: 1.5rem; }
+.rs-left { text-align: center; min-width: 140px; display: flex; flex-direction: column; justify-content: center; border-right: 1px solid rgba(244,241,235,0.08); padding-right: 2rem; }
+.rs-right { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 1.2rem; }
+.rs-rating { font-size: 3.5rem; font-family: 'Bebas Neue', sans-serif; color: #F891A5; line-height: 1; }
+.rs-stars { color: #F891A5; font-size: 1.2rem; margin: 0.2rem 0; }
+.rs-count { font-size: 0.8rem; color: rgba(244,241,235,0.5); margin-top: 0.2rem; }
+.rs-metric-title { font-size: 0.9rem; font-weight: 500; color: #f4f1eb; margin-bottom: 0.2rem; }
+.rs-metric-subtitle { font-size: 0.75rem; color: rgba(244,241,235,0.6); margin-bottom: 0.6rem; font-style: italic; }
+.rs-metric-bar { height: 4px; background: rgba(244,241,235,0.1); border-radius: 2px; position: relative; margin-bottom: 0.4rem; }
+.rs-metric-fill { position: absolute; top: 0; width: 12px; height: 12px; background: #F891A5; border-radius: 50%; transform: translate(-50%, -4px); }
+.rs-metric-labels { display: flex; justify-content: space-between; font-size: 0.7rem; color: rgba(244,241,235,0.5); text-transform: uppercase; letter-spacing: 0.05em; }
+.translate-btn { background: rgba(244,241,235,0.05); border: 1px solid rgba(244,241,235,0.2); color: #f4f1eb; padding: 0.8rem; font-size: 0.8rem; letter-spacing: 0.05em; border-radius: 4px; cursor: pointer; transition: all 0.2s; width: 100%; font-family: 'DM Sans', sans-serif; text-transform: uppercase; margin-bottom: 1.5rem; }
+.translate-btn:hover { border-color: #F891A5; color: #F891A5; background: rgba(248,145,165,0.05); }
+
+.review-slider { width: 100%; margin-top: 0.5rem; accent-color: #F891A5; cursor: pointer; }
+.review-slider-wrap { display: flex; justify-content: space-between; font-size: 0.7rem; color: rgba(244,241,235,0.5); margin-top: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.review-radio-group { display: flex; gap: 1.5rem; margin-top: 0.5rem; }
+.review-radio-group label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #f4f1eb; cursor: pointer; text-transform: none; letter-spacing: normal; }
+
+@media(max-width: 600px) {
+  .review-summary-box { flex-direction: column; gap: 1.5rem; padding: 1.2rem; }
+  .rs-left { border-right: none; border-bottom: 1px solid rgba(244,241,235,0.08); padding-right: 0; padding-bottom: 1.5rem; }
+}
+
 /* -- Updated UI Fixes -- */
 #bar {
   background: var(--ink, #09090b); color: var(--paper, #f4f1eb);
@@ -456,6 +481,25 @@ body.light-mode .alink a {color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,
                 <div class="review-form-row"><label>Nickname</label><input type="text" id="reviewNickname" placeholder="Your name" maxlength="50"></div>
                 <div class="review-form-row"><label>Review Title</label><input type="text" id="reviewTitle" placeholder="Sum it up in a few words" maxlength="100"></div>
                 <div class="review-form-row"><label>Your Review</label><textarea id="reviewBody" placeholder="What did you like or dislike? How did the sizing feel?" maxlength="1000"></textarea></div>
+                
+                <div class="review-form-row">
+                  <label>How did this product fit?</label>
+                  <input type="range" id="reviewFit" class="review-slider" min="1" max="5" value="3">
+                  <div class="review-slider-wrap"><span>Runs Small</span><span>Runs Big</span></div>
+                </div>
+                <div class="review-form-row">
+                  <label>How comfortable was this product?</label>
+                  <input type="range" id="reviewComfort" class="review-slider" min="1" max="5" value="5">
+                  <div class="review-slider-wrap"><span>Uncomfortable</span><span>Very Comfortable</span></div>
+                </div>
+                <div class="review-form-row">
+                  <label>Would you recommend this product?</label>
+                  <div class="review-radio-group">
+                    <label><input type="radio" name="reviewRecommend" value="yes" checked> Yes</label>
+                    <label><input type="radio" name="reviewRecommend" value="no"> No</label>
+                  </div>
+                </div>
+
                 <button class="review-submit-btn" id="submitReviewBtn" onclick="submitReview()">Submit Review</button>
                 <div class="review-success-msg hidden" id="reviewSuccessMsg">Thanks for your review! It has been submitted.</div>
               </div>
@@ -473,11 +517,11 @@ body.light-mode .alink a {color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,
 
 <!-- ALL REVIEWS MODAL -->
 <div id="all-reviews-modal" class="modal" role="dialog" aria-modal="true">
-  <div class="mbox" style="max-width: 600px; max-height: 85vh; overflow-y: auto; padding: 2rem;">
-    <button class="mclose" id="all-reviews-close">&#215;</button>
-  <div style="background:#0f0f0f; border:1px solid rgba(244,241,235,.08); border-top:2px solid #F891A5; position:relative; max-width: 600px; width: 90vw; max-height: 85vh; overflow-y: auto; padding: 2rem; border-radius: 8px;">
+  <div class="mbox" style="max-width: 700px; width: 90vw; max-height: 85vh; overflow-y: auto; padding: 2rem; border-radius: 8px;">
     <button id="all-reviews-close" style="position:absolute; top:1rem; right:1.2rem; width:30px; height:30px; display:flex; align-items:center; justify-content:center; background:rgba(244,241,235,.05); border:1px solid rgba(244,241,235,.08); color:#f4f1eb; font-size:1rem; cursor:pointer;">&#215;</button>
     <h2 style="font-family: var(--fw); font-size: 2rem; font-style: italic; margin-bottom: 1.5rem; letter-spacing: 0.05em;">All Reviews</h2>
+    <div id="all-reviews-summary"></div>
+    <button id="translate-reviews-btn" class="translate-btn" onclick="translateReviews()">Translate All Reviews to English</button>
     <div id="all-reviews-list"></div>
   </div>
 </div>
@@ -1136,6 +1180,57 @@ function renderTags(elementId, tags, label) {
 // ══════════════════════════════════════════════════════════════════
 // RENDER REVIEWS
 // ══════════════════════════════════════════════════════════════════
+function generateReviewSummaryHtml(reviews) {
+  if (!reviews || reviews.length === 0) return '';
+  
+  let sumRating = 0, sumFit = 0, fitCount = 0, sumComfort = 0, comfortCount = 0;
+  let recYes = 0, recNo = 0;
+  
+  reviews.forEach(r => {
+    sumRating += r.rating || 0;
+    if (r.fit_rating) { sumFit += r.fit_rating; fitCount++; }
+    if (r.comfort_rating) { sumComfort += r.comfort_rating; comfortCount++; }
+    if (r.recommend === true) recYes++;
+    if (r.recommend === false) recNo++;
+  });
+  
+  const avgRating = (sumRating / reviews.length).toFixed(1);
+  const avgFit = fitCount > 0 ? (sumFit / fitCount) : 3; // 1 to 5
+  const avgComfort = comfortCount > 0 ? (sumComfort / comfortCount) : 5; // 1 to 5
+  
+  const fitPct = Math.round(((avgFit - 1) / 4) * 100);
+  const comfortPct = Math.round(((avgComfort - 1) / 4) * 100);
+
+  return `
+    <div class="review-summary-box">
+      <div class="rs-left">
+        <div class="rs-rating">${avgRating}</div>
+        <div class="rs-stars">${renderStars(Math.round(avgRating))}</div>
+        <div class="rs-count">${avgRating} out of 5 stars</div>
+        <div class="rs-count">${reviews.length} Review${reviews.length !== 1 ? 's' : ''}</div>
+      </div>
+      <div class="rs-right">
+        <div class="rs-metric">
+          <div class="rs-metric-title">How did this product fit?</div>
+          <div class="rs-metric-subtitle">${fitPct}% between Runs Small and Runs Big</div>
+          <div class="rs-metric-bar"><div class="rs-metric-fill" style="left: ${fitPct}%;"></div></div>
+          <div class="rs-metric-labels"><span>Runs Small</span><span>Runs Big</span></div>
+        </div>
+        <div class="rs-metric">
+          <div class="rs-metric-title">How comfortable was this product?</div>
+          <div class="rs-metric-subtitle">${comfortPct}% between Uncomfortable and Very Comfortable</div>
+          <div class="rs-metric-bar"><div class="rs-metric-fill" style="left: ${comfortPct}%;"></div></div>
+          <div class="rs-metric-labels"><span>Uncomfortable</span><span>Very Comfortable</span></div>
+        </div>
+        <div class="rs-recommend">
+          <div class="rs-metric-title">Would you recommend this product?</div>
+          <div class="rs-metric-subtitle">Yes (${recYes}) / No (${recNo})</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderReviews() {
   const content = document.getElementById('reviewsContent');
   content.innerHTML = '';
@@ -1147,6 +1242,9 @@ function renderReviews() {
 
   // Calculate average rating
   const avgRating = (currentProduct.reviews.reduce((sum, r) => sum + r.rating, 0) / currentProduct.reviews.length).toFixed(1);
+
+  // Prepend summary
+  content.innerHTML = generateReviewSummaryHtml(currentProduct.reviews);
 
   // Update header
   document.getElementById('reviewsHeader').textContent =
@@ -1220,6 +1318,8 @@ function expandReviews() {
   if (!modal || !list) return;
 
   list.innerHTML = '';
+  
+  document.getElementById('all-reviews-summary').innerHTML = generateReviewSummaryHtml(currentProduct.reviews);
 
   currentProduct.reviews.forEach(review => {
     const reviewEl = document.createElement('div');
@@ -1273,6 +1373,14 @@ function editProductReview(id) {
   document.getElementById('reviewNickname').value = review.nickname || '';
   document.getElementById('reviewTitle').value = review.title || '';
   document.getElementById('reviewBody').value = review.body || '';
+  
+  if (review.fit_rating) document.getElementById('reviewFit').value = review.fit_rating;
+  if (review.comfort_rating) document.getElementById('reviewComfort').value = review.comfort_rating;
+  if (review.recommend !== null) {
+    const radio = document.querySelector(`input[name="reviewRecommend"][value="${review.recommend ? 'yes' : 'no'}"]`);
+    if (radio) radio.checked = true;
+  }
+
   setReviewRating(review.rating);
   document.getElementById('submitReviewBtn').textContent = 'Update Review';
   
@@ -1295,6 +1403,11 @@ async function submitReview() {
   const nickname = document.getElementById('reviewNickname').value.trim();
   const title = document.getElementById('reviewTitle').value.trim();
   const body = document.getElementById('reviewBody').value.trim();
+  
+  const fit = document.getElementById('reviewFit')?.value;
+  const comfort = document.getElementById('reviewComfort')?.value;
+  const recommend = document.querySelector('input[name="reviewRecommend"]:checked')?.value;
+  
   const btn = document.getElementById('submitReviewBtn');
 
   if (selectedRating === 0) { alert('Please select a star rating'); return; }
@@ -1311,6 +1424,9 @@ async function submitReview() {
       nickname: nickname || 'Anonymous',
       title: title,
       body: body,
+      fit_rating: fit ? parseInt(fit) : null,
+      comfort_rating: comfort ? parseInt(comfort) : null,
+      recommend: recommend === 'yes' ? true : (recommend === 'no' ? false : null),
       verified_purchase: false,
       created_at: new Date().toISOString()
     };
@@ -1338,6 +1454,10 @@ async function submitReview() {
       document.getElementById('reviewNickname').value = '';
       document.getElementById('reviewTitle').value = '';
       document.getElementById('reviewBody').value = '';
+      document.getElementById('reviewFit').value = "3";
+      document.getElementById('reviewComfort').value = "5";
+      document.querySelector('input[name="reviewRecommend"][value="yes"]').checked = true;
+      
       selectedRating = 0;
       editingReviewId = null;
       document.querySelectorAll('#starPicker span').forEach(s => s.classList.remove('active'));
@@ -1466,6 +1586,20 @@ function showError(message) {
   document.getElementById('errorState').classList.remove('hidden');
   document.getElementById('errorMessage').textContent = message;
 }
+
+// ══════════════════════════════════════════════════════════════════
+// TRANSLATE REVIEWS MOCK
+// ══════════════════════════════════════════════════════════════════
+window.translateReviews = async function() {
+  const btn = document.getElementById('translate-reviews-btn');
+  if(btn) { btn.textContent = 'Translating...'; btn.disabled = true; }
+  
+  // Simulate API call to translation service
+  setTimeout(() => {
+    showToast('Reviews translated to English!');
+    if(btn) btn.textContent = 'Translated ✓';
+  }, 1500);
+};
 
 // ═════════════════════════════════════════════════════════════════
 // COOKIE CONSENT

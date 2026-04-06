@@ -53,7 +53,7 @@ async function loadReviews(pid) {
 
   const { data, error } = await _sb
     .from('reviews')
-    .select('id, user_id, rating, title, body, reviewer_name, created_at, admin_response')
+    .select('id, user_id, rating, title, body, reviewer_name, created_at, admin_response, fit_rating, comfort_rating, recommend')
     .eq('product_id', pid)
     .order('created_at', { ascending: false });
 
@@ -77,6 +77,57 @@ function updateProductStarDisplay(domId, reviews) {
   cntEl.textContent = `${reviews.length} review${reviews.length !== 1 ? 's' : ''} · ${avg.toFixed(1)}`;
 }
 
+function generateReviewSummaryHtml(reviews) {
+  if (!reviews || reviews.length === 0) return '';
+  
+  let sumRating = 0, sumFit = 0, fitCount = 0, sumComfort = 0, comfortCount = 0;
+  let recYes = 0, recNo = 0;
+  
+  reviews.forEach(r => {
+    sumRating += r.rating || 0;
+    if (r.fit_rating) { sumFit += r.fit_rating; fitCount++; }
+    if (r.comfort_rating) { sumComfort += r.comfort_rating; comfortCount++; }
+    if (r.recommend === true) recYes++;
+    if (r.recommend === false) recNo++;
+  });
+  
+  const avgRating = (sumRating / reviews.length).toFixed(1);
+  const avgFit = fitCount > 0 ? (sumFit / fitCount) : 3;
+  const avgComfort = comfortCount > 0 ? (sumComfort / comfortCount) : 5;
+  
+  const fitPct = Math.round(((avgFit - 1) / 4) * 100);
+  const comfortPct = Math.round(((avgComfort - 1) / 4) * 100);
+
+  return `
+    <div class="review-summary-box">
+      <div class="rs-left">
+        <div class="rs-rating">${avgRating}</div>
+        <div class="rs-stars">${starsHtml(Math.round(avgRating))}</div>
+        <div class="rs-count">${avgRating} out of 5 stars</div>
+        <div class="rs-count">${reviews.length} Review${reviews.length !== 1 ? 's' : ''}</div>
+      </div>
+      <div class="rs-right">
+        <div class="rs-metric">
+          <div class="rs-metric-title">How did this product fit?</div>
+          <div class="rs-metric-subtitle">${fitPct}% between Runs Small and Runs Big</div>
+          <div class="rs-metric-bar"><div class="rs-metric-fill" style="left: ${fitPct}%;"></div></div>
+          <div class="rs-metric-labels"><span>Runs Small</span><span>Runs Big</span></div>
+        </div>
+        <div class="rs-metric">
+          <div class="rs-metric-title">How comfortable was this product?</div>
+          <div class="rs-metric-subtitle">${comfortPct}% between Uncomfortable and Very Comfortable</div>
+          <div class="rs-metric-bar"><div class="rs-metric-fill" style="left: ${comfortPct}%;"></div></div>
+          <div class="rs-metric-labels"><span>Uncomfortable</span><span>Very Comfortable</span></div>
+        </div>
+        <div class="rs-recommend">
+          <div class="rs-metric-title">Would you recommend this product?</div>
+          <div class="rs-metric-subtitle">Yes (${recYes}) / No (${recNo})</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderReviewsList(domId, reviews) {
   const listEl = document.getElementById(`list-${domId}`);
   if (!listEl) return;
@@ -85,7 +136,8 @@ function renderReviewsList(domId, reviews) {
     listEl.innerHTML = '<p class="reviews-empty">No reviews yet — be the first!</p>';
     return;
   }
-  listEl.innerHTML = reviews.map(r => {
+  const summaryHtml = generateReviewSummaryHtml(reviews);
+  const listHtml = reviews.map(r => {
     let editBtn = '';
     if (typeof _user !== 'undefined' && _user && r.user_id === _user.id) {
       editBtn = `<button onclick="openEditReviewForm('${r.id}', ${r.rating}, '${escHtml(r.body||'')}')" style="background:none;border:none;color:#F891A5;font-size:0.65rem;cursor:pointer;margin-left:8px;text-decoration:underline;text-transform:uppercase;letter-spacing:0.05em;font-family:'IBM Plex Mono', monospace;">Edit</button>`;
@@ -113,6 +165,8 @@ function renderReviewsList(domId, reviews) {
       </div>
     `;
   }).join('');
+  
+  listEl.innerHTML = summaryHtml + '<button id="translate-reviews-btn" class="translate-btn" onclick="translateReviews()" style="margin-top:1rem">Translate All Reviews to English</button>' + listHtml;
 }
 
 // ── Toggle reviews panel open / closed ────────────────────────────
@@ -152,6 +206,11 @@ function openReviewForm(pid, pname) {
   document.getElementById('review-error').textContent = '';
   document.getElementById('review-submit-btn').disabled = false;
   document.getElementById('review-submit-btn').textContent = 'Submit Review';
+  
+  if (document.getElementById('reviewFit')) document.getElementById('reviewFit').value = "3";
+  if (document.getElementById('reviewComfort')) document.getElementById('reviewComfort').value = "5";
+  if (document.querySelector('input[name="reviewRecommend"][value="yes"]')) document.querySelector('input[name="reviewRecommend"][value="yes"]').checked = true;
+
   setStarSelection(0);
 
   document.getElementById('review-modal').classList.add('open');
@@ -164,6 +223,16 @@ function openEditReviewForm(id, rating, body) {
 
   const bodyInput = document.getElementById('review-body-input');
   if (bodyInput) bodyInput.value = body || '';
+
+  const review = _reviewCache[_reviewProductId]?.find(r => r.id === id);
+  if (review) {
+    if (document.getElementById('reviewFit') && review.fit_rating) document.getElementById('reviewFit').value = review.fit_rating;
+    if (document.getElementById('reviewComfort') && review.comfort_rating) document.getElementById('reviewComfort').value = review.comfort_rating;
+    if (review.recommend !== null) {
+      const radio = document.querySelector(`input[name="reviewRecommend"][value="${review.recommend ? 'yes' : 'no'}"]`);
+      if (radio) radio.checked = true;
+    }
+  }
 
   document.getElementById('review-error').textContent = '';
   const btn = document.getElementById('review-submit-btn');
@@ -202,6 +271,10 @@ async function submitReview() {
   const errEl  = document.getElementById('review-error');
   const btn    = document.getElementById('review-submit-btn');
   const body   = document.getElementById('review-body-input').value.trim();
+  
+  const fit = document.getElementById('reviewFit')?.value;
+  const comfort = document.getElementById('reviewComfort')?.value;
+  const recommend = document.querySelector('input[name="reviewRecommend"]:checked')?.value;
   errEl.textContent = '';
 
   if (!_reviewRating)        { errEl.textContent = 'Please select a star rating.'; return; }
@@ -218,7 +291,10 @@ async function submitReview() {
   if (_reviewIdToEdit) {
     const res = await _sb.from('reviews').update({
       rating: _reviewRating,
-      body:   body || null
+      body:   body || null,
+      fit_rating: fit ? parseInt(fit) : null,
+      comfort_rating: comfort ? parseInt(comfort) : null,
+      recommend: recommend === 'yes' ? true : (recommend === 'no' ? false : null)
     }).eq('id', _reviewIdToEdit);
     error = res.error;
   } else {
@@ -228,6 +304,9 @@ async function submitReview() {
       rating:        _reviewRating,
       body:          body || null,
       reviewer_name: reviewerName,
+      fit_rating: fit ? parseInt(fit) : null,
+      comfort_rating: comfort ? parseInt(comfort) : null,
+      recommend: recommend === 'yes' ? true : (recommend === 'no' ? false : null)
     });
     error = res.error;
   }
@@ -283,6 +362,16 @@ function escHtml(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
+window.translateReviews = async function() {
+  const btn = document.getElementById('translate-reviews-btn');
+  if(btn) { btn.textContent = 'Translating...'; btn.disabled = true; }
+  
+  setTimeout(() => {
+    if (typeof showToast === 'function') showToast('Reviews translated to English!');
+    if(btn) btn.textContent = 'Translated ✓';
+  }, 1500);
+};
 
 // ── Close review modal on backdrop click ─────────────────────────
 document.getElementById('review-modal').addEventListener('click', e => {

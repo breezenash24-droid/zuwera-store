@@ -211,3 +211,28 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* ── Review Summary Aggregations ── */
+.review-summary-box { display: flex; flex-wrap: wrap; gap: 2rem; background: rgba(244,241,235,0.03); padding: 1.5rem; border: 1px solid rgba(244,241,235,0.08); border-radius: 8px; margin-bottom: 1.5rem; }
+.rs-left { text-align: center; min-width: 140px; display: flex; flex-direction: column; justify-content: center; border-right: 1px solid rgba(244,241,235,0.08); padding-right: 2rem; }
+.rs-right { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 1.2rem; }
+.rs-rating { font-size: 3.5rem; font-family: 'Bebas Neue', sans-serif; color: #F891A5; line-height: 1; }
+.rs-stars { color: #F891A5; font-size: 1.2rem; margin: 0.2rem 0; }
+.rs-count { font-size: 0.8rem; color: rgba(244,241,235,0.5); margin-top: 0.2rem; }
+.rs-metric-title { font-size: 0.9rem; font-weight: 500; color: #f4f1eb; margin-bottom: 0.2rem; }
+.rs-metric-subtitle { font-size: 0.75rem; color: rgba(244,241,235,0.6); margin-bottom: 0.6rem; font-style: italic; }
+.rs-metric-bar { height: 4px; background: rgba(244,241,235,0.1); border-radius: 2px; position: relative; margin-bottom: 0.4rem; }
+.rs-metric-fill { position: absolute; top: 0; width: 12px; height: 12px; background: #F891A5; border-radius: 50%; transform: translate(-50%, -4px); }
+.rs-metric-labels { display: flex; justify-content: space-between; font-size: 0.7rem; color: rgba(244,241,235,0.5); text-transform: uppercase; letter-spacing: 0.05em; }
+.translate-btn { background: rgba(244,241,235,0.05); border: 1px solid rgba(244,241,235,0.2); color: #f4f1eb; padding: 0.8rem; font-size: 0.8rem; letter-spacing: 0.05em; border-radius: 4px; cursor: pointer; transition: all 0.2s; width: 100%; font-family: 'DM Sans', sans-serif; text-transform: uppercase; margin-bottom: 1.5rem; }
+.translate-btn:hover { border-color: #F891A5; color: #F891A5; background: rgba(248,145,165,0.05); }
+
+.review-slider { width: 100%; margin-top: 0.5rem; accent-color: #F891A5; cursor: pointer; }
+.review-slider-wrap { display: flex; justify-content: space-between; font-size: 0.7rem; color: rgba(244,241,235,0.5); margin-top: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.review-radio-group { display: flex; gap: 1.5rem; margin-top: 0.5rem; }
+.review-radio-group label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #f4f1eb; cursor: pointer; text-transform: none; letter-spacing: normal; }
+
+@media(max-width: 600px) {
+  .review-summary-box { flex-direction: column; gap: 1.5rem; padding: 1.2rem; }
+  .rs-left { border-right: none; border-bottom: 1px solid rgba(244,241,235,0.08); padding-right: 0; padding-bottom: 1.5rem; }
+}
