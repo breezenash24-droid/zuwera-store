@@ -171,7 +171,7 @@ function renderProducts(grid, products) {
 
   // Re-init event listeners post-render
   initHeartButtons();
-  initReviewToggles();
+  if (typeof initReviewToggles === 'function') initReviewToggles();
 }
 
 // Init listeners for newly rendered hearts/reviews
