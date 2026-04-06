@@ -12,12 +12,13 @@ exports.handler = async (event) => {
 
   try {
     const { texts, target } = JSON.parse(event.body);
-    
-    if (!texts || !Array.isArray(texts) || !target) 
+
+    if (!texts || !Array.isArray(texts) || !target)
       return err(400, 'Missing texts array or target language code.');
 
-    // DeepL API Key â set DEEPL_API_KEY in your Netlify environment variables
-    const API_KEY = process.env.DEEPL_API_KEY || '21a6e204-5ef0-4493-9a58-c5cb2365fb74:fx';
+    // DeepL API Key — set DEEPL_API_KEY in your Netlify environment variables
+    const API_KEY = process.env.DEEPL_API_KEY;
+    if (!API_KEY) return err(500, 'DEEPL_API_KEY environment variable is not set. Please add it in your Netlify site settings under Environment Variables.');
 
     // DeepL Free API keys end with ':fx'
     const isFree = API_KEY.endsWith(':fx');
