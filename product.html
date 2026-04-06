@@ -82,20 +82,41 @@
 .rs-count { font-size: 0.8rem; color: rgba(244,241,235,0.5); margin-top: 0.2rem; }
 .rs-metric-title { font-size: 0.9rem; font-weight: 500; color: #f4f1eb; margin-bottom: 0.2rem; }
 .rs-metric-subtitle { font-size: 0.75rem; color: rgba(244,241,235,0.6); margin-bottom: 0.6rem; font-style: italic; }
-.rs-metric-bar { height: 4px; background: rgba(244,241,235,0.1); border-radius: 2px; position: relative; margin-bottom: 0.4rem; }
-.rs-metric-fill { position: absolute; top: 0; width: 12px; height: 12px; background: #F891A5; border-radius: 50%; transform: translate(-50%, -4px); }
+.rs-metric-bar { height: 4px; background: rgba(244,241,235,0.1); border-radius: 2px; position: relative; margin-bottom: 0.4rem; overflow: hidden; }
+.rs-metric-fill { position: absolute; top: 0; left: 0; height: 100%; background: #F891A5; border-radius: 2px; }
 .rs-metric-labels { display: flex; justify-content: space-between; font-size: 0.7rem; color: rgba(244,241,235,0.5); text-transform: uppercase; letter-spacing: 0.05em; }
 .translate-btn { background: rgba(244,241,235,0.05); border: 1px solid rgba(244,241,235,0.2); color: #f4f1eb; padding: 0.8rem; font-size: 0.8rem; letter-spacing: 0.05em; border-radius: 4px; cursor: pointer; transition: all 0.2s; width: 100%; font-family: 'DM Sans', sans-serif; text-transform: uppercase; margin-bottom: 1.5rem; }
 .translate-btn:hover { border-color: #F891A5; color: #F891A5; background: rgba(248,145,165,0.05); }
 
-.review-slider { width: 100%; margin-top: 0.5rem; accent-color: #F891A5; cursor: pointer; }
+.review-slider { width: 100%; margin-top: 0.5rem; accent-color: #F891A5; cursor: pointer; display: block; box-sizing: border-box; -webkit-appearance: none; appearance: none; }
 .review-slider-wrap { display: flex; justify-content: space-between; font-size: 0.7rem; color: rgba(244,241,235,0.5); margin-top: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em; }
 .review-radio-group { display: flex; gap: 1.5rem; margin-top: 0.5rem; }
 .review-radio-group label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #f4f1eb; cursor: pointer; text-transform: none; letter-spacing: normal; }
 
+.nav-logo-link { text-decoration: none; color: inherit; }
+
 @media(max-width: 600px) {
   .review-summary-box { flex-direction: column; gap: 1.5rem; padding: 1.2rem; }
   .rs-left { border-right: none; border-bottom: 1px solid rgba(244,241,235,0.08); padding-right: 0; padding-bottom: 1.5rem; }
+  /* Auth modal as bottom sheet on mobile */
+  #auth-modal { align-items: flex-end; }
+  #auth-modal .mbox {
+    width: 100vw;
+    max-height: 92dvh;
+    overflow-y: auto;
+    border-radius: 16px 16px 0 0;
+    padding: 2rem 1.4rem 2.4rem;
+    border-top: 2px solid #F891A5;
+    border-left: none; border-right: none; border-bottom: none;
+  }
+  /* Size guide modal full screen on mobile */
+  #size-guide-modal .mbox {
+    width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    padding: 0;
+  }
 }
 
 /* -- Updated UI Fixes -- */
@@ -397,7 +418,7 @@ body.light-mode .alink a {color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,
         <div class="size-section">
           <div class="size-header">
             <p class="section-label">Select Size</p>
-            <a href="sizeguide.html" class="size-guide-link">Size Guide</a>
+            <a href="sizeguide.html" class="size-guide-link" onclick="event.preventDefault(); openSizeGuideModal();">Size Guide</a>
           </div>
           <div class="size-grid" id="sizeGrid"></div>
           <p class="stock-info" id="stockInfo"></p>
@@ -423,7 +444,7 @@ body.light-mode .alink a {color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,
               <p id="fitType"></p>
               <p id="modelInfo"></p>
               <p id="materialInfo"></p>
-              <button class="add-to-cart-btn" style="min-height:40px; padding:0.8rem; font-size:0.85rem; margin-top:1rem; margin-bottom:1rem; background:rgba(244,241,235,0.05); color:#f4f1eb; border:1px solid rgba(244,241,235,0.2);" onclick="openSizeFitModal()">View Fit Ratings from Reviews</button>
+              <button class="add-to-cart-btn" style="min-height:40px; padding:0.8rem; font-size:0.85rem; margin-top:1rem; margin-bottom:1rem; background:rgba(244,241,235,0.05); color:#f4f1eb; border:1px solid rgba(244,241,235,0.2);" onclick="openSizeGuideModal()">View Size Guide</button>
             </div>
           </div>
 
@@ -542,12 +563,23 @@ body.light-mode .alink a {color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,
   </div>
 </div>
 
-<!-- SIZE & FIT MODAL -->
+<!-- SIZE & FIT MODAL (fit ratings — kept for internal use) -->
 <div id="size-fit-modal" class="modal" role="dialog" aria-modal="true">
   <div class="mbox" style="max-width: 600px; width: 90vw; max-height: 85vh; overflow-y: auto; padding: 2rem; border-radius: 8px;">
     <button style="position:absolute; top:1rem; right:1.2rem; width:30px; height:30px; display:flex; align-items:center; justify-content:center; background:rgba(244,241,235,.05); border:1px solid rgba(244,241,235,.08); color:#f4f1eb; font-size:1rem; cursor:pointer;" onclick="document.getElementById('size-fit-modal').classList.remove('open'); document.body.style.overflow='';">&#215;</button>
     <h2 style="font-family: var(--fw); font-size: 2rem; font-style: italic; margin-bottom: 1.5rem; letter-spacing: 0.05em;">Size & Fit Ratings</h2>
     <div id="size-fit-summary-content"></div>
+  </div>
+</div>
+
+<!-- SIZE GUIDE MODAL -->
+<div id="size-guide-modal" class="modal" role="dialog" aria-modal="true" style="align-items:center;">
+  <div class="mbox" style="max-width:900px; width:92vw; max-height:88vh; padding:0; border-radius:8px; overflow:hidden; display:flex; flex-direction:column;">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:1rem 1.4rem; border-bottom:1px solid rgba(244,241,235,0.08); flex-shrink:0;">
+      <span style="font-family:'Bebas Neue',sans-serif; font-size:1.4rem; letter-spacing:0.08em; color:#f4f1eb;">Size Guide</span>
+      <button onclick="document.getElementById('size-guide-modal').classList.remove('open'); document.body.style.overflow='';" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:rgba(244,241,235,.05);border:1px solid rgba(244,241,235,.08);color:#f4f1eb;font-size:1rem;cursor:pointer;">&#215;</button>
+    </div>
+    <iframe id="size-guide-iframe" src="" title="Size Guide" style="flex:1; border:none; width:100%; min-height:0;"></iframe>
   </div>
 </div>
 
@@ -753,7 +785,8 @@ async function loadProduct() {
     // e.g. "/vogue" → slug="vogue", look for products whose title contains "vogue" (case-insensitive)
     query = query.ilike('title', `%${slug}%`);
   } else {
-    throw new Error('No product ID or SKU provided');
+    // No identifier — load the first available product instead of showing an error
+    query = query.eq('status', 'Live').order('sort_order', { ascending: true });
   }
 
   const { data, error } = await query.limit(1);
@@ -1238,13 +1271,13 @@ function generateReviewSummaryHtml(reviews) {
         <div class="rs-metric">
           <div class="rs-metric-title">How did this product fit?</div>
           <div class="rs-metric-subtitle">${fitPct}% between Runs Small and Runs Big</div>
-          <div class="rs-metric-bar"><div class="rs-metric-fill" style="left: ${fitPct}%;"></div></div>
+          <div class="rs-metric-bar"><div class="rs-metric-fill" style="width: ${fitPct}%;"></div></div>
           <div class="rs-metric-labels"><span>Runs Small</span><span>Runs Big</span></div>
         </div>
         <div class="rs-metric">
           <div class="rs-metric-title">How comfortable was this product?</div>
           <div class="rs-metric-subtitle">${comfortPct}% between Uncomfortable and Very Comfortable</div>
-          <div class="rs-metric-bar"><div class="rs-metric-fill" style="left: ${comfortPct}%;"></div></div>
+          <div class="rs-metric-bar"><div class="rs-metric-fill" style="width: ${comfortPct}%;"></div></div>
           <div class="rs-metric-labels"><span>Uncomfortable</span><span>Very Comfortable</span></div>
         </div>
         <div class="rs-recommend">
@@ -1695,6 +1728,25 @@ window.openSizeFitModal = function() {
   document.body.style.overflow = 'hidden';
 };
 
+window.openSizeGuideModal = function() {
+  const modal = document.getElementById('size-guide-modal');
+  const iframe = document.getElementById('size-guide-iframe');
+  // Build the size guide URL with product params so it pre-selects the right gender
+  let guideUrl = 'sizeguide.html';
+  if (currentProduct) {
+    const p = new URLSearchParams();
+    if (currentProduct.gender) p.set('gender', currentProduct.gender);
+    if (currentProduct.id) p.set('id', currentProduct.id);
+    guideUrl = `sizeguide.html?${p.toString()}`;
+  }
+  if (iframe.src !== location.origin + '/' + guideUrl && iframe.getAttribute('data-loaded') !== guideUrl) {
+    iframe.src = guideUrl;
+    iframe.setAttribute('data-loaded', guideUrl);
+  }
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+};
+
 // ═════════════════════════════════════════════════════════════════
 // COOKIE CONSENT
 // ══════════════════════════════════════════════════════════════════
@@ -1837,6 +1889,9 @@ document.addEventListener('keydown', (e) => {
   });
   document.getElementById('all-reviews-modal')?.addEventListener('click', e => {
     if (e.target === e.currentTarget) { document.getElementById('all-reviews-modal').classList.remove('open'); document.body.style.overflow = ''; }
+  });
+  document.getElementById('size-guide-modal')?.addEventListener('click', e => {
+    if (e.target === e.currentTarget) { document.getElementById('size-guide-modal').classList.remove('open'); document.body.style.overflow = ''; }
   });
 
   // Favorites links (placeholder — no auth modal on product page)
