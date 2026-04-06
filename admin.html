@@ -922,6 +922,8 @@
             </div>
             <button type="submit" class="btn btn-primary" style="width: 100%;">Sign In</button>
             <div id="authError" style="color: var(--error); margin-top: 16px; font-size: 0.9rem; display: none;"></div>
+            <button type="button" onclick="resetAdminPassword()" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:0.85rem;margin-top:14px;text-decoration:underline;display:block;width:100%;">Forgot password?</button>
+            <div id="resetMsg" style="margin-top: 12px; font-size: 0.9rem; display: none;"></div>
         </form>
         <div id="accessDenied" class="access-denied" style="display: none; width: 100%; max-width: 400px; padding: 40px; background-color: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border);">
             <h1 style="font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; margin-bottom: 20px; letter-spacing: 1px; color: var(--error);">ACCESS DENIED</h1>
@@ -1885,6 +1887,31 @@
 
         document.getElementById('logoutBtn').addEventListener('click', logout);
         document.getElementById('signOutAccessBtn').addEventListener('click', logout);
+
+        // Forgot Password
+        async function resetAdminPassword() {
+            const emailInput = document.getElementById('authEmail');
+            const resetMsg = document.getElementById('resetMsg');
+            const email = emailInput.value.trim();
+            if (!email) {
+                resetMsg.style.color = 'var(--error)';
+                resetMsg.textContent = 'Enter your email address above first.';
+                resetMsg.style.display = 'block';
+                return;
+            }
+            try {
+                const { error } = await sb.auth.resetPasswordForEmail(email, {
+                    redirectTo: 'https://zuwera.store/admin.html'
+                });
+                if (error) throw error;
+                resetMsg.style.color = '#4caf50';
+                resetMsg.textContent = 'Password reset email sent! Check your inbox.';
+            } catch (e) {
+                resetMsg.style.color = 'var(--error)';
+                resetMsg.textContent = 'Reset failed: ' + e.message;
+            }
+            resetMsg.style.display = 'block';
+        }
 
         // Navigation
         function setupEventListeners() {
