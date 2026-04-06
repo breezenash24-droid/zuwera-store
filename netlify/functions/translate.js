@@ -16,8 +16,8 @@ exports.handler = async (event) => {
     if (!texts || !Array.isArray(texts) || !target) 
       return err(400, 'Missing texts array or target language code.');
 
-    // Your DeepL API Key
-    const API_KEY = '21a6e204-5ef0-4493-9a58-c5cb2365fb74:fx';
+    // DeepL API Key â set DEEPL_API_KEY in your Netlify environment variables
+    const API_KEY = process.env.DEEPL_API_KEY || '21a6e204-5ef0-4493-9a58-c5cb2365fb74:fx';
 
     // DeepL Free API keys end with ':fx'
     const isFree = API_KEY.endsWith(':fx');
