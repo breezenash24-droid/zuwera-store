@@ -537,6 +537,12 @@
     // Countdown to Sept 20 2026
     const dropDate = new Date('2026-09-20T00:00:00');
 
+    function optimizeImage(url, width = 800) {
+      if (!url || url.startsWith('data:') || url.includes('cloudinary.com')) return url;
+      const cloudName = 'dubg4loah'; 
+      return `https://res.cloudinary.com/${cloudName}/image/fetch/f_auto,q_auto,w_${width}/${url}`;
+    }
+
     function productSlug(title) {
   if (!title) return '';
   return title.replace(/^zuwera\s+/i, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -664,8 +670,10 @@ function updateCountdown() {
             p.product_images.sort((a, b) => a.sort_order - b.sort_order);
             if (p.product_images[0].image_url) firstImg = p.product_images[0].image_url;
           }
+          const originalImg = firstImg;
+          firstImg = optimizeImage(firstImg, 600);
           const imgHtml = firstImg
-            ? `<img src="${firstImg}" alt="${productName}" loading="lazy" style="width:100%;height:100%;object-fit:cover">`
+            ? `<img src="${firstImg}" alt="${productName}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="if(this.src !== '${originalImg || ''}') this.src='${originalImg || ''}';">`
             : `<div class="product-img-placeholder">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
                 <span>Image Coming Soon</span>

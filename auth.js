@@ -2,7 +2,10 @@
 const SUPABASE_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 const _sb = (typeof supabase !== 'undefined')
-  ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON)
+  ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+      auth: { persistSession: true, storageKey: 'zuwera-auth', flowType: 'implicit' },
+      global: { headers: { 'X-Client-Info': 'zuwera-store' } }
+    })
   : null;
 
 let _currentUser   = null;
@@ -18,6 +21,27 @@ function setBtn(id, loading, defaultLabel) {
   btn.textContent = loading ? defaultLabel.replace(/.$/, '…') : defaultLabel;
   return btn;
 }
+
+// ── Safe global helpers ────────────────────────────────────────────
+window._openModal = window._openModal || function(id) {
+  const m = document.getElementById(id);
+  if (m) { m.classList.add('open'); document.body.style.overflow = 'hidden'; }
+};
+window._closeModal = window._closeModal || function(id) {
+  const m = document.getElementById(id);
+  if (m) { m.classList.remove('open'); document.body.style.overflow = ''; }
+};
+window.togglePwd = window.togglePwd || function(id, btn) {
+  const inp = document.getElementById(id);
+  if (!inp) return;
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
+  } else {
+    inp.type = 'password';
+    btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+  }
+};
 
 // ── Cache header auth elements (updated on every auth state change) ──
 const _authEls = {

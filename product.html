@@ -102,6 +102,83 @@ body.light-mode #bar {
 .gallery-arrow:hover { background: rgba(9, 9, 11, 0.8); }
 </style>
 <style>
+/* ─────────────────────────────────────────────
+   MODALS (AUTH/ACCOUNT)
+───────────────────────────────────────────── */
+.mbox {
+  background:#0f0f0f; border:1px solid rgba(244,241,235,.08);
+  border-top:2px solid #F891A5; padding:2.6rem 2.4rem 2.2rem;
+  width:min(420px,92vw); position:relative; animation:modalIn .22s ease;
+}
+@keyframes modalIn { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+.mclose {
+  position:absolute;top:.9rem;right:.9rem; width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+  background:rgba(244,241,235,.05);border:1px solid rgba(244,241,235,.08);
+  color:#f4f1eb;font-size:1rem;opacity:.45; transition:opacity .2s,background .2s;line-height:1;cursor:pointer;
+}
+.mclose:hover {opacity:1;background:rgba(244,241,235,.1)}
+.auth-brand {
+  font-family:'Bebas Neue', sans-serif;font-weight:900;letter-spacing:.55em;text-transform:uppercase;
+  font-size:1.6rem;color:#F891A5;text-align:center; margin-bottom:1.6rem;padding-bottom:1.4rem;
+  border-bottom:1px solid rgba(244,241,235,.06);
+}
+.mtitle {
+  font-family:'Bebas Neue', sans-serif;font-weight:900;font-style:italic;
+  font-size:2rem;letter-spacing:.04em;margin-bottom:.25rem;color:#f4f1eb;
+}
+.msubtitle {
+  font-family:'DM Sans', sans-serif;font-size:.6rem;letter-spacing:.15em;
+  color:rgba(244,241,235,.3);text-transform:uppercase;margin-bottom:1.6rem;
+}
+.atabs {display:flex;border-bottom:1px solid rgba(244,241,235,.08);margin-bottom:1.8rem}
+.atab {
+  flex:1;background:none;border:none; color:rgba(244,241,235,.25);
+  font-family:'DM Sans', sans-serif;font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;
+  padding:.75rem 0;position:relative;transition:color .2s;cursor:pointer;
+}
+.atab.active {color:#F891A5}
+.atab.active::after { content:'';position:absolute;bottom:-1px;left:0;right:0; height:1px;background:#F891A5; }
+.apanel {display:none} .apanel.active {display:block}
+.fgroup {margin-bottom:1rem;text-align:left;}
+.fgroup label {
+  display:block;font-family:'DM Sans', sans-serif;font-size:.55rem;
+  letter-spacing:.18em;text-transform:uppercase; color:rgba(244,241,235,.38);margin-bottom:.4rem;
+}
+.fgroup input {
+  width:100%;background:rgba(244,241,235,.03); border:1px solid rgba(244,241,235,.1);
+  color:#f4f1eb;padding:.82rem 1rem; font-family:'DM Sans', sans-serif;font-size:.9rem;outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.fgroup input::placeholder {color:rgba(244,241,235,.18)}
+.fgroup input:focus { border-color:#F891A5; box-shadow:0 0 0 3px rgba(248,145,165,.08); }
+.ferr {color:#c0392b;font-family:'DM Sans', sans-serif;font-size:.65rem;min-height:.9rem;margin-top:.3rem}
+.auth-submit-btn {
+  width:100%;background:#f4f1eb;color:#09090b;border:none; padding:.9rem;font-family:'Bebas Neue', sans-serif;font-weight:900;font-style:italic;
+  font-size:1.1rem;letter-spacing:.12em;text-transform:uppercase; margin-top:1rem;transition:background .2s,color .2s;cursor:pointer;
+}
+.auth-submit-btn:hover {background:#F891A5;color:#09090b}
+.alink {
+  font-family:'DM Sans', sans-serif;font-size:.6rem;letter-spacing:.1em;
+  color:rgba(244,241,235,.25);text-align:center;margin-top:.9rem;
+}
+.alink a {color:rgba(244,241,235,.7);text-decoration:none;border-bottom:1px solid rgba(244,241,235,.2);padding-bottom:1px;transition:color .2s,border-color .2s;cursor:pointer}
+.alink a:hover {color:#F891A5;border-color:#F891A5}
+
+body.light-mode .mbox {background:#F0EEE9;border-color:rgba(9,9,11,.08)}
+body.light-mode .mclose {background:rgba(9,9,11,.05);border-color:rgba(9,9,11,.08);color:#09090b}
+body.light-mode .mclose:hover {background:rgba(9,9,11,.1)}
+body.light-mode .fgroup input {background:rgba(9,9,11,.03);border-color:rgba(9,9,11,.1);color:#09090b}
+body.light-mode .fgroup input::placeholder {color:rgba(9,9,11,.18)}
+body.light-mode .fgroup label {color:rgba(9,9,11,.38)}
+body.light-mode .auth-submit-btn {background:#09090b;color:#F0EEE9}
+body.light-mode .atab {color:rgba(9,9,11,.25)}
+body.light-mode .atabs {border-bottom-color:rgba(9,9,11,.08)}
+body.light-mode .auth-brand {border-bottom-color:rgba(9,9,11,.06)}
+body.light-mode .msubtitle {color:rgba(9,9,11,.3)}
+body.light-mode .mtitle {color:#09090b;}
+body.light-mode .alink {color:rgba(9,9,11,.25)}
+body.light-mode .alink a {color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,.2)}
+
 /* Toast notification */
 .toast {
   position: fixed; bottom: 2rem; left: 50%;
@@ -137,20 +214,97 @@ body.light-mode #bar {
 <!-- NAVIGATION BAR                                                   -->
 <!-- ════════════════════════════════════════════════════════════ -->
 <nav class="nav">
-  <div class="nav-left">
-    <a href="index.html">
-      <img src="images/logo.png" alt="ZUWERA" class="logo">
-    </a>
-  </div>
-  <div class="nav-right">
-    <button onclick="window.location.href='drop001.html'">Shop</button>
-    <button onclick="window.location.href='drop001.html'">Release 001</button>
-    <button id="cart-btn">
-      <span>Cart</span>
-      <span class="cart-count" id="cartCount">0</span>
+  <a href="index.html" class="nav-logo-link" aria-label="Back to Zuwera home">
+    <span class="nav-wordmark" style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:.18em;color:#f4f1eb;">ZUWERA</span>
+  </a>
+  <div class="nav-right" style="display:flex; align-items:center; gap:1.2rem;">
+    <button class="nav-back" id="login-btn">Login</button>
+    <button class="nav-back" id="account-btn" style="display:none;">Account</button>
+    <button class="nav-back" id="logout-btn" style="display:none;">Sign Out</button>
+    <button class="nav-back" onclick="window.location.href='drop001.html'">Shop</button>
+    <button class="nav-back" id="cart-btn" style="opacity:1;display:flex;align-items:center;">
+      Bag <span id="cartCount" style="background:var(--white); color:var(--black); padding:2px 6px; border-radius:50%; font-size:0.65rem; margin-left:4px; font-weight:bold;">0</span>
     </button>
   </div>
 </nav>
+
+<!-- AUTH MODAL -->
+<div id="auth-modal" class="modal" role="dialog" aria-modal="true">
+  <div class="mbox">
+    <button class="mclose" id="auth-modal-close">&#215;</button>
+    <div class="auth-brand">Zuwera</div>
+    <div class="atabs">
+      <button class="atab auth-tab active" data-tab="signin">Login</button>
+      <button class="atab auth-tab" data-tab="signup">Create Account</button>
+    </div>
+    <div class="apanel auth-panel active" id="panel-signin">
+      <div class="mtitle">Welcome Back</div>
+      <div class="msubtitle">Login to your account</div>
+      <div class="fgroup"><label>Email</label><input type="email" id="signin-email" placeholder="you@example.com" autocomplete="email"></div>
+      <div class="fgroup">
+        <label>Password</label>
+        <div style="position:relative;">
+          <input type="password" id="signin-password" placeholder="Password" autocomplete="current-password" style="padding-right:40px;">
+          <button type="button" onclick="togglePwd('signin-password', this)" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:rgba(244,241,235,0.4); cursor:pointer; padding:0; display:flex; align-items:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
+        </div>
+      </div>
+      <p id="signin-error" class="ferr"></p>
+      <button id="signin-submit" class="auth-submit-btn">Login</button>
+      <p class="alink"><a id="forgot-link">Forgot password?</a></p>
+    </div>
+    <div class="apanel auth-panel" id="panel-signup">
+      <div class="mtitle">Join Zuwera</div>
+      <div class="msubtitle">For those who dream</div>
+      <div class="fgroup"><label>Full Name</label><input type="text" id="signup-name" placeholder="Your name" autocomplete="name"></div>
+      <div class="fgroup"><label>Email</label><input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email"></div>
+      <div class="fgroup">
+        <label>Password</label>
+        <div style="position:relative;">
+          <input type="password" id="signup-password" placeholder="Min 6 characters" autocomplete="new-password" style="padding-right:40px;">
+          <button type="button" onclick="togglePwd('signup-password', this)" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:rgba(244,241,235,0.4); cursor:pointer; padding:0; display:flex; align-items:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
+        </div>
+      </div>
+      <p id="signup-error" class="ferr"></p>
+      <p id="signup-success" style="display:none;color:#6fcf6f;font-family:'DM Sans',sans-serif;font-size:.68rem;letter-spacing:.08em;margin-bottom:.6rem">✓ Account created! Please check your email to verify.</p>
+      <button id="signup-submit" class="auth-submit-btn">Create Account</button>
+    </div>
+    <div class="apanel auth-panel" id="panel-forgot">
+      <div class="mtitle">Reset Password</div>
+      <div class="msubtitle">We'll send a link to your email</div>
+      <div class="fgroup"><label>Email</label><input type="email" id="forgot-email" placeholder="you@example.com" autocomplete="email"></div>
+      <p id="forgot-error" class="ferr"></p>
+      <p id="forgot-success" style="display:none;color:#6fcf6f;font-family:'DM Sans',sans-serif;font-size:.68rem;letter-spacing:.08em;margin-bottom:.6rem">✓ Check your email for a reset link.</p>
+      <button id="forgot-submit" class="auth-submit-btn">Send Reset Link</button>
+      <p class="alink"><a id="back-to-signin">← Back to Login</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- ACCOUNT MODAL -->
+<div id="account-modal" class="modal" role="dialog" aria-modal="true">
+  <div class="mbox" style="max-width:500px;max-height:80vh;overflow-y:auto">
+    <button class="mclose" id="account-modal-close">&#215;</button>
+    <div class="mtitle">My Account</div>
+    <div class="atabs">
+      <button class="atab auth-tab active" data-acctab="orders">Orders</button>
+      <button class="atab auth-tab" data-acctab="favorites">Saved Items</button>
+    </div>
+    <div class="apanel auth-panel active" id="acct-panel-orders">
+      <div id="orders-loading" style="padding:2rem 0;font-family:'DM Sans',sans-serif;font-size:.68rem;color:rgba(244,241,235,.3)">Loading orders…</div>
+      <div id="orders-empty" style="display:none;padding:.5rem 0;font-family:'DM Sans',sans-serif;font-size:.72rem;color:rgba(244,241,235,.35)">No orders yet.</div>
+      <div id="orders-list"></div>
+    </div>
+    <div class="apanel auth-panel" id="acct-panel-favorites">
+      <div id="acct-favs-loading" style="padding:2rem 0;font-family:'DM Sans',sans-serif;font-size:.68rem;color:rgba(244,241,235,.3)">Loading saved items…</div>
+      <div id="acct-favs-empty" style="display:none;padding:.5rem 0;font-family:'DM Sans',sans-serif;font-size:.72rem;color:rgba(244,241,235,.35)">No saved items yet.</div>
+      <ul id="acct-favs-list" style="list-style:none;padding:0;margin:0;"></ul>
+    </div>
+  </div>
+</div>
 
 <!-- ════════════════════════════════════════════════════════════════ -->
 <!-- MAIN PRODUCT PAGE                                                -->
@@ -321,6 +475,8 @@ body.light-mode #bar {
 <div id="all-reviews-modal" class="modal" role="dialog" aria-modal="true">
   <div class="mbox" style="max-width: 600px; max-height: 85vh; overflow-y: auto; padding: 2rem;">
     <button class="mclose" id="all-reviews-close">&#215;</button>
+  <div style="background:#0f0f0f; border:1px solid rgba(244,241,235,.08); border-top:2px solid #F891A5; position:relative; max-width: 600px; width: 90vw; max-height: 85vh; overflow-y: auto; padding: 2rem; border-radius: 8px;">
+    <button id="all-reviews-close" style="position:absolute; top:1rem; right:1.2rem; width:30px; height:30px; display:flex; align-items:center; justify-content:center; background:rgba(244,241,235,.05); border:1px solid rgba(244,241,235,.08); color:#f4f1eb; font-size:1rem; cursor:pointer;">&#215;</button>
     <h2 style="font-family: var(--fw); font-size: 2rem; font-style: italic; margin-bottom: 1.5rem; letter-spacing: 0.05em;">All Reviews</h2>
     <div id="all-reviews-list"></div>
   </div>
@@ -350,6 +506,7 @@ body.light-mode #bar {
 <!-- SCRIPTS                                                          -->
 <!-- ════════════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js" defer></script>
 <script>
 
 // ══════════════════════════════════════════════════════════════════
@@ -450,6 +607,12 @@ loadSiteSettings();
 // ══════════════════════════════════════════════════════════════════
 // STATE MANAGEMENT
 // ══════════════════════════════════════════════════════════════════
+function optimizeImage(url, width = 800) {
+  if (!url || url.startsWith('data:') || url.includes('cloudinary.com')) return url;
+  const cloudName = 'dubg4loah'; 
+  return `https://res.cloudinary.com/${cloudName}/image/fetch/f_auto,q_auto,w_${width}/${url}`;
+}
+
 let currentProduct = null;
 let selectedSize = null;
 let selectedColor = null;
@@ -697,7 +860,8 @@ function renderGallery() {
     if (idx === 0) thumb.classList.add('active');
 
     const thumbImg = document.createElement('img');
-    thumbImg.src = img.image_url;
+    thumbImg.src = optimizeImage(img.image_url, 200);
+    thumbImg.onerror = function() { if (this.src !== img.image_url) this.src = img.image_url; };
     thumbImg.alt = img.alt_text || `${currentProduct.title} - View ${idx + 1}`;
     thumbImg.loading = 'lazy';
 
@@ -715,8 +879,10 @@ function updateMainImage(index) {
   currentImageIndex = index;
 
   const img = currentProduct.images[index];
-  document.getElementById('mainImage').src = img.image_url;
-  document.getElementById('mainImage').alt = img.alt_text || currentProduct.title;
+  const mainImgEl = document.getElementById('mainImage');
+  mainImgEl.src = optimizeImage(img.image_url, 1200);
+  mainImgEl.onerror = function() { if (this.src !== img.image_url) this.src = img.image_url; };
+  mainImgEl.alt = img.alt_text || currentProduct.title;
 
   document.querySelectorAll('.thumbnail').forEach((t, i) => {
     t.classList.toggle('active', i === index);
@@ -1021,6 +1187,7 @@ function renderReviews() {
   if (currentProduct.reviews.length > 3) {
     const moreBtn = document.createElement('button');
     moreBtn.className = 'more-reviews-btn';
+    moreBtn.style.cssText = 'display:block; width:100%; margin-top:1rem; padding:0.8rem; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); color:#f4f1eb; cursor:pointer; font-family:"DM Sans", sans-serif; font-size:0.85rem; border-radius:6px; transition:background 0.2s;';
     moreBtn.textContent = `View All ${currentProduct.reviews.length} Reviews`;
     moreBtn.onclick = () => expandReviews();
     content.appendChild(moreBtn);
@@ -1119,7 +1286,11 @@ function editProductReview(id) {
 }
 
 async function submitReview() {
-  // if (!currentUser) { alert('Please sign in to leave a review.'); return; }
+  if (!currentUser) { 
+    showToast('Please sign in to leave a review.'); 
+    if (typeof openAuthModal === 'function') openAuthModal('signin');
+    return; 
+  }
 
   const nickname = document.getElementById('reviewNickname').value.trim();
   const title = document.getElementById('reviewTitle').value.trim();
@@ -1444,12 +1615,12 @@ document.addEventListener('keydown', (e) => {
   document.getElementById('fav-join-link').addEventListener('click', () => {
     document.getElementById('cart-modal').classList.remove('open');
     document.body.style.overflow = '';
-    window.location.href = 'index.html?auth=signup';
+    if (typeof openAuthModal === 'function') openAuthModal('signup'); else window.location.href = 'index.html?auth=signup';
   });
   document.getElementById('fav-signin-link').addEventListener('click', () => {
     document.getElementById('cart-modal').classList.remove('open');
     document.body.style.overflow = '';
-    window.location.href = 'index.html?auth=signin';
+    if (typeof openAuthModal === 'function') openAuthModal('signin'); else window.location.href = 'index.html?auth=signin';
   });
 
   // Render cart items from localStorage
@@ -1469,7 +1640,7 @@ document.addEventListener('keydown', (e) => {
     emptyMsg.style.display = 'none';
     list.innerHTML = cart.map((item, idx) => `
       <li style="display:flex;gap:1rem;align-items:flex-start">
-        <img src="${item.image}" alt="${item.title}" style="width:80px;height:100px;object-fit:cover;border:1px solid rgba(244,241,235,.08)">
+        <img src="${optimizeImage(item.image, 150)}" alt="${item.title}" style="width:80px;height:100px;object-fit:cover;border:1px solid rgba(244,241,235,.08)" onerror="if(this.src !== '${item.image}') this.src='${item.image}';">
         <div style="flex:1">
           <div style="font-family:var(--font-head);font-size:.95rem;letter-spacing:.08em">${item.title}</div>
           <div style="font-size:.75rem;color:rgba(244,241,235,.4);margin-top:.2rem">${item.colorName} / ${item.size}</div>

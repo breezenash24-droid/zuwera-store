@@ -1866,7 +1866,7 @@ function renderCart() {
   emptyMsg.style.display = 'none';
   list.innerHTML = cart.map((item, idx) => `
     <li style="display:flex;gap:1rem;align-items:flex-start">
-      <img src="${item.image}" alt="${item.title}" style="width:60px;height:75px;object-fit:cover;border:1px solid rgba(244,241,235,.08)">
+      <img src="${typeof window.optimizeImage === 'function' ? window.optimizeImage(item.image, 150) : item.image}" alt="${item.title}" style="width:60px;height:75px;object-fit:cover;border:1px solid rgba(244,241,235,.08)" onerror="if(this.src !== '${item.image}') this.src='${item.image}';">
       <div style="flex:1">
         <div style="font-family:var(--fw);font-style:italic;font-weight:700;font-size:1.1rem">${item.title}</div>
         <div style="font-family:var(--fm);font-size:.65rem;color:rgba(244,241,235,.4);margin-top:.2rem;text-transform:uppercase">${item.colorName} / ${item.size}</div>

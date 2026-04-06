@@ -1760,19 +1760,20 @@
                     .from('profiles')
                     .select('role')
                     .eq('id', currentUser.id)
-                    .single();
+                    .maybeSingle();
 
                 if (profile && profile.role === 'admin') {
                     showAdminPanel();
                 } else {
-                    // Dev mode bypass: If testing locally, auto-grant admin
+                    // Dev mode & Owner bypass: Auto-grant admin to the store owner or local tester
                     const isLocal = window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.');
-                    if (isLocal) {
-                        await sb.from('profiles').update({ role: 'admin' }).eq('id', currentUser.id);
+                    const isOwner = currentUser.email === 'nasirubreeze@zuwera.store';
+                    if (isLocal || isOwner) {
+                        await sb.from('profiles').upsert({ id: currentUser.id, email: currentUser.email, role: 'admin' });
                         showAdminPanel();
                         return;
                     }
-                    showAccessDenied(error ? error.message : null);
+                    showAccessDenied(error ? error.message : "Your account does not have admin privileges.");
                 }
             } catch (err) {
                 console.error('Admin role check error:', err);
@@ -1789,7 +1790,7 @@
 
         async function fetchGlobalTechs() {
             try {
-                const { data } = await sb.from('site_settings').select('*').eq('key', 'technologies').single();
+                const { data } = await sb.from('site_settings').select('*').eq('key', 'technologies').maybeSingle();
                 if (data && data.value) {
                     globalTechs = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
                 }
@@ -1804,7 +1805,7 @@
             
             // Load Brand CSS Variables for Reviews
             try {
-                const { data } = await sb.from('site_settings').select('value').eq('key', 'brand').single();
+                const { data } = await sb.from('site_settings').select('value').eq('key', 'brand').maybeSingle();
                 if (data && data.value) {
                     let b = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
                     if (b.admin_res_bg) document.documentElement.style.setProperty('--admin-res-bg', b.admin_res_bg);
