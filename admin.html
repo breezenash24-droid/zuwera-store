@@ -1767,7 +1767,8 @@
                 } else {
                     // Dev mode & Owner bypass: Auto-grant admin to the store owner or local tester
                     const isLocal = window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.');
-                    const isOwner = currentUser.email.toLowerCase() === 'breezenash24@gmail.com' || currentUser.email.toLowerCase() === 'nasirubreeze@zuwera.store';
+                    const emailLower = (currentUser.email || '').toLowerCase();
+                    const isOwner = emailLower === 'breezenash24@gmail.com' || emailLower === 'nasirubreeze@zuwera.store';
                     if (isLocal || isOwner) {
                         await sb.from('profiles').upsert({ id: currentUser.id, email: currentUser.email, role: 'admin' });
                         showAdminPanel();
