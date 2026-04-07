@@ -121,7 +121,7 @@ body.has-bar .hero { padding-top: 32px; }
     padding: 0.8rem 1rem;
   }
   .nav-right {
-    gap: 0.5rem;
+    gap: 0.5rem !important;
   }
   .nav-right button {
     font-size: 0.72rem;

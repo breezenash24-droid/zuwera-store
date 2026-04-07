@@ -85,6 +85,10 @@
     // English: aggressively clear the cookie right now, before GT script can load
     localStorage.removeItem('zw_lang');
     clearGoogTransCookie();
+    // Clean up any cache-bust params we added during English reset
+    if (location.search && (location.search.includes('_=') || location.search.includes('_bfc='))) {
+      history.replaceState(null, '', location.origin + location.pathname);
+    }
   }
 
   // ─── Suppress Google Translate Bar (must run BEFORE GT script) ───────────────
@@ -166,33 +170,67 @@
   }
 
   // ─── Language Selection ───────────────────────────────────────────────────────
+  function getActualLang() {
+    // The GT combo reflects what GT is ACTUALLY showing — more reliable than the
+    // cookie when bfcache restores a translated DOM after the cookie was cleared.
+    const combo = document.querySelector('.goog-te-combo');
+    if (combo && combo.value) return combo.value;
+    return currentLang;
+  }
+
   function selectLanguage(code) {
-    if (code === currentLang) {
+    const actualLang = getActualLang();
+
+    // Only skip if BOTH the module state AND the actual GT state agree we're there
+    if (code === currentLang && code === actualLang) {
       closeModal();
       return;
     }
 
     if (code === 'en') {
       // ── Reset to English ──
-      // Clear the googtrans cookie, then navigate to a clean URL.
-      // We use location.replace() (not reload()) so bfcache is bypassed,
-      // the translated DOM is NOT restored, and any GT hash fragments are stripped.
+      // Step 1: Use GT's own combo to restore original DOM (handles bfcache case)
+      try {
+        const combo = document.querySelector('.goog-te-combo');
+        if (combo) {
+          combo.value = '';
+          combo.dispatchEvent(new Event('change'));
+        }
+      } catch (e) { /* ignore */ }
+
+      // Step 2: Clear the googtrans cookie
       clearGoogTransCookie();
       localStorage.removeItem('zw_lang');
-      // Build a clean URL: same path + query but NO hash (GT appends #googtrans...)
-      const clean = location.origin + location.pathname + (location.search || '');
-      location.replace(clean);
+
+      // Step 3: Navigate with a cache-bust timestamp so bfcache cannot restore
+      // the translated DOM. We use location.href (not replace) + unique URL.
+      // Init() will clean up the ?_= param via history.replaceState on next load.
+      const clean = location.origin + location.pathname + '?_=' + Date.now();
+      location.href = clean;
     } else {
       // ── Switch to another language ──
-      // Set the googtrans cookie and reload. GT picks it up on load.
       setGoogTransCookie(code);
       localStorage.setItem('zw_lang', code);
-      // Also navigate cleanly (strips old hashes)
-      const clean = location.origin + location.pathname + (location.search || '');
-      location.replace(clean);
+      // Cache-bust to bypass bfcache, same as English reset
+      const clean = location.origin + location.pathname + '?_=' + Date.now();
+      location.href = clean;
     }
-    // (page reloads, so nothing below runs)
+    // (page navigates, so nothing below runs)
   }
+
+  // ─── bfcache Guard ────────────────────────────────────────────────────────────
+  // If the browser restores a translated page from bfcache but the cookie says
+  // English, force a fresh load to clear the stale translated DOM.
+  window.addEventListener('pageshow', function (e) {
+    if (!e.persisted) return; // not a bfcache restore — nothing to do
+    const combo = document.querySelector('.goog-te-combo');
+    const actualLang = (combo && combo.value) ? combo.value : null;
+    if (currentLang === 'en' && actualLang && actualLang !== '' && actualLang !== 'en') {
+      // bfcache restored a translated DOM even though cookie says English — force fresh load
+      clearGoogTransCookie();
+      location.href = location.origin + location.pathname + '?_=' + Date.now();
+    }
+  });
 
   // ─── Footer Chip ─────────────────────────────────────────────────────────────
   function updateLangChip() {
