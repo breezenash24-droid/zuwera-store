@@ -810,14 +810,18 @@
       themeToggle.textContent = isLight ? '☀️ Light' : '🌙 Dark';
     });
 
-    // Authentication
-    const checkAuth = async () => {
+    // Authentication — retries so the iframe can wait for admin.html's session to land in localStorage
+    const checkAuth = async (attempt = 0) => {
       try {
         const { data, error } = await supabase.auth.getSession();
         if (error) throw error;
-        
+
         const session = data?.session;
         if (!session) {
+          if (attempt < 4) {
+            await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+            return checkAuth(attempt + 1);
+          }
           showAuthContainer();
           return false;
         }

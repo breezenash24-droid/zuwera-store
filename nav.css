@@ -115,6 +115,25 @@ body.has-bar .hero { padding-top: 32px; }
 }
 .logout-btn:hover { color: var(--white); }
 
+/* ===================== MOBILE NAV ===================== */
+@media (max-width: 640px) {
+  .nav {
+    padding: 0.8rem 1rem;
+  }
+  .nav-right {
+    gap: 0.5rem;
+  }
+  .nav-right button {
+    font-size: 0.72rem;
+    padding: 0.3rem 0.5rem;
+    letter-spacing: 0.06em;
+  }
+  /* Keep the cart bag button identifiable */
+  #cart-btn {
+    padding: 0.3rem 0.6rem;
+  }
+}
+
 /* ===================== LIGHT MODE ===================== */
 body.light-mode .announcement-bar {
   background: var(--white);
