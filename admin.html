@@ -1090,9 +1090,475 @@
                     </div>
                 </div>
 
-                <!-- Analytics Page -->
+                <!-- Analytics Page — embedded directly (no iframe) -->
                 <div id="analytics" class="page">
-                    <iframe id="analyticsFrame" src="analytics.html?embed=true" style="width: 100%; height: calc(100vh - 120px); border: none; border-radius: 8px; background: var(--bg-secondary);"></iframe>
+                  <style>
+                    /* ── Scoped Analytics Styles ── */
+                    #ana-wrap { padding: 0 0 2rem; }
+                    #ana-wrap .ana-overview-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1.2rem; margin-bottom:2.5rem; }
+                    #ana-wrap .ana-card { background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:8px; padding:1.4rem; transition:border-color .2s; }
+                    #ana-wrap .ana-card:hover { border-color:var(--accent); }
+                    #ana-wrap .ana-card-label { font-size:.8rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.06em; margin-bottom:.4rem; }
+                    #ana-wrap .ana-card-value { font-size:2.2rem; font-weight:700; color:var(--accent); }
+                    #ana-wrap .ana-card-sub { font-size:.85rem; color:var(--text-secondary); margin-top:.3rem; }
+                    #ana-wrap .ana-section { background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:8px; padding:1.8rem; margin-bottom:1.8rem; overflow-x:auto; }
+                    #ana-wrap .ana-section h2 { font-family:'Bebas Neue',sans-serif; font-size:1.35rem; letter-spacing:.06em; margin-bottom:1.2rem; color:var(--text-primary); }
+                    #ana-wrap .ana-bar-chart { display:flex; align-items:flex-end; gap:.8rem; height:260px; margin-top:.8rem; }
+                    #ana-wrap .ana-bar-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:.4rem; }
+                    #ana-wrap .ana-bar { width:100%; border-radius:4px 4px 0 0; transition:opacity .2s; position:relative; }
+                    #ana-wrap .ana-bar:hover { opacity:.75; }
+                    #ana-wrap .ana-bar-label { font-size:.78rem; color:var(--text-secondary); text-align:center; }
+                    #ana-wrap .ana-bar-val { font-size:.8rem; font-weight:600; color:var(--text-primary); position:absolute; top:-22px; left:50%; transform:translateX(-50%); white-space:nowrap; }
+                    #ana-wrap .bar-draft { background:#6366f1; } #ana-wrap .bar-coming { background:#f59e0b; }
+                    #ana-wrap .bar-live  { background:#10b981; } #ana-wrap .bar-sold   { background:#ef4444; }
+                    #ana-wrap .bar-men   { background:#3b82f6; } #ana-wrap .bar-women  { background:#ec4899; }
+                    #ana-wrap .bar-unisex{ background:#8b5cf6; } #ana-wrap .bar-kids   { background:#14b8a6; }
+                    #ana-wrap table { width:100%; border-collapse:collapse; font-size:.88rem; }
+                    #ana-wrap thead { background:var(--bg-tertiary,#1a1a1e); }
+                    #ana-wrap th { padding:.85rem; text-align:left; font-size:.75rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.06em; cursor:pointer; white-space:nowrap; }
+                    #ana-wrap th:hover { color:var(--accent); }
+                    #ana-wrap td { padding:.85rem; border-bottom:1px solid var(--border-color); }
+                    #ana-wrap tbody tr:hover { background:var(--bg-tertiary,#1a1a1e); }
+                    #ana-wrap .ana-low-stock td { color:#ef4444; }
+                    #ana-wrap .ana-status-badge { display:inline-block; padding:.22rem .65rem; border-radius:4px; font-size:.75rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; }
+                    #ana-wrap .badge-draft { background:rgba(99,102,241,.2); color:#6366f1; }
+                    #ana-wrap .badge-coming-soon { background:rgba(245,158,11,.2); color:#f59e0b; }
+                    #ana-wrap .badge-live { background:rgba(16,185,129,.2); color:#10b981; }
+                    #ana-wrap .badge-sold-out { background:rgba(239,68,68,.2); color:#ef4444; }
+                    #ana-wrap .ana-controls { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.8rem; margin-bottom:1.2rem; }
+                    #ana-wrap .ana-search { padding:.45rem .9rem; border-radius:4px; border:1px solid var(--border-color); background:var(--bg-primary,#09090b); color:var(--text-primary,#f4f1eb); font-size:.88rem; min-width:200px; }
+                    #ana-wrap .ana-search:focus { outline:none; border-color:var(--accent); }
+                    #ana-wrap .ana-filter-group { display:flex; gap:.4rem; }
+                    #ana-wrap .ana-filter-btn { background:var(--bg-tertiary,#1a1a1e); border:1px solid var(--border-color); color:var(--text-primary); padding:.4rem .85rem; border-radius:4px; cursor:pointer; font-size:.85rem; }
+                    #ana-wrap .ana-filter-btn.active { background:var(--accent); color:#09090b; border-color:var(--accent); }
+                    #ana-wrap .ana-export-btn { background:var(--accent); border:1px solid var(--accent); color:#09090b; padding:.4rem .85rem; border-radius:4px; cursor:pointer; font-weight:600; font-size:.85rem; }
+                    #ana-wrap .ana-stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1.2rem; margin-bottom:1.8rem; }
+                    #ana-wrap .ana-stat-card { background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:8px; padding:1.4rem; }
+                    #ana-wrap .ana-stat-card h3 { font-family:'Bebas Neue',sans-serif; font-size:1.1rem; letter-spacing:.06em; margin-bottom:.8rem; }
+                    #ana-wrap .ana-stat-row { display:flex; justify-content:space-between; padding:.6rem 0; border-bottom:1px solid var(--border-color); }
+                    #ana-wrap .ana-stat-row:last-child { border-bottom:none; }
+                    #ana-wrap .ana-stat-label { color:var(--text-secondary); font-size:.88rem; }
+                    #ana-wrap .ana-stat-val { font-weight:600; color:var(--accent); }
+                    #ana-wrap .ana-top-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:.8rem; margin-top:.8rem; }
+                    #ana-wrap .ana-prod-card { background:var(--bg-tertiary,#1a1a1e); border-radius:4px; padding:.9rem; }
+                    #ana-wrap .ana-prod-title { font-weight:600; color:var(--accent); margin-bottom:.3rem; }
+                    #ana-wrap .ana-loading { text-align:center; color:var(--text-secondary); padding:2rem; }
+                    #ana-wrap .ana-err { background:rgba(239,68,68,.1); border:1px solid #ef4444; color:#ef4444; padding:.8rem 1rem; border-radius:4px; margin-bottom:.8rem; }
+                    #ana-refresh-btn { margin-bottom:1.5rem; background:none; border:1px solid var(--border-color); color:var(--text-secondary); padding:.4rem 1rem; border-radius:4px; cursor:pointer; font-size:.82rem; transition:all .2s; }
+                    #ana-refresh-btn:hover { border-color:var(--accent); color:var(--accent); }
+                  </style>
+
+                  <div id="ana-wrap">
+                    <div id="ana-error-container"></div>
+                    <button id="ana-refresh-btn" onclick="anaLoadData()">↺ Refresh Data</button>
+
+                    <!-- Sales Overview -->
+                    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.06em;margin-bottom:1.2rem;">Sales Overview</h2>
+                    <div class="ana-overview-grid">
+                      <div class="ana-card"><div class="ana-card-label">Total Revenue</div><div class="ana-card-value" id="ana-totalRevenue">—</div></div>
+                      <div class="ana-card"><div class="ana-card-label">Total Orders</div><div class="ana-card-value" id="ana-totalOrders">—</div></div>
+                      <div class="ana-card"><div class="ana-card-label">Avg Order Value</div><div class="ana-card-value" id="ana-avgOrderValue">—</div></div>
+                    </div>
+
+                    <!-- Recent Orders -->
+                    <div class="ana-section">
+                      <h2>Recent Orders</h2>
+                      <div id="ana-ordersTable" class="ana-loading">Loading orders…</div>
+                    </div>
+
+                    <!-- Inventory Overview -->
+                    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.06em;margin-bottom:1.2rem;margin-top:1rem;">Inventory &amp; Catalog</h2>
+                    <div class="ana-overview-grid">
+                      <div class="ana-card"><div class="ana-card-label">Total Products</div><div class="ana-card-value" id="ana-totalProducts">—</div></div>
+                      <div class="ana-card"><div class="ana-card-label">Live Products</div><div class="ana-card-value" id="ana-liveProducts">—</div></div>
+                      <div class="ana-card"><div class="ana-card-label">Total Inventory</div><div class="ana-card-value" id="ana-totalInventory">—</div><div class="ana-card-sub">units</div></div>
+                      <div class="ana-card"><div class="ana-card-label">Low Stock Alerts</div><div class="ana-card-value" id="ana-lowStockAlerts">—</div></div>
+                      <div class="ana-card"><div class="ana-card-label">Avg Current Price</div><div class="ana-card-value" id="ana-avgPrice">—</div></div>
+                      <div class="ana-card"><div class="ana-card-label">Color Variants</div><div class="ana-card-value" id="ana-colorVariants">—</div></div>
+                      <div class="ana-card"><div class="ana-card-label">Favorites Saved</div><div class="ana-card-value" id="ana-totalFavorites">—</div></div>
+                      <div class="ana-card"><div class="ana-card-label">Waitlist Entries</div><div class="ana-card-value" id="ana-totalWaitlist">—</div></div>
+                    </div>
+
+                    <!-- Charts -->
+                    <div class="ana-section">
+                      <h2>Product Status Distribution</h2>
+                      <div class="ana-bar-chart" id="ana-statusChart"></div>
+                    </div>
+                    <div class="ana-section">
+                      <h2>Gender Distribution</h2>
+                      <div class="ana-bar-chart" id="ana-genderChart"></div>
+                    </div>
+                    <div class="ana-section">
+                      <h2>Revenue Timeline (last 7 days)</h2>
+                      <div class="ana-bar-chart" id="ana-revenueChart"></div>
+                    </div>
+
+                    <!-- Price Analysis -->
+                    <div class="ana-stats-grid">
+                      <div class="ana-stat-card">
+                        <h3>Price Analysis</h3>
+                        <div class="ana-stat-row"><span class="ana-stat-label">Avg MSRP</span><span class="ana-stat-val" id="ana-avgMSRP">—</span></div>
+                        <div class="ana-stat-row"><span class="ana-stat-label">Avg Current Price</span><span class="ana-stat-val" id="ana-avgCurrentPrice">—</span></div>
+                        <div class="ana-stat-row"><span class="ana-stat-label">Avg Member Price</span><span class="ana-stat-val" id="ana-avgMemberPrice">—</span></div>
+                        <div class="ana-stat-row"><span class="ana-stat-label">Products on Sale</span><span class="ana-stat-val" id="ana-productsOnSale">—</span></div>
+                        <div class="ana-stat-row"><span class="ana-stat-label">Sale %</span><span class="ana-stat-val" id="ana-salePercentage">—</span></div>
+                        <div class="ana-stat-row"><span class="ana-stat-label">Avg Discount %</span><span class="ana-stat-val" id="ana-avgDiscount">—</span></div>
+                      </div>
+                      <div class="ana-stat-card">
+                        <h3>Reviews Summary</h3>
+                        <div class="ana-stat-row"><span class="ana-stat-label">Avg Rating</span><span class="ana-stat-val" id="ana-avgRating">—</span></div>
+                        <div class="ana-stat-row"><span class="ana-stat-label">Total Reviews</span><span class="ana-stat-val" id="ana-totalReviews">—</span></div>
+                        <div class="ana-stat-row"><span class="ana-stat-label">Products w/ No Reviews</span><span class="ana-stat-val" id="ana-noReviewsCount">—</span></div>
+                      </div>
+                    </div>
+
+                    <!-- Top Rated -->
+                    <div class="ana-section">
+                      <h2>Top Rated Products</h2>
+                      <div class="ana-top-grid" id="ana-topProducts"><p class="ana-loading">Loading…</p></div>
+                    </div>
+
+                    <!-- Inventory Table -->
+                    <div class="ana-section">
+                      <h2>Inventory Report</h2>
+                      <div class="ana-controls">
+                        <input type="text" id="ana-invSearch" class="ana-search" placeholder="Search SKU, title, or size…">
+                        <div class="ana-filter-group">
+                          <button class="ana-filter-btn active" data-ana-filter="all">All</button>
+                          <button class="ana-filter-btn" data-ana-filter="low">Low Stock</button>
+                        </div>
+                      </div>
+                      <div id="ana-inventoryTable" class="ana-loading">Loading inventory…</div>
+                    </div>
+
+                    <!-- Catalog Table -->
+                    <div class="ana-section">
+                      <h2>Product Catalog</h2>
+                      <div class="ana-controls">
+                        <input type="text" id="ana-catSearch" class="ana-search" placeholder="Search SKU, title, or colorway…">
+                        <button class="ana-export-btn" id="ana-exportBtn">📥 Export CSV</button>
+                      </div>
+                      <div id="ana-catalogTable" class="ana-loading">Loading catalog…</div>
+                    </div>
+
+                    <!-- Top Favorites -->
+                    <div class="ana-section">
+                      <h2>Most Saved Products</h2>
+                      <div class="ana-top-grid" id="ana-topFavorites"><p class="ana-loading">Loading…</p></div>
+                    </div>
+                  </div>
+
+                  <script>
+                  (function(){
+                    // State
+                    let _anaProds = [], _anaOrders = [];
+                    let _anaCatSort = { key:'title', dir:'asc' };
+                    let _anaInvSort = { key:'stock', dir:'asc' };
+                    let _anaInvFilter = 'all';
+                    let _anaLoaded = false;
+
+                    function anaEl(id) { return document.getElementById(id); }
+                    function anaErr(msg) {
+                      const d = document.createElement('div');
+                      d.className = 'ana-err'; d.textContent = msg;
+                      anaEl('ana-error-container').appendChild(d);
+                    }
+
+                    // ── Bar chart helper ──
+                    function anaBarChart(containerId, entries, colorMap) {
+                      const c = anaEl(containerId); if (!c) return;
+                      c.innerHTML = '';
+                      const maxVal = Math.max(...entries.map(e => e.val), 1);
+                      entries.forEach(e => {
+                        const pct = (e.val / maxVal) * 100;
+                        const item = document.createElement('div');
+                        item.className = 'ana-bar-item';
+                        item.innerHTML = `
+                          <div class="ana-bar ${colorMap[e.key] || ''}" style="height:${pct}%">
+                            <div class="ana-bar-val">${e.val}</div>
+                          </div>
+                          <div class="ana-bar-label">${e.label}</div>`;
+                        c.appendChild(item);
+                      });
+                    }
+
+                    // ── Data loaders ──
+                    async function anaLoadProds() {
+                      const { data: prods } = await sb.from('products').select('*');
+                      const { data: sizes } = await sb.from('product_sizes').select('*');
+                      const { data: colors } = await sb.from('color_variants').select('*');
+                      const { data: images } = await sb.from('product_images').select('*');
+                      _anaProds = (prods || []).map(p => ({
+                        ...p,
+                        product_sizes: (sizes || []).filter(s => s.product_id === p.id),
+                        color_variants: (colors || []).filter(c => c.product_id === p.id),
+                        product_images: (images || []).filter(i => i.product_id === p.id)
+                      }));
+                    }
+
+                    async function anaLoadOrders() {
+                      const { data, error } = await sb.from('orders').select('*');
+                      if (!error) _anaOrders = data || [];
+                    }
+
+                    async function anaLoadEngagement() {
+                      const { data: favs } = await sb.from('favorites').select('*');
+                      const { data: waitlist } = await sb.from('waitlist').select('*');
+                      anaEl('ana-totalFavorites').textContent = favs ? favs.length : 0;
+                      anaEl('ana-totalWaitlist').textContent = waitlist ? waitlist.length : 0;
+
+                      // Top favorites
+                      const fc = {};
+                      (favs || []).forEach(f => { fc[f.product_name] = (fc[f.product_name] || 0) + 1; });
+                      const top = Object.entries(fc).sort((a,b) => b[1]-a[1]).slice(0,5);
+                      const favEl = anaEl('ana-topFavorites');
+                      favEl.innerHTML = top.length
+                        ? top.map(([name,cnt]) => `<div class="ana-prod-card"><div class="ana-prod-title">${name}</div><div style="color:var(--text-secondary);font-size:.85rem;">${cnt} saves</div></div>`).join('')
+                        : '<p style="color:var(--text-secondary)">No favorites yet.</p>';
+                    }
+
+                    // ── Render helpers ──
+                    function anaUpdateCards() {
+                      const live = _anaProds.filter(p => p.status === 'live').length;
+                      let inv = 0, low = 0, colors = 0;
+                      _anaProds.forEach(p => {
+                        const sizes = p.product_sizes || [];
+                        if (sizes.length === 0) { low++; }
+                        sizes.forEach(s => {
+                          inv += s.stock_quantity || 0;
+                          if ((s.stock_quantity || 0) <= (p.low_stock_threshold || 10)) low++;
+                        });
+                        colors += p.color_variants?.length || 0;
+                      });
+                      const prices = _anaProds.filter(p => p.current_price).map(p => Number(p.current_price));
+                      const avgPrice = prices.length ? (prices.reduce((a,b)=>a+b,0)/prices.length) : 0;
+                      anaEl('ana-totalProducts').textContent = _anaProds.length;
+                      anaEl('ana-liveProducts').textContent = live;
+                      anaEl('ana-totalInventory').textContent = inv.toLocaleString();
+                      anaEl('ana-lowStockAlerts').textContent = low;
+                      anaEl('ana-avgPrice').textContent = `$${avgPrice.toFixed(2)}`;
+                      anaEl('ana-colorVariants').textContent = colors;
+                    }
+
+                    function anaUpdateOrders() {
+                      const tot = _anaOrders.length;
+                      const rev = _anaOrders.reduce((s,o) => s + (Number(o.total)||Number(o.total_amount)||0), 0);
+                      const aov = tot ? rev/tot : 0;
+                      anaEl('ana-totalOrders').textContent = tot;
+                      anaEl('ana-totalRevenue').textContent = `$${rev.toFixed(2)}`;
+                      anaEl('ana-avgOrderValue').textContent = `$${aov.toFixed(2)}`;
+
+                      const c = anaEl('ana-ordersTable');
+                      if (!tot) { c.innerHTML = '<p style="color:var(--text-secondary);padding:1.5rem 0;">No orders yet.</p>'; return; }
+                      const rows = [..._anaOrders].sort((a,b) => new Date(b.created_at)-new Date(a.created_at)).slice(0,10)
+                        .map(o => {
+                          const amt = Number(o.total)||Number(o.total_amount)||0;
+                          return `<tr>
+                            <td style="font-family:monospace">#${(o.id||'').substring(0,8).toUpperCase()}</td>
+                            <td>${new Date(o.created_at).toLocaleDateString()}</td>
+                            <td>${o.email||'Guest'}</td>
+                            <td>$${amt.toFixed(2)}</td>
+                            <td><span class="ana-status-badge badge-live">${o.status||'Confirmed'}</span></td>
+                          </tr>`;
+                        }).join('');
+                      c.innerHTML = `<table><thead><tr><th>Order ID</th><th>Date</th><th>Customer</th><th>Total</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
+                    }
+
+                    function anaUpdateCharts() {
+                      // Status chart
+                      const statuses = { draft:0, coming_soon:0, live:0, sold_out:0 };
+                      _anaProds.forEach(p => { const k=(p.status||'draft').toLowerCase().replace(/\s/g,'_'); if(k in statuses) statuses[k]++; });
+                      anaBarChart('ana-statusChart', [
+                        {key:'draft',label:'Draft',val:statuses.draft},
+                        {key:'coming_soon',label:'Coming Soon',val:statuses.coming_soon},
+                        {key:'live',label:'Live',val:statuses.live},
+                        {key:'sold_out',label:'Sold Out',val:statuses.sold_out}
+                      ], { draft:'bar-draft', coming_soon:'bar-coming', live:'bar-live', sold_out:'bar-sold' });
+
+                      // Gender chart
+                      const genders = { men:0, women:0, unisex:0, kids:0 };
+                      _anaProds.forEach(p => { const k=(p.gender||'').toLowerCase(); if(k in genders) genders[k]++; });
+                      anaBarChart('ana-genderChart', [
+                        {key:'men',label:'Men',val:genders.men},
+                        {key:'women',label:'Women',val:genders.women},
+                        {key:'unisex',label:'Unisex',val:genders.unisex},
+                        {key:'kids',label:'Kids',val:genders.kids}
+                      ], { men:'bar-men', women:'bar-women', unisex:'bar-unisex', kids:'bar-kids' });
+
+                      // Revenue timeline
+                      const rc = anaEl('ana-revenueChart');
+                      if (!_anaOrders.length) { rc.innerHTML = '<p style="color:var(--text-secondary);padding:2rem;">No sales data yet.</p>'; return; }
+                      const byDate = {};
+                      _anaOrders.forEach(o => {
+                        const d = new Date(o.created_at).toLocaleDateString(undefined,{month:'numeric',day:'numeric'});
+                        byDate[d] = (byDate[d]||0) + (Number(o.total)||Number(o.total_amount)||0);
+                      });
+                      const dates = Object.keys(byDate).sort((a,b)=>new Date(a)-new Date(b)).slice(-7);
+                      const maxRev = Math.max(...dates.map(d=>byDate[d]),1);
+                      rc.innerHTML = '';
+                      dates.forEach(d => {
+                        const pct=(byDate[d]/maxRev)*100;
+                        const item=document.createElement('div'); item.className='ana-bar-item';
+                        item.innerHTML=`<div class="ana-bar" style="height:${pct}%;background:var(--accent)"><div class="ana-bar-val">$${Math.round(byDate[d])}</div></div><div class="ana-bar-label" style="font-size:.72rem">${d}</div>`;
+                        rc.appendChild(item);
+                      });
+                    }
+
+                    function anaUpdatePrices() {
+                      const m=_anaProds.filter(p=>Number(p.msrp)>0), cp=_anaProds.filter(p=>Number(p.current_price)>0), mp=_anaProds.filter(p=>Number(p.member_price)>0);
+                      const avg=(arr,key)=>arr.length?arr.reduce((s,p)=>s+Number(p[key]),0)/arr.length:0;
+                      const onSale=_anaProds.filter(p=>Number(p.current_price)<Number(p.msrp)).length;
+                      const saleProd=_anaProds.filter(p=>Number(p.msrp)>Number(p.current_price)&&Number(p.current_price)>0);
+                      const disc=saleProd.length?saleProd.reduce((s,p)=>s+((Number(p.msrp)-Number(p.current_price))/Number(p.msrp)*100),0)/saleProd.length:0;
+                      anaEl('ana-avgMSRP').textContent=`$${avg(m,'msrp').toFixed(2)}`;
+                      anaEl('ana-avgCurrentPrice').textContent=`$${avg(cp,'current_price').toFixed(2)}`;
+                      anaEl('ana-avgMemberPrice').textContent=`$${avg(mp,'member_price').toFixed(2)}`;
+                      anaEl('ana-productsOnSale').textContent=onSale;
+                      anaEl('ana-salePercentage').textContent=`${_anaProds.length?((onSale/_anaProds.length)*100).toFixed(1):0}%`;
+                      anaEl('ana-avgDiscount').textContent=`${disc.toFixed(1)}%`;
+                    }
+
+                    async function anaUpdateReviews() {
+                      try {
+                        const { data: reviews } = await sb.from('reviews').select('rating, product_id');
+                        const byProd = {}; const ratings = [];
+                        (reviews||[]).forEach(r => { if(!byProd[r.product_id]) byProd[r.product_id]=[]; byProd[r.product_id].push(r); if(r.rating) ratings.push(r.rating); });
+                        const avg = ratings.length?(ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(2):0;
+                        anaEl('ana-avgRating').textContent=`${avg} ⭐`;
+                        anaEl('ana-totalReviews').textContent=reviews?.length||0;
+                        anaEl('ana-noReviewsCount').textContent=_anaProds.filter(p=>!byProd[p.id]).length;
+                        const top=_anaProds.filter(p=>byProd[p.id]).map(p=>{
+                          const rs=byProd[p.id]; const ar=rs.reduce((s,r)=>s+(r.rating||0),0)/rs.length;
+                          return {...p,avgRating:ar,reviewCount:rs.length};
+                        }).sort((a,b)=>b.avgRating-a.avgRating).slice(0,5);
+                        anaEl('ana-topProducts').innerHTML=top.length
+                          ?top.map(p=>`<div class="ana-prod-card"><div class="ana-prod-title">${p.title}</div><div>${'⭐'.repeat(Math.round(p.avgRating))} ${p.avgRating.toFixed(1)}</div><div style="color:var(--text-secondary);font-size:.82rem">${p.reviewCount} reviews</div></div>`).join('')
+                          :'<p style="color:var(--text-secondary)">No reviews yet.</p>';
+                      } catch(e) {
+                        anaEl('ana-avgRating').textContent='—'; anaEl('ana-totalReviews').textContent='—';
+                        anaEl('ana-noReviewsCount').textContent='—';
+                      }
+                    }
+
+                    function anaRenderInventory() {
+                      const search=(anaEl('ana-invSearch')?.value||'').toLowerCase();
+                      let rows=[];
+                      _anaProds.forEach(p => {
+                        const sizes=p.product_sizes||[];
+                        if(!sizes.length){ rows.push({title:p.title,sku:p.sku,size:'N/A',stock:0,thresh:p.low_stock_threshold||10,status:p.status}); }
+                        else sizes.forEach(s=>rows.push({title:p.title,sku:p.sku,size:s.size,stock:s.stock_quantity||0,thresh:p.low_stock_threshold||10,status:p.status}));
+                      });
+                      if(_anaInvFilter==='low') rows=rows.filter(r=>r.stock<=r.thresh);
+                      if(search) rows=rows.filter(r=>String(r.sku||'').toLowerCase().includes(search)||String(r.title||'').toLowerCase().includes(search)||String(r.size||'').toLowerCase().includes(search));
+                      rows.sort((a,b)=>{
+                        const av=a[_anaInvSort.key],bv=b[_anaInvSort.key];
+                        if(typeof av==='string') return _anaInvSort.dir==='asc'?String(av).localeCompare(String(bv)):String(bv).localeCompare(String(av));
+                        return _anaInvSort.dir==='asc'?av-bv:bv-av;
+                      });
+                      const c=anaEl('ana-inventoryTable');
+                      if(!rows.length){c.innerHTML='<p style="color:var(--text-secondary);padding:1.5rem 0;">No records found.</p>';return;}
+                      c.innerHTML=`<table><thead><tr>
+                        <th data-ana-inv-key="title">Product</th><th data-ana-inv-key="sku">SKU</th>
+                        <th data-ana-inv-key="size">Size</th><th data-ana-inv-key="stock">Stock</th>
+                        <th data-ana-inv-key="status">Status</th></tr></thead><tbody>
+                        ${rows.map(r=>`<tr class="${r.stock<=r.thresh?'ana-low-stock':''}">
+                          <td>${r.title}</td><td>${r.sku}</td><td>${r.size}</td><td>${r.stock}</td>
+                          <td><span class="ana-status-badge badge-${(r.status||'draft').toLowerCase().replace(/\s+/g,'-')}">${r.status}</span></td>
+                        </tr>`).join('')}
+                      </tbody></table>`;
+                      c.querySelectorAll('[data-ana-inv-key]').forEach(th=>{
+                        th.addEventListener('click',()=>{
+                          const k=th.dataset.anaInvKey;
+                          _anaInvSort.dir=_anaInvSort.key===k?(_anaInvSort.dir==='asc'?'desc':'asc'):'asc';
+                          _anaInvSort.key=k; anaRenderInventory();
+                        });
+                      });
+                    }
+
+                    function anaRenderCatalog() {
+                      const search=(anaEl('ana-catSearch')?.value||'').toLowerCase();
+                      let rows=_anaProds.map(p=>({
+                        id:p.id,sku:p.sku,title:p.title,gender:p.gender||'N/A',colorway:p.colorway||'N/A',
+                        msrp:Number(p.msrp)||0,currentPrice:Number(p.current_price)||0,status:p.status,
+                        totalStock:(p.product_sizes||[]).reduce((s,i)=>s+(i.stock_quantity||0),0),
+                        colorCount:p.color_variants?.length||0, imageCount:p.product_images?.length||0
+                      }));
+                      if(search) rows=rows.filter(r=>String(r.sku||'').toLowerCase().includes(search)||String(r.title||'').toLowerCase().includes(search)||String(r.colorway||'').toLowerCase().includes(search));
+                      rows.sort((a,b)=>{
+                        const av=a[_anaCatSort.key],bv=b[_anaCatSort.key];
+                        if(typeof av==='string') return _anaCatSort.dir==='asc'?String(av).localeCompare(String(bv)):String(bv).localeCompare(String(av));
+                        return _anaCatSort.dir==='asc'?av-bv:bv-av;
+                      });
+                      const c=anaEl('ana-catalogTable');
+                      if(!rows.length){c.innerHTML='<p style="color:var(--text-secondary);padding:1.5rem 0;">No products found.</p>';return;}
+                      c.innerHTML=`<table><thead><tr>
+                        <th data-ana-cat-key="sku">SKU</th><th data-ana-cat-key="title">Title</th>
+                        <th data-ana-cat-key="gender">Gender</th><th data-ana-cat-key="colorway">Colorway</th>
+                        <th data-ana-cat-key="msrp">MSRP</th><th data-ana-cat-key="currentPrice">Price</th>
+                        <th data-ana-cat-key="status">Status</th><th data-ana-cat-key="totalStock">Stock</th>
+                        <th data-ana-cat-key="colorCount">Colors</th><th data-ana-cat-key="imageCount">Images</th>
+                      </tr></thead><tbody>
+                        ${rows.map(r=>`<tr>
+                          <td>${r.sku}</td><td>${r.title}</td><td>${r.gender}</td><td>${r.colorway}</td>
+                          <td>$${r.msrp.toFixed(2)}</td><td>$${r.currentPrice.toFixed(2)}</td>
+                          <td><span class="ana-status-badge badge-${(r.status||'draft').toLowerCase().replace(/\s+/g,'-')}">${r.status}</span></td>
+                          <td>${r.totalStock}</td><td>${r.colorCount}</td><td>${r.imageCount}</td>
+                        </tr>`).join('')}
+                      </tbody></table>`;
+                      c.querySelectorAll('[data-ana-cat-key]').forEach(th=>{
+                        th.addEventListener('click',()=>{
+                          const k=th.dataset.anaCatKey;
+                          _anaCatSort.dir=_anaCatSort.key===k?(_anaCatSort.dir==='asc'?'desc':'asc'):'asc';
+                          _anaCatSort.key=k; anaRenderCatalog();
+                        });
+                      });
+                    }
+
+                    // ── Search listeners ──
+                    document.getElementById('ana-invSearch').addEventListener('input', anaRenderInventory);
+                    document.getElementById('ana-catSearch').addEventListener('input', anaRenderCatalog);
+
+                    // ── Filter listeners ──
+                    document.querySelectorAll('[data-ana-filter]').forEach(btn=>{
+                      btn.addEventListener('click',e=>{
+                        document.querySelectorAll('[data-ana-filter]').forEach(b=>b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        _anaInvFilter=e.target.dataset.anaFilter;
+                        anaRenderInventory();
+                      });
+                    });
+
+                    // ── CSV Export ──
+                    document.getElementById('ana-exportBtn').addEventListener('click',()=>{
+                      const rows=_anaProds.map(p=>({
+                        sku:p.sku,title:p.title,gender:p.gender||'N/A',colorway:p.colorway||'N/A',
+                        msrp:Number(p.msrp)||0,price:Number(p.current_price)||0,status:p.status,
+                        stock:(p.product_sizes||[]).reduce((s,i)=>s+(i.stock_quantity||0),0),
+                        colors:p.color_variants?.length||0,images:p.product_images?.length||0
+                      }));
+                      const hdrs=['SKU','Title','Gender','Colorway','MSRP','Current Price','Status','Stock','Colors','Images'];
+                      let csv=hdrs.join(',')+'\n'+rows.map(r=>[r.sku,r.title,r.gender,r.colorway,r.msrp,r.price,r.status,r.stock,r.colors,r.images].map(v=>`"${v}"`).join(',')).join('\n');
+                      const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+                      a.download=`zuwera-catalog-${new Date().toISOString().split('T')[0]}.csv`; a.click();
+                    });
+
+                    // ── Main load ──
+                    window.anaLoadData = async function() {
+                      anaEl('ana-error-container').innerHTML='';
+                      try {
+                        await anaLoadProds();
+                        await Promise.all([anaLoadOrders(), anaLoadEngagement()]);
+                        anaUpdateCards(); anaUpdateOrders(); anaUpdateCharts();
+                        anaUpdatePrices(); anaRenderInventory(); anaRenderCatalog();
+                        await anaUpdateReviews();
+                        _anaLoaded=true;
+                      } catch(e) { anaErr('Failed to load analytics: '+e.message); }
+                    };
+
+                    // Expose for the tab switch handler
+                    window._anaLoaded = () => _anaLoaded;
+                  })();
+                  </script>
                 </div>
 
                 <!-- Settings Page -->
@@ -1743,8 +2209,7 @@
                 sb.from('site_settings').upsert({ key: 'theme', value: { mode: isDarkMode ? 'dark' : 'light' } }, { onConflict: 'key' }).then(function(){});
             }
             
-            const frame = document.getElementById('analyticsFrame');
-            if (frame) frame.src = frame.src; // Reload iframe to match theme
+            // Analytics is now inline — no iframe to reload
         }
 
         document.getElementById('themeToggle').addEventListener('click', () => {
@@ -2007,11 +2472,9 @@
             }
         }
 
-        // Analytics
+        // Analytics — now embedded inline; just trigger a fresh data load each visit
         async function loadAnalytics() {
-            // Reload the iframe each time the tab is visited to pick up the latest session.
-            const frame = document.getElementById('analyticsFrame');
-            if (frame) frame.src = 'analytics.html?embed=true';
+            if (typeof anaLoadData === 'function') anaLoadData();
         }
 
         // Reviews
