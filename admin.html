@@ -1092,7 +1092,8 @@
 
                 <!-- Analytics Page -->
                 <div id="analytics" class="page">
-                    <iframe id="analyticsFrame" src="analytics.html?embed=true" style="width: 100%; height: calc(100vh - 120px); border: none; border-radius: 8px; background: var(--bg-secondary);"></iframe>
+                    <!-- src is set lazily by loadAnalytics() so the iframe loads AFTER admin session is established -->
+                    <iframe id="analyticsFrame" style="width: 100%; height: calc(100vh - 120px); border: none; border-radius: 8px; background: var(--bg-secondary);"></iframe>
                 </div>
 
                 <!-- Settings Page -->
@@ -2009,7 +2010,13 @@
 
         // Analytics
         async function loadAnalytics() {
-            // Analytics is handled entirely by the embedded iframe (analytics.html)
+            // Lazy-load the iframe: only set src once, AFTER admin session is established.
+            // If we set src at page load, the iframe runs checkAuth() before localStorage
+            // has the session, causing it to fall through to the login screen.
+            const frame = document.getElementById('analyticsFrame');
+            if (frame && !frame.src.includes('analytics.html')) {
+                frame.src = 'analytics.html?embed=true';
+            }
         }
 
         // Reviews

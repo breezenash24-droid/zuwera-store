@@ -95,8 +95,20 @@
 
 .review-slider { width: 100%; margin-top: 0.5rem; accent-color: #F891A5; cursor: pointer; display: block; box-sizing: border-box; -webkit-appearance: none; appearance: none; }
 .review-slider-wrap { display: flex; justify-content: space-between; font-size: 0.7rem; color: rgba(244,241,235,0.5); margin-top: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em; }
-.review-radio-group { display: flex; gap: 1.5rem; margin-top: 0.5rem; }
-.review-radio-group label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #f4f1eb; cursor: pointer; text-transform: none; letter-spacing: normal; }
+.review-radio-group { display: flex; gap: 0.6rem; margin-top: 0.5rem; flex-wrap: wrap; }
+.review-radio-group input[type="radio"] { display: none; }
+.review-radio-group label {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+  padding: 0.45rem 1.1rem; border-radius: 20px; font-size: 0.82rem; font-weight: 600;
+  cursor: pointer; text-transform: none; letter-spacing: 0.02em;
+  border: 1px solid rgba(244,241,235,0.15); background: rgba(244,241,235,0.04);
+  color: rgba(244,241,235,0.5); transition: all 0.18s; user-select: none;
+  font-family: 'DM Sans', sans-serif;
+}
+.review-radio-group input[type="radio"]:checked + label {
+  border-color: #F891A5; background: rgba(248,145,165,0.15); color: #F891A5;
+}
+.review-radio-group label:hover { border-color: rgba(244,241,235,0.3); color: #f4f1eb; background: rgba(244,241,235,0.08); }
 
 .nav-logo-link { text-decoration: none; color: inherit; }
 
@@ -515,7 +527,7 @@ body.light-mode .alink a {color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,
                     Rate Size, Comfort & Recommendation (Optional)
                   </label>
                 </div>
-                <div id="advancedRatings" style="display:none; padding:1.2rem; background:rgba(244,241,235,0.02); border:1px solid rgba(244,241,235,0.08); border-radius:6px; margin-bottom:1.5rem;">
+                <div id="advancedRatings" style="display:none; padding:1.2rem 1.4rem 1.4rem; background:rgba(244,241,235,0.02); border:1px solid rgba(244,241,235,0.08); border-radius:8px; margin-bottom:1.5rem; margin-top:-0.5rem;">
                   <div class="review-form-row">
                     <label>How did this product fit?</label>
                     <input type="range" id="reviewFit" class="review-slider" min="1" max="5" value="3">
@@ -529,8 +541,10 @@ body.light-mode .alink a {color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,
                   <div class="review-form-row">
                     <label>Would you recommend this product?</label>
                     <div class="review-radio-group">
-                      <label><input type="radio" name="reviewRecommend" value="yes" checked> Yes</label>
-                      <label><input type="radio" name="reviewRecommend" value="no"> No</label>
+                      <input type="radio" name="reviewRecommend" id="recommendYes" value="yes" checked>
+                      <label for="recommendYes">👍 Yes</label>
+                      <input type="radio" name="reviewRecommend" id="recommendNo" value="no">
+                      <label for="recommendNo">👎 No</label>
                     </div>
                   </div>
                 </div>

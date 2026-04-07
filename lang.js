@@ -1,32 +1,27 @@
 /**
  * Zuwera Language Selector — lang.js
- * Uses Google Translate Element (free, no API key) with a custom Zuwera-branded modal.
- * Attach to any page with: <script src="lang.js" defer></script>
+ * Uses Google Translate Element (free, no API key).
+ * Language switching uses the `googtrans` cookie + page reload:
+ *   - Switching to a language: set cookie `/en/LANG` → reload
+ *   - Switching back to English: clear cookie → reload (zero translation credits)
+ * This is the most reliable cross-browser approach and avoids
+ * the "can't go back to English" bug with the combo select approach.
  */
 (function () {
   'use strict';
 
   // ─── Language Registry ───────────────────────────────────────────────────────
-  // Languages curated for the Zuwera brand: fashion capitals + African roots +
-  // global markets. Ordered by cultural relevance to the brand.
   const LANGUAGES = [
-    // Default / English
     { code: 'en',    flag: '🇺🇸', native: 'English',            english: 'English' },
-
-    // African roots — Zuwera's heritage
     { code: 'yo',    flag: '🇳🇬', native: 'Yorùbá',             english: 'Yoruba' },
     { code: 'ha',    flag: '🇳🇬', native: 'Hausa',              english: 'Hausa' },
     { code: 'sw',    flag: '🇰🇪', native: 'Kiswahili',          english: 'Swahili' },
     { code: 'ig',    flag: '🇳🇬', native: 'Igbo',               english: 'Igbo' },
     { code: 'am',    flag: '🇪🇹', native: 'አማርኛ',              english: 'Amharic' },
-    { code: 'fr',    flag: '🇫🇷', native: 'Français',           english: 'French' },  // heavily spoken in West Africa
-
-    // Fashion capitals
+    { code: 'fr',    flag: '🇫🇷', native: 'Français',           english: 'French' },
     { code: 'it',    flag: '🇮🇹', native: 'Italiano',           english: 'Italian' },
     { code: 'ja',    flag: '🇯🇵', native: '日本語',             english: 'Japanese' },
     { code: 'ko',    flag: '🇰🇷', native: '한국어',             english: 'Korean' },
-
-    // Global markets
     { code: 'es',    flag: '🇪🇸', native: 'Español',            english: 'Spanish' },
     { code: 'pt',    flag: '🇧🇷', native: 'Português',          english: 'Portuguese' },
     { code: 'ar',    flag: '🇸🇦', native: 'العربية',            english: 'Arabic' },
@@ -40,25 +35,108 @@
     { code: 'id',    flag: '🇮🇩', native: 'Bahasa Indonesia',   english: 'Indonesian' },
   ];
 
+  // ─── Cookie Helpers ──────────────────────────────────────────────────────────
+  // Google Translate reads the `googtrans` cookie to know which language to apply.
+  // Format: `/en/fr`  (source/target). We always translate FROM English.
+
+  function setGoogTransCookie(langCode) {
+    const val = `/en/${langCode}`;
+    const host = location.hostname;
+    // Set for root path on both bare domain and dot-prefixed (covers subdomains)
+    document.cookie = `googtrans=${val}; path=/`;
+    document.cookie = `googtrans=${val}; path=/; domain=${host}`;
+    if (host.indexOf('.') !== -1) {
+      document.cookie = `googtrans=${val}; path=/; domain=.${host}`;
+    }
+  }
+
+  function clearGoogTransCookie() {
+    const past = 'expires=Thu, 01 Jan 1970 00:00:00 UTC';
+    const host = location.hostname;
+    document.cookie = `googtrans=; ${past}; path=/`;
+    document.cookie = `googtrans=; ${past}; path=/; domain=${host}`;
+    if (host.indexOf('.') !== -1) {
+      document.cookie = `googtrans=; ${past}; path=/; domain=.${host}`;
+    }
+  }
+
+  function readGoogTransCookie() {
+    // Returns the target language code, or 'en' if no cookie / cookie is English
+    const m = document.cookie.match(/(?:^|;\s*)googtrans=([^;]+)/);
+    if (!m) return 'en';
+    const parts = decodeURIComponent(m[1]).split('/'); // e.g. ['','en','fr']
+    const target = parts[2] || 'en';
+    return target === 'en' ? 'en' : target;
+  }
+
   // ─── State ───────────────────────────────────────────────────────────────────
-  let currentLang = localStorage.getItem('zw_lang') || 'en';
-  let gtReady = false;
-  let _pendingLang = null;
+  // Derive current language from the cookie (source of truth).
+  // localStorage is only used to show the chip without re-reading cookie on every render.
+  let currentLang = readGoogTransCookie();
+  // Keep localStorage in sync for chip display persistence
+  if (currentLang !== 'en') {
+    localStorage.setItem('zw_lang', currentLang);
+  } else {
+    localStorage.removeItem('zw_lang');
+  }
+
+  // ─── Suppress Google Translate Bar (must run BEFORE GT script) ───────────────
+  // Injected immediately — before the GT element script can insert its bar.
+  function injectGTHideStyles() {
+    if (document.getElementById('zw-gt-hide')) return;
+    const s = document.createElement('style');
+    s.id = 'zw-gt-hide';
+    s.textContent = `
+      /* Hide every piece of the Google Translate UI */
+      .goog-te-banner-frame,
+      .goog-te-balloon-frame,
+      #goog-gt-tt,
+      .goog-tooltip,
+      .goog-tooltip:hover,
+      .goog-te-gadget,
+      .goog-te-gadget img,
+      .goog-logo-link,
+      .skiptranslate { display: none !important; visibility: hidden !important; }
+      /* Prevent GT from pushing the body down */
+      body { top: 0 !important; }
+      /* Hide the floating "X" restore bar that sometimes appears */
+      iframe.goog-te-banner-frame { display: none !important; }
+    `;
+    // Insert as early as possible — at the start of <head>
+    const head = document.head || document.documentElement;
+    head.insertBefore(s, head.firstChild);
+  }
+
+  // Run immediately, synchronously — before anything else
+  injectGTHideStyles();
+
+  // Also re-suppress after GT loads (it sometimes re-inserts styles)
+  function suppressGTBarRuntime() {
+    // Force body top to 0
+    document.body.style.setProperty('top', '0', 'important');
+    // Hide any injected banner iframes
+    document.querySelectorAll('.goog-te-banner-frame, .skiptranslate').forEach(el => {
+      el.style.setProperty('display', 'none', 'important');
+    });
+  }
 
   // ─── Google Translate Bootstrap ──────────────────────────────────────────────
+  // Only load the GT script when a non-English language is active.
+  // For English pages, we skip it entirely — no API usage, no bar, no overhead.
+
   window.googleTranslateElementInit = function () {
     new window.google.translate.TranslateElement(
-      { pageLanguage: 'en', autoDisplay: false, includedLanguages: LANGUAGES.map(l => l.code).join(',') },
+      {
+        pageLanguage: 'en',
+        autoDisplay: false,
+        includedLanguages: LANGUAGES.map(l => l.code).join(','),
+      },
       'zw-gt-element'
     );
-    gtReady = true;
-    // Suppress Google Translate bar
-    suppressGTBar();
-    // Restore saved language — ensures it persists across page navigations
-    // Google Translate uses a cookie, but we back it up with localStorage for reliability
-    if (currentLang !== 'en') {
-      setTimeout(() => applyGTLang(currentLang), 700);
-    }
+    // GT is loaded — suppress its bar immediately and after a short delay
+    suppressGTBarRuntime();
+    setTimeout(suppressGTBarRuntime, 300);
+    setTimeout(suppressGTBarRuntime, 1000);
   };
 
   function loadGTScript() {
@@ -70,56 +148,46 @@
     document.head.appendChild(s);
   }
 
-  function suppressGTBar() {
-    // Inject CSS to hide Google Translate's toolbar
-    if (document.getElementById('zw-gt-hide')) return;
-    const style = document.createElement('style');
-    style.id = 'zw-gt-hide';
-    style.textContent = `
-      .goog-te-banner-frame, .goog-te-balloon-frame,
-      #goog-gt-tt, .goog-te-balloon-frame,
-      .goog-tooltip, .goog-tooltip:hover { display: none !important; }
-      .goog-te-gadget { display: none !important; }
-      .goog-te-gadget img { display: none !important; }
-      .goog-logo-link { display: none !important; }
-      body { top: 0 !important; }
-      .skiptranslate { display: none !important; }
-    `;
-    document.head.appendChild(style);
-  }
-
-  function applyGTLang(code) {
-    if (code === 'en') {
-      // Restore to English — reset the widget
-      const iframe = document.querySelector('.goog-te-menu-frame');
-      if (iframe) iframe.style.display = 'none';
-      // Use the select combo to restore
-      const combo = document.querySelector('select.goog-te-combo');
-      if (combo) {
-        combo.value = '';
-        combo.dispatchEvent(new Event('change'));
-      } else {
-        // Fallback: reload without hash
-        const url = window.location.href.replace(/#googtrans\([^)]*\)/g, '');
-        if (window.location.href !== url) window.location.href = url;
-      }
-    } else {
-      const combo = document.querySelector('select.goog-te-combo');
-      if (combo) {
-        combo.value = code;
-        combo.dispatchEvent(new Event('change'));
-      }
-    }
-  }
-
-  // ─── Inject Hidden GT Element ─────────────────────────────────────────────────
+  // ─── Inject Hidden GT Element Div ────────────────────────────────────────────
   function injectGTElement() {
     if (document.getElementById('zw-gt-element')) return;
     const div = document.createElement('div');
     div.id = 'zw-gt-element';
-    div.style.cssText = 'position:absolute;top:-9999px;left:-9999px;width:1px;height:1px;overflow:hidden;';
+    div.style.cssText = 'position:absolute;top:-9999px;left:-9999px;width:1px;height:1px;overflow:hidden;visibility:hidden;';
     div.setAttribute('aria-hidden', 'true');
     document.body.appendChild(div);
+  }
+
+  // ─── Language Selection ───────────────────────────────────────────────────────
+  function selectLanguage(code) {
+    if (code === currentLang) {
+      closeModal();
+      return;
+    }
+
+    if (code === 'en') {
+      // ── Reset to English ──
+      // Clear the googtrans cookie and reload. GT never runs. Zero credits used.
+      clearGoogTransCookie();
+      localStorage.removeItem('zw_lang');
+      location.reload();
+    } else {
+      // ── Switch to another language ──
+      // Set the googtrans cookie and reload. GT picks it up on load.
+      setGoogTransCookie(code);
+      localStorage.setItem('zw_lang', code);
+      location.reload();
+    }
+    // (page reloads, so nothing below runs)
+  }
+
+  // ─── Footer Chip ─────────────────────────────────────────────────────────────
+  function updateLangChip() {
+    const lang = LANGUAGES.find(l => l.code === currentLang) || LANGUAGES[0];
+    document.querySelectorAll('.zw-lang-chip').forEach(el => {
+      el.textContent = `${lang.flag} ${lang.code.split('-')[0].toUpperCase()}`;
+      el.setAttribute('translate', 'no');
+    });
   }
 
   // ─── Modal HTML ───────────────────────────────────────────────────────────────
@@ -174,7 +242,7 @@
               style="width:100%;background:rgba(244,241,235,0.05);border:1px solid rgba(244,241,235,0.1);
               color:#f4f1eb;border-radius:6px;padding:0.55rem 0.75rem 0.55rem 2rem;
               font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;
-              transition:border-color 0.2s;">
+              transition:border-color 0.2s;box-sizing:border-box;">
           </div>
         </div>
 
@@ -203,13 +271,9 @@
 
     document.body.appendChild(modal);
 
-    // Event listeners
     document.getElementById('zw-lang-close').addEventListener('click', closeModal);
     modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
-    document.getElementById('zw-lang-reset').addEventListener('click', () => {
-      selectLanguage('en');
-      closeModal();
-    });
+    document.getElementById('zw-lang-reset').addEventListener('click', () => selectLanguage('en'));
     document.getElementById('zw-lang-search').addEventListener('input', e => {
       renderGrid(e.target.value.toLowerCase());
     });
@@ -277,48 +341,15 @@
     document.body.style.overflow = '';
   }
 
-  // ─── Language Selection ───────────────────────────────────────────────────────
-  function selectLanguage(code) {
-    currentLang = code;
-    localStorage.setItem('zw_lang', code);
-
-    // Update footer chip
-    updateLangChip();
-
-    // Apply translation
-    if (gtReady) {
-      applyGTLang(code);
-    } else {
-      _pendingLang = code;
-    }
-
-    // Close modal
-    closeModal();
-    renderGrid();
-  }
-
-  function updateLangChip() {
-    const lang = LANGUAGES.find(l => l.code === currentLang);
-    document.querySelectorAll('.zw-lang-chip').forEach(el => {
-      el.textContent = lang ? `${lang.flag} ${lang.code.split('-')[0].toUpperCase()}` : '🌐 EN';
-      el.setAttribute('translate', 'no');
-    });
-  }
-
   // ─── Inject Footer Button ─────────────────────────────────────────────────────
   function injectFooterButton() {
-    // Find the footer (multiple possible structures)
     const footer = document.querySelector('footer');
     if (!footer) return;
-
-    // Check if already injected
     if (footer.querySelector('.zw-lang-trigger')) return;
 
     const lang = LANGUAGES.find(l => l.code === currentLang) || LANGUAGES[0];
     const btn = document.createElement('button');
     btn.className = 'zw-lang-trigger notranslate';
-    // notranslate class + translate="no" ensure the button label is ALWAYS in English
-    // so users who accidentally switch language can always find the button to switch back
     btn.setAttribute('translate', 'no');
     btn.setAttribute('aria-label', 'Change language');
     btn.setAttribute('title', 'Change language');
@@ -336,7 +367,7 @@
     footer.appendChild(btn);
   }
 
-  // ─── Inject Styles ────────────────────────────────────────────────────────────
+  // ─── Inject Component Styles ──────────────────────────────────────────────────
   function injectStyles() {
     if (document.getElementById('zw-lang-styles')) return;
     const style = document.createElement('style');
@@ -373,8 +404,15 @@
   // ─── Init ─────────────────────────────────────────────────────────────────────
   function init() {
     injectStyles();
-    injectGTElement();
-    loadGTScript();
+
+    if (currentLang !== 'en') {
+      // Non-English page: mount the hidden GT element and load the script
+      // GT will read the googtrans cookie and apply translation automatically
+      injectGTElement();
+      loadGTScript();
+    }
+    // English page: skip GT entirely — no script, no bar, no credits
+
     injectFooterButton();
     updateLangChip();
   }
