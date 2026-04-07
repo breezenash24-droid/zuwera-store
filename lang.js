@@ -51,13 +51,19 @@
   }
 
   function clearGoogTransCookie() {
-    const past = 'expires=Thu, 01 Jan 1970 00:00:00 UTC';
+    // Try every plausible domain/path combo to nuke the cookie
+    const past = 'expires=Thu, 01 Jan 1970 00:00:00 UTC; max-age=0';
     const host = location.hostname;
-    document.cookie = `googtrans=; ${past}; path=/`;
-    document.cookie = `googtrans=; ${past}; path=/; domain=${host}`;
-    if (host.indexOf('.') !== -1) {
-      document.cookie = `googtrans=; ${past}; path=/; domain=.${host}`;
-    }
+    const paths = ['/', location.pathname];
+    const domains = ['', host];
+    if (host.indexOf('.') !== -1) domains.push('.' + host);
+    paths.forEach(path => {
+      domains.forEach(domain => {
+        const d = domain ? `; domain=${domain}` : '';
+        document.cookie = `googtrans=; ${past}; path=${path}${d}`;
+        document.cookie = `googtrans=/en/en; ${past}; path=${path}${d}`;
+      });
+    });
   }
 
   function readGoogTransCookie() {
@@ -71,13 +77,14 @@
 
   // ─── State ───────────────────────────────────────────────────────────────────
   // Derive current language from the cookie (source of truth).
-  // localStorage is only used to show the chip without re-reading cookie on every render.
   let currentLang = readGoogTransCookie();
-  // Keep localStorage in sync for chip display persistence
+  // Keep localStorage in sync for chip display
   if (currentLang !== 'en') {
     localStorage.setItem('zw_lang', currentLang);
   } else {
+    // English: aggressively clear the cookie right now, before GT script can load
     localStorage.removeItem('zw_lang');
+    clearGoogTransCookie();
   }
 
   // ─── Suppress Google Translate Bar (must run BEFORE GT script) ───────────────
@@ -167,16 +174,22 @@
 
     if (code === 'en') {
       // ── Reset to English ──
-      // Clear the googtrans cookie and reload. GT never runs. Zero credits used.
+      // Clear the googtrans cookie, then navigate to a clean URL.
+      // We use location.replace() (not reload()) so bfcache is bypassed,
+      // the translated DOM is NOT restored, and any GT hash fragments are stripped.
       clearGoogTransCookie();
       localStorage.removeItem('zw_lang');
-      location.reload();
+      // Build a clean URL: same path + query but NO hash (GT appends #googtrans...)
+      const clean = location.origin + location.pathname + (location.search || '');
+      location.replace(clean);
     } else {
       // ── Switch to another language ──
       // Set the googtrans cookie and reload. GT picks it up on load.
       setGoogTransCookie(code);
       localStorage.setItem('zw_lang', code);
-      location.reload();
+      // Also navigate cleanly (strips old hashes)
+      const clean = location.origin + location.pathname + (location.search || '');
+      location.replace(clean);
     }
     // (page reloads, so nothing below runs)
   }
