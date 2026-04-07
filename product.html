@@ -644,9 +644,9 @@ body.light-mode .alink a {color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,
 // ══════════════════════════════════════════════════════════════════
 // SUPABASE INITIALIZATION
 // ══════════════════════════════════════════════════════════════════
-const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+const _PROD_SB_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+const _PROD_SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+const sb = window.supabase.createClient(_PROD_SB_URL, _PROD_SB_KEY, {
   auth: { persistSession: true, storageKey: 'zuwera-auth', flowType: 'implicit' },
   global: { headers: { 'X-Client-Info': 'zuwera-store' } }
 });

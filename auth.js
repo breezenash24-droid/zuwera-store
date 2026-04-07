@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function() {
 async function zwRunTurnstile(action) {
   if (!window.turnstile || _zwTsWidgetId === null) {
     // Turnstile not available — fail open
-    await action();
+    await action(null);
     return;
   }
   _zwTsPendingCb = async (token) => {
@@ -194,7 +194,7 @@ async function zwRunTurnstile(action) {
         console.warn('[Turnstile] Verify error:', e);
       }
     }
-    await action();
+    await action(token);
     // Reset widget for next use
     if (_zwTsWidgetId !== null) window.turnstile.reset(_zwTsWidgetId);
   };
@@ -210,15 +210,12 @@ $('signin-submit').addEventListener('click', async () => {
   if (!email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
   setBtn('signin-submit', true, 'Login');
 
-  await zwRunTurnstile(async () => {
+  await zwRunTurnstile(async (captchaToken) => {
     if (_sb) {
-      const { error } = await _sb.auth.signInWithPassword({ email, password: pass });
+      const signInOpts = captchaToken ? { captchaToken } : {};
+      const { error } = await _sb.auth.signInWithPassword({ email, password: pass, options: signInOpts });
       if (error) {
-        if (error.message.toLowerCase().includes('captcha')) {
-          err.textContent = 'CAPTCHA Blocked: Disable CAPTCHA in your Supabase Dashboard (Auth -> Providers).';
-        } else {
-          err.textContent = error.message === 'Email not confirmed' ? 'Please check your email and verify your account.' : error.message;
-        }
+        err.textContent = error.message === 'Email not confirmed' ? 'Please check your email and verify your account first.' : error.message;
         setBtn('signin-submit', false, 'Login');
         return;
       }
@@ -242,11 +239,13 @@ $('signup-submit').addEventListener('click', async () => {
   if (pass.length < 6)         { err.textContent = 'Password must be at least 6 characters.'; return; }
   setBtn('signup-submit', true, 'Create Account');
 
-  await zwRunTurnstile(async () => {
+  await zwRunTurnstile(async (captchaToken) => {
     if (_sb) {
-      const { data, error } = await _sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
+      const signUpOpts = { data: { full_name: name }, emailRedirectTo: 'https://zuwera.store/confirm.html' };
+      if (captchaToken) signUpOpts.captchaToken = captchaToken;
+      const { data, error } = await _sb.auth.signUp({ email, password: pass, options: signUpOpts });
       if (error) {
-        err.textContent = error.message.toLowerCase().includes('captcha') ? 'CAPTCHA Blocked: Disable CAPTCHA in your Supabase Dashboard.' : error.message;
+        err.textContent = error.message;
         setBtn('signup-submit', false, 'Create Account'); return;
       }
       setBtn('signup-submit', false, 'Create Account');
@@ -273,7 +272,7 @@ $('forgot-submit').addEventListener('click', async () => {
   if (!email) { err.textContent = 'Please enter your email.'; return; }
   setBtn('forgot-submit', true, 'Send Reset Link');
   if (_sb) {
-    const { error } = await _sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://zuwera.store' });
+    const { error } = await _sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://zuwera.store/confirm.html' });
     if (error) { err.textContent = error.message; setBtn('forgot-submit', false, 'Send Reset Link'); return; }
   }
   setBtn('forgot-submit', false, 'Send Reset Link');

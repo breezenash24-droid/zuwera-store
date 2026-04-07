@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Confirm Email — ZUWERA</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" type="image/png" href="images/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,900;1,900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black: #09090b;
+    --white: #f4f1eb;
+    --pink:  #F891A5;
+    --mono:  'DM Sans', sans-serif;
+    --head:  'Barlow Condensed', sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--black);
+    color: var(--white);
+    font-family: var(--mono);
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  /* ── Logo ── */
+  .logo-link {
+    position: fixed;
+    top: 1.8rem;
+    left: 2.5rem;
+    text-decoration: none;
+    font-family: var(--head);
+    font-size: 1.5rem;
+    letter-spacing: .18em;
+    color: var(--white);
+    font-weight: 700;
+  }
+  .logo-link:hover { color: var(--pink); }
+
+  /* ── Card ── */
+  .card {
+    width: min(440px, 100%);
+    background: #0f0f0f;
+    border: 1px solid rgba(244,241,235,.08);
+    border-top: 2px solid var(--pink);
+    padding: 3rem 2.6rem 2.6rem;
+    animation: fadeIn .3s ease;
+  }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+  .brand {
+    font-family: var(--head);
+    font-size: 1.4rem;
+    letter-spacing: .55em;
+    color: var(--pink);
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+    padding-bottom: 1.4rem;
+    border-bottom: 1px solid rgba(244,241,235,.06);
+  }
+
+  /* ── States ── */
+  #state-loading, #state-success, #state-error, #state-reset { display: none; }
+  #state-loading.active, #state-success.active, #state-error.active, #state-reset.active { display: block; }
+
+  .state-icon {
+    font-size: 2.8rem;
+    margin-bottom: 1rem;
+    display: block;
+  }
+
+  .state-title {
+    font-family: var(--head);
+    font-style: italic;
+    font-size: 1.8rem;
+    letter-spacing: .04em;
+    margin-bottom: .5rem;
+  }
+
+  .state-sub {
+    font-size: .72rem;
+    letter-spacing: .1em;
+    color: rgba(244,241,235,.4);
+    text-transform: uppercase;
+    margin-bottom: 1.8rem;
+    line-height: 1.7;
+  }
+
+  /* ── Spinner ── */
+  .spinner {
+    width: 36px; height: 36px;
+    border: 2px solid rgba(244,241,235,.12);
+    border-top-color: var(--pink);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+    margin: 0 auto 1.4rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    display: inline-block;
+    width: 100%;
+    padding: .9rem;
+    background: var(--white);
+    color: var(--black);
+    border: none;
+    font-family: var(--head);
+    font-style: italic;
+    font-size: 1.1rem;
+    font-weight: 900;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background .2s, color .2s;
+    margin-top: .5rem;
+  }
+  .btn-primary:hover { background: var(--pink); color: var(--black); }
+  .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+
+  .btn-ghost {
+    display: inline-block;
+    width: 100%;
+    padding: .9rem;
+    background: transparent;
+    color: rgba(244,241,235,.5);
+    border: 1px solid rgba(244,241,235,.15);
+    font-family: var(--head);
+    font-style: italic;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all .2s;
+    margin-top: .75rem;
+  }
+  .btn-ghost:hover { border-color: var(--white); color: var(--white); }
+
+  /* ── Password form ── */
+  .fgroup { margin-bottom: 1rem; text-align: left; }
+  .fgroup label {
+    display: block;
+    font-size: .55rem;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: rgba(244,241,235,.38);
+    margin-bottom: .4rem;
+  }
+  .fgroup input {
+    width: 100%;
+    background: rgba(244,241,235,.03);
+    border: 1px solid rgba(244,241,235,.1);
+    color: var(--white);
+    padding: .82rem 1rem;
+    font-family: var(--mono);
+    font-size: .9rem;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .fgroup input::placeholder { color: rgba(244,241,235,.18); }
+  .fgroup input:focus { border-color: var(--pink); box-shadow: 0 0 0 3px rgba(248,145,165,.08); }
+  .ferr {
+    color: #e74c3c;
+    font-size: .65rem;
+    min-height: .9rem;
+    margin-top: .3rem;
+    letter-spacing: .03em;
+  }
+</style>
+</head>
+<body>
+
+<a href="/" class="logo-link">ZUWERA</a>
+
+<div class="card">
+  <div class="brand">Zuwera</div>
+
+  <!-- Loading -->
+  <div id="state-loading" class="active">
+    <div class="spinner"></div>
+    <p class="state-sub">Confirming your email…</p>
+  </div>
+
+  <!-- Success -->
+  <div id="state-success">
+    <span class="state-icon">✓</span>
+    <h1 class="state-title">Email Confirmed</h1>
+    <p class="state-sub">Your account is verified and ready.<br>Welcome to Zuwera.</p>
+    <a href="/" class="btn-primary">Shop the Collection</a>
+    <a href="drop001.html" class="btn-ghost">Browse Drop 001</a>
+  </div>
+
+  <!-- Error -->
+  <div id="state-error">
+    <span class="state-icon" style="color:#e74c3c;">✕</span>
+    <h1 class="state-title">Link Expired</h1>
+    <p class="state-sub" id="error-message">This confirmation link has expired or is invalid.<br>Request a new one below.</p>
+    <a href="/" class="btn-primary">Back to Zuwera</a>
+  </div>
+
+  <!-- Password Reset -->
+  <div id="state-reset">
+    <span class="state-icon">🔑</span>
+    <h1 class="state-title">Set New Password</h1>
+    <p class="state-sub">Choose a strong password for your account.</p>
+    <div class="fgroup">
+      <label>New Password</label>
+      <input type="password" id="new-password" placeholder="Min 6 characters" autocomplete="new-password">
+    </div>
+    <div class="fgroup">
+      <label>Confirm Password</label>
+      <input type="password" id="confirm-password" placeholder="Repeat password" autocomplete="new-password">
+    </div>
+    <p class="ferr" id="reset-error"></p>
+    <button id="reset-btn" class="btn-primary">Update Password</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function() {
+  const _CFM_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+  const _CFM_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+
+  const cfmSb = window.supabase.createClient(_CFM_URL, _CFM_KEY, {
+    auth: { persistSession: true, storageKey: 'zuwera-auth', flowType: 'implicit' }
+  });
+
+  function show(id) {
+    ['state-loading','state-success','state-error','state-reset'].forEach(s => {
+      document.getElementById(s).classList.toggle('active', s === id);
+    });
+  }
+
+  // Parse URL hash/params for token info
+  const hash   = window.location.hash.substring(1);
+  const params = new URLSearchParams(hash || window.location.search.substring(1));
+  const type   = params.get('type');
+  const error  = params.get('error_description') || params.get('error');
+  const tokenHash = new URLSearchParams(window.location.search).get('token_hash');
+
+  // Handle explicit errors in the URL
+  if (error) {
+    document.getElementById('error-message').textContent = decodeURIComponent(error);
+    show('state-error');
+    return;
+  }
+
+  // PKCE flow: token_hash in query string
+  if (tokenHash) {
+    cfmSb.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: type || 'email'
+    }).then(({ error: verifyErr }) => {
+      if (verifyErr) {
+        document.getElementById('error-message').textContent = verifyErr.message;
+        show('state-error');
+      } else if (type === 'recovery') {
+        show('state-reset');
+      } else {
+        show('state-success');
+      }
+    });
+    return;
+  }
+
+  // Implicit flow: access_token in hash
+  if (params.get('access_token')) {
+    if (type === 'recovery') {
+      // Password reset — show the new password form
+      show('state-reset');
+    } else {
+      // Email signup confirmation
+      show('state-success');
+    }
+    return;
+  }
+
+  // Nothing in URL — maybe user landed here directly
+  cfmSb.auth.getSession().then(({ data: { session } }) => {
+    if (session) {
+      show('state-success');
+    } else {
+      document.getElementById('error-message').textContent =
+        'No confirmation token found. Please check your email for the link, or request a new one.';
+      show('state-error');
+    }
+  });
+
+  // ── Password reset handler ──
+  document.getElementById('reset-btn').addEventListener('click', async () => {
+    const pass1  = document.getElementById('new-password').value;
+    const pass2  = document.getElementById('confirm-password').value;
+    const errEl  = document.getElementById('reset-error');
+    const btn    = document.getElementById('reset-btn');
+    errEl.textContent = '';
+
+    if (pass1.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
+    if (pass1 !== pass2)  { errEl.textContent = 'Passwords do not match.'; return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Updating…';
+
+    const { error: updateErr } = await cfmSb.auth.updateUser({ password: pass1 });
+    if (updateErr) {
+      errEl.textContent = updateErr.message;
+      btn.disabled = false;
+      btn.textContent = 'Update Password';
+      return;
+    }
+    show('state-success');
+    document.querySelector('#state-success .state-title').textContent = 'Password Updated';
+    document.querySelector('#state-success .state-sub').textContent = 'Your password has been changed. You\'re now signed in.';
+  });
+
+})();
+</script>
+</body>
+</html>
