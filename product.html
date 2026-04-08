@@ -689,15 +689,20 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
 // ══════════════════════════════════════════════════════════════════
 const _PROD_SB_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
 const _PROD_SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
-const sb = window.supabase.createClient(_PROD_SB_URL, _PROD_SB_KEY, {
+window.sb = window.sb || window.supabase.createClient(_PROD_SB_URL, _PROD_SB_KEY, {
   auth: { persistSession: true, storageKey: 'zuwera-auth', flowType: 'implicit' },
   global: { headers: { 'X-Client-Info': 'zuwera-store' } }
 });
+const sb = window.sb;
+
+// Create a single promise to wait for session initialization to avoid auth lock contention
+const _sessionPromise = sb.auth.getSession();
 
 // ══════════════════════════════════════════════════════════════════
 // LOAD SITE SETTINGS (announcement bar + shipping)
 // ══════════════════════════════════════════════════════════════════
 async function loadSiteSettings() {
+  await _sessionPromise;
   try {
     const { data } = await sb.from('site_settings').select('*');
     if (!data) return;
@@ -792,6 +797,8 @@ loadSiteSettings();
 const _productFetchPromise = (async () => {
   // loadProduct() is defined below; calling it here starts the fetch early.
   // We wrap in try/catch so an early error is caught by DOMContentLoaded.
+  // Wait for auth to initialize first to prevent lock contention
+  await _sessionPromise;
   try { return await loadProduct(); } catch(e) { throw e; }
 })();
 
@@ -866,7 +873,7 @@ async function loadProduct() {
   // ── Single-query fetch: product + all related data in one round trip ──
   // FK constraints exist for all child tables so PostgREST can embed them.
   let query = sb.from('products').select(
-    '*, product_images(*), color_variants(*), product_sizes(*), reviews(*)'
+    '*, product_images(*), color_variants(*), product_sizes(*)'
   );
 
   if (productId) {
@@ -874,7 +881,7 @@ async function loadProduct() {
   } else if (sku) {
     query = query.eq('sku', sku);
   } else if (slug) {
-    query = query.ilike('title', `%${slug}%`);
+    query = query.eq('slug', slug);
   } else {
     query = query.eq('status', 'Live').order('sort_order', { ascending: true });
   }
@@ -890,6 +897,12 @@ async function loadProduct() {
     throw new Error('Product not found');
   }
 
+  // Fetch reviews separately to prevent massive JSON aggregation bottlenecks in Postgres
+  const { data: reviewsData } = await sb.from('reviews')
+    .select('*')
+    .eq('product_id', productData.id)
+    .order('created_at', { ascending: false });
+
   // Normalize field names
   if (!productData.title && productData.name) productData.title = productData.name;
   if (!productData.current_price && productData.price) productData.current_price = parseFloat(productData.price) || 0;
@@ -900,7 +913,7 @@ async function loadProduct() {
   const images    = (productData.product_images  || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   const colors    = (productData.color_variants   || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   const inventory = productData.product_sizes     || [];
-  const reviews   = (productData.reviews          || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  const reviews   = reviewsData || [];
 
   // Remove raw embedded fields before assigning to currentProduct
   delete productData.product_images;
