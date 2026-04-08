@@ -2378,7 +2378,7 @@
             }
             try {
                 const { error } = await sb.auth.resetPasswordForEmail(email, {
-                    redirectTo: 'https://zuwera.store/admin.html'
+                    redirectTo: 'https://zuwera.store/confirm'
                 });
                 if (error) throw error;
                 resetMsg.style.color = '#4caf50';
