@@ -755,6 +755,14 @@ async function loadSiteSettings() {
 }
 loadSiteSettings();
 
+// Kick off the Supabase product fetch IMMEDIATELY — don't wait for
+// DOMContentLoaded. By the time the DOM is ready the data is usually
+// already in flight (or done). DOMContentLoaded just awaits this promise.
+const _productFetchPromise = (async () => {
+  // loadProduct() is defined below; calling it here starts the fetch early.
+  // We wrap in try/catch so an early error is caught by DOMContentLoaded.
+  try { return await loadProduct(); } catch(e) { throw e; }
+})();
 
 // ══════════════════════════════════════════════════════════════════
 // STATE MANAGEMENT
@@ -795,7 +803,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.body.classList.add('has-bar');
 
   try {
-    await loadProduct();
+    // Await the fetch that was started immediately when the script loaded.
+    // In most cases the data is already here by the time the DOM is ready.
+    await _productFetchPromise;
     renderProduct();
   } catch (err) {
     console.error('Product load error:', err);
