@@ -310,11 +310,75 @@ _authEls.accountBtn.addEventListener('click', () => {
   _openModal('account-modal');
   switchAcctTab('orders');
   loadOrderHistory();
+  // Reset danger zone each time modal opens
+  const conf = $('acct-delete-confirm');
+  if (conf) conf.style.display = 'none';
+  const err = $('acct-delete-error');
+  if (err) err.textContent = '';
 });
 $('account-modal-close').addEventListener('click', () => _closeModal('account-modal'));
 $('account-modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) _closeModal('account-modal');
 });
+
+// ── Delete Account ─────────────────────────────────────────────────
+const _zwDeleteBtn        = $('acct-delete-btn');
+const _zwDeleteConfirmBox = $('acct-delete-confirm');
+const _zwDeleteConfirmBtn = $('acct-delete-confirm-btn');
+const _zwDeleteCancelBtn  = $('acct-delete-cancel-btn');
+const _zwDeleteErr        = $('acct-delete-error');
+
+if (_zwDeleteBtn) {
+  _zwDeleteBtn.addEventListener('click', () => {
+    if (_zwDeleteConfirmBox) _zwDeleteConfirmBox.style.display = 'block';
+    _zwDeleteBtn.style.display = 'none';
+  });
+}
+if (_zwDeleteCancelBtn) {
+  _zwDeleteCancelBtn.addEventListener('click', () => {
+    if (_zwDeleteConfirmBox) _zwDeleteConfirmBox.style.display = 'none';
+    if (_zwDeleteBtn) _zwDeleteBtn.style.display = 'block';
+    if (_zwDeleteErr) _zwDeleteErr.textContent = '';
+  });
+}
+if (_zwDeleteConfirmBtn) {
+  _zwDeleteConfirmBtn.addEventListener('click', async () => {
+    if (!_sb) return;
+    _zwDeleteConfirmBtn.disabled = true;
+    _zwDeleteConfirmBtn.textContent = 'Deleting…';
+    if (_zwDeleteErr) _zwDeleteErr.textContent = '';
+
+    try {
+      const { data: { session } } = await _sb.auth.getSession();
+      if (!session) throw new Error('Not signed in.');
+
+      const res = await fetch(
+        'https://qfgnrsifcwdubkolsgsq.supabase.co/functions/v1/delete-account',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + session.access_token,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Deletion failed.');
+
+      // Sign out locally and go home
+      await _sb.auth.signOut().catch(() => {});
+      localStorage.removeItem('zuwera-auth');
+      _closeModal('account-modal');
+      showToast('Your account has been deleted.');
+      _currentUser = null;
+      updateHeaderForAuth();
+    } catch (e) {
+      if (_zwDeleteErr) _zwDeleteErr.textContent = e.message;
+      _zwDeleteConfirmBtn.disabled = false;
+      _zwDeleteConfirmBtn.textContent = 'Yes, delete my account';
+    }
+  });
+}
 
 function switchAcctTab(tab) {
   document.querySelectorAll('#account-modal .auth-tab').forEach(b => {

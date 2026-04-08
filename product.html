@@ -366,6 +366,18 @@ body.light-mode .alink a {color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,
       <div id="acct-favs-empty" style="display:none;padding:.5rem 0;font-family:'DM Sans',sans-serif;font-size:.72rem;color:rgba(244,241,235,.35)">No saved items yet.</div>
       <ul id="acct-favs-list" style="list-style:none;padding:0;margin:0;"></ul>
     </div>
+    <!-- Danger Zone -->
+    <div style="border-top:1px solid rgba(244,241,235,.06);margin-top:1.6rem;padding-top:1.4rem;">
+      <div id="acct-delete-confirm" style="display:none;background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.25);padding:1rem 1.1rem;margin-bottom:1rem;">
+        <p style="font-family:'DM Sans',sans-serif;font-size:.72rem;color:rgba(244,241,235,.7);margin-bottom:.8rem;line-height:1.6;">This will permanently delete your account and all associated data. <strong style="color:#f4f1eb;">This cannot be undone.</strong></p>
+        <div style="display:flex;gap:.6rem;">
+          <button id="acct-delete-confirm-btn" style="flex:1;padding:.6rem;background:#dc2626;color:#fff;border:none;font-family:'Bebas Neue',sans-serif;font-style:italic;font-size:1rem;letter-spacing:.08em;cursor:pointer;">Yes, delete my account</button>
+          <button id="acct-delete-cancel-btn" style="flex:1;padding:.6rem;background:transparent;color:rgba(244,241,235,.5);border:1px solid rgba(244,241,235,.15);font-family:'Bebas Neue',sans-serif;font-style:italic;font-size:1rem;letter-spacing:.08em;cursor:pointer;">Cancel</button>
+        </div>
+        <p id="acct-delete-error" style="color:#f87171;font-family:'DM Sans',sans-serif;font-size:.65rem;margin-top:.5rem;min-height:.8rem;"></p>
+      </div>
+      <button id="acct-delete-btn" style="width:100%;padding:.55rem;background:transparent;color:rgba(220,38,38,.7);border:1px solid rgba(220,38,38,.25);font-family:'DM Sans',sans-serif;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:all .2s;" onmouseover="this.style.borderColor='rgba(220,38,38,.6)';this.style.color='#dc2626'" onmouseout="this.style.borderColor='rgba(220,38,38,.25)';this.style.color='rgba(220,38,38,.7)'">Delete account</button>
+    </div>
   </div>
 </div>
 
