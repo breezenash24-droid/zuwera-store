@@ -920,6 +920,7 @@
                     </button>
                 </div>
             </div>
+            <div id="zw-admin-ts-widget" style="display:none;"></div>
             <button type="submit" class="btn btn-primary" style="width: 100%;">Sign In</button>
             <div id="authError" style="color: var(--error); margin-top: 16px; font-size: 0.9rem; display: none;"></div>
             <button type="button" onclick="resetAdminPassword()" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:0.85rem;margin-top:14px;text-decoration:underline;display:block;width:100%;">Forgot password?</button>
@@ -2126,6 +2127,7 @@
         </div>
     </div>
 
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=_zwAdminTsLoad" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
@@ -2135,6 +2137,40 @@
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: { persistSession: true, storageKey: 'zuwera-auth' }
         });
+
+        // ── Turnstile (invisible CAPTCHA) for admin login ──
+        const ZW_ADMIN_TS_KEY = '0x4AAAAAACzvvg-l2dT2z35l';
+        let _adminTsWidgetId = null;
+        let _adminTsPendingCb = null;
+
+        window._zwAdminTsSuccess = function(token) {
+            if (_adminTsPendingCb) { const cb = _adminTsPendingCb; _adminTsPendingCb = null; cb(token); }
+        };
+        window._zwAdminTsError = function() {
+            if (_adminTsPendingCb) { const cb = _adminTsPendingCb; _adminTsPendingCb = null; cb(null); }
+        };
+        function _adminInitTurnstile() {
+            const el = document.getElementById('zw-admin-ts-widget');
+            if (!el || !window.turnstile || _adminTsWidgetId !== null) return;
+            _adminTsWidgetId = window.turnstile.render(el, {
+                sitekey: ZW_ADMIN_TS_KEY,
+                size: 'invisible',
+                callback: '_zwAdminTsSuccess',
+                'error-callback': '_zwAdminTsError',
+                'expired-callback': function() { if (_adminTsWidgetId !== null) window.turnstile.reset(_adminTsWidgetId); }
+            });
+        }
+        window._zwAdminTsLoad = function() { _adminInitTurnstile(); };
+        document.addEventListener('DOMContentLoaded', function() { setTimeout(_adminInitTurnstile, 800); });
+
+        async function adminRunTurnstile(action) {
+            if (!window.turnstile || _adminTsWidgetId === null) { await action(null); return; }
+            _adminTsPendingCb = async (token) => {
+                await action(token);
+                if (_adminTsWidgetId !== null) window.turnstile.reset(_adminTsWidgetId);
+            };
+            window.turnstile.execute(_adminTsWidgetId);
+        }
 
         // State Management
         let currentUser = null;
@@ -2331,25 +2367,24 @@
             const errEl = document.getElementById('authError');
             errEl.style.display = 'none';
 
-            try {
-                const { data, error } = await sb.auth.signInWithPassword({
-                    email,
-                    password
-                });
-
-                if (error) {
-                    if (error.message.toLowerCase().includes('captcha')) {
-                        throw new Error('CAPTCHA Blocked: Please disable CAPTCHA in your Supabase Dashboard (Auth -> Providers) to login locally.');
+            await adminRunTurnstile(async (captchaToken) => {
+                try {
+                    const signInOpts = captchaToken ? { options: { captchaToken } } : {};
+                    const { data, error } = await sb.auth.signInWithPassword({ email, password, ...signInOpts });
+                    if (error) {
+                        if (error.message.toLowerCase().includes('captcha')) {
+                            throw new Error('CAPTCHA verification failed. Please try again.');
+                        }
+                        if (error.message === 'Email not confirmed') throw new Error('Please verify your email address before logging in.');
+                        throw error;
                     }
-                    if (error.message === 'Email not confirmed') throw new Error('Please verify your email address before logging in.');
-                    throw error;
+                    currentUser = data.user;
+                    await checkAdminRole();
+                } catch (error) {
+                    errEl.textContent = error.message;
+                    errEl.style.display = 'block';
                 }
-                currentUser = data.user;
-                await checkAdminRole();
-            } catch (error) {
-                errEl.textContent = error.message;
-                errEl.style.display = 'block';
-            }
+            });
         });
 
         // Logout

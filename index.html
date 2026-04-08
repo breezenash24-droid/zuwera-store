@@ -110,9 +110,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500&family=Barlow:wght@300;400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="reviews.css">
 
-<!-- Stripe must stay non-deferred — Stripe loads it early intentionally
-     for fraud detection signals. -->
-<script src="https://js.stripe.com/v3/"></script>
+<!-- Stripe is loaded lazily on checkout click to avoid blocking initial render -->
 <!-- defer moves Supabase off the critical path — it was previously
      render-blocking (parsing stopped until this ~200 KB bundle downloaded
      and executed). defer lets HTML continue parsing in parallel. -->
@@ -1971,20 +1969,36 @@ document.getElementById('checkout-btn').addEventListener('click', () => {
   document.body.style.overflow='hidden';
   document.getElementById('pay-error').textContent = '';
   const sub = Math.round(parseFloat((document.getElementById('summary-subtotal')?.textContent||'0').replace(/[^0-9.]/g,''))*100);
-  initPR(sub || 100);
+  _loadStripe(() => { _initStripe(); initPR(sub || 100); });
 });
 window.addEventListener('DOMContentLoaded', renderCart);
 
-/* STRIPE */
-const stripe = Stripe('pk_live_51T8ct20oFp4PJGitDcNMSLu9jQMFajtwqib8dTX4WhubBon2Pso2VgkHhTHcbuKNUi9ljfwMX8Bx2uhEp1Fp2VfY00LFKvLEy4');
-const elements = stripe.elements();
-const card = elements.create('card', {
-  style: {
-    base: { color:'#f4f1eb', fontFamily:'"Barlow",sans-serif', fontSmoothing:'antialiased', fontSize:'15px', '::placeholder':{ color:'rgba(244,241,235,.25)' } },
-    invalid: { color:'#c0392b', iconColor:'#c0392b' }
-  }
-});
-card.mount('#stripe-card-element');
+/* STRIPE — lazy-loaded on first checkout click */
+let stripe = null, elements = null, card = null;
+let _stripeReady = false, _stripeLoading = false;
+const _stripeQueue = [];
+function _loadStripe(cb) {
+  if (_stripeReady) { cb(); return; }
+  _stripeQueue.push(cb);
+  if (_stripeLoading) return;
+  _stripeLoading = true;
+  const s = document.createElement('script');
+  s.src = 'https://js.stripe.com/v3/';
+  s.onload = () => { _stripeReady = true; _stripeQueue.splice(0).forEach(f => f()); };
+  document.head.appendChild(s);
+}
+function _initStripe() {
+  if (stripe) return;
+  stripe = Stripe('pk_live_51T8ct20oFp4PJGitDcNMSLu9jQMFajtwqib8dTX4WhubBon2Pso2VgkHhTHcbuKNUi9ljfwMX8Bx2uhEp1Fp2VfY00LFKvLEy4');
+  elements = stripe.elements();
+  card = elements.create('card', {
+    style: {
+      base: { color:'#f4f1eb', fontFamily:'"Barlow",sans-serif', fontSmoothing:'antialiased', fontSize:'15px', '::placeholder':{ color:'rgba(244,241,235,.25)' } },
+      invalid: { color:'#c0392b', iconColor:'#c0392b' }
+    }
+  });
+  card.mount('#stripe-card-element');
+}
 
 async function post(url, body) {
   const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });

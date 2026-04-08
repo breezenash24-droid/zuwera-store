@@ -408,9 +408,9 @@ body.light-mode .alink a {color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,
     <div class="product-layout">
       <!-- LEFT: IMAGE GALLERY -->
     <div class="gallery-section">
-        <div class="gallery-main" style="position:relative">
+        <div class="gallery-main loading" id="galleryMain" style="position:relative">
           <button id="prevImg" class="gallery-arrow left-arrow">&#10094;</button>
-          <img id="mainImage" src="" alt="Product" class="main-image" fetchpriority="high" decoding="sync">
+          <img id="mainImage" src="" alt="Product" class="main-image" fetchpriority="high" decoding="async">
           <button id="nextImg" class="gallery-arrow right-arrow">&#10095;</button>
           <div class="low-stock-badge hidden" id="lowStockBadge">Low Stock</div>
         </div>
@@ -1034,7 +1034,11 @@ function updateMainImage(index) {
   const img = currentProduct.images[index];
   const mainImgEl = document.getElementById('mainImage');
   mainImgEl.src = optimizeImage(img.image_url, 1200);
-  mainImgEl.onerror = function() { if (this.src !== img.image_url) this.src = img.image_url; };
+  mainImgEl.onload = function() { document.getElementById('galleryMain')?.classList.remove('loading'); };
+  mainImgEl.onerror = function() {
+    document.getElementById('galleryMain')?.classList.remove('loading');
+    if (this.src !== img.image_url) this.src = img.image_url;
+  };
   mainImgEl.alt = img.alt_text || currentProduct.title;
 
   document.querySelectorAll('.thumbnail').forEach((t, i) => {
@@ -1924,9 +1928,6 @@ document.addEventListener('keydown', (e) => {
   <button id="success-continue" style="background:#f4f1eb;color:#09090b;border:none;padding:.8rem 2.5rem;font-family:var(--font-head);font-size:1rem;letter-spacing:.12em;cursor:pointer">Continue Shopping</button>
 </div>
 
-<!-- Stripe.js -->
-<script src="https://js.stripe.com/v3/"></script>
-
 <script>
 // ══════════════════════════════════════════════════════════════════
 // CART MODAL LOGIC
@@ -2049,21 +2050,39 @@ document.addEventListener('keydown', (e) => {
     document.getElementById('pay-error').textContent = '';
     const subtotalText = document.getElementById('summary-subtotal')?.textContent?.replace(/[^0-9.]/g, '') || '0';
     const subtotalCents = Math.round(parseFloat(subtotalText) * 100) || 100;
-    initPR(subtotalCents);
+    _loadStripe(() => { _initStripe(); initPR(subtotalCents); });
   });
 
   // ══════════════════════════════════════════════════════════════════
-  // STRIPE PAYMENT
+  // STRIPE PAYMENT (lazy-loaded — Stripe JS only fetched on checkout)
   // ══════════════════════════════════════════════════════════════════
-  const stripe = Stripe('pk_live_51T8ct20oFp4PJGitDcNMSLu9jQMFajtwqib8dTX4WhubBon2Pso2VgkHhTHcbuKNUi9ljfwMX8Bx2uhEp1Fp2VfY00LFKvLEy4');
-  const elements = stripe.elements();
-  const card = elements.create('card', {
-    style: {
-      base: { color:'#f4f1eb', fontFamily:'"DM Sans",sans-serif', fontSmoothing:'antialiased', fontSize:'15px', '::placeholder':{ color:'rgba(244,241,235,.25)' } },
-      invalid: { color:'#c0392b', iconColor:'#c0392b' }
-    }
-  });
-  card.mount('#stripe-card-element');
+  let stripe = null, elements = null, card = null;
+  let _stripeReady = false, _stripeLoading = false;
+  const _stripeQueue = [];
+
+  function _loadStripe(cb) {
+    if (_stripeReady) { cb(); return; }
+    _stripeQueue.push(cb);
+    if (_stripeLoading) return;
+    _stripeLoading = true;
+    const s = document.createElement('script');
+    s.src = 'https://js.stripe.com/v3/';
+    s.onload = () => { _stripeReady = true; _stripeQueue.splice(0).forEach(f => f()); };
+    document.head.appendChild(s);
+  }
+
+  function _initStripe() {
+    if (stripe) return;
+    stripe = Stripe('pk_live_51T8ct20oFp4PJGitDcNMSLu9jQMFajtwqib8dTX4WhubBon2Pso2VgkHhTHcbuKNUi9ljfwMX8Bx2uhEp1Fp2VfY00LFKvLEy4');
+    elements = stripe.elements();
+    card = elements.create('card', {
+      style: {
+        base: { color:'#f4f1eb', fontFamily:'"DM Sans",sans-serif', fontSmoothing:'antialiased', fontSize:'15px', '::placeholder':{ color:'rgba(244,241,235,.25)' } },
+        invalid: { color:'#c0392b', iconColor:'#c0392b' }
+      }
+    });
+    card.mount('#stripe-card-element');
+  }
 
   async function post(url, body) {
     const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });

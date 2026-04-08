@@ -12,6 +12,10 @@
 /analytics.html
   X-Frame-Options: SAMEORIGIN
 
+# Allow sizeguide.html to be embedded as an iframe in the product page size modal
+/sizeguide.html
+  X-Frame-Options: SAMEORIGIN
+
 /*.html
   Cache-Control: public, max-age=0, must-revalidate
 

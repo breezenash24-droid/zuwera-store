@@ -83,12 +83,27 @@
 .gallery-main {
   position: relative;
   aspect-ratio: 3/4;
-  background: transparent;
+  background: #141414;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+}
+
+/* Skeleton shimmer while image loads */
+.gallery-main.loading::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #141414 25%, #1e1e1e 50%, #141414 75%);
+  background-size: 200% 100%;
+  animation: imgSkeleton 1.4s ease infinite;
+  z-index: 1;
+}
+@keyframes imgSkeleton {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .main-image {
