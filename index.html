@@ -233,6 +233,11 @@ nav#nav.scrolled{
 #logout-btn{display:none!important}
 #account-btn.show,#logout-btn.show{display:flex!important}
 
+.hamburger-btn { display:none; background:none; border:none; color:#f4f1eb; cursor:pointer; -webkit-appearance:none; padding:0; }
+#mobile-menu { background: rgba(9,9,11,0.98); }
+#mobile-menu a { font-family: var(--fw); font-weight: 900; font-size: 3.5rem; color: #f4f1eb; letter-spacing: 0.05em; text-decoration: none; transition: color 0.2s; }
+#mobile-menu a:hover { color: #F891A5; }
+
 /* ─────────────────────────────────────────────
    HERO
 ───────────────────────────────────────────── */
@@ -1106,6 +1111,19 @@ body.light-mode::after{opacity:0.15}
       </button>
   </div>
 </nav>
+
+<!-- MOBILE MENU MODAL -->
+<div id="mobile-menu" class="modal" role="dialog" aria-modal="true" style="z-index:900;">
+  <div class="mbox" style="background:transparent; border:none; box-shadow:none; text-align:center;">
+    <button id="mobile-menu-close" class="mclose" style="position:fixed; top:1.5rem; right:1.5rem; background:none; border:none; color:#f4f1eb; font-size:2rem; width:40px; height:40px;">&#215;</button>
+    <div style="display:flex; flex-direction:column; gap:2.5rem; margin-top:3rem;">
+      <a href="/">Home</a>
+      <a href="drop001.html">Shop</a>
+      <a href="sizeguide.html">Size Guide</a>
+      <a href="policies.html">Policies</a>
+    </div>
+  </div>
+</div>
 
 <!-- HERO -->
 <section class="hero">
@@ -2213,6 +2231,16 @@ function scrollToNotify() {
   el.scrollIntoView({ behavior:'smooth', block:'center' });
   setTimeout(() => el.focus(), 600);
 }
+
+/* MOBILE MENU */
+document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
+  document.getElementById('mobile-menu').classList.add('open');
+  document.body.style.overflow = 'hidden';
+});
+document.getElementById('mobile-menu-close')?.addEventListener('click', () => {
+  document.getElementById('mobile-menu').classList.remove('open');
+  document.body.style.overflow = '';
+});
 </script>
 <!-- Cloudflare Turnstile — invisible bot protection for waitlist -->
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=_zwHomeTsLoad&render=explicit" defer async></script>
