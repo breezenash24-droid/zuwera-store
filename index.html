@@ -233,7 +233,9 @@ nav#nav.scrolled{
 #logout-btn{display:none!important}
 #account-btn.show,#logout-btn.show{display:flex!important}
 
-.hamburger-btn { display:none; background:none; border:none; color:#f4f1eb; cursor:pointer; -webkit-appearance:none; padding:0; }
+.hamburger-btn { display:none; background:none; border:none; color:#f4f1eb !important; cursor:pointer; -webkit-appearance:none; appearance:none; padding:0; -webkit-tap-highlight-color: transparent; }
+.hamburger-btn svg { stroke: #f4f1eb !important; }
+body.light-mode .hamburger-btn svg { stroke: #09090b !important; }
 #mobile-menu { background: rgba(9,9,11,0.98); }
 #mobile-menu a { font-family: var(--fw); font-weight: 900; font-size: 3.5rem; color: #f4f1eb; letter-spacing: 0.05em; text-decoration: none; transition: color 0.2s; }
 #mobile-menu a:hover { color: #F891A5; }
@@ -1106,7 +1108,7 @@ body.light-mode::after{opacity:0.15}
     <button class="nbtn" id="account-btn">Account</button>
     <button class="nbtn" id="logout-btn">Sign Out</button>
     <button class="nbtn" id="cart-btn">Bag <span class="cc">0</span></button>
-      <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu">
+      <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" onclick="document.getElementById('mobile-menu').classList.add('open'); document.body.style.overflow='hidden';">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
       </button>
   </div>
@@ -1115,7 +1117,7 @@ body.light-mode::after{opacity:0.15}
 <!-- MOBILE MENU MODAL -->
 <div id="mobile-menu" class="modal" role="dialog" aria-modal="true" style="z-index:900;">
   <div class="mbox" style="background:transparent; border:none; box-shadow:none; text-align:center;">
-    <button id="mobile-menu-close" class="mclose" style="position:fixed; top:1.5rem; right:1.5rem; background:none; border:none; color:#f4f1eb; font-size:2rem; width:40px; height:40px;">&#215;</button>
+    <button id="mobile-menu-close" class="mclose" onclick="document.getElementById('mobile-menu').classList.remove('open'); document.body.style.overflow='';" style="position:fixed; top:1.5rem; right:1.5rem; background:none; border:none; color:#f4f1eb; font-size:2rem; width:40px; height:40px;">&#215;</button>
     <div style="display:flex; flex-direction:column; gap:2.5rem; margin-top:3rem;">
       <a href="/">Home</a>
       <a href="drop001.html">Shop</a>
@@ -2232,15 +2234,6 @@ function scrollToNotify() {
   setTimeout(() => el.focus(), 600);
 }
 
-/* MOBILE MENU */
-document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
-  document.getElementById('mobile-menu').classList.add('open');
-  document.body.style.overflow = 'hidden';
-});
-document.getElementById('mobile-menu-close')?.addEventListener('click', () => {
-  document.getElementById('mobile-menu').classList.remove('open');
-  document.body.style.overflow = '';
-});
 </script>
 <!-- Cloudflare Turnstile — invisible bot protection for waitlist -->
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=_zwHomeTsLoad&render=explicit" defer async></script>

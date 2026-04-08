@@ -270,8 +270,10 @@ body.light-mode #mobile-menu { background: rgba(240,238,233,0.98); }
 body.light-mode .mobile-nav-link { color: #09090b; }
 body.light-mode .mobile-nav-link:hover { color: #F891A5; }
 
-#mobile-menu-btn { color: #f4f1eb !important; }
+#mobile-menu-btn { color: #f4f1eb !important; -webkit-appearance: none; appearance: none; -webkit-tap-highlight-color: transparent; }
+#mobile-menu-btn svg { stroke: #f4f1eb !important; }
 body.light-mode #mobile-menu-btn { color: #09090b !important; }
+body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
 
 @media (max-width: 760px) {
   #desktop-shop-btn { display: none; }
@@ -306,15 +308,15 @@ body.light-mode #mobile-menu-btn { color: #09090b !important; }
     <button class="nav-back" id="cart-btn" style="opacity:1;display:flex;align-items:center;">
       Bag <span id="cartCount" style="background:var(--white); color:var(--black); padding:2px 6px; border-radius:50%; font-size:0.65rem; margin-left:4px; font-weight:bold;">0</span>
     </button>
-    <button id="mobile-menu-btn" style="background:none; border:none; cursor:pointer; display:none; -webkit-appearance:none; padding:0;">
+    <button id="mobile-menu-btn" onclick="document.getElementById('mobile-menu').classList.add('open'); document.body.style.overflow='hidden';" style="background:none; border:none; cursor:pointer; display:none; -webkit-appearance:none; padding:0;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
     </button>
   </div>
 </nav>
 
 <!-- MOBILE MENU MODAL -->
-<div id="mobile-menu" class="modal" role="dialog" aria-modal="true">
-  <button id="mobile-menu-close" class="mclose" style="position:absolute; top:1.5rem; right:1.5rem; font-size:2rem; background:none; border:none; color:inherit; cursor:pointer;">&#215;</button>
+<div id="mobile-menu" class="modal" role="dialog" aria-modal="true" style="z-index: 900;">
+  <button id="mobile-menu-close" class="mclose" onclick="document.getElementById('mobile-menu').classList.remove('open'); document.body.style.overflow='';" style="position:absolute; top:1.5rem; right:1.5rem; font-size:2rem; background:none; border:none; color:inherit; cursor:pointer;">&#215;</button>
   <div class="mobile-nav-links">
     <a href="index.html" class="mobile-nav-link">Home</a>
     <a href="drop001.html" class="mobile-nav-link">Shop</a>
