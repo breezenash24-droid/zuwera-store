@@ -1809,7 +1809,7 @@ window.openSizeGuideModal = function() {
     if (currentProduct.id) params.set('id', currentProduct.id);
   }
   const paramStr = params.toString();
-  const guideUrl = location.origin + '/sizeguide.html' + (paramStr ? '?' + paramStr : '');
+  const guideUrl = location.origin + '/sizeguide' + (paramStr ? '?' + paramStr : '');
   if (iframe.src !== guideUrl) {
     iframe.src = guideUrl;
   }

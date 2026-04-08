@@ -19,6 +19,17 @@
   for = "/*"
   [headers.values]
     X-Frame-Options = "DENY"
+
+# sizeguide is embedded as an iframe inside the product page size modal
+[[headers]]
+  for = "/sizeguide"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+
+[[headers]]
+  for = "/sizeguide.html"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "payment=(*)"
