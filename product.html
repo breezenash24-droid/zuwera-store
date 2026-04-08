@@ -881,7 +881,8 @@ async function loadProduct() {
   } else if (sku) {
     query = query.eq('sku', sku);
   } else if (slug) {
-    query = query.eq('slug', slug);
+    const searchSlug = slug.replace(/-/g, '%');
+    query = query.ilike('title', `%${searchSlug}%`);
   } else {
     query = query.eq('status', 'Live').order('sort_order', { ascending: true });
   }
