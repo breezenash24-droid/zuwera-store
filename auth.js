@@ -99,6 +99,11 @@ function openAuthModal(tab) {
 }
 function closeAuthModal() {
   _closeModal('auth-modal');
+  // If the cart modal is still open underneath, keep body scroll locked
+  const cart = document.getElementById('cart-modal');
+  if (cart && cart.classList.contains('open')) {
+    document.body.style.overflow = 'hidden';
+  }
 }
 function switchAuthTab(tab) {
   document.querySelectorAll('#auth-modal .auth-tab').forEach(b => {

@@ -1961,8 +1961,8 @@ window.removeCartItem = function(idx) { let cart = JSON.parse(localStorage.getIt
 
 document.getElementById('cart-btn').addEventListener('click', () => { renderCart(); document.getElementById('cart-modal').classList.add('open'); document.body.style.overflow='hidden'; });
 document.getElementById('cart-close').addEventListener('click', () => { document.getElementById('cart-modal').classList.remove('open'); document.body.style.overflow=''; });
-document.getElementById('fav-join-link').addEventListener('click', () => { document.getElementById('cart-modal').classList.remove('open'); document.body.style.overflow=''; openAuth('signup'); });
-document.getElementById('fav-signin-link').addEventListener('click', () => { document.getElementById('cart-modal').classList.remove('open'); document.body.style.overflow=''; openAuth('signin'); });
+document.getElementById('fav-join-link').addEventListener('click', () => { openAuth('signup'); });
+document.getElementById('fav-signin-link').addEventListener('click', () => { openAuth('signin'); });
 document.getElementById('checkout-btn').addEventListener('click', () => {
   document.getElementById('cart-modal').classList.remove('open');
   document.getElementById('payment-modal').classList.add('open');

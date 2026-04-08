@@ -1963,12 +1963,10 @@ document.addEventListener('keydown', (e) => {
 
   // Favorites links (placeholder — no auth modal on product page)
   document.getElementById('fav-join-link').addEventListener('click', () => {
-    document.getElementById('cart-modal').classList.remove('open');
     document.body.style.overflow = '';
     if (typeof openAuthModal === 'function') openAuthModal('signup'); else window.location.href = 'index.html?auth=signup';
   });
   document.getElementById('fav-signin-link').addEventListener('click', () => {
-    document.getElementById('cart-modal').classList.remove('open');
     document.body.style.overflow = '';
     if (typeof openAuthModal === 'function') openAuthModal('signin'); else window.location.href = 'index.html?auth=signin';
   });
