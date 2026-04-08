@@ -907,6 +907,8 @@ footer{
   .cart-body{grid-template-columns:1fr;padding:2rem 1.2rem}
   .csummary{margin-left:0;margin-top:2rem;position:static}
   .pgrow{grid-template-columns:1fr}
+    .nav-center { display: none; }
+    .hamburger-btn { display: flex; align-items: center; justify-content: center; }
 }
 @media(max-width:600px){
   nav#nav{padding:1rem 1.2rem}
@@ -1099,6 +1101,9 @@ body.light-mode::after{opacity:0.15}
     <button class="nbtn" id="account-btn">Account</button>
     <button class="nbtn" id="logout-btn">Sign Out</button>
     <button class="nbtn" id="cart-btn">Bag <span class="cc">0</span></button>
+      <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
   </div>
 </nav>
 

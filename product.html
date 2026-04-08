@@ -259,6 +259,21 @@ body.light-mode .alink a {color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,
   pointer-events: none;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Mobile Menu Overlay */
+#mobile-menu { background: rgba(9,9,11,0.98); }
+.mobile-nav-links { display: flex; flex-direction: column; gap: 2.5rem; text-align: center; }
+.mobile-nav-link { font-family: 'Bebas Neue', sans-serif; font-weight: 900; font-size: 3.5rem; color: #f4f1eb; letter-spacing: 0.05em; text-decoration: none; transition: color 0.2s; }
+.mobile-nav-link:hover { color: #F891A5; }
+
+body.light-mode #mobile-menu { background: rgba(240,238,233,0.98); }
+body.light-mode .mobile-nav-link { color: #09090b; }
+body.light-mode .mobile-nav-link:hover { color: #F891A5; }
+
+@media (max-width: 760px) {
+  #desktop-shop-btn { display: none; }
+  #mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; }
+}
 </style>
 
 </head>
@@ -284,9 +299,12 @@ body.light-mode .alink a {color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,
     <button class="nav-back" id="login-btn">Login</button>
     <button class="nav-back" id="account-btn" style="display:none;">Account</button>
     <button class="nav-back" id="logout-btn" style="display:none;">Sign Out</button>
-    <button class="nav-back" onclick="window.location.href='drop001.html'">Shop</button>
+    <button class="nav-back" id="desktop-shop-btn" onclick="window.location.href='drop001.html'">Shop</button>
     <button class="nav-back" id="cart-btn" style="opacity:1;display:flex;align-items:center;">
       Bag <span id="cartCount" style="background:var(--white); color:var(--black); padding:2px 6px; border-radius:50%; font-size:0.65rem; margin-left:4px; font-weight:bold;">0</span>
+    </button>
+    <button id="mobile-menu-btn" style="background:none; border:none; color:var(--text); cursor:pointer; display:none;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
     </button>
   </div>
 </nav>
@@ -1843,6 +1861,15 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     document.querySelectorAll('.modal.open').forEach(m => { m.classList.remove('open'); document.body.style.overflow = ''; });
   }
+});
+
+document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
+  document.getElementById('mobile-menu').classList.add('open');
+  document.body.style.overflow = 'hidden';
+});
+document.getElementById('mobile-menu-close')?.addEventListener('click', () => {
+  document.getElementById('mobile-menu').classList.remove('open');
+  document.body.style.overflow = '';
 });
 
 </script>
