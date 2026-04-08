@@ -12,7 +12,11 @@
 /analytics.html
   X-Frame-Options: SAMEORIGIN
 
-# Allow sizeguide.html to be embedded as an iframe in the product page size modal
+# Allow sizeguide to be embedded as an iframe in the product page size modal
+# CF Pages serves sizeguide.html at /sizeguide (pretty URL) — both rules needed
+/sizeguide
+  X-Frame-Options: SAMEORIGIN
+
 /sizeguide.html
   X-Frame-Options: SAMEORIGIN
 
