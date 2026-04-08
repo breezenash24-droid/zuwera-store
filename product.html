@@ -825,28 +825,26 @@ async function loadProduct() {
   // Fallback: extract slug from pathname for clean URLs (e.g. /product/vogue)
   if (!productId && !sku && !slug) {
     const pathParts = window.location.pathname.replace(/^\//, '').replace(/\/$/, '').split('/');
-    // Support /product/slug pattern
     if (pathParts.length === 2 && pathParts[0] === 'product' && pathParts[1]) {
       slug = pathParts[1];
-    }
-    // Also support legacy /slug pattern (single segment, not a known page)
-    else if (pathParts.length === 1 && pathParts[0] && pathParts[0] !== 'product.html' && pathParts[0] !== 'product') {
+    } else if (pathParts.length === 1 && pathParts[0] && pathParts[0] !== 'product.html' && pathParts[0] !== 'product') {
       slug = pathParts[0];
     }
   }
 
-  let query = sb.from('products').select('*');
+  // ── Single-query fetch: product + all related data in one round trip ──
+  // FK constraints exist for all child tables so PostgREST can embed them.
+  let query = sb.from('products').select(
+    '*, product_images(*), color_variants(*), product_sizes(*), reviews(*)'
+  );
 
   if (productId) {
     query = query.eq('id', productId);
   } else if (sku) {
     query = query.eq('sku', sku);
   } else if (slug) {
-    // Clean slug: derive a search term from the URL slug
-    // e.g. "/vogue" → slug="vogue", look for products whose title contains "vogue" (case-insensitive)
     query = query.ilike('title', `%${slug}%`);
   } else {
-    // No identifier — load the first available product instead of showing an error
     query = query.eq('status', 'Live').order('sort_order', { ascending: true });
   }
 
@@ -861,51 +859,37 @@ async function loadProduct() {
     throw new Error('Product not found');
   }
 
-  // Normalize field names — database may use name/price or title/current_price
+  // Normalize field names
   if (!productData.title && productData.name) productData.title = productData.name;
-  if (!productData.current_price && productData.price) { productData.current_price = parseFloat(productData.price) || 0; }
-
+  if (!productData.current_price && productData.price) productData.current_price = parseFloat(productData.price) || 0;
   if (!productData.subtitle && productData.category) productData.subtitle = productData.category;
   if (!productData.gender && productData.subtitle) productData.gender = productData.subtitle;
 
-  currentProduct = productData;
+  // Extract embedded arrays and sort client-side
+  const images    = (productData.product_images  || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  const colors    = (productData.color_variants   || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  const inventory = productData.product_sizes     || [];
+  const reviews   = (productData.reviews          || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-  // Load related data — wrapped in try/catch so missing tables don't break the page
-  try {
-    const [imagesRes, colorsRes, inventoryRes, reviewsRes] = await Promise.all([
-      sb
-        .from('product_images')
-        .select('*')
-        .eq('product_id', currentProduct.id)
-        .order('sort_order', { ascending: true }),
-      sb
-        .from('color_variants')
-        .select('*')
-        .eq('product_id', currentProduct.id)
-        .order('sort_order', { ascending: true }),
-      sb
-        .from('product_sizes')
-        .select('*')
-        .eq('product_id', currentProduct.id),
-      sb
-        .from('reviews')
-        .select('*')
-        .eq('product_id', currentProduct.id)
-        .order('created_at', { ascending: false })
-    ]);
+  // Remove raw embedded fields before assigning to currentProduct
+  delete productData.product_images;
+  delete productData.color_variants;
+  delete productData.product_sizes;
+  delete productData.reviews;
 
-    currentProduct.images = imagesRes.data || []; currentProduct.colors = colorsRes.data || []; currentProduct.inventory = inventoryRes.data || []; currentProduct.reviews = reviewsRes.data || [];
-  } catch (relatedErr) {
-    console.warn('Could not load related product data:', relatedErr);
-    currentProduct.images = currentProduct.images || [];
-    currentProduct.colors = currentProduct.colors || [];
-    currentProduct.inventory = currentProduct.inventory || [];
-    currentProduct.reviews = currentProduct.reviews || [];
-  }
+  currentProduct          = productData;
+  currentProduct.images   = images;
+  currentProduct.colors   = colors;
+  currentProduct.inventory = inventory;
+  currentProduct.reviews  = reviews;
 
   // Ensure main product image is in the gallery
-  if (currentProduct.image_url && !currentProduct.images.some(img => img.image_url === currentProduct.image_url)) { currentProduct.images.unshift({ image_url: currentProduct.image_url, alt_text: currentProduct.title }); }
-  if (currentProduct.images.length === 0 && currentProduct.image_url) { currentProduct.images = [{ image_url: currentProduct.image_url, alt_text: currentProduct.title }]; }
+  if (currentProduct.image_url && !currentProduct.images.some(img => img.image_url === currentProduct.image_url)) {
+    currentProduct.images.unshift({ image_url: currentProduct.image_url, alt_text: currentProduct.title });
+  }
+  if (currentProduct.images.length === 0 && currentProduct.image_url) {
+    currentProduct.images = [{ image_url: currentProduct.image_url, alt_text: currentProduct.title }];
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════

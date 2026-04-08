@@ -1708,7 +1708,12 @@ function renderProductCards(products, grid) {
 
   // Re-init hearts & reviews for dynamically loaded cards
   if (typeof refreshHearts === 'function') refreshHearts();
-  if (typeof initReviews === 'function') initReviews();
+  if (typeof initReviews === 'function') {
+    initReviews();
+  } else {
+    // reviews.js hasn't loaded yet — set a flag it will check on arrival
+    window._reviewsPending = true;
+  }
   // Re-bind heart button listeners
   document.querySelectorAll('.heart-btn').forEach(btn => {
     btn.addEventListener('click', function() {
@@ -2230,7 +2235,7 @@ function scrollToNotify() {
 </script>
 <!-- Language selector -->
 <script src="lang.js?v=2" defer></script>
-<script src="reviews.js?v=2" defer></script>
+<script src="reviews.js?v=2"></script>
 
 <!-- PWA Service Worker -->
 <script>

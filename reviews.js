@@ -380,7 +380,13 @@ async function initReviewSummaries() {
 }
 // Expose as initReviews so loadProducts() can call it after dynamic render
 window.initReviews = initReviewSummaries;
-// Run immediately for any cards already in the DOM
+// If loadProducts() already finished before this script ran (rare but possible),
+// a pending flag was left — init immediately.
+if (window._reviewsPending) {
+  window._reviewsPending = false;
+  initReviewSummaries();
+}
+// Also run for any cards already in the DOM right now
 initReviewSummaries();
 
 // ââ Utility: escape HTML to prevent XSS in review text âââââââââââ
