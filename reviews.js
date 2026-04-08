@@ -369,15 +369,19 @@ async function submitReview() {
 }
 
 // ââ Init: load star averages for all product cards on page load âââ
-(async function initReviewSummaries() {
-  const pids = Array.from(document.querySelectorAll('[data-review-pid]'))
-    .map(el => el.dataset.reviewPid);
-
-  await Promise.all(pids.map(async pid => {
+async function initReviewSummaries() {
+  const els = Array.from(document.querySelectorAll('[data-review-pid]'));
+  await Promise.all(els.map(async el => {
+    const pid   = el.dataset.reviewPid;
+    const domId = el.dataset.reviewDomid || pid;
     const reviews = await loadReviews(pid);
-    updateProductStarDisplay(pid, reviews);
+    updateProductStarDisplay(domId, reviews);
   }));
-})();
+}
+// Expose as initReviews so loadProducts() can call it after dynamic render
+window.initReviews = initReviewSummaries;
+// Run immediately for any cards already in the DOM
+initReviewSummaries();
 
 // ââ Utility: escape HTML to prevent XSS in review text âââââââââââ
 function escHtml(str) {

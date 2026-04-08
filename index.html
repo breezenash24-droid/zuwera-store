@@ -201,6 +201,15 @@ nav#nav.scrolled{
   color:var(--paper);
 }
 .nav-logo img{height:32px;width:auto;display:block;transition:filter .35s}
+.nav-center{
+  position:absolute;left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:2rem;
+}
+.nav-link{
+  font-family:var(--fm);font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;
+  color:rgba(244,241,235,.55);text-decoration:none;transition:color .2s;
+}
+.nav-link:hover{color:var(--paper)}
 .nav-right{display:flex;align-items:center;gap:.4rem}
 .nbtn{
   font-family:var(--fm);font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;
@@ -630,6 +639,8 @@ footer{
   align-items:center;justify-content:center;
 }
 .modal.open{display:flex}
+/* Auth modal must sit above cart modal (both .modal, cart is later in DOM) */
+#auth-modal{z-index:600}
 .mbox{
   background:#0f0f0f;
   border:1px solid rgba(244,241,235,.08);
@@ -1080,6 +1091,9 @@ body.light-mode::after{opacity:0.15}
     <img src="images/logo.png" alt="ZUWERA" onerror="this.style.display='none';this.parentElement.childNodes[this.parentElement.childNodes.length-1].style.display='block'">
     <span style="display:none">ZUWERA</span>
   </a>
+  <div class="nav-center">
+    <a href="drop001.html" class="nav-link">Jackets</a>
+  </div>
   <div class="nav-right">
     <button class="nbtn" id="login-btn">Login</button>
     <button class="nbtn" id="account-btn">Account</button>
@@ -1680,7 +1694,7 @@ function renderProductCards(products, grid) {
           <p class="pcard-cat">${productCategory}</p>
           <p class="pcard-name">${productName}</p>
           <p class="pcard-price">${priceDisplay}</p>
-          <button class="pcard-action" onclick="event.stopPropagation();toggleReviews('${p.id}', '${domId}')">
+          <button class="pcard-action" onclick="event.stopPropagation();toggleReviews('${p.id}', '${domId}')" data-review-pid="${p.id}" data-review-domid="${domId}">
             <span id="avg-${domId}"><span style="color:rgba(244,241,235,.2)">\u2606\u2606\u2606\u2606\u2606</span></span>
             <span id="cnt-${domId}">Be the first to review</span>
           </button>
