@@ -177,11 +177,17 @@
   .fgroup input::placeholder { color: rgba(244,241,235,.18); }
   .fgroup input:focus { border-color: var(--pink); box-shadow: 0 0 0 3px rgba(248,145,165,.08); }
   .ferr {
-    color: #e74c3c;
-    font-size: .65rem;
-    min-height: .9rem;
-    margin-top: .3rem;
+    display: none;
+    color: #f4f1eb;
+    background: rgba(220, 38, 38, 0.15);
+    border: 1px solid rgba(220, 38, 38, 0.4);
+    font-size: .8rem;
+    padding: .7rem 1rem;
+    margin-top: .5rem;
+    margin-bottom: .25rem;
     letter-spacing: .03em;
+    text-align: left;
+    line-height: 1.5;
   }
 </style>
 </head>
@@ -311,9 +317,18 @@
     const errEl  = document.getElementById('reset-error');
     const btn    = document.getElementById('reset-btn');
     errEl.textContent = '';
+    errEl.style.display = 'none';
 
-    if (pass1.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
-    if (pass1 !== pass2)  { errEl.textContent = 'Passwords do not match.'; return; }
+    if (pass1.length < 6) {
+      errEl.textContent = 'Password must be at least 6 characters.';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (pass1 !== pass2) {
+      errEl.textContent = 'Passwords do not match.';
+      errEl.style.display = 'block';
+      return;
+    }
 
     btn.disabled = true;
     btn.textContent = 'Updating…';
@@ -321,13 +336,27 @@
     const { error: updateErr } = await cfmSb.auth.updateUser({ password: pass1 });
     if (updateErr) {
       errEl.textContent = updateErr.message;
+      errEl.style.display = 'block';
       btn.disabled = false;
       btn.textContent = 'Update Password';
       return;
     }
-    show('state-success');
-    document.querySelector('#state-success .state-title').textContent = 'Password Updated';
-    document.querySelector('#state-success .state-sub').textContent = 'Your password has been changed. You\'re now signed in.';
+
+    // Success — show confirmation and redirect to admin
+    show('state-reset');
+    document.getElementById('reset-btn').style.display = 'none';
+    document.querySelectorAll('#state-reset .fgroup').forEach(el => el.style.display = 'none');
+    document.querySelector('#state-reset .state-icon').textContent = '✓';
+    document.querySelector('#state-reset .state-title').textContent = 'Password Updated';
+    document.querySelector('#state-reset .state-sub').textContent = 'Your password has been changed successfully.';
+    errEl.style.display = 'none';
+
+    // Show redirect notice and go to admin
+    const notice = document.createElement('p');
+    notice.style.cssText = 'color:rgba(244,241,235,.5);font-size:.75rem;letter-spacing:.08em;margin-top:1rem;';
+    notice.textContent = 'Redirecting to admin…';
+    document.getElementById('state-reset').appendChild(notice);
+    setTimeout(() => { window.location.href = '/admin'; }, 2000);
   });
 
 })();
