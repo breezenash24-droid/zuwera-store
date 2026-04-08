@@ -237,8 +237,11 @@ nav#nav.scrolled{
 .hamburger-btn svg { stroke: #f4f1eb !important; }
 body.light-mode .hamburger-btn svg { stroke: #09090b !important; }
 #mobile-menu { background: rgba(9,9,11,0.98); }
-#mobile-menu a { font-family: var(--fw); font-weight: 900; font-size: 3.5rem; color: #f4f1eb; letter-spacing: 0.05em; text-decoration: none; transition: color 0.2s; }
-#mobile-menu a:hover { color: #F891A5; }
+#mobile-menu a { font-family: var(--fm); font-size: 1.2rem; color: rgba(244,241,235,.78); letter-spacing: 0.22em; text-transform: uppercase; text-decoration: none; transition: color 0.2s; }
+#mobile-menu a:hover { color: var(--paper); }
+body.light-mode #mobile-menu { background: rgba(240,238,233,0.98); }
+body.light-mode #mobile-menu a { color: rgba(9,9,11,.78) !important; }
+body.light-mode #mobile-menu a:hover { color: #09090b !important; }
 
 /* ─────────────────────────────────────────────
    HERO
@@ -1119,10 +1122,7 @@ body.light-mode::after{opacity:0.15}
   <div class="mbox" style="background:transparent; border:none; box-shadow:none; text-align:center;">
     <button id="mobile-menu-close" class="mclose" onclick="document.getElementById('mobile-menu').classList.remove('open'); document.body.style.overflow='';" style="position:fixed; top:1.5rem; right:1.5rem; background:none; border:none; color:#f4f1eb; font-size:2rem; width:40px; height:40px;">&#215;</button>
     <div style="display:flex; flex-direction:column; gap:2.5rem; margin-top:3rem;">
-      <a href="/">Home</a>
-      <a href="drop001.html">Shop</a>
-      <a href="sizeguide.html">Size Guide</a>
-      <a href="policies.html">Policies</a>
+      <a href="drop001.html">Jackets</a>
     </div>
   </div>
 </div>

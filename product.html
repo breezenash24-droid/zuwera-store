@@ -263,12 +263,12 @@ body.light-mode .alink a {color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,
 /* Mobile Menu Overlay */
 #mobile-menu { background: rgba(9,9,11,0.98); }
 .mobile-nav-links { display: flex; flex-direction: column; gap: 2.5rem; text-align: center; }
-.mobile-nav-link { font-family: 'Bebas Neue', sans-serif; font-weight: 900; font-size: 3.5rem; color: #f4f1eb; letter-spacing: 0.05em; text-decoration: none; transition: color 0.2s; }
-.mobile-nav-link:hover { color: #F891A5; }
+.mobile-nav-link { font-family: 'IBM Plex Mono', monospace; font-size: 1.2rem; color: rgba(244,241,235,.78); letter-spacing: 0.22em; text-transform: uppercase; text-decoration: none; transition: color 0.2s; }
+.mobile-nav-link:hover { color: #f4f1eb; }
 
 body.light-mode #mobile-menu { background: rgba(240,238,233,0.98); }
-body.light-mode .mobile-nav-link { color: #09090b; }
-body.light-mode .mobile-nav-link:hover { color: #F891A5; }
+body.light-mode .mobile-nav-link { color: rgba(9,9,11,.78); }
+body.light-mode .mobile-nav-link:hover { color: #09090b; }
 
 #mobile-menu-btn { color: #f4f1eb !important; -webkit-appearance: none; appearance: none; -webkit-tap-highlight-color: transparent; }
 #mobile-menu-btn svg { stroke: #f4f1eb !important; }
@@ -318,10 +318,7 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
 <div id="mobile-menu" class="modal" role="dialog" aria-modal="true" style="z-index: 900;">
   <button id="mobile-menu-close" class="mclose" onclick="document.getElementById('mobile-menu').classList.remove('open'); document.body.style.overflow='';" style="position:absolute; top:1.5rem; right:1.5rem; font-size:2rem; background:none; border:none; color:inherit; cursor:pointer;">&#215;</button>
   <div class="mobile-nav-links">
-    <a href="index.html" class="mobile-nav-link">Home</a>
-    <a href="drop001.html" class="mobile-nav-link">Shop</a>
-    <a href="sizeguide.html" class="mobile-nav-link">Size Guide</a>
-    <a href="policies.html" class="mobile-nav-link">Policies</a>
+    <a href="drop001.html" class="mobile-nav-link">Jackets</a>
   </div>
 </div>
 
