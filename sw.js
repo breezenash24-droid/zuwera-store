@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zuwera-v3';
+const CACHE_NAME = 'zuwera-v4';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -50,8 +50,25 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets: cache-first strategy
-  if (/\.(css|js|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)$/i.test(url.pathname)) {
+  // Scripts and styles: network-first so storefront fixes are not trapped behind an old service-worker cache.
+  if (/\.(css|js)$/i.test(url.pathname)) {
+    event.respondWith(
+      fetch(request).then((fetchResponse) => {
+        return caches.open(CACHE_NAME).then((cache) => {
+          cache.put(request, fetchResponse.clone());
+          return fetchResponse;
+        });
+      }).catch(() => {
+        return caches.match(request).then((response) => {
+          return response || new Response('Offline', { status: 503 });
+        });
+      })
+    );
+    return;
+  }
+
+  // Images and fonts: cache-first strategy
+  if (/\.(png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)$/i.test(url.pathname)) {
     event.respondWith(
       caches.match(request).then((response) => {
         return response || fetch(request).then((fetchResponse) => {
