@@ -31,9 +31,6 @@
   line-height: 1;
 }
 .announcement-close:hover { opacity: 1; }
-body.has-bar .nav { top: 32px; }
-body.has-bar .hero { padding-top: 32px; }
-
 /* ===================== NAV ===================== */
 .nav {
   position: fixed;

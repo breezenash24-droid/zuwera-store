@@ -29,7 +29,7 @@
 
 <!-- Stylesheets -->
 <link rel="stylesheet" href="base.css">
-<link rel="stylesheet" href="nav.css?v=2">
+<link rel="stylesheet" href="nav.css?v=3">
 <link rel="stylesheet" href="product.css?v=2">
 <link rel="stylesheet" href="cart.css">
 <link rel="stylesheet" href="reviews.css">
@@ -568,9 +568,9 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
 
 <!-- ALL REVIEWS MODAL -->
 <div id="all-reviews-modal" class="modal modal--review" role="dialog" aria-modal="true" aria-labelledby="all-reviews-title">
-  <div class="mbox review-dialog review-dialog--wide">
+  <div class="mbox review-dialog review-dialog--wide review-dialog--thread">
     <button id="all-reviews-close" class="mclose review-modal-close" aria-label="Close">&#215;</button>
-    <div class="review-modal-intro">
+    <div class="review-modal-intro review-modal-intro--compact">
       <p class="review-modal-eyebrow">Community Notes</p>
       <h2 id="all-reviews-title" class="review-modal-title">All Reviews</h2>
       <p class="review-modal-copy">See how the piece fits, feels, and lands before you commit.</p>
@@ -584,7 +584,7 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
         </div>
         <div class="review-modal-controls">
           <select id="translate-lang" class="review-select">
-            <option value="en">English</option>
+            <option value="en">Original (English)</option>
             <option value="yo">Yoruba</option>
             <option value="ha">Hausa</option>
             <option value="sw">Swahili</option>
@@ -617,7 +617,7 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
 
 <!-- REVIEW MODAL -->
 <div id="review-modal" class="modal modal--review" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
-  <div class="mbox review-dialog">
+  <div class="mbox review-dialog review-dialog--form">
     <button class="mclose review-modal-close" id="review-modal-close" aria-label="Close">&#215;</button>
     <div class="review-modal-intro">
       <p class="review-modal-eyebrow">Community Notes</p>
@@ -790,11 +790,10 @@ function applyAnnouncementBar(mode, msgText) {
   barEl.style.transform = '';
   barEl.style.opacity = '1';
   barEl.style.pointerEvents = '';
+  barEl.style.marginBottom = '0';
 
-  if (msgText) {
-    const textEl = document.getElementById('announcementText');
-    if (textEl) textEl.textContent = msgText;
-  }
+  const textEl = document.getElementById('announcementText');
+  if (textEl) textEl.textContent = (typeof msgText === 'string') ? msgText : '';
 
   if (mode === 'off') {
     barEl.style.display = 'none';
@@ -807,12 +806,14 @@ function applyAnnouncementBar(mode, msgText) {
 
   if (mode !== 'scroll') return;
 
-  barEl.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+  barEl.style.transition = 'transform 0.3s ease, opacity 0.3s ease, margin-bottom 0.3s ease';
   _productAnnouncementBarScrollHandler = function() {
     const isHidden = window.scrollY > 60;
+    const hiddenOffset = barEl.offsetHeight;
     barEl.style.transform = isHidden ? 'translateY(-100%)' : '';
     barEl.style.opacity = isHidden ? '0' : '1';
     barEl.style.pointerEvents = isHidden ? 'none' : '';
+    barEl.style.marginBottom = isHidden ? (-hiddenOffset) + 'px' : '0';
     setAnnouncementBarLayout(barEl, navEl, !isHidden);
   };
   window.addEventListener('scroll', _productAnnouncementBarScrollHandler, { passive: true });
@@ -838,7 +839,9 @@ async function loadSiteSettings() {
         let msgText = '';
         if (typeof v === 'object' && v !== null) {
           mode = v.mode || (v.enabled === false ? 'off' : 'on');
-          msgText = v.product || v.main || '';
+          msgText = Object.prototype.hasOwnProperty.call(v, 'product')
+            ? (v.product ?? '')
+            : (Object.prototype.hasOwnProperty.call(v, 'main') ? (v.main ?? '') : '');
         } else {
           msgText = v;
         }
@@ -936,7 +939,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   loadCartCount();
   initializeCookieConsent();
-  document.body.classList.add('has-bar');
 
   try {
     // Await the fetch that was started immediately when the script loaded.
@@ -1440,7 +1442,7 @@ function renderReviews() {
 
   // Update header
   document.getElementById('reviewsHeader').textContent =
-    `Reviews (${avgRating} Ã¢â‚¬Â¢ ${currentProduct.reviews.length})`;
+    `Reviews (${avgRating} \u00b7 ${currentProduct.reviews.length})`;
 
   // Show latest 3 reviews
   const displayReviews = currentProduct.reviews.slice(0, 3);

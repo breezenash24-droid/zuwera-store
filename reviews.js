@@ -34,6 +34,7 @@ let _reviewIdToEdit    = null;
 // Cache of loaded reviews per product to avoid redundant DB calls
 const _reviewCache = {};
 const _domIdToPid = {};
+const REVIEW_META_SEPARATOR = ' \u00b7 ';
 
 function syncCurrentProductReviews(pid, reviews) {
   if (typeof currentProduct !== 'undefined' && currentProduct && currentProduct.id === pid) {
@@ -46,6 +47,13 @@ function withTimeout(promise, ms, label) {
     promise,
     new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} timed out`)), ms)),
   ]);
+}
+
+function restoreOriginalReviewText(reviews) {
+  reviews.forEach((review) => {
+    if (review.original_title !== undefined) review.title = review.original_title;
+    if (review.original_body !== undefined) review.body = review.original_body;
+  });
 }
 
 // -- Stars helpers ----------------------------------------------------
@@ -116,9 +124,10 @@ function updateProductStarDisplay(domId, reviews) {
     cntEl.textContent = 'Be the first to review';
     return;
   }
+
   const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
   avgEl.innerHTML = starsHtml(avg);
-  cntEl.textContent = `${reviews.length} review${reviews.length !== 1 ? 's' : ''} Â· ${avg.toFixed(1)}`;
+  cntEl.textContent = `${reviews.length} review${reviews.length !== 1 ? 's' : ''}${REVIEW_META_SEPARATOR}${avg.toFixed(1)}`;
 }
 
 function generateReviewSummaryHtml(reviews) {
@@ -489,32 +498,54 @@ window.translateReviews = async function(domId) {
   const btnId = domId ? 'translate-reviews-btn-' + domId : 'translate-reviews-btn';
   const select = document.getElementById(selectId);
   const langCode = select ? select.value : 'es';
-  const lang = select ? select.options[select.selectedIndex].text : 'English';
+  const lang = select ? select.options[select.selectedIndex].text : 'Original (English)';
   const btn = document.getElementById(btnId);
-  
+
   const pid = _domIdToPid[domId] || _reviewProductId;
   let reviewsToTranslate = [];
   if (_reviewCache[pid]) reviewsToTranslate.push(..._reviewCache[pid]);
   if (typeof currentProduct !== 'undefined' && currentProduct && currentProduct.id === pid && currentProduct.reviews) {
-      reviewsToTranslate.push(...currentProduct.reviews);
+    reviewsToTranslate.push(...currentProduct.reviews);
   }
-  
-  // Filter to a unique array to avoid duplicating translation API requests
+
   const allReviews = Array.from(new Set(reviewsToTranslate));
   if (allReviews.length === 0) return;
-  
-  if(btn) { btn.textContent = 'Translating...'; btn.disabled = true; }
-  
+
+  if (btn) {
+    btn.textContent = 'Translating...';
+    btn.disabled = true;
+  }
+
   try {
+    if (langCode.toLowerCase() === 'en') {
+      restoreOriginalReviewText(allReviews);
+      if (typeof renderReviews === 'function') renderReviews();
+      if (document.getElementById('all-reviews-modal').classList.contains('open')) {
+        openAllReviewsModal(pid, domId, window._domIdToPname?.[domId]);
+      }
+      if (typeof showToast === 'function') showToast('Showing original English reviews.');
+      if (btn) {
+        btn.textContent = 'Translate';
+        btn.disabled = false;
+      }
+      return;
+    }
+
     const textsToTranslate = [];
     const map = [];
-    
-    allReviews.forEach((r, i) => {
-      if (r.original_title === undefined) r.original_title = r.title;
-      if (r.original_body === undefined) r.original_body = r.body;
 
-      if (r.original_title) { textsToTranslate.push(r.original_title); map.push({ obj: r, field: 'title' }); }
-      if (r.original_body) { textsToTranslate.push(r.original_body); map.push({ obj: r, field: 'body' }); }
+    allReviews.forEach((review) => {
+      if (review.original_title === undefined) review.original_title = review.title;
+      if (review.original_body === undefined) review.original_body = review.body;
+
+      if (review.original_title) {
+        textsToTranslate.push(review.original_title);
+        map.push({ obj: review, field: 'title' });
+      }
+      if (review.original_body) {
+        textsToTranslate.push(review.original_body);
+        map.push({ obj: review, field: 'body' });
+      }
     });
 
     if (textsToTranslate.length > 0) {
@@ -525,10 +556,10 @@ window.translateReviews = async function(domId) {
       });
 
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      if (!res.ok || data.error) throw new Error(data.error || `Translation request failed (${res.status})`);
 
-      data.translations.forEach((translatedText, i) => {
-        const mapping = map[i];
+      data.translations.forEach((translatedText, index) => {
+        const mapping = map[index];
         const txt = document.createElement('textarea');
         txt.innerHTML = translatedText;
         mapping.obj[mapping.field] = txt.value;
@@ -539,13 +570,19 @@ window.translateReviews = async function(domId) {
     if (document.getElementById('all-reviews-modal').classList.contains('open')) {
       openAllReviewsModal(pid, domId, window._domIdToPname?.[domId]);
     }
-    
-    if (typeof showToast === 'function') showToast('Reviews translated to ' + lang + '!');
-    if(btn) { btn.textContent = 'Translated âœ“'; btn.disabled = false; }
+
+    if (typeof showToast === 'function') showToast('Reviews translated to ' + lang + '.');
+    if (btn) {
+      btn.textContent = 'Translated';
+      btn.disabled = false;
+    }
   } catch (err) {
     console.error('Translation failed:', err);
-    if (typeof showToast === 'function') showToast('Translation failed. Check API keys.');
-    if(btn) { btn.textContent = 'Translate'; btn.disabled = false; }
+    if (typeof showToast === 'function') showToast(err?.message || 'Translation failed.');
+    if (btn) {
+      btn.textContent = 'Translate';
+      btn.disabled = false;
+    }
   }
 };
 

@@ -21,10 +21,10 @@ export async function onRequestPost(context) {
       );
     }
 
-    const API_KEY = context.env.DEEPL_API_KEY;
+    const API_KEY = context.env.DEEPL_API_KEY || context.env.DEEPL_AUTH_KEY || context.env.DEEPL_KEY;
     if (!API_KEY) {
       return new Response(
-        JSON.stringify({ error: 'DEEPL_API_KEY environment variable is not set. Please add it in your Cloudflare Pages project settings.' }),
+        JSON.stringify({ error: 'DeepL key not found. Add DEEPL_API_KEY in Cloudflare Pages environment variables.' }),
         { status: 500, headers: corsHeaders }
       );
     }
@@ -43,7 +43,7 @@ export async function onRequestPost(context) {
     });
 
     const data = await response.json();
-    if (!response.ok) throw new Error(data.message || 'Translation failed');
+    if (!response.ok) throw new Error(data.message || data.detail || data.error?.message || data.error || 'Translation failed');
 
     const translations = data.translations.map(t => t.text);
     return new Response(JSON.stringify({ translations }), { status: 200, headers: corsHeaders });
