@@ -168,6 +168,7 @@ async function saveOrderToSupabase(pi, meta, env) {
     },
     body: JSON.stringify({
       stripe_payment_intent_id: pi.id,
+      user_id: meta.user_id || null,
       email: meta.customer_email, customer_name: meta.customer_name,
       items: JSON.stringify(items),
       subtotal: (pi.amount / 100).toFixed(2),

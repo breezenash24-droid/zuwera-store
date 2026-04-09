@@ -35,13 +35,16 @@ export async function onRequestPost({ request, env }) {
   const stripe  = new Stripe(env.STRIPE_SECRET_KEY, { httpClient: Stripe.createFetchHttpClient() });
 
   try {
-    const { items, shippingRate, address } = await request.json();
+    const { items, shippingRate, address, userId } = await request.json();
 
     if (!items?.length || !address?.email)
       return new Response(JSON.stringify({ error: 'Missing required fields: items and address.email' }), { status: 400, headers });
 
+    const getItemName = (item) => item.name || item.title || 'Product';
+    const getItemPriceCents = (item) => Math.round(parseFloat(item.price) * 100);
+
     const subtotalCents = items.reduce(
-      (sum, item) => sum + Math.round(item.price * 100) * (item.quantity || 1),
+      (sum, item) => sum + getItemPriceCents(item) * (item.quantity || 1),
       0
     );
     const shippingCents = shippingRate?.amount
@@ -49,14 +52,14 @@ export async function onRequestPost({ request, env }) {
       : 0;
 
     const lineItems = items.map(item => ({
-      name:         item.name,
-      amount:       Math.round(item.price * 100),
+      name:         getItemName(item),
+      amount:       getItemPriceCents(item),
       quantity:     item.quantity || 1,
       tax_behavior: 'exclusive',
     }));
 
     const cartFingerprint = items
-      .map(i => i.name + ':' + i.quantity + ':' + Math.round(i.price * 100))
+      .map(i => getItemName(i) + ':' + (i.quantity || 1) + ':' + getItemPriceCents(i))
       .sort()
       .join('|');
     const encoded        = btoa(unescape(encodeURIComponent(cartFingerprint))).slice(0, 32);
@@ -83,6 +86,7 @@ export async function onRequestPost({ request, env }) {
         metadata: {
           customer_email:        address.email,
           customer_name:         address.name,
+          user_id:               userId || '',
           items:                 JSON.stringify(lineItems),
           shipping_provider:     shippingRate?.provider    || '',
           shipping_service:      shippingRate?.servicelevel || '',

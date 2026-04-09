@@ -49,18 +49,36 @@ function formatDate(iso) {
 
 // -- Load & render reviews for a product ------------------------------
 async function loadReviews(pid) {
-  if (!window.sb) return [];
   if (_reviewCache[pid]) return _reviewCache[pid];
+  const reviewSelect = 'id,user_id,rating,title,body,nickname,reviewer_name,verified_purchase,created_at,admin_response,fit_rating,comfort_rating,recommend';
 
-  const { data, error } = await window.sb
-    .from('reviews')
-    .select('id, user_id, rating, title, body, reviewer_name, created_at, admin_response, fit_rating, comfort_rating, recommend')
-    .eq('product_id', pid)
-    .order('created_at', { ascending: false });
+  try {
+    if (typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON !== 'undefined') {
+      const resp = await fetch(
+        `${SUPABASE_URL}/rest/v1/reviews?product_id=eq.${encodeURIComponent(pid)}&select=${encodeURIComponent(reviewSelect)}&order=created_at.desc`,
+        { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` } }
+      );
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      _reviewCache[pid] = Array.isArray(data) ? data : [];
+      return _reviewCache[pid];
+    }
 
-  if (error) { console.error('Reviews load error:', error); return []; }
-  _reviewCache[pid] = data || [];
-  return _reviewCache[pid];
+    if (!window.sb) return [];
+    const { data, error } = await window.sb
+      .from('reviews')
+      .select(reviewSelect)
+      .eq('product_id', pid)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    _reviewCache[pid] = data || [];
+    return _reviewCache[pid];
+  } catch (error) {
+    console.error('Reviews load error:', error);
+    _reviewCache[pid] = [];
+    return _reviewCache[pid];
+  }
 }
 
 function updateProductStarDisplay(domId, reviews) {
@@ -171,13 +189,18 @@ window.openAllReviewsModal = async function(pid, domId, productName) {
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
 
-  const reviews = await loadReviews(pid);
+  try {
+    const reviews = await loadReviews(pid);
   
-  let user = null;
-  if (window.sb) {
-     const { data } = await window.sb.auth.getSession();
-     user = data?.session?.user || null;
-  }
+    let user = null;
+    if (window.sb?.auth?.getSession) {
+      try {
+        const { data } = await window.sb.auth.getSession();
+        user = data?.session?.user || null;
+      } catch (error) {
+        console.warn('Review session lookup failed:', error);
+      }
+    }
   
   list.innerHTML = '';
   if (!reviews || reviews.length === 0) {
@@ -217,6 +240,11 @@ window.openAllReviewsModal = async function(pid, domId, productName) {
     `;
     list.appendChild(reviewEl);
   });
+  } catch (error) {
+    console.error('All reviews modal failed:', error);
+    summary.innerHTML = '';
+    list.innerHTML = '<p style="padding:2rem;text-align:center;color:rgba(244,241,235,.5);font-family:\'DM Sans\',sans-serif;">Could not load reviews right now. Please try again.</p>';
+  }
 };
 
 // -- Open the write-a-review modal ------------------------------------

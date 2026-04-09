@@ -2103,9 +2103,19 @@ async function post(url, body) {
   const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
   return r.json();
 }
+async function getCheckoutUserId() {
+  if (_user?.id) return _user.id;
+  if (!_sb?.auth?.getUser) return null;
+  try {
+    const { data } = await _sb.auth.getUser();
+    return data?.user?.id || null;
+  } catch {
+    return null;
+  }
+}
 function closeModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
 
-let payReq = null, selRate = null;
+let payReq = null, selRate = null, walletRates = [];
 function initPR(subtotalCents) {
   if(payReq) return;
   payReq = stripe.paymentRequest({ country:'US', currency:'usd', total:{ label:'Zuwera', amount:subtotalCents, pending:true }, requestPayerName:true, requestPayerEmail:true, requestShipping:true, shippingOptions:[] });
@@ -2113,17 +2123,26 @@ function initPR(subtotalCents) {
     const a = ev.shippingAddress;
     try {
       const d = await post('/api/shippo-rates', { address:{ name:'', line1:a.addressLine?.[0]||'', city:a.city, state:a.region, zip:a.postalCode, country:a.country } });
-      if(!d.rates?.length){ ev.updateWith({status:'invalid_shipping_address'}); return; }
-      const opts = d.rates.slice(0,4).map(r => ({ id:r.objectId, label:`${r.provider} ${r.servicelevel}`, detail:r.days?`Est. ${r.days} business days`:'', amount:Math.round(parseFloat(r.amount)*100) }));
-      selRate = d.rates[0];
+      if(!d.rates?.length){ walletRates = []; selRate = null; ev.updateWith({status:'invalid_shipping_address'}); return; }
+      walletRates = d.rates.slice(0,4);
+      const opts = walletRates.map(r => ({ id:r.objectId, label:`${r.provider} ${r.servicelevel}`, detail:r.days?`Est. ${r.days} business days`:'', amount:Math.round(parseFloat(r.amount)*100) }));
+      selRate = walletRates[0] || null;
       ev.updateWith({ status:'success', shippingOptions:opts, total:{ label:'Zuwera', amount:subtotalCents+opts[0].amount } });
     } catch { ev.updateWith({status:'fail'}); }
   });
-  payReq.on('shippingoptionchange', ev => ev.updateWith({ status:'success', total:{ label:'Zuwera', amount:subtotalCents+ev.shippingOption.amount } }));
+  payReq.on('shippingoptionchange', ev => {
+    const matchedRate = walletRates.find(r => r.objectId === ev.shippingOption?.id);
+    if (matchedRate) selRate = matchedRate;
+    const shippingAmount = matchedRate
+      ? Math.round(parseFloat(matchedRate.amount) * 100)
+      : (ev.shippingOption?.amount || 0);
+    ev.updateWith({ status:'success', total:{ label:'Zuwera', amount:subtotalCents+shippingAmount } });
+  });
   payReq.on('paymentmethod', async ev => {
     try {
       const a = ev.shippingAddress||{};
-      const d = await post('/api/create-payment-intent', { items:cartItems, shippingRate:selRate, address:{ name:ev.payerName||'', email:ev.payerEmail||'', line1:a.addressLine?.[0]||'', line2:a.addressLine?.[1]||'', city:a.city||'', state:a.region||'', zip:a.postalCode||'', country:a.country||'US' } });
+      const userId = await getCheckoutUserId();
+      const d = await post('/api/create-payment-intent', { items:cartItems, shippingRate:selRate, userId, address:{ name:ev.payerName||'', email:ev.payerEmail||'', line1:a.addressLine?.[0]||'', line2:a.addressLine?.[1]||'', city:a.city||'', state:a.region||'', zip:a.postalCode||'', country:a.country||'US' } });
       if(d.error){ ev.complete('fail'); return; }
       const { error } = await stripe.confirmCardPayment(d.clientSecret, { payment_method:ev.paymentMethod.id }, { handleActions:false });
       if(error){ ev.complete('fail'); document.getElementById('pay-error').textContent=error.message; }
@@ -2184,7 +2203,8 @@ document.getElementById('pay-submit').addEventListener('click', async () => {
   if(!selRate){ err.textContent='Please enter your ZIP code to load shipping options.'; return; }
   btn.disabled=true; btxt.textContent='Processing…';
   try {
-    const d = await post('/api/create-payment-intent', { items:cartItems, shippingRate:selRate, address:{name,email,line1:addr1,line2:addr2,city,state,zip,country:'US'} });
+    const userId = await getCheckoutUserId();
+    const d = await post('/api/create-payment-intent', { items:cartItems, shippingRate:selRate, userId, address:{name,email,line1:addr1,line2:addr2,city,state,zip,country:'US'} });
     if(d.error){ err.textContent=d.error; btn.disabled=false; btxt.textContent='Pay Now'; return; }
     const { error, paymentIntent } = await stripe.confirmCardPayment(d.clientSecret, { payment_method:{ card, billing_details:{name,email} }, receipt_email:email, shipping:{name,address:{line1:addr1,line2:addr2,city,state,postal_code:zip,country:'US'}} });
     if(error){ err.textContent=error.message; btn.disabled=false; btxt.textContent='Pay Now'; return; }
@@ -2199,6 +2219,7 @@ function showConfirmed(piId, email) {
   document.getElementById('payment-success').classList.add('open');
   document.body.style.overflow='hidden';
   cartItems=[];
+  localStorage.removeItem('cart');
   document.getElementById('cart-items-list').innerHTML='';
   document.getElementById('cart-empty-msg').style.display='block';
   document.querySelector('.cc').textContent='0';
