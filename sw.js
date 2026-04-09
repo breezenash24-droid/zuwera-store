@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zuwera-v2';
+const CACHE_NAME = 'zuwera-v3';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
