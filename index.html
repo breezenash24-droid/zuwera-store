@@ -203,12 +203,12 @@ nav#nav{
   position:fixed;top:0;left:0;right:0;z-index:100;
   display:flex;justify-content:space-between;align-items:center;
   padding:1.5rem 2.5rem;
+  background:var(--ink);
   transition:background .35s,border-color .35s,padding .35s,top .45s ease;
-  border-bottom:1px solid transparent;
+  border-bottom:1px solid rgba(244,241,235,.07);
 }
 nav#nav.scrolled{
-  background:rgba(9,9,11,.92);
-  backdrop-filter:blur(18px);
+  background:var(--ink);
   border-color:rgba(244,241,235,.07);
   padding:1rem 2.5rem;
 }
@@ -970,16 +970,23 @@ body.light-mode{
 }
 
 /* Nav */
+body.light-mode nav#nav,
 body.light-mode nav#nav.scrolled{
-  background:rgba(240,238,233,.92);
+  background:var(--paper);
   border-color:rgba(9,9,11,.07);
 }
+body.light-mode nav#nav .nav-logo img,
 body.light-mode nav#nav.scrolled .nav-logo img{filter:invert(1)}
+body.light-mode nav#nav .nbtn,
 body.light-mode nav#nav.scrolled .nbtn{color:rgba(9,9,11,.55)}
-body.light-mode nav#nav.scrolled .nbtn:hover{color:var(--paper)}
-body.light-mode nav#nav.scrolled #cart-btn{border-color:rgba(9,9,11,.2);color:var(--paper)}
+body.light-mode nav#nav .nbtn:hover,
+body.light-mode nav#nav.scrolled .nbtn:hover{color:var(--ink)}
+body.light-mode nav#nav #cart-btn,
+body.light-mode nav#nav.scrolled #cart-btn{border-color:rgba(9,9,11,.2);color:var(--ink)}
+body.light-mode nav#nav #cart-btn:hover,
 body.light-mode nav#nav.scrolled #cart-btn:hover{border-color:rgba(9,9,11,.5)}
-body.light-mode nav#nav.scrolled .cc{background:var(--paper);color:var(--ink)}
+body.light-mode nav#nav .cc,
+body.light-mode nav#nav.scrolled .cc{background:var(--ink);color:var(--paper)}
 
 /* Announcement */
 body.light-mode #bar{
@@ -2278,40 +2285,54 @@ async function getCheckoutUserId() {
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
 
-window.openSizeGuideModal = function() {
+let _sizeGuideDocumentHtml = null;
+
+async function getSizeGuideDocumentHtml() {
+  if (_sizeGuideDocumentHtml) return _sizeGuideDocumentHtml;
+  const response = await fetch('/sizeguide.html', { cache: 'no-store' });
+  if (!response.ok) throw new Error('Failed to load size guide.');
+  _sizeGuideDocumentHtml = await response.text();
+  return _sizeGuideDocumentHtml;
+}
+
+function buildSizeGuideSrcdoc(sourceHtml, params) {
+  const serializedParams = JSON.stringify(params || {}).replace(/</g, '\\u003c');
+  const injectedHead = `<base href="${window.location.origin}/"><script>window.__ZW_SIZEGUIDE_PARAMS__=${serializedParams};<\/script>`;
+  return sourceHtml.includes('<head>')
+    ? sourceHtml.replace('<head>', `<head>${injectedHead}`)
+    : injectedHead + sourceHtml;
+}
+
+window.openSizeGuideModal = async function() {
   const modal = document.getElementById('size-guide-modal');
   const iframe = document.getElementById('size-guide-iframe');
   const loading = document.getElementById('size-guide-loading');
   if (!modal || !iframe) return;
-
-  const guideUrl = '/sizeguide.html';
 
   if (loading) {
     loading.hidden = false;
     loading.textContent = 'Loading size guide...';
   }
   iframe.hidden = true;
-  iframe.onload = () => {
-    if (loading) loading.hidden = true;
-    iframe.hidden = false;
-  };
-  iframe.onerror = () => {
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  try {
+    const sourceHtml = await getSizeGuideDocumentHtml();
+    iframe.onload = () => {
+      if (loading) loading.hidden = true;
+      iframe.hidden = false;
+      iframe.onload = null;
+    };
+    iframe.srcdoc = buildSizeGuideSrcdoc(sourceHtml, {});
+  } catch (error) {
+    console.error('Size guide modal failed:', error);
     iframe.hidden = true;
     if (loading) {
       loading.hidden = false;
       loading.textContent = 'Could not load the size guide right now.';
     }
-  };
-
-  if (iframe.getAttribute('src') !== guideUrl) {
-    iframe.src = guideUrl;
-  } else {
-    if (loading) loading.hidden = true;
-    iframe.hidden = false;
   }
-
-  modal.classList.add('open');
-  document.body.style.overflow = 'hidden';
 };
 
 document.getElementById('footer-size-guide-link')?.addEventListener('click', e => {

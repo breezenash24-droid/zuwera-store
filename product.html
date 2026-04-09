@@ -29,7 +29,7 @@
 
 <!-- Stylesheets -->
 <link rel="stylesheet" href="base.css">
-<link rel="stylesheet" href="nav.css?v=3">
+<link rel="stylesheet" href="nav.css?v=4">
 <link rel="stylesheet" href="product.css?v=2">
 <link rel="stylesheet" href="cart.css">
 <link rel="stylesheet" href="reviews.css">
@@ -1705,47 +1705,62 @@ window.openSizeFitModal = async function() {
   }
 };
 
-window.openSizeGuideModal = function() {
+let _sizeGuideDocumentHtml = null;
+
+async function getSizeGuideDocumentHtml() {
+  if (_sizeGuideDocumentHtml) return _sizeGuideDocumentHtml;
+  const response = await fetch('/sizeguide.html', { cache: 'no-store' });
+  if (!response.ok) throw new Error('Failed to load size guide.');
+  _sizeGuideDocumentHtml = await response.text();
+  return _sizeGuideDocumentHtml;
+}
+
+function buildSizeGuideSrcdoc(sourceHtml, params) {
+  const serializedParams = JSON.stringify(params || {}).replace(/</g, '\\u003c');
+  const injectedHead = `<base href="${window.location.origin}/"><script>window.__ZW_SIZEGUIDE_PARAMS__=${serializedParams};<\/script>`;
+  return sourceHtml.includes('<head>')
+    ? sourceHtml.replace('<head>', `<head>${injectedHead}`)
+    : injectedHead + sourceHtml;
+}
+
+window.openSizeGuideModal = async function() {
   const modal = document.getElementById('size-guide-modal');
   const iframe = document.getElementById('size-guide-iframe');
   const loading = document.getElementById('size-guide-loading');
   if (!modal || !iframe) return;
-  // Build the size guide URL with product params so it pre-selects the right category
-  // Use absolute path so it works from /product/:slug clean URLs
-  const params = new URLSearchParams();
+
+  const params = {};
   if (currentProduct) {
-    if (currentProduct.gender) params.set('gender', currentProduct.gender);
-    if (currentProduct.category || currentProduct.subtitle) params.set('category', currentProduct.category || currentProduct.subtitle || '');
-    if (currentProduct.id) params.set('id', currentProduct.id);
+    if (currentProduct.gender) params.gender = currentProduct.gender;
+    if (currentProduct.category || currentProduct.subtitle) params.category = currentProduct.category || currentProduct.subtitle || '';
+    if (currentProduct.id) params.id = currentProduct.id;
   }
-  const paramStr = params.toString();
-  const guideUrl = '/sizeguide.html' + (paramStr ? '?' + paramStr : '');
+  if (selectedSize) params.size = selectedSize;
 
   if (loading) {
     loading.hidden = false;
     loading.textContent = 'Loading size guide...';
   }
   iframe.hidden = true;
-  iframe.onload = () => {
-    if (loading) loading.hidden = true;
-    iframe.hidden = false;
-  };
-  iframe.onerror = () => {
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  try {
+    const sourceHtml = await getSizeGuideDocumentHtml();
+    iframe.onload = () => {
+      if (loading) loading.hidden = true;
+      iframe.hidden = false;
+      iframe.onload = null;
+    };
+    iframe.srcdoc = buildSizeGuideSrcdoc(sourceHtml, params);
+  } catch (error) {
+    console.error('Size guide modal failed:', error);
     iframe.hidden = true;
     if (loading) {
       loading.hidden = false;
       loading.textContent = 'Could not load the size guide right now.';
     }
-  };
-
-  if (iframe.getAttribute('src') !== guideUrl) {
-    iframe.src = guideUrl;
-  } else {
-    if (loading) loading.hidden = true;
-    iframe.hidden = false;
   }
-  modal.classList.add('open');
-  document.body.style.overflow = 'hidden';
 };
 
 // Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â

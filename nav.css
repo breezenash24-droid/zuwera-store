@@ -40,7 +40,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 1.2rem 2.5rem;
-  background: #000000;
+  background: #09090b;
   border-bottom: 1px solid var(--c08);
   box-shadow: 0 1px 12px rgba(0,0,0,0.3);
   transition: top .45s ease, background .35s ease, box-shadow .35s ease;
@@ -112,6 +112,30 @@
   display: none;
 }
 .logout-btn:hover { color: var(--white); }
+
+body.light-mode .nav {
+  background: #F0EEE9;
+  border-bottom-color: rgba(9,9,11,0.08);
+  box-shadow: 0 1px 12px rgba(9,9,11,0.08);
+}
+body.light-mode .nav-right button,
+body.light-mode #account-btn,
+body.light-mode .logout-btn {
+  color: #09090b;
+}
+body.light-mode .nav-right button:hover,
+body.light-mode #account-btn:hover,
+body.light-mode .logout-btn:hover {
+  opacity: 0.72;
+  color: #09090b;
+}
+body.light-mode #cart-btn {
+  border-color: rgba(9,9,11,0.2) !important;
+}
+body.light-mode .cart-count {
+  background: #09090b;
+  color: #F0EEE9;
+}
 
 /* ===================== MOBILE NAV ===================== */
 @media (max-width: 640px) {

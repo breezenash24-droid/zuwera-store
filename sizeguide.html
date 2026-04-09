@@ -1645,8 +1645,22 @@
       });
     }
 
+    function getGuideParams() {
+      const injected = window.__ZW_SIZEGUIDE_PARAMS__;
+      if (injected && typeof injected === 'object') {
+        const params = new URLSearchParams();
+        Object.entries(injected).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && String(value).trim() !== '') {
+            params.set(key, String(value));
+          }
+        });
+        return params;
+      }
+      return new URLSearchParams(window.location.search);
+    }
+
     function applyUrlParams() {
-      const params = new URLSearchParams(window.location.search);
+      const params = getGuideParams();
       const genderParam = params.get('gender');
       const categoryParam = params.get('category');
       const sizeParam = params.get('size');
