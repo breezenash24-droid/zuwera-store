@@ -35,6 +35,13 @@ let _reviewIdToEdit    = null;
 const _reviewCache = {};
 const _domIdToPid = {};
 
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} timed out`)), ms)),
+  ]);
+}
+
 // -- Stars helpers ----------------------------------------------------
 function starsHtml(rating, size = 'sm') {
   const full   = Math.max(0, Math.min(5, Math.round(rating || 0)));
@@ -54,10 +61,16 @@ async function loadReviews(pid) {
 
   try {
     if (typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON !== 'undefined') {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
       const resp = await fetch(
         `${SUPABASE_URL}/rest/v1/reviews?product_id=eq.${encodeURIComponent(pid)}&select=${encodeURIComponent(reviewSelect)}&order=created_at.desc`,
-        { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` } }
+        {
+          headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` },
+          signal: controller.signal,
+        }
       );
+      clearTimeout(timeoutId);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
       _reviewCache[pid] = Array.isArray(data) ? data : [];
@@ -190,17 +203,12 @@ window.openAllReviewsModal = async function(pid, domId, productName) {
   document.body.style.overflow = 'hidden';
 
   try {
-    const reviews = await loadReviews(pid);
+    const reviews = await withTimeout(loadReviews(pid), 8000, 'Reviews request');
   
     let user = null;
-    if (window.sb?.auth?.getSession) {
-      try {
-        const { data } = await window.sb.auth.getSession();
-        user = data?.session?.user || null;
-      } catch (error) {
-        console.warn('Review session lookup failed:', error);
-      }
-    }
+    if (typeof currentUser !== 'undefined' && currentUser) user = currentUser;
+    else if (typeof _user !== 'undefined' && _user) user = _user;
+    else if (typeof _currentUser !== 'undefined' && _currentUser) user = _currentUser;
   
   list.innerHTML = '';
   if (!reviews || reviews.length === 0) {
