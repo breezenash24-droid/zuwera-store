@@ -30,7 +30,7 @@
 <!-- Stylesheets -->
 <link rel="stylesheet" href="base.css">
 <link rel="stylesheet" href="nav.css?v=4">
-<link rel="stylesheet" href="product.css?v=2">
+<link rel="stylesheet" href="product.css?v=3">
 <link rel="stylesheet" href="cart.css">
 <link rel="stylesheet" href="reviews.css">
 
@@ -706,9 +706,9 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
   <div class="mbox size-guide-dialog">
     <button id="size-guide-close" class="mclose size-guide-close" aria-label="Close">&#215;</button>
     <div class="size-guide-head">
-      <p class="size-guide-kicker">Fit Reference</p>
+      <p id="size-guide-kicker" class="size-guide-kicker">Fit Reference</p>
       <h2 id="size-guide-title" class="size-guide-title">Size Guide</h2>
-      <p class="size-guide-copy">Compare measurements, find your starting size, and cross-check the exact category for this piece.</p>
+      <p id="size-guide-copy" class="size-guide-copy">Compare measurements, find your starting size, and cross-check the exact category for this piece.</p>
     </div>
     <div class="size-guide-body">
       <div class="size-guide-frame-shell">
@@ -1114,14 +1114,118 @@ function renderProduct() {
   updateSizeGuideLink();
 }
 
+function normalizeGuideText(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function resolveGuideGender(product) {
+  const fields = [
+    product?.gender,
+    product?.audience,
+    product?.gender_tag,
+    product?.title,
+    product?.subtitle,
+    product?.category
+  ];
+
+  for (const field of fields) {
+    const lower = normalizeGuideText(field).toLowerCase();
+    if (!lower) continue;
+    if (/(^|[^a-z])(women|woman|female|ladies)([^a-z]|$)/.test(lower)) return 'women';
+    if (/(^|[^a-z])(men|man|male)([^a-z]|$)/.test(lower)) return 'men';
+    if (/(kid|kids|youth|boys|girls|children)/.test(lower)) return 'kids';
+  }
+
+  return '';
+}
+
+function classifyGuideCategory(product) {
+  const rawLabel = normalizeGuideText(product?.category)
+    || normalizeGuideText(product?.subtitle)
+    || normalizeGuideText(product?.title)
+    || 'Apparel';
+  const lower = rawLabel.toLowerCase();
+
+  if (/(sports?\s*bra|bra\b)/.test(lower)) {
+    return { categoryLabel: rawLabel, calcCategory: 'sports_bras', tabId: 'sports_bras' };
+  }
+  if (/(hat|cap|beanie|visor)/.test(lower)) {
+    return { categoryLabel: rawLabel, calcCategory: 'hats', tabId: 'hats' };
+  }
+  if (/(short|jogger|legging|tight|pant|bottom|skirt)/.test(lower)) {
+    return { categoryLabel: rawLabel, calcCategory: 'bottoms', tabId: '' };
+  }
+  if (/(tee|t-shirt|shirt|polo|hoodie|sweater|crew|jacket|puffer|zip|top|tank)/.test(lower)) {
+    return { categoryLabel: rawLabel, calcCategory: 'tops', tabId: '' };
+  }
+
+  return { categoryLabel: rawLabel, calcCategory: 'tops', tabId: '' };
+}
+
+function getSizeGuideContext(product = currentProduct) {
+  if (!product) return null;
+
+  const gender = resolveGuideGender(product);
+  const category = classifyGuideCategory(product);
+
+  let tabId = category.tabId;
+  if (!tabId) {
+    if (gender === 'women') tabId = 'womens';
+    else if (gender === 'kids') tabId = 'kids';
+    else tabId = 'mens';
+  }
+
+  return {
+    gender,
+    tabId,
+    calcCategory: category.calcCategory,
+    categoryLabel: category.categoryLabel,
+    focused: true
+  };
+}
+
+function getSizeGuideModalMeta(context) {
+  const label = normalizeGuideText(context?.categoryLabel);
+  if (!label || label.toLowerCase() === 'apparel') {
+    return {
+      kicker: 'Fit Reference',
+      title: 'Size Guide',
+      copy: 'Compare measurements, find your starting size, and cross-check the exact category for this piece.'
+    };
+  }
+
+  return {
+    kicker: 'Fit Reference',
+    title: `${label} Size Guide`,
+    copy: `Compare measurements, find your starting size, and check the fit guidance for ${label.toLowerCase()}.`
+  };
+}
+
+function syncSizeGuideModalMeta(context) {
+  const meta = getSizeGuideModalMeta(context || getSizeGuideContext());
+  const kickerEl = document.getElementById('size-guide-kicker');
+  const titleEl = document.getElementById('size-guide-title');
+  const copyEl = document.getElementById('size-guide-copy');
+
+  if (kickerEl) kickerEl.textContent = meta.kicker;
+  if (titleEl) titleEl.textContent = meta.title;
+  if (copyEl) copyEl.textContent = meta.copy;
+}
+
 function updateSizeGuideLink() {
   const sizeGuideLink = document.querySelector('.size-guide-link');
-  if (sizeGuideLink && currentProduct) {
+  const context = getSizeGuideContext();
+  syncSizeGuideModalMeta(context);
+
+  if (sizeGuideLink && context) {
     const params = new URLSearchParams();
-    if (currentProduct.gender) params.set('gender', currentProduct.gender.toLowerCase());
-    if (currentProduct.subtitle) params.set('category', currentProduct.subtitle.toLowerCase());
+    if (context.gender) params.set('gender', context.gender);
+    if (context.categoryLabel) params.set('category', context.categoryLabel);
+    if (context.calcCategory) params.set('guide', context.calcCategory);
+    if (context.tabId) params.set('tab', context.tabId);
+    if (context.focused) params.set('focused', 'true');
     if (selectedSize) params.set('size', selectedSize);
-    sizeGuideLink.href = `sizeguide.html?${params.toString()}`;
+    sizeGuideLink.href = `/sizeguide.html?${params.toString()}`;
   }
 }
 
@@ -1734,12 +1838,16 @@ window.openSizeGuideModal = async function() {
   const loading = document.getElementById('size-guide-loading');
   if (!modal || !iframe) return;
 
+  const context = getSizeGuideContext();
+  syncSizeGuideModalMeta(context);
+
   const params = {};
-  if (currentProduct) {
-    if (currentProduct.gender) params.gender = currentProduct.gender;
-    if (currentProduct.category || currentProduct.subtitle) params.category = currentProduct.category || currentProduct.subtitle || '';
-    if (currentProduct.id) params.id = currentProduct.id;
-  }
+  if (context?.gender) params.gender = context.gender;
+  if (context?.categoryLabel) params.category = context.categoryLabel;
+  if (context?.calcCategory) params.guide = context.calcCategory;
+  if (context?.tabId) params.tab = context.tabId;
+  if (context?.focused) params.focused = true;
+  if (currentProduct?.id) params.id = currentProduct.id;
   if (selectedSize) params.size = selectedSize;
 
   if (loading) {

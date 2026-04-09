@@ -116,6 +116,36 @@
       display: none;
     }
 
+    .focused-guide-note {
+      display: none;
+      border: 1px solid var(--border);
+      background: rgba(244, 241, 235, 0.03);
+      padding: 1rem 1.1rem;
+      margin-bottom: 1rem;
+    }
+    .focused-guide-note span {
+      display: block;
+      font-size: 0.72rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+    .focused-guide-note strong {
+      display: block;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      letter-spacing: 0.08em;
+      color: var(--text);
+      line-height: 1;
+    }
+    body.embed-mode.embed-focused .focused-guide-note {
+      display: block;
+    }
+    body.embed-mode.embed-focused .tabs-nav.tabs-nav--hidden {
+      display: none;
+    }
+
     /* ────── CALCULATOR SECTION ────── */
     .calculator {
       background: rgba(244, 241, 235, 0.02);
@@ -689,6 +719,7 @@
     body.light-mode .nav { background: #F0EEE9; border-bottom-color: rgba(9,9,11,0.08); }
     body.light-mode .nav-logo-img { filter: invert(1); }
     body.light-mode .calculator { background: rgba(9,9,11,0.02); }
+    body.light-mode .focused-guide-note { background: rgba(9, 9, 11, 0.03); }
     body.light-mode .calc-input, body.light-mode .calc-select {
       background-color: rgba(9,9,11,0.04);
       color: #09090b;
@@ -739,13 +770,14 @@
 
     <h1 class="page-title">Size &<br>Fit Guide</h1>
     <p class="page-subtitle">Find your perfect fit</p>
+    <div id="focused-guide-note" class="focused-guide-note" hidden></div>
 
     <!-- CALCULATOR -->
     <section class="calculator">
       <h2 class="calc-title">Find My Size</h2>
 
       <div class="calc-grid">
-        <div class="calc-field">
+        <div class="calc-field" id="calcGenderField">
           <label class="calc-label">Gender</label>
           <select id="calcGender" class="calc-select">
             <option value="">Select Gender</option>
@@ -755,7 +787,7 @@
           </select>
         </div>
 
-        <div class="calc-field">
+        <div class="calc-field" id="calcCategoryField">
           <label class="calc-label">Category</label>
           <select id="calcCategory" class="calc-select">
             <option value="">Select Category</option>
@@ -1695,46 +1727,151 @@
       return window.__ZW_SIZEGUIDE_EMBED__ === true;
     }
 
+    function normalizeGuideValue(value) {
+      return typeof value === 'string' ? value.trim() : '';
+    }
+
+    function classifyGuideContext(params) {
+      const rawGender = normalizeGuideValue(params.get('gender')).toLowerCase();
+      const rawCategory = normalizeGuideValue(params.get('category'));
+      const rawGuide = normalizeGuideValue(params.get('guide')).toLowerCase();
+      const rawTab = normalizeGuideValue(params.get('tab')).toLowerCase();
+      const focused = params.get('focused') === 'true';
+
+      let gender = '';
+      if (/(kid|kids|youth|boys|girls|children)/.test(rawGender)) gender = 'kids';
+      else if (/(women|woman|female|ladies)/.test(rawGender)) gender = 'women';
+      else if (/(men|man|male)/.test(rawGender)) gender = 'men';
+
+      const categoryLower = rawCategory.toLowerCase();
+      let calcCategory = rawGuide;
+      if (!calcCategory) {
+        if (/(sports?\s*bra|bra\b)/.test(categoryLower)) calcCategory = 'sports_bras';
+        else if (/(hat|cap|beanie|visor)/.test(categoryLower)) calcCategory = 'hats';
+        else if (/(short|jogger|legging|tight|pant|bottom|skirt)/.test(categoryLower)) calcCategory = 'bottoms';
+        else if (categoryLower) calcCategory = 'tops';
+      }
+
+      let tabId = rawTab;
+      if (!tabId) {
+        if (calcCategory === 'sports_bras') tabId = 'sports_bras';
+        else if (calcCategory === 'hats') tabId = 'hats';
+        else if (gender === 'women') tabId = 'womens';
+        else if (gender === 'kids') tabId = 'kids';
+        else tabId = 'mens';
+      }
+
+      let label = rawCategory;
+      if (!label) {
+        if (calcCategory === 'sports_bras') label = 'Sports Bras';
+        else if (calcCategory === 'hats') label = 'Hats';
+        else if (calcCategory === 'bottoms') label = 'Bottoms';
+        else if (tabId === 'kids') label = 'Kids';
+        else label = 'Apparel';
+      }
+
+      return {
+        focused,
+        gender,
+        calcCategory,
+        tabId,
+        label,
+        hasExplicitGender: Boolean(gender)
+      };
+    }
+
+    function getFocusedGuideHeading(context) {
+      const label = normalizeGuideValue(context?.label);
+      if (!label || label.toLowerCase() === 'apparel') {
+        if (context?.tabId === 'womens') return "Women's Apparel Size Guide";
+        if (context?.tabId === 'kids') return 'Kids Size Guide';
+        if (context?.tabId === 'sports_bras') return 'Sports Bra Size Guide';
+        if (context?.tabId === 'hats') return 'Hat Size Guide';
+        return "Men's Apparel Size Guide";
+      }
+
+      if (context?.tabId === 'womens') return `Women's ${label} Size Guide`;
+      if (context?.tabId === 'kids') return `Kids ${label} Size Guide`;
+      if (context?.tabId === 'sports_bras' || context?.tabId === 'hats') return `${label} Size Guide`;
+      if (context?.tabId === 'mens' && context?.hasExplicitGender) return `Men's ${label} Size Guide`;
+      return `${label} Size Guide`;
+    }
+
+    function applyFocusedGuideMode(context) {
+      if (!isEmbedMode() || !context.focused) return;
+
+      document.body.classList.add('embed-focused');
+
+      const note = document.getElementById('focused-guide-note');
+      const tabsNav = document.querySelector('.tabs-nav');
+      const calcTitle = document.querySelector('.calc-title');
+      const genderField = document.getElementById('calcGenderField');
+      const categoryField = document.getElementById('calcCategoryField');
+      const targetPanel = document.getElementById(`tab-${context.tabId}`);
+      const heading = targetPanel?.querySelector('.table-section h2');
+      const focusedHeading = getFocusedGuideHeading(context);
+      const lockSingleTab = context.hasExplicitGender || ['kids', 'sports_bras', 'hats'].includes(context.tabId);
+
+      if (note) {
+        note.hidden = false;
+        note.innerHTML = '<span></span><strong></strong>';
+        const noteLabel = note.querySelector('span');
+        const noteHeading = note.querySelector('strong');
+        if (noteLabel) noteLabel.textContent = 'Focused on';
+        if (noteHeading) noteHeading.textContent = focusedHeading;
+      }
+
+      if (tabsNav) {
+        tabsNav.classList.toggle('tabs-nav--hidden', lockSingleTab);
+      }
+
+      if (calcTitle && context.label && context.label.toLowerCase() !== 'apparel') {
+        calcTitle.textContent = `Find Your ${context.label} Size`;
+      }
+
+      if (genderField && (context.hasExplicitGender || ['kids', 'sports_bras', 'hats'].includes(context.tabId))) {
+        genderField.hidden = true;
+      }
+
+      if (categoryField && context.calcCategory) {
+        categoryField.hidden = true;
+      }
+
+      if (heading) {
+        heading.textContent = focusedHeading;
+      }
+    }
+
     function applyUrlParams() {
       const params = getGuideParams();
       const genderParam = params.get('gender');
       const categoryParam = params.get('category');
       const sizeParam = params.get('size');
+      const context = classifyGuideContext(params);
 
       if (!genderParam && !categoryParam && !sizeParam) return;
 
-      let tabId = 'mens';
-      if (genderParam === 'women') tabId = 'womens';
-      if (genderParam === 'kids') tabId = 'kids';
-
-      if (categoryParam) {
-        const cat = categoryParam.toLowerCase();
-        if (cat.includes('bra')) tabId = 'sports_bras';
-        if (cat.includes('hat') || cat.includes('cap')) tabId = 'hats';
-      }
-
       if (sizeParam) {
         window.recommendedSize = sizeParam.toUpperCase();
-        window.currentTab = tabId;
+        window.currentTab = context.tabId;
       }
 
-      const targetTab = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+      const targetTab = document.querySelector(`.tab-btn[data-tab="${context.tabId}"]`);
       if (targetTab) targetTab.click();
 
       const calcGender = document.getElementById('calcGender');
       const calcCategory = document.getElementById('calcCategory');
 
-      if (calcGender && genderParam && ['men', 'women', 'kids'].includes(genderParam)) {
-        calcGender.value = genderParam;
+      if (calcGender && context.gender && ['men', 'women', 'kids'].includes(context.gender)) {
+        calcGender.value = context.gender;
       }
 
-      if (calcCategory && categoryParam) {
-        const cat = categoryParam.toLowerCase();
-        if (cat.includes('top') || cat.includes('shirt') || cat.includes('hoodie') || cat.includes('jacket')) calcCategory.value = 'tops';
-        else if (cat.includes('bottom') || cat.includes('pant') || cat.includes('short') || cat.includes('jogger') || cat.includes('legging')) calcCategory.value = 'bottoms';
-        else if (cat.includes('bra')) { calcCategory.value = 'sports_bras'; if (calcGender) calcGender.value = 'women'; }
-        else if (cat.includes('hat') || cat.includes('cap')) calcCategory.value = 'hats';
+      if (calcCategory && context.calcCategory) {
+        calcCategory.value = context.calcCategory;
+        if (context.calcCategory === 'sports_bras' && calcGender) calcGender.value = 'women';
       }
+
+      applyFocusedGuideMode(context);
       if (typeof updateCalculatorFields === 'function') updateCalculatorFields();
     }
 
