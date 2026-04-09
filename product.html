@@ -32,6 +32,7 @@
 <link rel="stylesheet" href="nav.css?v=2">
 <link rel="stylesheet" href="product.css?v=2">
 <link rel="stylesheet" href="cart.css">
+<link rel="stylesheet" href="reviews.css">
 
 <style>
 /* Modal base styles (shared with index.html) */
@@ -594,6 +595,58 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
       <button id="translate-reviews-btn" class="translate-btn" style="margin-bottom:0; width:auto; padding:0.8rem 1.5rem;" onclick="translateReviews()">Translate</button>
     </div>
     <div id="all-reviews-list"></div>
+  </div>
+</div>
+
+<!-- REVIEW MODAL -->
+<div id="review-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
+  <div class="mbox review-mbox">
+    <button class="mclose" id="review-modal-close" aria-label="Close">&#215;</button>
+    <h2 id="review-modal-title">Write a Review</h2>
+    <p class="review-product-label" id="review-product-label"></p>
+
+    <!-- Star selector -->
+    <div class="star-selector" id="star-selector" role="group" aria-label="Star rating">
+      <button type="button" data-v="1" aria-label="1 star">★</button>
+      <button type="button" data-v="2" aria-label="2 stars">★</button>
+      <button type="button" data-v="3" aria-label="3 stars">★</button>
+      <button type="button" data-v="4" aria-label="4 stars">★</button>
+      <button type="button" data-v="5" aria-label="5 stars">★</button>
+    </div>
+
+    <!-- Review body -->
+    <textarea id="review-body-input" class="review-body-field"
+      placeholder="Share your thoughts about this piece…" maxlength="1000"></textarea>
+      
+    <div class="review-form-row" style="margin-bottom:1.5rem;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;color:rgba(244,241,235,0.9);cursor:pointer;text-transform:none;letter-spacing:normal;">
+        <input type="checkbox" id="rateFitToggle" onchange="document.getElementById('advancedRatings').style.display = this.checked ? 'block' : 'none'" style="width:auto;margin:0;accent-color:#F891A5;">
+        Rate Size, Comfort & Recommendation (Optional)
+      </label>
+    </div>
+    <div id="advancedRatings" style="display:none; padding:1.2rem; background:rgba(244,241,235,0.02); border:1px solid rgba(244,241,235,0.08); border-radius:6px; margin-bottom:1.5rem;">
+      <div class="review-form-row">
+        <label style="display:block;font-size:0.8rem;color:rgba(244,241,235,0.7);margin-bottom:0.5rem;">How did this product fit?</label>
+        <input type="range" id="reviewFit" class="review-slider" min="1" max="5" value="3">
+        <div class="review-slider-wrap"><span>Runs Small</span><span>Runs Big</span></div>
+      </div>
+      <div class="review-form-row">
+        <label style="display:block;font-size:0.8rem;color:rgba(244,241,235,0.7);margin-bottom:0.5rem;margin-top:1rem;">How comfortable was this product?</label>
+        <input type="range" id="reviewComfort" class="review-slider" min="1" max="5" value="5">
+        <div class="review-slider-wrap"><span>Uncomfortable</span><span>Very Comfortable</span></div>
+      </div>
+      <div class="review-form-row" style="margin-top:1rem;margin-bottom:1rem;">
+        <label style="display:block;font-size:0.8rem;color:rgba(244,241,235,0.7);margin-bottom:0.5rem;">Would you recommend this product?</label>
+        <div class="review-radio-group">
+          <label><input type="radio" name="reviewRecommend" value="yes" checked> Yes</label>
+          <label><input type="radio" name="reviewRecommend" value="no"> No</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error + submit -->
+    <p id="review-error" class="review-error"></p>
+    <button id="review-submit-btn" class="review-submit-btn" onclick="submitReview()">Submit Review</button>
   </div>
 </div>
 
@@ -1383,7 +1436,7 @@ function renderReviews() {
 
     let editBtnHtml = '';
     if (currentUser && review.user_id === currentUser.id) {
-      editBtnHtml = `<button onclick="editProductReview('${review.id}')" style="background:none;border:none;color:#F891A5;font-size:0.75rem;cursor:pointer;margin-left:10px;text-decoration:underline;">Edit</button>`;
+      editBtnHtml = `<button onclick="openEditReviewForm('${review.id}', ${review.rating}, '${(review.body || '').replace(/'/g, "\\'")}')" style="background:none;border:none;color:#F891A5;font-size:0.75rem;cursor:pointer;margin-left:10px;text-decoration:underline;">Edit</button>`;
     }
 
     reviewEl.innerHTML = `
@@ -1965,5 +2018,6 @@ document.getElementById('mobile-menu-close')?.addEventListener('click', () => {
 
 <!-- Language selector -->
 <script src="lang.js?v=2" defer></script>
+<script src="reviews.js?v=2"></script>
 </body>
 </html>
