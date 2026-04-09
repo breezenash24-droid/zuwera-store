@@ -35,11 +35,11 @@ let _reviewIdToEdit    = null;
 const _reviewCache = {};
 const _domIdToPid = {};
 
-// ââ Stars helpers ââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Stars helpers ----------------------------------------------------
 function starsHtml(rating, size = 'sm') {
   const full  = Math.round(rating);
-  const filled = 'â'.repeat(full);
-  const empty  = 'â'.repeat(5 - full);
+  const filled = '★'.repeat(full);
+  const empty  = '☆'.repeat(5 - full);
   return `<span style="color:#F891A5">${filled}</span><span style="color:rgba(244,241,235,.15)">${empty}</span>`;
 }
 
@@ -47,7 +47,7 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-// ââ Load & render reviews for a product âââââââââââââââââââââââââââ
+// -- Load & render reviews for a product ------------------------------
 async function loadReviews(pid) {
   if (!window.sb) return [];
   if (_reviewCache[pid]) return _reviewCache[pid];
@@ -69,13 +69,13 @@ function updateProductStarDisplay(domId, reviews) {
   if (!avgEl || !cntEl) return;
 
   if (!reviews.length) {
-    avgEl.innerHTML = '<span style="color:rgba(244,241,235,.2)">âââââ</span>';
+    avgEl.innerHTML = '<span style="color:rgba(244,241,235,.2)">☆☆☆☆☆</span>';
     cntEl.textContent = 'Be the first to review';
     return;
   }
   const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
   avgEl.innerHTML = starsHtml(avg);
-  cntEl.textContent = `${reviews.length} review${reviews.length !== 1 ? 's' : ''} Â· ${avg.toFixed(1)}`;
+  cntEl.textContent = `${reviews.length} review${reviews.length !== 1 ? 's' : ''} · ${avg.toFixed(1)}`;
 }
 
 function generateReviewSummaryHtml(reviews) {
@@ -129,95 +129,97 @@ function generateReviewSummaryHtml(reviews) {
   `;
 }
 
-function renderReviewsList(domId, reviews) {
-  const listEl = document.getElementById(`list-${domId}`);
-  if (!listEl) return;
+window.openAllReviewsModal = async function(pid, domId, productName) {
+  const modal = document.getElementById('all-reviews-modal');
+  if (!modal) return;
+  
+  _domIdToPid[domId] = pid;
+  window._domIdToPname = window._domIdToPname || {};
+  window._domIdToPname[domId] = productName;
+  _reviewProductId = pid;
+  
+  const list = document.getElementById('all-reviews-list');
+  const summary = document.getElementById('all-reviews-summary');
+  
+  const translateSelect = modal.querySelector('select[id^="translate-lang"]');
+  const translateBtn = modal.querySelector('button[id^="translate-reviews-btn"]');
+  if (translateSelect) translateSelect.id = 'translate-lang-' + domId;
+  if (translateBtn) {
+    translateBtn.id = 'translate-reviews-btn-' + domId;
+    translateBtn.setAttribute('onclick', `translateReviews('${domId}')`);
+  }
+  
+  let writeBtn = document.getElementById('all-reviews-write-btn');
+  if (!writeBtn) {
+    writeBtn = document.createElement('button');
+    writeBtn.id = 'all-reviews-write-btn';
+    writeBtn.style.cssText = 'width:100%; margin-bottom: 1.5rem; padding: 0.9rem; font-family: var(--fw, "Bebas Neue", sans-serif); font-weight: 900; font-style: italic; font-size: 1.1rem; letter-spacing: 0.12em; text-transform: uppercase; background: var(--paper, #f4f1eb); color: var(--ink, #09090b); border: none; cursor: pointer; transition: opacity 0.2s; border-radius: 4px;';
+    writeBtn.textContent = 'Write a Review';
+    writeBtn.onmouseover = () => writeBtn.style.opacity = '0.85';
+    writeBtn.onmouseout = () => writeBtn.style.opacity = '1';
+    summary.parentNode.insertBefore(writeBtn, summary);
+  }
+  
+  writeBtn.onclick = () => {
+    modal.classList.remove('open');
+    openReviewForm(pid, productName);
+  };
 
-  if (!reviews.length) {
-    listEl.innerHTML = '<p class="reviews-empty">No reviews yet â be the first!</p>';
+  list.innerHTML = '<p style="padding:2rem;text-align:center;color:rgba(244,241,235,.5);font-family:\'DM Sans\',sans-serif;">Loading reviews...</p>';
+  summary.innerHTML = '';
+  
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  const reviews = await loadReviews(pid);
+  
+  let user = null;
+  if (window.sb) {
+     const { data } = await window.sb.auth.getSession();
+     user = data?.session?.user || null;
+  }
+  
+  list.innerHTML = '';
+  if (!reviews || reviews.length === 0) {
+    list.innerHTML = '<p style="padding:2rem;text-align:center;color:rgba(244,241,235,.5);font-family:\'DM Sans\',sans-serif;">No reviews yet — be the first to review!</p>';
     return;
   }
-  const summaryHtml = generateReviewSummaryHtml(reviews);
-  const listHtml = reviews.map(r => {
-    let editBtn = '';
-    if (typeof _currentUser !== 'undefined' && _currentUser && r.user_id === _currentUser.id) {
-      editBtn = `<button onclick="openEditReviewForm('${r.id}', ${r.rating}, '${escHtml(r.body||'')}')" style="background:none;border:none;color:#F891A5;font-size:0.65rem;cursor:pointer;margin-left:8px;text-decoration:underline;text-transform:uppercase;letter-spacing:0.05em;font-family:'IBM Plex Mono', monospace;">Edit</button>`;
-    }
-
-    const adminResponseHtml = r.admin_response ? `
-      <div class="admin-response" style="margin-top: 10px; padding: 10px; background: var(--admin-res-bg, rgba(248,145,165,0.08)); border-left: 2px solid var(--admin-res-text, #F891A5); border-radius: 4px;">
-        <strong style="color: var(--admin-res-text, #F891A5); font-size: 0.8rem; letter-spacing: 0.05em; font-family: 'Bebas Neue', sans-serif;">Zuwera Team</strong>
-        <p style="margin-top: 4px; font-size: 0.85rem; color: var(--admin-res-text, rgba(244,241,235,0.7));">${escHtml(r.admin_response)}</p>
+  
+  summary.innerHTML = generateReviewSummaryHtml(reviews);
+  
+  reviews.forEach(review => {
+    const reviewEl = document.createElement('div');
+    reviewEl.className = 'review-item';
+    reviewEl.style.cssText = 'padding: 1.5rem 0; border-bottom: 1px solid rgba(244,241,235,.08); font-family: \'DM Sans\', sans-serif; text-align: left;';
+    
+    const adminResponseHtml = review.admin_response ? `
+      <div class="admin-response" style="margin-top: 12px; padding: 12px; background: var(--admin-res-bg, rgba(248,145,165,0.08)); border-left: 2px solid var(--admin-res-text, #F891A5); border-radius: 4px;">
+        <strong style="color: var(--admin-res-text, #F891A5); font-size: 0.85rem; letter-spacing: 0.05em; font-family: 'Bebas Neue', sans-serif;">Zuwera Team</strong>
+        <p style="margin-top: 4px; font-size: 0.85rem; color: var(--admin-res-text, rgba(244,241,235,0.7));">${escHtml(review.admin_response)}</p>
       </div>
     ` : '';
-    return `
-      <div class="review-item">
-        <div class="review-item-header">
-        <div>
-          <span class="review-item-stars">${starsHtml(r.rating)}</span>
-          ${editBtn}
-        </div>
-          <span class="review-item-meta">${formatDate(r.created_at)}</span>
-        </div>
-      ${r.title ? `<p class="review-item-title" style="font-weight:bold;font-size:0.85rem;margin-bottom:0.2rem;color:rgba(244,241,235,0.9);">${escHtml(r.title)}</p>` : ''}
-        ${r.body ? `<p class="review-item-body">${escHtml(r.body)}</p>` : ''}
-        <p class="review-item-author">${escHtml(r.reviewer_name || 'Anonymous')}</p>
-        ${adminResponseHtml}
+
+    let editBtnHtml = '';
+    if (user && review.user_id === user.id) {
+      editBtnHtml = `<button onclick="openEditReviewForm('${review.id}', ${review.rating}, '${escHtml(review.body || '')}'); document.getElementById('all-reviews-modal').classList.remove('open');" style="background:none;border:none;color:#F891A5;font-size:0.75rem;cursor:pointer;margin-left:10px;text-decoration:underline;">Edit</button>`;
+    }
+
+    reviewEl.innerHTML = `
+      <div class="review-header" style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div class="review-rating" style="color:var(--gold, #F891A5);">${starsHtml(review.rating)}</div>
+        <span class="review-author" style="font-size:0.85rem;opacity:0.8;color:#f4f1eb;">${escHtml(review.nickname || review.reviewer_name || 'Anonymous')}</span>
+        ${review.verified_purchase ? '<span class="verified-badge" style="font-size:0.65rem;background:rgba(16,185,129,.1);color:#10b981;padding:2px 6px;border-radius:4px;">Verified</span>' : ''}
+        ${editBtnHtml}
       </div>
+      ${review.title ? `<p class="review-title" style="font-weight:700;font-size:1rem;margin-bottom:6px;color:#f4f1eb;">${escHtml(review.title)}</p>` : ''}
+      ${review.body ? `<p class="review-body" style="font-size:0.9rem;line-height:1.6;opacity:0.8;color:#f4f1eb;">${escHtml(review.body)}</p>` : ''}
+      ${adminResponseHtml}
     `;
-  }).join('');
-  
-  const translateHtml = `
-    <div style="display:flex; gap:10px; margin-bottom:1.5rem; margin-top:1rem;">
-      <select id="translate-lang-${domId}" style="flex:1; background:rgba(244,241,235,0.05); color:#f4f1eb; border:1px solid rgba(244,241,235,0.2); padding:0.8rem 1rem; border-radius:4px; font-family:'DM Sans', sans-serif; outline:none; -webkit-appearance:none; appearance:none; background-image:url('data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'12\\' height=\\'7\\'><path d=\\'M1 1l5 5 5-5\\' stroke=\\'%23f4f1eb\\' stroke-width=\\'1.5\\' fill=\\'none\\' opacity=\\'0.4\\'/></svg>'); background-repeat:no-repeat; background-position:right 1rem center; cursor:pointer;">
-        <option value="en" style="background:#09090b;">English</option>
-        <option value="yo" style="background:#09090b;">Yoruba</option>
-        <option value="ha" style="background:#09090b;">Hausa</option>
-        <option value="sw" style="background:#09090b;">Swahili</option>
-        <option value="ig" style="background:#09090b;">Igbo</option>
-        <option value="am" style="background:#09090b;">Amharic</option>
-        <option value="fr" style="background:#09090b;">French</option>
-        <option value="it" style="background:#09090b;">Italian</option>
-        <option value="ja" style="background:#09090b;">Japanese</option>
-        <option value="ko" style="background:#09090b;">Korean</option>
-        <option value="es" style="background:#09090b;">Spanish</option>
-        <option value="pt" style="background:#09090b;">Portuguese</option>
-        <option value="ar" style="background:#09090b;">Arabic</option>
-        <option value="de" style="background:#09090b;">German</option>
-        <option value="zh-CN" style="background:#09090b;">Chinese</option>
-        <option value="hi" style="background:#09090b;">Hindi</option>
-        <option value="ru" style="background:#09090b;">Russian</option>
-        <option value="tr" style="background:#09090b;">Turkish</option>
-        <option value="nl" style="background:#09090b;">Dutch</option>
-        <option value="sv" style="background:#09090b;">Swedish</option>
-        <option value="id" style="background:#09090b;">Indonesian</option>
-      </select>
-      <button id="translate-reviews-btn-${domId}" class="translate-btn" style="margin-bottom:0; width:auto; padding:0.8rem 1.5rem;" onclick="translateReviews('${domId}')">Translate</button>
-    </div>
-  `;
-  listEl.innerHTML = summaryHtml + translateHtml + listHtml;
-}
+    list.appendChild(reviewEl);
+  });
+};
 
-// ââ Toggle reviews panel open / closed ââââââââââââââââââââââââââââ
-async function toggleReviews(pid, domId = pid) {
-  const panel   = document.getElementById(`panel-${domId}`);
-  const listEl  = document.getElementById(`list-${domId}`);
-  if (!panel) return;
-
-  _domIdToPid[domId] = pid;
-  const isOpen = panel.style.display !== 'none';
-  panel.style.display = isOpen ? 'none' : 'block';
-
-  if (!isOpen) {
-    // Show loading state then fetch
-    listEl.innerHTML = '<p class="reviews-loading">Loading reviewsâ¦</p>';
-    const reviews = await loadReviews(pid);
-    renderReviewsList(domId, reviews);
-    updateProductStarDisplay(domId, reviews);
-  }
-}
-
-// ââ Open the write-a-review modal âââââââââââââââââââââââââââââââââ
+// -- Open the write-a-review modal ------------------------------------
 function openReviewForm(pid, pname) {
   /*
   if (typeof _currentUser === 'undefined' || !_currentUser) {
@@ -288,7 +290,7 @@ function openEditReviewForm(id, rating, body) {
   document.body.style.overflow = 'hidden';
 }
 
-// ââ Star selector interaction ââââââââââââââââââââââââââââââââââââââ
+// -- Star selector interaction ----------------------------------------
 function setStarSelection(val) {
   _reviewRating = val;
   document.querySelectorAll('#star-selector button').forEach(btn => {
@@ -309,7 +311,7 @@ document.querySelectorAll('#star-selector button').forEach(btn => {
   });
 });
 
-// ââ Submit review âââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Submit review ----------------------------------------------------
 async function submitReview() {
   const errEl  = document.getElementById('review-error');
   const btn    = document.getElementById('review-submit-btn');
@@ -332,7 +334,7 @@ async function submitReview() {
   if (!user) { errEl.textContent = 'Please sign in to leave a review.'; return; }
 
   btn.disabled    = true;
-  btn.textContent = 'Submittingâ¦';
+  btn.textContent = 'Submitting...';
 
   const reviewerName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Anonymous';
 
@@ -390,7 +392,7 @@ async function submitReview() {
   }
 }
 
-// ââ Init: load star averages for all product cards on page load âââ
+// -- Init: load star averages for all product cards on page load ------
 async function initReviewSummaries() {
   const els = Array.from(document.querySelectorAll('[data-review-pid]'));
   await Promise.all(els.map(async el => {
@@ -411,7 +413,7 @@ if (window._reviewsPending) {
 // Also run for any cards already in the DOM right now
 initReviewSummaries();
 
-// ââ Utility: escape HTML to prevent XSS in review text âââââââââââ
+// -- Utility: escape HTML to prevent XSS in review text ---------------
 function escHtml(str) {
   return String(str)
     .replace(/&/g, '&amp;')
@@ -486,7 +488,7 @@ window.translateReviews = async function(domId) {
   }
 };
 
-// ââ Close review modal on backdrop click âââââââââââââââââââââââââ
+// -- Close review modal on backdrop click -----------------------------
 document.getElementById('review-modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) {
     document.getElementById('review-modal').classList.remove('open');
