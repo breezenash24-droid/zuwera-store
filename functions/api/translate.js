@@ -24,28 +24,60 @@ export async function onRequestPost(context) {
     const API_KEY = context.env.DEEPL_API_KEY || context.env.DEEPL_AUTH_KEY || context.env.DEEPL_KEY;
     if (!API_KEY) {
       return new Response(
-        JSON.stringify({ error: 'DeepL key not found. Add DEEPL_API_KEY in Cloudflare Pages environment variables.' }),
+        JSON.stringify({ error: 'DeepL key not found. Add DEEPL_API_KEY, DEEPL_AUTH_KEY, or DEEPL_KEY in Cloudflare Pages environment variables.' }),
         { status: 500, headers: corsHeaders }
       );
     }
-    const isFree = API_KEY.endsWith(':fx');
-    const endpoint = isFree
+    const requestBody = new URLSearchParams();
+    requestBody.append('auth_key', API_KEY);
+    requestBody.append('target_lang', String(target).toUpperCase());
+    texts.forEach((text) => requestBody.append('text', String(text)));
+
+    const primaryEndpoint = API_KEY.endsWith(':fx')
       ? 'https://api-free.deepl.com/v2/translate'
       : 'https://api.deepl.com/v2/translate';
+    const fallbackEndpoint = primaryEndpoint.includes('api-free')
+      ? 'https://api.deepl.com/v2/translate'
+      : 'https://api-free.deepl.com/v2/translate';
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Authorization': `DeepL-Auth-Key ${API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ text: texts, target_lang: target.toUpperCase() }),
-    });
+    let translations = null;
+    let lastError = 'Translation failed';
 
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || data.detail || data.error?.message || data.error || 'Translation failed');
+    for (const endpoint of [primaryEndpoint, fallbackEndpoint]) {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: requestBody.toString(),
+      });
 
-    const translations = data.translations.map(t => t.text);
+      const raw = await response.text();
+      let data = {};
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        data = {};
+      }
+
+      if (response.ok && Array.isArray(data.translations)) {
+        translations = data.translations.map((item) => item.text);
+        break;
+      }
+
+      lastError = data.message || data.detail || data.error?.message || data.error || raw || `Translation request failed (${response.status})`;
+
+      // DeepL sometimes returns auth-like failures when the wrong free/pro endpoint
+      // is used, so give the alternate endpoint one shot before surfacing the error.
+      if (![401, 403, 404, 456].includes(response.status)) {
+        break;
+      }
+    }
+
+    if (!translations) {
+      throw new Error(lastError);
+    }
+
     return new Response(JSON.stringify({ translations }), { status: 200, headers: corsHeaders });
   } catch (e) {
     console.error('Translation error:', e);
