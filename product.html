@@ -1346,62 +1346,8 @@ function renderTags(elementId, tags, label) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// RENDER REVIEWS
+// RENDER REVIEWS  (generateReviewSummaryHtml is provided by reviews.js)
 // ══════════════════════════════════════════════════════════════════
-function generateReviewSummaryHtml(reviews) {
-  if (!reviews || reviews.length === 0) return '';
-  
-  let sumRating = 0, sumFit = 0, fitCount = 0, sumComfort = 0, comfortCount = 0;
-  let recYes = 0, recNo = 0;
-  
-  reviews.forEach(r => {
-    sumRating += r.rating || 0;
-    if (r.fit_rating) { sumFit += r.fit_rating; fitCount++; }
-    if (r.comfort_rating) { sumComfort += r.comfort_rating; comfortCount++; }
-    if (r.recommend === true) recYes++;
-    if (r.recommend === false) recNo++;
-  });
-  
-  const avgRating = (sumRating / reviews.length).toFixed(1);
-  const avgFit = fitCount > 0 ? (sumFit / fitCount) : 3; // 1 to 5
-  const avgComfort = comfortCount > 0 ? (sumComfort / comfortCount) : 5; // 1 to 5
-  
-  const fitPct = Math.round(((avgFit - 1) / 4) * 100);
-  const comfortPct = Math.round(((avgComfort - 1) / 4) * 100);
-
-  return `
-    <div class="review-summary-box">
-      <div class="rs-left">
-        <div class="rs-rating">${avgRating}</div>
-        <div class="rs-stars">${renderStars(Math.round(avgRating))}</div>
-        <div class="rs-count">${avgRating} out of 5 stars</div>
-        <div class="rs-count">${reviews.length} Review${reviews.length !== 1 ? 's' : ''}</div>
-      </div>
-      <div class="rs-right">
-        <div class="rs-metric">
-          <div class="rs-metric-title">How did this product fit?</div>
-          <div class="rs-metric-subtitle">${fitPct}% between Runs Small and Runs Big</div>
-          <div class="rs-metric-bar"><div class="rs-metric-fill" style="width: ${fitPct}%;"></div></div>
-          <div class="rs-metric-labels"><span>Runs Small</span><span>Runs Big</span></div>
-        </div>
-        <div class="rs-metric">
-          <div class="rs-metric-title">How comfortable was this product?</div>
-          <div class="rs-metric-subtitle">${comfortPct}% between Uncomfortable and Very Comfortable</div>
-          <div class="rs-metric-bar"><div class="rs-metric-fill" style="width: ${comfortPct}%;"></div></div>
-          <div class="rs-metric-labels"><span>Uncomfortable</span><span>Very Comfortable</span></div>
-        </div>
-        <div class="rs-recommend">
-          <div class="rs-metric-title">Would you recommend this product?</div>
-          <div class="rs-recommend-pills">
-            <span class="rs-recommend-pill yes">✓ Yes &nbsp;${recYes}</span>
-            <span class="rs-recommend-pill no">✗ No &nbsp;${recNo}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
 function renderReviews() {
   const content = document.getElementById('reviewsContent');
   content.innerHTML = '';
@@ -1441,13 +1387,13 @@ function renderReviews() {
 
     reviewEl.innerHTML = `
       <div class="review-header">
-        <div class="review-rating">${renderStars(review.rating)}</div>
-        <span class="review-author">${review.nickname || 'Anonymous'}</span>
+        <div class="review-rating">${starsHtml(review.rating)}</div>
+        <span class="review-author">${review.nickname || review.reviewer_name || 'Anonymous'}</span>
         ${review.verified_purchase ? '<span class="verified-badge">Verified Purchase</span>' : ''}
         ${editBtnHtml}
       </div>
-      <p class="review-title">${review.title}</p>
-      <p class="review-body">${review.body}</p>
+      ${review.title ? `<p class="review-title">${review.title}</p>` : ''}
+      ${review.body ? `<p class="review-body">${review.body}</p>` : ''}
       ${adminResponseHtml}
     `;
     content.appendChild(reviewEl);
@@ -1461,23 +1407,6 @@ function renderReviews() {
     moreBtn.onclick = () => openAllReviewsModal(currentProduct.id, currentProduct.id, currentProduct.title);
     content.appendChild(moreBtn);
   }
-}
-
-// ══════════════════════════════════════════════════════════════════
-// RENDER STARS
-// ══════════════════════════════════════════════════════════════════
-function renderStars(rating) {
-  let html = '';
-  for (let i = 1; i <= 5; i++) {
-    if (i <= rating) {
-      html += '★';
-    } else if (i - 0.5 <= rating) {
-      html += '✦';
-    } else {
-      html += '☆';
-    }
-  }
-  return html;
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1660,13 +1589,12 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
-  document.getElementById('mobile-menu').classList.add('open');
-  document.body.style.overflow = 'hidden';
-});
-document.getElementById('mobile-menu-close')?.addEventListener('click', () => {
-  document.getElementById('mobile-menu').classList.remove('open');
-  document.body.style.overflow = '';
+// Mobile menu backdrop click to close
+document.getElementById('mobile-menu')?.addEventListener('click', e => {
+  if (e.target === e.currentTarget) {
+    document.getElementById('mobile-menu').classList.remove('open');
+    document.body.style.overflow = '';
+  }
 });
 
 </script>
