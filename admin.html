@@ -3696,19 +3696,23 @@
                 } else if (row.key === 'brand') {
                     let b = row.value;
                     try { if (typeof b === 'string') b = JSON.parse(b); } catch(e){}
-                    if (b && b.favicon) {
+                    if (b) {
                         const favInput = document.getElementById('faviconImage');
                         const favPreview = favInput.parentElement.querySelector('.image-preview');
-                        favInput.value = b.favicon;
-                        favPreview.src = b.favicon;
-                        favPreview.style.display = 'block';
-                        let link = document.querySelector('link[rel="icon"]');
-                        if (!link) {
-                            link = document.createElement('link');
-                            link.rel = 'icon';
-                            document.head.appendChild(link);
+                        document.getElementById('adminResBg').value = b.admin_res_bg || '#2a1419';
+                        document.getElementById('adminResText').value = b.admin_res_text || '#f891a5';
+                        if (b.favicon) {
+                            favInput.value = b.favicon;
+                            favPreview.src = b.favicon;
+                            favPreview.style.display = 'block';
+                            let link = document.querySelector('link[rel="icon"]');
+                            if (!link) {
+                                link = document.createElement('link');
+                                link.rel = 'icon';
+                                document.head.appendChild(link);
+                            }
+                            link.href = b.favicon;
                         }
-                        link.href = b.favicon;
                     }
                 }
             });
@@ -3725,6 +3729,7 @@
                 showToast('Error saving brand: ' + error.message, 'error');
             } else {
                 showToast('Brand settings saved!', 'success');
+                try { localStorage.setItem('zw-brand', JSON.stringify(brandData)); } catch (e) {}
                 if (brandData.favicon) {
                     let link = document.querySelector('link[rel="icon"]');
                     if (!link) {
@@ -3755,6 +3760,10 @@
             if (error) {
                 showToast('Error saving hero: ' + error.message, 'error');
             } else {
+                try {
+                    if (heroData.image) localStorage.setItem('zw-hero-image', heroData.image);
+                    else localStorage.removeItem('zw-hero-image');
+                } catch (e) {}
                 showToast('Hero settings saved!', 'success');
             }
         }
