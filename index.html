@@ -1274,7 +1274,7 @@ body.light-mode::after{opacity:0.15}
   </div>
   <nav class="flinks">
     <a href="drop001.html">Release 001</a>
-    <a href="sizeguide.html">Size Guide</a>
+    <a href="/sizeguide.html" id="footer-size-guide-link">Size Guide</a>
     <a href="policies.html">Policies</a>
     <a href="mailto:nasirubreeze@zuwera.store">Contact</a>
   </nav>
@@ -1419,6 +1419,24 @@ body.light-mode::after{opacity:0.15}
 
       <p id="review-error" class="review-error"></p>
       <button id="review-submit-btn" class="review-submit-btn" onclick="submitReview()">Submit Review</button>
+    </div>
+  </div>
+</div>
+
+<!-- SIZE GUIDE MODAL -->
+<div id="size-guide-modal" class="modal modal--review" role="dialog" aria-modal="true" aria-labelledby="size-guide-title">
+  <div class="mbox review-dialog review-dialog--wide review-dialog--guide">
+    <button id="size-guide-close" class="mclose review-modal-close" aria-label="Close">&#215;</button>
+    <div class="review-modal-intro review-modal-intro--compact">
+      <p class="review-modal-eyebrow">Fit Reference</p>
+      <h2 id="size-guide-title" class="review-modal-title">Size Guide</h2>
+      <p class="review-modal-copy">Compare measurements, find your starting size, and cross-check the exact category before you shop.</p>
+    </div>
+    <div class="review-modal-body review-modal-body--flush">
+      <div class="size-guide-frame-shell">
+        <div id="size-guide-loading" class="review-modal-message">Loading size guide...</div>
+        <iframe id="size-guide-iframe" src="" title="Size Guide" loading="lazy" hidden></iframe>
+      </div>
     </div>
   </div>
 </div>
@@ -2256,6 +2274,51 @@ async function getCheckoutUserId() {
   }
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
+
+window.openSizeGuideModal = function() {
+  const modal = document.getElementById('size-guide-modal');
+  const iframe = document.getElementById('size-guide-iframe');
+  const loading = document.getElementById('size-guide-loading');
+  if (!modal || !iframe) return;
+
+  const guideUrl = '/sizeguide.html';
+
+  if (loading) {
+    loading.hidden = false;
+    loading.textContent = 'Loading size guide...';
+  }
+  iframe.hidden = true;
+  iframe.onload = () => {
+    if (loading) loading.hidden = true;
+    iframe.hidden = false;
+  };
+  iframe.onerror = () => {
+    iframe.hidden = true;
+    if (loading) {
+      loading.hidden = false;
+      loading.textContent = 'Could not load the size guide right now.';
+    }
+  };
+
+  if (iframe.getAttribute('src') !== guideUrl) {
+    iframe.src = guideUrl;
+  } else {
+    if (loading) loading.hidden = true;
+    iframe.hidden = false;
+  }
+
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+};
+
+document.getElementById('footer-size-guide-link')?.addEventListener('click', e => {
+  e.preventDefault();
+  window.openSizeGuideModal();
+});
+document.getElementById('size-guide-close')?.addEventListener('click', () => closeModal('size-guide-modal'));
+document.getElementById('size-guide-modal')?.addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal('size-guide-modal');
+});
 
 let payReq = null, selRate = null, walletRates = [];
 function initPR(subtotalCents) {
