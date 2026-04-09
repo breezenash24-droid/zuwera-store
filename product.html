@@ -144,7 +144,7 @@
   padding: .45rem 2rem;
   display: flex; align-items: center; justify-content: center; gap: 1.5rem;
   font-family: 'IBM Plex Mono', monospace; font-size: .6rem; letter-spacing: .22em; text-transform: uppercase;
-  position: relative; z-index: 200;
+  position: sticky; top: 0; z-index: 210;
 }
 .bar-sep { opacity: .25; }
 body.light-mode #bar {
@@ -784,8 +784,11 @@ function applyAnnouncementBar(mode, msgText) {
   const barEl = document.getElementById('bar');
   const navEl = document.querySelector('.nav');
   if (!barEl) return;
+  const normalizedMode = String(mode || 'on').trim().toLowerCase();
 
   teardownAnnouncementBarScroll();
+  barEl.style.position = 'sticky';
+  barEl.style.top = '0';
   barEl.style.transition = '';
   barEl.style.transform = '';
   barEl.style.opacity = '1';
@@ -800,7 +803,7 @@ function applyAnnouncementBar(mode, msgText) {
     textEl.textContent = nextText || fallbackText;
   }
 
-  if (mode === 'off') {
+  if (normalizedMode === 'off') {
     barEl.style.display = 'none';
     setAnnouncementBarLayout(barEl, navEl, false);
     return;
@@ -809,7 +812,7 @@ function applyAnnouncementBar(mode, msgText) {
   barEl.style.display = 'flex';
   setAnnouncementBarLayout(barEl, navEl, true);
 
-  if (mode !== 'scroll') return;
+  if (normalizedMode !== 'scroll') return;
 
   barEl.style.transition = 'transform 0.45s ease, opacity 0.45s ease, margin-bottom 0.45s ease';
   let lastScrollY = window.scrollY;
