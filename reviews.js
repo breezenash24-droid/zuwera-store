@@ -37,10 +37,10 @@ const _domIdToPid = {};
 
 // -- Stars helpers ----------------------------------------------------
 function starsHtml(rating, size = 'sm') {
-  const full  = Math.round(rating);
-  const filled = '★'.repeat(full);
-  const empty  = '☆'.repeat(5 - full);
-  return `<span style="color:#F891A5">${filled}</span><span style="color:rgba(244,241,235,.15)">${empty}</span>`;
+  const full   = Math.max(0, Math.min(5, Math.round(rating || 0)));
+  const filled = '\u2605'.repeat(full);        // ★  — Unicode escape avoids charset issues
+  const empty  = '\u2605'.repeat(5 - full);   // ★ (dimmed via color)
+  return `<span style="color:#F891A5">${filled}</span><span style="color:rgba(244,241,235,.12)">${empty}</span>`;
 }
 
 function formatDate(iso) {
@@ -69,7 +69,7 @@ function updateProductStarDisplay(domId, reviews) {
   if (!avgEl || !cntEl) return;
 
   if (!reviews.length) {
-    avgEl.innerHTML = '<span style="color:rgba(244,241,235,.2)">☆☆☆☆☆</span>';
+    avgEl.innerHTML = '<span style="color:rgba(244,241,235,.2)">\u2605\u2605\u2605\u2605\u2605</span>';
     cntEl.textContent = 'Be the first to review';
     return;
   }
