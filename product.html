@@ -806,18 +806,38 @@ function applyAnnouncementBar(mode, msgText) {
 
   if (mode !== 'scroll') return;
 
-  barEl.style.transition = 'transform 0.3s ease, opacity 0.3s ease, margin-bottom 0.3s ease';
-  _productAnnouncementBarScrollHandler = function() {
-    const isHidden = window.scrollY > 60;
+  barEl.style.transition = 'transform 0.45s ease, opacity 0.45s ease, margin-bottom 0.45s ease';
+  let lastScrollY = window.scrollY;
+  let isHidden = false;
+  const syncAnnouncementState = (hidden) => {
     const hiddenOffset = barEl.offsetHeight;
-    barEl.style.transform = isHidden ? 'translateY(-100%)' : '';
-    barEl.style.opacity = isHidden ? '0' : '1';
-    barEl.style.pointerEvents = isHidden ? 'none' : '';
-    barEl.style.marginBottom = isHidden ? (-hiddenOffset) + 'px' : '0';
-    setAnnouncementBarLayout(barEl, navEl, !isHidden);
+    barEl.style.transform = hidden ? 'translateY(-100%)' : '';
+    barEl.style.opacity = hidden ? '0' : '1';
+    barEl.style.pointerEvents = hidden ? 'none' : '';
+    barEl.style.marginBottom = hidden ? (-hiddenOffset) + 'px' : '0';
+    setAnnouncementBarLayout(barEl, navEl, !hidden);
+  };
+  syncAnnouncementState(false);
+  _productAnnouncementBarScrollHandler = function() {
+    const currentY = window.scrollY;
+    const scrollingDown = currentY > lastScrollY + 6;
+    const scrollingUp = currentY < lastScrollY - 6;
+
+    if (currentY <= 16 || scrollingUp) {
+      if (isHidden) {
+        isHidden = false;
+        syncAnnouncementState(false);
+      }
+    } else if (currentY > 80 && scrollingDown) {
+      if (!isHidden) {
+        isHidden = true;
+        syncAnnouncementState(true);
+      }
+    }
+
+    lastScrollY = currentY;
   };
   window.addEventListener('scroll', _productAnnouncementBarScrollHandler, { passive: true });
-  _productAnnouncementBarScrollHandler();
 }
 
 // Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â

@@ -43,6 +43,7 @@
   background: #000000;
   border-bottom: 1px solid var(--c08);
   box-shadow: 0 1px 12px rgba(0,0,0,0.3);
+  transition: top .45s ease, background .35s ease, box-shadow .35s ease;
 }
 .logo { height: 36px; width: auto; filter: none; }
 .nav-left a { display: flex; align-items: center; cursor: pointer; }

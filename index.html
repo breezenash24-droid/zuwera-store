@@ -191,8 +191,10 @@ body::after{
   display:flex;align-items:center;justify-content:center;gap:1.5rem;
   font-family:var(--fm);font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;
   position:relative;z-index:200;
+  transition:transform .45s ease, opacity .45s ease, margin-bottom .45s ease;
 }
-.bar-sep{opacity:.25}
+.bar-sep{opacity:.25;font-size:0;line-height:1}
+.bar-sep::before{content:'\2726';font-size:.62rem}
 
 /* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
    NAV
@@ -201,7 +203,7 @@ nav#nav{
   position:fixed;top:0;left:0;right:0;z-index:100;
   display:flex;justify-content:space-between;align-items:center;
   padding:1.5rem 2.5rem;
-  transition:background .35s,border-color .35s,padding .35s;
+  transition:background .35s,border-color .35s,padding .35s,top .45s ease;
   border-bottom:1px solid transparent;
 }
 nav#nav.scrolled{
@@ -379,7 +381,8 @@ body.light-mode #mobile-menu a:hover { color: #09090b !important; }
   font-size:.95rem;letter-spacing:.25em;text-transform:uppercase;
   padding:0 2rem;color:rgba(244,241,235,.18);
 }
-.marquee-item.accent{color:var(--gold);opacity:.6}
+.marquee-item.accent{color:var(--gold);opacity:.6;font-size:0;line-height:1}
+.marquee-item.accent::before{content:'\2726';font-size:.82rem}
 @keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
 /* Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
@@ -1284,6 +1287,27 @@ body.light-mode::after{opacity:0.15}
   </div>
 </footer>
 
+<script>
+(function normalizeHomepageCopy() {
+  const heroYear = document.querySelector('.hero-year');
+  if (heroYear) heroYear.innerHTML = 'Zuwera &middot; Est. 2026';
+
+  const aboutLead = document.querySelector('.about-body p');
+  if (aboutLead) {
+    aboutLead.textContent = 'Bold, athletic, and designed for those who dream big. Zuwera is sportswear built for the relentless - those who push past limits and never stop.';
+  }
+
+  const notifySuccess = document.getElementById('home-notify-success');
+  if (notifySuccess) notifySuccess.innerHTML = '&#10003; You\'re on the list.';
+
+  const releaseHeading = document.querySelector('.products-section .sec-head h2');
+  if (releaseHeading) releaseHeading.textContent = 'Release 001 - Jackets';
+
+  const footerCopy = document.querySelector('.fcopy');
+  if (footerCopy) footerCopy.innerHTML = '&copy; 2026 Zuwera. All rights reserved.';
+})();
+</script>
+
 <!-- ALL REVIEWS MODAL -->
 <div id="all-reviews-modal" class="modal modal--review" role="dialog" aria-modal="true" aria-labelledby="all-reviews-title">
   <div class="mbox review-dialog review-dialog--wide review-dialog--thread">
@@ -1653,18 +1677,38 @@ function applyAnnouncementBar(mode, msgText) {
 
   if (mode !== 'scroll') return;
 
-  barEl.style.transition = 'transform 0.3s ease, opacity 0.3s ease, margin-bottom 0.3s ease';
-  _announcementBarScrollHandler = function() {
-    const isHidden = window.scrollY > 60;
+  barEl.style.transition = 'transform 0.45s ease, opacity 0.45s ease, margin-bottom 0.45s ease';
+  let lastScrollY = window.scrollY;
+  let isHidden = false;
+  const syncAnnouncementState = (hidden) => {
     const hiddenOffset = barEl.offsetHeight;
-    barEl.style.transform = isHidden ? 'translateY(-100%)' : '';
-    barEl.style.opacity = isHidden ? '0' : '1';
-    barEl.style.pointerEvents = isHidden ? 'none' : '';
-    barEl.style.marginBottom = isHidden ? (-hiddenOffset) + 'px' : '0';
-    setAnnouncementBarLayout(barEl, navEl, !isHidden);
+    barEl.style.transform = hidden ? 'translateY(-100%)' : '';
+    barEl.style.opacity = hidden ? '0' : '1';
+    barEl.style.pointerEvents = hidden ? 'none' : '';
+    barEl.style.marginBottom = hidden ? (-hiddenOffset) + 'px' : '0';
+    setAnnouncementBarLayout(barEl, navEl, !hidden);
+  };
+  syncAnnouncementState(false);
+  _announcementBarScrollHandler = function() {
+    const currentY = window.scrollY;
+    const scrollingDown = currentY > lastScrollY + 6;
+    const scrollingUp = currentY < lastScrollY - 6;
+
+    if (currentY <= 16 || scrollingUp) {
+      if (isHidden) {
+        isHidden = false;
+        syncAnnouncementState(false);
+      }
+    } else if (currentY > 80 && scrollingDown) {
+      if (!isHidden) {
+        isHidden = true;
+        syncAnnouncementState(true);
+      }
+    }
+
+    lastScrollY = currentY;
   };
   window.addEventListener('scroll', _announcementBarScrollHandler, { passive: true });
-  _announcementBarScrollHandler();
 }
 
 /* -- LOAD SITE SETTINGS (announcement bar) -- */
