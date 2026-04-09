@@ -57,7 +57,7 @@ function formatDate(iso) {
 // -- Load & render reviews for a product ------------------------------
 async function loadReviews(pid) {
   if (_reviewCache[pid]) return _reviewCache[pid];
-  const reviewSelect = 'id,user_id,rating,title,body,nickname,reviewer_name,verified_purchase,created_at,admin_response,fit_rating,comfort_rating,recommend';
+  const reviewSelect = '*';
 
   try {
     if (typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON !== 'undefined') {
