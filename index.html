@@ -1262,6 +1262,42 @@ body.light-mode::after{opacity:0.15}
   </div>
 </footer>
 
+<!-- ALL REVIEWS MODAL -->
+<div id="all-reviews-modal" class="modal" role="dialog" aria-modal="true">
+  <div class="mbox" style="max-width: 700px; width: 90vw; max-height: 85vh; overflow-y: auto; padding: 2rem; border-radius: 8px;">
+    <button id="all-reviews-close" style="position:absolute; top:1rem; right:1.2rem; width:30px; height:30px; display:flex; align-items:center; justify-content:center; background:rgba(244,241,235,.05); border:1px solid rgba(244,241,235,.08); color:#f4f1eb; font-size:1rem; cursor:pointer;">&#215;</button>
+    <h2 style="font-family: var(--fw); font-size: 2rem; font-style: italic; margin-bottom: 1.5rem; letter-spacing: 0.05em;">All Reviews</h2>
+    <div id="all-reviews-summary"></div>
+    <div style="display:flex; gap:10px; margin-bottom:1.5rem;">
+      <select id="translate-lang-modal" style="flex:1; background:rgba(244,241,235,0.05); color:#f4f1eb; border:1px solid rgba(244,241,235,0.2); padding:0.8rem 1rem; border-radius:4px; font-family:'DM Sans', sans-serif; outline:none; -webkit-appearance:none; appearance:none; background-image:url('data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'12\\' height=\\'7\\'><path d=\\'M1 1l5 5 5-5\\' stroke=\\'%23f4f1eb\\' stroke-width=\\'1.5\\' fill=\\'none\\' opacity=\\'0.4\\'/></svg>'); background-repeat:no-repeat; background-position:right 1rem center; cursor:pointer;">
+        <option value="en" style="background:#09090b;">English</option>
+        <option value="yo" style="background:#09090b;">Yoruba</option>
+        <option value="ha" style="background:#09090b;">Hausa</option>
+        <option value="sw" style="background:#09090b;">Swahili</option>
+        <option value="ig" style="background:#09090b;">Igbo</option>
+        <option value="am" style="background:#09090b;">Amharic</option>
+        <option value="fr" style="background:#09090b;">French</option>
+        <option value="it" style="background:#09090b;">Italian</option>
+        <option value="ja" style="background:#09090b;">Japanese</option>
+        <option value="ko" style="background:#09090b;">Korean</option>
+        <option value="es" style="background:#09090b;">Spanish</option>
+        <option value="pt" style="background:#09090b;">Portuguese</option>
+        <option value="ar" style="background:#09090b;">Arabic</option>
+        <option value="de" style="background:#09090b;">German</option>
+        <option value="zh-CN" style="background:#09090b;">Chinese</option>
+        <option value="hi" style="background:#09090b;">Hindi</option>
+        <option value="ru" style="background:#09090b;">Russian</option>
+        <option value="tr" style="background:#09090b;">Turkish</option>
+        <option value="nl" style="background:#09090b;">Dutch</option>
+        <option value="sv" style="background:#09090b;">Swedish</option>
+        <option value="id" style="background:#09090b;">Indonesian</option>
+      </select>
+      <button id="translate-reviews-btn-modal" class="translate-btn" style="margin-bottom:0; width:auto; padding:0.8rem 1.5rem; background:rgba(244,241,235,0.05); color:#f4f1eb; border:1px solid rgba(244,241,235,0.2); border-radius:4px; cursor:pointer;">Translate</button>
+    </div>
+    <div id="all-reviews-list"></div>
+  </div>
+</div>
+
 <!-- REVIEW MODAL -->
 <div id="review-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
   <div class="mbox review-mbox">
@@ -1530,10 +1566,10 @@ const _sb = window.sb;
 
 /* -- LOAD SITE SETTINGS (announcement bar) -- */
 (async function loadSiteSettings() {
-  if (!_sb) return;
   try {
-    const { data } = await _sb.from('site_settings').select('*');
-    if (!data) return;
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?select=*`, { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` } });
+    if (!resp.ok) return;
+    const data = await resp.json();
     data.forEach(row => {
       if (row.key === 'announcement_bar') {
         let v = row.value;
@@ -1743,14 +1779,10 @@ function renderProductCards(products, grid) {
           <p class="pcard-cat">${productCategory}</p>
           <p class="pcard-name">${productName}</p>
           <p class="pcard-price">${priceDisplay}</p>
-          <button class="pcard-action" onclick="event.stopPropagation();toggleReviews('${p.id}', '${domId}')" data-review-pid="${p.id}" data-review-domid="${domId}">
+          <button class="pcard-action" onclick="event.stopPropagation();openAllReviewsModal('${p.id}', '${domId}', '${productName.replace(/'/g, "\\'")}')" data-review-pid="${p.id}" data-review-domid="${domId}">
             <span id="avg-${domId}"><span style="color:rgba(244,241,235,.2)">\u2606\u2606\u2606\u2606\u2606</span></span>
             <span id="cnt-${domId}">Be the first to review</span>
           </button>
-          <div class="reviews-panel" id="panel-${domId}" style="display:none">
-            <div class="reviews-list" id="list-${domId}"></div>
-            <button class="write-review-btn" onclick="event.stopPropagation();openReviewForm('${p.id}','${productName}')">+ Write a Review</button>
-          </div>
         </div>
       </div>`;
   }).join('');

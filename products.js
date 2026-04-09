@@ -67,14 +67,12 @@ async function loadProducts(gridSelector = '#products-grid') {
   grid.innerHTML = '<div class="pcard" style="opacity:.6;text-align:center;padding:4rem;font-family:var(--fm);font-size:.85rem">🔄 Loading Release 001…</div>';
 
   try {
-    if (!window._sb) throw new Error('Supabase not loaded');
-
-    let { data, error } = await window._sb
-      .from('products')
-      .select('*, product_images(*)')
-      .order('sort_order', { ascending: true });
-
-    if (error) throw error;
+    const resp = await fetch(
+      `${PRODUCTS_SUPABASE_URL}/rest/v1/products?select=*,product_images(*)&order=sort_order.asc`,
+      { headers: { 'apikey': PRODUCTS_SUPABASE_ANON, 'Authorization': `Bearer ${PRODUCTS_SUPABASE_ANON}` } }
+    );
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    let data = await resp.json();
 
     console.log('✅ Loaded', data?.length || 0, 'products from Supabase');
 
@@ -157,13 +155,9 @@ function renderProducts(grid, products) {
           <p class="pcard-cat">${productCategory}</p>
           <p class="pcard-name">${productName}</p>
                   <p class="pcard-price">${Number(productPrice) > 0 ? '$' + Number(productPrice).toFixed(0) : 'Price TBA'}</p>
-          <div class="pcard-action" onclick="event.stopPropagation(); toggleReviews('${p.id}', '${domId}')">
+          <div class="pcard-action" onclick="event.stopPropagation(); openAllReviewsModal('${p.id}', '${domId}', '${productName.replace(/'/g, "\\'")}')">
             <span id="avg-${domId}" style="color:rgba(244,241,235,.2)">☆☆☆☆☆</span>
             <span id="cnt-${domId}">Be the first to review</span>
-          </div>
-          <div class="reviews-panel" id="panel-${domId}" style="display:none;margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(244,241,235,.06)">
-            <div class="reviews-list" id="list-${domId}" style="margin-bottom:1rem"></div>
-            <button class="write-review-btn" onclick="event.stopPropagation(); openReviewForm('${p.id}', '${productName}')">✎ Write a Review</button>
           </div>
         </div>
       </div>`;

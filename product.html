@@ -720,10 +720,10 @@ const _sessionPromise = sb.auth.getSession();
 // LOAD SITE SETTINGS (announcement bar + shipping)
 // ══════════════════════════════════════════════════════════════════
 async function loadSiteSettings() {
-  await _sessionPromise;
   try {
-    const { data } = await sb.from('site_settings').select('*');
-    if (!data) return;
+    const resp = await fetch(`${_PROD_SB_URL}/rest/v1/site_settings?select=*`, { headers: { 'apikey': _PROD_SB_KEY, 'Authorization': `Bearer ${_PROD_SB_KEY}` } });
+    if (!resp.ok) return;
+    const data = await resp.json();
     data.forEach(row => {
       if (row.key === 'announcement_bar') {
         let v = row.value;
@@ -815,8 +815,6 @@ loadSiteSettings();
 const _productFetchPromise = (async () => {
   // loadProduct() is defined below; calling it here starts the fetch early.
   // We wrap in try/catch so an early error is caught by DOMContentLoaded.
-  // Wait for auth to initialize first to prevent lock contention
-  await _sessionPromise;
   try { return await loadProduct(); } catch(e) { throw e; }
 })();
 
@@ -888,39 +886,33 @@ async function loadProduct() {
     }
   }
 
-  // ── Single-query fetch: product + all related data in one round trip ──
-  // FK constraints exist for all child tables so PostgREST can embed them.
-  let query = sb.from('products').select(
-    '*, product_images(*), color_variants(*), product_sizes(*)'
-  );
-
+  // Fetch using direct REST API to completely bypass Supabase Auth lock contention
+  let url = `${_PROD_SB_URL}/rest/v1/products?select=*,product_images(*),color_variants(*),product_sizes(*)`;
   if (productId) {
-    query = query.eq('id', productId);
+    url += `&id=eq.${productId}`;
   } else if (sku) {
-    query = query.eq('sku', sku);
+    url += `&sku=eq.${sku}`;
   } else if (slug) {
-    const searchSlug = slug.replace(/-/g, '%');
-    query = query.ilike('title', `%${searchSlug}%`);
+    const searchSlug = slug.replace(/-/g, '*');
+    url += `&title=ilike.*${encodeURIComponent(searchSlug)}*`;
   } else {
-    query = query.eq('status', 'Live').order('sort_order', { ascending: true });
+    url += `&status=eq.Live&order=sort_order.asc`;
   }
+  url += `&limit=1`;
 
-  const { data, error } = await query.limit(1);
+  const headers = { 'apikey': _PROD_SB_KEY, 'Authorization': `Bearer ${_PROD_SB_KEY}` };
+  const resp = await fetch(url, { headers });
+  if (!resp.ok) throw new Error('Product not found');
+  
+  const data = await resp.json();
   const productData = data ? data[0] : null;
-
-  if (error) {
-    console.error('Supabase product query error:', error);
-    throw new Error('Product not found');
-  }
   if (!productData) {
     throw new Error('Product not found');
   }
 
   // Fetch reviews separately to prevent massive JSON aggregation bottlenecks in Postgres
-  const { data: reviewsData } = await sb.from('reviews')
-    .select('*')
-    .eq('product_id', productData.id)
-    .order('created_at', { ascending: false });
+  const resp2 = await fetch(`${_PROD_SB_URL}/rest/v1/reviews?select=*&product_id=eq.${productData.id}&order=created_at.desc`, { headers });
+  const reviewsData = resp2.ok ? await resp2.json() : [];
 
   // Normalize field names
   if (!productData.title && productData.name) productData.title = productData.name;
@@ -938,7 +930,6 @@ async function loadProduct() {
   delete productData.product_images;
   delete productData.color_variants;
   delete productData.product_sizes;
-  delete productData.reviews;
 
   currentProduct          = productData;
   currentProduct.images   = images;
@@ -1460,7 +1451,7 @@ function renderReviews() {
     moreBtn.className = 'more-reviews-btn';
     moreBtn.style.cssText = 'display:block; width:100%; margin-top:1rem; padding:0.8rem; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); color:#f4f1eb; cursor:pointer; font-family:"DM Sans", sans-serif; font-size:0.85rem; border-radius:6px; transition:background 0.2s;';
     moreBtn.textContent = `View All ${currentProduct.reviews.length} Reviews`;
-    moreBtn.onclick = () => expandReviews();
+    moreBtn.onclick = () => openAllReviewsModal(currentProduct.id, currentProduct.id, currentProduct.title);
     content.appendChild(moreBtn);
   }
 }
@@ -1480,52 +1471,6 @@ function renderStars(rating) {
     }
   }
   return html;
-}
-
-// ══════════════════════════════════════════════════════════════════
-// EXPAND REVIEWS
-// ══════════════════════════════════════════════════════════════════
-function expandReviews() {
-  const modal = document.getElementById('all-reviews-modal');
-  const list = document.getElementById('all-reviews-list');
-  if (!modal || !list) return;
-
-  list.innerHTML = '';
-  
-  document.getElementById('all-reviews-summary').innerHTML = generateReviewSummaryHtml(currentProduct.reviews);
-
-  currentProduct.reviews.forEach(review => {
-    const reviewEl = document.createElement('div');
-    reviewEl.className = 'review-item';
-    reviewEl.style.cssText = 'padding: 1.5rem 0; border-bottom: 1px solid rgba(244,241,235,.08);';
-    const adminResponseHtml = review.admin_response ? `
-      <div class="admin-response" style="margin-top: 12px; padding: 12px; background: var(--admin-res-bg, rgba(248,145,165,0.08)); border-left: 2px solid var(--admin-res-text, #F891A5); border-radius: 4px;">
-        <strong style="color: var(--admin-res-text, #F891A5); font-size: 0.85rem; letter-spacing: 0.05em; font-family: 'Bebas Neue', sans-serif;">Zuwera Team</strong>
-        <p style="margin-top: 4px; font-size: 0.85rem; color: var(--admin-res-text, rgba(255,255,255,0.7));">${review.admin_response}</p>
-      </div>
-    ` : '';
-
-    let editBtnHtml = '';
-    if (currentUser && review.user_id === currentUser.id) {
-      editBtnHtml = `<button onclick="editProductReview('${review.id}'); document.getElementById('all-reviews-modal').classList.remove('open'); document.body.style.overflow='';" style="background:none;border:none;color:#F891A5;font-size:0.75rem;cursor:pointer;margin-left:10px;text-decoration:underline;">Edit</button>`;
-    }
-
-    reviewEl.innerHTML = `
-      <div class="review-header" style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-        <div class="review-rating" style="color:var(--gold);">${renderStars(review.rating)}</div>
-        <span class="review-author" style="font-size:0.85rem;opacity:0.8;">${review.nickname || 'Anonymous'}</span>
-        ${review.verified_purchase ? '<span class="verified-badge" style="font-size:0.65rem;background:rgba(16,185,129,.1);color:#10b981;padding:2px 6px;border-radius:4px;">Verified</span>' : ''}
-        ${editBtnHtml}
-      </div>
-      <p class="review-title" style="font-weight:700;font-size:1rem;margin-bottom:6px;">${review.title}</p>
-      <p class="review-body" style="font-size:0.9rem;line-height:1.6;opacity:0.8;">${review.body}</p>
-      ${adminResponseHtml}
-    `;
-    list.appendChild(reviewEl);
-  });
-
-  modal.classList.add('open');
-  document.body.style.overflow = 'hidden';
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1779,68 +1724,6 @@ function showError(message) {
   document.getElementById('errorState').classList.remove('hidden');
   document.getElementById('errorMessage').textContent = message;
 }
-
-// ══════════════════════════════════════════════════════════════════
-// TRANSLATE REVIEWS MOCK
-// ══════════════════════════════════════════════════════════════════
-window.translateReviews = async function() {
-  const select = document.getElementById('translate-lang');
-  const langCode = select ? select.value : 'es';
-  const lang = select ? select.options[select.selectedIndex].text : 'English';
-  const btn = document.getElementById('translate-reviews-btn');
-  
-  if (!currentProduct || !currentProduct.reviews || currentProduct.reviews.length === 0) return;
-  
-  if(btn) { btn.textContent = 'Translating...'; btn.disabled = true; }
-  
-  try {
-    const textsToTranslate = [];
-    const map = []; 
-    
-    // Gather all titles and bodies
-    currentProduct.reviews.forEach((r, i) => {
-      if (r.original_title === undefined) r.original_title = r.title;
-      if (r.original_body === undefined) r.original_body = r.body;
-
-      if (r.original_title) { textsToTranslate.push(r.original_title); map.push({ index: i, field: 'title' }); }
-      if (r.original_body) { textsToTranslate.push(r.original_body); map.push({ index: i, field: 'body' }); }
-    });
-
-    if (textsToTranslate.length === 0) {
-      if(btn) { btn.textContent = 'Translated ✓'; btn.disabled = false; }
-      return;
-    }
-
-    // Call our Netlify function
-    const res = await fetch('/api/translate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ texts: textsToTranslate, target: langCode })
-    });
-
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-
-    // Map translated text back to the reviews array (decode html entities)
-    data.translations.forEach((translatedText, i) => {
-      const mapping = map[i];
-      const txt = document.createElement('textarea');
-      txt.innerHTML = translatedText;
-      currentProduct.reviews[mapping.index][mapping.field] = txt.value;
-    });
-
-    // Re-render the UI
-    renderReviews();
-    expandReviews();
-
-    showToast('Reviews translated to ' + lang + '!');
-    if(btn) { btn.textContent = 'Translated ✓'; btn.disabled = false; }
-  } catch (err) {
-    console.error('Translation failed:', err);
-    showToast('Translation failed. Please try again later.');
-    if(btn) { btn.textContent = 'Translate'; btn.disabled = false; }
-  }
-};
 
 window.openSizeFitModal = function() {
   const modal = document.getElementById('size-fit-modal');
