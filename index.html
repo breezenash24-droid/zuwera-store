@@ -1110,7 +1110,7 @@ body.light-mode::after{opacity:0.15}
 <div id="toast"></div>
 
 <!-- ANNOUNCEMENT BAR -->
-<div id="bar">
+<div id="bar" style="display:none">
   <span class="bar-sep">Ã¢Å“Â¦</span>
   <span id="announcementText">ALL THE DEVILS ARE HERE</span>
   <span class="bar-sep">Ã¢Å“Â¦</span>
@@ -1664,7 +1664,12 @@ function applyAnnouncementBar(mode, msgText) {
   barEl.style.marginBottom = '0';
 
   const textEl = document.getElementById('announcementText');
-  if (textEl) textEl.textContent = (typeof msgText === 'string') ? msgText : '';
+  const fallbackText = (barEl.dataset.defaultText || (textEl ? textEl.textContent : '') || '').trim();
+  if (!barEl.dataset.defaultText) barEl.dataset.defaultText = fallbackText;
+  if (textEl) {
+    const nextText = (typeof msgText === 'string' ? msgText : '').trim();
+    textEl.textContent = nextText || fallbackText;
+  }
 
   if (mode === 'off') {
     barEl.style.display = 'none';
@@ -1680,6 +1685,7 @@ function applyAnnouncementBar(mode, msgText) {
   barEl.style.transition = 'transform 0.45s ease, opacity 0.45s ease, margin-bottom 0.45s ease';
   let lastScrollY = window.scrollY;
   let isHidden = false;
+  const scrollActivationAt = Date.now() + 450;
   const syncAnnouncementState = (hidden) => {
     const hiddenOffset = barEl.offsetHeight;
     barEl.style.transform = hidden ? 'translateY(-100%)' : '';
@@ -1691,6 +1697,10 @@ function applyAnnouncementBar(mode, msgText) {
   syncAnnouncementState(false);
   _announcementBarScrollHandler = function() {
     const currentY = window.scrollY;
+    if (Date.now() < scrollActivationAt) {
+      lastScrollY = currentY;
+      return;
+    }
     const scrollingDown = currentY > lastScrollY + 6;
     const scrollingUp = currentY < lastScrollY - 6;
 
@@ -1714,9 +1724,16 @@ function applyAnnouncementBar(mode, msgText) {
 /* -- LOAD SITE SETTINGS (announcement bar) -- */
 (async function loadSiteSettings() {
   try {
-    const resp = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?select=*`, { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` } });
-    if (!resp.ok) return;
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?select=*`, {
+      cache: 'no-store',
+      headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` }
+    });
+    if (!resp.ok) {
+      applyAnnouncementBar('on', '');
+      return;
+    }
     const data = await resp.json();
+    let announcementApplied = false;
     data.forEach(row => {
       if (row.key === 'announcement_bar') {
         let v = row.value;
@@ -1734,6 +1751,7 @@ function applyAnnouncementBar(mode, msgText) {
         }
 
         applyAnnouncementBar(mode, msgText);
+        announcementApplied = true;
       } else if (row.key === 'theme') {
         const isLightMode = !!(row.value && row.value.mode === 'light');
         document.body.classList.toggle('light-mode', isLightMode);
@@ -1781,7 +1799,11 @@ function applyAnnouncementBar(mode, msgText) {
         if (b.admin_res_text) document.documentElement.style.setProperty('--admin-res-text', b.admin_res_text);
       }
     });
-  } catch (e) { console.log('Settings load skipped:', e); }
+    if (!announcementApplied) applyAnnouncementBar('on', '');
+  } catch (e) {
+    console.log('Settings load skipped:', e);
+    applyAnnouncementBar('on', '');
+  }
 })();
 
 let _user = null, _favs = [];

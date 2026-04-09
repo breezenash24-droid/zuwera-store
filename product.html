@@ -289,7 +289,7 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
 <!-- Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â -->
 <!-- ANNOUNCEMENT BAR                                                 -->
 <!-- Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â -->
-<div id="bar">
+<div id="bar" style="display:none">
   <span class="bar-sep">Ã¢Å“Â¦</span>
   <span id="announcementText">ALL THE DEVILS ARE HERE</span>
   <span class="bar-sep">Ã¢Å“Â¦</span>
@@ -793,7 +793,12 @@ function applyAnnouncementBar(mode, msgText) {
   barEl.style.marginBottom = '0';
 
   const textEl = document.getElementById('announcementText');
-  if (textEl) textEl.textContent = (typeof msgText === 'string') ? msgText : '';
+  const fallbackText = (barEl.dataset.defaultText || (textEl ? textEl.textContent : '') || '').trim();
+  if (!barEl.dataset.defaultText) barEl.dataset.defaultText = fallbackText;
+  if (textEl) {
+    const nextText = (typeof msgText === 'string' ? msgText : '').trim();
+    textEl.textContent = nextText || fallbackText;
+  }
 
   if (mode === 'off') {
     barEl.style.display = 'none';
@@ -809,6 +814,7 @@ function applyAnnouncementBar(mode, msgText) {
   barEl.style.transition = 'transform 0.45s ease, opacity 0.45s ease, margin-bottom 0.45s ease';
   let lastScrollY = window.scrollY;
   let isHidden = false;
+  const scrollActivationAt = Date.now() + 450;
   const syncAnnouncementState = (hidden) => {
     const hiddenOffset = barEl.offsetHeight;
     barEl.style.transform = hidden ? 'translateY(-100%)' : '';
@@ -820,6 +826,10 @@ function applyAnnouncementBar(mode, msgText) {
   syncAnnouncementState(false);
   _productAnnouncementBarScrollHandler = function() {
     const currentY = window.scrollY;
+    if (Date.now() < scrollActivationAt) {
+      lastScrollY = currentY;
+      return;
+    }
     const scrollingDown = currentY > lastScrollY + 6;
     const scrollingUp = currentY < lastScrollY - 6;
 
@@ -845,9 +855,16 @@ function applyAnnouncementBar(mode, msgText) {
 // Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
 async function loadSiteSettings() {
   try {
-    const resp = await fetch(`${_PROD_SB_URL}/rest/v1/site_settings?select=*`, { headers: { 'apikey': _PROD_SB_KEY, 'Authorization': `Bearer ${_PROD_SB_KEY}` } });
-    if (!resp.ok) return;
+    const resp = await fetch(`${_PROD_SB_URL}/rest/v1/site_settings?select=*`, {
+      cache: 'no-store',
+      headers: { 'apikey': _PROD_SB_KEY, 'Authorization': `Bearer ${_PROD_SB_KEY}` }
+    });
+    if (!resp.ok) {
+      applyAnnouncementBar('on', '');
+      return;
+    }
     const data = await resp.json();
+    let announcementApplied = false;
     data.forEach(row => {
       if (row.key === 'announcement_bar') {
         let v = row.value;
@@ -859,14 +876,13 @@ async function loadSiteSettings() {
         let msgText = '';
         if (typeof v === 'object' && v !== null) {
           mode = v.mode || (v.enabled === false ? 'off' : 'on');
-          msgText = Object.prototype.hasOwnProperty.call(v, 'product')
-            ? (v.product ?? '')
-            : (Object.prototype.hasOwnProperty.call(v, 'main') ? (v.main ?? '') : '');
+          msgText = v.product || v.main || '';
         } else {
           msgText = v;
         }
 
         applyAnnouncementBar(mode, msgText);
+        announcementApplied = true;
       } else if (row.key === 'shipping_policy') {
         const v = row.value;
         if (!v) return;
@@ -906,7 +922,11 @@ async function loadSiteSettings() {
           if (b.admin_res_text) document.documentElement.style.setProperty('--admin-res-text', b.admin_res_text);
       }
     });
-  } catch (e) { console.log('Settings load skipped:', e); }
+    if (!announcementApplied) applyAnnouncementBar('on', '');
+  } catch (e) {
+    console.log('Settings load skipped:', e);
+    applyAnnouncementBar('on', '');
+  }
 }
 loadSiteSettings();
 
