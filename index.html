@@ -1103,7 +1103,7 @@ body.light-mode #success-continue{background:var(--paper);color:var(--ink)}
 /* Noise overlay */
 body.light-mode::after{opacity:0.15}
 </style>
-<link rel="stylesheet" href="reviews-vibe.css?v=2">
+<link rel="stylesheet" href="reviews-vibe.css?v=3">
 </head>
 <body>
 <script>
@@ -1431,17 +1431,17 @@ body.light-mode::after{opacity:0.15}
 </div>
 
 <!-- SIZE GUIDE MODAL -->
-<div id="size-guide-modal" class="modal modal--review" role="dialog" aria-modal="true" aria-labelledby="size-guide-title">
-  <div class="mbox review-dialog review-dialog--wide review-dialog--guide">
-    <button id="size-guide-close" class="mclose review-modal-close" aria-label="Close">&#215;</button>
-    <div class="review-modal-intro review-modal-intro--compact">
-      <p class="review-modal-eyebrow">Fit Reference</p>
-      <h2 id="size-guide-title" class="review-modal-title">Size Guide</h2>
-      <p class="review-modal-copy">Compare measurements, find your starting size, and cross-check the exact category before you shop.</p>
+<div id="size-guide-modal" class="modal modal--guide" role="dialog" aria-modal="true" aria-labelledby="size-guide-title">
+  <div class="mbox size-guide-dialog">
+    <button id="size-guide-close" class="mclose size-guide-close" aria-label="Close">&#215;</button>
+    <div class="size-guide-head">
+      <p class="size-guide-kicker">Fit Reference</p>
+      <h2 id="size-guide-title" class="size-guide-title">Size Guide</h2>
+      <p class="size-guide-copy">Compare measurements, find your starting size, and cross-check the exact category before you shop.</p>
     </div>
-    <div class="review-modal-body review-modal-body--flush">
+    <div class="size-guide-body">
       <div class="size-guide-frame-shell">
-        <div id="size-guide-loading" class="review-modal-message">Loading size guide...</div>
+        <div id="size-guide-loading" class="size-guide-message">Loading size guide...</div>
         <iframe id="size-guide-iframe" src="" title="Size Guide" loading="lazy" hidden></iframe>
       </div>
     </div>
@@ -2297,7 +2297,7 @@ async function getSizeGuideDocumentHtml() {
 
 function buildSizeGuideSrcdoc(sourceHtml, params) {
   const serializedParams = JSON.stringify(params || {}).replace(/</g, '\\u003c');
-  const injectedHead = `<base href="${window.location.origin}/"><script>window.__ZW_SIZEGUIDE_PARAMS__=${serializedParams};<\/script>`;
+  const injectedHead = `<base href="${window.location.origin}/"><script>window.__ZW_SIZEGUIDE_PARAMS__=${serializedParams};window.__ZW_SIZEGUIDE_EMBED__=true;<\/script>`;
   return sourceHtml.includes('<head>')
     ? sourceHtml.replace('<head>', `<head>${injectedHead}`)
     : injectedHead + sourceHtml;

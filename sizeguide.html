@@ -7,16 +7,16 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#000000">
-  <title>Size & Fit Guide — Zuwera</title>
+  <title>Size &amp; Fit Guide - Zuwera</title>
   <meta name="description" content="Interactive size guide for Zuwera apparel. Find your perfect fit with our calculator and detailed measurements.">
   <meta name="robots" content="index, follow">
-  <meta property="og:title" content="Size & Fit Guide — Zuwera">
+  <meta property="og:title" content="Size &amp; Fit Guide - Zuwera">
   <meta property="og:description" content="Find your perfect fit with our interactive size calculator and detailed measurements.">
   <meta property="og:url" content="https://zuwera.store/sizeguide.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Zuwera">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Size & Fit Guide — Zuwera">
+  <meta name="twitter:title" content="Size &amp; Fit Guide - Zuwera">
   <meta name="twitter:description" content="Find your perfect fit with our interactive size calculator.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -98,6 +98,22 @@
       text-transform: uppercase;
       color: var(--muted);
       margin-bottom: 2.5rem;
+    }
+
+    body.embed-mode .nav,
+    body.embed-mode footer,
+    body.embed-mode .cookie-consent {
+      display: none !important;
+    }
+
+    body.embed-mode .page-wrap {
+      max-width: 1120px;
+      padding: 1.4rem 1.4rem 2rem;
+    }
+
+    body.embed-mode .page-title,
+    body.embed-mode .page-subtitle {
+      display: none;
     }
 
     /* ────── CALCULATOR SECTION ────── */
@@ -640,6 +656,18 @@
       .cookie-btn { flex: 1; }
     }
 
+    @media (max-width: 760px) {
+      body.embed-mode .page-wrap {
+        padding: 1.1rem 1.1rem 1.7rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body.embed-mode .page-wrap {
+        padding: 1rem 0.9rem 1.4rem;
+      }
+    }
+
     .tech-guide-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -689,6 +717,10 @@
   <script>
     // Load theme immediately to prevent flash
     (function() {
+      if (window.__ZW_SIZEGUIDE_EMBED__ === true) {
+        document.body.classList.add('embed-mode', 'light-mode');
+        return;
+      }
       var saved = localStorage.getItem('theme');
       if (saved === 'light') document.body.classList.add('light-mode');
     })();
@@ -699,7 +731,7 @@
     <a href="index.html" class="nav-logo-link" aria-label="Back to Zuwera home">
       <img src="images/logo.png" alt="Zuwera" class="nav-logo-img">
     </a>
-    <a href="index.html" class="nav-back">← Back</a>
+    <a href="index.html" class="nav-back">&larr; Back</a>
   </header>
 
   <!-- MAIN CONTENT -->
@@ -982,8 +1014,8 @@
 
   <!-- FOOTER -->
   <footer>
-    <a href="index.html">← Back to Zuwera</a>
-    <p>© 2026 Zuwera. All rights reserved.</p>
+    <a href="index.html">&larr; Back to Zuwera</a>
+    <p>&copy; 2026 Zuwera. All rights reserved.</p>
     <a href="policies.html">Policies</a>
     <a href="mailto:Breezenash24@gmail.com">Contact</a>
   </footer>
@@ -1659,6 +1691,10 @@
       return new URLSearchParams(window.location.search);
     }
 
+    function isEmbedMode() {
+      return window.__ZW_SIZEGUIDE_EMBED__ === true;
+    }
+
     function applyUrlParams() {
       const params = getGuideParams();
       const genderParam = params.get('gender');
@@ -1704,7 +1740,7 @@
 
     // ────── INIT ──────
     function init() {
-      initCookieConsent();
+      if (!isEmbedMode()) initCookieConsent();
       fetchSizeCharts();
       fetchSiteSettings();
       setupCalculator();

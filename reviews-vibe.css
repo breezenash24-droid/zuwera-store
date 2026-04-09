@@ -39,6 +39,70 @@
   width: min(980px, 95vw);
 }
 
+.modal--guide {
+  align-items: center;
+}
+
+.size-guide-dialog {
+  width: min(980px, 95vw);
+  max-height: 88vh;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(244,241,235,0.12);
+  background:
+    linear-gradient(180deg, rgba(244,241,235,0.028), rgba(244,241,235,0.01)),
+    #0d0d0d;
+  box-shadow: 0 28px 80px rgba(0,0,0,0.45);
+}
+
+.size-guide-close {
+  opacity: 0.7;
+}
+
+.size-guide-dialog .size-guide-close:hover {
+  opacity: 1;
+}
+
+.size-guide-head {
+  padding: 1.55rem 1.9rem 1.3rem;
+  border-bottom: 1px solid rgba(244,241,235,0.08);
+  background: linear-gradient(180deg, rgba(244,241,235,0.03), rgba(244,241,235,0.012));
+}
+
+.size-guide-kicker {
+  color: var(--gold, #f891a5);
+  font-family: var(--fm, "IBM Plex Mono", monospace);
+  font-size: 0.56rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.size-guide-title {
+  margin: 0.55rem 0 0;
+  color: var(--paper, #f4f1eb);
+  font-family: var(--fw, var(--font-head, "Bebas Neue", sans-serif));
+  font-size: clamp(1.85rem, 3vw, 2.6rem);
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.size-guide-copy {
+  max-width: 42rem;
+  margin-top: 0.55rem;
+  color: rgba(244,241,235,0.56);
+  font-family: var(--fb, var(--font-body, "DM Sans", sans-serif));
+  font-size: 0.84rem;
+  line-height: 1.65;
+}
+
+.size-guide-body {
+  padding: 0;
+  overflow: auto;
+}
+
 .review-modal-close {
   opacity: 0.7;
 }
@@ -166,9 +230,13 @@
   background: rgba(244,241,235,0.02);
 }
 
-.size-guide-frame-shell .review-modal-message {
+.size-guide-frame-shell .size-guide-message {
   margin: 0;
   padding: 2.75rem 1.6rem;
+  color: rgba(244,241,235,0.56);
+  font-family: var(--fb, var(--font-body, "DM Sans", sans-serif));
+  font-size: 0.84rem;
+  line-height: 1.65;
 }
 
 #size-guide-iframe {
@@ -952,6 +1020,32 @@ body.light-mode .review-radio-group label {
   border-color: rgba(9,9,11,0.1);
 }
 
+body.light-mode .size-guide-dialog {
+  background:
+    linear-gradient(180deg, rgba(9,9,11,0.025), rgba(9,9,11,0.01)),
+    #f0eee9;
+  border-color: rgba(9,9,11,0.12);
+}
+
+body.light-mode .size-guide-head {
+  background: linear-gradient(180deg, rgba(9,9,11,0.025), rgba(9,9,11,0.01));
+  border-bottom-color: rgba(9,9,11,0.08);
+}
+
+body.light-mode .size-guide-title,
+body.light-mode .size-guide-close {
+  color: #09090b;
+}
+
+body.light-mode .size-guide-kicker {
+  color: rgba(9,9,11,0.58);
+}
+
+body.light-mode .size-guide-copy,
+body.light-mode .size-guide-frame-shell .size-guide-message {
+  color: rgba(9,9,11,0.58);
+}
+
 body.light-mode .review-modal-toolbar,
 body.light-mode .review-modal-card,
 body.light-mode .rs-left {
@@ -1038,6 +1132,16 @@ body.light-mode .review-admin-response {
     max-height: 92dvh;
   }
 
+  .size-guide-dialog {
+    width: 100vw;
+    max-width: none;
+    max-height: 92dvh;
+  }
+
+  .size-guide-head {
+    padding: 1.4rem 1.4rem 1.1rem;
+  }
+
   #size-guide-iframe,
   .size-guide-frame-shell {
     min-height: 68dvh;
@@ -1085,6 +1189,10 @@ body.light-mode .review-admin-response {
     align-items: flex-end;
   }
 
+  .modal--guide {
+    align-items: flex-end;
+  }
+
   .review-dialog {
     border-left: none;
     border-right: none;
@@ -1096,8 +1204,20 @@ body.light-mode .review-admin-response {
     max-height: 100dvh;
   }
 
+  .size-guide-dialog {
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    border-radius: 18px 18px 0 0;
+    max-height: 100dvh;
+  }
+
   .review-modal-title {
     font-size: clamp(2.2rem, 9vw, 3.4rem);
+  }
+
+  .size-guide-title {
+    font-size: clamp(1.65rem, 7.2vw, 2.2rem);
   }
 
   .product-fit-actions {
