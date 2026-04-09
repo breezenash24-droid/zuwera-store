@@ -49,10 +49,10 @@ function formatDate(iso) {
 
 // ââ Load & render reviews for a product âââââââââââââââââââââââââââ
 async function loadReviews(pid) {
-  if (!_sb) return [];
+  if (!window.sb) return [];
   if (_reviewCache[pid]) return _reviewCache[pid];
 
-  const { data, error } = await _sb
+  const { data, error } = await window.sb
     .from('reviews')
     .select('id, user_id, rating, title, body, reviewer_name, created_at, admin_response, fit_rating, comfort_rating, recommend')
     .eq('product_id', pid)
@@ -323,17 +323,22 @@ async function submitReview() {
 
   if (!_reviewRating)        { errEl.textContent = 'Please select a star rating.'; return; }
   if (!_reviewProductId)     { errEl.textContent = 'No product selected.'; return; }
-  // if (!_sb || typeof _user === 'undefined' || !_user) { errEl.textContent = 'Please sign in to leave a review.'; return; }
+
+  let user = null;
+  if (window.sb) {
+     const { data } = await window.sb.auth.getSession();
+     user = data?.session?.user || null;
+  }
+  if (!user) { errEl.textContent = 'Please sign in to leave a review.'; return; }
 
   btn.disabled    = true;
   btn.textContent = 'Submittingâ¦';
 
-  const reviewerName = (typeof _currentUser !== 'undefined' && _currentUser) ? (_currentUser.user_metadata?.full_name
-    || _currentUser.email?.split('@')[0]) : 'Anonymous';
+  const reviewerName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Anonymous';
 
   let error;
   if (_reviewIdToEdit) {
-    const res = await _sb.from('reviews').update({
+    const res = await window.sb.from('reviews').update({
       rating: _reviewRating,
       body:   body || null,
       fit_rating: fit ? parseInt(fit) : null,
@@ -342,8 +347,8 @@ async function submitReview() {
     }).eq('id', _reviewIdToEdit);
     error = res.error;
   } else {
-    const res = await _sb.from('reviews').insert({
-      user_id:       (typeof _currentUser !== 'undefined' && _currentUser) ? _currentUser.id : null,
+    const res = await window.sb.from('reviews').insert({
+      user_id:       user.id,
       product_id:    _reviewProductId,
       rating:        _reviewRating,
       body:          body || null,
@@ -369,21 +374,20 @@ async function submitReview() {
 
   document.getElementById('review-modal').classList.remove('open');
   document.body.style.overflow = '';
-  showToast('Review submitted â thank you!');
+  if (typeof showToast === 'function') showToast('Review submitted — thank you!');
 
   // Refresh all instances of panels and stars for this product
   const reviews = await loadReviews(_reviewProductId);
-  document.querySelectorAll(`[id^="panel-${_reviewProductId}"]`).forEach(panel => {
-      if (panel.style.display !== 'none') {
-          const domId = panel.id.replace('panel-', '');
-          renderReviewsList(domId, reviews);
-          updateProductStarDisplay(domId, reviews);
-      }
-  });
   document.querySelectorAll(`[id^="avg-${_reviewProductId}"]`).forEach(el => {
       const domId = el.id.replace('avg-', '');
       updateProductStarDisplay(domId, reviews);
   });
+
+  if (typeof renderReviews === 'function') renderReviews(); // update product.html inline reviews summary
+  const allModal = document.getElementById('all-reviews-modal');
+  if (allModal && allModal.classList.contains('open')) {
+    openAllReviewsModal(_reviewProductId, _reviewProductId, window._domIdToPname?.[_reviewProductId]);
+  }
 }
 
 // ââ Init: load star averages for all product cards on page load âââ
@@ -468,10 +472,9 @@ window.translateReviews = async function(domId) {
       });
     }
 
-    if (_reviewCache[pid]) renderReviewsList(domId, _reviewCache[pid]);
     if (typeof renderReviews === 'function') renderReviews();
     if (document.getElementById('all-reviews-modal').classList.contains('open')) {
-      openAllReviewsModal(pid, domId, _domIdToPname[domId]);
+      openAllReviewsModal(pid, domId, window._domIdToPname?.[domId]);
     }
     
     if (typeof showToast === 'function') showToast('Reviews translated to ' + lang + '!');
