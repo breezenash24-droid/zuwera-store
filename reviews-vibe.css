@@ -233,9 +233,12 @@
 .size-guide-frame-shell .size-guide-message {
   margin: 0;
   padding: 2.75rem 1.6rem;
-  color: rgba(244,241,235,0.56);
-  font-family: var(--fb, var(--font-body, "DM Sans", sans-serif));
-  font-size: 0.84rem;
+  color: var(--paper, #f4f1eb);
+  font-family: var(--fm, "IBM Plex Mono", monospace);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
   line-height: 1.65;
 }
 
@@ -1043,7 +1046,7 @@ body.light-mode .size-guide-kicker {
 
 body.light-mode .size-guide-copy,
 body.light-mode .size-guide-frame-shell .size-guide-message {
-  color: rgba(9,9,11,0.58);
+  color: rgba(9,9,11,0.68);
 }
 
 body.light-mode .review-modal-toolbar,

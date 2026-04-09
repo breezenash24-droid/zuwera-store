@@ -749,7 +749,9 @@
     // Load theme immediately to prevent flash
     (function() {
       if (window.__ZW_SIZEGUIDE_EMBED__ === true) {
-        document.body.classList.add('embed-mode', 'light-mode');
+        document.body.classList.add('embed-mode');
+        var savedEmbedTheme = localStorage.getItem('theme');
+        if (savedEmbedTheme === 'light') document.body.classList.add('light-mode');
         return;
       }
       var saved = localStorage.getItem('theme');
