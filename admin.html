@@ -2128,6 +2128,8 @@
     </div>
 
     <script src="/supabase.min.js"></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=_zwAdminTsLoad&render=explicit" defer async></script>
+    <div id="zw-admin-ts-widget" style="display:none;visibility:hidden;" aria-hidden="true"></div>
 
 <script>
         // Initialize Supabase
@@ -2136,6 +2138,69 @@
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
             auth: { persistSession: true, storageKey: 'zuwera-auth' }
         });
+        const ADMIN_TS_KEY = '0x4AAAAAACzvvg-l2dT2z35l';
+        let adminTsWidgetId = null;
+        let adminTsPending = null;
+
+        function adminTsCallback(token) {
+            if (adminTsPending) {
+                const fn = adminTsPending;
+                adminTsPending = null;
+                fn(token);
+            }
+        }
+
+        function adminTsError() {
+            if (adminTsPending) {
+                const fn = adminTsPending;
+                adminTsPending = null;
+                fn(null);
+            }
+        }
+
+        function initAdminTurnstile() {
+            const el = document.getElementById('zw-admin-ts-widget');
+            if (!el || !window.turnstile || adminTsWidgetId !== null) return;
+            adminTsWidgetId = window.turnstile.render(el, {
+                sitekey: ADMIN_TS_KEY,
+                size: 'invisible',
+                callback: adminTsCallback,
+                'error-callback': adminTsError,
+                'expired-callback': function() {
+                    if (adminTsWidgetId !== null) window.turnstile.reset(adminTsWidgetId);
+                }
+            });
+        }
+
+        window._zwAdminTsLoad = initAdminTurnstile;
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(initAdminTurnstile, 800);
+        });
+
+        async function runAdminTurnstile(action) {
+            if (!window.turnstile || adminTsWidgetId === null) {
+                await action(null);
+                return;
+            }
+            adminTsPending = async (token) => {
+                if (token) {
+                    try {
+                        const res = await fetch('/api/verify-turnstile', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ token })
+                        });
+                        const data = await res.json();
+                        if (!data.success) console.warn('[Turnstile] admin:', data.error);
+                    } catch (e) {
+                        console.warn('[Turnstile] admin error:', e);
+                    }
+                }
+                await action(token);
+                if (adminTsWidgetId !== null) window.turnstile.reset(adminTsWidgetId);
+            };
+            window.turnstile.execute(adminTsWidgetId);
+        }
 
 
         // State Management
@@ -2334,15 +2399,18 @@
             const btn = document.querySelector('#authForm button[type="submit"]');
             errEl.style.display = 'none';
             btn.disabled = true;
-            btn.textContent = 'Signing in…';
+            btn.textContent = 'Signing in...';
             try {
-                const { data, error } = await sb.auth.signInWithPassword({ email, password });
-                if (error) {
-                    if (error.message === 'Email not confirmed') throw new Error('Please verify your email address before logging in.');
-                    throw error;
-                }
-                currentUser = data.user;
-                await checkAdminRole();
+                await runAdminTurnstile(async (captchaToken) => {
+                    const signInOpts = captchaToken ? { captchaToken } : {};
+                    const { data, error } = await sb.auth.signInWithPassword({ email, password, options: signInOpts });
+                    if (error) {
+                        if (error.message === 'Email not confirmed') throw new Error('Please verify your email address before logging in.');
+                        throw error;
+                    }
+                    currentUser = data.user;
+                    await checkAdminRole();
+                });
             } catch (error) {
                 errEl.textContent = error.message;
                 errEl.style.display = 'block';
@@ -2378,10 +2446,14 @@
                 return;
             }
             try {
-                const { error } = await sb.auth.resetPasswordForEmail(email, {
-                    redirectTo: 'https://zuwera.store/confirm'
+                await runAdminTurnstile(async (captchaToken) => {
+                    const resetOptions = {
+                        redirectTo: window.location.origin + '/confirm.html'
+                    };
+                    if (captchaToken) resetOptions.captchaToken = captchaToken;
+                    const { error } = await sb.auth.resetPasswordForEmail(email, resetOptions);
+                    if (error) throw error;
                 });
-                if (error) throw error;
                 resetMsg.style.color = '#4caf50';
                 resetMsg.textContent = 'Password reset email sent! Check your inbox.';
             } catch (e) {
