@@ -51,6 +51,21 @@ const FALLBACK_PRODUCTS = [
   }
 ];
 
+function productSlug(title) {
+  if (!title) return '';
+  return String(title).replace(/^zuwera\s+/i, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function productHref(product) {
+  const slug = productSlug(product?.title || product?.name || product?.slug || '');
+  const params = new URLSearchParams();
+  if (product?.id) params.set('id', product.id);
+  if (product?.sku) params.set('sku', product.sku);
+  const qs = params.toString();
+  if (slug) return `/product/${slug}${qs ? `?${qs}` : ''}`;
+  return `product.html${qs ? `?${qs}` : ''}`;
+}
+
 /**
  * Load products from Supabase, fallback to demo data.
  * Updates #products-grid in index.html.
@@ -67,18 +82,32 @@ async function loadProducts(gridSelector = '#products-grid') {
   grid.innerHTML = '<div class="pcard" style="opacity:.6;text-align:center;padding:4rem;font-family:var(--fm);font-size:.85rem">🔄 Loading Release 001…</div>';
 
   try {
-    const resp = await fetch(
-      `${PRODUCTS_SUPABASE_URL}/rest/v1/products?select=*,product_images(*)&order=sort_order.asc`,
-      { headers: { 'apikey': PRODUCTS_SUPABASE_ANON, 'Authorization': `Bearer ${PRODUCTS_SUPABASE_ANON}` } }
-    );
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    let data = await resp.json();
+    const headers = { 'apikey': PRODUCTS_SUPABASE_ANON, 'Authorization': `Bearer ${PRODUCTS_SUPABASE_ANON}` };
+    const [productsResp, imagesResp] = await Promise.all([
+      fetch(`${PRODUCTS_SUPABASE_URL}/rest/v1/products?select=*&order=sort_order.asc`, { headers }),
+      fetch(`${PRODUCTS_SUPABASE_URL}/rest/v1/product_images?select=*&order=sort_order.asc`, { headers })
+    ]);
+    if (!productsResp.ok) throw new Error(`HTTP ${productsResp.status}`);
+    let data = await productsResp.json();
+    const imageRows = imagesResp.ok ? await imagesResp.json() : [];
 
     console.log('✅ Loaded', data?.length || 0, 'products from Supabase');
 
     if (!data || data.length === 0) {
       console.warn('No products in Supabase — using fallback demo');
       data = FALLBACK_PRODUCTS;
+    } else {
+      const imagesByProductId = new Map();
+      (Array.isArray(imageRows) ? imageRows : []).forEach((image) => {
+        if (!image || !image.product_id) return;
+        const bucket = imagesByProductId.get(image.product_id) || [];
+        bucket.push(image);
+        imagesByProductId.set(image.product_id, bucket);
+      });
+      data = data.map((product) => ({
+        ...product,
+        product_images: (imagesByProductId.get(product.id) || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+      }));
     }
 
     let renderList = data;
@@ -139,7 +168,7 @@ function renderProducts(grid, products) {
     const domId = p.unique_id || p.id;
 
     return `
-      <div class="pcard" data-product-slug="${(p.slug || productName.toLowerCase().replace(/[^a-z0-9]/g,'-')).slice(0,50)}" onclick="window.location.href='product.html?slug=${encodeURIComponent(productName.toLowerCase().replace(/[^a-z0-9]/g,'-'))}'" style="cursor:pointer">
+      <div class="pcard" data-product-slug="${(p.slug || productSlug(productName)).slice(0,50)}" onclick="window.location.href='${productHref(p)}'" style="cursor:pointer">
         <div class="pcard-img" style="background:transparent">
           <img src="${firstImg || ''}" alt="${productName}" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:center" onerror="if(this.src !== '${originalImg || ''}') { this.src='${originalImg || ''}'; } else { this.style.display='none'; this.nextElementSibling.style.display='flex'; }">
           <div style="display:none;align-items:center;justify-content:center;flex-direction:column;gap:.8rem;height:100%;opacity:.08">

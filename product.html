@@ -32,7 +32,7 @@
 <link rel="stylesheet" href="nav.css?v=4">
 <link rel="stylesheet" href="product.css?v=3">
 <link rel="stylesheet" href="cart.css">
-<link rel="stylesheet" href="reviews.css">
+<link rel="stylesheet" href="reviews.css?v=2">
 
 <style>
 /* Modal base styles (shared with index.html) */
@@ -572,108 +572,90 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
 </main>
 
 <!-- ALL REVIEWS MODAL -->
-<div id="all-reviews-modal" class="modal modal--review" role="dialog" aria-modal="true" aria-labelledby="all-reviews-title">
-  <div class="mbox review-dialog review-dialog--classic-list">
-    <button id="all-reviews-close" class="mclose review-modal-close" aria-label="Close">&#215;</button>
-    <div class="review-modal-body review-modal-body--classic">
-      <h2 id="all-reviews-title" class="review-modal-classic-title">All Reviews</h2>
-      <button id="all-reviews-write-btn" class="review-submit-btn review-submit-btn--legacy-list" type="button">Write a Review</button>
-      <div id="all-reviews-summary"></div>
-      <div class="review-modal-toolbar review-modal-toolbar--classic">
-        <div class="review-modal-controls">
-          <select id="translate-lang" class="review-select review-select--legacy">
-            <option value="en">Original (English)</option>
-            <option value="yo">Yoruba</option>
-            <option value="ha">Hausa</option>
-            <option value="sw">Swahili</option>
-            <option value="ig">Igbo</option>
-            <option value="am">Amharic</option>
-            <option value="fr">French</option>
-            <option value="it">Italian</option>
-            <option value="ja">Japanese</option>
-            <option value="ko">Korean</option>
-            <option value="es">Spanish</option>
-            <option value="pt">Portuguese</option>
-            <option value="ar">Arabic</option>
-            <option value="de">German</option>
-            <option value="zh-CN">Chinese</option>
-            <option value="hi">Hindi</option>
-            <option value="ru">Russian</option>
-            <option value="tr">Turkish</option>
-            <option value="nl">Dutch</option>
-            <option value="sv">Swedish</option>
-            <option value="id">Indonesian</option>
-          </select>
-          <button id="translate-reviews-btn" class="translate-btn translate-btn--legacy" type="button" onclick="translateReviews()">Translate</button>
-        </div>
-      </div>
-      <div id="all-reviews-list" class="review-list-stack"></div>
+<div id="all-reviews-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="all-reviews-title">
+  <div class="mbox review-list-mbox">
+    <button id="all-reviews-close" class="mclose review-list-close" aria-label="Close">&#215;</button>
+    <h2 id="all-reviews-title" class="review-list-title">All Reviews</h2>
+    <button id="all-reviews-write-btn" class="review-submit-btn review-list-write-btn" type="button">Write a Review</button>
+    <div id="all-reviews-summary"></div>
+    <div class="review-list-toolbar">
+      <select id="translate-lang" class="review-list-select">
+        <option value="en">Original (English)</option>
+        <option value="yo">Yoruba</option>
+        <option value="ha">Hausa</option>
+        <option value="sw">Swahili</option>
+        <option value="ig">Igbo</option>
+        <option value="am">Amharic</option>
+        <option value="fr">French</option>
+        <option value="it">Italian</option>
+        <option value="ja">Japanese</option>
+        <option value="ko">Korean</option>
+        <option value="es">Spanish</option>
+        <option value="pt">Portuguese</option>
+        <option value="ar">Arabic</option>
+        <option value="de">German</option>
+        <option value="zh-CN">Chinese</option>
+        <option value="hi">Hindi</option>
+        <option value="ru">Russian</option>
+        <option value="tr">Turkish</option>
+        <option value="nl">Dutch</option>
+        <option value="sv">Swedish</option>
+        <option value="id">Indonesian</option>
+      </select>
+      <button id="translate-reviews-btn" class="translate-btn review-list-translate" type="button" onclick="translateReviews()">Translate</button>
     </div>
+    <div id="all-reviews-list"></div>
   </div>
 </div>
 
 <!-- REVIEW MODAL -->
-<div id="review-modal" class="modal modal--review" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
-  <div class="mbox review-dialog review-dialog--classic-form">
-    <button class="mclose review-modal-close" id="review-modal-close" aria-label="Close">&#215;</button>
-    <div class="review-modal-head">
-      <h2 id="review-modal-title" class="review-modal-classic-title review-modal-classic-title--form">Write a Review</h2>
-      <p class="review-form-note">Tell us how the piece fit, felt, and wore in real life.</p>
-      <p class="review-product-label" id="review-product-label"></p>
+<div id="review-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
+  <div class="mbox review-mbox">
+    <button class="mclose" id="review-modal-close" aria-label="Close">&#215;</button>
+    <h2 id="review-modal-title">Write a Review</h2>
+    <p class="review-product-label" id="review-product-label"></p>
+
+    <div class="star-selector" id="star-selector" role="group" aria-label="Star rating">
+      <button type="button" data-v="1" aria-label="1 star">&#9733;</button>
+      <button type="button" data-v="2" aria-label="2 stars">&#9733;</button>
+      <button type="button" data-v="3" aria-label="3 stars">&#9733;</button>
+      <button type="button" data-v="4" aria-label="4 stars">&#9733;</button>
+      <button type="button" data-v="5" aria-label="5 stars">&#9733;</button>
     </div>
 
-    <div class="review-modal-body review-modal-body--form">
-      <div class="review-rating-panel">
-        <div class="review-rating-copy">
-          <span class="review-rating-label">Your rating</span>
-          <span class="review-rating-hint">Choose the star count that best fits the experience.</span>
-        </div>
-        <div class="star-selector" id="star-selector" role="group" aria-label="Star rating">
-          <button type="button" data-v="1" aria-label="1 star">&#9733;</button>
-          <button type="button" data-v="2" aria-label="2 stars">&#9733;</button>
-          <button type="button" data-v="3" aria-label="3 stars">&#9733;</button>
-          <button type="button" data-v="4" aria-label="4 stars">&#9733;</button>
-          <button type="button" data-v="5" aria-label="5 stars">&#9733;</button>
-        </div>
-      </div>
+    <textarea id="review-body-input" class="review-body-field" placeholder="Share your thoughts about this piece..." maxlength="1000"></textarea>
 
-      <label class="review-field-label" for="review-body-input">Your note</label>
-      <textarea id="review-body-input" class="review-body-field" placeholder="Share your thoughts about this piece..." maxlength="1000"></textarea>
+    <div class="review-form-row review-fit-toggle-row">
+      <label class="review-fit-toggle-label">
+        <input type="checkbox" id="rateFitToggle" onchange="document.getElementById('advancedRatings').style.display = this.checked ? 'block' : 'none'">
+        <span>Rate Size, Comfort &amp; Recommendation (Optional)</span>
+      </label>
+    </div>
 
+    <div id="advancedRatings" class="review-advanced-legacy" style="display:none;">
       <div class="review-form-row">
-        <label class="review-toggle-card">
-          <input type="checkbox" id="rateFitToggle" class="review-toggle-input" onchange="document.getElementById('advancedRatings').style.display = this.checked ? 'block' : 'none'">
-          <span class="review-toggle-copy">
-            <span class="review-toggle-label">Add fit details</span>
-            <span class="review-toggle-hint">Share size, comfort, and whether you would recommend it.</span>
-          </span>
-        </label>
+        <label class="review-legacy-label" for="reviewFit">How did this product fit?</label>
+        <input type="range" id="reviewFit" class="review-slider" min="1" max="5" value="3">
+        <div class="review-slider-wrap"><span>Runs Small</span><span>Runs Big</span></div>
       </div>
-      <div id="advancedRatings" class="review-advanced-panel" style="display:none;">
-        <div class="review-form-row">
-          <label class="review-field-label" for="reviewFit">How did this product fit?</label>
-          <input type="range" id="reviewFit" class="review-slider" min="1" max="5" value="3">
-          <div class="review-slider-wrap"><span>Runs Small</span><span>Runs Big</span></div>
-        </div>
-        <div class="review-form-row">
-          <label class="review-field-label" for="reviewComfort">How comfortable was this product?</label>
-          <input type="range" id="reviewComfort" class="review-slider" min="1" max="5" value="5">
-          <div class="review-slider-wrap"><span>Uncomfortable</span><span>Very Comfortable</span></div>
-        </div>
-        <div class="review-form-row">
-          <label class="review-field-label">Would you recommend this product?</label>
-          <div class="review-radio-group">
-            <input type="radio" id="reviewRecommendYes" name="reviewRecommend" value="yes" checked>
-            <label for="reviewRecommendYes">Yes</label>
-            <input type="radio" id="reviewRecommendNo" name="reviewRecommend" value="no">
-            <label for="reviewRecommendNo">No</label>
-          </div>
+      <div class="review-form-row">
+        <label class="review-legacy-label" for="reviewComfort">How comfortable was this product?</label>
+        <input type="range" id="reviewComfort" class="review-slider" min="1" max="5" value="5">
+        <div class="review-slider-wrap"><span>Uncomfortable</span><span>Very Comfortable</span></div>
+      </div>
+      <div class="review-form-row review-recommend-row">
+        <label class="review-legacy-label">Would you recommend this product?</label>
+        <div class="review-radio-group">
+          <input type="radio" id="reviewRecommendYes" name="reviewRecommend" value="yes" checked>
+          <label for="reviewRecommendYes">Yes</label>
+          <input type="radio" id="reviewRecommendNo" name="reviewRecommend" value="no">
+          <label for="reviewRecommendNo">No</label>
         </div>
       </div>
-
-      <p id="review-error" class="review-error"></p>
-      <button id="review-submit-btn" class="review-submit-btn" onclick="submitReview()">Submit Review</button>
     </div>
+
+    <p id="review-error" class="review-error"></p>
+    <button id="review-submit-btn" class="review-submit-btn" onclick="submitReview()">Submit Review</button>
   </div>
 </div>
 
@@ -956,6 +938,31 @@ let currentImageIndex = 0;
 let currentUser = null;
 let editingReviewId = null;
 
+function normalizedProductSlug(value) {
+  if (!value) return '';
+  return String(value)
+    .replace(/^zuwera\s+/i, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function pickProductBySlug(products, slug) {
+  const wantedSlug = normalizedProductSlug(slug);
+  if (!wantedSlug || !Array.isArray(products)) return null;
+
+  const exactMatch = products.find((product) => {
+    const candidateSlug = normalizedProductSlug(product?.slug || product?.title || product?.name);
+    return candidateSlug === wantedSlug;
+  });
+  if (exactMatch) return exactMatch;
+
+  return products.find((product) => {
+    const candidateSlug = normalizedProductSlug(product?.slug || product?.title || product?.name);
+    return candidateSlug && (candidateSlug.includes(wantedSlug) || wantedSlug.includes(candidateSlug));
+  }) || null;
+}
+
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
 // INITIALIZATION
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
@@ -1011,27 +1018,54 @@ async function loadProduct() {
 
   // Fetch the product first, then related tables separately by product_id so gallery data
   // never bleeds across products if an embedded relationship returns unexpected rows.
-  let url = `${_PROD_SB_URL}/rest/v1/products?select=*`;
-  if (productId) {
-    url += `&id=eq.${productId}`;
-  } else if (sku) {
-    url += `&sku=eq.${sku}`;
-  } else if (slug) {
-    const searchSlug = slug.replace(/-/g, '*');
-    url += `&title=ilike.*${encodeURIComponent(searchSlug)}*`;
-  } else {
-    url += `&status=eq.Live&order=sort_order.asc`;
-  }
-  url += `&limit=1`;
-
   const headers = { 'apikey': _PROD_SB_KEY, 'Authorization': `Bearer ${_PROD_SB_KEY}` };
-  const resp = await fetch(url, { headers });
-  if (!resp.ok) throw new Error('Product not found');
-  
-  const data = await resp.json();
-  const productData = data ? data[0] : null;
+
+  let productData = null;
+  if (productId) {
+    const resp = await fetch(`${_PROD_SB_URL}/rest/v1/products?select=*&id=eq.${encodeURIComponent(productId)}&limit=1`, { headers });
+    if (!resp.ok) throw new Error('Product not found');
+    const data = await resp.json();
+    productData = data ? data[0] : null;
+  } else if (sku) {
+    const resp = await fetch(`${_PROD_SB_URL}/rest/v1/products?select=*&sku=eq.${encodeURIComponent(sku)}&limit=1`, { headers });
+    if (!resp.ok) throw new Error('Product not found');
+    const data = await resp.json();
+    productData = data ? data[0] : null;
+  } else if (slug) {
+    const resp = await fetch(`${_PROD_SB_URL}/rest/v1/products?select=*&order=sort_order.asc`, { headers });
+    if (!resp.ok) throw new Error('Product not found');
+    const data = await resp.json();
+    const products = Array.isArray(data) ? data : [];
+    productData = pickProductBySlug(products, slug);
+
+    if (!productData) {
+      const searchSlug = slug.replace(/-/g, '*');
+      const fallbackResp = await fetch(`${_PROD_SB_URL}/rest/v1/products?select=*&title=ilike.*${encodeURIComponent(searchSlug)}*&order=sort_order.asc&limit=5`, { headers });
+      if (fallbackResp.ok) {
+        const fallbackData = await fallbackResp.json();
+        const fallbackProducts = Array.isArray(fallbackData) ? fallbackData : [];
+        productData = pickProductBySlug(fallbackProducts, slug) || fallbackProducts[0] || null;
+      }
+    }
+  } else {
+    const resp = await fetch(`${_PROD_SB_URL}/rest/v1/products?select=*&status=eq.Live&order=sort_order.asc&limit=1`, { headers });
+    if (!resp.ok) throw new Error('Product not found');
+    const data = await resp.json();
+    productData = data ? data[0] : null;
+  }
+
   if (!productData) {
     throw new Error('Product not found');
+  }
+
+  const resolvedSlug = normalizedProductSlug(productData.slug || productData.title || productData.name);
+  const resolvedParams = new URLSearchParams();
+  resolvedParams.set('id', productData.id);
+  if (productData.sku) resolvedParams.set('sku', productData.sku);
+  const resolvedPath = resolvedSlug ? `/product/${resolvedSlug}` : '/product';
+  const resolvedUrl = `${resolvedPath}?${resolvedParams.toString()}`;
+  if (`${window.location.pathname}${window.location.search}` !== resolvedUrl) {
+    window.history.replaceState({}, '', resolvedUrl);
   }
 
   const productIdFilter = encodeURIComponent(productData.id);
@@ -1054,10 +1088,23 @@ async function loadProduct() {
   if (!productData.gender && productData.subtitle) productData.gender = productData.subtitle;
 
   // Extract embedded arrays and sort client-side
-  const images    = (Array.isArray(imagesData) ? imagesData : []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  const colors    = (Array.isArray(colorsData) ? colorsData : []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  const inventory = Array.isArray(sizesData) ? sizesData : [];
-  const reviews   = reviewsData || [];
+  const strictProductId = String(productData.id);
+  const seenImageUrls = new Set();
+  const images = (Array.isArray(imagesData) ? imagesData : [])
+    .filter((image) => String(image?.product_id) === strictProductId && image?.image_url)
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+    .filter((image) => {
+      if (seenImageUrls.has(image.image_url)) return false;
+      seenImageUrls.add(image.image_url);
+      return true;
+    });
+  const colors = (Array.isArray(colorsData) ? colorsData : [])
+    .filter((color) => String(color?.product_id) === strictProductId)
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  const inventory = (Array.isArray(sizesData) ? sizesData : [])
+    .filter((size) => String(size?.product_id) === strictProductId);
+  const reviews = (Array.isArray(reviewsData) ? reviewsData : [])
+    .filter((review) => String(review?.product_id) === strictProductId);
 
   currentProduct          = productData;
   currentProduct.images   = images;

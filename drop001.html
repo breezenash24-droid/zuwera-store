@@ -543,9 +543,19 @@
       return `https://res.cloudinary.com/${cloudName}/image/fetch/f_auto,q_auto,w_${width}/${url}`;
     }
 
-    function productSlug(title) {
+function productSlug(title) {
   if (!title) return '';
   return title.replace(/^zuwera\s+/i, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function productHref(product) {
+  const slug = productSlug(product?.title || product?.name || product?.slug || '');
+  const params = new URLSearchParams();
+  if (product?.id) params.set('id', product.id);
+  if (product?.sku) params.set('sku', product.sku);
+  const qs = params.toString();
+  if (slug) return `/product/${slug}${qs ? `?${qs}` : ''}`;
+  return `/product${qs ? `?${qs}` : ''}`;
 }
 
 function updateCountdown() {
@@ -620,12 +630,25 @@ function updateCountdown() {
 
       let products;
       try {
-        const resp = await fetch(
-          `${SUPABASE_URL}/rest/v1/products?select=*,product_images(*)&order=sort_order.asc`,
-          { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` } }
-        );
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        products = await resp.json();
+        const headers = { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` };
+        const [productsResp, imagesResp] = await Promise.all([
+          fetch(`${SUPABASE_URL}/rest/v1/products?select=*&order=sort_order.asc`, { headers }),
+          fetch(`${SUPABASE_URL}/rest/v1/product_images?select=*&order=sort_order.asc`, { headers })
+        ]);
+        if (!productsResp.ok) throw new Error(`HTTP ${productsResp.status}`);
+        products = await productsResp.json();
+        const imageRows = imagesResp.ok ? await imagesResp.json() : [];
+        const imagesByProductId = new Map();
+        (Array.isArray(imageRows) ? imageRows : []).forEach((image) => {
+          if (!image || !image.product_id) return;
+          const bucket = imagesByProductId.get(image.product_id) || [];
+          bucket.push(image);
+          imagesByProductId.set(image.product_id, bucket);
+        });
+        products = (Array.isArray(products) ? products : []).map((product) => ({
+          ...product,
+          product_images: (imagesByProductId.get(product.id) || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+        }));
       } catch(e) {
         console.error('loadProducts error:', e);
         if (!cached) grid.innerHTML = '<div class="product-card" style="opacity:.3;text-align:center;padding:3rem;grid-column:1/-1">Could not load products.</div>';
@@ -682,7 +705,7 @@ function updateCountdown() {
                 <span>Image Coming Soon</span>
               </div>`;
           return `
-            <a href="/product/${productSlug(p.title)}" style="text-decoration:none;color:inherit">
+            <a href="${productHref(p)}" style="text-decoration:none;color:inherit">
               <div class="product-card">
                 <div class="product-img">
                   ${imgHtml}
