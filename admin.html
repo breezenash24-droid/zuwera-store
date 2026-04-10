@@ -2066,6 +2066,10 @@
                                 <label for="sustainOriginal">Original</label>
                             </div>
                         </div>
+                        <div style="margin-top: 12px;">
+                            <label class="form-label" style="font-size:0.8rem;opacity:0.7">Recycled Content Detail (optional)</label>
+                            <input type="text" id="recycledContentDetail" class="form-input" placeholder="e.g., 72% recycled polyester">
+                        </div>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Certifications</label>
@@ -2317,6 +2321,7 @@
         let sizeChartsData = [];
         let currentSizeChart = null;
         let productSizeChartCache = null;
+        let productSizeChartCachePromise = null;
         
         const fallbackTechDict = {
             "Aero-PRO™": { focus: "Sweat evaporation and breathability.", level: "Standard Performance.", opt: "Light to moderate sweat output.", best: "Daily physical activity, gym sessions, and steady-state training.", desc: "High-wicking capillary fibers designed to pull moisture away from the skin for consistent dryness and comfort." },
@@ -3045,7 +3050,7 @@
 
             currentProduct = product;
             populateTechCheckboxes();
-            loadProductIntoForm(product);
+            await loadProductIntoForm(product);
             document.getElementById('formModalTitle').textContent = 'Edit Product';
             openProductForm();
         }
@@ -3246,15 +3251,59 @@
                 .replace(/>/g, '&gt;');
         }
 
+        function isOneSizeLabel(value) {
+            const normalized = normalizeSizeKey(value).replace(/\s+fits\s+most/g, '');
+            return normalized === 'one size' || normalized === 'one-size' || normalized === 'onesize';
+        }
+
+        function compareSizeLabels(a, b, profile = '') {
+            const order = profile === 'hats'
+                ? ['one size', 's/m', 'm/l', 'l/xl']
+                : ['one size', 'xxs', 'xs', 's', 's/m', 'm', 'm/l', 'l', 'l/xl', 'xl', 'xxl', '3xl'];
+
+            const normalize = (value) => normalizeSizeKey(value).replace(/\s+fits\s+most/g, '');
+            const left = normalize(a);
+            const right = normalize(b);
+
+            const leftIndex = order.indexOf(left);
+            const rightIndex = order.indexOf(right);
+
+            if (leftIndex !== -1 || rightIndex !== -1) {
+                if (leftIndex === -1) return 1;
+                if (rightIndex === -1) return -1;
+                return leftIndex - rightIndex;
+            }
+
+            return String(a || '').localeCompare(String(b || ''), undefined, { numeric: true, sensitivity: 'base' });
+        }
+
+        function sortGuideRows(rows, profile = '') {
+            return [...rows].sort((left, right) => compareSizeLabels(left?.size_label || '', right?.size_label || '', profile));
+        }
+
+        function getRecycledContentTag(tags = []) {
+            return Array.isArray(tags)
+                ? tags.find((tag) => /recycled/i.test(String(tag || '')))
+                : '';
+        }
+
         function normalizeSizeKey(value) {
-            return String(value || '')
+            const normalized = String(value || '')
                 .trim()
                 .toLowerCase()
-                .replace(/\s+/g, ' ');
+                .replace(/[()]/g, ' ')
+                .replace(/\bfits\s+most\b/g, ' ')
+                .replace(/\s*\/\s*/g, '/')
+                .replace(/\s*-\s*/g, '-')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            return /^one(?:\s|-)?size$/.test(normalized) ? 'one size' : normalized;
         }
 
         function getFallbackSizes(gender, category) {
             const categoryLower = String(category || '').toLowerCase();
+            if (/(hat|cap|beanie|visor)/.test(categoryLower)) return ['One Size', 'S/M', 'M/L', 'L/XL'];
             if (/(bag|sock|headband|wristband)/.test(categoryLower)) return ['One Size'];
             return sizes[gender] || [];
         }
@@ -3274,28 +3323,35 @@
 
         async function ensureProductSizeChartCache() {
             if (productSizeChartCache) return productSizeChartCache;
+            if (productSizeChartCachePromise) return productSizeChartCachePromise;
 
-            try {
-                const { data, error } = await sb
-                    .from('size_charts')
-                    .select('*')
-                    .order('category', { ascending: true })
-                    .order('size_label', { ascending: true });
+            productSizeChartCachePromise = (async () => {
+                try {
+                    const { data, error } = await sb
+                        .from('size_charts')
+                        .select('*')
+                        .order('category', { ascending: true })
+                        .order('size_label', { ascending: true });
 
-                if (error) throw error;
+                    if (error) throw error;
 
-                productSizeChartCache = (data || []).reduce((acc, row) => {
-                    const key = row.category || 'custom';
-                    if (!acc[key]) acc[key] = [];
-                    acc[key].push(row);
-                    return acc;
-                }, {});
-            } catch (error) {
-                console.error('Error loading size chart cache:', error);
-                productSizeChartCache = {};
-            }
+                    productSizeChartCache = (data || []).reduce((acc, row) => {
+                        const key = row.category || 'custom';
+                        if (!acc[key]) acc[key] = [];
+                        acc[key].push(row);
+                        return acc;
+                    }, {});
+                } catch (error) {
+                    console.error('Error loading size chart cache:', error);
+                    productSizeChartCache = {};
+                } finally {
+                    productSizeChartCachePromise = null;
+                }
 
-            return productSizeChartCache;
+                return productSizeChartCache;
+            })();
+
+            return productSizeChartCachePromise;
         }
 
         function getConfiguredSizeGuideProfile() {
@@ -3319,7 +3375,10 @@
                 };
             }
 
-            const chartRows = (productSizeChartCache?.[resolvedProfile] || []).filter(row => row?.size_label);
+            const chartRows = sortGuideRows(
+                (productSizeChartCache?.[resolvedProfile] || []).filter(row => row?.size_label),
+                resolvedProfile
+            );
             if (chartRows.length) {
                 return {
                     profile: resolvedProfile,
@@ -3329,7 +3388,10 @@
 
             return {
                 profile: resolvedProfile,
-                rows: getFallbackSizes(gender, category).map(label => ({ size_label: label, __fallback: true }))
+                rows: sortGuideRows(
+                    getFallbackSizes(gender, category).map(label => ({ size_label: label, __fallback: true })),
+                    resolvedProfile
+                )
             };
         }
 
@@ -3532,6 +3594,12 @@
             void syncSizeGuideUi({ forceSizeRows: false, keepManualRows: true });
         });
 
+        document.getElementById('recycledContentDetail').addEventListener('input', (event) => {
+            if (event.target.value.trim()) {
+                document.getElementById('sustainRecycled').checked = true;
+            }
+        });
+
         document.getElementById('applyPomGuideBtn').addEventListener('click', (e) => {
             e.preventDefault();
             applyGuideMeasurementsToPom();
@@ -3655,7 +3723,10 @@
                 };
 
                 const sustainTags = [];
-                if (document.getElementById('sustainRecycled').checked) sustainTags.push('Recycled Content');
+                const recycledContentDetail = document.getElementById('recycledContentDetail').value.trim();
+                if (document.getElementById('sustainRecycled').checked) {
+                    sustainTags.push(recycledContentDetail || 'Recycled Content');
+                }
                 if (document.getElementById('sustainOriginal').checked) sustainTags.push('Original');
                 productData.sustainability_tags = sustainTags;
 
@@ -3683,34 +3754,45 @@
                     productId = data[0].id;
                 }
 
-                await sb.from('product_images').delete().eq('product_id', productId);
+                {
+                    const { error } = await sb.from('product_images').delete().eq('product_id', productId);
+                    if (error) throw error;
+                }
                 const imageUrls = Array.from(document.querySelectorAll('.product-image-url')).map(i => i.value).filter(v => v);
                 for (let i = 0; i < imageUrls.length; i++) {
-                    await sb.from('product_images').insert([{
+                    const { error } = await sb.from('product_images').insert([{
                         product_id: productId,
                         image_url: imageUrls[i],
                         sort_order: i
                     }]);
+                    if (error) throw error;
                 }
 
-                await sb.from('color_variants').delete().eq('product_id', productId);
+                {
+                    const { error } = await sb.from('color_variants').delete().eq('product_id', productId);
+                    if (error) throw error;
+                }
                 const colorItems = document.querySelectorAll('.color-variant-item');
                 for (let i = 0; i < colorItems.length; i++) {
                     const colorName = colorItems[i].querySelector('.form-input').value;
                     const hexColor = colorItems[i].querySelector('[placeholder="#000000"]').value;
                     const rgbColor = colorItems[i].querySelector('[placeholder="0,0,0"]').value;
                     if (colorName && hexColor) {
-                        await sb.from('color_variants').insert([{
+                        const { error } = await sb.from('color_variants').insert([{
                             product_id: productId,
                             color_name: colorName,
                             hex_color: hexColor,
                             rgb_color: rgbColor,
                             sort_order: i
                         }]);
+                        if (error) throw error;
                     }
                 }
 
-                await sb.from('product_sizes').delete().eq('product_id', productId);
+                {
+                    const { error } = await sb.from('product_sizes').delete().eq('product_id', productId);
+                    if (error) throw error;
+                }
                 const sizeRows = Array.from(document.querySelectorAll('.size-row'));
                 const seenSizes = new Set();
                 for (const row of sizeRows) {
@@ -3728,11 +3810,17 @@
                     }
                     seenSizes.add(sizeKey);
 
-                    await sb.from('product_sizes').insert([{
+                    const parsedStock = parseInt(stockValue, 10);
+                    if (Number.isNaN(parsedStock) || parsedStock < 0) {
+                        throw new Error(`Stock for "${sizeName}" must be a whole number of 0 or more.`);
+                    }
+
+                    const { error } = await sb.from('product_sizes').insert([{
                         product_id: productId,
                         size: sizeName,
-                        stock_quantity: parseInt(stockValue, 10)
+                        stock_quantity: parsedStock
                     }]);
+                    if (error) throw error;
                 }
 
                 showToast(publish ? 'Product published!' : 'Draft saved!', 'success');
@@ -3748,7 +3836,7 @@
             }
         }
 
-        function loadProductIntoForm(product) {
+        async function loadProductIntoForm(product) {
             document.getElementById('sku').value = product.sku;
             document.getElementById('title').value = product.title;
             document.getElementById('subtitle').value = product.subtitle;
@@ -3791,7 +3879,11 @@
             document.getElementById('sortOrder').value = product.sort_order || '';
             document.getElementById('lowStockThreshold').value = product.low_stock_threshold || 10;
 
-            document.getElementById('sustainRecycled').checked = product.sustainability_tags?.includes('Recycled Content');
+            const recycledContentTag = getRecycledContentTag(product.sustainability_tags);
+            document.getElementById('sustainRecycled').checked = Boolean(recycledContentTag);
+            document.getElementById('recycledContentDetail').value = recycledContentTag && recycledContentTag !== 'Recycled Content'
+                ? recycledContentTag
+                : '';
             document.getElementById('sustainOriginal').checked = product.sustainability_tags?.includes('Original');
             document.getElementById('certGRS').checked = product.certifications?.includes('GRS');
             document.getElementById('certOEKO').checked = product.certifications?.includes('OEKO-TEX');
@@ -3801,68 +3893,78 @@
             document.getElementById('specialtyPlus').checked = product.specialty_sizing?.includes('Plus');
             document.getElementById('specialtyMaternity').checked = product.specialty_sizing?.includes('Maternity');
 
-            // Load images
+            const activeProductId = product.id;
             const container = document.getElementById('imagesContainer');
             container.innerHTML = '';
 
-            sb.from('product_images').select('*').eq('product_id', product.id).order('sort_order', { ascending: true }).then(({ data }) => {
-                if (data && data.length > 0) {
-                    data.forEach((img, idx) => {
-                        const row = document.createElement('div');
-                        row.className = 'image-row';
-                        row.innerHTML = '<span style="font-weight:600;min-width:60px;">Image ' + (idx + 1) + '</span>' +
-                            '<input type="text" class="form-input product-image-url" placeholder="Paste image URL..." value="' + img.image_url + '">' +
-                            '<label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label>' +
-                            '<img class="image-preview" src="' + img.image_url + '" style="display:block">' +
-                            '<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button>';
-                        container.appendChild(row);
-                    });
-                } else {
-                    const imgUrl = product.image_url || '';
+            const [imagesResult, colorsResult, sizesResult] = await Promise.all([
+                sb.from('product_images').select('*').eq('product_id', product.id).order('sort_order', { ascending: true }),
+                sb.from('color_variants').select('*').eq('product_id', product.id).order('sort_order', { ascending: true }),
+                sb.from('product_sizes').select('*').eq('product_id', product.id).order('size', { ascending: true })
+            ]);
+
+            if (!currentProduct || currentProduct.id !== activeProductId) return;
+
+            const imageRows = Array.isArray(imagesResult?.data) ? imagesResult.data : [];
+            if (imagesResult?.error) console.error('Error loading product images:', imagesResult.error);
+            if (imageRows.length > 0) {
+                imageRows.forEach((img, idx) => {
                     const row = document.createElement('div');
                     row.className = 'image-row';
-                    row.innerHTML = '<span style="font-weight:600;min-width:60px;">Image 1</span>' +
-                        '<input type="text" class="form-input product-image-url" placeholder="Paste image URL..." value="' + imgUrl + '">' +
+                    row.innerHTML = '<span style="font-weight:600;min-width:60px;">Image ' + (idx + 1) + '</span>' +
+                        '<input type="text" class="form-input product-image-url" placeholder="Paste image URL..." value="' + img.image_url + '">' +
                         '<label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label>' +
-                        (imgUrl ? '<img class="image-preview" src="' + imgUrl + '" style="display:block">' : '<img class="image-preview" style="display:none">') +
+                        '<img class="image-preview" src="' + img.image_url + '" style="display:block">' +
                         '<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button>';
                     container.appendChild(row);
-                }
-            });
+                });
+            } else {
+                const imgUrl = product.image_url || '';
+                const row = document.createElement('div');
+                row.className = 'image-row';
+                row.innerHTML = '<span style="font-weight:600;min-width:60px;">Image 1</span>' +
+                    '<input type="text" class="form-input product-image-url" placeholder="Paste image URL..." value="' + imgUrl + '">' +
+                    '<label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label>' +
+                    (imgUrl ? '<img class="image-preview" src="' + imgUrl + '" style="display:block">' : '<img class="image-preview" style="display:none">') +
+                    '<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button>';
+                container.appendChild(row);
+            }
 
-            sb.from('color_variants').select('*').eq('product_id', product.id).then(({ data }) => {
-                const container = document.getElementById('colorVariantsContainer');
-                container.innerHTML = '';
-                if (data && data.length > 0) {
-                    data.forEach(() => {
-                        addColorVariant();
-                    });
-                    data.forEach((color, idx) => {
-                        const items = document.querySelectorAll('.color-variant-item');
-                        if (items[idx]) {
-                            items[idx].querySelector('.form-input').value = color.color_name;
-                            items[idx].querySelector('[placeholder="#000000"]').value = color.hex_color;
-                            items[idx].querySelector('[placeholder="0,0,0"]').value = color.rgb_color;
-                            items[idx].querySelector('.color-swatch').style.backgroundColor = color.hex_color;
-                        }
-                    });
-                }
-            });
-
-            void renderSizeGrid(product.gender, { forceSizeRows: true, keepManualRows: false });
-            sb.from('product_sizes').select('*').eq('product_id', product.id).then(({ data }) => {
-                if (data && data.length > 0) {
-                    renderSizeRows(data.map(inv => ({
-                        size: inv.size,
-                        stock_quantity: inv.stock_quantity
-                    })));
-                    if (!document.getElementById('pomGuideSizeInput').value && data[0]?.size) {
-                        document.getElementById('pomGuideSizeInput').value = data[0].size;
+            const colorContainer = document.getElementById('colorVariantsContainer');
+            colorContainer.innerHTML = '';
+            const colorRows = Array.isArray(colorsResult?.data) ? colorsResult.data : [];
+            if (colorsResult?.error) console.error('Error loading color variants:', colorsResult.error);
+            if (colorRows.length > 0) {
+                colorRows.forEach(() => {
+                    addColorVariant();
+                });
+                colorRows.forEach((color, idx) => {
+                    const items = document.querySelectorAll('.color-variant-item');
+                    if (items[idx]) {
+                        items[idx].querySelector('.form-input').value = color.color_name;
+                        items[idx].querySelector('[placeholder="#000000"]').value = color.hex_color;
+                        items[idx].querySelector('[placeholder="0,0,0"]').value = color.rgb_color;
+                        items[idx].querySelector('.color-swatch').style.backgroundColor = color.hex_color;
                     }
-                } else {
-                    void syncSizeGuideUi({ forceSizeRows: true, keepManualRows: false });
+                });
+            }
+
+            await renderSizeGrid(product.gender, { forceSizeRows: true, keepManualRows: false });
+            if (!currentProduct || currentProduct.id !== activeProductId) return;
+
+            const sizeRows = Array.isArray(sizesResult?.data) ? sizesResult.data : [];
+            if (sizesResult?.error) console.error('Error loading product sizes:', sizesResult.error);
+            if (sizeRows.length > 0) {
+                renderSizeRows(sizeRows.map(inv => ({
+                    size: inv.size,
+                    stock_quantity: inv.stock_quantity
+                })));
+                if (!document.getElementById('pomGuideSizeInput').value && sizeRows[0]?.size) {
+                    document.getElementById('pomGuideSizeInput').value = sizeRows[0].size;
                 }
-            });
+            } else {
+                await syncSizeGuideUi({ forceSizeRows: true, keepManualRows: false });
+            }
         }
 
         function resetProductForm() {
@@ -3872,6 +3974,7 @@
             document.getElementById('sizeGridContainer').innerHTML = '';
             document.getElementById('sizeGuideProfile').value = 'auto';
             document.getElementById('pomGuideSizeInput').value = '';
+            document.getElementById('recycledContentDetail').value = '';
             document.getElementById('sizeGuideStatus').textContent = 'Select a category or gender and this will pull matching sizes from your size guide. You can still type any size name you want.';
             document.querySelectorAll('.tech-checkbox').forEach(cb => cb.checked = false);
             document.querySelectorAll('.form-input.error, .form-select.error').forEach(el => el.classList.remove('error'));
@@ -3896,9 +3999,18 @@
 
         document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
             try {
-                await sb.from('product_images').delete().eq('product_id', deleteProductId);
-                await sb.from('color_variants').delete().eq('product_id', deleteProductId);
-                await sb.from('product_sizes').delete().eq('product_id', deleteProductId);
+                {
+                    const { error } = await sb.from('product_images').delete().eq('product_id', deleteProductId);
+                    if (error) throw error;
+                }
+                {
+                    const { error } = await sb.from('color_variants').delete().eq('product_id', deleteProductId);
+                    if (error) throw error;
+                }
+                {
+                    const { error } = await sb.from('product_sizes').delete().eq('product_id', deleteProductId);
+                    if (error) throw error;
+                }
                 const { error } = await sb.from('products').delete().eq('id', deleteProductId);
                 if (error) throw error;
 
@@ -4005,6 +4117,7 @@
                     const { error } = await sb.from('size_charts').delete().eq('id', id);
                     if (error) throw error;
                     productSizeChartCache = null;
+                    productSizeChartCachePromise = null;
                     showToast('Size entry deleted', 'success');
                     loadSizeCharts();
                 } catch (err) { showToast('Error deleting size entry: ' + err.message, 'error'); }
@@ -4027,6 +4140,7 @@
                 else { ({ error } = await sb.from('size_charts').insert([data])); }
                 if (error) throw error;
                 productSizeChartCache = null;
+                productSizeChartCachePromise = null;
                 showToast('Size chart entry saved!', 'success');
                 document.getElementById('sizeChartFormModal').classList.remove('active');
                 loadSizeCharts();

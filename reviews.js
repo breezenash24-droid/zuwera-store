@@ -30,11 +30,54 @@ let _reviewProductId   = null;   // currently open form target
 let _reviewProductName = null;
 let _reviewRating      = 0;
 let _reviewIdToEdit    = null;
+let _activeReviewDomId = null;
 
 // Cache of loaded reviews per product to avoid redundant DB calls
 const _reviewCache = {};
 const _domIdToPid = {};
 const REVIEW_META_SEPARATOR = ' \u00b7 ';
+
+function rememberReviewContext(pid, domId, productName) {
+  const resolvedDomId = domId || pid;
+  _domIdToPid[resolvedDomId] = pid;
+  window._domIdToPname = window._domIdToPname || {};
+  if (productName) {
+    window._domIdToPname[resolvedDomId] = productName;
+    window._domIdToPname[pid] = productName;
+  }
+  _reviewProductId = pid;
+  _reviewProductName = productName || _reviewProductName;
+  _activeReviewDomId = resolvedDomId;
+  return resolvedDomId;
+}
+
+function getReviewSummaryDomIds(pid) {
+  const nodes = Array.from(document.querySelectorAll(`[data-review-pid="${pid}"]`));
+  const domIds = nodes
+    .map((node) => node.dataset.reviewDomid || node.dataset.reviewPid)
+    .filter(Boolean);
+
+  if (!domIds.length && pid) domIds.push(String(pid));
+  return Array.from(new Set(domIds));
+}
+
+function findReviewForEdit(id, pid) {
+  const reviewPid = pid || _reviewProductId;
+  if (reviewPid && Array.isArray(_reviewCache[reviewPid])) {
+    const cachedReview = _reviewCache[reviewPid].find((review) => review.id === id);
+    if (cachedReview) return cachedReview;
+  }
+
+  if (typeof currentProduct !== 'undefined' && currentProduct && Array.isArray(currentProduct.reviews)) {
+    const currentReview = currentProduct.reviews.find((review) => review.id === id);
+    if (currentReview) return currentReview;
+  }
+
+  const cacheBucket = Object.values(_reviewCache).find((reviews) =>
+    Array.isArray(reviews) && reviews.some((review) => review.id === id)
+  );
+  return Array.isArray(cacheBucket) ? cacheBucket.find((review) => review.id === id) || null : null;
+}
 
 function syncCurrentProductReviews(pid, reviews) {
   if (typeof currentProduct !== 'undefined' && currentProduct && currentProduct.id === pid) {
@@ -185,21 +228,18 @@ function generateReviewSummaryHtml(reviews) {
 window.openAllReviewsModal = async function(pid, domId, productName) {
   const modal = document.getElementById('all-reviews-modal');
   if (!modal) return;
-  
-  _domIdToPid[domId] = pid;
-  window._domIdToPname = window._domIdToPname || {};
-  window._domIdToPname[domId] = productName;
-  _reviewProductId = pid;
+
+  const resolvedDomId = rememberReviewContext(pid, domId, productName);
   
   const list = document.getElementById('all-reviews-list');
   const summary = document.getElementById('all-reviews-summary');
   
   const translateSelect = modal.querySelector('select[id^="translate-lang"]');
   const translateBtn = modal.querySelector('button[id^="translate-reviews-btn"]');
-  if (translateSelect) translateSelect.id = 'translate-lang-' + domId;
+  if (translateSelect) translateSelect.id = 'translate-lang-' + resolvedDomId;
   if (translateBtn) {
-    translateBtn.id = 'translate-reviews-btn-' + domId;
-    translateBtn.setAttribute('onclick', `translateReviews('${domId}')`);
+    translateBtn.id = 'translate-reviews-btn-' + resolvedDomId;
+    translateBtn.setAttribute('onclick', `translateReviews('${resolvedDomId}')`);
   }
   
   let writeBtn = document.getElementById('all-reviews-write-btn');
@@ -252,7 +292,7 @@ window.openAllReviewsModal = async function(pid, domId, productName) {
 
       let editBtnHtml = '';
       if (user && review.user_id === user.id) {
-        editBtnHtml = `<button class="review-card-action" onclick="openEditReviewForm('${review.id}', ${review.rating}, '${escHtml(review.body || '')}'); document.getElementById('all-reviews-modal').classList.remove('open');">Edit</button>`;
+        editBtnHtml = `<button class="review-card-action" type="button" onclick="openEditReviewForm('${review.id}', ${review.rating}, '${pid}'); document.getElementById('all-reviews-modal').classList.remove('open');">Edit</button>`;
       }
 
       const reviewDate = review.created_at
@@ -323,14 +363,26 @@ function openReviewForm(pid, pname) {
   document.body.style.overflow = 'hidden';
 }
 
-function openEditReviewForm(id, rating, body) {
+function openEditReviewForm(id, rating, pid) {
+  const review = findReviewForEdit(id, pid);
+  const resolvedPid = pid || review?.product_id || _reviewProductId || currentProduct?.id || null;
+  const resolvedProductName = (resolvedPid && _reviewProductId === resolvedPid ? _reviewProductName : '')
+    || (resolvedPid && _activeReviewDomId && _domIdToPid[_activeReviewDomId] === resolvedPid ? window._domIdToPname?.[_activeReviewDomId] : '')
+    || (resolvedPid && window._domIdToPname?.[resolvedPid])
+    || (typeof currentProduct !== 'undefined' && currentProduct && currentProduct.id === resolvedPid ? currentProduct.title : '')
+    || '';
+
+  if (resolvedPid) _reviewProductId = resolvedPid;
+  if (review?.product_id) _reviewProductId = review.product_id;
+  if (resolvedProductName) _reviewProductName = resolvedProductName;
   _reviewIdToEdit = id;
   _reviewRating = rating;
 
+  const productLabel = document.getElementById('review-product-label');
+  if (productLabel) productLabel.textContent = resolvedProductName;
   const bodyInput = document.getElementById('review-body-input');
-  if (bodyInput) bodyInput.value = body || '';
+  if (bodyInput) bodyInput.value = review?.body || '';
 
-  const review = _reviewCache[_reviewProductId]?.find(r => r.id === id);
   const fitToggle = document.getElementById('rateFitToggle');
   const adv = document.getElementById('advancedRatings');
   if (review) {
@@ -432,30 +484,37 @@ async function submitReview() {
   if (error) {
     errEl.textContent = error.message || 'Could not submit review. Please try again.';
     btn.disabled    = false;
-    btn.textContent = 'Submit Review';
+    btn.textContent = _reviewIdToEdit ? 'Update Review' : 'Submit Review';
     return;
   }
 
+  const submittedProductId = _reviewProductId;
+  const submittedProductName = _reviewProductName;
+  const submittedDomId = _activeReviewDomId;
+  const submittedWasEdit = !!_reviewIdToEdit;
   _reviewIdToEdit = null;
 
   // Bust cache so the new review shows immediately
-  delete _reviewCache[_reviewProductId];
+  delete _reviewCache[submittedProductId];
 
   document.getElementById('review-modal').classList.remove('open');
   document.body.style.overflow = '';
-  if (typeof showToast === 'function') showToast('Review submitted â€” thank you!');
+  if (typeof showToast === 'function') {
+    showToast(submittedWasEdit ? 'Review updated.' : 'Review submitted. Thank you!');
+  }
 
   // Refresh all instances of panels and stars for this product
-  const reviews = await loadReviews(_reviewProductId);
-  document.querySelectorAll(`[id^="avg-${_reviewProductId}"]`).forEach(el => {
-      const domId = el.id.replace('avg-', '');
-      updateProductStarDisplay(domId, reviews);
+  const reviews = await loadReviews(submittedProductId);
+  getReviewSummaryDomIds(submittedProductId).forEach((domId) => {
+    updateProductStarDisplay(domId, reviews);
   });
 
   if (typeof renderReviews === 'function') renderReviews(); // update product.html inline reviews summary
   const allModal = document.getElementById('all-reviews-modal');
   if (allModal && allModal.classList.contains('open')) {
-    openAllReviewsModal(_reviewProductId, _reviewProductId, window._domIdToPname?.[_reviewProductId]);
+    const modalDomId = submittedDomId || submittedProductId;
+    const modalProductName = submittedProductName || window._domIdToPname?.[modalDomId] || '';
+    openAllReviewsModal(submittedProductId, modalDomId, modalProductName);
   }
 }
 

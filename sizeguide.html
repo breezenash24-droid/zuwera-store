@@ -1118,10 +1118,10 @@
         { size_label: 'XL', band_size: '40', cup_size: 'E' }
       ],
       hats: [
+        { size_label: 'One Size', head_circ_in: '21.25-24', head_circ_cm: '54-61' },
         { size_label: 'S/M', head_circ_in: '21.25-22.5', head_circ_cm: '54-57' },
         { size_label: 'M/L', head_circ_in: '22.5-23.5', head_circ_cm: '57-60' },
-        { size_label: 'L/XL', head_circ_in: '23.5-24.75', head_circ_cm: '60-63' },
-        { size_label: 'One Size', head_circ_in: '21.25-24', head_circ_cm: '54-61' }
+        { size_label: 'L/XL', head_circ_in: '23.5-24.75', head_circ_cm: '60-63' }
       ]
     };
 
@@ -1261,6 +1261,7 @@
 
       Object.keys(categorized).forEach(cat => {
         if (categorized[cat].length > 0) {
+          categorized[cat].sort((left, right) => compareGuideSizeLabels(left.size_label, right.size_label));
           sizeChartData[cat] = categorized[cat];
         }
       });
@@ -1733,6 +1734,43 @@
       return typeof value === 'string' ? value.trim() : '';
     }
 
+    function singularizeGuideLabel(value) {
+      const label = normalizeGuideValue(value);
+      if (!label) return '';
+      if (/^kids$/i.test(label)) return 'Kids';
+      if (/^sports bras$/i.test(label)) return 'Sports Bra';
+      if (/ies$/i.test(label)) return label.replace(/ies$/i, 'y');
+      if (/s$/i.test(label) && !/(ss|us)$/i.test(label)) return label.replace(/s$/i, '');
+      return label;
+    }
+
+    function compareGuideSizeLabels(left, right) {
+      const order = ['one size', 'xxs', 'xs', 's', 's/m', 'm', 'm/l', 'l', 'l/xl', 'xl', 'xxl', '3xl'];
+      const normalize = (value) => {
+        const normalized = normalizeGuideValue(value)
+          .toLowerCase()
+          .replace(/[()]/g, ' ')
+          .replace(/\bfits\s+most\b/g, ' ')
+          .replace(/\s*\/\s*/g, '/')
+          .replace(/\s*-\s*/g, '-')
+          .replace(/\s+/g, ' ')
+          .trim();
+        return /^one(?:\s|-)?size$/.test(normalized) ? 'one size' : normalized;
+      };
+      const leftKey = normalize(left);
+      const rightKey = normalize(right);
+      const leftIndex = order.indexOf(leftKey);
+      const rightIndex = order.indexOf(rightKey);
+
+      if (leftIndex !== -1 || rightIndex !== -1) {
+        if (leftIndex === -1) return 1;
+        if (rightIndex === -1) return -1;
+        return leftIndex - rightIndex;
+      }
+
+      return String(left || '').localeCompare(String(right || ''), undefined, { numeric: true, sensitivity: 'base' });
+    }
+
     function classifyGuideContext(params) {
       const rawGender = normalizeGuideValue(params.get('gender')).toLowerCase();
       const rawCategory = normalizeGuideValue(params.get('category'));
@@ -1765,9 +1803,9 @@
 
       let label = rawCategory;
       if (!label) {
-        if (calcCategory === 'sports_bras') label = 'Sports Bras';
-        else if (calcCategory === 'hats') label = 'Hats';
-        else if (calcCategory === 'bottoms') label = 'Bottoms';
+        if (calcCategory === 'sports_bras') label = 'Sports Bra';
+        else if (calcCategory === 'hats') label = 'Hat';
+        else if (calcCategory === 'bottoms') label = 'Bottom';
         else if (tabId === 'kids') label = 'Kids';
         else label = 'Apparel';
       }
@@ -1777,7 +1815,7 @@
         gender,
         calcCategory,
         tabId,
-        label,
+        label: singularizeGuideLabel(label),
         hasExplicitGender: Boolean(gender)
       };
     }

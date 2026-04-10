@@ -484,8 +484,8 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
         <!-- SIZE SELECTION -->
         <div class="size-section">
           <div class="size-header">
-            <p class="section-label">Select Size</p>
-            <a href="sizeguide.html" class="size-guide-link" onclick="event.preventDefault(); openSizeGuideModal();">Size Guide</a>
+            <p class="section-label" id="sizeSectionLabel">Select Size</p>
+            <a href="sizeguide.html" class="size-guide-link" id="sizeGuideLink" onclick="event.preventDefault(); openSizeGuideModal();">Size Guide</a>
           </div>
           <div class="size-grid" id="sizeGrid"></div>
           <p class="stock-info" id="stockInfo"></p>
@@ -513,7 +513,7 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
               <p id="materialInfo"></p>
               <div class="product-fit-actions">
                 <button class="translate-btn" type="button" onclick="openSizeFitModal()">View Fit Ratings</button>
-                <button class="translate-btn" type="button" onclick="openSizeGuideModal()">View Size Guide</button>
+                <button class="translate-btn" type="button" id="viewSizeGuideBtn" onclick="openSizeGuideModal()">View Size Guide</button>
               </div>
             </div>
           </div>
@@ -967,6 +967,115 @@ function normalizeCategoryLabel(value) {
   return String(value || '').trim().replace(/\s+/g, ' ');
 }
 
+function normalizeSizeLabel(value) {
+  const normalized = normalizeCategoryLabel(value)
+    .toLowerCase()
+    .replace(/[()]/g, ' ')
+    .replace(/\bfits\s+most\b/g, ' ')
+    .replace(/\s*\/\s*/g, '/')
+    .replace(/\s*-\s*/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return /^one(?:\s|-)?size$/.test(normalized) ? 'one size' : normalized;
+}
+
+function formatProductSizeLabel(value) {
+  const rawLabel = normalizeCategoryLabel(value)
+    .replace(/\(\s*fits\s+most\s*\)/ig, '')
+    .replace(/\bfits\s+most\b/ig, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!rawLabel) return '';
+
+  const normalized = normalizeSizeLabel(rawLabel);
+  const canonicalLabels = {
+    'one size': 'One Size',
+    'xxs': 'XXS',
+    'xs': 'XS',
+    's': 'S',
+    's/m': 'S/M',
+    'm': 'M',
+    'm/l': 'M/L',
+    'l': 'L',
+    'l/xl': 'L/XL',
+    'xl': 'XL',
+    'xxl': 'XXL',
+    '3xl': '3XL'
+  };
+
+  return canonicalLabels[normalized] || rawLabel;
+}
+
+function isOneSizeLabel(value) {
+  const normalized = normalizeSizeLabel(value);
+  return normalized === 'one size' || normalized === 'one-size' || normalized === 'onesize';
+}
+
+function singularizeGuideLabel(value) {
+  const label = normalizeCategoryLabel(value);
+  if (!label) return '';
+  if (/^sports bras$/i.test(label)) return 'Sports Bra';
+  if (/ies$/i.test(label)) return label.replace(/ies$/i, 'y');
+  if (/s$/i.test(label) && !/(ss|us)$/i.test(label)) return label.replace(/s$/i, '');
+  return label;
+}
+
+function compareProductSizeLabels(left, right) {
+  const order = ['one size', 'xxs', 'xs', 's', 's/m', 'm', 'm/l', 'l', 'l/xl', 'xl', 'xxl', '3xl'];
+  const leftKey = normalizeSizeLabel(left);
+  const rightKey = normalizeSizeLabel(right);
+  const leftIndex = order.indexOf(leftKey);
+  const rightIndex = order.indexOf(rightKey);
+
+  if (leftIndex !== -1 || rightIndex !== -1) {
+    if (leftIndex === -1) return 1;
+    if (rightIndex === -1) return -1;
+    return leftIndex - rightIndex;
+  }
+
+  return String(left || '').localeCompare(String(right || ''), undefined, { numeric: true, sensitivity: 'base' });
+}
+
+function getDefaultProductSizes() {
+  const categoryLower = categoryLabelFromProduct(currentProduct).toLowerCase();
+  if (/(hat|cap|beanie|visor|bag|sock|headband|wristband)/.test(categoryLower)) {
+    return ['One Size'];
+  }
+  return ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+}
+
+function getAvailableProductSizes() {
+  const inventorySizes = Array.from(new Set(
+    (currentProduct?.inventory || [])
+      .map((item) => formatProductSizeLabel(item?.size))
+      .filter(Boolean)
+  ));
+
+  return (inventorySizes.length ? inventorySizes : getDefaultProductSizes()).sort(compareProductSizeLabels);
+}
+
+function isSingleOneSizeProduct(sizeLabels = getAvailableProductSizes()) {
+  return sizeLabels.length === 1 && isOneSizeLabel(sizeLabels[0]);
+}
+
+function syncSizeGuideVisibility(sizeLabels = getAvailableProductSizes()) {
+  const hideGuide = isSingleOneSizeProduct(sizeLabels);
+  const headerLink = document.getElementById('sizeGuideLink');
+  const accordionBtn = document.getElementById('viewSizeGuideBtn');
+  const sizeLabel = document.getElementById('sizeSectionLabel');
+
+  if (headerLink) {
+    headerLink.style.display = hideGuide ? 'none' : '';
+    if (hideGuide) headerLink.removeAttribute('href');
+  }
+  if (accordionBtn) accordionBtn.style.display = hideGuide ? 'none' : '';
+  if (sizeLabel) sizeLabel.textContent = hideGuide ? 'Size' : 'Select Size';
+
+  return hideGuide;
+}
+
 function categoryLabelFromProduct(product) {
   return normalizeCategoryLabel(product?.category || product?.subtitle || '') || 'Jackets';
 }
@@ -1322,7 +1431,7 @@ function getSizeGuideContext(product = currentProduct) {
 }
 
 function getSizeGuideModalMeta(context) {
-  const label = normalizeGuideText(context?.categoryLabel);
+  const label = singularizeGuideLabel(context?.categoryLabel);
   if (!label || label.toLowerCase() === 'apparel') {
     return {
       kicker: 'Fit Reference',
@@ -1350,9 +1459,13 @@ function syncSizeGuideModalMeta(context) {
 }
 
 function updateSizeGuideLink() {
-  const sizeGuideLink = document.querySelector('.size-guide-link');
+  const sizeGuideLink = document.getElementById('sizeGuideLink');
   const context = getSizeGuideContext();
+  const sizeLabels = getAvailableProductSizes();
+  const hideGuide = syncSizeGuideVisibility(sizeLabels);
   syncSizeGuideModalMeta(context);
+
+  if (hideGuide) return;
 
   if (sizeGuideLink && context) {
     const params = new URLSearchParams();
@@ -1513,6 +1626,7 @@ function renderColors() {
       selectedColorSku = color.variant_sku;
       document.getElementById('selectedColor').textContent = color.color_name;
       selectedSize = null; // Reset size when color changes
+      renderSizes();
     });
 
     container.appendChild(swatch);
@@ -1531,20 +1645,20 @@ function renderSizes() {
   // Get unique sizes and their stock
   const sizeMap = new Map();
   currentProduct.inventory.forEach(inv => {
-    sizeMap.set(inv.size, inv.stock_quantity);
+    const sizeLabel = formatProductSizeLabel(inv?.size);
+    if (!sizeLabel) return;
+    sizeMap.set(sizeLabel, (sizeMap.get(sizeLabel) || 0) + (inv?.stock_quantity || 0));
   });
 
   // Standard size order ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â always show these
-  const standardSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
-
-  // If inventory exists, use those sizes; otherwise show all standard sizes
   const hasInventory = sizeMap.size > 0;
-  const sizes = hasInventory
-    ? standardSizes.filter(s => sizeMap.has(s))
-    : standardSizes;
+  const sizes = getAvailableProductSizes();
+  const previousSelectedSize = selectedSize;
+  const oneSizeOnly = isSingleOneSizeProduct(sizes);
+  syncSizeGuideVisibility(sizes);
 
   sizes.forEach(size => {
-    const stock = hasInventory ? (sizeMap.get(size) || 0) : -1; // -1 means no inventory data
+    const stock = hasInventory ? (sizeMap.get(size) || 0) : -1;
     const btn = document.createElement('button');
     btn.className = 'size-btn';
     btn.textContent = size;
@@ -1565,6 +1679,26 @@ function renderSizes() {
 
     sizeGrid.appendChild(btn);
   });
+
+  const preferredSize = oneSizeOnly
+    ? sizes[0]
+    : (previousSelectedSize && sizes.includes(previousSelectedSize) ? previousSelectedSize : null);
+
+  if (preferredSize) {
+    const preferredButton = Array.from(sizeGrid.querySelectorAll('.size-btn'))
+      .find((button) => button.dataset.size === preferredSize && !button.disabled);
+    if (preferredButton) {
+      preferredButton.classList.add('selected');
+      selectedSize = preferredSize;
+    } else if (oneSizeOnly) {
+      selectedSize = preferredSize;
+    }
+  } else if (!sizes.includes(selectedSize)) {
+    selectedSize = null;
+  }
+
+  updateStockInfo();
+  updateSizeGuideLink();
 }
 
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
@@ -1584,8 +1718,9 @@ function updateStockInfo() {
     return;
   }
 
-  const inventory = currentProduct.inventory.find(inv => inv.size === selectedSize);
-  const stock = inventory?.stock_quantity || 0;
+  const stock = currentProduct.inventory
+    .filter(inv => normalizeSizeLabel(inv?.size) === normalizeSizeLabel(selectedSize))
+    .reduce((sum, inv) => sum + (inv?.stock_quantity || 0), 0);
   const threshold = currentProduct.low_stock_threshold || 10;
 
   if (stock === 0) {
@@ -1716,6 +1851,14 @@ function renderTags(elementId, tags, label) {
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
 function renderReviews() {
   const content = document.getElementById('reviewsContent');
+  const safeEsc = typeof escHtml === 'function'
+    ? escHtml
+    : (value) => String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   content.innerHTML = '';
 
   if (!currentProduct.reviews || currentProduct.reviews.length === 0) {
@@ -1739,27 +1882,28 @@ function renderReviews() {
   displayReviews.forEach(review => {
     const reviewEl = document.createElement('div');
     reviewEl.className = 'review-item';
+    const productId = String(currentProduct?.id || '').replace(/'/g, "\\'");
     const adminResponseHtml = review.admin_response ? `
       <div class="admin-response" style="margin-top: 12px; padding: 12px; background: var(--admin-res-bg, rgba(248,145,165,0.08)); border-left: 2px solid var(--admin-res-text, #F891A5); border-radius: 4px;">
         <strong style="color: var(--admin-res-text, #F891A5); font-size: 0.85rem; letter-spacing: 0.05em; font-family: 'Bebas Neue', sans-serif;">Zuwera Team</strong>
-        <p style="margin-top: 4px; font-size: 0.85rem; color: var(--admin-res-text, rgba(255,255,255,0.7));">${review.admin_response}</p>
+        <p style="margin-top: 4px; font-size: 0.85rem; color: var(--admin-res-text, rgba(255,255,255,0.7));">${safeEsc(review.admin_response)}</p>
       </div>
     ` : '';
 
     let editBtnHtml = '';
     if (currentUser && review.user_id === currentUser.id) {
-      editBtnHtml = `<button onclick="openEditReviewForm('${review.id}', ${review.rating}, '${(review.body || '').replace(/'/g, "\\'")}')" style="background:none;border:none;color:#F891A5;font-size:0.75rem;cursor:pointer;margin-left:10px;text-decoration:underline;">Edit</button>`;
+      editBtnHtml = `<button type="button" onclick="openEditReviewForm('${review.id}', ${review.rating}, '${productId}')" style="background:none;border:none;color:#F891A5;font-size:0.75rem;cursor:pointer;margin-left:10px;text-decoration:underline;">Edit</button>`;
     }
 
     reviewEl.innerHTML = `
       <div class="review-header">
         <div class="review-rating">${starsHtml(review.rating)}</div>
-        <span class="review-author">${review.nickname || review.reviewer_name || 'Anonymous'}</span>
+        <span class="review-author">${safeEsc(review.nickname || review.reviewer_name || 'Anonymous')}</span>
         ${review.verified_purchase ? '<span class="verified-badge">Verified Purchase</span>' : ''}
         ${editBtnHtml}
       </div>
-      ${review.title ? `<p class="review-title">${review.title}</p>` : ''}
-      ${review.body ? `<p class="review-body">${review.body}</p>` : ''}
+      ${review.title ? `<p class="review-title">${safeEsc(review.title)}</p>` : ''}
+      ${review.body ? `<p class="review-body">${safeEsc(review.body)}</p>` : ''}
       ${adminResponseHtml}
     `;
     content.appendChild(reviewEl);
@@ -1974,6 +2118,7 @@ window.openSizeGuideModal = async function() {
   const iframe = document.getElementById('size-guide-iframe');
   const loading = document.getElementById('size-guide-loading');
   if (!modal || !iframe) return;
+  if (syncSizeGuideVisibility(getAvailableProductSizes())) return;
 
   const context = getSizeGuideContext();
   syncSizeGuideModalMeta(context);
@@ -2438,6 +2583,6 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 
 <!-- Language selector -->
 <script src="lang.js?v=2" defer></script>
-<script src="reviews.js?v=7" charset="utf-8"></script>
+<script src="reviews.js?v=8" charset="utf-8"></script>
 </body>
 </html>
