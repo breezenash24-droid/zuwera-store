@@ -1872,8 +1872,9 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Colorway <span class="required">*</span></label>
-                            <input type="text" id="colorway" class="form-input" placeholder="e.g., Black/White" required>
+                            <label class="form-label">Colorway / Summary Label</label>
+                            <input type="text" id="colorway" class="form-input" placeholder="Optional. e.g., Black / White or Vintage Olive">
+                            <p class="form-hint" style="margin-top: 8px;">Used in admin search, exports, and as a storefront fallback when you have not added color variants yet. Leave it blank to auto-build from your saved color variants.</p>
                         </div>
                     </div>
                     <div class="form-group">
@@ -1953,6 +1954,7 @@
                                     <label class="form-label">Reference Size for POM</label>
                                     <input type="text" id="pomGuideSizeInput" class="form-input" list="sizeGuideSizeOptions" placeholder="Pick a guide size or type your own">
                                     <datalist id="sizeGuideSizeOptions"></datalist>
+                                    <p class="form-hint" id="pomGuideSizeHint" style="margin-top: 8px;">This fills the single reference fields below from one guide row only. It does not auto-grade every size automatically.</p>
                                 </div>
                                 <div class="size-guide-actions">
                                     <button type="button" class="btn btn-secondary btn-sm" id="applyPomGuideBtn">Apply Guide To POM</button>
@@ -2000,6 +2002,17 @@
                                 <input type="number" id="pomSleeve" class="form-input" step="0.1" min="0" placeholder="e.g., 65">
                             </div>
                         </div>
+                        <div class="form-grid" id="hatPomReferenceFields" style="margin-top: 1rem;" hidden>
+                            <div>
+                                <label class="form-label" style="font-size:0.8rem;opacity:0.7">Head Circumference (in)</label>
+                                <input type="text" id="pomHeadCircIn" class="form-input" placeholder="Auto-filled from guide" readonly>
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-size:0.8rem;opacity:0.7">Head Circumference (cm)</label>
+                                <input type="text" id="pomHeadCircCm" class="form-input" placeholder="Auto-filled from guide" readonly>
+                            </div>
+                        </div>
+                        <p class="form-hint" id="hatPomHint" style="margin-top: 12px;" hidden>For hats and beanies, the selected guide row fills head circumference instead of chest or waist POM fields.</p>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Specialty Sizing</label>
@@ -3201,6 +3214,33 @@
             });
         }
 
+        function getColorVariantEntries() {
+            return Array.from(document.querySelectorAll('.color-variant-item')).map((item) => {
+                const colorName = item.querySelector('.form-input')?.value.trim() || '';
+                const hexColor = item.querySelector('[placeholder="#000000"]')?.value.trim() || '';
+                const rgbColor = item.querySelector('[placeholder="0,0,0"]')?.value.trim() || '';
+
+                return {
+                    color_name: colorName,
+                    hex_color: hexColor,
+                    rgb_color: rgbColor
+                };
+            }).filter((entry) => entry.color_name || entry.hex_color || entry.rgb_color);
+        }
+
+        function buildAutoColorwayLabel(colorEntries = []) {
+            const names = Array.from(new Set(
+                colorEntries
+                    .map((entry) => String(entry?.color_name || '').trim())
+                    .filter(Boolean)
+            ));
+
+            if (!names.length) return '';
+            if (names.length === 1) return names[0];
+            if (names.length === 2) return `${names[0]} / ${names[1]}`;
+            return `${names[0]} / ${names[1]} +${names.length - 2}`;
+        }
+
         function hexToRgb(hex) {
             const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
             return result ? {
@@ -3240,7 +3280,7 @@
             women_tops: { pomChest: 'bust_in', pomWaist: 'waist_in', pomHips: 'hips_in' },
             kids: { pomChest: 'chest_in', pomWaist: 'waist_in', pomHips: 'hips_in' },
             sports_bras: { pomChest: 'band_size' },
-            hats: {}
+            hats: { pomHeadCircIn: 'head_circ_in', pomHeadCircCm: 'head_circ_cm' }
         };
 
         function escapeHtml(value) {
@@ -3256,22 +3296,81 @@
             return normalized === 'one size' || normalized === 'one-size' || normalized === 'onesize';
         }
 
+        function canonicalizeSizeToken(value) {
+            const normalized = normalizeSizeKey(value).replace(/\s+fits\s+most/g, '');
+            const compact = normalized.replace(/\s+/g, '');
+            const aliases = {
+                xxxxs: '4xs',
+                xxxs: '3xs',
+                xxs: '2xs',
+                xxxxl: '4xl',
+                xxxl: '3xl',
+                xxl: '2xl'
+            };
+
+            if (aliases[compact]) return aliases[compact];
+            return compact || normalized;
+        }
+
+        function getSizeSortRank(value, profile = '') {
+            const token = canonicalizeSizeToken(value);
+            if (!token) return null;
+            if (token === 'one size' || token === 'one-size' || token === 'onesize') return 0;
+
+            if (profile === 'hats') {
+                const hatRanks = {
+                    's/m': 10,
+                    'm/l': 20,
+                    'l/xl': 30
+                };
+                if (hatRanks[token] != null) return hatRanks[token];
+            }
+
+            const exactRanks = {
+                '5xs': 5,
+                '4xs': 10,
+                '3xs': 15,
+                '2xs': 20,
+                'xs': 30,
+                'xs/s': 35,
+                's': 40,
+                's/m': 45,
+                'm': 50,
+                'm/l': 55,
+                'l': 60,
+                'l/xl': 65,
+                'xl': 70,
+                '2xl': 80,
+                '3xl': 90,
+                '4xl': 100,
+                '5xl': 110
+            };
+
+            if (exactRanks[token] != null) return exactRanks[token];
+
+            const extraSmallMatch = token.match(/^(\d+)xs$/);
+            if (extraSmallMatch) {
+                const count = parseInt(extraSmallMatch[1], 10);
+                if (!Number.isNaN(count)) return Math.max(1, 30 - (count - 1) * 5);
+            }
+
+            const extraLargeMatch = token.match(/^(\d+)xl$/);
+            if (extraLargeMatch) {
+                const count = parseInt(extraLargeMatch[1], 10);
+                if (!Number.isNaN(count)) return 70 + count * 10;
+            }
+
+            return null;
+        }
+
         function compareSizeLabels(a, b, profile = '') {
-            const order = profile === 'hats'
-                ? ['one size', 's/m', 'm/l', 'l/xl']
-                : ['one size', 'xxs', 'xs', 's', 's/m', 'm', 'm/l', 'l', 'l/xl', 'xl', 'xxl', '3xl'];
+            const leftRank = getSizeSortRank(a, profile);
+            const rightRank = getSizeSortRank(b, profile);
 
-            const normalize = (value) => normalizeSizeKey(value).replace(/\s+fits\s+most/g, '');
-            const left = normalize(a);
-            const right = normalize(b);
-
-            const leftIndex = order.indexOf(left);
-            const rightIndex = order.indexOf(right);
-
-            if (leftIndex !== -1 || rightIndex !== -1) {
-                if (leftIndex === -1) return 1;
-                if (rightIndex === -1) return -1;
-                return leftIndex - rightIndex;
+            if (leftRank !== null || rightRank !== null) {
+                if (leftRank === null) return 1;
+                if (rightRank === null) return -1;
+                return leftRank - rightRank;
             }
 
             return String(a || '').localeCompare(String(b || ''), undefined, { numeric: true, sensitivity: 'base' });
@@ -3433,6 +3532,38 @@
             status.textContent = `${sourceLabel}, but no saved guide rows were found. You can still type custom sizes manually.`;
         }
 
+        function setPomGuideHint(profile) {
+            const hint = document.getElementById('pomGuideSizeHint');
+            if (!hint) return;
+            hint.textContent = profile === 'hats'
+                ? 'This selected guide size fills the hat head-circumference reference below. It does not auto-grade every size.'
+                : 'This fills the single reference fields below from one guide row only. It does not auto-grade every size automatically.';
+        }
+
+        function syncHatReferenceFields(profile, rows) {
+            const wrapper = document.getElementById('hatPomReferenceFields');
+            const hint = document.getElementById('hatPomHint');
+            const inputIn = document.getElementById('pomHeadCircIn');
+            const inputCm = document.getElementById('pomHeadCircCm');
+            const showHatFields = profile === 'hats';
+
+            if (wrapper) wrapper.hidden = !showHatFields;
+            if (hint) hint.hidden = !showHatFields;
+
+            if (!showHatFields) {
+                if (inputIn) inputIn.value = '';
+                if (inputCm) inputCm.value = '';
+                return;
+            }
+
+            const requestedSize = document.getElementById('pomGuideSizeInput').value.trim();
+            const exactMatch = rows.find(entry => normalizeSizeKey(entry?.size_label) === normalizeSizeKey(requestedSize));
+            const row = requestedSize ? exactMatch || null : rows[0] || null;
+
+            if (inputIn) inputIn.value = row?.head_circ_in || '';
+            if (inputCm) inputCm.value = row?.head_circ_cm || '';
+        }
+
         function addSizeRow(sizeLabel = '', stockValue = '') {
             const container = document.getElementById('sizeGridContainer');
             const row = document.createElement('div');
@@ -3454,19 +3585,33 @@
                 if (!document.querySelector('.size-row')) addSizeRow('', '');
             });
 
+            row.querySelector('.size-name-input')?.addEventListener('blur', () => {
+                const sortedRows = sortSizeRowEntries(getCurrentSizeRows(), getResolvedSizeGuideProfile());
+                renderSizeRows(sortedRows);
+            });
+
             container.appendChild(row);
+        }
+
+        function sortSizeRowEntries(entries = [], profile = getResolvedSizeGuideProfile()) {
+            return [...entries].sort((left, right) => compareSizeLabels(
+                left?.size || left?.size_label || '',
+                right?.size || right?.size_label || '',
+                profile
+            ));
         }
 
         function renderSizeRows(entries = []) {
             const container = document.getElementById('sizeGridContainer');
             container.innerHTML = '';
+            const sortedEntries = sortSizeRowEntries(entries);
 
-            if (!entries.length) {
+            if (!sortedEntries.length) {
                 addSizeRow('', '');
                 return;
             }
 
-            entries.forEach(entry => {
+            sortedEntries.forEach(entry => {
                 addSizeRow(entry.size || entry.size_label || '', entry.stock_quantity ?? entry.stock ?? '');
             });
         }
@@ -3521,6 +3666,8 @@
             const { profile, rows } = getGuideRowsForCurrentProduct();
             updateSizeGuideSuggestions(rows);
             updateSizeGuideStatus(profile, rows);
+            setPomGuideHint(profile);
+            syncHatReferenceFields(profile, rows);
 
             const pomGuideInput = document.getElementById('pomGuideSizeInput');
             if (!pomGuideInput.value && rows[0]?.size_label) {
@@ -3569,11 +3716,22 @@
             });
 
             if (!filledCount) {
-                showToast('That guide row does not include direct POM measurements for these fields, so you can type them manually.', 'error');
+                showToast(
+                    profile === 'hats'
+                        ? 'That hat guide row does not include head-circumference values, so you can type a custom size label and stock manually.'
+                        : 'That guide row does not include direct POM measurements for these fields, so you can type them manually.',
+                    'error'
+                );
                 return;
             }
 
-            showToast(`Applied ${inputValue} guide measurements to the POM fields.`, 'success');
+            syncHatReferenceFields(profile, rows);
+            showToast(
+                profile === 'hats'
+                    ? `Applied ${inputValue} guide head circumference to the hat reference fields.`
+                    : `Applied ${inputValue} guide measurements to the POM fields.`,
+                'success'
+            );
         }
 
         document.getElementById('gender').addEventListener('change', () => {
@@ -3592,6 +3750,11 @@
 
         document.getElementById('sizeGuideProfile').addEventListener('change', () => {
             void syncSizeGuideUi({ forceSizeRows: false, keepManualRows: true });
+        });
+
+        document.getElementById('pomGuideSizeInput').addEventListener('input', () => {
+            const { profile, rows } = getGuideRowsForCurrentProduct();
+            syncHatReferenceFields(profile, rows);
         });
 
         document.getElementById('recycledContentDetail').addEventListener('input', (event) => {
@@ -3659,7 +3822,7 @@
         }
 
         async function saveProduct(publish) {
-            const mandatoryFields = ['sku', 'title', 'subtitle', 'gender', 'colorway', 'materialComposition', 'msrp', 'currentPrice', 'productStatus'];
+            const mandatoryFields = ['sku', 'title', 'subtitle', 'gender', 'materialComposition', 'msrp', 'currentPrice', 'productStatus'];
             const form = document.getElementById('productForm');
 
             let isValid = true;
@@ -3687,6 +3850,12 @@
             const selectedTechs = Array.from(document.querySelectorAll('.tech-checkbox:checked')).map(cb => cb.value);
             const otherTechsInput = document.getElementById('fabricTechnology').value.split(',').map(s => s.trim()).filter(s => s);
             const allTechs = [...new Set([...selectedTechs, ...otherTechsInput])].join(', ');
+            const colorEntries = getColorVariantEntries();
+            const manualColorway = document.getElementById('colorway').value.trim();
+            const effectiveColorway = manualColorway || buildAutoColorwayLabel(colorEntries);
+            if (!manualColorway && effectiveColorway) {
+                document.getElementById('colorway').value = effectiveColorway;
+            }
 
             try {
                 const productData = {
@@ -3694,7 +3863,7 @@
                     title: document.getElementById('title').value,
                     subtitle: document.getElementById('subtitle').value,
                     gender: document.getElementById('gender').value,
-                    colorway: document.getElementById('colorway').value,
+                    colorway: effectiveColorway || null,
                     material_composition: document.getElementById('materialComposition').value,
                     msrp: parseFloat(document.getElementById('msrp').value),
                     current_price: parseFloat(document.getElementById('currentPrice').value),
@@ -3772,11 +3941,10 @@
                     const { error } = await sb.from('color_variants').delete().eq('product_id', productId);
                     if (error) throw error;
                 }
-                const colorItems = document.querySelectorAll('.color-variant-item');
-                for (let i = 0; i < colorItems.length; i++) {
-                    const colorName = colorItems[i].querySelector('.form-input').value;
-                    const hexColor = colorItems[i].querySelector('[placeholder="#000000"]').value;
-                    const rgbColor = colorItems[i].querySelector('[placeholder="0,0,0"]').value;
+                for (let i = 0; i < colorEntries.length; i++) {
+                    const colorName = colorEntries[i].color_name;
+                    const hexColor = colorEntries[i].hex_color;
+                    const rgbColor = colorEntries[i].rgb_color;
                     if (colorName && hexColor) {
                         const { error } = await sb.from('color_variants').insert([{
                             product_id: productId,
@@ -3793,11 +3961,11 @@
                     const { error } = await sb.from('product_sizes').delete().eq('product_id', productId);
                     if (error) throw error;
                 }
-                const sizeRows = Array.from(document.querySelectorAll('.size-row'));
+                const sizeRows = sortSizeRowEntries(getCurrentSizeRows(), getResolvedSizeGuideProfile());
                 const seenSizes = new Set();
                 for (const row of sizeRows) {
-                    const sizeName = row.querySelector('.size-name-input')?.value.trim();
-                    const stockValue = row.querySelector('.size-stock')?.value.trim();
+                    const sizeName = row?.size?.trim();
+                    const stockValue = String(row?.stock ?? '').trim();
                     if (!sizeName && stockValue === '') continue;
                     if (!sizeName) {
                         throw new Error('Every stock row needs a size name before saving.');
@@ -3843,6 +4011,8 @@
             document.getElementById('gender').value = product.gender;
             document.getElementById('sizeGuideProfile').value = 'auto';
             document.getElementById('pomGuideSizeInput').value = '';
+            document.getElementById('pomHeadCircIn').value = '';
+            document.getElementById('pomHeadCircCm').value = '';
             document.getElementById('colorway').value = product.colorway;
             document.getElementById('materialComposition').value = product.material_composition;
             document.getElementById('msrp').value = product.msrp;
@@ -3900,7 +4070,7 @@
             const [imagesResult, colorsResult, sizesResult] = await Promise.all([
                 sb.from('product_images').select('*').eq('product_id', product.id).order('sort_order', { ascending: true }),
                 sb.from('color_variants').select('*').eq('product_id', product.id).order('sort_order', { ascending: true }),
-                sb.from('product_sizes').select('*').eq('product_id', product.id).order('size', { ascending: true })
+                sb.from('product_sizes').select('*').eq('product_id', product.id)
             ]);
 
             if (!currentProduct || currentProduct.id !== activeProductId) return;
@@ -3955,13 +4125,15 @@
             const sizeRows = Array.isArray(sizesResult?.data) ? sizesResult.data : [];
             if (sizesResult?.error) console.error('Error loading product sizes:', sizesResult.error);
             if (sizeRows.length > 0) {
-                renderSizeRows(sizeRows.map(inv => ({
+                const sortedSizeRows = sortSizeRowEntries(sizeRows.map(inv => ({
                     size: inv.size,
                     stock_quantity: inv.stock_quantity
                 })));
-                if (!document.getElementById('pomGuideSizeInput').value && sizeRows[0]?.size) {
-                    document.getElementById('pomGuideSizeInput').value = sizeRows[0].size;
+                renderSizeRows(sortedSizeRows);
+                if (!document.getElementById('pomGuideSizeInput').value && sortedSizeRows[0]?.size) {
+                    document.getElementById('pomGuideSizeInput').value = sortedSizeRows[0].size;
                 }
+                await syncSizeGuideUi({ forceSizeRows: false, keepManualRows: true });
             } else {
                 await syncSizeGuideUi({ forceSizeRows: true, keepManualRows: false });
             }
@@ -3974,6 +4146,8 @@
             document.getElementById('sizeGridContainer').innerHTML = '';
             document.getElementById('sizeGuideProfile').value = 'auto';
             document.getElementById('pomGuideSizeInput').value = '';
+            document.getElementById('pomHeadCircIn').value = '';
+            document.getElementById('pomHeadCircCm').value = '';
             document.getElementById('recycledContentDetail').value = '';
             document.getElementById('sizeGuideStatus').textContent = 'Select a category or gender and this will pull matching sizes from your size guide. You can still type any size name you want.';
             document.querySelectorAll('.tech-checkbox').forEach(cb => cb.checked = false);

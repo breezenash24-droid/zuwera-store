@@ -510,6 +510,7 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
             <div class="accordion-body">
               <p id="fitType"></p>
               <p id="modelInfo"></p>
+              <p id="fitMeasurementInfo" style="display:none;"></p>
               <p id="materialInfo"></p>
               <div class="product-fit-actions">
                 <button class="translate-btn" type="button" onclick="openSizeFitModal()">View Fit Ratings</button>
@@ -937,6 +938,15 @@ let cartCount = 0;
 let currentImageIndex = 0;
 let currentUser = null;
 let editingReviewId = null;
+let hatSizeGuideRowsCache = null;
+let hatSizeGuideRowsPromise = null;
+
+const fallbackHatSizeGuideRows = [
+  { size_label: 'One Size', head_circ_in: '21.25-24', head_circ_cm: '54-61' },
+  { size_label: 'S/M', head_circ_in: '21.25-22.5', head_circ_cm: '54-57' },
+  { size_label: 'M/L', head_circ_in: '22.5-23.5', head_circ_cm: '57-60' },
+  { size_label: 'L/XL', head_circ_in: '23.5-24.75', head_circ_cm: '60-63' }
+];
 
 function normalizedProductSlug(value) {
   if (!value) return '';
@@ -989,11 +999,15 @@ function formatProductSizeLabel(value) {
 
   if (!rawLabel) return '';
 
-  const normalized = normalizeSizeLabel(rawLabel);
+  const normalized = canonicalizeProductSizeToken(rawLabel);
   const canonicalLabels = {
     'one size': 'One Size',
-    'xxs': 'XXS',
+    '5xs': '5XS',
+    '4xs': '4XS',
+    '3xs': 'XXXS',
+    '2xs': 'XXS',
     'xs': 'XS',
+    'xs/s': 'XS/S',
     's': 'S',
     's/m': 'S/M',
     'm': 'M',
@@ -1001,8 +1015,10 @@ function formatProductSizeLabel(value) {
     'l': 'L',
     'l/xl': 'L/XL',
     'xl': 'XL',
-    'xxl': 'XXL',
-    '3xl': '3XL'
+    '2xl': 'XXL',
+    '3xl': '3XL',
+    '4xl': '4XL',
+    '5xl': '5XL'
   };
 
   return canonicalLabels[normalized] || rawLabel;
@@ -1022,17 +1038,72 @@ function singularizeGuideLabel(value) {
   return label;
 }
 
-function compareProductSizeLabels(left, right) {
-  const order = ['one size', 'xxs', 'xs', 's', 's/m', 'm', 'm/l', 'l', 'l/xl', 'xl', 'xxl', '3xl'];
-  const leftKey = normalizeSizeLabel(left);
-  const rightKey = normalizeSizeLabel(right);
-  const leftIndex = order.indexOf(leftKey);
-  const rightIndex = order.indexOf(rightKey);
+function canonicalizeProductSizeToken(value) {
+  const normalized = normalizeSizeLabel(value);
+  const compact = normalized.replace(/\s+/g, '');
+  const aliases = {
+    xxxxs: '4xs',
+    xxxs: '3xs',
+    xxs: '2xs',
+    xxxxl: '4xl',
+    xxxl: '3xl',
+    xxl: '2xl'
+  };
 
-  if (leftIndex !== -1 || rightIndex !== -1) {
-    if (leftIndex === -1) return 1;
-    if (rightIndex === -1) return -1;
-    return leftIndex - rightIndex;
+  if (aliases[compact]) return aliases[compact];
+  return compact || normalized;
+}
+
+function getProductSizeSortRank(value) {
+  const token = canonicalizeProductSizeToken(value);
+  if (!token) return null;
+  if (token === 'one size' || token === 'one-size' || token === 'onesize') return 0;
+
+  const exactRanks = {
+    '5xs': 5,
+    '4xs': 10,
+    '3xs': 15,
+    '2xs': 20,
+    'xs': 30,
+    'xs/s': 35,
+    's': 40,
+    's/m': 45,
+    'm': 50,
+    'm/l': 55,
+    'l': 60,
+    'l/xl': 65,
+    'xl': 70,
+    '2xl': 80,
+    '3xl': 90,
+    '4xl': 100,
+    '5xl': 110
+  };
+
+  if (exactRanks[token] != null) return exactRanks[token];
+
+  const extraSmallMatch = token.match(/^(\d+)xs$/);
+  if (extraSmallMatch) {
+    const count = parseInt(extraSmallMatch[1], 10);
+    if (!Number.isNaN(count)) return Math.max(1, 30 - (count - 1) * 5);
+  }
+
+  const extraLargeMatch = token.match(/^(\d+)xl$/);
+  if (extraLargeMatch) {
+    const count = parseInt(extraLargeMatch[1], 10);
+    if (!Number.isNaN(count)) return 70 + count * 10;
+  }
+
+  return null;
+}
+
+function compareProductSizeLabels(left, right) {
+  const leftRank = getProductSizeSortRank(left);
+  const rightRank = getProductSizeSortRank(right);
+
+  if (leftRank !== null || rightRank !== null) {
+    if (leftRank === null) return 1;
+    if (rightRank === null) return -1;
+    return leftRank - rightRank;
   }
 
   return String(left || '').localeCompare(String(right || ''), undefined, { numeric: true, sensitivity: 'base' });
@@ -1479,6 +1550,122 @@ function updateSizeGuideLink() {
   }
 }
 
+async function ensureHatSizeGuideRows() {
+  if (hatSizeGuideRowsCache) return hatSizeGuideRowsCache;
+  if (hatSizeGuideRowsPromise) return hatSizeGuideRowsPromise;
+
+  hatSizeGuideRowsPromise = (async () => {
+    try {
+      const { data, error } = await sb
+        .from('size_charts')
+        .select('size_label, head_circ_in, head_circ_cm')
+        .eq('category', 'hats');
+
+      if (error) throw error;
+
+      const rows = Array.isArray(data) ? data.filter(row => row?.size_label) : [];
+      hatSizeGuideRowsCache = rows.length
+        ? rows.sort((left, right) => compareProductSizeLabels(left?.size_label || '', right?.size_label || ''))
+        : [...fallbackHatSizeGuideRows];
+    } catch (error) {
+      console.log('Using fallback hat size guide rows:', error);
+      hatSizeGuideRowsCache = [...fallbackHatSizeGuideRows];
+    } finally {
+      hatSizeGuideRowsPromise = null;
+    }
+
+    return hatSizeGuideRowsCache;
+  })();
+
+  return hatSizeGuideRowsPromise;
+}
+
+function findHatGuideRow(rows, sizeLabel) {
+  const wanted = normalizeSizeLabel(sizeLabel);
+  return rows.find(row => normalizeSizeLabel(row?.size_label) === wanted)
+    || (isOneSizeLabel(sizeLabel) ? rows.find(row => isOneSizeLabel(row?.size_label)) : null)
+    || rows[0]
+    || null;
+}
+
+function isRenderableCssColor(value) {
+  const candidate = String(value || '').trim();
+  if (!candidate) return false;
+  if (typeof CSS !== 'undefined' && typeof CSS.supports === 'function') {
+    return CSS.supports('color', candidate);
+  }
+  return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(candidate) || /^[a-z]+$/i.test(candidate);
+}
+
+function getColorwayFallbackStyle(colorwayLabel) {
+  const rawLabel = String(colorwayLabel || '').trim();
+  const parts = rawLabel
+    .split(/[\/,|]+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  const renderableParts = parts.filter(isRenderableCssColor);
+  if (renderableParts.length >= 2) {
+    const stops = renderableParts
+      .slice(0, 3)
+      .map((color, index, array) => `${color} ${Math.round((index / array.length) * 100)}%, ${color} ${Math.round(((index + 1) / array.length) * 100)}%`)
+      .join(', ');
+    return {
+      background: `linear-gradient(135deg, ${stops})`,
+      border: '1px solid rgba(255,255,255,0.18)'
+    };
+  }
+
+  if (renderableParts.length === 1) {
+    return {
+      backgroundColor: renderableParts[0],
+      border: '1px solid rgba(255,255,255,0.18)'
+    };
+  }
+
+  return {
+    background: 'linear-gradient(135deg, rgba(255,255,255,0.14), rgba(255,255,255,0.04))',
+    border: '1px solid rgba(255,255,255,0.18)'
+  };
+}
+
+async function updateHatFitMeasurementInfo() {
+  const fitMeasurementInfo = document.getElementById('fitMeasurementInfo');
+  if (!fitMeasurementInfo) return;
+
+  const context = getSizeGuideContext();
+  if (!context || context.calcCategory !== 'hats') {
+    fitMeasurementInfo.textContent = '';
+    fitMeasurementInfo.style.display = 'none';
+    return;
+  }
+
+  const guideRows = await ensureHatSizeGuideRows();
+  const sizeLabels = getAvailableProductSizes();
+  const activeSize = selectedSize || sizeLabels[0] || 'One Size';
+  const row = findHatGuideRow(guideRows, activeSize);
+
+  if (!row) {
+    fitMeasurementInfo.textContent = '';
+    fitMeasurementInfo.style.display = 'none';
+    return;
+  }
+
+  const measurementParts = [
+    row.head_circ_in ? `${row.head_circ_in} in` : '',
+    row.head_circ_cm ? `${row.head_circ_cm} cm` : ''
+  ].filter(Boolean);
+
+  if (!measurementParts.length) {
+    fitMeasurementInfo.textContent = '';
+    fitMeasurementInfo.style.display = 'none';
+    return;
+  }
+
+  fitMeasurementInfo.textContent = `Head Circumference (${formatProductSizeLabel(row.size_label || activeSize)}): ${measurementParts.join(' / ')}`;
+  fitMeasurementInfo.style.display = '';
+}
+
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
 // RENDER PRICE
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
@@ -1585,23 +1772,29 @@ function updateMainImage(index) {
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
 function renderColors() {
   const container = document.getElementById('colorSwatches');
+  const colorwaySection = document.querySelector('.colorway-section');
   container.innerHTML = '';
+  if (colorwaySection) colorwaySection.style.display = '';
 
   if (currentProduct.colors.length === 0) {
     // Fall back to colorway field from main product data
     if (currentProduct.colorway && currentProduct.colorway.trim()) {
       container.innerHTML = '';
-      document.getElementById('selectedColor').textContent = currentProduct.colorway.trim();
-      // Create a single swatch for the colorway
+      const colorwayLabel = currentProduct.colorway.trim();
+      document.getElementById('selectedColor').textContent = colorwayLabel;
       const swatch = document.createElement('button');
       swatch.className = 'color-swatch active';
-      swatch.title = currentProduct.colorway.trim();
-      swatch.style.backgroundColor = currentProduct.colorway.trim().toLowerCase();
-      swatch.setAttribute('data-color-name', currentProduct.colorway.trim());
+      swatch.type = 'button';
+      swatch.title = colorwayLabel;
+      swatch.setAttribute('aria-label', colorwayLabel);
+      swatch.setAttribute('data-color-name', colorwayLabel);
+      Object.assign(swatch.style, getColorwayFallbackStyle(colorwayLabel));
       container.appendChild(swatch);
+      selectedColor = null;
+      selectedColorSku = null;
       return;
     }
-    document.querySelector('.colorway-section').style.display = 'none';
+    if (colorwaySection) colorwaySection.style.display = 'none';
     return;
   }
 
@@ -1699,6 +1892,7 @@ function renderSizes() {
 
   updateStockInfo();
   updateSizeGuideLink();
+  void updateHatFitMeasurementInfo();
 }
 
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
@@ -1765,6 +1959,8 @@ function renderAccordions() {
   } else {
     document.getElementById('modelInfo').textContent = '';
   }
+
+  void updateHatFitMeasurementInfo();
 
   document.getElementById('materialInfo').textContent =
     `Materials: ${currentProduct.material_composition || 'High-quality athletic fabric'}`;

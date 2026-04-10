@@ -1745,7 +1745,6 @@
     }
 
     function compareGuideSizeLabels(left, right) {
-      const order = ['one size', 'xxs', 'xs', 's', 's/m', 'm', 'm/l', 'l', 'l/xl', 'xl', 'xxl', '3xl'];
       const normalize = (value) => {
         const normalized = normalizeGuideValue(value)
           .toLowerCase()
@@ -1757,15 +1756,68 @@
           .trim();
         return /^one(?:\s|-)?size$/.test(normalized) ? 'one size' : normalized;
       };
-      const leftKey = normalize(left);
-      const rightKey = normalize(right);
-      const leftIndex = order.indexOf(leftKey);
-      const rightIndex = order.indexOf(rightKey);
+      const canonicalize = (value) => {
+        const normalized = normalize(value);
+        const compact = normalized.replace(/\s+/g, '');
+        const aliases = {
+          xxxxs: '4xs',
+          xxxs: '3xs',
+          xxs: '2xs',
+          xxxxl: '4xl',
+          xxxl: '3xl',
+          xxl: '2xl'
+        };
+        return aliases[compact] || compact || normalized;
+      };
+      const getRank = (value) => {
+        const token = canonicalize(value);
+        if (!token) return null;
+        if (token === 'one size' || token === 'one-size' || token === 'onesize') return 0;
 
-      if (leftIndex !== -1 || rightIndex !== -1) {
-        if (leftIndex === -1) return 1;
-        if (rightIndex === -1) return -1;
-        return leftIndex - rightIndex;
+        const exactRanks = {
+          '5xs': 5,
+          '4xs': 10,
+          '3xs': 15,
+          '2xs': 20,
+          'xs': 30,
+          'xs/s': 35,
+          's': 40,
+          's/m': 45,
+          'm': 50,
+          'm/l': 55,
+          'l': 60,
+          'l/xl': 65,
+          'xl': 70,
+          '2xl': 80,
+          '3xl': 90,
+          '4xl': 100,
+          '5xl': 110
+        };
+
+        if (exactRanks[token] != null) return exactRanks[token];
+
+        const extraSmallMatch = token.match(/^(\d+)xs$/);
+        if (extraSmallMatch) {
+          const count = parseInt(extraSmallMatch[1], 10);
+          if (!Number.isNaN(count)) return Math.max(1, 30 - (count - 1) * 5);
+        }
+
+        const extraLargeMatch = token.match(/^(\d+)xl$/);
+        if (extraLargeMatch) {
+          const count = parseInt(extraLargeMatch[1], 10);
+          if (!Number.isNaN(count)) return 70 + count * 10;
+        }
+
+        return null;
+      };
+
+      const leftRank = getRank(left);
+      const rightRank = getRank(right);
+
+      if (leftRank !== null || rightRank !== null) {
+        if (leftRank === null) return 1;
+        if (rightRank === null) return -1;
+        return leftRank - rightRank;
       }
 
       return String(left || '').localeCompare(String(right || ''), undefined, { numeric: true, sensitivity: 'base' });
