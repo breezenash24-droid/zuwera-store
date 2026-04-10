@@ -53,25 +53,30 @@ const _authEls = {
 
 // ── Auth state listener ────────────────────────────────────────────
 if (_sb) {
-  _sb.auth.onAuthStateChange(async (event, session) => {
+  _sb.auth.onAuthStateChange((event, session) => {
     _currentUser = session?.user ?? null;
-
-    // Check if the user was deleted on the server
-    if (_currentUser) {
-      const { data, error } = await _sb.auth.getUser();
-      if (error || !data?.user) {
-        await _sb.auth.signOut().catch(()=>{});
-        localStorage.removeItem('zuwera-auth');
-        _currentUser = null;
-      }
-    }
 
     updateHeaderForAuth();
     if (event === 'PASSWORD_RECOVERY') {
       openAuthModal('update-password');
     }
     if (_currentUser) {
-      await loadFavorites();
+      void loadFavorites();
+      const expectedUserId = _currentUser.id;
+      setTimeout(async () => {
+        try {
+          const { data, error } = await _sb.auth.getUser();
+          if (error || !data?.user || data.user.id !== expectedUserId) {
+            await _sb.auth.signOut().catch(() => {});
+            localStorage.removeItem('zuwera-auth');
+            _currentUser = null;
+            updateHeaderForAuth();
+            _userFavorites = [];
+            refreshHeartButtons();
+            refreshCartFavs();
+          }
+        } catch (_) {}
+      }, 0);
     } else {
       _userFavorites = [];
       refreshHeartButtons();

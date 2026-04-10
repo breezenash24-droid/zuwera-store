@@ -1978,24 +1978,30 @@ function setDisabled(id, dis, label) {
 }
 
 if (_sb) {
-  _sb.auth.onAuthStateChange(async (_, session) => {
+  _sb.auth.onAuthStateChange((event, session) => {
     _user = session?.user ?? null;
-    // Check if the user was deleted on the server
-    if (_user) {
-      const { data, error } = await _sb.auth.getUser();
-      if (error || !data?.user) {
-            await _sb.auth.signOut().catch(()=>{});
-            localStorage.removeItem('zuwera-auth');
-        _user = null;
-      }
-    }
-
     updateNav();
-            if (_ === 'PASSWORD_RECOVERY') {
+            if (event === 'PASSWORD_RECOVERY') {
               openAuth('update-password');
             }
-    if (_user) await loadFavs();
-    else { _favs = []; refreshHearts(); refreshCartFavs(); }
+    if (_user) {
+      void loadFavs();
+      const expectedUserId = _user.id;
+      setTimeout(async () => {
+        try {
+          const { data, error } = await _sb.auth.getUser();
+          if (error || !data?.user || data.user.id !== expectedUserId) {
+            await _sb.auth.signOut().catch(()=>{});
+            localStorage.removeItem('zuwera-auth');
+            _user = null;
+            updateNav();
+            _favs = [];
+            refreshHearts();
+            refreshCartFavs();
+          }
+        } catch (_) {}
+      }, 0);
+    } else { _favs = []; refreshHearts(); refreshCartFavs(); }
   });
 }
 
