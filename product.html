@@ -32,7 +32,7 @@
 <link rel="stylesheet" href="nav.css?v=4">
 <link rel="stylesheet" href="product.css?v=3">
 <link rel="stylesheet" href="cart.css">
-<link rel="stylesheet" href="reviews.css?v=2">
+<link rel="stylesheet" href="reviews.css?v=3">
 
 <style>
 /* Modal base styles (shared with index.html) */
@@ -324,8 +324,8 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
 <!-- MOBILE MENU MODAL -->
 <div id="mobile-menu" class="modal" role="dialog" aria-modal="true" style="z-index: 900;">
   <button id="mobile-menu-close" class="mclose" onclick="document.getElementById('mobile-menu').classList.remove('open'); document.body.style.overflow='';" style="position:absolute; top:1.5rem; right:1.5rem; font-size:2rem; background:none; border:none; color:inherit; cursor:pointer;">&#215;</button>
-  <div class="mobile-nav-links">
-    <a href="drop001.html" class="mobile-nav-link">Jackets</a>
+  <div class="mobile-nav-links" id="mobile-category-links">
+    <a href="drop001.html" class="mobile-nav-link">Collection</a>
   </div>
 </div>
 
@@ -433,7 +433,7 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
   <!-- ERROR STATE -->
   <div class="error-state hidden" id="errorState">
     <p id="errorMessage"></p>
-    <button onclick="window.location.href='drop001.html'">Back to Shop</button>
+    <button id="errorBackButton" onclick="window.location.href='drop001.html'">Back to Shop</button>
   </div>
 
 
@@ -963,6 +963,99 @@ function pickProductBySlug(products, slug) {
   }) || null;
 }
 
+function normalizeCategoryLabel(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ');
+}
+
+function categoryLabelFromProduct(product) {
+  return normalizeCategoryLabel(product?.category || product?.subtitle || '') || 'Jackets';
+}
+
+function categoryHref(category) {
+  const label = normalizeCategoryLabel(category) || 'Jackets';
+  return `drop001.html?category=${encodeURIComponent(label)}`;
+}
+
+function collectCategoryLabels(products) {
+  const seen = new Set();
+  const labels = [];
+  (Array.isArray(products) ? products : []).forEach((product) => {
+    const label = categoryLabelFromProduct(product);
+    const key = label.toLowerCase();
+    if (!label || seen.has(key)) return;
+    seen.add(key);
+    labels.push(label);
+  });
+  return labels.length ? labels : ['Jackets'];
+}
+
+function readCachedCategoryProducts() {
+  const cacheKeys = ['zw_home_products', 'zw_collection_products', 'zw_nav_products'];
+  for (const key of cacheKeys) {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) continue;
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length) return parsed;
+    } catch (error) {}
+  }
+  return null;
+}
+
+async function fetchCategoryProducts() {
+  const headers = { 'apikey': _PROD_SB_KEY, 'Authorization': `Bearer ${_PROD_SB_KEY}` };
+  const resp = await fetch(`${_PROD_SB_URL}/rest/v1/products?select=id,title,name,slug,subtitle,category,sort_order&order=sort_order.asc`, { headers });
+  if (!resp.ok) throw new Error(`Failed to load categories (${resp.status})`);
+  const products = await resp.json();
+  if (Array.isArray(products) && products.length) {
+    sessionStorage.setItem('zw_nav_products', JSON.stringify(products));
+  }
+  return products;
+}
+
+function applyProductCategoryNavigation(products, fallbackProduct = currentProduct) {
+  const fallbackLabel = categoryLabelFromProduct(fallbackProduct);
+  const labels = collectCategoryLabels(products.length ? products : (fallbackProduct ? [fallbackProduct] : []));
+  const activeLabel = labels.find((label) => label.toLowerCase() === fallbackLabel.toLowerCase()) || fallbackLabel || labels[0] || 'Jackets';
+  const activeHref = categoryHref(activeLabel);
+
+  const desktopShopBtn = document.getElementById('desktop-shop-btn');
+  if (desktopShopBtn) {
+    desktopShopBtn.textContent = activeLabel;
+    desktopShopBtn.onclick = () => {
+      window.location.href = activeHref;
+    };
+  }
+
+  const mobileLinks = document.getElementById('mobile-category-links');
+  if (mobileLinks) {
+    mobileLinks.innerHTML = labels.map((label) => `<a href="${categoryHref(label)}" class="mobile-nav-link">${label}</a>`).join('');
+  }
+
+  const errorBackButton = document.getElementById('errorBackButton');
+  if (errorBackButton) {
+    errorBackButton.textContent = `Back to ${activeLabel}`;
+    errorBackButton.onclick = () => {
+      window.location.href = activeHref;
+    };
+  }
+}
+
+async function renderProductCategoryNavigation(fallbackProduct = currentProduct) {
+  const cachedProducts = readCachedCategoryProducts();
+  applyProductCategoryNavigation(Array.isArray(cachedProducts) ? cachedProducts : [], fallbackProduct);
+
+  try {
+    const freshProducts = await fetchCategoryProducts();
+    applyProductCategoryNavigation(Array.isArray(freshProducts) ? freshProducts : [], fallbackProduct);
+  } catch (error) {
+    if (!Array.isArray(cachedProducts) || !cachedProducts.length) {
+      console.warn('Category navigation fallback:', error);
+      applyProductCategoryNavigation([], fallbackProduct);
+    }
+  }
+}
+
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
 // INITIALIZATION
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
@@ -1134,6 +1227,7 @@ function renderProduct() {
   document.getElementById('productSubtitle').textContent = currentProduct.gender || 'Apparel';
   document.getElementById('productTitle').textContent = currentProduct.title;
   document.getElementById('genderTag').textContent = (currentProduct.gender || 'All').toUpperCase();
+  renderProductCategoryNavigation(currentProduct).catch((error) => console.warn('Failed to render category navigation:', error));
 
   // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Price ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
   renderPrice();

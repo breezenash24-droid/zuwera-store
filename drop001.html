@@ -7,17 +7,17 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#000000">
-  <title>Release 001 — Zuwera</title>
-  <meta name="description" content="Zuwera Release 001 — Jackets. Launching September 20, 2026. Sign up to be notified.">
+  <title>Collection - Zuwera</title>
+  <meta name="description" content="Shop Zuwera by category. Browse the latest collection pieces and sign up to be notified when they go live.">
   <meta name="robots" content="index, follow">
-  <meta property="og:title" content="Release 001 — Zuwera">
-  <meta property="og:description" content="Zuwera Release 001 — Jackets. Launching September 20, 2026. Sign up to be notified.">
+  <meta property="og:title" content="Collection - Zuwera">
+  <meta property="og:description" content="Shop Zuwera by category. Browse the latest collection pieces and sign up to be notified when they go live.">
   <meta property="og:url" content="https://zuwera.store/drop001.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Zuwera">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Release 001 — Zuwera">
-  <meta name="twitter:description" content="Zuwera Release 001 — Jackets. Launching September 20, 2026. Sign up to be notified.">
+  <meta name="twitter:title" content="Collection - Zuwera">
+  <meta name="twitter:description" content="Shop Zuwera by category. Browse the latest collection pieces and sign up to be notified when they go live.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -474,9 +474,9 @@
   <!-- DROP HERO -->
   <section class="drop-hero">
     <p class="drop-label">Zuwera — Release 001</p>
-    <h1 class="drop-title">
-      Release<br>001
-      <span>Jackets</span>
+    <h1 class="drop-title" id="collection-title">
+      Collection
+      <span id="collection-category">All Products</span>
     </h1>
     <p class="drop-date-label">Launching In</p>
 
@@ -548,6 +548,44 @@ function productSlug(title) {
   return title.replace(/^zuwera\s+/i, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
+function normalizeCategoryLabel(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ');
+}
+
+function categoryLabelFromProduct(product) {
+  return normalizeCategoryLabel(product?.category || product?.subtitle || '') || 'Jackets';
+}
+
+function getRequestedCategory() {
+  return normalizeCategoryLabel(new URLSearchParams(window.location.search).get('category'));
+}
+
+function updateCollectionMeta(categoryLabel) {
+  const label = categoryLabel || 'All Products';
+  const title = categoryLabel ? `${label} - Zuwera` : 'Collection - Zuwera';
+  const description = categoryLabel
+    ? `Shop Zuwera ${label}. Browse only ${label.toLowerCase()} from the latest collection and join the notify list.`
+    : 'Shop Zuwera by category. Browse the latest collection pieces and sign up to be notified when they go live.';
+
+  document.title = title;
+  document.querySelectorAll('meta[name="description"], meta[property="og:description"], meta[name="twitter:description"]').forEach((el) => {
+    el.setAttribute('content', description);
+  });
+  document.querySelectorAll('meta[property="og:title"], meta[name="twitter:title"]').forEach((el) => {
+    el.setAttribute('content', title);
+  });
+  const labelEl = document.querySelector('.drop-label');
+  const categoryEl = document.getElementById('collection-category');
+  const sectionTitleEl = document.querySelector('.section-header h2');
+  const noteEl = document.querySelector('.notify-note');
+  if (labelEl) labelEl.textContent = categoryLabel ? `Zuwera - ${label}` : 'Zuwera - Collection';
+  if (categoryEl) categoryEl.textContent = label;
+  if (sectionTitleEl) sectionTitleEl.textContent = categoryLabel ? `Release 001 - ${label}` : 'Release 001 - All Products';
+  if (noteEl) noteEl.textContent = categoryLabel
+    ? `Be first to know when ${label.toLowerCase()} go live. No spam, ever.`
+    : 'Be first to know when the next release goes live. No spam, ever.';
+}
+
 function productHref(product) {
   const slug = productSlug(product?.title || product?.name || product?.slug || '');
   const params = new URLSearchParams();
@@ -580,6 +618,7 @@ function updateCountdown() {
 
     // Notify
     function notifyMe() {
+      const requestedCategory = getRequestedCategory();
       const email = document.getElementById('notify-email').value.trim();
       if (!email || !email.includes('@')) {
         document.getElementById('notify-email').style.borderColor = '#e07060';
@@ -589,7 +628,7 @@ function updateCountdown() {
       document.querySelector('.notify-form').style.display = 'none';
       document.querySelector('.notify-note').style.display = 'none';
       document.getElementById('notify-success').style.display = 'block';
-      if (typeof gtag === 'function') gtag('event', 'generate_lead', { content_name: 'waitlist', source: 'drop001' });
+      if (typeof gtag === 'function') gtag('event', 'generate_lead', { content_name: requestedCategory || 'waitlist', source: 'drop001' });
     }
 
     function scrollToNotify(event) {
@@ -622,8 +661,10 @@ function updateCountdown() {
     } catch (e) {}
 
       const grid = document.getElementById('products-grid');
-      
-      const cached = sessionStorage.getItem('zw_drop001_products');
+      const requestedCategory = getRequestedCategory();
+      updateCollectionMeta(requestedCategory);
+
+      const cached = sessionStorage.getItem('zw_collection_products');
       if (cached) {
         try { renderProducts(JSON.parse(cached)); } catch(e){}
       }
@@ -660,13 +701,25 @@ function updateCountdown() {
         return;
       }
 
-      sessionStorage.setItem('zw_drop001_products', JSON.stringify(products));
+      sessionStorage.setItem('zw_collection_products', JSON.stringify(products));
       renderProducts(products);
 
       function renderProducts(productsList) {
-        let renderList = productsList;
-        if (productsList.length === 1 && productsList[0].product_images && productsList[0].product_images.length > 1) {
-          const p = productsList[0];
+        const filteredProducts = requestedCategory
+          ? (productsList || []).filter(product => categoryLabelFromProduct(product).toLowerCase() === requestedCategory.toLowerCase())
+          : (productsList || []);
+
+        updateCollectionMeta(requestedCategory || (filteredProducts.length === 1 ? categoryLabelFromProduct(filteredProducts[0]) : ''));
+
+        if (!filteredProducts.length) {
+          grid.classList.remove('single-item', 'two-items');
+          grid.innerHTML = `<div class="product-card" style="opacity:.35;text-align:center;padding:3rem;grid-column:1/-1">No ${requestedCategory || 'products'} yet.</div>`;
+          return;
+        }
+
+        let renderList = filteredProducts;
+        if (filteredProducts.length === 1 && filteredProducts[0].product_images && filteredProducts[0].product_images.length > 1) {
+          const p = filteredProducts[0];
           let allImages = [...p.product_images].sort((a, b) => a.sort_order - b.sort_order);
           if (p.image_url && !allImages.some(img => img.image_url === p.image_url)) {
             allImages.unshift({ image_url: p.image_url, sort_order: -1 });
@@ -688,7 +741,7 @@ function updateCountdown() {
 
         grid.innerHTML = renderList.map(p => {
           const productName = p.title || p.name || 'Untitled';
-          const productCategory = p.subtitle || p.category || 'Jackets';
+          const productCategory = categoryLabelFromProduct(p);
           const productPrice = p.current_price || p.msrp || p.price;
           const badge = (p.status === 'coming_soon' || p.status === 'Coming Soon') ? 'Coming Soon' : (p.status === 'live' || p.status === 'Live' ? 'Available' : (p.status || 'Coming Soon'));
           let firstImg = p.image_url;

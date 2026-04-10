@@ -123,7 +123,7 @@
 <link rel="dns-prefetch" href="https://www.googletagmanager.com">
 
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500&family=Barlow:wght@300;400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="reviews.css?v=2">
+<link rel="stylesheet" href="reviews.css?v=3">
 
 <!-- Stripe is loaded lazily on checkout click to avoid blocking initial render -->
 <!-- defer moves Supabase off the critical path Ã¢â‚¬â€ it was previously
@@ -1129,8 +1129,8 @@ body.light-mode::after{opacity:0.15}
     <img src="images/logo.png" alt="ZUWERA" onerror="this.style.display='none';this.parentElement.childNodes[this.parentElement.childNodes.length-1].style.display='block'">
     <span style="display:none">ZUWERA</span>
   </a>
-  <div class="nav-center">
-    <a href="drop001.html" class="nav-link">Jackets</a>
+  <div class="nav-center" id="nav-category-links">
+    <a href="drop001.html?category=Jackets" class="nav-link">Jackets</a>
   </div>
   <div class="nav-right">
     <button class="nbtn" id="login-btn">Login</button>
@@ -1147,8 +1147,8 @@ body.light-mode::after{opacity:0.15}
 <div id="mobile-menu" class="modal" role="dialog" aria-modal="true" style="z-index:900;">
   <div class="mbox" style="background:transparent; border:none; box-shadow:none; text-align:center;">
     <button id="mobile-menu-close" class="mclose" onclick="document.getElementById('mobile-menu').classList.remove('open'); document.body.style.overflow='';" style="position:fixed; top:1.5rem; right:1.5rem; background:none; border:none; color:#f4f1eb; font-size:2rem; width:40px; height:40px;">&#215;</button>
-    <div style="display:flex; flex-direction:column; gap:2.5rem; margin-top:3rem;">
-      <a href="drop001.html">Jackets</a>
+    <div id="mobile-category-links" style="display:flex; flex-direction:column; gap:2.5rem; margin-top:3rem;">
+      <a href="drop001.html?category=Jackets">Jackets</a>
     </div>
   </div>
 </div>
@@ -1825,13 +1825,53 @@ function productHref(product) {
   return `/product${qs ? `?${qs}` : ''}`;
 }
 
+function normalizeCategoryLabel(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ');
+}
+
+function categoryLabelFromProduct(product) {
+  return normalizeCategoryLabel(product?.category || product?.subtitle || 'Jackets') || 'Jackets';
+}
+
+function categoryHref(category) {
+  const label = normalizeCategoryLabel(category) || 'Jackets';
+  return `drop001.html?category=${encodeURIComponent(label)}`;
+}
+
+function collectCategoryLabels(products) {
+  const seen = new Set();
+  const labels = [];
+  (Array.isArray(products) ? products : []).forEach(product => {
+    const label = categoryLabelFromProduct(product);
+    const key = label.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    labels.push(label);
+  });
+  return labels.length ? labels : ['Jackets'];
+}
+
+function renderCategoryNavigation(products) {
+  const labels = collectCategoryLabels(products);
+  const desktop = document.getElementById('nav-category-links');
+  const mobile = document.getElementById('mobile-category-links');
+  const desktopHtml = labels.map(label => `<a href="${categoryHref(label)}" class="nav-link">${label}</a>`).join('');
+  const mobileHtml = labels.map(label => `<a href="${categoryHref(label)}">${label}</a>`).join('');
+  if (desktop) desktop.innerHTML = desktopHtml;
+  if (mobile) mobile.innerHTML = mobileHtml;
+}
+
 async function loadProducts() {
   const grid = document.getElementById('products-grid');
   if (!grid) return;
 
   const cached = sessionStorage.getItem('zw_home_products');
   if (cached) {
-    try { renderProductCards(JSON.parse(cached), grid); } catch(e){}
+    try {
+      const cachedProducts = JSON.parse(cached);
+      renderCategoryNavigation(cachedProducts);
+      renderProductCards(cachedProducts, grid);
+    } catch(e){}
   }
 
   // Fetch products and images separately so each card only receives images that
@@ -1861,6 +1901,7 @@ async function loadProducts() {
       product_images: (imagesByProductId.get(product.id) || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)),
     }));
     sessionStorage.setItem('zw_home_products', JSON.stringify(normalizedProducts));
+    renderCategoryNavigation(normalizedProducts);
     renderProductCards(normalizedProducts, grid);
   } catch(e) {
     console.error('loadProducts error:', e);
@@ -1917,7 +1958,7 @@ function renderProductCards(products, grid) {
 
   grid.innerHTML = renderList.map(p => {
     const productName = p.title || p.name || 'Untitled';
-    const productCategory = p.subtitle || p.category || 'Jackets';
+    const productCategory = categoryLabelFromProduct(p);
     const productPrice = p.current_price || p.msrp || p.price;
     const badge = (p.status === 'coming_soon' || p.status === 'Coming Soon') ? 'Coming Soon' : (p.status === 'live' || p.status === 'Live' ? 'Available' : (p.status || 'Coming Soon'));
     let firstImg = p.image_url;
