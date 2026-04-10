@@ -2588,7 +2588,7 @@ function scrollToNotify() {
 </script>
 <!-- Cloudflare Turnstile Ã¢â‚¬â€ invisible bot protection for waitlist -->
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=_zwHomeTsLoad&render=explicit" defer async></script>
-<div id="zw-home-ts-widget" style="display:none;visibility:hidden;" aria-hidden="true"></div>
+<div id="zw-home-ts-widget" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;" aria-hidden="true"></div>
 <script>
 (function() {
   const ZW_TS_KEY = '0x4AAAAAACzvvg-l2dT2z35l';
@@ -2630,6 +2630,14 @@ function scrollToNotify() {
   window._zwHomeTs = async function(action) {
     await _waitForHomeTurnstile(2500);
     if (!window.turnstile || _widgetId === null) { await action(null); return; }
+    let settled = false;
+    const finish = async (token) => {
+      if (settled) return;
+      settled = true;
+      _pending = null;
+      await action(token);
+      if (_widgetId !== null) window.turnstile.reset(_widgetId);
+    };
     _pending = async (token) => {
       if (token) {
         try {
@@ -2641,10 +2649,16 @@ function scrollToNotify() {
           if (!d.success) console.warn('[Turnstile] home:', d.error);
         } catch(e) { console.warn('[Turnstile] home error:', e); }
       }
-      await action(token);
-      if (_widgetId !== null) window.turnstile.reset(_widgetId);
+      await finish(token);
     };
-    window.turnstile.execute(_widgetId);
+    try {
+      window.turnstile.execute(_widgetId);
+    } catch (e) {
+      console.warn('[Turnstile] home execute error:', e);
+      await finish(null);
+      return;
+    }
+    setTimeout(() => { void finish(null); }, 4500);
   };
 })();
 </script>

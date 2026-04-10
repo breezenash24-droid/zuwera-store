@@ -2129,7 +2129,7 @@
 
     <script src="/supabase.min.js"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=_zwAdminTsLoad&render=explicit" defer async></script>
-    <div id="zw-admin-ts-widget" style="display:none;visibility:hidden;" aria-hidden="true"></div>
+    <div id="zw-admin-ts-widget" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;" aria-hidden="true"></div>
 
 <script>
         // Initialize Supabase
@@ -2198,6 +2198,14 @@
                 await action(null);
                 return;
             }
+            let settled = false;
+            const finish = async (token) => {
+                if (settled) return;
+                settled = true;
+                adminTsPending = null;
+                await action(token);
+                if (adminTsWidgetId !== null) window.turnstile.reset(adminTsWidgetId);
+            };
             adminTsPending = async (token) => {
                 if (token) {
                     try {
@@ -2212,10 +2220,16 @@
                         console.warn('[Turnstile] admin error:', e);
                     }
                 }
-                await action(token);
-                if (adminTsWidgetId !== null) window.turnstile.reset(adminTsWidgetId);
+                await finish(token);
             };
-            window.turnstile.execute(adminTsWidgetId);
+            try {
+                window.turnstile.execute(adminTsWidgetId);
+            } catch (e) {
+                console.warn('[Turnstile] admin execute error:', e);
+                await finish(null);
+                return;
+            }
+            setTimeout(() => { void finish(null); }, 4500);
         }
 
 

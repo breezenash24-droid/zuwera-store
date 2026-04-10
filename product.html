@@ -719,7 +719,7 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
 <!-- Cloudflare Turnstile ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â invisible protection for login/signup/review -->
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=_zwTsLoad&render=explicit" defer async></script>
 <!-- Turnstile invisible widget (shared across all forms on this page) -->
-<div id="zw-ts-widget" style="display:none;visibility:hidden;" aria-hidden="true"></div>
+<div id="zw-ts-widget" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;" aria-hidden="true"></div>
 <script src="auth.js?v=3" defer></script>
 <script>
 

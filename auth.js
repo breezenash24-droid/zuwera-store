@@ -199,6 +199,14 @@ async function zwRunTurnstile(action) {
     await action(null);
     return;
   }
+  let settled = false;
+  const finish = async (token) => {
+    if (settled) return;
+    settled = true;
+    _zwTsPendingCb = null;
+    await action(token);
+    if (_zwTsWidgetId !== null) window.turnstile.reset(_zwTsWidgetId);
+  };
   _zwTsPendingCb = async (token) => {
     if (token) {
       try {
@@ -216,11 +224,16 @@ async function zwRunTurnstile(action) {
         console.warn('[Turnstile] Verify error:', e);
       }
     }
-    await action(token);
-    // Reset widget for next use
-    if (_zwTsWidgetId !== null) window.turnstile.reset(_zwTsWidgetId);
+    await finish(token);
   };
-  window.turnstile.execute(_zwTsWidgetId);
+  try {
+    window.turnstile.execute(_zwTsWidgetId);
+  } catch (e) {
+    console.warn('[Turnstile] Execute error:', e);
+    await finish(null);
+    return;
+  }
+  setTimeout(() => { void finish(null); }, 4500);
 }
 
 // ── Sign In ────────────────────────────────────────────────────────
