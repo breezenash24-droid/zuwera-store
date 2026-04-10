@@ -2259,23 +2259,135 @@ function reviewHasFitSignals(review) {
   );
 }
 
+function escapeSizeFitHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function generateHatFitModalHtml(activeRow, allRows = [], fitReviews = []) {
+  if (!activeRow) {
+    return '<p class="review-modal-message">Could not find hat sizing for this product right now.</p>';
+  }
+
+  const sizeLabel = escapeSizeFitHtml(formatProductSizeLabel(activeRow.size_label || 'One Size'));
+  const circumference = [
+    activeRow.head_circ_in ? `${escapeSizeFitHtml(activeRow.head_circ_in)} in` : '',
+    activeRow.head_circ_cm ? `${escapeSizeFitHtml(activeRow.head_circ_cm)} cm` : ''
+  ].filter(Boolean).join(' / ');
+
+  const rowsHtml = allRows.map((row) => {
+    const isActive = normalizeSizeLabel(row?.size_label) === normalizeSizeLabel(activeRow.size_label);
+    const badgeStyle = isActive
+      ? 'background: rgba(248,145,165,0.14); border-color: rgba(248,145,165,0.35);'
+      : 'background: rgba(244,241,235,0.03); border-color: rgba(244,241,235,0.08);';
+    const label = escapeSizeFitHtml(formatProductSizeLabel(row?.size_label || ''));
+    const measurements = [
+      row?.head_circ_in ? `${escapeSizeFitHtml(row.head_circ_in)} in` : '',
+      row?.head_circ_cm ? `${escapeSizeFitHtml(row.head_circ_cm)} cm` : ''
+    ].filter(Boolean).join(' / ');
+    return `
+      <div class="review-modal-card" style="padding: 1rem 0; border-bottom: 1px solid rgba(244,241,235,0.08);">
+        <div class="review-card-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+          <div>
+            <div class="review-card-title" style="font-size:0.95rem; font-weight:600; margin-bottom:4px;">${label}</div>
+            <div class="review-card-body" style="font-size:0.88rem; color: rgba(244,241,235,0.72);">${measurements || 'Measurement not available'}</div>
+          </div>
+          <span class="review-card-badge" style="padding:4px 8px; border:1px solid rgba(244,241,235,0.08); border-radius:999px; font-size:0.72rem; ${badgeStyle}">${isActive ? 'Selected' : 'Guide'}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const communityBlock = fitReviews.length && typeof generateReviewSummaryHtml === 'function'
+    ? `
+      <div style="margin-top: 1.5rem;">
+        <p class="review-modal-eyebrow" style="margin-bottom:0.6rem;">Community Fit</p>
+        ${generateReviewSummaryHtml(fitReviews)}
+      </div>
+    `
+    : '<p class="review-modal-message" style="margin-top: 1.25rem;">No community fit ratings have been submitted yet, so this view is using the saved hat size guide.</p>';
+
+  return `
+    <div class="review-summary-box">
+      <div class="rs-left">
+        <div class="rs-rating">${sizeLabel}</div>
+        <div class="rs-count">Current size focus</div>
+        <div class="rs-count">Head Circumference</div>
+      </div>
+      <div class="rs-right">
+        <div class="rs-metric">
+          <div class="rs-metric-title">Head circumference for this size</div>
+          <div class="rs-metric-subtitle">${circumference || 'Measurement not available'}</div>
+        </div>
+        <div class="rs-recommend">
+          <div class="rs-metric-title">Guide sizes available</div>
+          <div class="rs-metric-subtitle">${allRows.length} size option${allRows.length !== 1 ? 's' : ''}</div>
+        </div>
+      </div>
+    </div>
+    ${communityBlock}
+    <div style="margin-top: 1.5rem;">
+      ${rowsHtml}
+    </div>
+  `;
+}
+
 window.openSizeFitModal = async function() {
   const modal = document.getElementById('size-fit-modal');
   const content = document.getElementById('size-fit-summary-content');
   if (!modal || !content) return;
+
+  const title = modal.querySelector('#size-fit-title');
+  const eyebrow = modal.querySelector('.review-modal-eyebrow');
+  const copy = modal.querySelector('.review-modal-copy');
+  const context = getSizeGuideContext();
+  const isHatProduct = context?.calcCategory === 'hats';
+
+  if (title) title.textContent = 'Size & Fit';
+  if (eyebrow) eyebrow.textContent = isHatProduct ? 'Fit Reference' : 'Community Fit';
+  if (copy) {
+    copy.textContent = isHatProduct
+      ? 'Head circumference guidance for this specific hat, plus any available fit notes from reviews.'
+      : 'Live fit notes pulled from recent reviews for this specific piece.';
+  }
 
   content.innerHTML = '<p class="review-modal-message">Loading fit ratings...</p>';
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
 
   try {
-    const reviews = await loadProductReviewsForModal();
+    let reviews = [];
+    let hatGuideRows = [];
+
+    if (isHatProduct) {
+      hatGuideRows = await ensureHatSizeGuideRows();
+      try {
+        reviews = await loadProductReviewsForModal();
+      } catch (reviewError) {
+        console.warn('Hat fit reviews unavailable, using size guide only:', reviewError);
+        reviews = [];
+      }
+    } else {
+      reviews = await loadProductReviewsForModal();
+    }
 
     if (currentProduct) currentProduct.reviews = Array.isArray(reviews) ? reviews : [];
 
     const fitReviews = Array.isArray(reviews)
       ? reviews.filter(reviewHasFitSignals)
       : [];
+
+    if (isHatProduct) {
+      const sizeLabels = getAvailableProductSizes();
+      const activeSize = selectedSize || sizeLabels[0] || 'One Size';
+      const activeRow = findHatGuideRow(Array.isArray(hatGuideRows) ? hatGuideRows : [], activeSize);
+      content.innerHTML = generateHatFitModalHtml(activeRow, Array.isArray(hatGuideRows) ? hatGuideRows : [], fitReviews);
+      return;
+    }
 
     if (!fitReviews.length) {
       content.innerHTML = '<p class="review-modal-message">No size or comfort ratings have been submitted yet.</p>';
