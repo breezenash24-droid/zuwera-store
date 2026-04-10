@@ -2611,9 +2611,25 @@ function scrollToNotify() {
   }
   window._zwHomeTsLoad = _init;
   document.addEventListener('DOMContentLoaded', function() { setTimeout(_init, 800); });
+  function _waitForHomeTurnstile(timeoutMs) {
+    const maxWait = timeoutMs || 2500;
+    _init();
+    if (_widgetId !== null) return Promise.resolve(true);
+    return new Promise(resolve => {
+      const started = Date.now();
+      const tick = () => {
+        _init();
+        if (_widgetId !== null) { resolve(true); return; }
+        if (Date.now() - started >= maxWait) { resolve(false); return; }
+        setTimeout(tick, 50);
+      };
+      tick();
+    });
+  }
 
   window._zwHomeTs = async function(action) {
-    if (!window.turnstile || _widgetId === null) { await action(); return; }
+    await _waitForHomeTurnstile(2500);
+    if (!window.turnstile || _widgetId === null) { await action(null); return; }
     _pending = async (token) => {
       if (token) {
         try {

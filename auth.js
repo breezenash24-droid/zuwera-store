@@ -176,8 +176,24 @@ document.addEventListener('DOMContentLoaded', function() {
   setTimeout(_zwInitTurnstile, 800);
 });
 
+function _zwWaitForTurnstile(timeoutMs = 2500) {
+  _zwInitTurnstile();
+  if (_zwTsWidgetId !== null) return Promise.resolve(true);
+  return new Promise(resolve => {
+    const started = Date.now();
+    const tick = () => {
+      _zwInitTurnstile();
+      if (_zwTsWidgetId !== null) { resolve(true); return; }
+      if (Date.now() - started >= timeoutMs) { resolve(false); return; }
+      setTimeout(tick, 50);
+    };
+    tick();
+  });
+}
+
 // Verify token server-side and execute action
 async function zwRunTurnstile(action) {
+  await _zwWaitForTurnstile();
   if (!window.turnstile || _zwTsWidgetId === null) {
     // Turnstile not available — fail open
     await action(null);
@@ -277,12 +293,16 @@ $('forgot-submit').addEventListener('click', async () => {
   suc.style.display = 'none';
   if (!email) { err.textContent = 'Please enter your email.'; return; }
   setBtn('forgot-submit', true, 'Send Reset Link');
-  if (_sb) {
-    const { error } = await _sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://zuwera.store/confirm.html' });
-    if (error) { err.textContent = error.message; setBtn('forgot-submit', false, 'Send Reset Link'); return; }
-  }
-  setBtn('forgot-submit', false, 'Send Reset Link');
-  suc.style.display = 'block';
+  await zwRunTurnstile(async (captchaToken) => {
+    if (_sb) {
+      const resetOpts = { redirectTo: 'https://zuwera.store/confirm.html' };
+      if (captchaToken) resetOpts.captchaToken = captchaToken;
+      const { error } = await _sb.auth.resetPasswordForEmail(email, resetOpts);
+      if (error) { err.textContent = error.message; setBtn('forgot-submit', false, 'Send Reset Link'); return; }
+    }
+    setBtn('forgot-submit', false, 'Send Reset Link');
+    suc.style.display = 'block';
+  });
 });
 
 // ── Update Password ────────────────────────────────────────────────

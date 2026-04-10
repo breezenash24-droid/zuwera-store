@@ -2177,7 +2177,23 @@
             setTimeout(initAdminTurnstile, 800);
         });
 
+        function waitForAdminTurnstile(timeoutMs = 2500) {
+            initAdminTurnstile();
+            if (adminTsWidgetId !== null) return Promise.resolve(true);
+            return new Promise(resolve => {
+                const started = Date.now();
+                const tick = () => {
+                    initAdminTurnstile();
+                    if (adminTsWidgetId !== null) { resolve(true); return; }
+                    if (Date.now() - started >= timeoutMs) { resolve(false); return; }
+                    setTimeout(tick, 50);
+                };
+                tick();
+            });
+        }
+
         async function runAdminTurnstile(action) {
+            await waitForAdminTurnstile();
             if (!window.turnstile || adminTsWidgetId === null) {
                 await action(null);
                 return;
