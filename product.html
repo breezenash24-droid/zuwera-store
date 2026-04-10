@@ -1009,8 +1009,9 @@ async function loadProduct() {
     }
   }
 
-  // Fetch using direct REST API to completely bypass Supabase Auth lock contention
-  let url = `${_PROD_SB_URL}/rest/v1/products?select=*,product_images(*),color_variants(*),product_sizes(*)`;
+  // Fetch the product first, then related tables separately by product_id so gallery data
+  // never bleeds across products if an embedded relationship returns unexpected rows.
+  let url = `${_PROD_SB_URL}/rest/v1/products?select=*`;
   if (productId) {
     url += `&id=eq.${productId}`;
   } else if (sku) {
@@ -1033,9 +1034,18 @@ async function loadProduct() {
     throw new Error('Product not found');
   }
 
-  // Fetch reviews separately to prevent massive JSON aggregation bottlenecks in Postgres
-  const resp2 = await fetch(`${_PROD_SB_URL}/rest/v1/reviews?select=*&product_id=eq.${productData.id}&order=created_at.desc`, { headers });
-  const reviewsData = resp2.ok ? await resp2.json() : [];
+  const productIdFilter = encodeURIComponent(productData.id);
+  const relatedRequests = [
+    fetch(`${_PROD_SB_URL}/rest/v1/product_images?select=*&product_id=eq.${productIdFilter}&order=sort_order.asc`, { headers }),
+    fetch(`${_PROD_SB_URL}/rest/v1/color_variants?select=*&product_id=eq.${productIdFilter}&order=sort_order.asc`, { headers }),
+    fetch(`${_PROD_SB_URL}/rest/v1/product_sizes?select=*&product_id=eq.${productIdFilter}`, { headers }),
+    fetch(`${_PROD_SB_URL}/rest/v1/reviews?select=*&product_id=eq.${productIdFilter}&order=created_at.desc`, { headers }),
+  ];
+  const [imagesResp, colorsResp, sizesResp, reviewsResp] = await Promise.all(relatedRequests);
+  const imagesData = imagesResp.ok ? await imagesResp.json() : [];
+  const colorsData = colorsResp.ok ? await colorsResp.json() : [];
+  const sizesData = sizesResp.ok ? await sizesResp.json() : [];
+  const reviewsData = reviewsResp.ok ? await reviewsResp.json() : [];
 
   // Normalize field names
   if (!productData.title && productData.name) productData.title = productData.name;
@@ -1044,15 +1054,10 @@ async function loadProduct() {
   if (!productData.gender && productData.subtitle) productData.gender = productData.subtitle;
 
   // Extract embedded arrays and sort client-side
-  const images    = (productData.product_images  || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  const colors    = (productData.color_variants   || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  const inventory = productData.product_sizes     || [];
+  const images    = (Array.isArray(imagesData) ? imagesData : []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  const colors    = (Array.isArray(colorsData) ? colorsData : []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  const inventory = Array.isArray(sizesData) ? sizesData : [];
   const reviews   = reviewsData || [];
-
-  // Remove raw embedded fields before assigning to currentProduct
-  delete productData.product_images;
-  delete productData.color_variants;
-  delete productData.product_sizes;
 
   currentProduct          = productData;
   currentProduct.images   = images;
@@ -1486,10 +1491,10 @@ function renderAccordions() {
   }
 
   document.getElementById('materialInfo').textContent =
-    `Material: ${currentProduct.material_composition || 'High-quality athletic fabric'}`;
+    `Materials: ${currentProduct.material_composition || 'High-quality athletic fabric'}`;
 
   // Fabric & Materials
-  document.getElementById('materialComposition').textContent = `Material: ${currentProduct.material_composition || 'N/A'}`;
+  document.getElementById('materialComposition').textContent = `Materials: ${currentProduct.material_composition || 'N/A'}`;
 
   if (currentProduct.fabric_technology) {
     const techDict = {

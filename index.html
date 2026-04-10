@@ -1842,20 +1842,34 @@ async function loadProducts() {
     try { renderProductCards(JSON.parse(cached), grid); } catch(e){}
   }
 
-  // Use direct fetch instead of Supabase JS client to avoid auth-state blocking
+  // Fetch products and images separately so each card only receives images that
+  // actually belong to that product.
   try {
-    const resp = await fetch(
-      `${SUPABASE_URL}/rest/v1/products?select=*,product_images(*)&order=sort_order.asc`,
-      { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` } }
-    );
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const products = await resp.json();
+    const headers = { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` };
+    const [productsResp, imagesResp] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/products?select=*&order=sort_order.asc`, { headers }),
+      fetch(`${SUPABASE_URL}/rest/v1/product_images?select=*&order=sort_order.asc`, { headers }),
+    ]);
+    if (!productsResp.ok) throw new Error(`HTTP ${productsResp.status}`);
+    const products = await productsResp.json();
+    const imageRows = imagesResp.ok ? await imagesResp.json() : [];
     if (!Array.isArray(products) || products.length === 0) {
       if (!cached) grid.innerHTML = '<div class="pcard" style="opacity:.3;text-align:center;padding:3rem">No products yet.</div>';
       return;
     }
-    sessionStorage.setItem('zw_home_products', JSON.stringify(products));
-    renderProductCards(products, grid);
+    const imagesByProductId = new Map();
+    (Array.isArray(imageRows) ? imageRows : []).forEach((image) => {
+      if (!image || !image.product_id) return;
+      const bucket = imagesByProductId.get(image.product_id) || [];
+      bucket.push(image);
+      imagesByProductId.set(image.product_id, bucket);
+    });
+    const normalizedProducts = products.map((product) => ({
+      ...product,
+      product_images: (imagesByProductId.get(product.id) || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)),
+    }));
+    sessionStorage.setItem('zw_home_products', JSON.stringify(normalizedProducts));
+    renderProductCards(normalizedProducts, grid);
   } catch(e) {
     console.error('loadProducts error:', e);
     if (!cached) grid.innerHTML = '<div class="pcard" style="opacity:.3;text-align:center;padding:3rem">Could not load products.</div>';
