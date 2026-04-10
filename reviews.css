@@ -110,8 +110,8 @@
 
 /* ===================== REVIEW MODAL ===================== */
 .review-mbox {
-  max-width: 640px;
-  width: min(640px, 94vw);
+  max-width: 780px;
+  width: min(780px, 94vw);
   max-height: 90vh;
   overflow-y: auto;
 }
