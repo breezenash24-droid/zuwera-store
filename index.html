@@ -123,7 +123,7 @@
 <link rel="dns-prefetch" href="https://www.googletagmanager.com">
 
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500&family=Barlow:wght@300;400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="reviews.css?v=2">
+<link rel="stylesheet" href="reviews.css?v=4">
 
 <!-- Stripe is loaded lazily on checkout click to avoid blocking initial render -->
 <!-- defer moves Supabase off the critical path Ã¢â‚¬â€ it was previously
@@ -1271,6 +1271,14 @@ body.light-mode::after{opacity:0.15}
       <div class="pcard" style="opacity:.3;text-align:center;padding:3rem">Loading products...</div>
     </div>
   </div>
+
+  <div class="products-section" id="recently-viewed-section" hidden style="margin-top:2.5rem;">
+    <div class="sec-head">
+      <h2 id="recently-viewed-title">Recently Viewed</h2>
+      <span>Pick up where you left off</span>
+    </div>
+    <div class="pgrid" id="recently-viewed-grid"></div>
+  </div>
 </section>
 
 <!-- FOOTER -->
@@ -1368,6 +1376,13 @@ body.light-mode::after{opacity:0.15}
     </div>
 
     <textarea id="review-body-input" class="review-body-field" placeholder="Share your thoughts about this piece..." maxlength="1000"></textarea>
+
+    <div class="review-form-row review-photo-field" id="review-photo-field">
+      <label class="review-legacy-label" for="reviewPhotoFile">Add a photo (Optional)</label>
+      <input type="file" id="reviewPhotoFile" accept="image/*">
+      <input type="url" id="reviewPhotoUrl" class="review-photo-url" placeholder="Or paste an image URL">
+      <div id="review-photo-preview" class="review-photo-preview" hidden></div>
+    </div>
 
     <div class="review-form-row review-fit-toggle-row">
       <label class="review-fit-toggle-label">
@@ -1798,12 +1813,18 @@ function applyAnnouncementBar(mode, msgText) {
         try { localStorage.setItem('zw-brand', JSON.stringify(b || {})); } catch (e) {}
         if (b.admin_res_bg) document.documentElement.style.setProperty('--admin-res-bg', b.admin_res_bg);
         if (b.admin_res_text) document.documentElement.style.setProperty('--admin-res-text', b.admin_res_text);
+      } else if (row.key === 'storefront_features') {
+        let v = row.value;
+        try { if (typeof v === 'string') v = JSON.parse(v); } catch (e) {}
+        window.zwStorefrontFeatures = v || {};
       }
     });
     if (!announcementApplied) applyAnnouncementBar('on', '');
+    if (typeof window.applyStorefrontFeatures === 'function') window.applyStorefrontFeatures();
   } catch (e) {
     console.log('Settings load skipped:', e);
     applyAnnouncementBar('on', '');
+    if (typeof window.applyStorefrontFeatures === 'function') window.applyStorefrontFeatures();
   }
 })();
 
@@ -1831,7 +1852,12 @@ async function loadProducts() {
 
   const cached = sessionStorage.getItem('zw_home_products');
   if (cached) {
-    try { renderProductCards(JSON.parse(cached), grid); } catch(e){}
+    try {
+      const parsedProducts = JSON.parse(cached);
+      window.__zwHomeProducts = parsedProducts;
+      renderProductCards(parsedProducts, grid);
+      if (typeof window.renderRecentlyViewedProducts === 'function') window.renderRecentlyViewedProducts(parsedProducts);
+    } catch(e){}
   }
 
   // Fetch products and images separately so each card only receives images that
@@ -1860,8 +1886,10 @@ async function loadProducts() {
       ...product,
       product_images: (imagesByProductId.get(product.id) || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)),
     }));
+    window.__zwHomeProducts = normalizedProducts;
     sessionStorage.setItem('zw_home_products', JSON.stringify(normalizedProducts));
     renderProductCards(normalizedProducts, grid);
+    if (typeof window.renderRecentlyViewedProducts === 'function') window.renderRecentlyViewedProducts(normalizedProducts);
   } catch(e) {
     console.error('loadProducts error:', e);
     if (!cached) grid.innerHTML = '<div class="pcard" style="opacity:.3;text-align:center;padding:3rem">Could not load products.</div>';
@@ -1891,10 +1919,10 @@ async function loadCardReviewSummary(pid, domId) {
   } catch(e) { console.error('Review summary error:', e); }
 }
 
-function renderProductCards(products, grid) {
+function renderProductCards(products, grid, options = {}) {
   let renderList = products;
   // If only 1 product, show its different images as separate cards
-  if (products.length === 1 && products[0].product_images && products[0].product_images.length > 1) {
+  if (options.expandSingleImages !== false && products.length === 1 && products[0].product_images && products[0].product_images.length > 1) {
     const p = products[0];
     let allImages = [...p.product_images].sort((a, b) => a.sort_order - b.sort_order);
     if (p.image_url && !allImages.some(img => img.image_url === p.image_url)) {
@@ -2563,7 +2591,8 @@ function scrollToNotify() {
 </script>
 <!-- Language selector -->
 <script src="lang.js?v=2" defer></script>
-<script src="reviews.js?v=7" charset="utf-8"></script>
+<script src="reviews.js?v=8" charset="utf-8"></script>
+<script src="storefront-enhancements.js?v=1" charset="utf-8"></script>
 
 <!-- PWA Service Worker -->
 <script>

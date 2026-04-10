@@ -110,10 +110,11 @@
 
 /* ===================== REVIEW MODAL ===================== */
 .review-mbox {
-  max-width: 500px;
-  width: 92vw;
+  max-width: 680px;
+  width: min(680px, calc(100vw - 3rem));
   max-height: 90vh;
   overflow-y: auto;
+  padding: 2.45rem 2.6rem 2.2rem;
 }
 .review-mbox h2 {
   font-family: 'Bebas Neue', sans-serif;
@@ -173,6 +174,75 @@
 }
 .review-mbox .review-body-field:focus { border-color: rgba(244,241,235,0.4); }
 .review-mbox .review-body-field::placeholder { color: rgba(244,241,235,0.25); }
+
+.review-photo-field {
+  display: grid;
+  gap: 0.65rem;
+  margin-bottom: 0.9rem;
+}
+
+.review-photo-field input[type="file"],
+.review-photo-url {
+  width: 100%;
+  background: rgba(244,241,235,0.04);
+  border: 1px solid rgba(244,241,235,0.14);
+  color: rgba(244,241,235,0.9);
+  font-family: 'Barlow', sans-serif;
+  font-size: 0.88rem;
+  padding: 0.8rem 1rem;
+  border-radius: 2px;
+}
+
+.review-photo-field input[type="file"]::file-selector-button {
+  border: none;
+  background: rgba(244,241,235,0.9);
+  color: #09090b;
+  padding: 0.55rem 0.8rem;
+  margin-right: 0.8rem;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.76rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.review-photo-preview {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.review-photo-preview img {
+  display: block;
+  width: min(180px, 100%);
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border: 1px solid rgba(244,241,235,0.1);
+}
+
+.review-photo-preview button {
+  width: fit-content;
+  border: none;
+  background: none;
+  color: rgba(244,241,235,0.55);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 0;
+}
+
+.review-card-photo {
+  margin-top: 0.85rem;
+}
+
+.review-card-photo img {
+  display: block;
+  width: min(220px, 100%);
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border: 1px solid rgba(244,241,235,0.08);
+}
 
 /* ── Submit button ── */
 .review-mbox .review-submit-btn,
@@ -280,20 +350,20 @@
 .review-mbox .review-recommend-row { margin-bottom: 0; }
 
 .review-list-mbox {
-  max-width: 700px;
-  width: 90vw;
-  max-height: 85vh;
+  max-width: 1040px;
+  width: min(1040px, calc(100vw - 4rem));
+  max-height: 86vh;
   overflow-y: auto;
-  padding: 2rem;
-  border-radius: 8px;
+  padding: 2.15rem 2.6rem 2.35rem;
+  border-radius: 0;
 }
 .review-list-title {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 2rem;
+  font-size: 1.85rem;
   font-weight: 900;
   font-style: italic;
-  letter-spacing: 0.05em;
-  margin-bottom: 1.5rem;
+  letter-spacing: 0.04em;
+  margin-bottom: 1.1rem;
   color: var(--paper, #f4f1eb);
 }
 .review-list-close {
@@ -333,16 +403,56 @@
 .review-list-select:focus,
 .review-list-translate:hover { border-color: #F891A5; color: #F891A5; }
 .review-list-translate { width: auto !important; margin-bottom: 0; padding: 0.8rem 1.5rem; }
-.review-list-mbox .review-summary-box { margin-bottom: 1.5rem; }
+.review-list-mbox .review-summary-box {
+  gap: 1.5rem;
+  background: none;
+  border: none;
+  border-top: 1px solid rgba(244,241,235,0.08);
+  border-bottom: 1px solid rgba(244,241,235,0.08);
+  border-radius: 0;
+  padding: 1.1rem 0 1.35rem;
+  margin-bottom: 1.3rem;
+}
+.review-list-mbox .rs-left {
+  min-width: 160px;
+  align-items: flex-start;
+  text-align: left;
+  border-right: none;
+  padding-right: 0;
+}
+.review-list-mbox .rs-right { gap: 0.9rem; }
+.review-list-mbox .rs-rating { font-size: 3rem; }
+.review-list-mbox .rs-stars { font-size: 1rem; margin: 0.1rem 0; }
+.review-list-mbox .rs-count { font-size: 0.74rem; }
+.review-list-mbox .rs-metric-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.review-list-mbox .rs-metric-subtitle {
+  font-size: 0.76rem;
+  margin-bottom: 0.45rem;
+  font-style: normal;
+}
+.review-list-mbox .rs-metric-labels {
+  font-size: 0.64rem;
+  letter-spacing: 0.08em;
+}
 .review-list-mbox .review-modal-card {
-  padding: 1.5rem 0;
+  padding: 1.15rem 0;
   border-bottom: 1px solid rgba(244,241,235,0.08);
   text-align: left;
   background: none;
   border-radius: 0;
 }
 .review-list-mbox .review-modal-card:last-child { border-bottom: none; }
-.review-list-mbox .review-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.review-list-mbox .review-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
 .review-list-mbox .review-card-meta { gap: 10px; margin-left: 0; }
 .review-list-mbox .review-card-stars { font-size: 0.82rem; }
 .review-list-mbox .review-card-author {
@@ -397,6 +507,7 @@
   font-family: 'DM Sans', sans-serif;
   font-size: 0.9rem;
   line-height: 1.6;
+  max-width: 72ch;
 }
 .review-list-mbox .review-admin-response {
   margin-top: 12px;
@@ -451,7 +562,28 @@ body.light-mode .review-list-mbox .review-card-body,
 body.light-mode .review-list-mbox .review-admin-body,
 body.light-mode .review-list-mbox .review-modal-message { color: rgba(9,9,11,0.72); }
 body.light-mode .review-list-mbox .review-card-date { color: rgba(9,9,11,0.52); }
+body.light-mode .review-photo-field input[type="file"],
+body.light-mode .review-photo-url { background: rgba(9,9,11,0.04); border-color: rgba(9,9,11,0.12); color: rgba(9,9,11,0.86); }
+body.light-mode .review-photo-field input[type="file"]::file-selector-button { background: rgba(9,9,11,0.92); color: #F0EEE9; }
+body.light-mode .review-photo-preview button { color: rgba(9,9,11,0.55); }
+body.light-mode .review-photo-preview img,
+body.light-mode .review-card-photo img { border-color: rgba(9,9,11,0.08); }
 body.light-mode .review-list-mbox .review-modal-card { border-bottom-color: rgba(9,9,11,0.08); }
+body.light-mode .review-list-mbox .review-summary-box {
+  border-top-color: rgba(9,9,11,0.08);
+  border-bottom-color: rgba(9,9,11,0.08);
+}
+
+@media(min-width: 900px) {
+  .review-mbox {
+    width: min(700px, calc(100vw - 4rem));
+    max-width: 700px;
+  }
+  .review-list-mbox {
+    width: min(1040px, calc(100vw - 5rem));
+    max-width: 1040px;
+  }
+}
 
 @media(max-width: 600px) {
   .review-summary-box { flex-direction: column; gap: 1.5rem; padding: 1.2rem; }

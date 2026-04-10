@@ -1626,6 +1626,78 @@
                         </div>
                         <button type="button" class="btn btn-primary btn-sm" id="saveShippingBtn">Save Shipping Policy</button>
                     </div>
+
+                    <!-- Storefront Enhancements -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
+                        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:16px;">Storefront Enhancements</div>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px 20px;margin-bottom:18px;">
+                            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:.85rem;color:var(--text-primary);line-height:1.5;">
+                                <input type="checkbox" id="settFeatureWishlist" checked style="accent-color:var(--accent);margin-top:2px;">
+                                <span><strong>Wishlist / Saved Items</strong><br><span style="color:var(--text-secondary);font-size:.78rem;">Show save-for-later buttons and saved-items areas.</span></span>
+                            </label>
+                            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:.85rem;color:var(--text-primary);line-height:1.5;">
+                                <input type="checkbox" id="settFeatureBackInStock" checked style="accent-color:var(--accent);margin-top:2px;">
+                                <span><strong>Back-in-Stock Alerts</strong><br><span style="color:var(--text-secondary);font-size:.78rem;">Let shoppers request alerts for sold-out size and color combinations.</span></span>
+                            </label>
+                            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:.85rem;color:var(--text-primary);line-height:1.5;">
+                                <input type="checkbox" id="settFeatureStickyAtc" checked style="accent-color:var(--accent);margin-top:2px;">
+                                <span><strong>Sticky Mobile Add to Bag</strong><br><span style="color:var(--text-secondary);font-size:.78rem;">Keep the primary CTA visible while scrolling on mobile.</span></span>
+                            </label>
+                            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:.85rem;color:var(--text-primary);line-height:1.5;">
+                                <input type="checkbox" id="settFeatureReviewPhotos" checked style="accent-color:var(--accent);margin-top:2px;">
+                                <span><strong>Review Photo Uploads</strong><br><span style="color:var(--text-secondary);font-size:.78rem;">Allow customers to attach a photo to their review.</span></span>
+                            </label>
+                            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:.85rem;color:var(--text-primary);line-height:1.5;">
+                                <input type="checkbox" id="settFeatureRecentlyViewed" checked style="accent-color:var(--accent);margin-top:2px;">
+                                <span><strong>Recently Viewed</strong><br><span style="color:var(--text-secondary);font-size:.78rem;">Show customers the products they looked at most recently.</span></span>
+                            </label>
+                            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:.85rem;color:var(--text-primary);line-height:1.5;">
+                                <input type="checkbox" id="settFeatureReassurance" checked style="accent-color:var(--accent);margin-top:2px;">
+                                <span><strong>Buy-Section Reassurance</strong><br><span style="color:var(--text-secondary);font-size:.78rem;">Show shipping, returns, and fit trust cues near the buy controls.</span></span>
+                            </label>
+                            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:.85rem;color:var(--text-primary);line-height:1.5;">
+                                <input type="checkbox" id="settFeatureSizeRecommendation" checked style="accent-color:var(--accent);margin-top:2px;">
+                                <span><strong>Size Recommendation Helper</strong><br><span style="color:var(--text-secondary);font-size:.78rem;">Summarize whether a piece runs small, true to size, or big.</span></span>
+                            </label>
+                        </div>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:16px;">
+                            <div>
+                                <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Recently Viewed Title</label>
+                                <input type="text" id="settRecentlyViewedTitle" class="form-input" placeholder="Recently Viewed">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Back-in-Stock Heading</label>
+                                <input type="text" id="settBackInStockLabel" class="form-input" placeholder="Need your size?">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Back-in-Stock Success Message</label>
+                                <input type="text" id="settBackInStockSuccess" class="form-input" placeholder="We’ll email you when it’s back.">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Size Recommendation Label</label>
+                                <input type="text" id="settSizeRecommendationTitle" class="form-input" placeholder="Fit Insight">
+                            </div>
+                        </div>
+                        <div style="margin-bottom:16px;">
+                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Reassurance Block Title</label>
+                            <input type="text" id="settReassuranceTitle" class="form-input" placeholder="Why it feels easy">
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:16px;">
+                            <div>
+                                <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Reassurance Line 1</label>
+                                <input type="text" id="settReassuranceLine1" class="form-input" placeholder="Free shipping over $100">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Reassurance Line 2</label>
+                                <input type="text" id="settReassuranceLine2" class="form-input" placeholder="Easy returns within 30 days">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Reassurance Line 3</label>
+                                <input type="text" id="settReassuranceLine3" class="form-input" placeholder="Fit guidance backed by customer reviews">
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" id="saveStorefrontBtn">Save Enhancements</button>
+                    </div>
                     
                     <!-- Fabric Technologies -->
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
@@ -3490,6 +3562,10 @@
                 if (v.delivery_days) document.getElementById('settDeliveryDays').value = v.delivery_days;
                 if (v.return_days_member !== undefined) document.getElementById('settReturnMember').value = v.return_days_member;
                 if (v.return_days_nonmember !== undefined) document.getElementById('settReturnNonmember').value = v.return_days_nonmember;
+            } else if (row.key === 'storefront_features') {
+                let v = row.value;
+                try { if (typeof v === 'string') v = JSON.parse(v); } catch(e) {}
+                applyStorefrontFeatureInputs(v || {});
             } else if (row.key === 'technologies') {
                 const v = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
                 window._loadedTechs = v || {};
@@ -3525,6 +3601,65 @@
         }
     }
 
+    const defaultStorefrontFeatures = {
+        wishlist_enabled: true,
+        back_in_stock_enabled: true,
+        sticky_atc_enabled: true,
+        review_photos_enabled: true,
+        recently_viewed_enabled: true,
+        recently_viewed_title: 'Recently Viewed',
+        back_in_stock_label: 'Need your size?',
+        back_in_stock_success: "We'll email you when it's back.",
+        reassurance_enabled: true,
+        reassurance_title: 'Why it feels easy',
+        reassurance_line_1: 'Free shipping on orders over $100',
+        reassurance_line_2: 'Easy returns within 30 days',
+        reassurance_line_3: 'Fit guidance backed by customer reviews',
+        size_recommendation_enabled: true,
+        size_recommendation_title: 'Fit Insight'
+    };
+
+    function getStorefrontFeatureInputs() {
+        return {
+            wishlist_enabled: document.getElementById('settFeatureWishlist').checked,
+            back_in_stock_enabled: document.getElementById('settFeatureBackInStock').checked,
+            sticky_atc_enabled: document.getElementById('settFeatureStickyAtc').checked,
+            review_photos_enabled: document.getElementById('settFeatureReviewPhotos').checked,
+            recently_viewed_enabled: document.getElementById('settFeatureRecentlyViewed').checked,
+            recently_viewed_title: document.getElementById('settRecentlyViewedTitle').value.trim() || defaultStorefrontFeatures.recently_viewed_title,
+            back_in_stock_label: document.getElementById('settBackInStockLabel').value.trim() || defaultStorefrontFeatures.back_in_stock_label,
+            back_in_stock_success: document.getElementById('settBackInStockSuccess').value.trim() || defaultStorefrontFeatures.back_in_stock_success,
+            reassurance_enabled: document.getElementById('settFeatureReassurance').checked,
+            reassurance_title: document.getElementById('settReassuranceTitle').value.trim() || defaultStorefrontFeatures.reassurance_title,
+            reassurance_line_1: document.getElementById('settReassuranceLine1').value.trim() || defaultStorefrontFeatures.reassurance_line_1,
+            reassurance_line_2: document.getElementById('settReassuranceLine2').value.trim() || defaultStorefrontFeatures.reassurance_line_2,
+            reassurance_line_3: document.getElementById('settReassuranceLine3').value.trim() || defaultStorefrontFeatures.reassurance_line_3,
+            size_recommendation_enabled: document.getElementById('settFeatureSizeRecommendation').checked,
+            size_recommendation_title: document.getElementById('settSizeRecommendationTitle').value.trim() || defaultStorefrontFeatures.size_recommendation_title
+        };
+    }
+
+    function applyStorefrontFeatureInputs(features = {}) {
+        const v = { ...defaultStorefrontFeatures, ...(features || {}) };
+        document.getElementById('settFeatureWishlist').checked = v.wishlist_enabled !== false;
+        document.getElementById('settFeatureBackInStock').checked = v.back_in_stock_enabled !== false;
+        document.getElementById('settFeatureStickyAtc').checked = v.sticky_atc_enabled !== false;
+        document.getElementById('settFeatureReviewPhotos').checked = v.review_photos_enabled !== false;
+        document.getElementById('settFeatureRecentlyViewed').checked = v.recently_viewed_enabled !== false;
+        document.getElementById('settRecentlyViewedTitle').value = v.recently_viewed_title || '';
+        document.getElementById('settBackInStockLabel').value = v.back_in_stock_label || '';
+        document.getElementById('settBackInStockSuccess').value = v.back_in_stock_success || '';
+        document.getElementById('settFeatureReassurance').checked = v.reassurance_enabled !== false;
+        document.getElementById('settReassuranceTitle').value = v.reassurance_title || '';
+        document.getElementById('settReassuranceLine1').value = v.reassurance_line_1 || '';
+        document.getElementById('settReassuranceLine2').value = v.reassurance_line_2 || '';
+        document.getElementById('settReassuranceLine3').value = v.reassurance_line_3 || '';
+        document.getElementById('settFeatureSizeRecommendation').checked = v.size_recommendation_enabled !== false;
+        document.getElementById('settSizeRecommendationTitle').value = v.size_recommendation_title || '';
+    }
+
+    applyStorefrontFeatureInputs();
+
     document.getElementById('saveAnnouncementBtn').addEventListener('click', async () => {
         const selectedMode = document.querySelector('input[name="announcementBarMode"]:checked');
         const mode = selectedMode ? selectedMode.value : 'on';
@@ -3556,6 +3691,16 @@
         );
         if (error) { showToast('Error saving shipping policy', 'error'); console.error(error); }
         else showToast('Shipping policy saved!', 'success');
+    });
+
+    document.getElementById('saveStorefrontBtn').addEventListener('click', async () => {
+        const val = getStorefrontFeatureInputs();
+        const { error } = await sb.from('site_settings').upsert(
+            { key: 'storefront_features', value: val, updated_at: new Date().toISOString() },
+            { onConflict: 'key' }
+        );
+        if (error) { showToast('Error saving storefront enhancements', 'error'); console.error(error); }
+        else showToast('Storefront enhancements saved!', 'success');
     });
 
     function renderTechList() {
