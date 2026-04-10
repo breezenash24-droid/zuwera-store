@@ -2331,34 +2331,95 @@
             }
         }
 
+        async function requestServerAdminAccess() {
+            const { data: { session }, error } = await sb.auth.getSession();
+            if (error) throw error;
+            if (!session?.access_token) throw new Error('Missing admin session token.');
+
+            const resp = await fetch('/api/admin-access', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ accessToken: session.access_token })
+            });
+
+            const payload = await resp.json().catch(() => ({
+                success: false,
+                error: 'Invalid admin access response.'
+            }));
+
+            if (!resp.ok || !payload.success) {
+                throw new Error(payload.error || 'Unable to verify admin access.');
+            }
+
+            return payload;
+        }
+
         async function checkAdminRole() {
             try {
                 const { data: profile, error } = await sb
                     .from('profiles')
-                    .select('role')
+                    .select('role, email, full_name')
                     .eq('id', currentUser.id)
                     .maybeSingle();
 
-                const emailLower = (currentUser.email || currentUser.user_metadata?.email || '').toLowerCase().trim();
+                const candidateEmails = [
+                    currentUser.email,
+                    currentUser.user_metadata?.email,
+                    profile?.email,
+                    ...(Array.isArray(currentUser.identities) ? currentUser.identities.map(identity => identity?.identity_data?.email || identity?.email) : [])
+                ]
+                    .filter(Boolean)
+                    .map(value => String(value).toLowerCase().trim());
+                const emailLower = candidateEmails[0] || '';
                 const fullNameLower = (currentUser.user_metadata?.full_name || '').toLowerCase().trim();
-                const ownerHints = ['breezenash24', 'nasirubreeze', '@zuwera.store'];
-                const isOwnerHint = ownerHints.some(hint => emailLower.includes(hint) || fullNameLower.includes(hint.replace('@', '')));
+                const ownerExactEmails = ['breezenash24@gmail.com', 'nasirubreeze@zuwera.store'];
+                const ownerHints = ['breezenash24', 'breez', 'breeze', 'nash24', 'nasiru', '@zuwera.store'];
+                const isOwnerHint = ownerHints.some(hint =>
+                    candidateEmails.some(email => email.includes(hint)) ||
+                    fullNameLower.includes(hint.replace('@', ''))
+                );
 
                 if (profile && profile.role === 'admin') {
                     showAdminPanel();
-                } else {
-                    // Dev mode & Owner bypass: Auto-grant admin to the store owner or local tester
-                    const isLocal = window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.');
-                    const isOwner = emailLower === 'breezenash24@gmail.com'
-                        || emailLower === 'nasirubreeze@zuwera.store'
-                        || isOwnerHint;
-                    if (isLocal || isOwner) {
-                        await sb.from('profiles').upsert({ id: currentUser.id, email: currentUser.email, role: 'admin' });
+                    return;
+                }
+
+                // Dev mode & Owner bypass: Auto-grant admin to the store owner or local tester
+                const isLocal = window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.');
+                const isOwner = candidateEmails.some(email => ownerExactEmails.includes(email))
+                    || isOwnerHint;
+
+                if (isLocal) {
+                    showAdminPanel();
+                    return;
+                }
+
+                try {
+                    const serverAccess = await requestServerAdminAccess();
+                    if (serverAccess?.role === 'admin' || serverAccess?.profile?.role === 'admin') {
                         showAdminPanel();
                         return;
                     }
-                    showAccessDenied(error ? error.message : "Your account does not have admin privileges.");
+                } catch (serverErr) {
+                    console.warn('Server admin access check failed:', serverErr);
+
+                    if (isOwner) {
+                        const primaryEmail = emailLower || profile?.email || '';
+                        await sb.from('profiles').upsert({
+                            id: currentUser.id,
+                            email: primaryEmail || currentUser.email || null,
+                            full_name: currentUser.user_metadata?.full_name || profile?.full_name || null,
+                            role: 'admin'
+                        });
+                        showAdminPanel();
+                        return;
+                    }
+
+                    showAccessDenied(serverErr?.message || error?.message || "Your account does not have admin privileges.");
+                    return;
                 }
+
+                showAccessDenied(error ? error.message : "Your account does not have admin privileges.");
             } catch (err) {
                 console.error('Admin role check error:', err);
                 showAccessDenied(err.message);
