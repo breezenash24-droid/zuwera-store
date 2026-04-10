@@ -11,6 +11,13 @@ export async function onRequestPost(context) {
     'Content-Type': 'application/json',
   };
 
+  function normalizeTranslateEndpoint(value) {
+    if (!value) return null;
+    const trimmed = String(value).trim().replace(/\/+$/, '');
+    if (!trimmed) return null;
+    return trimmed.endsWith('/v2/translate') ? trimmed : `${trimmed}/v2/translate`;
+  }
+
   try {
     const { texts, target } = await context.request.json();
 
@@ -21,35 +28,43 @@ export async function onRequestPost(context) {
       );
     }
 
-    const API_KEY = context.env.DEEPL_API_KEY || context.env.DEEPL_AUTH_KEY || context.env.DEEPL_KEY;
+    const API_KEY = String(
+      context.env.DEEPL_API_KEY || context.env.DEEPL_AUTH_KEY || context.env.DEEPL_KEY || ''
+    ).trim();
     if (!API_KEY) {
       return new Response(
         JSON.stringify({ error: 'DeepL key not found. Add DEEPL_API_KEY, DEEPL_AUTH_KEY, or DEEPL_KEY in Cloudflare Pages environment variables.' }),
         { status: 500, headers: corsHeaders }
       );
     }
-    const requestBody = new URLSearchParams();
-    requestBody.append('auth_key', API_KEY);
-    requestBody.append('target_lang', String(target).toUpperCase());
-    texts.forEach((text) => requestBody.append('text', String(text)));
 
-    const primaryEndpoint = API_KEY.endsWith(':fx')
+    const requestBody = JSON.stringify({
+      text: texts.map((text) => String(text)),
+      target_lang: String(target).toUpperCase(),
+    });
+
+    const configuredEndpoint = normalizeTranslateEndpoint(
+      context.env.DEEPL_API_ENDPOINT || context.env.DEEPL_API_URL || context.env.DEEPL_API_BASE_URL
+    );
+    const guessedPrimaryEndpoint = API_KEY.endsWith(':fx')
       ? 'https://api-free.deepl.com/v2/translate'
       : 'https://api.deepl.com/v2/translate';
-    const fallbackEndpoint = primaryEndpoint.includes('api-free')
+    const guessedFallbackEndpoint = guessedPrimaryEndpoint.includes('api-free')
       ? 'https://api.deepl.com/v2/translate'
       : 'https://api-free.deepl.com/v2/translate';
+    const endpoints = [...new Set([configuredEndpoint, guessedPrimaryEndpoint, guessedFallbackEndpoint].filter(Boolean))];
 
     let translations = null;
     let lastError = 'Translation failed';
 
-    for (const endpoint of [primaryEndpoint, fallbackEndpoint]) {
+    for (const endpoint of endpoints) {
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `DeepL-Auth-Key ${API_KEY}`,
+          'Content-Type': 'application/json',
         },
-        body: requestBody.toString(),
+        body: requestBody,
       });
 
       const raw = await response.text();
@@ -66,6 +81,10 @@ export async function onRequestPost(context) {
       }
 
       lastError = data.message || data.detail || data.error?.message || data.error || raw || `Translation request failed (${response.status})`;
+
+      if (typeof lastError === 'string' && /wrong endpoint/i.test(lastError) && endpoint !== endpoints[endpoints.length - 1]) {
+        continue;
+      }
 
       // DeepL sometimes returns auth-like failures when the wrong free/pro endpoint
       // is used, so give the alternate endpoint one shot before surfacing the error.
