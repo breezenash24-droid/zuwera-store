@@ -32,7 +32,7 @@
 <link rel="stylesheet" href="nav.css?v=4">
 <link rel="stylesheet" href="product.css?v=3">
 <link rel="stylesheet" href="cart.css">
-<link rel="stylesheet" href="reviews.css?v=4">
+<link rel="stylesheet" href="reviews.css?v=2">
 
 <style>
 /* Modal base styles (shared with index.html) */
@@ -489,32 +489,12 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
           </div>
           <div class="size-grid" id="sizeGrid"></div>
           <p class="stock-info" id="stockInfo"></p>
-          <div class="size-recommendation" id="sizeRecommendation" hidden></div>
-          <div class="back-in-stock-panel" id="backInStockPanel" hidden>
-            <div class="back-in-stock-copy">
-              <p class="back-in-stock-kicker">Back in Stock</p>
-              <h3 id="backInStockTitle">Need your size?</h3>
-              <p id="backInStockMessage">Get an email when this size or color returns.</p>
-            </div>
-            <div class="back-in-stock-form">
-              <input type="email" id="backInStockEmail" class="back-in-stock-input" placeholder="your@email.com">
-              <button type="button" class="back-in-stock-btn" id="backInStockBtn" onclick="submitBackInStockRequest()">Notify Me</button>
-            </div>
-            <p class="back-in-stock-hint" id="backInStockHint"></p>
-          </div>
         </div>
 
         <!-- ADD TO CART BUTTON -->
         <button class="add-to-cart-btn" id="addToCartBtn" onclick="addToCart()">
           Add to Bag
         </button>
-        <div class="product-actions-row" id="productActionsRow">
-          <button class="save-for-later-btn" id="saveForLaterBtn" type="button" onclick="toggleProductSaveForLater()">Save for Later</button>
-        </div>
-        <div class="reassurance-block" id="reassuranceBlock" hidden>
-          <p class="reassurance-title" id="reassuranceTitle">Why it feels easy</p>
-          <ul class="reassurance-list" id="reassuranceList"></ul>
-        </div>
 
         <!-- PRODUCT ACCORDIONS -->
         <div class="accordions-section">
@@ -591,14 +571,6 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
 
 </main>
 
-<div class="sticky-buy-bar" id="stickyBuyBar" hidden>
-  <div class="sticky-buy-meta">
-    <p class="sticky-buy-name" id="stickyBuyName">Zuwera</p>
-    <p class="sticky-buy-price" id="stickyBuyPrice">$0.00</p>
-  </div>
-  <button class="sticky-buy-btn" id="stickyBuyBtn" type="button" onclick="handleStickyBuyAction()">Add to Bag</button>
-</div>
-
 <!-- ALL REVIEWS MODAL -->
 <div id="all-reviews-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="all-reviews-title">
   <div class="mbox review-list-mbox">
@@ -652,13 +624,6 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
     </div>
 
     <textarea id="review-body-input" class="review-body-field" placeholder="Share your thoughts about this piece..." maxlength="1000"></textarea>
-
-    <div class="review-form-row review-photo-field" id="review-photo-field">
-      <label class="review-legacy-label" for="reviewPhotoFile">Add a photo (Optional)</label>
-      <input type="file" id="reviewPhotoFile" accept="image/*">
-      <input type="url" id="reviewPhotoUrl" class="review-photo-url" placeholder="Or paste an image URL">
-      <div id="review-photo-preview" class="review-photo-preview" hidden></div>
-    </div>
 
     <div class="review-form-row review-fit-toggle-row">
       <label class="review-fit-toggle-label">
@@ -913,13 +878,6 @@ async function loadSiteSettings() {
         if (el2) el2.textContent = retMem + '-day returns for members, ' + retNon + '-day for non-members';
         window.zwShippingThreshold = thresh;
         window.zwShippingRate = rate;
-        window.zwShippingPolicy = {
-          free_threshold: thresh,
-          standard_rate: rate,
-          delivery_days: days,
-          return_days_member: retMem,
-          return_days_nonmember: retNon
-        };
         const cartNote = document.querySelector('.cart-note');
         if (cartNote) cartNote.innerHTML = 'Standard 5-7 days<br>Free on orders over $' + thresh;
       } else if (row.key === 'theme') {
@@ -928,10 +886,6 @@ async function loadSiteSettings() {
         try { localStorage.setItem('theme', isLightMode ? 'light' : 'dark'); } catch (e) {}
       } else if (row.key === 'technologies') {
         try { window.zwTechnologies = typeof row.value === 'string' ? JSON.parse(row.value) : row.value; } catch(e){}
-      } else if (row.key === 'storefront_features') {
-        let v = row.value;
-        try { if (typeof v === 'string') v = JSON.parse(v); } catch (e) {}
-        window.zwStorefrontFeatures = v || {};
       } else if (row.key === 'brand') {
         let b = row.value;
         try { if (typeof b === 'string') b = JSON.parse(b); } catch(e){}
@@ -950,11 +904,9 @@ async function loadSiteSettings() {
       }
     });
     if (!announcementApplied) applyAnnouncementBar('on', '');
-    if (typeof window.applyStorefrontFeatures === 'function') window.applyStorefrontFeatures();
   } catch (e) {
     console.log('Settings load skipped:', e);
     applyAnnouncementBar('on', '');
-    if (typeof window.applyStorefrontFeatures === 'function') window.applyStorefrontFeatures();
   }
 }
 loadSiteSettings();
@@ -2392,7 +2344,6 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 
 <!-- Language selector -->
 <script src="lang.js?v=2" defer></script>
-<script src="reviews.js?v=8" charset="utf-8"></script>
-<script src="storefront-enhancements.js?v=1" charset="utf-8"></script>
+<script src="reviews.js?v=7" charset="utf-8"></script>
 </body>
 </html>
