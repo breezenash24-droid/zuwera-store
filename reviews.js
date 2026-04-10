@@ -150,6 +150,7 @@ function generateReviewSummaryHtml(reviews) {
   
   const fitPct = Math.round(((avgFit - 1) / 4) * 100);
   const comfortPct = Math.round(((avgComfort - 1) / 4) * 100);
+  const yesNoSummary = `${recYes} yes${REVIEW_META_SEPARATOR}${recNo} no`;
 
   return `
     <div class="review-summary-box">
@@ -174,11 +175,7 @@ function generateReviewSummaryHtml(reviews) {
         </div>
         <div class="rs-recommend">
           <div class="rs-metric-title">Would you recommend this product?</div>
-          <div class="rs-metric-subtitle">A quick read on whether this piece earns a repeat wear.</div>
-          <div class="rs-recommend-pills">
-            <div class="rs-recommend-pill yes"><span>Yes</span><strong>${recYes}</strong></div>
-            <div class="rs-recommend-pill no"><span>No</span><strong>${recNo}</strong></div>
-          </div>
+          <div class="rs-metric-subtitle">${yesNoSummary}</div>
         </div>
       </div>
     </div>

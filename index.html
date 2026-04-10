@@ -1103,7 +1103,7 @@ body.light-mode #success-continue{background:var(--paper);color:var(--ink)}
 /* Noise overlay */
 body.light-mode::after{opacity:0.15}
 </style>
-<link rel="stylesheet" href="reviews-vibe.css?v=4">
+<link rel="stylesheet" href="reviews-vibe.css?v=5">
 </head>
 <body>
 <script>
@@ -1319,20 +1319,13 @@ body.light-mode::after{opacity:0.15}
 <div id="all-reviews-modal" class="modal modal--review" role="dialog" aria-modal="true" aria-labelledby="all-reviews-title">
   <div class="mbox review-dialog review-dialog--wide review-dialog--thread">
     <button id="all-reviews-close" class="mclose review-modal-close" aria-label="Close">&#215;</button>
-    <div class="review-modal-intro review-modal-intro--compact">
-      <p class="review-modal-eyebrow">Community Notes</p>
-      <h2 id="all-reviews-title" class="review-modal-title">All Reviews</h2>
-      <p class="review-modal-copy">See how the piece fits, feels, and lands before you commit.</p>
-    </div>
-    <div class="review-modal-body">
-      <button id="all-reviews-write-btn" class="review-submit-btn review-submit-btn--ghost" type="button">Write a Review</button>
-      <div class="review-modal-toolbar">
-        <div class="review-modal-toolbar-copy">
-          <span class="review-toolbar-label">Translation</span>
-          <span class="review-toolbar-hint">Choose a language for this review thread.</span>
-        </div>
+    <div class="review-modal-body review-modal-body--classic">
+      <h2 id="all-reviews-title" class="review-modal-classic-title">All Reviews</h2>
+      <button id="all-reviews-write-btn" class="review-submit-btn review-submit-btn--ghost review-submit-btn--list" type="button">Write a Review</button>
+      <div id="all-reviews-summary"></div>
+      <div class="review-modal-toolbar review-modal-toolbar--classic">
         <div class="review-modal-controls">
-          <select id="translate-lang-modal" class="review-select">
+          <select id="translate-lang-modal" class="review-select review-select--classic">
             <option value="en">Original (English)</option>
             <option value="yo">Yoruba</option>
             <option value="ha">Hausa</option>
@@ -1355,10 +1348,9 @@ body.light-mode::after{opacity:0.15}
             <option value="sv">Swedish</option>
             <option value="id">Indonesian</option>
           </select>
-          <button id="translate-reviews-btn-modal" class="translate-btn" type="button">Translate</button>
+          <button id="translate-reviews-btn-modal" class="translate-btn translate-btn--classic" type="button">Translate</button>
         </div>
       </div>
-      <div id="all-reviews-summary"></div>
       <div id="all-reviews-list" class="review-list-stack"></div>
     </div>
   </div>
@@ -1368,14 +1360,13 @@ body.light-mode::after{opacity:0.15}
 <div id="review-modal" class="modal modal--review" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
   <div class="mbox review-dialog review-dialog--form">
     <button class="mclose review-modal-close" id="review-modal-close" aria-label="Close">&#215;</button>
-    <div class="review-modal-intro">
-      <p class="review-modal-eyebrow">Community Notes</p>
-      <h2 id="review-modal-title" class="review-modal-title">Write a Review</h2>
-      <p class="review-modal-copy">Tell us how the piece wore, moved, and felt in real life.</p>
+    <div class="review-modal-head">
+      <h2 id="review-modal-title" class="review-modal-classic-title review-modal-classic-title--form">Write a Review</h2>
+      <p class="review-form-note">Tell us how the piece fit, felt, and wore in real life.</p>
       <p class="review-product-label" id="review-product-label"></p>
     </div>
 
-    <div class="review-modal-body">
+    <div class="review-modal-body review-modal-body--form">
       <div class="review-rating-panel">
         <div class="review-rating-copy">
           <span class="review-rating-label">Your rating</span>
@@ -2566,7 +2557,7 @@ function scrollToNotify() {
 </script>
 <!-- Language selector -->
 <script src="lang.js?v=2" defer></script>
-<script src="reviews.js?v=6" charset="utf-8"></script>
+<script src="reviews.js?v=7" charset="utf-8"></script>
 
 <!-- PWA Service Worker -->
 <script>
