@@ -669,6 +669,15 @@ footer{
 .modal.open{display:flex}
 /* Auth modal must sit above cart modal (both .modal, cart is later in DOM) */
 #auth-modal{z-index:600}
+.wallet-methods{
+  display:none;align-items:center;gap:.55rem;flex-wrap:wrap;margin:-.2rem 0 1rem;
+}
+.wallet-chip{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:.48rem .9rem;border:1px solid rgba(244,241,235,.14);border-radius:999px;
+  font-family:var(--fm);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
+  color:rgba(244,241,235,.76);background:rgba(244,241,235,.03);
+}
 .mbox{
   background:#0f0f0f;
   border:1px solid rgba(244,241,235,.08);
@@ -1571,6 +1580,10 @@ body.light-mode::after{opacity:0.15}
     <h2>Secure Checkout</h2>
     <p class="psub">Powered by Stripe - 256-bit SSL encryption</p>
     <div id="payment-request-btn" style="margin-bottom:1rem;display:none"></div>
+    <div id="wallet-methods" class="wallet-methods" aria-hidden="true">
+      <span class="wallet-chip">Apple Pay</span>
+      <span class="wallet-chip">Google Pay</span>
+    </div>
     <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0;font-family:var(--fm);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.28)">- or pay with card -</div>
     <div class="pgrow">
       <div class="pfield"><label>Full Name</label><input type="text" id="pay-name" placeholder="Jane Smith" autocomplete="name"></div>
@@ -1809,6 +1822,87 @@ function applyAnnouncementBar(mode, msgText) {
 
 let _user = null, _favs = [];
 
+function isSignedInMember() {
+  return !!_user;
+}
+
+function getRegularListPrice(product) {
+  return parseFloat(product?.current_price ?? product?.price ?? 0) || 0;
+}
+
+function getMemberListPrice(product) {
+  return parseFloat(product?.member_price ?? 0) || 0;
+}
+
+function getEffectiveListPrice(product) {
+  const regular = getRegularListPrice(product);
+  const member = getMemberListPrice(product);
+  if (isSignedInMember() && member > 0 && (!regular || member < regular)) {
+    return member;
+  }
+  return regular;
+}
+
+function getHomeProductPriceSnapshot(productId) {
+  try {
+    const cached = JSON.parse(sessionStorage.getItem('zw_home_products') || '[]');
+    const matched = Array.isArray(cached) ? cached.find(product => product?.id === productId) : null;
+    if (!matched) return null;
+    return {
+      regularPrice: getRegularListPrice(matched),
+      memberPrice: getMemberListPrice(matched),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function normalizeCartPricing(cart) {
+  const sourceCart = Array.isArray(cart) ? cart : [];
+  const normalized = sourceCart.map((item) => {
+    const snapshot = item?.productId ? getHomeProductPriceSnapshot(item.productId) : null;
+    const regularPrice = parseFloat(item?.regularPrice ?? item?.basePrice ?? snapshot?.regularPrice ?? item?.price ?? 0) || 0;
+    const memberPrice = parseFloat(item?.memberPrice ?? item?.member_price ?? snapshot?.memberPrice ?? 0) || 0;
+    const effectivePrice = (isSignedInMember() && memberPrice > 0 && (!regularPrice || memberPrice < regularPrice))
+      ? memberPrice
+      : regularPrice;
+
+    return {
+      ...item,
+      regularPrice,
+      memberPrice,
+      price: effectivePrice || regularPrice || (parseFloat(item?.price) || 0),
+    };
+  });
+
+  if (JSON.stringify(normalized) !== JSON.stringify(sourceCart)) {
+    localStorage.setItem('cart', JSON.stringify(normalized));
+  }
+
+  return normalized;
+}
+
+if (_sb?.auth?.getSession) {
+  _sb.auth.getSession()
+    .then(({ data }) => {
+      _user = data?.session?.user ?? null;
+      updateNav();
+      if (_user) {
+        void loadFavs();
+      } else {
+        _favs = [];
+        refreshHearts();
+        refreshCartFavs();
+      }
+      renderCart();
+      loadProducts();
+    })
+    .catch(() => {
+      updateNav();
+      refreshCartFavs();
+    });
+}
+
 /* Ã¢â€â‚¬Ã¢â€â‚¬ LOAD PRODUCTS FROM SUPABASE Ã¢â€â‚¬Ã¢â€â‚¬ */
 function productSlug(title) {
   if (!title) return '';
@@ -1959,7 +2053,7 @@ function renderProductCards(products, grid) {
   grid.innerHTML = renderList.map(p => {
     const productName = p.title || p.name || 'Untitled';
     const productCategory = categoryLabelFromProduct(p);
-    const productPrice = p.current_price || p.msrp || p.price;
+    const productPrice = getEffectiveListPrice(p) || parseFloat(p.msrp || 0) || parseFloat(p.price || 0) || 0;
     const badge = (p.status === 'coming_soon' || p.status === 'Coming Soon') ? 'Coming Soon' : (p.status === 'live' || p.status === 'Live' ? 'Available' : (p.status || 'Coming Soon'));
     let firstImg = p.image_url;
     if (p.product_images && p.product_images.length > 0) {
@@ -2043,6 +2137,8 @@ if (_sb) {
         } catch (_) {}
       }, 0);
     } else { _favs = []; refreshHearts(); refreshCartFavs(); }
+    renderCart();
+    loadProducts();
   });
 }
 
@@ -2061,7 +2157,13 @@ function updateNav() {
 }
 
 /* AUTH MODAL */
-function openAuth(tab) { document.getElementById('auth-modal').classList.add('open'); document.body.style.overflow = 'hidden'; switchAuthTab(tab || 'signin'); }
+function openAuth(tab) {
+  const cartModal = document.getElementById('cart-modal');
+  if (cartModal?.classList.contains('open')) cartModal.classList.remove('open');
+  document.getElementById('auth-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  switchAuthTab(tab || 'signin');
+}
 function closeAuth() { document.getElementById('auth-modal').classList.remove('open'); document.body.style.overflow = ''; }
 function switchAuthTab(t) {
   document.querySelectorAll('#auth-modal .atab').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
@@ -2303,11 +2405,19 @@ document.querySelectorAll('.heart-btn').forEach(b => b.addEventListener('click',
 let cartItems = [];
 
 function renderCart() {
-  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  const cart = normalizeCartPricing(JSON.parse(localStorage.getItem('cart')) || []);
   cartItems = cart;
   const list = document.getElementById('cart-items-list');
   const emptyMsg = document.getElementById('cart-empty-msg');
-  if (cart.length === 0) { list.innerHTML = ''; emptyMsg.style.display = 'block'; updateCartSummary(0); return; }
+  if (cart.length === 0) {
+    list.innerHTML = '';
+    emptyMsg.style.display = 'block';
+    updateCartSummary(0);
+    const countEl = document.querySelector('.cc');
+    if (countEl) countEl.textContent = '0';
+    refreshCartFavs();
+    return;
+  }
   emptyMsg.style.display = 'none';
   list.innerHTML = cart.map((item, idx) => `
     <li style="display:flex;gap:1rem;align-items:flex-start">
@@ -2328,6 +2438,7 @@ function renderCart() {
   const subtotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
   updateCartSummary(subtotal);
   document.querySelector('.cc').textContent = cart.reduce((sum, item) => sum + item.quantity, 0);
+  refreshCartFavs();
 }
 
 function updateCartSummary(subtotal) {
@@ -2345,8 +2456,14 @@ window.removeCartItem = function(idx) { let cart = JSON.parse(localStorage.getIt
 
 document.getElementById('cart-btn').addEventListener('click', () => { renderCart(); document.getElementById('cart-modal').classList.add('open'); document.body.style.overflow='hidden'; });
 document.getElementById('cart-close').addEventListener('click', () => { document.getElementById('cart-modal').classList.remove('open'); document.body.style.overflow=''; });
-document.getElementById('fav-join-link').addEventListener('click', () => { openAuth('signup'); });
-document.getElementById('fav-signin-link').addEventListener('click', () => { openAuth('signin'); });
+document.getElementById('fav-join-link').addEventListener('click', () => {
+  document.getElementById('cart-modal').classList.remove('open');
+  openAuth('signup');
+});
+document.getElementById('fav-signin-link').addEventListener('click', () => {
+  document.getElementById('cart-modal').classList.remove('open');
+  openAuth('signin');
+});
 document.getElementById('checkout-btn').addEventListener('click', () => {
   document.getElementById('cart-modal').classList.remove('open');
   document.getElementById('payment-modal').classList.add('open');
@@ -2495,7 +2612,22 @@ function initPR(subtotalCents) {
   });
   const prBtn = elements.create('paymentRequestButton', { paymentRequest:payReq, style:{ paymentRequestButton:{ type:'buy', theme:'light', height:'48px' } } });
   payReq.canMakePayment().then(r => {
-    if(r){ prBtn.mount('#payment-request-btn'); document.getElementById('payment-request-btn').style.display='block'; document.getElementById('pay-divider').style.display='block'; }
+    const walletHints = document.getElementById('wallet-methods');
+    if(r){
+      prBtn.mount('#payment-request-btn');
+      document.getElementById('payment-request-btn').style.display = 'block';
+      document.getElementById('pay-divider').style.display = 'block';
+      if (walletHints) {
+        const availableWallets = [];
+        if (r.applePay) availableWallets.push('Apple Pay');
+        if (r.googlePay) availableWallets.push('Google Pay');
+        if (!availableWallets.length) availableWallets.push('Apple Pay', 'Google Pay');
+        walletHints.innerHTML = availableWallets.map(label => `<span class="wallet-chip">${label}</span>`).join('');
+        walletHints.style.display = 'flex';
+      }
+    } else if (walletHints) {
+      walletHints.style.display = 'none';
+    }
   });
 }
 

@@ -42,8 +42,18 @@
   align-items:center;justify-content:center;
 }
 .modal.open { display:flex }
+#auth-modal { z-index:700; }
 #payment-success { display:none; position:fixed; inset:0; z-index:10000; background:var(--black,#09090b); flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem }
 #payment-success.open { display:flex }
+.wallet-methods{
+  display:none;align-items:center;gap:.55rem;flex-wrap:wrap;margin:-.25rem 0 1rem;
+}
+.wallet-chip{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:.48rem .9rem;border:1px solid rgba(244,241,235,.14);border-radius:999px;
+  font-family:'DM Sans',sans-serif;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
+  color:rgba(244,241,235,.76);background:rgba(244,241,235,.03);
+}
 
 /* Review Form */
 .review-form-container { margin-top:20px; padding:24px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); border-radius:10px; }
@@ -1132,7 +1142,9 @@ function isSingleOneSizeProduct(sizeLabels = getAvailableProductSizes()) {
 }
 
 function syncSizeGuideVisibility(sizeLabels = getAvailableProductSizes()) {
-  const hideGuide = isSingleOneSizeProduct(sizeLabels);
+  const guideContext = getSizeGuideContext();
+  const keepGuideVisible = guideContext?.calcCategory === 'hats';
+  const hideGuide = isSingleOneSizeProduct(sizeLabels) && !keepGuideVisible;
   const headerLink = document.getElementById('sizeGuideLink');
   const accordionBtn = document.getElementById('viewSizeGuideBtn');
   const sizeLabel = document.getElementById('sizeSectionLabel');
@@ -1241,8 +1253,27 @@ async function renderProductCategoryNavigation(fallbackProduct = currentProduct)
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
 sb.auth.onAuthStateChange((event, session) => {
   currentUser = session?.user || null;
-  if (currentProduct && currentProduct.reviews) renderReviews();
+  if (currentProduct) {
+    renderPrice();
+    if (currentProduct.reviews) renderReviews();
+  }
+  if (typeof window.renderProductCartItems === 'function') {
+    window.renderProductCartItems();
+  }
 });
+
+_sessionPromise
+  .then(({ data }) => {
+    currentUser = data?.session?.user || null;
+    if (currentProduct) {
+      renderPrice();
+      if (currentProduct.reviews) renderReviews();
+    }
+    if (typeof window.renderProductCartItems === 'function') {
+      window.renderProductCartItems();
+    }
+  })
+  .catch(() => {});
 
 document.addEventListener('DOMContentLoaded', async () => {
   const bar = document.getElementById('bar');
@@ -1642,7 +1673,15 @@ async function updateHatFitMeasurementInfo() {
 
   const guideRows = await ensureHatSizeGuideRows();
   const sizeLabels = getAvailableProductSizes();
-  const activeSize = selectedSize || sizeLabels[0] || 'One Size';
+  const oneSizeOnly = isSingleOneSizeProduct(sizeLabels);
+  const activeSize = selectedSize || (oneSizeOnly ? (sizeLabels[0] || 'One Size') : null);
+
+  if (!activeSize) {
+    fitMeasurementInfo.textContent = 'Head Circumference: varies by size. Select a size or view the size guide.';
+    fitMeasurementInfo.style.display = '';
+    return;
+  }
+
   const row = findHatGuideRow(guideRows, activeSize);
 
   if (!row) {
@@ -1669,23 +1708,53 @@ async function updateHatFitMeasurementInfo() {
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
 // RENDER PRICE
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
-function renderPrice() {
-  const current = parseFloat(currentProduct.current_price) || 0;
-  const msrp = parseFloat(currentProduct.msrp) || 0;
-  const member = parseFloat(currentProduct.member_price) || 0;
+function getRegularProductPrice(product) {
+  return parseFloat(product?.current_price ?? product?.price ?? 0) || 0;
+}
 
-  document.getElementById('priceDisplay').innerHTML = current > 0
-    ? `$${current.toFixed(2)}`
+function getMemberProductPrice(product) {
+  return parseFloat(product?.member_price ?? 0) || 0;
+}
+
+function isMemberSignedIn() {
+  return !!currentUser;
+}
+
+function getEffectiveProductPrice(product) {
+  const regular = getRegularProductPrice(product);
+  const member = getMemberProductPrice(product);
+  if (isMemberSignedIn() && member > 0 && (!regular || member < regular)) {
+    return member;
+  }
+  return regular;
+}
+
+function renderPrice() {
+  const current = getRegularProductPrice(currentProduct);
+  const msrp = parseFloat(currentProduct.msrp) || 0;
+  const member = getMemberProductPrice(currentProduct);
+  const effective = getEffectiveProductPrice(currentProduct);
+  const usingMemberPrice = isMemberSignedIn() && member > 0 && (!current || member < current);
+
+  document.getElementById('priceDisplay').innerHTML = effective > 0
+    ? `$${effective.toFixed(2)}`
     : 'Price TBA';
 
-  if (msrp && msrp > current) {
+  const comparePrice = usingMemberPrice ? current : msrp;
+  const compareLabel = usingMemberPrice ? 'Regular' : 'MSRP';
+
+  if (comparePrice && comparePrice > effective) {
     document.getElementById('msrpDisplay').innerHTML = `
-      MSRP: <strike>$${msrp.toFixed(2)}</strike>
+      ${compareLabel}: <strike>$${comparePrice.toFixed(2)}</strike>
     `;
   } else {
     document.getElementById('msrpDisplay').innerHTML = '';
   }
-  if (member && member < current) { document.getElementById('memberPrice').innerHTML = `Member Price: $${member.toFixed(2)}`;
+
+  if (member && member < current && !usingMemberPrice) {
+    document.getElementById('memberPrice').innerHTML = `Member Price: $${member.toFixed(2)}`;
+  } else if (usingMemberPrice) {
+    document.getElementById('memberPrice').innerHTML = 'Member savings applied';
   } else {
     document.getElementById('memberPrice').innerHTML = '';
   }
@@ -2147,13 +2216,18 @@ function addToCart() {
     return;
   }
 
+  const regularPrice = getRegularProductPrice(currentProduct);
+  const memberPrice = getMemberProductPrice(currentProduct);
+  const effectivePrice = getEffectiveProductPrice(currentProduct);
   const cartItem = {
     productId: currentProduct.id,
     sku: selectedColorSku || currentProduct.sku,
     title: currentProduct.title,
     size: selectedSize,
     colorName: selectedColor?.color_name || 'Standard',
-    price: currentProduct.current_price,
+    regularPrice,
+    memberPrice,
+    price: effectivePrice,
     image: currentProduct.images[0]?.image_url || '',
     quantity: 1
   };
@@ -2179,11 +2253,11 @@ function addToCart() {
   if (typeof gtag === 'function') {
     gtag('event', 'add_to_cart', {
       currency: 'USD',
-      value: currentProduct.current_price,
+      value: effectivePrice,
       items: [{
         item_id: currentProduct.id,
         item_name: currentProduct.title,
-        price: currentProduct.current_price,
+        price: effectivePrice,
         quantity: 1
       }]
     });
@@ -2348,49 +2422,25 @@ window.openSizeFitModal = async function() {
   const isHatProduct = context?.calcCategory === 'hats';
 
   if (title) title.textContent = 'Size & Fit';
-  if (eyebrow) eyebrow.textContent = isHatProduct ? 'Fit Reference' : 'Community Fit';
-  if (copy) {
-    copy.textContent = isHatProduct
-      ? 'Head circumference guidance for this specific hat, plus any available fit notes from reviews.'
-      : 'Live fit notes pulled from recent reviews for this specific piece.';
-  }
+  if (eyebrow) eyebrow.textContent = 'Community Fit';
+  if (copy) copy.textContent = 'Live fit notes pulled from recent reviews for this specific piece.';
 
   content.innerHTML = '<p class="review-modal-message">Loading fit ratings...</p>';
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
 
   try {
-    let reviews = [];
-    let hatGuideRows = [];
-
-    if (isHatProduct) {
-      hatGuideRows = await ensureHatSizeGuideRows();
-      try {
-        reviews = await loadProductReviewsForModal();
-      } catch (reviewError) {
-        console.warn('Hat fit reviews unavailable, using size guide only:', reviewError);
-        reviews = [];
-      }
-    } else {
-      reviews = await loadProductReviewsForModal();
-    }
-
+    const reviews = await loadProductReviewsForModal();
     if (currentProduct) currentProduct.reviews = Array.isArray(reviews) ? reviews : [];
 
     const fitReviews = Array.isArray(reviews)
       ? reviews.filter(reviewHasFitSignals)
       : [];
 
-    if (isHatProduct) {
-      const sizeLabels = getAvailableProductSizes();
-      const activeSize = selectedSize || sizeLabels[0] || 'One Size';
-      const activeRow = findHatGuideRow(Array.isArray(hatGuideRows) ? hatGuideRows : [], activeSize);
-      content.innerHTML = generateHatFitModalHtml(activeRow, Array.isArray(hatGuideRows) ? hatGuideRows : [], fitReviews);
-      return;
-    }
-
     if (!fitReviews.length) {
-      content.innerHTML = '<p class="review-modal-message">No size or comfort ratings have been submitted yet.</p>';
+      content.innerHTML = isHatProduct
+        ? '<p class="review-modal-message">No size or comfort ratings have been submitted yet. Use View Size Guide for head-circumference measurements.</p>'
+        : '<p class="review-modal-message">No size or comfort ratings have been submitted yet.</p>';
       return;
     }
 
@@ -2529,7 +2579,11 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
       <ul id="cart-items-list"></ul>
       <div class="cart-favorites">
         <h2>Saved Items</h2>
-        <p class="favorites-msg">Want to view your favorites? <a id="fav-join-link">Join us</a> or <a id="fav-signin-link">Sign in</a></p>
+        <p id="fav-logged-out-msg" class="favorites-msg">Want to view your favorites? <a id="fav-join-link">Join us</a> or <a id="fav-signin-link">Sign in</a></p>
+        <div id="fav-logged-in-area" style="display:none">
+          <p id="cart-favs-empty" style="display:none;font-family:'DM Sans',sans-serif;font-size:.72rem;color:rgba(244,241,235,.35);padding:.3rem 0 .6rem">No saved items yet.</p>
+          <ul id="cart-favs-list" style="list-style:none;padding:0;margin:0"></ul>
+        </div>
       </div>
     </div>
     <div class="cart-summary">
@@ -2555,6 +2609,10 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     <h2 style="font-family:var(--font-head);font-size:1.4rem;letter-spacing:.12em;margin-bottom:.3rem">Secure Checkout</h2>
     <p style="font-size:.7rem;color:rgba(244,241,235,.3);letter-spacing:.08em;margin-bottom:1.5rem">Powered by Stripe - 256-bit SSL encryption</p>
     <div id="payment-request-btn" style="margin-bottom:1rem;display:none"></div>
+    <div id="wallet-methods" class="wallet-methods" aria-hidden="true">
+      <span class="wallet-chip">Apple Pay</span>
+      <span class="wallet-chip">Google Pay</span>
+    </div>
     <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.28)">- or pay with card -</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:.8rem">
       <div><label style="display:block;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.4);margin-bottom:.3rem">Full Name</label><input type="text" id="pay-name" placeholder="Jane Smith" autocomplete="name" style="width:100%;background:rgba(244,241,235,.04);border:1px solid rgba(244,241,235,.1);color:#f4f1eb;padding:.65rem .8rem;font-size:.85rem;font-family:var(--font-body)"></div>
@@ -2634,17 +2692,65 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 
   // Favorites links (placeholder ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â no auth modal on product page)
   document.getElementById('fav-join-link').addEventListener('click', () => {
+    document.getElementById('cart-modal')?.classList.remove('open');
     document.body.style.overflow = '';
     if (typeof openAuthModal === 'function') openAuthModal('signup'); else window.location.href = 'index.html?auth=signup';
   });
   document.getElementById('fav-signin-link').addEventListener('click', () => {
+    document.getElementById('cart-modal')?.classList.remove('open');
     document.body.style.overflow = '';
     if (typeof openAuthModal === 'function') openAuthModal('signin'); else window.location.href = 'index.html?auth=signin';
   });
 
+  function getCartPricingSnapshot(productId) {
+    if (currentProduct?.id === productId) {
+      return {
+        regularPrice: getRegularProductPrice(currentProduct),
+        memberPrice: getMemberProductPrice(currentProduct),
+      };
+    }
+
+    try {
+      const cached = JSON.parse(sessionStorage.getItem('zw_home_products') || '[]');
+      const matched = Array.isArray(cached) ? cached.find(product => product?.id === productId) : null;
+      if (!matched) return null;
+      return {
+        regularPrice: getRegularProductPrice(matched),
+        memberPrice: getMemberProductPrice(matched),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  function normalizeCartPricing(cart) {
+    const sourceCart = Array.isArray(cart) ? cart : [];
+    const normalized = sourceCart.map((item) => {
+      const snapshot = item?.productId ? getCartPricingSnapshot(item.productId) : null;
+      const regularPrice = parseFloat(item?.regularPrice ?? item?.basePrice ?? snapshot?.regularPrice ?? item?.price ?? 0) || 0;
+      const memberPrice = parseFloat(item?.memberPrice ?? item?.member_price ?? snapshot?.memberPrice ?? 0) || 0;
+      const effectivePrice = (isMemberSignedIn() && memberPrice > 0 && (!regularPrice || memberPrice < regularPrice))
+        ? memberPrice
+        : regularPrice;
+
+      return {
+        ...item,
+        regularPrice,
+        memberPrice,
+        price: effectivePrice || regularPrice || (parseFloat(item?.price) || 0),
+      };
+    });
+
+    if (JSON.stringify(normalized) !== JSON.stringify(sourceCart)) {
+      localStorage.setItem('cart', JSON.stringify(normalized));
+    }
+
+    return normalized;
+  }
+
   // Render cart items from localStorage
   function renderCartItems() {
-    const cart = JSON.parse(localStorage.getItem('cart')) || [];
+    const cart = normalizeCartPricing(JSON.parse(localStorage.getItem('cart')) || []);
     cartItems = cart;
     const list = document.getElementById('cart-items-list');
     const emptyMsg = document.getElementById('cart-empty-msg');
@@ -2653,6 +2759,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
       list.innerHTML = '';
       emptyMsg.style.display = 'block';
       updateSummary(0);
+      if (typeof refreshCartFavs === 'function') refreshCartFavs();
       return;
     }
 
@@ -2677,7 +2784,10 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 
     const subtotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
     updateSummary(subtotal);
+    if (typeof refreshCartFavs === 'function') refreshCartFavs();
   }
+
+  window.renderProductCartItems = renderCartItems;
 
   window.updateCartQuantity = function(idx, delta) {
     let cart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -2805,7 +2915,22 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     });
     const prBtn = elements.create('paymentRequestButton', { paymentRequest:payReq, style:{ paymentRequestButton:{ type:'buy', theme:'light', height:'48px' } } });
     payReq.canMakePayment().then(r => {
-      if (r) { prBtn.mount('#payment-request-btn'); document.getElementById('payment-request-btn').style.display='block'; document.getElementById('pay-divider').style.display='block'; }
+      const walletHints = document.getElementById('wallet-methods');
+      if (r) {
+        prBtn.mount('#payment-request-btn');
+        document.getElementById('payment-request-btn').style.display = 'block';
+        document.getElementById('pay-divider').style.display = 'block';
+        if (walletHints) {
+          const availableWallets = [];
+          if (r.applePay) availableWallets.push('Apple Pay');
+          if (r.googlePay) availableWallets.push('Google Pay');
+          if (!availableWallets.length) availableWallets.push('Apple Pay', 'Google Pay');
+          walletHints.innerHTML = availableWallets.map(label => `<span class="wallet-chip">${label}</span>`).join('');
+          walletHints.style.display = 'flex';
+        }
+      } else if (walletHints) {
+        walletHints.style.display = 'none';
+      }
     });
   }
 

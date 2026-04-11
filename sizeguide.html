@@ -1283,7 +1283,7 @@
 
       data.forEach(row => {
         const tr = document.createElement('tr');
-        if (recommendedSize && row.size_label === recommendedSize && currentTab === getTabIdFromName(tabId)) {
+        if (recommendedSize && sizeLabelsMatch(row.size_label, recommendedSize) && currentTab === getTabIdFromName(tabId)) {
           tr.classList.add('highlighted');
         }
 
@@ -1312,7 +1312,7 @@
 
       Object.keys(grouped).forEach(size => {
         const tr = document.createElement('tr');
-        if (recommendedSize && size === recommendedSize && currentTab === 'sports_bras') {
+        if (recommendedSize && sizeLabelsMatch(size, recommendedSize) && currentTab === 'sports_bras') {
           tr.classList.add('highlighted');
         }
         tr.innerHTML = `<td>${size}</td><td>${grouped[size].join(', ')}</td>`;
@@ -1327,7 +1327,7 @@
 
       sizeChartData.hats.forEach(row => {
         const tr = document.createElement('tr');
-        if (recommendedSize && row.size_label === recommendedSize && currentTab === 'hats') {
+        if (recommendedSize && sizeLabelsMatch(row.size_label, recommendedSize) && currentTab === 'hats') {
           tr.classList.add('highlighted');
         }
         tr.innerHTML = `<td>${row.size_label}</td><td>${row.head_circ_in}</td><td>${row.head_circ_cm}</td>`;
@@ -1745,30 +1745,7 @@
     }
 
     function compareGuideSizeLabels(left, right) {
-      const normalize = (value) => {
-        const normalized = normalizeGuideValue(value)
-          .toLowerCase()
-          .replace(/[()]/g, ' ')
-          .replace(/\bfits\s+most\b/g, ' ')
-          .replace(/\s*\/\s*/g, '/')
-          .replace(/\s*-\s*/g, '-')
-          .replace(/\s+/g, ' ')
-          .trim();
-        return /^one(?:\s|-)?size$/.test(normalized) ? 'one size' : normalized;
-      };
-      const canonicalize = (value) => {
-        const normalized = normalize(value);
-        const compact = normalized.replace(/\s+/g, '');
-        const aliases = {
-          xxxxs: '4xs',
-          xxxs: '3xs',
-          xxs: '2xs',
-          xxxxl: '4xl',
-          xxxl: '3xl',
-          xxl: '2xl'
-        };
-        return aliases[compact] || compact || normalized;
-      };
+      const canonicalize = canonicalizeGuideSizeLabel;
       const getRank = (value) => {
         const token = canonicalize(value);
         if (!token) return null;
@@ -1821,6 +1798,40 @@
       }
 
       return String(left || '').localeCompare(String(right || ''), undefined, { numeric: true, sensitivity: 'base' });
+    }
+
+    function canonicalizeGuideSizeLabel(value) {
+      const normalized = normalizeGuideValue(value)
+        .toLowerCase()
+        .replace(/[()]/g, ' ')
+        .replace(/\bfits\s+most\b/g, ' ')
+        .replace(/\s*\/\s*/g, '/')
+        .replace(/\s*-\s*/g, '-')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const oneSizeNormalized = /^one(?:\s|-)?size$/.test(normalized) ? 'one size' : normalized;
+      const compact = oneSizeNormalized.replace(/\s+/g, '');
+      const aliases = {
+        xxxxs: '4xs',
+        xxxs: '3xs',
+        xxs: '2xs',
+        xxxxl: '4xl',
+        xxxl: '3xl',
+        xxl: '2xl'
+      };
+      return aliases[compact] || compact || oneSizeNormalized;
+    }
+
+    function sizeLabelsMatch(left, right) {
+      return canonicalizeGuideSizeLabel(left) === canonicalizeGuideSizeLabel(right);
+    }
+
+    function resolveGuideSizeLabel(sizeValue, tabId) {
+      const normalized = normalizeGuideValue(sizeValue);
+      if (!normalized) return '';
+      const sourceRows = Array.isArray(getDataForTab(tabId)) ? getDataForTab(tabId) : [];
+      const matchedRow = sourceRows.find(row => sizeLabelsMatch(row.size_label, normalized));
+      return matchedRow?.size_label || normalized;
     }
 
     function classifyGuideContext(params) {
@@ -1944,7 +1955,7 @@
       if (!genderParam && !categoryParam && !sizeParam) return;
 
       if (sizeParam) {
-        window.recommendedSize = sizeParam.toUpperCase();
+        window.recommendedSize = resolveGuideSizeLabel(sizeParam, context.tabId);
         window.currentTab = context.tabId;
       }
 

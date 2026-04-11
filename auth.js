@@ -85,6 +85,25 @@ if (_sb) {
   });
 }
 
+if (_sb?.auth?.getSession) {
+  _sb.auth.getSession()
+    .then(({ data }) => {
+      _currentUser = data?.session?.user ?? null;
+      updateHeaderForAuth();
+      if (_currentUser) {
+        void loadFavorites();
+      } else {
+        _userFavorites = [];
+        refreshHeartButtons();
+        refreshCartFavs();
+      }
+    })
+    .catch(() => {
+      updateHeaderForAuth();
+      refreshCartFavs();
+    });
+}
+
 function updateHeaderForAuth() {
   const loggedIn = !!_currentUser;
   if (_authEls.loginBtn)   _authEls.loginBtn.style.display   = loggedIn ? 'none' : 'inline-flex';
@@ -100,6 +119,10 @@ function updateHeaderForAuth() {
 
 // ── Auth Modal ─────────────────────────────────────────────────────
 function openAuthModal(tab) {
+  const cart = document.getElementById('cart-modal');
+  if (cart?.classList.contains('open')) {
+    cart.classList.remove('open');
+  }
   _openModal('auth-modal');
   switchAuthTab(tab || 'signin');
 }
