@@ -256,6 +256,40 @@
       overflow: hidden;
       cursor: pointer;
     }
+    .heart-btn {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      z-index: 3;
+      width: 42px;
+      height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      border: 1px solid rgba(245,245,240,0.18);
+      background: rgba(10,10,10,0.72);
+      color: rgba(245,245,240,0.78);
+      cursor: pointer;
+      transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+      backdrop-filter: blur(10px);
+    }
+    .heart-btn:hover,
+    .heart-btn:focus-visible {
+      border-color: rgba(245,245,240,0.34);
+      color: var(--white);
+      transform: translateY(-1px);
+    }
+    .heart-btn.active {
+      border-color: rgba(248,145,165,0.55);
+      color: #f891a5;
+      background: rgba(248,145,165,0.12);
+    }
+    .heart-btn svg {
+      width: 16px;
+      height: 16px;
+      pointer-events: none;
+    }
     .product-img {
       aspect-ratio: 3/4;
       background: transparent;
@@ -444,6 +478,21 @@
     body.light-mode .notify-success { color: rgba(10,10,10,0.6); }
     body.light-mode .product-img { background: transparent; }
     body.light-mode .product-card { background: transparent; }
+    body.light-mode .heart-btn {
+      background: rgba(245,245,240,0.82);
+      border-color: rgba(9,9,11,0.12);
+      color: rgba(9,9,11,0.72);
+    }
+    body.light-mode .heart-btn:hover,
+    body.light-mode .heart-btn:focus-visible {
+      border-color: rgba(9,9,11,0.24);
+      color: #09090b;
+    }
+    body.light-mode .heart-btn.active {
+      border-color: rgba(9,9,11,0.28);
+      color: #09090b;
+      background: rgba(9,9,11,0.08);
+    }
     body.light-mode .coming-soon-badge {
       background: rgba(240,238,233,0.85);
       border-color: rgba(10,10,10,0.2);
@@ -646,6 +695,84 @@ function updateCountdown() {
       const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
         auth: { persistSession: true, storageKey: 'zuwera-auth' }
       });
+      let collectionUser = null;
+      let collectionFavoriteIds = new Set();
+
+      function refreshCollectionFavoriteButtons() {
+        document.querySelectorAll('.heart-btn[data-product-id]').forEach(btn => {
+          btn.classList.toggle('active', collectionFavoriteIds.has(btn.dataset.productId));
+        });
+      }
+
+      async function loadCollectionFavorites() {
+        if (!collectionUser) {
+          collectionFavoriteIds = new Set();
+          refreshCollectionFavoriteButtons();
+          return;
+        }
+        const { data, error } = await sb
+          .from('favorites')
+          .select('product_id')
+          .eq('user_id', collectionUser.id);
+        if (error) {
+          console.warn('Could not load favorites on collection page:', error.message);
+          return;
+        }
+        collectionFavoriteIds = new Set((data || []).map(row => row.product_id));
+        refreshCollectionFavoriteButtons();
+      }
+
+      window.toggleCollectionFavorite = async function(btn) {
+        const productId = btn?.dataset?.productId;
+        if (!productId) return;
+        if (!collectionUser) {
+          window.location.href = 'index.html?auth=signin';
+          return;
+        }
+
+        const isActive = collectionFavoriteIds.has(productId);
+        btn.disabled = true;
+        try {
+          if (isActive) {
+            const { error } = await sb
+              .from('favorites')
+              .delete()
+              .eq('user_id', collectionUser.id)
+              .eq('product_id', productId);
+            if (error) throw error;
+            collectionFavoriteIds.delete(productId);
+          } else {
+            const { error } = await sb.from('favorites').upsert({
+              user_id: collectionUser.id,
+              product_id: productId,
+              product_name: btn.dataset.productName || 'Product',
+              price: btn.dataset.price || '',
+            });
+            if (error) throw error;
+            collectionFavoriteIds.add(productId);
+          }
+          refreshCollectionFavoriteButtons();
+        } catch (error) {
+          console.warn('Collection favorite toggle failed:', error.message || error);
+        } finally {
+          btn.disabled = false;
+        }
+      };
+
+      try {
+        const { data } = await sb.auth.getSession();
+        collectionUser = data?.session?.user || null;
+        if (collectionUser) {
+          await loadCollectionFavorites();
+        }
+      } catch (error) {
+        console.warn('Collection session lookup failed:', error.message || error);
+      }
+
+      sb.auth.onAuthStateChange((_event, session) => {
+        collectionUser = session?.user || null;
+        void loadCollectionFavorites();
+      });
 
     try {
       const { data } = await sb.from('site_settings').select('*').in('key', ['theme', 'brand']);
@@ -761,6 +888,19 @@ function updateCountdown() {
             <a href="${productHref(p)}" style="text-decoration:none;color:inherit">
               <div class="product-card">
                 <div class="product-img">
+                  <button
+                    type="button"
+                    class="heart-btn"
+                    data-product-id="${p.id}"
+                    data-product-name="${productName.replace(/"/g, '&quot;')}"
+                    data-price="${productPrice ? Number(productPrice).toFixed(2) : ''}"
+                    aria-label="Save item"
+                    onclick="event.preventDefault(); event.stopPropagation(); toggleCollectionFavorite(this);"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M12 21s-6.7-4.35-9.33-8.15C.92 10.32 1.47 6.73 4.72 5.2c2.23-1.05 4.56.02 5.78 1.63 1.22-1.61 3.55-2.68 5.78-1.63 3.25 1.53 3.8 5.12 2.05 7.65C18.7 16.65 12 21 12 21Z"></path>
+                    </svg>
+                  </button>
                   ${imgHtml}
                   <div class="product-overlay"><span class="coming-soon-badge">${badge}</span></div>
                 </div>
@@ -773,6 +913,7 @@ function updateCountdown() {
               </div>
             </a>`;
         }).join('');
+        refreshCollectionFavoriteButtons();
       }
     })();
   </script>

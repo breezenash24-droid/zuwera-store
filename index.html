@@ -677,7 +677,23 @@ footer{
   padding:.48rem .9rem;border:1px solid rgba(244,241,235,.14);border-radius:999px;
   font-family:var(--fm);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
   color:rgba(244,241,235,.76);background:rgba(244,241,235,.03);
+  gap:.45rem;cursor:pointer;transition:border-color .18s ease, background .18s ease, color .18s ease;
 }
+.wallet-chip:hover{border-color:rgba(244,241,235,.28);background:rgba(244,241,235,.06)}
+.wallet-chip:focus-visible{outline:2px solid rgba(244,241,235,.35);outline-offset:2px}
+.wallet-chip[disabled]{opacity:.4;cursor:not-allowed}
+.wallet-chip__mark{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:1.45rem;height:1.45rem;padding:0 .34rem;border-radius:999px;
+  font-size:.58rem;font-weight:700;letter-spacing:.06em;
+  background:rgba(244,241,235,.12);color:#f4f1eb;
+}
+.wallet-chip--applePay .wallet-chip__mark{background:#f4f1eb;color:#09090b}
+.wallet-chip--googlePay .wallet-chip__mark{
+  background:linear-gradient(135deg,#4285f4 0 25%,#34a853 25% 50%,#fbbc05 50% 75%,#ea4335 75% 100%);
+  color:#09090b;
+}
+.wallet-chip__label{letter-spacing:.05em}
 .mbox{
   background:#0f0f0f;
   border:1px solid rgba(244,241,235,.08);
@@ -2157,14 +2173,27 @@ function updateNav() {
 }
 
 /* AUTH MODAL */
+let _authReturnModalId = null;
 function openAuth(tab) {
   const cartModal = document.getElementById('cart-modal');
-  if (cartModal?.classList.contains('open')) cartModal.classList.remove('open');
+  _authReturnModalId = cartModal?.classList.contains('open') ? 'cart-modal' : null;
+  if (_authReturnModalId) cartModal.classList.remove('open');
   document.getElementById('auth-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
   switchAuthTab(tab || 'signin');
 }
-function closeAuth() { document.getElementById('auth-modal').classList.remove('open'); document.body.style.overflow = ''; }
+function closeAuth() {
+  document.getElementById('auth-modal').classList.remove('open');
+  const shouldReturnToCart = _authReturnModalId === 'cart-modal';
+  _authReturnModalId = null;
+  if (shouldReturnToCart) {
+    renderCart();
+    document.getElementById('cart-modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    return;
+  }
+  document.body.style.overflow = '';
+}
 function switchAuthTab(t) {
   document.querySelectorAll('#auth-modal .atab').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
   document.querySelectorAll('#auth-modal .apanel').forEach(p => p.classList.remove('active'));
@@ -2456,21 +2485,12 @@ window.removeCartItem = function(idx) { let cart = JSON.parse(localStorage.getIt
 
 document.getElementById('cart-btn').addEventListener('click', () => { renderCart(); document.getElementById('cart-modal').classList.add('open'); document.body.style.overflow='hidden'; });
 document.getElementById('cart-close').addEventListener('click', () => { document.getElementById('cart-modal').classList.remove('open'); document.body.style.overflow=''; });
-document.getElementById('fav-join-link').addEventListener('click', () => {
-  document.getElementById('cart-modal').classList.remove('open');
-  openAuth('signup');
-});
-document.getElementById('fav-signin-link').addEventListener('click', () => {
-  document.getElementById('cart-modal').classList.remove('open');
-  openAuth('signin');
-});
+document.getElementById('fav-join-link').addEventListener('click', () => openAuth('signup'));
+document.getElementById('fav-signin-link').addEventListener('click', () => openAuth('signin'));
 document.getElementById('checkout-btn').addEventListener('click', () => {
-  document.getElementById('cart-modal').classList.remove('open');
-  document.getElementById('payment-modal').classList.add('open');
-  document.body.style.overflow='hidden';
-  document.getElementById('pay-error').textContent = '';
+  if (!cartItems.length) return;
   const sub = Math.round(parseFloat((document.getElementById('summary-subtotal')?.textContent||'0').replace(/[^0-9.]/g,''))*100);
-  _loadStripe(() => { _initStripe(); initPR(sub || 100); });
+  openPaymentModal(sub || 100);
 });
 window.addEventListener('DOMContentLoaded', renderCart);
 
@@ -2516,6 +2536,39 @@ async function getCheckoutUserId() {
   }
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
+const PAY_TAX_RATE = 0.08;
+let _paymentReturnModalId = null;
+
+function getWalletTaxCents(subtotalCents) {
+  return subtotalCents > 0 ? Math.round(subtotalCents * PAY_TAX_RATE) : 0;
+}
+
+function getWalletTotalCents(subtotalCents, shippingCents = 0) {
+  return subtotalCents + shippingCents + getWalletTaxCents(subtotalCents);
+}
+
+function openPaymentModal(subtotalCents) {
+  const cartModal = document.getElementById('cart-modal');
+  _paymentReturnModalId = cartModal?.classList.contains('open') ? 'cart-modal' : null;
+  if (_paymentReturnModalId) cartModal.classList.remove('open');
+  document.getElementById('payment-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('pay-error').textContent = '';
+  _loadStripe(() => { _initStripe(); initPR(subtotalCents); });
+}
+
+function closePaymentModal({ suppressReturn = false } = {}) {
+  document.getElementById('payment-modal')?.classList.remove('open');
+  const shouldReturnToCart = !suppressReturn && _paymentReturnModalId === 'cart-modal';
+  _paymentReturnModalId = null;
+  if (shouldReturnToCart) {
+    renderCart();
+    document.getElementById('cart-modal')?.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    return;
+  }
+  document.body.style.overflow = '';
+}
 
 let _sizeGuideDocumentHtml = null;
 
@@ -2576,20 +2629,88 @@ document.getElementById('size-guide-modal')?.addEventListener('click', e => {
   if (e.target === e.currentTarget) closeModal('size-guide-modal');
 });
 
-let payReq = null, selRate = null, walletRates = [];
+let payReq = null, payReqButton = null, selRate = null, walletRates = [];
+function resetWalletUi() {
+  const walletHost = document.getElementById('payment-request-btn');
+  const walletHints = document.getElementById('wallet-methods');
+  const divider = document.getElementById('pay-divider');
+  if (payReqButton) {
+    try { payReqButton.unmount(); } catch {}
+    payReqButton = null;
+  }
+  if (walletHost) {
+    walletHost.innerHTML = '';
+    walletHost.style.display = 'none';
+  }
+  if (walletHints) {
+    walletHints.innerHTML = '';
+    walletHints.style.display = 'none';
+  }
+  if (divider) divider.style.display = 'none';
+}
+function renderWalletHints(result) {
+  const walletHints = document.getElementById('wallet-methods');
+  if (!walletHints) return;
+  const hasNamedWallet = !!(result?.applePay || result?.googlePay);
+  const buttons = hasNamedWallet
+    ? [
+        { key:'applePay', label:'Apple Pay', enabled:!!result.applePay, mark:'A' },
+        { key:'googlePay', label:'Google Pay', enabled:!!result.googlePay, mark:'G' },
+      ]
+    : [{ key:'fastCheckout', label:'Fast Checkout', enabled:true, mark:'Go' }];
+  walletHints.innerHTML = buttons.map(button => `
+    <button
+      type="button"
+      class="wallet-chip wallet-chip--${button.key}"
+      data-wallet="${button.key}"
+      ${button.enabled ? '' : 'disabled title="Unavailable on this browser or device"'}
+    >
+      <span class="wallet-chip__mark" aria-hidden="true">${button.mark}</span>
+      <span class="wallet-chip__label">${button.label}</span>
+    </button>
+  `).join('');
+  walletHints.querySelectorAll('button:not([disabled])').forEach(button => {
+    button.addEventListener('click', () => {
+      if (payReq?.show) payReq.show();
+    });
+  });
+  walletHints.style.display = 'flex';
+}
 function initPR(subtotalCents) {
-  if(payReq) return;
-  payReq = stripe.paymentRequest({ country:'US', currency:'usd', total:{ label:'Zuwera', amount:subtotalCents, pending:true }, requestPayerName:true, requestPayerEmail:true, requestShipping:true, shippingOptions:[] });
+  const normalizedSubtotalCents = Math.max(0, subtotalCents || 0);
+  resetWalletUi();
+  walletRates = [];
+  selRate = null;
+  payReq = stripe.paymentRequest({
+    country:'US',
+    currency:'usd',
+    total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents), pending:true },
+    requestPayerName:true,
+    requestPayerEmail:true,
+    requestShipping:true,
+    shippingOptions:[],
+  });
   payReq.on('shippingaddresschange', async ev => {
     const a = ev.shippingAddress;
     try {
       const d = await post('/api/shippo-rates', { address:{ name:'', line1:a.addressLine?.[0]||'', city:a.city, state:a.region, zip:a.postalCode, country:a.country } });
-      if(!d.rates?.length){ walletRates = []; selRate = null; ev.updateWith({status:'invalid_shipping_address'}); return; }
+      if(!d.rates?.length){
+        walletRates = [];
+        selRate = null;
+        ev.updateWith({status:'invalid_shipping_address'});
+        return;
+      }
       walletRates = d.rates.slice(0,4);
       const opts = walletRates.map(r => ({ id:r.objectId, label:`${r.provider} ${r.servicelevel}`, detail:r.days?`Est. ${r.days} business days`:'', amount:Math.round(parseFloat(r.amount)*100) }));
       selRate = walletRates[0] || null;
-      ev.updateWith({ status:'success', shippingOptions:opts, total:{ label:'Zuwera', amount:subtotalCents+opts[0].amount } });
-    } catch { ev.updateWith({status:'fail'}); }
+      ev.updateWith({
+        status:'success',
+        shippingOptions:opts,
+        total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, opts[0]?.amount || 0) }
+      });
+    } catch {
+      ev.updateWith({status:'fail'});
+    }
   });
   payReq.on('shippingoptionchange', ev => {
     const matchedRate = walletRates.find(r => r.objectId === ev.shippingOption?.id);
@@ -2597,37 +2718,49 @@ function initPR(subtotalCents) {
     const shippingAmount = matchedRate
       ? Math.round(parseFloat(matchedRate.amount) * 100)
       : (ev.shippingOption?.amount || 0);
-    ev.updateWith({ status:'success', total:{ label:'Zuwera', amount:subtotalCents+shippingAmount } });
+    ev.updateWith({ status:'success', total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, shippingAmount) } });
   });
   payReq.on('paymentmethod', async ev => {
     try {
       const a = ev.shippingAddress||{};
       const userId = await getCheckoutUserId();
       const d = await post('/api/create-payment-intent', { items:cartItems, shippingRate:selRate, userId, address:{ name:ev.payerName||'', email:ev.payerEmail||'', line1:a.addressLine?.[0]||'', line2:a.addressLine?.[1]||'', city:a.city||'', state:a.region||'', zip:a.postalCode||'', country:a.country||'US' } });
-      if(d.error){ ev.complete('fail'); return; }
-      const { error } = await stripe.confirmCardPayment(d.clientSecret, { payment_method:ev.paymentMethod.id }, { handleActions:false });
-      if(error){ ev.complete('fail'); document.getElementById('pay-error').textContent=error.message; }
-      else { ev.complete('success'); showConfirmed(d.orderId, ev.payerEmail); }
-    } catch(e){ ev.complete('fail'); }
-  });
-  const prBtn = elements.create('paymentRequestButton', { paymentRequest:payReq, style:{ paymentRequestButton:{ type:'buy', theme:'light', height:'48px' } } });
-  payReq.canMakePayment().then(r => {
-    const walletHints = document.getElementById('wallet-methods');
-    if(r){
-      prBtn.mount('#payment-request-btn');
-      document.getElementById('payment-request-btn').style.display = 'block';
-      document.getElementById('pay-divider').style.display = 'block';
-      if (walletHints) {
-        const availableWallets = [];
-        if (r.applePay) availableWallets.push('Apple Pay');
-        if (r.googlePay) availableWallets.push('Google Pay');
-        if (!availableWallets.length) availableWallets.push('Apple Pay', 'Google Pay');
-        walletHints.innerHTML = availableWallets.map(label => `<span class="wallet-chip">${label}</span>`).join('');
-        walletHints.style.display = 'flex';
+      if(d.error){
+        ev.complete('fail');
+        document.getElementById('pay-error').textContent = d.error;
+        return;
       }
-    } else if (walletHints) {
-      walletHints.style.display = 'none';
+      const { error } = await stripe.confirmCardPayment(d.clientSecret, { payment_method:ev.paymentMethod.id }, { handleActions:false });
+      if(error){
+        ev.complete('fail');
+        document.getElementById('pay-error').textContent = error.message;
+      }
+      else {
+        ev.complete('success');
+        closePaymentModal({ suppressReturn:true });
+        showConfirmed(d.orderId, ev.payerEmail);
+      }
+    } catch(e){
+      ev.complete('fail');
+      document.getElementById('pay-error').textContent = 'Fast checkout could not be completed. Please try card checkout.';
     }
+  });
+  payReqButton = elements.create('paymentRequestButton', { paymentRequest:payReq, style:{ paymentRequestButton:{ type:'default', theme:'light', height:'48px' } } });
+  payReq.canMakePayment().then(result => {
+    const walletHost = document.getElementById('payment-request-btn');
+    const divider = document.getElementById('pay-divider');
+    if(result){
+      if (walletHost) {
+        payReqButton.mount('#payment-request-btn');
+        walletHost.style.display = 'block';
+      }
+      if (divider) divider.style.display = 'block';
+      renderWalletHints(result);
+    } else {
+      resetWalletUi();
+    }
+  }).catch(() => {
+    resetWalletUi();
   });
 }
 
@@ -2666,8 +2799,8 @@ function updateShip(amount) {
 }
 document.getElementById('pay-zip').addEventListener('input', maybeLoadRates);
 document.getElementById('pay-state').addEventListener('input', maybeLoadRates);
-document.getElementById('payment-close').addEventListener('click', () => { closeModal('payment-modal'); document.getElementById('pay-error').textContent=''; });
-document.getElementById('payment-modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal('payment-modal'); });
+document.getElementById('payment-close').addEventListener('click', () => { closePaymentModal(); document.getElementById('pay-error').textContent=''; });
+document.getElementById('payment-modal').addEventListener('click', e => { if(e.target===e.currentTarget) closePaymentModal(); });
 
 document.getElementById('pay-submit').addEventListener('click', async () => {
   const g = id => document.getElementById(id).value.trim();
@@ -2684,7 +2817,7 @@ document.getElementById('pay-submit').addEventListener('click', async () => {
     if(d.error){ err.textContent=d.error; btn.disabled=false; btxt.textContent='Pay Now'; return; }
     const { error, paymentIntent } = await stripe.confirmCardPayment(d.clientSecret, { payment_method:{ card, billing_details:{name,email} }, receipt_email:email, shipping:{name,address:{line1:addr1,line2:addr2,city,state,postal_code:zip,country:'US'}} });
     if(error){ err.textContent=error.message; btn.disabled=false; btxt.textContent='Pay Now'; return; }
-    closeModal('payment-modal'); showConfirmed(paymentIntent.id, email);
+    closePaymentModal({ suppressReturn:true }); showConfirmed(paymentIntent.id, email);
   } catch(e){ err.textContent='Something went wrong. Please try again.'; btn.disabled=false; btxt.textContent='Pay Now'; }
 });
 

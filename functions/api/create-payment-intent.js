@@ -33,6 +33,7 @@ export async function onRequestOptions() {
 export async function onRequestPost({ request, env }) {
   const headers = CORS(env);
   const stripe  = new Stripe(env.STRIPE_SECRET_KEY, { httpClient: Stripe.createFetchHttpClient() });
+  const SALES_TAX_RATE = 0.08;
 
   try {
     const { items, shippingRate, address, userId } = await request.json();
@@ -49,6 +50,9 @@ export async function onRequestPost({ request, env }) {
     );
     const shippingCents = shippingRate?.amount
       ? Math.round(parseFloat(shippingRate.amount) * 100)
+      : 0;
+    const taxCents = subtotalCents > 0
+      ? Math.round(subtotalCents * SALES_TAX_RATE)
       : 0;
 
     const lineItems = items.map(item => ({
@@ -67,10 +71,9 @@ export async function onRequestPost({ request, env }) {
 
     const paymentIntent = await stripe.paymentIntents.create(
       {
-        amount:   subtotalCents + shippingCents,
+        amount:   subtotalCents + shippingCents + taxCents,
         currency: 'usd',
         automatic_payment_methods: { enabled: true },
-        automatic_tax: { enabled: true },
         receipt_email: address.email,
         shipping: {
           name: address.name,
@@ -88,9 +91,12 @@ export async function onRequestPost({ request, env }) {
           customer_name:         address.name,
           user_id:               userId || '',
           items:                 JSON.stringify(lineItems),
+          subtotal_amount_cents: String(subtotalCents),
           shipping_provider:     shippingRate?.provider    || '',
           shipping_service:      shippingRate?.servicelevel || '',
           shipping_amount_cents: String(shippingCents),
+          tax_amount_cents:      String(taxCents),
+          total_amount_cents:    String(subtotalCents + shippingCents + taxCents),
           ship_line1:   address.line1,
           ship_line2:   address.line2 || '',
           ship_city:    address.city,
@@ -107,6 +113,7 @@ export async function onRequestPost({ request, env }) {
       orderId:      paymentIntent.id,
       subtotal:     (subtotalCents / 100).toFixed(2),
       shipping:     (shippingCents  / 100).toFixed(2),
+      tax:          (taxCents / 100).toFixed(2),
     }), { status: 200, headers });
 
   } catch (e) {

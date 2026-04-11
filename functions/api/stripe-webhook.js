@@ -157,6 +157,9 @@ async function saveOrderToSupabase(pi, meta, env) {
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) return null;
 
   const items = (() => { try { return JSON.parse(meta.items || '[]'); } catch { return []; } })();
+  const subtotalCents = parseInt(meta.subtotal_amount_cents || '0', 10);
+  const shippingCents = parseInt(meta.shipping_amount_cents || '0', 10);
+  const taxCents = parseInt(meta.tax_amount_cents || '0', 10);
 
   const resp = await fetch(env.SUPABASE_URL + '/rest/v1/orders', {
     method: 'POST',
@@ -169,17 +172,25 @@ async function saveOrderToSupabase(pi, meta, env) {
     body: JSON.stringify({
       stripe_payment_intent_id: pi.id,
       user_id: meta.user_id || null,
-      email: meta.customer_email, customer_name: meta.customer_name,
+      email: meta.customer_email,
+      customer_name: meta.customer_name,
       items: JSON.stringify(items),
-      subtotal: (pi.amount / 100).toFixed(2),
-      shipping: (parseInt(meta.shipping_amount_cents || '0') / 100).toFixed(2),
-      tax: '0.00', total: (pi.amount / 100).toFixed(2),
-      ship_line1: meta.ship_line1, ship_line2: meta.ship_line2 || '',
-      ship_city: meta.ship_city, ship_state: meta.ship_state,
-      ship_zip: meta.ship_zip, ship_country: meta.ship_country || 'US',
-      shipping_provider: meta.shipping_provider || '', shipping_service: meta.shipping_service || '',
-      tracking_number: meta.tracking_number || '', tracking_url: meta.tracking_url || '',
-      label_url: meta.label_url || '', status: 'confirmed',
+      subtotal: (subtotalCents / 100).toFixed(2),
+      shipping: (shippingCents / 100).toFixed(2),
+      tax: (taxCents / 100).toFixed(2),
+      total: (pi.amount / 100).toFixed(2),
+      ship_line1: meta.ship_line1,
+      ship_line2: meta.ship_line2 || '',
+      ship_city: meta.ship_city,
+      ship_state: meta.ship_state,
+      ship_zip: meta.ship_zip,
+      ship_country: meta.ship_country || 'US',
+      shipping_provider: meta.shipping_provider || '',
+      shipping_service: meta.shipping_service || '',
+      tracking_number: meta.tracking_number || '',
+      tracking_url: meta.tracking_url || '',
+      label_url: meta.label_url || '',
+      status: 'confirmed',
     }),
   });
 
