@@ -2914,8 +2914,21 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
   function getWalletTaxCents(subtotalCents) {
     return subtotalCents > 0 ? Math.round(subtotalCents * PAY_TAX_RATE) : 0;
   }
+  function getDefaultCheckoutShippingCents(subtotalCents) {
+    const threshold = Number(window.zwShippingThreshold || 100);
+    const rateCents = Math.round(Number(window.zwShippingRate || 8) * 100);
+    if (subtotalCents <= 0) return 0;
+    return (subtotalCents / 100) >= threshold ? 0 : rateCents;
+  }
   function getWalletTotalCents(subtotalCents, shippingCents = 0) {
     return subtotalCents + shippingCents + getWalletTaxCents(subtotalCents);
+  }
+  function getWalletDisplayItems(subtotalCents, shippingCents) {
+    return [
+      { label:'Subtotal', amount:Math.max(0, subtotalCents || 0) },
+      { label:'Shipping', amount:Math.max(0, shippingCents || 0) },
+      { label:'Tax', amount:getWalletTaxCents(subtotalCents) }
+    ];
   }
   function openPaymentModal(subtotalCents) {
     const cartModal = document.getElementById('cart-modal');
@@ -2939,7 +2952,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     document.body.style.overflow='';
   }
 
-  let payReq = null, payReqButton = null, selRate = null, walletRates = [];
+  let payReq = null, payReqButton = null, selRate = null, walletRates = [], walletShippingCents = 0;
   function resetWalletUi() {
     const walletHost = document.getElementById('payment-request-btn');
     const walletHints = document.getElementById('wallet-methods');
@@ -2956,6 +2969,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
       walletHints.innerHTML = '';
       walletHints.style.display = 'none';
     }
+    walletShippingCents = 0;
     if (divider) divider.style.display = 'none';
   }
   function renderWalletHints(result) {
@@ -2995,13 +3009,16 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
   }
   function initPR(subtotalCents) {
     const normalizedSubtotalCents = Math.max(0, subtotalCents || 0);
+    const defaultShippingCents = getDefaultCheckoutShippingCents(normalizedSubtotalCents);
     resetWalletUi();
     walletRates = [];
     selRate = null;
+    walletShippingCents = defaultShippingCents;
     payReq = stripe.paymentRequest({
       country:'US',
       currency:'usd',
-      total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents), pending:true },
+      total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, defaultShippingCents), pending:true },
+      displayItems:getWalletDisplayItems(normalizedSubtotalCents, defaultShippingCents),
       requestPayerName:true,
       requestPayerEmail:true,
       requestShipping:true,
@@ -3016,32 +3033,45 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
           selRate = null;
           ev.updateWith({status:'invalid_shipping_address'});
           return;
-        }
-        walletRates = d.rates.slice(0,4);
-        const opts = walletRates.map(r => ({ id:r.objectId, label:`${r.provider} ${r.servicelevel}`, detail:r.days?`Est. ${r.days} business days`:'', amount:Math.round(parseFloat(r.amount)*100) }));
-        selRate = walletRates[0] || null;
-        ev.updateWith({
-          status:'success',
-          shippingOptions:opts,
-          total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, opts[0]?.amount || 0) }
-        });
-      } catch {
-        ev.updateWith({status:'fail'});
       }
-    });
+      walletRates = d.rates.slice(0,4);
+      const opts = walletRates.map(r => ({ id:r.objectId, label:`${r.provider} ${r.servicelevel}`, detail:r.days?`Est. ${r.days} business days`:'', amount:Math.round(parseFloat(r.amount)*100) }));
+      selRate = walletRates[0] || null;
+      walletShippingCents = opts[0]?.amount || defaultShippingCents;
+      ev.updateWith({
+        status:'success',
+        shippingOptions:opts,
+        total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, walletShippingCents) },
+        displayItems:getWalletDisplayItems(normalizedSubtotalCents, walletShippingCents)
+      });
+    } catch {
+      ev.updateWith({status:'fail'});
+    }
+  });
     payReq.on('shippingoptionchange', ev => {
       const matchedRate = walletRates.find(r => r.objectId === ev.shippingOption?.id);
       if (matchedRate) selRate = matchedRate;
       const shippingAmount = matchedRate
         ? Math.round(parseFloat(matchedRate.amount) * 100)
-        : (ev.shippingOption?.amount || 0);
-      ev.updateWith({ status:'success', total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, shippingAmount) } });
+        : (ev.shippingOption?.amount || defaultShippingCents);
+      walletShippingCents = shippingAmount;
+      ev.updateWith({
+        status:'success',
+        total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, shippingAmount) },
+        displayItems:getWalletDisplayItems(normalizedSubtotalCents, shippingAmount)
+      });
     });
     payReq.on('paymentmethod', async ev => {
       try {
         const a = ev.shippingAddress||{};
         const userId = await getCheckoutUserId();
-        const d = await post('/api/create-payment-intent', { items:cartItems, shippingRate:selRate, userId, address:{ name:ev.payerName||'', email:ev.payerEmail||'', line1:a.addressLine?.[0]||'', line2:a.addressLine?.[1]||'', city:a.city||'', state:a.region||'', zip:a.postalCode||'', country:a.country||'US' } });
+        const d = await post('/api/create-payment-intent', {
+          items:cartItems,
+          shippingRate:selRate,
+          shippingAmountCents: walletShippingCents || defaultShippingCents,
+          userId,
+          address:{ name:ev.payerName||'', email:ev.payerEmail||'', line1:a.addressLine?.[0]||'', line2:a.addressLine?.[1]||'', city:a.city||'', state:a.region||'', zip:a.postalCode||'', country:a.country||'US' }
+        });
         if (d.error) {
           ev.complete('fail');
           document.getElementById('pay-error').textContent = d.error;

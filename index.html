@@ -2446,6 +2446,14 @@ function escapeHomeFavoriteHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+function normalizeHomeFavoriteText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function parseHomeFavoritePrice(value) {
   if (typeof value === 'string') {
     const parsed = parseFloat(value.replace(/[^0-9.]/g, ''));
@@ -2568,8 +2576,18 @@ async function getHomeFavoriteDetail(productId, favorite) {
 function homeFavoriteCardHtml(favorite, detail, mode) {
   const productId = favorite.product_id;
   const name = detail?.title || favorite.product_name || 'Saved Item';
-  const subtitle = detail?.subtitle
-    ? `<div style="font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(244,241,235,.35);margin-top:.2rem;">${escapeHomeFavoriteHtml(detail.subtitle)}</div>`
+  const subtitleText = detail?.subtitle || '';
+  const normalizedName = normalizeHomeFavoriteText(name);
+  const normalizedSubtitle = normalizeHomeFavoriteText(subtitleText);
+  const showSubtitle = !!subtitleText && normalizedSubtitle !== normalizedName;
+  const subtitle = showSubtitle
+    ? `<div style="font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(244,241,235,.35);margin-top:.2rem;">${escapeHomeFavoriteHtml(subtitleText)}</div>`
+    : '';
+  const colorName = detail?.colorName || '';
+  const normalizedColor = normalizeHomeFavoriteText(colorName);
+  const showColor = !!colorName && normalizedColor && normalizedColor !== 'standard' && normalizedColor !== normalizedName && normalizedColor !== normalizedSubtitle;
+  const metaHtml = showColor
+    ? `<div style="font-size:.68rem;color:rgba(244,241,235,.52);margin-top:.35rem;letter-spacing:.04em;">${escapeHomeFavoriteHtml(colorName)}</div>`
     : '';
   const imageHtml = detail?.image
     ? `<img src="${typeof window.optimizeImage === 'function' ? window.optimizeImage(detail.image, 180) : detail.image}" alt="${escapeHomeFavoriteHtml(name)}" style="width:68px;height:86px;object-fit:cover;border:1px solid rgba(244,241,235,.08);flex-shrink:0;" onerror="if(this.src !== '${detail.image}') this.src='${detail.image}';">`
@@ -2586,6 +2604,7 @@ function homeFavoriteCardHtml(favorite, detail, mode) {
       <div style="flex:1;min-width:0;">
         <div style="font-size:.88rem;line-height:1.35;">${escapeHomeFavoriteHtml(name)}</div>
         ${subtitle}
+        ${metaHtml}
         ${priceHtml}
         <div style="display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.8rem;">
           <a href="${href}" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 .85rem;border:1px solid rgba(244,241,235,.14);font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;color:rgba(244,241,235,.76);text-decoration:none;">View Product</a>
@@ -2677,24 +2696,36 @@ async function refreshCartFavs() {
 async function toggleFav(btn) {
   if(!_user){ openAuth('signin'); return; }
   const pid = btn.dataset.productId, pname = btn.dataset.productName, price = btn.dataset.price;
-  if(_favs.some(f => f.product_id === pid)){ await removeFav(pid, null); }
-  else {
-    if(_sb) await _sb.from('favorites').upsert({ user_id:_user.id, product_id:pid, product_name:pname, price });
-    _favs.push({ product_id:pid, product_name:pname, price });
-    refreshHearts();
-    void refreshCartFavs();
-    showToast('Saved!');
+  const isActive = _favs.some(f => f.product_id === pid);
+  btn.disabled = true;
+  try {
+    if(isActive){
+      await removeFav(pid, null, { silentToast:true });
+      showToast('Removed from favorites.');
+    }
+    else {
+      if(_sb) await _sb.from('favorites').upsert({ user_id:_user.id, product_id:pid, product_name:pname, price });
+      _favs.push({ product_id:pid, product_name:pname, price });
+      refreshHearts();
+      void refreshCartFavs();
+      showToast('Saved to favorites.');
+    }
+  } catch (error) {
+    console.error('toggleFav failed:', error);
+    showToast('Could not update saved items.');
+  } finally {
+    btn.disabled = false;
   }
 }
 
-async function removeFav(pid, el) {
+async function removeFav(pid, el, options = {}) {
   if(_sb && _user) await _sb.from('favorites').delete().eq('user_id',_user.id).eq('product_id',pid);
   _favs = _favs.filter(f => f.product_id !== pid);
   _homeFavoriteCache.delete(pid);
   if(el) el.remove();
   refreshHearts();
   void refreshCartFavs();
-  showToast('Removed from saved.');
+  if (!options?.silentToast) showToast('Removed from favorites.');
 }
 
 /* CART */
@@ -2810,8 +2841,23 @@ function getWalletTaxCents(subtotalCents) {
   return subtotalCents > 0 ? Math.round(subtotalCents * PAY_TAX_RATE) : 0;
 }
 
+function getDefaultCheckoutShippingCents(subtotalCents) {
+  const shipRateCents = 800;
+  const freeThresholdDollars = 100;
+  if (subtotalCents <= 0) return 0;
+  return (subtotalCents / 100) >= freeThresholdDollars ? 0 : shipRateCents;
+}
+
 function getWalletTotalCents(subtotalCents, shippingCents = 0) {
   return subtotalCents + shippingCents + getWalletTaxCents(subtotalCents);
+}
+
+function getWalletDisplayItems(subtotalCents, shippingCents) {
+  return [
+    { label: 'Subtotal', amount: Math.max(0, subtotalCents || 0) },
+    { label: 'Shipping', amount: Math.max(0, shippingCents || 0) },
+    { label: 'Tax', amount: getWalletTaxCents(subtotalCents) }
+  ];
 }
 
 function openPaymentModal(subtotalCents) {
@@ -2896,7 +2942,7 @@ document.getElementById('size-guide-modal')?.addEventListener('click', e => {
   if (e.target === e.currentTarget) closeModal('size-guide-modal');
 });
 
-let payReq = null, payReqButton = null, selRate = null, walletRates = [];
+let payReq = null, payReqButton = null, selRate = null, walletRates = [], walletShippingCents = 0;
 function resetWalletUi() {
   const walletHost = document.getElementById('payment-request-btn');
   const walletHints = document.getElementById('wallet-methods');
@@ -2913,6 +2959,7 @@ function resetWalletUi() {
     walletHints.innerHTML = '';
     walletHints.style.display = 'none';
   }
+  walletShippingCents = 0;
   if (divider) divider.style.display = 'none';
 }
 function renderWalletHints(result) {
@@ -2952,13 +2999,16 @@ function renderWalletHints(result) {
 }
 function initPR(subtotalCents) {
   const normalizedSubtotalCents = Math.max(0, subtotalCents || 0);
+  const defaultShippingCents = getDefaultCheckoutShippingCents(normalizedSubtotalCents);
   resetWalletUi();
   walletRates = [];
   selRate = null;
+  walletShippingCents = defaultShippingCents;
   payReq = stripe.paymentRequest({
     country:'US',
     currency:'usd',
-    total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents), pending:true },
+    total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, defaultShippingCents), pending:true },
+    displayItems:getWalletDisplayItems(normalizedSubtotalCents, defaultShippingCents),
     requestPayerName:true,
     requestPayerEmail:true,
     requestShipping:true,
@@ -2977,10 +3027,12 @@ function initPR(subtotalCents) {
       walletRates = d.rates.slice(0,4);
       const opts = walletRates.map(r => ({ id:r.objectId, label:`${r.provider} ${r.servicelevel}`, detail:r.days?`Est. ${r.days} business days`:'', amount:Math.round(parseFloat(r.amount)*100) }));
       selRate = walletRates[0] || null;
+      walletShippingCents = opts[0]?.amount || defaultShippingCents;
       ev.updateWith({
         status:'success',
         shippingOptions:opts,
-        total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, opts[0]?.amount || 0) }
+        total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, walletShippingCents) },
+        displayItems:getWalletDisplayItems(normalizedSubtotalCents, walletShippingCents)
       });
     } catch {
       ev.updateWith({status:'fail'});
@@ -2991,14 +3043,25 @@ function initPR(subtotalCents) {
     if (matchedRate) selRate = matchedRate;
     const shippingAmount = matchedRate
       ? Math.round(parseFloat(matchedRate.amount) * 100)
-      : (ev.shippingOption?.amount || 0);
-    ev.updateWith({ status:'success', total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, shippingAmount) } });
+      : (ev.shippingOption?.amount || defaultShippingCents);
+    walletShippingCents = shippingAmount;
+    ev.updateWith({
+      status:'success',
+      total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, shippingAmount) },
+      displayItems:getWalletDisplayItems(normalizedSubtotalCents, shippingAmount)
+    });
   });
   payReq.on('paymentmethod', async ev => {
     try {
       const a = ev.shippingAddress||{};
       const userId = await getCheckoutUserId();
-      const d = await post('/api/create-payment-intent', { items:cartItems, shippingRate:selRate, userId, address:{ name:ev.payerName||'', email:ev.payerEmail||'', line1:a.addressLine?.[0]||'', line2:a.addressLine?.[1]||'', city:a.city||'', state:a.region||'', zip:a.postalCode||'', country:a.country||'US' } });
+      const d = await post('/api/create-payment-intent', {
+        items:cartItems,
+        shippingRate:selRate,
+        shippingAmountCents: walletShippingCents || defaultShippingCents,
+        userId,
+        address:{ name:ev.payerName||'', email:ev.payerEmail||'', line1:a.addressLine?.[0]||'', line2:a.addressLine?.[1]||'', city:a.city||'', state:a.region||'', zip:a.postalCode||'', country:a.country||'US' }
+      });
       if(d.error){
         ev.complete('fail');
         document.getElementById('pay-error').textContent = d.error;

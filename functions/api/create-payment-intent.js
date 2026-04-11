@@ -34,9 +34,14 @@ export async function onRequestPost({ request, env }) {
   const headers = CORS(env);
   const stripe  = new Stripe(env.STRIPE_SECRET_KEY, { httpClient: Stripe.createFetchHttpClient() });
   const SALES_TAX_RATE = 0.08;
+  const parseShippingFallbackCents = (value) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < 0) return 0;
+    return Math.round(parsed);
+  };
 
   try {
-    const { items, shippingRate, address, userId } = await request.json();
+    const { items, shippingRate, shippingAmountCents, address, userId } = await request.json();
 
     if (!items?.length || !address?.email)
       return new Response(JSON.stringify({ error: 'Missing required fields: items and address.email' }), { status: 400, headers });
@@ -50,7 +55,7 @@ export async function onRequestPost({ request, env }) {
     );
     const shippingCents = shippingRate?.amount
       ? Math.round(parseFloat(shippingRate.amount) * 100)
-      : 0;
+      : parseShippingFallbackCents(shippingAmountCents);
     const taxCents = subtotalCents > 0
       ? Math.round(subtotalCents * SALES_TAX_RATE)
       : 0;
