@@ -670,30 +670,31 @@ footer{
 /* Auth modal must sit above cart modal (both .modal, cart is later in DOM) */
 #auth-modal{z-index:600}
 .wallet-methods{
-  display:none;align-items:center;gap:.55rem;flex-wrap:wrap;margin:-.2rem 0 1rem;
+  display:none;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem;margin:-.2rem 0 1rem;
 }
 .wallet-chip{
-  display:inline-flex;align-items:center;justify-content:center;
-  padding:.48rem .9rem;border:1px solid rgba(244,241,235,.14);border-radius:999px;
+  display:flex;align-items:center;justify-content:center;
+  width:100%;min-height:48px;padding:.8rem 1rem;border:1px solid rgba(244,241,235,.14);border-radius:999px;
   font-family:var(--fm);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
-  color:rgba(244,241,235,.76);background:rgba(244,241,235,.03);
-  gap:.45rem;cursor:pointer;transition:border-color .18s ease, background .18s ease, color .18s ease;
+  color:#f4f1eb;background:rgba(244,241,235,.03);
+  gap:.65rem;cursor:pointer;transition:border-color .18s ease, background .18s ease, color .18s ease, opacity .18s ease;
 }
 .wallet-chip:hover{border-color:rgba(244,241,235,.28);background:rgba(244,241,235,.06)}
 .wallet-chip:focus-visible{outline:2px solid rgba(244,241,235,.35);outline-offset:2px}
-.wallet-chip[disabled]{opacity:.4;cursor:not-allowed}
-.wallet-chip__mark{
+.wallet-chip[disabled]{opacity:.34;cursor:not-allowed}
+.wallet-chip__icon{
   display:inline-flex;align-items:center;justify-content:center;
-  min-width:1.45rem;height:1.45rem;padding:0 .34rem;border-radius:999px;
-  font-size:.58rem;font-weight:700;letter-spacing:.06em;
-  background:rgba(244,241,235,.12);color:#f4f1eb;
+  width:1.2rem;height:1.2rem;flex:0 0 auto;
 }
-.wallet-chip--applePay .wallet-chip__mark{background:#f4f1eb;color:#09090b}
-.wallet-chip--googlePay .wallet-chip__mark{
+.wallet-chip__icon svg{width:100%;height:100%;display:block}
+.wallet-chip__icon--google{
+  font-family:'DM Sans',sans-serif;
+  font-size:1rem;font-weight:700;line-height:1;
   background:linear-gradient(135deg,#4285f4 0 25%,#34a853 25% 50%,#fbbc05 50% 75%,#ea4335 75% 100%);
-  color:#09090b;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
 }
-.wallet-chip__label{letter-spacing:.05em}
+.wallet-chip__label{display:inline-flex;align-items:center;gap:.2rem;letter-spacing:.05em}
+.wallet-chip__brand{font-weight:700}
 .mbox{
   background:#0f0f0f;
   border:1px solid rgba(244,241,235,.08);
@@ -1062,6 +1063,13 @@ body.light-mode .heart-btn{
   background:rgba(240,238,233,.7);border-color:rgba(9,9,11,.1);
   color:rgba(9,9,11,.3);
 }
+body.light-mode .wallet-chip{
+  background:rgba(240,238,233,.68);
+  border-color:rgba(9,9,11,.1);
+  color:#09090b;
+}
+body.light-mode .wallet-chip:hover{border-color:rgba(9,9,11,.22);background:rgba(240,238,233,.9)}
+body.light-mode .wallet-chip:focus-visible{outline-color:rgba(9,9,11,.24)}
 body.light-mode .pcard-info{border-top-color:rgba(9,9,11,.06)}
 body.light-mode .pcard-cat{color:rgba(9,9,11,.25)}
 body.light-mode .pcard-price{color:rgba(9,9,11,.35)}
@@ -1577,13 +1585,13 @@ body.light-mode::after{opacity:0.15}
     </div>
     <div class="csummary">
       <h2 class="csec-t">Summary</h2>
-      <div class="srow">-</span><span id="summary-subtotal">-</span></div>
+      <div class="srow"><span>Subtotal</span><span id="summary-subtotal">-</span></div>
       <div class="srow">
         <div><div>Shipping</div><div class="ship-note">Standard 5-7 days<br>Free on orders over $100</div></div>
         <span id="summary-shipping">-</span>
       </div>
-      <div class="srow">-</span><span id="summary-tax">-</span></div>
-      <div class="srow stotal">-</span><span id="summary-total">-</span></div>
+      <div class="srow"><span>Tax</span><span id="summary-tax">-</span></div>
+      <div class="srow stotal"><span>Total</span><span id="summary-total">-</span></div>
       <button id="checkout-btn">Checkout</button>
     </div>
   </div>
@@ -1595,11 +1603,8 @@ body.light-mode::after{opacity:0.15}
     <button class="mclose" id="payment-close">&#215;</button>
     <h2>Secure Checkout</h2>
     <p class="psub">Powered by Stripe - 256-bit SSL encryption</p>
-    <div id="payment-request-btn" style="margin-bottom:1rem;display:none"></div>
-    <div id="wallet-methods" class="wallet-methods" aria-hidden="true">
-      <span class="wallet-chip">Apple Pay</span>
-      <span class="wallet-chip">Google Pay</span>
-    </div>
+    <div id="payment-request-btn" style="display:none" aria-hidden="true"></div>
+    <div id="wallet-methods" class="wallet-methods" aria-hidden="true"></div>
     <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0;font-family:var(--fm);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.28)">- or pay with card -</div>
     <div class="pgrow">
       <div class="pfield"><label>Full Name</label><input type="text" id="pay-name" placeholder="Jane Smith" autocomplete="name"></div>
@@ -2430,6 +2435,268 @@ async function removeFav(pid, el) {
 }
 document.querySelectorAll('.heart-btn').forEach(b => b.addEventListener('click', () => toggleFav(b)));
 
+const _homeFavoriteCache = new Map();
+
+function escapeHomeFavoriteHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function parseHomeFavoritePrice(value) {
+  if (typeof value === 'string') {
+    const parsed = parseFloat(value.replace(/[^0-9.]/g, ''));
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return parseFloat(value ?? 0) || 0;
+}
+
+function getHomeFavoritePrice(detail, fallbackPrice) {
+  const regular = parseHomeFavoritePrice(detail?.current_price ?? fallbackPrice);
+  const member = parseHomeFavoritePrice(detail?.member_price);
+  if (_user && member > 0 && (!regular || member < regular)) return member;
+  return regular;
+}
+
+function compareHomeFavoriteSizes(left, right) {
+  const normalize = (value) => String(value || '')
+    .toLowerCase()
+    .replace(/[()]/g, ' ')
+    .replace(/[^a-z0-9/]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const rank = (value) => {
+    const normalized = normalize(value);
+    const direct = {
+      'xxs': -20,
+      'xs': -10,
+      's': 0,
+      's/m': 5,
+      'm': 10,
+      'm/l': 15,
+      'l': 20,
+      'l/xl': 25,
+      'xl': 30,
+      'xxl': 40,
+      '2xl': 40,
+      'xxxl': 50,
+      '3xl': 50,
+      'one size': 1000,
+      'one size fits most': 1000
+    };
+    if (Object.prototype.hasOwnProperty.call(direct, normalized)) return direct[normalized];
+    const numeric = normalized.match(/^(\d+)xl$/);
+    if (numeric) return 30 + (parseInt(numeric[1], 10) * 10);
+    return 500;
+  };
+  return rank(left) - rank(right);
+}
+
+function pickHomeFavoriteSize(sizeRows) {
+  const rows = (Array.isArray(sizeRows) ? sizeRows : [])
+    .map((row) => ({
+      label: row?.size || row?.size_label || '',
+      stock: Number(row?.stock_quantity ?? row?.stock ?? 0)
+    }))
+    .filter((row) => row.label);
+  const inStock = rows.filter((row) => row.stock > 0);
+  const source = inStock.length ? inStock : rows;
+  if (!source.length) return '';
+  source.sort((left, right) => compareHomeFavoriteSizes(left.label, right.label));
+  return source[0]?.label || '';
+}
+
+function buildHomeFavoriteDetail(product, extra, favorite) {
+  const images = Array.isArray(extra?.images) ? extra.images : [];
+  const colors = Array.isArray(extra?.colors) ? extra.colors : [];
+  const sizes = Array.isArray(extra?.sizes) ? extra.sizes : [];
+  const detail = {
+    id: product?.id || favorite?.product_id,
+    title: product?.title || favorite?.product_name || 'Saved Item',
+    subtitle: product?.category || product?.subtitle || '',
+    sku: product?.sku || '',
+    image: images[0]?.image_url || product?.image_url || '',
+    current_price: parseHomeFavoritePrice(product?.current_price ?? product?.price ?? favorite?.price),
+    member_price: parseHomeFavoritePrice(product?.member_price),
+    colorName: colors[0]?.color_name || product?.colorway || 'Standard',
+    sizes
+  };
+  detail.href = productHref({ id: detail.id, sku: detail.sku, title: detail.title });
+  _homeFavoriteCache.set(detail.id, detail);
+  return detail;
+}
+
+async function getHomeFavoriteDetail(productId, favorite) {
+  if (!productId) return null;
+  if (_homeFavoriteCache.has(productId)) return _homeFavoriteCache.get(productId);
+  try {
+    const cached = JSON.parse(sessionStorage.getItem('zw_home_products') || '[]');
+    const matched = Array.isArray(cached) ? cached.find((product) => product?.id === productId) : null;
+    if (matched) {
+      return buildHomeFavoriteDetail(matched, {
+        images: matched.product_images || [],
+        colors: [],
+        sizes: []
+      }, favorite);
+    }
+  } catch {}
+
+  try {
+    const headers = { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` };
+    const encodedId = encodeURIComponent(productId);
+    const [productResp, imagesResp, colorsResp, sizesResp] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/products?select=*&id=eq.${encodedId}&limit=1`, { headers }),
+      fetch(`${SUPABASE_URL}/rest/v1/product_images?select=*&product_id=eq.${encodedId}&order=sort_order.asc`, { headers }),
+      fetch(`${SUPABASE_URL}/rest/v1/color_variants?select=*&product_id=eq.${encodedId}&order=sort_order.asc`, { headers }),
+      fetch(`${SUPABASE_URL}/rest/v1/product_sizes?select=*&product_id=eq.${encodedId}`, { headers })
+    ]);
+    const productRows = productResp.ok ? await productResp.json() : [];
+    const product = Array.isArray(productRows) ? productRows[0] : null;
+    if (!product) return null;
+    const images = imagesResp.ok ? await imagesResp.json() : [];
+    const colors = colorsResp.ok ? await colorsResp.json() : [];
+    const sizes = sizesResp.ok ? await sizesResp.json() : [];
+    return buildHomeFavoriteDetail(product, { images, colors, sizes }, favorite);
+  } catch {
+    return null;
+  }
+}
+
+function homeFavoriteCardHtml(favorite, detail, mode) {
+  const productId = favorite.product_id;
+  const name = detail?.title || favorite.product_name || 'Saved Item';
+  const subtitle = detail?.subtitle
+    ? `<div style="font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(244,241,235,.35);margin-top:.2rem;">${escapeHomeFavoriteHtml(detail.subtitle)}</div>`
+    : '';
+  const imageHtml = detail?.image
+    ? `<img src="${typeof window.optimizeImage === 'function' ? window.optimizeImage(detail.image, 180) : detail.image}" alt="${escapeHomeFavoriteHtml(name)}" style="width:68px;height:86px;object-fit:cover;border:1px solid rgba(244,241,235,.08);flex-shrink:0;" onerror="if(this.src !== '${detail.image}') this.src='${detail.image}';">`
+    : `<div style="width:68px;height:86px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(244,241,235,.08);color:rgba(244,241,235,.28);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;flex-shrink:0;">No Image</div>`;
+  const displayPrice = getHomeFavoritePrice(detail, favorite.price);
+  const priceHtml = displayPrice > 0
+    ? `<div style="font-size:.82rem;color:rgba(244,241,235,.72);margin-top:.45rem;">$${displayPrice.toFixed(2)}</div>`
+    : '';
+  const tag = mode === 'account' ? 'div' : 'li';
+  const href = detail?.href || productHref({ id: productId, title: name });
+  return `
+    <${tag} style="display:flex;gap:.85rem;align-items:flex-start;padding:${mode === 'account' ? '.95rem 0' : '.75rem 0'};border-bottom:1px solid rgba(244,241,235,.07);">
+      ${imageHtml}
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.88rem;line-height:1.35;">${escapeHomeFavoriteHtml(name)}</div>
+        ${subtitle}
+        ${priceHtml}
+        <div style="display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.8rem;">
+          <a href="${href}" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 .85rem;border:1px solid rgba(244,241,235,.14);font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;color:rgba(244,241,235,.76);text-decoration:none;">View Product</a>
+          <button type="button" onclick="addHomeFavoriteToCart('${productId}')" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 .85rem;border:none;background:#f4f1eb;color:#09090b;font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;cursor:pointer;">Add to Bag</button>
+          <button type="button" onclick="removeFav('${productId}', null)" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 .85rem;border:1px solid rgba(244,241,235,.08);background:none;color:rgba(244,241,235,.46);font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;cursor:pointer;">Remove</button>
+        </div>
+      </div>
+    </${tag}>
+  `;
+}
+
+async function renderHomeFavoriteCollection(listEl, favorites, mode) {
+  if (!listEl) return;
+  const pairs = await Promise.all(favorites.map(async (favorite) => ({
+    favorite,
+    detail: await getHomeFavoriteDetail(favorite.product_id, favorite)
+  })));
+  listEl.innerHTML = pairs.map(({ favorite, detail }) => homeFavoriteCardHtml(favorite, detail, mode)).join('');
+}
+
+window.addHomeFavoriteToCart = async function(productId) {
+  const favorite = _favs.find((item) => item.product_id === productId) || { product_id: productId };
+  const detail = await getHomeFavoriteDetail(productId, favorite);
+  if (!detail) {
+    window.location.href = productHref({ id: productId, title: favorite.product_name || 'product' });
+    return;
+  }
+  const size = pickHomeFavoriteSize(detail.sizes);
+  const regularPrice = parseHomeFavoritePrice(detail.current_price ?? favorite.price);
+  const memberPrice = parseHomeFavoritePrice(detail.member_price);
+  const effectivePrice = getHomeFavoritePrice(detail, favorite.price);
+  const cart = normalizeCartPricing(JSON.parse(localStorage.getItem('cart') || '[]'));
+  const existing = cart.find((item) =>
+    item.productId === detail.id &&
+    item.size === size &&
+    item.colorName === detail.colorName &&
+    String(item.sku || '') === String(detail.sku || '')
+  );
+  if (existing) {
+    existing.quantity += 1;
+  } else {
+    cart.push({
+      productId: detail.id,
+      sku: detail.sku,
+      title: detail.title,
+      size,
+      colorName: detail.colorName,
+      regularPrice,
+      memberPrice,
+      price: effectivePrice || regularPrice,
+      image: detail.image,
+      quantity: 1
+    });
+  }
+  localStorage.setItem('cart', JSON.stringify(cart));
+  renderCart();
+  showToast(`Added ${detail.title}${size ? ` (${size})` : ''} to bag.`);
+};
+
+function renderAcctFavs() {
+  document.getElementById('acct-favs-loading').style.display = 'none';
+  const empty = document.getElementById('acct-favs-empty');
+  const list = document.getElementById('acct-favs-list');
+  if(!_favs.length){ empty.style.display = 'block'; list.innerHTML=''; return; }
+  empty.style.display = 'none';
+  void renderHomeFavoriteCollection(list, _favs, 'account');
+}
+
+async function loadFavs() {
+  if(!_sb || !_user) return;
+  const { data } = await _sb.from('favorites').select('product_id,product_name,price').eq('user_id',_user.id);
+  _favs = data || [];
+  refreshHearts();
+  void refreshCartFavs();
+}
+
+async function refreshCartFavs() {
+  const out = document.getElementById('fav-logged-out-msg');
+  const inn = document.getElementById('fav-logged-in-area');
+  const empty = document.getElementById('cart-favs-empty');
+  const list = document.getElementById('cart-favs-list');
+  if(!_user){ if(out) out.style.display='block'; if(inn) inn.style.display='none'; return; }
+  if(out) out.style.display='none'; if(inn) inn.style.display='block';
+  if(!_favs.length){ if(empty) empty.style.display='block'; if(list) list.innerHTML=''; return; }
+  if(empty) empty.style.display='none';
+  await renderHomeFavoriteCollection(list, _favs, 'cart');
+}
+
+async function toggleFav(btn) {
+  if(!_user){ openAuth('signin'); return; }
+  const pid = btn.dataset.productId, pname = btn.dataset.productName, price = btn.dataset.price;
+  if(_favs.some(f => f.product_id === pid)){ await removeFav(pid, null); }
+  else {
+    if(_sb) await _sb.from('favorites').upsert({ user_id:_user.id, product_id:pid, product_name:pname, price });
+    _favs.push({ product_id:pid, product_name:pname, price });
+    refreshHearts();
+    void refreshCartFavs();
+    showToast('Saved!');
+  }
+}
+
+async function removeFav(pid, el) {
+  if(_sb && _user) await _sb.from('favorites').delete().eq('user_id',_user.id).eq('product_id',pid);
+  _favs = _favs.filter(f => f.product_id !== pid);
+  _homeFavoriteCache.delete(pid);
+  if(el) el.remove();
+  refreshHearts();
+  void refreshCartFavs();
+  showToast('Removed from saved.');
+}
+
 /* CART */
 let cartItems = [];
 
@@ -2651,13 +2918,20 @@ function resetWalletUi() {
 function renderWalletHints(result) {
   const walletHints = document.getElementById('wallet-methods');
   if (!walletHints) return;
-  const hasNamedWallet = !!(result?.applePay || result?.googlePay);
-  const buttons = hasNamedWallet
-    ? [
-        { key:'applePay', label:'Apple Pay', enabled:!!result.applePay, mark:'A' },
-        { key:'googlePay', label:'Google Pay', enabled:!!result.googlePay, mark:'G' },
-      ]
-    : [{ key:'fastCheckout', label:'Fast Checkout', enabled:true, mark:'Go' }];
+  const buttons = [
+    {
+      key:'applePay',
+      enabled:!!result?.applePay,
+      icon:`<span class="wallet-chip__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.7 12.7c0-2 1.7-3 1.8-3.1-1-1.4-2.5-1.6-3-1.6-1.3-.1-2.4.7-3.1.7-.7 0-1.7-.7-2.7-.7-1.4 0-2.7.8-3.4 2-.7 1.2-.9 3.1-.2 4.9.5 1.2 1.2 2.5 2.1 2.5.8 0 1.1-.5 2.1-.5.9 0 1.2.5 2.1.5.9 0 1.5-1.2 2-2.4.6-1.4.8-2.1.8-2.1-.1 0-1.5-.6-1.5-2.2Zm-2-6c.4-.5.7-1.2.6-1.9-.6 0-1.3.4-1.7.9-.4.5-.7 1.2-.6 1.8.7.1 1.4-.3 1.7-.8Z"/></svg></span>`,
+      brand:'<span class="wallet-chip__brand">Apple</span><span>Pay</span>'
+    },
+    {
+      key:'googlePay',
+      enabled:!!result?.googlePay,
+      icon:`<span class="wallet-chip__icon wallet-chip__icon--google" aria-hidden="true">G</span>`,
+      brand:'<span class="wallet-chip__brand">Google</span><span>Pay</span>'
+    }
+  ];
   walletHints.innerHTML = buttons.map(button => `
     <button
       type="button"
@@ -2665,8 +2939,8 @@ function renderWalletHints(result) {
       data-wallet="${button.key}"
       ${button.enabled ? '' : 'disabled title="Unavailable on this browser or device"'}
     >
-      <span class="wallet-chip__mark" aria-hidden="true">${button.mark}</span>
-      <span class="wallet-chip__label">${button.label}</span>
+      ${button.icon}
+      <span class="wallet-chip__label">${button.brand}</span>
     </button>
   `).join('');
   walletHints.querySelectorAll('button:not([disabled])').forEach(button => {
@@ -2674,7 +2948,7 @@ function renderWalletHints(result) {
       if (payReq?.show) payReq.show();
     });
   });
-  walletHints.style.display = 'flex';
+  walletHints.style.display = 'grid';
 }
 function initPR(subtotalCents) {
   const normalizedSubtotalCents = Math.max(0, subtotalCents || 0);
@@ -2745,15 +3019,9 @@ function initPR(subtotalCents) {
       document.getElementById('pay-error').textContent = 'Fast checkout could not be completed. Please try card checkout.';
     }
   });
-  payReqButton = elements.create('paymentRequestButton', { paymentRequest:payReq, style:{ paymentRequestButton:{ type:'default', theme:'light', height:'48px' } } });
   payReq.canMakePayment().then(result => {
-    const walletHost = document.getElementById('payment-request-btn');
     const divider = document.getElementById('pay-divider');
     if(result){
-      if (walletHost) {
-        payReqButton.mount('#payment-request-btn');
-        walletHost.style.display = 'block';
-      }
       if (divider) divider.style.display = 'block';
       renderWalletHints(result);
     } else {
