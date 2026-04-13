@@ -1,8 +1,12 @@
 // ===================== SUPABASE AUTH =====================
-const SUPABASE_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+// Note: SUPABASE_URL and SUPABASE_ANON are intentionally NOT declared as top-level
+// consts here — some pages (product.html) declare them as consts too, which would
+// cause a SyntaxError and crash all of auth.js on those pages.
 window.sb = window.sb || ((typeof supabase !== 'undefined')
-  ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+  ? supabase.createClient(
+      'https://qfgnrsifcwdubkolsgsq.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY',
+      {
       auth: { persistSession: true, storageKey: 'zuwera-auth', flowType: 'implicit' },
       global: { headers: { 'X-Client-Info': 'zuwera-store' } }
     })

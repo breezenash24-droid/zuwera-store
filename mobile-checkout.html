@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>Pay with Apple Pay — Zuwera</title>
+  <link rel="icon" href="/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink: #09090b;
+      --paper: #f4f1eb;
+      --pink: #F891A5;
+      --gold: #d4af7a;
+      --bg: #09090b;
+      --surface: #0f0f0f;
+      --border: rgba(244,241,235,.08);
+      --text: #f4f1eb;
+      --sub: rgba(244,241,235,.52);
+    }
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100dvh;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* ── Header ── */
+    .mc-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .mc-logo {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 600;
+      font-size: 1.25rem;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--paper);
+      text-decoration: none;
+    }
+
+    /* ── Main ── */
+    .mc-main {
+      flex: 1;
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 1.5rem 1.25rem 2rem;
+    }
+
+    /* ── States ── */
+    #state-loading, #state-checkout, #state-success, #state-unsupported {
+      display: none;
+    }
+    #state-loading.active, #state-checkout.active, #state-success.active, #state-unsupported.active {
+      display: block;
+    }
+
+    /* Loading spinner */
+    .mc-spinner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+    }
+    .mc-spinner::after {
+      content: '';
+      width: 36px;
+      height: 36px;
+      border: 2px solid var(--border);
+      border-top-color: var(--pink);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Section headings ── */
+    .mc-section-label {
+      font-size: .65rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--sub);
+      margin-bottom: .9rem;
+    }
+
+    /* ── Order summary ── */
+    .mc-items {
+      list-style: none;
+      border: 1px solid var(--border);
+      border-top: 2px solid var(--pink);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .mc-item {
+      display: flex;
+      align-items: flex-start;
+      gap: .85rem;
+      padding: .9rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .mc-item:last-child { border-bottom: none; }
+    .mc-item-info { flex: 1; min-width: 0; }
+    .mc-item-name {
+      font-size: .88rem;
+      font-weight: 500;
+      line-height: 1.35;
+      color: var(--text);
+    }
+    .mc-item-meta {
+      font-size: .72rem;
+      color: var(--sub);
+      margin-top: .2rem;
+    }
+    .mc-item-price {
+      font-size: .88rem;
+      font-weight: 500;
+      white-space: nowrap;
+      padding-top: .15rem;
+    }
+
+    /* ── Totals ── */
+    .mc-totals {
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: .9rem 1rem;
+      margin-bottom: 1.75rem;
+    }
+    .mc-total-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: .82rem;
+      color: var(--sub);
+      padding: .25rem 0;
+    }
+    .mc-total-row.grand {
+      font-size: .96rem;
+      font-weight: 600;
+      color: var(--text);
+      border-top: 1px solid var(--border);
+      margin-top: .5rem;
+      padding-top: .7rem;
+    }
+
+    /* ── Payment request button ── */
+    .mc-pay-section { margin-bottom: 1.5rem; }
+    #pr-button-wrap { display: none; }
+    #pr-button { min-height: 52px; border-radius: 8px; }
+
+    /* ── Locked badge ── */
+    .mc-secure {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .4rem;
+      font-size: .68rem;
+      letter-spacing: .05em;
+      color: rgba(244,241,235,.28);
+      text-transform: uppercase;
+      padding-top: .5rem;
+    }
+    .mc-secure svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+    /* ── Error banner ── */
+    #mc-error {
+      display: none;
+      background: rgba(192,57,43,.12);
+      border: 1px solid rgba(192,57,43,.25);
+      color: #e07060;
+      font-size: .82rem;
+      padding: .75rem 1rem;
+      border-radius: 2px;
+      margin-bottom: 1rem;
+    }
+    #mc-error.visible { display: block; }
+
+    /* ── Success ── */
+    .mc-success {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 65vh;
+      text-align: center;
+      gap: 1rem;
+      padding: 2rem 1rem;
+    }
+    .mc-success-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(248,145,165,.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: .5rem;
+    }
+    .mc-success-icon svg { width: 30px; height: 30px; }
+    .mc-success h2 {
+      font-family: 'Barlow', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .mc-success p { font-size: .88rem; color: var(--sub); line-height: 1.6; max-width: 280px; }
+    .mc-success-order {
+      font-size: .75rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--sub);
+      background: rgba(244,241,235,.04);
+      border: 1px solid var(--border);
+      padding: .45rem .9rem;
+      border-radius: 2px;
+    }
+    .mc-btn-home {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      padding: 0 1.75rem;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'DM Sans', sans-serif;
+      font-size: .78rem;
+      font-weight: 600;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      text-decoration: none;
+      border: none;
+      border-radius: 2px;
+      cursor: pointer;
+      margin-top: .5rem;
+    }
+
+    /* ── Unsupported ── */
+    .mc-unsupported {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 65vh;
+      text-align: center;
+      gap: .9rem;
+      padding: 2rem 1rem;
+    }
+    .mc-unsupported svg { width: 44px; height: 44px; color: var(--sub); }
+    .mc-unsupported h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .mc-unsupported p { font-size: .84rem; color: var(--sub); line-height: 1.6; max-width: 280px; }
+    .mc-unsupported a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 1.5rem;
+      border: 1px solid var(--border);
+      color: var(--sub);
+      font-size: .75rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      text-decoration: none;
+      border-radius: 2px;
+      margin-top: .25rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="mc-header">
+    <a href="https://zuwera.store" class="mc-logo">Zuwera</a>
+  </header>
+
+  <main class="mc-main">
+
+    <!-- Loading -->
+    <div id="state-loading" class="active">
+      <div class="mc-spinner"></div>
+    </div>
+
+    <!-- Checkout -->
+    <div id="state-checkout">
+      <p class="mc-section-label">Order Summary</p>
+      <ul class="mc-items" id="mc-items-list"></ul>
+
+      <div class="mc-totals">
+        <div class="mc-total-row"><span>Subtotal</span><span id="mc-subtotal">—</span></div>
+        <div class="mc-total-row"><span>Shipping</span><span id="mc-shipping">—</span></div>
+        <div class="mc-total-row"><span>Tax (8%)</span><span id="mc-tax">—</span></div>
+        <div class="mc-total-row grand"><span>Total</span><span id="mc-total">—</span></div>
+      </div>
+
+      <div class="mc-pay-section">
+        <p class="mc-section-label">Payment</p>
+        <div id="mc-error"></div>
+        <div id="pr-button-wrap">
+          <div id="pr-button"></div>
+        </div>
+      </div>
+
+      <div class="mc-secure">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Secured by Stripe
+      </div>
+    </div>
+
+    <!-- Success -->
+    <div id="state-success">
+      <div class="mc-success">
+        <div class="mc-success-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#F891A5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <h2>Order Confirmed</h2>
+        <p id="mc-success-msg">Thank you! A confirmation has been sent to your email.</p>
+        <span class="mc-success-order" id="mc-success-order"></span>
+        <a href="https://zuwera.store" class="mc-btn-home">Continue Shopping</a>
+      </div>
+    </div>
+
+    <!-- Unsupported (Apple Pay not available on this device) -->
+    <div id="state-unsupported">
+      <div class="mc-unsupported">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <h2>Apple Pay Unavailable</h2>
+        <p>Apple Pay requires Safari on an iPhone or Mac with Apple Pay set up. Please open this page in Safari.</p>
+        <a href="https://zuwera.store">Go to Zuwera Store</a>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="https://js.stripe.com/v3/"></script>
+  <script>
+    const STRIPE_KEY = 'pk_live_51T8ct20oFp4PJGitDcNMSLu9jQMFajtwqib8dTX4WhubBon2Pso2VgkHhTHcbuKNUi9ljfwMX8Bx2uhEp1Fp2VfY00LFKvLEy4';
+    const TAX_RATE = 0.08;
+    const SHIP_RATE_CENTS = 800;
+    const FREE_SHIP_THRESHOLD = 100;
+
+    function showState(id) {
+      ['state-loading','state-checkout','state-success','state-unsupported'].forEach(s => {
+        document.getElementById(s).classList.toggle('active', s === id);
+      });
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('mc-error');
+      el.textContent = msg;
+      el.classList.add('visible');
+    }
+
+    function fmt(cents) {
+      return '$' + (cents / 100).toFixed(2);
+    }
+
+    // ── Parse cart from URL ──────────────────────────────────────────
+    function parseCart() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const raw = params.get('c') || params.get('cart');
+        if (!raw) return null;
+        const decoded = JSON.parse(atob(decodeURIComponent(raw)));
+        if (!Array.isArray(decoded) || !decoded.length) return null;
+        return decoded;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // Map compact keys back to full cart item format
+    function expandCartItem(item) {
+      return {
+        productId: item.pid || item.productId || '',
+        name: item.nm || item.name || 'Item',
+        size: item.sz || item.size || '',
+        colorName: item.cn || item.colorName || '',
+        sku: item.sk || item.sku || '',
+        quantity: item.qty || item.quantity || 1,
+        price: item.pr || item.price || 0,
+        regularPrice: item.rp || item.regularPrice || item.pr || item.price || 0,
+        memberPrice: item.mp || item.memberPrice || 0,
+      };
+    }
+
+    // ── Render order summary ─────────────────────────────────────────
+    function renderSummary(items) {
+      const list = document.getElementById('mc-items-list');
+      list.innerHTML = items.map(item => {
+        const meta = [item.size, item.colorName].filter(Boolean).join(' · ');
+        const lineTotal = (item.price * (item.quantity || 1)).toFixed(2);
+        return `
+          <li class="mc-item">
+            <div class="mc-item-info">
+              <div class="mc-item-name">${escHtml(item.name)}${item.quantity > 1 ? ` <span style="color:var(--sub);font-weight:400;">×${item.quantity}</span>` : ''}</div>
+              ${meta ? `<div class="mc-item-meta">${escHtml(meta)}</div>` : ''}
+            </div>
+            <div class="mc-item-price">$${lineTotal}</div>
+          </li>
+        `;
+      }).join('');
+
+      const subtotalCents = Math.round(items.reduce((s, i) => s + (i.price * (i.quantity || 1) * 100), 0));
+      const shippingCents = subtotalCents / 100 >= FREE_SHIP_THRESHOLD ? 0 : SHIP_RATE_CENTS;
+      const taxCents = Math.round(subtotalCents * TAX_RATE);
+      const totalCents = subtotalCents + shippingCents + taxCents;
+
+      document.getElementById('mc-subtotal').textContent = fmt(subtotalCents);
+      document.getElementById('mc-shipping').textContent = shippingCents === 0 ? 'Free' : fmt(shippingCents);
+      document.getElementById('mc-tax').textContent = fmt(taxCents);
+      document.getElementById('mc-total').textContent = fmt(totalCents);
+
+      return { subtotalCents, shippingCents, taxCents, totalCents };
+    }
+
+    function escHtml(str) {
+      return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ── Stripe checkout ──────────────────────────────────────────────
+    async function initCheckout(items, totals) {
+      const stripe = Stripe(STRIPE_KEY);
+
+      const payReq = stripe.paymentRequest({
+        country: 'US',
+        currency: 'usd',
+        total: { label: 'Zuwera', amount: totals.totalCents },
+        displayItems: [
+          { label: 'Subtotal', amount: totals.subtotalCents },
+          { label: 'Shipping', amount: totals.shippingCents },
+          { label: 'Tax', amount: totals.taxCents }
+        ],
+        requestPayerName: true,
+        requestPayerEmail: true,
+        requestShipping: true,
+        shippingOptions: [{
+          id: 'standard',
+          label: totals.shippingCents === 0 ? 'Free Shipping' : 'Standard Shipping',
+          detail: totals.shippingCents === 0 ? 'Complimentary on orders over $100' : '5–8 business days',
+          amount: totals.shippingCents
+        }]
+      });
+
+      const result = await payReq.canMakePayment();
+      if (!result?.applePay) {
+        showState('state-unsupported');
+        return;
+      }
+
+      // Mount the Payment Request Button (renders as official Apple Pay button)
+      const elements = stripe.elements();
+      const prButton = elements.create('paymentRequestButton', {
+        paymentRequest: payReq,
+        style: {
+          paymentRequestButton: {
+            type: 'buy',
+            theme: 'dark',
+            height: '54px'
+          }
+        }
+      });
+      prButton.mount('#pr-button');
+      document.getElementById('pr-button-wrap').style.display = 'block';
+
+      showState('state-checkout');
+
+      // Handle shipping address change
+      payReq.on('shippingaddresschange', ev => {
+        // Recalculate if needed — for now keep same rates
+        ev.updateWith({
+          status: 'success',
+          shippingOptions: [{
+            id: 'standard',
+            label: totals.shippingCents === 0 ? 'Free Shipping' : 'Standard Shipping',
+            detail: '5–8 business days',
+            amount: totals.shippingCents
+          }],
+          total: { label: 'Zuwera', amount: totals.totalCents }
+        });
+      });
+
+      // Handle payment completion
+      payReq.on('paymentmethod', async ev => {
+        try {
+          const a = ev.shippingAddress || {};
+          const resp = await fetch('/api/create-payment-intent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              items,
+              shippingRate: null,
+              shippingAmountCents: totals.shippingCents,
+              userId: null,
+              address: {
+                name: ev.payerName || '',
+                email: ev.payerEmail || '',
+                line1: a.addressLine?.[0] || '',
+                line2: a.addressLine?.[1] || '',
+                city: a.city || '',
+                state: a.region || '',
+                zip: a.postalCode || '',
+                country: a.country || 'US'
+              }
+            })
+          });
+
+          const d = await resp.json();
+
+          if (d.error) {
+            ev.complete('fail');
+            showError(d.error);
+            return;
+          }
+
+          const { error } = await stripe.confirmCardPayment(
+            d.clientSecret,
+            { payment_method: ev.paymentMethod.id },
+            { handleActions: false }
+          );
+
+          if (error) {
+            ev.complete('fail');
+            showError(error.message);
+          } else {
+            ev.complete('success');
+            const oid = (d.orderId || d.paymentIntentId || '').slice(-8).toUpperCase();
+            document.getElementById('mc-success-order').textContent = oid ? 'Order #' + oid : '';
+            document.getElementById('mc-success-msg').textContent =
+              `Thank you! A confirmation has been sent to ${ev.payerEmail || 'your email'}.`;
+            showState('state-success');
+          }
+        } catch (e) {
+          ev.complete('fail');
+          showError('Payment could not be completed. Please try again.');
+        }
+      });
+    }
+
+    // ── Boot ─────────────────────────────────────────────────────────
+    (function boot() {
+      showState('state-loading');
+
+      const rawCart = parseCart();
+      if (!rawCart) {
+        showState('state-unsupported');
+        document.querySelector('.mc-unsupported h2').textContent = 'Cart Not Found';
+        document.querySelector('.mc-unsupported p').textContent =
+          'No cart data was found. Please go back to the store and try again.';
+        return;
+      }
+
+      const items = rawCart.map(expandCartItem);
+      const totals = renderSummary(items);
+
+      initCheckout(items, totals).catch(() => {
+        showState('state-unsupported');
+      });
+    })();
+  </script>
+</body>
+</html>

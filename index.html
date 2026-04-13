@@ -2960,37 +2960,34 @@ function resetWalletUi() {
 function renderWalletHints(result) {
   const walletHints = document.getElementById('wallet-methods');
   if (!walletHints) return;
-  const buttons = [
-    {
-      key:'applePay',
-      enabled:!!result?.applePay,
-      icon:`<span class="wallet-chip__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg></span>`,
-      brand:'<span class="wallet-chip__brand">Apple</span><span>Pay</span>'
-    },
-    {
-      key:'googlePay',
-      enabled:!!result?.googlePay,
-      icon:`<span class="wallet-chip__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg></span>`,
-      brand:'<span class="wallet-chip__brand">Google</span><span>Pay</span>'
-    }
-  ];
-  walletHints.innerHTML = buttons.map(button => `
-    <button
-      type="button"
-      class="wallet-chip wallet-chip--${button.key}"
-      data-wallet="${button.key}"
-      ${button.enabled ? '' : 'disabled title="Unavailable on this browser or device"'}
-    >
-      ${button.icon}
-      <span class="wallet-chip__label">${button.brand}</span>
-    </button>
-  `).join('');
-  walletHints.querySelectorAll('button:not([disabled])').forEach(button => {
-    button.addEventListener('click', () => {
-      if (payReq?.show) payReq.show();
-    });
+  const appleAvail  = !!result?.applePay;
+  const googleAvail = !!result?.googlePay;
+  const appleIcon  = `<span class="wallet-chip__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg></span>`;
+  const googleIcon = `<span class="wallet-chip__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg></span>`;
+
+  let html = '';
+  // Apple Pay — always show; if not natively available, show as QR Scan option
+  if (appleAvail) {
+    html += `<button type="button" class="wallet-chip wallet-chip--applePay" data-wallet="applePay" data-action="pay">${appleIcon}<span class="wallet-chip__label"><span class="wallet-chip__brand">Apple</span><span>Pay</span></span></button>`;
+  } else {
+    html += `<button type="button" class="wallet-chip wallet-chip--applePay" data-wallet="applePay" data-action="qr" title="Scan QR with iPhone to pay with Apple Pay">${appleIcon}<span class="wallet-chip__label" style="flex-direction:column;gap:.05rem;align-items:flex-start;"><span style="display:flex;align-items:center;gap:.3rem;font-weight:700;"><span class="wallet-chip__brand">Apple</span><span>Pay</span></span><span style="font-size:.56rem;letter-spacing:.04em;color:rgba(244,241,235,.45);text-transform:none;">Scan QR with iPhone</span></span></button>`;
+  }
+  // Google Pay — only show when actually available
+  if (googleAvail) {
+    html += `<button type="button" class="wallet-chip wallet-chip--googlePay" data-wallet="googlePay" data-action="pay">${googleIcon}<span class="wallet-chip__label"><span class="wallet-chip__brand">Google</span><span>Pay</span></span></button>`;
+  }
+
+  walletHints.innerHTML = html;
+
+  walletHints.querySelectorAll('button[data-action="pay"]').forEach(btn => {
+    btn.addEventListener('click', () => { if (payReq?.show) payReq.show(); });
   });
-  walletHints.style.display = 'grid';
+  walletHints.querySelectorAll('button[data-action="qr"]').forEach(btn => {
+    btn.addEventListener('click', () => { if (typeof showApplePayQrModal === 'function') showApplePayQrModal(); });
+  });
+  walletHints.style.display = 'flex';
+  walletHints.style.flexDirection = 'column';
+  walletHints.style.gap = '.55rem';
 }
 function initPR(subtotalCents) {
   const normalizedSubtotalCents = Math.max(0, subtotalCents || 0);
@@ -3079,14 +3076,14 @@ function initPR(subtotalCents) {
   });
   payReq.canMakePayment().then(result => {
     const divider = document.getElementById('pay-divider');
-    if(result){
-      if (divider) divider.style.display = 'block';
-      renderWalletHints(result);
-    } else {
-      resetWalletUi();
-    }
+    // Always show wallet hints — Apple Pay shows as QR scan option when not natively available
+    if (divider) divider.style.display = 'block';
+    renderWalletHints(result || {});
   }).catch(() => {
-    resetWalletUi();
+    // Still show Apple Pay QR option on error
+    const divider = document.getElementById('pay-divider');
+    if (divider) divider.style.display = 'block';
+    renderWalletHints({});
   });
 }
 
@@ -3325,6 +3322,68 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catc
 })();
 function acceptCookies(){try{localStorage.setItem('zw_cookie_consent','accepted');}catch(e){}document.getElementById('cookie-banner').style.display='none'}
 function declineCookies(){try{localStorage.setItem('zw_cookie_consent','declined');}catch(e){}document.getElementById('cookie-banner').style.display='none'}
+</script>
+
+<!-- Apple Pay QR Modal -->
+<div id="apple-pay-qr-modal" style="display:none;position:fixed;inset:0;z-index:8000;background:rgba(9,9,11,.86);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1.5rem;">
+  <div style="background:#0f0f0f;border:1px solid rgba(244,241,235,.08);border-top:2px solid #F891A5;border-radius:2px;padding:2rem 1.75rem 1.75rem;max-width:340px;width:100%;text-align:center;position:relative;">
+    <button onclick="document.getElementById('apple-pay-qr-modal').style.display='none';" aria-label="Close" style="position:absolute;top:.85rem;right:.85rem;background:none;border:none;cursor:pointer;color:rgba(244,241,235,.4);font-size:1.25rem;line-height:1;padding:.2rem;">&#x2715;</button>
+    <div style="display:flex;align-items:center;justify-content:center;gap:.6rem;margin-bottom:.9rem;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+      <span style="font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:600;letter-spacing:.04em;color:#f4f1eb;">Pay with Apple Pay</span>
+    </div>
+    <p style="font-size:.78rem;color:rgba(244,241,235,.5);margin-bottom:1.25rem;line-height:1.5;">Scan with your iPhone camera to complete payment with Apple Pay</p>
+    <div id="apple-pay-qr-code" style="display:inline-flex;align-items:center;justify-content:center;background:#fff;border-radius:4px;padding:10px;"></div>
+    <p style="font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(244,241,235,.25);margin-top:1.1rem;">Point your iPhone camera at the code</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+let _qrInstance = null;
+
+function showApplePayQrModal() {
+  const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+  if (!cart.length) return;
+
+  // Build compact cart payload (strip image URLs to keep QR code small)
+  const compact = cart.map(function(item) {
+    return {
+      pid: item.productId || '',
+      nm:  item.name || item.productName || '',
+      sz:  item.size || '',
+      cn:  item.colorName || '',
+      sk:  item.sku || '',
+      qty: item.quantity || 1,
+      pr:  item.price || 0,
+      rp:  item.regularPrice || item.price || 0
+    };
+  });
+
+  var cartData = btoa(unescape(encodeURIComponent(JSON.stringify(compact))));
+  var url = 'https://zuwera.store/mobile-checkout.html?c=' + encodeURIComponent(cartData);
+
+  var modal = document.getElementById('apple-pay-qr-modal');
+  var qrDiv = document.getElementById('apple-pay-qr-code');
+  qrDiv.innerHTML = '';
+  _qrInstance = null;
+
+  if (typeof QRCode !== 'undefined') {
+    _qrInstance = new QRCode(qrDiv, {
+      text: url,
+      width: 220,
+      height: 220,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  } else {
+    // Fallback: show URL as text
+    qrDiv.innerHTML = '<p style="font-size:.7rem;word-break:break-all;color:#09090b;padding:.5rem;max-width:220px;">' + url + '</p>';
+  }
+
+  modal.style.display = 'flex';
+}
 </script>
 </body>
 </html>
