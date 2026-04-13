@@ -684,15 +684,9 @@ footer{
 .wallet-chip[disabled]{opacity:.34;cursor:not-allowed}
 .wallet-chip__icon{
   display:inline-flex;align-items:center;justify-content:center;
-  width:1.2rem;height:1.2rem;flex:0 0 auto;
+  width:1.5rem;height:1.5rem;flex:0 0 auto;
 }
 .wallet-chip__icon svg{width:100%;height:100%;display:block}
-.wallet-chip__icon--google{
-  font-family:'DM Sans',sans-serif;
-  font-size:1rem;font-weight:700;line-height:1;
-  background:linear-gradient(135deg,#4285f4 0 25%,#34a853 25% 50%,#fbbc05 50% 75%,#ea4335 75% 100%);
-  -webkit-background-clip:text;background-clip:text;color:transparent;
-}
 .wallet-chip__label{display:inline-flex;align-items:center;gap:.2rem;letter-spacing:.05em}
 .wallet-chip__brand{font-weight:700}
 .mbox{
@@ -1350,7 +1344,7 @@ body.light-mode::after{opacity:0.15}
 
 <!-- ALL REVIEWS MODAL -->
 <div id="all-reviews-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="all-reviews-title">
-  <div class="mbox review-list-mbox">
+  <div class="review-list-mbox">
     <button id="all-reviews-close" class="mclose review-list-close" aria-label="Close">&#215;</button>
     <h2 id="all-reviews-title" class="review-list-title">All Reviews</h2>
     <button id="all-reviews-write-btn" class="review-submit-btn review-list-write-btn" type="button">Write a Review</button>
@@ -1387,7 +1381,7 @@ body.light-mode::after{opacity:0.15}
 
 <!-- REVIEW MODAL -->
 <div id="review-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
-  <div class="mbox review-mbox">
+  <div class="review-mbox">
     <button class="mclose" id="review-modal-close" aria-label="Close">&#215;</button>
     <h2 id="review-modal-title">Write a Review</h2>
     <p class="review-product-label" id="review-product-label"></p>
@@ -2094,7 +2088,7 @@ function renderProductCards(products, grid) {
         <div class="pcard-img">
           ${imgHtml}
           <div class="pcard-badge">${badge}</div>
-          <button class="heart-btn" onclick="event.stopPropagation()" data-product-id="${p.id}" data-product-name="${productName}" data-price="${priceDisplay}" aria-label="Save">
+          <button class="heart-btn" onclick="event.stopPropagation()" data-product-id="${p.id}" data-product-name="${productName}" data-price="${priceDisplay}" data-product-image="${firstImg || ''}" aria-label="Save">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           </button>
         </div>
@@ -2675,7 +2669,7 @@ function renderAcctFavs() {
 
 async function loadFavs() {
   if(!_sb || !_user) return;
-  const { data } = await _sb.from('favorites').select('product_id,product_name,price').eq('user_id',_user.id);
+  const { data } = await _sb.from('favorites').select('product_id,product_name,price,product_image').eq('user_id',_user.id);
   _favs = data || [];
   refreshHearts();
   void refreshCartFavs();
@@ -2696,6 +2690,7 @@ async function refreshCartFavs() {
 async function toggleFav(btn) {
   if(!_user){ openAuth('signin'); return; }
   const pid = btn.dataset.productId, pname = btn.dataset.productName, price = btn.dataset.price;
+  const pimage = btn.dataset.productImage || '';
   const isActive = _favs.some(f => f.product_id === pid);
   btn.disabled = true;
   try {
@@ -2704,8 +2699,8 @@ async function toggleFav(btn) {
       showToast('Removed from favorites.');
     }
     else {
-      if(_sb) await _sb.from('favorites').upsert({ user_id:_user.id, product_id:pid, product_name:pname, price });
-      _favs.push({ product_id:pid, product_name:pname, price });
+      if(_sb) await _sb.from('favorites').upsert({ user_id:_user.id, product_id:pid, product_name:pname, price, product_image:pimage });
+      _favs.push({ product_id:pid, product_name:pname, price, product_image:pimage });
       refreshHearts();
       void refreshCartFavs();
       showToast('Saved to favorites.');
@@ -2969,13 +2964,13 @@ function renderWalletHints(result) {
     {
       key:'applePay',
       enabled:!!result?.applePay,
-      icon:`<span class="wallet-chip__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.7 12.7c0-2 1.7-3 1.8-3.1-1-1.4-2.5-1.6-3-1.6-1.3-.1-2.4.7-3.1.7-.7 0-1.7-.7-2.7-.7-1.4 0-2.7.8-3.4 2-.7 1.2-.9 3.1-.2 4.9.5 1.2 1.2 2.5 2.1 2.5.8 0 1.1-.5 2.1-.5.9 0 1.2.5 2.1.5.9 0 1.5-1.2 2-2.4.6-1.4.8-2.1.8-2.1-.1 0-1.5-.6-1.5-2.2Zm-2-6c.4-.5.7-1.2.6-1.9-.6 0-1.3.4-1.7.9-.4.5-.7 1.2-.6 1.8.7.1 1.4-.3 1.7-.8Z"/></svg></span>`,
+      icon:`<span class="wallet-chip__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg></span>`,
       brand:'<span class="wallet-chip__brand">Apple</span><span>Pay</span>'
     },
     {
       key:'googlePay',
       enabled:!!result?.googlePay,
-      icon:`<span class="wallet-chip__icon wallet-chip__icon--google" aria-hidden="true">G</span>`,
+      icon:`<span class="wallet-chip__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg></span>`,
       brand:'<span class="wallet-chip__brand">Google</span><span>Pay</span>'
     }
   ];

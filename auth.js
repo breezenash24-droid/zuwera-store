@@ -66,9 +66,9 @@ if (_sb) {
       setTimeout(async () => {
         try {
           const { data, error } = await _sb.auth.getUser();
-          if (error || !data?.user || data.user.id !== expectedUserId) {
+          // Only sign out if we definitively confirm a DIFFERENT user — never on errors
+          if (!error && data?.user && data.user.id !== expectedUserId) {
             await _sb.auth.signOut().catch(() => {});
-            localStorage.removeItem('zuwera-auth');
             _currentUser = null;
             updateHeaderForAuth();
             _userFavorites = [];
@@ -510,7 +510,7 @@ async function loadFavorites() {
   if (!_sb || !_currentUser) return;
   const { data } = await _sb
     .from('favorites')
-    .select('product_id, product_name, price')
+    .select('product_id, product_name, price, product_image')
     .eq('user_id', _currentUser.id);
   _userFavorites = data || [];
   refreshHeartButtons();
@@ -537,6 +537,17 @@ function refreshCartFavs() {
   if (loggedOut) loggedOut.style.display = 'none';
   if (loggedIn)  loggedIn.style.display  = 'block';
   if (!list) return;
+  // Delegate to index.html's rich card renderer when available
+  if (typeof renderHomeFavoriteCollection === 'function') {
+    if (!_userFavorites.length) {
+      if (empty) empty.style.display = 'block';
+      list.innerHTML = '';
+    } else {
+      if (empty) empty.style.display = 'none';
+      void renderHomeFavoriteCollection(list, _userFavorites, 'cart');
+    }
+    return;
+  }
   if (!_userFavorites.length) {
     if (empty) empty.style.display = 'block';
     list.innerHTML = '';
@@ -558,14 +569,15 @@ async function toggleFavorite(btn) {
   const pid     = btn.dataset.productId;
   const pname   = btn.dataset.productName;
   const price   = btn.dataset.price;
+  const pimage  = btn.dataset.productImage || '';
   const isActive = _userFavorites.some(f => f.product_id === pid);
   if (isActive) {
     await removeFavorite(pid, null);
   } else {
     if (_sb) {
-      await _sb.from('favorites').upsert({ user_id: _currentUser.id, product_id: pid, product_name: pname, price });
+      await _sb.from('favorites').upsert({ user_id: _currentUser.id, product_id: pid, product_name: pname, price, product_image: pimage });
     }
-    _userFavorites.push({ product_id: pid, product_name: pname, price });
+    _userFavorites.push({ product_id: pid, product_name: pname, price, product_image: pimage });
     refreshHeartButtons();
     refreshCartFavs();
     showToast('Saved to favorites!');
