@@ -138,7 +138,7 @@
   display: flex;
   gap: 0.4rem;
   margin-bottom: 1.5rem;
-  justify-content: center;
+  justify-content: center;   /* override reviews-vibe.css flex-end global */
 }
 .review-mbox .star-selector button {
   background: none;
@@ -165,30 +165,34 @@
   line-height: 1.6;
   padding: 0.8rem 1rem;
   resize: vertical;
-  min-height: 100px;
+  min-height: 100px;    /* explicit – overrides reviews-vibe.css 150px global */
   outline: none;
   border-radius: 2px;
   transition: border-color 0.2s;
   margin-bottom: 0.8rem;
+  margin-top: 0;        /* override reviews-vibe.css 0.55rem global */
 }
-.review-mbox .review-body-field:focus { border-color: rgba(244,241,235,0.4); }
+.review-mbox .review-body-field:focus { border-color: rgba(244,241,235,0.4); box-shadow: none; }
 .review-mbox .review-body-field::placeholder { color: rgba(244,241,235,0.25); }
 
 /* ── Submit button ── */
 .review-mbox .review-submit-btn,
 .review-list-mbox .review-submit-btn {
+  display: block;          /* override reviews-vibe.css global inline-flex */
   width: 100%;
   background: rgba(244,241,235,0.95);
   color: #09090b;
   border: none;
   padding: 0.9rem;
   font-family: 'Barlow Condensed', sans-serif;
+  font-style: normal;      /* override reviews-vibe.css italic */
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   cursor: pointer;
   transition: opacity 0.2s;
+  border-radius: 0;        /* keep sharp edges */
 }
 .review-mbox .review-submit-btn:hover,
 .review-list-mbox .review-submit-btn:hover { opacity: 0.85; }
@@ -238,12 +242,13 @@
 .review-mbox .review-slider-wrap { display: flex; justify-content: space-between; font-size: 0.7rem; color: rgba(244,241,235,0.4); margin-top: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em; }
 .review-mbox .review-radio-group { display: flex; gap: 0.6rem; margin-top: 0.5rem; flex-wrap: wrap; }
 .review-mbox .review-radio-group input[type="radio"] { display: none; }
-.review-mbox .review-radio-group label { 
-  display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; 
-  padding: 0.45rem 1.1rem; border-radius: 20px; font-size: 0.82rem; font-weight: 600; 
-  cursor: pointer; text-transform: none; letter-spacing: 0.02em; 
-  border: 1px solid rgba(244,241,235,0.15); background: rgba(244,241,235,0.04); 
-  color: rgba(244,241,235,0.5); transition: all 0.18s; user-select: none; 
+.review-mbox .review-radio-group label {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+  min-width: auto; min-height: auto;  /* override reviews-vibe.css globals */
+  padding: 0.45rem 1.1rem; border-radius: 20px; font-size: 0.82rem; font-weight: 600;
+  cursor: pointer; text-transform: none; letter-spacing: 0.02em;
+  border: 1px solid rgba(244,241,235,0.15); background: rgba(244,241,235,0.04);
+  color: rgba(244,241,235,0.5); transition: all 0.18s; user-select: none;
   font-family: 'DM Sans', sans-serif;
 }
 .review-mbox .review-radio-group input[type="radio"]:checked + label { border-color: #F891A5; background: rgba(248,145,165,0.15); color: #F891A5; }

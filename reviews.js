@@ -576,7 +576,8 @@ window.translateReviews = async function(domId) {
     if (langCode.toLowerCase() === 'en') {
       restoreOriginalReviewText(allReviews);
       if (typeof renderReviews === 'function') renderReviews();
-      if (document.getElementById('all-reviews-modal').classList.contains('open')) {
+      const _armEn = document.getElementById('all-reviews-modal');
+      if (_armEn && _armEn.classList.contains('open')) {
         openAllReviewsModal(pid, domId, window._domIdToPname?.[domId]);
       }
       if (typeof showToast === 'function') showToast('Showing original English reviews.');
@@ -623,7 +624,8 @@ window.translateReviews = async function(domId) {
     }
 
     if (typeof renderReviews === 'function') renderReviews();
-    if (document.getElementById('all-reviews-modal').classList.contains('open')) {
+    const _armTr = document.getElementById('all-reviews-modal');
+    if (_armTr && _armTr.classList.contains('open')) {
       openAllReviewsModal(pid, domId, window._domIdToPname?.[domId]);
     }
 
@@ -643,16 +645,24 @@ window.translateReviews = async function(domId) {
 };
 
 // -- Close review modal on backdrop click -----------------------------
-document.getElementById('review-modal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) {
-    document.getElementById('review-modal').classList.remove('open');
-    document.body.style.overflow = '';
+(function() {
+  const _rm = document.getElementById('review-modal');
+  if (_rm) {
+    _rm.addEventListener('click', e => {
+      if (e.target === e.currentTarget) {
+        _rm.classList.remove('open');
+        document.body.style.overflow = '';
+      }
+    });
   }
-});
-document.getElementById('review-modal-close').addEventListener('click', () => {
-  document.getElementById('review-modal').classList.remove('open');
-  document.body.style.overflow = '';
-});
+  const _rmc = document.getElementById('review-modal-close');
+  if (_rmc) {
+    _rmc.addEventListener('click', () => {
+      if (_rm) _rm.classList.remove('open');
+      document.body.style.overflow = '';
+    });
+  }
+})();
 
 // Ensure all-reviews-modal can be safely closed globally
 document.addEventListener('DOMContentLoaded', () => {
