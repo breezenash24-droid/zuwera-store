@@ -46,3 +46,8 @@
 
 /*.mp4
   Cache-Control: public, max-age=2592000
+
+# Apple Pay domain verification file (required by Stripe / Apple Pay)
+/.well-known/apple-developer-merchantid-domain-association
+  Content-Type: application/octet-stream
+  Cache-Control: no-cache
