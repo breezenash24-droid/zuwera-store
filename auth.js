@@ -519,6 +519,9 @@ async function loadFavorites() {
   _userFavorites = data || [];
   refreshHeartButtons();
   refreshCartFavs();
+    // Re-run after short delays to catch dynamically-rendered product IDs (e.g. product.html)
+      setTimeout(refreshHeartButtons, 300);
+        setTimeout(refreshHeartButtons, 1000);
 }
 
 function refreshHeartButtons() {
@@ -527,6 +530,7 @@ function refreshHeartButtons() {
     btn.classList.toggle('active', ids.has(btn.dataset.productId));
   });
 }
+window.refreshHeartButtons = refreshHeartButtons; // expose globally for products.js
 
 function refreshCartFavs() {
   const loggedOut = $('fav-logged-out-msg');
@@ -599,6 +603,7 @@ async function removeFavorite(pid, liEl) {
   showToast('Removed from favorites.');
 }
 
-document.querySelectorAll('.heart-btn').forEach(btn => {
-  btn.addEventListener('click', () => toggleFavorite(btn));
-});
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.heart-btn');
+    if (btn) toggleFavorite(btn);
+    });
