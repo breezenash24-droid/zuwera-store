@@ -134,15 +134,15 @@
 
 /* ===================== LIGHT MODE ===================== */
 body.light-mode .announcement-bar {
-  background: #F0EEE9;
-  color: #09090b;
+  background: #E8E3DC;
+  color: #252118;
   border-bottom-color: rgba(9,9,11,0.1);
 }
 body.light-mode .announcement-close {
-  color: #09090b;
+  color: #252118;
 }
 body.light-mode .nav {
-  background: #F0EEE9;
+  background: #E8E3DC;
   border-bottom-color: rgba(9,9,11,0.08);
   box-shadow: 0 1px 12px rgba(9,9,11,0.06);
 }
@@ -151,16 +151,16 @@ body.light-mode .logo {
 }
 body.light-mode .nav-right button,
 body.light-mode #account-btn {
-  color: #09090b;
+  color: #252118;
 }
 body.light-mode .nav-right button:hover,
 body.light-mode #account-btn:hover {
   opacity: 0.65;
-  color: #09090b;
+  color: #252118;
 }
 body.light-mode #cart-btn {
   border-color: rgba(9,9,11,0.2) !important;
-  color: #09090b;
+  color: #252118;
 }
 body.light-mode .cart-count {
   background: #09090b;
@@ -170,5 +170,5 @@ body.light-mode .logout-btn {
   color: rgba(9,9,11,0.35);
 }
 body.light-mode .logout-btn:hover {
-  color: #09090b;
+  color: #252118;
 }
