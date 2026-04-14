@@ -781,6 +781,7 @@ footer{
 #cart-modal{
   background:var(--ink);flex-direction:column;
   overflow-y:auto;align-items:stretch;justify-content:flex-start;
+  min-height:100vh;min-height:100dvh;overscroll-behavior:contain;
 }
 .cart-hd{
   display:flex;align-items:center;justify-content:space-between;
@@ -1570,7 +1571,7 @@ body.light-mode::after{opacity:0.15}
       <ul id="cart-items-list"></ul>
       <div class="cart-favs">
         <h2 class="csec-t">Saved Items</h2>
-        <p id="fav-logged-out-msg" class="fav-msg">Want to view your favorites? <a id="fav-join-link">Join us</a> or <a id="fav-signin-link">Sign in</a></p>
+        <p id="fav-logged-out-msg" class="fav-msg"><a id="fav-signin-link">Login</a> to view your saved items</p>
         <div id="fav-logged-in-area" style="display:none">
           <p id="cart-favs-empty" style="display:none;font-family:var(--fm);font-size:.7rem;color:rgba(244,241,235,.3);padding:.4rem 0">No saved items yet.</p>
           <ul id="cart-favs-list" style="list-style:none;padding:0;margin:0"></ul>
@@ -2754,9 +2755,8 @@ function updateCartSummary(subtotal) {
 window.updateCartQuantity = function(idx, delta) { let cart = JSON.parse(localStorage.getItem('cart')) || []; if (cart[idx]) { cart[idx].quantity += delta; if (cart[idx].quantity <= 0) cart.splice(idx, 1); localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); } };
 window.removeCartItem = function(idx) { let cart = JSON.parse(localStorage.getItem('cart')) || []; cart.splice(idx, 1); localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); };
 
-document.getElementById('cart-btn').addEventListener('click', () => { renderCart(); document.getElementById('cart-modal').classList.add('open'); document.body.style.overflow='hidden'; });
-document.getElementById('cart-close').addEventListener('click', () => { document.getElementById('cart-modal').classList.remove('open'); document.body.style.overflow=''; });
-document.getElementById('fav-join-link').addEventListener('click', () => openAuth('signup'));
+document.getElementById('cart-btn').addEventListener('click', () => { renderCart(); document.getElementById('cart-modal').classList.add('open'); document.body.style.overflow='hidden'; document.documentElement.style.overflow='hidden'; });
+document.getElementById('cart-close').addEventListener('click', () => { document.getElementById('cart-modal').classList.remove('open'); document.body.style.overflow=''; document.documentElement.style.overflow=''; });
 document.getElementById('fav-signin-link').addEventListener('click', () => openAuth('signin'));
 document.getElementById('checkout-btn').addEventListener('click', () => {
   if (!cartItems.length) return;

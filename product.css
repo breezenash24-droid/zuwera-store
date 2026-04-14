@@ -342,10 +342,7 @@
 }
 
 .size-guide-link::after {
-  content: "\2197";
-  font-size: 0.72rem;
-  opacity: 0.72;
-  transform: translateY(-1px);
+  content: none;
 }
 
 .size-guide-link:hover {

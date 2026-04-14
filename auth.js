@@ -30,11 +30,17 @@ function setBtn(id, loading, defaultLabel) {
 // ── Safe global helpers ────────────────────────────────────────────
 window._openModal = window._openModal || function(id) {
   const m = document.getElementById(id);
-  if (m) { m.classList.add('open'); document.body.style.overflow = 'hidden'; }
+  if (m) { m.classList.add('open'); document.body.style.overflow = 'hidden'; document.documentElement.style.overflow = 'hidden'; }
 };
 window._closeModal = window._closeModal || function(id) {
   const m = document.getElementById(id);
-  if (m) { m.classList.remove('open'); document.body.style.overflow = ''; }
+  if (m) {
+    m.classList.remove('open');
+    if (!document.querySelector('.modal.open')) {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
+  }
 };
 window.togglePwd = window.togglePwd || function(id, btn) {
   const inp = document.getElementById(id);

@@ -48,6 +48,17 @@ body {
   overflow-x: hidden;
 }
 
+/* Prevent scrolling behind any open modal */
+html:has(.modal.open),
+body:has(.modal.open) {
+  overflow: hidden;
+}
+
+/* Contain overscroll within modals */
+.modal.open {
+  overscroll-behavior: contain;
+}
+
 /* ===================== LIGHT MODE ===================== */
 body.light-mode {
   --black:  #f5f5f0;

@@ -2611,7 +2611,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
       <ul id="cart-items-list"></ul>
       <div class="cart-favorites">
         <h2>Saved Items</h2>
-        <p id="fav-logged-out-msg" class="favorites-msg">Want to view your favorites? <a id="fav-join-link">Join us</a> or <a id="fav-signin-link">Sign in</a></p>
+        <p id="fav-logged-out-msg" class="favorites-msg"><a id="fav-signin-link">Login</a> to view your saved items</p>
         <div id="fav-logged-in-area" style="display:none">
           <p id="cart-favs-empty" style="display:none;font-family:'DM Sans',sans-serif;font-size:.72rem;color:rgba(244,241,235,.35);padding:.3rem 0 .6rem">No saved items yet.</p>
           <ul id="cart-favs-list" style="list-style:none;padding:0;margin:0"></ul>
@@ -2720,11 +2720,6 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
   });
 
   // Favorites links (placeholder ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â no auth modal on product page)
-  document.getElementById('fav-join-link').addEventListener('click', () => {
-    document.getElementById('cart-modal')?.classList.remove('open');
-    document.body.style.overflow = '';
-    if (typeof openAuthModal === 'function') openAuthModal('signup'); else window.location.href = 'index.html?auth=signup';
-  });
   document.getElementById('fav-signin-link').addEventListener('click', () => {
     document.getElementById('cart-modal')?.classList.remove('open');
     document.body.style.overflow = '';

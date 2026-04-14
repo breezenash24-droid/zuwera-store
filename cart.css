@@ -5,6 +5,9 @@
   overflow-y: auto;
   align-items: stretch;
   justify-content: flex-start;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overscroll-behavior: contain;
 }
 .cart-page-header {
   display: flex;
