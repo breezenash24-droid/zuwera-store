@@ -269,6 +269,41 @@ body.light-mode .mtitle {color:#09090b;}
 body.light-mode .alink {color:rgba(9,9,11,.25)}
 body.light-mode .alink a {color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,.2)}
 
+/* ── Light mode: swap ALL pink accents to black ──────────────── */
+body.light-mode .nav-wordmark { color: #09090b !important; }
+body.light-mode .auth-brand { color: #09090b; }
+body.light-mode .mbox { border-top-color: #09090b !important; }
+body.light-mode .atab.active { color: #09090b; }
+body.light-mode .atab.active::after { background: #09090b; }
+body.light-mode .fgroup input:focus { border-color: #09090b; box-shadow: 0 0 0 3px rgba(9,9,11,.06); }
+body.light-mode .auth-submit-btn:hover { background: #1a1a1a; color: #F0EEE9; }
+body.light-mode .alink a:hover { color: #09090b; border-color: #09090b; }
+body.light-mode .star-picker span.active { color: #09090b; }
+body.light-mode .star-picker span:hover { color: rgba(9,9,11,.35); }
+body.light-mode .review-submit-btn { background: #09090b; color: #F0EEE9; }
+body.light-mode .review-submit-btn:hover { background: #1a1a1a; }
+body.light-mode .rs-rating,
+body.light-mode .rs-stars { color: #09090b; }
+body.light-mode .rs-metric-fill { background: #09090b; }
+body.light-mode .rs-recommend-pill.no { background: rgba(9,9,11,.05); border-color: rgba(9,9,11,.15); color: #09090b; }
+body.light-mode .translate-btn:hover { border-color: #09090b; color: #09090b; background: rgba(9,9,11,.04); }
+body.light-mode .review-slider { accent-color: #09090b; }
+body.light-mode { --admin-res-bg: rgba(9,9,11,0.05); --admin-res-text: #09090b; }
+body.light-mode #apple-pay-qr-modal > div { background: #F0EEE9 !important; border-top-color: #09090b !important; color: #09090b !important; }
+body.light-mode #apple-pay-qr-modal > div span,
+body.light-mode #apple-pay-qr-modal > div p { color: rgba(9,9,11,.7) !important; }
+/* Payment modal — all inline-styled so needs !important */
+body.light-mode #payment-modal > div { background: #F0EEE9 !important; border-color: rgba(9,9,11,.1) !important; }
+body.light-mode #payment-modal h2 { color: #09090b !important; }
+body.light-mode #payment-modal label,
+body.light-mode #payment-modal p { color: rgba(9,9,11,.5) !important; }
+body.light-mode #payment-modal input,
+body.light-mode #payment-modal select { background: rgba(9,9,11,.04) !important; border-color: rgba(9,9,11,.12) !important; color: #09090b !important; }
+body.light-mode #payment-modal #payment-close { color: rgba(9,9,11,.35) !important; }
+body.light-mode #payment-modal #pay-divider { color: rgba(9,9,11,.35) !important; }
+body.light-mode #payment-modal #pay-submit { background: #09090b !important; color: #F0EEE9 !important; }
+body.light-mode #payment-modal #pay-error { color: #c0392b !important; }
+
 /* Toast notification */
 #toast {
   position: fixed; bottom: 2rem; left: 50%;
@@ -2098,7 +2133,7 @@ function renderAccordions() {
         const info = finalTechDict[t];
         techHTML += `
           <div style="margin-bottom: 1rem;">
-            <strong style="color: #F891A5; font-size: 0.95rem;">${t}</strong><br>
+            <strong style="color: var(--admin-res-text, #F891A5); font-size: 0.95rem;">${t}</strong><br>
             <span style="color: rgba(255,255,255,.5); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;">${info.level}</span><br>
             <div style="margin-top: 0.5rem; line-height: 1.6;">
               <strong>Focus:</strong> ${info.focus}<br>
@@ -2195,7 +2230,7 @@ function renderReviews() {
 
     let editBtnHtml = '';
     if (currentUser && review.user_id === currentUser.id) {
-      editBtnHtml = `<button type="button" onclick="openEditReviewForm('${review.id}', ${review.rating}, '${productId}')" style="background:none;border:none;color:#F891A5;font-size:0.75rem;cursor:pointer;margin-left:10px;text-decoration:underline;">Edit</button>`;
+      editBtnHtml = `<button type="button" onclick="openEditReviewForm('${review.id}', ${review.rating}, '${productId}')" style="background:none;border:none;color:var(--admin-res-text,#F891A5);font-size:0.75rem;cursor:pointer;margin-left:10px;text-decoration:underline;">Edit</button>`;
     }
 
     reviewEl.innerHTML = `

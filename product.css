@@ -921,9 +921,13 @@ body.light-mode .low-stock-badge {
   color: var(--white);
 }
 body.light-mode .cookie-consent-banner {
-  background: #e8e8e8;
-  border-top-color: var(--c10);
+  background: #F0EEE9;
+  border-top-color: rgba(9,9,11,.1);
+  color: rgba(9,9,11,.65);
 }
+body.light-mode .cookie-consent-banner p { color: rgba(9,9,11,.65); }
+body.light-mode .cookie-accept { background: #09090b; color: #F0EEE9; border-color: #09090b; }
+body.light-mode .cookie-decline { color: rgba(9,9,11,.45); border-color: rgba(9,9,11,.2); }
 body.light-mode .footer-logo {
   filter: invert(1);
 }
