@@ -583,7 +583,7 @@ async function toggleFavorite(btn) {
     await removeFavorite(pid, null);
   } else {
     if (_sb) {
-      await _sb.from('favorites').upsert({ user_id: _currentUser.id, product_id: pid, product_name: pname, price, product_image: pimage });
+      await _sb.from('favorites').upsert({ user_id: _currentUser.id, product_id: pid, product_name: pname, price, product_image: pimage }, { onConflict: 'user_id,product_id' });
     }
     _userFavorites.push({ product_id: pid, product_name: pname, price, product_image: pimage });
     refreshHeartButtons();
