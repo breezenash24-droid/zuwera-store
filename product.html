@@ -174,7 +174,7 @@
 }
 .bar-sep::before { content: "|"; }
 body.light-mode #bar {
-  background: #F0EEE9; color: #09090b;
+  background: #E8E3DC; color: #252118;
   border-bottom-color: rgba(9,9,11,.1);
 }
 .product-page { padding-top: 140px; }
@@ -285,9 +285,18 @@ body.light-mode .review-submit-btn:hover { background: #32291F; }
 body.light-mode .rs-rating,
 body.light-mode .rs-stars { color: #252118; }
 body.light-mode .rs-metric-fill { background: #252118; }
+body.light-mode .rs-count { color: rgba(9,9,11,.5); }
+body.light-mode .rs-metric-title { color: #252118; }
+body.light-mode .rs-metric-subtitle { color: rgba(9,9,11,.6); }
+body.light-mode .rs-metric-bar { background: rgba(9,9,11,.1); }
+body.light-mode .rs-metric-labels { color: rgba(9,9,11,.5); }
+body.light-mode .review-summary-box { background: rgba(9,9,11,.03); border-color: rgba(9,9,11,.08); }
+body.light-mode .rs-left { border-right-color: rgba(9,9,11,.08); }
 body.light-mode .rs-recommend-pill.no { background: rgba(9,9,11,.05); border-color: rgba(9,9,11,.15); color: #252118; }
 body.light-mode .translate-btn:hover { border-color: #252118; color: #252118; background: rgba(9,9,11,.04); }
 body.light-mode .review-slider { accent-color: #252118; }
+body.light-mode .more-reviews-btn { background: rgba(9,9,11,.04) !important; border-color: rgba(9,9,11,.22) !important; color: #252118 !important; }
+body.light-mode .more-reviews-btn:hover { background: rgba(9,9,11,.08) !important; border-color: rgba(9,9,11,.35) !important; }
 body.light-mode { --admin-res-bg: rgba(9,9,11,0.05); --admin-res-text: #252118; }
 body.light-mode #apple-pay-qr-modal > div { background: #E8E3DC !important; border-top-color: #252118 !important; color: #252118 !important; }
 body.light-mode #apple-pay-qr-modal > div span,
@@ -2140,18 +2149,24 @@ function renderAccordions() {
     const matchedTechs = Object.keys(finalTechDict).filter(t => currentProduct.fabric_technology.includes(t));
     
     if (matchedTechs.length > 0) {
-      techHTML += `<div style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,.03); border-radius: 6px; border: 1px solid rgba(255,255,255,.08); font-size: 0.85rem;">`;
+      const isLight = document.body.classList.contains('light-mode');
+      const techBg = isLight ? 'rgba(9,9,11,.04)' : 'rgba(255,255,255,.03)';
+      const techBorder = isLight ? 'rgba(9,9,11,.12)' : 'rgba(255,255,255,.08)';
+      const techLevelColor = isLight ? 'rgba(9,9,11,.45)' : 'rgba(255,255,255,.5)';
+      const techDescColor = isLight ? 'rgba(9,9,11,.7)' : 'rgba(255,255,255,.7)';
+      const techStrongColor = isLight ? '#252118' : 'inherit';
+      techHTML += `<div style="margin-top: 1rem; padding: 1rem; background: ${techBg}; border-radius: 6px; border: 1px solid ${techBorder}; font-size: 0.85rem;">`;
       matchedTechs.forEach(t => {
         const info = finalTechDict[t];
         techHTML += `
           <div style="margin-bottom: 1rem;">
             <strong style="color: var(--admin-res-text, #F891A5); font-size: 0.95rem;">${t}</strong><br>
-            <span style="color: rgba(255,255,255,.5); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;">${info.level}</span><br>
-            <div style="margin-top: 0.5rem; line-height: 1.6;">
+            <span style="color: ${techLevelColor}; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;">${info.level}</span><br>
+            <div style="margin-top: 0.5rem; line-height: 1.6; color: ${techStrongColor};">
               <strong>Focus:</strong> ${info.focus}<br>
               <strong>Optimization:</strong> ${info.opt}<br>
               <strong>Best For:</strong> ${info.best}<br>
-              <p style="margin-top: 0.4rem; color: rgba(255,255,255,.7);">${info.desc}</p>
+              <p style="margin-top: 0.4rem; color: ${techDescColor};">${info.desc}</p>
             </div>
           </div>`;
       });
@@ -2262,7 +2277,6 @@ function renderReviews() {
   if (currentProduct.reviews.length > 3) {
     const moreBtn = document.createElement('button');
     moreBtn.className = 'more-reviews-btn';
-    moreBtn.style.cssText = 'display:block; width:100%; margin-top:1rem; padding:0.8rem; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); color:#f4f1eb; cursor:pointer; font-family:"DM Sans", sans-serif; font-size:0.85rem; border-radius:6px; transition:background 0.2s;';
     moreBtn.textContent = `View All ${currentProduct.reviews.length} Reviews`;
     moreBtn.onclick = () => openAllReviewsModal(currentProduct.id, currentProduct.id, currentProduct.title);
     content.appendChild(moreBtn);

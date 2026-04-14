@@ -470,12 +470,6 @@ body.light-mode .review-item-name { color: #252118; }
 body.light-mode .review-item-date { color: rgba(9,9,11,0.4); }
 body.light-mode .review-item-title { color: #252118; }
 body.light-mode .review-item-body { color: rgba(9,9,11,0.62); }
-body.light-mode .view-all-btn {
-  background: rgba(9,9,11,0.04);
-  border-color: rgba(9,9,11,0.15);
-  color: #252118;
-}
-body.light-mode .view-all-btn:hover { background: rgba(9,9,11,0.08); }
 body.light-mode .review-mbox h2 { color: #252118; }
 body.light-mode .review-mbox .review-product-label { color: rgba(9,9,11,0.4); }
 body.light-mode .review-mbox .review-body-field { background: rgba(9,9,11,0.03); border-color: rgba(9,9,11,0.1); color: #252118; }
@@ -523,6 +517,13 @@ body.light-mode .review-fit-toggle-label input[type="checkbox"] { accent-color: 
 /* Card action link and admin response */
 body.light-mode .review-list-mbox .review-card-action { color: #252118; }
 body.light-mode { --admin-res-bg: rgba(9,9,11,0.05); --admin-res-text: #09090b; }
+/* Inline review items — author meta and write button */
+body.light-mode .review-item-author { color: rgba(9,9,11,.45); }
+body.light-mode .review-item-meta { color: rgba(9,9,11,.35); }
+body.light-mode .write-review-btn { border-color: rgba(9,9,11,.22); color: rgba(9,9,11,.7); }
+body.light-mode .write-review-btn:hover { border-color: rgba(9,9,11,.45); color: #252118; }
+/* View All Reviews button — stronger border for visibility */
+body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba(9,9,11,.28); color: #252118; }
 
 @media(max-width: 600px) {
   .review-summary-box { flex-direction: column; gap: 1.5rem; padding: 1.2rem; }
