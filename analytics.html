@@ -853,8 +853,13 @@
       return true;
 
     } catch (e) {
+        // Remove existing error message so they don't stack infinitely
+        const existingErr = document.getElementById('auth-error-msg');
+        if (existingErr) existingErr.remove();
+
       showAuthContainer();
       const msg = document.createElement('div');
+        msg.id = 'auth-error-msg';
       msg.style = 'color: var(--error); margin-top: 15px; font-weight: bold; background: rgba(239,68,68,0.1); padding: 10px; border-radius: 4px; border: 1px solid var(--error);';
       msg.innerHTML = 'Access Denied: ' + (e.message || 'Unknown error');
       document.querySelector('.auth-card').appendChild(msg);

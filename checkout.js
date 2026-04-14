@@ -1,20 +1,27 @@
 // ===================== STRIPE SETUP =====================
 // 🔑 Replace with your live publishable key from Stripe Dashboard
-const stripe = Stripe('pk_live_51T8ct20oFp4PJGitDcNMSLu9jQMFajtwqib8dTX4WhubBon2Pso2VgkHhTHcbuKNUi9ljfwMX8Bx2uhEp1Fp2VfY00LFKvLEy4');
-const elements = stripe.elements();
-const cardElement = elements.create('card', {
-  style: {
-    base: {
-      color: '#f5f5f0',
-      fontFamily: '"DM Sans", sans-serif',
-      fontSmoothing: 'antialiased',
-      fontSize: '15px',
-      '::placeholder': { color: 'rgba(245,245,240,0.3)' }
-    },
-    invalid: { color: '#e07060', iconColor: '#e07060' }
-  }
-});
-cardElement.mount('#stripe-card-element');
+let stripe, elements, cardElement;
+
+function initStripe() {
+  if (typeof Stripe === 'undefined') return;
+  stripe = Stripe('pk_live_51T8ct20oFp4PJGitDcNMSLu9jQMFajtwqib8dTX4WhubBon2Pso2VgkHhTHcbuKNUi9ljfwMX8Bx2uhEp1Fp2VfY00LFKvLEy4');
+  elements = stripe.elements();
+  cardElement = elements.create('card', {
+    style: {
+      base: {
+        color: '#f5f5f0',
+        fontFamily: '"DM Sans", sans-serif',
+        fontSmoothing: 'antialiased',
+        fontSize: '15px',
+        '::placeholder': { color: 'rgba(245,245,240,0.3)' }
+      },
+      invalid: { color: '#e07060', iconColor: '#e07060' }
+    }
+  });
+  cardElement.mount('#stripe-card-element');
+}
+
+document.addEventListener('DOMContentLoaded', initStripe);
 
 // ===================== HELPERS =====================
 

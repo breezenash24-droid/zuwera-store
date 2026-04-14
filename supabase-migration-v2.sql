@@ -196,6 +196,10 @@ CREATE TABLE reviews (
   title TEXT,
   body TEXT,
   nickname TEXT,
+  fit_rating INT CHECK (fit_rating BETWEEN 1 AND 5),
+  comfort_rating INT CHECK (comfort_rating BETWEEN 1 AND 5),
+  recommend BOOLEAN,
+  admin_response TEXT,
   verified_purchase BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now()
 );

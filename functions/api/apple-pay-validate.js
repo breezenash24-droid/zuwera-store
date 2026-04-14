@@ -89,6 +89,8 @@ export async function onRequestPost({ request, env }) {
     merchantIdentifier: APPLE_MERCHANT_ID,
     domainName:         APPLE_DOMAIN_NAME,
     displayName:        APPLE_DISPLAY_NAME,
+    initiative:         "web",
+    initiativeContext:  APPLE_DOMAIN_NAME
   });
 
   let appleResponse;
