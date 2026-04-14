@@ -949,3 +949,32 @@ body.light-mode .heart-btn {
   border-color: rgba(9,9,11,.1);
   color: rgba(9,9,11,.3);
 }
+body.light-mode .gallery-main.loading::before {
+  background: linear-gradient(90deg, rgba(9,9,11,.04) 25%, rgba(9,9,11,.08) 50%, rgba(9,9,11,.04) 75%);
+}
+body.light-mode .accordion {
+  border-bottom-color: rgba(9,9,11,.08);
+}
+body.light-mode .accordion:first-child {
+  border-top-color: rgba(9,9,11,.08);
+}
+body.light-mode .accordion-header {
+  color: #09090b;
+}
+body.light-mode .size-btn {
+  border-color: rgba(9,9,11,.18);
+  color: #09090b;
+}
+body.light-mode .size-btn:hover:not(.disabled) {
+  border-color: rgba(9,9,11,.4);
+}
+body.light-mode .size-btn.selected {
+  background: #09090b;
+  color: #F0EEE9;
+  border-color: #09090b;
+}
+body.light-mode .low-stock-badge {
+  background: rgba(9,9,11,.85);
+  border-color: rgba(9,9,11,.6);
+  color: #F0EEE9;
+}

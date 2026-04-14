@@ -361,6 +361,35 @@ footer p {
   .hero-text h1 { font-size: clamp(2.8rem, 20vw, 4rem); }
   .nav { padding: 0.7rem 0.85rem; }
 }
+
+/* ===================== LIGHT MODE ===================== */
+body.light-mode .about h2,
+body.light-mode .about p { color: inherit; }
+body.light-mode .coming-soon-badge {
+  background: rgba(240,238,233,0.9);
+  border-color: rgba(9,9,11,0.15);
+  color: #09090b;
+}
+body.light-mode .product-notify-link {
+  color: #09090b;
+  border-bottom-color: rgba(9,9,11,0.3);
+}
+body.light-mode .product-notify-link:hover { border-color: #09090b; }
+body.light-mode .notify-form-inline input {
+  background: rgba(9,9,11,0.04);
+  border-color: rgba(9,9,11,0.15);
+  color: #09090b;
+}
+body.light-mode .notify-form-inline input::placeholder { color: rgba(9,9,11,0.3); }
+body.light-mode .notify-form-inline input:focus { border-color: rgba(9,9,11,0.4); }
+body.light-mode .notify-form-inline button { background: #09090b; color: #F0EEE9; }
+body.light-mode .notify-form-inline button:hover { opacity: 0.85; }
+body.light-mode footer { border-top-color: rgba(9,9,11,0.08); }
+body.light-mode footer p { color: rgba(9,9,11,0.35); }
+body.light-mode .footer-logo { mix-blend-mode: multiply; opacity: 0.7; filter: invert(0); }
+body.light-mode .toast { background: #09090b; color: #F0EEE9; }
+body.light-mode .cart-summary { background: #eaeae5 !important; }
+body.light-mode .cart-summary .summary-row { border-bottom-color: rgba(9,9,11,0.07); }
 @media (max-width: 812px) and (orientation: landscape) {
   .hero { min-height: 100svh; }
   .hero-text { bottom: 6%; }

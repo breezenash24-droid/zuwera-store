@@ -741,6 +741,32 @@
     body.light-mode .tech-card { background: rgba(9,9,11,0.02); }
     body.light-mode .cookie-consent { background: rgba(240,238,233,0.95); }
     body.light-mode footer p, body.light-mode footer a { color: rgba(9,9,11,0.4); }
+    /* Replace pink accent with black in light mode */
+    body.light-mode { --accent: #09090b; }
+    body.light-mode .tab-btn.active {
+      color: #09090b;
+      border-bottom-color: #09090b;
+    }
+    body.light-mode .tab-btn:hover { color: #09090b; }
+    body.light-mode .calc-result {
+      background: rgba(9,9,11,0.04);
+      border-color: rgba(9,9,11,0.15);
+    }
+    body.light-mode .calc-result-title { color: #09090b; }
+    body.light-mode .highlight-card {
+      background: rgba(9,9,11,0.04);
+      border-color: rgba(9,9,11,0.15);
+    }
+    body.light-mode .highlight-title { color: #09090b; }
+    body.light-mode .nav-back { color: #09090b; opacity: 0.55; }
+    body.light-mode .nav-back:hover { opacity: 1; }
+    body.light-mode .page-title { color: #09090b; }
+    body.light-mode .page-subtitle { color: rgba(9,9,11,0.5); }
+    body.light-mode .calc-toggle-btn { border-color: rgba(9,9,11,0.15); color: rgba(9,9,11,0.5); }
+    body.light-mode .calc-toggle-btn:hover:not(.active) { border-color: #09090b; color: #09090b; }
+    body.light-mode .calc-toggle-btn.active { background: #09090b; border-color: #09090b; color: #F0EEE9; }
+    body.light-mode .calc-button { background: #09090b; color: #F0EEE9; }
+    body.light-mode .tabs-nav { border-bottom-color: rgba(9,9,11,0.1); }
   </style>
 </head>
 <body>
