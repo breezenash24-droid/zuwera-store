@@ -1,148 +1,129 @@
 /**
  * apple-pay-native.js — Zuwera Sportswear
- * Native Apple Pay session for Safari/iPhone.
- * On Chrome/Firefox desktop, falls back to showApplePayQrModal().
  *
- * Loaded by index.html and product.html via <script src="/apple-pay-native.js">
+ * Stripe PaymentRequest button — shows Apple Pay on Safari,
+ * Google Pay on Chrome/Android, and NOTHING on unsupported browsers.
+ *
+ * Buttons with [data-action="qr"] are hidden immediately via CSS and
+ * only replaced with a live Stripe button when stripe.canMakePayment()
+ * confirms the browser supports a wallet method.
+ *
+ * Does NOT require the Apple Developer merchant cert.
+ * Does NOT require any change to index.html — discovers the Stripe
+ * instance automatically by scanning window properties.
  */
-
 (function () {
   'use strict';
 
-  /* ── config ─────────────────────────────────────────── */
-  var VALIDATE_URL = '/api/apple-pay-validate';
-  var CHARGE_URL   = '/api/apple-pay-charge';
+  var PAYMENT_INTENT_URL = '/api/create-payment-intent';
+  var CONFIRM_URL        = '/confirm.html';
+  var BUTTON_SELECTOR    = 'button[data-action="qr"]';
+  var STORE_LABEL        = 'Zuwera Sportswear';
 
-  /* ── detect native vs QR ─────────────────────────────── */
-  function applePayMode() {
-    if (typeof ApplePaySession === 'undefined') return 'none';
-    if (!ApplePaySession.supportsVersion(3))   return 'none';
-    if (ApplePaySession.canMakePayments())     return 'native';
-    return 'qr';
-  }
-  window.applePayMode = applePayMode;
+  // Hide wallet buttons immediately — shown only when wallet is confirmed available
+  var s = document.createElement('style');
+  s.textContent = BUTTON_SELECTOR + '{display:none!important}';
+  (document.head || document.documentElement).appendChild(s);
 
-  /* ── get cart total ──────────────────────────────────── */
-  function getCartTotal() {
-    try {
-      var cart = JSON.parse(localStorage.getItem('cart') || '[]');
-      return cart.reduce(function (s, i) {
-        return s + (parseFloat(i.price) || 0) * (parseInt(i.quantity) || 1);
-      }, 0);
-    } catch (e) { return 0; }
+  function getCart() {
+    try { return JSON.parse(localStorage.getItem('cart') || '[]'); } catch (_) { return []; }
   }
 
-  /* ── show toast (re-uses existing showToast if present) ─ */
-  function toast(msg) {
-    if (typeof showToast === 'function') showToast(msg);
-    else console.warn('[apple-pay]', msg);
+  function totalCents(cart) {
+    return cart.reduce(function (sum, item) {
+      return sum + Math.round((parseFloat(item.price) || 0) * 100) * (parseInt(item.qty, 10) || 1);
+    }, 0);
   }
 
-  /* ── native Apple Pay session ────────────────────────── */
-  function startNativeApplePay(totalOverride) {
-    var total = totalOverride != null ? totalOverride : getCartTotal();
-    if (!total) { toast('Your cart is empty.'); return; }
+  function isStripe(obj) {
+    return obj && typeof obj === 'object' &&
+      typeof obj.paymentRequest === 'function' &&
+      typeof obj.elements === 'function' &&
+      typeof obj.confirmCardPayment === 'function';
+  }
 
-    if (typeof ApplePaySession === 'undefined' || !ApplePaySession.supportsVersion(3)) {
-      toast('Apple Pay is not available.'); return;
+  function findStripeInstance() {
+    var names = ['stripe', '_stripe', 'stripeClient', 'stripeInstance'];
+    for (var i = 0; i < names.length; i++) {
+      if (isStripe(window[names[i]])) return window[names[i]];
     }
-
-    var session = new ApplePaySession(3, {
-      countryCode:          'US',
-      currencyCode:         'USD',
-      merchantCapabilities: ['supports3DS'],
-      supportedNetworks:    ['visa', 'masterCard', 'amex', 'discover'],
-      total: {
-        label:  'Zuwera Sportswear',
-        amount: total.toFixed(2),
-        type:   'final'
-      }
-    });
-
-    /* merchant validation */
-    session.onvalidatemerchant = function (event) {
-      fetch(VALIDATE_URL, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ validationURL: event.validationURL })
-      })
-      .then(function (r) {
-        if (!r.ok) throw new Error('Validation failed: ' + r.status);
-        return r.json();
-      })
-      .then(function (ms) { session.completeMerchantValidation(ms); })
-      .catch(function (err) {
-        console.error('[apple-pay] validation error:', err);
-        session.abort();
-        toast('Apple Pay unavailable. Please try another payment method.');
-      });
-    };
-
-    /* payment authorised — extract real token and charge */
-    session.onpaymentauthorized = function (event) {
-      /*
-       * event.payment.token.paymentData is the encrypted Apple Pay token:
-       * {
-       *   version:   "EC_v1",
-       *   data:      "<base64 encrypted>",
-       *   signature: "<base64 CMS>",
-       *   header: {
-       *     ephemeralPublicKey: "<base64>",
-       *     publicKeyHash:      "<base64>",
-       *     transactionId:      "<hex>",
-       *   }
-       * }
-       * We send it verbatim to our Worker which passes it to Stripe.
-       * Stripe decrypts it server-side using your registered Apple Pay cert.
-       */
-      var applePayToken = event.payment.token.paymentData;
-
-      fetch(CHARGE_URL, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          applePayToken: applePayToken,
-          order: {
-            amount:   Math.round(total * 100),
-            currency: 'usd'
-          }
-        })
-      })
-      .then(function (r) {
-        if (!r.ok) throw new Error('Charge failed: ' + r.status);
-        return r.json();
-      })
-      .then(function (result) {
-        session.completePayment(ApplePaySession.STATUS_SUCCESS);
-        localStorage.removeItem('cart');
-        window.location.href = '/confirm.html?id=' + (result.paymentIntentId || '');
-      })
-      .catch(function (err) {
-        console.error('[apple-pay] charge error:', err);
-        session.completePayment(ApplePaySession.STATUS_FAILURE);
-        toast('Payment failed. Please try again.');
-      });
-    };
-
-    session.oncancel = function () { toast('Apple Pay cancelled.'); };
-    session.begin();
+    for (var k in window) {
+      try { if (isStripe(window[k])) return window[k]; } catch (_) {}
+    }
+    return null;
   }
 
-  /* ── exported entry point ────────────────────────────── */
-  window.startNativeApplePay = startNativeApplePay;
+  function waitForStripe(cb, n) {
+    var inst = findStripeInstance();
+    if (inst) { cb(inst); return; }
+    if ((n || 0) >= 60) return;
+    setTimeout(function () { waitForStripe(cb, (n || 0) + 1); }, 100);
+  }
 
-  /* ── auto-wire existing Apple Pay QR buttons ─────────── */
-  document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('button[data-action="qr"]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var mode = applePayMode();
-        if (mode === 'native') {
-          startNativeApplePay();
-        } else if (typeof showApplePayQrModal === 'function') {
-          showApplePayQrModal();
-        }
+  function mount(stripe, amountCents) {
+    var pr = stripe.paymentRequest({
+      country: 'US', currency: 'usd',
+      total: { label: STORE_LABEL, amount: amountCents },
+      requestPayerName: true, requestPayerEmail: true,
+    });
+
+    pr.canMakePayment().then(function (result) {
+      if (!result) return; // No wallet — buttons stay hidden
+      var buttons = document.querySelectorAll(BUTTON_SELECTOR);
+      if (!buttons.length) return;
+      var els = stripe.elements();
+      buttons.forEach(function (btn, i) {
+        var id = 'zw-pr-' + i;
+        var wrap = document.createElement('div');
+        wrap.id = id;
+        wrap.style.cssText = 'display:block;min-height:44px;width:100%;';
+        btn.parentNode.insertBefore(wrap, btn);
+        els.create('paymentRequestButton', {
+          paymentRequest: pr,
+          style: { paymentRequestButton: { type: 'buy', theme: 'dark', height: '44px' } },
+        }).mount('#' + id);
       });
     });
-  });
 
-})();
+    pr.on('paymentmethod', function (ev) {
+      var cart = getCart();
+      var cents = totalCents(cart);
+      if (cents <= 0) { ev.complete('fail'); return; }
+
+      fetch(PAYMENT_INTENT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: cents, currency: 'usd', cart: cart }),
+      })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (data) {
+        if (!data.clientSecret) { ev.complete('fail'); return null; }
+        return stripe.confirmCardPayment(data.clientSecret,
+          { payment_method: ev.paymentMethod.id }, { handleActions: false })
+        .then(function (res) {
+          if (res.error) { ev.complete('fail'); return null; }
+          ev.complete('success');
+          if (res.paymentIntent.status === 'requires_action')
+            return stripe.confirmCardPayment(data.clientSecret);
+          return res;
+        });
+      })
+      .then(function (final) {
+        if (!final || final.error) return;
+        localStorage.removeItem('cart');
+        window.location.href = CONFIRM_URL + '?id=' + final.paymentIntent.id;
+      })
+      .catch(function () { ev.complete('fail'); });
+    });
+  }
+
+  function boot() {
+    var cents = totalCents(getCart());
+    if (cents <= 0) return;
+    waitForStripe(function (stripe) { mount(stripe, cents); });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else { boot(); }
+}());
