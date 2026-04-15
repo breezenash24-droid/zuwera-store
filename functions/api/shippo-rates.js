@@ -82,6 +82,8 @@ export async function onRequestPost({ request, env }) {
     }
 
     const data  = await resp.json();
+    // Sort: USPS first (preferred carrier), then by price within each carrier group
+    const USPS_PROVIDERS = new Set(['USPS', 'usps']);
     const rates = (data.rates || [])
       .filter(r => r.object_status === 'VALID')
       .map(r => ({
@@ -92,7 +94,12 @@ export async function onRequestPost({ request, env }) {
         currency:     r.currency,
         days:         r.estimated_days,
       }))
-      .sort((a, b) => parseFloat(a.amount) - parseFloat(b.amount));
+      .sort((a, b) => {
+        const aUsps = USPS_PROVIDERS.has(a.provider) ? 0 : 1;
+        const bUsps = USPS_PROVIDERS.has(b.provider) ? 0 : 1;
+        if (aUsps !== bUsps) return aUsps - bUsps;          // USPS first
+        return parseFloat(a.amount) - parseFloat(b.amount); // then by price
+      });
 
     return new Response(JSON.stringify({ rates }), { status: 200, headers });
 
