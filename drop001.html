@@ -33,7 +33,7 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --black: #252118;
+      --black: #09090b;
       --white: #E8E3DC;
       --muted: rgba(245,245,240,0.5);
       --border: rgba(245,245,240,0.1);
@@ -455,7 +455,7 @@
     /* LIGHT MODE */
     body.light-mode {
       --black: #E8E3DC;
-      --white: #252118;
+      --white: #09090b;
       --muted: rgba(10,10,10,0.5);
       --border: rgba(10,10,10,0.1);
     }
@@ -526,7 +526,7 @@
 // Load theme immediately to prevent flash
 (function() {
   var saved = localStorage.getItem('theme');
-  if (saved === 'light') document.body.classList.add('light-mode');
+  if (saved !== 'dark') document.body.classList.add('light-mode');
 })();
 </script>
 

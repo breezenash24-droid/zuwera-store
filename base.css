@@ -61,9 +61,9 @@ body:has(.modal.open) {
 
 /* ===================== LIGHT MODE ===================== */
 body.light-mode {
-  --black:  #E8E3DC;
-  --white:  #252118;
-  --accent: #252118;
+  --black:  #F0EEE9;
+  --white:  #09090b;
+  --accent: #09090b;
 
   --c06:  rgba(10,10,10,0.06);
   --c07:  rgba(10,10,10,0.07);

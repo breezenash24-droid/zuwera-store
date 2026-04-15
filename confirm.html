@@ -13,7 +13,7 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --black: #252118;
+    --black: #09090b;
     --white: #f4f1eb;
     --pink:  #F891A5;
     --mono:  'DM Sans', sans-serif;
@@ -195,34 +195,34 @@
     background: #f5f5f0;
     color: #09090b;
     --black: #E8E3DC;
-    --white: #252118;
+    --white: #09090b;
     --pink: #09090b;
   }
-  body.light-mode .logo-link { color: #252118; }
+  body.light-mode .logo-link { color: #09090b; }
   body.light-mode .logo-link:hover { color: rgba(9,9,11,.55); }
   body.light-mode .card {
     background: #E8E3DC;
     border-color: rgba(9,9,11,.08);
     border-top-color: #09090b;
   }
-  body.light-mode .brand { color: #252118; border-bottom-color: rgba(9,9,11,.06); }
+  body.light-mode .brand { color: #09090b; border-bottom-color: rgba(9,9,11,.06); }
   body.light-mode .state-sub { color: rgba(9,9,11,.4); }
-  body.light-mode .spinner { border-color: rgba(9,9,11,.1); border-top-color: #252118; }
+  body.light-mode .spinner { border-color: rgba(9,9,11,.1); border-top-color: #09090b; }
   body.light-mode .btn-primary { background: #09090b; color: #E8E3DC; }
-  body.light-mode .btn-primary:hover { background: #32291F; }
+  body.light-mode .btn-primary:hover { background: #1a1a1a; }
   body.light-mode .btn-ghost { color: rgba(9,9,11,.4); border-color: rgba(9,9,11,.15); }
-  body.light-mode .btn-ghost:hover { border-color: #252118; color: #252118; }
+  body.light-mode .btn-ghost:hover { border-color: #09090b; color: #09090b; }
   body.light-mode .fgroup label { color: rgba(9,9,11,.38); }
-  body.light-mode .fgroup input { background: rgba(9,9,11,.03); border-color: rgba(9,9,11,.1); color: #252118; }
+  body.light-mode .fgroup input { background: rgba(9,9,11,.03); border-color: rgba(9,9,11,.1); color: #09090b; }
   body.light-mode .fgroup input::placeholder { color: rgba(9,9,11,.18); }
-  body.light-mode .fgroup input:focus { border-color: #252118; box-shadow: 0 0 0 3px rgba(9,9,11,.06); }
+  body.light-mode .fgroup input:focus { border-color: #09090b; box-shadow: 0 0 0 3px rgba(9,9,11,.06); }
 </style>
 </head>
 <body>
 <script>
   (function() {
     var saved = localStorage.getItem('theme');
-    if (saved === 'light') document.body.classList.add('light-mode');
+    if (saved !== 'dark') document.body.classList.add('light-mode');
   })();
 </script>
 

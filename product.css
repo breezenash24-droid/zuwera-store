@@ -926,7 +926,7 @@ body.light-mode .cookie-consent-banner {
   color: rgba(9,9,11,.65);
 }
 body.light-mode .cookie-consent-banner p { color: rgba(9,9,11,.65); }
-body.light-mode .cookie-accept { background: #09090b; color: #E8E3DC; border-color: #252118; }
+body.light-mode .cookie-accept { background: #09090b; color: #E8E3DC; border-color: #09090b; }
 body.light-mode .cookie-decline { color: rgba(9,9,11,.45); border-color: rgba(9,9,11,.2); }
 body.light-mode .footer-logo {
   filter: invert(1);
@@ -959,11 +959,11 @@ body.light-mode .accordion:first-child {
   border-top-color: rgba(9,9,11,.08);
 }
 body.light-mode .accordion-header {
-  color: #252118;
+  color: #09090b;
 }
 body.light-mode .size-btn {
   border-color: rgba(9,9,11,.18);
-  color: #252118;
+  color: #09090b;
 }
 body.light-mode .size-btn:hover:not(.disabled) {
   border-color: rgba(9,9,11,.4);
@@ -971,7 +971,7 @@ body.light-mode .size-btn:hover:not(.disabled) {
 body.light-mode .size-btn.selected {
   background: #09090b;
   color: #E8E3DC;
-  border-color: #252118;
+  border-color: #09090b;
 }
 body.light-mode .low-stock-badge {
   background: rgba(9,9,11,.85);
