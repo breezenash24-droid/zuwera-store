@@ -484,8 +484,11 @@
         background: rgba(9,9,11,0.07) !important;
         border-color: rgba(9,9,11,0.18) !important;
       }
+      body.light-mode #zw-lang-grid button div div:first-child {
+        color: #09090b !important;
+      }
       body.light-mode #zw-lang-grid button div div:last-child {
-        color: rgba(9,9,11,0.45) !important;
+        color: rgba(9,9,11,0.55) !important;
       }
       body.light-mode #zw-lang-box > div:last-child {
         border-top-color: rgba(9,9,11,0.08) !important;
