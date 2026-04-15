@@ -476,9 +476,9 @@ body.light-mode .review-mbox .review-body-field { background: rgba(9,9,11,0.03);
 body.light-mode .review-mbox .review-body-field:focus { border-color: #252118; box-shadow: 0 0 0 3px rgba(9,9,11,0.06); }
 body.light-mode .review-mbox .review-body-field::placeholder { color: rgba(9,9,11,0.25); }
 body.light-mode .review-mbox .review-submit-btn,
-body.light-mode .review-list-mbox .review-submit-btn { background: #09090b; color: #F0EEE9; }
+body.light-mode .review-list-mbox .review-submit-btn { background: #09090b; color: #E8E3DC; }
 body.light-mode .review-mbox .review-submit-btn:hover,
-body.light-mode .review-list-mbox .review-submit-btn:hover { background: #1a1a1a; color: #F0EEE9; }
+body.light-mode .review-list-mbox .review-submit-btn:hover { background: #1a1a1a; color: #E8E3DC; }
 body.light-mode .review-mbox .star-selector button { color: rgba(9,9,11,0.15); }
 body.light-mode .review-mbox .star-selector button.lit { color: #252118; }
 body.light-mode .review-mbox .star-selector button.hover { color: rgba(9,9,11,0.55); }

@@ -366,7 +366,7 @@ footer p {
 body.light-mode .about h2,
 body.light-mode .about p { color: inherit; }
 body.light-mode .coming-soon-badge {
-  background: rgba(240,238,233,0.9);
+  background: rgba(232,227,220,0.9);
   border-color: rgba(9,9,11,0.15);
   color: #252118;
 }
@@ -382,12 +382,12 @@ body.light-mode .notify-form-inline input {
 }
 body.light-mode .notify-form-inline input::placeholder { color: rgba(9,9,11,0.3); }
 body.light-mode .notify-form-inline input:focus { border-color: rgba(9,9,11,0.4); }
-body.light-mode .notify-form-inline button { background: #09090b; color: #F0EEE9; }
+body.light-mode .notify-form-inline button { background: #09090b; color: #E8E3DC; }
 body.light-mode .notify-form-inline button:hover { opacity: 0.85; }
 body.light-mode footer { border-top-color: rgba(9,9,11,0.08); }
 body.light-mode footer p { color: rgba(9,9,11,0.35); }
 body.light-mode .footer-logo { mix-blend-mode: multiply; opacity: 0.7; filter: invert(0); }
-body.light-mode .toast { background: #09090b; color: #F0EEE9; }
+body.light-mode .toast { background: #09090b; color: #E8E3DC; }
 body.light-mode .cart-summary { background: #eaeae5 !important; }
 body.light-mode .cart-summary .summary-row { border-bottom-color: rgba(9,9,11,0.07); }
 @media (max-width: 812px) and (orientation: landscape) {

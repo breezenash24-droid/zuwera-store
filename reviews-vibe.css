@@ -1626,7 +1626,7 @@ body.light-mode .review-dialog {
   background:
     radial-gradient(circle at top left, rgba(248,145,165,0.14), transparent 30%),
     linear-gradient(180deg, rgba(9,9,11,0.03), rgba(9,9,11,0.01)),
-    #f0eee9;
+    #E8E3DC;
   border-color: rgba(9,9,11,0.1);
   box-shadow: 0 26px 70px rgba(9,9,11,0.15);
 }
@@ -1673,7 +1673,7 @@ body.light-mode .review-radio-group label {
 body.light-mode .size-guide-dialog {
   background:
     linear-gradient(180deg, rgba(9,9,11,0.025), rgba(9,9,11,0.01)),
-    #f0eee9;
+    #E8E3DC;
   border-color: rgba(9,9,11,0.12);
 }
 
@@ -1724,7 +1724,7 @@ body.light-mode .star-selector button {
 
 body.light-mode .review-submit-btn {
   background: #09090b;
-  color: #f0eee9;
+  color: #E8E3DC;
 }
 
 body.light-mode .review-submit-btn--ghost,
@@ -1772,13 +1772,13 @@ body.light-mode .review-form-note {
 }
 
 body.light-mode .review-dialog--thread {
-  background: #f0eee9;
+  background: #E8E3DC;
   border-top-color: rgba(9,9,11,0.1);
 }
 
 body.light-mode .review-dialog--thread .review-submit-btn--list {
   background: #09090b;
-  color: #f0eee9;
+  color: #E8E3DC;
 }
 
 body.light-mode .review-dialog--thread .review-submit-btn--list:hover {
@@ -1814,7 +1814,7 @@ body.light-mode .review-dialog--thread .review-admin-response {
 
 body.light-mode .review-dialog--classic-list .review-submit-btn--legacy-list {
   background: #09090b;
-  color: #f0eee9;
+  color: #E8E3DC;
 }
 
 body.light-mode .review-dialog--classic-list .review-select--legacy,

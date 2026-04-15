@@ -945,7 +945,7 @@ body.light-mode .size-guide-link:focus-visible {
 }
 
 body.light-mode .heart-btn {
-  background: rgba(240,238,233,.7);
+  background: rgba(232,227,220,.7);
   border-color: rgba(9,9,11,.1);
   color: rgba(9,9,11,.3);
 }

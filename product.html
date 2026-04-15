@@ -31,7 +31,7 @@
 <link rel="stylesheet" href="base.css">
 <link rel="stylesheet" href="nav.css?v=4">
 <link rel="stylesheet" href="product.css?v=4">
-<link rel="stylesheet" href="cart.css">
+<link rel="stylesheet" href="cart.css?v=5">
 <link rel="stylesheet" href="reviews.css?v=10">
 
 <style>
@@ -260,7 +260,7 @@ body.light-mode .mclose:hover {background:rgba(9,9,11,.1)}
 body.light-mode .fgroup input {background:rgba(9,9,11,.03);border-color:rgba(9,9,11,.1);color:#252118}
 body.light-mode .fgroup input::placeholder {color:rgba(9,9,11,.18)}
 body.light-mode .fgroup label {color:rgba(9,9,11,.38)}
-body.light-mode .auth-submit-btn {background:#09090b;color:#F0EEE9}
+body.light-mode .auth-submit-btn {background:#09090b;color:#E8E3DC}
 body.light-mode .atab {color:rgba(9,9,11,.25)}
 body.light-mode .atabs {border-bottom-color:rgba(9,9,11,.08)}
 body.light-mode .auth-brand {border-bottom-color:rgba(9,9,11,.06)}
@@ -350,7 +350,7 @@ body.light-mode #toast { background: #09090b; color: #E8E3DC; }
 .mobile-nav-link { font-family: 'IBM Plex Mono', monospace; font-size: 1.2rem; color: rgba(244,241,235,.78); letter-spacing: 0.22em; text-transform: uppercase; text-decoration: none; transition: color 0.2s; }
 .mobile-nav-link:hover { color: #f4f1eb; }
 
-body.light-mode #mobile-menu { background: rgba(240,238,233,0.98); }
+body.light-mode #mobile-menu { background: rgba(232,227,220,0.98); }
 body.light-mode .mobile-nav-link { color: rgba(9,9,11,.78); }
 body.light-mode .mobile-nav-link:hover { color: #252118; }
 
@@ -2676,7 +2676,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
         <h2>Saved Items</h2>
         <p id="fav-logged-out-msg" class="favorites-msg"><a id="fav-signin-link">Login</a> to view your saved items</p>
         <div id="fav-logged-in-area" style="display:none">
-          <p id="cart-favs-empty" style="display:none;font-family:'DM Sans',sans-serif;font-size:.72rem;color:rgba(244,241,235,.35);padding:.3rem 0 .6rem">No saved items yet.</p>
+          <p id="cart-favs-empty" style="display:none;font-family:'DM Sans',sans-serif;font-size:.72rem;color:rgba(9,9,11,.4);padding:.3rem 0 .6rem">No saved items yet.</p>
           <ul id="cart-favs-list" style="list-style:none;padding:0;margin:0"></ul>
         </div>
       </div>
