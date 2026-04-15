@@ -3081,32 +3081,36 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     });
     payReq.on('shippingaddresschange', async ev => {
       const a = ev.shippingAddress;
+      // Helper: always resolves with a success update using flat rate so checkout never hard-fails
+      function useFlatRate() {
+        walletRates = [];
+        selRate = null;
+        walletShippingCents = defaultShippingCents;
+        ev.updateWith({
+          status:'success',
+          shippingOptions:[{ id:'flat_rate', label:'Standard Shipping', detail:'Est. 5–7 business days', amount:defaultShippingCents }],
+          total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, defaultShippingCents) },
+          displayItems:getWalletDisplayItems(normalizedSubtotalCents, defaultShippingCents)
+        });
+      }
       try {
-        // Apple Pay / Google Pay withholds the street address during shippingaddresschange
-        // for privacy — only city/state/zip/country are available at this stage.
-        // Use a placeholder street so Shippo can calculate rates by zip/state.
+        // Apple Pay / Google Pay withhold street during shippingaddresschange for privacy.
+        // Use placeholder so Shippo can calculate rates by zip/state.
         const line1 = a.addressLine?.[0] || '1 Main St';
         const d = await post('/api/shippo-rates', { address:{ name:'', line1, city:a.city, state:a.region, zip:a.postalCode, country:a.country } });
-        if (!d.rates?.length) {
-          walletRates = [];
-          selRate = null;
-          ev.updateWith({status:'invalid_shipping_address'});
-          return;
-      }
-      walletRates = d.rates.slice(0,4);
-      const opts = walletRates.map(r => ({ id:r.objectId, label:`${r.provider} ${r.servicelevel}`, detail:r.days?`Est. ${r.days} business days`:'', amount:Math.round(parseFloat(r.amount)*100) }));
-      selRate = walletRates[0] || null;
-      walletShippingCents = opts[0]?.amount || defaultShippingCents;
-      ev.updateWith({
-        status:'success',
-        shippingOptions:opts,
-        total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, walletShippingCents) },
-        displayItems:getWalletDisplayItems(normalizedSubtotalCents, walletShippingCents)
-      });
-    } catch {
-      ev.updateWith({status:'fail'});
-    }
-  });
+        if (!d.rates?.length) { useFlatRate(); return; }
+        walletRates = d.rates.slice(0,4);
+        const opts = walletRates.map(r => ({ id:r.objectId, label:`${r.provider} ${r.servicelevel}`, detail:r.days?`Est. ${r.days} business days`:'', amount:Math.round(parseFloat(r.amount)*100) }));
+        selRate = walletRates[0] || null;
+        walletShippingCents = opts[0]?.amount || defaultShippingCents;
+        ev.updateWith({
+          status:'success',
+          shippingOptions:opts,
+          total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, walletShippingCents) },
+          displayItems:getWalletDisplayItems(normalizedSubtotalCents, walletShippingCents)
+        });
+      } catch { useFlatRate(); }
+    });
     payReq.on('shippingoptionchange', ev => {
       const matchedRate = walletRates.find(r => r.objectId === ev.shippingOption?.id);
       if (matchedRate) selRate = matchedRate;
