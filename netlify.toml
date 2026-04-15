@@ -4,6 +4,22 @@
   functions = "netlify/functions"
 
 # ── Redirects ─────────────────────────────────────────────────────
+# Route /api/* calls to Netlify functions (must come before the catch-all)
+[[redirects]]
+  from = "/api/shippo-rates"
+  to = "/.netlify/functions/shippo-rates"
+  status = 200
+
+[[redirects]]
+  from = "/api/create-payment-intent"
+  to = "/.netlify/functions/create-payment-intent"
+  status = 200
+
+[[redirects]]
+  from = "/api/stripe-webhook"
+  to = "/.netlify/functions/stripe-webhook"
+  status = 200
+
 [[redirects]]
   from = "/*"
   to = "/404.html"
