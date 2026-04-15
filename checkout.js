@@ -4,7 +4,7 @@ let stripe, elements, cardElement;
 
 function initStripe() {
   if (typeof Stripe === 'undefined') return;
-  stripe = Stripe('pk_live_51T8ct20oFp4PJGitDcNMSLu9jQMFajtwqib8dTX4WhubBon2Pso2VgkHhTHcbuKNUi9ljfwMX8Bx2uhEp1Fp2VfY00LFKvLEy4');
+  stripe = Stripe('pk_test_51T8ct20oFp4PJGitdabh4D80ReyWXbo7QsPltbO3PAChOzSmMDD6CJtOQkZ6Y4fMWCzkDmjAkexZDW6okKjQUf5p00SgMHKK2h');
   elements = stripe.elements();
   cardElement = elements.create('card', {
     style: {
