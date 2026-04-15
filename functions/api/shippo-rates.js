@@ -82,6 +82,23 @@ export async function onRequestPost({ request, env }) {
     }
 
     const data  = await resp.json();
+
+    // DEBUG: expose raw Shippo response to diagnose empty rates
+    const url = new URL(request.url);
+    if (url.searchParams.get('debug') === '1') {
+      return new Response(JSON.stringify({
+        _debug: true,
+        shippo_status: data.status,
+        shippo_object_status: data.object_status,
+        messages: data.messages,
+        address_from: data.address_from,
+        address_to: data.address_to,
+        rates_count: (data.rates || []).length,
+        rates_statuses: (data.rates || []).map(r => ({ provider: r.provider, status: r.object_status, amount: r.amount })),
+        raw_rates_sample: (data.rates || []).slice(0, 3),
+      }), { status: 200, headers });
+    }
+
     // Sort: USPS first (preferred carrier), then by price within each carrier group
     const USPS_PROVIDERS = new Set(['USPS', 'usps']);
     const rates = (data.rates || [])
