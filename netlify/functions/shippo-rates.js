@@ -59,11 +59,10 @@ exports.handler = async (event) => {
     // Sort: USPS first (preferred carrier), then by price within each carrier group
     const USPS_PROVIDERS = new Set(['USPS', 'usps']);
     const rates = (data.rates || [])
-      .filter(r => r.object_status === 'VALID')
       .map(r => ({
         objectId:     r.object_id,
         provider:     r.provider,
-        servicelevel: r.servicelevel_name,
+        servicelevel: r.servicelevel?.name,
         amount:       r.amount,
         currency:     r.currency,
         days:         r.estimated_days,
