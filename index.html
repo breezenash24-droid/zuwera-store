@@ -2881,10 +2881,10 @@ function getWalletTaxCents(subtotalCents) {
 }
 
 function getDefaultCheckoutShippingCents(subtotalCents) {
-  const shipRateCents = 800;
-  const freeThresholdDollars = 100;
   if (subtotalCents <= 0) return 0;
-  return (subtotalCents / 100) >= freeThresholdDollars ? 0 : shipRateCents;
+  const policy = window._shippingPolicy || { enabled: true, threshold: 100, standardRate: 8 };
+  const qualifiesFree = policy.enabled && (subtotalCents / 100) >= policy.threshold;
+  return qualifiesFree ? 0 : Math.round((policy.standardRate || 8) * 100);
 }
 
 function getWalletTotalCents(subtotalCents, shippingCents = 0) {
@@ -3052,14 +3052,22 @@ function initPR(subtotalCents) {
   });
   payReq.on('shippingaddresschange', async ev => {
     const a = ev.shippingAddress;
-    // Helper: always resolves with a success update using flat rate so checkout never hard-fails
+    const policy = window._shippingPolicy || { enabled: true, threshold: 100, standardRate: 8 };
+    const qualifiesFree = policy.enabled && (normalizedSubtotalCents / 100) >= policy.threshold;
+
+    // Helper: fall back to flat/free rate so checkout never hard-fails
     function useFlatRate() {
       walletRates = [];
       selRate = null;
-      walletShippingCents = defaultShippingCents;
+      walletShippingCents = defaultShippingCents; // 0 when free, standard rate otherwise
       ev.updateWith({
         status:'success',
-        shippingOptions:[{ id:'flat_rate', label:'Standard Shipping', detail:'Est. 5–7 business days', amount:defaultShippingCents }],
+        shippingOptions:[{
+          id:'flat_rate',
+          label: qualifiesFree ? 'Free Shipping' : 'Standard Shipping',
+          detail: qualifiesFree ? '' : 'Est. 5–7 business days',
+          amount: defaultShippingCents
+        }],
         total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, defaultShippingCents) },
         displayItems:getWalletDisplayItems(normalizedSubtotalCents, defaultShippingCents)
       });
@@ -3070,16 +3078,30 @@ function initPR(subtotalCents) {
       const line1 = a.addressLine?.[0] || '1 Main St';
       const d = await post('/api/shippo-rates', { address:{ name:'', line1, city:a.city, state:a.region, zip:a.postalCode, country:a.country } });
       if(!d.rates?.length){ useFlatRate(); return; }
-      walletRates = d.rates.slice(0,4);
-      const opts = walletRates.map(r => ({ id:r.objectId, label:`${r.provider} ${r.servicelevel}`, detail:r.days?`Est. ${r.days} business days`:'', amount:Math.round(parseFloat(r.amount)*100) }));
-      selRate = walletRates[0] || null;
-      walletShippingCents = opts[0]?.amount || defaultShippingCents;
-      ev.updateWith({
-        status:'success',
-        shippingOptions:opts,
-        total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, walletShippingCents) },
-        displayItems:getWalletDisplayItems(normalizedSubtotalCents, walletShippingCents)
-      });
+
+      if (qualifiesFree) {
+        // Order qualifies for free shipping — store cheapest rate for metadata, show Free to customer
+        walletRates = d.rates.slice(0,4);
+        selRate = walletRates[0] || null;
+        walletShippingCents = 0;
+        ev.updateWith({
+          status:'success',
+          shippingOptions:[{ id:'free', label:'Free Shipping', detail:'', amount:0 }],
+          total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, 0) },
+          displayItems:getWalletDisplayItems(normalizedSubtotalCents, 0)
+        });
+      } else {
+        walletRates = d.rates.slice(0,4);
+        const opts = walletRates.map(r => ({ id:r.objectId, label:`${r.provider} ${r.servicelevel}`, detail:r.days?`Est. ${r.days} business days`:'', amount:Math.round(parseFloat(r.amount)*100) }));
+        selRate = walletRates[0] || null;
+        walletShippingCents = opts[0]?.amount ?? defaultShippingCents;
+        ev.updateWith({
+          status:'success',
+          shippingOptions:opts,
+          total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, walletShippingCents) },
+          displayItems:getWalletDisplayItems(normalizedSubtotalCents, walletShippingCents)
+        });
+      }
     } catch { useFlatRate(); }
   });
   payReq.on('shippingoptionchange', ev => {
@@ -3099,10 +3121,15 @@ function initPR(subtotalCents) {
     try {
       const a = ev.shippingAddress||{};
       const userId = await getCheckoutUserId();
+      const policy = window._shippingPolicy || { enabled: true, threshold: 100, standardRate: 8 };
+      const qualifiesFree = policy.enabled && (normalizedSubtotalCents / 100) >= policy.threshold;
+      // Use nullish coalescing so $0 shipping (free) is preserved and not replaced by the fallback
+      const effectiveShippingCents = walletShippingCents ?? defaultShippingCents;
       const d = await post('/api/create-payment-intent', {
         items:cartItems,
         shippingRate:selRate,
-        shippingAmountCents: walletShippingCents || defaultShippingCents,
+        shippingAmountCents: effectiveShippingCents,
+        freeShipping: qualifiesFree,
         userId,
         address:{ name:ev.payerName||'', email:ev.payerEmail||'', line1:a.addressLine?.[0]||'', line2:a.addressLine?.[1]||'', city:a.city||'', state:a.region||'', zip:a.postalCode||'', country:a.country||'US' }
       });
