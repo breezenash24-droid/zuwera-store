@@ -1631,11 +1631,11 @@ body.light-mode::after{opacity:0.15}
       <div class="pfield"><label>State</label><input type="text" id="pay-state" placeholder="NY" maxlength="2" autocomplete="address-level1" style="text-transform:uppercase"></div>
       <div class="pfield"><label>ZIP</label><input type="text" id="pay-zip" placeholder="10001" maxlength="10" autocomplete="postal-code"></div>
     </div>
-    <div id="shipping-rates-field" style="display:none"><div id="shipping-rates-list"></div></div>
-    <div id="shipping-rates-loading" style="display:none"></div>
-    <div class="pfield" style="display:flex;align-items:center;justify-content:space-between">
+    <div class="pfield" id="shipping-rates-field" style="display:none"><label>Shipping Method</label><div id="shipping-rates-list"></div></div>
+    <div id="shipping-rates-loading" style="display:none;font-family:var(--fm);font-size:.68rem;color:rgba(244,241,235,.35);margin-bottom:1rem">Fetching shipping rates...</div>
+    <div id="shipping-free-row" class="pfield" style="display:none;align-items:center;justify-content:space-between">
       <label style="margin:0">Shipping</label>
-      <span style="font-family:var(--fm);font-size:.82rem;color:rgba(244,241,235,.85);letter-spacing:.03em">Free</span>
+      <span style="font-family:var(--fm);font-size:.82rem;color:rgba(244,241,235,.85);">Free</span>
     </div>
     <div class="pfield"><label>Card Details</label><div id="stripe-card-element"></div></div>
     <p id="pay-error"></p>
@@ -1774,6 +1774,9 @@ function applyAnnouncementBar(mode, msgText) {
   window.addEventListener('scroll', _announcementBarScrollHandler, { passive: true });
 }
 
+/* -- SHIPPING POLICY (default until Supabase loads) -- */
+window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
+
 /* -- LOAD SITE SETTINGS (announcement bar) -- */
 (async function loadSiteSettings() {
   try {
@@ -1850,6 +1853,17 @@ function applyAnnouncementBar(mode, msgText) {
         try { localStorage.setItem('zw-brand', JSON.stringify(b || {})); } catch (e) {}
         if (b.admin_res_bg) document.documentElement.style.setProperty('--admin-res-bg', b.admin_res_bg);
         if (b.admin_res_text) document.documentElement.style.setProperty('--admin-res-text', b.admin_res_text);
+      } else if (row.key === 'shipping_policy') {
+        const v = row.value || {};
+        window._shippingPolicy = {
+          enabled:      v.free_shipping_enabled !== false,
+          threshold:    parseFloat(v.free_threshold)  || 100,
+          standardRate: parseFloat(v.standard_rate)   || 8,
+        };
+        // Re-render cart with real policy now that settings have loaded
+        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        const sub  = cart.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0);
+        if (sub > 0) updateCartSummary(sub);
       }
     });
     if (!announcementApplied) applyAnnouncementBar('on', '');
@@ -2766,11 +2780,42 @@ function renderCart() {
 }
 
 function updateCartSummary(subtotal) {
+  const policy        = window._shippingPolicy || { enabled: true, threshold: 100, standardRate: 8 };
+  const qualifiesFree = policy.enabled && subtotal >= policy.threshold;
+
+  // Update the ship-note below the "Shipping" label
+  const shipNote = document.querySelector('.ship-note');
+  if (shipNote) {
+    if (policy.enabled) {
+      shipNote.textContent = subtotal > 0 && qualifiesFree
+        ? 'Your order qualifies for free shipping!'
+        : `Free on orders $${policy.threshold}+`;
+    } else {
+      shipNote.textContent = 'Calculated at checkout';
+    }
+  }
+
   document.getElementById('summary-subtotal').textContent = subtotal > 0 ? '$' + subtotal.toFixed(2) : '-';
-  document.getElementById('summary-shipping').textContent = subtotal > 0 ? 'Free' : '-';
+
+  if (subtotal === 0) {
+    document.getElementById('summary-shipping').textContent = '-';
+    document.getElementById('summary-tax').textContent      = '-';
+    document.getElementById('summary-total').textContent    = '-';
+    return;
+  }
+
   const tax = subtotal * 0.08;
-  document.getElementById('summary-tax').textContent = subtotal > 0 ? '$' + tax.toFixed(2) : '-';
-  document.getElementById('summary-total').textContent = subtotal > 0 ? '$' + (subtotal + tax).toFixed(2) : '-';
+  document.getElementById('summary-tax').textContent = '$' + tax.toFixed(2);
+
+  if (qualifiesFree) {
+    document.getElementById('summary-shipping').textContent = 'Free';
+    document.getElementById('summary-total').textContent    = '$' + (subtotal + tax).toFixed(2);
+  } else {
+    // Show the estimated standard rate while Shippo loads
+    const est = policy.standardRate || 8;
+    document.getElementById('summary-shipping').textContent = '$' + est.toFixed(2);
+    document.getElementById('summary-total').textContent    = '$' + (subtotal + est + tax).toFixed(2);
+  }
 }
 
 window.updateCartQuantity = function(idx, delta) { let cart = JSON.parse(localStorage.getItem('cart')) || []; if (cart[idx]) { cart[idx].quantity += delta; if (cart[idx].quantity <= 0) cart.splice(idx, 1); localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); } };
@@ -3095,21 +3140,58 @@ function initPR(subtotalCents) {
 }
 
 let rateTimer = null;
+function _getCurrentSubtotal() {
+  return parseFloat((document.getElementById('summary-subtotal')?.textContent||'0').replace(/[^0-9.]/g,'')) || 0;
+}
 function maybeLoadRates() {
   const zip = document.getElementById('pay-zip').value.trim();
   const state = document.getElementById('pay-state').value.trim();
   if(zip.length < 5 || state.length < 2) return;
   clearTimeout(rateTimer);
-  // Silently fetch rates and auto-select the cheapest for fulfillment metadata.
-  // Shipping is free to the customer — rates are used internally only.
   rateTimer = setTimeout(async () => {
+    const policy        = window._shippingPolicy || { enabled: true, threshold: 100, standardRate: 8 };
+    const subtotal      = _getCurrentSubtotal();
+    const qualifiesFree = policy.enabled && subtotal >= policy.threshold;
+
+    document.getElementById('shipping-rates-field').style.display = 'none';
+    document.getElementById('shipping-free-row').style.display    = 'none';
+
+    if (qualifiesFree) {
+      // Silently fetch cheapest rate for fulfillment metadata — customer pays nothing
+      document.getElementById('shipping-free-row').style.display = 'flex';
+      try {
+        const d = await post('/api/shippo-rates', { address:{ name:document.getElementById('pay-name').value.trim(), line1:document.getElementById('pay-addr1').value.trim(), city:document.getElementById('pay-city').value.trim(), state, zip, country:'US' } });
+        if(d.rates?.length) selRate = d.rates[0];
+      } catch(e){ /* silent */ }
+      return;
+    }
+
+    // Not qualifying for free — show live Shippo rates for customer to choose
+    document.getElementById('shipping-rates-loading').style.display = 'block';
     try {
       const d = await post('/api/shippo-rates', { address:{ name:document.getElementById('pay-name').value.trim(), line1:document.getElementById('pay-addr1').value.trim(), city:document.getElementById('pay-city').value.trim(), state, zip, country:'US' } });
-      if(d.rates?.length) selRate = d.rates[0]; // cheapest USPS rate auto-selected
-    } catch(e){ /* silently ignore — free shipping still applies */ }
+      document.getElementById('shipping-rates-loading').style.display = 'none';
+      if(!d.rates?.length) return;
+      const list = document.getElementById('shipping-rates-list'); list.innerHTML='';
+      d.rates.slice(0,5).forEach((rate, i) => {
+        const el = document.createElement('div');
+        el.className = 'rate-opt' + (i===0?' selected':'');
+        el.innerHTML = `<span class="rate-name">${rate.provider} ${rate.servicelevel}</span><span class="rate-meta">${rate.days?rate.days+' business days':''}</span><span class="rate-price">$${parseFloat(rate.amount).toFixed(2)}</span>`;
+        el.addEventListener('click', () => { document.querySelectorAll('.rate-opt').forEach(x => x.classList.remove('selected')); el.classList.add('selected'); selRate=rate; updateShip(rate.amount); });
+        list.appendChild(el);
+      });
+      selRate = d.rates[0]; updateShip(d.rates[0].amount);
+      document.getElementById('shipping-rates-field').style.display = 'block';
+    } catch(e){ document.getElementById('shipping-rates-loading').style.display='none'; }
   }, 600);
 }
-function updateShip(amount) { /* no-op: shipping is always free to the customer */ }
+function updateShip(amount) {
+  const p = el => parseFloat((document.getElementById(el)?.textContent||'0').replace(/[^0-9.]/g,''));
+  const se = document.getElementById('summary-shipping');
+  const te = document.getElementById('summary-total');
+  if(se) se.textContent = '$'+parseFloat(amount).toFixed(2);
+  if(te) te.textContent = '$'+(p('summary-subtotal')+parseFloat(amount)+p('summary-tax')).toFixed(2);
+}
 document.getElementById('pay-zip').addEventListener('input', maybeLoadRates);
 document.getElementById('pay-state').addEventListener('input', maybeLoadRates);
 document.getElementById('payment-close').addEventListener('click', () => { closePaymentModal(); document.getElementById('pay-error').textContent=''; });
@@ -3122,10 +3204,14 @@ document.getElementById('pay-submit').addEventListener('click', async () => {
   err.textContent='';
   if(!name||!email){ err.textContent='Please enter your name and email.'; return; }
   if(!addr1||!city||!state||!zip){ err.textContent='Please enter your full shipping address.'; return; }
+  const _policy        = window._shippingPolicy || { enabled: true, threshold: 100, standardRate: 8 };
+  const _sub           = _getCurrentSubtotal();
+  const _qualifiesFree = _policy.enabled && _sub >= _policy.threshold;
+  if(!_qualifiesFree && !selRate){ err.textContent='Please enter your ZIP and state to load shipping options.'; return; }
   btn.disabled=true; btxt.textContent='Processing...';
   try {
     const userId = await getCheckoutUserId();
-    const d = await post('/api/create-payment-intent', { items:cartItems, shippingRate:selRate, userId, address:{name,email,line1:addr1,line2:addr2,city,state,zip,country:'US'} });
+    const d = await post('/api/create-payment-intent', { items:cartItems, shippingRate:selRate, freeShipping:_qualifiesFree, userId, address:{name,email,line1:addr1,line2:addr2,city,state,zip,country:'US'} });
     if(d.error){ err.textContent=d.error; btn.disabled=false; btxt.textContent='Pay Now'; return; }
     const { error, paymentIntent } = await stripe.confirmCardPayment(d.clientSecret, { payment_method:{ card, billing_details:{name,email} }, receipt_email:email, shipping:{name,address:{line1:addr1,line2:addr2,city,state,postal_code:zip,country:'US'}} });
     if(error){ err.textContent=error.message; btn.disabled=false; btxt.textContent='Pay Now'; return; }

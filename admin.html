@@ -471,6 +471,14 @@
             display: block;
         }
 
+        /* Toggle switch */
+        .toggle-switch { position:relative; display:inline-block; width:44px; height:24px; flex-shrink:0; }
+        .toggle-switch input { opacity:0; width:0; height:0; }
+        .toggle-slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:var(--border); transition:.2s; border-radius:24px; }
+        .toggle-slider:before { position:absolute; content:""; height:18px; width:18px; left:3px; bottom:3px; background:#fff; transition:.2s; border-radius:50%; }
+        .toggle-switch input:checked + .toggle-slider { background:var(--accent); }
+        .toggle-switch input:checked + .toggle-slider:before { transform:translateX(20px); }
+
         /* Color Variant */
         .color-variant-item {
             display: grid;
@@ -1645,14 +1653,33 @@
 
                     <!-- Shipping Policy -->
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
-                        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:16px;">Shipping &amp; Returns Policy</div>
+                        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:20px;">Shipping &amp; Returns Policy</div>
+
+                        <!-- Free Shipping Toggle -->
+                        <div style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:20px;">
+                            <div style="display:flex;align-items:center;gap:14px;margin-bottom:4px;">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="settFreeShippingEnabled">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div>
+                                    <div style="font-size:.9rem;font-weight:600;">Free shipping over a set amount</div>
+                                    <div style="font-size:.75rem;color:var(--text-secondary);margin-top:2px;">Customers won't be charged for shipping when their order reaches the threshold.</div>
+                                </div>
+                            </div>
+                            <div id="freeShippingThresholdRow" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                                <span style="font-size:.85rem;color:var(--text-secondary);">Free shipping on orders over</span>
+                                <div style="position:relative;display:inline-flex;align-items:center;">
+                                    <span style="position:absolute;left:10px;font-size:.85rem;pointer-events:none;">$</span>
+                                    <input type="number" id="settFreeThreshold" class="form-input" placeholder="100" min="0" style="width:110px;padding-left:24px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Other shipping fields -->
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
                             <div>
-                                <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Free shipping threshold ($)</label>
-                                <input type="number" id="settFreeThreshold" class="form-input" placeholder="100" min="0">
-                            </div>
-                            <div>
-                                <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Standard shipping rate ($)</label>
+                                <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Standard shipping rate ($) — shown when not free</label>
                                 <input type="number" id="settStandardRate" class="form-input" placeholder="8" min="0" step="0.01">
                             </div>
                             <div>
@@ -1668,7 +1695,7 @@
                                 <input type="number" id="settReturnNonmember" class="form-input" placeholder="30" min="0">
                             </div>
                         </div>
-                        <button type="button" class="btn btn-primary btn-sm" id="saveShippingBtn">Save Shipping Policy</button>
+                        <button type="button" class="btn btn-primary btn-sm" id="saveShippingBtn">Save Shipping Settings</button>
                     </div>
                     
                     <!-- Fabric Technologies -->
@@ -4348,6 +4375,9 @@
                 }
             } else if (row.key === 'shipping_policy') {
                 const v = row.value || {};
+                const enabledToggle = document.getElementById('settFreeShippingEnabled');
+                enabledToggle.checked = v.free_shipping_enabled !== false; // default true
+                _syncFreeRow();
                 if (v.free_threshold !== undefined) document.getElementById('settFreeThreshold').value = v.free_threshold;
                 if (v.standard_rate !== undefined) document.getElementById('settStandardRate').value = v.standard_rate;
                 if (v.delivery_days) document.getElementById('settDeliveryDays').value = v.delivery_days;
@@ -4405,8 +4435,17 @@
         else showToast('Announcement saved!', 'success');
     });
 
+    // Free-shipping toggle show/hide
+    const _freeToggle = document.getElementById('settFreeShippingEnabled');
+    const _freeRow    = document.getElementById('freeShippingThresholdRow');
+    function _syncFreeRow() {
+        _freeRow.style.display = _freeToggle.checked ? 'flex' : 'none';
+    }
+    _freeToggle.addEventListener('change', _syncFreeRow);
+
     document.getElementById('saveShippingBtn').addEventListener('click', async () => {
         const val = {
+            free_shipping_enabled: document.getElementById('settFreeShippingEnabled').checked,
             free_threshold: parseFloat(document.getElementById('settFreeThreshold').value) || 100,
             standard_rate: parseFloat(document.getElementById('settStandardRate').value) || 8,
             delivery_days: document.getElementById('settDeliveryDays').value || '5-7',
@@ -4417,8 +4456,8 @@
             { key: 'shipping_policy', value: val, updated_at: new Date().toISOString() },
             { onConflict: 'key' }
         );
-        if (error) { showToast('Error saving shipping policy', 'error'); console.error(error); }
-        else showToast('Shipping policy saved!', 'success');
+        if (error) { showToast('Error saving shipping settings', 'error'); console.error(error); }
+        else showToast('Shipping settings saved!', 'success');
     });
 
     function renderTechList() {

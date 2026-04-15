@@ -41,7 +41,7 @@ export async function onRequestPost({ request, env }) {
   };
 
   try {
-    const { items, shippingRate, shippingAmountCents, address, userId } = await request.json();
+    const { items, shippingRate, shippingAmountCents, freeShipping, address, userId } = await request.json();
 
     if (!items?.length || !address?.email)
       return new Response(JSON.stringify({ error: 'Missing required fields: items and address.email' }), { status: 400, headers });
@@ -53,12 +53,14 @@ export async function onRequestPost({ request, env }) {
       (sum, item) => sum + getItemPriceCents(item) * (item.quantity || 1),
       0
     );
-    // Shipping is free to the customer — we absorb the cost.
-    // The actual carrier rate is stored in metadata for fulfillment.
+    // actualShippingCents = what Nash pays the carrier (stored in metadata for fulfillment)
     const actualShippingCents = shippingRate?.amount
       ? Math.round(parseFloat(shippingRate.amount) * 100)
       : parseShippingFallbackCents(shippingAmountCents);
-    const shippingCents = 0; // customer pays $0 shipping
+    // shippingCents = what the customer is charged
+    // freeShipping=true  → customer pays $0 (Nash absorbs carrier cost)
+    // freeShipping=false → customer pays the selected Shippo rate
+    const shippingCents = freeShipping ? 0 : actualShippingCents;
     const taxCents = subtotalCents > 0
       ? Math.round(subtotalCents * SALES_TAX_RATE)
       : 0;
@@ -104,9 +106,10 @@ export async function onRequestPost({ request, env }) {
           shipping_service:             shippingRate?.servicelevel || '',
           shipping_rate_object_id:      shippingRate?.objectId    || '',
           actual_shipping_cost_cents:   String(actualShippingCents),
-          charged_shipping_cents:       '0',
+          charged_shipping_cents:       String(shippingCents),
+          free_shipping:                String(!!freeShipping),
           tax_amount_cents:             String(taxCents),
-          total_amount_cents:           String(subtotalCents + taxCents),
+          total_amount_cents:           String(subtotalCents + shippingCents + taxCents),
           ship_line1:   address.line1,
           ship_line2:   address.line2 || '',
           ship_city:    address.city,
@@ -121,9 +124,9 @@ export async function onRequestPost({ request, env }) {
     return new Response(JSON.stringify({
       clientSecret:   paymentIntent.client_secret,
       orderId:        paymentIntent.id,
-      subtotal:       (subtotalCents / 100).toFixed(2),
-      shipping:       '0.00',
-      tax:            (taxCents / 100).toFixed(2),
+      subtotal:       (subtotalCents      / 100).toFixed(2),
+      shipping:       (shippingCents      / 100).toFixed(2),
+      tax:            (taxCents           / 100).toFixed(2),
       actualShipping: (actualShippingCents / 100).toFixed(2),
     }), { status: 200, headers });
 
