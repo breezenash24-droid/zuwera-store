@@ -178,6 +178,6 @@ body.light-mode .rate-meta { color: rgba(9,9,11,0.4); }
 body.light-mode #pay-submit { background: #09090b; color: #E8E3DC; }
 body.light-mode #pay-submit:hover { opacity: 0.85; }
 body.light-mode .pay-secure-note { color: rgba(9,9,11,0.35); }
-body.light-mode #payment-success { background: #E8E3DC; }
+body.light-mode #payment-success { background: #F0EEE9; }
 body.light-mode #payment-success p { color: rgba(9,9,11,0.5); }
 body.light-mode #success-continue { background: #09090b; color: #E8E3DC; }
