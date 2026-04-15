@@ -3006,7 +3006,10 @@ function initPR(subtotalCents) {
   payReq.on('shippingaddresschange', async ev => {
     const a = ev.shippingAddress;
     try {
-      const d = await post('/api/shippo-rates', { address:{ name:'', line1:a.addressLine?.[0]||'', city:a.city, state:a.region, zip:a.postalCode, country:a.country } });
+      // Apple Pay / Google Pay withholds street during shippingaddresschange for privacy.
+      // Use placeholder street so Shippo can return rates based on zip/state.
+      const line1 = a.addressLine?.[0] || '1 Main St';
+      const d = await post('/api/shippo-rates', { address:{ name:'', line1, city:a.city, state:a.region, zip:a.postalCode, country:a.country } });
       if(!d.rates?.length){
         walletRates = [];
         selRate = null;

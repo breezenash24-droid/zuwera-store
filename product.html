@@ -3082,7 +3082,11 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     payReq.on('shippingaddresschange', async ev => {
       const a = ev.shippingAddress;
       try {
-        const d = await post('/api/shippo-rates', { address:{ name:'', line1:a.addressLine?.[0]||'', city:a.city, state:a.region, zip:a.postalCode, country:a.country } });
+        // Apple Pay / Google Pay withholds the street address during shippingaddresschange
+        // for privacy — only city/state/zip/country are available at this stage.
+        // Use a placeholder street so Shippo can calculate rates by zip/state.
+        const line1 = a.addressLine?.[0] || '1 Main St';
+        const d = await post('/api/shippo-rates', { address:{ name:'', line1, city:a.city, state:a.region, zip:a.postalCode, country:a.country } });
         if (!d.rates?.length) {
           walletRates = [];
           selRate = null;
