@@ -88,25 +88,21 @@ function initPaymentRequest(subtotalCents) {
           zip: addr.postalCode, country: addr.country,
         },
       });
-      if (!data.rates?.length) { ev.updateWith({ status: 'invalid_shipping_address' }); return; }
-      const shippingOptions = data.rates.slice(0, 4).map(r => ({
-        id: r.objectId,
-        label: `${r.provider} ${r.servicelevel}`,
-        detail: r.days ? `Est. ${r.days} business days` : '',
-        amount: Math.round(parseFloat(r.amount) * 100),
-      }));
-      selectedShippingRate = data.rates[0];
+      // Silently store the cheapest rate for fulfillment — customer pays $0 shipping.
+      if (data.rates?.length) selectedShippingRate = data.rates[0];
       ev.updateWith({
-        status: 'success', shippingOptions,
-        total: { label: 'Zuwera', amount: subtotalCents + shippingOptions[0].amount },
+        status: 'success',
+        shippingOptions: [{ id: 'free', label: 'Free Shipping', detail: 'Standard delivery', amount: 0 }],
+        total: { label: 'Zuwera', amount: subtotalCents },
       });
     } catch { ev.updateWith({ status: 'fail' }); }
   });
 
   paymentRequest.on('shippingoptionchange', (ev) => {
+    // Shipping is always free — total never includes a shipping cost.
     ev.updateWith({
       status: 'success',
-      total: { label: 'Zuwera', amount: subtotalCents + ev.shippingOption.amount },
+      total: { label: 'Zuwera', amount: subtotalCents },
     });
   });
 
@@ -174,33 +170,12 @@ function maybeLoadRates() {
           state, zip, country: 'US',
         },
       });
-      _pay.ratesLoading.style.display = 'none';
-      if (!data.rates?.length) return;
-
-      _pay.ratesList.innerHTML = '';
-      data.rates.slice(0, 5).forEach((rate, i) => {
-        const id    = `rate-${i}`;
-        const label = document.createElement('label');
-        label.className = 'rate-option' + (i === 0 ? ' selected' : '');
-        label.htmlFor = id;
-        label.innerHTML = `
-          <input type="radio" name="shipping-rate" id="${id}" value="${i}"
-            ${i === 0 ? 'checked' : ''} style="display:none;">
-          <span class="rate-name">${rate.provider} ${rate.servicelevel}</span>
-          <span class="rate-meta">${rate.days ? rate.days + ' business days' : ''}</span>
-          <span class="rate-price">$${parseFloat(rate.amount).toFixed(2)}</span>
-        `;
-        label.addEventListener('click', () => {
-          document.querySelectorAll('.rate-option').forEach(el => el.classList.remove('selected'));
-          label.classList.add('selected');
-          selectedShippingRate = rate;
-          updateCartSummaryShipping(rate.amount);
-        });
-        _pay.ratesList.appendChild(label);
-      });
-      selectedShippingRate = data.rates[0];
-      updateCartSummaryShipping(data.rates[0].amount);
-      _pay.ratesField.style.display = 'block';
+        _pay.ratesLoading.style.display = 'none';
+      // Silently auto-select the cheapest rate for fulfillment metadata.
+      // Shipping is free to the customer — no dropdown shown.
+      if (data.rates?.length) {
+        selectedShippingRate = data.rates[0];
+      }
     } catch (err) {
       _pay.ratesLoading.style.display = 'none';
       console.error('Rate fetch error:', err);
@@ -209,13 +184,14 @@ function maybeLoadRates() {
 }
 
 function updateCartSummaryShipping(amount) {
-  const parse = el => parseFloat(el?.textContent?.replace(/[^0-9.]/g, '') || '0');
+  // Shipping is always free to the customer — amount is used for internal metadata only.
   if (_pay.shippingEl) {
-    _pay.shippingEl.textContent = `$${parseFloat(amount).toFixed(2)}`;
+    _pay.shippingEl.textContent = 'Free';
     _pay.shippingEl.classList.remove('dash');
   }
   if (_pay.totalEl) {
-    _pay.totalEl.textContent = `$${(parse(_cart.subtotalEl) + parseFloat(amount) + parse(_pay.taxEl)).toFixed(2)}`;
+    const parse = el => parseFloat(el?.textContent?.replace(/[^0-9.]/g, '') || '0');
+    _pay.totalEl.textContent = `$${(parse(_cart.subtotalEl) + parse(_pay.taxEl)).toFixed(2)}`;
     _pay.totalEl.classList.remove('dash');
   }
 }
@@ -246,7 +222,6 @@ _pay.btn.addEventListener('click', async () => {
   _pay.errEl.textContent = '';
   if (!name || !email)                   { _pay.errEl.textContent = 'Please enter your name and email.'; return; }
   if (!addr1 || !city || !state || !zip) { _pay.errEl.textContent = 'Please enter your full shipping address.'; return; }
-  if (!selectedShippingRate)             { _pay.errEl.textContent = 'Please enter your ZIP code to load shipping options.'; return; }
 
   _pay.btn.disabled = true;
   _pay.btnTxt.textContent = 'Processing…';

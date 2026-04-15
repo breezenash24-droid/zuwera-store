@@ -53,9 +53,12 @@ export async function onRequestPost({ request, env }) {
       (sum, item) => sum + getItemPriceCents(item) * (item.quantity || 1),
       0
     );
-    const shippingCents = shippingRate?.amount
+    // Shipping is free to the customer — we absorb the cost.
+    // The actual carrier rate is stored in metadata for fulfillment.
+    const actualShippingCents = shippingRate?.amount
       ? Math.round(parseFloat(shippingRate.amount) * 100)
       : parseShippingFallbackCents(shippingAmountCents);
+    const shippingCents = 0; // customer pays $0 shipping
     const taxCents = subtotalCents > 0
       ? Math.round(subtotalCents * SALES_TAX_RATE)
       : 0;
@@ -97,11 +100,13 @@ export async function onRequestPost({ request, env }) {
           user_id:               userId || '',
           items:                 JSON.stringify(lineItems),
           subtotal_amount_cents: String(subtotalCents),
-          shipping_provider:     shippingRate?.provider    || '',
-          shipping_service:      shippingRate?.servicelevel || '',
-          shipping_amount_cents: String(shippingCents),
-          tax_amount_cents:      String(taxCents),
-          total_amount_cents:    String(subtotalCents + shippingCents + taxCents),
+          shipping_provider:            shippingRate?.provider    || '',
+          shipping_service:             shippingRate?.servicelevel || '',
+          shipping_rate_object_id:      shippingRate?.objectId    || '',
+          actual_shipping_cost_cents:   String(actualShippingCents),
+          charged_shipping_cents:       '0',
+          tax_amount_cents:             String(taxCents),
+          total_amount_cents:           String(subtotalCents + taxCents),
           ship_line1:   address.line1,
           ship_line2:   address.line2 || '',
           ship_city:    address.city,
@@ -114,11 +119,12 @@ export async function onRequestPost({ request, env }) {
     );
 
     return new Response(JSON.stringify({
-      clientSecret: paymentIntent.client_secret,
-      orderId:      paymentIntent.id,
-      subtotal:     (subtotalCents / 100).toFixed(2),
-      shipping:     (shippingCents  / 100).toFixed(2),
-      tax:          (taxCents / 100).toFixed(2),
+      clientSecret:   paymentIntent.client_secret,
+      orderId:        paymentIntent.id,
+      subtotal:       (subtotalCents / 100).toFixed(2),
+      shipping:       '0.00',
+      tax:            (taxCents / 100).toFixed(2),
+      actualShipping: (actualShippingCents / 100).toFixed(2),
     }), { status: 200, headers });
 
   } catch (e) {
