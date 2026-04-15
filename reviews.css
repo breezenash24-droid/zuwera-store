@@ -444,14 +444,14 @@
 
 /* Light Mode Overrides */
 body.light-mode .review-mbox {
-  background: #E4E0D9;
-  border-color: rgba(9,9,11,0.1);
-  color: #252118;
+  background: #E4E0D9 !important;
+  border-color: rgba(9,9,11,0.1) !important;
+  color: #252118 !important;
 }
 body.light-mode .review-list-mbox {
-  background: #E4E0D9;
-  border-color: rgba(9,9,11,0.1);
-  color: #252118;
+  background: #E4E0D9 !important;
+  border-color: rgba(9,9,11,0.1) !important;
+  color: #252118 !important;
 }
 /* Inline review summary on product page */
 body.light-mode .review-summary-box {
