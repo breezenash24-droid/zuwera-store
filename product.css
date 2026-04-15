@@ -940,8 +940,8 @@ body.light-mode .size-guide-link {
 }
 body.light-mode .size-guide-link:hover,
 body.light-mode .size-guide-link:focus-visible {
-  color: var(--black);
-  border-bottom-color: var(--black);
+  color: #09090b;
+  border-bottom-color: #09090b;
 }
 
 body.light-mode .heart-btn {
