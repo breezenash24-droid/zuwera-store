@@ -424,10 +424,11 @@
     const style = document.createElement('style');
     style.id = 'zw-lang-styles';
     style.textContent = `
+      /* ── Trigger button (dark mode default) ── */
       .zw-lang-trigger {
         display: inline-flex; align-items: center; gap: 0.4rem;
         background: none; border: 1px solid rgba(244,241,235,0.12);
-        color: rgba(244,241,235,0.35); border-radius: 20px;
+        color: rgba(244,241,235,0.55); border-radius: 20px;
         padding: 0.35rem 0.75rem; font-size: 0.65rem;
         font-family: 'DM Sans', sans-serif; letter-spacing: 0.08em;
         text-transform: uppercase; cursor: pointer;
@@ -438,11 +439,69 @@
         color: #F891A5; border-color: rgba(248,145,165,0.35);
         background: rgba(248,145,165,0.06);
       }
+      /* ── Trigger button light mode ── */
+      body.light-mode .zw-lang-trigger {
+        border-color: rgba(9,9,11,0.22);
+        color: rgba(9,9,11,0.6);
+      }
+      body.light-mode .zw-lang-trigger:hover {
+        color: #09090b; border-color: rgba(9,9,11,0.5);
+        background: rgba(9,9,11,0.04);
+      }
+      /* ── Modal box light mode ── */
+      body.light-mode #zw-lang-box {
+        background: #F0EEE9 !important;
+        border-color: rgba(9,9,11,0.12) !important;
+        box-shadow: 0 24px 64px rgba(9,9,11,0.15) !important;
+      }
+      body.light-mode #zw-lang-box > div:first-child {
+        border-bottom-color: rgba(9,9,11,0.08) !important;
+      }
+      body.light-mode #zw-lang-box > div:first-child > div > div:first-child {
+        color: #09090b !important;
+      }
+      body.light-mode #zw-lang-box > div:first-child > div > div:last-child {
+        color: rgba(9,9,11,0.45) !important;
+      }
+      body.light-mode #zw-lang-close {
+        background: rgba(9,9,11,0.05) !important;
+        border-color: rgba(9,9,11,0.1) !important;
+        color: #09090b !important;
+      }
+      body.light-mode #zw-lang-search {
+        background: rgba(9,9,11,0.04) !important;
+        border-color: rgba(9,9,11,0.12) !important;
+        color: #09090b !important;
+      }
+      body.light-mode #zw-lang-search::placeholder { color: rgba(9,9,11,0.35) !important; }
+      body.light-mode #zw-lang-search:focus { border-color: rgba(9,9,11,0.4) !important; }
+      body.light-mode #zw-lang-grid button {
+        background: rgba(9,9,11,0.03) !important;
+        border-color: rgba(9,9,11,0.08) !important;
+        color: #09090b !important;
+      }
+      body.light-mode #zw-lang-grid button:hover {
+        background: rgba(9,9,11,0.07) !important;
+        border-color: rgba(9,9,11,0.18) !important;
+      }
+      body.light-mode #zw-lang-grid button div div:last-child {
+        color: rgba(9,9,11,0.45) !important;
+      }
+      body.light-mode #zw-lang-box > div:last-child {
+        border-top-color: rgba(9,9,11,0.08) !important;
+      }
+      body.light-mode #zw-lang-box > div:last-child span {
+        color: rgba(9,9,11,0.25) !important;
+      }
+      body.light-mode #zw-lang-reset {
+        color: rgba(9,9,11,0.4) !important;
+      }
       .zw-lang-chip { letter-spacing: 0.06em; }
       #zw-lang-search:focus { border-color: rgba(248,145,165,0.4) !important; }
       #zw-lang-grid::-webkit-scrollbar { width: 4px; }
       #zw-lang-grid::-webkit-scrollbar-track { background: transparent; }
       #zw-lang-grid::-webkit-scrollbar-thumb { background: rgba(244,241,235,0.1); border-radius: 2px; }
+      body.light-mode #zw-lang-grid::-webkit-scrollbar-thumb { background: rgba(9,9,11,0.12); }
       @media (max-width: 600px) {
         #zw-lang-box { max-height: 92dvh; border-radius: 16px 16px 0 0; }
         #zw-lang-modal { align-items: flex-end !important; }
