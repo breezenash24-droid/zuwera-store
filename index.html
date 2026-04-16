@@ -2907,6 +2907,47 @@ function getWalletDisplayItems(subtotalCents, shippingCents) {
   ];
 }
 
+let _detectedStateCode = '';
+let _detectStatePromise = null;
+
+async function prefillCheckoutStateFromGeo() {
+  const stateInput = document.getElementById('pay-state');
+  if (!stateInput) return;
+
+  if (stateInput.value.trim().length >= 2) return;
+
+  const applyDetectedState = (value) => {
+    if (!value || stateInput.value.trim()) return;
+    stateInput.value = value;
+    stateInput.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+
+  if (_detectedStateCode) {
+    applyDetectedState(_detectedStateCode);
+    return;
+  }
+
+  if (!_detectStatePromise) {
+    _detectStatePromise = (async () => {
+      try {
+        const resp = await fetch('/api/detect-state', { method: 'GET', cache: 'no-store' });
+        if (!resp.ok) return '';
+        const data = await resp.json();
+        const candidate = String(data?.state || '').toUpperCase().trim();
+        if (data?.country === 'US' && /^[A-Z]{2}$/.test(candidate)) return candidate;
+        return '';
+      } catch (_) {
+        return '';
+      }
+    })();
+  }
+
+  const detected = await _detectStatePromise;
+  _detectStatePromise = null;
+  if (detected) _detectedStateCode = detected;
+  applyDetectedState(detected);
+}
+
 function openPaymentModal(subtotalCents) {
   const cartModal = document.getElementById('cart-modal');
   _paymentReturnModalId = cartModal?.classList.contains('open') ? 'cart-modal' : null;
@@ -2914,6 +2955,7 @@ function openPaymentModal(subtotalCents) {
   document.getElementById('payment-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
   document.getElementById('pay-error').textContent = '';
+  void prefillCheckoutStateFromGeo();
   _loadStripe(() => { _initStripe(); initPR(subtotalCents); });
 }
 
