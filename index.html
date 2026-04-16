@@ -1129,15 +1129,16 @@ body.light-mode #payment-modal{background:rgba(230,226,219,.96)}
 
 /* Payment */
 body.light-mode .pbox{background:#F0EEE9;border-color:rgba(9,9,11,.08)}
-body.light-mode .psub{color:rgba(9,9,11,.28)}
-body.light-mode .pfield label{color:rgba(9,9,11,.3)}
-body.light-mode .pfield input{background:rgba(9,9,11,.04);border-color:rgba(9,9,11,.1);color:var(--paper)}
+body.light-mode .psub{color:rgba(9,9,11,.6)}
+body.light-mode .pfield label{color:rgba(9,9,11,.7)}
+body.light-mode .pfield input{background:rgba(9,9,11,.04);border-color:rgba(9,9,11,.15);color:rgba(9,9,11,.85)}
+body.light-mode .pfield input::placeholder{color:rgba(9,9,11,.35)}
 body.light-mode .rate-opt{border-color:rgba(9,9,11,.08);background:rgba(9,9,11,.02)}
 body.light-mode .rate-opt:hover{border-color:rgba(9,9,11,.22)}
 body.light-mode .rate-opt.selected{border-color:rgba(9,9,11,.45);background:rgba(9,9,11,.05)}
-body.light-mode .rate-meta{color:rgba(9,9,11,.3)}
+body.light-mode .rate-meta{color:rgba(9,9,11,.55)}
 body.light-mode #pay-submit{background:var(--paper);color:var(--ink)}
-body.light-mode .psecure{color:rgba(9,9,11,.2)}
+body.light-mode .psecure{color:rgba(9,9,11,.55)}
 body.light-mode #stripe-card-element{background:rgba(9,9,11,.04);border-color:rgba(9,9,11,.1)}
 
 /* Success */
@@ -2847,11 +2848,18 @@ function _loadStripe(cb) {
 }
 function _initStripe() {
   if (stripe) return;
-  stripe = Stripe('pk_live_51T8ct20oFp4PJGitDcNMSLu9jQMFajtwqib8dTX4WhubBon2Pso2VgkHhTHcbuKNUi9ljfwMX8Bx2uhEp1Fp2VfY00LFKvLEy4');
+  stripe = Stripe('pk_test_51T8ct20oFp4PJGitdabh4D80ReyWXbo7QsPltbO3PAChOzSmMDD6CJtOQkZ6Y4fMWCzkDmjAkexZDW6okKjQUf5p00SgMHKK2h');
   elements = stripe.elements();
+  const _isLight = document.body.classList.contains('light-mode');
   card = elements.create('card', {
     style: {
-      base: { color:'#f4f1eb', fontFamily:'"Barlow",sans-serif', fontSmoothing:'antialiased', fontSize:'15px', '::placeholder':{ color:'rgba(244,241,235,.25)' } },
+      base: {
+        color: _isLight ? 'rgba(9,9,11,.85)' : '#f4f1eb',
+        fontFamily:'"Barlow",sans-serif',
+        fontSmoothing:'antialiased',
+        fontSize:'15px',
+        '::placeholder':{ color: _isLight ? 'rgba(9,9,11,.35)' : 'rgba(244,241,235,.25)' }
+      },
       invalid: { color:'#c0392b', iconColor:'#c0392b' }
     }
   });
