@@ -156,6 +156,7 @@
   --fw: 'Barlow Condensed', sans-serif;
   --fm: 'IBM Plex Mono', monospace;
   --fb: 'Barlow', sans-serif;
+  --mobile-nav-gap:0px;
 }
 html{scroll-behavior:smooth;font-size:16px}
 body{
@@ -958,6 +959,15 @@ footer{
   .pgrow{grid-template-columns:1fr}
     .nav-center { display: none; }
     .hamburger-btn { display: flex; align-items: center; justify-content: center; }
+  body::before{
+    content:'';
+    position:fixed;
+    top:0;left:0;right:0;
+    height:calc(env(safe-area-inset-top,0px) + var(--mobile-nav-gap,0px));
+    background:var(--ink);
+    z-index:95;
+    pointer-events:none;
+  }
 }
 @media(max-width:600px){
   nav#nav{padding:1rem 1.2rem}
@@ -1674,7 +1684,9 @@ window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.
   const bar = document.getElementById('bar');
   const syncNavOffset = () => {
     const isHidden = bar.style.display === 'none' || bar.style.opacity === '0' || bar.style.pointerEvents === 'none';
-    nav.style.top = isHidden ? '0' : (bar.offsetHeight + 'px');
+    const nextTop = isHidden ? 0 : bar.offsetHeight;
+    nav.style.top = nextTop + 'px';
+    document.documentElement.style.setProperty('--mobile-nav-gap', nextTop + 'px');
   };
   syncNavOffset();
   window.addEventListener('resize', syncNavOffset);
@@ -1699,7 +1711,9 @@ function teardownAnnouncementBarScroll() {
 
 function setAnnouncementBarLayout(barEl, navEl, isVisible) {
   if (!navEl) return;
-  navEl.style.top = isVisible ? (barEl.offsetHeight + 'px') : '0';
+  const nextTop = isVisible ? barEl.offsetHeight : 0;
+  navEl.style.top = nextTop + 'px';
+  document.documentElement.style.setProperty('--mobile-nav-gap', nextTop + 'px');
 }
 
 function applyAnnouncementBar(mode, msgText) {

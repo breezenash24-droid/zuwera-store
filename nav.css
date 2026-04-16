@@ -130,6 +130,17 @@
   #cart-btn {
     padding: 0.3rem 0.6rem;
   }
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: calc(env(safe-area-inset-top, 0px) + var(--mobile-nav-gap, 0px));
+    background: #09090b;
+    z-index: 95;
+    pointer-events: none;
+  }
 }
 
 /* ===================== LIGHT MODE ===================== */
@@ -145,6 +156,11 @@ body.light-mode .nav {
   background: #F0EEE9;
   border-bottom-color: rgba(9,9,11,0.08);
   box-shadow: 0 1px 12px rgba(9,9,11,0.06);
+}
+@media (max-width: 640px) {
+  body.light-mode::before {
+    background: #F0EEE9;
+  }
 }
 body.light-mode .logo {
   filter: invert(1);

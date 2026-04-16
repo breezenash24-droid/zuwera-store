@@ -849,7 +849,9 @@ function teardownAnnouncementBarScroll() {
 
 function setAnnouncementBarLayout(barEl, navEl, isVisible) {
   if (!navEl) return;
-  navEl.style.top = isVisible ? (barEl.offsetHeight + 'px') : '0';
+  const nextTop = isVisible ? barEl.offsetHeight : 0;
+  navEl.style.top = nextTop + 'px';
+  document.documentElement.style.setProperty('--mobile-nav-gap', nextTop + 'px');
 }
 
 function applyAnnouncementBar(mode, msgText) {
