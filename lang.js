@@ -242,11 +242,84 @@
   }
 
   // ─── Modal HTML ───────────────────────────────────────────────────────────────
+  let langModalTrigger = null;
+  let langModalFallbackLocked = false;
+  let langModalFallbackScrollY = 0;
+
+  function focusWithoutScroll(el) {
+    if (!el || typeof el.focus !== 'function') return;
+    try {
+      el.focus({ preventScroll: true });
+    } catch (err) {
+      el.focus();
+    }
+  }
+
+  function refreshSharedModalLock() {
+    if (!window.ZWModalScrollLock || typeof window.ZWModalScrollLock.refresh !== 'function') {
+      return false;
+    }
+    window.ZWModalScrollLock.refresh();
+    return true;
+  }
+
+  function lockLangModalScrollFallback() {
+    if (refreshSharedModalLock() || langModalFallbackLocked || !document.body) return;
+
+    const root = document.documentElement;
+    const body = document.body;
+    const scrollbarGap = Math.max(0, window.innerWidth - root.clientWidth);
+
+    langModalFallbackLocked = true;
+    langModalFallbackScrollY = window.scrollY || window.pageYOffset || 0;
+
+    root.style.overflow = 'hidden';
+    root.style.overscrollBehavior = 'none';
+
+    body.style.position = 'fixed';
+    body.style.top = `-${langModalFallbackScrollY}px`;
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.width = '100%';
+    body.style.overflow = 'hidden';
+    body.style.overscrollBehavior = 'none';
+
+    if (scrollbarGap > 0) {
+      body.style.paddingRight = `${scrollbarGap}px`;
+    }
+  }
+
+  function unlockLangModalScrollFallback() {
+    if (refreshSharedModalLock() || !langModalFallbackLocked || !document.body) return;
+
+    const root = document.documentElement;
+    const body = document.body;
+    const restoreY = langModalFallbackScrollY;
+
+    langModalFallbackLocked = false;
+    langModalFallbackScrollY = 0;
+
+    root.style.overflow = '';
+    root.style.overscrollBehavior = '';
+
+    body.style.position = '';
+    body.style.top = '';
+    body.style.left = '';
+    body.style.right = '';
+    body.style.width = '';
+    body.style.overflow = '';
+    body.style.overscrollBehavior = '';
+    body.style.paddingRight = '';
+
+    window.scrollTo(0, restoreY);
+  }
+
   function buildModal() {
     if (document.getElementById('zw-lang-modal')) return;
 
     const isLightMode = document.body.classList.contains('light-mode');
-    const overlayBg = isLightMode ? 'rgba(240,238,233,0.96)' : 'rgba(0,0,0,0.72)';
+    const overlayBg = isLightMode ? '#F0EEE9' : 'rgba(0,0,0,0.72)';
+    const overlayFilter = isLightMode ? 'none' : 'blur(8px)';
 
     const modal = document.createElement('div');
     modal.id = 'zw-lang-modal';
@@ -255,7 +328,7 @@
     modal.setAttribute('aria-label', 'Select language');
     modal.style.cssText = `
       display:none; position:fixed; inset:0; z-index:100000;
-      background:${overlayBg}; backdrop-filter:blur(8px);
+      background:${overlayBg}; backdrop-filter:${overlayFilter}; -webkit-backdrop-filter:${overlayFilter};
       align-items:center; justify-content:center; padding:1rem;
     `;
 
@@ -381,18 +454,33 @@
   function openModal() {
     buildModal();
     const modal = document.getElementById('zw-lang-modal');
+    langModalTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (modal) {
+      const isLightMode = document.body.classList.contains('light-mode');
+      modal.style.background = isLightMode ? '#F0EEE9' : 'rgba(0,0,0,0.72)';
+      modal.style.backdropFilter = isLightMode ? 'none' : 'blur(8px)';
+      modal.style.webkitBackdropFilter = isLightMode ? 'none' : 'blur(8px)';
+    }
     modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
+    lockLangModalScrollFallback();
     setTimeout(() => {
       const search = document.getElementById('zw-lang-search');
-      if (search) { search.value = ''; renderGrid(); search.focus(); }
+      if (search) {
+        search.value = '';
+        renderGrid();
+        focusWithoutScroll(search);
+      }
     }, 50);
   }
 
   function closeModal() {
     const modal = document.getElementById('zw-lang-modal');
     if (modal) modal.style.display = 'none';
-    document.body.style.overflow = '';
+    unlockLangModalScrollFallback();
+    if (langModalTrigger && langModalTrigger.isConnected) {
+      window.requestAnimationFrame(() => focusWithoutScroll(langModalTrigger));
+    }
+    langModalTrigger = null;
   }
 
   // ─── Inject Footer Button ─────────────────────────────────────────────────────

@@ -151,7 +151,8 @@
   /* Size guide modal full screen on mobile */
   #size-guide-modal .mbox {
     width: 100vw;
-    height: 100dvh;
+    height: auto;
+    min-height: 0;
     max-height: 100dvh;
     border-radius: 0;
     padding: 0;
@@ -313,10 +314,27 @@ body.light-mode #payment-modal #pay-divider { color: rgba(9,9,11,.35) !important
 body.light-mode #payment-modal #pay-submit { background: #09090b !important; color: #E8E3DC !important; }
 body.light-mode #payment-modal #pay-error { color: #c0392b !important; }
 /* Modal overlay backdrop */
-body.light-mode .modal:not(#cart-modal) { background: rgba(240,238,233,.92); }
+body.light-mode .modal:not(#cart-modal) {
+  background: #F0EEE9;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
 body.light-mode #review-modal,
-body.light-mode #all-reviews-modal { background: rgba(240,238,233,.96) !important; }
-body.light-mode #apple-pay-qr-modal { background: rgba(240,238,233,.96) !important; }
+body.light-mode #all-reviews-modal {
+  background: #F0EEE9 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+body.light-mode #payment-modal {
+  background: #F0EEE9 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+body.light-mode #apple-pay-qr-modal {
+  background: #F0EEE9 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
 /* Wallet method buttons */
 body.light-mode .wallet-chip { background: rgba(9,9,11,.05); border-color: rgba(9,9,11,.1); color: #09090b; }
 body.light-mode .wallet-chip:hover { background: rgba(9,9,11,.1); border-color: rgba(9,9,11,.2); }
@@ -351,9 +369,14 @@ body.light-mode #toast { background: #09090b; color: #E8E3DC; }
 .mobile-nav-link { font-family: 'IBM Plex Mono', monospace; font-size: 1.2rem; color: rgba(244,241,235,.78); letter-spacing: 0.22em; text-transform: uppercase; text-decoration: none; transition: color 0.2s; }
 .mobile-nav-link:hover { color: #f4f1eb; }
 
-body.light-mode #mobile-menu { background: rgba(232,227,220,0.98); }
+body.light-mode #mobile-menu {
+  background: #F0EEE9 !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
 body.light-mode .mobile-nav-link { color: rgba(9,9,11,.78); }
 body.light-mode .mobile-nav-link:hover { color: #09090b; }
+body.light-mode #mobile-menu-close { color: #09090b !important; }
 
 #mobile-menu-btn { color: #f4f1eb !important; -webkit-appearance: none; appearance: none; -webkit-tap-highlight-color: transparent; }
 #mobile-menu-btn svg { stroke: #f4f1eb !important; }

@@ -101,6 +101,8 @@
 .size-guide-body {
   padding: 0;
   overflow: auto;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .review-modal-close {
@@ -228,6 +230,8 @@
 .size-guide-frame-shell {
   min-height: min(72vh, 760px);
   background: rgba(244,241,235,0.02);
+  display: flex;
+  flex-direction: column;
 }
 
 .size-guide-frame-shell .size-guide-message {
@@ -248,6 +252,7 @@
   min-height: min(72vh, 760px);
   border: 0;
   background: #f4f1eb;
+  flex: 1 1 auto;
 }
 
 .review-modal-toolbar {
@@ -1963,6 +1968,7 @@ body.light-mode .review-dialog--classic-form .review-submit-btn:hover {
     border-bottom: none;
     border-radius: 18px 18px 0 0;
     max-height: 100dvh;
+    height: auto;
   }
 
   .review-modal-title {
