@@ -120,16 +120,37 @@ function initPaymentRequest(subtotalCents) {
         },
       });
       if (piData.error) { ev.complete('fail'); return; }
-      const { error } = await stripe.confirmCardPayment(
-        piData.clientSecret, { payment_method: ev.paymentMethod.id }, { handleActions: false }
+      const initialResult = await stripe.confirmCardPayment(
+        piData.clientSecret,
+        { payment_method: ev.paymentMethod.id },
+        { handleActions: false }
       );
-      if (error) {
+      if (initialResult.error) {
         ev.complete('fail');
-        _pay.errEl.textContent = error.message;
-      } else {
-        ev.complete('success');
-        showOrderConfirmed(piData.orderId, ev.payerEmail);
+        _pay.errEl.textContent = initialResult.error.message;
+        return;
       }
+
+      let finalIntent = initialResult.paymentIntent;
+      if (finalIntent?.status === 'requires_action') {
+        const actionResult = await stripe.confirmCardPayment(piData.clientSecret);
+        if (actionResult.error) {
+          ev.complete('fail');
+          _pay.errEl.textContent = actionResult.error.message;
+          return;
+        }
+        finalIntent = actionResult.paymentIntent;
+      }
+
+      const successStatuses = ['succeeded', 'processing', 'requires_capture'];
+      if (!finalIntent || !successStatuses.includes(finalIntent.status)) {
+        ev.complete('fail');
+        _pay.errEl.textContent = `Payment is ${finalIntent?.status || 'incomplete'}. Please try again.`;
+        return;
+      }
+
+      ev.complete('success');
+      showOrderConfirmed(finalIntent.id || piData.orderId, ev.payerEmail);
     } catch (err) {
       ev.complete('fail');
       console.error('Payment request error:', err);

@@ -3146,16 +3146,38 @@ function initPR(subtotalCents) {
         document.getElementById('pay-error').textContent = d.error;
         return;
       }
-      const { error } = await stripe.confirmCardPayment(d.clientSecret, { payment_method:ev.paymentMethod.id }, { handleActions:false });
-      if(error){
+      const initialResult = await stripe.confirmCardPayment(
+        d.clientSecret,
+        { payment_method: ev.paymentMethod.id },
+        { handleActions: false }
+      );
+      if (initialResult.error) {
         ev.complete('fail');
-        document.getElementById('pay-error').textContent = error.message;
+        document.getElementById('pay-error').textContent = initialResult.error.message;
+        return;
       }
-      else {
-        ev.complete('success');
-        closePaymentModal({ suppressReturn:true });
-        showConfirmed(d.orderId, ev.payerEmail);
+
+      let finalIntent = initialResult.paymentIntent;
+      if (finalIntent?.status === 'requires_action') {
+        const actionResult = await stripe.confirmCardPayment(d.clientSecret);
+        if (actionResult.error) {
+          ev.complete('fail');
+          document.getElementById('pay-error').textContent = actionResult.error.message;
+          return;
+        }
+        finalIntent = actionResult.paymentIntent;
       }
+
+      const successStatuses = ['succeeded', 'processing', 'requires_capture'];
+      if (!finalIntent || !successStatuses.includes(finalIntent.status)) {
+        ev.complete('fail');
+        document.getElementById('pay-error').textContent = `Payment is ${finalIntent?.status || 'incomplete'}. Please try again.`;
+        return;
+      }
+
+      ev.complete('success');
+      closePaymentModal({ suppressReturn:true });
+      showConfirmed(finalIntent.id || d.orderId, ev.payerEmail);
     } catch(e){
       ev.complete('fail');
       document.getElementById('pay-error').textContent = 'Fast checkout could not be completed. Please try card checkout.';

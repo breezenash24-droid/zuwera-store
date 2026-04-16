@@ -3,13 +3,7 @@ const DEFAULT_ADMIN_EMAILS = [
   'nasirubreeze@zuwera.store'
 ];
 
-const DEFAULT_ADMIN_HINTS = [
-  'breezenash24',
-  'breez',
-  'breeze',
-  'nash24',
-  'nasiru'
-];
+const DEFAULT_ADMIN_USER_IDS = [];
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -18,38 +12,61 @@ function json(body, status = 200) {
   });
 }
 
-function parseList(value) {
+function parseList(value, { lowercase = true } = {}) {
   return String(value || '')
     .split(',')
-    .map((item) => item.trim().toLowerCase())
+    .map((item) => {
+      const trimmed = item.trim();
+      return lowercase ? trimmed.toLowerCase() : trimmed;
+    })
     .filter(Boolean);
 }
 
 function collectEmails(user) {
-  return [
+  return [...new Set([
     user?.email,
     user?.user_metadata?.email,
     ...(Array.isArray(user?.identities)
       ? user.identities.map((identity) => identity?.identity_data?.email || identity?.email)
       : [])
-  ]
-    .filter(Boolean)
-    .map((value) => String(value).toLowerCase().trim());
+  ])]
+    .map((value) => String(value || '').toLowerCase().trim())
+    .filter(Boolean);
+}
+
+function collectUserIds(user) {
+  return [...new Set([
+    user?.id,
+    user?.user_metadata?.user_id,
+    ...(Array.isArray(user?.identities)
+      ? user.identities.map((identity) => identity?.id || identity?.user_id)
+      : [])
+  ])]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean);
 }
 
 function isAllowedAdmin(user, env) {
   const emails = collectEmails(user);
-  const fullName = String(user?.user_metadata?.full_name || '').toLowerCase().trim();
   const exactEmails = new Set([
     ...DEFAULT_ADMIN_EMAILS,
     ...parseList(env.ADMIN_EMAILS)
   ]);
-  const allowedDomains = parseList(env.ADMIN_EMAIL_DOMAINS || 'zuwera.store');
-  const hints = [...DEFAULT_ADMIN_HINTS, ...parseList(env.ADMIN_EMAIL_HINTS)];
+  const exactUserIds = new Set([
+    ...DEFAULT_ADMIN_USER_IDS,
+    ...parseList(env.ADMIN_USER_IDS, { lowercase: false })
+  ]);
+  const allowedDomains = parseList(env.ADMIN_EMAIL_DOMAINS);
+  const userIds = collectUserIds(user);
 
-  return emails.some((email) => exactEmails.has(email))
-    || emails.some((email) => allowedDomains.some((domain) => email.endsWith(`@${domain}`)))
-    || hints.some((hint) => emails.some((email) => email.includes(hint)) || fullName.includes(hint));
+  const isExactEmailAllowed = emails.some((email) => exactEmails.has(email));
+  const isExactUserAllowed = userIds.some((userId) => exactUserIds.has(userId));
+  const isDomainAllowed = allowedDomains.length > 0 && emails.some((email) => {
+    const at = email.lastIndexOf('@');
+    return at > -1 && allowedDomains.includes(email.slice(at + 1));
+  });
+
+  return isExactEmailAllowed || isExactUserAllowed || isDomainAllowed;
 }
 
 async function fetchUser(accessToken, env) {

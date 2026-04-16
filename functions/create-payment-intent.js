@@ -36,29 +36,42 @@ export async function onRequestPost({ request, env }) {
   const stripe  = new Stripe(env.STRIPE_SECRET_KEY, { httpClient: Stripe.createFetchHttpClient() });
 
   try {
-    const { items, shippingRate, address } = await request.json();
+    const { items, shippingRate, shippingAmountCents, address } = await request.json();
 
     if (!items?.length || !address?.email)
       return new Response(JSON.stringify({ error: 'Missing required fields: items and address.email' }), { status: 400, headers });
 
+    const getItemName = (item) => item?.name || item?.title || 'Product';
+    const getItemPriceCents = (item) => {
+      const parsed = Number.parseFloat(item?.price);
+      if (!Number.isFinite(parsed) || parsed < 0) return 0;
+      return Math.round(parsed * 100);
+    };
+    const parseShippingFallbackCents = (value) => {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed) || parsed < 0) return 0;
+      return Math.round(parsed);
+    };
+
     const subtotalCents = items.reduce(
-      (sum, item) => sum + Math.round(item.price * 100) * (item.quantity || 1),
+      (sum, item) => sum + getItemPriceCents(item) * (item.quantity || 1),
       0
     );
-    const shippingCents = shippingRate?.amount
-      ? Math.round(parseFloat(shippingRate.amount) * 100)
-      : 0;
+    const parsedShippingAmount = Number.parseFloat(shippingRate?.amount);
+    const shippingCents = Number.isFinite(parsedShippingAmount) && parsedShippingAmount > 0
+      ? Math.round(parsedShippingAmount * 100)
+      : parseShippingFallbackCents(shippingAmountCents);
 
     const lineItems = items.map(item => ({
-      name:         item.name,
-      amount:       Math.round(item.price * 100),
+      name:         getItemName(item),
+      amount:       getItemPriceCents(item),
       quantity:     item.quantity || 1,
       tax_behavior: 'exclusive',
     }));
 
     // Deterministic idempotency key (no Buffer in Workers — use btoa)
     const cartFingerprint = items
-      .map(i => `${i.name}:${i.quantity}:${Math.round(i.price * 100)}`)
+      .map(i => `${getItemName(i)}:${i.quantity || 1}:${getItemPriceCents(i)}`)
       .sort()
       .join('|');
     const encoded        = btoa(unescape(encodeURIComponent(cartFingerprint))).slice(0, 32);

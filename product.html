@@ -3128,10 +3128,11 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
       try {
         const a = ev.shippingAddress||{};
         const userId = await getCheckoutUserId();
+        const effectiveShippingCents = walletShippingCents ?? defaultShippingCents;
         const d = await post('/api/create-payment-intent', {
           items:cartItems,
           shippingRate:selRate,
-          shippingAmountCents: walletShippingCents || defaultShippingCents,
+          shippingAmountCents: effectiveShippingCents,
           userId,
           address:{ name:ev.payerName||'', email:ev.payerEmail||'', line1:a.addressLine?.[0]||'', line2:a.addressLine?.[1]||'', city:a.city||'', state:a.region||'', zip:a.postalCode||'', country:a.country||'US' }
         });
@@ -3140,16 +3141,38 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
           document.getElementById('pay-error').textContent = d.error;
           return;
         }
-        const { error } = await stripe.confirmCardPayment(d.clientSecret, { payment_method:ev.paymentMethod.id }, { handleActions:false });
-        if (error) {
+        const initialResult = await stripe.confirmCardPayment(
+          d.clientSecret,
+          { payment_method: ev.paymentMethod.id },
+          { handleActions: false }
+        );
+        if (initialResult.error) {
           ev.complete('fail');
-          document.getElementById('pay-error').textContent=error.message;
+          document.getElementById('pay-error').textContent = initialResult.error.message;
+          return;
         }
-        else {
-          ev.complete('success');
-          closePayModal('payment-modal', { suppressReturn:true });
-          showConfirmed(d.orderId, ev.payerEmail);
+
+        let finalIntent = initialResult.paymentIntent;
+        if (finalIntent?.status === 'requires_action') {
+          const actionResult = await stripe.confirmCardPayment(d.clientSecret);
+          if (actionResult.error) {
+            ev.complete('fail');
+            document.getElementById('pay-error').textContent = actionResult.error.message;
+            return;
+          }
+          finalIntent = actionResult.paymentIntent;
         }
+
+        const successStatuses = ['succeeded', 'processing', 'requires_capture'];
+        if (!finalIntent || !successStatuses.includes(finalIntent.status)) {
+          ev.complete('fail');
+          document.getElementById('pay-error').textContent = `Payment is ${finalIntent?.status || 'incomplete'}. Please try again.`;
+          return;
+        }
+
+        ev.complete('success');
+        closePayModal('payment-modal', { suppressReturn:true });
+        showConfirmed(finalIntent.id || d.orderId, ev.payerEmail);
       } catch(e) {
         ev.complete('fail');
         document.getElementById('pay-error').textContent = 'Fast checkout could not be completed. Please try card checkout.';

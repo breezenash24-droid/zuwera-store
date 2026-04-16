@@ -53,13 +53,26 @@ export async function onRequestPost({ request, env }) {
     const meta = pi.metadata || {};
     console.log(`✅ PaymentIntent succeeded: ${pi.id}`);
 
-    const [labelResult, emailResult, orderResult] = await Promise.allSettled([
-      createShippingLabel(pi, meta, env, stripe),
-      sendConfirmationEmail(pi, meta, env),
-      saveOrderToSupabase(pi, meta, env),
+    let enrichedMeta = meta;
+    try {
+      const labelData = await createShippingLabel(pi, meta, env, stripe);
+      if (labelData) {
+        enrichedMeta = {
+          ...meta,
+          tracking_number: labelData.tracking_number || meta.tracking_number || '',
+          tracking_url: labelData.tracking_url_provider || meta.tracking_url || '',
+          label_url: labelData.label_url || meta.label_url || '',
+        };
+      }
+    } catch (labelError) {
+      console.error('Label failed:', labelError);
+    }
+
+    const [emailResult, orderResult] = await Promise.allSettled([
+      sendConfirmationEmail(pi, enrichedMeta, env),
+      saveOrderToSupabase(pi, enrichedMeta, env),
     ]);
 
-    if (labelResult.status === 'rejected') console.error('Label failed:',   labelResult.reason);
     if (emailResult.status === 'rejected') console.error('Email failed:',   emailResult.reason);
     if (orderResult.status === 'rejected') console.error('DB save failed:', orderResult.reason);
   }
