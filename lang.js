@@ -245,6 +245,9 @@
   function buildModal() {
     if (document.getElementById('zw-lang-modal')) return;
 
+    const isLightMode = document.body.classList.contains('light-mode');
+    const overlayBg = isLightMode ? 'rgba(240,238,233,0.96)' : 'rgba(0,0,0,0.72)';
+
     const modal = document.createElement('div');
     modal.id = 'zw-lang-modal';
     modal.setAttribute('role', 'dialog');
@@ -252,7 +255,7 @@
     modal.setAttribute('aria-label', 'Select language');
     modal.style.cssText = `
       display:none; position:fixed; inset:0; z-index:100000;
-      background:rgba(0,0,0,0.72); backdrop-filter:blur(8px);
+      background:${overlayBg}; backdrop-filter:blur(8px);
       align-items:center; justify-content:center; padding:1rem;
     `;
 

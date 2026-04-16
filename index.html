@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>ZUWERA - For Those Who Dream</title>
 <meta name="description" content="Bold athletic sportswear. Release 001 launching September 20, 2026.">
 
@@ -191,7 +191,7 @@ body::after{
   padding:.45rem 2rem;
   display:flex;align-items:center;justify-content:center;gap:1.5rem;
   font-family:var(--fm);font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;
-  position:sticky;top:0;z-index:210;
+  position:sticky;top:0;z-index:230;
   transition:transform .45s ease, opacity .45s ease, margin-bottom .45s ease;
 }
 .bar-sep{opacity:.25;font-size:0;line-height:1}
@@ -201,7 +201,7 @@ body::after{
    NAV
 Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 nav#nav{
-  position:fixed;top:0;left:0;right:0;z-index:100;
+  position:fixed;top:0;left:0;right:0;z-index:220;
   display:flex;justify-content:space-between;align-items:center;
   padding:1.5rem 2.5rem;
   background:var(--ink);
@@ -953,7 +953,7 @@ footer{
   .fright{text-align:center}.flinks{justify-content:center}
   .flogo img,.flogo{margin:0 auto}
 }
-@media(max-width:760px){
+@media(max-width:900px){
   .cart-body{grid-template-columns:1fr;padding:2rem 1.2rem}
   .csummary{margin-left:0;margin-top:2rem;position:static}
   .pgrow{grid-template-columns:1fr}
@@ -963,9 +963,9 @@ footer{
     content:'';
     position:fixed;
     top:0;left:0;right:0;
-    height:calc(env(safe-area-inset-top,0px) + var(--mobile-nav-gap,0px));
+    height:calc(max(env(safe-area-inset-top,0px),24px) + var(--mobile-nav-gap,0px));
     background:var(--ink);
-    z-index:95;
+    z-index:215;
     pointer-events:none;
   }
 }
@@ -1103,7 +1103,7 @@ body.light-mode .fcopy{color:rgba(9,9,11,.15)}
 body.light-mode #toast{background:var(--paper);color:var(--ink)}
 
 /* Modals */
-body.light-mode .modal{background:rgba(232,227,220,.88)}
+body.light-mode .modal{background:rgba(240,238,233,.92)}
 body.light-mode .mbox{background:#F0EEE9;border-color:rgba(9,9,11,.08)}
 body.light-mode .mclose{background:rgba(9,9,11,.05);border-color:rgba(9,9,11,.08);color:var(--paper)}
 body.light-mode .mclose:hover{background:rgba(9,9,11,.1)}
@@ -1135,7 +1135,8 @@ body.light-mode .cart-back{color:rgba(9,9,11,.45)}
 body.light-mode .csec-t{color:var(--paper)}
 body.light-mode .cart-favs{border-top-color:rgba(9,9,11,.07)}
 body.light-mode #checkout-btn{background:#09090b;color:#E8E3DC}
-body.light-mode #payment-modal{background:rgba(230,226,219,.96)}
+body.light-mode #payment-modal{background:rgba(240,238,233,.96)}
+body.light-mode #apple-pay-qr-modal{background:rgba(240,238,233,.96) !important}
 
 /* Payment */
 body.light-mode .pbox{background:#F0EEE9;border-color:rgba(9,9,11,.08)}
@@ -3486,6 +3487,7 @@ function scrollToNotify() {
 })();
 </script>
 <!-- Language selector -->
+<script src="modal-lock.js?v=1"></script>
 <script src="lang.js?v=4" defer></script>
 <script src="reviews.js?v=9" charset="utf-8"></script>
 

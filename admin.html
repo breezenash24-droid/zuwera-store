@@ -597,6 +597,10 @@
             display: flex;
         }
 
+        body.light-mode .modal {
+            background-color: rgba(240, 238, 233, 0.94);
+        }
+
         .modal-content {
             background-color: var(--bg-secondary);
             border-radius: 12px;
@@ -2247,6 +2251,7 @@
         </div>
     </div>
 
+    <script src="modal-lock.js?v=1"></script>
     <script src="/supabase.min.js"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=_zwAdminTsLoad&render=explicit" defer async></script>
     <div id="zw-admin-ts-widget" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;" aria-hidden="true"></div>

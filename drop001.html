@@ -50,7 +50,7 @@
     .nav {
       position: fixed;
       top: 0; left: 0; right: 0;
-      z-index: 100;
+      z-index: 220;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -402,6 +402,17 @@
     }
 
     @media (max-width: 600px) {
+      body::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: max(env(safe-area-inset-top, 0px), 24px);
+        background: var(--black);
+        z-index: 215;
+        pointer-events: none;
+      }
       .nav {
         padding: 0.85rem 1rem;
         min-height: 56px;
@@ -953,6 +964,7 @@ function updateCountdown() {
     })();
   </script>
   <!-- Language selector -->
+  <script src="modal-lock.js?v=1"></script>
   <script src="lang.js?v=4" defer></script>
 
   <div id="toast"></div>
