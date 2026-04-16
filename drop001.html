@@ -6,7 +6,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#000000">
+  <meta name="theme-color" content="#09090b">
   <title>Collection - Zuwera</title>
   <meta name="description" content="Shop Zuwera by category. Browse the latest collection pieces and sign up to be notified when they go live.">
   <meta name="robots" content="index, follow">
@@ -402,19 +402,8 @@
     }
 
     @media (max-width: 600px) {
-      body::before {
-        content: '';
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: max(env(safe-area-inset-top, 0px), 24px);
-        background: var(--black);
-        z-index: 215;
-        pointer-events: none;
-      }
       .nav {
-        padding: 0.85rem 1rem;
+        padding: calc(0.55rem + env(safe-area-inset-top, 0px)) 1rem 0.85rem;
         min-height: 56px;
         -webkit-tap-highlight-color: transparent;
       }
@@ -536,8 +525,14 @@
 <script>
 // Load theme immediately to prevent flash
 (function() {
+  function syncThemeColor() {
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', document.body.classList.contains('light-mode') ? '#F0EEE9' : '#09090b');
+  }
   var saved = localStorage.getItem('theme');
   if (saved !== 'dark') document.body.classList.add('light-mode');
+  syncThemeColor();
+  window.__zwSyncThemeColor = syncThemeColor;
 })();
 </script>
 
@@ -825,7 +820,7 @@ function updateCountdown() {
       const { data } = await sb.from('site_settings').select('*').in('key', ['theme', 'brand']);
       if (data) {
         data.forEach(row => {
-          if (row.key === 'theme' && row.value && row.value.mode === 'light') document.body.classList.add('light-mode');
+          if (row.key === 'theme' && row.value && row.value.mode === 'light') { document.body.classList.add('light-mode'); if (window.__zwSyncThemeColor) window.__zwSyncThemeColor(); }
           else if (row.key === 'brand' && row.value && row.value.favicon) {
             const link = document.querySelector('link[rel="icon"]');
             if (link) link.href = row.value.favicon;
@@ -964,8 +959,8 @@ function updateCountdown() {
     })();
   </script>
   <!-- Language selector -->
-  <script src="modal-lock.js?v=1"></script>
-  <script src="lang.js?v=4" defer></script>
+  <script src="modal-lock.js?v=2"></script>
+  <script src="lang.js?v=5" defer></script>
 
   <div id="toast"></div>
   <script>

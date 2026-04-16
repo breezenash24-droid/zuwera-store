@@ -116,19 +116,11 @@
 
 /* ===================== MOBILE NAV ===================== */
 @media (max-width: 900px) {
-  .nav {
-    padding: 0.8rem 1rem;
+  .announcement-bar {
+    padding: calc(0.35rem + env(safe-area-inset-top, 0px)) 3rem 0.55rem;
   }
-  .nav::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 100%;
-    height: calc(max(env(safe-area-inset-top, 0px), 24px) + var(--mobile-nav-gap, 0px));
-    background: inherit;
-    pointer-events: none;
-    transition: height .45s ease, background-color .35s ease;
+  .nav {
+    padding: calc(0.55rem + env(safe-area-inset-top, 0px)) 1rem 0.8rem;
   }
   .nav-right {
     gap: 0.5rem !important;
@@ -141,18 +133,6 @@
   /* Keep the cart bag button identifiable */
   #cart-btn {
     padding: 0.3rem 0.6rem;
-  }
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: calc(max(env(safe-area-inset-top, 0px), 24px) + var(--mobile-nav-gap, 0px));
-    background: #09090b;
-    z-index: 215;
-    pointer-events: none;
-    transition: height .45s ease, background-color .35s ease;
   }
 }
 
@@ -169,11 +149,6 @@ body.light-mode .nav {
   background: #F0EEE9;
   border-bottom-color: rgba(9,9,11,0.08);
   box-shadow: 0 1px 12px rgba(9,9,11,0.06);
-}
-@media (max-width: 900px) {
-  body.light-mode::before {
-    background: #F0EEE9;
-  }
 }
 body.light-mode .logo {
   filter: invert(1);

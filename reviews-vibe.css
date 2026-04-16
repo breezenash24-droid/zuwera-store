@@ -228,7 +228,7 @@
 }
 
 .size-guide-frame-shell {
-  min-height: min(72vh, 760px);
+  min-height: 0;
   background: rgba(244,241,235,0.02);
   display: flex;
   flex-direction: column;
@@ -249,10 +249,11 @@
 #size-guide-iframe {
   display: block;
   width: 100%;
-  min-height: min(72vh, 760px);
+  min-height: 0;
+  height: auto;
   border: 0;
   background: #f4f1eb;
-  flex: 1 1 auto;
+  flex: 0 0 auto;
 }
 
 .review-modal-toolbar {
@@ -1629,9 +1630,9 @@
 
 body.light-mode .review-dialog {
   background:
-    radial-gradient(circle at top left, rgba(248,145,165,0.14), transparent 30%),
-    linear-gradient(180deg, rgba(9,9,11,0.03), rgba(9,9,11,0.01)),
-    #E8E3DC;
+    radial-gradient(circle at top left, rgba(248,145,165,0.08), transparent 34%),
+    linear-gradient(180deg, rgba(9,9,11,0.02), rgba(9,9,11,0.008)),
+    #F0EEE9;
   border-color: rgba(9,9,11,0.1);
   box-shadow: 0 26px 70px rgba(9,9,11,0.15);
 }
@@ -1677,13 +1678,13 @@ body.light-mode .review-radio-group label {
 
 body.light-mode .size-guide-dialog {
   background:
-    linear-gradient(180deg, rgba(9,9,11,0.025), rgba(9,9,11,0.01)),
-    #E8E3DC;
+    linear-gradient(180deg, rgba(9,9,11,0.018), rgba(9,9,11,0.006)),
+    #F0EEE9;
   border-color: rgba(9,9,11,0.12);
 }
 
 body.light-mode .size-guide-head {
-  background: linear-gradient(180deg, rgba(9,9,11,0.025), rgba(9,9,11,0.01));
+  background: linear-gradient(180deg, rgba(9,9,11,0.018), rgba(9,9,11,0.006));
   border-bottom-color: rgba(9,9,11,0.08);
 }
 
@@ -1902,7 +1903,7 @@ body.light-mode .review-dialog--classic-form .review-submit-btn:hover {
 
   #size-guide-iframe,
   .size-guide-frame-shell {
-    min-height: 68dvh;
+    min-height: 0;
   }
 
   .review-modal-toolbar {
