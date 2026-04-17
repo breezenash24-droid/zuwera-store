@@ -210,6 +210,17 @@ nav#nav{
   transition:background .35s,border-color .35s,padding .35s,top .45s ease;
   border-bottom:1px solid rgba(244,241,235,.07);
 }
+/* Fill the iOS notch/safe-area zone with the nav's own background — CSS-only, scroll-proof */
+nav#nav::before{
+  content:'';
+  position:absolute;
+  top:calc(-1 * env(safe-area-inset-top,0px));
+  left:0;right:0;
+  height:env(safe-area-inset-top,0px);
+  background:inherit;
+  pointer-events:none;
+  z-index:-1;
+}
 nav#nav.scrolled{
   background:var(--ink);
   border-color:rgba(244,241,235,.07);
@@ -3199,10 +3210,7 @@ window.openSizeGuideModal = async function() {
   }
 };
 
-document.getElementById('footer-size-guide-link')?.addEventListener('click', e => {
-  e.preventDefault();
-  window.openSizeGuideModal();
-});
+// footer-size-guide-link navigates directly to /sizeguide.html (no modal)
 document.getElementById('size-guide-close')?.addEventListener('click', () => closeModal('size-guide-modal'));
 document.getElementById('size-guide-modal')?.addEventListener('click', e => {
   if (e.target === e.currentTarget) closeModal('size-guide-modal');
