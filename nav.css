@@ -35,7 +35,7 @@
 .nav {
   position: fixed;
   top: 0; left: 0; right: 0;
-  z-index: 240;
+  z-index: 220;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -120,6 +120,7 @@
     padding: calc(0.35rem + env(safe-area-inset-top, 0px)) 3rem 0.55rem;
   }
   .nav {
+    z-index: 240;
     padding: calc(0.55rem + env(safe-area-inset-top, 0px)) 1rem 0.8rem;
     transition: background .35s ease, box-shadow .35s ease, padding .35s ease;
   }

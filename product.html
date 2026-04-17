@@ -149,14 +149,18 @@
     border-top: 2px solid #F891A5;
     border-left: none; border-right: none; border-bottom: none;
   }
-  /* Size guide modal full screen on mobile */
+  /* Size guide modal bottom sheet on mobile */
+  #size-guide-modal {
+    align-items: flex-end;
+  }
   #size-guide-modal .mbox {
     width: 100vw;
     height: auto;
     min-height: 0;
-    max-height: 100dvh;
-    border-radius: 0;
-    padding: 0;
+    max-height: 90dvh;
+    border-radius: 16px 16px 0 0;
+    padding: 1.5rem 1.2rem 2.5rem;
+    overflow-y: auto;
   }
   .product-page {
     padding-top: calc(140px + env(safe-area-inset-top, 0px));
@@ -170,8 +174,8 @@
   padding: .45rem 2rem;
   display: flex; align-items: center; justify-content: center; gap: 1.5rem;
   font-family: 'IBM Plex Mono', monospace; font-size: .6rem; letter-spacing: .22em; text-transform: uppercase;
-  /* Bar is fixed below nav (nav z-index:240 > bar z-index:230); JS sets top */
-  position: fixed; left: 0; right: 0; z-index: 230;
+  /* Desktop: sticky so it pushes nav below it; mobile override below */
+  position: sticky; top: 0; z-index: 230;
 }
 .bar-sep {
   opacity: .25;
@@ -184,6 +188,9 @@ body.light-mode #bar {
   border-bottom-color: rgba(244,241,235,.1);
 }
 .product-page { padding-top: 140px; }
+@media (max-width: 900px) {
+  #bar { position: fixed; left: 0; right: 0; }
+}
 
 /* -- Image Gallery Arrows -- */
 .gallery-arrow {
@@ -848,8 +855,11 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
 (function() {
   function syncThemeColor() {
+    var isLight = document.body.classList.contains('light-mode');
+    var navBg = isLight ? '#F0EEE9' : '#09090b';
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', document.body.classList.contains('light-mode') ? '#F0EEE9' : '#09090b');
+    if (meta) meta.setAttribute('content', navBg);
+    document.documentElement.style.backgroundColor = navBg;
   }
   var saved = localStorage.getItem('theme');
   if (saved !== 'dark') document.body.classList.add('light-mode');
@@ -885,11 +895,17 @@ function teardownAnnouncementBarScroll() {
 
 function setAnnouncementBarLayout(barEl, navEl, isVisible) {
   if (!navEl) return;
-  // Nav always at top:0; bar positioned directly below nav
-  navEl.style.top = '0px';
-  document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
-  if (barEl && isVisible) {
-    barEl.style.top = navEl.offsetHeight + 'px';
+  const isMob = window.matchMedia('(max-width: 900px)').matches;
+  if (isMob) {
+    // Mobile: nav stays at top, bar is positioned below nav
+    navEl.style.top = '0px';
+    document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
+    if (barEl && isVisible) barEl.style.top = navEl.offsetHeight + 'px';
+  } else {
+    // Desktop: bar is sticky at top, nav pushed below bar
+    const nextTop = isVisible ? barEl.offsetHeight : 0;
+    navEl.style.top = nextTop + 'px';
+    document.documentElement.style.setProperty('--mobile-nav-gap', nextTop + 'px');
   }
 }
 
@@ -901,11 +917,17 @@ function applyAnnouncementBar(mode, msgText) {
   const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
 
   teardownAnnouncementBarScroll();
-  // Bar is always fixed, positioned below nav
-  barEl.style.position = 'fixed';
-  barEl.style.top = (navEl ? navEl.offsetHeight : 0) + 'px';
-  barEl.style.left = '0';
-  barEl.style.right = '0';
+  if (isMobileViewport) {
+    barEl.style.position = 'fixed';
+    barEl.style.top = (navEl ? navEl.offsetHeight : 0) + 'px';
+    barEl.style.left = '0';
+    barEl.style.right = '0';
+  } else {
+    barEl.style.position = 'sticky';
+    barEl.style.top = '0';
+    barEl.style.left = '';
+    barEl.style.right = '';
+  }
   barEl.style.transition = 'transform .28s ease, opacity .2s ease';
   barEl.style.transform = 'translateY(0)';
   barEl.style.opacity = '1';

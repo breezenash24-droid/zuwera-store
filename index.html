@@ -191,8 +191,8 @@ body::after{
   padding:.45rem 2rem;
   display:flex;align-items:center;justify-content:center;gap:1.5rem;
   font-family:var(--fm);font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;
-  /* Bar is positioned below the nav by JS; nav is z-index:240 and always on top */
-  position:fixed;left:0;right:0;z-index:230;
+  /* Desktop: sticky at top (nav is pushed below by JS). Mobile: fixed below nav (JS sets top). */
+  position:sticky;top:0;z-index:230;
   transition:transform .28s ease, opacity .2s ease;
 }
 .bar-sep{opacity:.25;font-size:0;line-height:1}
@@ -202,7 +202,7 @@ body::after{
    NAV
 ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */
 nav#nav{
-  position:fixed;top:0;left:0;right:0;z-index:240;
+  position:fixed;top:0;left:0;right:0;z-index:220;
   display:flex;justify-content:space-between;align-items:center;
   padding:1.5rem 2.5rem;
   background:var(--ink);
@@ -966,8 +966,9 @@ footer{
   .pgrow{grid-template-columns:1fr}
     .nav-center { display: none; }
     .hamburger-btn { display: flex; align-items: center; justify-content: center; }
-  /* Bar is now below nav — no safe-area padding needed on bar */
-  nav#nav{padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s}
+  /* Mobile: nav on top (z:240), bar fixed below nav (z:230, JS sets top) */
+  nav#nav{z-index:240;padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s}
+  #bar{position:fixed;left:0;right:0}
 }
 @media(max-width:600px){
   nav#nav{padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s}
@@ -1709,11 +1710,20 @@ window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.
 (function() {
   const bar = document.getElementById('bar');
   const syncNavOffset = () => {
-    // Nav is always at top:0; bar is always below nav
-    nav.style.top = '0px';
-    document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
-    if (bar && bar.style.display !== 'none') {
-      bar.style.top = nav.offsetHeight + 'px';
+    const isMob = window.matchMedia('(max-width: 900px)').matches;
+    if (isMob) {
+      // Mobile: nav at top:0 always, bar fixed below nav
+      nav.style.top = '0px';
+      document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
+      if (bar && bar.style.display !== 'none') {
+        bar.style.top = nav.offsetHeight + 'px';
+      }
+    } else {
+      // Desktop: nav pushed below bar when bar visible
+      const isHidden = bar.style.display === 'none' || bar.style.opacity === '0' || bar.style.pointerEvents === 'none';
+      const nextTop = isHidden ? 0 : bar.offsetHeight;
+      nav.style.top = nextTop + 'px';
+      document.documentElement.style.setProperty('--mobile-nav-gap', nextTop + 'px');
     }
   };
   syncNavOffset();
@@ -1739,11 +1749,17 @@ function teardownAnnouncementBarScroll() {
 
 function setAnnouncementBarLayout(barEl, navEl, isVisible) {
   if (!navEl) return;
-  // Nav is always at top:0; bar sits directly below the nav
-  navEl.style.top = '0px';
-  document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
-  if (barEl && isVisible) {
-    barEl.style.top = navEl.offsetHeight + 'px';
+  const isMob = window.matchMedia('(max-width: 900px)').matches;
+  if (isMob) {
+    // Mobile: nav at top:0, bar fixed below nav
+    navEl.style.top = '0px';
+    document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
+    if (barEl && isVisible) barEl.style.top = navEl.offsetHeight + 'px';
+  } else {
+    // Desktop: nav pushed below bar (original behavior)
+    const nextTop = isVisible ? barEl.offsetHeight : 0;
+    navEl.style.top = nextTop + 'px';
+    document.documentElement.style.setProperty('--mobile-nav-gap', nextTop + 'px');
   }
 }
 
@@ -1755,11 +1771,19 @@ function applyAnnouncementBar(mode, msgText) {
   const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
 
   teardownAnnouncementBarScroll();
-  // Bar is always fixed, always below the nav
-  barEl.style.position = 'fixed';
-  barEl.style.top = (navEl ? navEl.offsetHeight : 0) + 'px';
-  barEl.style.left = '0';
-  barEl.style.right = '0';
+  if (isMobileViewport) {
+    // Mobile: fixed below nav
+    barEl.style.position = 'fixed';
+    barEl.style.top = (navEl ? navEl.offsetHeight : 0) + 'px';
+    barEl.style.left = '0';
+    barEl.style.right = '0';
+  } else {
+    // Desktop: sticky at top, nav is pushed below by JS
+    barEl.style.position = 'sticky';
+    barEl.style.top = '0';
+    barEl.style.left = '';
+    barEl.style.right = '';
+  }
   barEl.style.transition = 'transform .28s ease, opacity .2s ease';
   barEl.style.transform = 'translateY(0)';
   barEl.style.opacity = '1';
@@ -1833,24 +1857,27 @@ function applyAnnouncementBar(mode, msgText) {
     return;
   }
 
-  barEl.style.transition = 'transform 0.28s ease, opacity 0.28s ease';
+  barEl.style.transition = 'transform 0.45s ease, opacity 0.45s ease, margin-bottom 0.45s ease';
   let lastScrollY = window.scrollY;
   let isHidden = false;
   const scrollActivationAt = Date.now() + 450;
   let _barHideTimer = null;
   const syncAnnouncementState = (hidden) => {
     clearTimeout(_barHideTimer);
+    const hiddenOffset = barEl.offsetHeight;
     if (hidden) {
       barEl.style.transform = 'translateY(-100%)';
       barEl.style.opacity = '0';
       barEl.style.pointerEvents = 'none';
-      _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; }, 300);
+      barEl.style.marginBottom = (-hiddenOffset) + 'px';
+      _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; }, 460);
     } else {
       barEl.style.display = 'flex';
-      void barEl.offsetHeight; // force reflow so transition plays
+      void barEl.offsetHeight;
       barEl.style.transform = 'translateY(0)';
       barEl.style.opacity = '1';
       barEl.style.pointerEvents = '';
+      barEl.style.marginBottom = '0';
     }
     setAnnouncementBarLayout(barEl, navEl, !hidden);
   };
