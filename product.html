@@ -149,19 +149,7 @@
     border-top: 2px solid #F891A5;
     border-left: none; border-right: none; border-bottom: none;
   }
-  /* Size guide modal bottom sheet on mobile */
-  #size-guide-modal {
-    align-items: flex-end;
-  }
-  #size-guide-modal .mbox {
-    width: 100vw;
-    height: auto;
-    min-height: 0;
-    max-height: 90dvh;
-    border-radius: 16px 16px 0 0;
-    padding: 1.5rem 1.2rem 2.5rem;
-    overflow-y: auto;
-  }
+
   .product-page {
     padding-top: calc(140px + env(safe-area-inset-top, 0px));
   }
@@ -190,6 +178,68 @@ body.light-mode #bar {
 .product-page { padding-top: 140px; }
 @media (max-width: 900px) {
   #bar { position: fixed; left: 0; right: 0; }
+}
+
+/* -- Size Guide Inline Section -- */
+.size-guide-section {
+  width: 100%;
+  background: #09090b;
+  border-top: 1px solid rgba(244,241,235,.08);
+  padding: 4rem 2.5rem 5rem;
+}
+.size-guide-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.size-guide-section .size-guide-head {
+  margin-bottom: 2.5rem;
+}
+.size-guide-section .size-guide-kicker {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .6rem;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: rgba(244,241,235,.4);
+  margin: 0 0 .6rem;
+}
+.size-guide-section .size-guide-title {
+  font-size: 1.4rem;
+  font-weight: 500;
+  letter-spacing: -.01em;
+  color: #f4f1eb;
+  margin: 0 0 .6rem;
+}
+.size-guide-section .size-guide-copy {
+  font-size: .8rem;
+  color: rgba(244,241,235,.55);
+  margin: 0;
+}
+.size-guide-section .size-guide-frame-shell {
+  width: 100%;
+}
+.size-guide-section #size-guide-iframe {
+  width: 100%;
+  border: none;
+  display: block;
+  border-radius: 4px;
+}
+.size-guide-section .size-guide-message {
+  color: rgba(244,241,235,.4);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .7rem;
+  letter-spacing: .1em;
+  padding: 2rem 0;
+}
+body.light-mode .size-guide-section {
+  background: #f4f1eb;
+  border-top-color: rgba(9,9,11,.08);
+}
+body.light-mode .size-guide-section .size-guide-title { color: #09090b; }
+body.light-mode .size-guide-section .size-guide-kicker { color: rgba(9,9,11,.4); }
+body.light-mode .size-guide-section .size-guide-copy { color: rgba(9,9,11,.55); }
+body.light-mode .size-guide-section .size-guide-message { color: rgba(9,9,11,.4); }
+@media (max-width: 900px) {
+  .size-guide-section { padding: 3rem 1.2rem 4rem; }
 }
 
 /* -- Image Gallery Arrows -- */
@@ -801,10 +851,9 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
   </div>
 </div>
 
-<!-- SIZE GUIDE MODAL -->
-<div id="size-guide-modal" class="modal modal--guide" role="dialog" aria-modal="true" aria-labelledby="size-guide-title">
-  <div class="mbox size-guide-dialog">
-    <button id="size-guide-close" class="mclose size-guide-close" aria-label="Close">&#215;</button>
+<!-- SIZE GUIDE SECTION -->
+<section id="size-guide-section" class="size-guide-section">
+  <div class="size-guide-inner">
     <div class="size-guide-head">
       <p id="size-guide-kicker" class="size-guide-kicker">Fit Reference</p>
       <h2 id="size-guide-title" class="size-guide-title">Size Guide</h2>
@@ -817,7 +866,7 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
       </div>
     </div>
   </div>
-</div>
+</section>
 
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
 <!-- FOOTER                                                           -->
@@ -1353,6 +1402,8 @@ function syncSizeGuideVisibility(sizeLabels = getAvailableProductSizes()) {
   }
   if (accordionBtn) accordionBtn.style.display = hideGuide ? 'none' : '';
   if (sizeLabel) sizeLabel.textContent = hideGuide ? 'Size' : 'Select Size';
+  const guideSection = document.getElementById('size-guide-section');
+  if (guideSection) guideSection.style.display = hideGuide ? 'none' : '';
 
   return hideGuide;
 }
@@ -2723,12 +2774,20 @@ function bindSizeGuideIframeAutoHeight(iframe) {
   setTimeout(resize, 360);
 }
 
+let _sizeGuideLoaded = false;
+
 window.openSizeGuideModal = async function() {
-  const modal = document.getElementById('size-guide-modal');
+  if (syncSizeGuideVisibility(getAvailableProductSizes())) return;
+  const section = document.getElementById('size-guide-section');
   const iframe = document.getElementById('size-guide-iframe');
   const loading = document.getElementById('size-guide-loading');
-  if (!modal || !iframe) return;
-  if (syncSizeGuideVisibility(getAvailableProductSizes())) return;
+  if (!section || !iframe) return;
+
+  // Scroll to section first
+  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // If already loaded, nothing else to do
+  if (_sizeGuideLoaded) return;
 
   const context = getSizeGuideContext();
   syncSizeGuideModalMeta(context);
@@ -2749,8 +2808,6 @@ window.openSizeGuideModal = async function() {
   teardownSizeGuideIframeAutoHeight();
   iframe.hidden = true;
   iframe.style.height = '';
-  modal.classList.add('open');
-  document.body.style.overflow = 'hidden';
 
   try {
     const sourceHtml = await getSizeGuideDocumentHtml();
@@ -2759,10 +2816,11 @@ window.openSizeGuideModal = async function() {
       if (loading) loading.hidden = true;
       iframe.hidden = false;
       iframe.onload = null;
+      _sizeGuideLoaded = true;
     };
     iframe.srcdoc = buildSizeGuideSrcdoc(sourceHtml, params);
   } catch (error) {
-    console.error('Size guide modal failed:', error);
+    console.error('Size guide load failed:', error);
     teardownSizeGuideIframeAutoHeight();
     iframe.hidden = true;
     iframe.style.height = '';
@@ -2936,22 +2994,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
       document.body.style.overflow = '';
     }
   });
-  document.getElementById('size-guide-close')?.addEventListener('click', () => {
-    teardownSizeGuideIframeAutoHeight();
-    const iframe = document.getElementById('size-guide-iframe');
-    if (iframe) iframe.style.height = '';
-    document.getElementById('size-guide-modal').classList.remove('open');
-    document.body.style.overflow = '';
-  });
-  document.getElementById('size-guide-modal')?.addEventListener('click', e => {
-    if (e.target === e.currentTarget) {
-      teardownSizeGuideIframeAutoHeight();
-      const iframe = document.getElementById('size-guide-iframe');
-      if (iframe) iframe.style.height = '';
-      document.getElementById('size-guide-modal').classList.remove('open');
-      document.body.style.overflow = '';
-    }
-  });
+
 
   // Favorites links (placeholder ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â no auth modal on product page)
   document.getElementById('fav-signin-link').addEventListener('click', () => {
