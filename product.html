@@ -158,10 +158,6 @@
     border-radius: 0;
     padding: 0;
   }
-  #bar {
-    padding-top: calc(.35rem + env(safe-area-inset-top, 0px));
-    padding-bottom: .45rem;
-  }
   .product-page {
     padding-top: calc(140px + env(safe-area-inset-top, 0px));
   }
@@ -174,7 +170,8 @@
   padding: .45rem 2rem;
   display: flex; align-items: center; justify-content: center; gap: 1.5rem;
   font-family: 'IBM Plex Mono', monospace; font-size: .6rem; letter-spacing: .22em; text-transform: uppercase;
-  position: sticky; top: 0; z-index: 240;
+  /* Bar is fixed below nav (nav z-index:240 > bar z-index:230); JS sets top */
+  position: fixed; left: 0; right: 0; z-index: 230;
 }
 .bar-sep {
   opacity: .25;
@@ -888,10 +885,12 @@ function teardownAnnouncementBarScroll() {
 
 function setAnnouncementBarLayout(barEl, navEl, isVisible) {
   if (!navEl) return;
-  const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
-  const nextTop = isMobileViewport ? 0 : (isVisible ? barEl.offsetHeight : 0);
-  navEl.style.top = nextTop + 'px';
-  document.documentElement.style.setProperty('--mobile-nav-gap', nextTop + 'px');
+  // Nav always at top:0; bar positioned directly below nav
+  navEl.style.top = '0px';
+  document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
+  if (barEl && isVisible) {
+    barEl.style.top = navEl.offsetHeight + 'px';
+  }
 }
 
 function applyAnnouncementBar(mode, msgText) {
@@ -902,11 +901,12 @@ function applyAnnouncementBar(mode, msgText) {
   const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
 
   teardownAnnouncementBarScroll();
-  barEl.style.position = isMobileViewport ? 'fixed' : 'sticky';
-  barEl.style.top = '0';
+  // Bar is always fixed, positioned below nav
+  barEl.style.position = 'fixed';
+  barEl.style.top = (navEl ? navEl.offsetHeight : 0) + 'px';
   barEl.style.left = '0';
   barEl.style.right = '0';
-  barEl.style.transition = isMobileViewport ? 'transform .28s ease, opacity .2s ease' : '';
+  barEl.style.transition = 'transform .28s ease, opacity .2s ease';
   barEl.style.transform = 'translateY(0)';
   barEl.style.opacity = '1';
   barEl.style.pointerEvents = '';
@@ -945,10 +945,9 @@ function applyAnnouncementBar(mode, msgText) {
     const scrollActivationAt = Date.now() + 450;
     const syncAnnouncementState = (hidden) => {
       barEl.style.display = 'flex';
-      barEl.style.transform = hidden ? 'translateY(calc(-100% - 2px))' : 'translateY(0)';
+      barEl.style.transform = hidden ? 'translateY(-100%)' : 'translateY(0)';
       barEl.style.opacity = hidden ? '0' : '1';
       barEl.style.pointerEvents = hidden ? 'none' : '';
-      barEl.style.marginBottom = '0';
       setAnnouncementBarLayout(barEl, navEl, !hidden);
     };
     syncAnnouncementState(false);

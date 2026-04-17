@@ -191,8 +191,9 @@ body::after{
   padding:.45rem 2rem;
   display:flex;align-items:center;justify-content:center;gap:1.5rem;
   font-family:var(--fm);font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;
-  position:sticky;top:0;z-index:230;
-  transition:transform .45s ease, opacity .45s ease, margin-bottom .45s ease;
+  /* Bar is positioned below the nav by JS; nav is z-index:240 and always on top */
+  position:fixed;left:0;right:0;z-index:230;
+  transition:transform .28s ease, opacity .2s ease;
 }
 .bar-sep{opacity:.25;font-size:0;line-height:1}
 .bar-sep::before{content:'\2726';font-size:.62rem}
@@ -201,7 +202,7 @@ body::after{
    NAV
 ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */
 nav#nav{
-  position:fixed;top:0;left:0;right:0;z-index:220;
+  position:fixed;top:0;left:0;right:0;z-index:240;
   display:flex;justify-content:space-between;align-items:center;
   padding:1.5rem 2.5rem;
   background:var(--ink);
@@ -965,19 +966,10 @@ footer{
   .pgrow{grid-template-columns:1fr}
     .nav-center { display: none; }
     .hamburger-btn { display: flex; align-items: center; justify-content: center; }
-  #bar{padding-top:calc(.35rem + env(safe-area-inset-top,0px));padding-bottom:.45rem}
+  /* Bar is now below nav — no safe-area padding needed on bar */
   nav#nav{padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s}
 }
 @media(max-width:600px){
-  /* Fill any gap above the fixed nav (e.g. when sticky announcement bar hides on mobile) */
-  nav#nav::before{
-    content:'';
-    position:absolute;
-    top:-200px;left:0;right:0;
-    height:200px;
-    background:inherit;
-    pointer-events:none;
-  }
   nav#nav{padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s}
 
   .hero-inner{padding:2rem 1.2rem 1.5rem}
@@ -1717,16 +1709,12 @@ window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.
 (function() {
   const bar = document.getElementById('bar');
   const syncNavOffset = () => {
-    const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
-    if (isMobileViewport) {
-      nav.style.top = '0px';
-      document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
-      return;
+    // Nav is always at top:0; bar is always below nav
+    nav.style.top = '0px';
+    document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
+    if (bar && bar.style.display !== 'none') {
+      bar.style.top = nav.offsetHeight + 'px';
     }
-    const isHidden = bar.style.display === 'none' || bar.style.opacity === '0' || bar.style.pointerEvents === 'none';
-    const nextTop = isHidden ? 0 : bar.offsetHeight;
-    nav.style.top = nextTop + 'px';
-    document.documentElement.style.setProperty('--mobile-nav-gap', nextTop + 'px');
   };
   syncNavOffset();
   window.addEventListener('resize', syncNavOffset);
@@ -1751,10 +1739,12 @@ function teardownAnnouncementBarScroll() {
 
 function setAnnouncementBarLayout(barEl, navEl, isVisible) {
   if (!navEl) return;
-  const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
-  const nextTop = isMobileViewport ? 0 : (isVisible ? barEl.offsetHeight : 0);
-  navEl.style.top = nextTop + 'px';
-  document.documentElement.style.setProperty('--mobile-nav-gap', nextTop + 'px');
+  // Nav is always at top:0; bar sits directly below the nav
+  navEl.style.top = '0px';
+  document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
+  if (barEl && isVisible) {
+    barEl.style.top = navEl.offsetHeight + 'px';
+  }
 }
 
 function applyAnnouncementBar(mode, msgText) {
@@ -1765,11 +1755,12 @@ function applyAnnouncementBar(mode, msgText) {
   const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
 
   teardownAnnouncementBarScroll();
-  barEl.style.position = isMobileViewport ? 'fixed' : 'sticky';
-  barEl.style.top = '0';
+  // Bar is always fixed, always below the nav
+  barEl.style.position = 'fixed';
+  barEl.style.top = (navEl ? navEl.offsetHeight : 0) + 'px';
   barEl.style.left = '0';
   barEl.style.right = '0';
-  barEl.style.transition = isMobileViewport ? 'transform .28s ease, opacity .2s ease' : '';
+  barEl.style.transition = 'transform .28s ease, opacity .2s ease';
   barEl.style.transform = 'translateY(0)';
   barEl.style.opacity = '1';
   barEl.style.pointerEvents = '';
@@ -1842,33 +1833,24 @@ function applyAnnouncementBar(mode, msgText) {
     return;
   }
 
-  barEl.style.transition = 'transform 0.45s ease, opacity 0.45s ease, margin-bottom 0.45s ease';
+  barEl.style.transition = 'transform 0.28s ease, opacity 0.28s ease';
   let lastScrollY = window.scrollY;
   let isHidden = false;
   const scrollActivationAt = Date.now() + 450;
   let _barHideTimer = null;
-  const _isMobile = () => window.innerWidth <= 768;
   const syncAnnouncementState = (hidden) => {
     clearTimeout(_barHideTimer);
-    const hiddenOffset = barEl.offsetHeight;
     if (hidden) {
       barEl.style.transform = 'translateY(-100%)';
       barEl.style.opacity = '0';
       barEl.style.pointerEvents = 'none';
-      barEl.style.marginBottom = (-hiddenOffset) + 'px';
-      // On mobile: remove from stacking context after animation to prevent
-      // sticky+transform gap bug on iOS Safari
-      if (_isMobile()) {
-        _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; }, 460);
-      }
+      _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; }, 300);
     } else {
       barEl.style.display = 'flex';
-      // Force reflow before re-animating so transition plays correctly
-      void barEl.offsetHeight;
-      barEl.style.transform = '';
+      void barEl.offsetHeight; // force reflow so transition plays
+      barEl.style.transform = 'translateY(0)';
       barEl.style.opacity = '1';
       barEl.style.pointerEvents = '';
-      barEl.style.marginBottom = '0';
     }
     setAnnouncementBarLayout(barEl, navEl, !hidden);
   };

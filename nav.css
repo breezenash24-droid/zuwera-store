@@ -35,7 +35,7 @@
 .nav {
   position: fixed;
   top: 0; left: 0; right: 0;
-  z-index: 220;
+  z-index: 240;
   display: flex;
   justify-content: space-between;
   align-items: center;
