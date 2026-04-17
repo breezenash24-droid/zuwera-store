@@ -30,10 +30,10 @@
 
 <!-- Stylesheets -->
 <link rel="stylesheet" href="base.css">
-<link rel="stylesheet" href="nav.css?v=6">
+<link rel="stylesheet" href="nav.css?v=7">
 <link rel="stylesheet" href="product.css?v=5">
-<link rel="stylesheet" href="cart.css?v=5">
-<link rel="stylesheet" href="reviews.css?v=11">
+<link rel="stylesheet" href="cart.css?v=6">
+<link rel="stylesheet" href="reviews.css?v=12">
 
 <style>
 /* Modal base styles (shared with index.html) */
@@ -174,7 +174,7 @@
   padding: .45rem 2rem;
   display: flex; align-items: center; justify-content: center; gap: 1.5rem;
   font-family: 'IBM Plex Mono', monospace; font-size: .6rem; letter-spacing: .22em; text-transform: uppercase;
-  position: sticky; top: 0; z-index: 210;
+  position: sticky; top: 0; z-index: 240;
 }
 .bar-sep {
   opacity: .25;
@@ -183,8 +183,8 @@
 }
 .bar-sep::before { content: "|"; }
 body.light-mode #bar {
-  background: #F0EEE9; color: #09090b;
-  border-bottom-color: rgba(9,9,11,.08);
+  background: #09090b; color: #F0EEE9;
+  border-bottom-color: rgba(244,241,235,.1);
 }
 .product-page { padding-top: 140px; }
 
@@ -299,7 +299,7 @@ body.light-mode .rs-metric-title { color: #09090b; }
 body.light-mode .rs-metric-subtitle { color: rgba(9,9,11,.6); }
 body.light-mode .rs-metric-bar { background: rgba(9,9,11,.1); }
 body.light-mode .rs-metric-labels { color: rgba(9,9,11,.5); }
-body.light-mode .review-summary-box { background: rgba(9,9,11,.03); border-color: rgba(9,9,11,.08); }
+body.light-mode .review-summary-box { background: #F0EEE9; border-color: rgba(9,9,11,.08); }
 body.light-mode .rs-left { border-right-color: rgba(9,9,11,.08); }
 body.light-mode .rs-recommend-pill.no { background: rgba(9,9,11,.05); border-color: rgba(9,9,11,.15); color: #09090b; }
 body.light-mode .translate-btn:hover { border-color: #09090b; color: #09090b; background: rgba(9,9,11,.04); }
@@ -344,12 +344,12 @@ body.light-mode #apple-pay-qr-modal {
   -webkit-backdrop-filter: none !important;
 }
 /* Wallet method buttons */
-body.light-mode .wallet-chip { background: rgba(9,9,11,.05); border-color: rgba(9,9,11,.1); color: #09090b; }
+body.light-mode .wallet-chip { background: #F0EEE9; border-color: rgba(9,9,11,.1); color: #09090b; }
 body.light-mode .wallet-chip:hover { background: rgba(9,9,11,.1); border-color: rgba(9,9,11,.2); }
 /* Account modal inner elements */
 body.light-mode .acct-section-title { color: rgba(9,9,11,.35); }
 body.light-mode .acct-section { border-top-color: rgba(9,9,11,.08); }
-body.light-mode .order-card { background: rgba(9,9,11,.03); border-color: rgba(9,9,11,.08); }
+body.light-mode .order-card { background: #F0EEE9; border-color: rgba(9,9,11,.08); }
 body.light-mode .order-status { color: rgba(9,9,11,.35); }
 /* Toast */
 body.light-mode #toast { background: #09090b; color: #E8E3DC; }
@@ -397,7 +397,7 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
 }
 </style>
 
-<link rel="stylesheet" href="reviews-vibe.css?v=12">
+<link rel="stylesheet" href="reviews-vibe.css?v=13">
 </head>
 <body>
 
@@ -888,7 +888,8 @@ function teardownAnnouncementBarScroll() {
 
 function setAnnouncementBarLayout(barEl, navEl, isVisible) {
   if (!navEl) return;
-  const nextTop = isVisible ? barEl.offsetHeight : 0;
+  const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
+  const nextTop = isMobileViewport ? 0 : (isVisible ? barEl.offsetHeight : 0);
   navEl.style.top = nextTop + 'px';
   document.documentElement.style.setProperty('--mobile-nav-gap', nextTop + 'px');
 }
@@ -898,12 +899,15 @@ function applyAnnouncementBar(mode, msgText) {
   const navEl = document.querySelector('.nav');
   if (!barEl) return;
   const normalizedMode = String(mode || 'on').trim().toLowerCase();
+  const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
 
   teardownAnnouncementBarScroll();
-  barEl.style.position = 'sticky';
+  barEl.style.position = isMobileViewport ? 'fixed' : 'sticky';
   barEl.style.top = '0';
-  barEl.style.transition = '';
-  barEl.style.transform = '';
+  barEl.style.left = '0';
+  barEl.style.right = '0';
+  barEl.style.transition = isMobileViewport ? 'transform .28s ease, opacity .2s ease' : '';
+  barEl.style.transform = 'translateY(0)';
   barEl.style.opacity = '1';
   barEl.style.pointerEvents = '';
   barEl.style.marginBottom = '0';
@@ -917,7 +921,14 @@ function applyAnnouncementBar(mode, msgText) {
   }
 
   if (normalizedMode === 'off') {
-    barEl.style.display = 'none';
+    if (isMobileViewport) {
+      barEl.style.display = 'flex';
+      barEl.style.transform = 'translateY(calc(-100% - 2px))';
+      barEl.style.opacity = '0';
+      barEl.style.pointerEvents = 'none';
+    } else {
+      barEl.style.display = 'none';
+    }
     setAnnouncementBarLayout(barEl, navEl, false);
     return;
   }
@@ -927,24 +938,18 @@ function applyAnnouncementBar(mode, msgText) {
 
   if (normalizedMode !== 'scroll') return;
 
-  const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
   if (isMobileViewport) {
-    barEl.style.transition = 'none';
+    barEl.style.transition = 'transform .28s ease, opacity .2s ease';
     let lastScrollY = window.scrollY;
     let isHidden = false;
     const scrollActivationAt = Date.now() + 450;
     const syncAnnouncementState = (hidden) => {
-      if (hidden) {
-        barEl.style.display = 'none';
-        setAnnouncementBarLayout(barEl, navEl, false);
-        return;
-      }
       barEl.style.display = 'flex';
-      barEl.style.transform = '';
-      barEl.style.opacity = '1';
-      barEl.style.pointerEvents = '';
+      barEl.style.transform = hidden ? 'translateY(calc(-100% - 2px))' : 'translateY(0)';
+      barEl.style.opacity = hidden ? '0' : '1';
+      barEl.style.pointerEvents = hidden ? 'none' : '';
       barEl.style.marginBottom = '0';
-      setAnnouncementBarLayout(barEl, navEl, true);
+      setAnnouncementBarLayout(barEl, navEl, !hidden);
     };
     syncAnnouncementState(false);
     _productAnnouncementBarScrollHandler = function() {
@@ -1452,6 +1457,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const nav = document.querySelector('.nav');
   if (bar && nav) {
     const syncNavOffset = () => {
+      if (window.matchMedia('(max-width: 900px)').matches) {
+        nav.style.top = '0';
+        document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
+        return;
+      }
       const isHidden = bar.style.display === 'none' || bar.style.opacity === '0' || bar.style.pointerEvents === 'none';
       nav.style.top = isHidden ? '0' : (bar.offsetHeight + 'px');
     };

@@ -123,7 +123,7 @@
 <link rel="dns-prefetch" href="https://www.googletagmanager.com">
 
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500&family=Barlow:wght@300;400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="reviews.css?v=11">
+<link rel="stylesheet" href="reviews.css?v=12">
 
 <!-- Stripe is loaded lazily on checkout click to avoid blocking initial render -->
 <!-- defer moves Supabase off the critical path ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â it was previously
@@ -1031,8 +1031,8 @@ body.light-mode nav#nav.scrolled .cc{background:var(--paper);color:var(--ink)}
 
 /* Announcement */
 body.light-mode #bar{
-  background:#F0EEE9;color:#09090b;
-  border-bottom-color:rgba(9,9,11,.08);
+  background:var(--ink);color:var(--paper);
+  border-bottom-color:rgba(244,241,235,.1);
 }
 
 /* Marquee */
@@ -1079,7 +1079,7 @@ body.light-mode .heart-btn{
   color:rgba(9,9,11,.3);
 }
 body.light-mode .wallet-chip{
-  background:rgba(9,9,11,.03);
+  background:#F0EEE9;
   border-color:rgba(9,9,11,.1);
   color:#09090b;
 }
@@ -1108,12 +1108,12 @@ body.light-mode .modal{
   -webkit-backdrop-filter:none;
 }
 body.light-mode .mbox{background:#F0EEE9;border-color:rgba(9,9,11,.08)}
-body.light-mode .mclose{background:rgba(9,9,11,.05);border-color:rgba(9,9,11,.08);color:var(--paper)}
+body.light-mode .mclose{background:rgba(9,9,11,.05);border-color:rgba(9,9,11,.08);color:#09090b}
 body.light-mode .mclose:hover{background:rgba(9,9,11,.1)}
-body.light-mode .fgroup input{background:rgba(9,9,11,.03);border-color:rgba(9,9,11,.1);color:var(--paper)}
+body.light-mode .fgroup input{background:rgba(9,9,11,.03);border-color:rgba(9,9,11,.1);color:#09090b}
 body.light-mode .fgroup input::placeholder{color:rgba(9,9,11,.18)}
 body.light-mode .fgroup label{color:rgba(9,9,11,.38)}
-body.light-mode .auth-submit-btn,.light-mode .btn-primary{background:var(--paper);color:var(--ink)}
+body.light-mode .auth-submit-btn,.light-mode .btn-primary{background:#09090b;color:#E8E3DC}
 body.light-mode .atab{color:rgba(9,9,11,.25)}
 body.light-mode .atabs{border-bottom-color:rgba(9,9,11,.08)}
 body.light-mode .auth-brand{border-bottom-color:rgba(9,9,11,.06)}
@@ -1122,20 +1122,20 @@ body.light-mode .alink{color:rgba(9,9,11,.25)}
 body.light-mode .alink a{color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,.2)}
 
 /* Cart */
-body.light-mode #cart-modal{background:var(--ink)}
+body.light-mode #cart-modal{background:#F0EEE9}
 body.light-mode .cart-hd{background:#F0EEE9;border-bottom-color:rgba(9,9,11,.07)}
 body.light-mode #cart-items-list{border-top-color:rgba(9,9,11,.07)}
 body.light-mode #cart-items-list li{border-bottom-color:rgba(9,9,11,.07);color:rgba(9,9,11,.7)}
-body.light-mode .csummary{border-color:rgba(9,9,11,.1);background:rgba(9,9,11,.03)}
+body.light-mode .csummary{border-color:rgba(9,9,11,.1);background:#F0EEE9}
 body.light-mode .srow{border-bottom-color:rgba(9,9,11,.07);color:rgba(9,9,11,.5)}
-body.light-mode .srow.stotal{border-top-color:rgba(9,9,11,.12);color:var(--paper)}
+body.light-mode .srow.stotal{border-top-color:rgba(9,9,11,.12);color:#09090b}
 body.light-mode .ship-note{color:rgba(9,9,11,.38)}
 body.light-mode .cempty{color:rgba(9,9,11,.38)}
 body.light-mode .fav-msg{color:rgba(9,9,11,.4)}
-body.light-mode .fav-msg a{color:var(--paper)}
+body.light-mode .fav-msg a{color:#09090b}
 body.light-mode #cart-favs-empty{color:rgba(9,9,11,.35) !important}
 body.light-mode .cart-back{color:rgba(9,9,11,.45)}
-body.light-mode .csec-t{color:var(--paper)}
+body.light-mode .csec-t{color:#09090b}
 body.light-mode .cart-favs{border-top-color:rgba(9,9,11,.07)}
 body.light-mode #checkout-btn{background:#09090b;color:#E8E3DC}
 body.light-mode #payment-modal{
@@ -1173,7 +1173,7 @@ body.light-mode #success-continue{background:var(--paper);color:var(--ink)}
 /* Noise overlay */
 body.light-mode::after{opacity:0.15}
 </style>
-<link rel="stylesheet" href="reviews-vibe.css?v=12">
+<link rel="stylesheet" href="reviews-vibe.css?v=13">
 </head>
 <body>
 <script>
@@ -1701,6 +1701,12 @@ window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.
 (function() {
   const bar = document.getElementById('bar');
   const syncNavOffset = () => {
+    const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
+    if (isMobileViewport) {
+      nav.style.top = '0px';
+      document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
+      return;
+    }
     const isHidden = bar.style.display === 'none' || bar.style.opacity === '0' || bar.style.pointerEvents === 'none';
     const nextTop = isHidden ? 0 : bar.offsetHeight;
     nav.style.top = nextTop + 'px';
@@ -1729,7 +1735,8 @@ function teardownAnnouncementBarScroll() {
 
 function setAnnouncementBarLayout(barEl, navEl, isVisible) {
   if (!navEl) return;
-  const nextTop = isVisible ? barEl.offsetHeight : 0;
+  const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
+  const nextTop = isMobileViewport ? 0 : (isVisible ? barEl.offsetHeight : 0);
   navEl.style.top = nextTop + 'px';
   document.documentElement.style.setProperty('--mobile-nav-gap', nextTop + 'px');
 }
@@ -1739,12 +1746,15 @@ function applyAnnouncementBar(mode, msgText) {
   const navEl = document.getElementById('nav');
   if (!barEl) return;
   const normalizedMode = String(mode || 'on').trim().toLowerCase();
+  const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
 
   teardownAnnouncementBarScroll();
-  barEl.style.position = 'sticky';
+  barEl.style.position = isMobileViewport ? 'fixed' : 'sticky';
   barEl.style.top = '0';
-  barEl.style.transition = '';
-  barEl.style.transform = '';
+  barEl.style.left = '0';
+  barEl.style.right = '0';
+  barEl.style.transition = isMobileViewport ? 'transform .28s ease, opacity .2s ease' : '';
+  barEl.style.transform = 'translateY(0)';
   barEl.style.opacity = '1';
   barEl.style.pointerEvents = '';
   barEl.style.marginBottom = '0';
@@ -1758,7 +1768,14 @@ function applyAnnouncementBar(mode, msgText) {
   }
 
   if (normalizedMode === 'off') {
-    barEl.style.display = 'none';
+    if (isMobileViewport) {
+      barEl.style.display = 'flex';
+      barEl.style.transform = 'translateY(calc(-100% - 2px))';
+      barEl.style.opacity = '0';
+      barEl.style.pointerEvents = 'none';
+    } else {
+      barEl.style.display = 'none';
+    }
     setAnnouncementBarLayout(barEl, navEl, false);
     return;
   }
@@ -1768,24 +1785,18 @@ function applyAnnouncementBar(mode, msgText) {
 
   if (normalizedMode !== 'scroll') return;
 
-  const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
   if (isMobileViewport) {
-    barEl.style.transition = 'none';
+    barEl.style.transition = 'transform .28s ease, opacity .2s ease';
     let lastScrollY = window.scrollY;
     let isHidden = false;
     const scrollActivationAt = Date.now() + 450;
     const syncAnnouncementState = (hidden) => {
-      if (hidden) {
-        barEl.style.display = 'none';
-        setAnnouncementBarLayout(barEl, navEl, false);
-        return;
-      }
       barEl.style.display = 'flex';
-      barEl.style.transform = '';
-      barEl.style.opacity = '1';
-      barEl.style.pointerEvents = '';
+      barEl.style.transform = hidden ? 'translateY(calc(-100% - 2px))' : 'translateY(0)';
+      barEl.style.opacity = hidden ? '0' : '1';
+      barEl.style.pointerEvents = hidden ? 'none' : '';
       barEl.style.marginBottom = '0';
-      setAnnouncementBarLayout(barEl, navEl, true);
+      setAnnouncementBarLayout(barEl, navEl, !hidden);
     };
     syncAnnouncementState(false);
     _announcementBarScrollHandler = function() {
@@ -3601,7 +3612,7 @@ function scrollToNotify() {
 
 <!-- PWA Service Worker -->
 <script>
-if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=6').then(reg=>reg.update()).catch(()=>{})}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=7').then(reg=>reg.update()).catch(()=>{})}
 </script>
 
 <!-- Cookie Consent / GDPR -->

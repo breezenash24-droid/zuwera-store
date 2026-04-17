@@ -1669,7 +1669,7 @@ body.light-mode .size-guide-frame-shell,
 body.light-mode .review-select,
 body.light-mode .translate-btn,
 body.light-mode .review-radio-group label {
-  background: rgba(9,9,11,0.03);
+  background: #F0EEE9;
   border-color: rgba(9,9,11,0.1);
 }
 
@@ -1788,7 +1788,7 @@ body.light-mode .review-dialog--thread .review-submit-btn--list:hover {
 
 body.light-mode .review-dialog--thread .review-select--classic,
 body.light-mode .review-dialog--thread .translate-btn--classic {
-  background: rgba(9,9,11,0.03);
+  background: #F0EEE9;
   border-color: rgba(9,9,11,0.12);
   color: #09090b;
 }
@@ -1820,13 +1820,13 @@ body.light-mode .review-dialog--classic-list .review-submit-btn--legacy-list {
 
 body.light-mode .review-dialog--classic-list .review-select--legacy,
 body.light-mode .review-dialog--classic-list .translate-btn--legacy {
-  background: rgba(9,9,11,0.03);
+  background: #F0EEE9;
   border-color: rgba(9,9,11,0.12);
   color: #09090b;
 }
 
 body.light-mode .review-dialog--classic-list .review-summary-box {
-  background: rgba(9,9,11,0.03);
+  background: #F0EEE9;
   border-color: rgba(9,9,11,0.08);
 }
 

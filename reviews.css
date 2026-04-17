@@ -455,13 +455,13 @@ body.light-mode .review-list-mbox {
 }
 /* Inline review summary on product page */
 body.light-mode .review-summary-box {
-  background: rgba(9,9,11,0.03);
+  background: #F0EEE9;
   border-color: rgba(9,9,11,0.08);
 }
 body.light-mode .rs-metric-bar { background: rgba(9,9,11,0.12); }
 body.light-mode .rs-left { border-right-color: rgba(9,9,11,0.08); }
 body.light-mode .translate-btn {
-  background: rgba(9,9,11,0.04);
+  background: #F0EEE9;
   border-color: rgba(9,9,11,0.15);
   color: #09090b;
 }
@@ -485,14 +485,14 @@ body.light-mode .review-mbox .star-selector button.hover { color: rgba(9,9,11,0.
 body.light-mode .review-mbox .review-radio-group label { background: rgba(9,9,11,0.04); border-color: rgba(9,9,11,0.15); color: rgba(9,9,11,0.6); }
 body.light-mode .review-mbox .review-radio-group label:hover { background: rgba(9,9,11,0.08); color: #09090b; }
 body.light-mode .review-mbox .review-radio-group input[type="radio"]:checked + label { border-color: #09090b; background: rgba(9,9,11,0.07); color: #09090b; }
-body.light-mode .review-advanced-legacy { background: rgba(9,9,11,0.02) !important; border-color: rgba(9,9,11,0.08) !important; }
+body.light-mode .review-advanced-legacy { background: #F0EEE9 !important; border-color: rgba(9,9,11,0.08) !important; }
 body.light-mode .review-mbox .review-slider-wrap { color: rgba(9,9,11,0.5); }
 body.light-mode .review-mbox .review-legacy-label,
 body.light-mode .review-fit-toggle-label { color: rgba(9,9,11,0.7); }
 body.light-mode .review-list-title { color: #09090b; }
 body.light-mode .review-list-select,
 body.light-mode .review-list-translate,
-body.light-mode .review-list-close { background: rgba(9,9,11,0.03); border-color: rgba(9,9,11,0.1); color: #09090b; }
+body.light-mode .review-list-close { background: #F0EEE9; border-color: rgba(9,9,11,0.1); color: #09090b; }
 body.light-mode .review-list-mbox .review-card-author,
 body.light-mode .review-list-mbox .review-card-title { color: #09090b; }
 body.light-mode .review-list-mbox .review-card-body,

@@ -137,7 +137,7 @@ body.light-mode #cart-modal { background: #F0EEE9; }
 body.light-mode .cart-page-header { background: #F0EEE9; border-bottom-color: rgba(9,9,11,0.08); }
 body.light-mode .cart-back-btn { color: #09090b; }
 body.light-mode .cart-summary {
-  background: #DEDAD2;
+  background: #F0EEE9;
   border-color: rgba(9,9,11,0.1);
 }
 body.light-mode .cart-empty-msg { color: rgba(9,9,11,0.4); }

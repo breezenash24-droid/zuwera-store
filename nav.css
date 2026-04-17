@@ -139,12 +139,12 @@
 
 /* ===================== LIGHT MODE ===================== */
 body.light-mode .announcement-bar {
-  background: #F0EEE9;
-  color: #09090b;
-  border-bottom-color: rgba(9,9,11,0.08);
+  background: #09090b;
+  color: #F0EEE9;
+  border-bottom-color: rgba(244,241,235,0.1);
 }
 body.light-mode .announcement-close {
-  color: #09090b;
+  color: #F0EEE9;
 }
 body.light-mode .nav {
   background: #F0EEE9;
