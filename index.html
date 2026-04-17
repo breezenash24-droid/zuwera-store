@@ -979,6 +979,16 @@ footer{
     pointer-events:none;
   }
   nav#nav{padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s}
+  /* Cover the transparent safe-area zone above the bar/nav on iPhone */
+  body::before{
+    content:'';
+    position:fixed;
+    top:0;left:0;right:0;
+    height:env(safe-area-inset-top,0px);
+    background:var(--ink);
+    z-index:232;
+    pointer-events:none;
+  }
   .hero-inner{padding:2rem 1.2rem 1.5rem}
   .hero-bottom{padding:1rem 1.2rem 2rem}
   .pgrid, .pgrid.two-items{
