@@ -615,7 +615,7 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
         <div class="size-section">
           <div class="size-header">
             <p class="section-label" id="sizeSectionLabel">Select Size</p>
-            <a href="/sizeguide.html" class="size-guide-link" id="sizeGuideLink">Size Guide</a>
+            <a href="/sizeguide.html" class="size-guide-link" id="sizeGuideLink" onclick="event.preventDefault(); openSizeGuideModal();">Size Guide</a>
           </div>
           <div class="size-grid" id="sizeGrid"></div>
           <p class="stock-info" id="stockInfo"></p>
@@ -644,7 +644,7 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
               <p id="materialInfo"></p>
               <div class="product-fit-actions">
                 <button class="translate-btn" type="button" onclick="openSizeFitModal()">View Fit Ratings</button>
-                <button class="translate-btn" type="button" id="viewSizeGuideBtn" onclick="openSizeGuideModal()">View Size Guide</button>
+                <button class="translate-btn" type="button" id="viewSizeGuideBtn" onclick="window.location.href='/sizeguide.html'">View Size Guide</button>
               </div>
             </div>
           </div>
