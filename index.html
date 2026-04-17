@@ -969,6 +969,15 @@ footer{
   nav#nav{padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s}
 }
 @media(max-width:600px){
+  /* Fill any gap above the fixed nav (e.g. when sticky announcement bar hides on mobile) */
+  nav#nav::before{
+    content:'';
+    position:absolute;
+    top:-200px;left:0;right:0;
+    height:200px;
+    background:inherit;
+    pointer-events:none;
+  }
   nav#nav{padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s}
   .hero-inner{padding:2rem 1.2rem 1.5rem}
   .hero-bottom{padding:1rem 1.2rem 2rem}
@@ -1830,12 +1839,30 @@ function applyAnnouncementBar(mode, msgText) {
   let lastScrollY = window.scrollY;
   let isHidden = false;
   const scrollActivationAt = Date.now() + 450;
+  let _barHideTimer = null;
+  const _isMobile = () => window.innerWidth <= 768;
   const syncAnnouncementState = (hidden) => {
+    clearTimeout(_barHideTimer);
     const hiddenOffset = barEl.offsetHeight;
-    barEl.style.transform = hidden ? 'translateY(-100%)' : '';
-    barEl.style.opacity = hidden ? '0' : '1';
-    barEl.style.pointerEvents = hidden ? 'none' : '';
-    barEl.style.marginBottom = hidden ? (-hiddenOffset) + 'px' : '0';
+    if (hidden) {
+      barEl.style.transform = 'translateY(-100%)';
+      barEl.style.opacity = '0';
+      barEl.style.pointerEvents = 'none';
+      barEl.style.marginBottom = (-hiddenOffset) + 'px';
+      // On mobile: remove from stacking context after animation to prevent
+      // sticky+transform gap bug on iOS Safari
+      if (_isMobile()) {
+        _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; }, 460);
+      }
+    } else {
+      barEl.style.display = 'flex';
+      // Force reflow before re-animating so transition plays correctly
+      void barEl.offsetHeight;
+      barEl.style.transform = '';
+      barEl.style.opacity = '1';
+      barEl.style.pointerEvents = '';
+      barEl.style.marginBottom = '0';
+    }
     setAnnouncementBarLayout(barEl, navEl, !hidden);
   };
   syncAnnouncementState(false);
