@@ -969,6 +969,8 @@ footer{
   /* Mobile: nav on top (z:240), bar fixed below nav (z:230, JS sets top) */
   nav#nav{z-index:240;padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s}
   #bar{position:fixed;left:0;right:0}
+    .hero{padding-top:0}
+      .hero-inner{min-height:calc(100svh - 60px)}
 }
 @media(max-width:600px){
   nav#nav{padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s}
