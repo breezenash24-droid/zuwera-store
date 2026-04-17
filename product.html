@@ -180,66 +180,20 @@ body.light-mode #bar {
   #bar { position: fixed; left: 0; right: 0; }
 }
 
-/* -- Size Guide Inline Section -- */
-.size-guide-section {
-  width: 100%;
-  background: #09090b;
-  border-top: 1px solid rgba(244,241,235,.08);
-  padding: 4rem 2.5rem 5rem;
-}
-.size-guide-inner {
-  max-width: 1100px;
-  margin: 0 auto;
-}
-.size-guide-section .size-guide-head {
-  margin-bottom: 2.5rem;
-}
-.size-guide-section .size-guide-kicker {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: .6rem;
-  letter-spacing: .22em;
-  text-transform: uppercase;
-  color: rgba(244,241,235,.4);
-  margin: 0 0 .6rem;
-}
-.size-guide-section .size-guide-title {
-  font-size: 1.4rem;
-  font-weight: 500;
-  letter-spacing: -.01em;
-  color: #f4f1eb;
-  margin: 0 0 .6rem;
-}
-.size-guide-section .size-guide-copy {
-  font-size: .8rem;
-  color: rgba(244,241,235,.55);
-  margin: 0;
-}
-.size-guide-section .size-guide-frame-shell {
-  width: 100%;
-}
-.size-guide-section #size-guide-iframe {
-  width: 100%;
-  border: none;
-  display: block;
-  border-radius: 4px;
-}
-.size-guide-section .size-guide-message {
-  color: rgba(244,241,235,.4);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: .7rem;
-  letter-spacing: .1em;
-  padding: 2rem 0;
-}
-body.light-mode .size-guide-section {
-  background: #f4f1eb;
-  border-top-color: rgba(9,9,11,.08);
-}
-body.light-mode .size-guide-section .size-guide-title { color: #09090b; }
-body.light-mode .size-guide-section .size-guide-kicker { color: rgba(9,9,11,.4); }
-body.light-mode .size-guide-section .size-guide-copy { color: rgba(9,9,11,.55); }
-body.light-mode .size-guide-section .size-guide-message { color: rgba(9,9,11,.4); }
+/* -- Size Guide Modal (mobile bottom sheet) -- */
 @media (max-width: 900px) {
-  .size-guide-section { padding: 3rem 1.2rem 4rem; }
+  #size-guide-modal {
+    align-items: flex-end;
+  }
+  #size-guide-modal .mbox {
+    width: 100vw;
+    height: auto;
+    min-height: 0;
+    max-height: 90dvh;
+    border-radius: 16px 16px 0 0;
+    padding: 1.5rem 1.2rem 2.5rem;
+    overflow-y: auto;
+  }
 }
 
 /* -- Image Gallery Arrows -- */
@@ -661,7 +615,7 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
         <div class="size-section">
           <div class="size-header">
             <p class="section-label" id="sizeSectionLabel">Select Size</p>
-            <a href="sizeguide.html" class="size-guide-link" id="sizeGuideLink" onclick="event.preventDefault(); openSizeGuideModal();">Size Guide</a>
+            <a href="/sizeguide.html" class="size-guide-link" id="sizeGuideLink">Size Guide</a>
           </div>
           <div class="size-grid" id="sizeGrid"></div>
           <p class="stock-info" id="stockInfo"></p>
@@ -851,22 +805,25 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
   </div>
 </div>
 
-<!-- SIZE GUIDE SECTION -->
-<section id="size-guide-section" class="size-guide-section">
-  <div class="size-guide-inner">
+<!-- SIZE GUIDE MODAL -->
+<div id="size-guide-modal" class="modal modal--guide" role="dialog" aria-modal="true" aria-labelledby="size-guide-modal-title">
+  <div class="mbox size-guide-dialog">
+    <button id="size-guide-close" class="mclose size-guide-close" aria-label="Close">&#215;</button>
     <div class="size-guide-head">
-      <p id="size-guide-kicker" class="size-guide-kicker">Fit Reference</p>
-      <h2 id="size-guide-title" class="size-guide-title">Size Guide</h2>
-      <p id="size-guide-copy" class="size-guide-copy">Compare measurements, find your starting size, and cross-check the exact category for this piece.</p>
+      <p id="size-guide-modal-kicker" class="size-guide-kicker">Fit Reference</p>
+      <h2 id="size-guide-modal-title" class="size-guide-title">Size Guide</h2>
+      <p id="size-guide-modal-copy" class="size-guide-copy">Compare measurements, find your starting size, and cross-check the exact category for this piece.</p>
     </div>
     <div class="size-guide-body">
       <div class="size-guide-frame-shell">
-        <div id="size-guide-loading" class="size-guide-message">Loading size guide...</div>
-        <iframe id="size-guide-iframe" src="" title="Size Guide" loading="lazy" hidden></iframe>
+        <div id="size-guide-modal-loading" class="size-guide-message">Loading size guide...</div>
+        <iframe id="size-guide-modal-iframe" src="" title="Size Guide" loading="lazy" hidden></iframe>
       </div>
     </div>
   </div>
-</section>
+</div>
+
+
 
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
 <!-- FOOTER                                                           -->
@@ -933,7 +890,6 @@ const sb = window.sb;
 // Create a single promise to wait for session initialization to avoid auth lock contention
 const _sessionPromise = sb.auth.getSession();
 let _productAnnouncementBarScrollHandler = null;
-let _sizeGuideResizeObserver = null;
 
 function teardownAnnouncementBarScroll() {
   if (_productAnnouncementBarScrollHandler) {
@@ -1402,9 +1358,6 @@ function syncSizeGuideVisibility(sizeLabels = getAvailableProductSizes()) {
   }
   if (accordionBtn) accordionBtn.style.display = hideGuide ? 'none' : '';
   if (sizeLabel) sizeLabel.textContent = hideGuide ? 'Size' : 'Select Size';
-  const guideSection = document.getElementById('size-guide-section');
-  if (guideSection) guideSection.style.display = hideGuide ? 'none' : '';
-
   return hideGuide;
 }
 
@@ -1805,13 +1758,12 @@ function getSizeGuideModalMeta(context) {
 
 function syncSizeGuideModalMeta(context) {
   const meta = getSizeGuideModalMeta(context || getSizeGuideContext());
-  const kickerEl = document.getElementById('size-guide-kicker');
-  const titleEl = document.getElementById('size-guide-title');
-  const copyEl = document.getElementById('size-guide-copy');
-
-  if (kickerEl) kickerEl.textContent = meta.kicker;
-  if (titleEl) titleEl.textContent = meta.title;
-  if (copyEl) copyEl.textContent = meta.copy;
+  const mKicker = document.getElementById('size-guide-modal-kicker');
+  const mTitle  = document.getElementById('size-guide-modal-title');
+  const mCopy   = document.getElementById('size-guide-modal-copy');
+  if (mKicker) mKicker.textContent = meta.kicker;
+  if (mTitle)  mTitle.textContent  = meta.title;
+  if (mCopy)   mCopy.textContent   = meta.copy;
 }
 
 function updateSizeGuideLink() {
@@ -2738,56 +2690,21 @@ function buildSizeGuideSrcdoc(sourceHtml, params) {
 }
 
 
-function teardownSizeGuideIframeAutoHeight() {
-  if (_sizeGuideResizeObserver) {
-    try { _sizeGuideResizeObserver.disconnect(); } catch (e) {}
-    _sizeGuideResizeObserver = null;
+let _sizeGuideModalResizeObserver = null;
+
+function teardownSizeGuideModalAutoHeight() {
+  if (_sizeGuideModalResizeObserver) {
+    try { _sizeGuideModalResizeObserver.disconnect(); } catch(e) {}
+    _sizeGuideModalResizeObserver = null;
   }
 }
 
-function syncSizeGuideIframeHeight(iframe) {
-  const doc = iframe && iframe.contentDocument;
-  if (!doc) return;
-  const body = doc.body;
-  const root = doc.documentElement;
-  const nextHeight = Math.max(
-    body ? body.scrollHeight : 0,
-    body ? body.offsetHeight : 0,
-    root ? root.scrollHeight : 0,
-    root ? root.offsetHeight : 0
-  );
-  if (nextHeight > 0) iframe.style.height = nextHeight + 'px';
-}
-
-function bindSizeGuideIframeAutoHeight(iframe) {
-  teardownSizeGuideIframeAutoHeight();
-  syncSizeGuideIframeHeight(iframe);
-  if (typeof ResizeObserver !== 'function') return;
-  const doc = iframe && iframe.contentDocument;
-  if (!doc) return;
-  const resize = () => syncSizeGuideIframeHeight(iframe);
-  _sizeGuideResizeObserver = new ResizeObserver(resize);
-  if (doc.body) _sizeGuideResizeObserver.observe(doc.body);
-  if (doc.documentElement) _sizeGuideResizeObserver.observe(doc.documentElement);
-  setTimeout(resize, 0);
-  setTimeout(resize, 120);
-  setTimeout(resize, 360);
-}
-
-let _sizeGuideLoaded = false;
-
 window.openSizeGuideModal = async function() {
   if (syncSizeGuideVisibility(getAvailableProductSizes())) return;
-  const section = document.getElementById('size-guide-section');
-  const iframe = document.getElementById('size-guide-iframe');
-  const loading = document.getElementById('size-guide-loading');
-  if (!section || !iframe) return;
-
-  // Scroll to section first
-  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-  // If already loaded, nothing else to do
-  if (_sizeGuideLoaded) return;
+  const modal   = document.getElementById('size-guide-modal');
+  const iframe  = document.getElementById('size-guide-modal-iframe');
+  const loading = document.getElementById('size-guide-modal-loading');
+  if (!modal || !iframe) return;
 
   const context = getSizeGuideContext();
   syncSizeGuideModalMeta(context);
@@ -2801,35 +2718,45 @@ window.openSizeGuideModal = async function() {
   if (currentProduct?.id) params.id = currentProduct.id;
   if (selectedSize) params.size = selectedSize;
 
-  if (loading) {
-    loading.hidden = false;
-    loading.textContent = 'Loading size guide...';
-  }
-  teardownSizeGuideIframeAutoHeight();
+  if (loading) { loading.hidden = false; loading.textContent = 'Loading size guide...'; }
+  teardownSizeGuideModalAutoHeight();
   iframe.hidden = true;
   iframe.style.height = '';
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
 
   try {
     const sourceHtml = await getSizeGuideDocumentHtml();
     iframe.onload = () => {
-      bindSizeGuideIframeAutoHeight(iframe);
+      const doc = iframe.contentDocument;
+      const syncH = () => {
+        const h = Math.max(
+          doc?.body?.scrollHeight || 0, doc?.body?.offsetHeight || 0,
+          doc?.documentElement?.scrollHeight || 0
+        );
+        if (h > 0) iframe.style.height = h + 'px';
+      };
+      syncH();
+      if (typeof ResizeObserver === 'function' && doc?.body) {
+        _sizeGuideModalResizeObserver = new ResizeObserver(syncH);
+        _sizeGuideModalResizeObserver.observe(doc.body);
+        if (doc.documentElement) _sizeGuideModalResizeObserver.observe(doc.documentElement);
+      }
+      setTimeout(syncH, 0); setTimeout(syncH, 120); setTimeout(syncH, 360);
       if (loading) loading.hidden = true;
       iframe.hidden = false;
       iframe.onload = null;
-      _sizeGuideLoaded = true;
     };
     iframe.srcdoc = buildSizeGuideSrcdoc(sourceHtml, params);
   } catch (error) {
-    console.error('Size guide load failed:', error);
-    teardownSizeGuideIframeAutoHeight();
+    console.error('Size guide modal failed:', error);
+    teardownSizeGuideModalAutoHeight();
     iframe.hidden = true;
     iframe.style.height = '';
-    if (loading) {
-      loading.hidden = false;
-      loading.textContent = 'Could not load the size guide right now.';
-    }
+    if (loading) { loading.hidden = false; loading.textContent = 'Could not load the size guide right now.'; }
   }
 };
+
 
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
 // COOKIE CONSENT
@@ -2991,6 +2918,22 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
   document.getElementById('size-fit-modal')?.addEventListener('click', e => {
     if (e.target === e.currentTarget) {
       document.getElementById('size-fit-modal').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+  });
+  document.getElementById('size-guide-close')?.addEventListener('click', () => {
+    teardownSizeGuideModalAutoHeight();
+    const iframe = document.getElementById('size-guide-modal-iframe');
+    if (iframe) iframe.style.height = '';
+    document.getElementById('size-guide-modal').classList.remove('open');
+    document.body.style.overflow = '';
+  });
+  document.getElementById('size-guide-modal')?.addEventListener('click', e => {
+    if (e.target === e.currentTarget) {
+      teardownSizeGuideModalAutoHeight();
+      const iframe = document.getElementById('size-guide-modal-iframe');
+      if (iframe) iframe.style.height = '';
+      document.getElementById('size-guide-modal').classList.remove('open');
       document.body.style.overflow = '';
     }
   });
