@@ -1629,10 +1629,7 @@
 }
 
 body.light-mode .review-dialog {
-  background:
-    radial-gradient(circle at top left, rgba(248,145,165,0.08), transparent 34%),
-    linear-gradient(180deg, rgba(9,9,11,0.02), rgba(9,9,11,0.008)),
-    #F0EEE9;
+  background: #F0EEE9;
   border-color: rgba(9,9,11,0.1);
   box-shadow: 0 26px 70px rgba(9,9,11,0.15);
 }
@@ -1677,14 +1674,12 @@ body.light-mode .review-radio-group label {
 }
 
 body.light-mode .size-guide-dialog {
-  background:
-    linear-gradient(180deg, rgba(9,9,11,0.018), rgba(9,9,11,0.006)),
-    #F0EEE9;
+  background: #F0EEE9;
   border-color: rgba(9,9,11,0.12);
 }
 
 body.light-mode .size-guide-head {
-  background: linear-gradient(180deg, rgba(9,9,11,0.018), rgba(9,9,11,0.006));
+  background: #F0EEE9;
   border-bottom-color: rgba(9,9,11,0.08);
 }
 

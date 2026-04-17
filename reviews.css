@@ -444,12 +444,12 @@
 
 /* Light Mode Overrides */
 body.light-mode .review-mbox {
-  background: #E4E0D9 !important;
+  background: #F0EEE9 !important;
   border-color: rgba(9,9,11,0.1) !important;
   color: #09090b !important;
 }
 body.light-mode .review-list-mbox {
-  background: #E4E0D9 !important;
+  background: #F0EEE9 !important;
   border-color: rgba(9,9,11,0.1) !important;
   color: #09090b !important;
 }

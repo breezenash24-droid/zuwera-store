@@ -123,7 +123,7 @@
 <link rel="dns-prefetch" href="https://www.googletagmanager.com">
 
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500&family=Barlow:wght@300;400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="reviews.css?v=10">
+<link rel="stylesheet" href="reviews.css?v=11">
 
 <!-- Stripe is loaded lazily on checkout click to avoid blocking initial render -->
 <!-- defer moves Supabase off the critical path ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â it was previously
@@ -966,10 +966,10 @@ footer{
     .nav-center { display: none; }
     .hamburger-btn { display: flex; align-items: center; justify-content: center; }
   #bar{padding-top:calc(.35rem + env(safe-area-inset-top,0px));padding-bottom:.45rem}
-  nav#nav{padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem}
+  nav#nav{padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s}
 }
 @media(max-width:600px){
-  nav#nav{padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem}
+  nav#nav{padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s}
   .hero-inner{padding:2rem 1.2rem 1.5rem}
   .hero-bottom{padding:1rem 1.2rem 2rem}
   .pgrid, .pgrid.two-items{
@@ -1029,10 +1029,10 @@ body.light-mode nav#nav.scrolled #cart-btn:hover{border-color:rgba(9,9,11,.5)}
 body.light-mode nav#nav .cc,
 body.light-mode nav#nav.scrolled .cc{background:var(--paper);color:var(--ink)}
 
-/* Announcement â€” stays dark in light mode */
+/* Announcement */
 body.light-mode #bar{
-  background:#09090b;color:#E8E3DC;
-  border-bottom-color:rgba(232,227,220,.15);
+  background:#F0EEE9;color:#09090b;
+  border-bottom-color:rgba(9,9,11,.08);
 }
 
 /* Marquee */
@@ -1079,11 +1079,11 @@ body.light-mode .heart-btn{
   color:rgba(9,9,11,.3);
 }
 body.light-mode .wallet-chip{
-  background:rgba(232,227,220,.68);
+  background:rgba(9,9,11,.03);
   border-color:rgba(9,9,11,.1);
   color:#09090b;
 }
-body.light-mode .wallet-chip:hover{border-color:rgba(9,9,11,.22);background:rgba(232,227,220,.9)}
+body.light-mode .wallet-chip:hover{border-color:rgba(9,9,11,.22);background:rgba(9,9,11,.06)}
 body.light-mode .wallet-chip:focus-visible{outline-color:rgba(9,9,11,.24)}
 body.light-mode .pcard-info{border-top-color:rgba(9,9,11,.06)}
 body.light-mode .pcard-cat{color:rgba(9,9,11,.25)}
@@ -1123,7 +1123,7 @@ body.light-mode .alink a{color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,.
 
 /* Cart */
 body.light-mode #cart-modal{background:var(--ink)}
-body.light-mode .cart-hd{background:rgba(232,227,220,.96);border-bottom-color:rgba(9,9,11,.07)}
+body.light-mode .cart-hd{background:#F0EEE9;border-bottom-color:rgba(9,9,11,.07)}
 body.light-mode #cart-items-list{border-top-color:rgba(9,9,11,.07)}
 body.light-mode #cart-items-list li{border-bottom-color:rgba(9,9,11,.07);color:rgba(9,9,11,.7)}
 body.light-mode .csummary{border-color:rgba(9,9,11,.1);background:rgba(9,9,11,.03)}
@@ -1173,7 +1173,7 @@ body.light-mode #success-continue{background:var(--paper);color:var(--ink)}
 /* Noise overlay */
 body.light-mode::after{opacity:0.15}
 </style>
-<link rel="stylesheet" href="reviews-vibe.css?v=11">
+<link rel="stylesheet" href="reviews-vibe.css?v=12">
 </head>
 <body>
 <script>
@@ -1767,6 +1767,53 @@ function applyAnnouncementBar(mode, msgText) {
   setAnnouncementBarLayout(barEl, navEl, true);
 
   if (normalizedMode !== 'scroll') return;
+
+  const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
+  if (isMobileViewport) {
+    barEl.style.transition = 'none';
+    let lastScrollY = window.scrollY;
+    let isHidden = false;
+    const scrollActivationAt = Date.now() + 450;
+    const syncAnnouncementState = (hidden) => {
+      if (hidden) {
+        barEl.style.display = 'none';
+        setAnnouncementBarLayout(barEl, navEl, false);
+        return;
+      }
+      barEl.style.display = 'flex';
+      barEl.style.transform = '';
+      barEl.style.opacity = '1';
+      barEl.style.pointerEvents = '';
+      barEl.style.marginBottom = '0';
+      setAnnouncementBarLayout(barEl, navEl, true);
+    };
+    syncAnnouncementState(false);
+    _announcementBarScrollHandler = function() {
+      const currentY = window.scrollY;
+      if (Date.now() < scrollActivationAt) {
+        lastScrollY = currentY;
+        return;
+      }
+      const scrollingDown = currentY > lastScrollY + 6;
+      const scrollingUp = currentY < lastScrollY - 6;
+
+      if (currentY <= 16 || scrollingUp) {
+        if (isHidden) {
+          isHidden = false;
+          syncAnnouncementState(false);
+        }
+      } else if (currentY > 80 && scrollingDown) {
+        if (!isHidden) {
+          isHidden = true;
+          syncAnnouncementState(true);
+        }
+      }
+
+      lastScrollY = currentY;
+    };
+    window.addEventListener('scroll', _announcementBarScrollHandler, { passive: true });
+    return;
+  }
 
   barEl.style.transition = 'transform 0.45s ease, opacity 0.45s ease, margin-bottom 0.45s ease';
   let lastScrollY = window.scrollY;
@@ -3554,7 +3601,7 @@ function scrollToNotify() {
 
 <!-- PWA Service Worker -->
 <script>
-if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=5').then(reg=>reg.update()).catch(()=>{})}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=6').then(reg=>reg.update()).catch(()=>{})}
 </script>
 
 <!-- Cookie Consent / GDPR -->

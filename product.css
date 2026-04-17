@@ -921,7 +921,7 @@ body.light-mode .low-stock-badge {
   color: var(--white);
 }
 body.light-mode .cookie-consent-banner {
-  background: #E4E0D9;
+  background: #F0EEE9;
   border-top-color: rgba(9,9,11,.1);
   color: rgba(9,9,11,.65);
 }
