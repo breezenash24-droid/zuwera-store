@@ -166,6 +166,15 @@ body{
   font-weight:300;
   overflow-x:hidden;
 }
+/* Safe-area fill — covers the iPhone notch zone with the page background */
+#safe-area-fill{
+  position:fixed;
+  top:0;left:0;right:0;
+  height:env(safe-area-inset-top,0px);
+  background:var(--ink);
+  z-index:232;
+  pointer-events:none;
+}
 a{color:inherit;text-decoration:none}
 button{cursor:pointer;font-family:inherit;border:none;background:none}
 input,textarea{font-family:inherit}
@@ -979,16 +988,7 @@ footer{
     pointer-events:none;
   }
   nav#nav{padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s}
-  /* Cover the transparent safe-area zone above the bar/nav on iPhone */
-  body::before{
-    content:'';
-    position:fixed;
-    top:0;left:0;right:0;
-    height:env(safe-area-inset-top,0px);
-    background:var(--ink);
-    z-index:232;
-    pointer-events:none;
-  }
+
   .hero-inner{padding:2rem 1.2rem 1.5rem}
   .hero-bottom{padding:1rem 1.2rem 2rem}
   .pgrid, .pgrid.two-items{
@@ -1195,6 +1195,7 @@ body.light-mode::after{opacity:0.15}
 <link rel="stylesheet" href="reviews-vibe.css?v=13">
 </head>
 <body>
+<div id="safe-area-fill"></div>
 <script>
 // Load theme immediately to prevent flash
 (function() {
