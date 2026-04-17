@@ -210,17 +210,6 @@ nav#nav{
   transition:background .35s,border-color .35s,padding .35s,top .45s ease;
   border-bottom:1px solid rgba(244,241,235,.07);
 }
-/* Fill the iOS notch/safe-area zone with the nav's own background — CSS-only, scroll-proof */
-nav#nav::before{
-  content:'';
-  position:absolute;
-  top:calc(-1 * env(safe-area-inset-top,0px));
-  left:0;right:0;
-  height:env(safe-area-inset-top,0px);
-  background:inherit;
-  pointer-events:none;
-  z-index:-1;
-}
 nav#nav.scrolled{
   background:var(--ink);
   border-color:rgba(244,241,235,.07);
@@ -1187,10 +1176,21 @@ body.light-mode #success-continue{background:var(--paper);color:var(--ink)}
 
 /* Noise overlay */
 body.light-mode::after{opacity:0.15}
+
+/* iOS safe-area fill — permanent fixed cap so notch zone never shows page content */
+#safe-area-cap{
+  position:fixed;
+  top:0;left:0;right:0;
+  height:env(safe-area-inset-top,0px);
+  background:#09090b;
+  z-index:9999;
+  pointer-events:none;
+}
 </style>
 <link rel="stylesheet" href="reviews-vibe.css?v=13">
 </head>
 <body>
+<div id="safe-area-cap" aria-hidden="true"></div>
 <script>
 // Load theme immediately to prevent flash
 (function() {
@@ -1199,9 +1199,8 @@ body.light-mode::after{opacity:0.15}
     var navBg = isLight ? '#F0EEE9' : '#09090b';
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', navBg);
-    /* Paint the <html> element so the iOS safe-area zone (behind the notch)
-       is filled with the header colour — most reliable cross-browser approach */
-    document.documentElement.style.backgroundColor = navBg;
+    // Nav is always dark (#09090b) in both modes — safe-area-cap div handles the fill
+    document.documentElement.style.backgroundColor = '#09090b';
   }
   var saved = localStorage.getItem('theme');
   if (saved !== 'dark') document.body.classList.add('light-mode');
