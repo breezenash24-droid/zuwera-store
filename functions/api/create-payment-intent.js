@@ -187,17 +187,6 @@ export async function onRequestPost({ request, env }) {
         currency: 'usd',
         automatic_payment_methods: { enabled: true },
         receipt_email: address.email,
-        shipping: {
-          name: address.name,
-          address: {
-            line1:       address.line1,
-            line2:       address.line2 || '',
-            city:        address.city,
-            state:       address.state,
-            postal_code: address.zip,
-            country:     address.country || 'US',
-          },
-        },
         metadata: {
           customer_email:        address.email,
           customer_name:         address.name,
