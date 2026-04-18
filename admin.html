@@ -1676,9 +1676,32 @@
                   </div>
 
                   <!-- Product revenue bar chart -->
-                  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;">
+                  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:24px;">
                     <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:20px;">Top Products by Revenue</p>
                     <canvas id="fin-product-chart" height="120"></canvas>
+                  </div>
+
+                  <!-- Category breakdown -->
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:20px;">Revenue by Category</p>
+                      <canvas id="fin-category-chart" height="200"></canvas>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:16px;">Category Breakdown</p>
+                      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <thead>
+                          <tr style="border-bottom:2px solid var(--border);">
+                            <th style="text-align:left;padding:8px 0;color:var(--text-secondary);font-weight:500;">Category</th>
+                            <th style="text-align:right;padding:8px 0;color:var(--text-secondary);font-weight:500;">Units</th>
+                            <th style="text-align:right;padding:8px 0;color:var(--text-secondary);font-weight:500;">Revenue</th>
+                          </tr>
+                        </thead>
+                        <tbody id="fin-category-tbody">
+                          <tr><td colspan="3" style="text-align:center;padding:24px;color:var(--text-secondary);">Loading…</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
 
                   <script>
@@ -1686,6 +1709,9 @@
                     let _finLoaded = false;
                     let finRevenueChart = null;
                     let finProductChart = null;
+                    let finCategoryChart = null;
+
+                    const CAT_COLORS = ['#F891A5','#a78bfa','#34d399','#fbbf24','#60a5fa','#f87171','#e879f9','#2dd4bf','#fb923c','#94a3b8'];
 
                     function finEl(id) { return document.getElementById(id); }
                     function finErr(msg) {
@@ -1701,17 +1727,30 @@
                       finEl('fin-error').style.display = 'none';
 
                       try {
-                        const { data: orders, error } = await sb.from('orders').select('total,subtotal,shipping,items,created_at,status').order('created_at', { ascending: true });
-                        if (error) throw error;
+                        // Fetch orders and products in parallel
+                        const [ordersRes, productsRes] = await Promise.all([
+                          sb.from('orders').select('total,subtotal,shipping,items,created_at,status').order('created_at', { ascending: true }),
+                          sb.from('products').select('title,subtitle')
+                        ]);
+                        if (ordersRes.error) throw ordersRes.error;
 
-                        const confirmed = (orders || []).filter(o => o.status !== 'cancelled');
+                        // Build title → category map from products table (subtitle = category)
+                        const titleToCategory = {};
+                        (productsRes.data || []).forEach(p => {
+                          if (p.title && p.subtitle) {
+                            titleToCategory[p.title.trim().toLowerCase()] = p.subtitle;
+                          }
+                        });
+
+                        const confirmed = (ordersRes.data || []).filter(o => o.status !== 'cancelled');
 
                         // KPI totals
                         let totalRev = 0, unitsSold = 0;
                         confirmed.forEach(o => { totalRev += parseFloat(o.total || 0); });
 
-                        // Per-product map
+                        // Per-product map + category map
                         const prodMap = {};
+                        const catMap = {};
                         confirmed.forEach(o => {
                           let items = [];
                           try { items = JSON.parse(o.items || '[]'); } catch(_) {}
@@ -1720,9 +1759,17 @@
                             const qty = parseInt(item.quantity || 1);
                             const rev = (item.amount * qty) / 100;
                             unitsSold += qty;
+
+                            // Per-product
                             if (!prodMap[name]) prodMap[name] = { units: 0, revenue: 0 };
                             prodMap[name].units += qty;
                             prodMap[name].revenue += rev;
+
+                            // Per-category (look up from products table, fallback to 'Uncategorised')
+                            const cat = titleToCategory[name.trim().toLowerCase()] || 'Uncategorised';
+                            if (!catMap[cat]) catMap[cat] = { units: 0, revenue: 0 };
+                            catMap[cat].units += qty;
+                            catMap[cat].revenue += rev;
                           });
                         });
 
@@ -1742,8 +1789,9 @@
                           tbody.innerHTML = prods.map(([name, d]) => {
                             const pct = totalRev > 0 ? ((d.revenue/totalRev)*100).toFixed(1) : '0.0';
                             const avgUnit = d.units > 0 ? d.revenue/d.units : 0;
+                            const cat = titleToCategory[name.trim().toLowerCase()] || '—';
                             return `<tr style="border-bottom:1px solid var(--border);">
-                              <td style="padding:12px;">${name}</td>
+                              <td style="padding:12px;">${name}<span style="margin-left:8px;font-size:11px;color:var(--text-secondary);">${cat}</span></td>
                               <td style="padding:12px;text-align:right;">${d.units}</td>
                               <td style="padding:12px;text-align:right;color:var(--accent);font-weight:600;">${fmt$(d.revenue)}</td>
                               <td style="padding:12px;text-align:right;">${fmt$(avgUnit)}</td>
@@ -1803,6 +1851,51 @@
                             scales: {
                               x: { ticks: { color: '#9b9b9b' }, grid: { display: false } },
                               y: { ticks: { color: '#9b9b9b', callback: v => '$' + v }, grid: { color: '#1e1e1e' } }
+                            }
+                          }
+                        });
+
+                        // Category breakdown
+                        const cats = Object.entries(catMap).sort((a,b) => b[1].revenue - a[1].revenue);
+
+                        // Category table
+                        const ctbody = finEl('fin-category-tbody');
+                        if (cats.length === 0) {
+                          ctbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:24px;color:var(--text-secondary);">No category data</td></tr>';
+                        } else {
+                          ctbody.innerHTML = cats.map(([cat, d], i) => `
+                            <tr style="border-bottom:1px solid var(--border);">
+                              <td style="padding:10px 0;">
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                  <div style="width:10px;height:10px;border-radius:50%;background:${CAT_COLORS[i % CAT_COLORS.length]};flex-shrink:0;"></div>
+                                  ${cat}
+                                </div>
+                              </td>
+                              <td style="padding:10px 0;text-align:right;">${d.units}</td>
+                              <td style="padding:10px 0;text-align:right;font-weight:600;color:var(--accent);">${fmt$(d.revenue)}</td>
+                            </tr>`).join('');
+                        }
+
+                        // Category doughnut chart
+                        const ctx3 = finEl('fin-category-chart').getContext('2d');
+                        if (finCategoryChart) finCategoryChart.destroy();
+                        finCategoryChart = new Chart(ctx3, {
+                          type: 'doughnut',
+                          data: {
+                            labels: cats.map(([c]) => c),
+                            datasets: [{
+                              data: cats.map(([,d]) => d.revenue.toFixed(2)),
+                              backgroundColor: cats.map((_, i) => CAT_COLORS[i % CAT_COLORS.length]),
+                              borderColor: '#09090b',
+                              borderWidth: 3
+                            }]
+                          },
+                          options: {
+                            responsive: true,
+                            cutout: '65%',
+                            plugins: {
+                              legend: { position: 'bottom', labels: { color: '#9b9b9b', padding: 16, font: { size: 12 } } },
+                              tooltip: { callbacks: { label: ctx => ` ${ctx.label}: $${parseFloat(ctx.parsed).toFixed(2)}` } }
                             }
                           }
                         });

@@ -73,13 +73,29 @@ module.exports = async function handler(req, res) {
     const meta = pi.metadata || {};
     console.log(`✅ PaymentIntent succeeded: ${pi.id}`);
 
-    const [labelResult, emailResult, orderResult] = await Promise.allSettled([
-      createShippingLabel(pi, meta),
+    // Create shipping label first so tracking info can be included in the confirmation email
+    let labelData = null;
+    try {
+      labelData = await createShippingLabel(pi, meta);
+    } catch (e) {
+      console.error('Label failed:', e);
+    }
+
+    // Merge any tracking info returned from Shippo into meta so the email can use it
+    if (labelData) {
+      meta = {
+        ...meta,
+        tracking_number: labelData.tracking_number || meta.tracking_number || '',
+        tracking_url:    labelData.tracking_url_provider || meta.tracking_url || '',
+        label_url:       labelData.label_url || meta.label_url || '',
+      };
+    }
+
+    const [emailResult, orderResult] = await Promise.allSettled([
       sendConfirmationEmail(pi, meta),
       saveOrderToSupabase(pi, meta),
     ]);
 
-    if (labelResult.status === 'rejected') console.error('Label failed:',  labelResult.reason);
     if (emailResult.status === 'rejected') console.error('Email failed:',  emailResult.reason);
     if (orderResult.status === 'rejected') console.error('DB save failed:', orderResult.reason);
   }
