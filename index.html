@@ -637,7 +637,7 @@ body.light-mode #mobile-menu-close { color:#09090b !important; }
 }
 .pcard-add-btn:hover{background:#fff;transform:translateY(-1px)}
 .pcard-add-btn.loading{opacity:.6;pointer-events:none}
-/* Size picker panel that slides up from within the card */
+/* Panel that slides up from the bottom of the card */
 .quick-size-panel{
   position:absolute;bottom:0;left:0;right:0;
   background:#09090b;border-top:1px solid rgba(244,241,235,.1);
@@ -656,9 +656,21 @@ body.light-mode #mobile-menu-close { color:#09090b !important; }
   font-size:1.1rem;line-height:1;padding:2px 4px;transition:color .15s;
 }
 .quick-size-close:hover{color:var(--gold)}
-.quick-size-grid{
-  display:flex;flex-wrap:wrap;gap:.5rem;
+/* Color swatch row */
+.quick-color-row{display:flex;flex-wrap:wrap;gap:.55rem;margin-bottom:.2rem}
+.quick-color-swatch{
+  width:30px;height:30px;border:2px solid rgba(244,241,235,.15);
+  cursor:pointer;transition:all .15s;flex-shrink:0;
 }
+.quick-color-swatch:hover,.quick-color-swatch.active{
+  border-color:#f4f1eb;box-shadow:0 0 0 1px #f4f1eb;
+}
+.quick-color-name{
+  font-family:var(--fm);font-size:.55rem;letter-spacing:.1em;
+  color:rgba(244,241,235,.5);margin-top:.5rem;min-height:.9rem;
+}
+/* Size button row */
+.quick-size-grid{display:flex;flex-wrap:wrap;gap:.5rem}
 .quick-size-btn{
   background:transparent;border:1px solid rgba(244,241,235,.2);
   color:rgba(244,241,235,.85);
@@ -666,11 +678,25 @@ body.light-mode #mobile-menu-close { color:#09090b !important; }
   font-family:var(--fm);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;
   cursor:pointer;transition:all .15s;min-width:40px;text-align:center;
 }
-.quick-size-btn:hover:not(.sold-out){background:var(--gold);color:#09090b;border-color:var(--gold)}
+.quick-size-btn:hover:not(.sold-out){background:#f4f1eb;color:#09090b;border-color:#f4f1eb}
 .quick-size-btn.sold-out{opacity:.3;cursor:not-allowed;text-decoration:line-through}
+/* Back button in size step */
+.quick-back-btn{
+  background:none;border:none;color:rgba(244,241,235,.35);cursor:pointer;
+  font-family:var(--fm);font-size:.5rem;letter-spacing:.12em;text-transform:uppercase;
+  padding:0;margin-right:.5rem;transition:color .15s;
+}
+.quick-back-btn:hover{color:rgba(244,241,235,.8)}
+/* Light mode overrides */
 body.light-mode .quick-size-panel{background:#f0eee9;border-top-color:rgba(9,9,11,.1)}
 body.light-mode .quick-size-btn{color:rgba(9,9,11,.85);border-color:rgba(9,9,11,.2)}
+body.light-mode .quick-size-btn:hover:not(.sold-out){background:#09090b;color:#f4f1eb;border-color:#09090b}
 body.light-mode .quick-size-close{color:rgba(9,9,11,.4)}
+body.light-mode .quick-color-swatch{border-color:rgba(9,9,11,.15)}
+body.light-mode .quick-color-swatch:hover,body.light-mode .quick-color-swatch.active{border-color:#09090b;box-shadow:0 0 0 1px #09090b}
+body.light-mode .quick-color-name{color:rgba(9,9,11,.45)}
+body.light-mode .quick-back-btn{color:rgba(9,9,11,.3)}
+body.light-mode .quick-back-btn:hover{color:rgba(9,9,11,.7)}
 
 /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
    FOOTER
@@ -2331,10 +2357,13 @@ function renderProductCards(products, grid) {
         </div>
         ${isLive ? `<div class="quick-size-panel" id="qsp-${domId}">
           <div class="quick-size-panel-header">
-            <span>Select Size</span>
+            <span id="qsp-label-${domId}">Select Colorway</span>
             <button class="quick-size-close" onclick="event.stopPropagation();closeQuickSizePanel('qsp-${domId}')">✕</button>
           </div>
-          <div class="quick-size-grid" id="qsg-${domId}"></div>
+          <div id="qsp-body-${domId}">
+            <div class="quick-color-row" id="qsc-${domId}"></div>
+            <div class="quick-color-name" id="qscn-${domId}"></div>
+          </div>
         </div>` : ''}
       </div>`;
   }).join('');
@@ -3028,16 +3057,13 @@ document.getElementById('checkout-btn').addEventListener('click', () => {
 });
 window.addEventListener('DOMContentLoaded', renderCart);
 
-// ─── Quick Add to Bag (product grid cards) ─────────────────────────────────
-// Clicking "Add to Bag" on a card fetches sizes from Supabase, shows a size
-// picker panel overlaid at the bottom of that card, then adds to cart.
+// ─── Quick Add to Bag — two-step: Colorway → Size ────────────────────────────
 
 function closeQuickSizePanel(panelId) {
   const panel = document.getElementById(panelId);
   if (panel) panel.classList.remove('open');
 }
 
-// Close any open panels when clicking outside
 document.addEventListener('click', function(e) {
   if (!e.target.closest('.pcard')) {
     document.querySelectorAll('.quick-size-panel.open').forEach(p => p.classList.remove('open'));
@@ -3045,77 +3071,129 @@ document.addEventListener('click', function(e) {
 });
 
 async function quickAddToCart(productId, productTitle, productPrice, productSku, productImage, btn) {
-  // Close any other open panels first
   document.querySelectorAll('.quick-size-panel.open').forEach(p => p.classList.remove('open'));
 
   const card = btn.closest('.pcard');
   if (!card) return;
-
-  // Find panel and size grid for this card — match by card's position in DOM
   const panel = card.querySelector('.quick-size-panel');
-  const sizeGrid = card.querySelector('.quick-size-grid');
-  if (!panel || !sizeGrid) return;
+  if (!panel) return;
 
   btn.classList.add('loading');
   btn.textContent = '...';
 
   try {
     const headers = { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON };
-    const resp = await fetch(
-      SUPABASE_URL + '/rest/v1/product_sizes?select=size,stock_quantity&product_id=eq.' + encodeURIComponent(productId) + '&order=created_at.asc',
-      { headers }
-    );
-    const rows = resp.ok ? await resp.json() : [];
 
-    // Aggregate stock by size label
+    // Fetch colors AND sizes in parallel
+    const [colorsResp, sizesResp] = await Promise.all([
+      fetch(SUPABASE_URL + '/rest/v1/color_variants?select=color_name,hex_color,variant_sku&product_id=eq.' + encodeURIComponent(productId) + '&order=sort_order.asc', { headers }),
+      fetch(SUPABASE_URL + '/rest/v1/product_sizes?select=size,stock_quantity&product_id=eq.' + encodeURIComponent(productId) + '&order=created_at.asc', { headers })
+    ]);
+    const colors = colorsResp.ok ? await colorsResp.json() : [];
+    const sizeRows = sizesResp.ok ? await sizesResp.json() : [];
+
+    // Aggregate sizes
     const sizeMap = {};
-    (rows || []).forEach(r => {
-      const label = r.size || '';
-      if (!label) return;
-      sizeMap[label] = (sizeMap[label] || 0) + (r.stock_quantity || 0);
+    (sizeRows || []).forEach(r => {
+      if (!r.size) return;
+      sizeMap[r.size] = (sizeMap[r.size] || 0) + (r.stock_quantity || 0);
     });
     const sizeEntries = Object.entries(sizeMap);
 
-    if (sizeEntries.length === 0) {
-      // No size data → add directly with size "One Size"
-      quickAddConfirmItem(productId, productTitle, productPrice, productSku, productImage, 'One Size');
+    // If only one "One Size" entry and no colors → add directly, no panel needed
+    const isOneSize = sizeEntries.length <= 1 && (sizeEntries.length === 0 || /one.?size/i.test(sizeEntries[0][0]));
+    const hasColors = colors && colors.length > 0;
+
+    if (isOneSize && !hasColors) {
+      quickAddConfirmItem(productId, productTitle, productPrice, productSku, productImage, sizeEntries[0]?.[0] || 'One Size', 'Standard');
       return;
     }
 
-    // If only "One Size" entry, skip picker
-    if (sizeEntries.length === 1 && /one.?size/i.test(sizeEntries[0][0])) {
-      quickAddConfirmItem(productId, productTitle, productPrice, productSku, productImage, sizeEntries[0][0]);
-      return;
+    // Show panel — start with color step if colors exist, otherwise go straight to sizes
+    if (hasColors) {
+      _quickShowColorStep(panel, colors, productId, productTitle, productPrice, productSku, productImage, sizeEntries);
+    } else {
+      _quickShowSizeStep(panel, sizeEntries, productId, productTitle, productPrice, productSku, productImage, 'Standard', null);
     }
-
-    // Build size buttons
-    sizeGrid.innerHTML = sizeEntries.map(([size, stock]) => {
-      const soldOut = stock <= 0;
-      return `<button class="quick-size-btn${soldOut ? ' sold-out' : ''}"
-        onclick="event.stopPropagation();${soldOut ? '' : `quickAddConfirmItem('${productId.replace(/'/g,"\\'")}','${productTitle.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${productPrice},'${productSku.replace(/'/g,"\\'")}','${productImage.replace(/'/g,"\\'")}','${size.replace(/'/g,"\\'")}');closeQuickSizePanel('${panel.id}')`}"
-        ${soldOut ? 'disabled' : ''}>${size}</button>`;
-    }).join('');
 
     panel.classList.add('open');
   } catch(e) {
     console.error('Quick add failed:', e);
-    // Fallback: navigate to product page
-    const href = card.getAttribute('onclick');
-    if (href) eval(href);
   } finally {
     btn.classList.remove('loading');
     btn.textContent = 'Add to Bag';
   }
 }
 
-window.quickAddConfirmItem = function(productId, productTitle, productPrice, productSku, productImage, size) {
+function _quickShowColorStep(panel, colors, productId, productTitle, productPrice, productSku, productImage, sizeEntries) {
+  const labelEl = panel.querySelector('[id^="qsp-label-"]');
+  const bodyEl  = panel.querySelector('[id^="qsp-body-"]');
+  if (labelEl) labelEl.textContent = 'Select Colorway';
+  if (!bodyEl) return;
+
+  bodyEl.innerHTML = `
+    <div class="quick-color-row" id="_qcr"></div>
+    <div class="quick-color-name" id="_qcn"></div>`;
+
+  const colorRow  = bodyEl.querySelector('#_qcr');
+  const colorName = bodyEl.querySelector('#_qcn');
+
+  colors.forEach(c => {
+    const sw = document.createElement('button');
+    sw.className = 'quick-color-swatch';
+    sw.style.backgroundColor = c.hex_color || '#888';
+    sw.title = c.color_name;
+    sw.setAttribute('aria-label', c.color_name);
+    sw.onclick = function(e) {
+      e.stopPropagation();
+      colorRow.querySelectorAll('.quick-color-swatch').forEach(s => s.classList.remove('active'));
+      sw.classList.add('active');
+      colorName.textContent = c.color_name;
+
+      // After a brief moment, transition to size step
+      setTimeout(() => {
+        if (sizeEntries.length <= 1 && (sizeEntries.length === 0 || /one.?size/i.test(sizeEntries[0][0]))) {
+          // One size — add immediately
+          quickAddConfirmItem(productId, productTitle, productPrice, c.variant_sku || productSku, productImage, sizeEntries[0]?.[0] || 'One Size', c.color_name);
+          panel.classList.remove('open');
+        } else {
+          _quickShowSizeStep(panel, sizeEntries, productId, productTitle, productPrice, c.variant_sku || productSku, productImage, c.color_name, colors);
+        }
+      }, 180);
+    };
+    colorRow.appendChild(sw);
+  });
+}
+
+function _quickShowSizeStep(panel, sizeEntries, productId, productTitle, productPrice, productSku, productImage, colorName, colors) {
+  const labelEl = panel.querySelector('[id^="qsp-label-"]');
+  const bodyEl  = panel.querySelector('[id^="qsp-body-"]');
+  if (labelEl) labelEl.textContent = colorName && colorName !== 'Standard' ? colorName + ' — Select Size' : 'Select Size';
+  if (!bodyEl) return;
+
+  const backBtn = colors && colors.length > 0
+    ? `<button class="quick-back-btn" onclick="event.stopPropagation();_quickShowColorStep(document.getElementById('${panel.id}'),[${colors.map(c=>`{color_name:'${c.color_name.replace(/'/g,"\\'")}',hex_color:'${(c.hex_color||'').replace(/'/g,"\\'")}',variant_sku:'${(c.variant_sku||'').replace(/'/g,"\\'")}' }`).join(',')}],'${productId}','${productTitle.replace(/'/g,"\\'").replace(/"/g,"&quot;")}',${productPrice},'${productSku.replace(/'/g,"\\'")}','${productImage.replace(/'/g,"\\'")}',${JSON.stringify(sizeEntries)})">← Back</button>`
+    : '';
+
+  bodyEl.innerHTML = `
+    <div style="margin-bottom:.7rem">${backBtn}</div>
+    <div class="quick-size-grid">${
+      sizeEntries.map(([size, stock]) => {
+        const soldOut = stock <= 0;
+        return `<button class="quick-size-btn${soldOut?' sold-out':''}" ${soldOut?'disabled':''} onclick="event.stopPropagation();quickAddConfirmItem('${productId}','${productTitle.replace(/'/g,"\\'").replace(/"/g,"&quot;")}',${productPrice},'${productSku.replace(/'/g,"\\'")}','${productImage.replace(/'/g,"\\'")}','${size.replace(/'/g,"\\'")}','${(colorName||'Standard').replace(/'/g,"\\'")}');closeQuickSizePanel('${panel.id}')">${size}</button>`;
+      }).join('')
+    }</div>`;
+}
+
+window.quickAddConfirmItem = function(productId, productTitle, productPrice, productSku, productImage, size, colorName) {
   const price = parseFloat(productPrice) || 0;
+  const color = colorName || 'Standard';
   const cartItem = {
     productId,
     sku: productSku || '',
     title: productTitle,
     size,
-    colorName: 'Standard',
+    colorName: color,
     regularPrice: price,
     memberPrice: null,
     price,
@@ -3124,7 +3202,7 @@ window.quickAddConfirmItem = function(productId, productTitle, productPrice, pro
   };
 
   let cart = JSON.parse(localStorage.getItem('cart')) || [];
-  const existIdx = cart.findIndex(i => i.productId === productId && i.size === size && i.colorName === 'Standard');
+  const existIdx = cart.findIndex(i => i.productId === productId && i.size === size && i.colorName === color);
   if (existIdx > -1) {
     cart[existIdx].quantity += 1;
   } else {

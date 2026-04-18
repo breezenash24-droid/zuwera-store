@@ -393,10 +393,19 @@
       font-size:.55rem;letter-spacing:.18em;text-transform:uppercase;
       color:rgba(244,241,235,.45);margin-bottom:.7rem;
     }
-    .quick-size-ph button{
+    .quick-size-ph .qsp-close{
       background:none;border:none;color:rgba(244,241,235,.4);cursor:pointer;font-size:1rem;line-height:1;padding:2px 4px;
     }
-    .quick-size-ph button:hover{color:#f4f1eb}
+    .quick-size-ph .qsp-close:hover{color:#f4f1eb}
+    /* Color swatches */
+    .qcol-row{display:flex;flex-wrap:wrap;gap:.55rem;margin-bottom:.2rem}
+    .qcol-swatch{
+      width:28px;height:28px;border:2px solid rgba(244,241,235,.15);
+      cursor:pointer;transition:all .15s;flex-shrink:0;
+    }
+    .qcol-swatch:hover,.qcol-swatch.active{border-color:#f4f1eb;box-shadow:0 0 0 1px #f4f1eb}
+    .qcol-name{font-size:.53rem;letter-spacing:.1em;color:rgba(244,241,235,.45);margin-top:.45rem;min-height:.8rem}
+    /* Size buttons */
     .quick-size-row{display:flex;flex-wrap:wrap;gap:.45rem}
     .qsz-btn{
       background:transparent;border:1px solid rgba(244,241,235,.2);color:rgba(244,241,235,.85);
@@ -405,6 +414,12 @@
     }
     .qsz-btn:hover:not(.sold-out){background:#f4f1eb;color:#09090b;border-color:#f4f1eb}
     .qsz-btn.sold-out{opacity:.3;cursor:not-allowed;text-decoration:line-through}
+    /* Back button */
+    .qback-btn{
+      background:none;border:none;color:rgba(244,241,235,.3);cursor:pointer;
+      font-size:.5rem;letter-spacing:.12em;text-transform:uppercase;padding:0;margin-bottom:.6rem;display:block;
+    }
+    .qback-btn:hover{color:rgba(244,241,235,.7)}
 
     /* FOOTER */
     footer {
@@ -994,10 +1009,10 @@ function updateCountdown() {
                 </div>
                 ${isLive ? `<div class="quick-size-panel-col" id="${colCardId}">
                   <div class="quick-size-ph">
-                    <span>Select Size</span>
-                    <button onclick="event.preventDefault();event.stopPropagation();document.getElementById('${colCardId}').classList.remove('open')">✕</button>
+                    <span id="${colCardId}-lbl">Select Colorway</span>
+                    <button class="qsp-close" onclick="event.preventDefault();event.stopPropagation();document.getElementById('${colCardId}').classList.remove('open')">✕</button>
                   </div>
-                  <div class="quick-size-row" id="${colCardId}-sg"></div>
+                  <div id="${colCardId}-body"></div>
                 </div>` : ''}
               </div>
             </a>`;
@@ -1020,7 +1035,7 @@ function updateCountdown() {
     t._toastTimer = setTimeout(function(){ t.classList.remove('on'); }, 2600);
   }
 
-  // ─── Quick Add to Bag (collection page) ──────────────────────────────────
+  // ─── Quick Add to Bag — two-step Colorway → Size (collection page) ─────────
   const _colSB_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
   const _colSB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 
@@ -1031,50 +1046,45 @@ function updateCountdown() {
   });
 
   async function colQuickAdd(productId, productTitle, productPrice, productSku, productImage, panelId, btn) {
-    // Close any other open panels
     document.querySelectorAll('.quick-size-panel-col.open').forEach(function(p){ p.classList.remove('open'); });
 
-    const panel = document.getElementById(panelId);
-    const sizeGrid = document.getElementById(panelId + '-sg');
-    if (!panel || !sizeGrid) return;
+    var panel = document.getElementById(panelId);
+    if (!panel) return;
 
     btn.classList.add('loading');
     btn.textContent = '...';
 
     try {
-      const headers = { 'apikey': _colSB_ANON, 'Authorization': 'Bearer ' + _colSB_ANON };
-      const resp = await fetch(
-        _colSB_URL + '/rest/v1/product_sizes?select=size,stock_quantity&product_id=eq.' + encodeURIComponent(productId) + '&order=created_at.asc',
-        { headers }
-      );
-      const rows = resp.ok ? await resp.json() : [];
+      var headers = { 'apikey': _colSB_ANON, 'Authorization': 'Bearer ' + _colSB_ANON };
+      var results = await Promise.all([
+        fetch(_colSB_URL + '/rest/v1/color_variants?select=color_name,hex_color,variant_sku&product_id=eq.' + encodeURIComponent(productId) + '&order=sort_order.asc', { headers }),
+        fetch(_colSB_URL + '/rest/v1/product_sizes?select=size,stock_quantity&product_id=eq.' + encodeURIComponent(productId) + '&order=created_at.asc', { headers })
+      ]);
+      var colors    = results[0].ok ? await results[0].json() : [];
+      var sizeRows  = results[1].ok ? await results[1].json() : [];
 
-      const sizeMap = {};
-      (rows || []).forEach(function(r) {
-        var label = r.size || '';
-        if (!label) return;
-        sizeMap[label] = (sizeMap[label] || 0) + (r.stock_quantity || 0);
+      var sizeMap = {};
+      (sizeRows || []).forEach(function(r) {
+        if (!r.size) return;
+        sizeMap[r.size] = (sizeMap[r.size] || 0) + (r.stock_quantity || 0);
       });
-      const sizeEntries = Object.entries(sizeMap);
+      var sizeEntries = Object.entries(sizeMap);
 
-      if (sizeEntries.length === 0) {
-        colAddItem(productId, productTitle, productPrice, productSku, productImage, 'One Size');
+      var isOneSize = sizeEntries.length <= 1 && (sizeEntries.length === 0 || /one.?size/i.test(sizeEntries[0][0]));
+      var hasColors = colors && colors.length > 0;
+
+      if (isOneSize && !hasColors) {
+        colAddItem(productId, productTitle, productPrice, productSku, productImage, sizeEntries[0] ? sizeEntries[0][0] : 'One Size', 'Standard');
         return;
       }
-      if (sizeEntries.length === 1 && /one.?size/i.test(sizeEntries[0][0])) {
-        colAddItem(productId, productTitle, productPrice, productSku, productImage, sizeEntries[0][0]);
-        return;
+
+      if (hasColors) {
+        colShowColorStep(panel, panelId, colors, productId, productTitle, productPrice, productSku, productImage, sizeEntries);
+      } else {
+        colShowSizeStep(panel, panelId, sizeEntries, productId, productTitle, productPrice, productSku, productImage, 'Standard', null);
       }
-
-      sizeGrid.innerHTML = sizeEntries.map(function(entry) {
-        var size = entry[0], stock = entry[1];
-        var soldOut = stock <= 0;
-        return '<button class="qsz-btn' + (soldOut ? ' sold-out' : '') + '"'
-          + (soldOut ? ' disabled' : ' onclick="event.preventDefault();event.stopPropagation();colAddItem(\'' + productId.replace(/'/g,"\\'") + '\',\'' + productTitle.replace(/'/g,"\\'").replace(/"/g,'&quot;') + '\',' + productPrice + ',\'' + productSku.replace(/'/g,"\\'") + '\',\'' + productImage.replace(/'/g,"\\'") + '\',\'' + size.replace(/'/g,"\\'") + '\');document.getElementById(\'' + panelId + '\').classList.remove(\'open\')"')
-          + '>' + size + '</button>';
-      }).join('');
-
       panel.classList.add('open');
+
     } catch(e) {
       console.error('colQuickAdd error:', e);
     } finally {
@@ -1083,14 +1093,92 @@ function updateCountdown() {
     }
   }
 
-  function colAddItem(productId, productTitle, productPrice, productSku, productImage, size) {
+  function colShowColorStep(panel, panelId, colors, productId, productTitle, productPrice, productSku, productImage, sizeEntries) {
+    var lblEl  = document.getElementById(panelId + '-lbl');
+    var bodyEl = document.getElementById(panelId + '-body');
+    if (lblEl) lblEl.textContent = 'Select Colorway';
+    if (!bodyEl) return;
+
+    bodyEl.innerHTML = '<div class="qcol-row" id="' + panelId + '-cr"></div><div class="qcol-name" id="' + panelId + '-cn"></div>';
+    var colorRow  = document.getElementById(panelId + '-cr');
+    var colorName = document.getElementById(panelId + '-cn');
+
+    (colors || []).forEach(function(c) {
+      var sw = document.createElement('button');
+      sw.className = 'qcol-swatch';
+      sw.style.backgroundColor = c.hex_color || '#888';
+      sw.title = c.color_name;
+      sw.setAttribute('aria-label', c.color_name);
+      sw.addEventListener('click', function(e) {
+        e.preventDefault(); e.stopPropagation();
+        colorRow.querySelectorAll('.qcol-swatch').forEach(function(s){ s.classList.remove('active'); });
+        sw.classList.add('active');
+        colorName.textContent = c.color_name;
+
+        var isOneSize = sizeEntries.length <= 1 && (sizeEntries.length === 0 || /one.?size/i.test(sizeEntries[0][0]));
+        setTimeout(function() {
+          if (isOneSize) {
+            colAddItem(productId, productTitle, productPrice, c.variant_sku || productSku, productImage, sizeEntries[0] ? sizeEntries[0][0] : 'One Size', c.color_name);
+            panel.classList.remove('open');
+          } else {
+            colShowSizeStep(panel, panelId, sizeEntries, productId, productTitle, productPrice, c.variant_sku || productSku, productImage, c.color_name, colors);
+          }
+        }, 180);
+      });
+      colorRow.appendChild(sw);
+    });
+  }
+
+  function colShowSizeStep(panel, panelId, sizeEntries, productId, productTitle, productPrice, productSku, productImage, colorName, colors) {
+    var lblEl  = document.getElementById(panelId + '-lbl');
+    var bodyEl = document.getElementById(panelId + '-body');
+    if (lblEl) lblEl.textContent = (colorName && colorName !== 'Standard') ? colorName + ' — Select Size' : 'Select Size';
+    if (!bodyEl) return;
+
+    var backHtml = '';
+    if (colors && colors.length > 0) {
+      backHtml = '<button class="qback-btn" id="' + panelId + '-back">← Back</button>';
+    }
+
+    bodyEl.innerHTML = backHtml + '<div class="quick-size-row">'
+      + sizeEntries.map(function(entry) {
+          var size = entry[0], stock = entry[1];
+          var soldOut = stock <= 0;
+          return '<button class="qsz-btn' + (soldOut ? ' sold-out' : '') + '"'
+            + (soldOut ? ' disabled' : '')
+            + ' data-size="' + size.replace(/"/g,'&quot;') + '">'
+            + size + '</button>';
+        }).join('')
+      + '</div>';
+
+    // Attach back button
+    var backBtn = document.getElementById(panelId + '-back');
+    if (backBtn) {
+      backBtn.addEventListener('click', function(e) {
+        e.preventDefault(); e.stopPropagation();
+        colShowColorStep(panel, panelId, colors, productId, productTitle, productPrice, productSku, productImage, sizeEntries);
+      });
+    }
+
+    // Attach size buttons
+    bodyEl.querySelectorAll('.qsz-btn:not(.sold-out)').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault(); e.stopPropagation();
+        colAddItem(productId, productTitle, productPrice, productSku, productImage, btn.dataset.size, colorName);
+        panel.classList.remove('open');
+      });
+    });
+  }
+
+  function colAddItem(productId, productTitle, productPrice, productSku, productImage, size, colorName) {
     var price = parseFloat(productPrice) || 0;
+    var color = colorName || 'Standard';
     var cartItem = {
       productId: productId,
       sku: productSku || '',
       title: productTitle,
       size: size,
-      colorName: 'Standard',
+      colorName: color,
       regularPrice: price,
       memberPrice: null,
       price: price,
@@ -1098,14 +1186,13 @@ function updateCountdown() {
       quantity: 1
     };
     var cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    var existIdx = cart.findIndex(function(i){ return i.productId === productId && i.size === size && i.colorName === 'Standard'; });
+    var existIdx = cart.findIndex(function(i){ return i.productId === productId && i.size === size && i.colorName === color; });
     if (existIdx > -1) {
       cart[existIdx].quantity += 1;
     } else {
       cart.push(cartItem);
     }
     localStorage.setItem('cart', JSON.stringify(cart));
-    // Update cart count badge if present
     var countEl = document.querySelector('.cart-count');
     if (countEl) {
       var total = cart.reduce(function(s,i){ return s + i.quantity; }, 0);
