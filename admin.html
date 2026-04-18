@@ -1003,6 +1003,8 @@
                     <a class="nav-link" data-page="reviews" onclick="navigateTo('reviews')">Reviews</a>
                     <a class="nav-link" data-page="users" onclick="navigateTo('users')">Users</a>
                     <a class="nav-link" data-page="analytics" onclick="navigateTo('analytics')">Analytics</a>
+                    <a class="nav-link" data-page="finance" onclick="navigateTo('finance')">Finance</a>
+                    <a class="nav-link" data-page="shipping" onclick="navigateTo('shipping')">Shipping</a>
                     <a class="nav-link" data-page="settings" onclick="navigateTo('settings')">Settings</a>
                     <a class="nav-link" data-page="website" onclick="navigateTo('website')">Website</a>
                 </div>
@@ -1613,6 +1615,408 @@
 
                     // Expose for the tab switch handler
                     window._anaLoaded = () => _anaLoaded;
+                  })();
+                  </script>
+                </div>
+
+                <!-- Finance Page -->
+                <div id="finance" class="page">
+                  <div class="page-header" style="margin-bottom:24px;">
+                    <h2>Finance</h2>
+                    <p style="color:var(--text-secondary);font-size:14px;margin-top:4px;">Revenue trends and per-product breakdown</p>
+                  </div>
+
+                  <div id="fin-error" style="display:none;background:#2a1a1a;border:1px solid #ef4444;border-radius:8px;padding:14px 18px;margin-bottom:20px;color:#ef4444;font-size:13px;"></div>
+
+                  <!-- KPI cards -->
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px;">
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Total Revenue</p>
+                      <p id="fin-total-rev" style="font-size:24px;font-weight:700;color:var(--accent);">—</p>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Total Orders</p>
+                      <p id="fin-total-orders" style="font-size:24px;font-weight:700;">—</p>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Avg Order Value</p>
+                      <p id="fin-aov" style="font-size:24px;font-weight:700;">—</p>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Units Sold</p>
+                      <p id="fin-units" style="font-size:24px;font-weight:700;">—</p>
+                    </div>
+                  </div>
+
+                  <!-- Revenue trend chart -->
+                  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:24px;">
+                    <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:20px;">Revenue Over Time (30-day rolling)</p>
+                    <canvas id="fin-revenue-chart" height="100"></canvas>
+                  </div>
+
+                  <!-- Per-product breakdown -->
+                  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:24px;">
+                    <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:20px;">Per-Product Revenue</p>
+                    <div style="overflow-x:auto;">
+                      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <thead>
+                          <tr style="border-bottom:2px solid var(--border);">
+                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Product</th>
+                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Units</th>
+                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Revenue</th>
+                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Avg Unit Price</th>
+                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">% of Total</th>
+                          </tr>
+                        </thead>
+                        <tbody id="fin-product-tbody">
+                          <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-secondary);">Loading…</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <!-- Product revenue bar chart -->
+                  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;">
+                    <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:20px;">Top Products by Revenue</p>
+                    <canvas id="fin-product-chart" height="120"></canvas>
+                  </div>
+
+                  <script>
+                  (function() {
+                    let _finLoaded = false;
+                    let finRevenueChart = null;
+                    let finProductChart = null;
+
+                    function finEl(id) { return document.getElementById(id); }
+                    function finErr(msg) {
+                      const el = finEl('fin-error');
+                      el.textContent = msg;
+                      el.style.display = 'block';
+                    }
+                    function fmt$(n) { return '$' + parseFloat(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+                    function fmtN(n) { return parseInt(n||0).toLocaleString(); }
+
+                    window.finLoadData = async function() {
+                      if (_finLoaded) return;
+                      finEl('fin-error').style.display = 'none';
+
+                      try {
+                        const { data: orders, error } = await sb.from('orders').select('total,subtotal,shipping,items,created_at,status').order('created_at', { ascending: true });
+                        if (error) throw error;
+
+                        const confirmed = (orders || []).filter(o => o.status !== 'cancelled');
+
+                        // KPI totals
+                        let totalRev = 0, unitsSold = 0;
+                        confirmed.forEach(o => { totalRev += parseFloat(o.total || 0); });
+
+                        // Per-product map
+                        const prodMap = {};
+                        confirmed.forEach(o => {
+                          let items = [];
+                          try { items = JSON.parse(o.items || '[]'); } catch(_) {}
+                          items.forEach(item => {
+                            const name = item.name || 'Unknown';
+                            const qty = parseInt(item.quantity || 1);
+                            const rev = (item.amount * qty) / 100;
+                            unitsSold += qty;
+                            if (!prodMap[name]) prodMap[name] = { units: 0, revenue: 0 };
+                            prodMap[name].units += qty;
+                            prodMap[name].revenue += rev;
+                          });
+                        });
+
+                        const aov = confirmed.length ? totalRev / confirmed.length : 0;
+
+                        finEl('fin-total-rev').textContent = fmt$(totalRev);
+                        finEl('fin-total-orders').textContent = fmtN(confirmed.length);
+                        finEl('fin-aov').textContent = fmt$(aov);
+                        finEl('fin-units').textContent = fmtN(unitsSold);
+
+                        // Product table
+                        const prods = Object.entries(prodMap).sort((a,b) => b[1].revenue - a[1].revenue);
+                        const tbody = finEl('fin-product-tbody');
+                        if (prods.length === 0) {
+                          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-secondary);">No order items found</td></tr>';
+                        } else {
+                          tbody.innerHTML = prods.map(([name, d]) => {
+                            const pct = totalRev > 0 ? ((d.revenue/totalRev)*100).toFixed(1) : '0.0';
+                            const avgUnit = d.units > 0 ? d.revenue/d.units : 0;
+                            return `<tr style="border-bottom:1px solid var(--border);">
+                              <td style="padding:12px;">${name}</td>
+                              <td style="padding:12px;text-align:right;">${d.units}</td>
+                              <td style="padding:12px;text-align:right;color:var(--accent);font-weight:600;">${fmt$(d.revenue)}</td>
+                              <td style="padding:12px;text-align:right;">${fmt$(avgUnit)}</td>
+                              <td style="padding:12px;text-align:right;">
+                                <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;">
+                                  <div style="width:60px;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+                                    <div style="width:${pct}%;height:100%;background:var(--accent);border-radius:3px;"></div>
+                                  </div>
+                                  ${pct}%
+                                </div>
+                              </td>
+                            </tr>`;
+                          }).join('');
+                        }
+
+                        // Revenue trend (group by day)
+                        const dayMap = {};
+                        confirmed.forEach(o => {
+                          const day = o.created_at ? o.created_at.slice(0,10) : 'unknown';
+                          dayMap[day] = (dayMap[day] || 0) + parseFloat(o.total || 0);
+                        });
+                        const sortedDays = Object.keys(dayMap).sort();
+                        const last30 = sortedDays.slice(-30);
+                        const revValues = last30.map(d => dayMap[d].toFixed(2));
+
+                        const ctx1 = finEl('fin-revenue-chart').getContext('2d');
+                        if (finRevenueChart) finRevenueChart.destroy();
+                        finRevenueChart = new Chart(ctx1, {
+                          type: 'line',
+                          data: {
+                            labels: last30.map(d => d.slice(5)),
+                            datasets: [{ label: 'Revenue', data: revValues, borderColor: '#F891A5', backgroundColor: 'rgba(248,145,165,0.12)', fill: true, tension: 0.4, pointRadius: 3 }]
+                          },
+                          options: {
+                            responsive: true,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                              x: { ticks: { color: '#9b9b9b', maxTicksLimit: 10 }, grid: { color: '#1e1e1e' } },
+                              y: { ticks: { color: '#9b9b9b', callback: v => '$' + v }, grid: { color: '#1e1e1e' } }
+                            }
+                          }
+                        });
+
+                        // Product bar chart (top 8)
+                        const top8 = prods.slice(0,8);
+                        const ctx2 = finEl('fin-product-chart').getContext('2d');
+                        if (finProductChart) finProductChart.destroy();
+                        finProductChart = new Chart(ctx2, {
+                          type: 'bar',
+                          data: {
+                            labels: top8.map(([n]) => n),
+                            datasets: [{ label: 'Revenue', data: top8.map(([,d]) => d.revenue.toFixed(2)), backgroundColor: '#F891A5', borderRadius: 4 }]
+                          },
+                          options: {
+                            responsive: true,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                              x: { ticks: { color: '#9b9b9b' }, grid: { display: false } },
+                              y: { ticks: { color: '#9b9b9b', callback: v => '$' + v }, grid: { color: '#1e1e1e' } }
+                            }
+                          }
+                        });
+
+                        _finLoaded = true;
+                      } catch(e) { finErr('Failed to load finance data: ' + e.message); }
+                    };
+                  })();
+                  </script>
+                </div>
+
+                <!-- Shipping Page -->
+                <div id="shipping" class="page">
+                  <div class="page-header" style="margin-bottom:24px;">
+                    <h2>Shipping</h2>
+                    <p style="color:var(--text-secondary);font-size:14px;margin-top:4px;">Shipping spend — aggregate and per-order breakdown</p>
+                  </div>
+
+                  <div id="ship-error" style="display:none;background:#2a1a1a;border:1px solid #ef4444;border-radius:8px;padding:14px 18px;margin-bottom:20px;color:#ef4444;font-size:13px;"></div>
+
+                  <!-- Aggregate KPI cards -->
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px;">
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Total Shipping Collected</p>
+                      <p id="ship-total" style="font-size:24px;font-weight:700;color:var(--accent);">—</p>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Orders with Shipping</p>
+                      <p id="ship-count" style="font-size:24px;font-weight:700;">—</p>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Avg Shipping / Order</p>
+                      <p id="ship-avg" style="font-size:24px;font-weight:700;">—</p>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Free Shipping Orders</p>
+                      <p id="ship-free" style="font-size:24px;font-weight:700;">—</p>
+                    </div>
+                  </div>
+
+                  <!-- Carrier breakdown -->
+                  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:24px;">
+                    <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:20px;">By Carrier / Service</p>
+                    <div style="overflow-x:auto;">
+                      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <thead>
+                          <tr style="border-bottom:2px solid var(--border);">
+                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Service</th>
+                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Orders</th>
+                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Total Collected</th>
+                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Avg per Order</th>
+                          </tr>
+                        </thead>
+                        <tbody id="ship-carrier-tbody">
+                          <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-secondary);">Loading…</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <!-- Individual orders -->
+                  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);">Individual Orders</p>
+                      <input id="ship-search" type="text" placeholder="Search customer / carrier…" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:7px 12px;font-size:13px;color:var(--text-primary);width:220px;">
+                    </div>
+                    <div style="overflow-x:auto;">
+                      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <thead>
+                          <tr style="border-bottom:2px solid var(--border);">
+                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Date</th>
+                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Customer</th>
+                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Carrier / Service</th>
+                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Shipping</th>
+                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Order Total</th>
+                          </tr>
+                        </thead>
+                        <tbody id="ship-orders-tbody">
+                          <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-secondary);">Loading…</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div id="ship-pagination" style="display:flex;gap:8px;justify-content:center;margin-top:16px;"></div>
+                  </div>
+
+                  <script>
+                  (function() {
+                    let _shipLoaded = false;
+                    let _shipOrders = [];
+                    let _shipPage = 1;
+                    const PAGE_SIZE = 25;
+
+                    function shipEl(id) { return document.getElementById(id); }
+                    function shipErr(msg) {
+                      const el = shipEl('ship-error');
+                      el.textContent = msg;
+                      el.style.display = 'block';
+                    }
+                    function fmt$(n) { return '$' + parseFloat(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+                    function fmtDate(str) {
+                      if (!str) return '—';
+                      const d = new Date(str);
+                      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    }
+
+                    function shipRenderOrders(orders, page) {
+                      const tbody = shipEl('ship-orders-tbody');
+                      const start = (page-1)*PAGE_SIZE;
+                      const slice = orders.slice(start, start+PAGE_SIZE);
+                      if (slice.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-secondary);">No orders found</td></tr>';
+                      } else {
+                        tbody.innerHTML = slice.map(o => {
+                          const carrier = [o.shipping_provider, o.shipping_service].filter(Boolean).join(' — ') || '—';
+                          return `<tr style="border-bottom:1px solid var(--border);">
+                            <td style="padding:12px;">${fmtDate(o.created_at)}</td>
+                            <td style="padding:12px;">${o.customer_name || o.email || '—'}</td>
+                            <td style="padding:12px;color:var(--text-secondary);">${carrier}</td>
+                            <td style="padding:12px;text-align:right;color:var(--accent);font-weight:600;">${fmt$(o.shipping)}</td>
+                            <td style="padding:12px;text-align:right;">${fmt$(o.total)}</td>
+                          </tr>`;
+                        }).join('');
+                      }
+
+                      // Pagination
+                      const pages = Math.ceil(orders.length / PAGE_SIZE);
+                      const pag = shipEl('ship-pagination');
+                      if (pages <= 1) { pag.innerHTML = ''; return; }
+                      pag.innerHTML = Array.from({length:pages},(_,i)=>i+1).map(p =>
+                        `<button onclick="window._shipGoPage(${p})" style="padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:${p===page?'var(--accent)':'var(--bg-primary)'};color:${p===page?'#09090b':'var(--text-primary)'};cursor:pointer;font-size:12px;">${p}</button>`
+                      ).join('');
+                    }
+
+                    window._shipGoPage = function(p) {
+                      _shipPage = p;
+                      const q = shipEl('ship-search')?.value.toLowerCase() || '';
+                      const filtered = q ? _shipOrders.filter(o =>
+                        (o.customer_name||'').toLowerCase().includes(q) ||
+                        (o.email||'').toLowerCase().includes(q) ||
+                        (o.shipping_provider||'').toLowerCase().includes(q) ||
+                        (o.shipping_service||'').toLowerCase().includes(q)
+                      ) : _shipOrders;
+                      shipRenderOrders(filtered, p);
+                    };
+
+                    window.shipLoadData = async function() {
+                      if (_shipLoaded) return;
+                      shipEl('ship-error').style.display = 'none';
+
+                      try {
+                        const { data: orders, error } = await sb.from('orders')
+                          .select('created_at,email,customer_name,shipping,total,shipping_provider,shipping_service,status')
+                          .order('created_at', { ascending: false });
+                        if (error) throw error;
+
+                        const all = (orders || []);
+                        _shipOrders = all;
+
+                        // Aggregate
+                        let totalShip = 0, withShip = 0, freeShip = 0;
+                        all.forEach(o => {
+                          const s = parseFloat(o.shipping || 0);
+                          totalShip += s;
+                          if (s > 0) withShip++;
+                          else freeShip++;
+                        });
+                        const avg = withShip > 0 ? totalShip / withShip : 0;
+
+                        shipEl('ship-total').textContent = fmt$(totalShip);
+                        shipEl('ship-count').textContent = withShip.toLocaleString();
+                        shipEl('ship-avg').textContent = fmt$(avg);
+                        shipEl('ship-free').textContent = freeShip.toLocaleString();
+
+                        // Carrier breakdown
+                        const carrierMap = {};
+                        all.forEach(o => {
+                          const key = [o.shipping_provider, o.shipping_service].filter(Boolean).join(' — ') || 'Unknown';
+                          if (!carrierMap[key]) carrierMap[key] = { count: 0, total: 0 };
+                          carrierMap[key].count++;
+                          carrierMap[key].total += parseFloat(o.shipping || 0);
+                        });
+                        const carriers = Object.entries(carrierMap).sort((a,b) => b[1].total - a[1].total);
+                        const ctbody = shipEl('ship-carrier-tbody');
+                        if (carriers.length === 0) {
+                          ctbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-secondary);">No data</td></tr>';
+                        } else {
+                          ctbody.innerHTML = carriers.map(([name, d]) => `
+                            <tr style="border-bottom:1px solid var(--border);">
+                              <td style="padding:12px;">${name}</td>
+                              <td style="padding:12px;text-align:right;">${d.count}</td>
+                              <td style="padding:12px;text-align:right;color:var(--accent);font-weight:600;">${fmt$(d.total)}</td>
+                              <td style="padding:12px;text-align:right;">${fmt$(d.count > 0 ? d.total/d.count : 0)}</td>
+                            </tr>`).join('');
+                        }
+
+                        // Individual orders
+                        shipRenderOrders(_shipOrders, 1);
+
+                        // Search
+                        shipEl('ship-search').addEventListener('input', function() {
+                          _shipPage = 1;
+                          const q = this.value.toLowerCase();
+                          const filtered = q ? _shipOrders.filter(o =>
+                            (o.customer_name||'').toLowerCase().includes(q) ||
+                            (o.email||'').toLowerCase().includes(q) ||
+                            (o.shipping_provider||'').toLowerCase().includes(q) ||
+                            (o.shipping_service||'').toLowerCase().includes(q)
+                          ) : _shipOrders;
+                          shipRenderOrders(filtered, 1);
+                        });
+
+                        _shipLoaded = true;
+                      } catch(e) { shipErr('Failed to load shipping data: ' + e.message); }
+                    };
                   })();
                   </script>
                 </div>
@@ -2713,6 +3117,8 @@
                 reviews: 'Customer Reviews',
                 users: 'User Management',
                 analytics: 'Analytics',
+                finance: 'Finance',
+                shipping: 'Shipping',
                 settings: 'Settings',
                 website: 'Website Settings'
             };
@@ -2727,10 +3133,14 @@
                 loadSizeCharts();
             } else if (page === 'reviews') {
                 loadAdminReviews();
-                } else if (page === 'users') {
-                    loadUsers();
-                } else if (page === 'analytics') {
-                    loadAnalytics();
+            } else if (page === 'users') {
+                loadUsers();
+            } else if (page === 'analytics') {
+                loadAnalytics();
+            } else if (page === 'finance') {
+                if (typeof window.finLoadData === 'function') window.finLoadData();
+            } else if (page === 'shipping') {
+                if (typeof window.shipLoadData === 'function') window.shipLoadData();
             }
         }
 
