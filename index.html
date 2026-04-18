@@ -3095,6 +3095,29 @@ function openPaymentModal(subtotalCents) {
   document.getElementById('payment-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
   document.getElementById('pay-error').textContent = '';
+
+  // Pre-fill name + email from logged-in session so the user doesn't have to retype them
+  const emailInput = document.getElementById('pay-email');
+  const nameInput  = document.getElementById('pay-name');
+  if (_user) {
+    const userEmail = _user.email || '';
+    const userName  = _user.user_metadata?.full_name || '';
+    if (userEmail && !emailInput.value) {
+      emailInput.value = userEmail;
+      emailInput.readOnly = true;
+      emailInput.style.opacity = '0.6';
+      emailInput.style.cursor  = 'default';
+    }
+    if (userName && !nameInput.value) {
+      nameInput.value = userName;
+    }
+  } else {
+    // Reset in case user logged out mid-session
+    emailInput.readOnly = false;
+    emailInput.style.opacity = '';
+    emailInput.style.cursor  = '';
+  }
+
   void prefillCheckoutStateFromGeo();
   _loadStripe(() => { _initStripe(); initPR(subtotalCents); });
 }
