@@ -37,6 +37,12 @@ const getServicelevelToken = (name) => SERVICE_TOKEN_MAP[name] || 'usps_ground_a
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 export async function onRequestPost({ request, env }) {
+  // Guard: catch missing env vars early with clear log messages
+  if (!env.STRIPE_SECRET_KEY)    console.error('MISSING ENV: STRIPE_SECRET_KEY not set in Cloudflare');
+  if (!env.STRIPE_WEBHOOK_SECRET) console.error('MISSING ENV: STRIPE_WEBHOOK_SECRET not set in Cloudflare');
+  if (!env.RESEND_API_KEY)        console.warn('MISSING ENV: RESEND_API_KEY not set — emails will be skipped');
+  if (!env.SUPABASE_URL)          console.warn('MISSING ENV: SUPABASE_URL not set — orders will not be saved');
+
   const stripe  = new Stripe(env.STRIPE_SECRET_KEY, { httpClient: Stripe.createFetchHttpClient() });
   const rawBody = await request.text();
   const sig     = request.headers.get('stripe-signature');
@@ -47,6 +53,9 @@ export async function onRequestPost({ request, env }) {
     event = await stripe.webhooks.constructEventAsync(rawBody, sig, env.STRIPE_WEBHOOK_SECRET);
   } catch (e) {
     console.error('Webhook signature verification failed:', e.message);
+    console.error('  → Check that STRIPE_WEBHOOK_SECRET in Cloudflare matches the signing secret');
+    console.error('    from Stripe Dashboard > Webhooks > your endpoint for zuwera.store/api/stripe-webhook');
+    console.error('  → Also make sure test/live mode matches: test payments need a TEST webhook secret');
     return new Response('Webhook Error: ' + e.message, { status: 400 });
   }
 
