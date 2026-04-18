@@ -254,8 +254,10 @@ async function saveOrderToSupabase(pi, meta, tracking, env) {
 async function sendConfirmationEmail(pi, meta, tracking, env) {
   if (!env.RESEND_API_KEY) return null;
 
-  const toEmail  = meta.customer_email;
+  const toEmail  = (meta.customer_email || '').trim();
   if (!toEmail) return null;
+
+  const fromEmail = (env.RESEND_FROM_EMAIL || 'onboarding@resend.dev').trim(); // trim newlines/spaces
 
   const orderId      = pi.id.slice(-8).toUpperCase();
   const toName       = meta.customer_name || 'Customer';
@@ -332,7 +334,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from:     `Zuwera <${env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`,
+      from:     `Zuwera <${fromEmail}>`,
       to:       [toEmail],
       reply_to: 'orders@zuwera.store',
       subject:  `Order Confirmed – #${orderId}`,

@@ -7,8 +7,8 @@ export async function onRequestPost({ env }) {
   if (!env.RESEND_API_KEY) return json({ error: 'RESEND_API_KEY not set' }, 500);
   if (!env.RESEND_FROM_EMAIL) return json({ error: 'RESEND_FROM_EMAIL not set' }, 500);
 
-  const toEmail   = env.RESEND_FROM_EMAIL; // send to yourself as a test
-  const fromEmail = env.RESEND_FROM_EMAIL;
+  const toEmail   = (env.RESEND_FROM_EMAIL || '').trim();
+  const fromEmail = (env.RESEND_FROM_EMAIL || '').trim();
 
   const resp = await fetch('https://api.resend.com/emails', {
     method: 'POST',
