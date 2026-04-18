@@ -10,20 +10,25 @@
 const WEBHOOK_URL    = 'https://zuwera.store/api/stripe-webhook';
 const WEBHOOK_EVENTS = ['payment_intent.succeeded', 'payment_intent.canceled'];
 
-async function stripeRequest(path, method, body, secretKey) {
+async function stripeRequest(path, method, bodyParts, secretKey) {
+  // bodyParts is an array of [key, value] pairs to support repeated keys
+  let bodyStr;
+  if (bodyParts) {
+    bodyStr = bodyParts.map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');
+  }
   const resp = await fetch('https://api.stripe.com/v1' + path, {
     method,
     headers: {
       Authorization:  'Bearer ' + secretKey,
       'Content-Type': 'application/x-www-form-urlencoded',
     },
-    body: body ? new URLSearchParams(body).toString() : undefined,
+    body: bodyStr,
   });
   return resp.json();
 }
 
 export async function onRequestGet({ env }) {
-  const data = await stripeRequest('/webhook_endpoints?limit=20', 'GET', null, env.STRIPE_SECRET_KEY);
+  const data = await stripeRequest('/webhook_endpoints?limit=20', 'GET', undefined, env.STRIPE_SECRET_KEY);
   const endpoints = (data.data || []).filter(ep => ep.url === WEBHOOK_URL);
   return new Response(JSON.stringify({
     info: 'POST this URL to rotate the signing secret',
@@ -45,10 +50,11 @@ export async function onRequestPost({ env }) {
   }
 
   // 3. Create a fresh one — the response includes the signing secret (only shown once)
-  const created = await stripeRequest('/webhook_endpoints', 'POST', {
-    url: WEBHOOK_URL,
-    'enabled_events[]': WEBHOOK_EVENTS,
-  }, key);
+  const createBody = [
+    ['url', WEBHOOK_URL],
+    ...WEBHOOK_EVENTS.map(e => ['enabled_events[]', e]),
+  ];
+  const created = await stripeRequest('/webhook_endpoints', 'POST', createBody, key);
 
   if (created.error) {
     return new Response(JSON.stringify({ error: created.error }), { status: 500, headers: { 'Content-Type': 'application/json' } });
