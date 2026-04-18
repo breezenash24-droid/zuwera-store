@@ -1044,7 +1044,7 @@ function updateCountdown() {
     try {
       const headers = { 'apikey': _colSB_ANON, 'Authorization': 'Bearer ' + _colSB_ANON };
       const resp = await fetch(
-        _colSB_URL + '/rest/v1/product_sizes?select=size,stock_quantity&product_id=eq.' + encodeURIComponent(productId) + '&order=sort_order.asc',
+        _colSB_URL + '/rest/v1/product_sizes?select=size,stock_quantity&product_id=eq.' + encodeURIComponent(productId) + '&order=created_at.asc',
         { headers }
       );
       const rows = resp.ok ? await resp.json() : [];

@@ -630,12 +630,12 @@ body.light-mode #mobile-menu-close { color:#09090b !important; }
 /* ─── Quick-Add to Bag ────────────────────────────────── */
 .pcard-add-btn{
   display:block;width:100%;margin-top:1rem;
-  background:var(--gold);color:#09090b;border:none;
+  background:#f4f1eb;color:#09090b;border:none;
   padding:.75rem 1rem;
   font-family:var(--fm);font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;font-weight:600;
   cursor:pointer;transition:background .2s,transform .15s;
 }
-.pcard-add-btn:hover{background:#f4f1eb;transform:translateY(-1px)}
+.pcard-add-btn:hover{background:#fff;transform:translateY(-1px)}
 .pcard-add-btn.loading{opacity:.6;pointer-events:none}
 /* Size picker panel that slides up from within the card */
 .quick-size-panel{
@@ -3060,7 +3060,7 @@ async function quickAddToCart(productId, productTitle, productPrice, productSku,
   try {
     const headers = { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON };
     const resp = await fetch(
-      SUPABASE_URL + '/rest/v1/product_sizes?select=size,stock_quantity&product_id=eq.' + encodeURIComponent(productId) + '&order=sort_order.asc',
+      SUPABASE_URL + '/rest/v1/product_sizes?select=size,stock_quantity&product_id=eq.' + encodeURIComponent(productId) + '&order=created_at.asc',
       { headers }
     );
     const rows = resp.ok ? await resp.json() : [];
