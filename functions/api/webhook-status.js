@@ -27,27 +27,34 @@ export async function onRequestGet({ env }) {
     const key = env.SUPABASE_SERVICE_KEY;
     if (key.length < 100) return '❌ KEY TOO SHORT (' + key.length + ' chars) — paste the full service_role JWT from Supabase Dashboard → Settings → API';
 
-    // Decode the JWT payload to check the role without exposing the secret
-    let jwtRole = 'unknown';
+    // Decode the JWT payload to check role + project ref
+    let jwtRole = 'unknown', jwtRef = 'unknown';
     try {
       const parts = key.split('.');
       if (parts.length === 3) {
         const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
         jwtRole = payload.role || 'unknown';
+        jwtRef  = payload.ref  || 'unknown';
       }
     } catch (_) {}
 
     if (jwtRole !== 'service_role') {
-      return '❌ JWT role is "' + jwtRole + '" — you need the service_role key, not the ' + jwtRole + ' key. Go to Supabase → Settings → API → copy the service_role secret key.';
+      return '❌ JWT role="' + jwtRole + '" — need service_role key (Go to Supabase → Settings → API → copy service_role secret)';
     }
 
+    const expectedRef = (env.SUPABASE_URL || '').split('//')[1]?.split('.')[0] || '';
+    if (expectedRef && jwtRef !== expectedRef) {
+      return '❌ JWT ref="' + jwtRef + '" does not match project "' + expectedRef + '" — key is from a different Supabase project!';
+    }
+
+    // Test the auth endpoint (lighter than REST)
     try {
-      const r = await fetch(env.SUPABASE_URL + '/rest/v1/orders?select=id&limit=1', {
+      const r = await fetch(env.SUPABASE_URL + '/auth/v1/settings', {
         headers: { apikey: key, Authorization: 'Bearer ' + key },
       });
-      if (r.ok || r.status === 416) return '✅ service_role key connected (HTTP ' + r.status + ')';
+      if (r.ok) return '✅ service_role key valid, project ref=' + jwtRef + ' (auth OK)';
       const txt = await r.text().catch(() => '');
-      return '❌ HTTP ' + r.status + ' — ' + txt.slice(0, 100);
+      return '❌ HTTP ' + r.status + ' from Supabase auth — ' + txt.slice(0, 120);
     } catch (e) {
       return '❌ fetch error: ' + e.message;
     }
