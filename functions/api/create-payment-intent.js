@@ -172,6 +172,8 @@ export async function onRequestPost({ request, env }) {
       amount:       getItemPriceCents(item),
       quantity:     item.quantity || 1,
       tax_behavior: 'exclusive',
+      image:        item.image || item.image_url || '',
+      sku:          item.sku   || '',
     }));
 
     const cartFingerprint = items

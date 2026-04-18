@@ -1005,6 +1005,7 @@
                     <a class="nav-link" data-page="analytics" onclick="navigateTo('analytics')">Analytics</a>
                     <a class="nav-link" data-page="finance" onclick="navigateTo('finance')">Finance</a>
                     <a class="nav-link" data-page="shipping" onclick="navigateTo('shipping')">Shipping</a>
+                    <a class="nav-link" data-page="receipts" onclick="navigateTo('receipts')">Receipts</a>
                     <a class="nav-link" data-page="settings" onclick="navigateTo('settings')">Settings</a>
                     <a class="nav-link" data-page="website" onclick="navigateTo('website')">Website</a>
                 </div>
@@ -2132,6 +2133,255 @@
                   </script>
                 </div>
 
+                <!-- Receipts Page -->
+                <div id="receipts" class="page">
+                  <div class="page-header" style="margin-bottom:24px;">
+                    <h2>Receipts</h2>
+                    <p style="color:var(--text-secondary);font-size:14px;margin-top:4px;">Searchable order receipts and transaction history</p>
+                  </div>
+
+                  <div id="rec-error" style="display:none;background:#2a1a1a;border:1px solid #ef4444;border-radius:8px;padding:14px 18px;margin-bottom:20px;color:#ef4444;font-size:13px;"></div>
+
+                  <!-- Search and Sort -->
+                  <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;align-items:center;">
+                    <input id="rec-search" type="text" placeholder="Search: customer name, order #, email, amount…" style="flex:1;min-width:250px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-size:13px;color:var(--text-primary);">
+                    <select id="rec-sort" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-size:13px;color:var(--text-primary);cursor:pointer;">
+                      <option value="newest">Newest First</option>
+                      <option value="oldest">Oldest First</option>
+                      <option value="highest">Highest Amount</option>
+                      <option value="lowest">Lowest Amount</option>
+                    </select>
+                  </div>
+
+                  <!-- Summary Stats -->
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px;">
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Total Orders</p>
+                      <p id="rec-total-orders" style="font-size:24px;font-weight:700;">—</p>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Total Revenue</p>
+                      <p id="rec-total-revenue" style="font-size:24px;font-weight:700;color:var(--accent);">—</p>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Average Order Value</p>
+                      <p id="rec-avg-order" style="font-size:24px;font-weight:700;">—</p>
+                    </div>
+                  </div>
+
+                  <!-- Receipts List -->
+                  <div id="rec-list-container" style="display:flex;flex-direction:column;gap:16px;">
+                    <p style="text-align:center;color:var(--text-secondary);padding:40px;font-size:13px;">Loading receipts...</p>
+                  </div>
+
+                  <script>
+                  (function() {
+                    let _recLoaded = false;
+                    let _allReceipts = [];
+                    let _filteredReceipts = [];
+
+                    function recEl(id) { return document.getElementById(id); }
+                    function recErr(msg) {
+                      const el = recEl('rec-error');
+                      el.textContent = msg;
+                      el.style.display = 'block';
+                    }
+                    function fmt$(n) { return '$' + parseFloat(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+                    function fmtDate(str) {
+                      if (!str) return '—';
+                      const d = new Date(str);
+                      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    }
+
+                    function sortReceipts(receipts, sortBy) {
+                      const sorted = [...receipts];
+                      if (sortBy === 'newest') {
+                        sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+                      } else if (sortBy === 'oldest') {
+                        sorted.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+                      } else if (sortBy === 'highest') {
+                        sorted.sort((a, b) => (b.total || 0) - (a.total || 0));
+                      } else if (sortBy === 'lowest') {
+                        sorted.sort((a, b) => (a.total || 0) - (b.total || 0));
+                      }
+                      return sorted;
+                    }
+
+                    function renderReceipts() {
+                      const sortBy = recEl('rec-sort')?.value || 'newest';
+                      const sorted = sortReceipts(_filteredReceipts, sortBy);
+                      const container = recEl('rec-list-container');
+
+                      if (sorted.length === 0) {
+                        container.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:40px;font-size:13px;">No receipts found.</p>';
+                        return;
+                      }
+
+                      container.innerHTML = sorted.map(order => {
+                        const orderNum = (order.stripe_payment_intent_id || 'N/A').slice(-8).toUpperCase();
+                        const items = (() => {
+                          try {
+                            return typeof order.items === 'string' ? JSON.parse(order.items) : (order.items || []);
+                          } catch {
+                            return [];
+                          }
+                        })();
+
+                        const itemsHtml = items.length > 0 ? items.map(item => `
+                          <div style="display:flex;gap:12px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+                            ${item.image ? `<img src="${item.image}" alt="${item.name}" style="width:60px;height:60px;border-radius:4px;object-fit:cover;">` : ''}
+                            <div style="flex:1;">
+                              <p style="font-weight:500;margin-bottom:4px;">${item.name || 'Unknown Product'}</p>
+                              <p style="color:var(--text-secondary);font-size:12px;">Qty: ${item.qty || 1} × ${fmt$(item.price || 0)}</p>
+                            </div>
+                          </div>
+                        `).join('') : '<p style="color:var(--text-secondary);font-size:12px;">No items</p>';
+
+                        const trackingLink = order.tracking_url ? `<a href="${order.tracking_url}" target="_blank" style="color:var(--accent);text-decoration:none;cursor:pointer;">Track Shipment</a>` : '—';
+
+                        return `
+                          <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;">
+                            <!-- Header -->
+                            <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid var(--border);">
+                              <div>
+                                <p style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">ORDER #${orderNum}</p>
+                                <p style="font-size:13px;color:var(--text-secondary);">${fmtDate(order.created_at)}</p>
+                              </div>
+                              <div style="text-align:right;">
+                                <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:4px;">Status</p>
+                                <span style="display:inline-block;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:600;background:${order.status === 'refunded' ? '#ef4444' : order.status === 'completed' ? '#10b981' : '#f59e0b'};color:${order.status === 'refunded' ? '#fff' : order.status === 'completed' ? '#fff' : '#fff'};">${order.status || 'unknown'}</span>
+                              </div>
+                            </div>
+
+                            <!-- Customer Info -->
+                            <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);">
+                              <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Customer</p>
+                              <p style="font-weight:500;margin-bottom:2px;">${order.customer_name || 'N/A'}</p>
+                              <p style="font-size:12px;color:var(--text-secondary);">${order.email || 'N/A'}</p>
+                            </div>
+
+                            <!-- Items -->
+                            <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);">
+                              <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:12px;">Items Ordered</p>
+                              ${itemsHtml}
+                            </div>
+
+                            <!-- Order Summary -->
+                            <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);background:var(--bg-primary);padding:16px;border-radius:6px;">
+                              <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                                <span style="color:var(--text-secondary);">Subtotal</span>
+                                <span>${fmt$(order.subtotal || 0)}</span>
+                              </div>
+                              <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                                <span style="color:var(--text-secondary);">Shipping</span>
+                                <span>${fmt$(order.shipping || 0)}</span>
+                              </div>
+                              <div style="display:flex;justify-content:space-between;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:8px;">
+                                <span style="color:var(--text-secondary);">Tax</span>
+                                <span>${fmt$(order.tax || 0)}</span>
+                              </div>
+                              <div style="display:flex;justify-content:space-between;font-weight:700;font-size:14px;">
+                                <span>Total</span>
+                                <span style="color:var(--accent);">${fmt$(order.total || 0)}</span>
+                              </div>
+                            </div>
+
+                            <!-- Shipping Address -->
+                            <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);">
+                              <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Shipping Address</p>
+                              <p style="font-size:12px;line-height:1.6;">
+                                ${order.shipping_address || 'N/A'}<br>
+                                ${order.shipping_city ? order.shipping_city + ', ' : ''}${order.shipping_state || ''} ${order.shipping_zip || ''}<br>
+                                ${order.shipping_country || ''}
+                              </p>
+                            </div>
+
+                            <!-- Tracking -->
+                            <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);">
+                              <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Tracking Information</p>
+                              <p style="font-size:12px;margin-bottom:4px;">
+                                <strong>${order.shipping_provider || 'N/A'}</strong>
+                                ${order.shipping_service ? ' — ' + order.shipping_service : ''}
+                              </p>
+                              <p style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">
+                                ${order.tracking_number || '—'}
+                              </p>
+                              ${trackingLink}
+                            </div>
+
+                            <!-- Action Button -->
+                            ${order.status !== 'refunded' ? `<button onclick="window._recMarkRefunded('${order.id}')" style="background:var(--bg-primary);border:1px solid #ef4444;color:#ef4444;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.2s;">Mark Refunded</button>` : '<p style="font-size:12px;color:var(--text-secondary);">This order has been refunded.</p>'}
+                          </div>
+                        `;
+                      }).join('');
+                    }
+
+                    function updateStats() {
+                      const allOrders = _allReceipts;
+                      const total = allOrders.length;
+                      const revenue = allOrders.reduce((sum, o) => sum + (parseFloat(o.total) || 0), 0);
+                      const avg = total > 0 ? revenue / total : 0;
+
+                      recEl('rec-total-orders').textContent = total.toLocaleString();
+                      recEl('rec-total-revenue').textContent = fmt$(revenue);
+                      recEl('rec-avg-order').textContent = fmt$(avg);
+                    }
+
+                    function filterReceipts() {
+                      const q = recEl('rec-search')?.value.toLowerCase() || '';
+                      _filteredReceipts = q ? _allReceipts.filter(o => {
+                        const customerName = (o.customer_name || '').toLowerCase();
+                        const email = (o.email || '').toLowerCase();
+                        const orderNum = (o.stripe_payment_intent_id || '').slice(-8).toLowerCase();
+                        const amount = fmt$(o.total || 0).toLowerCase();
+                        return customerName.includes(q) || email.includes(q) || orderNum.includes(q) || amount.includes(q);
+                      }) : _allReceipts;
+                      renderReceipts();
+                    }
+
+                    window._recMarkRefunded = async function(orderId) {
+                      if (!confirm('Mark this order as refunded?')) return;
+                      try {
+                        const { error } = await sb.from('orders').update({ status: 'refunded' }).eq('id', orderId);
+                        if (error) throw error;
+                        // Reload data
+                        _recLoaded = false;
+                        window.receiptsLoadData();
+                      } catch (e) {
+                        recErr('Failed to mark refunded: ' + e.message);
+                      }
+                    };
+
+                    window.receiptsLoadData = async function() {
+                      if (_recLoaded) return;
+                      recEl('rec-error').style.display = 'none';
+
+                      try {
+                        const { data: orders, error } = await sb.from('orders')
+                          .select('id,stripe_payment_intent_id,created_at,customer_name,email,items,subtotal,shipping,tax,total,status,shipping_address,shipping_city,shipping_state,shipping_zip,shipping_country,shipping_provider,shipping_service,tracking_number,tracking_url')
+                          .order('created_at', { ascending: false });
+
+                        if (error) throw error;
+
+                        _allReceipts = orders || [];
+                        _filteredReceipts = _allReceipts;
+
+                        updateStats();
+                        renderReceipts();
+
+                        // Attach event listeners
+                        recEl('rec-search').addEventListener('input', filterReceipts);
+                        recEl('rec-sort').addEventListener('change', renderReceipts);
+
+                        _recLoaded = true;
+                      } catch (e) {
+                        recErr('Failed to load receipts: ' + e.message);
+                      }
+                    };
+                  })();
+                  </script>
+                </div>
+
                 <!-- Settings Page -->
                 <div id="settings" class="page">
                     <h2>Settings</h2>
@@ -3230,6 +3480,7 @@
                 analytics: 'Analytics',
                 finance: 'Finance',
                 shipping: 'Shipping',
+                receipts: 'Receipts',
                 settings: 'Settings',
                 website: 'Website Settings'
             };
@@ -3252,6 +3503,8 @@
                 if (typeof window.finLoadData === 'function') window.finLoadData();
             } else if (page === 'shipping') {
                 if (typeof window.shipLoadData === 'function') window.shipLoadData();
+            } else if (page === 'receipts') {
+                if (typeof window.receiptsLoadData === 'function') window.receiptsLoadData();
             }
         }
 

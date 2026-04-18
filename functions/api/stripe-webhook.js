@@ -266,14 +266,21 @@ async function sendConfirmationEmail(pi, meta, tracking, env) {
 
   let itemsHtml = '';
   try {
-    itemsHtml = JSON.parse(meta.items || '[]').map(i =>
-      `<tr>
-        <td style="padding:6px 0;border-bottom:1px solid #eee">${i.name}</td>
-        <td style="padding:6px 0;border-bottom:1px solid #eee;text-align:right">${i.quantity} × $${(i.amount / 100).toFixed(2)}</td>
-      </tr>`
-    ).join('');
+    itemsHtml = JSON.parse(meta.items || '[]').map(i => {
+      const imgHtml = i.image
+        ? `<img src="${i.image}" alt="${i.name}" width="64" height="64" style="width:64px;height:64px;object-fit:cover;border-radius:6px;display:block;">`
+        : `<div style="width:64px;height:64px;border-radius:6px;background:#f4f1eb;display:flex;align-items:center;justify-content:center;font-size:1.4rem;">👕</div>`;
+      return `<tr>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;vertical-align:middle;width:80px">${imgHtml}</td>
+        <td style="padding:10px 8px;border-bottom:1px solid #eee;vertical-align:middle">
+          <div style="font-weight:600;font-size:.9rem">${i.name}</div>
+          ${i.sku ? `<div style="font-size:.78rem;color:#999">SKU: ${i.sku}</div>` : ''}
+        </td>
+        <td style="padding:10px 0;border-bottom:1px solid #eee;text-align:right;vertical-align:middle;white-space:nowrap;font-size:.9rem">${i.quantity} × $${(i.amount / 100).toFixed(2)}</td>
+      </tr>`;
+    }).join('');
   } catch (_) {
-    itemsHtml = '<tr><td colspan="2">Your Zuwera order</td></tr>';
+    itemsHtml = '<tr><td colspan="3">Your Zuwera order</td></tr>';
   }
 
   const trackingHtml = tracking.number
