@@ -2337,7 +2337,7 @@ function renderProductCards(products, grid) {
     const domId = p.unique_id || p.id;
     const isLive = (p.status === 'live' || p.status === 'Live');
     return `
-      <div class="pcard" onclick="window.location.href='${productHref(p)}'" style="cursor:pointer;position:relative;overflow:hidden">
+      <div class="pcard" onclick="if(!event.target.closest('.quick-size-panel,.pcard-add-btn')){window.location.href='${productHref(p)}'}" style="cursor:pointer;position:relative;overflow:hidden">
         <div class="pcard-img">
           ${imgHtml}
           <div class="pcard-badge">${badge}</div>
@@ -3171,18 +3171,36 @@ function _quickShowSizeStep(panel, sizeEntries, productId, productTitle, product
   if (labelEl) labelEl.textContent = colorName && colorName !== 'Standard' ? colorName + ' — Select Size' : 'Select Size';
   if (!bodyEl) return;
 
-  const backBtn = colors && colors.length > 0
-    ? `<button class="quick-back-btn" onclick="event.stopPropagation();_quickShowColorStep(document.getElementById('${panel.id}'),[${colors.map(c=>`{color_name:'${c.color_name.replace(/'/g,"\\'")}',hex_color:'${(c.hex_color||'').replace(/'/g,"\\'")}',variant_sku:'${(c.variant_sku||'').replace(/'/g,"\\'")}' }`).join(',')}],'${productId}','${productTitle.replace(/'/g,"\\'").replace(/"/g,"&quot;")}',${productPrice},'${productSku.replace(/'/g,"\\'")}','${productImage.replace(/'/g,"\\'")}',${JSON.stringify(sizeEntries)})">← Back</button>`
-    : '';
+  const hasBack = colors && colors.length > 0;
 
   bodyEl.innerHTML = `
-    <div style="margin-bottom:.7rem">${backBtn}</div>
+    ${hasBack ? '<div style="margin-bottom:.7rem"><button type="button" class="quick-back-btn" data-action="back">← Back</button></div>' : ''}
     <div class="quick-size-grid">${
       sizeEntries.map(([size, stock]) => {
         const soldOut = stock <= 0;
-        return `<button class="quick-size-btn${soldOut?' sold-out':''}" ${soldOut?'disabled':''} onclick="event.stopPropagation();quickAddConfirmItem('${productId}','${productTitle.replace(/'/g,"\\'").replace(/"/g,"&quot;")}',${productPrice},'${productSku.replace(/'/g,"\\'")}','${productImage.replace(/'/g,"\\'")}','${size.replace(/'/g,"\\'")}','${(colorName||'Standard').replace(/'/g,"\\'")}');closeQuickSizePanel('${panel.id}')">${size}</button>`;
+        return `<button type="button" class="quick-size-btn${soldOut?' sold-out':''}" ${soldOut?'disabled':''} data-size="${size.replace(/"/g,'&quot;')}">${size}</button>`;
       }).join('')
     }</div>`;
+
+  // Back button — re-show color step
+  if (hasBack) {
+    const backEl = bodyEl.querySelector('[data-action="back"]');
+    if (backEl) {
+      backEl.addEventListener('click', function(e) {
+        e.preventDefault(); e.stopPropagation();
+        _quickShowColorStep(panel, colors, productId, productTitle, productPrice, productSku, productImage, sizeEntries);
+      });
+    }
+  }
+
+  // Size buttons — add to cart
+  bodyEl.querySelectorAll('.quick-size-btn:not(.sold-out)').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      quickAddConfirmItem(productId, productTitle, productPrice, productSku, productImage, btn.dataset.size, colorName || 'Standard');
+      closeQuickSizePanel(panel.id);
+    });
+  });
 }
 
 window.quickAddConfirmItem = function(productId, productTitle, productPrice, productSku, productImage, size, colorName) {

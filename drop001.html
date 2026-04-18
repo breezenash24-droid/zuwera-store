@@ -980,7 +980,7 @@ function updateCountdown() {
           const colCardId = 'cqsp-' + (p.unique_id || p.id).toString().replace(/[^a-z0-9]/gi,'');
           const priceVal = productPrice ? parseFloat(productPrice) : 0;
           return `
-            <a href="${productHref(p)}" style="text-decoration:none;color:inherit" onclick="${isLive ? `if(event.target.closest('.product-add-btn,.quick-size-panel-col')){event.preventDefault();}` : ''}">
+            <a href="${productHref(p)}" style="text-decoration:none;color:inherit" onclick="${isLive ? `if(event.target.closest('.product-add-btn,.quick-size-panel-col,.qback-btn,.qcol-swatch,.qsz-btn')){event.preventDefault();event.stopPropagation();}` : ''}">
               <div class="product-card">
                 <div class="product-img">
                   <button
@@ -1137,7 +1137,7 @@ function updateCountdown() {
 
     var backHtml = '';
     if (colors && colors.length > 0) {
-      backHtml = '<button class="qback-btn" id="' + panelId + '-back">← Back</button>';
+      backHtml = '<button type="button" class="qback-btn" id="' + panelId + '-back">← Back</button>';
     }
 
     bodyEl.innerHTML = backHtml + '<div class="quick-size-row">'
