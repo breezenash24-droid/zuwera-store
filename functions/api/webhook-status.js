@@ -10,15 +10,32 @@ export async function onRequestGet({ env }) {
   const check = (key) => {
     const val = env[key];
     if (!val) return '❌ missing';
-    if (val.startsWith('sk_test_')) return '✅ present (TEST mode)';
-    if (val.startsWith('sk_live_')) return '✅ present (LIVE mode)';
-    if (val.startsWith('pk_test_')) return '✅ present (TEST mode)';
-    if (val.startsWith('pk_live_')) return '✅ present (LIVE mode)';
-    if (val.startsWith('whsec_')) return '✅ present (webhook secret)';
-    if (val.startsWith('re_')) return '✅ present (Resend key)';
-    if (val.startsWith('shippo_')) return '✅ present (Shippo key)';
-    return '✅ present (' + val.length + ' chars)';
+    const len = val.length;
+    if (val.startsWith('sk_test_')) return '✅ TEST mode sk (len=' + len + ')';
+    if (val.startsWith('sk_live_')) return '✅ LIVE mode sk (len=' + len + ')';
+    if (val.startsWith('pk_test_')) return '✅ TEST mode pk (len=' + len + ')';
+    if (val.startsWith('pk_live_')) return '✅ LIVE mode pk (len=' + len + ')';
+    if (val.startsWith('whsec_')) return '✅ webhook secret — first12: ' + val.slice(0, 12) + '... (len=' + len + ')';
+    if (val.startsWith('re_')) return '✅ Resend key (len=' + len + ')';
+    if (val.startsWith('shippo_')) return '✅ Shippo key (len=' + len + ')';
+    if (val.startsWith('eyJ')) return '✅ JWT token (len=' + len + ')';
+    return '⚠️  unknown format (len=' + len + ', starts: ' + val.slice(0, 6) + ')';
   };
+
+  const checkSupabase = async () => {
+    if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) return '❌ missing URL or key';
+    if (env.SUPABASE_SERVICE_KEY.length < 100) return '❌ KEY TOO SHORT (' + env.SUPABASE_SERVICE_KEY.length + ' chars) — paste the full service_role JWT from Supabase Dashboard → Settings → API';
+    try {
+      const r = await fetch(env.SUPABASE_URL + '/rest/v1/orders?select=count&limit=1', {
+        headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY },
+      });
+      return r.ok ? '✅ connected (HTTP ' + r.status + ')' : '❌ auth failed (HTTP ' + r.status + ') — check service_role key';
+    } catch (e) {
+      return '❌ fetch error: ' + e.message;
+    }
+  };
+
+  const supabaseTest = await checkSupabase();
 
   const status = {
     timestamp: new Date().toISOString(),
@@ -28,7 +45,7 @@ export async function onRequestGet({ env }) {
       RESEND_API_KEY:        check('RESEND_API_KEY'),
       RESEND_FROM_EMAIL:     check('RESEND_FROM_EMAIL'),
       SUPABASE_URL:          check('SUPABASE_URL'),
-      SUPABASE_SERVICE_KEY:  check('SUPABASE_SERVICE_KEY'),
+      SUPABASE_SERVICE_KEY:  check('SUPABASE_SERVICE_KEY') + ' | live test: ' + supabaseTest,
       SHIPPO_API_KEY:        check('SHIPPO_API_KEY'),
       SHIPPO_FROM_NAME:      check('SHIPPO_FROM_NAME'),
       SHIPPO_FROM_STREET1:   check('SHIPPO_FROM_STREET1'),
