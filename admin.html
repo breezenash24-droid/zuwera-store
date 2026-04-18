@@ -8,7 +8,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <style>
         :root {
             --bg-primary: #09090b;
@@ -1711,6 +1710,21 @@
                     let finRevenueChart = null;
                     let finProductChart = null;
                     let finCategoryChart = null;
+                    let _chartJsReady = false;
+                    let _chartJsLoading = false;
+                    let _chartJsQueue = [];
+
+                    function loadChartJs(cb) {
+                      if (_chartJsReady) { cb(); return; }
+                      _chartJsQueue.push(cb);
+                      if (_chartJsLoading) return;
+                      _chartJsLoading = true;
+                      const s = document.createElement('script');
+                      s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js';
+                      s.onload = function() { _chartJsReady = true; _chartJsQueue.splice(0).forEach(function(f){ f(); }); };
+                      s.onerror = function() { _chartJsQueue.splice(0).forEach(function(f){ f(new Error('Chart.js failed to load')); }); };
+                      document.head.appendChild(s);
+                    }
 
                     const CAT_COLORS = ['#F891A5','#a78bfa','#34d399','#fbbf24','#60a5fa','#f87171','#e879f9','#2dd4bf','#fb923c','#94a3b8'];
 
@@ -1726,6 +1740,9 @@
                     window.finLoadData = async function() {
                       if (_finLoaded) return;
                       finEl('fin-error').style.display = 'none';
+
+                      // Ensure Chart.js is loaded before proceeding
+                      await new Promise(function(resolve, reject) { loadChartJs(function(err){ err ? reject(err) : resolve(); }); });
 
                       try {
                         // Fetch orders and products in parallel
