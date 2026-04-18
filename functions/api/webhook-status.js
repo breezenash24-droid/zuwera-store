@@ -24,12 +24,30 @@ export async function onRequestGet({ env }) {
 
   const checkSupabase = async () => {
     if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) return '❌ missing URL or key';
-    if (env.SUPABASE_SERVICE_KEY.length < 100) return '❌ KEY TOO SHORT (' + env.SUPABASE_SERVICE_KEY.length + ' chars) — paste the full service_role JWT from Supabase Dashboard → Settings → API';
+    const key = env.SUPABASE_SERVICE_KEY;
+    if (key.length < 100) return '❌ KEY TOO SHORT (' + key.length + ' chars) — paste the full service_role JWT from Supabase Dashboard → Settings → API';
+
+    // Decode the JWT payload to check the role without exposing the secret
+    let jwtRole = 'unknown';
     try {
-      const r = await fetch(env.SUPABASE_URL + '/rest/v1/orders?select=count&limit=1', {
-        headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY },
+      const parts = key.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+        jwtRole = payload.role || 'unknown';
+      }
+    } catch (_) {}
+
+    if (jwtRole !== 'service_role') {
+      return '❌ JWT role is "' + jwtRole + '" — you need the service_role key, not the ' + jwtRole + ' key. Go to Supabase → Settings → API → copy the service_role secret key.';
+    }
+
+    try {
+      const r = await fetch(env.SUPABASE_URL + '/rest/v1/orders?select=id&limit=1', {
+        headers: { apikey: key, Authorization: 'Bearer ' + key },
       });
-      return r.ok ? '✅ connected (HTTP ' + r.status + ')' : '❌ auth failed (HTTP ' + r.status + ') — check service_role key';
+      if (r.ok || r.status === 416) return '✅ service_role key connected (HTTP ' + r.status + ')';
+      const txt = await r.text().catch(() => '');
+      return '❌ HTTP ' + r.status + ' — ' + txt.slice(0, 100);
     } catch (e) {
       return '❌ fetch error: ' + e.message;
     }
