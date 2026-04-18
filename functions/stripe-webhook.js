@@ -138,19 +138,129 @@ async function createShippingLabel(pi, meta, env, stripe) {
 async function sendConfirmationEmail(pi, meta, env) {
   if (!env.RESEND_API_KEY) return null;
 
-  const orderId      = pi.id.slice(-8).toUpperCase();
-  const totalDollars = (pi.amount / 100).toFixed(2);
-  const toEmail      = meta.customer_email;
-  const toName       = meta.customer_name || 'Customer';
-  const shippingLine = meta.shipping_provider && meta.shipping_service
-    ? `${meta.shipping_provider} ${meta.shipping_service}` : 'Standard Shipping';
+  const toEmail    = meta.customer_email;
+  const toName     = meta.customer_name || 'Customer';
+  const firstName  = toName.split(' ')[0];
+  const orderId    = pi.id.slice(-8).toUpperCase();
+  const year       = new Date().getFullYear();
 
-  let itemsHtml = '';
-  try {
-    itemsHtml = JSON.parse(meta.items || '[]').map(i =>
-      `<tr><td>${i.name}</td><td>${i.quantity}x $${(i.amount/100).toFixed(2)}</td></tr>`
-    ).join('');
-  } catch (_) { itemsHtml = '<tr><td colspan="2">Your Zuwera order</td></tr>'; }
+  const shippingAmountCents = parseInt(meta.shipping_amount_cents || '0');
+  const subtotalCents       = pi.amount - shippingAmountCents;
+  const subtotalDollars     = (subtotalCents / 100).toFixed(2);
+  const shippingDollars     = (shippingAmountCents / 100).toFixed(2);
+  const totalDollars        = (pi.amount / 100).toFixed(2);
+
+  const shippingLine = meta.shipping_provider && meta.shipping_service
+    ? `${meta.shipping_provider} — ${meta.shipping_service}` : 'Standard Shipping';
+
+  let items = [];
+  try { items = JSON.parse(meta.items || '[]'); } catch (_) {}
+
+  const itemsHtml = items.length > 0
+    ? items.map(i => {
+        const lineTotal = ((i.amount * i.quantity) / 100).toFixed(2);
+        return `<tr>
+          <td style="padding:12px 0;border-bottom:1px solid #1e1e1e;color:#f4f1eb;font-size:14px;">${i.name}</td>
+          <td style="padding:12px 0;border-bottom:1px solid #1e1e1e;color:#9b9b9b;font-size:14px;text-align:center;">×${i.quantity}</td>
+          <td style="padding:12px 0;border-bottom:1px solid #1e1e1e;color:#f4f1eb;font-size:14px;text-align:right;">$${lineTotal}</td>
+        </tr>`;
+      }).join('')
+    : `<tr><td colspan="3" style="padding:12px 0;color:#f4f1eb;font-size:14px;">Your Zuwera order</td></tr>`;
+
+  const hasAddress = meta.ship_line1 && meta.ship_city;
+  const addressHtml = hasAddress
+    ? `${meta.ship_line1}${meta.ship_line2 ? '<br>' + meta.ship_line2 : ''}<br>${meta.ship_city}, ${meta.ship_state} ${meta.ship_zip}<br>${meta.ship_country || 'US'}`
+    : 'Address on file';
+
+  const trackingHtml = meta.tracking_number ? `
+    <tr><td style="padding:0 32px 24px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#111;border-radius:8px;">
+        <tr><td style="padding:20px 24px;">
+          <p style="margin:0 0 4px;color:#9b9b9b;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Tracking</p>
+          <p style="margin:0;color:#f4f1eb;font-size:14px;">${meta.tracking_number}</p>
+          ${meta.tracking_url ? `<a href="${meta.tracking_url}" style="display:inline-block;margin-top:10px;padding:8px 16px;background:#F891A5;color:#09090b;font-size:12px;font-weight:700;text-decoration:none;border-radius:4px;">Track Package</a>` : ''}
+        </td></tr>
+      </table>
+    </td></tr>` : '';
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Order Confirmed — #${orderId}</title></head>
+<body style="margin:0;padding:0;background:#000;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#000;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="100%" style="max-width:560px;background:#09090b;border-radius:12px;overflow:hidden;" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="padding:40px 32px 32px;border-bottom:1px solid #1e1e1e;text-align:center;">
+            <p style="margin:0 0 24px;font-size:22px;font-weight:800;letter-spacing:0.12em;color:#f4f1eb;text-transform:uppercase;">ZUWERA</p>
+            <div style="width:48px;height:48px;background:#F891A5;border-radius:50%;margin:0 auto 16px;text-align:center;line-height:48px;font-size:22px;">✓</div>
+            <p style="margin:0 0 6px;font-size:20px;font-weight:700;color:#f4f1eb;">Order Confirmed</p>
+            <p style="margin:0;font-size:13px;color:#9b9b9b;letter-spacing:0.06em;">ORDER #${orderId}</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:28px 32px 0;">
+            <p style="margin:0;font-size:15px;color:#f4f1eb;">Hey ${firstName},</p>
+            <p style="margin:12px 0 0;font-size:14px;color:#9b9b9b;line-height:1.7;">Your order is confirmed and we're getting it ready. We'll send you a tracking number as soon as it ships.</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:24px 32px 0;">
+            <p style="margin:0 0 12px;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#9b9b9b;">Items</p>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <thead><tr>
+                <th style="padding-bottom:8px;text-align:left;font-size:11px;color:#555;font-weight:500;text-transform:uppercase;letter-spacing:0.06em;">Product</th>
+                <th style="padding-bottom:8px;text-align:center;font-size:11px;color:#555;font-weight:500;text-transform:uppercase;letter-spacing:0.06em;">Qty</th>
+                <th style="padding-bottom:8px;text-align:right;font-size:11px;color:#555;font-weight:500;text-transform:uppercase;letter-spacing:0.06em;">Price</th>
+              </tr></thead>
+              <tbody>${itemsHtml}</tbody>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 32px 0;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding:6px 0;font-size:13px;color:#9b9b9b;">Subtotal</td>
+                <td style="padding:6px 0;font-size:13px;color:#9b9b9b;text-align:right;">$${subtotalDollars}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;font-size:13px;color:#9b9b9b;">Shipping</td>
+                <td style="padding:6px 0;font-size:13px;color:#9b9b9b;text-align:right;">$${shippingDollars}</td>
+              </tr>
+              <tr>
+                <td style="padding:12px 0 0;font-size:15px;font-weight:700;color:#f4f1eb;border-top:1px solid #1e1e1e;">Total</td>
+                <td style="padding:12px 0 0;font-size:15px;font-weight:700;color:#F891A5;text-align:right;border-top:1px solid #1e1e1e;">$${totalDollars}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:28px 32px 0;">
+            <table width="100%" cellpadding="0" cellspacing="0"><tr>
+              <td style="width:50%;vertical-align:top;padding-right:12px;">
+                <p style="margin:0 0 10px;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#9b9b9b;">Ship to</p>
+                <p style="margin:0;color:#f4f1eb;font-size:14px;line-height:1.6;">${addressHtml}</p>
+              </td>
+              <td style="width:50%;vertical-align:top;padding-left:12px;">
+                <p style="margin:0 0 10px;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#9b9b9b;">Method</p>
+                <p style="margin:0;color:#f4f1eb;font-size:14px;line-height:1.6;">${shippingLine}</p>
+              </td>
+            </tr></table>
+          </td>
+        </tr>
+        ${trackingHtml}
+        <tr>
+          <td style="padding:32px;border-top:1px solid #1e1e1e;margin-top:28px;">
+            <p style="margin:0 0 8px;font-size:12px;color:#555;line-height:1.7;">Questions? <a href="mailto:nasirubreeze@zuwera.store" style="color:#F891A5;text-decoration:none;">nasirubreeze@zuwera.store</a></p>
+            <p style="margin:0;font-size:11px;color:#333;">© ${year} Zuwera. All rights reserved.</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 
   const resp = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -160,7 +270,7 @@ async function sendConfirmationEmail(pi, meta, env) {
       to:       [toEmail],
       reply_to: 'nasirubreeze@zuwera.store',
       subject:  `Order Confirmed — #${orderId}`,
-      html:     `<p>Order #${orderId} confirmed for ${toName}. Total: $${totalDollars}. Shipping via ${shippingLine}.</p>`
+      html,
     }),
   });
 
