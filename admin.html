@@ -2290,9 +2290,9 @@
                             <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);">
                               <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Shipping Address</p>
                               <p style="font-size:12px;line-height:1.6;">
-                                ${order.shipping_address || 'N/A'}<br>
-                                ${order.shipping_city ? order.shipping_city + ', ' : ''}${order.shipping_state || ''} ${order.shipping_zip || ''}<br>
-                                ${order.shipping_country || ''}
+                                ${order.ship_line1 || 'N/A'}${order.ship_line2 ? ', ' + order.ship_line2 : ''}<br>
+                                ${order.ship_city ? order.ship_city + ', ' : ''}${order.ship_state || ''} ${order.ship_zip || ''}<br>
+                                ${order.ship_country || ''}
                               </p>
                             </div>
 
@@ -2358,7 +2358,7 @@
 
                       try {
                         const { data: orders, error } = await sb.from('orders')
-                          .select('id,stripe_payment_intent_id,created_at,customer_name,email,items,subtotal,shipping,tax,total,status,shipping_address,shipping_city,shipping_state,shipping_zip,shipping_country,shipping_provider,shipping_service,tracking_number,tracking_url')
+                          .select('id,stripe_payment_intent_id,created_at,customer_name,email,items,subtotal,shipping,tax,total,free_shipping,status,ship_line1,ship_line2,ship_city,ship_state,ship_zip,ship_country,shipping_provider,shipping_service,tracking_number,tracking_url')
                           .order('created_at', { ascending: false });
 
                         if (error) throw error;
