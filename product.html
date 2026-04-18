@@ -34,6 +34,7 @@
 <link rel="stylesheet" href="product.css?v=5">
 <link rel="stylesheet" href="cart.css?v=6">
 <link rel="stylesheet" href="reviews.css?v=12">
+<script src="/stripe-client-config.js?v=1"></script>
 
 <style>
 /* Modal base styles (shared with index.html) */
@@ -3078,6 +3079,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
   let stripe = null, elements = null, card = null;
   let _stripeReady = false, _stripeLoading = false;
   const _stripeQueue = [];
+  let _stripeInitPromise = null;
 
   function _loadStripe(cb) {
     if (_stripeReady) { cb(); return; }
@@ -3090,17 +3092,26 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     document.head.appendChild(s);
   }
 
-  function _initStripe() {
-    if (stripe) return;
-    stripe = Stripe('pk_live_51T8ct20oFp4PJGitDcNMSLu9jQMFajtwqib8dTX4WhubBon2Pso2VgkHhTHcbuKNUi9ljfwMX8Bx2uhEp1Fp2VfY00LFKvLEy4');
-    elements = stripe.elements();
-    card = elements.create('card', {
-      style: {
-        base: { color:'#f4f1eb', fontFamily:'"DM Sans",sans-serif', fontSmoothing:'antialiased', fontSize:'15px', '::placeholder':{ color:'rgba(244,241,235,.25)' } },
-        invalid: { color:'#c0392b', iconColor:'#c0392b' }
-      }
+  async function _initStripe() {
+    if (stripe) return stripe;
+    if (_stripeInitPromise) return _stripeInitPromise;
+    _stripeInitPromise = (async () => {
+      const publishableKey = await window.zwGetStripePublishableKey();
+      stripe = Stripe(publishableKey);
+      elements = stripe.elements();
+      card = elements.create('card', {
+        style: {
+          base: { color:'#f4f1eb', fontFamily:'"DM Sans",sans-serif', fontSmoothing:'antialiased', fontSize:'15px', '::placeholder':{ color:'rgba(244,241,235,.25)' } },
+          invalid: { color:'#c0392b', iconColor:'#c0392b' }
+        }
+      });
+      card.mount('#stripe-card-element');
+      return stripe;
+    })().catch((error) => {
+      _stripeInitPromise = null;
+      throw error;
     });
-    card.mount('#stripe-card-element');
+    return _stripeInitPromise;
   }
 
   async function post(url, body) {
@@ -3184,7 +3195,13 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     document.body.style.overflow = 'hidden';
     document.getElementById('pay-error').textContent = '';
     void prefillCheckoutStateFromGeo();
-    _loadStripe(() => { _initStripe(); initPR(subtotalCents); });
+    _loadStripe(() => {
+      void _initStripe()
+        .then(() => initPR(subtotalCents))
+        .catch((error) => {
+          document.getElementById('pay-error').textContent = error?.message || 'Unable to load secure checkout.';
+        });
+    });
   }
   function closePayModal(id, { suppressReturn = false } = {}) {
     document.getElementById(id)?.classList.remove('open');
@@ -3436,6 +3453,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     if (!selRate) { err.textContent='Please enter your ZIP code to load shipping options.'; return; }
     btn.disabled=true; btxt.textContent='Processing...';
     try {
+      await _initStripe();
       const userId = await getCheckoutUserId();
       const d = await post('/api/create-payment-intent', { items:cartItems, shippingRate:selRate, userId, address:{name,email,line1:addr1,line2:addr2,city,state,zip,country:'US'} });
       if (d.error) { err.textContent=d.error; btn.disabled=false; btxt.textContent='Pay Now'; return; }

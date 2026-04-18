@@ -348,9 +348,9 @@
 
   </main>
 
+  <script src="/stripe-client-config.js?v=1"></script>
   <script src="https://js.stripe.com/v3/"></script>
   <script>
-    const STRIPE_KEY = 'pk_live_51T8ct20oFp4PJGitDcNMSLu9jQMFajtwqib8dTX4WhubBon2Pso2VgkHhTHcbuKNUi9ljfwMX8Bx2uhEp1Fp2VfY00LFKvLEy4';
     const TAX_RATE = 0.08;
     const SHIP_RATE_CENTS = 800;
     const FREE_SHIP_THRESHOLD = 100;
@@ -436,7 +436,8 @@
 
     // ── Stripe checkout ──────────────────────────────────────────────
     async function initCheckout(items, totals) {
-      const stripe = Stripe(STRIPE_KEY);
+      const stripeKey = await window.zwGetStripePublishableKey();
+      const stripe = Stripe(stripeKey);
 
       const payReq = stripe.paymentRequest({
         country: 'US',

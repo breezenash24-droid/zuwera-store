@@ -1,27 +1,46 @@
-// ===================== STRIPE SETUP =====================
-// 🔑 Replace with your live publishable key from Stripe Dashboard
 let stripe, elements, cardElement;
+let stripeInitPromise;
 
-function initStripe() {
-  if (typeof Stripe === 'undefined') return;
-  stripe = Stripe('pk_test_51T8ct20oFp4PJGitdabh4D80ReyWXbo7QsPltbO3PAChOzSmMDD6CJtOQkZ6Y4fMWCzkDmjAkexZDW6okKjQUf5p00SgMHKK2h');
-  elements = stripe.elements();
-  cardElement = elements.create('card', {
-    style: {
-      base: {
-        color: '#f5f5f0',
-        fontFamily: '"DM Sans", sans-serif',
-        fontSmoothing: 'antialiased',
-        fontSize: '15px',
-        '::placeholder': { color: 'rgba(245,245,240,0.3)' }
-      },
-      invalid: { color: '#e07060', iconColor: '#e07060' }
-    }
-  });
-  cardElement.mount('#stripe-card-element');
+async function getCheckoutPublishableKey() {
+  if (window.zwGetStripePublishableKey) return window.zwGetStripePublishableKey();
+  const resp = await fetch('/api/stripe-config', { headers: { Accept: 'application/json' } });
+  const data = await resp.json();
+  if (!resp.ok || !data?.publishableKey) throw new Error(data?.error || 'Unable to load Stripe configuration.');
+  return data.publishableKey;
 }
 
-document.addEventListener('DOMContentLoaded', initStripe);
+async function initStripe() {
+  if (stripe) return stripe;
+  if (stripeInitPromise) return stripeInitPromise;
+  stripeInitPromise = (async () => {
+    if (typeof Stripe === 'undefined') throw new Error('Stripe.js is not loaded.');
+    const publishableKey = await getCheckoutPublishableKey();
+    stripe = Stripe(publishableKey);
+    elements = stripe.elements();
+    cardElement = elements.create('card', {
+      style: {
+        base: {
+          color: '#f5f5f0',
+          fontFamily: '"DM Sans", sans-serif',
+          fontSmoothing: 'antialiased',
+          fontSize: '15px',
+          '::placeholder': { color: 'rgba(245,245,240,0.3)' }
+        },
+        invalid: { color: '#e07060', iconColor: '#e07060' }
+      }
+    });
+    cardElement.mount('#stripe-card-element');
+    return stripe;
+  })().catch((error) => {
+    stripeInitPromise = null;
+    throw error;
+  });
+  return stripeInitPromise;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  void initStripe().catch((error) => console.error('Stripe init failed:', error));
+});
 
 // ===================== HELPERS =====================
 

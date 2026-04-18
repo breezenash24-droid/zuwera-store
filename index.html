@@ -124,6 +124,7 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500&family=Barlow:wght@300;400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="reviews.css?v=12">
+<script src="/stripe-client-config.js?v=1"></script>
 
 <!-- Stripe is loaded lazily on checkout click to avoid blocking initial render -->
 <!-- defer moves Supabase off the critical path ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â it was previously
@@ -2976,6 +2977,7 @@ window.addEventListener('DOMContentLoaded', renderCart);
 let stripe = null, elements = null, card = null;
 let _stripeReady = false, _stripeLoading = false;
 const _stripeQueue = [];
+let _stripeInitPromise = null;
 function _loadStripe(cb) {
   if (_stripeReady) { cb(); return; }
   _stripeQueue.push(cb);
@@ -2986,24 +2988,33 @@ function _loadStripe(cb) {
   s.onload = () => { _stripeReady = true; _stripeQueue.splice(0).forEach(f => f()); };
   document.head.appendChild(s);
 }
-function _initStripe() {
-  if (stripe) return;
-  stripe = Stripe('pk_test_51T8ct20oFp4PJGitdabh4D80ReyWXbo7QsPltbO3PAChOzSmMDD6CJtOQkZ6Y4fMWCzkDmjAkexZDW6okKjQUf5p00SgMHKK2h');
-  elements = stripe.elements();
-  const _isLight = document.body.classList.contains('light-mode');
-  card = elements.create('card', {
-    style: {
-      base: {
-        color: _isLight ? 'rgba(9,9,11,.85)' : '#f4f1eb',
-        fontFamily:'"Barlow",sans-serif',
-        fontSmoothing:'antialiased',
-        fontSize:'15px',
-        '::placeholder':{ color: _isLight ? 'rgba(9,9,11,.35)' : 'rgba(244,241,235,.25)' }
-      },
-      invalid: { color:'#c0392b', iconColor:'#c0392b' }
-    }
+async function _initStripe() {
+  if (stripe) return stripe;
+  if (_stripeInitPromise) return _stripeInitPromise;
+  _stripeInitPromise = (async () => {
+    const publishableKey = await window.zwGetStripePublishableKey();
+    stripe = Stripe(publishableKey);
+    elements = stripe.elements();
+    const _isLight = document.body.classList.contains('light-mode');
+    card = elements.create('card', {
+      style: {
+        base: {
+          color: _isLight ? 'rgba(9,9,11,.85)' : '#f4f1eb',
+          fontFamily:'"Barlow",sans-serif',
+          fontSmoothing:'antialiased',
+          fontSize:'15px',
+          '::placeholder':{ color: _isLight ? 'rgba(9,9,11,.35)' : 'rgba(244,241,235,.25)' }
+        },
+        invalid: { color:'#c0392b', iconColor:'#c0392b' }
+      }
+    });
+    card.mount('#stripe-card-element');
+    return stripe;
+  })().catch((error) => {
+    _stripeInitPromise = null;
+    throw error;
   });
-  card.mount('#stripe-card-element');
+  return _stripeInitPromise;
 }
 
 async function post(url, body) {
@@ -3119,7 +3130,13 @@ function openPaymentModal(subtotalCents) {
   }
 
   void prefillCheckoutStateFromGeo();
-  _loadStripe(() => { _initStripe(); initPR(subtotalCents); });
+  _loadStripe(() => {
+    void _initStripe()
+      .then(() => initPR(subtotalCents))
+      .catch((error) => {
+        document.getElementById('pay-error').textContent = error?.message || 'Unable to load secure checkout.';
+      });
+  });
 }
 
 function closePaymentModal({ suppressReturn = false } = {}) {
@@ -3512,6 +3529,7 @@ document.getElementById('pay-submit').addEventListener('click', async () => {
   if(!_qualifiesFree && !selRate){ err.textContent='Please enter your ZIP and state to load shipping options.'; return; }
   btn.disabled=true; btxt.textContent='Processing...';
   try {
+    await _initStripe();
     const userId = await getCheckoutUserId();
     const d = await post('/api/create-payment-intent', { items:cartItems, shippingRate:selRate, freeShipping:_qualifiesFree, userId, address:{name,email,line1:addr1,line2:addr2,city,state,zip,country:'US'} });
     if(d.error){ err.textContent=d.error; btn.disabled=false; btxt.textContent='Pay Now'; return; }
@@ -3681,7 +3699,7 @@ function scrollToNotify() {
 
 <!-- PWA Service Worker -->
 <script>
-if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=7').then(reg=>reg.update()).catch(()=>{})}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=8').then(reg=>reg.update()).catch(()=>{})}
 </script>
 
 <!-- Cookie Consent / GDPR -->
