@@ -627,6 +627,50 @@ body.light-mode #mobile-menu-close { color:#09090b !important; }
   padding-bottom:2px;cursor:pointer;transition:border-color .2s;
 }
 .pcard-action:hover{border-color:var(--gold)}
+/* ─── Quick-Add to Bag ────────────────────────────────── */
+.pcard-add-btn{
+  display:block;width:100%;margin-top:1rem;
+  background:var(--gold);color:#09090b;border:none;
+  padding:.75rem 1rem;
+  font-family:var(--fm);font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;font-weight:600;
+  cursor:pointer;transition:background .2s,transform .15s;
+}
+.pcard-add-btn:hover{background:#f4f1eb;transform:translateY(-1px)}
+.pcard-add-btn.loading{opacity:.6;pointer-events:none}
+/* Size picker panel that slides up from within the card */
+.quick-size-panel{
+  position:absolute;bottom:0;left:0;right:0;
+  background:#09090b;border-top:1px solid rgba(244,241,235,.1);
+  padding:1.2rem 1.4rem;
+  transform:translateY(100%);transition:transform .25s cubic-bezier(.32,.72,0,1);
+  z-index:20;
+}
+.quick-size-panel.open{transform:translateY(0)}
+.quick-size-panel-header{
+  display:flex;justify-content:space-between;align-items:center;
+  font-family:var(--fm);font-size:.55rem;letter-spacing:.18em;text-transform:uppercase;
+  color:rgba(244,241,235,.5);margin-bottom:.8rem;
+}
+.quick-size-close{
+  background:none;border:none;color:rgba(244,241,235,.4);cursor:pointer;
+  font-size:1.1rem;line-height:1;padding:2px 4px;transition:color .15s;
+}
+.quick-size-close:hover{color:var(--gold)}
+.quick-size-grid{
+  display:flex;flex-wrap:wrap;gap:.5rem;
+}
+.quick-size-btn{
+  background:transparent;border:1px solid rgba(244,241,235,.2);
+  color:rgba(244,241,235,.85);
+  padding:.45rem .75rem;
+  font-family:var(--fm);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;
+  cursor:pointer;transition:all .15s;min-width:40px;text-align:center;
+}
+.quick-size-btn:hover:not(.sold-out){background:var(--gold);color:#09090b;border-color:var(--gold)}
+.quick-size-btn.sold-out{opacity:.3;cursor:not-allowed;text-decoration:line-through}
+body.light-mode .quick-size-panel{background:#f0eee9;border-top-color:rgba(9,9,11,.1)}
+body.light-mode .quick-size-btn{color:rgba(9,9,11,.85);border-color:rgba(9,9,11,.2)}
+body.light-mode .quick-size-close{color:rgba(9,9,11,.4)}
 
 /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
    FOOTER
@@ -2263,8 +2307,9 @@ function renderProductCards(products, grid) {
           </div>`;
     const priceDisplay = productPrice ? `$${Number(productPrice).toFixed(2)}` : 'Price TBA';
     const domId = p.unique_id || p.id;
+    const isLive = (p.status === 'live' || p.status === 'Live');
     return `
-      <div class="pcard" onclick="window.location.href='${productHref(p)}'" style="cursor:pointer">
+      <div class="pcard" onclick="window.location.href='${productHref(p)}'" style="cursor:pointer;position:relative;overflow:hidden">
         <div class="pcard-img">
           ${imgHtml}
           <div class="pcard-badge">${badge}</div>
@@ -2280,7 +2325,15 @@ function renderProductCards(products, grid) {
             <span id="avg-${domId}"><span style="color:rgba(244,241,235,.2)">\u2606\u2606\u2606\u2606\u2606</span></span>
             <span id="cnt-${domId}">Be the first to review</span>
           </button>
+          ${isLive ? `<button class="pcard-add-btn" onclick="event.stopPropagation();quickAddToCart('${p.id}','${productName.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${productPrice},'${(p.sku||'').replace(/'/g,"\\'")}','${(firstImg||'').replace(/'/g,"\\'")}',this)">Add to Bag</button>` : ''}
         </div>
+        ${isLive ? `<div class="quick-size-panel" id="qsp-${domId}">
+          <div class="quick-size-panel-header">
+            <span>Select Size</span>
+            <button class="quick-size-close" onclick="event.stopPropagation();closeQuickSizePanel('qsp-${domId}')">✕</button>
+          </div>
+          <div class="quick-size-grid" id="qsg-${domId}"></div>
+        </div>` : ''}
       </div>`;
   }).join('');
 
@@ -2972,6 +3025,117 @@ document.getElementById('checkout-btn').addEventListener('click', () => {
   openPaymentModal(sub || 100);
 });
 window.addEventListener('DOMContentLoaded', renderCart);
+
+// ─── Quick Add to Bag (product grid cards) ─────────────────────────────────
+// Clicking "Add to Bag" on a card fetches sizes from Supabase, shows a size
+// picker panel overlaid at the bottom of that card, then adds to cart.
+
+function closeQuickSizePanel(panelId) {
+  const panel = document.getElementById(panelId);
+  if (panel) panel.classList.remove('open');
+}
+
+// Close any open panels when clicking outside
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.pcard')) {
+    document.querySelectorAll('.quick-size-panel.open').forEach(p => p.classList.remove('open'));
+  }
+});
+
+async function quickAddToCart(productId, productTitle, productPrice, productSku, productImage, btn) {
+  // Close any other open panels first
+  document.querySelectorAll('.quick-size-panel.open').forEach(p => p.classList.remove('open'));
+
+  const card = btn.closest('.pcard');
+  if (!card) return;
+
+  // Find panel and size grid for this card — match by card's position in DOM
+  const panel = card.querySelector('.quick-size-panel');
+  const sizeGrid = card.querySelector('.quick-size-grid');
+  if (!panel || !sizeGrid) return;
+
+  btn.classList.add('loading');
+  btn.textContent = '...';
+
+  try {
+    const headers = { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON };
+    const resp = await fetch(
+      SUPABASE_URL + '/rest/v1/product_sizes?select=size,stock_quantity&product_id=eq.' + encodeURIComponent(productId) + '&order=sort_order.asc',
+      { headers }
+    );
+    const rows = resp.ok ? await resp.json() : [];
+
+    // Aggregate stock by size label
+    const sizeMap = {};
+    (rows || []).forEach(r => {
+      const label = r.size || '';
+      if (!label) return;
+      sizeMap[label] = (sizeMap[label] || 0) + (r.stock_quantity || 0);
+    });
+    const sizeEntries = Object.entries(sizeMap);
+
+    if (sizeEntries.length === 0) {
+      // No size data → add directly with size "One Size"
+      quickAddConfirmItem(productId, productTitle, productPrice, productSku, productImage, 'One Size');
+      return;
+    }
+
+    // If only "One Size" entry, skip picker
+    if (sizeEntries.length === 1 && /one.?size/i.test(sizeEntries[0][0])) {
+      quickAddConfirmItem(productId, productTitle, productPrice, productSku, productImage, sizeEntries[0][0]);
+      return;
+    }
+
+    // Build size buttons
+    sizeGrid.innerHTML = sizeEntries.map(([size, stock]) => {
+      const soldOut = stock <= 0;
+      return `<button class="quick-size-btn${soldOut ? ' sold-out' : ''}"
+        onclick="event.stopPropagation();${soldOut ? '' : `quickAddConfirmItem('${productId.replace(/'/g,"\\'")}','${productTitle.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${productPrice},'${productSku.replace(/'/g,"\\'")}','${productImage.replace(/'/g,"\\'")}','${size.replace(/'/g,"\\'")}');closeQuickSizePanel('${panel.id}')`}"
+        ${soldOut ? 'disabled' : ''}>${size}</button>`;
+    }).join('');
+
+    panel.classList.add('open');
+  } catch(e) {
+    console.error('Quick add failed:', e);
+    // Fallback: navigate to product page
+    const href = card.getAttribute('onclick');
+    if (href) eval(href);
+  } finally {
+    btn.classList.remove('loading');
+    btn.textContent = 'Add to Bag';
+  }
+}
+
+window.quickAddConfirmItem = function(productId, productTitle, productPrice, productSku, productImage, size) {
+  const price = parseFloat(productPrice) || 0;
+  const cartItem = {
+    productId,
+    sku: productSku || '',
+    title: productTitle,
+    size,
+    colorName: 'Standard',
+    regularPrice: price,
+    memberPrice: null,
+    price,
+    image: productImage || '',
+    quantity: 1
+  };
+
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+  const existIdx = cart.findIndex(i => i.productId === productId && i.size === size && i.colorName === 'Standard');
+  if (existIdx > -1) {
+    cart[existIdx].quantity += 1;
+  } else {
+    cart.push(cartItem);
+  }
+  localStorage.setItem('cart', JSON.stringify(cart));
+  renderCart();
+
+  if (typeof gtag === 'function') {
+    gtag('event', 'add_to_cart', { currency: 'USD', value: price, items: [{ item_id: productId, item_name: productTitle, price, quantity: 1 }] });
+  }
+  showToast('Added to bag ✓');
+};
 
 /* STRIPE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â lazy-loaded on first checkout click */
 let stripe = null, elements = null, card = null;

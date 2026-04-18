@@ -370,6 +370,41 @@
       transition: border-color 0.2s;
     }
     .product-notify:hover { border-color: var(--white); }
+    /* ─── Quick-Add to Bag (collection cards) ─── */
+    .product-add-btn{
+      display:block;width:100%;margin-top:.9rem;
+      background:var(--white);color:var(--black);border:none;
+      padding:.7rem 1rem;
+      font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;font-weight:600;
+      cursor:pointer;transition:background .2s,transform .15s;
+    }
+    .product-add-btn:hover{background:rgba(244,241,235,.85);transform:translateY(-1px)}
+    .product-add-btn.loading{opacity:.6;pointer-events:none}
+    .quick-size-panel-col{
+      position:absolute;bottom:0;left:0;right:0;
+      background:#09090b;border-top:1px solid rgba(244,241,235,.12);
+      padding:1.1rem 1.2rem;
+      transform:translateY(100%);transition:transform .25s cubic-bezier(.32,.72,0,1);
+      z-index:10;
+    }
+    .quick-size-panel-col.open{transform:translateY(0)}
+    .quick-size-ph{
+      display:flex;justify-content:space-between;align-items:center;
+      font-size:.55rem;letter-spacing:.18em;text-transform:uppercase;
+      color:rgba(244,241,235,.45);margin-bottom:.7rem;
+    }
+    .quick-size-ph button{
+      background:none;border:none;color:rgba(244,241,235,.4);cursor:pointer;font-size:1rem;line-height:1;padding:2px 4px;
+    }
+    .quick-size-ph button:hover{color:#f4f1eb}
+    .quick-size-row{display:flex;flex-wrap:wrap;gap:.45rem}
+    .qsz-btn{
+      background:transparent;border:1px solid rgba(244,241,235,.2);color:rgba(244,241,235,.85);
+      padding:.4rem .7rem;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;
+      cursor:pointer;transition:all .15s;min-width:38px;text-align:center;
+    }
+    .qsz-btn:hover:not(.sold-out){background:#f4f1eb;color:#09090b;border-color:#f4f1eb}
+    .qsz-btn.sold-out{opacity:.3;cursor:not-allowed;text-decoration:line-through}
 
     /* FOOTER */
     footer {
@@ -926,8 +961,11 @@ function updateCountdown() {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
                 <span>Image Coming Soon</span>
               </div>`;
+          const isLive = (p.status === 'live' || p.status === 'Live');
+          const colCardId = 'cqsp-' + (p.unique_id || p.id).toString().replace(/[^a-z0-9]/gi,'');
+          const priceVal = productPrice ? parseFloat(productPrice) : 0;
           return `
-            <a href="${productHref(p)}" style="text-decoration:none;color:inherit">
+            <a href="${productHref(p)}" style="text-decoration:none;color:inherit" onclick="${isLive ? `if(event.target.closest('.product-add-btn,.quick-size-panel-col')){event.preventDefault();}` : ''}">
               <div class="product-card">
                 <div class="product-img">
                   <button
@@ -943,14 +981,24 @@ function updateCountdown() {
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                   </button>
                   ${imgHtml}
-                  <div class="product-overlay"><span class="coming-soon-badge">${badge}</span></div>
+                  <div class="product-overlay">${!isLive ? `<span class="coming-soon-badge">${badge}</span>` : ''}</div>
                 </div>
                 <div class="product-info">
                   <p class="product-category">${productCategory}</p>
                   <p class="product-name">${productName}</p>
-                  <p class="product-price">${productPrice ? Number(productPrice).toFixed(2) : 'Price TBA'}</p>
-                  <span class="product-notify" onclick="scrollToNotify(event)">Notify Me When Live →</span>
+                  <p class="product-price">${productPrice ? '$' + Number(productPrice).toFixed(2) : 'Price TBA'}</p>
+                  ${isLive
+                    ? `<button class="product-add-btn" onclick="event.preventDefault();event.stopPropagation();colQuickAdd('${p.id.toString().replace(/'/g,"\\'")}','${productName.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${priceVal},'${(p.sku||'').replace(/'/g,"\\'")}','${(originalImg||'').replace(/'/g,"\\'")}','${colCardId}',this)">${'Add to Bag'}</button>`
+                    : `<span class="product-notify" onclick="scrollToNotify(event)">Notify Me When Live →</span>`
+                  }
                 </div>
+                ${isLive ? `<div class="quick-size-panel-col" id="${colCardId}">
+                  <div class="quick-size-ph">
+                    <span>Select Size</span>
+                    <button onclick="event.preventDefault();event.stopPropagation();document.getElementById('${colCardId}').classList.remove('open')">✕</button>
+                  </div>
+                  <div class="quick-size-row" id="${colCardId}-sg"></div>
+                </div>` : ''}
               </div>
             </a>`;
         }).join('');
@@ -970,6 +1018,100 @@ function updateCountdown() {
     t.textContent = msg; t.classList.add('on');
     clearTimeout(t._toastTimer);
     t._toastTimer = setTimeout(function(){ t.classList.remove('on'); }, 2600);
+  }
+
+  // ─── Quick Add to Bag (collection page) ──────────────────────────────────
+  const _colSB_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+  const _colSB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.product-card')) {
+      document.querySelectorAll('.quick-size-panel-col.open').forEach(function(p){ p.classList.remove('open'); });
+    }
+  });
+
+  async function colQuickAdd(productId, productTitle, productPrice, productSku, productImage, panelId, btn) {
+    // Close any other open panels
+    document.querySelectorAll('.quick-size-panel-col.open').forEach(function(p){ p.classList.remove('open'); });
+
+    const panel = document.getElementById(panelId);
+    const sizeGrid = document.getElementById(panelId + '-sg');
+    if (!panel || !sizeGrid) return;
+
+    btn.classList.add('loading');
+    btn.textContent = '...';
+
+    try {
+      const headers = { 'apikey': _colSB_ANON, 'Authorization': 'Bearer ' + _colSB_ANON };
+      const resp = await fetch(
+        _colSB_URL + '/rest/v1/product_sizes?select=size,stock_quantity&product_id=eq.' + encodeURIComponent(productId) + '&order=sort_order.asc',
+        { headers }
+      );
+      const rows = resp.ok ? await resp.json() : [];
+
+      const sizeMap = {};
+      (rows || []).forEach(function(r) {
+        var label = r.size || '';
+        if (!label) return;
+        sizeMap[label] = (sizeMap[label] || 0) + (r.stock_quantity || 0);
+      });
+      const sizeEntries = Object.entries(sizeMap);
+
+      if (sizeEntries.length === 0) {
+        colAddItem(productId, productTitle, productPrice, productSku, productImage, 'One Size');
+        return;
+      }
+      if (sizeEntries.length === 1 && /one.?size/i.test(sizeEntries[0][0])) {
+        colAddItem(productId, productTitle, productPrice, productSku, productImage, sizeEntries[0][0]);
+        return;
+      }
+
+      sizeGrid.innerHTML = sizeEntries.map(function(entry) {
+        var size = entry[0], stock = entry[1];
+        var soldOut = stock <= 0;
+        return '<button class="qsz-btn' + (soldOut ? ' sold-out' : '') + '"'
+          + (soldOut ? ' disabled' : ' onclick="event.preventDefault();event.stopPropagation();colAddItem(\'' + productId.replace(/'/g,"\\'") + '\',\'' + productTitle.replace(/'/g,"\\'").replace(/"/g,'&quot;') + '\',' + productPrice + ',\'' + productSku.replace(/'/g,"\\'") + '\',\'' + productImage.replace(/'/g,"\\'") + '\',\'' + size.replace(/'/g,"\\'") + '\');document.getElementById(\'' + panelId + '\').classList.remove(\'open\')"')
+          + '>' + size + '</button>';
+      }).join('');
+
+      panel.classList.add('open');
+    } catch(e) {
+      console.error('colQuickAdd error:', e);
+    } finally {
+      btn.classList.remove('loading');
+      btn.textContent = 'Add to Bag';
+    }
+  }
+
+  function colAddItem(productId, productTitle, productPrice, productSku, productImage, size) {
+    var price = parseFloat(productPrice) || 0;
+    var cartItem = {
+      productId: productId,
+      sku: productSku || '',
+      title: productTitle,
+      size: size,
+      colorName: 'Standard',
+      regularPrice: price,
+      memberPrice: null,
+      price: price,
+      image: productImage || '',
+      quantity: 1
+    };
+    var cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    var existIdx = cart.findIndex(function(i){ return i.productId === productId && i.size === size && i.colorName === 'Standard'; });
+    if (existIdx > -1) {
+      cart[existIdx].quantity += 1;
+    } else {
+      cart.push(cartItem);
+    }
+    localStorage.setItem('cart', JSON.stringify(cart));
+    // Update cart count badge if present
+    var countEl = document.querySelector('.cart-count');
+    if (countEl) {
+      var total = cart.reduce(function(s,i){ return s + i.quantity; }, 0);
+      countEl.textContent = total;
+    }
+    showToast('Added to bag ✓');
   }
   </script>
   <script src="auth.js?v=5" defer></script>
