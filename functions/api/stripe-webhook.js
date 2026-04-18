@@ -264,11 +264,38 @@ async function sendConfirmationEmail(pi, meta, tracking, env) {
   const totalDollars = (pi.amount / 100).toFixed(2);
   const carrier      = [meta.shipping_provider, meta.shipping_service].filter(Boolean).join(' ') || 'Standard Shipping';
 
+  // Fetch product images from Supabase by SKU/name (images are NOT stored in metadata
+  // because long URLs exceed Stripe's 500-char per-value metadata limit)
+  const productImageMap = {}; // key: sku or lowercased name → image_url
+  if (env.SUPABASE_URL && env.SUPABASE_SERVICE_KEY) {
+    try {
+      const imgRes = await fetch(
+        env.SUPABASE_URL + '/rest/v1/products?select=title,sku,image_url&limit=200',
+        {
+          headers: {
+            apikey:        env.SUPABASE_SERVICE_KEY,
+            Authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY,
+          },
+        }
+      );
+      if (imgRes.ok) {
+        const prods = await imgRes.json();
+        (prods || []).forEach(p => {
+          if (p.sku        && p.image_url) productImageMap[p.sku.toLowerCase()]           = p.image_url;
+          if (p.title      && p.image_url) productImageMap[p.title.trim().toLowerCase()]  = p.image_url;
+        });
+      }
+    } catch (_) { /* non-fatal — email still sends without images */ }
+  }
+
   let itemsHtml = '';
   try {
     itemsHtml = JSON.parse(meta.items || '[]').map(i => {
-      const imgHtml = i.image
-        ? `<img src="${i.image}" alt="${i.name}" width="64" height="64" style="width:64px;height:64px;object-fit:cover;border-radius:6px;display:block;">`
+      const imageUrl = productImageMap[(i.sku || '').toLowerCase()]
+                    || productImageMap[(i.name || '').trim().toLowerCase()]
+                    || '';
+      const imgHtml = imageUrl
+        ? `<img src="${imageUrl}" alt="${i.name}" width="64" height="64" style="width:64px;height:64px;object-fit:cover;border-radius:6px;display:block;">`
         : `<div style="width:64px;height:64px;border-radius:6px;background:#f4f1eb;display:flex;align-items:center;justify-content:center;font-size:1.4rem;">👕</div>`;
       return `<tr>
         <td style="padding:10px 0;border-bottom:1px solid #eee;vertical-align:middle;width:80px">${imgHtml}</td>

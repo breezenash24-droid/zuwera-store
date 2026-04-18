@@ -167,12 +167,14 @@ export async function onRequestPost({ request, env }) {
       ? Math.round(subtotalCents * taxRate)
       : 0;
 
+    // NOTE: image URLs are excluded from metadata items — they can be very long
+    // and Stripe enforces a 500-char limit per metadata value. Images are looked
+    // up from Supabase by SKU/name inside the webhook when building the email.
     const lineItems = items.map(item => ({
       name:         getItemName(item),
       amount:       getItemPriceCents(item),
       quantity:     item.quantity || 1,
       tax_behavior: 'exclusive',
-      image:        item.image || item.image_url || '',
       sku:          item.sku   || '',
     }));
 
