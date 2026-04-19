@@ -918,7 +918,7 @@ footer{
   margin-top:.4rem;padding-top:1rem;
   color:var(--paper);font-size:.82rem;
 }
-.ship-note{font-size:.56rem;color:rgba(244,241,235,.2);margin-top:.2rem;line-height:1.6}
+.ship-note{font-size:.56rem;color:rgba(244,241,235,.3);margin-top:.2rem;line-height:1.6;letter-spacing:.04em}
 #checkout-btn{
   width:100%;background:var(--paper);color:var(--ink);
   padding:1rem;font-family:var(--fw);font-weight:900;font-style:italic;
@@ -3016,12 +3016,16 @@ function updateCartSummary(subtotal) {
   // Update the ship-note below the "Shipping" label
   const shipNote = document.querySelector('.ship-note');
   if (shipNote) {
-    if (policy.enabled) {
-      shipNote.textContent = subtotal > 0 && qualifiesFree
-        ? 'Your order qualifies for free shipping!'
-        : `Free on orders $${policy.threshold}+`;
-    } else {
+    if (!policy.enabled) {
       shipNote.textContent = 'Calculated at checkout';
+    } else if (subtotal > 0 && qualifiesFree) {
+      shipNote.textContent = 'Your order qualifies for free shipping!';
+    } else if (subtotal > 0) {
+      // Not yet qualifying — move "Calculated at checkout" to the note so the
+      // right-hand value stays as a clean dash rather than long wrapping text.
+      shipNote.textContent = 'Calculated at checkout';
+    } else {
+      shipNote.textContent = `Free on orders $${policy.threshold}+`;
     }
   }
 
@@ -3041,9 +3045,9 @@ function updateCartSummary(subtotal) {
     document.getElementById('summary-shipping').textContent = 'Free';
     document.getElementById('summary-total').textContent    = '$' + (subtotal + tax).toFixed(2);
   } else {
-    // Not qualifying for free — show "Calculated at checkout" so the cart total
-    // doesn't display a misleading $8 estimate before real Shippo rates load.
-    document.getElementById('summary-shipping').textContent = 'Calculated at checkout';
+    // Right-side value stays a clean dash; the note line already says
+    // "Calculated at checkout" so the row doesn't look overcrowded.
+    document.getElementById('summary-shipping').textContent = '—';
     document.getElementById('summary-total').textContent    = '$' + (subtotal + tax).toFixed(2);
   }
 }
