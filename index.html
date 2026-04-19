@@ -855,6 +855,64 @@ footer{
 }
 .mclose:hover{opacity:1;background:rgba(244,241,235,.1)}
 
+/* Keep the quick-add mini product page from inheriting the small auth modal shell. */
+.mbox.quick-add-review-box.quick-add-product-box{
+  width:min(1080px,94vw);
+  max-height:min(820px,92dvh);
+  padding:0;
+  overflow:hidden;
+}
+.mbox.quick-add-review-box.quick-add-product-box .quick-add-product-layout{
+  display:grid;
+  grid-template-columns:minmax(420px,1.08fr) minmax(360px,.92fr);
+  max-height:inherit;
+  min-height:min(620px,84dvh);
+}
+.mbox.quick-add-review-box.quick-add-product-box .quick-add-product-gallery{
+  min-height:100%;
+  display:flex;
+  flex-direction:column;
+}
+.mbox.quick-add-review-box.quick-add-product-box .quick-add-review-media{
+  aspect-ratio:auto;
+  min-height:520px;
+  flex:1 1 auto;
+}
+.mbox.quick-add-review-box.quick-add-product-box .quick-add-review-body{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  overflow-y:auto;
+  padding:2.1rem 2.2rem 2.2rem;
+}
+.mbox.quick-add-review-box.quick-add-product-box .quick-add-review-title{
+  font-size:clamp(2.2rem,4vw,3.4rem);
+}
+
+@media(max-width:760px){
+  .mbox.quick-add-review-box.quick-add-product-box{
+    width:min(94vw,520px);
+    max-height:90dvh;
+    overflow:auto;
+  }
+  .mbox.quick-add-review-box.quick-add-product-box .quick-add-product-layout{
+    grid-template-columns:1fr;
+    min-height:0;
+    max-height:none;
+  }
+  .mbox.quick-add-review-box.quick-add-product-box .quick-add-product-gallery{
+    min-height:0;
+  }
+  .mbox.quick-add-review-box.quick-add-product-box .quick-add-review-media{
+    aspect-ratio:4/3;
+    min-height:0;
+  }
+  .mbox.quick-add-review-box.quick-add-product-box .quick-add-review-body{
+    padding:1.35rem;
+    overflow:visible;
+  }
+}
+
 /* Brand mark inside modal */
 .auth-brand{
   font-family:var(--fw);font-weight:900;letter-spacing:.55em;text-transform:uppercase;
