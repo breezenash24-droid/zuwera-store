@@ -268,6 +268,71 @@ CREATE POLICY "Admin full access" ON orders FOR ALL USING (public.current_user_i
 CREATE POLICY "Public can join waitlist" ON waitlist FOR INSERT WITH CHECK (true);
 CREATE POLICY "Admins view waitlist" ON waitlist FOR SELECT USING (public.current_user_is_admin());
 
+-- Admin-only RPC used by admin.html to delete users safely.
+-- It preserves order/review history by clearing user_id before deleting the auth user.
+CREATE OR REPLACE FUNCTION public.delete_user(target_user_id uuid)
+RETURNS void AS $$
+BEGIN
+  IF target_user_id IS NULL THEN
+    RAISE EXCEPTION 'target_user_id is required';
+  END IF;
+
+  IF NOT public.current_user_is_admin() THEN
+    RAISE EXCEPTION 'Only admins can delete users';
+  END IF;
+
+  IF auth.uid() = target_user_id THEN
+    RAISE EXCEPTION 'Admins cannot delete their own account from the admin panel';
+  END IF;
+
+  DELETE FROM public.favorites WHERE user_id = target_user_id;
+  UPDATE public.reviews SET user_id = NULL WHERE user_id = target_user_id;
+  UPDATE public.orders SET user_id = NULL WHERE user_id = target_user_id;
+  DELETE FROM public.profiles WHERE id = target_user_id;
+  DELETE FROM auth.users WHERE id = target_user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
+
+REVOKE ALL ON FUNCTION public.delete_user(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.delete_user(uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.delete_user(uuid) TO authenticated;
+
+-- Supabase Storage bucket/policies for admin product image uploads.
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'product-images',
+  'product-images',
+  true,
+  10485760,
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+ON CONFLICT (id) DO UPDATE
+SET public = true,
+    file_size_limit = EXCLUDED.file_size_limit,
+    allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+DROP POLICY IF EXISTS "Product images are public" ON storage.objects;
+DROP POLICY IF EXISTS "Admins can upload product images" ON storage.objects;
+DROP POLICY IF EXISTS "Admins can update product images" ON storage.objects;
+DROP POLICY IF EXISTS "Admins can delete product images" ON storage.objects;
+
+CREATE POLICY "Product images are public" ON storage.objects
+  FOR SELECT TO public
+  USING (bucket_id = 'product-images');
+
+CREATE POLICY "Admins can upload product images" ON storage.objects
+  FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'product-images' AND public.current_user_is_admin());
+
+CREATE POLICY "Admins can update product images" ON storage.objects
+  FOR UPDATE TO authenticated
+  USING (bucket_id = 'product-images' AND public.current_user_is_admin())
+  WITH CHECK (bucket_id = 'product-images' AND public.current_user_is_admin());
+
+CREATE POLICY "Admins can delete product images" ON storage.objects
+  FOR DELETE TO authenticated
+  USING (bucket_id = 'product-images' AND public.current_user_is_admin());
+
 -- 5. INITIAL SEED DATA
 
 -- Seed a default Site Setting so it doesn't error out on empty

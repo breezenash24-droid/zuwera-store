@@ -2196,15 +2196,17 @@
                         tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-secondary);">No orders found</td></tr>';
                       } else {
                         tbody.innerHTML = slice.map(o => {
-                          const carrier = [o.shipping_provider, o.shipping_service].filter(Boolean).join(' — ') || '—';
+                          const carrier = escapeHtml([o.shipping_provider, o.shipping_service].filter(Boolean).join(' — ') || '—');
+                          const safeTrackingUrl = safeHttpUrl(o.tracking_url);
+                          const trackingNumber = escapeHtml(o.tracking_number || '');
                           const trackCell = o.tracking_number
-                            ? (o.tracking_url
-                                ? `<a href="${o.tracking_url}" target="_blank" style="color:var(--accent);text-decoration:none;">${o.tracking_number}</a>`
-                                : o.tracking_number)
+                            ? (safeTrackingUrl
+                                ? `<a href="${escapeAttr(safeTrackingUrl)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:none;">${trackingNumber}</a>`
+                                : trackingNumber)
                             : '—';
                           return `<tr style="border-bottom:1px solid var(--border);">
                             <td style="padding:12px;">${fmtDate(o.created_at)}</td>
-                            <td style="padding:12px;">${o.customer_name || o.email || '—'}</td>
+                            <td style="padding:12px;">${escapeHtml(o.customer_name || o.email || '—')}</td>
                             <td style="padding:12px;color:var(--text-secondary);">${carrier}</td>
                             <td style="padding:12px;">${trackCell}</td>
                             <td style="padding:12px;text-align:right;color:var(--accent);font-weight:600;">${fmt$(o.shipping)}</td>
@@ -2277,7 +2279,7 @@
                         } else {
                           ctbody.innerHTML = carriers.map(([name, d]) => `
                             <tr style="border-bottom:1px solid var(--border);">
-                              <td style="padding:12px;">${name}</td>
+                              <td style="padding:12px;">${escapeHtml(name)}</td>
                               <td style="padding:12px;text-align:right;">${d.count}</td>
                               <td style="padding:12px;text-align:right;color:var(--accent);font-weight:600;">${fmt$(d.total)}</td>
                               <td style="padding:12px;text-align:right;">${fmt$(d.count > 0 ? d.total/d.count : 0)}</td>
@@ -2402,15 +2404,16 @@
 
                         const itemsHtml = items.length > 0 ? items.map(item => `
                           <div style="display:flex;gap:12px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);">
-                            ${item.image ? `<img src="${item.image}" alt="${item.name}" style="width:60px;height:60px;border-radius:4px;object-fit:cover;">` : ''}
+                            ${safeHttpUrl(item.image) ? `<img src="${escapeAttr(safeHttpUrl(item.image))}" alt="${escapeAttr(item.name || 'Product image')}" style="width:60px;height:60px;border-radius:4px;object-fit:cover;">` : ''}
                             <div style="flex:1;">
-                              <p style="font-weight:500;margin-bottom:4px;">${item.name || 'Unknown Product'}</p>
+                              <p style="font-weight:500;margin-bottom:4px;">${escapeHtml(item.name || 'Unknown Product')}</p>
                               <p style="color:var(--text-secondary);font-size:12px;">Qty: ${item.qty || 1} × ${fmt$(item.price || 0)}</p>
                             </div>
                           </div>
                         `).join('') : '<p style="color:var(--text-secondary);font-size:12px;">No items</p>';
 
-                        const trackingLink = order.tracking_url ? `<a href="${order.tracking_url}" target="_blank" style="color:var(--accent);text-decoration:none;cursor:pointer;">Track Shipment</a>` : '—';
+                        const safeTrackingUrl = safeHttpUrl(order.tracking_url);
+                        const trackingLink = safeTrackingUrl ? `<a href="${escapeAttr(safeTrackingUrl)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:none;cursor:pointer;">Track Shipment</a>` : '—';
 
                         return `
                           <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;">
@@ -2422,15 +2425,15 @@
                               </div>
                               <div style="text-align:right;">
                                 <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:4px;">Status</p>
-                                <span style="display:inline-block;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:600;background:${order.status === 'refunded' ? '#ef4444' : order.status === 'completed' ? '#10b981' : '#f59e0b'};color:${order.status === 'refunded' ? '#fff' : order.status === 'completed' ? '#fff' : '#fff'};">${order.status || 'unknown'}</span>
+                                <span style="display:inline-block;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:600;background:${order.status === 'refunded' ? '#ef4444' : order.status === 'completed' ? '#10b981' : '#f59e0b'};color:#fff;">${escapeHtml(order.status || 'unknown')}</span>
                               </div>
                             </div>
 
                             <!-- Customer Info -->
                             <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);">
                               <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Customer</p>
-                              <p style="font-weight:500;margin-bottom:2px;">${order.customer_name || 'N/A'}</p>
-                              <p style="font-size:12px;color:var(--text-secondary);">${order.email || 'N/A'}</p>
+                              <p style="font-weight:500;margin-bottom:2px;">${escapeHtml(order.customer_name || 'N/A')}</p>
+                              <p style="font-size:12px;color:var(--text-secondary);">${escapeHtml(order.email || 'N/A')}</p>
                             </div>
 
                             <!-- Items -->
@@ -2463,9 +2466,9 @@
                             <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);">
                               <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Shipping Address</p>
                               <p style="font-size:12px;line-height:1.6;">
-                                ${order.ship_line1 || 'N/A'}${order.ship_line2 ? ', ' + order.ship_line2 : ''}<br>
-                                ${order.ship_city ? order.ship_city + ', ' : ''}${order.ship_state || ''} ${order.ship_zip || ''}<br>
-                                ${order.ship_country || ''}
+                                ${escapeHtml(order.ship_line1 || 'N/A')}${order.ship_line2 ? ', ' + escapeHtml(order.ship_line2) : ''}<br>
+                                ${order.ship_city ? escapeHtml(order.ship_city) + ', ' : ''}${escapeHtml(order.ship_state || '')} ${escapeHtml(order.ship_zip || '')}<br>
+                                ${escapeHtml(order.ship_country || '')}
                               </p>
                             </div>
 
@@ -2473,17 +2476,17 @@
                             <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);">
                               <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Tracking Information</p>
                               <p style="font-size:12px;margin-bottom:4px;">
-                                <strong>${order.shipping_provider || 'N/A'}</strong>
-                                ${order.shipping_service ? ' — ' + order.shipping_service : ''}
+                                <strong>${escapeHtml(order.shipping_provider || 'N/A')}</strong>
+                                ${order.shipping_service ? ' — ' + escapeHtml(order.shipping_service) : ''}
                               </p>
                               <p style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">
-                                ${order.tracking_number || '—'}
+                                ${escapeHtml(order.tracking_number || '—')}
                               </p>
                               ${trackingLink}
                             </div>
 
                             <!-- Action Button -->
-                            ${order.status !== 'refunded' ? `<button onclick="window._recMarkRefunded('${order.id}')" style="background:var(--bg-primary);border:1px solid #ef4444;color:#ef4444;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.2s;">Mark Refunded</button>` : '<p style="font-size:12px;color:var(--text-secondary);">This order has been refunded.</p>'}
+                            ${order.status !== 'refunded' ? `<button onclick="window._recMarkRefunded('${escapeAttr(order.id)}')" style="background:var(--bg-primary);border:1px solid #ef4444;color:#ef4444;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.2s;">Mark Refunded</button>` : '<p style="font-size:12px;color:var(--text-secondary);">This order has been refunded.</p>'}
                           </div>
                         `;
                       }).join('');
@@ -3244,7 +3247,7 @@
             setTimeout(initAdminTurnstile, 800);
         });
 
-        function waitForAdminTurnstile(timeoutMs = 2500) {
+        function waitForAdminTurnstile(timeoutMs = 6000) {
             initAdminTurnstile();
             if (adminTsWidgetId !== null) return Promise.resolve(true);
             return new Promise(resolve => {
@@ -3259,44 +3262,62 @@
             });
         }
 
+        function isLocalAdminHost() {
+            const hostname = window.location.hostname;
+            return window.location.protocol === 'file:'
+                || hostname === 'localhost'
+                || hostname === '127.0.0.1'
+                || hostname.startsWith('192.168.')
+                || hostname.startsWith('10.');
+        }
+
+        async function verifyAdminTurnstileToken(token) {
+            if (!token) throw new Error('Security check did not complete. Please try again.');
+            const res = await fetch('/api/verify-turnstile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+            });
+            const data = await res.json().catch(() => ({ success: false, error: 'Invalid security response.' }));
+            if (!res.ok || !data.success) {
+                throw new Error(data.error || 'Security verification failed. Please try again.');
+            }
+        }
+
         async function runAdminTurnstile(action) {
+            const required = !isLocalAdminHost();
             await waitForAdminTurnstile();
             if (!window.turnstile || adminTsWidgetId === null) {
+                if (required) throw new Error('Security check is not available. Refresh the page and try again.');
                 await action(null);
                 return;
             }
-            let settled = false;
-            const finish = async (token) => {
-                if (settled) return;
-                settled = true;
-                adminTsPending = null;
-                await action(token);
-                if (adminTsWidgetId !== null) window.turnstile.reset(adminTsWidgetId);
-            };
-            adminTsPending = async (token) => {
-                if (token) {
-                    try {
-                        const res = await fetch('/api/verify-turnstile', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ token })
-                        });
-                        const data = await res.json();
-                        if (!data.success) console.warn('[Turnstile] admin:', data.error);
-                    } catch (e) {
-                        console.warn('[Turnstile] admin error:', e);
-                    }
+
+            const token = await new Promise((resolve, reject) => {
+                let settled = false;
+                const finish = (value) => {
+                    if (settled) return;
+                    settled = true;
+                    adminTsPending = null;
+                    resolve(value);
+                };
+                adminTsPending = finish;
+                try {
+                    window.turnstile.execute(adminTsWidgetId);
+                } catch (e) {
+                    adminTsPending = null;
+                    reject(new Error('Security check could not start. Refresh the page and try again.'));
+                    return;
                 }
-                await finish(token);
-            };
+                setTimeout(() => finish(null), 4500);
+            });
+
             try {
-                window.turnstile.execute(adminTsWidgetId);
-            } catch (e) {
-                console.warn('[Turnstile] admin execute error:', e);
-                await finish(null);
-                return;
+                if (required) await verifyAdminTurnstileToken(token);
+                await action(token);
+            } finally {
+                if (adminTsWidgetId !== null) window.turnstile.reset(adminTsWidgetId);
             }
-            setTimeout(() => { void finish(null); }, 4500);
         }
 
 
@@ -3425,28 +3446,8 @@
 
         async function checkAdminRole() {
             try {
-                const { data: profile, error } = await sb
-                    .from('profiles')
-                    .select('role, email, full_name')
-                    .eq('id', currentUser.id)
-                    .maybeSingle();
-
-                const candidateEmails = [
-                    currentUser.email,
-                    currentUser.user_metadata?.email,
-                    profile?.email,
-                    ...(Array.isArray(currentUser.identities) ? currentUser.identities.map(identity => identity?.identity_data?.email || identity?.email) : [])
-                ]
-                    .filter(Boolean)
-                    .map(value => String(value).toLowerCase().trim());
-                if (profile && profile.role === 'admin') {
-                    showAdminPanel();
-                    return;
-                }
-
                 // Dev mode bypass only for local testing. Production admin grants come from /api/admin-access.
-                const isLocal = window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.');
-                if (isLocal) {
+                if (isLocalAdminHost()) {
                     showAdminPanel();
                     return;
                 }
@@ -3460,11 +3461,11 @@
                 } catch (serverErr) {
                     console.warn('Server admin access check failed:', serverErr);
 
-                    showAccessDenied(serverErr?.message || error?.message || "Your account does not have admin privileges.");
+                    showAccessDenied(serverErr?.message || "Your account does not have admin privileges.");
                     return;
                 }
 
-                showAccessDenied(error ? error.message : "Your account does not have admin privileges.");
+                showAccessDenied("Your account does not have admin privileges.");
             } catch (err) {
                 console.error('Admin role check error:', err);
                 showAccessDenied(err.message);
@@ -3733,11 +3734,13 @@
                 container.innerHTML = Object.keys(grouped).map(pid => {
                     const group = grouped[pid];
                     const avg = (group.reviews.reduce((sum, r) => sum + r.rating, 0) / group.reviews.length).toFixed(1);
+                    const productTitle = escapeHtml(group.product.title || 'Unknown Product');
+                    const productSku = escapeHtml(group.product.sku || '');
                     
                     let html = `
                         <details class="review-product-accordion">
                             <summary>
-                                <span>${group.product.title} <span style="color:var(--text-secondary);font-weight:normal;margin-left:8px;">${group.product.sku || ''}</span></span>
+                                <span>${productTitle} <span style="color:var(--text-secondary);font-weight:normal;margin-left:8px;">${productSku}</span></span>
                                 <div class="review-summary-stats">
                                     <span class="rating">⭐ ${avg}</span>
                                     <span>${group.reviews.length} Review${group.reviews.length !== 1 ? 's' : ''}</span>
@@ -3761,20 +3764,23 @@
                     html += group.reviews.map(r => {
                         const date = new Date(r.created_at).toLocaleDateString();
                         const rating = '⭐'.repeat(r.rating);
-                        const safeTitle = (r.title || '').replace(/\\/g, '\\\\').replace(/'/g, '\\\'').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
-                        const safeBody = (r.body || '').replace(/\\/g, '\\\\').replace(/'/g, '\\\'').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
-                        const safeAdminResponse = (r.admin_response || '').replace(/\\/g, '\\\\').replace(/'/g, '\\\'').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
-                        const displayAdminResponse = (r.admin_response || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                        const safeNickname = (r.nickname || r.reviewer_name || 'Anonymous').replace(/\\/g, '\\\\').replace(/'/g, '\\\'').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
+                        const safeTitle = escapeJsString(r.title || '');
+                        const safeBody = escapeJsString(r.body || '');
+                        const safeAdminResponse = escapeJsString(r.admin_response || '');
+                        const displayTitle = escapeHtml(r.title || '');
+                        const displayBody = escapeHtml(r.body || '');
+                        const displayAdminResponse = escapeHtml(r.admin_response || '');
+                        const displayNickname = escapeHtml(r.nickname || r.reviewer_name || 'Anonymous');
+                        const safeNickname = escapeJsString(r.nickname || r.reviewer_name || 'Anonymous');
                         
                         return `
                             <tr>
                                 <td style="white-space: nowrap;">${date}</td>
                                 <td style="color: var(--warning);">${rating}</td>
-                                <td>${r.nickname || r.reviewer_name || 'Anonymous'}</td>
-                                <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><strong>${r.title || ''}</strong></td>
+                                <td>${displayNickname}</td>
+                                <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><strong>${displayTitle}</strong></td>
                                 <td style="max-width: 250px;">
-                                    <div style="overflow: hidden; text-overflow: ellipsis; white-space: normal;">${r.body || ''}</div>
+                                    <div style="overflow: hidden; text-overflow: ellipsis; white-space: normal;">${displayBody}</div>
                                     ${r.admin_response ? `<div style="margin-top: 8px; padding: 8px; background: var(--admin-res-bg, rgba(248,145,165,0.1)); border-left: 2px solid var(--admin-res-text, var(--accent)); border-radius: 4px;"><strong style="color: var(--admin-res-text, var(--accent)); font-size: 0.8rem;">Zuwera Team</strong><p style="margin-top: 4px; font-size: 0.8rem; color: var(--admin-res-text, var(--text-secondary)); white-space: normal;">${displayAdminResponse}</p></div>` : ''}
                                 </td>
                                 <td>
@@ -3880,16 +3886,19 @@
             tbody.innerHTML = users.map(u => {
                 const date = new Date(u.created_at).toLocaleDateString();
                 const isCurrentUser = currentUser && currentUser.id === u.id;
+                const userId = escapeAttr(u.id || '');
+                const userName = escapeHtml(u.full_name || 'No Name');
+                const userEmail = escapeHtml(u.email || 'N/A');
                 const toggleRoleBtn = u.role === 'admin' 
-                    ? `<button class="btn btn-secondary btn-sm" onclick="toggleUserRole('${u.id}', 'customer')" ${isCurrentUser ? 'disabled title="Cannot demote yourself"' : ''}>Make Customer</button>`
-                    : `<button class="btn btn-secondary btn-sm" onclick="toggleUserRole('${u.id}', 'admin')">Make Admin</button>`;
+                    ? `<button class="btn btn-secondary btn-sm" onclick="toggleUserRole('${userId}', 'customer')" ${isCurrentUser ? 'disabled title="Cannot demote yourself"' : ''}>Make Customer</button>`
+                    : `<button class="btn btn-secondary btn-sm" onclick="toggleUserRole('${userId}', 'admin')">Make Admin</button>`;
                 
-                const deleteBtn = `<button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}')" ${isCurrentUser ? 'disabled title="Cannot delete yourself"' : ''}>Delete</button>`;
+                const deleteBtn = `<button class="btn btn-danger btn-sm" onclick="deleteUser('${userId}')" ${isCurrentUser ? 'disabled title="Cannot delete yourself"' : ''}>Delete</button>`;
                 
                 return `
                     <tr>
-                        <td><strong>${u.full_name || 'No Name'}</strong> ${isCurrentUser ? '<span class="status-badge status-live" style="margin-left:8px;font-size:0.6rem;padding:2px 6px;">You</span>' : ''}</td>
-                        <td>${u.email || 'N/A'}</td>
+                        <td><strong>${userName}</strong> ${isCurrentUser ? '<span class="status-badge status-live" style="margin-left:8px;font-size:0.6rem;padding:2px 6px;">You</span>' : ''}</td>
+                        <td>${userEmail}</td>
                         <td>${date}</td>
                         <td>
                             <div class="action-buttons">
@@ -3948,19 +3957,23 @@
                     product.product_images.sort((a, b) => a.sort_order - b.sort_order);
                     if (product.product_images[0].image_url) firstImg = product.product_images[0].image_url;
                 }
+                const productId = escapeAttr(product.id || '');
+                const safeImg = safeHttpUrl(firstImg);
+                const safeStatus = escapeHtml(product.status || 'Draft');
+                const statusClass = escapeAttr((product.status || 'draft').toLowerCase().replace(/\s+/g, '-'));
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td><div class="product-image" style="${firstImg ? `background-image:url('${firstImg}');background-size:cover;background-position:center;` : 'background:linear-gradient(135deg,#1a1a1e,#2a2a2f);'}"></div></td>
-                    <td><strong>${product.sku || 'N/A'}</strong></td>
-                    <td>${product.title || 'N/A'}</td>
-                    <td>${product.colorway || 'N/A'}</td>
+                    <td><div class="product-image" style="${safeImg ? `background-image:url('${escapeAttr(safeImg)}');background-size:cover;background-position:center;` : 'background:linear-gradient(135deg,#1a1a1e,#2a2a2f);'}"></div></td>
+                    <td><strong>${escapeHtml(product.sku || 'N/A')}</strong></td>
+                    <td>${escapeHtml(product.title || 'N/A')}</td>
+                    <td>${escapeHtml(product.colorway || 'N/A')}</td>
                     <td>$${(Number(product.current_price) || 0).toFixed(2)}</td>
-                    <td><span class="status-badge status-${(product.status || 'draft').toLowerCase().replace(/\s+/g, '-')}">${product.status || 'Draft'}</span></td>
-                    <td id="stock-${product.id}">-</td>
+                    <td><span class="status-badge status-${statusClass}">${safeStatus}</span></td>
+                    <td id="stock-${productId}">-</td>
                     <td>
                         <div class="action-buttons">
-                            <button class="btn btn-secondary btn-sm" onclick="editProduct('${product.id}')">Edit</button>
-                            <button class="btn btn-danger btn-sm" onclick="openDeleteModal('${product.id}')">Delete</button>
+                            <button class="btn btn-secondary btn-sm" onclick="editProduct('${productId}')">Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="openDeleteModal('${productId}')">Delete</button>
                         </div>
                     </td>
                 `;
@@ -3973,7 +3986,8 @@
                     .eq('product_id', product.id)
                     .then(({ data }) => {
                         const total = data?.reduce((sum, i) => sum + (i.stock_quantity || 0), 0) || 0;
-                        document.getElementById(`stock-${product.id}`).textContent = total;
+                        const stockEl = document.getElementById(`stock-${product.id}`);
+                        if (stockEl) stockEl.textContent = total;
                     });
             });
         }
@@ -4248,6 +4262,32 @@
                 .replace(/"/g, '&quot;')
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;');
+        }
+
+        function escapeAttr(value) {
+            return escapeHtml(value).replace(/'/g, '&#39;');
+        }
+
+        function escapeJsString(value) {
+            return String(value ?? '')
+                .replace(/\\/g, '\\\\')
+                .replace(/'/g, "\\'")
+                .replace(/\r/g, '\\r')
+                .replace(/\n/g, '\\n')
+                .replace(/</g, '\\x3C')
+                .replace(/>/g, '\\x3E')
+                .replace(/&/g, '\\x26');
+        }
+
+        function safeHttpUrl(value) {
+            const raw = String(value || '').trim();
+            if (!raw) return '';
+            try {
+                const url = new URL(raw, window.location.origin);
+                return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+            } catch {
+                return '';
+            }
         }
 
         function isOneSizeLabel(value) {
@@ -4765,7 +4805,7 @@
             uploadBtn.textContent = 'Uploading...';
             try {
                 const ext = file.name.split('.').pop();
-                const fileName = Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '.' + ext;
+                const fileName = Date.now() + '_' + crypto.randomUUID() + '.' + ext;
                 const { data, error } = await sb.storage.from('product-images').upload(fileName, file, { cacheControl: '3600', upsert: false });
                 if (error) throw error;
                 const { data: urlData } = sb.storage.from('product-images').getPublicUrl(fileName);

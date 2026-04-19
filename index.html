@@ -699,6 +699,36 @@ body.light-mode .quick-color-name{color:rgba(9,9,11,.45)}
 body.light-mode .quick-back-btn{color:rgba(9,9,11,.3)}
 body.light-mode .quick-back-btn:hover{color:rgba(9,9,11,.7)}
 
+.quick-add-review-modal{z-index:650}
+.quick-add-review-box{width:min(520px,92vw);padding:0;overflow:hidden}
+.quick-add-review-media{background:rgba(244,241,235,.04);aspect-ratio:4/3;display:flex;align-items:center;justify-content:center}
+.quick-add-review-media img{width:100%;height:100%;object-fit:cover;display:block}
+.quick-add-review-placeholder{font-family:var(--fm);font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,235,.28)}
+.quick-add-review-body{padding:1.6rem 1.7rem 1.7rem}
+.quick-add-review-kicker{font-family:var(--fm);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:.45rem}
+.quick-add-review-title{font-family:var(--fw);font-size:2.15rem;font-style:italic;letter-spacing:.05em;line-height:.95;text-transform:uppercase;margin-bottom:1rem}
+.quick-add-review-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem;margin-bottom:1.25rem}
+.quick-add-review-detail{border:1px solid rgba(244,241,235,.09);padding:.75rem .8rem;min-height:58px}
+.quick-add-review-label{display:block;font-family:var(--fm);font-size:.52rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.34);margin-bottom:.35rem}
+.quick-add-review-value{display:block;font-family:var(--fm);font-size:.78rem;color:rgba(244,241,235,.86);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.quick-add-review-actions{display:grid;grid-template-columns:1fr 1fr;gap:.65rem}
+.quick-add-review-actions button,.quick-add-review-actions a{min-height:46px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(244,241,235,.12);background:transparent;color:rgba(244,241,235,.72);font-family:var(--fm);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer}
+.quick-add-review-actions .quick-add-review-confirm{grid-column:1/-1;background:#f4f1eb;color:#09090b;border-color:#f4f1eb}
+body.light-mode .quick-add-review-media{background:rgba(9,9,11,.035)}
+body.light-mode .quick-add-review-placeholder{color:rgba(9,9,11,.28)}
+body.light-mode .quick-add-review-detail{border-color:rgba(9,9,11,.09)}
+body.light-mode .quick-add-review-label{color:rgba(9,9,11,.38)}
+body.light-mode .quick-add-review-value{color:rgba(9,9,11,.86)}
+body.light-mode .quick-add-review-actions button,body.light-mode .quick-add-review-actions a{border-color:rgba(9,9,11,.12);color:rgba(9,9,11,.68)}
+body.light-mode .quick-add-review-actions .quick-add-review-confirm{background:#09090b;color:#f4f1eb;border-color:#09090b}
+@media(max-width:640px){
+  .quick-add-review-body{padding:1.35rem}
+  .quick-add-review-title{font-size:1.75rem}
+  .quick-add-review-details{grid-template-columns:1fr}
+  .quick-add-review-actions{grid-template-columns:1fr}
+  .quick-add-review-actions .quick-add-review-confirm{grid-column:auto}
+}
+
 /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
    FOOTER
 ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */
@@ -1082,11 +1112,6 @@ body.light-mode{
 /* Fix hardcoded dark elements */
 body.light-mode #cookie-banner{background:#F0EEE9 !important;border-top-color:rgba(9,9,11,.12) !important;color:rgba(9,9,11,.65) !important;}
 body.light-mode #cookie-banner button:last-child{color:rgba(9,9,11,.45) !important;border-color:rgba(9,9,11,.15) !important;}
-body.light-mode #apple-pay-qr-modal>div{background:#F0EEE9 !important;border-top-color:#09090b !important;}
-body.light-mode #apple-pay-qr-modal span,
-body.light-mode #apple-pay-qr-modal p{color:rgba(9,9,11,.7) !important;}
-body.light-mode #apple-pay-qr-modal svg{fill:#09090b !important;}
-
 /* Nav */
 body.light-mode nav#nav,
 body.light-mode nav#nav.scrolled{
@@ -1226,12 +1251,6 @@ body.light-mode #payment-modal{
   backdrop-filter:none;
   -webkit-backdrop-filter:none;
 }
-body.light-mode #apple-pay-qr-modal{
-  background:#F0EEE9 !important;
-  backdrop-filter:none !important;
-  -webkit-backdrop-filter:none !important;
-}
-
 /* Payment */
 body.light-mode .pbox{background:#F0EEE9;border-color:rgba(9,9,11,.08)}
 body.light-mode .psub{color:rgba(9,9,11,.6)}
@@ -1581,6 +1600,43 @@ body.light-mode::after{opacity:0.15}
       <div class="size-guide-frame-shell">
         <div id="size-guide-loading" class="size-guide-message">Loading size guide...</div>
         <iframe id="size-guide-iframe" src="" title="Size Guide" loading="lazy" hidden></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QUICK ADD REVIEW MODAL -->
+<div id="quick-add-review-modal" class="modal quick-add-review-modal" role="dialog" aria-modal="true" aria-labelledby="quick-add-review-title">
+  <div class="mbox quick-add-review-box">
+    <button class="mclose" id="quick-add-review-close" aria-label="Close">&times;</button>
+    <div class="quick-add-review-media" id="quick-add-review-media">
+      <span class="quick-add-review-placeholder">Image Coming Soon</span>
+    </div>
+    <div class="quick-add-review-body">
+      <p class="quick-add-review-kicker">Review Your Pick</p>
+      <h2 class="quick-add-review-title" id="quick-add-review-title">Product</h2>
+      <div class="quick-add-review-details">
+        <div class="quick-add-review-detail">
+          <span class="quick-add-review-label">Color</span>
+          <span class="quick-add-review-value" id="quick-add-review-color">Standard</span>
+        </div>
+        <div class="quick-add-review-detail">
+          <span class="quick-add-review-label">Size</span>
+          <span class="quick-add-review-value" id="quick-add-review-size">One Size</span>
+        </div>
+        <div class="quick-add-review-detail">
+          <span class="quick-add-review-label">Price</span>
+          <span class="quick-add-review-value" id="quick-add-review-price">$0.00</span>
+        </div>
+        <div class="quick-add-review-detail">
+          <span class="quick-add-review-label">SKU</span>
+          <span class="quick-add-review-value" id="quick-add-review-sku">-</span>
+        </div>
+      </div>
+      <div class="quick-add-review-actions">
+        <button type="button" class="quick-add-review-confirm" id="quick-add-review-confirm">Add to Bag</button>
+        <button type="button" id="quick-add-review-cancel">Keep Browsing</button>
+        <a href="#" id="quick-add-review-view">View Details</a>
       </div>
     </div>
   </div>
@@ -3212,25 +3268,26 @@ function _quickShowSizeStep(panel, sizeEntries, productId, productTitle, product
   });
 }
 
-window.quickAddConfirmItem = function(productId, productTitle, productPrice, productSku, productImage, size, colorName, productWeightLb) {
-  const price = parseFloat(productPrice) || 0;
-  const color = colorName || 'Standard';
-  const cartItem = {
-    productId,
-    sku: productSku || '',
-    title: productTitle,
-    size,
-    colorName: color,
-    regularPrice: price,
-    memberPrice: null,
-    price,
-    image: productImage || '',
-    weightLb: parseFloat(productWeightLb) || 0.5,
-    quantity: 1
-  };
+let _quickAddReviewItem = null;
 
+function quickAddMoney(value) {
+  const amount = parseFloat(value) || 0;
+  return amount ? `$${amount.toFixed(2)}` : 'Price TBA';
+}
+
+function quickAddSetScrollLock(locked) {
+  document.body.style.overflow = locked ? 'hidden' : '';
+  document.documentElement.style.overflow = locked ? 'hidden' : '';
+}
+
+function quickAddProductHref(item) {
+  if (typeof productHref !== 'function') return '#';
+  return productHref({ id: item.productId, title: item.title });
+}
+
+function quickAddFinalizeReviewedItem(cartItem) {
   let cart = JSON.parse(localStorage.getItem('cart')) || [];
-  const existIdx = cart.findIndex(i => i.productId === productId && i.size === size && i.colorName === color);
+  const existIdx = cart.findIndex(i => i.productId === cartItem.productId && i.size === cartItem.size && i.colorName === cartItem.colorName);
   if (existIdx > -1) {
     cart[existIdx].quantity += 1;
   } else {
@@ -3240,10 +3297,89 @@ window.quickAddConfirmItem = function(productId, productTitle, productPrice, pro
   renderCart();
 
   if (typeof gtag === 'function') {
-    gtag('event', 'add_to_cart', { currency: 'USD', value: price, items: [{ item_id: productId, item_name: productTitle, price, quantity: 1 }] });
+    gtag('event', 'add_to_cart', { currency: 'USD', value: cartItem.price, items: [{ item_id: cartItem.productId, item_name: cartItem.title, price: cartItem.price, quantity: 1 }] });
   }
   showToast('Added to bag ✓');
+}
+
+function closeQuickAddReviewModal() {
+  const modal = document.getElementById('quick-add-review-modal');
+  if (modal) modal.classList.remove('open');
+  _quickAddReviewItem = null;
+  quickAddSetScrollLock(false);
+}
+
+function openQuickAddReviewModal(item) {
+  _quickAddReviewItem = item;
+  const modal = document.getElementById('quick-add-review-modal');
+  if (!modal) {
+    quickAddFinalizeReviewedItem(item);
+    return;
+  }
+
+  const media = document.getElementById('quick-add-review-media');
+  if (media) {
+    media.innerHTML = item.image
+      ? `<img src="${String(item.image).replace(/"/g, '&quot;')}" alt="">`
+      : '<span class="quick-add-review-placeholder">Image Coming Soon</span>';
+  }
+
+  const fields = {
+    'quick-add-review-title': item.title,
+    'quick-add-review-color': item.colorName || 'Standard',
+    'quick-add-review-size': item.size || 'One Size',
+    'quick-add-review-price': quickAddMoney(item.price),
+    'quick-add-review-sku': item.sku || '-'
+  };
+  Object.entries(fields).forEach(([id, value]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  });
+
+  const view = document.getElementById('quick-add-review-view');
+  if (view) view.href = quickAddProductHref(item);
+
+  modal.classList.add('open');
+  quickAddSetScrollLock(true);
+  document.getElementById('quick-add-review-confirm')?.focus();
+}
+
+function initQuickAddReviewModal() {
+  const modal = document.getElementById('quick-add-review-modal');
+  if (!modal) return;
+  document.getElementById('quick-add-review-close')?.addEventListener('click', closeQuickAddReviewModal);
+  document.getElementById('quick-add-review-cancel')?.addEventListener('click', closeQuickAddReviewModal);
+  document.getElementById('quick-add-review-confirm')?.addEventListener('click', function() {
+    if (!_quickAddReviewItem) return;
+    const item = _quickAddReviewItem;
+    closeQuickAddReviewModal();
+    quickAddFinalizeReviewedItem(item);
+  });
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) closeQuickAddReviewModal();
+  });
+}
+
+window.quickAddConfirmItem = function(productId, productTitle, productPrice, productSku, productImage, size, colorName, productWeightLb) {
+  const reviewPrice = parseFloat(productPrice) || 0;
+  const reviewColor = colorName || 'Standard';
+  openQuickAddReviewModal({
+    productId,
+    sku: productSku || '',
+    title: productTitle,
+    size,
+    colorName: reviewColor,
+    regularPrice: reviewPrice,
+    memberPrice: null,
+    price: reviewPrice,
+    image: productImage || '',
+    weightLb: parseFloat(productWeightLb) || 0.5,
+    quantity: 1
+  });
+  return;
 };
+
+initQuickAddReviewModal();
 
 /* STRIPE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â lazy-loaded on first checkout click */
 let stripe = null, elements = null, card = null;
@@ -3559,33 +3695,40 @@ function resetWalletUi() {
   walletTaxStateCode = '';
   if (divider) divider.style.display = 'none';
 }
+function isApplePayDevice() {
+  const ua = navigator.userAgent || '';
+  const platform = navigator.platform || '';
+  const touchMac = platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+  return /iPhone|iPad|iPod|Macintosh|Mac OS X|MacIntel/i.test(`${ua} ${platform}`) || touchMac;
+}
+
 function renderWalletHints(result) {
   const walletHints = document.getElementById('wallet-methods');
   if (!walletHints) return;
-  const appleAvail  = !!result?.applePay;
+  const appleAvail  = isApplePayDevice() && !!result?.applePay;
   const googleAvail = !!result?.googlePay;
   const appleIcon  = `<span class="wallet-chip__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg></span>`;
   const googleIcon = `<span class="wallet-chip__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg></span>`;
 
   let html = '';
-  // Apple Pay â€” always show; if not natively available, show as QR Scan option
   if (appleAvail) {
     html += `<button type="button" class="wallet-chip wallet-chip--applePay" data-wallet="applePay" data-action="pay">${appleIcon}<span class="wallet-chip__label"><span class="wallet-chip__brand">Apple</span><span>Pay</span></span></button>`;
-  } else {
-    html += `<button type="button" class="wallet-chip wallet-chip--applePay" data-wallet="applePay" data-action="qr" title="Scan QR with iPhone to pay with Apple Pay">${appleIcon}<span class="wallet-chip__label" style="flex-direction:column;gap:.05rem;align-items:flex-start;"><span style="display:flex;align-items:center;gap:.3rem;font-weight:700;"><span class="wallet-chip__brand">Apple</span><span>Pay</span></span><span style="font-size:.56rem;letter-spacing:.04em;color:rgba(244,241,235,.45);text-transform:none;">Scan QR with iPhone</span></span></button>`;
   }
   // Google Pay â€” only show when actually available
   if (googleAvail) {
     html += `<button type="button" class="wallet-chip wallet-chip--googlePay" data-wallet="googlePay" data-action="pay">${googleIcon}<span class="wallet-chip__label"><span class="wallet-chip__brand">Google</span><span>Pay</span></span></button>`;
   }
 
+  if (!html) {
+    walletHints.innerHTML = '';
+    walletHints.style.display = 'none';
+    return;
+  }
+
   walletHints.innerHTML = html;
 
   walletHints.querySelectorAll('button[data-action="pay"]').forEach(btn => {
     btn.addEventListener('click', () => { if (payReq?.show) payReq.show(); });
-  });
-  walletHints.querySelectorAll('button[data-action="qr"]').forEach(btn => {
-    btn.addEventListener('click', () => { if (typeof showApplePayQrModal === 'function') showApplePayQrModal(); });
   });
   walletHints.style.display = 'flex';
   walletHints.style.flexDirection = 'column';
@@ -3741,13 +3884,12 @@ function initPR(subtotalCents) {
   });
   payReq.canMakePayment().then(result => {
     const divider = document.getElementById('pay-divider');
-    // Always show wallet hints â€” Apple Pay shows as QR scan option when not natively available
-    if (divider) divider.style.display = 'block';
-    renderWalletHints(result || {});
+    const hasWallet = !!((isApplePayDevice() && result?.applePay) || result?.googlePay);
+    if (divider) divider.style.display = hasWallet ? 'block' : 'none';
+    renderWalletHints(hasWallet ? result : {});
   }).catch(() => {
-    // Still show Apple Pay QR option on error
     const divider = document.getElementById('pay-divider');
-    if (divider) divider.style.display = 'block';
+    if (divider) divider.style.display = 'none';
     renderWalletHints({});
   });
 }
@@ -4030,104 +4172,6 @@ function acceptCookies(){try{localStorage.setItem('zw_cookie_consent','accepted'
 function declineCookies(){try{localStorage.setItem('zw_cookie_consent','declined');}catch(e){}document.getElementById('cookie-banner').style.display='none'}
 </script>
 
-<!-- Apple Pay QR Modal -->
-<div id="apple-pay-qr-modal" style="display:none;position:fixed;inset:0;z-index:8000;background:rgba(9,9,11,.86);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1.5rem;">
-  <div style="background:#0f0f0f;border:1px solid rgba(244,241,235,.08);border-top:2px solid #F891A5;border-radius:2px;padding:2rem 1.75rem 1.75rem;max-width:340px;width:100%;text-align:center;position:relative;">
-    <button onclick="document.getElementById('apple-pay-qr-modal').style.display='none';" aria-label="Close" style="position:absolute;top:.85rem;right:.85rem;background:none;border:none;cursor:pointer;color:rgba(244,241,235,.4);font-size:1.25rem;line-height:1;padding:.2rem;">&#x2715;</button>
-    <div style="display:flex;align-items:center;justify-content:center;gap:.6rem;margin-bottom:.9rem;">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-      <span style="font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:600;letter-spacing:.04em;color:#f4f1eb;">Pay with Apple Pay</span>
-    </div>
-    <p style="font-size:.78rem;color:rgba(244,241,235,.5);margin-bottom:1.25rem;line-height:1.5;">Scan with your iPhone camera to complete payment with Apple Pay</p>
-    <div id="apple-pay-qr-code" style="display:inline-flex;align-items:center;justify-content:center;"></div>
-    <p style="font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(244,241,235,.25);margin-top:1.1rem;">Point your iPhone camera at the code</p>
-  </div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script>
-function showApplePayQrModal() {
-  var cart = JSON.parse(localStorage.getItem('cart') || '[]');
-  if (!cart.length) return;
-
-  var compact = cart.map(function(item) {
-    return { pid: item.productId || '', nm: item.name || item.productName || '', sz: item.size || '', cn: item.colorName || '', sk: item.sku || '', qty: item.quantity || 1, pr: item.price || 0, rp: item.regularPrice || item.price || 0 };
-  });
-  var cartData = btoa(unescape(encodeURIComponent(JSON.stringify(compact))));
-  var url = 'https://zuwera.store/mobile-checkout.html?c=' + encodeURIComponent(cartData);
-
-  var modal = document.getElementById('apple-pay-qr-modal');
-  var qrDiv = document.getElementById('apple-pay-qr-code');
-  qrDiv.innerHTML = '';
-  modal.style.display = 'flex';
-
-  if (typeof QRCode === 'undefined') {
-    qrDiv.innerHTML = '<p style="font-size:.7rem;word-break:break-all;color:#09090b;background:#fff;padding:.75rem;border-radius:8px;max-width:220px;">' + url + '</p>';
-    return;
-  }
-
-  // Generate into hidden div using H error correction (30% of QR can be obscured for logo)
-  var QR_SIZE = 252, PAD = 14, CS = QR_SIZE + PAD * 2;
-  var tmpDiv = document.createElement('div');
-  tmpDiv.style.cssText = 'position:fixed;left:-9999px;top:-9999px;pointer-events:none;';
-  document.body.appendChild(tmpDiv);
-  new QRCode(tmpDiv, { text: url, width: QR_SIZE, height: QR_SIZE, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.H });
-
-  setTimeout(function() {
-    var qrEl = tmpDiv.querySelector('canvas') || tmpDiv.querySelector('img');
-    if (!qrEl) { document.body.removeChild(tmpDiv); return; }
-
-    function buildBrandedQR(src) {
-      var cv = document.createElement('canvas');
-      cv.width = CS; cv.height = CS;
-      var ctx = cv.getContext('2d');
-
-      // Rounded white background
-      var rr = 14;
-      ctx.beginPath();
-      ctx.moveTo(rr, 0); ctx.lineTo(CS - rr, 0); ctx.quadraticCurveTo(CS, 0, CS, rr);
-      ctx.lineTo(CS, CS - rr); ctx.quadraticCurveTo(CS, CS, CS - rr, CS);
-      ctx.lineTo(rr, CS); ctx.quadraticCurveTo(0, CS, 0, CS - rr);
-      ctx.lineTo(0, rr); ctx.quadraticCurveTo(0, 0, rr, 0); ctx.closePath();
-      ctx.fillStyle = '#ffffff'; ctx.fill();
-      ctx.save(); ctx.clip();
-      ctx.drawImage(src, PAD, PAD, QR_SIZE, QR_SIZE);
-      ctx.restore();
-
-      // Center Apple Pay badge circle
-      var cx = CS / 2, cy = CS / 2, cr = QR_SIZE * 0.125;
-      ctx.beginPath(); ctx.arc(cx, cy, cr + 3, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff'; ctx.fill();
-      ctx.beginPath(); ctx.arc(cx, cy, cr + 2, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1; ctx.stroke();
-
-      // Apple logo (viewBox 0 0 24 24), centered in the badge
-      var logoH = cr * 1.35, scale = logoH / 20;
-      ctx.save();
-      ctx.translate(cx - 12.47 * scale, cy - 11.75 * scale);
-      ctx.scale(scale, scale);
-      ctx.fillStyle = '#000000';
-      ctx.fill(new Path2D('M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z'));
-      ctx.restore();
-
-      qrDiv.innerHTML = '';
-      var img = document.createElement('img');
-      img.src = cv.toDataURL('image/png');
-      img.style.cssText = 'width:' + CS + 'px;height:' + CS + 'px;display:block;border-radius:14px;';
-      qrDiv.appendChild(img);
-      document.body.removeChild(tmpDiv);
-    }
-
-    if (qrEl.tagName === 'CANVAS') {
-      buildBrandedQR(qrEl);
-    } else if (qrEl.complete && qrEl.naturalWidth) {
-      buildBrandedQR(qrEl);
-    } else {
-      qrEl.onload = function() { buildBrandedQR(qrEl); };
-    }
-  }, 80);
-}
-</script>
 </body>
 </html>
  

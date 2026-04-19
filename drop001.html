@@ -421,6 +421,57 @@
     }
     .qback-btn:hover{color:rgba(244,241,235,.7)}
 
+    .collection-review-modal{
+      display:none;position:fixed;inset:0;z-index:2600;
+      background:rgba(9,9,11,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+      align-items:center;justify-content:center;padding:1rem;
+    }
+    .collection-review-modal.open{display:flex}
+    .collection-review-box{
+      width:min(520px,92vw);background:#0f0f0f;border:1px solid rgba(244,241,235,.1);
+      border-top:2px solid var(--pink);position:relative;overflow:hidden;
+      animation:collectionModalIn .22s ease;
+    }
+    @keyframes collectionModalIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+    .collection-review-close{
+      position:absolute;top:.8rem;right:.8rem;z-index:2;width:32px;height:32px;
+      border:1px solid rgba(244,241,235,.1);background:rgba(9,9,11,.62);color:var(--white);
+      cursor:pointer;font-size:1.1rem;line-height:1;
+    }
+    .collection-review-media{aspect-ratio:4/3;background:rgba(244,241,235,.04);display:flex;align-items:center;justify-content:center}
+    .collection-review-media img{width:100%;height:100%;object-fit:cover;display:block}
+    .collection-review-placeholder{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,235,.28)}
+    .collection-review-body{padding:1.6rem 1.7rem 1.7rem}
+    .collection-review-kicker{font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--pink);margin-bottom:.45rem}
+    .collection-review-title{font-family:var(--font-display);font-size:2.15rem;font-style:italic;letter-spacing:.05em;line-height:.95;text-transform:uppercase;margin-bottom:1rem}
+    .collection-review-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem;margin-bottom:1.25rem}
+    .collection-review-detail{border:1px solid rgba(244,241,235,.09);padding:.75rem .8rem;min-height:58px}
+    .collection-review-label{display:block;font-size:.52rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.34);margin-bottom:.35rem}
+    .collection-review-value{display:block;font-size:.78rem;color:rgba(244,241,235,.86);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .collection-review-actions{display:grid;grid-template-columns:1fr 1fr;gap:.65rem}
+    .collection-review-actions button,.collection-review-actions a{
+      min-height:46px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(244,241,235,.12);
+      background:transparent;color:rgba(244,241,235,.72);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer;
+    }
+    .collection-review-confirm{grid-column:1/-1!important;background:var(--white)!important;color:var(--black)!important;border-color:var(--white)!important}
+    body.light-mode .collection-review-modal{background:#F0EEE9;backdrop-filter:none;-webkit-backdrop-filter:none}
+    body.light-mode .collection-review-box{background:#F0EEE9;border-color:rgba(9,9,11,.08)}
+    body.light-mode .collection-review-close{background:rgba(9,9,11,.05);border-color:rgba(9,9,11,.08);color:#09090b}
+    body.light-mode .collection-review-media{background:rgba(9,9,11,.035)}
+    body.light-mode .collection-review-placeholder{color:rgba(9,9,11,.28)}
+    body.light-mode .collection-review-detail{border-color:rgba(9,9,11,.09)}
+    body.light-mode .collection-review-label{color:rgba(9,9,11,.38)}
+    body.light-mode .collection-review-value{color:rgba(9,9,11,.86)}
+    body.light-mode .collection-review-actions button,body.light-mode .collection-review-actions a{border-color:rgba(9,9,11,.12);color:rgba(9,9,11,.68)}
+    body.light-mode .collection-review-confirm{background:#09090b!important;color:#f4f1eb!important;border-color:#09090b!important}
+    @media(max-width:640px){
+      .collection-review-body{padding:1.35rem}
+      .collection-review-title{font-size:1.75rem}
+      .collection-review-details{grid-template-columns:1fr}
+      .collection-review-actions{grid-template-columns:1fr}
+      .collection-review-confirm{grid-column:auto!important}
+    }
+
     /* FOOTER */
     footer {
       border-top: 1px solid var(--border);
@@ -1003,7 +1054,7 @@ function updateCountdown() {
                   <p class="product-name">${productName}</p>
                   <p class="product-price">${productPrice ? '$' + Number(productPrice).toFixed(2) : 'Price TBA'}</p>
                   ${isLive
-                    ? `<button class="product-add-btn" onclick="event.preventDefault();event.stopPropagation();colQuickAdd('${p.id.toString().replace(/'/g,"\\'")}','${productName.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${priceVal},'${(p.sku||'').replace(/'/g,"\\'")}','${(originalImg||'').replace(/'/g,"\\'")}','${colCardId}',this)">${'Add to Bag'}</button>`
+                    ? `<button class="product-add-btn" onclick="event.preventDefault();event.stopPropagation();colQuickAdd('${p.id.toString().replace(/'/g,"\\'")}','${productName.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${priceVal},'${(p.sku||'').replace(/'/g,"\\'")}','${(originalImg||'').replace(/'/g,"\\'")}',${parseFloat(p.shipping_weight_lb)||0.5},'${colCardId}',this)">${'Add to Bag'}</button>`
                     : `<span class="product-notify" onclick="scrollToNotify(event)">Notify Me When Live →</span>`
                   }
                 </div>
@@ -1025,6 +1076,42 @@ function updateCountdown() {
   <script src="modal-lock.js?v=2"></script>
   <script src="lang.js?v=5" defer></script>
 
+  <div id="collection-review-modal" class="collection-review-modal" role="dialog" aria-modal="true" aria-labelledby="collection-review-title">
+    <div class="collection-review-box">
+      <button type="button" class="collection-review-close" id="collection-review-close" aria-label="Close">&times;</button>
+      <div class="collection-review-media" id="collection-review-media">
+        <span class="collection-review-placeholder">Image Coming Soon</span>
+      </div>
+      <div class="collection-review-body">
+        <p class="collection-review-kicker">Review Your Pick</p>
+        <h2 class="collection-review-title" id="collection-review-title">Product</h2>
+        <div class="collection-review-details">
+          <div class="collection-review-detail">
+            <span class="collection-review-label">Color</span>
+            <span class="collection-review-value" id="collection-review-color">Standard</span>
+          </div>
+          <div class="collection-review-detail">
+            <span class="collection-review-label">Size</span>
+            <span class="collection-review-value" id="collection-review-size">One Size</span>
+          </div>
+          <div class="collection-review-detail">
+            <span class="collection-review-label">Price</span>
+            <span class="collection-review-value" id="collection-review-price">$0.00</span>
+          </div>
+          <div class="collection-review-detail">
+            <span class="collection-review-label">SKU</span>
+            <span class="collection-review-value" id="collection-review-sku">-</span>
+          </div>
+        </div>
+        <div class="collection-review-actions">
+          <button type="button" class="collection-review-confirm" id="collection-review-confirm">Add to Bag</button>
+          <button type="button" id="collection-review-cancel">Keep Browsing</button>
+          <a href="#" id="collection-review-view">View Details</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="toast"></div>
   <script>
   function showToast(msg) {
@@ -1045,7 +1132,7 @@ function updateCountdown() {
     }
   });
 
-  async function colQuickAdd(productId, productTitle, productPrice, productSku, productImage, panelId, btn) {
+  async function colQuickAdd(productId, productTitle, productPrice, productSku, productImage, productWeightLb, panelId, btn) {
     document.querySelectorAll('.quick-size-panel-col.open').forEach(function(p){ p.classList.remove('open'); });
 
     var panel = document.getElementById(panelId);
@@ -1074,14 +1161,14 @@ function updateCountdown() {
       var hasColors = colors && colors.length > 0;
 
       if (isOneSize && !hasColors) {
-        colAddItem(productId, productTitle, productPrice, productSku, productImage, sizeEntries[0] ? sizeEntries[0][0] : 'One Size', 'Standard');
+        colAddItem(productId, productTitle, productPrice, productSku, productImage, sizeEntries[0] ? sizeEntries[0][0] : 'One Size', 'Standard', productWeightLb);
         return;
       }
 
       if (hasColors) {
-        colShowColorStep(panel, panelId, colors, productId, productTitle, productPrice, productSku, productImage, sizeEntries);
+        colShowColorStep(panel, panelId, colors, productId, productTitle, productPrice, productSku, productImage, sizeEntries, productWeightLb);
       } else {
-        colShowSizeStep(panel, panelId, sizeEntries, productId, productTitle, productPrice, productSku, productImage, 'Standard', null);
+        colShowSizeStep(panel, panelId, sizeEntries, productId, productTitle, productPrice, productSku, productImage, 'Standard', null, productWeightLb);
       }
       panel.classList.add('open');
 
@@ -1093,7 +1180,7 @@ function updateCountdown() {
     }
   }
 
-  function colShowColorStep(panel, panelId, colors, productId, productTitle, productPrice, productSku, productImage, sizeEntries) {
+  function colShowColorStep(panel, panelId, colors, productId, productTitle, productPrice, productSku, productImage, sizeEntries, productWeightLb) {
     var lblEl  = document.getElementById(panelId + '-lbl');
     var bodyEl = document.getElementById(panelId + '-body');
     if (lblEl) lblEl.textContent = 'Select Colorway';
@@ -1118,10 +1205,10 @@ function updateCountdown() {
         var isOneSize = sizeEntries.length <= 1 && (sizeEntries.length === 0 || /one.?size/i.test(sizeEntries[0][0]));
         setTimeout(function() {
           if (isOneSize) {
-            colAddItem(productId, productTitle, productPrice, c.variant_sku || productSku, productImage, sizeEntries[0] ? sizeEntries[0][0] : 'One Size', c.color_name);
+            colAddItem(productId, productTitle, productPrice, c.variant_sku || productSku, productImage, sizeEntries[0] ? sizeEntries[0][0] : 'One Size', c.color_name, productWeightLb);
             panel.classList.remove('open');
           } else {
-            colShowSizeStep(panel, panelId, sizeEntries, productId, productTitle, productPrice, c.variant_sku || productSku, productImage, c.color_name, colors);
+            colShowSizeStep(panel, panelId, sizeEntries, productId, productTitle, productPrice, c.variant_sku || productSku, productImage, c.color_name, colors, productWeightLb);
           }
         }, 180);
       });
@@ -1129,7 +1216,7 @@ function updateCountdown() {
     });
   }
 
-  function colShowSizeStep(panel, panelId, sizeEntries, productId, productTitle, productPrice, productSku, productImage, colorName, colors) {
+  function colShowSizeStep(panel, panelId, sizeEntries, productId, productTitle, productPrice, productSku, productImage, colorName, colors, productWeightLb) {
     var lblEl  = document.getElementById(panelId + '-lbl');
     var bodyEl = document.getElementById(panelId + '-body');
     if (lblEl) lblEl.textContent = (colorName && colorName !== 'Standard') ? colorName + ' — Select Size' : 'Select Size';
@@ -1156,7 +1243,7 @@ function updateCountdown() {
     if (backBtn) {
       backBtn.addEventListener('click', function(e) {
         e.preventDefault(); e.stopPropagation();
-        colShowColorStep(panel, panelId, colors, productId, productTitle, productPrice, productSku, productImage, sizeEntries);
+        colShowColorStep(panel, panelId, colors, productId, productTitle, productPrice, productSku, productImage, sizeEntries, productWeightLb);
       });
     }
 
@@ -1164,29 +1251,32 @@ function updateCountdown() {
     bodyEl.querySelectorAll('.qsz-btn:not(.sold-out)').forEach(function(btn) {
       btn.addEventListener('click', function(e) {
         e.preventDefault(); e.stopPropagation();
-        colAddItem(productId, productTitle, productPrice, productSku, productImage, btn.dataset.size, colorName);
+        colAddItem(productId, productTitle, productPrice, productSku, productImage, btn.dataset.size, colorName, productWeightLb);
         panel.classList.remove('open');
       });
     });
   }
 
-  function colAddItem(productId, productTitle, productPrice, productSku, productImage, size, colorName) {
-    var price = parseFloat(productPrice) || 0;
-    var color = colorName || 'Standard';
-    var cartItem = {
-      productId: productId,
-      sku: productSku || '',
-      title: productTitle,
-      size: size,
-      colorName: color,
-      regularPrice: price,
-      memberPrice: null,
-      price: price,
-      image: productImage || '',
-      quantity: 1
-    };
+  var _collectionReviewItem = null;
+
+  function collectionMoney(value) {
+    var amount = parseFloat(value) || 0;
+    return amount ? '$' + amount.toFixed(2) : 'Price TBA';
+  }
+
+  function collectionSetScrollLock(locked) {
+    document.body.style.overflow = locked ? 'hidden' : '';
+    document.documentElement.style.overflow = locked ? 'hidden' : '';
+  }
+
+  function collectionReviewHref(item) {
+    if (typeof productHref !== 'function') return '#';
+    return productHref({ id: item.productId, title: item.title });
+  }
+
+  function collectionCommitReviewedItem(cartItem) {
     var cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    var existIdx = cart.findIndex(function(i){ return i.productId === productId && i.size === size && i.colorName === color; });
+    var existIdx = cart.findIndex(function(i){ return i.productId === cartItem.productId && i.size === cartItem.size && i.colorName === cartItem.colorName; });
     if (existIdx > -1) {
       cart[existIdx].quantity += 1;
     } else {
@@ -1200,6 +1290,85 @@ function updateCountdown() {
     }
     showToast('Added to bag ✓');
   }
+
+  function closeCollectionReviewModal() {
+    var modal = document.getElementById('collection-review-modal');
+    if (modal) modal.classList.remove('open');
+    _collectionReviewItem = null;
+    collectionSetScrollLock(false);
+  }
+
+  function openCollectionReviewModal(item) {
+    _collectionReviewItem = item;
+    var modal = document.getElementById('collection-review-modal');
+    if (!modal) {
+      collectionCommitReviewedItem(item);
+      return;
+    }
+
+    var media = document.getElementById('collection-review-media');
+    if (media) {
+      media.innerHTML = item.image
+        ? '<img src="' + String(item.image).replace(/"/g, '&quot;') + '" alt="">'
+        : '<span class="collection-review-placeholder">Image Coming Soon</span>';
+    }
+
+    var fields = {
+      'collection-review-title': item.title,
+      'collection-review-color': item.colorName || 'Standard',
+      'collection-review-size': item.size || 'One Size',
+      'collection-review-price': collectionMoney(item.price),
+      'collection-review-sku': item.sku || '-'
+    };
+    Object.keys(fields).forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = fields[id];
+    });
+
+    var view = document.getElementById('collection-review-view');
+    if (view) view.href = collectionReviewHref(item);
+
+    modal.classList.add('open');
+    collectionSetScrollLock(true);
+    var confirm = document.getElementById('collection-review-confirm');
+    if (confirm) confirm.focus();
+  }
+
+  function initCollectionReviewModal() {
+    var modal = document.getElementById('collection-review-modal');
+    if (!modal) return;
+    document.getElementById('collection-review-close')?.addEventListener('click', closeCollectionReviewModal);
+    document.getElementById('collection-review-cancel')?.addEventListener('click', closeCollectionReviewModal);
+    document.getElementById('collection-review-confirm')?.addEventListener('click', function() {
+      if (!_collectionReviewItem) return;
+      var item = _collectionReviewItem;
+      closeCollectionReviewModal();
+      collectionCommitReviewedItem(item);
+    });
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) closeCollectionReviewModal();
+    });
+  }
+
+  function colAddItem(productId, productTitle, productPrice, productSku, productImage, size, colorName, productWeightLb) {
+    var reviewPrice = parseFloat(productPrice) || 0;
+    var reviewColor = colorName || 'Standard';
+    openCollectionReviewModal({
+      productId: productId,
+      sku: productSku || '',
+      title: productTitle,
+      size: size,
+      colorName: reviewColor,
+      regularPrice: reviewPrice,
+      memberPrice: null,
+      price: reviewPrice,
+      image: productImage || '',
+      weightLb: parseFloat(productWeightLb) || 0.5,
+      quantity: 1
+    });
+    return;
+  }
+  initCollectionReviewModal();
   </script>
   <script src="auth.js?v=5" defer></script>
 </body>
