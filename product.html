@@ -3339,7 +3339,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
         // Use placeholder so Shippo can calculate rates by zip/state.
         const line1 = a.addressLine?.[0] || '1 Main St';
         const parcelSummary = getCartShippingParcelSummary();
-        const d = await post('/api/shippo-rates', { address:{ name:'', line1, city:a.city, state:a.region, zip:a.postalCode, country:a.country }, ...parcelSummary });
+        const d = await post('/api/shippo-rates', { address:{ name:'', line1, city:a.city, state:a.region, zip:a.postalCode, country:a.country }, items: cartItems, ...parcelSummary });
         if (!d.rates?.length) { useFlatRate(); return; }
         walletRates = d.rates.slice(0,4);
         if (qualifiesFree) {
@@ -3459,7 +3459,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
       document.getElementById('shipping-rates-loading').style.display = 'block';
       try {
         const parcelSummary = getCartShippingParcelSummary();
-        const d = await post('/api/shippo-rates', { address:{ name:document.getElementById('pay-name').value.trim(), line1:document.getElementById('pay-addr1').value.trim(), city:document.getElementById('pay-city').value.trim(), state, zip, country:'US' }, ...parcelSummary });
+        const d = await post('/api/shippo-rates', { address:{ name:document.getElementById('pay-name').value.trim(), line1:document.getElementById('pay-addr1').value.trim(), city:document.getElementById('pay-city').value.trim(), state, zip, country:'US' }, items: cartItems, ...parcelSummary });
         document.getElementById('shipping-rates-loading').style.display = 'none';
         if (!d.rates?.length) return;
         const list = document.getElementById('shipping-rates-list'); list.innerHTML = '';

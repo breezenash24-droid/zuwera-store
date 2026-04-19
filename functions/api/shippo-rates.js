@@ -34,6 +34,72 @@ function normalizeAddressPart(value) {
   return String(value || '').trim().toUpperCase();
 }
 
+function parseQuantity(value) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return 1;
+  return Math.min(parsed, 99);
+}
+
+function catalogHeaders(env) {
+  const key = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || env.SUPABASE_ANON_KEY;
+  if (!env.SUPABASE_URL || !key) return null;
+  return { apikey: key, Authorization: `Bearer ${key}` };
+}
+
+async function fetchCatalogProduct(env, item) {
+  const headers = catalogHeaders(env);
+  if (!headers) return null;
+
+  const productId = String(item?.productId || item?.id || '').trim();
+  const sku = String(item?.sku || '').trim();
+  const filters = [];
+  if (productId) filters.push(`id=eq.${encodeURIComponent(productId)}`);
+  if (sku) filters.push(`sku=eq.${encodeURIComponent(sku)}`);
+
+  for (const filter of filters) {
+    const resp = await fetch(`${env.SUPABASE_URL}/rest/v1/products?select=id,sku,shipping_weight_lb&${filter}&limit=1`, { headers });
+    if (!resp.ok) continue;
+    const rows = await resp.json().catch(() => []);
+    if (Array.isArray(rows) && rows[0]) return rows[0];
+  }
+
+  return null;
+}
+
+async function resolveParcelSummary({ items, itemCount, totalWeightLb, env }) {
+  if (!Array.isArray(items) || items.length === 0) {
+    const count = Number.parseInt(itemCount, 10) || 1;
+    const fallbackWeight = Number.parseFloat(totalWeightLb) || 0;
+    return { totalItems: count, totalWeightLb: fallbackWeight };
+  }
+
+  let totalItems = 0;
+  let totalWeight = 0;
+  let resolvedAnyCatalogWeight = false;
+
+  for (const item of items.slice(0, 25)) {
+    const quantity = parseQuantity(item?.quantity);
+    totalItems += quantity;
+
+    const product = await fetchCatalogProduct(env, item);
+    const catalogWeight = Number.parseFloat(product?.shipping_weight_lb);
+    const fallbackWeight = Number.parseFloat(item?.weightLb);
+    const unitWeight = Number.isFinite(catalogWeight) && catalogWeight > 0
+      ? catalogWeight
+      : (Number.isFinite(fallbackWeight) && fallbackWeight > 0 ? fallbackWeight : 0.5);
+
+    if (Number.isFinite(catalogWeight) && catalogWeight > 0) resolvedAnyCatalogWeight = true;
+    totalWeight += unitWeight * quantity;
+  }
+
+  const browserFallbackWeight = Number.parseFloat(totalWeightLb) || 0;
+  return {
+    totalItems: totalItems || Number.parseInt(itemCount, 10) || 1,
+    totalWeightLb: totalWeight > 0 ? totalWeight : browserFallbackWeight,
+    source: resolvedAnyCatalogWeight ? 'catalog' : 'cart-fallback',
+  };
+}
+
 function base64UrlEncode(value) {
   return btoa(value).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
@@ -91,13 +157,14 @@ export async function onRequestPost({ request, env }) {
       return json({ error: 'Shipping rates are not configured.' }, 500, headers);
     }
 
-    const { address, parcel: customParcel, totalItems: itemCount, totalWeightLb } = await request.json();
+    const { address, parcel: customParcel, totalItems: itemCount, totalWeightLb, items = [] } = await request.json();
 
     if (!address?.zip || !address?.country) {
       return json({ error: 'address.zip and address.country are required' }, 400, headers);
     }
 
-    const parcel = customParcel || buildParcel(itemCount || 1, totalWeightLb);
+    const parcelSummary = await resolveParcelSummary({ items, itemCount, totalWeightLb, env });
+    const parcel = customParcel || buildParcel(parcelSummary.totalItems, parcelSummary.totalWeightLb);
     const fromAddress = {
       name: env.SHIPPO_FROM_NAME || 'Zuwera',
       street1: env.SHIPPO_FROM_STREET1 || '',

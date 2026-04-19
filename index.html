@@ -3638,7 +3638,7 @@ function initPR(subtotalCents) {
       const line1 = a.addressLine?.[0] || '1 Main St';
       const _walletTotalItems  = cartItems.reduce((s, i) => s + (i.quantity || 1), 0) || 1;
       const _walletTotalWeight = cartItems.reduce((s, i) => s + ((parseFloat(i.weightLb) || 0.5) * (i.quantity || 1)), 0) || 0.5;
-      const d = await post('/api/shippo-rates', { address:{ name:'', line1, city:a.city, state:a.region, zip:a.postalCode, country:a.country }, totalItems: _walletTotalItems, totalWeightLb: _walletTotalWeight });
+      const d = await post('/api/shippo-rates', { address:{ name:'', line1, city:a.city, state:a.region, zip:a.postalCode, country:a.country }, items: cartItems, totalItems: _walletTotalItems, totalWeightLb: _walletTotalWeight });
       if(!d.rates?.length){ useFlatRate(); return; }
 
       if (qualifiesFree) {
@@ -3775,7 +3775,7 @@ function maybeLoadRates() {
       try {
         const _freeTotalItems  = cartItems.reduce((s, i) => s + (i.quantity || 1), 0) || 1;
         const _freeTotalWeight = cartItems.reduce((s, i) => s + ((parseFloat(i.weightLb) || 0.5) * (i.quantity || 1)), 0) || 0.5;
-        const d = await post('/api/shippo-rates', { address:{ name:document.getElementById('pay-name').value.trim(), line1:document.getElementById('pay-addr1').value.trim(), city:document.getElementById('pay-city').value.trim(), state, zip, country:'US' }, totalItems: _freeTotalItems, totalWeightLb: _freeTotalWeight });
+        const d = await post('/api/shippo-rates', { address:{ name:document.getElementById('pay-name').value.trim(), line1:document.getElementById('pay-addr1').value.trim(), city:document.getElementById('pay-city').value.trim(), state, zip, country:'US' }, items: cartItems, totalItems: _freeTotalItems, totalWeightLb: _freeTotalWeight });
         if(d.rates?.length) selRate = d.rates[0]; // cheapest — customer pays $0
       } catch(e){ /* silent */ }
       return;
@@ -3786,7 +3786,7 @@ function maybeLoadRates() {
     try {
       const _paidTotalItems  = cartItems.reduce((s, i) => s + (i.quantity || 1), 0) || 1;
       const _paidTotalWeight = cartItems.reduce((s, i) => s + ((parseFloat(i.weightLb) || 0.5) * (i.quantity || 1)), 0) || 0.5;
-      const d = await post('/api/shippo-rates', { address:{ name:document.getElementById('pay-name').value.trim(), line1:document.getElementById('pay-addr1').value.trim(), city:document.getElementById('pay-city').value.trim(), state, zip, country:'US' }, totalItems: _paidTotalItems, totalWeightLb: _paidTotalWeight });
+      const d = await post('/api/shippo-rates', { address:{ name:document.getElementById('pay-name').value.trim(), line1:document.getElementById('pay-addr1').value.trim(), city:document.getElementById('pay-city').value.trim(), state, zip, country:'US' }, items: cartItems, totalItems: _paidTotalItems, totalWeightLb: _paidTotalWeight });
       document.getElementById('shipping-rates-loading').style.display = 'none';
       if(!d.rates?.length) return;
       const list = document.getElementById('shipping-rates-list'); list.innerHTML='';
