@@ -385,7 +385,9 @@ if (updatePassBtn) {
 // ── Logout ─────────────────────────────────────────────────────────
 _authEls.logoutBtn.addEventListener('click', async () => {
   if (_sb) {
-    await _sb.auth.signOut().catch(()=>{});
+    // scope:'global' revokes the refresh token server-side so the session
+    // cannot be silently re-established on the next page load.
+    await _sb.auth.signOut({ scope: 'global' }).catch(()=>{});
     localStorage.removeItem('zuwera-auth');
   }
   showToast('Signed out.');

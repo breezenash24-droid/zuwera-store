@@ -2612,8 +2612,12 @@ document.getElementById('update-password-submit').addEventListener('click', asyn
 });
 
 document.getElementById('logout-btn').addEventListener('click', async () => {
-  if (_sb) await _sb.auth.signOut();
-  showToast('Signed out.'); 
+  if (_sb) {
+    // scope:'global' revokes the server-side refresh token so it cannot re-auth
+    await _sb.auth.signOut({ scope: 'global' }).catch(()=>{});
+    try { localStorage.removeItem('zuwera-auth'); } catch(_) {}
+  }
+  showToast('Signed out.');
   _user = null; updateNav();
 });
 

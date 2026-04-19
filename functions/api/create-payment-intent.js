@@ -196,6 +196,14 @@ export async function onRequestPost({ request, env }) {
           customer_name:         address.name,
           user_id:               userId || '',
           items:                 JSON.stringify(lineItems),
+          // Compact inventory manifest for stock decrement in webhook.
+          // Format: [{p: productId, s: size, q: quantity}, ...] — kept short to
+          // stay within Stripe's 500-char-per-value metadata limit.
+          inv: JSON.stringify(items.map(i => ({
+            p: String(i.productId || ''),
+            s: String(i.size || ''),
+            q: i.quantity || 1,
+          }))),
           subtotal_amount_cents: String(subtotalCents),
           shipping_provider:            shippingRate?.provider    || '',
           shipping_service:             shippingRate?.servicelevel || '',

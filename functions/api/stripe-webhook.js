@@ -148,7 +148,7 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
   };
 
   // Step 2: Everything else in parallel now that we have tracking info
-  const [stripeUpdateResult, dbResult, emailResult] = await Promise.allSettled([
+  const [stripeUpdateResult, dbResult, emailResult, invResult] = await Promise.allSettled([
     // Update Stripe PaymentIntent metadata with tracking
     tracking.number
       ? stripe.paymentIntents.update(pi.id, {
@@ -165,11 +165,15 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
 
     // Send confirmation email
     sendConfirmationEmail(pi, meta, tracking, env),
+
+    // Decrement product_sizes stock_quantity for each purchased item
+    decrementInventory(meta, env),
   ]);
 
   if (stripeUpdateResult.status === 'rejected') console.error('Stripe metadata update failed:', stripeUpdateResult.reason);
   if (dbResult.status        === 'rejected') console.error('Supabase save failed:',          dbResult.reason);
   if (emailResult.status     === 'rejected') console.error('Email failed:',                   emailResult.reason);
+  if (invResult.status       === 'rejected') console.error('Inventory decrement failed:',     invResult.reason);
 }
 
 // ─── Create shipping label ─────────────────────────────────────────────────────
@@ -246,6 +250,66 @@ async function createShippingLabel(pi, meta, env) {
   }
 
   return data; // { tracking_number, tracking_url_provider, label_url, ... }
+}
+
+// ─── Decrement inventory ───────────────────────────────────────────────────────
+// Reads the compact `inv` metadata field ({p: productId, s: size, q: qty}[])
+// and subtracts the purchased quantities from product_sizes.stock_quantity.
+// Non-fatal — a failed decrement never blocks order saving or emails.
+
+async function decrementInventory(meta, env) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) return;
+
+  let invItems;
+  try {
+    invItems = JSON.parse(meta.inv || '[]');
+  } catch {
+    console.warn('decrementInventory: could not parse inv metadata:', meta.inv);
+    return;
+  }
+  if (!Array.isArray(invItems) || !invItems.length) return;
+
+  const authHeaders = {
+    apikey:         env.SUPABASE_SERVICE_KEY,
+    Authorization:  'Bearer ' + env.SUPABASE_SERVICE_KEY,
+    'Content-Type': 'application/json',
+    Prefer:         'return=minimal',
+  };
+
+  for (const { p: productId, s: size, q: qty } of invItems) {
+    if (!productId || !size || !qty) continue;
+    try {
+      // Fetch current stock for this product + size
+      const getRes = await fetch(
+        `${env.SUPABASE_URL}/rest/v1/product_sizes?select=stock_quantity&product_id=eq.${encodeURIComponent(productId)}&size=eq.${encodeURIComponent(size)}&limit=1`,
+        { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY } }
+      );
+      if (!getRes.ok) {
+        console.warn(`decrementInventory: GET failed for ${productId} / ${size}:`, getRes.status);
+        continue;
+      }
+      const rows = await getRes.json();
+      if (!rows?.length) {
+        console.warn(`decrementInventory: no row found for productId=${productId} size=${size}`);
+        continue;
+      }
+
+      const currentStock = parseInt(rows[0].stock_quantity ?? '0', 10);
+      const newStock     = Math.max(0, currentStock - qty);
+
+      const patchRes = await fetch(
+        `${env.SUPABASE_URL}/rest/v1/product_sizes?product_id=eq.${encodeURIComponent(productId)}&size=eq.${encodeURIComponent(size)}`,
+        { method: 'PATCH', headers: authHeaders, body: JSON.stringify({ stock_quantity: newStock }) }
+      );
+      if (!patchRes.ok) {
+        console.warn(`decrementInventory: PATCH failed for ${productId} / ${size}:`, await patchRes.text());
+      } else {
+        console.log(`Inventory updated: ${productId} / ${size}: ${currentStock} → ${newStock}`);
+      }
+    } catch (e) {
+      console.warn(`decrementInventory error for ${productId} / ${size}:`, e.message);
+    }
+  }
 }
 
 // ─── Save order to Supabase ────────────────────────────────────────────────────
