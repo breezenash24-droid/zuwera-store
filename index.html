@@ -3037,10 +3037,10 @@ function updateCartSummary(subtotal) {
     document.getElementById('summary-shipping').textContent = 'Free';
     document.getElementById('summary-total').textContent    = '$' + (subtotal + tax).toFixed(2);
   } else {
-    // Show the estimated standard rate while Shippo loads
-    const est = policy.standardRate || 8;
-    document.getElementById('summary-shipping').textContent = '$' + est.toFixed(2);
-    document.getElementById('summary-total').textContent    = '$' + (subtotal + est + tax).toFixed(2);
+    // Not qualifying for free — show "Calculated at checkout" so the cart total
+    // doesn't display a misleading $8 estimate before real Shippo rates load.
+    document.getElementById('summary-shipping').textContent = 'Calculated at checkout';
+    document.getElementById('summary-total').textContent    = '$' + (subtotal + tax).toFixed(2);
   }
 }
 
@@ -3608,7 +3608,8 @@ function initPR(subtotalCents) {
       // Apple Pay / Google Pay withhold street during shippingaddresschange for privacy.
       // Use placeholder so Shippo can calculate rates by zip/state.
       const line1 = a.addressLine?.[0] || '1 Main St';
-      const d = await post('/api/shippo-rates', { address:{ name:'', line1, city:a.city, state:a.region, zip:a.postalCode, country:a.country } });
+      const _walletTotalItems = cartItems.reduce((s, i) => s + (i.quantity || 1), 0) || 1;
+      const d = await post('/api/shippo-rates', { address:{ name:'', line1, city:a.city, state:a.region, zip:a.postalCode, country:a.country }, totalItems: _walletTotalItems });
       if(!d.rates?.length){ useFlatRate(); return; }
 
       if (qualifiesFree) {
@@ -3741,16 +3742,18 @@ function maybeLoadRates() {
       // Silently fetch cheapest rate for fulfillment metadata â€” customer pays nothing
       document.getElementById('shipping-free-row').style.display = 'flex';
       try {
-        const d = await post('/api/shippo-rates', { address:{ name:document.getElementById('pay-name').value.trim(), line1:document.getElementById('pay-addr1').value.trim(), city:document.getElementById('pay-city').value.trim(), state, zip, country:'US' } });
-        if(d.rates?.length) selRate = d.rates[0];
+        const _freeTotalItems = cartItems.reduce((s, i) => s + (i.quantity || 1), 0) || 1;
+        const d = await post('/api/shippo-rates', { address:{ name:document.getElementById('pay-name').value.trim(), line1:document.getElementById('pay-addr1').value.trim(), city:document.getElementById('pay-city').value.trim(), state, zip, country:'US' }, totalItems: _freeTotalItems });
+        if(d.rates?.length) selRate = d.rates[0]; // cheapest — customer pays $0
       } catch(e){ /* silent */ }
       return;
     }
 
-    // Not qualifying for free â€” show live Shippo rates for customer to choose
+    // Not qualifying for free — show live Shippo rates for customer to choose
     document.getElementById('shipping-rates-loading').style.display = 'block';
     try {
-      const d = await post('/api/shippo-rates', { address:{ name:document.getElementById('pay-name').value.trim(), line1:document.getElementById('pay-addr1').value.trim(), city:document.getElementById('pay-city').value.trim(), state, zip, country:'US' } });
+      const _paidTotalItems = cartItems.reduce((s, i) => s + (i.quantity || 1), 0) || 1;
+      const d = await post('/api/shippo-rates', { address:{ name:document.getElementById('pay-name').value.trim(), line1:document.getElementById('pay-addr1').value.trim(), city:document.getElementById('pay-city').value.trim(), state, zip, country:'US' }, totalItems: _paidTotalItems });
       document.getElementById('shipping-rates-loading').style.display = 'none';
       if(!d.rates?.length) return;
       const list = document.getElementById('shipping-rates-list'); list.innerHTML='';

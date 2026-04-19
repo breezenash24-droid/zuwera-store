@@ -17,10 +17,15 @@ const CORS = (env) => ({
   'Content-Type':                 'application/json',
 });
 
-const DEFAULT_PARCEL = {
-  length: '14', width: '10', height: '4', distance_unit: 'in',
-  weight: '2',  mass_unit: 'lb',
-};
+// Build a parcel spec that scales with the number of items being shipped.
+// Per-item: ~0.5 lb for athletic apparel. Box height grows for multiple items.
+function buildParcel(totalItems) {
+  const qty = Math.max(1, Math.round(totalItems));
+  const weightLb = (0.5 + qty * 0.5).toFixed(1); // 1 item → 1 lb, 4 items → 2.5 lb, etc.
+  const heightIn = qty <= 1 ? '4' : qty <= 3 ? '6' : '8';
+  const widthIn  = qty <= 1 ? '10' : qty <= 3 ? '12' : '14';
+  return { length: '14', width: widthIn, height: heightIn, distance_unit: 'in', weight: weightLb, mass_unit: 'lb' };
+}
 
 export async function onRequestOptions() {
   return new Response(null, {
@@ -37,12 +42,12 @@ export async function onRequestPost({ request, env }) {
   const headers = CORS(env);
 
   try {
-    const { address, parcel: customParcel } = await request.json();
+    const { address, parcel: customParcel, totalItems: itemCount } = await request.json();
 
     if (!address?.zip || !address?.country)
       return new Response(JSON.stringify({ error: 'address.zip and address.country are required' }), { status: 400, headers });
 
-    const parcel = customParcel || DEFAULT_PARCEL;
+    const parcel = customParcel || buildParcel(itemCount || 1);
 
     const fromAddress = {
       name:    env.SHIPPO_FROM_NAME    || 'Zuwera',

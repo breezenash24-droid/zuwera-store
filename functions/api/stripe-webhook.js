@@ -64,23 +64,68 @@ export async function onRequestPost({ request, env }) {
     const meta = pi.metadata || {};
     console.log('PaymentIntent succeeded:', pi.id);
 
+    // Log receipt immediately — even if everything downstream fails, this confirms
+    // Stripe is reaching the webhook and the signature is valid.
+    logWebhookEvent(env, {
+      event_type:     event.type,
+      payment_intent: pi.id,
+      customer_email: meta.customer_email || '',
+      amount_cents:   pi.amount || 0,
+      sig_verified:   true,
+      raw_status:     'received',
+    }).catch(e => console.warn('webhook_events log failed (non-fatal):', e.message));
+
     try {
       await handleSuccessfulPayment(pi, meta, env, stripe);
     } catch (e) {
       // Always return 200 to Stripe so it doesn't retry — log the error internally
       console.error('handleSuccessfulPayment failed:', e.message);
+      logWebhookEvent(env, {
+        event_type:     event.type,
+        payment_intent: pi.id,
+        sig_verified:   true,
+        raw_status:     'handler_error',
+        error_message:  e.message,
+      }).catch(() => {});
     }
   }
 
   if (event.type === 'payment_intent.payment_failed') {
     const pi = event.data.object;
     console.warn('Payment failed:', pi.id, pi.last_payment_error?.message || '');
+    logWebhookEvent(env, {
+      event_type:     event.type,
+      payment_intent: pi.id,
+      sig_verified:   true,
+      raw_status:     'payment_failed',
+      error_message:  pi.last_payment_error?.message || '',
+    }).catch(() => {});
   }
 
   return new Response(JSON.stringify({ received: true }), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+// ─── Webhook event logger ──────────────────────────────────────────────────────
+// Writes a lightweight row to webhook_events so we can verify Stripe is reaching
+// this endpoint and the signature is passing. Non-fatal — never throws.
+
+async function logWebhookEvent(env, fields) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) return;
+  try {
+    await fetch(env.SUPABASE_URL + '/rest/v1/webhook_events', {
+      method:  'POST',
+      headers: {
+        apikey:         env.SUPABASE_SERVICE_KEY,
+        Authorization:  'Bearer ' + env.SUPABASE_SERVICE_KEY,
+        'Content-Type': 'application/json',
+        Prefer:         'return=minimal',
+      },
+      body: JSON.stringify(fields),
+    });
+  } catch (_) { /* intentionally swallowed */ }
 }
 
 // ─── Orchestrator ─────────────────────────────────────────────────────────────
@@ -154,6 +199,13 @@ async function createShippingLabel(pi, meta, env) {
       country: env.SHIPPO_FROM_COUNTRY || 'US',
       email:   env.SHIPPO_FROM_EMAIL   || 'orders@zuwera.store',
     };
+    // Scale parcel weight/size by total item quantity
+    const _labelItems   = (() => { try { return JSON.parse(meta.items || '[]'); } catch { return []; } })();
+    const _totalQty     = Math.max(1, _labelItems.reduce((s, i) => s + (i.quantity || 1), 0));
+    const _weightLb     = (0.5 + _totalQty * 0.5).toFixed(1);
+    const _heightIn     = _totalQty <= 1 ? '4' : _totalQty <= 3 ? '6' : '8';
+    const _widthIn      = _totalQty <= 1 ? '10' : _totalQty <= 3 ? '12' : '14';
+
     body = {
       shipment: {
         address_from: fromAddress,
@@ -168,8 +220,8 @@ async function createShippingLabel(pi, meta, env) {
           email:   meta.customer_email || '',
         },
         parcels: [{
-          length: '14', width: '10', height: '4', distance_unit: 'in',
-          weight: '2',  mass_unit: 'lb',
+          length: '14', width: _widthIn, height: _heightIn, distance_unit: 'in',
+          weight: _weightLb, mass_unit: 'lb',
         }],
       },
       servicelevel_token: getServicelevelToken(meta.shipping_service || ''),

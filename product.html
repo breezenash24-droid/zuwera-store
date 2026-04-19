@@ -1399,7 +1399,7 @@ function readCachedCategoryProducts() {
 
 async function fetchCategoryProducts() {
   const headers = { 'apikey': _PROD_SB_KEY, 'Authorization': `Bearer ${_PROD_SB_KEY}` };
-  const resp = await fetch(`${_PROD_SB_URL}/rest/v1/products?select=id,title,name,slug,subtitle,category,sort_order&order=sort_order.asc`, { headers });
+  const resp = await fetch(`${_PROD_SB_URL}/rest/v1/products?select=id,title,subtitle,sort_order&order=sort_order.asc`, { headers });
   if (!resp.ok) throw new Error(`Failed to load categories (${resp.status})`);
   const products = await resp.json();
   if (Array.isArray(products) && products.length) {
