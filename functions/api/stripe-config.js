@@ -24,16 +24,24 @@ function modeFromKey(key) {
 
 function resolvePublishableKey(env) {
   const explicitKey = String(env.STRIPE_PUBLISHABLE_KEY || '').trim();
+  const secretKey = String(env.STRIPE_SECRET_KEY || '').trim();
+  const secretMode = modeFromKey(secretKey);
+
   if (explicitKey) {
+    const explicitMode = modeFromKey(explicitKey);
+    if (secretMode && explicitMode && secretMode !== explicitMode) {
+      return {
+        error: `Stripe key mode mismatch: STRIPE_SECRET_KEY is ${secretMode}, but STRIPE_PUBLISHABLE_KEY is ${explicitMode}.`
+      };
+    }
     return {
       publishableKey: explicitKey,
-      mode: modeFromKey(explicitKey),
+      mode: explicitMode || secretMode,
       source: 'STRIPE_PUBLISHABLE_KEY'
     };
   }
 
-  const secretKey = String(env.STRIPE_SECRET_KEY || '').trim();
-  const mode = modeFromKey(secretKey);
+  const mode = secretMode;
 
   if (mode === 'test') {
     const configuredKey = String(env.STRIPE_TEST_PUBLISHABLE_KEY || '').trim();
@@ -63,6 +71,13 @@ export async function onRequestOptions({ env }) {
 export async function onRequestGet({ env }) {
   const headers = CORS(env);
   const resolved = resolvePublishableKey(env);
+
+  if (resolved?.error) {
+    return new Response(
+      JSON.stringify({ error: resolved.error }),
+      { status: 500, headers }
+    );
+  }
 
   if (!resolved?.publishableKey) {
     return new Response(

@@ -66,6 +66,23 @@ function productHref(product) {
   return `product.html${qs ? `?${qs}` : ''}`;
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function escapeJsForAttribute(value) {
+  return escapeHtml(JSON.stringify(String(value ?? '')).replace(/</g, '\\u003c'));
+}
+
+function safeDomId(value) {
+  return String(value || 'product').replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 80) || 'product';
+}
+
 /**
  * Load products from Supabase, fallback to demo data.
  * Updates #products-grid in index.html.
@@ -153,40 +170,43 @@ function renderProducts(grid, products) {
   grid.innerHTML = products.map(p => {
     // Normalize: title from title or name; price; status badge
     const productName = p.title || p.name || 'Untitled Product';
-    const productCategory = p.subtitle || p.category || 'Jackets'; 
+    const productCategory = p.subtitle || p.category || 'Jackets';
     const productPrice = p.current_price || p.price || 0;
     const badgeText = p.status?.toLowerCase().includes('soon') ? 'Coming Soon' : (p.status === 'live' ? 'Available' : 'Coming Soon');
+    const productId = String(p.id || p.unique_id || '');
     let firstImg = p.image_url;
     if (p.product_images && p.product_images.length > 0) {
       p.product_images.sort((a, b) => a.sort_order - b.sort_order);
       if (p.product_images[0].image_url) firstImg = p.product_images[0].image_url;
     }
 
-    const originalImg = firstImg;
     firstImg = window.optimizeImage ? window.optimizeImage(firstImg, 600) : firstImg;
 
-    const domId = p.unique_id || p.id;
+    const domId = safeDomId(p.unique_id || p.id);
+    const href = productHref(p);
+    const slug = (p.slug || productSlug(productName)).slice(0, 50);
+    const priceLabel = Number(productPrice) > 0 ? '$' + Number(productPrice).toFixed(0) : 'Price TBA';
 
     return `
-      <div class="pcard" data-product-slug="${(p.slug || productSlug(productName)).slice(0,50)}" onclick="window.location.href='${productHref(p)}'" style="cursor:pointer">
+      <div class="pcard" data-product-slug="${escapeHtml(slug)}" onclick="window.location.href=${escapeJsForAttribute(href)}" style="cursor:pointer">
         <div class="pcard-img" style="background:transparent">
-          <img src="${firstImg || ''}" alt="${productName}" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:center" onerror="if(this.src !== '${originalImg || ''}') { this.src='${originalImg || ''}'; } else { this.style.display='none'; this.nextElementSibling.style.display='flex'; }">
+          <img src="${escapeHtml(firstImg || '')}" alt="${escapeHtml(productName)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:center" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
           <div style="display:none;align-items:center;justify-content:center;flex-direction:column;gap:.8rem;height:100%;opacity:.08">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:48px;height:48px"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             <p style="font-family:var(--fm);font-size:.58rem;letter-spacing:.2em;text-transform:uppercase">Image Soon</p>
           </div>
-          <div class="pcard-badge">${badgeText}</div>
-                  <button class="heart-btn" data-product-id="${p.id}" data-product-name="${productName}" data-price="$${Number(productPrice).toFixed(2)}" aria-label="Toggle favorite">
+          <div class="pcard-badge">${escapeHtml(badgeText)}</div>
+                  <button class="heart-btn" data-product-id="${escapeHtml(productId)}" data-product-name="${escapeHtml(productName)}" data-price="$${Number(productPrice).toFixed(2)}" aria-label="Toggle favorite">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           </button>
         </div>
         <div class="pcard-info">
-          <p class="pcard-cat">${productCategory}</p>
-          <p class="pcard-name">${productName}</p>
-                  <p class="pcard-price">${Number(productPrice) > 0 ? '$' + Number(productPrice).toFixed(0) : 'Price TBA'}</p>
-          <div class="pcard-action" onclick="event.stopPropagation(); openAllReviewsModal('${p.id}', '${domId}', '${productName.replace(/'/g, "\\'")}')">
-            <span id="avg-${domId}" style="color:rgba(244,241,235,.2)">☆☆☆☆☆</span>
-            <span id="cnt-${domId}">Be the first to review</span>
+          <p class="pcard-cat">${escapeHtml(productCategory)}</p>
+          <p class="pcard-name">${escapeHtml(productName)}</p>
+                  <p class="pcard-price">${escapeHtml(priceLabel)}</p>
+          <div class="pcard-action" onclick="event.stopPropagation(); openAllReviewsModal(${escapeJsForAttribute(productId)}, ${escapeJsForAttribute(domId)}, ${escapeJsForAttribute(productName)})">
+            <span id="avg-${escapeHtml(domId)}" style="color:rgba(244,241,235,.2)">&#9734;&#9734;&#9734;&#9734;&#9734;</span>
+            <span id="cnt-${escapeHtml(domId)}">Be the first to review</span>
           </div>
         </div>
       </div>`;
@@ -201,8 +221,8 @@ function renderProducts(grid, products) {
 function initHeartButtons() {
   document.querySelectorAll('.heart-btn').forEach(btn => {
     // Remove existing listener to avoid duplicates
-    btn.replaceWith(btn.cloneNode(true));
-    const newBtn = btn.nextElementSibling || btn; // cloned
+    const newBtn = btn.cloneNode(true);
+    btn.replaceWith(newBtn);
     newBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       if (typeof toggleFavorite === 'function') toggleFavorite(newBtn);

@@ -3439,25 +3439,13 @@
                 ]
                     .filter(Boolean)
                     .map(value => String(value).toLowerCase().trim());
-                const emailLower = candidateEmails[0] || '';
-                const fullNameLower = (currentUser.user_metadata?.full_name || '').toLowerCase().trim();
-                const ownerExactEmails = ['breezenash24@gmail.com', 'nasirubreeze@zuwera.store'];
-                const ownerHints = ['breezenash24', 'breez', 'breeze', 'nash24', 'nasiru', '@zuwera.store'];
-                const isOwnerHint = ownerHints.some(hint =>
-                    candidateEmails.some(email => email.includes(hint)) ||
-                    fullNameLower.includes(hint.replace('@', ''))
-                );
-
                 if (profile && profile.role === 'admin') {
                     showAdminPanel();
                     return;
                 }
 
-                // Dev mode & Owner bypass: Auto-grant admin to the store owner or local tester
+                // Dev mode bypass only for local testing. Production admin grants come from /api/admin-access.
                 const isLocal = window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.');
-                const isOwner = candidateEmails.some(email => ownerExactEmails.includes(email))
-                    || isOwnerHint;
-
                 if (isLocal) {
                     showAdminPanel();
                     return;
@@ -3471,18 +3459,6 @@
                     }
                 } catch (serverErr) {
                     console.warn('Server admin access check failed:', serverErr);
-
-                    if (isOwner) {
-                        const primaryEmail = emailLower || profile?.email || '';
-                        await sb.from('profiles').upsert({
-                            id: currentUser.id,
-                            email: primaryEmail || currentUser.email || null,
-                            full_name: currentUser.user_metadata?.full_name || profile?.full_name || null,
-                            role: 'admin'
-                        });
-                        showAdminPanel();
-                        return;
-                    }
 
                     showAccessDenied(serverErr?.message || error?.message || "Your account does not have admin privileges.");
                     return;

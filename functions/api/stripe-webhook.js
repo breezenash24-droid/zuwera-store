@@ -33,6 +33,7 @@ const SERVICE_TOKEN_MAP = {
   'FedEx 2Day':            'fedex_2_day',
 };
 const getServicelevelToken = (name) => SERVICE_TOKEN_MAP[name] || 'usps_ground_advantage';
+const getSupabaseServiceKey = (env) => env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY;
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
@@ -78,7 +79,6 @@ export async function onRequestPost({ request, env }) {
     try {
       await handleSuccessfulPayment(pi, meta, env, stripe);
     } catch (e) {
-      // Always return 200 to Stripe so it doesn't retry — log the error internally
       console.error('handleSuccessfulPayment failed:', e.message);
       logWebhookEvent(env, {
         event_type:     event.type,
@@ -87,6 +87,10 @@ export async function onRequestPost({ request, env }) {
         raw_status:     'handler_error',
         error_message:  e.message,
       }).catch(() => {});
+      return new Response(
+        JSON.stringify({ received: false, error: 'Fulfillment failed. Stripe should retry this event.' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
     }
   }
 
@@ -113,13 +117,14 @@ export async function onRequestPost({ request, env }) {
 // this endpoint and the signature is passing. Non-fatal — never throws.
 
 async function logWebhookEvent(env, fields) {
-  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) return;
+  const serviceKey = getSupabaseServiceKey(env);
+  if (!env.SUPABASE_URL || !serviceKey) return;
   try {
     await fetch(env.SUPABASE_URL + '/rest/v1/webhook_events', {
       method:  'POST',
       headers: {
-        apikey:         env.SUPABASE_SERVICE_KEY,
-        Authorization:  'Bearer ' + env.SUPABASE_SERVICE_KEY,
+        apikey:         serviceKey,
+        Authorization:  'Bearer ' + serviceKey,
         'Content-Type': 'application/json',
         Prefer:         'return=minimal',
       },
@@ -147,9 +152,9 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
     label:  labelData?.label_url || '',
   };
 
-  // Step 2: Everything else in parallel now that we have tracking info
-  const [stripeUpdateResult, dbResult, emailResult, invResult] = await Promise.allSettled([
-    // Update Stripe PaymentIntent metadata with tracking
+  await saveOrderToSupabase(pi, meta, tracking, env);
+
+  const [stripeUpdateResult, emailResult, invResult] = await Promise.allSettled([
     tracking.number
       ? stripe.paymentIntents.update(pi.id, {
           metadata: {
@@ -160,10 +165,6 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
         })
       : Promise.resolve(null),
 
-    // Save order to Supabase (with tracking already available)
-    saveOrderToSupabase(pi, meta, tracking, env),
-
-    // Send confirmation email
     sendConfirmationEmail(pi, meta, tracking, env),
 
     // Decrement product_sizes stock_quantity for each purchased item
@@ -171,7 +172,6 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
   ]);
 
   if (stripeUpdateResult.status === 'rejected') console.error('Stripe metadata update failed:', stripeUpdateResult.reason);
-  if (dbResult.status        === 'rejected') console.error('Supabase save failed:',          dbResult.reason);
   if (emailResult.status     === 'rejected') console.error('Email failed:',                   emailResult.reason);
   if (invResult.status       === 'rejected') console.error('Inventory decrement failed:',     invResult.reason);
 }
@@ -258,7 +258,8 @@ async function createShippingLabel(pi, meta, env) {
 // Non-fatal — a failed decrement never blocks order saving or emails.
 
 async function decrementInventory(meta, env) {
-  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) return;
+  const serviceKey = getSupabaseServiceKey(env);
+  if (!env.SUPABASE_URL || !serviceKey) return;
 
   let invItems;
   try {
@@ -270,8 +271,8 @@ async function decrementInventory(meta, env) {
   if (!Array.isArray(invItems) || !invItems.length) return;
 
   const authHeaders = {
-    apikey:         env.SUPABASE_SERVICE_KEY,
-    Authorization:  'Bearer ' + env.SUPABASE_SERVICE_KEY,
+    apikey:         serviceKey,
+    Authorization:  'Bearer ' + serviceKey,
     'Content-Type': 'application/json',
     Prefer:         'return=minimal',
   };
@@ -282,7 +283,7 @@ async function decrementInventory(meta, env) {
       // Fetch current stock for this product + size
       const getRes = await fetch(
         `${env.SUPABASE_URL}/rest/v1/product_sizes?select=stock_quantity&product_id=eq.${encodeURIComponent(productId)}&size=eq.${encodeURIComponent(size)}&limit=1`,
-        { headers: { apikey: env.SUPABASE_SERVICE_KEY, Authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY } }
+        { headers: { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey } }
       );
       if (!getRes.ok) {
         console.warn(`decrementInventory: GET failed for ${productId} / ${size}:`, getRes.status);
@@ -315,7 +316,8 @@ async function decrementInventory(meta, env) {
 // ─── Save order to Supabase ────────────────────────────────────────────────────
 
 async function saveOrderToSupabase(pi, meta, tracking, env) {
-  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) return null;
+  const serviceKey = getSupabaseServiceKey(env);
+  if (!env.SUPABASE_URL || !serviceKey) throw new Error('Supabase order storage is not configured');
 
   const items         = (() => { try { return JSON.parse(meta.items || '[]'); } catch { return []; } })();
   const subtotalCents = parseInt(meta.subtotal_amount_cents    || '0', 10);
@@ -326,8 +328,8 @@ async function saveOrderToSupabase(pi, meta, tracking, env) {
   const resp = await fetch(env.SUPABASE_URL + '/rest/v1/orders', {
     method:  'POST',
     headers: {
-      apikey:         env.SUPABASE_SERVICE_KEY,
-      Authorization:  'Bearer ' + env.SUPABASE_SERVICE_KEY,
+      apikey:         serviceKey,
+      Authorization:  'Bearer ' + serviceKey,
       'Content-Type': 'application/json',
       Prefer:         'return=minimal',
     },
@@ -383,14 +385,15 @@ async function sendConfirmationEmail(pi, meta, tracking, env) {
   // Fetch product images from Supabase by SKU/name (images are NOT stored in metadata
   // because long URLs exceed Stripe's 500-char per-value metadata limit)
   const productImageMap = {}; // key: sku or lowercased name → image_url
-  if (env.SUPABASE_URL && env.SUPABASE_SERVICE_KEY) {
+  const serviceKey = getSupabaseServiceKey(env);
+  if (env.SUPABASE_URL && serviceKey) {
     try {
       const imgRes = await fetch(
         env.SUPABASE_URL + '/rest/v1/products?select=title,sku,image_url&limit=200',
         {
           headers: {
-            apikey:        env.SUPABASE_SERVICE_KEY,
-            Authorization: 'Bearer ' + env.SUPABASE_SERVICE_KEY,
+            apikey:        serviceKey,
+            Authorization: 'Bearer ' + serviceKey,
           },
         }
       );

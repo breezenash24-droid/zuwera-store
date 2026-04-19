@@ -35,6 +35,7 @@
 <link rel="stylesheet" href="cart.css?v=6">
 <link rel="stylesheet" href="reviews.css?v=12">
 <script src="/stripe-client-config.js?v=1"></script>
+<script src="/checkout-tax.js?v=1"></script>
 
 <style>
 /* Modal base styles (shared with index.html) */
@@ -3052,7 +3053,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     const shipRate = window.zwShippingRate || 8;
     document.getElementById('summary-shipping').textContent = subtotal >= freeAt ? 'Free' : (subtotal > 0 ? '$' + shipRate.toFixed(2) : '\u2014');
     const shipping = subtotal >= freeAt ? 0 : (subtotal > 0 ? shipRate : 0);
-    const tax = subtotal * 0.08;
+    const tax = window.ZWCheckoutTax?.taxDollars(subtotal, getCheckoutTaxStateCode()) || 0;
     document.getElementById('summary-tax').textContent = subtotal > 0 ? '$' + tax.toFixed(2) : '-';
     document.getElementById('summary-total').textContent = subtotal > 0 ? '$' + (subtotal + shipping + tax).toFixed(2) : '-';
   }
@@ -3129,10 +3130,25 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
       return null;
     }
   }
-  const PAY_TAX_RATE = 0.08;
+  async function getCheckoutAccessToken() {
+    if (!sb?.auth?.getSession) return null;
+    try {
+      const { data } = await sb.auth.getSession();
+      return data?.session?.access_token || null;
+    } catch {
+      return null;
+    }
+  }
+  function getCheckoutTaxStateCode(fallback = '') {
+    const fieldState = document.getElementById('pay-state')?.value || '';
+    return window.ZWCheckoutTax?.normalizeStateCode(fieldState || fallback || _detectedStateCode) || '';
+  }
+  function getCheckoutTaxCents(subtotalCents, stateCode = '') {
+    return window.ZWCheckoutTax?.taxCents(subtotalCents, getCheckoutTaxStateCode(stateCode)) || 0;
+  }
   let _paymentReturnModalId = null;
-  function getWalletTaxCents(subtotalCents) {
-    return subtotalCents > 0 ? Math.round(subtotalCents * PAY_TAX_RATE) : 0;
+  function getWalletTaxCents(subtotalCents, stateCode = '') {
+    return getCheckoutTaxCents(subtotalCents, stateCode);
   }
   function getDefaultCheckoutShippingCents(subtotalCents) {
     const threshold = Number(window.zwShippingThreshold || 100);
@@ -3140,17 +3156,23 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     if (subtotalCents <= 0) return 0;
     return (subtotalCents / 100) >= threshold ? 0 : rateCents;
   }
-  function getWalletTotalCents(subtotalCents, shippingCents = 0) {
-    return subtotalCents + shippingCents + getWalletTaxCents(subtotalCents);
+  function getCartShippingParcelSummary() {
+    return {
+      totalItems: cartItems.reduce((sum, item) => sum + (item.quantity || 1), 0) || 1,
+      totalWeightLb: cartItems.reduce((sum, item) => sum + ((parseFloat(item.weightLb) || 0.5) * (item.quantity || 1)), 0) || 0.5,
+    };
   }
-  function getWalletDisplayItems(subtotalCents, shippingCents) {
+  function getWalletTotalCents(subtotalCents, shippingCents = 0, stateCode = '') {
+    return subtotalCents + shippingCents + getWalletTaxCents(subtotalCents, stateCode);
+  }
+  function getWalletDisplayItems(subtotalCents, shippingCents, stateCode = '') {
     return [
       { label:'Subtotal', amount:Math.max(0, subtotalCents || 0) },
       { label:'Shipping', amount:Math.max(0, shippingCents || 0) },
-      { label:'Tax', amount:getWalletTaxCents(subtotalCents) }
+      { label:'Tax', amount:getWalletTaxCents(subtotalCents, stateCode) }
     ];
   }
-  let _detectedStateCode = '';
+  var _detectedStateCode = '';
   let _detectStatePromise = null;
   async function prefillCheckoutStateFromGeo() {
     const stateInput = document.getElementById('pay-state');
@@ -3217,7 +3239,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     document.body.style.overflow='';
   }
 
-  let payReq = null, payReqButton = null, selRate = null, walletRates = [], walletShippingCents = 0;
+  let payReq = null, payReqButton = null, selRate = null, walletRates = [], walletShippingCents = 0, walletTaxStateCode = '';
   function resetWalletUi() {
     const walletHost = document.getElementById('payment-request-btn');
     const walletHints = document.getElementById('wallet-methods');
@@ -3235,6 +3257,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
       walletHints.style.display = 'none';
     }
     walletShippingCents = 0;
+    walletTaxStateCode = '';
     if (divider) divider.style.display = 'none';
   }
   function renderWalletHints(result) {
@@ -3283,11 +3306,12 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     walletRates = [];
     selRate = null;
     walletShippingCents = defaultShippingCents;
+    walletTaxStateCode = getCheckoutTaxStateCode();
     payReq = stripe.paymentRequest({
       country:'US',
       currency:'usd',
-      total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, defaultShippingCents), pending:true },
-      displayItems:getWalletDisplayItems(normalizedSubtotalCents, defaultShippingCents),
+      total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, defaultShippingCents, walletTaxStateCode), pending:true },
+      displayItems:getWalletDisplayItems(normalizedSubtotalCents, defaultShippingCents, walletTaxStateCode),
       requestPayerName:true,
       requestPayerEmail:true,
       requestShipping:true,
@@ -3295,6 +3319,9 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     });
     payReq.on('shippingaddresschange', async ev => {
       const a = ev.shippingAddress;
+      walletTaxStateCode = getCheckoutTaxStateCode(a.region);
+      const threshold = Number(window.zwShippingThreshold || 100);
+      const qualifiesFree = (normalizedSubtotalCents / 100) >= threshold;
       // Helper: always resolves with a success update using flat rate so checkout never hard-fails
       function useFlatRate() {
         walletRates = [];
@@ -3302,26 +3329,38 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
         walletShippingCents = defaultShippingCents;
         ev.updateWith({
           status:'success',
-          shippingOptions:[{ id:'flat_rate', label:'Standard Shipping', detail:'Est. 5–7 business days', amount:defaultShippingCents }],
-          total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, defaultShippingCents) },
-          displayItems:getWalletDisplayItems(normalizedSubtotalCents, defaultShippingCents)
+          shippingOptions:[{ id:'flat_rate', label:qualifiesFree ? 'Free Shipping' : 'Standard Shipping', detail:qualifiesFree ? '' : 'Est. 5-7 business days', amount:defaultShippingCents }],
+          total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, defaultShippingCents, walletTaxStateCode) },
+          displayItems:getWalletDisplayItems(normalizedSubtotalCents, defaultShippingCents, walletTaxStateCode)
         });
       }
       try {
         // Apple Pay / Google Pay withhold street during shippingaddresschange for privacy.
         // Use placeholder so Shippo can calculate rates by zip/state.
         const line1 = a.addressLine?.[0] || '1 Main St';
-        const d = await post('/api/shippo-rates', { address:{ name:'', line1, city:a.city, state:a.region, zip:a.postalCode, country:a.country } });
+        const parcelSummary = getCartShippingParcelSummary();
+        const d = await post('/api/shippo-rates', { address:{ name:'', line1, city:a.city, state:a.region, zip:a.postalCode, country:a.country }, ...parcelSummary });
         if (!d.rates?.length) { useFlatRate(); return; }
         walletRates = d.rates.slice(0,4);
+        if (qualifiesFree) {
+          selRate = walletRates[0] || null;
+          walletShippingCents = 0;
+          ev.updateWith({
+            status:'success',
+            shippingOptions:[{ id:'free', label:'Free Shipping', detail:'', amount:0 }],
+            total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, 0, walletTaxStateCode) },
+            displayItems:getWalletDisplayItems(normalizedSubtotalCents, 0, walletTaxStateCode)
+          });
+          return;
+        }
         const opts = walletRates.map(r => ({ id:r.objectId, label:`${r.provider} ${r.servicelevel}`, detail:r.days?`Est. ${r.days} business days`:'', amount:Math.round(parseFloat(r.amount)*100) }));
         selRate = walletRates[0] || null;
         walletShippingCents = opts[0]?.amount || defaultShippingCents;
         ev.updateWith({
           status:'success',
           shippingOptions:opts,
-          total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, walletShippingCents) },
-          displayItems:getWalletDisplayItems(normalizedSubtotalCents, walletShippingCents)
+          total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, walletShippingCents, walletTaxStateCode) },
+          displayItems:getWalletDisplayItems(normalizedSubtotalCents, walletShippingCents, walletTaxStateCode)
         });
       } catch { useFlatRate(); }
     });
@@ -3334,20 +3373,25 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
       walletShippingCents = shippingAmount;
       ev.updateWith({
         status:'success',
-        total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, shippingAmount) },
-        displayItems:getWalletDisplayItems(normalizedSubtotalCents, shippingAmount)
+        total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, shippingAmount, walletTaxStateCode) },
+        displayItems:getWalletDisplayItems(normalizedSubtotalCents, shippingAmount, walletTaxStateCode)
       });
     });
     payReq.on('paymentmethod', async ev => {
       try {
         const a = ev.shippingAddress||{};
         const userId = await getCheckoutUserId();
+        const accessToken = await getCheckoutAccessToken();
         const effectiveShippingCents = walletShippingCents ?? defaultShippingCents;
+        const threshold = Number(window.zwShippingThreshold || 100);
+        const qualifiesFree = (normalizedSubtotalCents / 100) >= threshold;
         const d = await post('/api/create-payment-intent', {
           items:cartItems,
           shippingRate:selRate,
           shippingAmountCents: effectiveShippingCents,
+          freeShipping: qualifiesFree,
           userId,
+          accessToken,
           address:{ name:ev.payerName||'', email:ev.payerEmail||'', line1:a.addressLine?.[0]||'', line2:a.addressLine?.[1]||'', city:a.city||'', state:a.region||'', zip:a.postalCode||'', country:a.country||'US' }
         });
         if (d.error) {
@@ -3414,7 +3458,8 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
       document.getElementById('shipping-rates-field').style.display = 'none';
       document.getElementById('shipping-rates-loading').style.display = 'block';
       try {
-        const d = await post('/api/shippo-rates', { address:{ name:document.getElementById('pay-name').value.trim(), line1:document.getElementById('pay-addr1').value.trim(), city:document.getElementById('pay-city').value.trim(), state, zip, country:'US' } });
+        const parcelSummary = getCartShippingParcelSummary();
+        const d = await post('/api/shippo-rates', { address:{ name:document.getElementById('pay-name').value.trim(), line1:document.getElementById('pay-addr1').value.trim(), city:document.getElementById('pay-city').value.trim(), state, zip, country:'US' }, ...parcelSummary });
         document.getElementById('shipping-rates-loading').style.display = 'none';
         if (!d.rates?.length) return;
         const list = document.getElementById('shipping-rates-list'); list.innerHTML = '';
@@ -3438,8 +3483,19 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     if (se) se.textContent = '$'+parseFloat(amount).toFixed(2);
     if (te) te.textContent = '$'+(p('summary-subtotal')+parseFloat(amount)+p('summary-tax')).toFixed(2);
   }
+  function updateTaxEstimateForState() {
+    const subtotal = parseFloat((document.getElementById('summary-subtotal')?.textContent||'0').replace(/[^0-9.]/g,'')) || 0;
+    if (!subtotal) return;
+    const tax = window.ZWCheckoutTax?.taxDollars(subtotal, getCheckoutTaxStateCode()) || 0;
+    const taxEl = document.getElementById('summary-tax');
+    const totalEl = document.getElementById('summary-total');
+    const shippingText = document.getElementById('summary-shipping')?.textContent || '';
+    const shipping = /^free$/i.test(shippingText.trim()) ? 0 : (parseFloat(shippingText.replace(/[^0-9.]/g, '')) || 0);
+    if (taxEl) taxEl.textContent = '$' + tax.toFixed(2);
+    if (totalEl) totalEl.textContent = '$' + (subtotal + shipping + tax).toFixed(2);
+  }
   document.getElementById('pay-zip').addEventListener('input', maybeLoadRates);
-  document.getElementById('pay-state').addEventListener('input', maybeLoadRates);
+  document.getElementById('pay-state').addEventListener('input', () => { updateTaxEstimateForState(); maybeLoadRates(); });
   document.getElementById('payment-close').addEventListener('click', () => { closePayModal('payment-modal'); document.getElementById('pay-error').textContent=''; });
   document.getElementById('payment-modal').addEventListener('click', e => { if (e.target===e.currentTarget) closePayModal('payment-modal'); });
 
@@ -3456,7 +3512,8 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     try {
       await _initStripe();
       const userId = await getCheckoutUserId();
-      const d = await post('/api/create-payment-intent', { items:cartItems, shippingRate:selRate, userId, address:{name,email,line1:addr1,line2:addr2,city,state,zip,country:'US'} });
+      const accessToken = await getCheckoutAccessToken();
+      const d = await post('/api/create-payment-intent', { items:cartItems, shippingRate:selRate, userId, accessToken, address:{name,email,line1:addr1,line2:addr2,city,state,zip,country:'US'} });
       if (d.error) { err.textContent=d.error; btn.disabled=false; btxt.textContent='Pay Now'; return; }
       const { error, paymentIntent } = await stripe.confirmCardPayment(d.clientSecret, { payment_method:{ card, billing_details:{name,email} }, receipt_email:email, shipping:{name,address:{line1:addr1,line2:addr2,city,state,postal_code:zip,country:'US'}} });
       if (error) { err.textContent=error.message; btn.disabled=false; btxt.textContent='Pay Now'; return; }
@@ -3592,5 +3649,5 @@ function showApplePayQrModal() {
   }, 80);
 }
 </script>
-<script src="/apple-pay-native.js"></script></body>
+</body>
 </html>

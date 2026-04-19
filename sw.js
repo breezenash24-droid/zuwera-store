@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zuwera-v8';
+const CACHE_NAME = 'zuwera-v9';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -7,6 +7,7 @@ const ASSETS_TO_CACHE = [
   '/base.css',
   '/nav.css',
   '/stripe-client-config.js',
+  '/checkout-tax.js',
   '/layout.css',
   '/cart.css',
   '/images/logo.png',

@@ -1,34 +1,63 @@
 /**
- * Temporary diagnostic: lists Stripe webhook endpoints so we can verify
- * the correct endpoint + signing secret exists.
- * DELETE this file after setup is confirmed.
+ * Disabled-by-default Stripe webhook diagnostic endpoint.
+ *
+ * To use temporarily while testing, set WEBHOOK_DIAGNOSTICS_ENABLED=true and
+ * WEBHOOK_DIAGNOSTICS_TOKEN, then send x-admin-token with the request.
  */
-export async function onRequestGet({ env }) {
+
+function json(body, status = 200) {
+  return new Response(JSON.stringify(body, null, 2), {
+    status,
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+  });
+}
+
+function safeEquals(a, b) {
+  const left = String(a || '');
+  const right = String(b || '');
+  if (!left || !right || left.length !== right.length) return false;
+  let diff = 0;
+  for (let i = 0; i < left.length; i += 1) diff |= left.charCodeAt(i) ^ right.charCodeAt(i);
+  return diff === 0;
+}
+
+function requireDiagnostics(request, env) {
+  if (String(env.WEBHOOK_DIAGNOSTICS_ENABLED || '').toLowerCase() !== 'true') {
+    return json({ error: 'Not found' }, 404);
+  }
+  const expected = env.WEBHOOK_DIAGNOSTICS_TOKEN;
+  const provided = request.headers.get('x-admin-token');
+  if (!expected || !safeEquals(provided, expected)) {
+    return json({ error: 'Unauthorized' }, 401);
+  }
+  return null;
+}
+
+export async function onRequestGet({ request, env }) {
+  const denied = requireDiagnostics(request, env);
+  if (denied) return denied;
+
   if (!env.STRIPE_SECRET_KEY) {
-    return new Response(JSON.stringify({ error: 'STRIPE_SECRET_KEY not set' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    return json({ error: 'STRIPE_SECRET_KEY not set' }, 500);
   }
 
-  // List webhook endpoints via Stripe REST API
   const resp = await fetch('https://api.stripe.com/v1/webhook_endpoints?limit=20', {
     headers: { Authorization: 'Bearer ' + env.STRIPE_SECRET_KEY },
   });
   const data = await resp.json();
 
-  const endpoints = (data.data || []).map(ep => ({
-    id:     ep.id,
-    url:    ep.url,
+  const endpoints = (data.data || []).map((ep) => ({
+    id: ep.id,
+    url: ep.url,
     status: ep.status,
     events: ep.enabled_events,
     created: new Date(ep.created * 1000).toISOString(),
   }));
 
-  return new Response(JSON.stringify({
+  return json({
     stripe_mode: env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'TEST' : 'LIVE',
     total_endpoints: endpoints.length,
     endpoints,
     looking_for: 'https://zuwera.store/api/stripe-webhook with payment_intent.succeeded',
-  }, null, 2), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
   });
 }

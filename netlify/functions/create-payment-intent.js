@@ -18,6 +18,7 @@
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { ok, err, preflight } = require('./_shared');
+const crypto = require('crypto');
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return preflight();
@@ -64,7 +65,21 @@ exports.handler = async (event) => {
       .map(i => `${getItemName(i)}:${i.quantity || 1}:${getItemPriceCents(i)}`)
       .sort()
       .join('|');
-    const idempotencyKey = `pi_${address.email}_${shippingCents}_${Buffer.from(cartFingerprint).toString('base64').slice(0, 32)}`;
+    const addressFingerprint = [
+      address.email,
+      address.line1,
+      address.line2,
+      address.city,
+      address.state,
+      address.zip,
+      address.country || 'US'
+    ].map((part) => String(part || '').trim().toLowerCase()).join('|');
+    const idempotencyHash = crypto
+      .createHash('sha256')
+      .update(JSON.stringify({ cartFingerprint, shippingCents, addressFingerprint }))
+      .digest('hex')
+      .slice(0, 40);
+    const idempotencyKey = `pi_${idempotencyHash}`;
 
     // ── Create PaymentIntent ──────────────────────────────────────
     const paymentIntent = await stripe.paymentIntents.create(

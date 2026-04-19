@@ -125,6 +125,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500&family=Barlow:wght@300;400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="reviews.css?v=12">
 <script src="/stripe-client-config.js?v=1"></script>
+<script src="/checkout-tax.js?v=1"></script>
 
 <!-- Stripe is loaded lazily on checkout click to avoid blocking initial render -->
 <!-- defer moves Supabase off the critical path ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â it was previously
@@ -3038,7 +3039,7 @@ function updateCartSummary(subtotal) {
     return;
   }
 
-  const tax = subtotal * 0.08;
+  const tax = window.ZWCheckoutTax?.taxDollars(subtotal, getCheckoutTaxStateCode()) || 0;
   document.getElementById('summary-tax').textContent = '$' + tax.toFixed(2);
 
   if (qualifiesFree) {
@@ -3302,12 +3303,27 @@ async function getCheckoutUserId() {
     return null;
   }
 }
+async function getCheckoutAccessToken() {
+  if (!_sb?.auth?.getSession) return null;
+  try {
+    const { data } = await _sb.auth.getSession();
+    return data?.session?.access_token || null;
+  } catch {
+    return null;
+  }
+}
+function getCheckoutTaxStateCode(fallback = '') {
+  const fieldState = document.getElementById('pay-state')?.value || '';
+  return window.ZWCheckoutTax?.normalizeStateCode(fieldState || fallback || _detectedStateCode) || '';
+}
+function getCheckoutTaxCents(subtotalCents, stateCode = '') {
+  return window.ZWCheckoutTax?.taxCents(subtotalCents, getCheckoutTaxStateCode(stateCode)) || 0;
+}
 function closeModal(id) { document.getElementById(id).classList.remove('open'); if (id === 'size-guide-modal') { teardownSizeGuideIframeAutoHeight(); const iframe = document.getElementById('size-guide-iframe'); if (iframe) iframe.style.height = ''; } document.body.style.overflow=''; }
-const PAY_TAX_RATE = 0.08;
 let _paymentReturnModalId = null;
 
-function getWalletTaxCents(subtotalCents) {
-  return subtotalCents > 0 ? Math.round(subtotalCents * PAY_TAX_RATE) : 0;
+function getWalletTaxCents(subtotalCents, stateCode = '') {
+  return getCheckoutTaxCents(subtotalCents, stateCode);
 }
 
 function getDefaultCheckoutShippingCents(subtotalCents) {
@@ -3317,19 +3333,19 @@ function getDefaultCheckoutShippingCents(subtotalCents) {
   return qualifiesFree ? 0 : Math.round((policy.standardRate || 8) * 100);
 }
 
-function getWalletTotalCents(subtotalCents, shippingCents = 0) {
-  return subtotalCents + shippingCents + getWalletTaxCents(subtotalCents);
+function getWalletTotalCents(subtotalCents, shippingCents = 0, stateCode = '') {
+  return subtotalCents + shippingCents + getWalletTaxCents(subtotalCents, stateCode);
 }
 
-function getWalletDisplayItems(subtotalCents, shippingCents) {
+function getWalletDisplayItems(subtotalCents, shippingCents, stateCode = '') {
   return [
     { label: 'Subtotal', amount: Math.max(0, subtotalCents || 0) },
     { label: 'Shipping', amount: Math.max(0, shippingCents || 0) },
-    { label: 'Tax', amount: getWalletTaxCents(subtotalCents) }
+    { label: 'Tax', amount: getWalletTaxCents(subtotalCents, stateCode) }
   ];
 }
 
-let _detectedStateCode = '';
+var _detectedStateCode = '';
 let _detectStatePromise = null;
 
 async function prefillCheckoutStateFromGeo() {
@@ -3522,7 +3538,7 @@ document.getElementById('size-guide-modal')?.addEventListener('click', e => {
   if (e.target === e.currentTarget) closeModal('size-guide-modal');
 });
 
-let payReq = null, payReqButton = null, selRate = null, walletRates = [], walletShippingCents = 0;
+let payReq = null, payReqButton = null, selRate = null, walletRates = [], walletShippingCents = 0, walletTaxStateCode = '';
 function resetWalletUi() {
   const walletHost = document.getElementById('payment-request-btn');
   const walletHints = document.getElementById('wallet-methods');
@@ -3540,6 +3556,7 @@ function resetWalletUi() {
     walletHints.style.display = 'none';
   }
   walletShippingCents = 0;
+  walletTaxStateCode = '';
   if (divider) divider.style.display = 'none';
 }
 function renderWalletHints(result) {
@@ -3581,11 +3598,12 @@ function initPR(subtotalCents) {
   walletRates = [];
   selRate = null;
   walletShippingCents = defaultShippingCents;
+  walletTaxStateCode = getCheckoutTaxStateCode();
   payReq = stripe.paymentRequest({
     country:'US',
     currency:'usd',
-    total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, defaultShippingCents), pending:true },
-    displayItems:getWalletDisplayItems(normalizedSubtotalCents, defaultShippingCents),
+    total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, defaultShippingCents, walletTaxStateCode), pending:true },
+    displayItems:getWalletDisplayItems(normalizedSubtotalCents, defaultShippingCents, walletTaxStateCode),
     requestPayerName:true,
     requestPayerEmail:true,
     requestShipping:true,
@@ -3593,6 +3611,7 @@ function initPR(subtotalCents) {
   });
   payReq.on('shippingaddresschange', async ev => {
     const a = ev.shippingAddress;
+    walletTaxStateCode = getCheckoutTaxStateCode(a.region);
     const policy = window._shippingPolicy || { enabled: true, threshold: 100, standardRate: 8 };
     const qualifiesFree = policy.enabled && (normalizedSubtotalCents / 100) >= policy.threshold;
 
@@ -3609,8 +3628,8 @@ function initPR(subtotalCents) {
           detail: qualifiesFree ? '' : 'Est. 5â€“7 business days',
           amount: defaultShippingCents
         }],
-        total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, defaultShippingCents) },
-        displayItems:getWalletDisplayItems(normalizedSubtotalCents, defaultShippingCents)
+        total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, defaultShippingCents, walletTaxStateCode) },
+        displayItems:getWalletDisplayItems(normalizedSubtotalCents, defaultShippingCents, walletTaxStateCode)
       });
     }
     try {
@@ -3630,8 +3649,8 @@ function initPR(subtotalCents) {
         ev.updateWith({
           status:'success',
           shippingOptions:[{ id:'free', label:'Free Shipping', detail:'', amount:0 }],
-          total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, 0) },
-          displayItems:getWalletDisplayItems(normalizedSubtotalCents, 0)
+          total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, 0, walletTaxStateCode) },
+          displayItems:getWalletDisplayItems(normalizedSubtotalCents, 0, walletTaxStateCode)
         });
       } else {
         walletRates = d.rates.slice(0,4);
@@ -3641,8 +3660,8 @@ function initPR(subtotalCents) {
         ev.updateWith({
           status:'success',
           shippingOptions:opts,
-          total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, walletShippingCents) },
-          displayItems:getWalletDisplayItems(normalizedSubtotalCents, walletShippingCents)
+          total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, walletShippingCents, walletTaxStateCode) },
+          displayItems:getWalletDisplayItems(normalizedSubtotalCents, walletShippingCents, walletTaxStateCode)
         });
       }
     } catch { useFlatRate(); }
@@ -3656,14 +3675,15 @@ function initPR(subtotalCents) {
     walletShippingCents = shippingAmount;
     ev.updateWith({
       status:'success',
-      total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, shippingAmount) },
-      displayItems:getWalletDisplayItems(normalizedSubtotalCents, shippingAmount)
+      total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, shippingAmount, walletTaxStateCode) },
+      displayItems:getWalletDisplayItems(normalizedSubtotalCents, shippingAmount, walletTaxStateCode)
     });
   });
   payReq.on('paymentmethod', async ev => {
     try {
       const a = ev.shippingAddress||{};
       const userId = await getCheckoutUserId();
+      const accessToken = await getCheckoutAccessToken();
       const policy = window._shippingPolicy || { enabled: true, threshold: 100, standardRate: 8 };
       const qualifiesFree = policy.enabled && (normalizedSubtotalCents / 100) >= policy.threshold;
       // Use nullish coalescing so $0 shipping (free) is preserved and not replaced by the fallback
@@ -3674,6 +3694,7 @@ function initPR(subtotalCents) {
         shippingAmountCents: effectiveShippingCents,
         freeShipping: qualifiesFree,
         userId,
+        accessToken,
         address:{ name:ev.payerName||'', email:ev.payerEmail||'', line1:a.addressLine?.[0]||'', line2:a.addressLine?.[1]||'', city:a.city||'', state:a.region||'', zip:a.postalCode||'', country:a.country||'US' }
       });
       if(d.error){
@@ -3788,8 +3809,19 @@ function updateShip(amount) {
   if(se) se.textContent = '$'+parseFloat(amount).toFixed(2);
   if(te) te.textContent = '$'+(p('summary-subtotal')+parseFloat(amount)+p('summary-tax')).toFixed(2);
 }
+function updateTaxEstimateForState() {
+  const subtotal = _getCurrentSubtotal();
+  if (!subtotal) return;
+  const tax = window.ZWCheckoutTax?.taxDollars(subtotal, getCheckoutTaxStateCode()) || 0;
+  const taxEl = document.getElementById('summary-tax');
+  const totalEl = document.getElementById('summary-total');
+  const shippingText = document.getElementById('summary-shipping')?.textContent || '';
+  const shipping = /^free$/i.test(shippingText.trim()) ? 0 : (parseFloat(shippingText.replace(/[^0-9.]/g, '')) || 0);
+  if (taxEl) taxEl.textContent = '$' + tax.toFixed(2);
+  if (totalEl) totalEl.textContent = '$' + (subtotal + shipping + tax).toFixed(2);
+}
 document.getElementById('pay-zip').addEventListener('input', maybeLoadRates);
-document.getElementById('pay-state').addEventListener('input', maybeLoadRates);
+document.getElementById('pay-state').addEventListener('input', () => { updateTaxEstimateForState(); maybeLoadRates(); });
 document.getElementById('payment-close').addEventListener('click', () => { closePaymentModal(); document.getElementById('pay-error').textContent=''; });
 document.getElementById('payment-modal').addEventListener('click', e => { if(e.target===e.currentTarget) closePaymentModal(); });
 
@@ -3808,7 +3840,8 @@ document.getElementById('pay-submit').addEventListener('click', async () => {
   try {
     await _initStripe();
     const userId = await getCheckoutUserId();
-    const d = await post('/api/create-payment-intent', { items:cartItems, shippingRate:selRate, freeShipping:_qualifiesFree, userId, address:{name,email,line1:addr1,line2:addr2,city,state,zip,country:'US'} });
+    const accessToken = await getCheckoutAccessToken();
+    const d = await post('/api/create-payment-intent', { items:cartItems, shippingRate:selRate, freeShipping:_qualifiesFree, userId, accessToken, address:{name,email,line1:addr1,line2:addr2,city,state,zip,country:'US'} });
     if(d.error){ err.textContent=d.error; btn.disabled=false; btxt.textContent='Pay Now'; return; }
     const { error, paymentIntent } = await stripe.confirmCardPayment(d.clientSecret, { payment_method:{ card, billing_details:{name,email} }, receipt_email:email });
     if(error){ err.textContent=error.message; btn.disabled=false; btxt.textContent='Pay Now'; return; }
@@ -3976,7 +4009,7 @@ function scrollToNotify() {
 
 <!-- PWA Service Worker -->
 <script>
-if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=8').then(reg=>reg.update()).catch(()=>{})}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=9').then(reg=>reg.update()).catch(()=>{})}
 </script>
 
 <!-- Cookie Consent / GDPR -->
@@ -4095,6 +4128,6 @@ function showApplePayQrModal() {
   }, 80);
 }
 </script>
-<script src="/apple-pay-native.js"></script></body>
+</body>
 </html>
  

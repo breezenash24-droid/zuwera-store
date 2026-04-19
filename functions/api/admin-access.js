@@ -56,17 +56,12 @@ function isAllowedAdmin(user, env) {
     ...DEFAULT_ADMIN_USER_IDS,
     ...parseList(env.ADMIN_USER_IDS, { lowercase: false })
   ]);
-  const allowedDomains = parseList(env.ADMIN_EMAIL_DOMAINS);
   const userIds = collectUserIds(user);
 
   const isExactEmailAllowed = emails.some((email) => exactEmails.has(email));
   const isExactUserAllowed = userIds.some((userId) => exactUserIds.has(userId));
-  const isDomainAllowed = allowedDomains.length > 0 && emails.some((email) => {
-    const at = email.lastIndexOf('@');
-    return at > -1 && allowedDomains.includes(email.slice(at + 1));
-  });
 
-  return isExactEmailAllowed || isExactUserAllowed || isDomainAllowed;
+  return isExactEmailAllowed || isExactUserAllowed;
 }
 
 async function fetchUser(accessToken, env) {
