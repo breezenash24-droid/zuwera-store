@@ -2353,7 +2353,7 @@ function renderProductCards(products, grid) {
             <span id="avg-${domId}"><span style="color:rgba(244,241,235,.2)">\u2606\u2606\u2606\u2606\u2606</span></span>
             <span id="cnt-${domId}">Be the first to review</span>
           </button>
-          ${isLive ? `<button class="pcard-add-btn" onclick="event.stopPropagation();quickAddToCart('${p.id}','${productName.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${productPrice},'${(p.sku||'').replace(/'/g,"\\'")}','${(firstImg||'').replace(/'/g,"\\'")}',this)">Add to Bag</button>` : ''}
+          ${isLive ? `<button class="pcard-add-btn" onclick="event.stopPropagation();quickAddToCart('${p.id}','${productName.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${productPrice},'${(p.sku||'').replace(/'/g,"\\'")}','${(firstImg||'').replace(/'/g,"\\'")}',${parseFloat(p.shipping_weight_lb)||0.5},this)">Add to Bag</button>` : ''}
         </div>
         ${isLive ? `<div class="quick-size-panel" id="qsp-${domId}">
           <div class="quick-size-panel-header">
@@ -3078,7 +3078,7 @@ document.addEventListener('click', function(e) {
   }
 });
 
-async function quickAddToCart(productId, productTitle, productPrice, productSku, productImage, btn) {
+async function quickAddToCart(productId, productTitle, productPrice, productSku, productImage, productWeightLb, btn) {
   document.querySelectorAll('.quick-size-panel.open').forEach(p => p.classList.remove('open'));
 
   const card = btn.closest('.pcard');
@@ -3113,15 +3113,15 @@ async function quickAddToCart(productId, productTitle, productPrice, productSku,
     const hasColors = colors && colors.length > 0;
 
     if (isOneSize && !hasColors) {
-      quickAddConfirmItem(productId, productTitle, productPrice, productSku, productImage, sizeEntries[0]?.[0] || 'One Size', 'Standard');
+      quickAddConfirmItem(productId, productTitle, productPrice, productSku, productImage, sizeEntries[0]?.[0] || 'One Size', 'Standard', productWeightLb);
       return;
     }
 
     // Show panel — start with color step if colors exist, otherwise go straight to sizes
     if (hasColors) {
-      _quickShowColorStep(panel, colors, productId, productTitle, productPrice, productSku, productImage, sizeEntries);
+      _quickShowColorStep(panel, colors, productId, productTitle, productPrice, productSku, productImage, sizeEntries, productWeightLb);
     } else {
-      _quickShowSizeStep(panel, sizeEntries, productId, productTitle, productPrice, productSku, productImage, 'Standard', null);
+      _quickShowSizeStep(panel, sizeEntries, productId, productTitle, productPrice, productSku, productImage, 'Standard', null, productWeightLb);
     }
 
     panel.classList.add('open');
@@ -3133,7 +3133,7 @@ async function quickAddToCart(productId, productTitle, productPrice, productSku,
   }
 }
 
-function _quickShowColorStep(panel, colors, productId, productTitle, productPrice, productSku, productImage, sizeEntries) {
+function _quickShowColorStep(panel, colors, productId, productTitle, productPrice, productSku, productImage, sizeEntries, productWeightLb) {
   const labelEl = panel.querySelector('[id^="qsp-label-"]');
   const bodyEl  = panel.querySelector('[id^="qsp-body-"]');
   if (labelEl) labelEl.textContent = 'Select Colorway';
@@ -3162,10 +3162,10 @@ function _quickShowColorStep(panel, colors, productId, productTitle, productPric
       setTimeout(() => {
         if (sizeEntries.length <= 1 && (sizeEntries.length === 0 || /one.?size/i.test(sizeEntries[0][0]))) {
           // One size — add immediately
-          quickAddConfirmItem(productId, productTitle, productPrice, c.variant_sku || productSku, productImage, sizeEntries[0]?.[0] || 'One Size', c.color_name);
+          quickAddConfirmItem(productId, productTitle, productPrice, c.variant_sku || productSku, productImage, sizeEntries[0]?.[0] || 'One Size', c.color_name, productWeightLb);
           panel.classList.remove('open');
         } else {
-          _quickShowSizeStep(panel, sizeEntries, productId, productTitle, productPrice, c.variant_sku || productSku, productImage, c.color_name, colors);
+          _quickShowSizeStep(panel, sizeEntries, productId, productTitle, productPrice, c.variant_sku || productSku, productImage, c.color_name, colors, productWeightLb);
         }
       }, 180);
     };
@@ -3173,7 +3173,7 @@ function _quickShowColorStep(panel, colors, productId, productTitle, productPric
   });
 }
 
-function _quickShowSizeStep(panel, sizeEntries, productId, productTitle, productPrice, productSku, productImage, colorName, colors) {
+function _quickShowSizeStep(panel, sizeEntries, productId, productTitle, productPrice, productSku, productImage, colorName, colors, productWeightLb) {
   const labelEl = panel.querySelector('[id^="qsp-label-"]');
   const bodyEl  = panel.querySelector('[id^="qsp-body-"]');
   if (labelEl) labelEl.textContent = colorName && colorName !== 'Standard' ? colorName + ' — Select Size' : 'Select Size';
@@ -3196,7 +3196,7 @@ function _quickShowSizeStep(panel, sizeEntries, productId, productTitle, product
     if (backEl) {
       backEl.addEventListener('click', function(e) {
         e.preventDefault(); e.stopPropagation();
-        _quickShowColorStep(panel, colors, productId, productTitle, productPrice, productSku, productImage, sizeEntries);
+        _quickShowColorStep(panel, colors, productId, productTitle, productPrice, productSku, productImage, sizeEntries, productWeightLb);
       });
     }
   }
@@ -3205,13 +3205,13 @@ function _quickShowSizeStep(panel, sizeEntries, productId, productTitle, product
   bodyEl.querySelectorAll('.quick-size-btn:not(.sold-out)').forEach(function(btn) {
     btn.addEventListener('click', function(e) {
       e.preventDefault(); e.stopPropagation();
-      quickAddConfirmItem(productId, productTitle, productPrice, productSku, productImage, btn.dataset.size, colorName || 'Standard');
+      quickAddConfirmItem(productId, productTitle, productPrice, productSku, productImage, btn.dataset.size, colorName || 'Standard', productWeightLb);
       closeQuickSizePanel(panel.id);
     });
   });
 }
 
-window.quickAddConfirmItem = function(productId, productTitle, productPrice, productSku, productImage, size, colorName) {
+window.quickAddConfirmItem = function(productId, productTitle, productPrice, productSku, productImage, size, colorName, productWeightLb) {
   const price = parseFloat(productPrice) || 0;
   const color = colorName || 'Standard';
   const cartItem = {
@@ -3224,6 +3224,7 @@ window.quickAddConfirmItem = function(productId, productTitle, productPrice, pro
     memberPrice: null,
     price,
     image: productImage || '',
+    weightLb: parseFloat(productWeightLb) || 0.5,
     quantity: 1
   };
 
@@ -3616,8 +3617,9 @@ function initPR(subtotalCents) {
       // Apple Pay / Google Pay withhold street during shippingaddresschange for privacy.
       // Use placeholder so Shippo can calculate rates by zip/state.
       const line1 = a.addressLine?.[0] || '1 Main St';
-      const _walletTotalItems = cartItems.reduce((s, i) => s + (i.quantity || 1), 0) || 1;
-      const d = await post('/api/shippo-rates', { address:{ name:'', line1, city:a.city, state:a.region, zip:a.postalCode, country:a.country }, totalItems: _walletTotalItems });
+      const _walletTotalItems  = cartItems.reduce((s, i) => s + (i.quantity || 1), 0) || 1;
+      const _walletTotalWeight = cartItems.reduce((s, i) => s + ((parseFloat(i.weightLb) || 0.5) * (i.quantity || 1)), 0) || 0.5;
+      const d = await post('/api/shippo-rates', { address:{ name:'', line1, city:a.city, state:a.region, zip:a.postalCode, country:a.country }, totalItems: _walletTotalItems, totalWeightLb: _walletTotalWeight });
       if(!d.rates?.length){ useFlatRate(); return; }
 
       if (qualifiesFree) {
@@ -3750,8 +3752,9 @@ function maybeLoadRates() {
       // Silently fetch cheapest rate for fulfillment metadata â€” customer pays nothing
       document.getElementById('shipping-free-row').style.display = 'flex';
       try {
-        const _freeTotalItems = cartItems.reduce((s, i) => s + (i.quantity || 1), 0) || 1;
-        const d = await post('/api/shippo-rates', { address:{ name:document.getElementById('pay-name').value.trim(), line1:document.getElementById('pay-addr1').value.trim(), city:document.getElementById('pay-city').value.trim(), state, zip, country:'US' }, totalItems: _freeTotalItems });
+        const _freeTotalItems  = cartItems.reduce((s, i) => s + (i.quantity || 1), 0) || 1;
+        const _freeTotalWeight = cartItems.reduce((s, i) => s + ((parseFloat(i.weightLb) || 0.5) * (i.quantity || 1)), 0) || 0.5;
+        const d = await post('/api/shippo-rates', { address:{ name:document.getElementById('pay-name').value.trim(), line1:document.getElementById('pay-addr1').value.trim(), city:document.getElementById('pay-city').value.trim(), state, zip, country:'US' }, totalItems: _freeTotalItems, totalWeightLb: _freeTotalWeight });
         if(d.rates?.length) selRate = d.rates[0]; // cheapest — customer pays $0
       } catch(e){ /* silent */ }
       return;
@@ -3760,8 +3763,9 @@ function maybeLoadRates() {
     // Not qualifying for free — show live Shippo rates for customer to choose
     document.getElementById('shipping-rates-loading').style.display = 'block';
     try {
-      const _paidTotalItems = cartItems.reduce((s, i) => s + (i.quantity || 1), 0) || 1;
-      const d = await post('/api/shippo-rates', { address:{ name:document.getElementById('pay-name').value.trim(), line1:document.getElementById('pay-addr1').value.trim(), city:document.getElementById('pay-city').value.trim(), state, zip, country:'US' }, totalItems: _paidTotalItems });
+      const _paidTotalItems  = cartItems.reduce((s, i) => s + (i.quantity || 1), 0) || 1;
+      const _paidTotalWeight = cartItems.reduce((s, i) => s + ((parseFloat(i.weightLb) || 0.5) * (i.quantity || 1)), 0) || 0.5;
+      const d = await post('/api/shippo-rates', { address:{ name:document.getElementById('pay-name').value.trim(), line1:document.getElementById('pay-addr1').value.trim(), city:document.getElementById('pay-city').value.trim(), state, zip, country:'US' }, totalItems: _paidTotalItems, totalWeightLb: _paidTotalWeight });
       document.getElementById('shipping-rates-loading').style.display = 'none';
       if(!d.rates?.length) return;
       const list = document.getElementById('shipping-rates-list'); list.innerHTML='';

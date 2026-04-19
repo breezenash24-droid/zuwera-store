@@ -2454,6 +2454,7 @@ function addToCart() {
     memberPrice,
     price: effectivePrice,
     image: currentProduct.images[0]?.image_url || '',
+    weightLb: parseFloat(currentProduct.shipping_weight_lb) || 0.5,
     quantity: 1
   };
 

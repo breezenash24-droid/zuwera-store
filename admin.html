@@ -3024,6 +3024,11 @@
                             <label class="form-label">Fabric Weight (GSM)</label>
                             <input type="number" id="fabricWeightGsm" class="form-input" placeholder="e.g., 200" step="0.1">
                         </div>
+                        <div class="form-group">
+                            <label class="form-label">Shipping Weight (lb) <span style="color:#e07060;font-size:.75em">Required</span></label>
+                            <input type="number" id="shippingWeightLb" class="form-input" placeholder="e.g., 0.5" step="0.01" min="0.01">
+                            <div style="font-size:.72rem;color:rgba(244,241,235,.35);margin-top:.3rem">Actual packed weight used for live shipping rates at checkout.</div>
+                        </div>
                     </div>
                     <div class="form-grid">
                         <div class="form-group">
@@ -4800,7 +4805,7 @@
         }
 
         async function saveProduct(publish) {
-            const mandatoryFields = ['sku', 'title', 'subtitle', 'gender', 'materialComposition', 'msrp', 'currentPrice', 'productStatus'];
+            const mandatoryFields = ['sku', 'title', 'subtitle', 'gender', 'materialComposition', 'msrp', 'currentPrice', 'productStatus', 'shippingWeightLb'];
             const form = document.getElementById('productForm');
 
             let isValid = true;
@@ -4851,6 +4856,7 @@
                     fit_type: document.getElementById('fitType').value,
                     fabric_technology: allTechs,
                     fabric_weight_gsm: document.getElementById('fabricWeightGsm').value ? parseFloat(document.getElementById('fabricWeightGsm').value) : null,
+                    shipping_weight_lb: document.getElementById('shippingWeightLb').value ? parseFloat(document.getElementById('shippingWeightLb').value) : null,
                     upf_rating: document.getElementById('upfRating').value ? parseInt(document.getElementById('upfRating').value) : null,
                     breathability_mvtr: document.getElementById('breathabilityMvtr').value ? parseFloat(document.getElementById('breathabilityMvtr').value) : null,
                     pom_chest: document.getElementById('pomChest').value ? parseFloat(document.getElementById('pomChest').value) : null,
@@ -5011,6 +5017,7 @@
             document.getElementById('fabricTechnology').value = otherTechs.join(', ');
             
             document.getElementById('fabricWeightGsm').value = product.fabric_weight_gsm || '';
+            document.getElementById('shippingWeightLb').value = product.shipping_weight_lb || '';
             document.getElementById('upfRating').value = product.upf_rating || '';
             document.getElementById('breathabilityMvtr').value = product.breathability_mvtr || '';
             document.getElementById('pomChest').value = product.pom_chest || '';
