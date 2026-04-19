@@ -704,9 +704,19 @@ body.light-mode .quick-back-btn:hover{color:rgba(9,9,11,.7)}
 .quick-add-product-box{width:min(920px,94vw);max-height:min(760px,92vh);overflow:auto}
 .quick-add-product-layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr)}
 .quick-add-product-gallery{background:rgba(244,241,235,.025)}
-.quick-add-review-media{background:rgba(244,241,235,.04);aspect-ratio:4/3;display:flex;align-items:center;justify-content:center}
-.quick-add-review-media img{width:100%;height:100%;object-fit:cover;display:block}
+.quick-add-review-media{position:relative;background:rgba(244,241,235,.04);aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:pan-y pinch-zoom}
+.quick-add-review-media img{width:100%;height:100%;object-fit:contain;object-position:center;display:block}
 .quick-add-review-placeholder{font-family:var(--fm);font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,235,.28)}
+.quick-add-gallery-arrow{
+  position:absolute;top:50%;transform:translateY(-50%);z-index:8;
+  width:40px;height:40px;border-radius:50%;border:1px solid rgba(244,241,235,.16);
+  background:rgba(9,9,11,.58);color:#fff;display:flex;align-items:center;justify-content:center;
+  font-size:1.2rem;line-height:1;cursor:pointer;backdrop-filter:blur(10px);
+  transition:background .18s ease,border-color .18s ease,opacity .18s ease;
+}
+.quick-add-gallery-arrow:hover{background:rgba(9,9,11,.82);border-color:rgba(244,241,235,.28)}
+.quick-add-gallery-arrow.prev{left:.85rem}
+.quick-add-gallery-arrow.next{right:.85rem}
 .quick-add-review-body{padding:1.6rem 1.7rem 1.7rem}
 .quick-add-product-body{display:flex;flex-direction:column;gap:1rem}
 .quick-add-review-kicker{font-family:var(--fm);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:.45rem}
@@ -737,6 +747,7 @@ body.light-mode .quick-back-btn:hover{color:rgba(9,9,11,.7)}
 .quick-add-review-actions .quick-add-review-confirm:disabled{opacity:.45;cursor:not-allowed}
 body.light-mode .quick-add-review-media{background:rgba(9,9,11,.035)}
 body.light-mode .quick-add-review-placeholder{color:rgba(9,9,11,.28)}
+body.light-mode .quick-add-gallery-arrow{background:rgba(9,9,11,.55);border-color:rgba(255,255,255,.2);color:#fff}
 body.light-mode .quick-add-review-detail{border-color:rgba(9,9,11,.09)}
 body.light-mode .quick-add-review-label{color:rgba(9,9,11,.38)}
 body.light-mode .quick-add-review-value{color:rgba(9,9,11,.86)}
@@ -862,6 +873,13 @@ footer{
   padding:0;
   overflow:hidden;
 }
+.mbox.quick-add-review-box.quick-add-product-box .mclose{
+  z-index:40;
+  background:rgba(9,9,11,.72);
+  color:#fff;
+  opacity:1;
+  backdrop-filter:blur(12px);
+}
 .mbox.quick-add-review-box.quick-add-product-box .quick-add-product-layout{
   display:grid;
   grid-template-columns:minmax(420px,1.08fr) minmax(360px,.92fr);
@@ -904,12 +922,17 @@ footer{
     min-height:0;
   }
   .mbox.quick-add-review-box.quick-add-product-box .quick-add-review-media{
-    aspect-ratio:4/3;
+    aspect-ratio:3/4;
     min-height:0;
+    max-height:min(68vh,640px);
   }
   .mbox.quick-add-review-box.quick-add-product-box .quick-add-review-body{
     padding:1.35rem;
     overflow:visible;
+  }
+  .mbox.quick-add-review-box.quick-add-product-box .quick-add-gallery-arrow{
+    width:38px;
+    height:38px;
   }
 }
 
@@ -3383,6 +3406,21 @@ function quickAddSizeEntries(sizeRows) {
   return entries.length ? entries : [['One Size', 1]];
 }
 
+function quickAddActiveImageIndex(item, images) {
+  const current = item.activeImage || item.image || images?.[0] || '';
+  const index = images.indexOf(current);
+  return index >= 0 ? index : 0;
+}
+
+function quickAddMoveGallery(item, direction) {
+  const images = item.images?.length ? item.images : (item.image ? [item.image] : []);
+  if (!images.length) return;
+  const currentIndex = quickAddActiveImageIndex(item, images);
+  const nextIndex = (currentIndex + direction + images.length) % images.length;
+  item.activeImage = images[nextIndex];
+  quickAddRenderGallery(item);
+}
+
 function quickAddSetScrollLock(locked) {
   document.body.style.overflow = locked ? 'hidden' : '';
   document.documentElement.style.overflow = locked ? 'hidden' : '';
@@ -3420,14 +3458,34 @@ function closeQuickAddReviewModal() {
 function quickAddRenderGallery(item) {
   const media = document.getElementById('quick-add-review-media');
   const thumbs = document.getElementById('quick-add-review-thumbs');
-  const current = item.activeImage || item.image || item.images?.[0] || '';
+  const images = item.images?.length ? item.images : (item.image ? [item.image] : []);
+  const currentIndex = quickAddActiveImageIndex(item, images);
+  const current = images[currentIndex] || '';
+  item.activeImage = current;
+  const hasMultipleImages = images.length > 1;
   if (media) {
     media.innerHTML = current
-      ? `<img src="${quickAddEscapeAttr(current)}" alt="${quickAddEscapeAttr(item.title)}">`
+      ? `${hasMultipleImages ? '<button type="button" class="quick-add-gallery-arrow prev" data-gallery-step="-1" aria-label="Previous product image">&#10094;</button>' : ''}<img src="${quickAddEscapeAttr(current)}" alt="${quickAddEscapeAttr(item.title)}">${hasMultipleImages ? '<button type="button" class="quick-add-gallery-arrow next" data-gallery-step="1" aria-label="Next product image">&#10095;</button>' : ''}`
       : '<span class="quick-add-review-placeholder">Image Coming Soon</span>';
+    media.querySelectorAll('[data-gallery-step]').forEach(button => {
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        quickAddMoveGallery(item, Number(button.dataset.galleryStep) || 1);
+      });
+    });
+    let touchStartX = 0;
+    media.ontouchstart = (event) => {
+      touchStartX = event.changedTouches?.[0]?.screenX || 0;
+    };
+    media.ontouchend = (event) => {
+      if (!hasMultipleImages || !touchStartX) return;
+      const touchEndX = event.changedTouches?.[0]?.screenX || 0;
+      if (touchEndX < touchStartX - 40) quickAddMoveGallery(item, 1);
+      if (touchEndX > touchStartX + 40) quickAddMoveGallery(item, -1);
+    };
   }
   if (!thumbs) return;
-  const images = item.images?.length ? item.images : (current ? [current] : []);
   thumbs.innerHTML = images.map((src, idx) => `<button type="button" class="quick-add-thumb${src === current ? ' active' : ''}" data-img="${quickAddEscapeAttr(src)}" aria-label="View product image ${idx + 1}"><img src="${quickAddEscapeAttr(src)}" alt=""></button>`).join('');
   thumbs.querySelectorAll('.quick-add-thumb').forEach(button => {
     button.addEventListener('click', () => {
