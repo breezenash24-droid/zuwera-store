@@ -1094,7 +1094,7 @@ function updateCountdown() {
                   <p class="product-name">${productName}</p>
                   <p class="product-price">${productPrice ? '$' + Number(productPrice).toFixed(2) : 'Price TBA'}</p>
                   ${isLive
-                    ? `<button type="button" class="product-add-btn" data-col-quick-add="${quickAddPayload}">Add to Bag</button>`
+                    ? `<button type="button" class="product-add-btn" data-col-quick-add="${quickAddPayload}" onclick="return window.__zwCollectionQuickAddClick && window.__zwCollectionQuickAddClick(event,this)">Add to Bag</button>`
                     : `<span class="product-notify" onclick="scrollToNotify(event)">Notify Me When Live →</span>`
                   }
                 </div>
@@ -1179,6 +1179,26 @@ function updateCountdown() {
       btn.textContent = '...';
     }
 
+    var modalItem = {
+      productId: productId,
+      sku: productSku || '',
+      baseSku: productSku || '',
+      title: productTitle,
+      regularPrice: parseFloat(productPrice) || 0,
+      memberPrice: null,
+      price: parseFloat(productPrice) || 0,
+      image: productImage || '',
+      images: productImage ? [productImage] : [],
+      colors: [],
+      sizes: [['One Size', 1]],
+      selectedColor: null,
+      selectedSize: null,
+      weightLb: parseFloat(productWeightLb) || 0.5,
+      quantity: 1
+    };
+
+    openCollectionReviewModal(modalItem);
+
     try {
       var headers = { 'apikey': _colSB_ANON, 'Authorization': 'Bearer ' + _colSB_ANON };
       var encodedId = encodeURIComponent(productId);
@@ -1193,42 +1213,19 @@ function updateCountdown() {
       var images = collectionImageList(productImage, imageRows);
       var sizeEntries = collectionSizeEntries(sizeRows);
 
-      openCollectionReviewModal({
-        productId: productId,
-        sku: productSku || '',
-        baseSku: productSku || '',
-        title: productTitle,
-        regularPrice: parseFloat(productPrice) || 0,
-        memberPrice: null,
-        price: parseFloat(productPrice) || 0,
-        image: images[0] || productImage || '',
-        images: images,
-        colors: Array.isArray(colors) ? colors : [],
-        sizes: sizeEntries,
-        selectedColor: null,
-        selectedSize: null,
-        weightLb: parseFloat(productWeightLb) || 0.5,
-        quantity: 1
-      });
+      modalItem.image = images[0] || productImage || '';
+      modalItem.images = images;
+      modalItem.colors = Array.isArray(colors) ? colors : [];
+      modalItem.sizes = sizeEntries;
+      modalItem.selectedColor = null;
+      modalItem.selectedSize = null;
+      if (_collectionReviewItem === modalItem) openCollectionReviewModal(modalItem);
     } catch(e) {
       console.error('colQuickAdd error:', e);
-      openCollectionReviewModal({
-        productId: productId,
-        sku: productSku || '',
-        baseSku: productSku || '',
-        title: productTitle,
-        regularPrice: parseFloat(productPrice) || 0,
-        memberPrice: null,
-        price: parseFloat(productPrice) || 0,
-        image: productImage || '',
-        images: productImage ? [productImage] : [],
-        colors: [],
-        sizes: [['One Size', 1]],
-        selectedColor: null,
-        selectedSize: null,
-        weightLb: parseFloat(productWeightLb) || 0.5,
-        quantity: 1
-      });
+      var message = document.getElementById('collection-review-message');
+      if (message && _collectionReviewItem === modalItem) {
+        message.textContent = 'Options are still loading. You can add the standard option or open the full product page.';
+      }
     } finally {
       if (btn) {
         btn.classList.remove('loading');
@@ -1237,9 +1234,8 @@ function updateCountdown() {
     }
   }
 
-  document.addEventListener('click', function(e) {
-    var btn = e.target.closest('.product-add-btn[data-col-quick-add]');
-    if (!btn) return;
+  window.__zwCollectionQuickAddClick = function(e, btn) {
+    if (!btn || !btn.matches || !btn.matches('.product-add-btn[data-col-quick-add]')) return true;
     e.preventDefault();
     e.stopPropagation();
     if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
@@ -1263,6 +1259,13 @@ function updateCountdown() {
       payload.panelId,
       btn
     );
+    return false;
+  };
+
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.product-add-btn[data-col-quick-add]');
+    if (!btn) return;
+    window.__zwCollectionQuickAddClick(e, btn);
   }, true);
 
   var _collectionReviewItem = null;
