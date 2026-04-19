@@ -1586,7 +1586,7 @@ body.light-mode::after{opacity:0.15}
   </div>
   <nav class="flinks">
     <a href="drop001.html">Release 001</a>
-    <a href="/sizeguide.html" id="footer-size-guide-link">Size Guide</a>
+    <a href="/sizeguide.html" id="footer-size-guide-link" onclick="event.preventDefault(); window.openSizeGuideModal?.();">Size Guide</a>
     <a href="policies.html">Policies</a>
     <a href="mailto:nasirubreeze@zuwera.store">Contact</a>
   </nav>
@@ -3923,7 +3923,7 @@ window.openSizeGuideModal = async function() {
   }
 };
 
-// footer-size-guide-link navigates directly to /sizeguide.html (no modal)
+// Footer size-guide link opens this modal in place.
 document.getElementById('size-guide-close')?.addEventListener('click', () => closeModal('size-guide-modal'));
 document.getElementById('size-guide-modal')?.addEventListener('click', e => {
   if (e.target === e.currentTarget) closeModal('size-guide-modal');

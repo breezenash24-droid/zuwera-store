@@ -109,7 +109,7 @@
       .goog-logo-link,
       .skiptranslate { display: none !important; visibility: hidden !important; }
       /* Prevent GT from pushing the body down */
-      body { top: 0 !important; }
+      body:not([data-scroll-locked="true"]) { top: 0 !important; }
       /* Hide the floating "X" restore bar that sometimes appears */
       iframe.goog-te-banner-frame { display: none !important; }
     `;
@@ -124,7 +124,9 @@
   // Also re-suppress after GT loads (it sometimes re-inserts styles)
   function suppressGTBarRuntime() {
     // Force body top to 0
-    document.body.style.setProperty('top', '0', 'important');
+    if (!document.body.dataset.scrollLocked) {
+      document.body.style.setProperty('top', '0', 'important');
+    }
     // Hide any injected banner iframes
     document.querySelectorAll('.goog-te-banner-frame, .skiptranslate').forEach(el => {
       el.style.setProperty('display', 'none', 'important');
@@ -273,11 +275,14 @@
     langModalFallbackLocked = true;
     langModalFallbackScrollY = window.scrollY || window.pageYOffset || 0;
 
+    root.dataset.scrollLocked = 'true';
+    body.dataset.scrollLocked = 'true';
+
     root.style.overflow = 'hidden';
     root.style.overscrollBehavior = 'none';
 
     body.style.position = 'fixed';
-    body.style.top = `-${langModalFallbackScrollY}px`;
+    body.style.setProperty('top', `-${langModalFallbackScrollY}px`, 'important');
     body.style.left = '0';
     body.style.right = '0';
     body.style.width = '100%';
@@ -299,11 +304,14 @@
     langModalFallbackLocked = false;
     langModalFallbackScrollY = 0;
 
+    delete root.dataset.scrollLocked;
+    delete body.dataset.scrollLocked;
+
     root.style.overflow = '';
     root.style.overscrollBehavior = '';
 
     body.style.position = '';
-    body.style.top = '';
+    body.style.removeProperty('top');
     body.style.left = '';
     body.style.right = '';
     body.style.width = '';

@@ -46,7 +46,7 @@
     root.style.overscrollBehavior = 'none';
 
     body.style.position = 'fixed';
-    body.style.top = `-${lockedScrollY}px`;
+    body.style.setProperty('top', `-${lockedScrollY}px`, 'important');
     body.style.left = '0';
     body.style.right = '0';
     body.style.width = '100%';
@@ -74,7 +74,7 @@
     root.style.overscrollBehavior = '';
 
     body.style.position = '';
-    body.style.top = '';
+    body.style.removeProperty('top');
     body.style.left = '';
     body.style.right = '';
     body.style.width = '';
