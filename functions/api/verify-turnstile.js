@@ -14,7 +14,11 @@ export async function onRequestPost(context) {
 
     if (!secret) {
       return new Response(
-        JSON.stringify({ success: false, error: 'Turnstile secret key not configured' }),
+        JSON.stringify({
+          success: false,
+          code: 'TURNSTILE_NOT_CONFIGURED',
+          error: 'Turnstile secret key not configured'
+        }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }

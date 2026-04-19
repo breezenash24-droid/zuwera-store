@@ -3279,9 +3279,14 @@
                 body: JSON.stringify({ token })
             });
             const data = await res.json().catch(() => ({ success: false, error: 'Invalid security response.' }));
+            if (data.code === 'TURNSTILE_NOT_CONFIGURED') {
+                console.warn('[Turnstile] Secret key is missing in Cloudflare. Admin login is continuing for setup/testing, but this should be configured before launch.');
+                return false;
+            }
             if (!res.ok || !data.success) {
                 throw new Error(data.error || 'Security verification failed. Please try again.');
             }
+            return true;
         }
 
         async function runAdminTurnstile(action) {

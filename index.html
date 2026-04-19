@@ -2335,7 +2335,7 @@ function renderProductCards(products, grid) {
             <span id="avg-${domId}"><span style="color:rgba(244,241,235,.2)">\u2606\u2606\u2606\u2606\u2606</span></span>
             <span id="cnt-${domId}">Be the first to review</span>
           </button>
-          ${isLive ? `<button class="pcard-add-btn" onclick="event.stopPropagation();quickAddToCart('${p.id}','${productName.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${productPrice},'${(p.sku||'').replace(/'/g,"\\'")}','${(firstImg||'').replace(/'/g,"\\'")}',${parseFloat(p.shipping_weight_lb)||0.5},this)">Add to Bag</button>` : ''}
+          ${isLive ? `<button class="pcard-add-btn" onclick="event.preventDefault();event.stopPropagation();quickAddToCart('${p.id}','${productName.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${productPrice},'${(p.sku||'').replace(/'/g,"\\'")}','${(firstImg||'').replace(/'/g,"\\'")}',${parseFloat(p.shipping_weight_lb)||0.5},this)">Add to Bag</button>` : ''}
         </div>
         ${isLive ? `<div class="quick-size-panel" id="qsp-${domId}">
           <div class="quick-size-panel-header">
