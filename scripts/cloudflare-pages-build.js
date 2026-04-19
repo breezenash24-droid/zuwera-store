@@ -67,7 +67,6 @@ function copyPath(source, destination) {
   fs.copyFileSync(source, destination);
 }
 
-fs.rmSync(outDir, { recursive: true, force: true });
 fs.mkdirSync(outDir, { recursive: true });
 
 for (const file of files) {

@@ -354,9 +354,6 @@ export async function onRequestPost({ request, env }) {
       s: String(item.size || ''),
       q: item.quantity || 1,
     }));
-      tax_behavior: 'exclusive',
-      sku:          item.sku   || '',
-    }));
 
     const idempotencyPayload = JSON.stringify({
       email: String(address.email || '').toLowerCase().trim(),
