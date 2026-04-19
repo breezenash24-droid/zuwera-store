@@ -2318,6 +2318,14 @@ function renderProductCards(products, grid) {
     const priceDisplay = productPrice ? `$${Number(productPrice).toFixed(2)}` : 'Price TBA';
     const domId = p.unique_id || p.id;
     const isLive = (p.status === 'live' || p.status === 'Live');
+    const quickAddPayload = encodeURIComponent(JSON.stringify({
+      productId: p.id,
+      title: productName,
+      price: Number(productPrice) || 0,
+      sku: p.sku || '',
+      image: firstImg || '',
+      weightLb: parseFloat(p.shipping_weight_lb) || 0.5
+    }));
     return `
       <div class="pcard" onclick="if(!event.target.closest('.quick-size-panel,.pcard-add-btn')){window.location.href='${productHref(p)}'}" style="cursor:pointer;position:relative;overflow:hidden">
         <div class="pcard-img">
@@ -2335,7 +2343,7 @@ function renderProductCards(products, grid) {
             <span id="avg-${domId}"><span style="color:rgba(244,241,235,.2)">\u2606\u2606\u2606\u2606\u2606</span></span>
             <span id="cnt-${domId}">Be the first to review</span>
           </button>
-          ${isLive ? `<button class="pcard-add-btn" onclick="event.preventDefault();event.stopPropagation();quickAddToCart('${p.id}','${productName.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${productPrice},'${(p.sku||'').replace(/'/g,"\\'")}','${(firstImg||'').replace(/'/g,"\\'")}',${parseFloat(p.shipping_weight_lb)||0.5},this)">Add to Bag</button>` : ''}
+          ${isLive ? `<button type="button" class="pcard-add-btn" data-quick-add="${quickAddPayload}">Add to Bag</button>` : ''}
         </div>
         ${isLive ? `<div class="quick-size-panel" id="qsp-${domId}">
           <div class="quick-size-panel-header">
@@ -3125,6 +3133,33 @@ async function quickAddToCart(productId, productTitle, productPrice, productSku,
     }
   }
 }
+
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.pcard-add-btn[data-quick-add]');
+  if (!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+
+  let payload = {};
+  try {
+    payload = JSON.parse(decodeURIComponent(btn.dataset.quickAdd || '{}'));
+  } catch (err) {
+    console.error('Quick add payload parse failed:', err);
+    showToast('Unable to open product options');
+    return;
+  }
+
+  quickAddToCart(
+    payload.productId,
+    payload.title,
+    payload.price,
+    payload.sku,
+    payload.image,
+    payload.weightLb,
+    btn
+  );
+}, true);
 
 let _quickAddReviewItem = null;
 

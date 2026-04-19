@@ -1061,6 +1061,15 @@ function updateCountdown() {
           const isLive = (p.status === 'live' || p.status === 'Live');
           const colCardId = 'cqsp-' + (p.unique_id || p.id).toString().replace(/[^a-z0-9]/gi,'');
           const priceVal = productPrice ? parseFloat(productPrice) : 0;
+          const quickAddPayload = encodeURIComponent(JSON.stringify({
+            productId: p.id,
+            title: productName,
+            price: Number(priceVal) || 0,
+            sku: p.sku || '',
+            image: originalImg || '',
+            weightLb: parseFloat(p.shipping_weight_lb) || 0.5,
+            panelId: colCardId
+          }));
           return `
             <a href="${productHref(p)}" style="text-decoration:none;color:inherit" onclick="${isLive ? `if(event.target.closest('.product-add-btn,.quick-size-panel-col,.qback-btn,.qcol-swatch,.qsz-btn')){event.preventDefault();event.stopPropagation();}` : ''}">
               <div class="product-card">
@@ -1085,7 +1094,7 @@ function updateCountdown() {
                   <p class="product-name">${productName}</p>
                   <p class="product-price">${productPrice ? '$' + Number(productPrice).toFixed(2) : 'Price TBA'}</p>
                   ${isLive
-                    ? `<button class="product-add-btn" onclick="event.preventDefault();event.stopPropagation();colQuickAdd('${p.id.toString().replace(/'/g,"\\'")}','${productName.replace(/'/g,"\\'").replace(/"/g,'&quot;')}',${priceVal},'${(p.sku||'').replace(/'/g,"\\'")}','${(originalImg||'').replace(/'/g,"\\'")}',${parseFloat(p.shipping_weight_lb)||0.5},'${colCardId}',this)">${'Add to Bag'}</button>`
+                    ? `<button type="button" class="product-add-btn" data-col-quick-add="${quickAddPayload}">Add to Bag</button>`
                     : `<span class="product-notify" onclick="scrollToNotify(event)">Notify Me When Live →</span>`
                   }
                 </div>
@@ -1227,6 +1236,34 @@ function updateCountdown() {
       }
     }
   }
+
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.product-add-btn[data-col-quick-add]');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+
+    var payload = {};
+    try {
+      payload = JSON.parse(decodeURIComponent(btn.dataset.colQuickAdd || '{}'));
+    } catch (err) {
+      console.error('Collection quick add payload parse failed:', err);
+      showToast('Unable to open product options');
+      return;
+    }
+
+    colQuickAdd(
+      payload.productId,
+      payload.title,
+      payload.price,
+      payload.sku,
+      payload.image,
+      payload.weightLb,
+      payload.panelId,
+      btn
+    );
+  }, true);
 
   var _collectionReviewItem = null;
 

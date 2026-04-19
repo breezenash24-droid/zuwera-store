@@ -99,6 +99,27 @@ DROP POLICY IF EXISTS "Admin full access" ON public.reviews;
 DROP POLICY IF EXISTS "Admin full access" ON public.favorites;
 DROP POLICY IF EXISTS "Admin full access" ON public.orders;
 
+DROP POLICY IF EXISTS "Public read product images" ON public.product_images;
+DROP POLICY IF EXISTS "Public read color variants" ON public.color_variants;
+DROP POLICY IF EXISTS "Public read product sizes" ON public.product_sizes;
+DROP POLICY IF EXISTS "Public read size charts" ON public.size_charts;
+
+CREATE POLICY "Public read product images" ON public.product_images
+  FOR SELECT TO anon, authenticated
+  USING (true);
+
+CREATE POLICY "Public read color variants" ON public.color_variants
+  FOR SELECT TO anon, authenticated
+  USING (true);
+
+CREATE POLICY "Public read product sizes" ON public.product_sizes
+  FOR SELECT TO anon, authenticated
+  USING (true);
+
+CREATE POLICY "Public read size charts" ON public.size_charts
+  FOR SELECT TO anon, authenticated
+  USING (true);
+
 CREATE POLICY "Admin full access" ON public.product_images FOR ALL TO authenticated USING (public.current_user_is_admin()) WITH CHECK (public.current_user_is_admin());
 CREATE POLICY "Admin full access" ON public.color_variants FOR ALL TO authenticated USING (public.current_user_is_admin()) WITH CHECK (public.current_user_is_admin());
 CREATE POLICY "Admin full access" ON public.product_sizes FOR ALL TO authenticated USING (public.current_user_is_admin()) WITH CHECK (public.current_user_is_admin());
