@@ -41,6 +41,7 @@ const files = [
   'sitemap.xml',
   'sizeguide.html',
   'stripe-client-config.js',
+  'storefront-cohesion.css',
   'supabase.min.js',
   'sw.js',
 ];

@@ -400,6 +400,7 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
 </style>
 
 <link rel="stylesheet" href="reviews-vibe.css?v=13">
+<link rel="stylesheet" href="storefront-cohesion.css?v=1">
 </head>
 <body>
 
@@ -811,7 +812,7 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
     <div class="size-guide-body">
       <div class="size-guide-frame-shell">
         <div id="size-guide-modal-loading" class="size-guide-message">Loading size guide...</div>
-        <iframe id="size-guide-modal-iframe" src="" title="Size Guide" loading="lazy" hidden></iframe>
+          <iframe id="size-guide-modal-iframe" src="" title="Size Guide" loading="eager" hidden></iframe>
       </div>
     </div>
   </div>
@@ -2686,6 +2687,7 @@ function buildSizeGuideSrcdoc(sourceHtml, params) {
 
 
 let _sizeGuideModalResizeObserver = null;
+let _sizeGuideModalLoadToken = 0;
 
 function teardownSizeGuideModalAutoHeight() {
   if (_sizeGuideModalResizeObserver) {
@@ -2700,6 +2702,7 @@ window.openSizeGuideModal = async function() {
   const iframe  = document.getElementById('size-guide-modal-iframe');
   const loading = document.getElementById('size-guide-modal-loading');
   if (!modal || !iframe) return;
+  const loadToken = ++_sizeGuideModalLoadToken;
 
   const context = getSizeGuideContext();
   syncSizeGuideModalMeta(context);
@@ -2715,15 +2718,22 @@ window.openSizeGuideModal = async function() {
 
   if (loading) { loading.hidden = false; loading.textContent = 'Loading size guide...'; }
   teardownSizeGuideModalAutoHeight();
-  iframe.hidden = true;
-  iframe.style.height = '';
+  iframe.onload = null;
+  iframe.hidden = false;
+  iframe.style.visibility = 'hidden';
+  iframe.style.height = '1px';
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
 
   try {
     const sourceHtml = await getSizeGuideDocumentHtml();
-    iframe.onload = () => {
+    if (loadToken !== _sizeGuideModalLoadToken) return;
+    let revealed = false;
+    const revealIframe = () => {
+      if (revealed || loadToken !== _sizeGuideModalLoadToken) return;
       const doc = iframe.contentDocument;
+      if (!doc?.body) return;
+      revealed = true;
       const syncH = () => {
         const h = Math.max(
           doc?.body?.scrollHeight || 0, doc?.body?.offsetHeight || 0,
@@ -2740,13 +2750,19 @@ window.openSizeGuideModal = async function() {
       setTimeout(syncH, 0); setTimeout(syncH, 120); setTimeout(syncH, 360);
       if (loading) loading.hidden = true;
       iframe.hidden = false;
+      iframe.style.visibility = '';
       iframe.onload = null;
     };
+    iframe.onload = revealIframe;
     iframe.srcdoc = buildSizeGuideSrcdoc(sourceHtml, params);
+    setTimeout(revealIframe, 250);
+    setTimeout(revealIframe, 900);
   } catch (error) {
     console.error('Size guide modal failed:', error);
     teardownSizeGuideModalAutoHeight();
+    iframe.onload = null;
     iframe.hidden = true;
+    iframe.style.visibility = '';
     iframe.style.height = '';
     if (loading) { loading.hidden = false; loading.textContent = 'Could not load the size guide right now.'; }
   }
@@ -2917,17 +2933,29 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     }
   });
   document.getElementById('size-guide-close')?.addEventListener('click', () => {
+    _sizeGuideModalLoadToken++;
     teardownSizeGuideModalAutoHeight();
     const iframe = document.getElementById('size-guide-modal-iframe');
-    if (iframe) iframe.style.height = '';
+    if (iframe) {
+      iframe.onload = null;
+      iframe.hidden = true;
+      iframe.style.visibility = '';
+      iframe.style.height = '';
+    }
     document.getElementById('size-guide-modal').classList.remove('open');
     document.body.style.overflow = '';
   });
   document.getElementById('size-guide-modal')?.addEventListener('click', e => {
     if (e.target === e.currentTarget) {
+      _sizeGuideModalLoadToken++;
       teardownSizeGuideModalAutoHeight();
       const iframe = document.getElementById('size-guide-modal-iframe');
-      if (iframe) iframe.style.height = '';
+      if (iframe) {
+        iframe.onload = null;
+        iframe.hidden = true;
+        iframe.style.visibility = '';
+        iframe.style.height = '';
+      }
       document.getElementById('size-guide-modal').classList.remove('open');
       document.body.style.overflow = '';
     }
