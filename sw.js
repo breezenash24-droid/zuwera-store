@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zuwera-v10';
+const CACHE_NAME = 'zuwera-v11';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -6,6 +6,7 @@ const ASSETS_TO_CACHE = [
   '/sizeguide.html',
   '/base.css',
   '/nav.css',
+  '/mobile-menu.js',
   '/stripe-client-config.js',
   '/checkout-tax.js',
   '/layout.css',

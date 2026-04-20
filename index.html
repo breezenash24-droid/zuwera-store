@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, viewport-fit=cover">
+<meta name="zuwera-deployment" content="2026-04-19-mobile-menu-v3">
 <title>ZUWERA - For Those Who Dream</title>
 <meta name="description" content="Bold athletic sportswear. Release 001 launching September 20, 2026.">
 
@@ -1400,7 +1401,8 @@ body.light-mode::after{opacity:0.15}
 
 </style>
 <link rel="stylesheet" href="reviews-vibe.css?v=13">
-<link rel="stylesheet" href="storefront-cohesion.css?v=2">
+<link rel="stylesheet" href="storefront-cohesion.css?v=3">
+<script src="mobile-menu.js?v=1" defer></script>
 </head>
 <body>
 
@@ -1444,16 +1446,16 @@ body.light-mode::after{opacity:0.15}
     <button class="nbtn" id="account-btn">Account</button>
     <button class="nbtn" id="logout-btn">Sign Out</button>
     <button class="nbtn" id="cart-btn" onclick="return window.__zwOpenCart ? window.__zwOpenCart() : true">Bag <span class="cc">0</span></button>
-      <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" onclick="document.getElementById('mobile-menu').classList.add('open'); document.body.style.overflow='hidden';">
+      <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" onclick="return window.openMobileMenu ? window.openMobileMenu() : false;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
       </button>
   </div>
 </nav>
 
 <!-- MOBILE MENU MODAL -->
-<div id="mobile-menu" class="modal" role="dialog" aria-modal="true" style="z-index:900;">
+<div id="mobile-menu" class="modal" role="dialog" aria-modal="true" aria-hidden="true" style="z-index:900;">
   <div class="mbox" style="background:transparent; border:none; box-shadow:none; text-align:center;">
-    <button id="mobile-menu-close" class="mclose" onclick="document.getElementById('mobile-menu').classList.remove('open'); document.body.style.overflow='';" style="position:fixed; top:1.5rem; right:1.5rem; background:none; border:none; color:#f4f1eb; font-size:2rem; width:40px; height:40px;">&#215;</button>
+    <button id="mobile-menu-close" class="mclose" onclick="return window.closeMobileMenu ? window.closeMobileMenu() : false;" style="position:fixed; top:1.5rem; right:1.5rem; background:none; border:none; color:#f4f1eb; font-size:2rem; width:40px; height:40px;">&#215;</button>
     <div id="mobile-category-links" style="display:flex; flex-direction:column; gap:2.5rem; margin-top:3rem;">
       <a href="drop001.html?category=Jackets">Jackets</a>
     </div>
@@ -1883,6 +1885,7 @@ body.light-mode::after{opacity:0.15}
     <button class="mclose" id="payment-close">&#215;</button>
     <h2>Secure Checkout</h2>
     <p class="psub">Powered by Stripe - 256-bit SSL encryption</p>
+    <div class="zw-test-mode-banner" data-stripe-test-banner>Test checkout mode is active. Use Stripe test cards only; real cards will not be charged.</div>
     <div id="payment-request-btn" style="display:none" aria-hidden="true"></div>
     <div id="wallet-methods" class="wallet-methods" aria-hidden="true"></div>
     <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0;font-family:var(--fm);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.28)">- or pay with card -</div>
@@ -4291,7 +4294,7 @@ function scrollToNotify() {
 
 <!-- PWA Service Worker -->
 <script>
-if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=10').then(reg=>reg.update()).catch(()=>{})}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=11').then(reg=>reg.update()).catch(()=>{})}
 </script>
 
 <!-- Cookie Consent / GDPR -->

@@ -27,6 +27,7 @@ const files = [
   'layout.css',
   'manifest.json',
   'mobile-checkout.html',
+  'mobile-menu.js',
   'modal-lock.js',
   'nav.css',
   'payment.css',

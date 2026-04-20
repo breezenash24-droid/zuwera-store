@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="zuwera-deployment" content="2026-04-19-mobile-menu-v3">
     <meta name="robots" content="noindex, nofollow">
     <title>Zuwera Admin Panel</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -4439,13 +4440,28 @@
                     resolve(result);
                 };
                 const timer = setTimeout(() => finish({ ok: false, url: safeUrl, reason: 'Image took too long to load.' }), timeoutMs);
-                img.onload = () => finish({
-                    ok: img.naturalWidth > 0 && img.naturalHeight > 0,
-                    url: safeUrl,
-                    width: img.naturalWidth,
-                    height: img.naturalHeight,
-                    reason: img.naturalWidth > 0 ? '' : 'Image loaded without dimensions.'
-                });
+                img.onload = () => {
+                    const width = img.naturalWidth;
+                    const height = img.naturalHeight;
+                    const warnings = [];
+                    if (width > 0 && height > 0) {
+                        if (width < 900 || height < 1200) {
+                            warnings.push(`Recommended product image size is at least 900x1200. This image is ${width}x${height}.`);
+                        }
+                        const ratio = width / height;
+                        if (ratio < 0.55 || ratio > 0.95) {
+                            warnings.push('Product images look best near a 3:4 portrait crop.');
+                        }
+                    }
+                    finish({
+                        ok: width > 0 && height > 0,
+                        url: safeUrl,
+                        width,
+                        height,
+                        warnings,
+                        reason: width > 0 ? '' : 'Image loaded without dimensions.'
+                    });
+                };
                 img.onerror = () => finish({ ok: false, url: safeUrl, reason: 'Image could not be loaded.' });
                 img.referrerPolicy = 'no-referrer';
                 img.src = safeUrl;
@@ -4457,7 +4473,8 @@
             if (!uniqueUrls.length) return { ok: false, failures: [{ reason: 'At least one image is required.' }] };
             const results = await Promise.all(uniqueUrls.map(url => validateImageUrl(url)));
             const failures = results.filter(result => !result.ok);
-            return { ok: failures.length === 0, failures, results };
+            const warnings = results.flatMap(result => (result.warnings || []).map(warning => ({ url: result.url, warning })));
+            return { ok: failures.length === 0, failures, warnings, results };
         }
 
         document.addEventListener('blur', async (event) => {
@@ -4470,6 +4487,9 @@
             if (preview && result.ok) {
                 preview.src = result.url;
                 preview.style.display = 'block';
+                if (result.warnings?.length) {
+                    showToast(result.warnings[0], 'info');
+                }
             }
         }, true);
 
@@ -5034,6 +5054,9 @@
                     input.classList.toggle('error', Boolean(result));
                 });
                 return;
+            }
+            if (imageValidation.warnings?.length) {
+                showToast('Image warning: ' + imageValidation.warnings[0].warning, 'info');
             }
 
             if (publish && !isValid) {

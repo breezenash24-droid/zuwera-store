@@ -10,8 +10,10 @@ function read(file) {
 const files = {
   index: read('index.html'),
   product: read('product.html'),
+  drop: read('drop001.html'),
   admin: read('admin.html'),
   cohesion: read('storefront-cohesion.css'),
+  mobileMenu: read('mobile-menu.js'),
   checkout: read('checkout.js'),
   cart: read('cart.js'),
   auth: read('auth.js'),
@@ -22,7 +24,15 @@ const checks = [
   {
     name: 'Mobile hamburger menu opens as full-screen overlay',
     pass: () => /#mobile-menu\s*\{[\s\S]*height:100dvh/.test(files.cohesion)
-      && /\.modal:not\(#cart-modal\):not\(#mobile-menu\)/.test(files.cohesion),
+      && /\.modal:not\(#cart-modal\):not\(#mobile-menu\)/.test(files.cohesion)
+      && /openMobileMenu/.test(files.mobileMenu)
+      && /closeMobileMenu/.test(files.mobileMenu),
+  },
+  {
+    name: 'Collection page has the same mobile menu wiring',
+    pass: () => /id="mobile-menu"/.test(files.drop)
+      && /id="mobile-menu-btn"/.test(files.drop)
+      && /mobile-menu\.js\?v=/.test(files.drop),
   },
   {
     name: 'Homepage footer Size Guide goes to dedicated page',
@@ -75,7 +85,25 @@ const checks = [
   {
     name: 'Admin product image validation is active',
     pass: () => /validateProductImageUrls/.test(files.admin)
-      && /Checking product images/.test(files.admin),
+      && /Checking product images/.test(files.admin)
+      && /900x1200/.test(files.admin),
+  },
+  {
+    name: 'Checkout test-mode banner is wired',
+    pass: () => /data-stripe-test-banner/.test(files.index)
+      && /data-stripe-test-banner/.test(files.product)
+      && /__ZW_STRIPE_MODE__/.test(read('stripe-client-config.js')),
+  },
+  {
+    name: 'Deployment version marker is present',
+    pass: () => /name="zuwera-deployment"/.test(files.index)
+      && /name="zuwera-deployment"/.test(files.product)
+      && /name="zuwera-deployment"/.test(files.drop),
+  },
+  {
+    name: 'Cache bump script is available',
+    pass: () => /"bump-cache": "node scripts\/bump-cache-version\.js"/.test(read('package.json'))
+      && fs.existsSync(path.join(root, 'scripts', 'bump-cache-version.js')),
   },
 ];
 

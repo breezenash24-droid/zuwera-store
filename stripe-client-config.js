@@ -17,6 +17,12 @@
       throw new Error((data && data.error) || 'Unable to load Stripe configuration.');
     }
 
+    var isTestMode = /^pk_test_/.test(data.publishableKey);
+    window.__ZW_STRIPE_MODE__ = isTestMode ? 'test' : 'live';
+    document.querySelectorAll('[data-stripe-test-banner]').forEach(function (banner) {
+      banner.classList.toggle('is-visible', isTestMode);
+    });
+
     return data;
   }
 
