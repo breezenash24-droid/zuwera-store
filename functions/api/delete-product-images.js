@@ -4,6 +4,7 @@ const DEFAULT_ADMIN_EMAILS = [
 ];
 
 const DEFAULT_ADMIN_USER_IDS = [];
+const EMPTY_SHA256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -120,12 +121,132 @@ function keyFromPublicUrl(env, value) {
   }
 }
 
+function toHex(buffer) {
+  return [...new Uint8Array(buffer)]
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+async function sha256Hex(value) {
+  return toHex(await crypto.subtle.digest('SHA-256', value));
+}
+
+async function hmac(key, value) {
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    typeof key === 'string' ? new TextEncoder().encode(key) : key,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  return crypto.subtle.sign('HMAC', cryptoKey, typeof value === 'string' ? new TextEncoder().encode(value) : value);
+}
+
+async function getSigningKey(secretAccessKey, dateStamp) {
+  const kDate = await hmac(`AWS4${secretAccessKey}`, dateStamp);
+  const kRegion = await hmac(kDate, 'auto');
+  const kService = await hmac(kRegion, 's3');
+  return hmac(kService, 'aws4_request');
+}
+
+function encodePath(path) {
+  return path.split('/').map((segment) => encodeURIComponent(segment)).join('/');
+}
+
+function r2Endpoint(env) {
+  const accountId = String(env.R2_ACCOUNT_ID || '').trim();
+  if (!accountId) {
+    const error = new Error('R2_ACCOUNT_ID is not configured.');
+    error.status = 500;
+    throw error;
+  }
+
+  const jurisdiction = String(env.R2_JURISDICTION || '').trim().toLowerCase();
+  const jurisdictionPart = jurisdiction ? `.${jurisdiction}` : '';
+  return `https://${accountId}${jurisdictionPart}.r2.cloudflarestorage.com`;
+}
+
+function r2BucketName(env) {
+  return String(env.R2_BUCKET_NAME || 'zuwera-product-images').trim();
+}
+
+function requireR2ApiCredentials(env) {
+  const accessKeyId = String(env.R2_ACCESS_KEY_ID || '').trim();
+  const secretAccessKey = String(env.R2_SECRET_ACCESS_KEY || '').trim();
+  if (!accessKeyId || !secretAccessKey) {
+    const error = new Error('R2 API credentials are not configured.');
+    error.status = 500;
+    throw error;
+  }
+  return { accessKeyId, secretAccessKey };
+}
+
+async function signedR2Request(env, { method, key }) {
+  const { accessKeyId, secretAccessKey } = requireR2ApiCredentials(env);
+  const endpoint = r2Endpoint(env);
+  const bucket = r2BucketName(env);
+  const url = new URL(`${endpoint}/${bucket}/${encodePath(key)}`);
+  const now = new Date();
+  const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, '');
+  const dateStamp = amzDate.slice(0, 8);
+  const headers = {
+    host: url.host,
+    'x-amz-content-sha256': EMPTY_SHA256,
+    'x-amz-date': amzDate
+  };
+
+  const signedHeaders = Object.keys(headers).sort().join(';');
+  const canonicalHeaders = Object.keys(headers)
+    .sort()
+    .map((name) => `${name}:${headers[name]}\n`)
+    .join('');
+  const canonicalRequest = [
+    method,
+    url.pathname,
+    '',
+    canonicalHeaders,
+    signedHeaders,
+    EMPTY_SHA256
+  ].join('\n');
+  const credentialScope = `${dateStamp}/auto/s3/aws4_request`;
+  const stringToSign = [
+    'AWS4-HMAC-SHA256',
+    amzDate,
+    credentialScope,
+    await sha256Hex(new TextEncoder().encode(canonicalRequest))
+  ].join('\n');
+  const signingKey = await getSigningKey(secretAccessKey, dateStamp);
+  const signature = toHex(await hmac(signingKey, stringToSign));
+  const authorization = `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+
+  const { host, ...requestHeaders } = headers;
+  return fetch(url.href, {
+    method,
+    headers: {
+      ...requestHeaders,
+      Authorization: authorization
+    }
+  });
+}
+
+async function deleteR2Object(env, key) {
+  if (env.PRODUCT_IMAGES_BUCKET?.delete) {
+    await env.PRODUCT_IMAGES_BUCKET.delete(key);
+    return;
+  }
+
+  const resp = await signedR2Request(env, {
+    method: 'DELETE',
+    key
+  });
+
+  if (!resp.ok && resp.status !== 404) {
+    throw new Error(`R2 S3 delete failed (${resp.status}): ${await resp.text()}`);
+  }
+}
+
 export async function onRequestPost({ request, env }) {
   try {
-    if (!env.PRODUCT_IMAGES_BUCKET?.delete) {
-      return json({ success: false, error: 'R2 product image bucket binding is not configured.' }, 500);
-    }
-
     await verifyAdmin(request, env);
 
     const body = await request.json().catch(() => ({}));
@@ -133,7 +254,7 @@ export async function onRequestPost({ request, env }) {
     const keys = [...new Set(urls.map((url) => keyFromPublicUrl(env, url)).filter(Boolean))];
 
     for (const key of keys) {
-      await env.PRODUCT_IMAGES_BUCKET.delete(key);
+      await deleteR2Object(env, key);
     }
 
     return json({ success: true, deleted: keys.length });

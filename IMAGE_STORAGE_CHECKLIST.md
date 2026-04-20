@@ -5,6 +5,7 @@ Use this before launch and after large product upload sessions.
 ## Current Setup
 
 - Admin compresses product originals in the browser, then uploads them to Cloudflare R2 through `/api/upload-product-image`.
+- Uploads use R2's S3-compatible API, not a Pages `r2_bucket` binding. This avoids Cloudflare's invalid jurisdiction binding error.
 - R2 stores product originals in bucket `zuwera-product-images`.
 - Public product image URLs should use `https://images.zuwera.store`.
 - Supabase stores product data and image URLs in `products.image_url` and `product_images.image_url`.
@@ -20,9 +21,14 @@ Use this before launch and after large product upload sessions.
 - Delete test products from admin if they are no longer needed.
 - Replace extra-large product images with optimized uploads from the admin panel.
 - Confirm product images are 3:4 portrait where possible, ideally at least 900x1200.
-- Confirm these Cloudflare Pages settings exist:
-  - R2 binding: `PRODUCT_IMAGES_BUCKET` -> `zuwera-product-images`
-  - Environment variable: `R2_PUBLIC_BASE_URL=https://images.zuwera.store`
+- Confirm the Cloudflare Pages `PRODUCT_IMAGES_BUCKET` R2 binding is deleted if Cloudflare reports an invalid jurisdiction.
+- Confirm these Cloudflare Pages environment variables exist:
+  - `R2_PUBLIC_BASE_URL=https://images.zuwera.store`
+  - `R2_ACCOUNT_ID`
+  - `R2_ACCESS_KEY_ID`
+  - `R2_SECRET_ACCESS_KEY`
+  - `R2_BUCKET_NAME=zuwera-product-images`
+  - `R2_JURISDICTION` only if the bucket was created with a jurisdiction, for example `eu`. Leave it unset for normal automatic-location buckets.
 
 ## Supabase SQL Checks
 
