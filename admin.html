@@ -6,6 +6,8 @@
 <meta name="zuwera-deployment" content="2026-04-19-mobile-menu-v3">
     <meta name="robots" content="noindex, nofollow">
     <title>Zuwera Admin Panel</title>
+    <link rel="icon" type="image/png" href="/images/favicon-black.png?v=1">
+    <script src="/favicon-utils.js?v=1"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -2733,7 +2735,7 @@
                             <div class="form-group">
                                 <label class="form-label">Favicon URL</label>
                                 <div class="image-row" style="margin-bottom:0">
-                                    <input type="url" class="form-input product-image-url" id="faviconImage" placeholder="images/logo.png">
+                                    <input type="url" class="form-input product-image-url" id="faviconImage" placeholder="/images/favicon-black.png?v=1">
                                     <label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label>
                                     <img class="image-preview" style="display:none">
                                     <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('faviconImage').value='';this.previousElementSibling.style.display='none'">Clear</button>
@@ -6071,8 +6073,9 @@
                         document.getElementById('adminResBg').value = b.admin_res_bg || '#2a1419';
                         document.getElementById('adminResText').value = b.admin_res_text || '#f891a5';
                         if (b.favicon) {
-                            favInput.value = b.favicon;
-                            favPreview.src = b.favicon;
+                            const faviconUrl = window.__zwFaviconUrl ? window.__zwFaviconUrl(b.favicon) : b.favicon;
+                            favInput.value = faviconUrl;
+                            favPreview.src = faviconUrl;
                             favPreview.style.display = 'block';
                             let link = document.querySelector('link[rel="icon"]');
                             if (!link) {
@@ -6080,7 +6083,7 @@
                                 link.rel = 'icon';
                                 document.head.appendChild(link);
                             }
-                            link.href = b.favicon;
+                            window.__zwApplyFavicon ? window.__zwApplyFavicon(faviconUrl) : (link.href = faviconUrl);
                         }
                     }
                 }
@@ -6118,7 +6121,7 @@
                         link.rel = 'icon';
                         document.head.appendChild(link);
                     }
-                    link.href = brandData.favicon;
+                    window.__zwApplyFavicon ? window.__zwApplyFavicon(brandData.favicon) : (link.href = brandData.favicon);
                 }
                 if (brandData.admin_res_bg) document.documentElement.style.setProperty('--admin-res-bg', brandData.admin_res_bg);
                 if (brandData.admin_res_text) document.documentElement.style.setProperty('--admin-res-text', brandData.admin_res_text);

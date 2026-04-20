@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zuwera-v12';
+const CACHE_NAME = 'zuwera-v13';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -13,6 +13,9 @@ const ASSETS_TO_CACHE = [
   '/layout.css',
   '/cart.css',
   '/images/logo.png',
+  '/images/favicon-black.png',
+  '/images/favicon-black-192.png',
+  '/images/favicon-black-512.png',
   '/images/wordmark.png'
 ];
 

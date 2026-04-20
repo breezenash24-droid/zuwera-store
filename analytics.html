@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
   <title>Zuwera Analytics Dashboard</title>
+  <link rel="icon" type="image/png" href="/images/favicon-black.png?v=1">
+  <script src="/favicon-utils.js?v=1"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1656,7 +1658,7 @@
             link.rel = 'icon';
             document.head.appendChild(link);
           }
-          link.href = b.favicon;
+          window.__zwApplyFavicon ? window.__zwApplyFavicon(b.favicon) : (link.href = b.favicon);
         }
       }
     });
