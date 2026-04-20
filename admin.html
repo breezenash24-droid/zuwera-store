@@ -3378,7 +3378,8 @@
         let productSizeChartCache = null;
         let productSizeChartCachePromise = null;
         let auditTableReady = true;
-        const PRODUCT_IMAGE_BUCKET = 'product-images';
+        const SUPABASE_PRODUCT_IMAGE_BUCKET = 'product-images';
+        const R2_PUBLIC_IMAGE_HOSTS = ['images.zuwera.store'];
         const MAX_PRODUCT_UPLOAD_WIDTH = 1600;
         const MAX_PRODUCT_UPLOAD_BYTES = 1.5 * 1024 * 1024;
         const PRODUCT_UPLOAD_QUALITIES = [0.84, 0.78, 0.72];
@@ -4441,12 +4442,24 @@
             if (!safeUrl) return '';
             try {
                 const parsed = new URL(safeUrl);
-                const marker = `/storage/v1/object/public/${PRODUCT_IMAGE_BUCKET}/`;
+                const marker = `/storage/v1/object/public/${SUPABASE_PRODUCT_IMAGE_BUCKET}/`;
                 const markerIndex = parsed.pathname.indexOf(marker);
                 if (markerIndex === -1) return '';
                 return decodeURIComponent(parsed.pathname.slice(markerIndex + marker.length));
             } catch {
                 return '';
+            }
+        }
+
+        function isR2ProductImageUrl(url) {
+            const safeUrl = safeHttpUrl(url);
+            if (!safeUrl) return false;
+            try {
+                const parsed = new URL(safeUrl);
+                return R2_PUBLIC_IMAGE_HOSTS.includes(parsed.hostname)
+                    && parsed.pathname.replace(/^\/+/, '').startsWith('products/');
+            } catch {
+                return false;
             }
         }
 
@@ -4493,9 +4506,93 @@
 
             if (!pathsToRemove.length) return { removed: 0 };
 
-            const { error } = await sb.storage.from(PRODUCT_IMAGE_BUCKET).remove(pathsToRemove);
+            const { error } = await sb.storage.from(SUPABASE_PRODUCT_IMAGE_BUCKET).remove(pathsToRemove);
             if (error) throw error;
             return { removed: pathsToRemove.length };
+        }
+
+        async function getAdminAccessToken() {
+            const { data: { session }, error } = await sb.auth.getSession();
+            if (error) throw error;
+            if (!session?.access_token) throw new Error('Missing admin session token. Please sign in again.');
+            return session.access_token;
+        }
+
+        async function uploadProductImageToR2(file) {
+            const token = await getAdminAccessToken();
+            const form = new FormData();
+            form.append('file', file);
+            form.append('productId', currentProduct?.id || document.getElementById('sku')?.value || 'unassigned');
+
+            const resp = await fetch('/api/upload-product-image', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`
+                },
+                body: form
+            });
+
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok || !data.success || !data.url) {
+                throw new Error(data.error || 'R2 image upload failed.');
+            }
+            return data;
+        }
+
+        async function removeUnusedR2ProductImages(previousUrls, nextUrls) {
+            const nextSet = new Set(uniqueImageUrls(nextUrls));
+            let urlsToRemove = uniqueImageUrls(previousUrls)
+                .filter(url => isR2ProductImageUrl(url) && !nextSet.has(url));
+
+            if (!urlsToRemove.length) return { removed: 0 };
+
+            try {
+                const [{ data: products }, { data: images }] = await Promise.all([
+                    sb.from('products').select('image_url'),
+                    sb.from('product_images').select('image_url')
+                ]);
+                const stillReferenced = new Set([
+                    ...(products || []).map(row => safeHttpUrl(row?.image_url)),
+                    ...(images || []).map(row => safeHttpUrl(row?.image_url))
+                ].filter(Boolean));
+                urlsToRemove = urlsToRemove.filter(url => !stillReferenced.has(url));
+            } catch (error) {
+                console.warn('Could not check R2 product image references before cleanup:', error);
+            }
+
+            if (!urlsToRemove.length) return { removed: 0 };
+
+            const token = await getAdminAccessToken();
+            const resp = await fetch('/api/delete-product-images', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ urls: urlsToRemove })
+            });
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok || !data.success) {
+                throw new Error(data.error || 'R2 image cleanup failed.');
+            }
+            return { removed: data.deleted || 0 };
+        }
+
+        async function removeUnusedProductImages(previousUrls, nextUrls) {
+            const [supabaseResult, r2Result] = await Promise.allSettled([
+                removeUnusedSupabaseProductImages(previousUrls, nextUrls),
+                removeUnusedR2ProductImages(previousUrls, nextUrls)
+            ]);
+
+            const errors = [supabaseResult, r2Result]
+                .filter(result => result.status === 'rejected')
+                .map(result => result.reason);
+
+            if (errors.length) throw errors[0];
+
+            return {
+                removed: (supabaseResult.value?.removed || 0) + (r2Result.value?.removed || 0)
+            };
         }
 
         function loadImageBitmapFromFile(file) {
@@ -5131,16 +5228,12 @@
             uploadBtn.textContent = 'Uploading...';
             try {
                 const file = await prepareProductImageFile(originalFile);
-                const ext = file.name.split('.').pop();
-                const fileName = Date.now() + '_' + crypto.randomUUID() + '.' + ext;
-                const { data, error } = await sb.storage.from(PRODUCT_IMAGE_BUCKET).upload(fileName, file, { cacheControl: '31536000', upsert: false });
-                if (error) throw error;
-                const { data: urlData } = sb.storage.from(PRODUCT_IMAGE_BUCKET).getPublicUrl(fileName);
-                urlInput.value = urlData.publicUrl;
-                if (preview) { preview.src = urlData.publicUrl; preview.style.display = 'block'; }
+                const upload = await uploadProductImageToR2(file);
+                urlInput.value = upload.url;
+                if (preview) { preview.src = upload.url; preview.style.display = 'block'; }
                 uploadBtn.textContent = 'Upload';
                 const savedKb = Math.max(0, originalFile.size - file.size) / 1024;
-                showToast(savedKb > 100 ? `Image optimized and uploaded (${Math.round(savedKb)} KB saved)` : 'Image uploaded successfully', 'success');
+                showToast(savedKb > 100 ? `Image optimized and uploaded to R2 (${Math.round(savedKb)} KB saved)` : 'Image uploaded to R2 successfully', 'success');
             } catch (err) {
                 console.error('Upload error:', err);
                 uploadBtn.textContent = 'Upload';
@@ -5338,7 +5431,7 @@
                 let removedStorageImages = 0;
                 if (previousImageUrls.length) {
                     try {
-                        const cleanup = await removeUnusedSupabaseProductImages(previousImageUrls, imageUrls);
+                        const cleanup = await removeUnusedProductImages(previousImageUrls, imageUrls);
                         removedStorageImages = cleanup.removed || 0;
                     } catch (cleanupError) {
                         console.warn('Product image storage cleanup failed:', cleanupError);
@@ -5557,7 +5650,7 @@
 
                 let removedStorageImages = 0;
                 try {
-                    const cleanup = await removeUnusedSupabaseProductImages(imageUrlsToRemove, []);
+                    const cleanup = await removeUnusedProductImages(imageUrlsToRemove, []);
                     removedStorageImages = cleanup.removed || 0;
                 } catch (cleanupError) {
                     console.warn('Product image storage cleanup failed:', cleanupError);

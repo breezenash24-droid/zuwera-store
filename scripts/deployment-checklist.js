@@ -15,6 +15,8 @@ const files = {
   cohesion: read('storefront-cohesion.css'),
   mobileMenu: read('mobile-menu.js'),
   imageUtils: read('image-utils.js'),
+  uploadProductImage: read('functions/api/upload-product-image.js'),
+  deleteProductImages: read('functions/api/delete-product-images.js'),
   checkout: read('checkout.js'),
   cart: read('cart.js'),
   auth: read('auth.js'),
@@ -90,11 +92,14 @@ const checks = [
       && /900x1200/.test(files.admin),
   },
   {
-    name: 'Shared image optimization and storage cleanup are wired',
+    name: 'Shared image optimization and R2 storage cleanup are wired',
     pass: () => /window\.optimizeImage/.test(files.imageUtils)
       && /image-utils\.js\?v=/.test(files.index + files.product + files.drop)
-      && /removeUnusedSupabaseProductImages/.test(files.admin)
-      && /prepareProductImageFile/.test(files.admin),
+      && /prepareProductImageFile/.test(files.admin)
+      && /uploadProductImageToR2/.test(files.admin)
+      && /removeUnusedR2ProductImages/.test(files.admin)
+      && /PRODUCT_IMAGES_BUCKET/.test(files.uploadProductImage + files.deleteProductImages)
+      && /R2_PUBLIC_BASE_URL/.test(files.uploadProductImage + files.deleteProductImages),
   },
   {
     name: 'Checkout test-mode banner is wired',

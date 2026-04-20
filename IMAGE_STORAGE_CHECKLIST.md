@@ -4,17 +4,25 @@ Use this before launch and after large product upload sessions.
 
 ## Current Setup
 
-- Admin uploads product originals to Supabase Storage bucket `product-images`.
+- Admin compresses product originals in the browser, then uploads them to Cloudflare R2 through `/api/upload-product-image`.
+- R2 stores product originals in bucket `zuwera-product-images`.
+- Public product image URLs should use `https://images.zuwera.store`.
+- Supabase stores product data and image URLs in `products.image_url` and `product_images.image_url`.
 - Storefront image delivery is optimized through Cloudinary fetch URLs.
 - Cloudflare Pages only hosts the website code and small static assets.
+- Older Supabase-hosted image URLs still work, and the admin cleanup can remove unused legacy Supabase files.
 
 ## Before Launch
 
 - Check Supabase Storage usage for `product-images`.
+- Check Cloudflare R2 usage for `zuwera-product-images`.
 - Check Cloudinary usage for credits, bandwidth, transformations, and managed storage.
 - Delete test products from admin if they are no longer needed.
 - Replace extra-large product images with optimized uploads from the admin panel.
 - Confirm product images are 3:4 portrait where possible, ideally at least 900x1200.
+- Confirm these Cloudflare Pages settings exist:
+  - R2 binding: `PRODUCT_IMAGES_BUCKET` -> `zuwera-product-images`
+  - Environment variable: `R2_PUBLIC_BASE_URL=https://images.zuwera.store`
 
 ## Supabase SQL Checks
 
@@ -74,17 +82,18 @@ where o.bucket_id = 'product-images'
 order by o.created_at desc;
 ```
 
-## Best Free Storage Option To Consider
+## Cloudflare R2
 
-Cloudflare R2 is the best next storage target for this Cloudflare-based site:
+Cloudflare R2 is now the product image storage target for admin uploads:
 
 - 10 GB-month free storage on Standard storage.
 - 1 million free write/list operations per month.
 - 10 million free read operations per month.
 - Free egress to the Internet.
 
-R2 does not resize images by itself, so the best long-term setup would be:
+R2 does not resize images by itself, so the current setup does this:
 
+- Compress uploaded images in the admin browser before upload.
 - Store originals in Cloudflare R2.
 - Serve public image URLs from R2.
 - Keep Cloudinary or Cloudflare Images transformations for optimized sizes.
