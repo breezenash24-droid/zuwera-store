@@ -123,7 +123,7 @@
 <link rel="dns-prefetch" href="https://www.googletagmanager.com">
 
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500&family=Barlow:wght@300;400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="reviews.css?v=6">
+<link rel="stylesheet" href="reviews.css?v=4">
 
 <!-- Stripe is loaded lazily on checkout click to avoid blocking initial render -->
 <!-- defer moves Supabase off the critical path Ã¢â‚¬â€ it was previously
@@ -669,26 +669,6 @@ footer{
 .modal.open{display:flex}
 /* Auth modal must sit above cart modal (both .modal, cart is later in DOM) */
 #auth-modal{z-index:600}
-.wallet-methods{
-  display:none;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem;margin:-.2rem 0 1rem;
-}
-.wallet-chip{
-  display:flex;align-items:center;justify-content:center;
-  width:100%;min-height:48px;padding:.8rem 1rem;border:1px solid rgba(244,241,235,.14);border-radius:999px;
-  font-family:var(--fm);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
-  color:#f4f1eb;background:rgba(244,241,235,.03);
-  gap:.65rem;cursor:pointer;transition:border-color .18s ease, background .18s ease, color .18s ease, opacity .18s ease;
-}
-.wallet-chip:hover{border-color:rgba(244,241,235,.28);background:rgba(244,241,235,.06)}
-.wallet-chip:focus-visible{outline:2px solid rgba(244,241,235,.35);outline-offset:2px}
-.wallet-chip[disabled]{opacity:.34;cursor:not-allowed}
-.wallet-chip__icon{
-  display:inline-flex;align-items:center;justify-content:center;
-  width:1.5rem;height:1.5rem;flex:0 0 auto;
-}
-.wallet-chip__icon svg{width:100%;height:100%;display:block}
-.wallet-chip__label{display:inline-flex;align-items:center;gap:.2rem;letter-spacing:.05em}
-.wallet-chip__brand{font-weight:700}
 .mbox{
   background:#0f0f0f;
   border:1px solid rgba(244,241,235,.08);
@@ -1057,13 +1037,6 @@ body.light-mode .heart-btn{
   background:rgba(240,238,233,.7);border-color:rgba(9,9,11,.1);
   color:rgba(9,9,11,.3);
 }
-body.light-mode .wallet-chip{
-  background:rgba(240,238,233,.68);
-  border-color:rgba(9,9,11,.1);
-  color:#09090b;
-}
-body.light-mode .wallet-chip:hover{border-color:rgba(9,9,11,.22);background:rgba(240,238,233,.9)}
-body.light-mode .wallet-chip:focus-visible{outline-color:rgba(9,9,11,.24)}
 body.light-mode .pcard-info{border-top-color:rgba(9,9,11,.06)}
 body.light-mode .pcard-cat{color:rgba(9,9,11,.25)}
 body.light-mode .pcard-price{color:rgba(9,9,11,.35)}
@@ -1095,6 +1068,9 @@ body.light-mode .auth-brand{border-bottom-color:rgba(9,9,11,.06)}
 body.light-mode .msubtitle{color:rgba(9,9,11,.3)}
 body.light-mode .alink{color:rgba(9,9,11,.25)}
 body.light-mode .alink a{color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,.2)}
+
+body.light-mode .review-list-select { background: rgba(9,9,11,.03); border-color: rgba(9,9,11,.1); color: var(--paper); }
+body.light-mode .review-list-select option { background: var(--ink); color: var(--paper); }
 
 /* Cart */
 body.light-mode #cart-modal{background:var(--ink)}
@@ -1344,7 +1320,7 @@ body.light-mode::after{opacity:0.15}
 
 <!-- ALL REVIEWS MODAL -->
 <div id="all-reviews-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="all-reviews-title">
-  <div class="review-list-mbox">
+  <div class="mbox review-list-mbox">
     <button id="all-reviews-close" class="mclose review-list-close" aria-label="Close">&#215;</button>
     <h2 id="all-reviews-title" class="review-list-title">All Reviews</h2>
     <button id="all-reviews-write-btn" class="review-submit-btn review-list-write-btn" type="button">Write a Review</button>
@@ -1381,7 +1357,7 @@ body.light-mode::after{opacity:0.15}
 
 <!-- REVIEW MODAL -->
 <div id="review-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
-  <div class="review-mbox">
+  <div class="mbox review-mbox">
     <button class="mclose" id="review-modal-close" aria-label="Close">&#215;</button>
     <h2 id="review-modal-title">Write a Review</h2>
     <p class="review-product-label" id="review-product-label"></p>
@@ -1579,13 +1555,13 @@ body.light-mode::after{opacity:0.15}
     </div>
     <div class="csummary">
       <h2 class="csec-t">Summary</h2>
-      <div class="srow"><span>Subtotal</span><span id="summary-subtotal">-</span></div>
+      <div class="srow">-</span><span id="summary-subtotal">-</span></div>
       <div class="srow">
         <div><div>Shipping</div><div class="ship-note">Standard 5-7 days<br>Free on orders over $100</div></div>
         <span id="summary-shipping">-</span>
       </div>
-      <div class="srow"><span>Tax</span><span id="summary-tax">-</span></div>
-      <div class="srow stotal"><span>Total</span><span id="summary-total">-</span></div>
+      <div class="srow">-</span><span id="summary-tax">-</span></div>
+      <div class="srow stotal">-</span><span id="summary-total">-</span></div>
       <button id="checkout-btn">Checkout</button>
     </div>
   </div>
@@ -1597,8 +1573,7 @@ body.light-mode::after{opacity:0.15}
     <button class="mclose" id="payment-close">&#215;</button>
     <h2>Secure Checkout</h2>
     <p class="psub">Powered by Stripe - 256-bit SSL encryption</p>
-    <div id="payment-request-btn" style="display:none" aria-hidden="true"></div>
-    <div id="wallet-methods" class="wallet-methods" aria-hidden="true"></div>
+    <div id="payment-request-btn" style="margin-bottom:1rem;display:none"></div>
     <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0;font-family:var(--fm);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.28)">- or pay with card -</div>
     <div class="pgrow">
       <div class="pfield"><label>Full Name</label><input type="text" id="pay-name" placeholder="Jane Smith" autocomplete="name"></div>
@@ -1837,87 +1812,6 @@ function applyAnnouncementBar(mode, msgText) {
 
 let _user = null, _favs = [];
 
-function isSignedInMember() {
-  return !!_user;
-}
-
-function getRegularListPrice(product) {
-  return parseFloat(product?.current_price ?? product?.price ?? 0) || 0;
-}
-
-function getMemberListPrice(product) {
-  return parseFloat(product?.member_price ?? 0) || 0;
-}
-
-function getEffectiveListPrice(product) {
-  const regular = getRegularListPrice(product);
-  const member = getMemberListPrice(product);
-  if (isSignedInMember() && member > 0 && (!regular || member < regular)) {
-    return member;
-  }
-  return regular;
-}
-
-function getHomeProductPriceSnapshot(productId) {
-  try {
-    const cached = JSON.parse(sessionStorage.getItem('zw_home_products') || '[]');
-    const matched = Array.isArray(cached) ? cached.find(product => product?.id === productId) : null;
-    if (!matched) return null;
-    return {
-      regularPrice: getRegularListPrice(matched),
-      memberPrice: getMemberListPrice(matched),
-    };
-  } catch {
-    return null;
-  }
-}
-
-function normalizeCartPricing(cart) {
-  const sourceCart = Array.isArray(cart) ? cart : [];
-  const normalized = sourceCart.map((item) => {
-    const snapshot = item?.productId ? getHomeProductPriceSnapshot(item.productId) : null;
-    const regularPrice = parseFloat(item?.regularPrice ?? item?.basePrice ?? snapshot?.regularPrice ?? item?.price ?? 0) || 0;
-    const memberPrice = parseFloat(item?.memberPrice ?? item?.member_price ?? snapshot?.memberPrice ?? 0) || 0;
-    const effectivePrice = (isSignedInMember() && memberPrice > 0 && (!regularPrice || memberPrice < regularPrice))
-      ? memberPrice
-      : regularPrice;
-
-    return {
-      ...item,
-      regularPrice,
-      memberPrice,
-      price: effectivePrice || regularPrice || (parseFloat(item?.price) || 0),
-    };
-  });
-
-  if (JSON.stringify(normalized) !== JSON.stringify(sourceCart)) {
-    localStorage.setItem('cart', JSON.stringify(normalized));
-  }
-
-  return normalized;
-}
-
-if (_sb?.auth?.getSession) {
-  _sb.auth.getSession()
-    .then(({ data }) => {
-      _user = data?.session?.user ?? null;
-      updateNav();
-      if (_user) {
-        void loadFavs();
-      } else {
-        _favs = [];
-        refreshHearts();
-        refreshCartFavs();
-      }
-      renderCart();
-      loadProducts();
-    })
-    .catch(() => {
-      updateNav();
-      refreshCartFavs();
-    });
-}
-
 /* Ã¢â€â‚¬Ã¢â€â‚¬ LOAD PRODUCTS FROM SUPABASE Ã¢â€â‚¬Ã¢â€â‚¬ */
 function productSlug(title) {
   if (!title) return '';
@@ -2068,7 +1962,7 @@ function renderProductCards(products, grid) {
   grid.innerHTML = renderList.map(p => {
     const productName = p.title || p.name || 'Untitled';
     const productCategory = categoryLabelFromProduct(p);
-    const productPrice = getEffectiveListPrice(p) || parseFloat(p.msrp || 0) || parseFloat(p.price || 0) || 0;
+    const productPrice = p.current_price || p.msrp || p.price;
     const badge = (p.status === 'coming_soon' || p.status === 'Coming Soon') ? 'Coming Soon' : (p.status === 'live' || p.status === 'Live' ? 'Available' : (p.status || 'Coming Soon'));
     let firstImg = p.image_url;
     if (p.product_images && p.product_images.length > 0) {
@@ -2088,7 +1982,7 @@ function renderProductCards(products, grid) {
         <div class="pcard-img">
           ${imgHtml}
           <div class="pcard-badge">${badge}</div>
-          <button class="heart-btn" onclick="event.stopPropagation()" data-product-id="${p.id}" data-product-name="${productName}" data-price="${priceDisplay}" data-product-image="${firstImg || ''}" aria-label="Save">
+          <button class="heart-btn" onclick="event.stopPropagation()" data-product-id="${p.id}" data-product-name="${productName}" data-price="${priceDisplay}" aria-label="Save">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           </button>
         </div>
@@ -2152,8 +2046,6 @@ if (_sb) {
         } catch (_) {}
       }, 0);
     } else { _favs = []; refreshHearts(); refreshCartFavs(); }
-    renderCart();
-    loadProducts();
   });
 }
 
@@ -2172,27 +2064,8 @@ function updateNav() {
 }
 
 /* AUTH MODAL */
-let _authReturnModalId = null;
-function openAuth(tab) {
-  const cartModal = document.getElementById('cart-modal');
-  _authReturnModalId = cartModal?.classList.contains('open') ? 'cart-modal' : null;
-  if (_authReturnModalId) cartModal.classList.remove('open');
-  document.getElementById('auth-modal').classList.add('open');
-  document.body.style.overflow = 'hidden';
-  switchAuthTab(tab || 'signin');
-}
-function closeAuth() {
-  document.getElementById('auth-modal').classList.remove('open');
-  const shouldReturnToCart = _authReturnModalId === 'cart-modal';
-  _authReturnModalId = null;
-  if (shouldReturnToCart) {
-    renderCart();
-    document.getElementById('cart-modal').classList.add('open');
-    document.body.style.overflow = 'hidden';
-    return;
-  }
-  document.body.style.overflow = '';
-}
+function openAuth(tab) { document.getElementById('auth-modal').classList.add('open'); document.body.style.overflow = 'hidden'; switchAuthTab(tab || 'signin'); }
+function closeAuth() { document.getElementById('auth-modal').classList.remove('open'); document.body.style.overflow = ''; }
 function switchAuthTab(t) {
   document.querySelectorAll('#auth-modal .atab').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
   document.querySelectorAll('#auth-modal .apanel').forEach(p => p.classList.remove('active'));
@@ -2392,260 +2265,16 @@ function renderAcctFavs() {
 }
 
 /* FAVORITES */
+async function loadFavs() {
+  if(!_sb || !_user) return;
+  const { data } = await _sb.from('favorites').select('product_id,product_name,price').eq('user_id',_user.id);
+  _favs = data || []; refreshHearts(); refreshCartFavs();
+}
 function refreshHearts() {
   const ids = new Set(_favs.map(f => f.product_id));
   document.querySelectorAll('.heart-btn').forEach(b => b.classList.toggle('active', ids.has(b.dataset.productId)));
 }
-
-const _homeFavoriteCache = new Map();
-
-function escapeHomeFavoriteHtml(value) {
-  return String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function normalizeHomeFavoriteText(value) {
-  return String(value || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function parseHomeFavoritePrice(value) {
-  if (typeof value === 'string') {
-    const parsed = parseFloat(value.replace(/[^0-9.]/g, ''));
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-  return parseFloat(value ?? 0) || 0;
-}
-
-function getHomeFavoritePrice(detail, fallbackPrice) {
-  const regular = parseHomeFavoritePrice(detail?.current_price ?? fallbackPrice);
-  const member = parseHomeFavoritePrice(detail?.member_price);
-  if (_user && member > 0 && (!regular || member < regular)) return member;
-  return regular;
-}
-
-function compareHomeFavoriteSizes(left, right) {
-  const normalize = (value) => String(value || '')
-    .toLowerCase()
-    .replace(/[()]/g, ' ')
-    .replace(/[^a-z0-9/]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  const rank = (value) => {
-    const normalized = normalize(value);
-    const direct = {
-      'xxs': -20,
-      'xs': -10,
-      's': 0,
-      's/m': 5,
-      'm': 10,
-      'm/l': 15,
-      'l': 20,
-      'l/xl': 25,
-      'xl': 30,
-      'xxl': 40,
-      '2xl': 40,
-      'xxxl': 50,
-      '3xl': 50,
-      'one size': 1000,
-      'one size fits most': 1000
-    };
-    if (Object.prototype.hasOwnProperty.call(direct, normalized)) return direct[normalized];
-    const numeric = normalized.match(/^(\d+)xl$/);
-    if (numeric) return 30 + (parseInt(numeric[1], 10) * 10);
-    return 500;
-  };
-  return rank(left) - rank(right);
-}
-
-function pickHomeFavoriteSize(sizeRows) {
-  const rows = (Array.isArray(sizeRows) ? sizeRows : [])
-    .map((row) => ({
-      label: row?.size || row?.size_label || '',
-      stock: Number(row?.stock_quantity ?? row?.stock ?? 0)
-    }))
-    .filter((row) => row.label);
-  const inStock = rows.filter((row) => row.stock > 0);
-  const source = inStock.length ? inStock : rows;
-  if (!source.length) return '';
-  source.sort((left, right) => compareHomeFavoriteSizes(left.label, right.label));
-  return source[0]?.label || '';
-}
-
-function buildHomeFavoriteDetail(product, extra, favorite) {
-  const images = Array.isArray(extra?.images) ? extra.images : [];
-  const colors = Array.isArray(extra?.colors) ? extra.colors : [];
-  const sizes = Array.isArray(extra?.sizes) ? extra.sizes : [];
-  const detail = {
-    id: product?.id || favorite?.product_id,
-    title: product?.title || favorite?.product_name || 'Saved Item',
-    subtitle: product?.category || product?.subtitle || '',
-    sku: product?.sku || '',
-    image: images[0]?.image_url || product?.image_url || '',
-    current_price: parseHomeFavoritePrice(product?.current_price ?? product?.price ?? favorite?.price),
-    member_price: parseHomeFavoritePrice(product?.member_price),
-    colorName: colors[0]?.color_name || product?.colorway || 'Standard',
-    sizes
-  };
-  detail.href = productHref({ id: detail.id, sku: detail.sku, title: detail.title });
-  _homeFavoriteCache.set(detail.id, detail);
-  return detail;
-}
-
-async function getHomeFavoriteDetail(productId, favorite) {
-  if (!productId) return null;
-  if (_homeFavoriteCache.has(productId)) return _homeFavoriteCache.get(productId);
-  try {
-    const cached = JSON.parse(sessionStorage.getItem('zw_home_products') || '[]');
-    const matched = Array.isArray(cached) ? cached.find((product) => product?.id === productId) : null;
-    if (matched) {
-      return buildHomeFavoriteDetail(matched, {
-        images: matched.product_images || [],
-        colors: [],
-        sizes: []
-      }, favorite);
-    }
-  } catch {}
-
-  try {
-    const headers = { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` };
-    const encodedId = encodeURIComponent(productId);
-    const [productResp, imagesResp, colorsResp, sizesResp] = await Promise.all([
-      fetch(`${SUPABASE_URL}/rest/v1/products?select=*&id=eq.${encodedId}&limit=1`, { headers }),
-      fetch(`${SUPABASE_URL}/rest/v1/product_images?select=*&product_id=eq.${encodedId}&order=sort_order.asc`, { headers }),
-      fetch(`${SUPABASE_URL}/rest/v1/color_variants?select=*&product_id=eq.${encodedId}&order=sort_order.asc`, { headers }),
-      fetch(`${SUPABASE_URL}/rest/v1/product_sizes?select=*&product_id=eq.${encodedId}`, { headers })
-    ]);
-    const productRows = productResp.ok ? await productResp.json() : [];
-    const product = Array.isArray(productRows) ? productRows[0] : null;
-    if (!product) return null;
-    const images = imagesResp.ok ? await imagesResp.json() : [];
-    const colors = colorsResp.ok ? await colorsResp.json() : [];
-    const sizes = sizesResp.ok ? await sizesResp.json() : [];
-    return buildHomeFavoriteDetail(product, { images, colors, sizes }, favorite);
-  } catch {
-    return null;
-  }
-}
-
-function homeFavoriteCardHtml(favorite, detail, mode) {
-  const productId = favorite.product_id;
-  const name = detail?.title || favorite.product_name || 'Saved Item';
-  const subtitleText = detail?.subtitle || '';
-  const normalizedName = normalizeHomeFavoriteText(name);
-  const normalizedSubtitle = normalizeHomeFavoriteText(subtitleText);
-  const showSubtitle = !!subtitleText && normalizedSubtitle !== normalizedName;
-  const subtitle = showSubtitle
-    ? `<div style="font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(244,241,235,.35);margin-top:.2rem;">${escapeHomeFavoriteHtml(subtitleText)}</div>`
-    : '';
-  const colorName = detail?.colorName || '';
-  const normalizedColor = normalizeHomeFavoriteText(colorName);
-  const showColor = !!colorName && normalizedColor && normalizedColor !== 'standard' && normalizedColor !== normalizedName && normalizedColor !== normalizedSubtitle;
-  const metaHtml = showColor
-    ? `<div style="font-size:.68rem;color:rgba(244,241,235,.52);margin-top:.35rem;letter-spacing:.04em;">${escapeHomeFavoriteHtml(colorName)}</div>`
-    : '';
-  const imageHtml = detail?.image
-    ? `<img src="${typeof window.optimizeImage === 'function' ? window.optimizeImage(detail.image, 180) : detail.image}" alt="${escapeHomeFavoriteHtml(name)}" style="width:68px;height:86px;object-fit:cover;border:1px solid rgba(244,241,235,.08);flex-shrink:0;" onerror="if(this.src !== '${detail.image}') this.src='${detail.image}';">`
-    : `<div style="width:68px;height:86px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(244,241,235,.08);color:rgba(244,241,235,.28);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;flex-shrink:0;">No Image</div>`;
-  const displayPrice = getHomeFavoritePrice(detail, favorite.price);
-  const priceHtml = displayPrice > 0
-    ? `<div style="font-size:.82rem;color:rgba(244,241,235,.72);margin-top:.45rem;">$${displayPrice.toFixed(2)}</div>`
-    : '';
-  const tag = mode === 'account' ? 'div' : 'li';
-  const href = detail?.href || productHref({ id: productId, title: name });
-  return `
-    <${tag} style="display:flex;gap:.85rem;align-items:flex-start;padding:${mode === 'account' ? '.95rem 0' : '.75rem 0'};border-bottom:1px solid rgba(244,241,235,.07);">
-      ${imageHtml}
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:.88rem;line-height:1.35;">${escapeHomeFavoriteHtml(name)}</div>
-        ${subtitle}
-        ${metaHtml}
-        ${priceHtml}
-        <div style="display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.8rem;">
-          <a href="${href}" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 .85rem;border:1px solid rgba(244,241,235,.14);font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;color:rgba(244,241,235,.76);text-decoration:none;">View Product</a>
-          <button type="button" onclick="addHomeFavoriteToCart('${productId}')" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 .85rem;border:none;background:#f4f1eb;color:#09090b;font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;cursor:pointer;">Add to Bag</button>
-          <button type="button" onclick="removeFav('${productId}', null)" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 .85rem;border:1px solid rgba(244,241,235,.08);background:none;color:rgba(244,241,235,.46);font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;cursor:pointer;">Remove</button>
-        </div>
-      </div>
-    </${tag}>
-  `;
-}
-
-async function renderHomeFavoriteCollection(listEl, favorites, mode) {
-  if (!listEl) return;
-  const pairs = await Promise.all(favorites.map(async (favorite) => ({
-    favorite,
-    detail: await getHomeFavoriteDetail(favorite.product_id, favorite)
-  })));
-  listEl.innerHTML = pairs.map(({ favorite, detail }) => homeFavoriteCardHtml(favorite, detail, mode)).join('');
-}
-
-window.addHomeFavoriteToCart = async function(productId) {
-  const favorite = _favs.find((item) => item.product_id === productId) || { product_id: productId };
-  const detail = await getHomeFavoriteDetail(productId, favorite);
-  if (!detail) {
-    window.location.href = productHref({ id: productId, title: favorite.product_name || 'product' });
-    return;
-  }
-  const size = pickHomeFavoriteSize(detail.sizes);
-  const regularPrice = parseHomeFavoritePrice(detail.current_price ?? favorite.price);
-  const memberPrice = parseHomeFavoritePrice(detail.member_price);
-  const effectivePrice = getHomeFavoritePrice(detail, favorite.price);
-  const cart = normalizeCartPricing(JSON.parse(localStorage.getItem('cart') || '[]'));
-  const existing = cart.find((item) =>
-    item.productId === detail.id &&
-    item.size === size &&
-    item.colorName === detail.colorName &&
-    String(item.sku || '') === String(detail.sku || '')
-  );
-  if (existing) {
-    existing.quantity += 1;
-  } else {
-    cart.push({
-      productId: detail.id,
-      sku: detail.sku,
-      title: detail.title,
-      size,
-      colorName: detail.colorName,
-      regularPrice,
-      memberPrice,
-      price: effectivePrice || regularPrice,
-      image: detail.image,
-      quantity: 1
-    });
-  }
-  localStorage.setItem('cart', JSON.stringify(cart));
-  renderCart();
-  showToast(`Added ${detail.title}${size ? ` (${size})` : ''} to bag.`);
-};
-
-function renderAcctFavs() {
-  document.getElementById('acct-favs-loading').style.display = 'none';
-  const empty = document.getElementById('acct-favs-empty');
-  const list = document.getElementById('acct-favs-list');
-  if(!_favs.length){ empty.style.display = 'block'; list.innerHTML=''; return; }
-  empty.style.display = 'none';
-  void renderHomeFavoriteCollection(list, _favs, 'account');
-}
-
-async function loadFavs() {
-  if(!_sb || !_user) return;
-  const { data } = await _sb.from('favorites').select('product_id,product_name,price,product_image').eq('user_id',_user.id);
-  _favs = data || [];
-  refreshHearts();
-  void refreshCartFavs();
-}
-
-let _cartFavRenderVer = 0;
-async function refreshCartFavs() {
-  const myVer = ++_cartFavRenderVer;
+function refreshCartFavs() {
   const out = document.getElementById('fav-logged-out-msg');
   const inn = document.getElementById('fav-logged-in-area');
   const empty = document.getElementById('cart-favs-empty');
@@ -2654,70 +2283,34 @@ async function refreshCartFavs() {
   if(out) out.style.display='none'; if(inn) inn.style.display='block';
   if(!_favs.length){ if(empty) empty.style.display='block'; if(list) list.innerHTML=''; return; }
   if(empty) empty.style.display='none';
-  // Snapshot current favs before async work starts
-  const snapshot = [..._favs];
-  const pairs = await Promise.all(snapshot.map(async (fav) => ({
-    fav,
-    detail: await getHomeFavoriteDetail(fav.product_id, fav)
-  })));
-  // If a newer render started while we were fetching, discard this result
-  if (myVer !== _cartFavRenderVer) return;
-  if (list) list.innerHTML = pairs.map(({ fav, detail }) => homeFavoriteCardHtml(fav, detail, 'cart')).join('');
+  list.innerHTML = _favs.map(f => `<li style="display:flex;align-items:center;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid rgba(244,241,235,.07);font-family:var(--fm);font-size:.7rem"><span>${f.product_name}</span><button onclick="removeFav('${f.product_id}',null)" style="background:none;border:none;color:rgba(244,241,235,.3)">Ã¢Å“â€¢</button></li>`).join('');
 }
-
 async function toggleFav(btn) {
   if(!_user){ openAuth('signin'); return; }
   const pid = btn.dataset.productId, pname = btn.dataset.productName, price = btn.dataset.price;
-  const pimage = btn.dataset.productImage || '';
-  const isActive = _favs.some(f => f.product_id === pid);
-  btn.disabled = true;
-  try {
-    if(isActive){
-      await removeFav(pid, null, { silentToast:true });
-      showToast('Removed from favorites.');
-    }
-    else {
-      if(_sb) await _sb.from('favorites').upsert({ user_id:_user.id, product_id:pid, product_name:pname, price, product_image:pimage });
-      _favs.push({ product_id:pid, product_name:pname, price, product_image:pimage });
-      refreshHearts();
-      void refreshCartFavs();
-      showToast('Saved to favorites.');
-    }
-  } catch (error) {
-    console.error('toggleFav failed:', error);
-    showToast('Could not update saved items.');
-  } finally {
-    btn.disabled = false;
+  if(_favs.some(f => f.product_id === pid)){ await removeFav(pid, null); }
+  else {
+    if(_sb) await _sb.from('favorites').upsert({ user_id:_user.id, product_id:pid, product_name:pname, price });
+    _favs.push({ product_id:pid, product_name:pname, price });
+    refreshHearts(); refreshCartFavs(); showToast('Saved!');
   }
 }
-
-async function removeFav(pid, el, options = {}) {
+async function removeFav(pid, el) {
   if(_sb && _user) await _sb.from('favorites').delete().eq('user_id',_user.id).eq('product_id',pid);
   _favs = _favs.filter(f => f.product_id !== pid);
-  _homeFavoriteCache.delete(pid);
-  if(el) el.remove();
-  refreshHearts();
-  void refreshCartFavs();
-  if (!options?.silentToast) showToast('Removed from favorites.');
+  if(el) el.remove(); refreshHearts(); refreshCartFavs(); showToast('Removed from saved.');
 }
+document.querySelectorAll('.heart-btn').forEach(b => b.addEventListener('click', () => toggleFav(b)));
 
 /* CART */
 let cartItems = [];
 
 function renderCart() {
-  const cart = normalizeCartPricing(JSON.parse(localStorage.getItem('cart')) || []);
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
   cartItems = cart;
   const list = document.getElementById('cart-items-list');
   const emptyMsg = document.getElementById('cart-empty-msg');
-  if (cart.length === 0) {
-    list.innerHTML = '';
-    emptyMsg.style.display = 'block';
-    updateCartSummary(0);
-    const countEl = document.querySelector('.cc');
-    if (countEl) countEl.textContent = '0';
-    refreshCartFavs();
-    return;
-  }
+  if (cart.length === 0) { list.innerHTML = ''; emptyMsg.style.display = 'block'; updateCartSummary(0); return; }
   emptyMsg.style.display = 'none';
   list.innerHTML = cart.map((item, idx) => `
     <li style="display:flex;gap:1rem;align-items:flex-start">
@@ -2738,7 +2331,6 @@ function renderCart() {
   const subtotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
   updateCartSummary(subtotal);
   document.querySelector('.cc').textContent = cart.reduce((sum, item) => sum + item.quantity, 0);
-  refreshCartFavs();
 }
 
 function updateCartSummary(subtotal) {
@@ -2756,12 +2348,15 @@ window.removeCartItem = function(idx) { let cart = JSON.parse(localStorage.getIt
 
 document.getElementById('cart-btn').addEventListener('click', () => { renderCart(); document.getElementById('cart-modal').classList.add('open'); document.body.style.overflow='hidden'; });
 document.getElementById('cart-close').addEventListener('click', () => { document.getElementById('cart-modal').classList.remove('open'); document.body.style.overflow=''; });
-document.getElementById('fav-join-link').addEventListener('click', () => openAuth('signup'));
-document.getElementById('fav-signin-link').addEventListener('click', () => openAuth('signin'));
+document.getElementById('fav-join-link').addEventListener('click', () => { openAuth('signup'); });
+document.getElementById('fav-signin-link').addEventListener('click', () => { openAuth('signin'); });
 document.getElementById('checkout-btn').addEventListener('click', () => {
-  if (!cartItems.length) return;
+  document.getElementById('cart-modal').classList.remove('open');
+  document.getElementById('payment-modal').classList.add('open');
+  document.body.style.overflow='hidden';
+  document.getElementById('pay-error').textContent = '';
   const sub = Math.round(parseFloat((document.getElementById('summary-subtotal')?.textContent||'0').replace(/[^0-9.]/g,''))*100);
-  openPaymentModal(sub || 100);
+  _loadStripe(() => { _initStripe(); initPR(sub || 100); });
 });
 window.addEventListener('DOMContentLoaded', renderCart);
 
@@ -2807,54 +2402,6 @@ async function getCheckoutUserId() {
   }
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
-const PAY_TAX_RATE = 0.08;
-let _paymentReturnModalId = null;
-
-function getWalletTaxCents(subtotalCents) {
-  return subtotalCents > 0 ? Math.round(subtotalCents * PAY_TAX_RATE) : 0;
-}
-
-function getDefaultCheckoutShippingCents(subtotalCents) {
-  const shipRateCents = 800;
-  const freeThresholdDollars = 100;
-  if (subtotalCents <= 0) return 0;
-  return (subtotalCents / 100) >= freeThresholdDollars ? 0 : shipRateCents;
-}
-
-function getWalletTotalCents(subtotalCents, shippingCents = 0) {
-  return subtotalCents + shippingCents + getWalletTaxCents(subtotalCents);
-}
-
-function getWalletDisplayItems(subtotalCents, shippingCents) {
-  return [
-    { label: 'Subtotal', amount: Math.max(0, subtotalCents || 0) },
-    { label: 'Shipping', amount: Math.max(0, shippingCents || 0) },
-    { label: 'Tax', amount: getWalletTaxCents(subtotalCents) }
-  ];
-}
-
-function openPaymentModal(subtotalCents) {
-  const cartModal = document.getElementById('cart-modal');
-  _paymentReturnModalId = cartModal?.classList.contains('open') ? 'cart-modal' : null;
-  if (_paymentReturnModalId) cartModal.classList.remove('open');
-  document.getElementById('payment-modal').classList.add('open');
-  document.body.style.overflow = 'hidden';
-  document.getElementById('pay-error').textContent = '';
-  _loadStripe(() => { _initStripe(); initPR(subtotalCents); });
-}
-
-function closePaymentModal({ suppressReturn = false } = {}) {
-  document.getElementById('payment-modal')?.classList.remove('open');
-  const shouldReturnToCart = !suppressReturn && _paymentReturnModalId === 'cart-modal';
-  _paymentReturnModalId = null;
-  if (shouldReturnToCart) {
-    renderCart();
-    document.getElementById('cart-modal')?.classList.add('open');
-    document.body.style.overflow = 'hidden';
-    return;
-  }
-  document.body.style.overflow = '';
-}
 
 let _sizeGuideDocumentHtml = null;
 
@@ -2915,153 +2462,43 @@ document.getElementById('size-guide-modal')?.addEventListener('click', e => {
   if (e.target === e.currentTarget) closeModal('size-guide-modal');
 });
 
-let payReq = null, payReqButton = null, selRate = null, walletRates = [], walletShippingCents = 0;
-function resetWalletUi() {
-  const walletHost = document.getElementById('payment-request-btn');
-  const walletHints = document.getElementById('wallet-methods');
-  const divider = document.getElementById('pay-divider');
-  if (payReqButton) {
-    try { payReqButton.unmount(); } catch {}
-    payReqButton = null;
-  }
-  if (walletHost) {
-    walletHost.innerHTML = '';
-    walletHost.style.display = 'none';
-  }
-  if (walletHints) {
-    walletHints.innerHTML = '';
-    walletHints.style.display = 'none';
-  }
-  walletShippingCents = 0;
-  if (divider) divider.style.display = 'none';
-}
-function renderWalletHints(result) {
-  const walletHints = document.getElementById('wallet-methods');
-  if (!walletHints) return;
-  const appleAvail  = !!result?.applePay;
-  const googleAvail = !!result?.googlePay;
-  const appleIcon  = `<span class="wallet-chip__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg></span>`;
-  const googleIcon = `<span class="wallet-chip__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg></span>`;
-
-  let html = '';
-  // Apple Pay — always show; if not natively available, show as QR Scan option
-  if (appleAvail) {
-    html += `<button type="button" class="wallet-chip wallet-chip--applePay" data-wallet="applePay" data-action="pay">${appleIcon}<span class="wallet-chip__label"><span class="wallet-chip__brand">Apple</span><span>Pay</span></span></button>`;
-  } else {
-    html += `<button type="button" class="wallet-chip wallet-chip--applePay" data-wallet="applePay" data-action="qr" title="Scan QR with iPhone to pay with Apple Pay">${appleIcon}<span class="wallet-chip__label" style="flex-direction:column;gap:.05rem;align-items:flex-start;"><span style="display:flex;align-items:center;gap:.3rem;font-weight:700;"><span class="wallet-chip__brand">Apple</span><span>Pay</span></span><span style="font-size:.56rem;letter-spacing:.04em;color:rgba(244,241,235,.45);text-transform:none;">Scan QR with iPhone</span></span></button>`;
-  }
-  // Google Pay — only show when actually available
-  if (googleAvail) {
-    html += `<button type="button" class="wallet-chip wallet-chip--googlePay" data-wallet="googlePay" data-action="pay">${googleIcon}<span class="wallet-chip__label"><span class="wallet-chip__brand">Google</span><span>Pay</span></span></button>`;
-  }
-
-  walletHints.innerHTML = html;
-
-  walletHints.querySelectorAll('button[data-action="pay"]').forEach(btn => {
-    btn.addEventListener('click', () => { if (payReq?.show) payReq.show(); });
-  });
-  walletHints.querySelectorAll('button[data-action="qr"]').forEach(btn => {
-    btn.addEventListener('click', () => { if (typeof showApplePayQrModal === 'function') showApplePayQrModal(); });
-  });
-  walletHints.style.display = 'flex';
-  walletHints.style.flexDirection = 'column';
-  walletHints.style.gap = '.55rem';
-}
+let payReq = null, selRate = null, walletRates = [];
 function initPR(subtotalCents) {
-  const normalizedSubtotalCents = Math.max(0, subtotalCents || 0);
-  const defaultShippingCents = getDefaultCheckoutShippingCents(normalizedSubtotalCents);
-  resetWalletUi();
-  walletRates = [];
-  selRate = null;
-  walletShippingCents = defaultShippingCents;
-  payReq = stripe.paymentRequest({
-    country:'US',
-    currency:'usd',
-    total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, defaultShippingCents), pending:true },
-    displayItems:getWalletDisplayItems(normalizedSubtotalCents, defaultShippingCents),
-    requestPayerName:true,
-    requestPayerEmail:true,
-    requestShipping:true,
-    shippingOptions:[],
-  });
+  if(payReq) return;
+  payReq = stripe.paymentRequest({ country:'US', currency:'usd', total:{ label:'Zuwera', amount:subtotalCents, pending:true }, requestPayerName:true, requestPayerEmail:true, requestShipping:true, shippingOptions:[] });
   payReq.on('shippingaddresschange', async ev => {
     const a = ev.shippingAddress;
     try {
       const d = await post('/api/shippo-rates', { address:{ name:'', line1:a.addressLine?.[0]||'', city:a.city, state:a.region, zip:a.postalCode, country:a.country } });
-      if(!d.rates?.length){
-        walletRates = [];
-        selRate = null;
-        ev.updateWith({status:'invalid_shipping_address'});
-        return;
-      }
+      if(!d.rates?.length){ walletRates = []; selRate = null; ev.updateWith({status:'invalid_shipping_address'}); return; }
       walletRates = d.rates.slice(0,4);
       const opts = walletRates.map(r => ({ id:r.objectId, label:`${r.provider} ${r.servicelevel}`, detail:r.days?`Est. ${r.days} business days`:'', amount:Math.round(parseFloat(r.amount)*100) }));
       selRate = walletRates[0] || null;
-      walletShippingCents = opts[0]?.amount || defaultShippingCents;
-      ev.updateWith({
-        status:'success',
-        shippingOptions:opts,
-        total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, walletShippingCents) },
-        displayItems:getWalletDisplayItems(normalizedSubtotalCents, walletShippingCents)
-      });
-    } catch {
-      ev.updateWith({status:'fail'});
-    }
+      ev.updateWith({ status:'success', shippingOptions:opts, total:{ label:'Zuwera', amount:subtotalCents+opts[0].amount } });
+    } catch { ev.updateWith({status:'fail'}); }
   });
   payReq.on('shippingoptionchange', ev => {
     const matchedRate = walletRates.find(r => r.objectId === ev.shippingOption?.id);
     if (matchedRate) selRate = matchedRate;
     const shippingAmount = matchedRate
       ? Math.round(parseFloat(matchedRate.amount) * 100)
-      : (ev.shippingOption?.amount || defaultShippingCents);
-    walletShippingCents = shippingAmount;
-    ev.updateWith({
-      status:'success',
-      total:{ label:'Zuwera', amount:getWalletTotalCents(normalizedSubtotalCents, shippingAmount) },
-      displayItems:getWalletDisplayItems(normalizedSubtotalCents, shippingAmount)
-    });
+      : (ev.shippingOption?.amount || 0);
+    ev.updateWith({ status:'success', total:{ label:'Zuwera', amount:subtotalCents+shippingAmount } });
   });
   payReq.on('paymentmethod', async ev => {
     try {
       const a = ev.shippingAddress||{};
       const userId = await getCheckoutUserId();
-      const d = await post('/api/create-payment-intent', {
-        items:cartItems,
-        shippingRate:selRate,
-        shippingAmountCents: walletShippingCents || defaultShippingCents,
-        userId,
-        address:{ name:ev.payerName||'', email:ev.payerEmail||'', line1:a.addressLine?.[0]||'', line2:a.addressLine?.[1]||'', city:a.city||'', state:a.region||'', zip:a.postalCode||'', country:a.country||'US' }
-      });
-      if(d.error){
-        ev.complete('fail');
-        document.getElementById('pay-error').textContent = d.error;
-        return;
-      }
+      const d = await post('/api/create-payment-intent', { items:cartItems, shippingRate:selRate, userId, address:{ name:ev.payerName||'', email:ev.payerEmail||'', line1:a.addressLine?.[0]||'', line2:a.addressLine?.[1]||'', city:a.city||'', state:a.region||'', zip:a.postalCode||'', country:a.country||'US' } });
+      if(d.error){ ev.complete('fail'); return; }
       const { error } = await stripe.confirmCardPayment(d.clientSecret, { payment_method:ev.paymentMethod.id }, { handleActions:false });
-      if(error){
-        ev.complete('fail');
-        document.getElementById('pay-error').textContent = error.message;
-      }
-      else {
-        ev.complete('success');
-        closePaymentModal({ suppressReturn:true });
-        showConfirmed(d.orderId, ev.payerEmail);
-      }
-    } catch(e){
-      ev.complete('fail');
-      document.getElementById('pay-error').textContent = 'Fast checkout could not be completed. Please try card checkout.';
-    }
+      if(error){ ev.complete('fail'); document.getElementById('pay-error').textContent=error.message; }
+      else { ev.complete('success'); showConfirmed(d.orderId, ev.payerEmail); }
+    } catch(e){ ev.complete('fail'); }
   });
-  payReq.canMakePayment().then(result => {
-    const divider = document.getElementById('pay-divider');
-    // Always show wallet hints — Apple Pay shows as QR scan option when not natively available
-    if (divider) divider.style.display = 'block';
-    renderWalletHints(result || {});
-  }).catch(() => {
-    // Still show Apple Pay QR option on error
-    const divider = document.getElementById('pay-divider');
-    if (divider) divider.style.display = 'block';
-    renderWalletHints({});
+  const prBtn = elements.create('paymentRequestButton', { paymentRequest:payReq, style:{ paymentRequestButton:{ type:'buy', theme:'light', height:'48px' } } });
+  payReq.canMakePayment().then(r => {
+    if(r){ prBtn.mount('#payment-request-btn'); document.getElementById('payment-request-btn').style.display='block'; document.getElementById('pay-divider').style.display='block'; }
   });
 }
 
@@ -3100,8 +2537,8 @@ function updateShip(amount) {
 }
 document.getElementById('pay-zip').addEventListener('input', maybeLoadRates);
 document.getElementById('pay-state').addEventListener('input', maybeLoadRates);
-document.getElementById('payment-close').addEventListener('click', () => { closePaymentModal(); document.getElementById('pay-error').textContent=''; });
-document.getElementById('payment-modal').addEventListener('click', e => { if(e.target===e.currentTarget) closePaymentModal(); });
+document.getElementById('payment-close').addEventListener('click', () => { closeModal('payment-modal'); document.getElementById('pay-error').textContent=''; });
+document.getElementById('payment-modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal('payment-modal'); });
 
 document.getElementById('pay-submit').addEventListener('click', async () => {
   const g = id => document.getElementById(id).value.trim();
@@ -3118,7 +2555,7 @@ document.getElementById('pay-submit').addEventListener('click', async () => {
     if(d.error){ err.textContent=d.error; btn.disabled=false; btxt.textContent='Pay Now'; return; }
     const { error, paymentIntent } = await stripe.confirmCardPayment(d.clientSecret, { payment_method:{ card, billing_details:{name,email} }, receipt_email:email, shipping:{name,address:{line1:addr1,line2:addr2,city,state,postal_code:zip,country:'US'}} });
     if(error){ err.textContent=error.message; btn.disabled=false; btxt.textContent='Pay Now'; return; }
-    closePaymentModal({ suppressReturn:true }); showConfirmed(paymentIntent.id, email);
+    closeModal('payment-modal'); showConfirmed(paymentIntent.id, email);
   } catch(e){ err.textContent='Something went wrong. Please try again.'; btn.disabled=false; btxt.textContent='Pay Now'; }
 });
 
@@ -3277,7 +2714,7 @@ function scrollToNotify() {
 </script>
 <!-- Language selector -->
 <script src="lang.js?v=2" defer></script>
-<script src="reviews.js?v=9" charset="utf-8"></script>
+<script src="reviews.js?v=7" charset="utf-8"></script>
 
 <!-- PWA Service Worker -->
 <script>
@@ -3300,105 +2737,6 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catc
 })();
 function acceptCookies(){try{localStorage.setItem('zw_cookie_consent','accepted');}catch(e){}document.getElementById('cookie-banner').style.display='none'}
 function declineCookies(){try{localStorage.setItem('zw_cookie_consent','declined');}catch(e){}document.getElementById('cookie-banner').style.display='none'}
-</script>
-
-<!-- Apple Pay QR Modal -->
-<div id="apple-pay-qr-modal" style="display:none;position:fixed;inset:0;z-index:8000;background:rgba(9,9,11,.86);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1.5rem;">
-  <div style="background:#0f0f0f;border:1px solid rgba(244,241,235,.08);border-top:2px solid #F891A5;border-radius:2px;padding:2rem 1.75rem 1.75rem;max-width:340px;width:100%;text-align:center;position:relative;">
-    <button onclick="document.getElementById('apple-pay-qr-modal').style.display='none';" aria-label="Close" style="position:absolute;top:.85rem;right:.85rem;background:none;border:none;cursor:pointer;color:rgba(244,241,235,.4);font-size:1.25rem;line-height:1;padding:.2rem;">&#x2715;</button>
-    <div style="display:flex;align-items:center;justify-content:center;gap:.6rem;margin-bottom:.9rem;">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-      <span style="font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:600;letter-spacing:.04em;color:#f4f1eb;">Pay with Apple Pay</span>
-    </div>
-    <p style="font-size:.78rem;color:rgba(244,241,235,.5);margin-bottom:1.25rem;line-height:1.5;">Scan with your iPhone camera to complete payment with Apple Pay</p>
-    <div id="apple-pay-qr-code" style="display:inline-flex;align-items:center;justify-content:center;"></div>
-    <p style="font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(244,241,235,.25);margin-top:1.1rem;">Point your iPhone camera at the code</p>
-  </div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script>
-function showApplePayQrModal() {
-  var cart = JSON.parse(localStorage.getItem('cart') || '[]');
-  if (!cart.length) return;
-
-  var compact = cart.map(function(item) {
-    return { pid: item.productId || '', nm: item.name || item.productName || '', sz: item.size || '', cn: item.colorName || '', sk: item.sku || '', qty: item.quantity || 1, pr: item.price || 0, rp: item.regularPrice || item.price || 0 };
-  });
-  var cartData = btoa(unescape(encodeURIComponent(JSON.stringify(compact))));
-  var url = 'https://zuwera.store/mobile-checkout.html?c=' + encodeURIComponent(cartData);
-
-  var modal = document.getElementById('apple-pay-qr-modal');
-  var qrDiv = document.getElementById('apple-pay-qr-code');
-  qrDiv.innerHTML = '';
-  modal.style.display = 'flex';
-
-  if (typeof QRCode === 'undefined') {
-    qrDiv.innerHTML = '<p style="font-size:.7rem;word-break:break-all;color:#09090b;background:#fff;padding:.75rem;border-radius:8px;max-width:220px;">' + url + '</p>';
-    return;
-  }
-
-  // Generate into hidden div using H error correction (30% of QR can be obscured for logo)
-  var QR_SIZE = 252, PAD = 14, CS = QR_SIZE + PAD * 2;
-  var tmpDiv = document.createElement('div');
-  tmpDiv.style.cssText = 'position:fixed;left:-9999px;top:-9999px;pointer-events:none;';
-  document.body.appendChild(tmpDiv);
-  new QRCode(tmpDiv, { text: url, width: QR_SIZE, height: QR_SIZE, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.H });
-
-  setTimeout(function() {
-    var qrEl = tmpDiv.querySelector('canvas') || tmpDiv.querySelector('img');
-    if (!qrEl) { document.body.removeChild(tmpDiv); return; }
-
-    function buildBrandedQR(src) {
-      var cv = document.createElement('canvas');
-      cv.width = CS; cv.height = CS;
-      var ctx = cv.getContext('2d');
-
-      // Rounded white background
-      var rr = 14;
-      ctx.beginPath();
-      ctx.moveTo(rr, 0); ctx.lineTo(CS - rr, 0); ctx.quadraticCurveTo(CS, 0, CS, rr);
-      ctx.lineTo(CS, CS - rr); ctx.quadraticCurveTo(CS, CS, CS - rr, CS);
-      ctx.lineTo(rr, CS); ctx.quadraticCurveTo(0, CS, 0, CS - rr);
-      ctx.lineTo(0, rr); ctx.quadraticCurveTo(0, 0, rr, 0); ctx.closePath();
-      ctx.fillStyle = '#ffffff'; ctx.fill();
-      ctx.save(); ctx.clip();
-      ctx.drawImage(src, PAD, PAD, QR_SIZE, QR_SIZE);
-      ctx.restore();
-
-      // Center Apple Pay badge circle
-      var cx = CS / 2, cy = CS / 2, cr = QR_SIZE * 0.125;
-      ctx.beginPath(); ctx.arc(cx, cy, cr + 3, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff'; ctx.fill();
-      ctx.beginPath(); ctx.arc(cx, cy, cr + 2, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1; ctx.stroke();
-
-      // Apple logo (viewBox 0 0 24 24), centered in the badge
-      var logoH = cr * 1.35, scale = logoH / 20;
-      ctx.save();
-      ctx.translate(cx - 12.47 * scale, cy - 11.75 * scale);
-      ctx.scale(scale, scale);
-      ctx.fillStyle = '#000000';
-      ctx.fill(new Path2D('M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z'));
-      ctx.restore();
-
-      qrDiv.innerHTML = '';
-      var img = document.createElement('img');
-      img.src = cv.toDataURL('image/png');
-      img.style.cssText = 'width:' + CS + 'px;height:' + CS + 'px;display:block;border-radius:14px;';
-      qrDiv.appendChild(img);
-      document.body.removeChild(tmpDiv);
-    }
-
-    if (qrEl.tagName === 'CANVAS') {
-      buildBrandedQR(qrEl);
-    } else if (qrEl.complete && qrEl.naturalWidth) {
-      buildBrandedQR(qrEl);
-    } else {
-      qrEl.onload = function() { buildBrandedQR(qrEl); };
-    }
-  }, 80);
-}
 </script>
 </body>
 </html>

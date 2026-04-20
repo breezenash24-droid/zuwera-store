@@ -421,6 +421,11 @@
             transition: border-color 0.3s;
         }
 
+    .form-select option {
+        background-color: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+
         .form-input:focus, .form-select:focus, .form-textarea:focus {
             outline: none;
             border-color: var(--accent);
@@ -501,6 +506,7 @@
         }
 
         .size-guide-toolbar {
+        .size-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 14px;
@@ -529,6 +535,8 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
             margin-bottom: 30px;
         }
 
@@ -537,19 +545,33 @@
             grid-template-columns: minmax(0, 1.4fr) minmax(120px, 0.8fr) auto;
             gap: 12px;
             align-items: end;
+        .size-item {
             background-color: var(--bg-primary);
             border: 1px solid var(--border);
             border-radius: 6px;
             padding: 14px;
+            padding: 16px;
         }
 
         .size-row .form-group {
             margin-bottom: 0;
+        .size-item label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            cursor: pointer;
         }
 
         .size-row .size-stock {
+        .size-item input[type="checkbox"] {
+            cursor: pointer;
+        }
+
+        .size-item input[type="number"] {
             width: 100%;
             padding: 10px 12px;
+            padding: 8px;
             background-color: var(--bg-secondary);
             border: 1px solid var(--border);
             border-radius: 4px;
@@ -1875,6 +1897,8 @@
                             <label class="form-label">Colorway / Summary Label</label>
                             <input type="text" id="colorway" class="form-input" placeholder="Optional. e.g., Black / White or Vintage Olive">
                             <p class="form-hint" style="margin-top: 8px;">Used in admin search, exports, and as a storefront fallback when you have not added color variants yet. Leave it blank to auto-build from your saved color variants.</p>
+                            <label class="form-label">Colorway <span class="required">*</span></label>
+                            <input type="text" id="colorway" class="form-input" placeholder="e.g., Black/White" required>
                         </div>
                     </div>
                     <div class="form-group">
@@ -1987,18 +2011,22 @@
                         <div class="form-grid" style="margin-top: 1rem;">
                             <div>
                                 <label class="form-label" style="font-size:0.8rem;opacity:0.7">Hips</label>
+                                <label class="form-label" style="font-size:0.8rem;opacity:0.7">Hips (cm)</label>
                                 <input type="number" id="pomHips" class="form-input" step="0.1" min="0" placeholder="e.g., 96">
                             </div>
                             <div>
                                 <label class="form-label" style="font-size:0.8rem;opacity:0.7">Length</label>
+                                <label class="form-label" style="font-size:0.8rem;opacity:0.7">Length (cm)</label>
                                 <input type="number" id="pomLength" class="form-input" step="0.1" min="0" placeholder="e.g., 70">
                             </div>
                             <div>
                                 <label class="form-label" style="font-size:0.8rem;opacity:0.7">Shoulder</label>
+                                <label class="form-label" style="font-size:0.8rem;opacity:0.7">Shoulder (cm)</label>
                                 <input type="number" id="pomShoulder" class="form-input" step="0.1" min="0" placeholder="e.g., 45">
                             </div>
                             <div>
                                 <label class="form-label" style="font-size:0.8rem;opacity:0.7">Sleeve</label>
+                                <label class="form-label" style="font-size:0.8rem;opacity:0.7">Sleeve (cm)</label>
                                 <input type="number" id="pomSleeve" class="form-input" step="0.1" min="0" placeholder="e.g., 65">
                             </div>
                         </div>
@@ -3064,6 +3092,7 @@
             currentProduct = product;
             populateTechCheckboxes();
             await loadProductIntoForm(product);
+            loadProductIntoForm(product);
             document.getElementById('formModalTitle').textContent = 'Edit Product';
             openProductForm();
         }
@@ -3274,6 +3303,9 @@
             hats: 'Hats',
             custom: 'Custom'
         };
+        document.getElementById('gender').addEventListener('change', (e) => {
+            renderSizeGrid(e.target.value);
+        });
 
         const sizeGuidePomFieldMap = {
             men_tops: { pomChest: 'chest_in', pomWaist: 'waist_in', pomHips: 'hips_in' },
@@ -3565,6 +3597,7 @@
         }
 
         function addSizeRow(sizeLabel = '', stockValue = '') {
+        function renderSizeGrid(gender) {
             const container = document.getElementById('sizeGridContainer');
             const row = document.createElement('div');
             row.className = 'size-row';
@@ -3613,6 +3646,18 @@
 
             sortedEntries.forEach(entry => {
                 addSizeRow(entry.size || entry.size_label || '', entry.stock_quantity ?? entry.stock ?? '');
+            const sizeList = sizes[gender] || [];
+            sizeList.forEach(size => {
+                const item = document.createElement('div');
+                item.className = 'size-item';
+                item.innerHTML = `
+                    <label>
+                        <input type="checkbox" class="size-checkbox" value="${size}">
+                        ${size}
+                    </label>
+                    <input type="number" class="size-stock" placeholder="Stock" min="0">
+                `;
+                container.appendChild(item);
             });
         }
 
@@ -3823,6 +3868,7 @@
 
         async function saveProduct(publish) {
             const mandatoryFields = ['sku', 'title', 'subtitle', 'gender', 'materialComposition', 'msrp', 'currentPrice', 'productStatus'];
+            const mandatoryFields = ['sku', 'title', 'subtitle', 'gender', 'colorway', 'materialComposition', 'msrp', 'currentPrice', 'productStatus'];
             const form = document.getElementById('productForm');
 
             let isValid = true;
@@ -3864,6 +3910,7 @@
                     subtitle: document.getElementById('subtitle').value,
                     gender: document.getElementById('gender').value,
                     colorway: effectiveColorway || null,
+                    colorway: document.getElementById('colorway').value,
                     material_composition: document.getElementById('materialComposition').value,
                     msrp: parseFloat(document.getElementById('msrp').value),
                     current_price: parseFloat(document.getElementById('currentPrice').value),
@@ -3896,6 +3943,7 @@
                 if (document.getElementById('sustainRecycled').checked) {
                     sustainTags.push(recycledContentDetail || 'Recycled Content');
                 }
+                if (document.getElementById('sustainRecycled').checked) sustainTags.push('Recycled Content');
                 if (document.getElementById('sustainOriginal').checked) sustainTags.push('Original');
                 productData.sustainability_tags = sustainTags;
 
@@ -3927,9 +3975,11 @@
                     const { error } = await sb.from('product_images').delete().eq('product_id', productId);
                     if (error) throw error;
                 }
+                await sb.from('product_images').delete().eq('product_id', productId);
                 const imageUrls = Array.from(document.querySelectorAll('.product-image-url')).map(i => i.value).filter(v => v);
                 for (let i = 0; i < imageUrls.length; i++) {
                     const { error } = await sb.from('product_images').insert([{
+                    await sb.from('product_images').insert([{
                         product_id: productId,
                         image_url: imageUrls[i],
                         sort_order: i
@@ -3945,8 +3995,15 @@
                     const colorName = colorEntries[i].color_name;
                     const hexColor = colorEntries[i].hex_color;
                     const rgbColor = colorEntries[i].rgb_color;
+                await sb.from('color_variants').delete().eq('product_id', productId);
+                const colorItems = document.querySelectorAll('.color-variant-item');
+                for (let i = 0; i < colorItems.length; i++) {
+                    const colorName = colorItems[i].querySelector('.form-input').value;
+                    const hexColor = colorItems[i].querySelector('[placeholder="#000000"]').value;
+                    const rgbColor = colorItems[i].querySelector('[placeholder="0,0,0"]').value;
                     if (colorName && hexColor) {
                         const { error } = await sb.from('color_variants').insert([{
+                        await sb.from('color_variants').insert([{
                             product_id: productId,
                             color_name: colorName,
                             hex_color: hexColor,
@@ -3969,6 +4026,17 @@
                     if (!sizeName && stockValue === '') continue;
                     if (!sizeName) {
                         throw new Error('Every stock row needs a size name before saving.');
+                await sb.from('product_sizes').delete().eq('product_id', productId);
+                const sizeItems = document.querySelectorAll('.size-item');
+                for (const item of sizeItems) {
+                    const checkbox = item.querySelector('.size-checkbox');
+                    const stock = item.querySelector('.size-stock');
+                    if (checkbox.checked && stock.value !== '') {
+                        await sb.from('product_sizes').insert([{
+                            product_id: productId,
+                            size: checkbox.value,
+                            stock_quantity: parseInt(stock.value)
+                        }]);
                     }
                     if (stockValue === '') continue;
 
@@ -4005,6 +4073,7 @@
         }
 
         async function loadProductIntoForm(product) {
+        function loadProductIntoForm(product) {
             document.getElementById('sku').value = product.sku;
             document.getElementById('title').value = product.title;
             document.getElementById('subtitle').value = product.subtitle;
@@ -4054,6 +4123,7 @@
             document.getElementById('recycledContentDetail').value = recycledContentTag && recycledContentTag !== 'Recycled Content'
                 ? recycledContentTag
                 : '';
+            document.getElementById('sustainRecycled').checked = product.sustainability_tags?.includes('Recycled Content');
             document.getElementById('sustainOriginal').checked = product.sustainability_tags?.includes('Original');
             document.getElementById('certGRS').checked = product.certifications?.includes('GRS');
             document.getElementById('certOEKO').checked = product.certifications?.includes('OEKO-TEX');
@@ -4064,6 +4134,7 @@
             document.getElementById('specialtyMaternity').checked = product.specialty_sizing?.includes('Maternity');
 
             const activeProductId = product.id;
+            // Load images
             const container = document.getElementById('imagesContainer');
             container.innerHTML = '';
 
@@ -4079,12 +4150,29 @@
             if (imagesResult?.error) console.error('Error loading product images:', imagesResult.error);
             if (imageRows.length > 0) {
                 imageRows.forEach((img, idx) => {
+            sb.from('product_images').select('*').eq('product_id', product.id).order('sort_order', { ascending: true }).then(({ data }) => {
+                if (data && data.length > 0) {
+                    data.forEach((img, idx) => {
+                        const row = document.createElement('div');
+                        row.className = 'image-row';
+                        row.innerHTML = '<span style="font-weight:600;min-width:60px;">Image ' + (idx + 1) + '</span>' +
+                            '<input type="text" class="form-input product-image-url" placeholder="Paste image URL..." value="' + img.image_url + '">' +
+                            '<label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label>' +
+                            '<img class="image-preview" src="' + img.image_url + '" style="display:block">' +
+                            '<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button>';
+                        container.appendChild(row);
+                    });
+                } else {
+                    const imgUrl = product.image_url || '';
                     const row = document.createElement('div');
                     row.className = 'image-row';
                     row.innerHTML = '<span style="font-weight:600;min-width:60px;">Image ' + (idx + 1) + '</span>' +
                         '<input type="text" class="form-input product-image-url" placeholder="Paste image URL..." value="' + img.image_url + '">' +
+                    row.innerHTML = '<span style="font-weight:600;min-width:60px;">Image 1</span>' +
+                        '<input type="text" class="form-input product-image-url" placeholder="Paste image URL..." value="' + imgUrl + '">' +
                         '<label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label>' +
                         '<img class="image-preview" src="' + img.image_url + '" style="display:block">' +
+                        (imgUrl ? '<img class="image-preview" src="' + imgUrl + '" style="display:block">' : '<img class="image-preview" style="display:none">') +
                         '<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button>';
                     container.appendChild(row);
                 });
@@ -4099,6 +4187,8 @@
                     '<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button>';
                 container.appendChild(row);
             }
+                }
+            });
 
             const colorContainer = document.getElementById('colorVariantsContainer');
             colorContainer.innerHTML = '';
@@ -4118,6 +4208,24 @@
                     }
                 });
             }
+            sb.from('color_variants').select('*').eq('product_id', product.id).then(({ data }) => {
+                const container = document.getElementById('colorVariantsContainer');
+                container.innerHTML = '';
+                if (data && data.length > 0) {
+                    data.forEach(() => {
+                        addColorVariant();
+                    });
+                    data.forEach((color, idx) => {
+                        const items = document.querySelectorAll('.color-variant-item');
+                        if (items[idx]) {
+                            items[idx].querySelector('.form-input').value = color.color_name;
+                            items[idx].querySelector('[placeholder="#000000"]').value = color.hex_color;
+                            items[idx].querySelector('[placeholder="0,0,0"]').value = color.rgb_color;
+                            items[idx].querySelector('.color-swatch').style.backgroundColor = color.hex_color;
+                        }
+                    });
+                }
+            });
 
             await renderSizeGrid(product.gender, { forceSizeRows: true, keepManualRows: false });
             if (!currentProduct || currentProduct.id !== activeProductId) return;
@@ -4132,11 +4240,25 @@
                 renderSizeRows(sortedSizeRows);
                 if (!document.getElementById('pomGuideSizeInput').value && sortedSizeRows[0]?.size) {
                     document.getElementById('pomGuideSizeInput').value = sortedSizeRows[0].size;
+            renderSizeGrid(product.gender);
+            sb.from('product_sizes').select('*').eq('product_id', product.id).then(({ data }) => {
+                if (data && data.length > 0) {
+                    data.forEach(inv => {
+                        const items = document.querySelectorAll('.size-item');
+                        items.forEach(item => {
+                            const checkbox = item.querySelector('.size-checkbox');
+                            if (checkbox.value === inv.size) {
+                                checkbox.checked = true;
+                                item.querySelector('.size-stock').value = inv.stock_quantity;
+                            }
+                        });
+                    });
                 }
                 await syncSizeGuideUi({ forceSizeRows: false, keepManualRows: true });
             } else {
                 await syncSizeGuideUi({ forceSizeRows: true, keepManualRows: false });
             }
+            });
         }
 
         function resetProductForm() {
@@ -4185,6 +4307,9 @@
                     const { error } = await sb.from('product_sizes').delete().eq('product_id', deleteProductId);
                     if (error) throw error;
                 }
+                await sb.from('product_images').delete().eq('product_id', deleteProductId);
+                await sb.from('color_variants').delete().eq('product_id', deleteProductId);
+                await sb.from('product_sizes').delete().eq('product_id', deleteProductId);
                 const { error } = await sb.from('products').delete().eq('id', deleteProductId);
                 if (error) throw error;
 
