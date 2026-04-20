@@ -1,0 +1,12 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "zuwera-store",
+  "pages_build_output_dir": ".",
+  "compatibility_date": "2026-04-20",
+  "r2_buckets": [
+    {
+      "binding": "PRODUCT_IMAGES_BUCKET",
+      "bucket_name": "zuwera-product-images"
+    }
+  ]
+}
