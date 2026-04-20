@@ -3378,6 +3378,10 @@
         let productSizeChartCache = null;
         let productSizeChartCachePromise = null;
         let auditTableReady = true;
+        const PRODUCT_IMAGE_BUCKET = 'product-images';
+        const MAX_PRODUCT_UPLOAD_WIDTH = 1600;
+        const MAX_PRODUCT_UPLOAD_BYTES = 1.5 * 1024 * 1024;
+        const PRODUCT_UPLOAD_QUALITIES = [0.84, 0.78, 0.72];
         
         const fallbackTechDict = {
             "Aero-PRO™": { focus: "Sweat evaporation and breathability.", level: "Standard Performance.", opt: "Light to moderate sweat output.", best: "Daily physical activity, gym sessions, and steady-state training.", desc: "High-wicking capillary fibers designed to pull moisture away from the skin for consistent dryness and comfort." },
@@ -4424,6 +4428,125 @@
             }
         }
 
+        function uniqueImageUrls(urls) {
+            return [...new Set((urls || []).map(url => safeHttpUrl(url)).filter(Boolean))];
+        }
+
+        function getProductImageUrlsFromForm() {
+            return uniqueImageUrls(Array.from(document.querySelectorAll('.product-image-url')).map(input => input.value));
+        }
+
+        function getSupabaseProductImagePath(url) {
+            const safeUrl = safeHttpUrl(url);
+            if (!safeUrl) return '';
+            try {
+                const parsed = new URL(safeUrl);
+                const marker = `/storage/v1/object/public/${PRODUCT_IMAGE_BUCKET}/`;
+                const markerIndex = parsed.pathname.indexOf(marker);
+                if (markerIndex === -1) return '';
+                return decodeURIComponent(parsed.pathname.slice(markerIndex + marker.length));
+            } catch {
+                return '';
+            }
+        }
+
+        async function getExistingProductImageUrls(productId) {
+            if (!productId) return [];
+            const urls = [];
+            try {
+                const [{ data: product }, { data: images }] = await Promise.all([
+                    sb.from('products').select('image_url').eq('id', productId).single(),
+                    sb.from('product_images').select('image_url').eq('product_id', productId)
+                ]);
+                if (product?.image_url) urls.push(product.image_url);
+                (images || []).forEach(image => {
+                    if (image?.image_url) urls.push(image.image_url);
+                });
+            } catch (error) {
+                console.warn('Could not collect existing product image URLs for cleanup:', error);
+            }
+            return uniqueImageUrls(urls);
+        }
+
+        async function removeUnusedSupabaseProductImages(previousUrls, nextUrls) {
+            const nextPaths = new Set(uniqueImageUrls(nextUrls).map(getSupabaseProductImagePath).filter(Boolean));
+            let pathsToRemove = uniqueImageUrls(previousUrls)
+                .map(getSupabaseProductImagePath)
+                .filter(path => path && !nextPaths.has(path));
+
+            pathsToRemove = [...new Set(pathsToRemove)];
+            if (!pathsToRemove.length) return { removed: 0 };
+
+            try {
+                const [{ data: products }, { data: images }] = await Promise.all([
+                    sb.from('products').select('image_url'),
+                    sb.from('product_images').select('image_url')
+                ]);
+                const stillReferenced = new Set([
+                    ...(products || []).map(row => getSupabaseProductImagePath(row?.image_url)),
+                    ...(images || []).map(row => getSupabaseProductImagePath(row?.image_url))
+                ].filter(Boolean));
+                pathsToRemove = pathsToRemove.filter(path => !stillReferenced.has(path));
+            } catch (error) {
+                console.warn('Could not check product image references before cleanup:', error);
+            }
+
+            if (!pathsToRemove.length) return { removed: 0 };
+
+            const { error } = await sb.storage.from(PRODUCT_IMAGE_BUCKET).remove(pathsToRemove);
+            if (error) throw error;
+            return { removed: pathsToRemove.length };
+        }
+
+        function loadImageBitmapFromFile(file) {
+            return new Promise((resolve, reject) => {
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = () => {
+                    URL.revokeObjectURL(url);
+                    resolve(img);
+                };
+                img.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    reject(new Error('Could not read image file.'));
+                };
+                img.src = url;
+            });
+        }
+
+        function canvasToBlob(canvas, type, quality) {
+            return new Promise(resolve => canvas.toBlob(resolve, type, quality));
+        }
+
+        async function prepareProductImageFile(file) {
+            if (!file || !file.type?.startsWith('image/')) return file;
+            if (file.type === 'image/gif') return file;
+
+            const image = await loadImageBitmapFromFile(file);
+            const scale = Math.min(1, MAX_PRODUCT_UPLOAD_WIDTH / Math.max(image.naturalWidth || image.width, image.naturalHeight || image.height));
+
+            const width = Math.max(1, Math.round((image.naturalWidth || image.width) * scale));
+            const height = Math.max(1, Math.round((image.naturalHeight || image.height) * scale));
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(image, 0, 0, width, height);
+
+            let optimizedBlob = null;
+            for (const quality of PRODUCT_UPLOAD_QUALITIES) {
+                const candidate = await canvasToBlob(canvas, 'image/webp', quality);
+                if (!candidate) continue;
+                optimizedBlob = candidate;
+                if (candidate.size <= MAX_PRODUCT_UPLOAD_BYTES) break;
+            }
+
+            if (!optimizedBlob || optimizedBlob.size >= file.size) return file;
+
+            const baseName = file.name.replace(/\.[^.]+$/, '') || 'product-image';
+            return new File([optimizedBlob], `${baseName}.webp`, { type: 'image/webp' });
+        }
+
         function validateImageUrl(url, timeoutMs = 7000) {
             return new Promise((resolve) => {
                 const safeUrl = safeHttpUrl(url);
@@ -4999,23 +5122,25 @@
         });
 
         async function handleImageUpload(fileInput) {
-            const file = fileInput.files[0];
-            if (!file) return;
+            const originalFile = fileInput.files[0];
+            if (!originalFile) return;
             const row = fileInput.closest('.image-row');
             const urlInput = row.querySelector('.product-image-url');
             const preview = row.querySelector('.image-preview');
             const uploadBtn = row.querySelector('.btn-upload');
             uploadBtn.textContent = 'Uploading...';
             try {
+                const file = await prepareProductImageFile(originalFile);
                 const ext = file.name.split('.').pop();
                 const fileName = Date.now() + '_' + crypto.randomUUID() + '.' + ext;
-                const { data, error } = await sb.storage.from('product-images').upload(fileName, file, { cacheControl: '3600', upsert: false });
+                const { data, error } = await sb.storage.from(PRODUCT_IMAGE_BUCKET).upload(fileName, file, { cacheControl: '31536000', upsert: false });
                 if (error) throw error;
-                const { data: urlData } = sb.storage.from('product-images').getPublicUrl(fileName);
+                const { data: urlData } = sb.storage.from(PRODUCT_IMAGE_BUCKET).getPublicUrl(fileName);
                 urlInput.value = urlData.publicUrl;
                 if (preview) { preview.src = urlData.publicUrl; preview.style.display = 'block'; }
                 uploadBtn.textContent = 'Upload';
-                showToast('Image uploaded successfully', 'success');
+                const savedKb = Math.max(0, originalFile.size - file.size) / 1024;
+                showToast(savedKb > 100 ? `Image optimized and uploaded (${Math.round(savedKb)} KB saved)` : 'Image uploaded successfully', 'success');
             } catch (err) {
                 console.error('Upload error:', err);
                 uploadBtn.textContent = 'Upload';
@@ -5038,14 +5163,14 @@
                 }
             });
 
-            const images = Array.from(document.querySelectorAll('.product-image-url')).map(i => i.value).filter(v => v);
-            if (images.length === 0) {
+            const imageUrls = getProductImageUrlsFromForm();
+            if (imageUrls.length === 0) {
                 showToast('Please add at least one image', 'error');
                 return;
             }
 
             showToast('Checking product images...', 'info');
-            const imageValidation = await validateProductImageUrls(images);
+            const imageValidation = await validateProductImageUrls(imageUrls);
             if (!imageValidation.ok) {
                 const firstFailure = imageValidation.failures[0];
                 showToast('Image validation failed: ' + (firstFailure?.reason || firstFailure?.url || 'Could not load image.'), 'error');
@@ -5075,6 +5200,8 @@
             }
 
             try {
+                const previousImageUrls = currentProduct?.id ? await getExistingProductImageUrls(currentProduct.id) : [];
+
                 const productData = {
                     sku: document.getElementById('sku').value,
                     title: document.getElementById('title').value,
@@ -5106,7 +5233,7 @@
                     status: publish ? document.getElementById('productStatus').value : 'Draft',
                     sort_order: document.getElementById('sortOrder').value ? parseInt(document.getElementById('sortOrder').value) : null,
                     low_stock_threshold: parseInt(document.getElementById('lowStockThreshold').value) || 10,
-                    image_url: (Array.from(document.querySelectorAll('.product-image-url')).map(i => i.value).filter(v => v))[0] || null
+                    image_url: imageUrls[0] || null
                 };
 
                 const sustainTags = [];
@@ -5145,7 +5272,6 @@
                     const { error } = await sb.from('product_images').delete().eq('product_id', productId);
                     if (error) throw error;
                 }
-                const imageUrls = Array.from(document.querySelectorAll('.product-image-url')).map(i => i.value).filter(v => v);
                 for (let i = 0; i < imageUrls.length; i++) {
                     const { error } = await sb.from('product_images').insert([{
                         product_id: productId,
@@ -5209,11 +5335,23 @@
                     if (error) throw error;
                 }
 
+                let removedStorageImages = 0;
+                if (previousImageUrls.length) {
+                    try {
+                        const cleanup = await removeUnusedSupabaseProductImages(previousImageUrls, imageUrls);
+                        removedStorageImages = cleanup.removed || 0;
+                    } catch (cleanupError) {
+                        console.warn('Product image storage cleanup failed:', cleanupError);
+                        showToast('Product saved, but old storage image cleanup failed.', 'info');
+                    }
+                }
+
                 await logAdminAudit(currentProduct ? 'product.update' : 'product.create', 'products', productId, {
                     sku: productData.sku,
                     title: productData.title,
                     status: productData.status,
                     image_count: imageUrls.length,
+                    removed_storage_images: removedStorageImages,
                     color_count: colorEntries.length,
                     size_count: seenSizes.size
                 });
@@ -5401,6 +5539,7 @@
 
         document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
             try {
+                const imageUrlsToRemove = await getExistingProductImageUrls(deleteProductId);
                 {
                     const { error } = await sb.from('product_images').delete().eq('product_id', deleteProductId);
                     if (error) throw error;
@@ -5416,7 +5555,18 @@
                 const { error } = await sb.from('products').delete().eq('id', deleteProductId);
                 if (error) throw error;
 
-                await logAdminAudit('product.delete', 'products', deleteProductId);
+                let removedStorageImages = 0;
+                try {
+                    const cleanup = await removeUnusedSupabaseProductImages(imageUrlsToRemove, []);
+                    removedStorageImages = cleanup.removed || 0;
+                } catch (cleanupError) {
+                    console.warn('Product image storage cleanup failed:', cleanupError);
+                    showToast('Product deleted, but old storage image cleanup failed.', 'info');
+                }
+
+                await logAdminAudit('product.delete', 'products', deleteProductId, {
+                    removed_storage_images: removedStorageImages
+                });
                 showToast('Product deleted successfully', 'success');
                 document.getElementById('deleteModal').classList.remove('active');
                 loadProducts();

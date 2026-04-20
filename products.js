@@ -6,11 +6,9 @@
 const PRODUCTS_SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
 const PRODUCTS_SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 
-window.optimizeImage = function(url, width = 800) {
-  if (!url || url.startsWith('data:') || url.includes('cloudinary.com')) return url;
-  const cloudName = 'dubg4loah'; 
-  return `https://res.cloudinary.com/${cloudName}/image/fetch/f_auto,q_auto,w_${width}/${url}`;
-};
+if (typeof window.optimizeImage !== 'function') {
+  window.optimizeImage = (url) => url;
+}
 
 // Reuse existing _sb if available, else init safely without redeclaring const
 if (!window._sb && typeof supabase !== 'undefined') {

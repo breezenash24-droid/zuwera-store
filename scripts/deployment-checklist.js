@@ -14,6 +14,7 @@ const files = {
   admin: read('admin.html'),
   cohesion: read('storefront-cohesion.css'),
   mobileMenu: read('mobile-menu.js'),
+  imageUtils: read('image-utils.js'),
   checkout: read('checkout.js'),
   cart: read('cart.js'),
   auth: read('auth.js'),
@@ -87,6 +88,13 @@ const checks = [
     pass: () => /validateProductImageUrls/.test(files.admin)
       && /Checking product images/.test(files.admin)
       && /900x1200/.test(files.admin),
+  },
+  {
+    name: 'Shared image optimization and storage cleanup are wired',
+    pass: () => /window\.optimizeImage/.test(files.imageUtils)
+      && /image-utils\.js\?v=/.test(files.index + files.product + files.drop)
+      && /removeUnusedSupabaseProductImages/.test(files.admin)
+      && /prepareProductImageFile/.test(files.admin),
   },
   {
     name: 'Checkout test-mode banner is wired',

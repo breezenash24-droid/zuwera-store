@@ -659,6 +659,7 @@
     body.light-mode footer a:hover { color: var(--white); }
   </style>
   <link rel="stylesheet" href="storefront-cohesion.css?v=3">
+  <script src="image-utils.js?v=1"></script>
   <script src="mobile-menu.js?v=1" defer></script>
   <script src="/supabase.min.js"></script>
 </head>
@@ -766,11 +767,7 @@
     // Countdown to Sept 20 2026
     const dropDate = new Date('2026-09-20T00:00:00');
 
-    function optimizeImage(url, width = 800) {
-      if (!url || url.startsWith('data:') || url.includes('cloudinary.com')) return url;
-      const cloudName = 'dubg4loah'; 
-      return `https://res.cloudinary.com/${cloudName}/image/fetch/f_auto,q_auto,w_${width}/${url}`;
-    }
+    const optimizeImage = window.optimizeImage || ((url) => url);
 
 function productSlug(title) {
   if (!title) return '';

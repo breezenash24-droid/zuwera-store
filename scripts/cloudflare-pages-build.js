@@ -22,6 +22,7 @@ const files = [
   'confirm.html',
   'drop001.html',
   'hero.mp4',
+  'image-utils.js',
   'index.html',
   'lang.js',
   'layout.css',
