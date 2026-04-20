@@ -4,7 +4,8 @@
   "private": true,
   "description": "Zuwera athletic sportswear e-commerce site",
   "scripts": {
-    "build": "node scripts/cloudflare-pages-build.js"
+    "build": "node scripts/cloudflare-pages-build.js",
+    "deployment-checklist": "node scripts/deployment-checklist.js"
   },
   "dependencies": {
     "stripe": "^16.0.0"

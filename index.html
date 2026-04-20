@@ -1710,24 +1710,6 @@ body.light-mode::after{opacity:0.15}
   </div>
 </div>
 
-<!-- SIZE GUIDE MODAL -->
-<div id="size-guide-modal" class="modal modal--guide" role="dialog" aria-modal="true" aria-labelledby="size-guide-title">
-  <div class="mbox size-guide-dialog">
-    <button id="size-guide-close" class="mclose size-guide-close" aria-label="Close">&#215;</button>
-    <div class="size-guide-head">
-      <p class="size-guide-kicker">Fit Reference</p>
-      <h2 id="size-guide-title" class="size-guide-title">Size Guide</h2>
-      <p class="size-guide-copy">Compare measurements, find your starting size, and cross-check the exact category before you shop.</p>
-    </div>
-    <div class="size-guide-body">
-      <div class="size-guide-frame-shell">
-        <div id="size-guide-loading" class="size-guide-message">Loading size guide...</div>
-        <iframe id="size-guide-iframe" src="" title="Size Guide" loading="lazy" hidden></iframe>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- AUTH MODAL -->
 <div id="auth-modal" class="modal" role="dialog" aria-modal="true">
   <div class="mbox">
@@ -3712,7 +3694,7 @@ function getCheckoutTaxStateCode(fallback = '') {
 function getCheckoutTaxCents(subtotalCents, stateCode = '') {
   return window.ZWCheckoutTax?.taxCents(subtotalCents, getCheckoutTaxStateCode(stateCode)) || 0;
 }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); if (id === 'size-guide-modal') { teardownSizeGuideIframeAutoHeight(); const iframe = document.getElementById('size-guide-iframe'); if (iframe) iframe.style.height = ''; } setPageScrollLock(false); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); setPageScrollLock(false); }
 let _paymentReturnModalId = null;
 
 function getWalletTaxCents(subtotalCents, stateCode = '') {
@@ -3831,105 +3813,6 @@ function closePaymentModal({ suppressReturn = false } = {}) {
   }
   setPageScrollLock(false);
 }
-
-let _sizeGuideDocumentHtml = null;
-let _sizeGuideResizeObserver = null;
-
-async function getSizeGuideDocumentHtml() {
-  if (_sizeGuideDocumentHtml) return _sizeGuideDocumentHtml;
-  const response = await fetch('/sizeguide.html', { cache: 'no-store' });
-  if (!response.ok) throw new Error('Failed to load size guide.');
-  _sizeGuideDocumentHtml = await response.text();
-  return _sizeGuideDocumentHtml;
-}
-
-function buildSizeGuideSrcdoc(sourceHtml, params) {
-  const serializedParams = JSON.stringify(params || {}).replace(/</g, '\\u003c');
-  const injectedHead = `<base href="${window.location.origin}/"><script>window.__ZW_SIZEGUIDE_PARAMS__=${serializedParams};window.__ZW_SIZEGUIDE_EMBED__=true;<\/script>`;
-  return sourceHtml.includes('<head>')
-    ? sourceHtml.replace('<head>', `<head>${injectedHead}`)
-    : injectedHead + sourceHtml;
-}
-
-
-function teardownSizeGuideIframeAutoHeight() {
-  if (_sizeGuideResizeObserver) {
-    try { _sizeGuideResizeObserver.disconnect(); } catch (e) {}
-    _sizeGuideResizeObserver = null;
-  }
-}
-
-function syncSizeGuideIframeHeight(iframe) {
-  const doc = iframe && iframe.contentDocument;
-  if (!doc) return;
-  const body = doc.body;
-  const root = doc.documentElement;
-  const nextHeight = Math.max(
-    body ? body.scrollHeight : 0,
-    body ? body.offsetHeight : 0,
-    root ? root.scrollHeight : 0,
-    root ? root.offsetHeight : 0
-  );
-  if (nextHeight > 0) iframe.style.height = nextHeight + 'px';
-}
-
-function bindSizeGuideIframeAutoHeight(iframe) {
-  teardownSizeGuideIframeAutoHeight();
-  syncSizeGuideIframeHeight(iframe);
-  if (typeof ResizeObserver !== 'function') return;
-  const doc = iframe && iframe.contentDocument;
-  if (!doc) return;
-  const resize = () => syncSizeGuideIframeHeight(iframe);
-  _sizeGuideResizeObserver = new ResizeObserver(resize);
-  if (doc.body) _sizeGuideResizeObserver.observe(doc.body);
-  if (doc.documentElement) _sizeGuideResizeObserver.observe(doc.documentElement);
-  setTimeout(resize, 0);
-  setTimeout(resize, 120);
-  setTimeout(resize, 360);
-}
-
-window.openSizeGuideModal = async function() {
-  const modal = document.getElementById('size-guide-modal');
-  const iframe = document.getElementById('size-guide-iframe');
-  const loading = document.getElementById('size-guide-loading');
-  if (!modal || !iframe) return;
-
-  if (loading) {
-    loading.hidden = false;
-    loading.textContent = 'Loading size guide...';
-  }
-  teardownSizeGuideIframeAutoHeight();
-  iframe.hidden = true;
-  iframe.style.height = '';
-  modal.classList.add('open');
-  setPageScrollLock(true);
-
-  try {
-    const sourceHtml = await getSizeGuideDocumentHtml();
-    iframe.onload = () => {
-      bindSizeGuideIframeAutoHeight(iframe);
-      if (loading) loading.hidden = true;
-      iframe.hidden = false;
-      iframe.onload = null;
-    };
-    iframe.srcdoc = buildSizeGuideSrcdoc(sourceHtml, {});
-  } catch (error) {
-    console.error('Size guide modal failed:', error);
-    teardownSizeGuideIframeAutoHeight();
-    iframe.hidden = true;
-    iframe.style.height = '';
-    if (loading) {
-      loading.hidden = false;
-      loading.textContent = 'Could not load the size guide right now.';
-    }
-  }
-};
-
-// Size-guide modal support is kept available, but the footer link goes to the dedicated page.
-document.getElementById('size-guide-close')?.addEventListener('click', () => closeModal('size-guide-modal'));
-document.getElementById('size-guide-modal')?.addEventListener('click', e => {
-  if (e.target === e.currentTarget) closeModal('size-guide-modal');
-});
 
 let payReq = null, payReqButton = null, selRate = null, walletRates = [], walletShippingCents = 0, walletTaxStateCode = '';
 function resetWalletUi() {

@@ -1008,6 +1008,7 @@
                     <a class="nav-link" data-page="receipts" onclick="navigateTo('receipts')">Receipts</a>
                     <a class="nav-link" data-page="settings" onclick="navigateTo('settings')">Settings</a>
                     <a class="nav-link" data-page="website" onclick="navigateTo('website')">Website</a>
+                    <a class="nav-link" data-page="audit" onclick="navigateTo('audit')">Audit</a>
                 </div>
             </nav>
             <div class="sidebar-bottom">
@@ -1045,6 +1046,32 @@
                             <div class="stat-card-value" id="lowStockAlerts">0</div>
                         </div>
                     </div>
+                </div>
+
+                <!-- Audit Log Page -->
+                <div id="audit" class="page">
+                    <div class="products-header">
+                        <div>
+                            <h2>Admin Audit Log</h2>
+                            <p style="color:var(--text-secondary);font-size:.85rem;margin-top:6px;">Tracks admin changes to products, orders, settings, users, reviews, and size charts.</p>
+                        </div>
+                        <button class="btn btn-secondary" id="refreshAuditBtn">Refresh</button>
+                    </div>
+                    <div id="auditStatus" style="color:var(--text-secondary);font-size:.9rem;margin-bottom:16px;"></div>
+                    <table class="products-table">
+                        <thead>
+                            <tr>
+                                <th>When</th>
+                                <th>Admin</th>
+                                <th>Action</th>
+                                <th>Resource</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditTableBody">
+                            <tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Open this page after creating the audit table in Supabase.</td></tr>
+                        </tbody>
+                    </table>
                 </div>
 
                 <!-- Products Page -->
@@ -2521,6 +2548,7 @@
                       try {
                         const { error } = await sb.from('orders').update({ status: 'refunded' }).eq('id', orderId);
                         if (error) throw error;
+                        await logAdminAudit('order.mark_refunded', 'orders', orderId, { status: 'refunded' });
                         // Reload data
                         _recLoaded = false;
                         window.receiptsLoadData();
@@ -3205,8 +3233,21 @@
         // Initialize Supabase
         const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+        const ADMIN_AUTH_STORAGE_KEY = 'zuwera-admin-auth-session-v1';
+        const adminAuthStorage = {
+            getItem: (key) => sessionStorage.getItem(key),
+            setItem: (key, value) => sessionStorage.setItem(key, value),
+            removeItem: (key) => sessionStorage.removeItem(key)
+        };
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            auth: { persistSession: true, storageKey: 'zuwera-admin-auth' }
+            auth: {
+                persistSession: true,
+                storageKey: ADMIN_AUTH_STORAGE_KEY,
+                storage: adminAuthStorage,
+                autoRefreshToken: true,
+                detectSessionInUrl: false
+            },
+            global: { headers: { 'X-Client-Info': 'zuwera-admin' } }
         });
         const ADMIN_TS_KEY = '0x4AAAAAACzvvg-l2dT2z35l';
         let adminTsWidgetId = null;
@@ -3335,6 +3376,7 @@
         let currentSizeChart = null;
         let productSizeChartCache = null;
         let productSizeChartCachePromise = null;
+        let auditTableReady = true;
         
         const fallbackTechDict = {
             "Aero-PRO™": { focus: "Sweat evaporation and breathability.", level: "Standard Performance.", opt: "Light to moderate sweat output.", best: "Daily physical activity, gym sessions, and steady-state training.", desc: "High-wicking capillary fibers designed to pull moisture away from the skin for consistent dryness and comfort." },
@@ -3367,6 +3409,48 @@
 
         let globalTechs = {};
 
+        function summarizeAuditPayload(value, maxLength = 900) {
+            try {
+                const text = typeof value === 'string' ? value : JSON.stringify(value || {});
+                return text.length > maxLength ? text.slice(0, maxLength) + '...' : text;
+            } catch (_) {
+                return '[unserializable]';
+            }
+        }
+
+        async function logAdminAudit(action, resourceType, resourceId = null, metadata = {}) {
+            if (!currentUser?.id) return;
+            if (!auditTableReady) return;
+            try {
+                const payload = {
+                    admin_user_id: currentUser?.id || null,
+                    admin_email: currentUser?.email || null,
+                    action,
+                    resource_type: resourceType,
+                    resource_id: resourceId ? String(resourceId) : null,
+                    metadata: {
+                        ...metadata,
+                        page: location.pathname,
+                        summary: summarizeAuditPayload(metadata)
+                    },
+                    user_agent: navigator.userAgent
+                };
+                const { error } = await sb.from('admin_audit_log').insert([payload]);
+                if (error) throw error;
+            } catch (error) {
+                auditTableReady = false;
+                console.warn('Admin audit log unavailable. Run supabase-admin-audit-log.sql in Supabase.', error);
+            }
+        }
+
+        function formatAuditDetails(metadata) {
+            if (!metadata) return '';
+            const clean = { ...metadata };
+            delete clean.summary;
+            delete clean.page;
+            return escapeHtml(summarizeAuditPayload(clean, 240));
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             initializeTheme();
@@ -3398,7 +3482,10 @@
         
             // Save theme to Supabase for main site
             if (typeof sb !== 'undefined' && sb) {
-                sb.from('site_settings').upsert({ key: 'theme', value: { mode: isDarkMode ? 'dark' : 'light' } }, { onConflict: 'key' }).then(function(){});
+                sb.from('site_settings').upsert({ key: 'theme', value: { mode: isDarkMode ? 'dark' : 'light' } }, { onConflict: 'key' })
+                    .then(({ error }) => {
+                        if (!error) void logAdminAudit('settings.update', 'site_settings', 'theme', { mode: isDarkMode ? 'dark' : 'light' });
+                    });
             }
             
             // Analytics is now inline — no iframe to reload
@@ -3641,7 +3728,8 @@
                 shipping: 'Shipping',
                 receipts: 'Receipts',
                 settings: 'Settings',
-                website: 'Website Settings'
+                website: 'Website Settings',
+                audit: 'Audit Log'
             };
 
             document.getElementById('pageTitle').textContent = titles[page] || 'Dashboard';
@@ -3664,6 +3752,8 @@
                 if (typeof window.shipLoadData === 'function') window.shipLoadData();
             } else if (page === 'receipts') {
                 if (typeof window.receiptsLoadData === 'function') window.receiptsLoadData();
+            } else if (page === 'audit') {
+                loadAuditLog();
             }
         }
 
@@ -3705,6 +3795,40 @@
         async function loadAnalytics() {
             if (typeof anaLoadData === 'function') anaLoadData();
         }
+
+        async function loadAuditLog() {
+            const tbody = document.getElementById('auditTableBody');
+            const status = document.getElementById('auditStatus');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Loading audit events...</td></tr>';
+            if (status) status.textContent = '';
+            try {
+                const { data, error } = await sb
+                    .from('admin_audit_log')
+                    .select('created_at,admin_email,action,resource_type,resource_id,metadata')
+                    .order('created_at', { ascending: false })
+                    .limit(100);
+                if (error) throw error;
+                const rows = data || [];
+                if (status) status.textContent = rows.length ? `Showing latest ${rows.length} admin events.` : 'No audit events yet.';
+                tbody.innerHTML = rows.length ? rows.map(row => `
+                    <tr>
+                        <td style="white-space:nowrap;">${escapeHtml(new Date(row.created_at).toLocaleString())}</td>
+                        <td>${escapeHtml(row.admin_email || 'Unknown')}</td>
+                        <td><strong>${escapeHtml(row.action || '')}</strong></td>
+                        <td>${escapeHtml(row.resource_type || '')}${row.resource_id ? `<br><span style="color:var(--text-secondary);font-size:.75rem;">${escapeHtml(row.resource_id)}</span>` : ''}</td>
+                        <td style="max-width:360px;white-space:normal;">${formatAuditDetails(row.metadata)}</td>
+                    </tr>
+                `).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">No audit events yet.</td></tr>';
+            } catch (error) {
+                auditTableReady = false;
+                if (status) status.textContent = 'Audit table is not available yet. Run supabase-admin-audit-log.sql in Supabase, then refresh.';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Audit log table not found or policy not configured.</td></tr>';
+                console.warn('Audit log load failed:', error);
+            }
+        }
+
+        document.getElementById('refreshAuditBtn')?.addEventListener('click', loadAuditLog);
 
         // Reviews
         async function loadAdminReviews() {
@@ -3817,6 +3941,7 @@
                 try {
                     const { error } = await sb.from('reviews').delete().eq('id', id);
                     if (error) throw error;
+                    await logAdminAudit('review.delete', 'reviews', id);
                     showToast('Review deleted successfully', 'success');
                     loadAdminReviews();
                 } catch (err) {
@@ -3845,6 +3970,7 @@
             try {
                 const { error } = await sb.from('reviews').update({ nickname, reviewer_name: nickname, title, body, admin_response }).eq('id', id);
                 if (error) throw error;
+                await logAdminAudit('review.update', 'reviews', id, { title, nickname, has_admin_response: Boolean(admin_response) });
                 showToast('Review updated successfully', 'success');
                 document.getElementById('editReviewModal').classList.remove('active');
                 loadAdminReviews();
@@ -3921,6 +4047,7 @@
                 try {
                     const { error } = await sb.rpc('delete_user', { target_user_id: userId });
                     if (error) throw error;
+                    await logAdminAudit('user.delete', 'profiles', userId);
                     showToast('User deleted successfully', 'success');
                     loadUsers();
                 } catch (err) {
@@ -3934,6 +4061,7 @@
                 try {
                     const { error } = await sb.from('profiles').update({ role: newRole }).eq('id', userId);
                     if (error) throw error;
+                    await logAdminAudit('user.role_update', 'profiles', userId, { role: newRole });
                     showToast(`User role updated to ${newRole}`, 'success');
                     loadUsers();
                 } catch (err) {
@@ -4294,6 +4422,56 @@
                 return '';
             }
         }
+
+        function validateImageUrl(url, timeoutMs = 7000) {
+            return new Promise((resolve) => {
+                const safeUrl = safeHttpUrl(url);
+                if (!safeUrl) {
+                    resolve({ ok: false, url, reason: 'Use a valid http(s) image URL.' });
+                    return;
+                }
+                const img = new Image();
+                let settled = false;
+                const finish = (result) => {
+                    if (settled) return;
+                    settled = true;
+                    clearTimeout(timer);
+                    resolve(result);
+                };
+                const timer = setTimeout(() => finish({ ok: false, url: safeUrl, reason: 'Image took too long to load.' }), timeoutMs);
+                img.onload = () => finish({
+                    ok: img.naturalWidth > 0 && img.naturalHeight > 0,
+                    url: safeUrl,
+                    width: img.naturalWidth,
+                    height: img.naturalHeight,
+                    reason: img.naturalWidth > 0 ? '' : 'Image loaded without dimensions.'
+                });
+                img.onerror = () => finish({ ok: false, url: safeUrl, reason: 'Image could not be loaded.' });
+                img.referrerPolicy = 'no-referrer';
+                img.src = safeUrl;
+            });
+        }
+
+        async function validateProductImageUrls(imageUrls) {
+            const uniqueUrls = [...new Set((imageUrls || []).map(v => String(v || '').trim()).filter(Boolean))];
+            if (!uniqueUrls.length) return { ok: false, failures: [{ reason: 'At least one image is required.' }] };
+            const results = await Promise.all(uniqueUrls.map(url => validateImageUrl(url)));
+            const failures = results.filter(result => !result.ok);
+            return { ok: failures.length === 0, failures, results };
+        }
+
+        document.addEventListener('blur', async (event) => {
+            const input = event.target;
+            if (!input?.classList?.contains('product-image-url') || !input.value.trim()) return;
+            const row = input.closest('.image-row');
+            const preview = row?.querySelector('.image-preview');
+            const result = await validateImageUrl(input.value.trim(), 5000);
+            input.classList.toggle('error', !result.ok);
+            if (preview && result.ok) {
+                preview.src = result.url;
+                preview.style.display = 'block';
+            }
+        }, true);
 
         function isOneSizeLabel(value) {
             const normalized = normalizeSizeKey(value).replace(/\s+fits\s+most/g, '');
@@ -4846,6 +5024,18 @@
                 return;
             }
 
+            showToast('Checking product images...', 'info');
+            const imageValidation = await validateProductImageUrls(images);
+            if (!imageValidation.ok) {
+                const firstFailure = imageValidation.failures[0];
+                showToast('Image validation failed: ' + (firstFailure?.reason || firstFailure?.url || 'Could not load image.'), 'error');
+                document.querySelectorAll('.product-image-url').forEach(input => {
+                    const result = imageValidation.failures.find(f => safeHttpUrl(input.value) === f.url || input.value.trim() === f.url);
+                    input.classList.toggle('error', Boolean(result));
+                });
+                return;
+            }
+
             if (publish && !isValid) {
                 showToast('Please fill all mandatory fields', 'error');
                 return;
@@ -4995,6 +5185,15 @@
                     }]);
                     if (error) throw error;
                 }
+
+                await logAdminAudit(currentProduct ? 'product.update' : 'product.create', 'products', productId, {
+                    sku: productData.sku,
+                    title: productData.title,
+                    status: productData.status,
+                    image_count: imageUrls.length,
+                    color_count: colorEntries.length,
+                    size_count: seenSizes.size
+                });
 
                 showToast(publish ? 'Product published!' : 'Draft saved!', 'success');
                 document.getElementById('productFormModal').classList.remove('active');
@@ -5194,6 +5393,7 @@
                 const { error } = await sb.from('products').delete().eq('id', deleteProductId);
                 if (error) throw error;
 
+                await logAdminAudit('product.delete', 'products', deleteProductId);
                 showToast('Product deleted successfully', 'success');
                 document.getElementById('deleteModal').classList.remove('active');
                 loadProducts();
@@ -5296,6 +5496,7 @@
                 try {
                     const { error } = await sb.from('size_charts').delete().eq('id', id);
                     if (error) throw error;
+                    await logAdminAudit('size_chart.delete', 'size_charts', id);
                     productSizeChartCache = null;
                     productSizeChartCachePromise = null;
                     showToast('Size entry deleted', 'success');
@@ -5316,9 +5517,15 @@
             });
             try {
                 let error;
+                let savedSizeChartId = currentSizeChart?.id || null;
                 if (currentSizeChart) { ({ error } = await sb.from('size_charts').update(data).eq('id', currentSizeChart.id)); }
-                else { ({ error } = await sb.from('size_charts').insert([data])); }
+                else {
+                    let inserted;
+                    ({ data: inserted, error } = await sb.from('size_charts').insert([data]).select('id').single());
+                    savedSizeChartId = inserted?.id || null;
+                }
                 if (error) throw error;
+                await logAdminAudit(currentSizeChart ? 'size_chart.update' : 'size_chart.create', 'size_charts', savedSizeChartId, { category, size_label: sizeLabel });
                 productSizeChartCache = null;
                 productSizeChartCachePromise = null;
                 showToast('Size chart entry saved!', 'success');
@@ -5411,7 +5618,10 @@
             { onConflict: 'key' }
         );
         if (error) { showToast('Error saving announcement', 'error'); console.error(error); }
-        else showToast('Announcement saved!', 'success');
+        else {
+            await logAdminAudit('settings.update', 'site_settings', 'announcement_bar', { mode, has_main: Boolean(val.main), has_product: Boolean(val.product) });
+            showToast('Announcement saved!', 'success');
+        }
     });
 
     // Free-shipping toggle show/hide
@@ -5436,7 +5646,10 @@
             { onConflict: 'key' }
         );
         if (error) { showToast('Error saving shipping settings', 'error'); console.error(error); }
-        else showToast('Shipping settings saved!', 'success');
+        else {
+            await logAdminAudit('settings.update', 'site_settings', 'shipping_policy', val);
+            showToast('Shipping settings saved!', 'success');
+        }
     });
 
     function renderTechList() {
@@ -5488,7 +5701,10 @@
             { onConflict: 'key' }
         );
         if (error) { showToast('Error saving technologies', 'error'); console.error(error); }
-        else showToast('Technologies saved!', 'success');
+        else {
+            await logAdminAudit('settings.update', 'site_settings', 'technologies', { count: Object.keys(techs).length });
+            showToast('Technologies saved!', 'success');
+        }
     });
     
     function renderFaqList() {
@@ -5526,7 +5742,10 @@
             { onConflict: 'key' }
         );
         if (error) { showToast('Error saving FAQ', 'error'); console.error(error); }
-        else showToast('FAQ saved!', 'success');
+        else {
+            await logAdminAudit('settings.update', 'site_settings', 'faq', { count: faqs.length });
+            showToast('FAQ saved!', 'success');
+        }
     });
 
     document.getElementById('saveLegalBtn')?.addEventListener('click', async () => {
@@ -5541,7 +5760,10 @@
             { onConflict: 'key' }
         );
         if (error) { showToast('Error saving policies', 'error'); console.error(error); }
-        else showToast('Policies saved!', 'success');
+        else {
+            await logAdminAudit('settings.update', 'site_settings', 'legal_policies', { sections: Object.keys(val) });
+            showToast('Policies saved!', 'success');
+        }
     });
 
     // Load settings when Settings page is shown
@@ -5605,10 +5827,22 @@
                 admin_res_bg: document.getElementById('adminResBg').value,
                 admin_res_text: document.getElementById('adminResText').value
             };
+            if (brandData.favicon) {
+                const iconCheck = await validateImageUrl(brandData.favicon);
+                if (!iconCheck.ok) {
+                    showToast('Favicon image failed validation: ' + iconCheck.reason, 'error');
+                    return;
+                }
+            }
             const { error } = await sb.from('site_settings').upsert({ key: 'brand', value: brandData, updated_at: new Date().toISOString() }, { onConflict: 'key' });
             if (error) {
                 showToast('Error saving brand: ' + error.message, 'error');
             } else {
+                await logAdminAudit('settings.update', 'site_settings', 'brand', {
+                    has_favicon: Boolean(brandData.favicon),
+                    admin_res_bg: brandData.admin_res_bg,
+                    admin_res_text: brandData.admin_res_text
+                });
                 showToast('Brand settings saved!', 'success');
                 try { localStorage.setItem('zw-brand', JSON.stringify(brandData)); } catch (e) {}
                 if (brandData.favicon) {
@@ -5633,6 +5867,13 @@
                 image: document.getElementById('heroImage').value,
                 cta_text: document.getElementById('heroCtaText').value
             };
+            if (heroData.image) {
+                const heroCheck = await validateImageUrl(heroData.image);
+                if (!heroCheck.ok) {
+                    showToast('Hero image failed validation: ' + heroCheck.reason, 'error');
+                    return;
+                }
+            }
             const { error } = await sb.from('site_settings').upsert({
                 key: 'hero',
                 value: heroData,
@@ -5641,6 +5882,10 @@
             if (error) {
                 showToast('Error saving hero: ' + error.message, 'error');
             } else {
+                await logAdminAudit('settings.update', 'site_settings', 'hero', {
+                    has_image: Boolean(heroData.image),
+                    cta_text: heroData.cta_text
+                });
                 try {
                     if (heroData.image) localStorage.setItem('zw-hero-image', heroData.image);
                     else localStorage.removeItem('zw-hero-image');
