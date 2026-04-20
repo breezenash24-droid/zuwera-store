@@ -46,7 +46,7 @@ select:focus-visible{
 }
 
 /* Modals */
-.modal:not(#cart-modal),
+.modal:not(#cart-modal):not(#mobile-menu),
 .collection-review-modal{
   background:rgba(9,9,11,.88);
   backdrop-filter:blur(12px);
@@ -57,7 +57,7 @@ select:focus-visible{
   overscroll-behavior:contain;
 }
 
-body.light-mode .modal:not(#cart-modal),
+body.light-mode .modal:not(#cart-modal):not(#mobile-menu),
 body.light-mode .collection-review-modal,
 body.light-mode #zw-lang-modal{
   background:var(--zw-paper) !important;
@@ -110,6 +110,77 @@ body.light-mode #zw-lang-close{
   background:rgba(9,9,11,.05) !important;
   border-color:rgba(9,9,11,.1) !important;
   color:var(--zw-ink) !important;
+}
+
+/* The mobile nav uses .modal for toggling, but it should behave like a full-screen menu,
+   not like the bottom-sheet dialogs below. */
+#mobile-menu{
+  inset:0 !important;
+  width:100vw !important;
+  height:100dvh !important;
+  min-height:100svh !important;
+  max-height:none !important;
+  padding:calc(4.5rem + env(safe-area-inset-top,0px)) 1.5rem calc(2rem + env(safe-area-inset-bottom,0px)) !important;
+  align-items:center !important;
+  justify-content:center !important;
+  overflow-y:auto !important;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  background:rgba(9,9,11,.98) !important;
+}
+
+body.light-mode #mobile-menu{
+  background:var(--zw-paper) !important;
+  color:var(--zw-ink) !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}
+
+#mobile-menu > .mbox{
+  width:100% !important;
+  max-width:28rem !important;
+  max-height:none !important;
+  min-height:0 !important;
+  padding:0 !important;
+  overflow:visible !important;
+  background:transparent !important;
+  border:0 !important;
+  box-shadow:none !important;
+  text-align:center !important;
+}
+
+#mobile-menu :is(#mobile-category-links,.mobile-nav-links){
+  width:100%;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:clamp(1.45rem,5dvh,2.5rem) !important;
+  margin:0 !important;
+}
+
+#mobile-menu a,
+#mobile-menu .mobile-nav-link{
+  display:block;
+  width:100%;
+  padding:.15rem 0;
+  font-family:var(--zw-font-head) !important;
+  font-size:clamp(1.45rem,9vw,3rem) !important;
+  line-height:.95 !important;
+  letter-spacing:.12em !important;
+  color:rgba(244,241,235,.86) !important;
+}
+
+body.light-mode #mobile-menu a,
+body.light-mode #mobile-menu .mobile-nav-link{
+  color:rgba(9,9,11,.82) !important;
+}
+
+#mobile-menu-close{
+  position:fixed !important;
+  top:calc(1rem + env(safe-area-inset-top,0px)) !important;
+  right:1rem !important;
+  z-index:5 !important;
 }
 
 /* Primary buttons follow the product page purchase button. */
@@ -310,13 +381,13 @@ body.light-mode .heart-btn{
 }
 
 @media(max-width:760px){
-  :is(.modal:not(#cart-modal),.collection-review-modal){
+  :is(.modal:not(#cart-modal):not(#mobile-menu),.collection-review-modal){
     align-items:flex-end !important;
     justify-content:center !important;
     padding:0 !important;
   }
 
-  :is(.modal:not(#cart-modal),.collection-review-modal) > :is(.mbox,.collection-review-box,.pbox),
+  :is(.modal:not(#cart-modal):not(#mobile-menu),.collection-review-modal) > :is(.mbox,.collection-review-box,.pbox),
   #zw-lang-box{
     width:100% !important;
     max-width:100% !important;
