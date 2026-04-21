@@ -1,0 +1,18 @@
+name = "email-relay-worker"
+main = "index.ts"
+compatibility_date = "2026-04-21"
+
+# Set these with `wrangler secret put ...`
+# - PRIMARY_API_KEY (Resend)
+# - SECONDARY_API_KEY (Postmark)
+
+[vars]
+# Required sender identity verified in both providers
+RELAY_FROM_EMAIL = "noreply@example.com"
+# Optional reply-to (can be omitted)
+RELAY_REPLY_TO = "support@example.com"
+
+[[kv_namespaces]]
+binding = "EMAIL_RELAY_STATE"
+id = "YOUR_KV_NAMESPACE_ID"
+preview_id = "YOUR_KV_PREVIEW_NAMESPACE_ID"
