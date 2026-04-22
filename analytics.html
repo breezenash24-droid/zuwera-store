@@ -889,7 +889,7 @@
   <script src="/supabase.min.js"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+  <script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
 
   <script>
     if (typeof window.supabase === 'undefined') {
@@ -991,6 +991,12 @@
             if (!verifyResp.ok || !verifyPayload.success) {
               setDiagnosticIssue('AUTH_NOT_ADMIN', 'Authenticated user is missing admin role.', currentUser?.email || 'unknown user');
               throw new Error(verifyPayload.error || 'Your account does not have Admin privileges.');
+        if (!profile || profile.role !== 'admin') {
+            if (isLocal || isOwner) {
+                await supabase.from('profiles').upsert({ id: currentUser.id, email: currentUser.email, role: 'admin' });
+            } else {
+                setDiagnosticIssue('AUTH_NOT_ADMIN', 'Authenticated user is missing admin role.', currentUser?.email || 'unknown user');
+                throw new Error('Your account does not have Admin privileges.');
             }
         }
 
