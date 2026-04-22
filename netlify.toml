@@ -47,6 +47,17 @@
   [headers.values]
     X-Frame-Options = "SAMEORIGIN"
 
+# analytics dashboard is embedded inside admin via iframe
+[[headers]]
+  for = "/analytics"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+
+[[headers]]
+  for = "/analytics.html"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+
 [[headers]]
   for = "/sizeguide.html"
   [headers.values]
