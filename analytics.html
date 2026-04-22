@@ -1950,5 +1950,13 @@
         showAuthContainer();
       }
     });
+
+    // Parent admin page can request a data refresh without full iframe reload.
+    window.addEventListener('message', (event) => {
+      if (event?.data?.type !== 'zw-analytics-refresh') return;
+      if (dashboardContainer.style.display === 'block') {
+        loadDashboardData();
+      }
+    });
   </script>
 </html>
