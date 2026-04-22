@@ -3,7 +3,7 @@
 # (Netlify also supports this file format, so it works on both platforms.)
 
 /*
-  X-Frame-Options: DENY
+  X-Frame-Options: SAMEORIGIN
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: payment=(*)

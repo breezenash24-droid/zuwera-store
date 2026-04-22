@@ -39,12 +39,6 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    X-Frame-Options = "DENY"
-
-# sizeguide is embedded as an iframe inside the product page size modal
-[[headers]]
-  for = "/sizeguide"
-  [headers.values]
     X-Frame-Options = "SAMEORIGIN"
 
 # analytics dashboard is embedded inside admin via iframe
