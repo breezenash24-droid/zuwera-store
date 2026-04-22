@@ -6,6 +6,7 @@
 
 name                   = "zuwera-store"
 compatibility_date     = "2024-09-23"
+compatibility_flags    = ["nodejs_compat"]
 pages_build_output_dir = "."
 
 # ── mTLS Certificate Binding — Apple Pay Merchant Identity ───────────────────
