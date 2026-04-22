@@ -8,6 +8,21 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: payment=(*)
 
+# Allow analytics.html to be embedded as an iframe within the same site (admin dashboard)
+/analytics
+  X-Frame-Options: SAMEORIGIN
+
+/analytics.html
+  X-Frame-Options: SAMEORIGIN
+
+# Allow sizeguide to be embedded as an iframe in the product page size modal
+# CF Pages serves sizeguide.html at /sizeguide (pretty URL) — both rules needed
+/sizeguide
+  X-Frame-Options: SAMEORIGIN
+
+/sizeguide.html
+  X-Frame-Options: SAMEORIGIN
+
 /*.html
   Cache-Control: public, max-age=0, must-revalidate
 
