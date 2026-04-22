@@ -86,6 +86,17 @@
       font-size: 0.9rem;
     }
 
+    .diag-box {
+      border: 1px solid rgba(243, 143, 169, 0.35);
+      background: rgba(243, 143, 169, 0.08);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .diag-title { font-weight: 700; margin-bottom: 0.35rem; }
+    .diag-item { font-size: 0.87rem; color: var(--text-secondary); margin-top: 0.15rem; }
+
     @media (max-width: 1080px) {
       .span-3, .span-4, .span-6, .span-8 { grid-column: span 12; }
     }
@@ -640,6 +651,7 @@
         <div class="auth-card">
           <h2>Admin Access Required</h2>
           <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Please sign in to access the analytics dashboard.</p>
+          <div id="authDiagnostics" class="diag-box" style="display:none;text-align:left;"></div>
           <button class="sign-in-btn" id="signInBtn">Go to Admin Login</button>
         </div>
       </div>
@@ -649,6 +661,7 @@
     <div id="dashboardContainer" style="display: none;">
       <!-- Error Message -->
       <div id="errorContainer"></div>
+      <div id="diagnosticsBox" class="diag-box" style="display:none;"></div>
 
       <h2 style="margin-bottom: 1.5rem;">Sales Overview</h2>
       <div class="overview-grid" id="salesOverviewGrid">
@@ -889,8 +902,20 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 
     // Initialize Supabase
+    const isEmbeddedAnalytics = window.location.search.includes('embed=true') || window.location.hash.includes('embed=true');
+    const adminSessionStorage = {
+      getItem: (key) => sessionStorage.getItem(key),
+      setItem: (key, value) => sessionStorage.setItem(key, value),
+      removeItem: (key) => sessionStorage.removeItem(key)
+    };
+
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: true, storageKey: 'zuwera-auth' }
+      auth: {
+        persistSession: true,
+        storageKey: isEmbeddedAnalytics ? 'zuwera-admin-auth-session-v1' : 'zuwera-auth',
+        storage: isEmbeddedAnalytics ? adminSessionStorage : undefined,
+        detectSessionInUrl: false
+      }
     });
 
     // DOM Elements
@@ -908,6 +933,7 @@
     let allOrders = [];
     let edgeMetrics = null;
     const chartRoots = {};
+    const diagnosticsState = new Map();
     let catalogSortConfig = { key: 'title', direction: 'asc' };
     let inventorySortConfig = { key: 'stock', direction: 'asc' };
     let currentInventoryFilter = 'all';
@@ -939,6 +965,7 @@
 
         const session = data?.session;
         if (!session) {
+          setDiagnosticIssue('AUTH_NO_SESSION', 'No active admin session found in this tab.', 'Sign in again from admin.html if needed.');
           if (attempt < 4) {
             await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
             return checkAuth(attempt + 1);
@@ -948,6 +975,7 @@
         }
 
         currentUser = session.user;
+        clearDiagnosticIssue('AUTH_NO_SESSION');
 
         // Check if user is admin
         const { data: profile, error: profileError } = await supabase
@@ -965,15 +993,20 @@
             if (isLocal || isOwner) {
                 await supabase.from('profiles').upsert({ id: currentUser.id, email: currentUser.email, role: 'admin' });
             } else {
+                setDiagnosticIssue('AUTH_NOT_ADMIN', 'Authenticated user is missing admin role.', currentUser?.email || 'unknown user');
                 throw new Error('Your account does not have Admin privileges.');
             }
         }
+
+      clearDiagnosticIssue('AUTH_NOT_ADMIN');
+      clearDiagnosticIssue('AUTH_ERROR');
 
       showDashboard();
       backLink.style.display = 'inline-block';
       return true;
 
     } catch (e) {
+      setDiagnosticIssue('AUTH_ERROR', 'Auth check failed.', e?.message || 'Unknown auth error');
         // Remove existing error message so they don't stack infinitely
         const existingErr = document.getElementById('auth-error-msg');
         if (existingErr) existingErr.remove();
@@ -1005,6 +1038,43 @@
       err.className = 'error';
       err.textContent = msg;
       document.getElementById('errorContainer').appendChild(err);
+    };
+
+    const renderDiagnostics = () => {
+      const box = document.getElementById('diagnosticsBox');
+      const authBox = document.getElementById('authDiagnostics');
+      if (!box) return;
+
+      if (diagnosticsState.size === 0) {
+        box.style.display = 'none';
+        box.innerHTML = '';
+        if (authBox) {
+          authBox.style.display = 'none';
+          authBox.innerHTML = '';
+        }
+        return;
+      }
+
+      box.style.display = 'block';
+      const rows = Array.from(diagnosticsState.values()).map((item) => {
+        const meta = item.meta ? ` — ${item.meta}` : '';
+        return `<div class="diag-item">• <strong>${item.code}</strong>: ${item.message}${meta}</div>`;
+      }).join('');
+      box.innerHTML = `<div class="diag-title">Diagnostics: issues detected</div>${rows}`;
+      if (authBox) {
+        authBox.style.display = 'block';
+        authBox.innerHTML = `<div class="diag-title">Diagnostics: issues detected</div>${rows}`;
+      }
+    };
+
+    const setDiagnosticIssue = (code, message, meta = '') => {
+      diagnosticsState.set(code, { code, message, meta });
+      renderDiagnostics();
+    };
+
+    const clearDiagnosticIssue = (code) => {
+      diagnosticsState.delete(code);
+      renderDiagnostics();
     };
 
     signInBtn.addEventListener('click', async () => {
@@ -1043,6 +1113,7 @@
         await updateCommandCenter();
         renderOrdersTable();
       } catch (error) {
+        setDiagnosticIssue('DASHBOARD_LOAD', 'Dashboard data failed to load.', error?.message || 'Unknown error');
         showError('Failed to load dashboard data: ' + error.message);
       }
     };
@@ -1214,7 +1285,9 @@
         const payload = await res.json();
         if (!res.ok || !payload.success) throw new Error(payload.error || 'Cloudflare analytics unavailable');
         edgeMetrics = payload.metrics;
+        clearDiagnosticIssue('EDGE_ANALYTICS');
       } catch (err) {
+        setDiagnosticIssue('EDGE_ANALYTICS', 'Cloudflare analytics endpoint unavailable.', err?.message || 'Check /api/cloudflare-analytics env vars');
         console.warn('Cloudflare analytics unavailable:', err.message);
       }
     };
@@ -1916,7 +1989,7 @@
     });
 
     // Check if embedded
-    if (window.location.search.includes('embed=true') || window.location.hash.includes('embed=true')) {
+    if (isEmbeddedAnalytics) {
       document.body.classList.add('embedded');
     }
 

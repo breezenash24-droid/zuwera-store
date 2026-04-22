@@ -6,7 +6,7 @@ function json(body, status = 200) {
 }
 
 function buildGraphQLBody({ zoneTag, datetimeStart, datetimeEnd }) {
-  const query = `query DashboardEdgeMetrics($zoneTag: string, $datetimeStart: Time!, $datetimeEnd: Time!) {
+  const query = `query DashboardEdgeMetrics($zoneTag: String!, $datetimeStart: Time!, $datetimeEnd: Time!) {
     viewer {
       zones(filter: { zoneTag: $zoneTag }) {
         httpRequests1mGroups(

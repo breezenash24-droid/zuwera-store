@@ -3352,6 +3352,10 @@
                 return;
             }
 
+            if (adminTsPending) {
+                throw new Error('Security check already in progress. Please wait a moment and try again.');
+            }
+
             const token = await new Promise((resolve, reject) => {
                 let settled = false;
                 const finish = (value) => {
@@ -3362,6 +3366,7 @@
                 };
                 adminTsPending = finish;
                 try {
+                    if (adminTsWidgetId !== null) window.turnstile.reset(adminTsWidgetId);
                     window.turnstile.execute(adminTsWidgetId);
                 } catch (e) {
                     adminTsPending = null;
@@ -3498,8 +3503,8 @@
             }
             localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
         
-            // Save theme to Supabase for main site
-            if (typeof sb !== 'undefined' && sb) {
+            // Save theme to Supabase for main site only after auth has loaded.
+            if (typeof sb !== 'undefined' && sb && currentUser?.id) {
                 sb.from('site_settings').upsert({ key: 'theme', value: { mode: isDarkMode ? 'dark' : 'light' } }, { onConflict: 'key' })
                     .then(({ error }) => {
                         if (!error) void logAdminAudit('settings.update', 'site_settings', 'theme', { mode: isDarkMode ? 'dark' : 'light' });
