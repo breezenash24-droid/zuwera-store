@@ -9,6 +9,9 @@
   Permissions-Policy: payment=(*)
 
 # Allow analytics.html to be embedded as an iframe within the same site (admin dashboard)
+/analytics
+  X-Frame-Options: SAMEORIGIN
+
 /analytics.html
   X-Frame-Options: SAMEORIGIN
 
