@@ -909,7 +909,7 @@
       removeItem: (key) => sessionStorage.removeItem(key)
     };
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
         persistSession: true,
         storageKey: isEmbeddedAnalytics ? 'zuwera-admin-auth-session-v1' : 'zuwera-auth',
@@ -960,7 +960,7 @@
     // Authentication — retries so the iframe can wait for admin.html's session to land in localStorage
     const checkAuth = async (attempt = 0) => {
       try {
-        const { data, error } = await supabase.auth.getSession();
+        const { data, error } = await sbClient.auth.getSession();
         if (error) throw error;
 
         const session = data?.session;
@@ -977,18 +977,20 @@
         currentUser = session.user;
         clearDiagnosticIssue('AUTH_NO_SESSION');
 
-        // Check if user is admin
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', currentUser.id)
-          .maybeSingle();
-
-        if (profileError) throw profileError;
-        
         const isLocal = window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.');
         const isOwner = currentUser.email.toLowerCase() === 'breezenash24@gmail.com' || currentUser.email.toLowerCase() === 'nasirubreeze@zuwera.store';
 
+        if (!isLocal && !isOwner) {
+            const verifyResp = await fetch('/api/admin-access', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ accessToken: session.access_token })
+            });
+
+            const verifyPayload = await verifyResp.json().catch(() => ({ success: false, error: 'Invalid admin verification response.' }));
+            if (!verifyResp.ok || !verifyPayload.success) {
+              setDiagnosticIssue('AUTH_NOT_ADMIN', 'Authenticated user is missing admin role.', currentUser?.email || 'unknown user');
+              throw new Error(verifyPayload.error || 'Your account does not have Admin privileges.');
         if (!profile || profile.role !== 'admin') {
             if (isLocal || isOwner) {
                 await supabase.from('profiles').upsert({ id: currentUser.id, email: currentUser.email, role: 'admin' });
@@ -1017,7 +1019,7 @@
       msg.style = 'color: var(--error); margin-top: 15px; font-weight: bold; background: rgba(239,68,68,0.1); padding: 10px; border-radius: 4px; border: 1px solid var(--error);';
       msg.innerHTML = 'Access Denied: ' + (e.message || 'Unknown error');
       document.querySelector('.auth-card').appendChild(msg);
-      await supabase.auth.signOut();
+      await sbClient.auth.signOut();
       return false;
     }
   };
@@ -1086,7 +1088,7 @@
     });
 
     signOutBtn.addEventListener('click', async () => {
-      await supabase.auth.signOut();
+      await sbClient.auth.signOut();
       currentUser = null;
       showAuthContainer();
     });
@@ -1121,12 +1123,12 @@
     const loadProducts = async () => {
       try {
         // Fetch products and related data independently to bypass any PostgREST relationship caching issues
-        const { data: products, error } = await supabase.from('products').select('*');
+        const { data: products, error } = await sbClient.from('products').select('*');
         if (error) throw error;
         
-        const { data: sizes } = await supabase.from('product_sizes').select('*');
-        const { data: colors } = await supabase.from('color_variants').select('*');
-        const { data: images } = await supabase.from('product_images').select('*');
+        const { data: sizes } = await sbClient.from('product_sizes').select('*');
+        const { data: colors } = await sbClient.from('color_variants').select('*');
+        const { data: images } = await sbClient.from('product_images').select('*');
 
         allProducts = (products || []).map(p => ({
           ...p,
@@ -1151,7 +1153,7 @@
 
     const loadOrders = async () => {
       try {
-        const { data, error } = await supabase.from('orders').select('*');
+        const { data, error } = await sbClient.from('orders').select('*');
         if (error) throw error;
         allOrders = data || [];
       } catch (err) {
@@ -1161,8 +1163,8 @@
 
     const loadEngagement = async () => {
       try {
-        const { data: favs } = await supabase.from('favorites').select('*');
-        const { data: waitlist } = await supabase.from('waitlist').select('*');
+        const { data: favs } = await sbClient.from('favorites').select('*');
+        const { data: waitlist } = await sbClient.from('waitlist').select('*');
         
         document.getElementById('totalFavorites').textContent = favs ? favs.length : 0;
         document.getElementById('totalWaitlist').textContent = waitlist ? waitlist.length : 0;
@@ -1998,7 +2000,7 @@
     checkAuth();
     
     // Fetch Brand Assets
-    supabase.from('site_settings').select('value').eq('key', 'brand').single().then(({data}) => {
+    sbClient.from('site_settings').select('value').eq('key', 'brand').single().then(({data}) => {
       if (data && data.value) {
         let b = data.value;
         try { if (typeof b === 'string') b = JSON.parse(b); } catch(e){}
@@ -2015,7 +2017,7 @@
     });
 
     // Listen for auth changes
-    supabase.auth.onAuthStateChange((event, session) => {
+    sbClient.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         checkAuth();
       } else if (event === 'SIGNED_OUT') {
