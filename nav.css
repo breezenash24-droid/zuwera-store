@@ -2,7 +2,7 @@
 .announcement-bar {
   position: fixed;
   top: 0; left: 0; right: 0;
-  z-index: 101;
+  z-index: 230;
   background: var(--white);
   color: var(--black);
   text-align: center;
@@ -35,12 +35,13 @@
 .nav {
   position: fixed;
   top: 0; left: 0; right: 0;
-  z-index: 100;
+  z-index: 220;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 1.2rem 2.5rem;
   background: #09090b;
+  isolation: isolate;
   border-bottom: 1px solid var(--c08);
   box-shadow: 0 1px 12px rgba(0,0,0,0.3);
   transition: top .45s ease, background .35s ease, box-shadow .35s ease;
@@ -113,34 +114,15 @@
 }
 .logout-btn:hover { color: var(--white); }
 
-body.light-mode .nav {
-  background: #F0EEE9;
-  border-bottom-color: rgba(9,9,11,0.08);
-  box-shadow: 0 1px 12px rgba(9,9,11,0.08);
-}
-body.light-mode .nav-right button,
-body.light-mode #account-btn,
-body.light-mode .logout-btn {
-  color: #09090b;
-}
-body.light-mode .nav-right button:hover,
-body.light-mode #account-btn:hover,
-body.light-mode .logout-btn:hover {
-  opacity: 0.72;
-  color: #09090b;
-}
-body.light-mode #cart-btn {
-  border-color: rgba(9,9,11,0.2) !important;
-}
-body.light-mode .cart-count {
-  background: #09090b;
-  color: #F0EEE9;
-}
-
 /* ===================== MOBILE NAV ===================== */
-@media (max-width: 640px) {
+@media (max-width: 900px) {
+  .announcement-bar {
+    padding: calc(0.35rem + env(safe-area-inset-top, 0px)) 3rem 0.55rem;
+  }
   .nav {
-    padding: 0.8rem 1rem;
+    z-index: 240;
+    padding: calc(0.55rem + env(safe-area-inset-top, 0px)) 1rem 0.8rem;
+    transition: background .35s ease, box-shadow .35s ease, padding .35s ease;
   }
   .nav-right {
     gap: 0.5rem !important;
@@ -158,36 +140,41 @@ body.light-mode .cart-count {
 
 /* ===================== LIGHT MODE ===================== */
 body.light-mode .announcement-bar {
-  background: var(--white);
-  color: var(--black);
+  background: #09090b;
+  color: #F0EEE9;
+  border-bottom-color: rgba(244,241,235,0.1);
 }
 body.light-mode .announcement-close {
-  color: var(--black);
+  color: #F0EEE9;
 }
 body.light-mode .nav {
-  background: var(--black);
-  border-bottom-color: var(--c08);
-  box-shadow: 0 1px 12px rgba(0,0,0,0.06);
+  background: #F0EEE9;
+  border-bottom-color: rgba(9,9,11,0.08);
+  box-shadow: 0 1px 12px rgba(9,9,11,0.06);
 }
 body.light-mode .logo {
   filter: invert(1);
 }
-body.light-mode .nav-right button {
-  color: var(--white);
+body.light-mode .nav-right button,
+body.light-mode #account-btn {
+  color: #09090b;
+}
+body.light-mode .nav-right button:hover,
+body.light-mode #account-btn:hover {
+  opacity: 0.65;
+  color: #09090b;
 }
 body.light-mode #cart-btn {
-  border-color: var(--c30) !important;
+  border-color: rgba(9,9,11,0.2) !important;
+  color: #09090b;
 }
 body.light-mode .cart-count {
-  background: var(--white);
-  color: var(--black);
-}
-body.light-mode #account-btn {
-  color: var(--white);
+  background: #09090b;
+  color: #E8E3DC;
 }
 body.light-mode .logout-btn {
-  color: var(--c35);
+  color: rgba(9,9,11,0.35);
 }
 body.light-mode .logout-btn:hover {
-  color: var(--white);
+  color: #09090b;
 }

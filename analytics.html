@@ -5,9 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
   <title>Zuwera Analytics Dashboard</title>
+  <link rel="icon" type="image/png" href="/images/favicon-black.png?v=1">
+  <script src="/favicon-utils.js?v=1"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --black: #09090b;
@@ -29,10 +32,73 @@
     }
 
     body {
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Inter', 'DM Sans', sans-serif;
       background-color: var(--black);
       color: var(--white);
       line-height: 1.6;
+    }
+
+    .mono-metric { font-family: 'JetBrains Mono', monospace; letter-spacing: 0.02em; }
+
+    .precision-grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .span-3 { grid-column: span 3; }
+    .span-4 { grid-column: span 4; }
+    .span-6 { grid-column: span 6; }
+    .span-8 { grid-column: span 8; }
+    .span-12 { grid-column: span 12; }
+
+    .glass-card {
+      background: rgba(15, 15, 18, 0.5);
+      border: 1px solid rgba(243, 143, 169, 0.24);
+      border-radius: 12px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 1rem;
+    }
+
+    .qos-gauge-track {
+      width: 100%;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+
+    .qos-gauge-fill {
+      height: 100%;
+      border-radius: inherit;
+      transition: width 0.45s ease;
+      background: linear-gradient(90deg, #F38FA9 0%, #050505 100%);
+    }
+
+    .hype-map-row {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 0.45rem 0;
+      font-size: 0.9rem;
+    }
+
+    .diag-box {
+      border: 1px solid rgba(243, 143, 169, 0.35);
+      background: rgba(243, 143, 169, 0.08);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .diag-title { font-weight: 700; margin-bottom: 0.35rem; }
+    .diag-item { font-size: 0.87rem; color: var(--text-secondary); margin-top: 0.15rem; }
+
+    @media (max-width: 1080px) {
+      .span-3, .span-4, .span-6, .span-8 { grid-column: span 12; }
     }
 
     body.light-mode {
@@ -585,6 +651,7 @@
         <div class="auth-card">
           <h2>Admin Access Required</h2>
           <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Please sign in to access the analytics dashboard.</p>
+          <div id="authDiagnostics" class="diag-box" style="display:none;text-align:left;"></div>
           <button class="sign-in-btn" id="signInBtn">Go to Admin Login</button>
         </div>
       </div>
@@ -594,6 +661,7 @@
     <div id="dashboardContainer" style="display: none;">
       <!-- Error Message -->
       <div id="errorContainer"></div>
+      <div id="diagnosticsBox" class="diag-box" style="display:none;"></div>
 
       <h2 style="margin-bottom: 1.5rem;">Sales Overview</h2>
       <div class="overview-grid" id="salesOverviewGrid">
@@ -608,6 +676,67 @@
         <div class="card">
           <div class="card-label">Avg Order Value</div>
           <div class="card-value" id="avgOrderValue">$0.00</div>
+        </div>
+      </div>
+
+      <h2 style="margin-top: 2rem; margin-bottom: 1rem;">Technical Command Center</h2>
+      <div class="precision-grid">
+        <div class="glass-card span-3">
+          <div class="card-label">QoS · Cache Hit Ratio</div>
+          <div class="card-value mono-metric" id="qosCacheRatio">--%</div>
+          <div class="qos-gauge-track"><div class="qos-gauge-fill" id="qosCacheGauge" style="width:0%"></div></div>
+        </div>
+        <div class="glass-card span-3">
+          <div class="card-label">QoS · Edge Response (p50)</div>
+          <div class="card-value mono-metric" id="qosEdgeResponse">-- ms</div>
+          <div class="qos-gauge-track"><div class="qos-gauge-fill" id="qosEdgeGauge" style="width:0%"></div></div>
+        </div>
+        <div class="glass-card span-3">
+          <div class="card-label">Sell-out Momentum</div>
+          <div class="card-value mono-metric" id="selloutMomentum">--</div>
+          <div class="card-subtitle">(Orders 24h / Remaining Units) * 100</div>
+        </div>
+        <div class="glass-card span-3">
+          <div class="card-label">Packaging Precision Rate</div>
+          <div class="card-value mono-metric" id="packagingPrecision">--%</div>
+          <div class="card-subtitle">3D unboxing interactions → conversion</div>
+        </div>
+
+        <div class="glass-card span-6">
+          <h3 style="margin-bottom:0.5rem;">Bot & Security Intelligence</h3>
+          <div id="botIntelligenceChart" style="height:220px;"></div>
+          <div style="color:var(--text-secondary);font-size:0.86rem;">Verified bot vs unverified traffic from Cloudflare Bot Management.</div>
+        </div>
+
+        <div class="glass-card span-6">
+          <h3 style="margin-bottom:0.5rem;">Launch Day Simulator (September 20)</h3>
+          <label style="display:block;font-size:0.84rem;color:var(--text-secondary);">Hype Multiplier</label>
+          <input id="hypeMultiplierInput" type="number" step="0.1" min="0.1" value="1.0" class="search-input" style="max-width:260px;margin:0.4rem 0 0.75rem;">
+          <div class="stat-row"><span class="stat-label">Projected Requests / min</span><span class="stat-value mono-metric" id="simProjectedLoad">--</span></div>
+          <div class="stat-row"><span class="stat-label">Projected Stock Depletion / hr</span><span class="stat-value mono-metric" id="simDepletionRate">--</span></div>
+          <div class="stat-row"><span class="stat-label">Estimated Sell-out Time</span><span class="stat-value mono-metric" id="simSelloutEta">--</span></div>
+        </div>
+
+        <div class="glass-card span-8">
+          <h3 style="margin-bottom:0.5rem;">Syncopated Sales Area</h3>
+          <div id="syncopatedSalesChart" style="height:260px;"></div>
+        </div>
+
+        <div class="glass-card span-4">
+          <h3 style="margin-bottom:0.5rem;">Hype Heatmap (Top Locations)</h3>
+          <div id="hypeHeatmap"></div>
+        </div>
+
+        <div class="glass-card span-6">
+          <h3 style="margin-bottom:0.5rem;">Zero-Latency Monitor · Web Vitals by Device</h3>
+          <div id="deviceVitalsTable"></div>
+        </div>
+
+        <div class="glass-card span-6">
+          <h3 style="margin-bottom:0.5rem;">COGS & Net Margin Real-time Feed</h3>
+          <div class="stat-row"><span class="stat-label">Alibaba Manufacturing Cost ($)</span><span><input id="cogsInput" type="number" value="1800" class="search-input" style="width:140px"></span></div>
+          <div class="stat-row"><span class="stat-label">Forceget Shipping Estimates ($)</span><span><input id="shippingInput" type="number" value="650" class="search-input" style="width:140px"></span></div>
+          <div class="stat-row"><span class="stat-label">Net Profit (Real-time)</span><span class="stat-value mono-metric" id="netProfitFeed">--</span></div>
         </div>
       </div>
 
@@ -758,6 +887,9 @@
 
   <!-- Supabase Client -->
   <script src="/supabase.min.js"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
 
   <script>
     if (typeof window.supabase === 'undefined') {
@@ -770,8 +902,20 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 
     // Initialize Supabase
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: true, storageKey: 'zuwera-auth' }
+    const isEmbeddedAnalytics = window.location.search.includes('embed=true') || window.location.hash.includes('embed=true');
+    const adminSessionStorage = {
+      getItem: (key) => sessionStorage.getItem(key),
+      setItem: (key, value) => sessionStorage.setItem(key, value),
+      removeItem: (key) => sessionStorage.removeItem(key)
+    };
+
+    const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        storageKey: isEmbeddedAnalytics ? 'zuwera-admin-auth-session-v1' : 'zuwera-auth',
+        storage: isEmbeddedAnalytics ? adminSessionStorage : undefined,
+        detectSessionInUrl: false
+      }
     });
 
     // DOM Elements
@@ -787,6 +931,9 @@
     let currentUser = null;
     let allProducts = [];
     let allOrders = [];
+    let edgeMetrics = null;
+    const chartRoots = {};
+    const diagnosticsState = new Map();
     let catalogSortConfig = { key: 'title', direction: 'asc' };
     let inventorySortConfig = { key: 'stock', direction: 'asc' };
     let currentInventoryFilter = 'all';
@@ -813,11 +960,12 @@
     // Authentication — retries so the iframe can wait for admin.html's session to land in localStorage
     const checkAuth = async (attempt = 0) => {
       try {
-        const { data, error } = await supabase.auth.getSession();
+        const { data, error } = await sbClient.auth.getSession();
         if (error) throw error;
 
         const session = data?.session;
         if (!session) {
+          setDiagnosticIssue('AUTH_NO_SESSION', 'No active admin session found in this tab.', 'Sign in again from admin.html if needed.');
           if (attempt < 4) {
             await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
             return checkAuth(attempt + 1);
@@ -827,32 +975,40 @@
         }
 
         currentUser = session.user;
+        clearDiagnosticIssue('AUTH_NO_SESSION');
 
-        // Check if user is admin
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', currentUser.id)
-          .maybeSingle();
-
-        if (profileError) throw profileError;
-        
         const isLocal = window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.');
         const isOwner = currentUser.email.toLowerCase() === 'breezenash24@gmail.com' || currentUser.email.toLowerCase() === 'nasirubreeze@zuwera.store';
 
+        if (!isLocal && !isOwner) {
+            const verifyResp = await fetch('/api/admin-access', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ accessToken: session.access_token })
+            });
+
+            const verifyPayload = await verifyResp.json().catch(() => ({ success: false, error: 'Invalid admin verification response.' }));
+            if (!verifyResp.ok || !verifyPayload.success) {
+              setDiagnosticIssue('AUTH_NOT_ADMIN', 'Authenticated user is missing admin role.', currentUser?.email || 'unknown user');
+              throw new Error(verifyPayload.error || 'Your account does not have Admin privileges.');
         if (!profile || profile.role !== 'admin') {
             if (isLocal || isOwner) {
                 await supabase.from('profiles').upsert({ id: currentUser.id, email: currentUser.email, role: 'admin' });
             } else {
+                setDiagnosticIssue('AUTH_NOT_ADMIN', 'Authenticated user is missing admin role.', currentUser?.email || 'unknown user');
                 throw new Error('Your account does not have Admin privileges.');
             }
         }
+
+      clearDiagnosticIssue('AUTH_NOT_ADMIN');
+      clearDiagnosticIssue('AUTH_ERROR');
 
       showDashboard();
       backLink.style.display = 'inline-block';
       return true;
 
     } catch (e) {
+      setDiagnosticIssue('AUTH_ERROR', 'Auth check failed.', e?.message || 'Unknown auth error');
         // Remove existing error message so they don't stack infinitely
         const existingErr = document.getElementById('auth-error-msg');
         if (existingErr) existingErr.remove();
@@ -863,7 +1019,7 @@
       msg.style = 'color: var(--error); margin-top: 15px; font-weight: bold; background: rgba(239,68,68,0.1); padding: 10px; border-radius: 4px; border: 1px solid var(--error);';
       msg.innerHTML = 'Access Denied: ' + (e.message || 'Unknown error');
       document.querySelector('.auth-card').appendChild(msg);
-      await supabase.auth.signOut();
+      await sbClient.auth.signOut();
       return false;
     }
   };
@@ -886,6 +1042,43 @@
       document.getElementById('errorContainer').appendChild(err);
     };
 
+    const renderDiagnostics = () => {
+      const box = document.getElementById('diagnosticsBox');
+      const authBox = document.getElementById('authDiagnostics');
+      if (!box) return;
+
+      if (diagnosticsState.size === 0) {
+        box.style.display = 'none';
+        box.innerHTML = '';
+        if (authBox) {
+          authBox.style.display = 'none';
+          authBox.innerHTML = '';
+        }
+        return;
+      }
+
+      box.style.display = 'block';
+      const rows = Array.from(diagnosticsState.values()).map((item) => {
+        const meta = item.meta ? ` — ${item.meta}` : '';
+        return `<div class="diag-item">• <strong>${item.code}</strong>: ${item.message}${meta}</div>`;
+      }).join('');
+      box.innerHTML = `<div class="diag-title">Diagnostics: issues detected</div>${rows}`;
+      if (authBox) {
+        authBox.style.display = 'block';
+        authBox.innerHTML = `<div class="diag-title">Diagnostics: issues detected</div>${rows}`;
+      }
+    };
+
+    const setDiagnosticIssue = (code, message, meta = '') => {
+      diagnosticsState.set(code, { code, message, meta });
+      renderDiagnostics();
+    };
+
+    const clearDiagnosticIssue = (code) => {
+      diagnosticsState.delete(code);
+      renderDiagnostics();
+    };
+
     signInBtn.addEventListener('click', async () => {
       if (window.location.search.includes('embed=true') || window.location.hash.includes('embed=true')) {
         window.top.location.href = 'admin.html';
@@ -895,7 +1088,7 @@
     });
 
     signOutBtn.addEventListener('click', async () => {
-      await supabase.auth.signOut();
+      await sbClient.auth.signOut();
       currentUser = null;
       showAuthContainer();
     });
@@ -919,8 +1112,10 @@
         await updateReviewsSummary();
         updateOrderAnalytics();
         updateRevenueChart();
+        await updateCommandCenter();
         renderOrdersTable();
       } catch (error) {
+        setDiagnosticIssue('DASHBOARD_LOAD', 'Dashboard data failed to load.', error?.message || 'Unknown error');
         showError('Failed to load dashboard data: ' + error.message);
       }
     };
@@ -928,12 +1123,12 @@
     const loadProducts = async () => {
       try {
         // Fetch products and related data independently to bypass any PostgREST relationship caching issues
-        const { data: products, error } = await supabase.from('products').select('*');
+        const { data: products, error } = await sbClient.from('products').select('*');
         if (error) throw error;
         
-        const { data: sizes } = await supabase.from('product_sizes').select('*');
-        const { data: colors } = await supabase.from('color_variants').select('*');
-        const { data: images } = await supabase.from('product_images').select('*');
+        const { data: sizes } = await sbClient.from('product_sizes').select('*');
+        const { data: colors } = await sbClient.from('color_variants').select('*');
+        const { data: images } = await sbClient.from('product_images').select('*');
 
         allProducts = (products || []).map(p => ({
           ...p,
@@ -958,7 +1153,7 @@
 
     const loadOrders = async () => {
       try {
-        const { data, error } = await supabase.from('orders').select('*');
+        const { data, error } = await sbClient.from('orders').select('*');
         if (error) throw error;
         allOrders = data || [];
       } catch (err) {
@@ -968,8 +1163,8 @@
 
     const loadEngagement = async () => {
       try {
-        const { data: favs } = await supabase.from('favorites').select('*');
-        const { data: waitlist } = await supabase.from('waitlist').select('*');
+        const { data: favs } = await sbClient.from('favorites').select('*');
+        const { data: waitlist } = await sbClient.from('waitlist').select('*');
         
         document.getElementById('totalFavorites').textContent = favs ? favs.length : 0;
         document.getElementById('totalWaitlist').textContent = waitlist ? waitlist.length : 0;
@@ -995,6 +1190,166 @@
       } catch (err) {
         console.error('Failed to load engagement data:', err);
       }
+    };
+
+    const calculateSelloutMomentum = (ordersInLast24h, remainingUnits) => {
+      if (!remainingUnits || remainingUnits <= 0) return 0;
+      return Number(((ordersInLast24h / remainingUnits) * 100).toFixed(2));
+    };
+
+    const launchDaySimulator = ({ hypeMultiplier, baselineRequestsPerMinute, remainingUnits, last24hOrders }) => {
+      const safeHype = Math.max(0.1, Number(hypeMultiplier || 1));
+      const projectedLoad = Math.round((baselineRequestsPerMinute || 120) * safeHype);
+      const depletionPerHour = Number((((last24hOrders || 0) / 24) * safeHype).toFixed(2));
+      const hoursToSellout = depletionPerHour > 0 ? Number((remainingUnits / depletionPerHour).toFixed(1)) : null;
+      return { projectedLoad, depletionPerHour, hoursToSellout };
+    };
+
+    const calculateNetProfit = (revenue, forcegetShipping, alibabaCost) => Number((revenue - forcegetShipping - alibabaCost).toFixed(2));
+    const getOrdersLast24h = () => (allOrders || []).filter(o => new Date(o.created_at || 0).getTime() >= (Date.now() - 86400000)).length;
+    const getRemainingUnits = () => (allProducts || []).reduce((acc, p) => acc + (p.product_sizes || []).reduce((s, r) => s + (Number(r.stock_quantity) || 0), 0), 0) || 100;
+    const getRevenue = () => (allOrders || []).reduce((sum, o) => sum + ((Number(o.amount_total || o.total || 0) || 0) / 100), 0);
+
+    const renderGauge = (id, value, max = 100) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const pct = Math.max(0, Math.min(100, (Number(value || 0) / max) * 100));
+      el.style.width = pct + '%';
+    };
+
+    const renderBotChart = (bots = { verified: 0, unverified: 0 }) => {
+      const mount = document.getElementById('botIntelligenceChart');
+      if (!mount || !window.React || !window.Recharts) return;
+      const R = window.Recharts;
+      const data = [
+        { name: 'Verified Bot', value: Number(bots.verified || 0), fill: '#F38FA9' },
+        { name: 'Unverified', value: Number(bots.unverified || 0), fill: '#050505' }
+      ];
+      const chart = React.createElement(R.ResponsiveContainer, { width: '100%', height: 200 },
+        React.createElement(R.PieChart, null,
+          React.createElement(R.Pie, { data, dataKey: 'value', nameKey: 'name', outerRadius: 72, innerRadius: 35 },
+            data.map((entry, i) => React.createElement(R.Cell, { key: i, fill: entry.fill }))
+          ),
+          React.createElement(R.Tooltip, null),
+          React.createElement(R.Legend, null)
+        )
+      );
+      if (!chartRoots.bot) chartRoots.bot = ReactDOM.createRoot(mount);
+      chartRoots.bot.render(chart);
+    };
+
+    const renderSyncopatedAreaChart = (series = []) => {
+      const mount = document.getElementById('syncopatedSalesChart');
+      if (!mount || !window.React || !window.Recharts) return;
+      const R = window.Recharts;
+      const data = (series || []).slice(-180).map((d, idx) => ({ x: idx + 1, sales: Number(d.sales || 0) }));
+      const chart = React.createElement(R.ResponsiveContainer, { width: '100%', height: 250 },
+        React.createElement(R.AreaChart, { data },
+          React.createElement('defs', null,
+            React.createElement('linearGradient', { id: 'salesGradient', x1: '0', y1: '0', x2: '0', y2: '1' },
+              React.createElement('stop', { offset: '0%', stopColor: '#F38FA9', stopOpacity: 0.95 }),
+              React.createElement('stop', { offset: '100%', stopColor: '#050505', stopOpacity: 0.3 })
+            )
+          ),
+          React.createElement(R.CartesianGrid, { stroke: 'rgba(255,255,255,0.08)', strokeDasharray: '3 3' }),
+          React.createElement(R.XAxis, { dataKey: 'x', tick: { fill: '#a0a0a0', fontSize: 11 } }),
+          React.createElement(R.YAxis, { tick: { fill: '#a0a0a0', fontSize: 11 } }),
+          React.createElement(R.Tooltip, null),
+          React.createElement(R.Area, { type: 'monotone', dataKey: 'sales', stroke: '#F38FA9', fill: 'url(#salesGradient)' })
+        )
+      );
+      if (!chartRoots.sync) chartRoots.sync = ReactDOM.createRoot(mount);
+      chartRoots.sync.render(chart);
+    };
+
+    const renderTopLocations = (rows = []) => {
+      const el = document.getElementById('hypeHeatmap');
+      if (!el) return;
+      el.innerHTML = rows.map((r) => `
+        <div class="hype-map-row">
+          <span>${r.location}</span>
+          <span class="mono-metric">${Number(r.requests || 0).toLocaleString()}</span>
+        </div>
+      `).join('') || '<div style="color:var(--text-secondary)">No location data yet.</div>';
+    };
+
+    const renderDeviceVitals = (rows = []) => {
+      const el = document.getElementById('deviceVitalsTable');
+      if (!el) return;
+      el.innerHTML = rows.map((r) => `
+        <div class="stat-row"><span class="stat-label">${r.device}</span><span class="stat-value mono-metric">${Number(r.medianLCP || 0).toFixed(1)} ms</span></div>
+      `).join('') || '<div style="color:var(--text-secondary)">No vitals available.</div>';
+    };
+
+    const fetchEdgeMetrics = async () => {
+      try {
+        const res = await fetch('/api/cloudflare-analytics');
+        const payload = await res.json();
+        if (!res.ok || !payload.success) throw new Error(payload.error || 'Cloudflare analytics unavailable');
+        edgeMetrics = payload.metrics;
+        clearDiagnosticIssue('EDGE_ANALYTICS');
+      } catch (err) {
+        setDiagnosticIssue('EDGE_ANALYTICS', 'Cloudflare analytics endpoint unavailable.', err?.message || 'Check /api/cloudflare-analytics env vars');
+        console.warn('Cloudflare analytics unavailable:', err.message);
+      }
+    };
+
+    const updateCommandCenter = async () => {
+      if (!edgeMetrics) await fetchEdgeMetrics();
+      const orders24h = getOrdersLast24h();
+      const remainingUnits = getRemainingUnits();
+      const momentum = calculateSelloutMomentum(orders24h, remainingUnits);
+      const packagingInteractions = Number(edgeMetrics?.pageViews || 0);
+      const packagingRate = packagingInteractions > 0 ? Number(((orders24h / packagingInteractions) * 100).toFixed(2)) : 0;
+      const cacheRatio = Number(edgeMetrics?.cacheHitRatio || 0);
+      const edgeMs = Number(edgeMetrics?.edgeResponseTime || 0);
+
+      const safeText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+      safeText('selloutMomentum', momentum.toFixed(2));
+      safeText('packagingPrecision', packagingRate.toFixed(2) + '%');
+      safeText('qosCacheRatio', cacheRatio.toFixed(2) + '%');
+      safeText('qosEdgeResponse', edgeMs.toFixed(1) + ' ms');
+
+      renderGauge('qosCacheGauge', cacheRatio, 100);
+      renderGauge('qosEdgeGauge', Math.max(0, 1000 - edgeMs), 1000);
+      renderBotChart(edgeMetrics?.bots || { verified: 0, unverified: 0 });
+      renderSyncopatedAreaChart(edgeMetrics?.series || []);
+      renderTopLocations(edgeMetrics?.topLocations || []);
+      renderDeviceVitals(edgeMetrics?.deviceVitals || []);
+
+      const hypeInput = document.getElementById('hypeMultiplierInput');
+      const runSim = () => {
+        const sim = launchDaySimulator({
+          hypeMultiplier: Number(hypeInput?.value || 1),
+          baselineRequestsPerMinute: Math.max(120, Math.round((edgeMetrics?.pageViews || 1200) / 1440)),
+          remainingUnits,
+          last24hOrders: orders24h
+        });
+        safeText('simProjectedLoad', sim.projectedLoad.toLocaleString());
+        safeText('simDepletionRate', `${sim.depletionPerHour.toFixed(2)} units/hr`);
+        safeText('simSelloutEta', sim.hoursToSellout ? `${sim.hoursToSellout} hrs` : 'N/A');
+      };
+      if (hypeInput && !hypeInput.dataset.bound) {
+        hypeInput.dataset.bound = '1';
+        hypeInput.addEventListener('input', runSim);
+      }
+      runSim();
+
+      const cogsInput = document.getElementById('cogsInput');
+      const shippingInput = document.getElementById('shippingInput');
+      const refreshProfit = () => {
+        const net = calculateNetProfit(getRevenue(), Number(shippingInput?.value || 0), Number(cogsInput?.value || 0));
+        safeText('netProfitFeed', `$${net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+      };
+      if (cogsInput && !cogsInput.dataset.bound) {
+        cogsInput.dataset.bound = '1';
+        cogsInput.addEventListener('input', refreshProfit);
+      }
+      if (shippingInput && !shippingInput.dataset.bound) {
+        shippingInput.dataset.bound = '1';
+        shippingInput.addEventListener('input', refreshProfit);
+      }
+      refreshProfit();
     };
 
     // Overview Cards
@@ -1636,7 +1991,7 @@
     });
 
     // Check if embedded
-    if (window.location.search.includes('embed=true') || window.location.hash.includes('embed=true')) {
+    if (isEmbeddedAnalytics) {
       document.body.classList.add('embedded');
     }
 
@@ -1645,7 +2000,7 @@
     checkAuth();
     
     // Fetch Brand Assets
-    supabase.from('site_settings').select('value').eq('key', 'brand').single().then(({data}) => {
+    sbClient.from('site_settings').select('value').eq('key', 'brand').single().then(({data}) => {
       if (data && data.value) {
         let b = data.value;
         try { if (typeof b === 'string') b = JSON.parse(b); } catch(e){}
@@ -1656,18 +2011,26 @@
             link.rel = 'icon';
             document.head.appendChild(link);
           }
-          link.href = b.favicon;
+          window.__zwApplyFavicon ? window.__zwApplyFavicon(b.favicon) : (link.href = b.favicon);
         }
       }
     });
 
     // Listen for auth changes
-    supabase.auth.onAuthStateChange((event, session) => {
+    sbClient.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         checkAuth();
       } else if (event === 'SIGNED_OUT') {
         currentUser = null;
         showAuthContainer();
+      }
+    });
+
+    // Parent admin page can request a data refresh without full iframe reload.
+    window.addEventListener('message', (event) => {
+      if (event?.data?.type !== 'zw-analytics-refresh') return;
+      if (dashboardContainer.style.display === 'block') {
+        loadDashboardData();
       }
     });
   </script>

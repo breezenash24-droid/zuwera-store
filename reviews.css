@@ -343,6 +343,7 @@
   font-size: 0.85rem;
   outline: none;
   appearance: none;
+  color-scheme: dark;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23f4f1eb' stroke-width='1.5' fill='none' opacity='0.4'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 1rem center;
@@ -442,27 +443,56 @@
 }
 
 /* Light Mode Overrides */
+body.light-mode .review-mbox {
+  background: #F0EEE9 !important;
+  border-color: rgba(9,9,11,0.1) !important;
+  color: #09090b !important;
+}
+body.light-mode .review-list-mbox {
+  background: #F0EEE9 !important;
+  border-color: rgba(9,9,11,0.1) !important;
+  color: #09090b !important;
+}
+/* Inline review summary on product page */
+body.light-mode .review-summary-box {
+  background: #F0EEE9;
+  border-color: rgba(9,9,11,0.08);
+}
+body.light-mode .rs-metric-bar { background: rgba(9,9,11,0.12); }
+body.light-mode .rs-left { border-right-color: rgba(9,9,11,0.08); }
+body.light-mode .translate-btn {
+  background: #F0EEE9;
+  border-color: rgba(9,9,11,0.15);
+  color: #09090b;
+}
+body.light-mode .review-item { border-bottom-color: rgba(9,9,11,0.07); }
+body.light-mode .review-item-name { color: #09090b; }
+body.light-mode .review-item-date { color: rgba(9,9,11,0.4); }
+body.light-mode .review-item-title { color: #09090b; }
+body.light-mode .review-item-body { color: rgba(9,9,11,0.62); }
 body.light-mode .review-mbox h2 { color: #09090b; }
 body.light-mode .review-mbox .review-product-label { color: rgba(9,9,11,0.4); }
 body.light-mode .review-mbox .review-body-field { background: rgba(9,9,11,0.03); border-color: rgba(9,9,11,0.1); color: #09090b; }
-body.light-mode .review-mbox .review-body-field:focus { border-color: #F891A5; box-shadow: 0 0 0 3px rgba(248,145,165,0.08); }
+body.light-mode .review-mbox .review-body-field:focus { border-color: #09090b; box-shadow: 0 0 0 3px rgba(9,9,11,0.06); }
 body.light-mode .review-mbox .review-body-field::placeholder { color: rgba(9,9,11,0.25); }
 body.light-mode .review-mbox .review-submit-btn,
-body.light-mode .review-list-mbox .review-submit-btn { background: #09090b; color: #F0EEE9; }
+body.light-mode .review-list-mbox .review-submit-btn { background: #09090b; color: #E8E3DC; }
 body.light-mode .review-mbox .review-submit-btn:hover,
-body.light-mode .review-list-mbox .review-submit-btn:hover { background: #F891A5; color: #09090b; }
+body.light-mode .review-list-mbox .review-submit-btn:hover { background: #1a1a1a; color: #E8E3DC; }
 body.light-mode .review-mbox .star-selector button { color: rgba(9,9,11,0.15); }
+body.light-mode .review-mbox .star-selector button.lit { color: #09090b; }
+body.light-mode .review-mbox .star-selector button.hover { color: rgba(9,9,11,0.55); }
 body.light-mode .review-mbox .review-radio-group label { background: rgba(9,9,11,0.04); border-color: rgba(9,9,11,0.15); color: rgba(9,9,11,0.6); }
 body.light-mode .review-mbox .review-radio-group label:hover { background: rgba(9,9,11,0.08); color: #09090b; }
-body.light-mode .review-mbox .review-radio-group input[type="radio"]:checked + label { border-color: #F891A5; background: rgba(248,145,165,0.15); color: #F891A5; }
-body.light-mode .review-advanced-legacy { background: rgba(9,9,11,0.02) !important; border-color: rgba(9,9,11,0.08) !important; }
+body.light-mode .review-mbox .review-radio-group input[type="radio"]:checked + label { border-color: #09090b; background: rgba(9,9,11,0.07); color: #09090b; }
+body.light-mode .review-advanced-legacy { background: #F0EEE9 !important; border-color: rgba(9,9,11,0.08) !important; }
 body.light-mode .review-mbox .review-slider-wrap { color: rgba(9,9,11,0.5); }
 body.light-mode .review-mbox .review-legacy-label,
 body.light-mode .review-fit-toggle-label { color: rgba(9,9,11,0.7); }
 body.light-mode .review-list-title { color: #09090b; }
 body.light-mode .review-list-select,
 body.light-mode .review-list-translate,
-body.light-mode .review-list-close { background: rgba(9,9,11,0.03); border-color: rgba(9,9,11,0.1); color: #09090b; }
+body.light-mode .review-list-close { background: #F0EEE9; border-color: rgba(9,9,11,0.1); color: #09090b; }
 body.light-mode .review-list-mbox .review-card-author,
 body.light-mode .review-list-mbox .review-card-title { color: #09090b; }
 body.light-mode .review-list-mbox .review-card-body,
@@ -470,6 +500,30 @@ body.light-mode .review-list-mbox .review-admin-body,
 body.light-mode .review-list-mbox .review-modal-message { color: rgba(9,9,11,0.72); }
 body.light-mode .review-list-mbox .review-card-date { color: rgba(9,9,11,0.52); }
 body.light-mode .review-list-mbox .review-modal-card { border-bottom-color: rgba(9,9,11,0.08); }
+/* Stars and rating widgets */
+body.light-mode .review-item-stars { color: #09090b; }
+body.light-mode .rs-rating,
+body.light-mode .rs-stars { color: #09090b; }
+body.light-mode .rs-metric-fill { background: #09090b; }
+body.light-mode .review-mbox { border-top-color: #09090b; }
+body.light-mode .review-list-mbox { border-top-color: #09090b; }
+/* Translate / toolbar hover */
+body.light-mode .translate-btn:hover,
+body.light-mode .review-list-translate:hover { border-color: #09090b; color: #09090b; background: rgba(9,9,11,.04); }
+body.light-mode .review-list-select:focus { border-color: #09090b; }
+/* Slider and checkbox */
+body.light-mode .review-mbox .review-slider { accent-color: #09090b; }
+body.light-mode .review-fit-toggle-label input[type="checkbox"] { accent-color: #09090b; }
+/* Card action link and admin response */
+body.light-mode .review-list-mbox .review-card-action { color: #09090b; }
+body.light-mode { --admin-res-bg: rgba(9,9,11,0.05); --admin-res-text: #09090b; }
+/* Inline review items — author meta and write button */
+body.light-mode .review-item-author { color: rgba(9,9,11,.45); }
+body.light-mode .review-item-meta { color: rgba(9,9,11,.35); }
+body.light-mode .write-review-btn { border-color: rgba(9,9,11,.22); color: rgba(9,9,11,.7); }
+body.light-mode .write-review-btn:hover { border-color: rgba(9,9,11,.45); color: #09090b; }
+/* View All Reviews button — stronger border for visibility */
+body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba(9,9,11,.28); color: #09090b; }
 
 @media(max-width: 600px) {
   .review-summary-box { flex-direction: column; gap: 1.5rem; padding: 1.2rem; }
@@ -480,7 +534,7 @@ body.light-mode .review-list-mbox .review-modal-card { border-bottom-color: rgba
   .review-mbox { 
     width: 100vw; max-width: none; max-height: 92dvh; overflow-y: auto; 
     border-radius: 16px 16px 0 0; padding: 2rem 1.4rem 2.4rem; 
-    border-top: 2px solid #F891A5; border-left: none; border-right: none; border-bottom: none; 
+    border-top: 2px solid var(--admin-res-text, #F891A5); border-left: none; border-right: none; border-bottom: none;
     margin: 0; 
   }
   .review-list-mbox {

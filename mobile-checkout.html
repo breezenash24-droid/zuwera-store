@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex">
   <title>Pay with Apple Pay — Zuwera</title>
-  <link rel="icon" href="/favicon.ico">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="icon" type="image/png" href="/images/favicon-black.png?v=1">
+  <script src="/favicon-utils.js?v=1"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
@@ -348,10 +349,10 @@
 
   </main>
 
+  <script src="/stripe-client-config.js?v=1"></script>
+  <script src="/checkout-tax.js?v=1"></script>
   <script src="https://js.stripe.com/v3/"></script>
   <script>
-    const STRIPE_KEY = 'pk_live_51T8ct20oFp4PJGitDcNMSLu9jQMFajtwqib8dTX4WhubBon2Pso2VgkHhTHcbuKNUi9ljfwMX8Bx2uhEp1Fp2VfY00LFKvLEy4';
-    const TAX_RATE = 0.08;
     const SHIP_RATE_CENTS = 800;
     const FREE_SHIP_THRESHOLD = 100;
 
@@ -401,7 +402,19 @@
     }
 
     // ── Render order summary ─────────────────────────────────────────
-    function renderSummary(items) {
+    function calculateTotals(items, stateCode = '') {
+      const subtotalCents = Math.round(items.reduce((s, i) => s + (i.price * (i.quantity || 1) * 100), 0));
+      const shippingCents = subtotalCents / 100 >= FREE_SHIP_THRESHOLD ? 0 : SHIP_RATE_CENTS;
+      const taxCents = window.ZWCheckoutTax?.taxCents(subtotalCents, stateCode) || 0;
+      return {
+        subtotalCents,
+        shippingCents,
+        taxCents,
+        totalCents: subtotalCents + shippingCents + taxCents
+      };
+    }
+
+    function renderSummary(items, stateCode = '') {
       const list = document.getElementById('mc-items-list');
       list.innerHTML = items.map(item => {
         const meta = [item.size, item.colorName].filter(Boolean).join(' · ');
@@ -417,17 +430,14 @@
         `;
       }).join('');
 
-      const subtotalCents = Math.round(items.reduce((s, i) => s + (i.price * (i.quantity || 1) * 100), 0));
-      const shippingCents = subtotalCents / 100 >= FREE_SHIP_THRESHOLD ? 0 : SHIP_RATE_CENTS;
-      const taxCents = Math.round(subtotalCents * TAX_RATE);
-      const totalCents = subtotalCents + shippingCents + taxCents;
+      const totals = calculateTotals(items, stateCode);
 
-      document.getElementById('mc-subtotal').textContent = fmt(subtotalCents);
-      document.getElementById('mc-shipping').textContent = shippingCents === 0 ? 'Free' : fmt(shippingCents);
-      document.getElementById('mc-tax').textContent = fmt(taxCents);
-      document.getElementById('mc-total').textContent = fmt(totalCents);
+      document.getElementById('mc-subtotal').textContent = fmt(totals.subtotalCents);
+      document.getElementById('mc-shipping').textContent = totals.shippingCents === 0 ? 'Free' : fmt(totals.shippingCents);
+      document.getElementById('mc-tax').textContent = fmt(totals.taxCents);
+      document.getElementById('mc-total').textContent = fmt(totals.totalCents);
 
-      return { subtotalCents, shippingCents, taxCents, totalCents };
+      return totals;
     }
 
     function escHtml(str) {
@@ -436,25 +446,28 @@
 
     // ── Stripe checkout ──────────────────────────────────────────────
     async function initCheckout(items, totals) {
-      const stripe = Stripe(STRIPE_KEY);
+      const stripeKey = await window.zwGetStripePublishableKey();
+      const stripe = Stripe(stripeKey);
+      let activeTotals = totals;
+      const displayItems = (summary) => [
+        { label: 'Subtotal', amount: summary.subtotalCents },
+        { label: 'Shipping', amount: summary.shippingCents },
+        { label: 'Tax', amount: summary.taxCents }
+      ];
 
       const payReq = stripe.paymentRequest({
         country: 'US',
         currency: 'usd',
-        total: { label: 'Zuwera', amount: totals.totalCents },
-        displayItems: [
-          { label: 'Subtotal', amount: totals.subtotalCents },
-          { label: 'Shipping', amount: totals.shippingCents },
-          { label: 'Tax', amount: totals.taxCents }
-        ],
+        total: { label: 'Zuwera', amount: activeTotals.totalCents },
+        displayItems: displayItems(activeTotals),
         requestPayerName: true,
         requestPayerEmail: true,
         requestShipping: true,
         shippingOptions: [{
           id: 'standard',
-          label: totals.shippingCents === 0 ? 'Free Shipping' : 'Standard Shipping',
-          detail: totals.shippingCents === 0 ? 'Complimentary on orders over $100' : '5–8 business days',
-          amount: totals.shippingCents
+          label: activeTotals.shippingCents === 0 ? 'Free Shipping' : 'Standard Shipping',
+          detail: activeTotals.shippingCents === 0 ? 'Complimentary on orders over $100' : '5-8 business days',
+          amount: activeTotals.shippingCents
         }]
       });
 
@@ -483,16 +496,19 @@
 
       // Handle shipping address change
       payReq.on('shippingaddresschange', ev => {
-        // Recalculate if needed — for now keep same rates
+        const stateCode = ev.shippingAddress?.region || '';
+        activeTotals = calculateTotals(items, stateCode);
+        renderSummary(items, stateCode);
         ev.updateWith({
           status: 'success',
           shippingOptions: [{
             id: 'standard',
-            label: totals.shippingCents === 0 ? 'Free Shipping' : 'Standard Shipping',
-            detail: '5–8 business days',
-            amount: totals.shippingCents
+            label: activeTotals.shippingCents === 0 ? 'Free Shipping' : 'Standard Shipping',
+            detail: activeTotals.shippingCents === 0 ? 'Complimentary on orders over $100' : '5-8 business days',
+            amount: activeTotals.shippingCents
           }],
-          total: { label: 'Zuwera', amount: totals.totalCents }
+          total: { label: 'Zuwera', amount: activeTotals.totalCents },
+          displayItems: displayItems(activeTotals)
         });
       });
 
@@ -506,7 +522,7 @@
             body: JSON.stringify({
               items,
               shippingRate: null,
-              shippingAmountCents: totals.shippingCents,
+              shippingAmountCents: activeTotals.shippingCents,
               userId: null,
               address: {
                 name: ev.payerName || '',
@@ -529,23 +545,42 @@
             return;
           }
 
-          const { error } = await stripe.confirmCardPayment(
+          const initialResult = await stripe.confirmCardPayment(
             d.clientSecret,
             { payment_method: ev.paymentMethod.id },
             { handleActions: false }
           );
 
-          if (error) {
+          if (initialResult.error) {
             ev.complete('fail');
-            showError(error.message);
-          } else {
-            ev.complete('success');
-            const oid = (d.orderId || d.paymentIntentId || '').slice(-8).toUpperCase();
-            document.getElementById('mc-success-order').textContent = oid ? 'Order #' + oid : '';
-            document.getElementById('mc-success-msg').textContent =
-              `Thank you! A confirmation has been sent to ${ev.payerEmail || 'your email'}.`;
-            showState('state-success');
+            showError(initialResult.error.message);
+            return;
           }
+
+          let finalIntent = initialResult.paymentIntent;
+          if (finalIntent?.status === 'requires_action') {
+            const actionResult = await stripe.confirmCardPayment(d.clientSecret);
+            if (actionResult.error) {
+              ev.complete('fail');
+              showError(actionResult.error.message);
+              return;
+            }
+            finalIntent = actionResult.paymentIntent;
+          }
+
+          const successStatuses = ['succeeded', 'processing', 'requires_capture'];
+          if (!finalIntent || !successStatuses.includes(finalIntent.status)) {
+            ev.complete('fail');
+            showError(`Payment is ${finalIntent?.status || 'incomplete'}. Please try again.`);
+            return;
+          }
+
+          ev.complete('success');
+          const oid = (finalIntent.id || d.orderId || d.paymentIntentId || '').slice(-8).toUpperCase();
+          document.getElementById('mc-success-order').textContent = oid ? 'Order #' + oid : '';
+          document.getElementById('mc-success-msg').textContent =
+            `Thank you! A confirmation has been sent to ${ev.payerEmail || 'your email'}.`;
+          showState('state-success');
         } catch (e) {
           ev.complete('fail');
           showError('Payment could not be completed. Please try again.');

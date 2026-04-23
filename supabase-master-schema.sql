@@ -184,10 +184,38 @@ CREATE TRIGGER on_auth_user_created
 AFTER INSERT ON auth.users
 FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- CRITICAL: Automatically assign the 'admin' role to all existing accounts
+-- Seed only exact owner emails as admins. Never promote every existing user.
 INSERT INTO public.profiles (id, email, role)
 SELECT id, email, 'admin' FROM auth.users
+WHERE lower(email) IN ('breezenash24@gmail.com', 'nasirubreeze@zuwera.store')
 ON CONFLICT (id) DO UPDATE SET role = 'admin';
+
+CREATE OR REPLACE FUNCTION public.current_user_is_admin()
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.profiles
+    WHERE id = auth.uid()
+      AND role = 'admin'
+  );
+$$ LANGUAGE sql SECURITY DEFINER SET search_path = public;
+
+CREATE OR REPLACE FUNCTION public.prevent_profile_role_self_change()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF auth.uid() = NEW.id
+     AND NEW.role IS DISTINCT FROM OLD.role
+     AND NOT public.current_user_is_admin() THEN
+    RAISE EXCEPTION 'Only admins can change profile roles';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS protect_profile_role_self_change ON public.profiles;
+CREATE TRIGGER protect_profile_role_self_change
+BEFORE UPDATE ON public.profiles
+FOR EACH ROW EXECUTE FUNCTION public.prevent_profile_role_self_change();
 
 -- 4. ROW LEVEL SECURITY (RLS) POLICIES
 
@@ -203,9 +231,11 @@ ALTER TABLE favorites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE waitlist ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 
--- Profiles: Public can read, users can update their own
-CREATE POLICY "Public read profiles" ON profiles FOR SELECT USING (true);
-CREATE POLICY "Users update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+-- Profiles: users can read/update their own non-role profile fields; admins can manage all profiles.
+CREATE POLICY "Users read own profile" ON profiles FOR SELECT TO authenticated USING (auth.uid() = id);
+CREATE POLICY "Admins read profiles" ON profiles FOR SELECT TO authenticated USING (public.current_user_is_admin());
+CREATE POLICY "Users update own profile" ON profiles FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+CREATE POLICY "Admins manage profiles" ON profiles FOR ALL TO authenticated USING (public.current_user_is_admin()) WITH CHECK (public.current_user_is_admin());
 
 -- Public Read for Catalog Data
 CREATE POLICY "Public read access" ON products FOR SELECT USING (true);
@@ -217,12 +247,12 @@ CREATE POLICY "Public read access" ON reviews FOR SELECT USING (true);
 CREATE POLICY "Public read access" ON site_settings FOR SELECT USING (true);
 
 -- Admin Write for Catalog Data
-CREATE POLICY "Admin full access" ON products FOR ALL USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
-CREATE POLICY "Admin full access" ON product_images FOR ALL USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
-CREATE POLICY "Admin full access" ON color_variants FOR ALL USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
-CREATE POLICY "Admin full access" ON product_sizes FOR ALL USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
-CREATE POLICY "Admin full access" ON size_charts FOR ALL USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
-CREATE POLICY "Admin full access" ON site_settings FOR ALL USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
+CREATE POLICY "Admin full access" ON products FOR ALL USING (public.current_user_is_admin()) WITH CHECK (public.current_user_is_admin());
+CREATE POLICY "Admin full access" ON product_images FOR ALL USING (public.current_user_is_admin()) WITH CHECK (public.current_user_is_admin());
+CREATE POLICY "Admin full access" ON color_variants FOR ALL USING (public.current_user_is_admin()) WITH CHECK (public.current_user_is_admin());
+CREATE POLICY "Admin full access" ON product_sizes FOR ALL USING (public.current_user_is_admin()) WITH CHECK (public.current_user_is_admin());
+CREATE POLICY "Admin full access" ON size_charts FOR ALL USING (public.current_user_is_admin()) WITH CHECK (public.current_user_is_admin());
+CREATE POLICY "Admin full access" ON site_settings FOR ALL USING (public.current_user_is_admin()) WITH CHECK (public.current_user_is_admin());
 
 -- User Specific Data
 CREATE POLICY "Users manage own reviews" ON reviews FOR ALL USING (auth.uid() = user_id);
@@ -230,13 +260,78 @@ CREATE POLICY "Users manage own favorites" ON favorites FOR ALL USING (auth.uid(
 CREATE POLICY "Users manage own orders" ON orders FOR ALL USING (auth.uid() = user_id);
 
 -- Admin Write/Read for User Specific Data
-CREATE POLICY "Admin full access" ON reviews FOR ALL USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
-CREATE POLICY "Admin full access" ON favorites FOR ALL USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
-CREATE POLICY "Admin full access" ON orders FOR ALL USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
+CREATE POLICY "Admin full access" ON reviews FOR ALL USING (public.current_user_is_admin()) WITH CHECK (public.current_user_is_admin());
+CREATE POLICY "Admin full access" ON favorites FOR ALL USING (public.current_user_is_admin()) WITH CHECK (public.current_user_is_admin());
+CREATE POLICY "Admin full access" ON orders FOR ALL USING (public.current_user_is_admin()) WITH CHECK (public.current_user_is_admin());
 
 -- Waitlist (Public can insert, only admins can view)
 CREATE POLICY "Public can join waitlist" ON waitlist FOR INSERT WITH CHECK (true);
-CREATE POLICY "Admins view waitlist" ON waitlist FOR SELECT USING ((SELECT role FROM profiles WHERE id = auth.uid()) = 'admin');
+CREATE POLICY "Admins view waitlist" ON waitlist FOR SELECT USING (public.current_user_is_admin());
+
+-- Admin-only RPC used by admin.html to delete users safely.
+-- It preserves order/review history by clearing user_id before deleting the auth user.
+CREATE OR REPLACE FUNCTION public.delete_user(target_user_id uuid)
+RETURNS void AS $$
+BEGIN
+  IF target_user_id IS NULL THEN
+    RAISE EXCEPTION 'target_user_id is required';
+  END IF;
+
+  IF NOT public.current_user_is_admin() THEN
+    RAISE EXCEPTION 'Only admins can delete users';
+  END IF;
+
+  IF auth.uid() = target_user_id THEN
+    RAISE EXCEPTION 'Admins cannot delete their own account from the admin panel';
+  END IF;
+
+  DELETE FROM public.favorites WHERE user_id = target_user_id;
+  UPDATE public.reviews SET user_id = NULL WHERE user_id = target_user_id;
+  UPDATE public.orders SET user_id = NULL WHERE user_id = target_user_id;
+  DELETE FROM public.profiles WHERE id = target_user_id;
+  DELETE FROM auth.users WHERE id = target_user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth;
+
+REVOKE ALL ON FUNCTION public.delete_user(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.delete_user(uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.delete_user(uuid) TO authenticated;
+
+-- Supabase Storage bucket/policies for admin product image uploads.
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'product-images',
+  'product-images',
+  true,
+  10485760,
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+ON CONFLICT (id) DO UPDATE
+SET public = true,
+    file_size_limit = EXCLUDED.file_size_limit,
+    allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+DROP POLICY IF EXISTS "Product images are public" ON storage.objects;
+DROP POLICY IF EXISTS "Admins can upload product images" ON storage.objects;
+DROP POLICY IF EXISTS "Admins can update product images" ON storage.objects;
+DROP POLICY IF EXISTS "Admins can delete product images" ON storage.objects;
+
+CREATE POLICY "Product images are public" ON storage.objects
+  FOR SELECT TO public
+  USING (bucket_id = 'product-images');
+
+CREATE POLICY "Admins can upload product images" ON storage.objects
+  FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'product-images' AND public.current_user_is_admin());
+
+CREATE POLICY "Admins can update product images" ON storage.objects
+  FOR UPDATE TO authenticated
+  USING (bucket_id = 'product-images' AND public.current_user_is_admin())
+  WITH CHECK (bucket_id = 'product-images' AND public.current_user_is_admin());
+
+CREATE POLICY "Admins can delete product images" ON storage.objects
+  FOR DELETE TO authenticated
+  USING (bucket_id = 'product-images' AND public.current_user_is_admin());
 
 -- 5. INITIAL SEED DATA
 
@@ -248,5 +343,5 @@ INSERT INTO site_settings (key, value) VALUES
 ON CONFLICT (key) DO NOTHING;
 
 -- ============================================================================
--- MIGRATION COMPLETE. Admin Panel is now 100% unlocked and functional.
+-- MIGRATION COMPLETE. Admin Panel access is restricted to exact admin accounts.
 -- ============================================================================

@@ -3,13 +3,40 @@ const DEFAULT_ADMIN_EMAILS = [
   'nasirubreeze@zuwera.store'
 ];
 
-const DEFAULT_ADMIN_HINTS = [
-  'breezenash24',
-  'breez',
-  'breeze',
-  'nash24',
-  'nasiru'
-];
+const DEFAULT_ADMIN_USER_IDS = [];
+
+function looksLikeSupabaseUrl(value) {
+  const raw = String(value || '').trim();
+  return /^https?:\/\/.+/i.test(raw) && /\.supabase\.co$/i.test(raw.replace(/^https?:\/\//i, '').split('/')[0] || '');
+}
+
+function looksLikeJwt(value) {
+  const raw = String(value || '').trim();
+  return /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(raw);
+}
+
+function resolveSupabaseConfig(env) {
+  const configuredUrl = String(env.SUPABASE_URL || env.SUPABASE_PROJECT_URL || '').trim();
+  const anonKey = String(env.SUPABASE_ANON_KEY || '').trim();
+  const serviceKey = String(env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '').trim();
+
+  // Recovery path for common dashboard mistake: URL and service key are swapped.
+  if (!looksLikeSupabaseUrl(configuredUrl) && looksLikeJwt(configuredUrl) && looksLikeSupabaseUrl(serviceKey)) {
+    return {
+      supabaseUrl: serviceKey,
+      anonKey,
+      serviceKey: configuredUrl,
+      recoveredFromSwappedEnv: true
+    };
+  }
+
+  return {
+    supabaseUrl: configuredUrl,
+    anonKey,
+    serviceKey,
+    recoveredFromSwappedEnv: false
+  };
+}
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -18,43 +45,61 @@ function json(body, status = 200) {
   });
 }
 
-function parseList(value) {
+function parseList(value, { lowercase = true } = {}) {
   return String(value || '')
     .split(',')
-    .map((item) => item.trim().toLowerCase())
+    .map((item) => {
+      const trimmed = item.trim();
+      return lowercase ? trimmed.toLowerCase() : trimmed;
+    })
     .filter(Boolean);
 }
 
 function collectEmails(user) {
-  return [
+  return [...new Set([
     user?.email,
     user?.user_metadata?.email,
     ...(Array.isArray(user?.identities)
       ? user.identities.map((identity) => identity?.identity_data?.email || identity?.email)
       : [])
-  ]
-    .filter(Boolean)
-    .map((value) => String(value).toLowerCase().trim());
+  ])]
+    .map((value) => String(value || '').toLowerCase().trim())
+    .filter(Boolean);
+}
+
+function collectUserIds(user) {
+  return [...new Set([
+    user?.id,
+    user?.user_metadata?.user_id,
+    ...(Array.isArray(user?.identities)
+      ? user.identities.map((identity) => identity?.id || identity?.user_id)
+      : [])
+  ])]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean);
 }
 
 function isAllowedAdmin(user, env) {
   const emails = collectEmails(user);
-  const fullName = String(user?.user_metadata?.full_name || '').toLowerCase().trim();
   const exactEmails = new Set([
     ...DEFAULT_ADMIN_EMAILS,
     ...parseList(env.ADMIN_EMAILS)
   ]);
-  const allowedDomains = parseList(env.ADMIN_EMAIL_DOMAINS || 'zuwera.store');
-  const hints = [...DEFAULT_ADMIN_HINTS, ...parseList(env.ADMIN_EMAIL_HINTS)];
+  const exactUserIds = new Set([
+    ...DEFAULT_ADMIN_USER_IDS,
+    ...parseList(env.ADMIN_USER_IDS, { lowercase: false })
+  ]);
+  const userIds = collectUserIds(user);
 
-  return emails.some((email) => exactEmails.has(email))
-    || emails.some((email) => allowedDomains.some((domain) => email.endsWith(`@${domain}`)))
-    || hints.some((hint) => emails.some((email) => email.includes(hint)) || fullName.includes(hint));
+  const isExactEmailAllowed = emails.some((email) => exactEmails.has(email));
+  const isExactUserAllowed = userIds.some((userId) => exactUserIds.has(userId));
+
+  return isExactEmailAllowed || isExactUserAllowed;
 }
 
-async function fetchUser(accessToken, env) {
-  const apiKey = env.SUPABASE_ANON_KEY || env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY;
-  const resp = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+async function fetchUser(accessToken, config) {
+  const apiKey = config.anonKey || config.serviceKey;
+  const resp = await fetch(`${config.supabaseUrl}/auth/v1/user`, {
     headers: {
       apikey: apiKey,
       Authorization: `Bearer ${accessToken}`
@@ -68,8 +113,8 @@ async function fetchUser(accessToken, env) {
   return resp.json();
 }
 
-async function upsertAdminProfile(user, env) {
-  const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY;
+async function upsertAdminProfile(user, config) {
+  const serviceKey = config.serviceKey;
   const emails = collectEmails(user);
   const payload = {
     id: user.id,
@@ -78,7 +123,7 @@ async function upsertAdminProfile(user, env) {
     role: 'admin'
   };
 
-  const resp = await fetch(`${env.SUPABASE_URL}/rest/v1/profiles?on_conflict=id`, {
+  const resp = await fetch(`${config.supabaseUrl}/rest/v1/profiles?on_conflict=id`, {
     method: 'POST',
     headers: {
       apikey: serviceKey,
@@ -99,8 +144,8 @@ async function upsertAdminProfile(user, env) {
 
 export async function onRequestPost({ request, env }) {
   try {
-    const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY;
-    if (!env.SUPABASE_URL || !serviceKey) {
+    const config = resolveSupabaseConfig(env);
+    if (!looksLikeSupabaseUrl(config.supabaseUrl) || !looksLikeJwt(config.serviceKey)) {
       return json({ success: false, error: 'Supabase admin access is not configured.' }, 500);
     }
 
@@ -111,7 +156,7 @@ export async function onRequestPost({ request, env }) {
       return json({ success: false, error: 'Missing access token.' }, 401);
     }
 
-    const user = await fetchUser(accessToken, env);
+    const user = await fetchUser(accessToken, config);
 
     if (!user?.id) {
       return json({ success: false, error: 'Unable to verify account.' }, 401);
@@ -121,8 +166,8 @@ export async function onRequestPost({ request, env }) {
       return json({ success: false, error: 'Your account does not have admin privileges.' }, 403);
     }
 
-    const profile = await upsertAdminProfile(user, env);
-    return json({ success: true, role: 'admin', profile });
+    const profile = await upsertAdminProfile(user, config);
+    return json({ success: true, role: 'admin', profile, recoveredFromSwappedEnv: config.recoveredFromSwappedEnv });
   } catch (err) {
     return json({ success: false, error: err.message || 'Admin access failed.' }, 500);
   }

@@ -4,12 +4,35 @@
  * Set DEEPL_API_KEY as an environment variable in your Cloudflare Pages project settings.
  */
 
-export async function onRequestPost(context) {
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
+function parseCsv(value) {
+  return String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function buildCorsHeaders(request, env = {}) {
+  const origin = request?.headers?.get('Origin') || '';
+  const allowedOrigins = new Set([
+    env.SITE_URL || 'https://zuwera.store',
+    'https://zuwera.store',
+    'https://www.zuwera.store',
+    ...parseCsv(env.TRANSLATE_ALLOWED_ORIGINS),
+  ]);
+  const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
+  const allowOrigin = origin && (allowedOrigins.has(origin) || isLocal)
+    ? origin
+    : (env.SITE_URL || 'https://zuwera.store');
+
+  return {
+    'Access-Control-Allow-Origin': allowOrigin,
+    'Access-Control-Allow-Headers': 'Content-Type, X-Translate-Token',
     'Content-Type': 'application/json',
   };
+}
+
+export async function onRequestPost(context) {
+  const corsHeaders = buildCorsHeaders(context.request, context.env);
 
   function normalizeTranslateEndpoint(value) {
     if (!value) return null;
@@ -19,11 +42,37 @@ export async function onRequestPost(context) {
   }
 
   try {
+    if (context.env.TRANSLATE_API_TOKEN) {
+      const token = context.request.headers.get('X-Translate-Token') || '';
+      if (token !== context.env.TRANSLATE_API_TOKEN) {
+        return new Response(JSON.stringify({ error: 'Unauthorized.' }), { status: 401, headers: corsHeaders });
+      }
+    }
+
     const { texts, target } = await context.request.json();
 
     if (!texts || !Array.isArray(texts) || !target) {
       return new Response(
         JSON.stringify({ error: 'Missing texts array or target language code.' }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    const maxTexts = Math.max(1, Number.parseInt(context.env.TRANSLATE_MAX_TEXTS || '20', 10) || 20);
+    const maxChars = Math.max(100, Number.parseInt(context.env.TRANSLATE_MAX_CHARS || '5000', 10) || 5000);
+    const normalizedTexts = texts.map((text) => String(text || ''));
+    const totalChars = normalizedTexts.reduce((sum, text) => sum + text.length, 0);
+
+    if (normalizedTexts.length > maxTexts || totalChars > maxChars) {
+      return new Response(
+        JSON.stringify({ error: 'Translation request is too large.' }),
+        { status: 413, headers: corsHeaders }
+      );
+    }
+
+    if (!/^[A-Z]{2}(-[A-Z]{2})?$/.test(String(target).toUpperCase())) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid target language code.' }),
         { status: 400, headers: corsHeaders }
       );
     }
@@ -39,7 +88,7 @@ export async function onRequestPost(context) {
     }
 
     const requestBody = JSON.stringify({
-      text: texts.map((text) => String(text)),
+      text: normalizedTexts,
       target_lang: String(target).toUpperCase(),
     });
 
@@ -107,13 +156,13 @@ export async function onRequestPost(context) {
   }
 }
 
-export async function onRequestOptions() {
+export async function onRequestOptions(context) {
   return new Response(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      ...buildCorsHeaders(context.request, context.env),
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Content-Type, X-Translate-Token',
     },
   });
 }

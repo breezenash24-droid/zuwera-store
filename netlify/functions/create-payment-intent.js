@@ -18,40 +18,68 @@
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { ok, err, preflight } = require('./_shared');
+const crypto = require('crypto');
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return preflight();
   if (event.httpMethod !== 'POST')    return err(405, 'Method not allowed');
 
   try {
-    const { items, shippingRate, address } = JSON.parse(event.body);
+    const { items, shippingRate, shippingAmountCents, address } = JSON.parse(event.body);
 
     if (!items?.length || !address?.email)
       return err(400, 'Missing required fields: items and address.email');
 
+    const getItemName = (item) => item?.name || item?.title || 'Product';
+    const getItemPriceCents = (item) => {
+      const parsed = Number.parseFloat(item?.price);
+      if (!Number.isFinite(parsed) || parsed < 0) return 0;
+      return Math.round(parsed * 100);
+    };
+    const parseShippingFallbackCents = (value) => {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed) || parsed < 0) return 0;
+      return Math.round(parsed);
+    };
+
     // ── Subtotal in cents ─────────────────────────────────────────
     const subtotalCents = items.reduce(
-      (sum, item) => sum + Math.round(item.price * 100) * (item.quantity || 1),
+      (sum, item) => sum + getItemPriceCents(item) * (item.quantity || 1),
       0
     );
 
-    const shippingCents = shippingRate?.amount
-      ? Math.round(parseFloat(shippingRate.amount) * 100)
-      : 0;
+    const parsedShippingAmount = Number.parseFloat(shippingRate?.amount);
+    const shippingCents = Number.isFinite(parsedShippingAmount) && parsedShippingAmount > 0
+      ? Math.round(parsedShippingAmount * 100)
+      : parseShippingFallbackCents(shippingAmountCents);
 
     const lineItems = items.map(item => ({
-      name:         item.name,
-      amount:       Math.round(item.price * 100),
+      name:         getItemName(item),
+      amount:       getItemPriceCents(item),
       quantity:     item.quantity || 1,
       tax_behavior: 'exclusive',
     }));
 
     // ── Deterministic idempotency key ─────────────────────────────
     const cartFingerprint = items
-      .map(i => `${i.name}:${i.quantity}:${Math.round(i.price * 100)}`)
+      .map(i => `${getItemName(i)}:${i.quantity || 1}:${getItemPriceCents(i)}`)
       .sort()
       .join('|');
-    const idempotencyKey = `pi_${address.email}_${shippingCents}_${Buffer.from(cartFingerprint).toString('base64').slice(0, 32)}`;
+    const addressFingerprint = [
+      address.email,
+      address.line1,
+      address.line2,
+      address.city,
+      address.state,
+      address.zip,
+      address.country || 'US'
+    ].map((part) => String(part || '').trim().toLowerCase()).join('|');
+    const idempotencyHash = crypto
+      .createHash('sha256')
+      .update(JSON.stringify({ cartFingerprint, shippingCents, addressFingerprint }))
+      .digest('hex')
+      .slice(0, 40);
+    const idempotencyKey = `pi_${idempotencyHash}`;
 
     // ── Create PaymentIntent ──────────────────────────────────────
     const paymentIntent = await stripe.paymentIntents.create(

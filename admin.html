@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="zuwera-deployment" content="2026-04-19-mobile-menu-v3">
     <meta name="robots" content="noindex, nofollow">
     <title>Zuwera Admin Panel</title>
+    <link rel="icon" type="image/png" href="/images/favicon-black.png?v=1">
+    <script src="/favicon-utils.js?v=1"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -421,11 +424,6 @@
             transition: border-color 0.3s;
         }
 
-    .form-select option {
-        background-color: var(--bg-secondary);
-        color: var(--text-primary);
-    }
-
         .form-input:focus, .form-select:focus, .form-textarea:focus {
             outline: none;
             border-color: var(--accent);
@@ -476,6 +474,14 @@
             display: block;
         }
 
+        /* Toggle switch */
+        .toggle-switch { position:relative; display:inline-block; width:44px; height:24px; flex-shrink:0; }
+        .toggle-switch input { opacity:0; width:0; height:0; }
+        .toggle-slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:var(--border); transition:.2s; border-radius:24px; }
+        .toggle-slider:before { position:absolute; content:""; height:18px; width:18px; left:3px; bottom:3px; background:#fff; transition:.2s; border-radius:50%; }
+        .toggle-switch input:checked + .toggle-slider { background:var(--accent); }
+        .toggle-switch input:checked + .toggle-slider:before { transform:translateX(20px); }
+
         /* Color Variant */
         .color-variant-item {
             display: grid;
@@ -505,6 +511,13 @@
             margin-bottom: 18px;
         }
 
+        .size-guide-toolbar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+            align-items: end;
+        }
+
         .size-guide-actions {
             display: flex;
             gap: 10px;
@@ -527,6 +540,7 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
+            margin-bottom: 30px;
         }
 
         .size-row {
@@ -534,6 +548,10 @@
             grid-template-columns: minmax(0, 1.4fr) minmax(120px, 0.8fr) auto;
             gap: 12px;
             align-items: end;
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 14px;
         }
 
         .size-row .form-group {
@@ -580,6 +598,10 @@
 
         .modal.active {
             display: flex;
+        }
+
+        body.light-mode .modal {
+            background-color: #F0EEE9;
         }
 
         .modal-content {
@@ -984,8 +1006,12 @@
                     <a class="nav-link" data-page="reviews" onclick="navigateTo('reviews')">Reviews</a>
                     <a class="nav-link" data-page="users" onclick="navigateTo('users')">Users</a>
                     <a class="nav-link" data-page="analytics" onclick="navigateTo('analytics')">Analytics</a>
+                    <a class="nav-link" data-page="finance" onclick="navigateTo('finance')">Finance</a>
+                    <a class="nav-link" data-page="shipping" onclick="navigateTo('shipping')">Shipping</a>
+                    <a class="nav-link" data-page="receipts" onclick="navigateTo('receipts')">Receipts</a>
                     <a class="nav-link" data-page="settings" onclick="navigateTo('settings')">Settings</a>
                     <a class="nav-link" data-page="website" onclick="navigateTo('website')">Website</a>
+                    <a class="nav-link" data-page="audit" onclick="navigateTo('audit')">Audit</a>
                 </div>
             </nav>
             <div class="sidebar-bottom">
@@ -1023,6 +1049,32 @@
                             <div class="stat-card-value" id="lowStockAlerts">0</div>
                         </div>
                     </div>
+                </div>
+
+                <!-- Audit Log Page -->
+                <div id="audit" class="page">
+                    <div class="products-header">
+                        <div>
+                            <h2>Admin Audit Log</h2>
+                            <p style="color:var(--text-secondary);font-size:.85rem;margin-top:6px;">Tracks admin changes to products, orders, settings, users, reviews, and size charts.</p>
+                        </div>
+                        <button class="btn btn-secondary" id="refreshAuditBtn">Refresh</button>
+                    </div>
+                    <div id="auditStatus" style="color:var(--text-secondary);font-size:.9rem;margin-bottom:16px;"></div>
+                    <table class="products-table">
+                        <thead>
+                            <tr>
+                                <th>When</th>
+                                <th>Admin</th>
+                                <th>Action</th>
+                                <th>Resource</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditTableBody">
+                            <tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Open this page after creating the audit table in Supabase.</td></tr>
+                        </tbody>
+                    </table>
                 </div>
 
                 <!-- Products Page -->
@@ -1321,10 +1373,10 @@
 
                     // ── Data loaders ──
                     async function anaLoadProds() {
-                      const { data: prods } = await window.sb.from('products').select('*');
-                      const { data: sizes } = await window.sb.from('product_sizes').select('*');
-                      const { data: colors } = await window.sb.from('color_variants').select('*');
-                      const { data: images } = await window.sb.from('product_images').select('*');
+                      const { data: prods } = await sb.from('products').select('*');
+                      const { data: sizes } = await sb.from('product_sizes').select('*');
+                      const { data: colors } = await sb.from('color_variants').select('*');
+                      const { data: images } = await sb.from('product_images').select('*');
                       _anaProds = (prods || []).map(p => ({
                         ...p,
                         product_sizes: (sizes || []).filter(s => s.product_id === p.id),
@@ -1334,13 +1386,13 @@
                     }
 
                     async function anaLoadOrders() {
-                      const { data, error } = await window.sb.from('orders').select('*');
+                      const { data, error } = await sb.from('orders').select('*');
                       if (!error) _anaOrders = data || [];
                     }
 
                     async function anaLoadEngagement() {
-                      const { data: favs } = await window.sb.from('favorites').select('*');
-                      const { data: waitlist } = await window.sb.from('waitlist').select('*');
+                      const { data: favs } = await sb.from('favorites').select('*');
+                      const { data: waitlist } = await sb.from('waitlist').select('*');
                       anaEl('ana-totalFavorites').textContent = favs ? favs.length : 0;
                       anaEl('ana-totalWaitlist').textContent = waitlist ? waitlist.length : 0;
 
@@ -1457,7 +1509,7 @@
 
                     async function anaUpdateReviews() {
                       try {
-                        const { data: reviews } = await window.sb.from('reviews').select('rating, product_id');
+                        const { data: reviews } = await sb.from('reviews').select('rating, product_id');
                         const byProd = {}; const ratings = [];
                         (reviews||[]).forEach(r => { if(!byProd[r.product_id]) byProd[r.product_id]=[]; byProd[r.product_id].push(r); if(r.rating) ratings.push(r.rating); });
                         const avg = ratings.length?(ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(2):0;
@@ -1598,6 +1650,944 @@
                   </script>
                 </div>
 
+                <!-- Finance Page -->
+                <div id="finance" class="page">
+                  <div class="page-header" style="margin-bottom:24px;">
+                    <h2>Finance</h2>
+                    <p style="color:var(--text-secondary);font-size:14px;margin-top:4px;">Revenue trends and per-product breakdown</p>
+                  </div>
+
+                  <div id="fin-error" style="display:none;background:#2a1a1a;border:1px solid #ef4444;border-radius:8px;padding:14px 18px;margin-bottom:20px;color:#ef4444;font-size:13px;"></div>
+
+                  <!-- KPI cards — row 1 -->
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:16px;">
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Total Revenue</p>
+                      <p id="fin-total-rev" style="font-size:24px;font-weight:700;color:var(--accent);">—</p>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Total Orders</p>
+                      <p id="fin-total-orders" style="font-size:24px;font-weight:700;">—</p>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Avg Order Value</p>
+                      <p id="fin-aov" style="font-size:24px;font-weight:700;">—</p>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Units Sold</p>
+                      <p id="fin-units" style="font-size:24px;font-weight:700;">—</p>
+                    </div>
+                  </div>
+
+                  <!-- KPI cards — row 2 -->
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px;">
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:6px;">This Month</p>
+                      <p id="fin-this-month" style="font-size:22px;font-weight:700;color:var(--accent);">—</p>
+                      <p id="fin-mom-badge" style="font-size:11px;margin-top:4px;color:var(--text-secondary);"></p>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:6px;">Last Month</p>
+                      <p id="fin-last-month" style="font-size:22px;font-weight:700;">—</p>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:6px;">Tax Collected</p>
+                      <p id="fin-tax-total" style="font-size:22px;font-weight:700;">—</p>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:6px;">Shipping Absorbed</p>
+                      <p id="fin-shipping-absorbed" style="font-size:22px;font-weight:700;">—</p>
+                      <p style="font-size:11px;margin-top:4px;color:var(--text-secondary);">cost you covered</p>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:6px;">Refund Rate</p>
+                      <p id="fin-refund-rate" style="font-size:22px;font-weight:700;">—</p>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:6px;">Avg Items / Order</p>
+                      <p id="fin-avg-items" style="font-size:22px;font-weight:700;">—</p>
+                    </div>
+                  </div>
+
+                  <!-- Top customer banner -->
+                  <div id="fin-top-customer-wrap" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:28px;display:flex;align-items:center;gap:16px;">
+                    <div style="font-size:22px;">🏆</div>
+                    <div>
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:2px;">Top Customer</p>
+                      <p id="fin-top-customer-name" style="font-weight:600;font-size:.95rem;"></p>
+                      <p id="fin-top-customer-stats" style="font-size:.8rem;color:var(--text-secondary);margin-top:2px;"></p>
+                    </div>
+                  </div>
+
+                  <!-- Revenue trend chart -->
+                  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:24px;">
+                    <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:20px;">Revenue Over Time (30-day rolling)</p>
+                    <canvas id="fin-revenue-chart" height="100"></canvas>
+                  </div>
+
+                  <!-- Per-product breakdown -->
+                  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:24px;">
+                    <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:20px;">Per-Product Revenue</p>
+                    <div style="overflow-x:auto;">
+                      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <thead>
+                          <tr style="border-bottom:2px solid var(--border);">
+                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Product</th>
+                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Units</th>
+                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Revenue</th>
+                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Avg Unit Price</th>
+                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">% of Total</th>
+                          </tr>
+                        </thead>
+                        <tbody id="fin-product-tbody">
+                          <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-secondary);">Loading…</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <!-- Product revenue bar chart -->
+                  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:24px;">
+                    <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:20px;">Top Products by Revenue</p>
+                    <canvas id="fin-product-chart" height="120"></canvas>
+                  </div>
+
+                  <!-- Category breakdown -->
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:20px;">Revenue by Category</p>
+                      <canvas id="fin-category-chart" height="200"></canvas>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:16px;">Category Breakdown</p>
+                      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <thead>
+                          <tr style="border-bottom:2px solid var(--border);">
+                            <th style="text-align:left;padding:8px 0;color:var(--text-secondary);font-weight:500;">Category</th>
+                            <th style="text-align:right;padding:8px 0;color:var(--text-secondary);font-weight:500;">Units</th>
+                            <th style="text-align:right;padding:8px 0;color:var(--text-secondary);font-weight:500;">Revenue</th>
+                          </tr>
+                        </thead>
+                        <tbody id="fin-category-tbody">
+                          <tr><td colspan="3" style="text-align:center;padding:24px;color:var(--text-secondary);">Loading…</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <!-- Monthly Breakdown -->
+                  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;margin-top:24px;">
+                    <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:16px;">Monthly Breakdown (last 12 months)</p>
+                    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                      <thead>
+                        <tr style="border-bottom:1px solid var(--border);">
+                          <th style="text-align:left;padding:8px 0;color:var(--text-secondary);font-weight:500;">Month</th>
+                          <th style="text-align:right;padding:8px 0;color:var(--text-secondary);font-weight:500;">Orders</th>
+                          <th style="text-align:right;padding:8px 0;color:var(--text-secondary);font-weight:500;">Revenue</th>
+                          <th style="text-align:right;padding:8px 0;color:var(--text-secondary);font-weight:500;">AOV</th>
+                          <th style="text-align:right;padding:8px 0;color:var(--text-secondary);font-weight:500;">vs Prior</th>
+                        </tr>
+                      </thead>
+                      <tbody id="fin-monthly-tbody">
+                        <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-secondary);">Loading…</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <script>
+                  (function() {
+                    let _finLoaded = false;
+                    let finRevenueChart = null;
+                    let finProductChart = null;
+                    let finCategoryChart = null;
+                    let _chartJsReady = false;
+                    let _chartJsLoading = false;
+                    let _chartJsQueue = [];
+
+                    function loadChartJs(cb) {
+                      if (_chartJsReady) { cb(); return; }
+                      _chartJsQueue.push(cb);
+                      if (_chartJsLoading) return;
+                      _chartJsLoading = true;
+                      const s = document.createElement('script');
+                      s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js';
+                      s.onload = function() { _chartJsReady = true; _chartJsQueue.splice(0).forEach(function(f){ f(); }); };
+                      s.onerror = function() { _chartJsQueue.splice(0).forEach(function(f){ f(new Error('Chart.js failed to load')); }); };
+                      document.head.appendChild(s);
+                    }
+
+                    const CAT_COLORS = ['#F891A5','#a78bfa','#34d399','#fbbf24','#60a5fa','#f87171','#e879f9','#2dd4bf','#fb923c','#94a3b8'];
+
+                    function finEl(id) { return document.getElementById(id); }
+                    function finErr(msg) {
+                      const el = finEl('fin-error');
+                      el.textContent = msg;
+                      el.style.display = 'block';
+                    }
+                    function fmt$(n) { return '$' + parseFloat(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+                    function fmtN(n) { return parseInt(n||0).toLocaleString(); }
+
+                    window.finLoadData = async function() {
+                      finEl('fin-error').style.display = 'none';
+
+                      // Ensure Chart.js is loaded before proceeding
+                      await new Promise(function(resolve, reject) { loadChartJs(function(err){ err ? reject(err) : resolve(); }); });
+
+                      try {
+                        // Fetch orders and products in parallel
+                        const [ordersRes, productsRes] = await Promise.all([
+                          sb.from('orders').select('total,subtotal,shipping,tax,items,created_at,status,email,customer_name,free_shipping').order('created_at', { ascending: true }),
+                          sb.from('products').select('title,subtitle')
+                        ]);
+                        if (ordersRes.error) throw ordersRes.error;
+
+                        const allOrders = ordersRes.data || [];
+
+                        // Build title → category map from products table (subtitle = category)
+                        const titleToCategory = {};
+                        (productsRes.data || []).forEach(p => {
+                          if (p.title && p.subtitle) {
+                            titleToCategory[p.title.trim().toLowerCase()] = p.subtitle;
+                          }
+                        });
+
+                        const confirmed = allOrders.filter(o => o.status !== 'cancelled');
+
+                        // Month helpers
+                        const now        = new Date();
+                        const thisMonthKey  = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+                        const lastMonthDate = new Date(now.getFullYear(), now.getMonth()-1, 1);
+                        const lastMonthKey  = lastMonthDate.getFullYear() + '-' + String(lastMonthDate.getMonth()+1).padStart(2,'0');
+
+                        // KPI totals
+                        let totalRev = 0, unitsSold = 0, totalTax = 0, totalAbsorbed = 0;
+                        let thisMonthRev = 0, lastMonthRev = 0;
+                        const customerMap = {};
+                        const monthMap = {};
+
+                        confirmed.forEach(o => {
+                          const oTotal = parseFloat(o.total || 0);
+                          const oTax   = parseFloat(o.tax   || 0);
+                          const oShip  = parseFloat(o.shipping || 0);
+                          const month  = (o.created_at || '').slice(0, 7);
+
+                          totalRev += oTotal;
+                          totalTax += oTax;
+
+                          // Absorbed = we paid shipping but charged $0 to customer
+                          // Use actual_shipping from Stripe metadata if available;
+                          // fall back to the 'shipping' column (which = 0 for free orders)
+                          // Instead: if free_shipping flag is true the 'shipping' col = 0;
+                          // use 'subtotal' to back-calculate estimated carrier cost if needed.
+                          // For now track 'shipping' field (what customer paid) — when free
+                          // the customer paid $0 but we still bought the label.  The actual
+                          // cost is not yet in the orders table, so we leave this as "charged to customer".
+                          if (!o.free_shipping) totalAbsorbed += 0; // paid by customer
+
+                          if (month === thisMonthKey) thisMonthRev += oTotal;
+                          if (month === lastMonthKey) lastMonthRev += oTotal;
+
+                          // Monthly map
+                          if (!monthMap[month]) monthMap[month] = { orders: 0, revenue: 0 };
+                          monthMap[month].orders++;
+                          monthMap[month].revenue += oTotal;
+
+                          // Customer map (for top customer)
+                          const custKey = o.email || o.customer_name || 'Unknown';
+                          if (!customerMap[custKey]) customerMap[custKey] = { name: o.customer_name || o.email || 'Unknown', total: 0, orders: 0 };
+                          customerMap[custKey].total  += oTotal;
+                          customerMap[custKey].orders += 1;
+                        });
+
+                        // Per-product map + category map
+                        const prodMap = {};
+                        const catMap = {};
+                        confirmed.forEach(o => {
+                          let items = [];
+                          try { items = JSON.parse(o.items || '[]'); } catch(_) {}
+                          items.forEach(item => {
+                            const name = item.name || 'Unknown';
+                            const qty = parseInt(item.quantity || 1);
+                            const rev = (item.amount * qty) / 100;
+                            unitsSold += qty;
+
+                            if (!prodMap[name]) prodMap[name] = { units: 0, revenue: 0 };
+                            prodMap[name].units += qty;
+                            prodMap[name].revenue += rev;
+
+                            const cat = titleToCategory[name.trim().toLowerCase()] || 'Uncategorised';
+                            if (!catMap[cat]) catMap[cat] = { units: 0, revenue: 0 };
+                            catMap[cat].units += qty;
+                            catMap[cat].revenue += rev;
+                          });
+                        });
+
+                        // Refund rate
+                        const refunded = allOrders.filter(o => o.status === 'refunded').length;
+                        const refundRate = allOrders.length ? (refunded / allOrders.length * 100).toFixed(1) : '0.0';
+
+                        // Avg items per order
+                        const avgItems = confirmed.length ? (unitsSold / confirmed.length).toFixed(1) : '0';
+
+                        // Top customer
+                        const topCust = Object.values(customerMap).sort((a,b) => b.total - a.total)[0];
+
+                        // Month-over-month
+                        const momChange = lastMonthRev > 0
+                          ? ((thisMonthRev - lastMonthRev) / lastMonthRev * 100).toFixed(1)
+                          : null;
+
+                        const aov = confirmed.length ? totalRev / confirmed.length : 0;
+
+                        // ── Populate stat cards ──
+                        finEl('fin-total-rev').textContent = fmt$(totalRev);
+                        finEl('fin-total-orders').textContent = fmtN(confirmed.length);
+                        finEl('fin-aov').textContent = fmt$(aov);
+                        finEl('fin-units').textContent = fmtN(unitsSold);
+
+                        finEl('fin-this-month').textContent = fmt$(thisMonthRev);
+                        finEl('fin-last-month').textContent = fmt$(lastMonthRev);
+                        finEl('fin-tax-total').textContent  = fmt$(totalTax);
+                        finEl('fin-shipping-absorbed').textContent = fmt$(totalAbsorbed);
+                        finEl('fin-refund-rate').textContent = refundRate + '%';
+                        finEl('fin-avg-items').textContent   = avgItems;
+
+                        // MoM badge
+                        const momBadge = finEl('fin-mom-badge');
+                        if (momChange !== null) {
+                          const up = parseFloat(momChange) >= 0;
+                          momBadge.textContent = (up ? '▲' : '▼') + ' ' + Math.abs(momChange) + '% vs last month';
+                          momBadge.style.color = up ? '#10b981' : '#ef4444';
+                        }
+
+                        // Top customer
+                        if (topCust) {
+                          const wrap = finEl('fin-top-customer-wrap');
+                          if (wrap) { wrap.style.display = 'flex'; }
+                          finEl('fin-top-customer-name').textContent = topCust.name;
+                          finEl('fin-top-customer-stats').textContent = topCust.orders + ' order' + (topCust.orders !== 1 ? 's' : '') + ' · ' + fmt$(topCust.total) + ' total';
+                        }
+
+                        // Monthly breakdown table (last 12 months)
+                        const monthlyTbody = finEl('fin-monthly-tbody');
+                        const sortedMonths = Object.keys(monthMap).sort().reverse().slice(0, 12);
+                        if (sortedMonths.length === 0) {
+                          monthlyTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-secondary);">No data</td></tr>';
+                        } else {
+                          monthlyTbody.innerHTML = sortedMonths.map((m, i) => {
+                            const d = monthMap[m];
+                            const priorKey = sortedMonths[i + 1];
+                            const priorRev = priorKey ? monthMap[priorKey]?.revenue || 0 : null;
+                            const chg = priorRev !== null && priorRev > 0
+                              ? ((d.revenue - priorRev) / priorRev * 100).toFixed(1)
+                              : null;
+                            const chgHtml = chg !== null
+                              ? `<span style="color:${parseFloat(chg)>=0?'#10b981':'#ef4444'}">${parseFloat(chg)>=0?'▲':'▼'} ${Math.abs(chg)}%</span>`
+                              : '—';
+                            const [y, mo] = m.split('-');
+                            const label = new Date(parseInt(y), parseInt(mo)-1, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                            const monthAov = d.orders > 0 ? fmt$(d.revenue / d.orders) : '—';
+                            return `<tr style="border-bottom:1px solid var(--border);">
+                              <td style="padding:10px 0;">${label}</td>
+                              <td style="padding:10px 0;text-align:right;">${d.orders}</td>
+                              <td style="padding:10px 0;text-align:right;color:var(--accent);font-weight:600;">${fmt$(d.revenue)}</td>
+                              <td style="padding:10px 0;text-align:right;">${monthAov}</td>
+                              <td style="padding:10px 0;text-align:right;">${chgHtml}</td>
+                            </tr>`;
+                          }).join('');
+                        }
+
+                        // Product table
+                        const prods = Object.entries(prodMap).sort((a,b) => b[1].revenue - a[1].revenue);
+                        const tbody = finEl('fin-product-tbody');
+                        if (prods.length === 0) {
+                          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-secondary);">No order items found</td></tr>';
+                        } else {
+                          tbody.innerHTML = prods.map(([name, d]) => {
+                            const pct = totalRev > 0 ? ((d.revenue/totalRev)*100).toFixed(1) : '0.0';
+                            const avgUnit = d.units > 0 ? d.revenue/d.units : 0;
+                            const cat = titleToCategory[name.trim().toLowerCase()] || '—';
+                            return `<tr style="border-bottom:1px solid var(--border);">
+                              <td style="padding:12px;">${name}<span style="margin-left:8px;font-size:11px;color:var(--text-secondary);">${cat}</span></td>
+                              <td style="padding:12px;text-align:right;">${d.units}</td>
+                              <td style="padding:12px;text-align:right;color:var(--accent);font-weight:600;">${fmt$(d.revenue)}</td>
+                              <td style="padding:12px;text-align:right;">${fmt$(avgUnit)}</td>
+                              <td style="padding:12px;text-align:right;">
+                                <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;">
+                                  <div style="width:60px;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+                                    <div style="width:${pct}%;height:100%;background:var(--accent);border-radius:3px;"></div>
+                                  </div>
+                                  ${pct}%
+                                </div>
+                              </td>
+                            </tr>`;
+                          }).join('');
+                        }
+
+                        // Revenue trend (group by day)
+                        const dayMap = {};
+                        confirmed.forEach(o => {
+                          const day = o.created_at ? o.created_at.slice(0,10) : 'unknown';
+                          dayMap[day] = (dayMap[day] || 0) + parseFloat(o.total || 0);
+                        });
+                        const sortedDays = Object.keys(dayMap).sort();
+                        const last30 = sortedDays.slice(-30);
+                        const revValues = last30.map(d => dayMap[d].toFixed(2));
+
+                        const ctx1 = finEl('fin-revenue-chart').getContext('2d');
+                        if (finRevenueChart) finRevenueChart.destroy();
+                        finRevenueChart = new Chart(ctx1, {
+                          type: 'line',
+                          data: {
+                            labels: last30.map(d => d.slice(5)),
+                            datasets: [{ label: 'Revenue', data: revValues, borderColor: '#F891A5', backgroundColor: 'rgba(248,145,165,0.12)', fill: true, tension: 0.4, pointRadius: 3 }]
+                          },
+                          options: {
+                            responsive: true,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                              x: { ticks: { color: '#9b9b9b', maxTicksLimit: 10 }, grid: { color: '#1e1e1e' } },
+                              y: { ticks: { color: '#9b9b9b', callback: v => '$' + v }, grid: { color: '#1e1e1e' } }
+                            }
+                          }
+                        });
+
+                        // Product bar chart (top 8)
+                        const top8 = prods.slice(0,8);
+                        const ctx2 = finEl('fin-product-chart').getContext('2d');
+                        if (finProductChart) finProductChart.destroy();
+                        finProductChart = new Chart(ctx2, {
+                          type: 'bar',
+                          data: {
+                            labels: top8.map(([n]) => n),
+                            datasets: [{ label: 'Revenue', data: top8.map(([,d]) => d.revenue.toFixed(2)), backgroundColor: '#F891A5', borderRadius: 4 }]
+                          },
+                          options: {
+                            responsive: true,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                              x: { ticks: { color: '#9b9b9b' }, grid: { display: false } },
+                              y: { ticks: { color: '#9b9b9b', callback: v => '$' + v }, grid: { color: '#1e1e1e' } }
+                            }
+                          }
+                        });
+
+                        // Category breakdown
+                        const cats = Object.entries(catMap).sort((a,b) => b[1].revenue - a[1].revenue);
+
+                        // Category table
+                        const ctbody = finEl('fin-category-tbody');
+                        if (cats.length === 0) {
+                          ctbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:24px;color:var(--text-secondary);">No category data</td></tr>';
+                        } else {
+                          ctbody.innerHTML = cats.map(([cat, d], i) => `
+                            <tr style="border-bottom:1px solid var(--border);">
+                              <td style="padding:10px 0;">
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                  <div style="width:10px;height:10px;border-radius:50%;background:${CAT_COLORS[i % CAT_COLORS.length]};flex-shrink:0;"></div>
+                                  ${cat}
+                                </div>
+                              </td>
+                              <td style="padding:10px 0;text-align:right;">${d.units}</td>
+                              <td style="padding:10px 0;text-align:right;font-weight:600;color:var(--accent);">${fmt$(d.revenue)}</td>
+                            </tr>`).join('');
+                        }
+
+                        // Category doughnut chart
+                        const ctx3 = finEl('fin-category-chart').getContext('2d');
+                        if (finCategoryChart) finCategoryChart.destroy();
+                        finCategoryChart = new Chart(ctx3, {
+                          type: 'doughnut',
+                          data: {
+                            labels: cats.map(([c]) => c),
+                            datasets: [{
+                              data: cats.map(([,d]) => d.revenue.toFixed(2)),
+                              backgroundColor: cats.map((_, i) => CAT_COLORS[i % CAT_COLORS.length]),
+                              borderColor: '#09090b',
+                              borderWidth: 3
+                            }]
+                          },
+                          options: {
+                            responsive: true,
+                            cutout: '65%',
+                            plugins: {
+                              legend: { position: 'bottom', labels: { color: '#9b9b9b', padding: 16, font: { size: 12 } } },
+                              tooltip: { callbacks: { label: ctx => ` ${ctx.label}: $${parseFloat(ctx.parsed).toFixed(2)}` } }
+                            }
+                          }
+                        });
+
+                      } catch(e) { finErr('Failed to load finance data: ' + e.message); }
+                    };
+                  })();
+                  </script>
+                </div>
+
+                <!-- Shipping Page -->
+                <div id="shipping" class="page">
+                  <div class="page-header" style="margin-bottom:24px;">
+                    <h2>Shipping</h2>
+                    <p style="color:var(--text-secondary);font-size:14px;margin-top:4px;">Shipping spend — aggregate and per-order breakdown</p>
+                  </div>
+
+                  <div id="ship-error" style="display:none;background:#2a1a1a;border:1px solid #ef4444;border-radius:8px;padding:14px 18px;margin-bottom:20px;color:#ef4444;font-size:13px;"></div>
+
+                  <!-- Aggregate KPI cards -->
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px;">
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Total Shipping Collected</p>
+                      <p id="ship-total" style="font-size:24px;font-weight:700;color:var(--accent);">—</p>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Orders with Shipping</p>
+                      <p id="ship-count" style="font-size:24px;font-weight:700;">—</p>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Avg Shipping / Order</p>
+                      <p id="ship-avg" style="font-size:24px;font-weight:700;">—</p>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Free Shipping Orders</p>
+                      <p id="ship-free" style="font-size:24px;font-weight:700;">—</p>
+                    </div>
+                  </div>
+
+                  <!-- Carrier breakdown -->
+                  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:24px;">
+                    <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:20px;">By Carrier / Service</p>
+                    <div style="overflow-x:auto;">
+                      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <thead>
+                          <tr style="border-bottom:2px solid var(--border);">
+                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Service</th>
+                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Orders</th>
+                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Total Collected</th>
+                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Avg per Order</th>
+                          </tr>
+                        </thead>
+                        <tbody id="ship-carrier-tbody">
+                          <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-secondary);">Loading…</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <!-- Individual orders -->
+                  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);">Individual Orders</p>
+                      <input id="ship-search" type="text" placeholder="Search customer, carrier, tracking #…" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:7px 12px;font-size:13px;color:var(--text-primary);width:260px;">
+                    </div>
+                    <div style="overflow-x:auto;">
+                      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <thead>
+                          <tr style="border-bottom:2px solid var(--border);">
+                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Date</th>
+                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Customer</th>
+                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Carrier / Service</th>
+                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Tracking #</th>
+                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Shipping</th>
+                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Order Total</th>
+                          </tr>
+                        </thead>
+                        <tbody id="ship-orders-tbody">
+                          <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-secondary);">Loading…</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div id="ship-pagination" style="display:flex;gap:8px;justify-content:center;margin-top:16px;"></div>
+                  </div>
+
+                  <script>
+                  (function() {
+                    let _shipLoaded = false;
+                    let _shipOrders = [];
+                    let _shipPage = 1;
+                    const PAGE_SIZE = 25;
+
+                    function shipEl(id) { return document.getElementById(id); }
+                    function shipErr(msg) {
+                      const el = shipEl('ship-error');
+                      el.textContent = msg;
+                      el.style.display = 'block';
+                    }
+                    function fmt$(n) { return '$' + parseFloat(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+                    function fmtDate(str) {
+                      if (!str) return '—';
+                      const d = new Date(str);
+                      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    }
+
+                    function shipRenderOrders(orders, page) {
+                      const tbody = shipEl('ship-orders-tbody');
+                      const start = (page-1)*PAGE_SIZE;
+                      const slice = orders.slice(start, start+PAGE_SIZE);
+                      if (slice.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-secondary);">No orders found</td></tr>';
+                      } else {
+                        tbody.innerHTML = slice.map(o => {
+                          const carrier = escapeHtml([o.shipping_provider, o.shipping_service].filter(Boolean).join(' — ') || '—');
+                          const safeTrackingUrl = safeHttpUrl(o.tracking_url);
+                          const trackingNumber = escapeHtml(o.tracking_number || '');
+                          const trackCell = o.tracking_number
+                            ? (safeTrackingUrl
+                                ? `<a href="${escapeAttr(safeTrackingUrl)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:none;">${trackingNumber}</a>`
+                                : trackingNumber)
+                            : '—';
+                          return `<tr style="border-bottom:1px solid var(--border);">
+                            <td style="padding:12px;">${fmtDate(o.created_at)}</td>
+                            <td style="padding:12px;">${escapeHtml(o.customer_name || o.email || '—')}</td>
+                            <td style="padding:12px;color:var(--text-secondary);">${carrier}</td>
+                            <td style="padding:12px;">${trackCell}</td>
+                            <td style="padding:12px;text-align:right;color:var(--accent);font-weight:600;">${fmt$(o.shipping)}</td>
+                            <td style="padding:12px;text-align:right;">${fmt$(o.total)}</td>
+                          </tr>`;
+                        }).join('');
+                      }
+
+                      // Pagination
+                      const pages = Math.ceil(orders.length / PAGE_SIZE);
+                      const pag = shipEl('ship-pagination');
+                      if (pages <= 1) { pag.innerHTML = ''; return; }
+                      pag.innerHTML = Array.from({length:pages},(_,i)=>i+1).map(p =>
+                        `<button onclick="window._shipGoPage(${p})" style="padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:${p===page?'var(--accent)':'var(--bg-primary)'};color:${p===page?'#09090b':'var(--text-primary)'};cursor:pointer;font-size:12px;">${p}</button>`
+                      ).join('');
+                    }
+
+                    window._shipGoPage = function(p) {
+                      _shipPage = p;
+                      const q = shipEl('ship-search')?.value.toLowerCase() || '';
+                      const filtered = q ? _shipOrders.filter(o =>
+                        (o.customer_name||'').toLowerCase().includes(q) ||
+                        (o.email||'').toLowerCase().includes(q) ||
+                        (o.shipping_provider||'').toLowerCase().includes(q) ||
+                        (o.shipping_service||'').toLowerCase().includes(q) ||
+                        (o.tracking_number||'').toLowerCase().includes(q)
+                      ) : _shipOrders;
+                      shipRenderOrders(filtered, p);
+                    };
+
+                    window.shipLoadData = async function() {
+                      shipEl('ship-error').style.display = 'none';
+
+                      try {
+                        const { data: orders, error } = await sb.from('orders')
+                          .select('created_at,email,customer_name,shipping,total,shipping_provider,shipping_service,tracking_number,tracking_url,status')
+                          .order('created_at', { ascending: false });
+                        if (error) throw error;
+
+                        const all = (orders || []);
+                        _shipOrders = all;
+
+                        // Aggregate
+                        let totalShip = 0, withShip = 0, freeShip = 0;
+                        all.forEach(o => {
+                          const s = parseFloat(o.shipping || 0);
+                          totalShip += s;
+                          if (s > 0) withShip++;
+                          else freeShip++;
+                        });
+                        const avg = withShip > 0 ? totalShip / withShip : 0;
+
+                        shipEl('ship-total').textContent = fmt$(totalShip);
+                        shipEl('ship-count').textContent = withShip.toLocaleString();
+                        shipEl('ship-avg').textContent = fmt$(avg);
+                        shipEl('ship-free').textContent = freeShip.toLocaleString();
+
+                        // Carrier breakdown
+                        const carrierMap = {};
+                        all.forEach(o => {
+                          const key = [o.shipping_provider, o.shipping_service].filter(Boolean).join(' — ') || 'Unknown';
+                          if (!carrierMap[key]) carrierMap[key] = { count: 0, total: 0 };
+                          carrierMap[key].count++;
+                          carrierMap[key].total += parseFloat(o.shipping || 0);
+                        });
+                        const carriers = Object.entries(carrierMap).sort((a,b) => b[1].total - a[1].total);
+                        const ctbody = shipEl('ship-carrier-tbody');
+                        if (carriers.length === 0) {
+                          ctbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-secondary);">No data</td></tr>';
+                        } else {
+                          ctbody.innerHTML = carriers.map(([name, d]) => `
+                            <tr style="border-bottom:1px solid var(--border);">
+                              <td style="padding:12px;">${escapeHtml(name)}</td>
+                              <td style="padding:12px;text-align:right;">${d.count}</td>
+                              <td style="padding:12px;text-align:right;color:var(--accent);font-weight:600;">${fmt$(d.total)}</td>
+                              <td style="padding:12px;text-align:right;">${fmt$(d.count > 0 ? d.total/d.count : 0)}</td>
+                            </tr>`).join('');
+                        }
+
+                        // Individual orders
+                        shipRenderOrders(_shipOrders, 1);
+
+                        // Search
+                        shipEl('ship-search').addEventListener('input', function() {
+                          _shipPage = 1;
+                          const q = this.value.toLowerCase();
+                          const filtered = q ? _shipOrders.filter(o =>
+                            (o.customer_name||'').toLowerCase().includes(q) ||
+                            (o.email||'').toLowerCase().includes(q) ||
+                            (o.shipping_provider||'').toLowerCase().includes(q) ||
+                            (o.shipping_service||'').toLowerCase().includes(q)
+                          ) : _shipOrders;
+                          shipRenderOrders(filtered, 1);
+                        });
+
+                      } catch(e) { shipErr('Failed to load shipping data: ' + e.message); }
+                    };
+                  })();
+                  </script>
+                </div>
+
+                <!-- Receipts Page -->
+                <div id="receipts" class="page">
+                  <div class="page-header" style="margin-bottom:24px;">
+                    <h2>Receipts</h2>
+                    <p style="color:var(--text-secondary);font-size:14px;margin-top:4px;">Searchable order receipts and transaction history</p>
+                  </div>
+
+                  <div id="rec-error" style="display:none;background:#2a1a1a;border:1px solid #ef4444;border-radius:8px;padding:14px 18px;margin-bottom:20px;color:#ef4444;font-size:13px;"></div>
+
+                  <!-- Search and Sort -->
+                  <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;align-items:center;">
+                    <input id="rec-search" type="text" placeholder="Search by name, order #, email, tracking #, amount…" style="flex:1;min-width:250px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-size:13px;color:var(--text-primary);">
+                    <select id="rec-sort" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-size:13px;color:var(--text-primary);cursor:pointer;">
+                      <option value="newest">Newest First</option>
+                      <option value="oldest">Oldest First</option>
+                      <option value="highest">Highest Amount</option>
+                      <option value="lowest">Lowest Amount</option>
+                    </select>
+                  </div>
+
+                  <!-- Summary Stats -->
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px;">
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Total Orders</p>
+                      <p id="rec-total-orders" style="font-size:24px;font-weight:700;">—</p>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Total Revenue</p>
+                      <p id="rec-total-revenue" style="font-size:24px;font-weight:700;color:var(--accent);">—</p>
+                    </div>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Average Order Value</p>
+                      <p id="rec-avg-order" style="font-size:24px;font-weight:700;">—</p>
+                    </div>
+                  </div>
+
+                  <!-- Receipts List -->
+                  <div id="rec-list-container" style="display:flex;flex-direction:column;gap:16px;">
+                    <p style="text-align:center;color:var(--text-secondary);padding:40px;font-size:13px;">Loading receipts...</p>
+                  </div>
+
+                  <script>
+                  (function() {
+                    let _recLoaded = false;
+                    let _allReceipts = [];
+                    let _filteredReceipts = [];
+
+                    function recEl(id) { return document.getElementById(id); }
+                    function recErr(msg) {
+                      const el = recEl('rec-error');
+                      el.textContent = msg;
+                      el.style.display = 'block';
+                    }
+                    function fmt$(n) { return '$' + parseFloat(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+                    function fmtDate(str) {
+                      if (!str) return '—';
+                      const d = new Date(str);
+                      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    }
+
+                    function sortReceipts(receipts, sortBy) {
+                      const sorted = [...receipts];
+                      if (sortBy === 'newest') {
+                        sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+                      } else if (sortBy === 'oldest') {
+                        sorted.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+                      } else if (sortBy === 'highest') {
+                        sorted.sort((a, b) => (b.total || 0) - (a.total || 0));
+                      } else if (sortBy === 'lowest') {
+                        sorted.sort((a, b) => (a.total || 0) - (b.total || 0));
+                      }
+                      return sorted;
+                    }
+
+                    function renderReceipts() {
+                      const sortBy = recEl('rec-sort')?.value || 'newest';
+                      const sorted = sortReceipts(_filteredReceipts, sortBy);
+                      const container = recEl('rec-list-container');
+
+                      if (sorted.length === 0) {
+                        container.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:40px;font-size:13px;">No receipts found.</p>';
+                        return;
+                      }
+
+                      container.innerHTML = sorted.map(order => {
+                        const orderNum = (order.stripe_payment_intent_id || 'N/A').slice(-8).toUpperCase();
+                        const items = (() => {
+                          try {
+                            return typeof order.items === 'string' ? JSON.parse(order.items) : (order.items || []);
+                          } catch {
+                            return [];
+                          }
+                        })();
+
+                        const itemsHtml = items.length > 0 ? items.map(item => `
+                          <div style="display:flex;gap:12px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+                            ${safeHttpUrl(item.image) ? `<img src="${escapeAttr(safeHttpUrl(item.image))}" alt="${escapeAttr(item.name || 'Product image')}" style="width:60px;height:60px;border-radius:4px;object-fit:cover;">` : ''}
+                            <div style="flex:1;">
+                              <p style="font-weight:500;margin-bottom:4px;">${escapeHtml(item.name || 'Unknown Product')}</p>
+                              <p style="color:var(--text-secondary);font-size:12px;">Qty: ${item.qty || 1} × ${fmt$(item.price || 0)}</p>
+                            </div>
+                          </div>
+                        `).join('') : '<p style="color:var(--text-secondary);font-size:12px;">No items</p>';
+
+                        const safeTrackingUrl = safeHttpUrl(order.tracking_url);
+                        const trackingLink = safeTrackingUrl ? `<a href="${escapeAttr(safeTrackingUrl)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:none;cursor:pointer;">Track Shipment</a>` : '—';
+
+                        return `
+                          <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;">
+                            <!-- Header -->
+                            <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid var(--border);">
+                              <div>
+                                <p style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">ORDER #${orderNum}</p>
+                                <p style="font-size:13px;color:var(--text-secondary);">${fmtDate(order.created_at)}</p>
+                              </div>
+                              <div style="text-align:right;">
+                                <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:4px;">Status</p>
+                                <span style="display:inline-block;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:600;background:${order.status === 'refunded' ? '#ef4444' : order.status === 'completed' ? '#10b981' : '#f59e0b'};color:#fff;">${escapeHtml(order.status || 'unknown')}</span>
+                              </div>
+                            </div>
+
+                            <!-- Customer Info -->
+                            <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);">
+                              <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Customer</p>
+                              <p style="font-weight:500;margin-bottom:2px;">${escapeHtml(order.customer_name || 'N/A')}</p>
+                              <p style="font-size:12px;color:var(--text-secondary);">${escapeHtml(order.email || 'N/A')}</p>
+                            </div>
+
+                            <!-- Items -->
+                            <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);">
+                              <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:12px;">Items Ordered</p>
+                              ${itemsHtml}
+                            </div>
+
+                            <!-- Order Summary -->
+                            <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);background:var(--bg-primary);padding:16px;border-radius:6px;">
+                              <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                                <span style="color:var(--text-secondary);">Subtotal</span>
+                                <span>${fmt$(order.subtotal || 0)}</span>
+                              </div>
+                              <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                                <span style="color:var(--text-secondary);">Shipping</span>
+                                <span>${fmt$(order.shipping || 0)}</span>
+                              </div>
+                              <div style="display:flex;justify-content:space-between;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:8px;">
+                                <span style="color:var(--text-secondary);">Tax</span>
+                                <span>${fmt$(order.tax || 0)}</span>
+                              </div>
+                              <div style="display:flex;justify-content:space-between;font-weight:700;font-size:14px;">
+                                <span>Total</span>
+                                <span style="color:var(--accent);">${fmt$(order.total || 0)}</span>
+                              </div>
+                            </div>
+
+                            <!-- Shipping Address -->
+                            <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);">
+                              <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Shipping Address</p>
+                              <p style="font-size:12px;line-height:1.6;">
+                                ${escapeHtml(order.ship_line1 || 'N/A')}${order.ship_line2 ? ', ' + escapeHtml(order.ship_line2) : ''}<br>
+                                ${order.ship_city ? escapeHtml(order.ship_city) + ', ' : ''}${escapeHtml(order.ship_state || '')} ${escapeHtml(order.ship_zip || '')}<br>
+                                ${escapeHtml(order.ship_country || '')}
+                              </p>
+                            </div>
+
+                            <!-- Tracking -->
+                            <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);">
+                              <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Tracking Information</p>
+                              <p style="font-size:12px;margin-bottom:4px;">
+                                <strong>${escapeHtml(order.shipping_provider || 'N/A')}</strong>
+                                ${order.shipping_service ? ' — ' + escapeHtml(order.shipping_service) : ''}
+                              </p>
+                              <p style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">
+                                ${escapeHtml(order.tracking_number || '—')}
+                              </p>
+                              ${trackingLink}
+                            </div>
+
+                            <!-- Action Button -->
+                            ${order.status !== 'refunded' ? `<button onclick="window._recMarkRefunded('${escapeAttr(order.id)}')" style="background:var(--bg-primary);border:1px solid #ef4444;color:#ef4444;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.2s;">Mark Refunded</button>` : '<p style="font-size:12px;color:var(--text-secondary);">This order has been refunded.</p>'}
+                          </div>
+                        `;
+                      }).join('');
+                    }
+
+                    function updateStats() {
+                      const allOrders = _allReceipts;
+                      const total = allOrders.length;
+                      const revenue = allOrders.reduce((sum, o) => sum + (parseFloat(o.total) || 0), 0);
+                      const avg = total > 0 ? revenue / total : 0;
+
+                      recEl('rec-total-orders').textContent = total.toLocaleString();
+                      recEl('rec-total-revenue').textContent = fmt$(revenue);
+                      recEl('rec-avg-order').textContent = fmt$(avg);
+                    }
+
+                    function filterReceipts() {
+                      const q = recEl('rec-search')?.value.toLowerCase() || '';
+                      _filteredReceipts = q ? _allReceipts.filter(o => {
+                        const customerName = (o.customer_name || '').toLowerCase();
+                        const email        = (o.email || '').toLowerCase();
+                        const orderNum     = (o.stripe_payment_intent_id || '').slice(-8).toLowerCase();
+                        const amount       = fmt$(o.total || 0).toLowerCase();
+                        const tracking     = (o.tracking_number || '').toLowerCase();
+                        return customerName.includes(q) || email.includes(q) || orderNum.includes(q) || amount.includes(q) || tracking.includes(q);
+                      }) : _allReceipts;
+                      renderReceipts();
+                    }
+
+                    window._recMarkRefunded = async function(orderId) {
+                      if (!confirm('Mark this order as refunded?')) return;
+                      try {
+                        const { error } = await sb.from('orders').update({ status: 'refunded' }).eq('id', orderId);
+                        if (error) throw error;
+                        await logAdminAudit('order.mark_refunded', 'orders', orderId, { status: 'refunded' });
+                        // Reload data
+                        _recLoaded = false;
+                        window.receiptsLoadData();
+                      } catch (e) {
+                        recErr('Failed to mark refunded: ' + e.message);
+                      }
+                    };
+
+                    window.receiptsLoadData = async function() {
+                      recEl('rec-error').style.display = 'none';
+
+                      try {
+                        const { data: orders, error } = await sb.from('orders')
+                          .select('id,stripe_payment_intent_id,created_at,customer_name,email,items,subtotal,shipping,tax,total,free_shipping,status,ship_line1,ship_line2,ship_city,ship_state,ship_zip,ship_country,shipping_provider,shipping_service,tracking_number,tracking_url')
+                          .order('created_at', { ascending: false });
+
+                        if (error) throw error;
+
+                        _allReceipts = orders || [];
+                        _filteredReceipts = _allReceipts;
+
+                        updateStats();
+                        renderReceipts();
+
+                        // Attach event listeners
+                        recEl('rec-search').addEventListener('input', filterReceipts);
+                        recEl('rec-sort').addEventListener('change', renderReceipts);
+
+                      } catch (e) {
+                        recErr('Failed to load receipts: ' + e.message);
+                      }
+                    };
+                  })();
+                  </script>
+                </div>
+
                 <!-- Settings Page -->
                 <div id="settings" class="page">
                     <h2>Settings</h2>
@@ -1638,14 +2628,33 @@
 
                     <!-- Shipping Policy -->
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
-                        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:16px;">Shipping &amp; Returns Policy</div>
+                        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:20px;">Shipping &amp; Returns Policy</div>
+
+                        <!-- Free Shipping Toggle -->
+                        <div style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:20px;">
+                            <div style="display:flex;align-items:center;gap:14px;margin-bottom:4px;">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="settFreeShippingEnabled">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div>
+                                    <div style="font-size:.9rem;font-weight:600;">Free shipping over a set amount</div>
+                                    <div style="font-size:.75rem;color:var(--text-secondary);margin-top:2px;">Customers won't be charged for shipping when their order reaches the threshold.</div>
+                                </div>
+                            </div>
+                            <div id="freeShippingThresholdRow" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                                <span style="font-size:.85rem;color:var(--text-secondary);">Free shipping on orders over</span>
+                                <div style="position:relative;display:inline-flex;align-items:center;">
+                                    <span style="position:absolute;left:10px;font-size:.85rem;pointer-events:none;">$</span>
+                                    <input type="number" id="settFreeThreshold" class="form-input" placeholder="100" min="0" style="width:110px;padding-left:24px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Other shipping fields -->
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
                             <div>
-                                <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Free shipping threshold ($)</label>
-                                <input type="number" id="settFreeThreshold" class="form-input" placeholder="100" min="0">
-                            </div>
-                            <div>
-                                <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Standard shipping rate ($)</label>
+                                <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Standard shipping rate ($) — shown when not free</label>
                                 <input type="number" id="settStandardRate" class="form-input" placeholder="8" min="0" step="0.01">
                             </div>
                             <div>
@@ -1661,7 +2670,7 @@
                                 <input type="number" id="settReturnNonmember" class="form-input" placeholder="30" min="0">
                             </div>
                         </div>
-                        <button type="button" class="btn btn-primary btn-sm" id="saveShippingBtn">Save Shipping Policy</button>
+                        <button type="button" class="btn btn-primary btn-sm" id="saveShippingBtn">Save Shipping Settings</button>
                     </div>
                     
                     <!-- Fabric Technologies -->
@@ -1726,7 +2735,7 @@
                             <div class="form-group">
                                 <label class="form-label">Favicon URL</label>
                                 <div class="image-row" style="margin-bottom:0">
-                                    <input type="url" class="form-input product-image-url" id="faviconImage" placeholder="images/logo.png">
+                                    <input type="url" class="form-input product-image-url" id="faviconImage" placeholder="/images/favicon-black.png?v=1">
                                     <label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label>
                                     <img class="image-preview" style="display:none">
                                     <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('faviconImage').value='';this.previousElementSibling.style.display='none'">Clear</button>
@@ -1868,8 +2877,6 @@
                             <label class="form-label">Colorway / Summary Label</label>
                             <input type="text" id="colorway" class="form-input" placeholder="Optional. e.g., Black / White or Vintage Olive">
                             <p class="form-hint" style="margin-top: 8px;">Used in admin search, exports, and as a storefront fallback when you have not added color variants yet. Leave it blank to auto-build from your saved color variants.</p>
-                            <label class="form-label">Colorway <span class="required">*</span></label>
-                            <input type="text" id="colorway" class="form-input" placeholder="e.g., Black/White" required>
                         </div>
                     </div>
                     <div class="form-group">
@@ -1982,22 +2989,18 @@
                         <div class="form-grid" style="margin-top: 1rem;">
                             <div>
                                 <label class="form-label" style="font-size:0.8rem;opacity:0.7">Hips</label>
-                                <label class="form-label" style="font-size:0.8rem;opacity:0.7">Hips (cm)</label>
                                 <input type="number" id="pomHips" class="form-input" step="0.1" min="0" placeholder="e.g., 96">
                             </div>
                             <div>
                                 <label class="form-label" style="font-size:0.8rem;opacity:0.7">Length</label>
-                                <label class="form-label" style="font-size:0.8rem;opacity:0.7">Length (cm)</label>
                                 <input type="number" id="pomLength" class="form-input" step="0.1" min="0" placeholder="e.g., 70">
                             </div>
                             <div>
                                 <label class="form-label" style="font-size:0.8rem;opacity:0.7">Shoulder</label>
-                                <label class="form-label" style="font-size:0.8rem;opacity:0.7">Shoulder (cm)</label>
                                 <input type="number" id="pomShoulder" class="form-input" step="0.1" min="0" placeholder="e.g., 45">
                             </div>
                             <div>
                                 <label class="form-label" style="font-size:0.8rem;opacity:0.7">Sleeve</label>
-                                <label class="form-label" style="font-size:0.8rem;opacity:0.7">Sleeve (cm)</label>
                                 <input type="number" id="pomSleeve" class="form-input" step="0.1" min="0" placeholder="e.g., 65">
                             </div>
                         </div>
@@ -2054,6 +3057,11 @@
                         <div class="form-group">
                             <label class="form-label">Fabric Weight (GSM)</label>
                             <input type="number" id="fabricWeightGsm" class="form-input" placeholder="e.g., 200" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Shipping Weight (lb) <span style="color:#e07060;font-size:.75em">Required</span></label>
+                            <input type="number" id="shippingWeightLb" class="form-input" placeholder="e.g., 0.5" step="0.01" min="0.01">
+                            <div style="font-size:.72rem;color:rgba(244,241,235,.35);margin-top:.3rem">Actual packed weight used for live shipping rates at checkout.</div>
                         </div>
                     </div>
                     <div class="form-grid">
@@ -2219,7 +3227,15 @@
         </div>
     </div>
 
+    <script src="modal-lock.js?v=1"></script>
     <script src="/supabase.min.js"></script>
+    <script>
+        // Ensure Turnstile's onload callback exists before the external script executes.
+        window.__zwAdminTsLoadedEarly = false;
+        window._zwAdminTsLoad = window._zwAdminTsLoad || function() {
+            window.__zwAdminTsLoadedEarly = true;
+        };
+    </script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=_zwAdminTsLoad&render=explicit" defer async></script>
     <div id="zw-admin-ts-widget" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;" aria-hidden="true"></div>
 
@@ -2227,10 +3243,22 @@
         // Initialize Supabase
         const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+        const ADMIN_AUTH_STORAGE_KEY = 'zuwera-admin-auth-session-v1';
+        const adminAuthStorage = {
+            getItem: (key) => sessionStorage.getItem(key),
+            setItem: (key, value) => sessionStorage.setItem(key, value),
+            removeItem: (key) => sessionStorage.removeItem(key)
+        };
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            auth: { persistSession: true, storageKey: 'zuwera-auth' }
+            auth: {
+                persistSession: true,
+                storageKey: ADMIN_AUTH_STORAGE_KEY,
+                storage: adminAuthStorage,
+                autoRefreshToken: true,
+                detectSessionInUrl: false
+            },
+            global: { headers: { 'X-Client-Info': 'zuwera-admin' } }
         });
-        window.sb = sb;
         const ADMIN_TS_KEY = '0x4AAAAAACzvvg-l2dT2z35l';
         let adminTsWidgetId = null;
         let adminTsPending = null;
@@ -2266,11 +3294,14 @@
         }
 
         window._zwAdminTsLoad = initAdminTurnstile;
+        if (window.__zwAdminTsLoadedEarly) {
+            initAdminTurnstile();
+        }
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(initAdminTurnstile, 800);
         });
 
-        function waitForAdminTurnstile(timeoutMs = 2500) {
+        function waitForAdminTurnstile(timeoutMs = 6000) {
             initAdminTurnstile();
             if (adminTsWidgetId !== null) return Promise.resolve(true);
             return new Promise(resolve => {
@@ -2285,44 +3316,72 @@
             });
         }
 
+        function isLocalAdminHost() {
+            const hostname = window.location.hostname;
+            return window.location.protocol === 'file:'
+                || hostname === 'localhost'
+                || hostname === '127.0.0.1'
+                || hostname.startsWith('192.168.')
+                || hostname.startsWith('10.');
+        }
+
+        async function verifyAdminTurnstileToken(token) {
+            if (!token) throw new Error('Security check did not complete. Please try again.');
+            const res = await fetch('/api/verify-turnstile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+            });
+            const data = await res.json().catch(() => ({ success: false, error: 'Invalid security response.' }));
+            if (data.code === 'TURNSTILE_NOT_CONFIGURED') {
+                console.warn('[Turnstile] Secret key is missing in Cloudflare. Admin login is continuing for setup/testing, but this should be configured before launch.');
+                return false;
+            }
+            if (!res.ok || !data.success) {
+                throw new Error(data.error || 'Security verification failed. Please try again.');
+            }
+            return true;
+        }
+
         async function runAdminTurnstile(action) {
+            const required = !isLocalAdminHost();
             await waitForAdminTurnstile();
             if (!window.turnstile || adminTsWidgetId === null) {
+                if (required) throw new Error('Security check is not available. Refresh the page and try again.');
                 await action(null);
                 return;
             }
-            let settled = false;
-            const finish = async (token) => {
-                if (settled) return;
-                settled = true;
-                adminTsPending = null;
-                await action(token);
-                if (adminTsWidgetId !== null) window.turnstile.reset(adminTsWidgetId);
-            };
-            adminTsPending = async (token) => {
-                if (token) {
-                    try {
-                        const res = await fetch('/api/verify-turnstile', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ token })
-                        });
-                        const data = await res.json();
-                        if (!data.success) console.warn('[Turnstile] admin:', data.error);
-                    } catch (e) {
-                        console.warn('[Turnstile] admin error:', e);
-                    }
-                }
-                await finish(token);
-            };
-            try {
-                window.turnstile.execute(adminTsWidgetId);
-            } catch (e) {
-                console.warn('[Turnstile] admin execute error:', e);
-                await finish(null);
-                return;
+
+            if (adminTsPending) {
+                throw new Error('Security check already in progress. Please wait a moment and try again.');
             }
-            setTimeout(() => { void finish(null); }, 4500);
+
+            const token = await new Promise((resolve, reject) => {
+                let settled = false;
+                const finish = (value) => {
+                    if (settled) return;
+                    settled = true;
+                    adminTsPending = null;
+                    resolve(value);
+                };
+                adminTsPending = finish;
+                try {
+                    if (adminTsWidgetId !== null) window.turnstile.reset(adminTsWidgetId);
+                    window.turnstile.execute(adminTsWidgetId);
+                } catch (e) {
+                    adminTsPending = null;
+                    reject(new Error('Security check could not start. Refresh the page and try again.'));
+                    return;
+                }
+                setTimeout(() => finish(null), 4500);
+            });
+
+            try {
+                if (required) await verifyAdminTurnstileToken(token);
+                await action(token);
+            } finally {
+                if (adminTsWidgetId !== null) window.turnstile.reset(adminTsWidgetId);
+            }
         }
 
 
@@ -2335,6 +3394,12 @@
         let currentSizeChart = null;
         let productSizeChartCache = null;
         let productSizeChartCachePromise = null;
+        let auditTableReady = true;
+        const SUPABASE_PRODUCT_IMAGE_BUCKET = 'product-images';
+        const R2_PUBLIC_IMAGE_HOSTS = ['images.zuwera.store'];
+        const MAX_PRODUCT_UPLOAD_WIDTH = 1600;
+        const MAX_PRODUCT_UPLOAD_BYTES = 1.5 * 1024 * 1024;
+        const PRODUCT_UPLOAD_QUALITIES = [0.84, 0.78, 0.72];
         
         const fallbackTechDict = {
             "Aero-PRO™": { focus: "Sweat evaporation and breathability.", level: "Standard Performance.", opt: "Light to moderate sweat output.", best: "Daily physical activity, gym sessions, and steady-state training.", desc: "High-wicking capillary fibers designed to pull moisture away from the skin for consistent dryness and comfort." },
@@ -2367,6 +3432,48 @@
 
         let globalTechs = {};
 
+        function summarizeAuditPayload(value, maxLength = 900) {
+            try {
+                const text = typeof value === 'string' ? value : JSON.stringify(value || {});
+                return text.length > maxLength ? text.slice(0, maxLength) + '...' : text;
+            } catch (_) {
+                return '[unserializable]';
+            }
+        }
+
+        async function logAdminAudit(action, resourceType, resourceId = null, metadata = {}) {
+            if (!currentUser?.id) return;
+            if (!auditTableReady) return;
+            try {
+                const payload = {
+                    admin_user_id: currentUser?.id || null,
+                    admin_email: currentUser?.email || null,
+                    action,
+                    resource_type: resourceType,
+                    resource_id: resourceId ? String(resourceId) : null,
+                    metadata: {
+                        ...metadata,
+                        page: location.pathname,
+                        summary: summarizeAuditPayload(metadata)
+                    },
+                    user_agent: navigator.userAgent
+                };
+                const { error } = await sb.from('admin_audit_log').insert([payload]);
+                if (error) throw error;
+            } catch (error) {
+                auditTableReady = false;
+                console.warn('Admin audit log unavailable. Run supabase-admin-audit-log.sql in Supabase.', error);
+            }
+        }
+
+        function formatAuditDetails(metadata) {
+            if (!metadata) return '';
+            const clean = { ...metadata };
+            delete clean.summary;
+            delete clean.page;
+            return escapeHtml(summarizeAuditPayload(clean, 240));
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             initializeTheme();
@@ -2396,9 +3503,12 @@
             }
             localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
         
-            // Save theme to Supabase for main site
-            if (typeof sb !== 'undefined' && sb) {
-                sb.from('site_settings').upsert({ key: 'theme', value: { mode: isDarkMode ? 'dark' : 'light' } }, { onConflict: 'key' }).then(function(){});
+            // Save theme to Supabase for main site only after auth has loaded.
+            if (typeof sb !== 'undefined' && sb && currentUser?.id) {
+                sb.from('site_settings').upsert({ key: 'theme', value: { mode: isDarkMode ? 'dark' : 'light' } }, { onConflict: 'key' })
+                    .then(({ error }) => {
+                        if (!error) void logAdminAudit('settings.update', 'site_settings', 'theme', { mode: isDarkMode ? 'dark' : 'light' });
+                    });
             }
             
             // Analytics is now inline — no iframe to reload
@@ -2451,40 +3561,8 @@
 
         async function checkAdminRole() {
             try {
-                const { data: profile, error } = await sb
-                    .from('profiles')
-                    .select('role, email, full_name')
-                    .eq('id', currentUser.id)
-                    .maybeSingle();
-
-                const candidateEmails = [
-                    currentUser.email,
-                    currentUser.user_metadata?.email,
-                    profile?.email,
-                    ...(Array.isArray(currentUser.identities) ? currentUser.identities.map(identity => identity?.identity_data?.email || identity?.email) : [])
-                ]
-                    .filter(Boolean)
-                    .map(value => String(value).toLowerCase().trim());
-                const emailLower = candidateEmails[0] || '';
-                const fullNameLower = (currentUser.user_metadata?.full_name || '').toLowerCase().trim();
-                const ownerExactEmails = ['breezenash24@gmail.com', 'nasirubreeze@zuwera.store'];
-                const ownerHints = ['breezenash24', 'breez', 'breeze', 'nash24', 'nasiru', '@zuwera.store'];
-                const isOwnerHint = ownerHints.some(hint =>
-                    candidateEmails.some(email => email.includes(hint)) ||
-                    fullNameLower.includes(hint.replace('@', ''))
-                );
-
-                if (profile && profile.role === 'admin') {
-                    showAdminPanel();
-                    return;
-                }
-
-                // Dev mode & Owner bypass: Auto-grant admin to the store owner or local tester
-                const isLocal = window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.');
-                const isOwner = candidateEmails.some(email => ownerExactEmails.includes(email))
-                    || isOwnerHint;
-
-                if (isLocal) {
+                // Dev mode bypass only for local testing. Production admin grants come from /api/admin-access.
+                if (isLocalAdminHost()) {
                     showAdminPanel();
                     return;
                 }
@@ -2498,23 +3576,11 @@
                 } catch (serverErr) {
                     console.warn('Server admin access check failed:', serverErr);
 
-                    if (isOwner) {
-                        const primaryEmail = emailLower || profile?.email || '';
-                        await sb.from('profiles').upsert({
-                            id: currentUser.id,
-                            email: primaryEmail || currentUser.email || null,
-                            full_name: currentUser.user_metadata?.full_name || profile?.full_name || null,
-                            role: 'admin'
-                        });
-                        showAdminPanel();
-                        return;
-                    }
-
-                    showAccessDenied(serverErr?.message || error?.message || "Your account does not have admin privileges.");
+                    showAccessDenied(serverErr?.message || "Your account does not have admin privileges.");
                     return;
                 }
 
-                showAccessDenied(error ? error.message : "Your account does not have admin privileges.");
+                showAccessDenied("Your account does not have admin privileges.");
             } catch (err) {
                 console.error('Admin role check error:', err);
                 showAccessDenied(err.message);
@@ -2681,8 +3747,12 @@
                 reviews: 'Customer Reviews',
                 users: 'User Management',
                 analytics: 'Analytics',
+                finance: 'Finance',
+                shipping: 'Shipping',
+                receipts: 'Receipts',
                 settings: 'Settings',
-                website: 'Website Settings'
+                website: 'Website Settings',
+                audit: 'Audit Log'
             };
 
             document.getElementById('pageTitle').textContent = titles[page] || 'Dashboard';
@@ -2695,10 +3765,18 @@
                 loadSizeCharts();
             } else if (page === 'reviews') {
                 loadAdminReviews();
-                } else if (page === 'users') {
-                    loadUsers();
-                } else if (page === 'analytics') {
-                    loadAnalytics();
+            } else if (page === 'users') {
+                loadUsers();
+            } else if (page === 'analytics') {
+                loadAnalytics();
+            } else if (page === 'finance') {
+                if (typeof window.finLoadData === 'function') window.finLoadData();
+            } else if (page === 'shipping') {
+                if (typeof window.shipLoadData === 'function') window.shipLoadData();
+            } else if (page === 'receipts') {
+                if (typeof window.receiptsLoadData === 'function') window.receiptsLoadData();
+            } else if (page === 'audit') {
+                loadAuditLog();
             }
         }
 
@@ -2736,10 +3814,70 @@
             }
         }
 
-        // Analytics — now embedded inline; just trigger a fresh data load each visit
+        // Analytics — single source of truth from analytics.html
         async function loadAnalytics() {
-            if (typeof window.anaLoadData === 'function') window.anaLoadData();
+            const analyticsPage = document.getElementById('analytics');
+            if (!analyticsPage) return;
+
+            if (!analyticsPage.dataset.externalAnalyticsMounted) {
+                analyticsPage.innerHTML = `
+                    <div style="height: calc(100vh - 190px); min-height: 760px; border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; background: var(--bg-primary);">
+                        <iframe
+                            id="analyticsFrame"
+                            src="analytics.html?embed=true"
+                            title="Analytics Dashboard"
+                            style="width:100%;height:100%;border:0;display:block;background:transparent;"
+                            loading="eager"
+                            referrerpolicy="strict-origin-when-cross-origin"
+                        ></iframe>
+                    </div>
+                `;
+                analyticsPage.dataset.externalAnalyticsMounted = '1';
+                return;
+            }
+
+            // Refresh the embedded dashboard data on each visit without re-creating the iframe shell.
+            const frame = document.getElementById('analyticsFrame');
+            if (frame && frame.contentWindow) {
+                try {
+                    frame.contentWindow.postMessage({ type: 'zw-analytics-refresh' }, '*');
+                } catch (_) {}
+            }
         }
+
+        async function loadAuditLog() {
+            const tbody = document.getElementById('auditTableBody');
+            const status = document.getElementById('auditStatus');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Loading audit events...</td></tr>';
+            if (status) status.textContent = '';
+            try {
+                const { data, error } = await sb
+                    .from('admin_audit_log')
+                    .select('created_at,admin_email,action,resource_type,resource_id,metadata')
+                    .order('created_at', { ascending: false })
+                    .limit(100);
+                if (error) throw error;
+                const rows = data || [];
+                if (status) status.textContent = rows.length ? `Showing latest ${rows.length} admin events.` : 'No audit events yet.';
+                tbody.innerHTML = rows.length ? rows.map(row => `
+                    <tr>
+                        <td style="white-space:nowrap;">${escapeHtml(new Date(row.created_at).toLocaleString())}</td>
+                        <td>${escapeHtml(row.admin_email || 'Unknown')}</td>
+                        <td><strong>${escapeHtml(row.action || '')}</strong></td>
+                        <td>${escapeHtml(row.resource_type || '')}${row.resource_id ? `<br><span style="color:var(--text-secondary);font-size:.75rem;">${escapeHtml(row.resource_id)}</span>` : ''}</td>
+                        <td style="max-width:360px;white-space:normal;">${formatAuditDetails(row.metadata)}</td>
+                    </tr>
+                `).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">No audit events yet.</td></tr>';
+            } catch (error) {
+                auditTableReady = false;
+                if (status) status.textContent = 'Audit table is not available yet. Run supabase-admin-audit-log.sql in Supabase, then refresh.';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Audit log table not found or policy not configured.</td></tr>';
+                console.warn('Audit log load failed:', error);
+            }
+        }
+
+        document.getElementById('refreshAuditBtn')?.addEventListener('click', loadAuditLog);
 
         // Reviews
         async function loadAdminReviews() {
@@ -2774,11 +3912,13 @@
                 container.innerHTML = Object.keys(grouped).map(pid => {
                     const group = grouped[pid];
                     const avg = (group.reviews.reduce((sum, r) => sum + r.rating, 0) / group.reviews.length).toFixed(1);
+                    const productTitle = escapeHtml(group.product.title || 'Unknown Product');
+                    const productSku = escapeHtml(group.product.sku || '');
                     
                     let html = `
                         <details class="review-product-accordion">
                             <summary>
-                                <span>${group.product.title} <span style="color:var(--text-secondary);font-weight:normal;margin-left:8px;">${group.product.sku || ''}</span></span>
+                                <span>${productTitle} <span style="color:var(--text-secondary);font-weight:normal;margin-left:8px;">${productSku}</span></span>
                                 <div class="review-summary-stats">
                                     <span class="rating">⭐ ${avg}</span>
                                     <span>${group.reviews.length} Review${group.reviews.length !== 1 ? 's' : ''}</span>
@@ -2802,20 +3942,23 @@
                     html += group.reviews.map(r => {
                         const date = new Date(r.created_at).toLocaleDateString();
                         const rating = '⭐'.repeat(r.rating);
-                        const safeTitle = (r.title || '').replace(/\\/g, '\\\\').replace(/'/g, '\\\'').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
-                        const safeBody = (r.body || '').replace(/\\/g, '\\\\').replace(/'/g, '\\\'').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
-                        const safeAdminResponse = (r.admin_response || '').replace(/\\/g, '\\\\').replace(/'/g, '\\\'').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
-                        const displayAdminResponse = (r.admin_response || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                        const safeNickname = (r.nickname || r.reviewer_name || 'Anonymous').replace(/\\/g, '\\\\').replace(/'/g, '\\\'').replace(/"/g, '&quot;').replace(/\n/g, '\\n');
+                        const safeTitle = escapeJsString(r.title || '');
+                        const safeBody = escapeJsString(r.body || '');
+                        const safeAdminResponse = escapeJsString(r.admin_response || '');
+                        const displayTitle = escapeHtml(r.title || '');
+                        const displayBody = escapeHtml(r.body || '');
+                        const displayAdminResponse = escapeHtml(r.admin_response || '');
+                        const displayNickname = escapeHtml(r.nickname || r.reviewer_name || 'Anonymous');
+                        const safeNickname = escapeJsString(r.nickname || r.reviewer_name || 'Anonymous');
                         
                         return `
                             <tr>
                                 <td style="white-space: nowrap;">${date}</td>
                                 <td style="color: var(--warning);">${rating}</td>
-                                <td>${r.nickname || r.reviewer_name || 'Anonymous'}</td>
-                                <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><strong>${r.title || ''}</strong></td>
+                                <td>${displayNickname}</td>
+                                <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><strong>${displayTitle}</strong></td>
                                 <td style="max-width: 250px;">
-                                    <div style="overflow: hidden; text-overflow: ellipsis; white-space: normal;">${r.body || ''}</div>
+                                    <div style="overflow: hidden; text-overflow: ellipsis; white-space: normal;">${displayBody}</div>
                                     ${r.admin_response ? `<div style="margin-top: 8px; padding: 8px; background: var(--admin-res-bg, rgba(248,145,165,0.1)); border-left: 2px solid var(--admin-res-text, var(--accent)); border-radius: 4px;"><strong style="color: var(--admin-res-text, var(--accent)); font-size: 0.8rem;">Zuwera Team</strong><p style="margin-top: 4px; font-size: 0.8rem; color: var(--admin-res-text, var(--text-secondary)); white-space: normal;">${displayAdminResponse}</p></div>` : ''}
                                 </td>
                                 <td>
@@ -2847,6 +3990,7 @@
                 try {
                     const { error } = await sb.from('reviews').delete().eq('id', id);
                     if (error) throw error;
+                    await logAdminAudit('review.delete', 'reviews', id);
                     showToast('Review deleted successfully', 'success');
                     loadAdminReviews();
                 } catch (err) {
@@ -2875,6 +4019,7 @@
             try {
                 const { error } = await sb.from('reviews').update({ nickname, reviewer_name: nickname, title, body, admin_response }).eq('id', id);
                 if (error) throw error;
+                await logAdminAudit('review.update', 'reviews', id, { title, nickname, has_admin_response: Boolean(admin_response) });
                 showToast('Review updated successfully', 'success');
                 document.getElementById('editReviewModal').classList.remove('active');
                 loadAdminReviews();
@@ -2921,16 +4066,19 @@
             tbody.innerHTML = users.map(u => {
                 const date = new Date(u.created_at).toLocaleDateString();
                 const isCurrentUser = currentUser && currentUser.id === u.id;
+                const userId = escapeAttr(u.id || '');
+                const userName = escapeHtml(u.full_name || 'No Name');
+                const userEmail = escapeHtml(u.email || 'N/A');
                 const toggleRoleBtn = u.role === 'admin' 
-                    ? `<button class="btn btn-secondary btn-sm" onclick="toggleUserRole('${u.id}', 'customer')" ${isCurrentUser ? 'disabled title="Cannot demote yourself"' : ''}>Make Customer</button>`
-                    : `<button class="btn btn-secondary btn-sm" onclick="toggleUserRole('${u.id}', 'admin')">Make Admin</button>`;
+                    ? `<button class="btn btn-secondary btn-sm" onclick="toggleUserRole('${userId}', 'customer')" ${isCurrentUser ? 'disabled title="Cannot demote yourself"' : ''}>Make Customer</button>`
+                    : `<button class="btn btn-secondary btn-sm" onclick="toggleUserRole('${userId}', 'admin')">Make Admin</button>`;
                 
-                const deleteBtn = `<button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}')" ${isCurrentUser ? 'disabled title="Cannot delete yourself"' : ''}>Delete</button>`;
+                const deleteBtn = `<button class="btn btn-danger btn-sm" onclick="deleteUser('${userId}')" ${isCurrentUser ? 'disabled title="Cannot delete yourself"' : ''}>Delete</button>`;
                 
                 return `
                     <tr>
-                        <td><strong>${u.full_name || 'No Name'}</strong> ${isCurrentUser ? '<span class="status-badge status-live" style="margin-left:8px;font-size:0.6rem;padding:2px 6px;">You</span>' : ''}</td>
-                        <td>${u.email || 'N/A'}</td>
+                        <td><strong>${userName}</strong> ${isCurrentUser ? '<span class="status-badge status-live" style="margin-left:8px;font-size:0.6rem;padding:2px 6px;">You</span>' : ''}</td>
+                        <td>${userEmail}</td>
                         <td>${date}</td>
                         <td>
                             <div class="action-buttons">
@@ -2948,6 +4096,7 @@
                 try {
                     const { error } = await sb.rpc('delete_user', { target_user_id: userId });
                     if (error) throw error;
+                    await logAdminAudit('user.delete', 'profiles', userId);
                     showToast('User deleted successfully', 'success');
                     loadUsers();
                 } catch (err) {
@@ -2961,6 +4110,7 @@
                 try {
                     const { error } = await sb.from('profiles').update({ role: newRole }).eq('id', userId);
                     if (error) throw error;
+                    await logAdminAudit('user.role_update', 'profiles', userId, { role: newRole });
                     showToast(`User role updated to ${newRole}`, 'success');
                     loadUsers();
                 } catch (err) {
@@ -2989,19 +4139,23 @@
                     product.product_images.sort((a, b) => a.sort_order - b.sort_order);
                     if (product.product_images[0].image_url) firstImg = product.product_images[0].image_url;
                 }
+                const productId = escapeAttr(product.id || '');
+                const safeImg = safeHttpUrl(firstImg);
+                const safeStatus = escapeHtml(product.status || 'Draft');
+                const statusClass = escapeAttr((product.status || 'draft').toLowerCase().replace(/\s+/g, '-'));
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td><div class="product-image" style="${firstImg ? `background-image:url('${firstImg}');background-size:cover;background-position:center;` : 'background:linear-gradient(135deg,#1a1a1e,#2a2a2f);'}"></div></td>
-                    <td><strong>${product.sku || 'N/A'}</strong></td>
-                    <td>${product.title || 'N/A'}</td>
-                    <td>${product.colorway || 'N/A'}</td>
+                    <td><div class="product-image" style="${safeImg ? `background-image:url('${escapeAttr(safeImg)}');background-size:cover;background-position:center;` : 'background:linear-gradient(135deg,#1a1a1e,#2a2a2f);'}"></div></td>
+                    <td><strong>${escapeHtml(product.sku || 'N/A')}</strong></td>
+                    <td>${escapeHtml(product.title || 'N/A')}</td>
+                    <td>${escapeHtml(product.colorway || 'N/A')}</td>
                     <td>$${(Number(product.current_price) || 0).toFixed(2)}</td>
-                    <td><span class="status-badge status-${(product.status || 'draft').toLowerCase().replace(/\s+/g, '-')}">${product.status || 'Draft'}</span></td>
-                    <td id="stock-${product.id}">-</td>
+                    <td><span class="status-badge status-${statusClass}">${safeStatus}</span></td>
+                    <td id="stock-${productId}">-</td>
                     <td>
                         <div class="action-buttons">
-                            <button class="btn btn-secondary btn-sm" onclick="editProduct('${product.id}')">Edit</button>
-                            <button class="btn btn-danger btn-sm" onclick="openDeleteModal('${product.id}')">Delete</button>
+                            <button class="btn btn-secondary btn-sm" onclick="editProduct('${productId}')">Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="openDeleteModal('${productId}')">Delete</button>
                         </div>
                     </td>
                 `;
@@ -3014,7 +4168,8 @@
                     .eq('product_id', product.id)
                     .then(({ data }) => {
                         const total = data?.reduce((sum, i) => sum + (i.stock_quantity || 0), 0) || 0;
-                        document.getElementById(`stock-${product.id}`).textContent = total;
+                        const stockEl = document.getElementById(`stock-${product.id}`);
+                        if (stockEl) stockEl.textContent = total;
                     });
             });
         }
@@ -3064,7 +4219,6 @@
             currentProduct = product;
             populateTechCheckboxes();
             await loadProductIntoForm(product);
-            loadProductIntoForm(product);
             document.getElementById('formModalTitle').textContent = 'Edit Product';
             openProductForm();
         }
@@ -3275,9 +4429,6 @@
             hats: 'Hats',
             custom: 'Custom'
         };
-        document.getElementById('gender').addEventListener('change', (e) => {
-            renderSizeGrid(e.target.value);
-        });
 
         const sizeGuidePomFieldMap = {
             men_tops: { pomChest: 'chest_in', pomWaist: 'waist_in', pomHips: 'hips_in' },
@@ -3294,6 +4445,316 @@
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;');
         }
+
+        function escapeAttr(value) {
+            return escapeHtml(value).replace(/'/g, '&#39;');
+        }
+
+        function escapeJsString(value) {
+            return String(value ?? '')
+                .replace(/\\/g, '\\\\')
+                .replace(/'/g, "\\'")
+                .replace(/\r/g, '\\r')
+                .replace(/\n/g, '\\n')
+                .replace(/</g, '\\x3C')
+                .replace(/>/g, '\\x3E')
+                .replace(/&/g, '\\x26');
+        }
+
+        function safeHttpUrl(value) {
+            const raw = String(value || '').trim();
+            if (!raw) return '';
+            try {
+                const url = new URL(raw, window.location.origin);
+                return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+            } catch {
+                return '';
+            }
+        }
+
+        function uniqueImageUrls(urls) {
+            return [...new Set((urls || []).map(url => safeHttpUrl(url)).filter(Boolean))];
+        }
+
+        function getProductImageUrlsFromForm() {
+            return uniqueImageUrls(Array.from(document.querySelectorAll('.product-image-url')).map(input => input.value));
+        }
+
+        function getSupabaseProductImagePath(url) {
+            const safeUrl = safeHttpUrl(url);
+            if (!safeUrl) return '';
+            try {
+                const parsed = new URL(safeUrl);
+                const marker = `/storage/v1/object/public/${SUPABASE_PRODUCT_IMAGE_BUCKET}/`;
+                const markerIndex = parsed.pathname.indexOf(marker);
+                if (markerIndex === -1) return '';
+                return decodeURIComponent(parsed.pathname.slice(markerIndex + marker.length));
+            } catch {
+                return '';
+            }
+        }
+
+        function isR2ProductImageUrl(url) {
+            const safeUrl = safeHttpUrl(url);
+            if (!safeUrl) return false;
+            try {
+                const parsed = new URL(safeUrl);
+                return R2_PUBLIC_IMAGE_HOSTS.includes(parsed.hostname)
+                    && parsed.pathname.replace(/^\/+/, '').startsWith('products/');
+            } catch {
+                return false;
+            }
+        }
+
+        async function getExistingProductImageUrls(productId) {
+            if (!productId) return [];
+            const urls = [];
+            try {
+                const [{ data: product }, { data: images }] = await Promise.all([
+                    sb.from('products').select('image_url').eq('id', productId).single(),
+                    sb.from('product_images').select('image_url').eq('product_id', productId)
+                ]);
+                if (product?.image_url) urls.push(product.image_url);
+                (images || []).forEach(image => {
+                    if (image?.image_url) urls.push(image.image_url);
+                });
+            } catch (error) {
+                console.warn('Could not collect existing product image URLs for cleanup:', error);
+            }
+            return uniqueImageUrls(urls);
+        }
+
+        async function removeUnusedSupabaseProductImages(previousUrls, nextUrls) {
+            const nextPaths = new Set(uniqueImageUrls(nextUrls).map(getSupabaseProductImagePath).filter(Boolean));
+            let pathsToRemove = uniqueImageUrls(previousUrls)
+                .map(getSupabaseProductImagePath)
+                .filter(path => path && !nextPaths.has(path));
+
+            pathsToRemove = [...new Set(pathsToRemove)];
+            if (!pathsToRemove.length) return { removed: 0 };
+
+            try {
+                const [{ data: products }, { data: images }] = await Promise.all([
+                    sb.from('products').select('image_url'),
+                    sb.from('product_images').select('image_url')
+                ]);
+                const stillReferenced = new Set([
+                    ...(products || []).map(row => getSupabaseProductImagePath(row?.image_url)),
+                    ...(images || []).map(row => getSupabaseProductImagePath(row?.image_url))
+                ].filter(Boolean));
+                pathsToRemove = pathsToRemove.filter(path => !stillReferenced.has(path));
+            } catch (error) {
+                console.warn('Could not check product image references before cleanup:', error);
+            }
+
+            if (!pathsToRemove.length) return { removed: 0 };
+
+            const { error } = await sb.storage.from(SUPABASE_PRODUCT_IMAGE_BUCKET).remove(pathsToRemove);
+            if (error) throw error;
+            return { removed: pathsToRemove.length };
+        }
+
+        async function getAdminAccessToken() {
+            const { data: { session }, error } = await sb.auth.getSession();
+            if (error) throw error;
+            if (!session?.access_token) throw new Error('Missing admin session token. Please sign in again.');
+            return session.access_token;
+        }
+
+        async function uploadProductImageToR2(file) {
+            const token = await getAdminAccessToken();
+            const form = new FormData();
+            form.append('file', file);
+            form.append('productId', currentProduct?.id || document.getElementById('sku')?.value || 'unassigned');
+
+            const resp = await fetch('/api/upload-product-image', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`
+                },
+                body: form
+            });
+
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok || !data.success || !data.url) {
+                throw new Error(data.error || 'R2 image upload failed.');
+            }
+            return data;
+        }
+
+        async function removeUnusedR2ProductImages(previousUrls, nextUrls) {
+            const nextSet = new Set(uniqueImageUrls(nextUrls));
+            let urlsToRemove = uniqueImageUrls(previousUrls)
+                .filter(url => isR2ProductImageUrl(url) && !nextSet.has(url));
+
+            if (!urlsToRemove.length) return { removed: 0 };
+
+            try {
+                const [{ data: products }, { data: images }] = await Promise.all([
+                    sb.from('products').select('image_url'),
+                    sb.from('product_images').select('image_url')
+                ]);
+                const stillReferenced = new Set([
+                    ...(products || []).map(row => safeHttpUrl(row?.image_url)),
+                    ...(images || []).map(row => safeHttpUrl(row?.image_url))
+                ].filter(Boolean));
+                urlsToRemove = urlsToRemove.filter(url => !stillReferenced.has(url));
+            } catch (error) {
+                console.warn('Could not check R2 product image references before cleanup:', error);
+            }
+
+            if (!urlsToRemove.length) return { removed: 0 };
+
+            const token = await getAdminAccessToken();
+            const resp = await fetch('/api/delete-product-images', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ urls: urlsToRemove })
+            });
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok || !data.success) {
+                throw new Error(data.error || 'R2 image cleanup failed.');
+            }
+            return { removed: data.deleted || 0 };
+        }
+
+        async function removeUnusedProductImages(previousUrls, nextUrls) {
+            const [supabaseResult, r2Result] = await Promise.allSettled([
+                removeUnusedSupabaseProductImages(previousUrls, nextUrls),
+                removeUnusedR2ProductImages(previousUrls, nextUrls)
+            ]);
+
+            const errors = [supabaseResult, r2Result]
+                .filter(result => result.status === 'rejected')
+                .map(result => result.reason);
+
+            if (errors.length) throw errors[0];
+
+            return {
+                removed: (supabaseResult.value?.removed || 0) + (r2Result.value?.removed || 0)
+            };
+        }
+
+        function loadImageBitmapFromFile(file) {
+            return new Promise((resolve, reject) => {
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = () => {
+                    URL.revokeObjectURL(url);
+                    resolve(img);
+                };
+                img.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    reject(new Error('Could not read image file.'));
+                };
+                img.src = url;
+            });
+        }
+
+        function canvasToBlob(canvas, type, quality) {
+            return new Promise(resolve => canvas.toBlob(resolve, type, quality));
+        }
+
+        async function prepareProductImageFile(file) {
+            if (!file || !file.type?.startsWith('image/')) return file;
+            if (file.type === 'image/gif') return file;
+
+            const image = await loadImageBitmapFromFile(file);
+            const scale = Math.min(1, MAX_PRODUCT_UPLOAD_WIDTH / Math.max(image.naturalWidth || image.width, image.naturalHeight || image.height));
+
+            const width = Math.max(1, Math.round((image.naturalWidth || image.width) * scale));
+            const height = Math.max(1, Math.round((image.naturalHeight || image.height) * scale));
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(image, 0, 0, width, height);
+
+            let optimizedBlob = null;
+            for (const quality of PRODUCT_UPLOAD_QUALITIES) {
+                const candidate = await canvasToBlob(canvas, 'image/webp', quality);
+                if (!candidate) continue;
+                optimizedBlob = candidate;
+                if (candidate.size <= MAX_PRODUCT_UPLOAD_BYTES) break;
+            }
+
+            if (!optimizedBlob || optimizedBlob.size >= file.size) return file;
+
+            const baseName = file.name.replace(/\.[^.]+$/, '') || 'product-image';
+            return new File([optimizedBlob], `${baseName}.webp`, { type: 'image/webp' });
+        }
+
+        function validateImageUrl(url, timeoutMs = 7000) {
+            return new Promise((resolve) => {
+                const safeUrl = safeHttpUrl(url);
+                if (!safeUrl) {
+                    resolve({ ok: false, url, reason: 'Use a valid http(s) image URL.' });
+                    return;
+                }
+                const img = new Image();
+                let settled = false;
+                const finish = (result) => {
+                    if (settled) return;
+                    settled = true;
+                    clearTimeout(timer);
+                    resolve(result);
+                };
+                const timer = setTimeout(() => finish({ ok: false, url: safeUrl, reason: 'Image took too long to load.' }), timeoutMs);
+                img.onload = () => {
+                    const width = img.naturalWidth;
+                    const height = img.naturalHeight;
+                    const warnings = [];
+                    if (width > 0 && height > 0) {
+                        if (width < 900 || height < 1200) {
+                            warnings.push(`Recommended product image size is at least 900x1200. This image is ${width}x${height}.`);
+                        }
+                        const ratio = width / height;
+                        if (ratio < 0.55 || ratio > 0.95) {
+                            warnings.push('Product images look best near a 3:4 portrait crop.');
+                        }
+                    }
+                    finish({
+                        ok: width > 0 && height > 0,
+                        url: safeUrl,
+                        width,
+                        height,
+                        warnings,
+                        reason: width > 0 ? '' : 'Image loaded without dimensions.'
+                    });
+                };
+                img.onerror = () => finish({ ok: false, url: safeUrl, reason: 'Image could not be loaded.' });
+                img.referrerPolicy = 'no-referrer';
+                img.src = safeUrl;
+            });
+        }
+
+        async function validateProductImageUrls(imageUrls) {
+            const uniqueUrls = [...new Set((imageUrls || []).map(v => String(v || '').trim()).filter(Boolean))];
+            if (!uniqueUrls.length) return { ok: false, failures: [{ reason: 'At least one image is required.' }] };
+            const results = await Promise.all(uniqueUrls.map(url => validateImageUrl(url)));
+            const failures = results.filter(result => !result.ok);
+            const warnings = results.flatMap(result => (result.warnings || []).map(warning => ({ url: result.url, warning })));
+            return { ok: failures.length === 0, failures, warnings, results };
+        }
+
+        document.addEventListener('blur', async (event) => {
+            const input = event.target;
+            if (!input?.classList?.contains('product-image-url') || !input.value.trim()) return;
+            const row = input.closest('.image-row');
+            const preview = row?.querySelector('.image-preview');
+            const result = await validateImageUrl(input.value.trim(), 5000);
+            input.classList.toggle('error', !result.ok);
+            if (preview && result.ok) {
+                preview.src = result.url;
+                preview.style.display = 'block';
+                if (result.warnings?.length) {
+                    showToast(result.warnings[0], 'info');
+                }
+            }
+        }, true);
 
         function isOneSizeLabel(value) {
             const normalized = normalizeSizeKey(value).replace(/\s+fits\s+most/g, '');
@@ -3801,23 +5262,21 @@
         });
 
         async function handleImageUpload(fileInput) {
-            const file = fileInput.files[0];
-            if (!file) return;
+            const originalFile = fileInput.files[0];
+            if (!originalFile) return;
             const row = fileInput.closest('.image-row');
             const urlInput = row.querySelector('.product-image-url');
             const preview = row.querySelector('.image-preview');
             const uploadBtn = row.querySelector('.btn-upload');
             uploadBtn.textContent = 'Uploading...';
             try {
-                const ext = file.name.split('.').pop();
-                const fileName = Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '.' + ext;
-                const { data, error } = await sb.storage.from('product-images').upload(fileName, file, { cacheControl: '3600', upsert: false });
-                if (error) throw error;
-                const { data: urlData } = sb.storage.from('product-images').getPublicUrl(fileName);
-                urlInput.value = urlData.publicUrl;
-                if (preview) { preview.src = urlData.publicUrl; preview.style.display = 'block'; }
+                const file = await prepareProductImageFile(originalFile);
+                const upload = await uploadProductImageToR2(file);
+                urlInput.value = upload.url;
+                if (preview) { preview.src = upload.url; preview.style.display = 'block'; }
                 uploadBtn.textContent = 'Upload';
-                showToast('Image uploaded successfully', 'success');
+                const savedKb = Math.max(0, originalFile.size - file.size) / 1024;
+                showToast(savedKb > 100 ? `Image optimized and uploaded to R2 (${Math.round(savedKb)} KB saved)` : 'Image uploaded to R2 successfully', 'success');
             } catch (err) {
                 console.error('Upload error:', err);
                 uploadBtn.textContent = 'Upload';
@@ -3826,7 +5285,7 @@
         }
 
         async function saveProduct(publish) {
-            const mandatoryFields = ['sku', 'title', 'subtitle', 'gender', 'colorway', 'materialComposition', 'msrp', 'currentPrice', 'productStatus'];
+            const mandatoryFields = ['sku', 'title', 'subtitle', 'gender', 'materialComposition', 'msrp', 'currentPrice', 'productStatus', 'shippingWeightLb'];
             const form = document.getElementById('productForm');
 
             let isValid = true;
@@ -3840,10 +5299,25 @@
                 }
             });
 
-            const images = Array.from(document.querySelectorAll('.product-image-url')).map(i => i.value).filter(v => v);
-            if (images.length === 0) {
+            const imageUrls = getProductImageUrlsFromForm();
+            if (imageUrls.length === 0) {
                 showToast('Please add at least one image', 'error');
                 return;
+            }
+
+            showToast('Checking product images...', 'info');
+            const imageValidation = await validateProductImageUrls(imageUrls);
+            if (!imageValidation.ok) {
+                const firstFailure = imageValidation.failures[0];
+                showToast('Image validation failed: ' + (firstFailure?.reason || firstFailure?.url || 'Could not load image.'), 'error');
+                document.querySelectorAll('.product-image-url').forEach(input => {
+                    const result = imageValidation.failures.find(f => safeHttpUrl(input.value) === f.url || input.value.trim() === f.url);
+                    input.classList.toggle('error', Boolean(result));
+                });
+                return;
+            }
+            if (imageValidation.warnings?.length) {
+                showToast('Image warning: ' + imageValidation.warnings[0].warning, 'info');
             }
 
             if (publish && !isValid) {
@@ -3862,12 +5336,14 @@
             }
 
             try {
+                const previousImageUrls = currentProduct?.id ? await getExistingProductImageUrls(currentProduct.id) : [];
+
                 const productData = {
                     sku: document.getElementById('sku').value,
                     title: document.getElementById('title').value,
                     subtitle: document.getElementById('subtitle').value,
                     gender: document.getElementById('gender').value,
-                    colorway: document.getElementById('colorway').value,
+                    colorway: effectiveColorway || null,
                     material_composition: document.getElementById('materialComposition').value,
                     msrp: parseFloat(document.getElementById('msrp').value),
                     current_price: parseFloat(document.getElementById('currentPrice').value),
@@ -3877,6 +5353,7 @@
                     fit_type: document.getElementById('fitType').value,
                     fabric_technology: allTechs,
                     fabric_weight_gsm: document.getElementById('fabricWeightGsm').value ? parseFloat(document.getElementById('fabricWeightGsm').value) : null,
+                    shipping_weight_lb: document.getElementById('shippingWeightLb').value ? parseFloat(document.getElementById('shippingWeightLb').value) : null,
                     upf_rating: document.getElementById('upfRating').value ? parseInt(document.getElementById('upfRating').value) : null,
                     breathability_mvtr: document.getElementById('breathabilityMvtr').value ? parseFloat(document.getElementById('breathabilityMvtr').value) : null,
                     pom_chest: document.getElementById('pomChest').value ? parseFloat(document.getElementById('pomChest').value) : null,
@@ -3892,7 +5369,7 @@
                     status: publish ? document.getElementById('productStatus').value : 'Draft',
                     sort_order: document.getElementById('sortOrder').value ? parseInt(document.getElementById('sortOrder').value) : null,
                     low_stock_threshold: parseInt(document.getElementById('lowStockThreshold').value) || 10,
-                    image_url: (Array.from(document.querySelectorAll('.product-image-url')).map(i => i.value).filter(v => v))[0] || null
+                    image_url: imageUrls[0] || null
                 };
 
                 const sustainTags = [];
@@ -3931,9 +5408,8 @@
                     const { error } = await sb.from('product_images').delete().eq('product_id', productId);
                     if (error) throw error;
                 }
-                const imageUrls = Array.from(document.querySelectorAll('.product-image-url')).map(i => i.value).filter(v => v);
                 for (let i = 0; i < imageUrls.length; i++) {
-                    await sb.from('product_images').insert([{
+                    const { error } = await sb.from('product_images').insert([{
                         product_id: productId,
                         image_url: imageUrls[i],
                         sort_order: i
@@ -3950,7 +5426,7 @@
                     const hexColor = colorEntries[i].hex_color;
                     const rgbColor = colorEntries[i].rgb_color;
                     if (colorName && hexColor) {
-                        await sb.from('color_variants').insert([{
+                        const { error } = await sb.from('color_variants').insert([{
                             product_id: productId,
                             color_name: colorName,
                             hex_color: hexColor,
@@ -3995,6 +5471,27 @@
                     if (error) throw error;
                 }
 
+                let removedStorageImages = 0;
+                if (previousImageUrls.length) {
+                    try {
+                        const cleanup = await removeUnusedProductImages(previousImageUrls, imageUrls);
+                        removedStorageImages = cleanup.removed || 0;
+                    } catch (cleanupError) {
+                        console.warn('Product image storage cleanup failed:', cleanupError);
+                        showToast('Product saved, but old storage image cleanup failed.', 'info');
+                    }
+                }
+
+                await logAdminAudit(currentProduct ? 'product.update' : 'product.create', 'products', productId, {
+                    sku: productData.sku,
+                    title: productData.title,
+                    status: productData.status,
+                    image_count: imageUrls.length,
+                    removed_storage_images: removedStorageImages,
+                    color_count: colorEntries.length,
+                    size_count: seenSizes.size
+                });
+
                 showToast(publish ? 'Product published!' : 'Draft saved!', 'success');
                 document.getElementById('productFormModal').classList.remove('active');
                 loadProducts();
@@ -4037,6 +5534,7 @@
             document.getElementById('fabricTechnology').value = otherTechs.join(', ');
             
             document.getElementById('fabricWeightGsm').value = product.fabric_weight_gsm || '';
+            document.getElementById('shippingWeightLb').value = product.shipping_weight_lb || '';
             document.getElementById('upfRating').value = product.upf_rating || '';
             document.getElementById('breathabilityMvtr').value = product.breathability_mvtr || '';
             document.getElementById('pomChest').value = product.pom_chest || '';
@@ -4058,7 +5556,6 @@
             document.getElementById('recycledContentDetail').value = recycledContentTag && recycledContentTag !== 'Recycled Content'
                 ? recycledContentTag
                 : '';
-            document.getElementById('sustainRecycled').checked = product.sustainability_tags?.includes('Recycled Content');
             document.getElementById('sustainOriginal').checked = product.sustainability_tags?.includes('Original');
             document.getElementById('certGRS').checked = product.certifications?.includes('GRS');
             document.getElementById('certOEKO').checked = product.certifications?.includes('OEKO-TEX');
@@ -4069,7 +5566,6 @@
             document.getElementById('specialtyMaternity').checked = product.specialty_sizing?.includes('Maternity');
 
             const activeProductId = product.id;
-            // Load images
             const container = document.getElementById('imagesContainer');
             container.innerHTML = '';
 
@@ -4105,8 +5601,6 @@
                     '<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button>';
                 container.appendChild(row);
             }
-                }
-            });
 
             const colorContainer = document.getElementById('colorVariantsContainer');
             colorContainer.innerHTML = '';
@@ -4145,7 +5639,6 @@
             } else {
                 await syncSizeGuideUi({ forceSizeRows: true, keepManualRows: false });
             }
-            });
         }
 
         function resetProductForm() {
@@ -4182,6 +5675,7 @@
 
         document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
             try {
+                const imageUrlsToRemove = await getExistingProductImageUrls(deleteProductId);
                 {
                     const { error } = await sb.from('product_images').delete().eq('product_id', deleteProductId);
                     if (error) throw error;
@@ -4197,6 +5691,18 @@
                 const { error } = await sb.from('products').delete().eq('id', deleteProductId);
                 if (error) throw error;
 
+                let removedStorageImages = 0;
+                try {
+                    const cleanup = await removeUnusedProductImages(imageUrlsToRemove, []);
+                    removedStorageImages = cleanup.removed || 0;
+                } catch (cleanupError) {
+                    console.warn('Product image storage cleanup failed:', cleanupError);
+                    showToast('Product deleted, but old storage image cleanup failed.', 'info');
+                }
+
+                await logAdminAudit('product.delete', 'products', deleteProductId, {
+                    removed_storage_images: removedStorageImages
+                });
                 showToast('Product deleted successfully', 'success');
                 document.getElementById('deleteModal').classList.remove('active');
                 loadProducts();
@@ -4299,6 +5805,7 @@
                 try {
                     const { error } = await sb.from('size_charts').delete().eq('id', id);
                     if (error) throw error;
+                    await logAdminAudit('size_chart.delete', 'size_charts', id);
                     productSizeChartCache = null;
                     productSizeChartCachePromise = null;
                     showToast('Size entry deleted', 'success');
@@ -4319,9 +5826,15 @@
             });
             try {
                 let error;
+                let savedSizeChartId = currentSizeChart?.id || null;
                 if (currentSizeChart) { ({ error } = await sb.from('size_charts').update(data).eq('id', currentSizeChart.id)); }
-                else { ({ error } = await sb.from('size_charts').insert([data])); }
+                else {
+                    let inserted;
+                    ({ data: inserted, error } = await sb.from('size_charts').insert([data]).select('id').single());
+                    savedSizeChartId = inserted?.id || null;
+                }
                 if (error) throw error;
+                await logAdminAudit(currentSizeChart ? 'size_chart.update' : 'size_chart.create', 'size_charts', savedSizeChartId, { category, size_label: sizeLabel });
                 productSizeChartCache = null;
                 productSizeChartCachePromise = null;
                 showToast('Size chart entry saved!', 'success');
@@ -4357,6 +5870,9 @@
                 }
             } else if (row.key === 'shipping_policy') {
                 const v = row.value || {};
+                const enabledToggle = document.getElementById('settFreeShippingEnabled');
+                enabledToggle.checked = v.free_shipping_enabled !== false; // default true
+                _syncFreeRow();
                 if (v.free_threshold !== undefined) document.getElementById('settFreeThreshold').value = v.free_threshold;
                 if (v.standard_rate !== undefined) document.getElementById('settStandardRate').value = v.standard_rate;
                 if (v.delivery_days) document.getElementById('settDeliveryDays').value = v.delivery_days;
@@ -4411,11 +5927,23 @@
             { onConflict: 'key' }
         );
         if (error) { showToast('Error saving announcement', 'error'); console.error(error); }
-        else showToast('Announcement saved!', 'success');
+        else {
+            await logAdminAudit('settings.update', 'site_settings', 'announcement_bar', { mode, has_main: Boolean(val.main), has_product: Boolean(val.product) });
+            showToast('Announcement saved!', 'success');
+        }
     });
+
+    // Free-shipping toggle show/hide
+    const _freeToggle = document.getElementById('settFreeShippingEnabled');
+    const _freeRow    = document.getElementById('freeShippingThresholdRow');
+    function _syncFreeRow() {
+        _freeRow.style.display = _freeToggle.checked ? 'flex' : 'none';
+    }
+    _freeToggle.addEventListener('change', _syncFreeRow);
 
     document.getElementById('saveShippingBtn').addEventListener('click', async () => {
         const val = {
+            free_shipping_enabled: document.getElementById('settFreeShippingEnabled').checked,
             free_threshold: parseFloat(document.getElementById('settFreeThreshold').value) || 100,
             standard_rate: parseFloat(document.getElementById('settStandardRate').value) || 8,
             delivery_days: document.getElementById('settDeliveryDays').value || '5-7',
@@ -4426,8 +5954,11 @@
             { key: 'shipping_policy', value: val, updated_at: new Date().toISOString() },
             { onConflict: 'key' }
         );
-        if (error) { showToast('Error saving shipping policy', 'error'); console.error(error); }
-        else showToast('Shipping policy saved!', 'success');
+        if (error) { showToast('Error saving shipping settings', 'error'); console.error(error); }
+        else {
+            await logAdminAudit('settings.update', 'site_settings', 'shipping_policy', val);
+            showToast('Shipping settings saved!', 'success');
+        }
     });
 
     function renderTechList() {
@@ -4479,7 +6010,10 @@
             { onConflict: 'key' }
         );
         if (error) { showToast('Error saving technologies', 'error'); console.error(error); }
-        else showToast('Technologies saved!', 'success');
+        else {
+            await logAdminAudit('settings.update', 'site_settings', 'technologies', { count: Object.keys(techs).length });
+            showToast('Technologies saved!', 'success');
+        }
     });
     
     function renderFaqList() {
@@ -4517,7 +6051,10 @@
             { onConflict: 'key' }
         );
         if (error) { showToast('Error saving FAQ', 'error'); console.error(error); }
-        else showToast('FAQ saved!', 'success');
+        else {
+            await logAdminAudit('settings.update', 'site_settings', 'faq', { count: faqs.length });
+            showToast('FAQ saved!', 'success');
+        }
     });
 
     document.getElementById('saveLegalBtn')?.addEventListener('click', async () => {
@@ -4532,7 +6069,10 @@
             { onConflict: 'key' }
         );
         if (error) { showToast('Error saving policies', 'error'); console.error(error); }
-        else showToast('Policies saved!', 'success');
+        else {
+            await logAdminAudit('settings.update', 'site_settings', 'legal_policies', { sections: Object.keys(val) });
+            showToast('Policies saved!', 'success');
+        }
     });
 
     // Load settings when Settings page is shown
@@ -4574,8 +6114,9 @@
                         document.getElementById('adminResBg').value = b.admin_res_bg || '#2a1419';
                         document.getElementById('adminResText').value = b.admin_res_text || '#f891a5';
                         if (b.favicon) {
-                            favInput.value = b.favicon;
-                            favPreview.src = b.favicon;
+                            const faviconUrl = window.__zwFaviconUrl ? window.__zwFaviconUrl(b.favicon) : b.favicon;
+                            favInput.value = faviconUrl;
+                            favPreview.src = faviconUrl;
                             favPreview.style.display = 'block';
                             let link = document.querySelector('link[rel="icon"]');
                             if (!link) {
@@ -4583,7 +6124,7 @@
                                 link.rel = 'icon';
                                 document.head.appendChild(link);
                             }
-                            link.href = b.favicon;
+                            window.__zwApplyFavicon ? window.__zwApplyFavicon(faviconUrl) : (link.href = faviconUrl);
                         }
                     }
                 }
@@ -4596,10 +6137,22 @@
                 admin_res_bg: document.getElementById('adminResBg').value,
                 admin_res_text: document.getElementById('adminResText').value
             };
+            if (brandData.favicon) {
+                const iconCheck = await validateImageUrl(brandData.favicon);
+                if (!iconCheck.ok) {
+                    showToast('Favicon image failed validation: ' + iconCheck.reason, 'error');
+                    return;
+                }
+            }
             const { error } = await sb.from('site_settings').upsert({ key: 'brand', value: brandData, updated_at: new Date().toISOString() }, { onConflict: 'key' });
             if (error) {
                 showToast('Error saving brand: ' + error.message, 'error');
             } else {
+                await logAdminAudit('settings.update', 'site_settings', 'brand', {
+                    has_favicon: Boolean(brandData.favicon),
+                    admin_res_bg: brandData.admin_res_bg,
+                    admin_res_text: brandData.admin_res_text
+                });
                 showToast('Brand settings saved!', 'success');
                 try { localStorage.setItem('zw-brand', JSON.stringify(brandData)); } catch (e) {}
                 if (brandData.favicon) {
@@ -4609,7 +6162,7 @@
                         link.rel = 'icon';
                         document.head.appendChild(link);
                     }
-                    link.href = brandData.favicon;
+                    window.__zwApplyFavicon ? window.__zwApplyFavicon(brandData.favicon) : (link.href = brandData.favicon);
                 }
                 if (brandData.admin_res_bg) document.documentElement.style.setProperty('--admin-res-bg', brandData.admin_res_bg);
                 if (brandData.admin_res_text) document.documentElement.style.setProperty('--admin-res-text', brandData.admin_res_text);
@@ -4624,6 +6177,13 @@
                 image: document.getElementById('heroImage').value,
                 cta_text: document.getElementById('heroCtaText').value
             };
+            if (heroData.image) {
+                const heroCheck = await validateImageUrl(heroData.image);
+                if (!heroCheck.ok) {
+                    showToast('Hero image failed validation: ' + heroCheck.reason, 'error');
+                    return;
+                }
+            }
             const { error } = await sb.from('site_settings').upsert({
                 key: 'hero',
                 value: heroData,
@@ -4632,6 +6192,10 @@
             if (error) {
                 showToast('Error saving hero: ' + error.message, 'error');
             } else {
+                await logAdminAudit('settings.update', 'site_settings', 'hero', {
+                    has_image: Boolean(heroData.image),
+                    cta_text: heroData.cta_text
+                });
                 try {
                     if (heroData.image) localStorage.setItem('zw-hero-image', heroData.image);
                     else localStorage.removeItem('zw-hero-image');

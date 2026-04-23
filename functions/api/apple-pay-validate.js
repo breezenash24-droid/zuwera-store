@@ -1,40 +1,22 @@
 /**
- * Cloudflare Pages Function: POST /api/apple-pay-validate
+ * functions/api/apple-pay-validate.js
+ * Cloudflare Pages Function — Apple Pay merchant validation
  *
- * Handles the Apple Pay Web `onvalidatemerchant` event.
+ * POST /api/apple-pay-validate
+ * Body: { validationURL: "https://apple-pay-gateway.apple.com/..." }
  *
- * Flow:
- *   1. Browser fires ApplePaySession.onvalidatemerchant with a validationURL
- *   2. Frontend POSTs that validationURL to this endpoint
- *   3. This Worker POSTs to Apple's server using mTLS (merchant identity cert)
- *   4. Apple returns an opaque merchantSession object
- *   5. We return it to the browser → browser calls session.completeMerchantValidation()
+ * Wrangler bindings required (wrangler.toml):
+ *   [[mtls_certificates]]
+ *   binding = "APPLE_PAY_CERT"
+ *   certificate_id = "<your-cloudflare-mtls-cert-id>"
  *
- * Required env vars (CF Pages Dashboard → Settings → Environment variables):
- *   APPLE_MERCHANT_ID      e.g. merchant.store.zuwera
- *   APPLE_DOMAIN_NAME      zuwera.store
- *   APPLE_DISPLAY_NAME     Zuwera Sportswear
- *
- * Required mTLS binding (CF Pages Dashboard → Settings → mTLS):
- *   Binding name: APPLE_PAY_CERT
- *   (See scripts/setup-apple-pay-cert.sh for how to generate and upload the cert)
- *
- * NOTE: Zuwera currently uses Stripe's paymentRequest() API which handles
- * merchant validation automatically. This endpoint is needed if you ever switch
- * to using raw new ApplePaySession(...) directly for full control.
+ *   [vars]
+ *   APPLE_MERCHANT_ID  = "merchant.store.zuwera"
+ *   APPLE_DOMAIN_NAME  = "zuwera.store"
+ *   APPLE_DISPLAY_NAME = "Zuwera Sportswear"
  */
 
-const ALLOWED_ORIGIN = 'https://zuwera.store';
-
-const CORS = {
-  'Access-Control-Allow-Origin':  ALLOWED_ORIGIN,
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Content-Type':                 'application/json',
-};
-
-// Apple's known merchant validation hostnames — whitelist to prevent SSRF attacks
-const APPLE_VALIDATION_HOSTS = new Set([
+const APPLE_ALLOWED_HOSTS = new Set([
   'apple-pay-gateway.apple.com',
   'cn-apple-pay-gateway.apple.com',
   'apple-pay-gateway-nc-pod1.apple.com',
@@ -48,82 +30,88 @@ const APPLE_VALIDATION_HOSTS = new Set([
   'apple-pay-gateway-pr-pod4.apple.com',
   'apple-pay-gateway-pr-pod5.apple.com',
   'apple-pay-gateway-sandbox.apple.com',
-  'cn-apple-pay-gateway-sandbox.apple.com',
+  'cn-apple-pay-gateway-sh-pod1.apple.com',
+  'cn-apple-pay-gateway-sh-pod2.apple.com',
+  'cn-apple-pay-gateway-sh-pod3.apple.com',
+  'cn-apple-pay-gateway-tj-pod1.apple.com',
+  'cn-apple-pay-gateway-tj-pod2.apple.com',
+  'cn-apple-pay-gateway-tj-pod3.apple.com',
 ]);
 
-export async function onRequestOptions() {
-  return new Response(null, { status: 204, headers: CORS });
+const CORS = {
+  'Access-Control-Allow-Origin': 'https://zuwera.store',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+function jsonResp(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...CORS },
+  });
 }
 
 export async function onRequestPost({ request, env }) {
-  // 1. Parse body
+  // CORS preflight
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: CORS });
+  }
+
+  // Parse body
   let validationURL;
   try {
     ({ validationURL } = await request.json());
   } catch {
-    return json({ error: 'Invalid JSON body' }, 400);
-  }
-  if (!validationURL || typeof validationURL !== 'string') {
-    return json({ error: 'Missing validationURL' }, 400);
+    return jsonResp({ error: 'Invalid JSON body' }, 400);
   }
 
-  // 2. Validate URL host — SSRF protection
-  let parsedUrl;
-  try { parsedUrl = new URL(validationURL); } catch {
-    return json({ error: 'Malformed validationURL' }, 400);
-  }
-  if (parsedUrl.protocol !== 'https:' || !APPLE_VALIDATION_HOSTS.has(parsedUrl.hostname)) {
-    console.warn('apple-pay-validate: blocked SSRF attempt to', parsedUrl.hostname);
-    return json({ error: 'Invalid validationURL host' }, 400);
-  }
+  if (!validationURL) return jsonResp({ error: 'validationURL required' }, 400);
 
-  // 3. Check env vars
-  const { APPLE_MERCHANT_ID, APPLE_DOMAIN_NAME, APPLE_DISPLAY_NAME } = env;
-  if (!APPLE_MERCHANT_ID || !APPLE_DOMAIN_NAME || !APPLE_DISPLAY_NAME) {
-    console.error('apple-pay-validate: missing Apple Pay env vars');
-    return json({ error: 'Server misconfiguration' }, 500);
+  // SSRF guard
+  let parsed;
+  try { parsed = new URL(validationURL); }
+  catch { return jsonResp({ error: 'Invalid validationURL' }, 400); }
+
+  if (!APPLE_ALLOWED_HOSTS.has(parsed.hostname)) {
+    console.error('[apple-pay] Blocked host:', parsed.hostname);
+    return jsonResp({ error: 'Invalid validationURL host' }, 400);
   }
 
-  // 4. POST to Apple with mTLS certificate
-  const body = JSON.stringify({
-    merchantIdentifier: APPLE_MERCHANT_ID,
-    domainName:         APPLE_DOMAIN_NAME,
-    displayName:        APPLE_DISPLAY_NAME,
-    initiative:         "web",
-    initiativeContext:  APPLE_DOMAIN_NAME
-  });
+  const merchantId   = env.APPLE_MERCHANT_ID  || 'merchant.store.zuwera';
+  const domainName   = env.APPLE_DOMAIN_NAME  || 'zuwera.store';
+  const displayName  = env.APPLE_DISPLAY_NAME || 'Zuwera Sportswear';
 
-  let appleResponse;
+  const fetchOpts = {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ merchantIdentifier: merchantId, domainName, displayName }),
+  };
+
+  // Attach mTLS cert binding so Cloudflare presents it to Apple during TLS handshake
+  if (env.APPLE_PAY_CERT) {
+    fetchOpts.cf = { mtlsClientCert: env.APPLE_PAY_CERT };
+  } else {
+    console.warn('[apple-pay] APPLE_PAY_CERT binding missing — mTLS will fail in production');
+  }
+
+  let merchantSession;
   try {
-    const fetchOpts = {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body,
-    };
-    // Attach the mTLS certificate binding so Cloudflare presents the
-    // Apple Merchant Identity Certificate during the TLS handshake
-    if (env.APPLE_PAY_CERT) {
-      fetchOpts.cf = { mtlsClientCert: env.APPLE_PAY_CERT };
-    } else {
-      console.warn('apple-pay-validate: APPLE_PAY_CERT not bound — configure mTLS in CF Dashboard');
+    const appleRes = await fetch(validationURL, fetchOpts);
+    if (!appleRes.ok) {
+      const msg = await appleRes.text();
+      console.error('[apple-pay] Apple error', appleRes.status, msg);
+      return jsonResp({ error: 'Apple validation failed: ' + appleRes.status }, 502);
     }
-    appleResponse = await fetch(validationURL, fetchOpts);
+    merchantSession = await appleRes.json();
   } catch (err) {
-    console.error('apple-pay-validate: network error', err.message);
-    return json({ error: 'Could not reach Apple validation server', detail: err.message }, 502);
+    console.error('[apple-pay] Fetch failed:', err.message);
+    return jsonResp({ error: 'Could not reach Apple validation server' }, 502);
   }
 
-  // 5. Return Apple's merchant session to the browser
-  if (!appleResponse.ok) {
-    const detail = await appleResponse.text().catch(() => '');
-    console.error('apple-pay-validate: Apple returned', appleResponse.status, detail);
-    return json({ error: 'Apple merchant validation failed', status: appleResponse.status, detail }, 502);
-  }
-
-  const merchantSession = await appleResponse.json();
-  return new Response(JSON.stringify(merchantSession), { status: 200, headers: CORS });
+  return jsonResp(merchantSession);
 }
 
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: CORS });
-}
+// Also handle OPTIONS at this route
+export async function onRequestOptions() {
+  return new Response(null, { status: 204, headers: CORS });
+    }

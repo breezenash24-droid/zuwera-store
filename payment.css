@@ -146,3 +146,38 @@
   transition: var(--trans);
 }
 #success-continue:hover { opacity: 0.85; }
+
+/* ===================== LIGHT MODE ===================== */
+body.light-mode #payment-modal { background: #F0EEE9; }
+body.light-mode .payment-box {
+  background: #F0EEE9;
+  border-color: rgba(9,9,11,0.1);
+  color: #09090b;
+}
+body.light-mode .payment-box h2 { color: #09090b; }
+body.light-mode .payment-box .pay-subtitle { color: rgba(9,9,11,0.4); }
+body.light-mode .pay-field label { color: rgba(9,9,11,0.45); }
+body.light-mode .pay-field input {
+  background: rgba(9,9,11,0.04);
+  border-color: rgba(9,9,11,0.12);
+  color: #09090b;
+}
+body.light-mode .pay-field input:focus { border-color: rgba(9,9,11,0.45); }
+body.light-mode #stripe-card-element {
+  background: rgba(9,9,11,0.04);
+  border-color: rgba(9,9,11,0.12);
+}
+body.light-mode #stripe-card-element.StripeElement--focus { border-color: rgba(9,9,11,0.45); }
+body.light-mode .rate-option {
+  background: rgba(9,9,11,0.02);
+  border-color: rgba(9,9,11,0.1);
+}
+body.light-mode .rate-option:hover { background: rgba(9,9,11,0.04); border-color: rgba(9,9,11,0.2); }
+body.light-mode .rate-option.selected { background: rgba(9,9,11,0.06); border-color: rgba(9,9,11,0.35); }
+body.light-mode .rate-meta { color: rgba(9,9,11,0.4); }
+body.light-mode #pay-submit { background: #09090b; color: #E8E3DC; }
+body.light-mode #pay-submit:hover { opacity: 0.85; }
+body.light-mode .pay-secure-note { color: rgba(9,9,11,0.35); }
+body.light-mode #payment-success { background: #F0EEE9; }
+body.light-mode #payment-success p { color: rgba(9,9,11,0.5); }
+body.light-mode #success-continue { background: #09090b; color: #E8E3DC; }

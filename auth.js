@@ -15,6 +15,8 @@ const _sb = window.sb;
 
 let _currentUser   = null;
 let _userFavorites = []; // full objects: { product_id, product_name, price }
+let _authReturnModalId = null;
+const _favoriteProductCache = new Map();
 
 // ── Shorthand helpers ──────────────────────────────────────────────
 const $  = id => document.getElementById(id);
@@ -30,11 +32,17 @@ function setBtn(id, loading, defaultLabel) {
 // ── Safe global helpers ────────────────────────────────────────────
 window._openModal = window._openModal || function(id) {
   const m = document.getElementById(id);
-  if (m) { m.classList.add('open'); document.body.style.overflow = 'hidden'; }
+  if (m) { m.classList.add('open'); document.body.style.overflow = 'hidden'; document.documentElement.style.overflow = 'hidden'; }
 };
 window._closeModal = window._closeModal || function(id) {
   const m = document.getElementById(id);
-  if (m) { m.classList.remove('open'); document.body.style.overflow = ''; }
+  if (m) {
+    m.classList.remove('open');
+    if (!document.querySelector('.modal.open')) {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
+  }
 };
 window.togglePwd = window.togglePwd || function(id, btn) {
   const inp = document.getElementById(id);
@@ -124,6 +132,7 @@ function updateHeaderForAuth() {
 // ── Auth Modal ─────────────────────────────────────────────────────
 function openAuthModal(tab) {
   const cart = document.getElementById('cart-modal');
+  _authReturnModalId = cart?.classList.contains('open') ? 'cart-modal' : null;
   if (cart?.classList.contains('open')) {
     cart.classList.remove('open');
   }
@@ -132,10 +141,18 @@ function openAuthModal(tab) {
 }
 function closeAuthModal() {
   _closeModal('auth-modal');
-  // If the cart modal is still open underneath, keep body scroll locked
-  const cart = document.getElementById('cart-modal');
-  if (cart && cart.classList.contains('open')) {
-    document.body.style.overflow = 'hidden';
+  if (_authReturnModalId) {
+    const returnModal = document.getElementById(_authReturnModalId);
+    const returnId = _authReturnModalId;
+    _authReturnModalId = null;
+    if (returnModal) {
+      returnModal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      if (returnId === 'cart-modal') {
+        if (typeof window.renderProductCartItems === 'function') window.renderProductCartItems();
+        if (typeof renderCart === 'function') renderCart();
+      }
+    }
   }
 }
 function switchAuthTab(tab) {
@@ -368,7 +385,9 @@ if (updatePassBtn) {
 // ── Logout ─────────────────────────────────────────────────────────
 _authEls.logoutBtn.addEventListener('click', async () => {
   if (_sb) {
-    await _sb.auth.signOut().catch(()=>{});
+    // scope:'global' revokes the refresh token server-side so the session
+    // cannot be silently re-established on the next page load.
+    await _sb.auth.signOut({ scope: 'global' }).catch(()=>{});
     localStorage.removeItem('zuwera-auth');
   }
   showToast('Signed out.');
@@ -489,6 +508,256 @@ async function loadOrderHistory() {
   `).join('');
 }
 
+function escapeFavoriteHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function favoriteSlug(value) {
+  return String(value || 'product')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'product';
+}
+
+function favoriteHref(productId, productName) {
+  const slug = favoriteSlug(productName);
+  return `/product/${slug}?id=${encodeURIComponent(productId)}`;
+}
+
+function favoriteNumericPrice(value) {
+  if (typeof value === 'string') {
+    const parsed = parseFloat(value.replace(/[^0-9.]/g, ''));
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return parseFloat(value ?? 0) || 0;
+}
+
+function favoriteEffectivePrice(detail, fallbackPrice) {
+  const regular = favoriteNumericPrice(detail?.current_price ?? detail?.regularPrice ?? fallbackPrice);
+  const member = favoriteNumericPrice(detail?.member_price ?? detail?.memberPrice);
+  if (_currentUser && member > 0 && (!regular || member < regular)) return member;
+  return regular;
+}
+
+function favoriteOptimizeImage(url, width) {
+  if (!url) return '';
+  return typeof window.optimizeImage === 'function' ? window.optimizeImage(url, width || 160) : url;
+}
+
+function compareFavoriteSizeLabels(left, right) {
+  const normalize = (value) => String(value || '')
+    .toLowerCase()
+    .replace(/[()]/g, ' ')
+    .replace(/\bfits\s+most\b/g, ' ')
+    .replace(/\s*\/\s*/g, '/')
+    .replace(/\s*-\s*/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const canonicalize = (value) => {
+    const normalized = normalize(value);
+    const compact = normalized.replace(/\s+/g, '');
+    const aliases = {
+      xxxxs: '4xs',
+      xxxs: '3xs',
+      xxs: '2xs',
+      xxxxl: '4xl',
+      xxxl: '3xl',
+      xxl: '2xl'
+    };
+    return aliases[compact] || (/^one(?:\s|-)?size$/.test(normalized) ? 'one size' : compact || normalized);
+  };
+  const rank = (value) => {
+    const token = canonicalize(value);
+    if (!token) return null;
+    if (token === 'one size' || token === 'one-size' || token === 'onesize') return 0;
+    const exact = {
+      '5xs': 5, '4xs': 10, '3xs': 15, '2xs': 20, 'xs': 30, 'xs/s': 35,
+      's': 40, 's/m': 45, 'm': 50, 'm/l': 55, 'l': 60, 'l/xl': 65,
+      'xl': 70, '2xl': 80, '3xl': 90, '4xl': 100, '5xl': 110
+    };
+    if (exact[token] != null) return exact[token];
+    return null;
+  };
+  const leftRank = rank(left);
+  const rightRank = rank(right);
+  if (leftRank !== null || rightRank !== null) {
+    if (leftRank === null) return 1;
+    if (rightRank === null) return -1;
+    return leftRank - rightRank;
+  }
+  return String(left || '').localeCompare(String(right || ''), undefined, { numeric: true, sensitivity: 'base' });
+}
+
+function pickFavoriteSize(sizeRows) {
+  const rows = (Array.isArray(sizeRows) ? sizeRows : [])
+    .map((row) => ({
+      label: row?.size || row?.size_label || '',
+      stock: Number(row?.stock_quantity ?? row?.stock ?? 0)
+    }))
+    .filter((row) => row.label);
+  const inStock = rows.filter((row) => row.stock > 0);
+  const source = inStock.length ? inStock : rows;
+  if (!source.length) return 'One Size';
+  return source.sort((left, right) => compareFavoriteSizeLabels(left.label, right.label))[0].label;
+}
+
+function buildFavoriteDetail(product, extra, fallbackFavorite) {
+  const images = Array.isArray(extra?.images) ? extra.images : [];
+  const colors = Array.isArray(extra?.colors) ? extra.colors : [];
+  const sizes = Array.isArray(extra?.sizes) ? extra.sizes : [];
+  const primaryImage = images[0]?.image_url || product?.image_url || product?.images?.[0]?.image_url || '';
+  const primaryColor = colors[0] || null;
+  const detail = {
+    id: product?.id || fallbackFavorite?.product_id,
+    title: product?.title || fallbackFavorite?.product_name || 'Saved Item',
+    subtitle: product?.subtitle || product?.category || '',
+    image: primaryImage,
+    colorName: primaryColor?.color_name || product?.colorway || 'Standard',
+    sku: primaryColor?.variant_sku || product?.sku || '',
+    current_price: favoriteNumericPrice(product?.current_price ?? product?.price ?? fallbackFavorite?.price),
+    member_price: favoriteNumericPrice(product?.member_price),
+    sizes,
+  };
+  detail.href = favoriteHref(detail.id, detail.title);
+  _favoriteProductCache.set(detail.id, detail);
+  return detail;
+}
+
+async function getFavoriteProductDetail(productId, fallbackFavorite) {
+  if (!productId) return null;
+  if (_favoriteProductCache.has(productId)) return _favoriteProductCache.get(productId);
+
+  if (typeof currentProduct !== 'undefined' && currentProduct?.id === productId) {
+    return buildFavoriteDetail(currentProduct, {
+      images: currentProduct.images || [],
+      colors: currentProduct.colors || [],
+      sizes: currentProduct.inventory || []
+    }, fallbackFavorite);
+  }
+
+  try {
+    const cachedProducts = JSON.parse(sessionStorage.getItem('zw_home_products') || '[]');
+    const cachedProduct = Array.isArray(cachedProducts) ? cachedProducts.find((product) => product?.id === productId) : null;
+    if (cachedProduct) {
+      return buildFavoriteDetail(cachedProduct, {
+        images: cachedProduct.product_images || [],
+        colors: [],
+        sizes: []
+      }, fallbackFavorite);
+    }
+  } catch (_) {}
+
+  try {
+    const headers = { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` };
+    const encodedId = encodeURIComponent(productId);
+    const [productResp, imagesResp, colorsResp, sizesResp] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/products?select=*&id=eq.${encodedId}&limit=1`, { headers }),
+      fetch(`${SUPABASE_URL}/rest/v1/product_images?select=*&product_id=eq.${encodedId}&order=sort_order.asc`, { headers }),
+      fetch(`${SUPABASE_URL}/rest/v1/color_variants?select=*&product_id=eq.${encodedId}&order=sort_order.asc`, { headers }),
+      fetch(`${SUPABASE_URL}/rest/v1/product_sizes?select=*&product_id=eq.${encodedId}`, { headers })
+    ]);
+    const productRows = productResp.ok ? await productResp.json() : [];
+    const product = Array.isArray(productRows) ? productRows[0] : null;
+    if (!product) return null;
+    const images = imagesResp.ok ? await imagesResp.json() : [];
+    const colors = colorsResp.ok ? await colorsResp.json() : [];
+    const sizes = sizesResp.ok ? await sizesResp.json() : [];
+    return buildFavoriteDetail(product, { images, colors, sizes }, fallbackFavorite);
+  } catch (_) {
+    return null;
+  }
+}
+
+function favoriteCardHtml(favorite, detail, options) {
+  const mode = options?.mode || 'cart';
+  const productId = favorite.product_id;
+  const name = detail?.title || favorite.product_name || 'Saved Item';
+  const href = detail?.href || favoriteHref(productId, name);
+  const subtitle = detail?.subtitle ? `<div style="font-size:0.66rem;letter-spacing:0.08em;text-transform:uppercase;color:rgba(245,245,240,0.36);margin-top:0.2rem;">${escapeFavoriteHtml(detail.subtitle)}</div>` : '';
+  const imageHtml = detail?.image
+    ? `<img src="${favoriteOptimizeImage(detail.image, 180)}" alt="${escapeFavoriteHtml(name)}" style="width:68px;height:86px;object-fit:cover;border:1px solid rgba(245,245,240,0.08);flex-shrink:0;" onerror="if(this.src !== '${detail.image}') this.src='${detail.image}';">`
+    : `<div style="width:68px;height:86px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(245,245,240,0.08);color:rgba(245,245,240,0.28);font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;flex-shrink:0;">No Image</div>`;
+  const displayPrice = favoriteEffectivePrice(detail, favorite.price);
+  const priceHtml = displayPrice > 0
+    ? `<div style="font-size:0.82rem;color:rgba(245,245,240,0.72);margin-top:0.45rem;">$${displayPrice.toFixed(2)}</div>`
+    : '';
+  const listTag = mode === 'account' ? 'div' : 'li';
+  return `
+    <${listTag} style="display:flex;gap:0.85rem;align-items:flex-start;padding:${mode === 'account' ? '0.95rem 0' : '0.75rem 0'};border-bottom:1px solid rgba(245,245,240,0.07);">
+      ${imageHtml}
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:0.88rem;line-height:1.35;">${escapeFavoriteHtml(name)}</div>
+        ${subtitle}
+        ${priceHtml}
+        <div style="display:flex;flex-wrap:wrap;gap:0.45rem;margin-top:0.8rem;">
+          <a href="${href}" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 0.85rem;border:1px solid rgba(245,245,240,0.14);font-size:0.66rem;letter-spacing:0.09em;text-transform:uppercase;color:rgba(245,245,240,0.76);text-decoration:none;">View Product</a>
+          <button type="button" onclick="addFavoriteToCart('${productId}')" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 0.85rem;border:none;background:#f5f5f0;color:#09090b;font-size:0.66rem;letter-spacing:0.09em;text-transform:uppercase;cursor:pointer;">Add to Bag</button>
+          <button type="button" onclick="removeFavorite('${productId}', null)" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 0.85rem;border:1px solid rgba(245,245,240,0.08);background:none;color:rgba(245,245,240,0.46);font-size:0.66rem;letter-spacing:0.09em;text-transform:uppercase;cursor:pointer;">Remove</button>
+        </div>
+      </div>
+    </${listTag}>
+  `;
+}
+
+async function renderFavoriteCollection(listEl, favorites, options) {
+  if (!listEl) return;
+  const detailPairs = await Promise.all(favorites.map(async (favorite) => {
+    const detail = await getFavoriteProductDetail(favorite.product_id, favorite);
+    return { favorite, detail };
+  }));
+  listEl.innerHTML = detailPairs.map(({ favorite, detail }) => favoriteCardHtml(favorite, detail, options)).join('');
+}
+
+window.addFavoriteToCart = async function(productId) {
+  const favorite = _userFavorites.find((item) => item.product_id === productId) || { product_id: productId };
+  const detail = await getFavoriteProductDetail(productId, favorite);
+  if (!detail) {
+    window.location.href = `/product.html?id=${encodeURIComponent(productId)}`;
+    return;
+  }
+
+  const size = pickFavoriteSize(detail.sizes);
+  const regularPrice = favoriteNumericPrice(detail.current_price ?? favorite.price);
+  const memberPrice = favoriteNumericPrice(detail.member_price);
+  const effectivePrice = favoriteEffectivePrice(detail, favorite.price);
+  const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+  const existing = cart.find((item) =>
+    item.productId === detail.id &&
+    item.size === size &&
+    item.colorName === detail.colorName &&
+    String(item.sku || '') === String(detail.sku || '')
+  );
+
+  if (existing) {
+    existing.quantity += 1;
+  } else {
+    cart.push({
+      productId: detail.id,
+      sku: detail.sku,
+      title: detail.title,
+      size,
+      colorName: detail.colorName,
+      regularPrice,
+      memberPrice,
+      price: effectivePrice || regularPrice,
+      image: detail.image,
+      quantity: 1
+    });
+  }
+
+  localStorage.setItem('cart', JSON.stringify(cart));
+  if (typeof loadCartCount === 'function') loadCartCount();
+  if (typeof window.renderProductCartItems === 'function') window.renderProductCartItems();
+  if (typeof renderCart === 'function') renderCart();
+  showToast(`Added ${detail.title}${size ? ` (${size})` : ''} to bag.`);
+};
+
 async function loadAcctFavs() {
   if (!_sb || !_currentUser) return;
   const loading = $('acct-favs-loading');
@@ -519,6 +788,9 @@ async function loadFavorites() {
   _userFavorites = data || [];
   refreshHeartButtons();
   refreshCartFavs();
+    // Re-run after short delays to catch dynamically-rendered product IDs (e.g. product.html)
+      setTimeout(refreshHeartButtons, 300);
+        setTimeout(refreshHeartButtons, 1000);
 }
 
 function refreshHeartButtons() {
@@ -527,6 +799,7 @@ function refreshHeartButtons() {
     btn.classList.toggle('active', ids.has(btn.dataset.productId));
   });
 }
+window.refreshHeartButtons = refreshHeartButtons; // expose globally for products.js
 
 function refreshCartFavs() {
   const loggedOut = $('fav-logged-out-msg');
@@ -579,7 +852,7 @@ async function toggleFavorite(btn) {
     await removeFavorite(pid, null);
   } else {
     if (_sb) {
-      await _sb.from('favorites').upsert({ user_id: _currentUser.id, product_id: pid, product_name: pname, price, product_image: pimage });
+      await _sb.from('favorites').upsert({ user_id: _currentUser.id, product_id: pid, product_name: pname, price, product_image: pimage }, { onConflict: 'user_id,product_id' });
     }
     _userFavorites.push({ product_id: pid, product_name: pname, price, product_image: pimage });
     refreshHeartButtons();
@@ -599,6 +872,7 @@ async function removeFavorite(pid, liEl) {
   showToast('Removed from favorites.');
 }
 
-document.querySelectorAll('.heart-btn').forEach(btn => {
-  btn.addEventListener('click', () => toggleFavorite(btn));
-});
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.heart-btn');
+    if (btn) toggleFavorite(btn);
+    });

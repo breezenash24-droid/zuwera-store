@@ -109,7 +109,7 @@
       .goog-logo-link,
       .skiptranslate { display: none !important; visibility: hidden !important; }
       /* Prevent GT from pushing the body down */
-      body { top: 0 !important; }
+      body:not([data-scroll-locked="true"]) { top: 0 !important; }
       /* Hide the floating "X" restore bar that sometimes appears */
       iframe.goog-te-banner-frame { display: none !important; }
     `;
@@ -124,7 +124,9 @@
   // Also re-suppress after GT loads (it sometimes re-inserts styles)
   function suppressGTBarRuntime() {
     // Force body top to 0
-    document.body.style.setProperty('top', '0', 'important');
+    if (!document.body.dataset.scrollLocked) {
+      document.body.style.setProperty('top', '0', 'important');
+    }
     // Hide any injected banner iframes
     document.querySelectorAll('.goog-te-banner-frame, .skiptranslate').forEach(el => {
       el.style.setProperty('display', 'none', 'important');
@@ -242,8 +244,90 @@
   }
 
   // ─── Modal HTML ───────────────────────────────────────────────────────────────
+  let langModalTrigger = null;
+  let langModalFallbackLocked = false;
+  let langModalFallbackScrollY = 0;
+
+  function focusWithoutScroll(el) {
+    if (!el || typeof el.focus !== 'function') return;
+    try {
+      el.focus({ preventScroll: true });
+    } catch (err) {
+      el.focus();
+    }
+  }
+
+  function refreshSharedModalLock() {
+    if (!window.ZWModalScrollLock || typeof window.ZWModalScrollLock.refresh !== 'function') {
+      return false;
+    }
+    window.ZWModalScrollLock.refresh();
+    return true;
+  }
+
+  function lockLangModalScrollFallback() {
+    if (refreshSharedModalLock() || langModalFallbackLocked || !document.body) return;
+
+    const root = document.documentElement;
+    const body = document.body;
+    const scrollbarGap = Math.max(0, window.innerWidth - root.clientWidth);
+
+    langModalFallbackLocked = true;
+    langModalFallbackScrollY = window.scrollY || window.pageYOffset || 0;
+
+    root.dataset.scrollLocked = 'true';
+    body.dataset.scrollLocked = 'true';
+
+    root.style.overflow = 'hidden';
+    root.style.overscrollBehavior = 'none';
+
+    body.style.position = 'fixed';
+    body.style.setProperty('top', `-${langModalFallbackScrollY}px`, 'important');
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.width = '100%';
+    body.style.overflow = 'hidden';
+    body.style.overscrollBehavior = 'none';
+
+    if (scrollbarGap > 0) {
+      body.style.paddingRight = `${scrollbarGap}px`;
+    }
+  }
+
+  function unlockLangModalScrollFallback() {
+    if (refreshSharedModalLock() || !langModalFallbackLocked || !document.body) return;
+
+    const root = document.documentElement;
+    const body = document.body;
+    const restoreY = langModalFallbackScrollY;
+
+    langModalFallbackLocked = false;
+    langModalFallbackScrollY = 0;
+
+    delete root.dataset.scrollLocked;
+    delete body.dataset.scrollLocked;
+
+    root.style.overflow = '';
+    root.style.overscrollBehavior = '';
+
+    body.style.position = '';
+    body.style.removeProperty('top');
+    body.style.left = '';
+    body.style.right = '';
+    body.style.width = '';
+    body.style.overflow = '';
+    body.style.overscrollBehavior = '';
+    body.style.paddingRight = '';
+
+    window.scrollTo(0, restoreY);
+  }
+
   function buildModal() {
     if (document.getElementById('zw-lang-modal')) return;
+
+    const isLightMode = document.body.classList.contains('light-mode');
+    const overlayBg = isLightMode ? '#F0EEE9' : 'rgba(0,0,0,0.72)';
+    const overlayFilter = isLightMode ? 'none' : 'blur(8px)';
 
     const modal = document.createElement('div');
     modal.id = 'zw-lang-modal';
@@ -252,7 +336,7 @@
     modal.setAttribute('aria-label', 'Select language');
     modal.style.cssText = `
       display:none; position:fixed; inset:0; z-index:100000;
-      background:rgba(0,0,0,0.72); backdrop-filter:blur(8px);
+      background:${overlayBg}; backdrop-filter:${overlayFilter}; -webkit-backdrop-filter:${overlayFilter};
       align-items:center; justify-content:center; padding:1rem;
     `;
 
@@ -378,18 +462,33 @@
   function openModal() {
     buildModal();
     const modal = document.getElementById('zw-lang-modal');
+    langModalTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (modal) {
+      const isLightMode = document.body.classList.contains('light-mode');
+      modal.style.background = isLightMode ? '#F0EEE9' : 'rgba(0,0,0,0.72)';
+      modal.style.backdropFilter = isLightMode ? 'none' : 'blur(8px)';
+      modal.style.webkitBackdropFilter = isLightMode ? 'none' : 'blur(8px)';
+    }
     modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
+    lockLangModalScrollFallback();
     setTimeout(() => {
       const search = document.getElementById('zw-lang-search');
-      if (search) { search.value = ''; renderGrid(); search.focus(); }
+      if (search) {
+        search.value = '';
+        renderGrid();
+        focusWithoutScroll(search);
+      }
     }, 50);
   }
 
   function closeModal() {
     const modal = document.getElementById('zw-lang-modal');
     if (modal) modal.style.display = 'none';
-    document.body.style.overflow = '';
+    unlockLangModalScrollFallback();
+    if (langModalTrigger && langModalTrigger.isConnected) {
+      window.requestAnimationFrame(() => focusWithoutScroll(langModalTrigger));
+    }
+    langModalTrigger = null;
   }
 
   // ─── Inject Footer Button ─────────────────────────────────────────────────────
@@ -424,10 +523,11 @@
     const style = document.createElement('style');
     style.id = 'zw-lang-styles';
     style.textContent = `
+      /* ── Trigger button (dark mode default) ── */
       .zw-lang-trigger {
         display: inline-flex; align-items: center; gap: 0.4rem;
         background: none; border: 1px solid rgba(244,241,235,0.12);
-        color: rgba(244,241,235,0.35); border-radius: 20px;
+        color: rgba(244,241,235,0.55); border-radius: 20px;
         padding: 0.35rem 0.75rem; font-size: 0.65rem;
         font-family: 'DM Sans', sans-serif; letter-spacing: 0.08em;
         text-transform: uppercase; cursor: pointer;
@@ -438,11 +538,72 @@
         color: #F891A5; border-color: rgba(248,145,165,0.35);
         background: rgba(248,145,165,0.06);
       }
+      /* ── Trigger button light mode ── */
+      body.light-mode .zw-lang-trigger {
+        border-color: rgba(9,9,11,0.22);
+        color: rgba(9,9,11,0.6);
+      }
+      body.light-mode .zw-lang-trigger:hover {
+        color: #09090b; border-color: rgba(9,9,11,0.5);
+        background: rgba(9,9,11,0.04);
+      }
+      /* ── Modal box light mode ── */
+      body.light-mode #zw-lang-box {
+        background: #F0EEE9 !important;
+        border-color: rgba(9,9,11,0.12) !important;
+        box-shadow: 0 24px 64px rgba(9,9,11,0.15) !important;
+      }
+      body.light-mode #zw-lang-box > div:first-child {
+        border-bottom-color: rgba(9,9,11,0.08) !important;
+      }
+      body.light-mode #zw-lang-box > div:first-child > div > div:first-child {
+        color: #09090b !important;
+      }
+      body.light-mode #zw-lang-box > div:first-child > div > div:last-child {
+        color: rgba(9,9,11,0.45) !important;
+      }
+      body.light-mode #zw-lang-close {
+        background: rgba(9,9,11,0.05) !important;
+        border-color: rgba(9,9,11,0.1) !important;
+        color: #09090b !important;
+      }
+      body.light-mode #zw-lang-search {
+        background: rgba(9,9,11,0.04) !important;
+        border-color: rgba(9,9,11,0.12) !important;
+        color: #09090b !important;
+      }
+      body.light-mode #zw-lang-search::placeholder { color: rgba(9,9,11,0.35) !important; }
+      body.light-mode #zw-lang-search:focus { border-color: rgba(9,9,11,0.4) !important; }
+      body.light-mode #zw-lang-grid button {
+        background: rgba(9,9,11,0.03) !important;
+        border-color: rgba(9,9,11,0.08) !important;
+        color: #09090b !important;
+      }
+      body.light-mode #zw-lang-grid button:hover {
+        background: rgba(9,9,11,0.07) !important;
+        border-color: rgba(9,9,11,0.18) !important;
+      }
+      body.light-mode #zw-lang-grid button div div:first-child {
+        color: #09090b !important;
+      }
+      body.light-mode #zw-lang-grid button div div:last-child {
+        color: rgba(9,9,11,0.55) !important;
+      }
+      body.light-mode #zw-lang-box > div:last-child {
+        border-top-color: rgba(9,9,11,0.08) !important;
+      }
+      body.light-mode #zw-lang-box > div:last-child span {
+        color: rgba(9,9,11,0.25) !important;
+      }
+      body.light-mode #zw-lang-reset {
+        color: rgba(9,9,11,0.4) !important;
+      }
       .zw-lang-chip { letter-spacing: 0.06em; }
       #zw-lang-search:focus { border-color: rgba(248,145,165,0.4) !important; }
       #zw-lang-grid::-webkit-scrollbar { width: 4px; }
       #zw-lang-grid::-webkit-scrollbar-track { background: transparent; }
       #zw-lang-grid::-webkit-scrollbar-thumb { background: rgba(244,241,235,0.1); border-radius: 2px; }
+      body.light-mode #zw-lang-grid::-webkit-scrollbar-thumb { background: rgba(9,9,11,0.12); }
       @media (max-width: 600px) {
         #zw-lang-box { max-height: 92dvh; border-radius: 16px 16px 0 0; }
         #zw-lang-modal { align-items: flex-end !important; }
