@@ -681,6 +681,7 @@
 
       <h2 style="margin-top: 2rem; margin-bottom: 1rem;">Technical Command Center</h2>
       <div class="precision-grid">
+        <div id="edgeMetricsNotice" class="diag-box span-12" style="display:none;"></div>
         <div class="glass-card span-3">
           <div class="card-label">QoS · Cache Hit Ratio</div>
           <div class="card-value mono-metric" id="qosCacheRatio">--%</div>
@@ -1031,10 +1032,12 @@
     };
     
     const showError = (msg) => {
+      const host = document.getElementById('errorContainer');
+      if (!host) return;
       const err = document.createElement('div');
       err.className = 'error';
       err.textContent = msg;
-      document.getElementById('errorContainer').appendChild(err);
+      host.appendChild(err);
     };
 
     const renderDiagnostics = () => {
@@ -1161,8 +1164,10 @@
         const { data: favs } = await sbClient.from('favorites').select('*');
         const { data: waitlist } = await sbClient.from('waitlist').select('*');
         
-        document.getElementById('totalFavorites').textContent = favs ? favs.length : 0;
-        document.getElementById('totalWaitlist').textContent = waitlist ? waitlist.length : 0;
+        const totalFavoritesEl = document.getElementById('totalFavorites');
+        const totalWaitlistEl = document.getElementById('totalWaitlist');
+        if (totalFavoritesEl) totalFavoritesEl.textContent = favs ? favs.length : 0;
+        if (totalWaitlistEl) totalWaitlistEl.textContent = waitlist ? waitlist.length : 0;
 
         const favCounts = {};
         (favs || []).forEach(f => {
@@ -1171,16 +1176,17 @@
 
         const topFavs = Object.entries(favCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
         const favContainer = document.getElementById('topFavoritesContainer');
-        
-        if (topFavs.length === 0) {
-            favContainer.innerHTML = '<p style="color:var(--text-secondary); padding: 1rem 0;">No favorites saved yet.</p>';
-        } else {
-            favContainer.innerHTML = topFavs.map(f => `
-                <div class="product-card">
-                    <div class="product-title">${f[0] || 'Unknown Product'}</div>
-                    <div style="color: var(--text-secondary); font-size: 0.85rem;">${f[1]} Saves</div>
-                </div>
-            `).join('');
+        if (favContainer) {
+          if (topFavs.length === 0) {
+              favContainer.innerHTML = '<p style="color:var(--text-secondary); padding: 1rem 0;">No favorites saved yet.</p>';
+          } else {
+              favContainer.innerHTML = topFavs.map(f => `
+                  <div class="product-card">
+                      <div class="product-title">${f[0] || 'Unknown Product'}</div>
+                      <div style="color: var(--text-secondary); font-size: 0.85rem;">${f[1]} Saves</div>
+                  </div>
+              `).join('');
+          }
         }
       } catch (err) {
         console.error('Failed to load engagement data:', err);
@@ -1212,9 +1218,17 @@
       el.style.width = pct + '%';
     };
 
-    const renderBotChart = (bots = { verified: 0, unverified: 0 }) => {
+    const renderBotChart = (bots = null) => {
       const mount = document.getElementById('botIntelligenceChart');
-      if (!mount || !window.React || !window.Recharts) return;
+      if (!mount) return;
+      if (!window.React || !window.Recharts) {
+        mount.innerHTML = '<div style="color:var(--text-secondary);padding:1rem 0;">Chart library unavailable.</div>';
+        return;
+      }
+      if (!bots) {
+        mount.innerHTML = '<div style="color:var(--text-secondary);padding:1rem 0;">Bot telemetry unavailable.</div>';
+        return;
+      }
       const R = window.Recharts;
       const data = [
         { name: 'Verified Bot', value: Number(bots.verified || 0), fill: '#F38FA9' },
@@ -1235,9 +1249,17 @@
 
     const renderSyncopatedAreaChart = (series = []) => {
       const mount = document.getElementById('syncopatedSalesChart');
-      if (!mount || !window.React || !window.Recharts) return;
+      if (!mount) return;
+      if (!window.React || !window.Recharts) {
+        mount.innerHTML = '<div style="color:var(--text-secondary);padding:1rem 0;">Chart library unavailable.</div>';
+        return;
+      }
       const R = window.Recharts;
       const data = (series || []).slice(-180).map((d, idx) => ({ x: idx + 1, sales: Number(d.sales || 0) }));
+      if (!data.length) {
+        mount.innerHTML = '<div style="color:var(--text-secondary);padding:1rem 0;">No trend data available yet.</div>';
+        return;
+      }
       const chart = React.createElement(R.ResponsiveContainer, { width: '100%', height: 250 },
         React.createElement(R.AreaChart, { data },
           React.createElement('defs', null,
@@ -1276,41 +1298,84 @@
       `).join('') || '<div style="color:var(--text-secondary)">No vitals available.</div>';
     };
 
+    const setCommandCenterNotice = (message = '') => {
+      const el = document.getElementById('edgeMetricsNotice');
+      if (!el) return;
+      if (!message) {
+        el.style.display = 'none';
+        el.innerHTML = '';
+        return;
+      }
+      el.style.display = 'block';
+      el.innerHTML = `<div class="diag-title">Technical Command Center</div><div class="diag-item">${message}</div>`;
+    };
+
+    const buildFallbackSalesSeries = () => {
+      const byDay = new Map();
+      const sourceOrders = Array.isArray(allOrders) ? allOrders : [];
+      sourceOrders.forEach((order) => {
+        const rawDate = order?.created_at;
+        if (!rawDate) return;
+        const date = new Date(rawDate);
+        if (Number.isNaN(date.getTime())) return;
+        const key = date.toISOString().slice(0, 10);
+        const amount = Number(order?.total || order?.total_amount || order?.amount_total || 0) || 0;
+        byDay.set(key, (byDay.get(key) || 0) + amount);
+      });
+      return [...byDay.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .slice(-30)
+        .map(([day, sales]) => ({ t: day, sales }));
+    };
+
     const fetchEdgeMetrics = async () => {
       try {
         const res = await fetch('/api/cloudflare-analytics');
-        const payload = await res.json();
+        const raw = await res.text();
+        let payload = {};
+        try {
+          payload = raw ? JSON.parse(raw) : {};
+        } catch (_) {
+          payload = {};
+        }
         if (!res.ok || !payload.success) throw new Error(payload.error || 'Cloudflare analytics unavailable');
         edgeMetrics = payload.metrics;
         clearDiagnosticIssue('EDGE_ANALYTICS');
+        return true;
       } catch (err) {
+        edgeMetrics = null;
         setDiagnosticIssue('EDGE_ANALYTICS', 'Cloudflare analytics endpoint unavailable.', err?.message || 'Check /api/cloudflare-analytics env vars');
         console.warn('Cloudflare analytics unavailable:', err.message);
+        return false;
       }
     };
 
     const updateCommandCenter = async () => {
-      if (!edgeMetrics) await fetchEdgeMetrics();
+      const hasEdgeMetrics = edgeMetrics ? true : await fetchEdgeMetrics();
       const orders24h = getOrdersLast24h();
       const remainingUnits = getRemainingUnits();
       const momentum = calculateSelloutMomentum(orders24h, remainingUnits);
       const packagingInteractions = Number(edgeMetrics?.pageViews || 0);
-      const packagingRate = packagingInteractions > 0 ? Number(((orders24h / packagingInteractions) * 100).toFixed(2)) : 0;
+      const packagingRate = packagingInteractions > 0 ? Number(((orders24h / packagingInteractions) * 100).toFixed(2)) : null;
       const cacheRatio = Number(edgeMetrics?.cacheHitRatio || 0);
       const edgeMs = Number(edgeMetrics?.edgeResponseTime || 0);
 
       const safeText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
       safeText('selloutMomentum', momentum.toFixed(2));
-      safeText('packagingPrecision', packagingRate.toFixed(2) + '%');
-      safeText('qosCacheRatio', cacheRatio.toFixed(2) + '%');
-      safeText('qosEdgeResponse', edgeMs.toFixed(1) + ' ms');
+      safeText('packagingPrecision', packagingRate === null ? 'Unavailable' : packagingRate.toFixed(2) + '%');
+      safeText('qosCacheRatio', hasEdgeMetrics ? cacheRatio.toFixed(2) + '%' : 'Unavailable');
+      safeText('qosEdgeResponse', hasEdgeMetrics ? edgeMs.toFixed(1) + ' ms' : 'Unavailable');
 
-      renderGauge('qosCacheGauge', cacheRatio, 100);
-      renderGauge('qosEdgeGauge', Math.max(0, 1000 - edgeMs), 1000);
-      renderBotChart(edgeMetrics?.bots || { verified: 0, unverified: 0 });
-      renderSyncopatedAreaChart(edgeMetrics?.series || []);
-      renderTopLocations(edgeMetrics?.topLocations || []);
-      renderDeviceVitals(edgeMetrics?.deviceVitals || []);
+      renderGauge('qosCacheGauge', hasEdgeMetrics ? cacheRatio : 0, 100);
+      renderGauge('qosEdgeGauge', hasEdgeMetrics && edgeMs > 0 ? Math.max(0, 1000 - edgeMs) : 0, 1000);
+      renderBotChart(hasEdgeMetrics ? (edgeMetrics?.bots || { verified: 0, unverified: 0 }) : null);
+      renderSyncopatedAreaChart((edgeMetrics?.series && edgeMetrics.series.length) ? edgeMetrics.series : buildFallbackSalesSeries());
+      renderTopLocations(hasEdgeMetrics ? (edgeMetrics?.topLocations || []) : []);
+      renderDeviceVitals(hasEdgeMetrics ? (edgeMetrics?.deviceVitals || []) : []);
+      setCommandCenterNotice(hasEdgeMetrics
+        ? ''
+        : 'Live Cloudflare edge metrics are unavailable right now. This panel is showing local sales-based fallback data where possible.'
+      );
 
       const hypeInput = document.getElementById('hypeMultiplierInput');
       const runSim = () => {
@@ -1564,6 +1629,7 @@
     // Revenue Timeline Chart
     const updateRevenueChart = () => {
       const chartContainer = document.getElementById('revenueChart');
+      if (!chartContainer) return;
       if (allOrders.length === 0) {
         chartContainer.innerHTML = '<p style="color: var(--text-secondary); width: 100%; text-align: center; margin-top: 2rem;">No sales data available yet.</p>';
         return;
