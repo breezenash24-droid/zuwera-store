@@ -3259,6 +3259,7 @@
             },
             global: { headers: { 'X-Client-Info': 'zuwera-admin' } }
         });
+        window.sb = sb; // expose for commerce-admin.js and other external scripts
         const ADMIN_TS_KEY = '0x4AAAAAACzvvg-l2dT2z35l';
         let adminTsWidgetId = null;
         let adminTsPending = null;
