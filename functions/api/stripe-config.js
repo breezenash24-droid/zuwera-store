@@ -48,7 +48,8 @@ function resolvePublishableKey(env) {
     return {
       publishableKey: configuredKey || FALLBACK_TEST_PUBLISHABLE_KEY,
       mode,
-      source: configuredKey ? 'STRIPE_TEST_PUBLISHABLE_KEY' : 'fallback-test-key'
+      source: configuredKey ? 'STRIPE_TEST_PUBLISHABLE_KEY' : 'fallback-test-key',
+      warning: configuredKey ? '' : 'Using fallback Stripe test publishable key. Set STRIPE_PUBLISHABLE_KEY or STRIPE_TEST_PUBLISHABLE_KEY before launch.',
     };
   }
 
@@ -57,7 +58,8 @@ function resolvePublishableKey(env) {
     return {
       publishableKey: configuredKey || FALLBACK_LIVE_PUBLISHABLE_KEY,
       mode,
-      source: configuredKey ? 'STRIPE_LIVE_PUBLISHABLE_KEY' : 'fallback-live-key'
+      source: configuredKey ? 'STRIPE_LIVE_PUBLISHABLE_KEY' : 'fallback-live-key',
+      warning: configuredKey ? '' : 'Using fallback Stripe live publishable key. Set STRIPE_PUBLISHABLE_KEY or STRIPE_LIVE_PUBLISHABLE_KEY before launch.',
     };
   }
 
@@ -90,7 +92,9 @@ export async function onRequestGet({ env }) {
     JSON.stringify({
       publishableKey: resolved.publishableKey,
       mode: resolved.mode || modeFromKey(resolved.publishableKey),
-      source: resolved.source
+      source: resolved.source,
+      warning: resolved.warning || '',
+      needsConfiguration: /^fallback-/.test(String(resolved.source || ''))
     }),
     { status: 200, headers }
   );

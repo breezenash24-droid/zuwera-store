@@ -131,15 +131,19 @@ function aggregate(groups) {
 
 export async function onRequestGet({ env }) {
   try {
-    const accountId = env.CLOUDFLARE_ACCOUNT_ID;
-    const zoneTag = env.CLOUDFLARE_ZONE_ID;
-    const token = env.CLOUDFLARE_GRAPHQL_TOKEN;
+    const accountId = env.CLOUDFLARE_ACCOUNT_ID || env.CF_ACCOUNT_ID || '';
+    const zoneTag = env.CLOUDFLARE_ZONE_ID || env.CLOUDFLARE_ZONE_TAG || env.CF_ZONE_ID || '';
+    const token = env.CLOUDFLARE_GRAPHQL_TOKEN || env.CLOUDFLARE_API_TOKEN || env.CF_API_TOKEN || '';
 
-    if (!accountId || !zoneTag || !token) {
+    if (!zoneTag || !token) {
       return json({
         success: false,
         error: 'Missing Cloudflare GraphQL configuration.',
-        requiredEnv: ['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_ZONE_ID', 'CLOUDFLARE_GRAPHQL_TOKEN']
+        requiredEnv: ['CLOUDFLARE_ZONE_ID', 'CLOUDFLARE_GRAPHQL_TOKEN'],
+        acceptedAliases: {
+          CLOUDFLARE_ZONE_ID: ['CLOUDFLARE_ZONE_TAG', 'CF_ZONE_ID'],
+          CLOUDFLARE_GRAPHQL_TOKEN: ['CLOUDFLARE_API_TOKEN', 'CF_API_TOKEN'],
+        }
       }, 500);
     }
 
@@ -178,7 +182,7 @@ export async function onRequestGet({ env }) {
       success: true,
       metrics: aggregate(groups),
       graphQLBodyExample: gqlBody,
-      accountId,
+      accountId: accountId || null,
       zoneTag
     });
   } catch (err) {
