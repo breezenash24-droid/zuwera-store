@@ -3271,7 +3271,10 @@
             }
         }
 
-        function adminTsError() {
+        function adminTsError(errorCode) {
+            if (errorCode) {
+                console.warn('[Admin Turnstile] Widget error:', errorCode);
+            }
             if (adminTsPending) {
                 const fn = adminTsPending;
                 adminTsPending = null;
@@ -3344,10 +3347,9 @@
         }
 
         async function runAdminTurnstile(action) {
-            const required = !isLocalAdminHost();
             await waitForAdminTurnstile();
             if (!window.turnstile || adminTsWidgetId === null) {
-                if (required) throw new Error('Security check is not available. Refresh the page and try again.');
+                console.warn('[Admin Turnstile] Security check unavailable, continuing without captcha token.');
                 await action(null);
                 return;
             }
@@ -3377,7 +3379,11 @@
             });
 
             try {
-                if (required) await verifyAdminTurnstileToken(token);
+                if (token) {
+                    await verifyAdminTurnstileToken(token);
+                } else {
+                    console.warn('[Admin Turnstile] No token received, continuing without captcha verification.');
+                }
                 await action(token);
             } finally {
                 if (adminTsWidgetId !== null) window.turnstile.reset(adminTsWidgetId);
