@@ -96,6 +96,29 @@
 
     .diag-title { font-weight: 700; margin-bottom: 0.35rem; }
     .diag-item { font-size: 0.87rem; color: var(--text-secondary); margin-top: 0.15rem; }
+    .command-center-placeholder {
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 0.55rem;
+      padding: 1rem 1.1rem;
+      border-radius: 12px;
+      border: 1px solid rgba(243, 143, 169, 0.28);
+      background:
+        radial-gradient(circle at top left, rgba(243, 143, 169, 0.18), transparent 46%),
+        linear-gradient(135deg, rgba(255,255,255,0.03), rgba(243, 143, 169, 0.08));
+      color: var(--text-primary);
+    }
+    .command-center-placeholder strong {
+      font-size: 0.96rem;
+      letter-spacing: 0.02em;
+    }
+    .command-center-placeholder .placeholder-meta {
+      color: var(--text-secondary);
+      font-size: 0.84rem;
+      line-height: 1.5;
+    }
 
     @media (max-width: 1080px) {
       .span-3, .span-4, .span-6, .span-8 { grid-column: span 12; }
@@ -683,12 +706,12 @@
       <div class="precision-grid">
         <div id="edgeMetricsNotice" class="diag-box span-12" style="display:none;"></div>
         <div class="glass-card span-3">
-          <div class="card-label">QoS · Cache Hit Ratio</div>
+          <div class="card-label">QoS - Cache Hit Ratio</div>
           <div class="card-value mono-metric" id="qosCacheRatio">--%</div>
           <div class="qos-gauge-track"><div class="qos-gauge-fill" id="qosCacheGauge" style="width:0%"></div></div>
         </div>
         <div class="glass-card span-3">
-          <div class="card-label">QoS · Edge Response (p50)</div>
+          <div class="card-label">QoS - Edge Response (p50)</div>
           <div class="card-value mono-metric" id="qosEdgeResponse">-- ms</div>
           <div class="qos-gauge-track"><div class="qos-gauge-fill" id="qosEdgeGauge" style="width:0%"></div></div>
         </div>
@@ -700,7 +723,7 @@
         <div class="glass-card span-3">
           <div class="card-label">Packaging Precision Rate</div>
           <div class="card-value mono-metric" id="packagingPrecision">--%</div>
-          <div class="card-subtitle">3D unboxing interactions → conversion</div>
+          <div class="card-subtitle">3D unboxing interactions to conversion</div>
         </div>
 
         <div class="glass-card span-6">
@@ -729,7 +752,7 @@
         </div>
 
         <div class="glass-card span-6">
-          <h3 style="margin-bottom:0.5rem;">Zero-Latency Monitor · Web Vitals by Device</h3>
+          <h3 style="margin-bottom:0.5rem;">Zero-Latency Monitor - Web Vitals by Device</h3>
           <div id="deviceVitalsTable"></div>
         </div>
 
@@ -1077,6 +1100,18 @@
       renderDiagnostics();
     };
 
+    const runDashboardStep = async (code, message, handler) => {
+      try {
+        const result = await handler();
+        clearDiagnosticIssue(code);
+        return result;
+      } catch (error) {
+        setDiagnosticIssue(code, message, error?.message || 'Unknown error');
+        console.warn(`${code}:`, error);
+        return null;
+      }
+    };
+
     signInBtn.addEventListener('click', async () => {
       if (window.location.search.includes('embed=true') || window.location.hash.includes('embed=true')) {
         window.top.location.href = 'admin.html';
@@ -1094,27 +1129,32 @@
     // Data Loading
     const loadDashboardData = async () => {
       try {
-        // Load products first so other functions have data to work with
-        await loadProducts();
+        clearDiagnosticIssue('DASHBOARD_LOAD');
+        await runDashboardStep('PRODUCTS_LOAD', 'Product catalog failed to load.', loadProducts);
         await Promise.all([
-          loadInventory(),
-          loadReviews(),
-          loadOrders(),
-          loadEngagement()
+          runDashboardStep('INVENTORY_LOAD', 'Inventory tables failed to load.', loadInventory),
+          runDashboardStep('REVIEWS_LOAD', 'Review data failed to load.', loadReviews),
+          runDashboardStep('ORDERS_LOAD', 'Recent orders could not be loaded.', loadOrders),
+          runDashboardStep('ENGAGEMENT_LOAD', 'Engagement data failed to load.', loadEngagement)
         ]);
 
-        updateOverviewCards();
-        updateStatusChart();
-        updateGenderChart();
-        updatePriceAnalysis();
-        await updateReviewsSummary();
-        updateOrderAnalytics();
-        updateRevenueChart();
-        await updateCommandCenter();
-        renderOrdersTable();
+        await runDashboardStep('OVERVIEW_RENDER', 'Overview metrics failed to render.', async () => {
+          updateOverviewCards();
+          updateStatusChart();
+          updateGenderChart();
+          updatePriceAnalysis();
+        });
+        await runDashboardStep('REVIEWS_RENDER', 'Review summary failed to render.', updateReviewsSummary);
+        await runDashboardStep('ORDERS_RENDER', 'Recent orders failed to render.', async () => {
+          updateOrderAnalytics();
+          updateRevenueChart();
+          renderOrdersTable();
+        });
+        await runDashboardStep('COMMAND_CENTER_RENDER', 'Technical Command Center failed to render.', updateCommandCenter);
       } catch (error) {
         setDiagnosticIssue('DASHBOARD_LOAD', 'Dashboard data failed to load.', error?.message || 'Unknown error');
         showError('Failed to load dashboard data: ' + error.message);
+        renderOrdersTable();
       }
     };
 
@@ -1154,7 +1194,10 @@
         const { data, error } = await sbClient.from('orders').select('*');
         if (error) throw error;
         allOrders = data || [];
+        clearDiagnosticIssue('ORDERS_LOAD');
       } catch (err) {
+        allOrders = [];
+        setDiagnosticIssue('ORDERS_LOAD', 'Recent orders could not be loaded.', err?.message || 'Unknown orders error');
         console.warn("Could not load orders:", err);
       }
     };
@@ -1218,15 +1261,36 @@
       el.style.width = pct + '%';
     };
 
+    const renderCommandCenterPlaceholder = (mount, heading, message, meta = '') => {
+      if (!mount) return;
+      mount.innerHTML = `
+        <div class="command-center-placeholder">
+          <strong>${heading}</strong>
+          <div>${message}</div>
+          ${meta ? `<div class="placeholder-meta">${meta}</div>` : ''}
+        </div>
+      `;
+    };
+
     const renderBotChart = (bots = null) => {
       const mount = document.getElementById('botIntelligenceChart');
       if (!mount) return;
       if (!window.React || !window.Recharts) {
-        mount.innerHTML = '<div style="color:var(--text-secondary);padding:1rem 0;">Chart library unavailable.</div>';
+        renderCommandCenterPlaceholder(
+          mount,
+          'Bot chart unavailable',
+          'The chart library did not load for this session.',
+          'The rest of the dashboard can still render while the page finishes loading dependencies.'
+        );
         return;
       }
       if (!bots) {
-        mount.innerHTML = '<div style="color:var(--text-secondary);padding:1rem 0;">Bot telemetry unavailable.</div>';
+        renderCommandCenterPlaceholder(
+          mount,
+          'EDGE_ANALYTICS fallback active',
+          'Live Cloudflare bot telemetry is unavailable right now.',
+          'This panel will switch back to verified vs unverified traffic automatically once the Cloudflare analytics endpoint starts responding again.'
+        );
         return;
       }
       const R = window.Recharts;
@@ -1251,13 +1315,23 @@
       const mount = document.getElementById('syncopatedSalesChart');
       if (!mount) return;
       if (!window.React || !window.Recharts) {
-        mount.innerHTML = '<div style="color:var(--text-secondary);padding:1rem 0;">Chart library unavailable.</div>';
+        renderCommandCenterPlaceholder(
+          mount,
+          'Sales trend unavailable',
+          'The chart library did not load for this session.',
+          'Refresh the page to retry the visual trend renderer.'
+        );
         return;
       }
       const R = window.Recharts;
       const data = (series || []).slice(-180).map((d, idx) => ({ x: idx + 1, sales: Number(d.sales || 0) }));
       if (!data.length) {
-        mount.innerHTML = '<div style="color:var(--text-secondary);padding:1rem 0;">No trend data available yet.</div>';
+        renderCommandCenterPlaceholder(
+          mount,
+          'No trend data yet',
+          'Sales trend data has not accumulated yet for this store view.',
+          'Once orders or edge traffic are available, this chart will populate automatically.'
+        );
         return;
       }
       const chart = React.createElement(R.ResponsiveContainer, { width: '100%', height: 250 },
@@ -1282,20 +1356,38 @@
     const renderTopLocations = (rows = []) => {
       const el = document.getElementById('hypeHeatmap');
       if (!el) return;
+      if (!rows.length) {
+        renderCommandCenterPlaceholder(
+          el,
+          'Location heatmap waiting on Cloudflare',
+          'Top-location analytics are temporarily offline.',
+          'Your store order data does not include geo breakdowns, so this card depends on the Cloudflare edge feed.'
+        );
+        return;
+      }
       el.innerHTML = rows.map((r) => `
         <div class="hype-map-row">
           <span>${r.location}</span>
           <span class="mono-metric">${Number(r.requests || 0).toLocaleString()}</span>
         </div>
-      `).join('') || '<div style="color:var(--text-secondary)">No location data yet.</div>';
+      `).join('');
     };
 
     const renderDeviceVitals = (rows = []) => {
       const el = document.getElementById('deviceVitalsTable');
       if (!el) return;
+      if (!rows.length) {
+        renderCommandCenterPlaceholder(
+          el,
+          'Device vitals waiting on edge telemetry',
+          'Web-vitals by device are unavailable while Cloudflare analytics is offline.',
+          'This card will resume showing median device performance once the EDGE_ANALYTICS feed recovers.'
+        );
+        return;
+      }
       el.innerHTML = rows.map((r) => `
         <div class="stat-row"><span class="stat-label">${r.device}</span><span class="stat-value mono-metric">${Number(r.medianLCP || 0).toFixed(1)} ms</span></div>
-      `).join('') || '<div style="color:var(--text-secondary)">No vitals available.</div>';
+      `).join('');
     };
 
     const setCommandCenterNotice = (message = '') => {
@@ -1307,7 +1399,7 @@
         return;
       }
       el.style.display = 'block';
-      el.innerHTML = `<div class="diag-title">Technical Command Center</div><div class="diag-item">${message}</div>`;
+      el.innerHTML = `<div class="diag-title">Technical Command Center</div><div class="diag-item">&bull; <strong>EDGE_ANALYTICS</strong>: ${message}</div>`;
     };
 
     const buildFallbackSalesSeries = () => {
@@ -1362,9 +1454,9 @@
 
       const safeText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
       safeText('selloutMomentum', momentum.toFixed(2));
-      safeText('packagingPrecision', packagingRate === null ? 'Unavailable' : packagingRate.toFixed(2) + '%');
-      safeText('qosCacheRatio', hasEdgeMetrics ? cacheRatio.toFixed(2) + '%' : 'Unavailable');
-      safeText('qosEdgeResponse', hasEdgeMetrics ? edgeMs.toFixed(1) + ' ms' : 'Unavailable');
+      safeText('packagingPrecision', packagingRate === null ? 'Fallback mode' : packagingRate.toFixed(2) + '%');
+      safeText('qosCacheRatio', hasEdgeMetrics ? cacheRatio.toFixed(2) + '%' : 'Edge offline');
+      safeText('qosEdgeResponse', hasEdgeMetrics ? edgeMs.toFixed(1) + ' ms' : 'Edge offline');
 
       renderGauge('qosCacheGauge', hasEdgeMetrics ? cacheRatio : 0, 100);
       renderGauge('qosEdgeGauge', hasEdgeMetrics && edgeMs > 0 ? Math.max(0, 1000 - edgeMs) : 0, 1000);
@@ -1374,7 +1466,7 @@
       renderDeviceVitals(hasEdgeMetrics ? (edgeMetrics?.deviceVitals || []) : []);
       setCommandCenterNotice(hasEdgeMetrics
         ? ''
-        : 'Live Cloudflare edge metrics are unavailable right now. This panel is showing local sales-based fallback data where possible.'
+        : 'Cloudflare analytics endpoint unavailable. Cloudflare analytics unavailable. Showing local sales-based fallback data where possible.'
       );
 
       const hypeInput = document.getElementById('hypeMultiplierInput');
@@ -1475,6 +1567,7 @@
 
     const renderOrdersTable = () => {
       const container = document.getElementById('ordersTableContainer');
+      if (!container) return;
       if (allOrders.length === 0) {
         container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No orders yet. Once customers start buying, their orders will appear here.</p>';
         return;

@@ -131,6 +131,7 @@ function initPaymentRequest(subtotalCents) {
       const piData = await postJSON('/api/create-payment-intent', {
         items: cartItems,
         shippingRate: selectedShippingRate,
+        promoCode: window.zwGetActivePromoCode?.() || '',
         address: {
           name: ev.payerName || '', email: ev.payerEmail || '',
           line1: addr.addressLine?.[0] || '', line2: addr.addressLine?.[1] || '',
@@ -268,7 +269,7 @@ _pay.btn.addEventListener('click', async () => {
 
   try {
     const piData = await postJSON('/api/create-payment-intent', {
-      items: cartItems, shippingRate: selectedShippingRate,
+      items: cartItems, shippingRate: selectedShippingRate, promoCode: window.zwGetActivePromoCode?.() || '',
       address: { name, email, line1: addr1, line2: addr2, city, state, zip, country: 'US' },
     });
     if (piData.error) {

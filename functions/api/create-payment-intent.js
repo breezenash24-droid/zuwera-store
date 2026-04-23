@@ -7,6 +7,12 @@
  */
 
 import Stripe from 'stripe';
+import {
+  computePromotionDiscount,
+  getSetting,
+  normalizePromoCode,
+  sanitizeCommerceConfig,
+} from './_commerce.js';
 
 const CORS = (env) => ({
   'Access-Control-Allow-Origin': env.SITE_URL || '*',
@@ -277,6 +283,13 @@ function getShippingPolicy(env) {
   };
 }
 
+async function getPromotionForCode(env, code) {
+  const normalized = normalizePromoCode(code);
+  if (!normalized) return null;
+  const config = sanitizeCommerceConfig(await getSetting(env, 'commerce_config', {}));
+  return config.promotions.find((promotion) => normalizePromoCode(promotion.code) === normalized) || null;
+}
+
 function getExpectedParcelWeight(catalogItems) {
   const totalItems = catalogItems.reduce((sum, item) => sum + (item.quantity || 1), 0) || 1;
   const totalWeight = catalogItems.reduce(
@@ -321,7 +334,7 @@ export async function onRequestPost({ request, env }) {
     if (!env.STRIPE_SECRET_KEY) return json({ error: 'Stripe is not configured.' }, 500, headers);
 
     const body = await request.json();
-    const { items, shippingRate, address = {}, userId } = body;
+    const { items, shippingRate, address = {}, userId, promoCode = '' } = body;
 
     if (!items?.length || !address?.email) {
       return json({ error: 'Missing required fields: items and address.email' }, 400, headers);
@@ -332,9 +345,12 @@ export async function onRequestPost({ request, env }) {
     const catalogItems = await resolveCatalogItems(items, env, isMember);
     const subtotalCents = catalogItems.reduce((sum, item) => sum + item.amount * item.quantity, 0);
     const shipping = await resolveShipping({ shippingRate, address, subtotalCents, catalogItems, env });
+    const promotion = await getPromotionForCode(env, promoCode);
+    const discountCents = computePromotionDiscount(promotion, subtotalCents, shipping.shippingCents);
+    const discountedSubtotalCents = Math.max(0, subtotalCents - discountCents);
     const { stateCode: taxStateCode, taxRate } = getTaxRateForAddress(address, env, request);
-    const taxCents = subtotalCents > 0 ? Math.round(subtotalCents * taxRate) : 0;
-    const totalCents = subtotalCents + shipping.shippingCents + taxCents;
+    const taxCents = discountedSubtotalCents > 0 ? Math.round(discountedSubtotalCents * taxRate) : 0;
+    const totalCents = discountedSubtotalCents + shipping.shippingCents + taxCents;
 
     if (totalCents <= 0) return json({ error: 'Invalid payment amount.' }, 400, headers);
 
@@ -387,6 +403,8 @@ export async function onRequestPost({ request, env }) {
           items: JSON.stringify(lineItems),
           inv: JSON.stringify(inventoryItems),
           subtotal_amount_cents: String(subtotalCents),
+          discount_code: promotion ? normalizePromoCode(promotion.code) : '',
+          discount_amount_cents: String(discountCents),
           shipping_provider: shipping.provider,
           shipping_service: shipping.servicelevel,
           shipping_rate_object_id: shipping.rateObjectId,
@@ -412,6 +430,8 @@ export async function onRequestPost({ request, env }) {
       clientSecret: paymentIntent.client_secret,
       orderId: paymentIntent.id,
       subtotal: (subtotalCents / 100).toFixed(2),
+      discount: (discountCents / 100).toFixed(2),
+      discountCode: promotion ? normalizePromoCode(promotion.code) : '',
       shipping: (shipping.shippingCents / 100).toFixed(2),
       tax: (taxCents / 100).toFixed(2),
       total: (totalCents / 100).toFixed(2),
