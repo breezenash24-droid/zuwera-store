@@ -5,22 +5,21 @@ function json(body, status = 200) {
   });
 }
 
+// Uses httpRequests1hGroups (hourly) — available on all Cloudflare plans.
+// botManagement is Enterprise-only so it is intentionally omitted.
 function buildGraphQLBody({ zoneTag, datetimeStart, datetimeEnd }) {
   const query = `query DashboardEdgeMetrics($zoneTag: String!, $datetimeStart: Time!, $datetimeEnd: Time!) {
     viewer {
       zones(filter: { zoneTag: $zoneTag }) {
-        httpRequests1mGroups(
-          limit: 1440
-          orderBy: [datetimeMinute_ASC]
-          filter: { datetimeMinute_geq: $datetimeStart, datetimeMinute_lt: $datetimeEnd }
+        httpRequests1hGroups(
+          limit: 168
+          orderBy: [datetimeHour_ASC]
+          filter: { datetimeHour_geq: $datetimeStart, datetimeHour_lt: $datetimeEnd }
         ) {
           dimensions {
-            datetimeMinute
+            datetimeHour
             clientCountryName
             deviceType
-            botManagement {
-              verifiedBot
-            }
           }
           sum {
             requests
@@ -58,11 +57,9 @@ function aggregate(groups) {
     pageViews: 0,
     uniqueVisitorsEstimate: 0,
     edgeTtfbSamples: [],
-    verifiedBotRequests: 0,
-    unverifiedBotRequests: 0,
     deviceLcpApproxMs: {},
     topLocations: {},
-    minuteSeries: []
+    hourSeries: []
   };
 
   for (const row of groups || []) {
@@ -73,7 +70,6 @@ function aggregate(groups) {
     const p50 = Number(row?.quantiles?.edgeTimeToFirstByteMsP50 || row?.avg?.edgeTimeToFirstByteMs || 0);
     const country = row?.dimensions?.clientCountryName || 'Unknown';
     const device = row?.dimensions?.deviceType || 'unknown';
-    const verified = !!row?.dimensions?.botManagement?.verifiedBot;
 
     totals.requests += requests;
     totals.cachedRequests += cachedRequests;
@@ -84,14 +80,12 @@ function aggregate(groups) {
     totals.topLocations[country] = (totals.topLocations[country] || 0) + requests;
 
     if (!totals.deviceLcpApproxMs[device]) totals.deviceLcpApproxMs[device] = [];
-    if (p50 > 0) totals.deviceLcpApproxMs[device].push(p50 * 2.6); // proxy estimate for LCP
+    if (p50 > 0) totals.deviceLcpApproxMs[device].push(p50 * 2.6);
 
-    if (verified) totals.verifiedBotRequests += requests;
-    else totals.unverifiedBotRequests += requests;
-
-    totals.minuteSeries.push({
-      t: row?.dimensions?.datetimeMinute,
-      sales: pageViews,
+    totals.hourSeries.push({
+      t: row?.dimensions?.datetimeHour,
+      requests,
+      pageViews,
       edgeMs: p50
     });
   }
@@ -119,13 +113,11 @@ function aggregate(groups) {
     medianLCP: medianLcpApproxMs,
     cacheHitRatio: totals.requests ? Number(((totals.cachedRequests / totals.requests) * 100).toFixed(2)) : 0,
     edgeResponseTime: Number(medianEdgeMs.toFixed(1)),
-    bots: {
-      verified: totals.verifiedBotRequests,
-      unverified: totals.unverifiedBotRequests
-    },
+    // botManagement not included — requires Cloudflare Enterprise plan
+    bots: null,
     deviceVitals,
     topLocations,
-    series: totals.minuteSeries
+    series: totals.hourSeries
   };
 }
 
@@ -140,15 +132,12 @@ export async function onRequestGet({ env }) {
         success: false,
         error: 'Missing Cloudflare GraphQL configuration.',
         requiredEnv: ['CLOUDFLARE_ZONE_ID', 'CLOUDFLARE_GRAPHQL_TOKEN'],
-        acceptedAliases: {
-          CLOUDFLARE_ZONE_ID: ['CLOUDFLARE_ZONE_TAG', 'CF_ZONE_ID'],
-          CLOUDFLARE_GRAPHQL_TOKEN: ['CLOUDFLARE_API_TOKEN', 'CF_API_TOKEN'],
-        }
       }, 500);
     }
 
     const now = new Date();
-    const start = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+    // Look back 7 days (168 hours) for hourly data
+    const start = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
 
     const gqlBody = buildGraphQLBody({
       zoneTag,
@@ -161,7 +150,6 @@ export async function onRequestGet({ env }) {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
-        'X-Auth-Email': env.CLOUDFLARE_AUTH_EMAIL || ''
       },
       body: gqlBody
     });
@@ -176,14 +164,15 @@ export async function onRequestGet({ env }) {
       }, 502);
     }
 
-    const groups = payload?.data?.viewer?.zones?.[0]?.httpRequests1mGroups || [];
+    const groups = payload?.data?.viewer?.zones?.[0]?.httpRequests1hGroups || [];
 
     return json({
       success: true,
       metrics: aggregate(groups),
-      graphQLBodyExample: gqlBody,
       accountId: accountId || null,
-      zoneTag
+      zoneTag,
+      granularity: 'hourly',
+      windowDays: 7
     });
   } catch (err) {
     return json({ success: false, error: err?.message || 'Unexpected analytics error.' }, 500);

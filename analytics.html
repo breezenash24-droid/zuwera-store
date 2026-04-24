@@ -1511,7 +1511,7 @@
       document.getElementById('totalProducts').textContent = totalProducts;
 
       // Live Products
-      const liveProducts = allProducts.filter(p => p.status === 'live').length;
+      const liveProducts = allProducts.filter(p => (p.status || '').toLowerCase() === 'live').length;
       document.getElementById('liveProducts').textContent = liveProducts;
 
       // Total Inventory
