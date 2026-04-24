@@ -814,7 +814,7 @@ function refreshCartFavs() {
   if (loggedOut) loggedOut.style.display = 'none';
   if (loggedIn)  loggedIn.style.display  = 'block';
   if (!list) return;
-  // Delegate to index.html's rich card renderer when available
+  // Use index.html's rich renderer if available, otherwise use the built-in card renderer
   if (typeof renderHomeFavoriteCollection === 'function') {
     if (!_userFavorites.length) {
       if (empty) empty.style.display = 'block';
@@ -831,14 +831,9 @@ function refreshCartFavs() {
     return;
   }
   if (empty) empty.style.display = 'none';
-  list.innerHTML = _userFavorites.map(fav => `
-    <li style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0;border-bottom:1px solid rgba(245,245,240,0.06);font-size:0.85rem;">
-      <span>${fav.product_name}</span>
-      <button onclick="removeFavorite('${fav.product_id}', null)"
-        style="background:none;border:none;cursor:pointer;color:rgba(245,245,240,0.4);font-size:1rem;"
-        aria-label="Remove">✕</button>
-    </li>
-  `).join('');
+  // Use the rich card renderer (image, price, View Product, Add to Bag buttons)
+  list.innerHTML = '';
+  void renderFavoriteCollection(list, _userFavorites, { mode: 'cart' });
 }
 
 async function toggleFavorite(btn) {
