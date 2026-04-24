@@ -590,6 +590,34 @@ window.__zwOpenAuth = function(tab) {
 
 <script src="image-utils.js?v=1"></script>
 <script src="auth.js?v=1"></script>
+<script>
+/* ── Saved items visibility: flip as soon as auth state is known ── */
+(function() {
+  if (!window.sb) return;
+  window.sb.auth.onAuthStateChange(function(event, session) {
+    var user = session ? session.user : null;
+    var loggedOut = document.getElementById('fav-logged-out-msg');
+    var loggedIn  = document.getElementById('fav-logged-in-area');
+    if (user) {
+      if (loggedOut) loggedOut.style.display = 'none';
+      if (loggedIn)  loggedIn.style.display  = 'block';
+    } else {
+      if (loggedOut) loggedOut.style.display = 'block';
+      if (loggedIn)  loggedIn.style.display  = 'none';
+    }
+  });
+  // Also check immediately via getSession in case onAuthStateChange fires late
+  window.sb.auth.getSession().then(function(result) {
+    var user = result && result.data && result.data.session ? result.data.session.user : null;
+    var loggedOut = document.getElementById('fav-logged-out-msg');
+    var loggedIn  = document.getElementById('fav-logged-in-area');
+    if (user) {
+      if (loggedOut) loggedOut.style.display = 'none';
+      if (loggedIn)  loggedIn.style.display  = 'block';
+    }
+  }).catch(function() {});
+})();
+</script>
 <script src="checkout.js?v=1"></script>
 <script src="commerce-checkout.js?v=1"></script>
 <script src="modal-lock.js?v=2"></script>
