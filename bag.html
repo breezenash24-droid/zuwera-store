@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Bag — Zuwera</title>
+  <meta name="description" content="Review your bag and checkout securely.">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/png" href="/images/favicon-black.png?v=1" id="site-favicon">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://qfgnrsifcwdubkolsgsq.supabase.co">
+  <link rel="preconnect" href="https://js.stripe.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="base.css?v=1">
+  <link rel="stylesheet" href="nav.css?v=1">
+  <link rel="stylesheet" href="cart.css?v=1">
+  <script src="/favicon-utils.js?v=1"></script>
+  <script src="/stripe-client-config.js?v=1"></script>
+  <script src="/checkout-tax.js?v=1"></script>
+  <script src="https://js.stripe.com/v3/"></script>
+  <style>
+    /* ── Bag page layout ── */
+    .bag-main { padding-top: 4.5rem; min-height: 100dvh; }
+    @media (max-width: 900px) { .bag-main { padding-top: 3.8rem; } }
+
+    /* ── Auth modal classes (auth.js uses .auth-tab / .auth-panel) ── */
+    .auth-tab  { background:none; border:none; color:rgba(244,241,235,.35); font-family:'DM Sans',sans-serif; font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; cursor:pointer; padding:.3rem .6rem; border-bottom:2px solid transparent; transition:.18s; }
+    .auth-tab.active { color:rgba(244,241,235,.9); border-bottom-color:rgba(244,241,235,.5); }
+    .auth-panel { display:none; }
+    .auth-panel.active { display:block; }
+    .atabs { display:flex; gap:.5rem; margin-bottom:1.6rem; border-bottom:1px solid rgba(244,241,235,.08); padding-bottom:.6rem; }
+    body.light-mode .auth-tab { color:rgba(9,9,11,.35); }
+    body.light-mode .auth-tab.active { color:rgba(9,9,11,.9); border-bottom-color:rgba(9,9,11,.5); }
+    body.light-mode .atabs { border-bottom-color:rgba(9,9,11,.08); }
+
+    /* ── Modals ── */
+    .modal { display:none; position:fixed; inset:0; z-index:500; background:rgba(9,9,11,.62); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); align-items:center; justify-content:center; padding:1.5rem; overflow-y:auto; }
+    .modal.open { display:flex; }
+    #auth-modal { z-index:600; }
+    @keyframes modalIn { from { opacity:0; transform:translateY(10px) scale(.98); } to { opacity:1; transform:none; } }
+
+    /* ── Modal box ── */
+    .mbox { background:#0f0f0f; border:1px solid rgba(244,241,235,.08); border-top:2px solid #9b8b6e; padding:2.6rem 2.4rem 2.2rem; width:min(420px,92vw); position:relative; animation:modalIn .22s ease; }
+    .mclose { position:absolute; top:1.1rem; right:1.2rem; background:rgba(244,241,235,.05); border:1px solid rgba(244,241,235,.08); color:inherit; width:28px; height:28px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:1rem; border-radius:4px; }
+    .mclose:hover { background:rgba(244,241,235,.1); }
+    .mtitle { font-size:1.5rem; font-family:'Bebas Neue',sans-serif; letter-spacing:.1em; margin-bottom:.3rem; }
+    .msubtitle { font-size:.72rem; color:rgba(244,241,235,.4); letter-spacing:.08em; text-transform:uppercase; margin-bottom:1.6rem; }
+    .auth-brand { font-family:'Bebas Neue',sans-serif; font-size:1.2rem; letter-spacing:.2em; color:rgba(244,241,235,.2); margin-bottom:1.4rem; }
+    .fgroup { margin-bottom:1rem; }
+    .fgroup label { display:block; font-size:.62rem; letter-spacing:.12em; text-transform:uppercase; color:rgba(244,241,235,.35); margin-bottom:.4rem; }
+    .fgroup input { width:100%; background:rgba(244,241,235,.04); border:1px solid rgba(244,241,235,.1); color:inherit; padding:.65rem .8rem; font-family:'DM Sans',sans-serif; font-size:.85rem; outline:none; transition:border-color .18s; }
+    .fgroup input:focus { border-color:rgba(244,241,235,.3); }
+    .ferr { color:#e07060; font-size:.7rem; min-height:1rem; margin-bottom:.5rem; }
+    .auth-submit-btn { width:100%; background:rgba(244,241,235,.9); color:#09090b; border:none; padding:.85rem; font-family:'DM Sans',sans-serif; font-size:.78rem; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; margin-top:.5rem; transition:opacity .18s; }
+    .auth-submit-btn:hover { opacity:.82; }
+    .alink { text-align:center; font-size:.7rem; color:rgba(244,241,235,.3); margin-top:1rem; }
+    .alink a { color:rgba(244,241,235,.55); cursor:pointer; text-decoration:underline; }
+
+    body.light-mode .mbox { background:#F0EEE9; border-color:rgba(9,9,11,.08); color:#09090b; }
+    body.light-mode .mclose { background:rgba(9,9,11,.05); border-color:rgba(9,9,11,.08); color:#09090b; }
+    body.light-mode .fgroup input { background:rgba(9,9,11,.03); border-color:rgba(9,9,11,.1); color:#09090b; }
+    body.light-mode .fgroup label { color:rgba(9,9,11,.38); }
+    body.light-mode .auth-submit-btn { background:#09090b; color:#E8E3DC; }
+    body.light-mode .alink { color:rgba(9,9,11,.3); }
+    body.light-mode .alink a { color:rgba(9,9,11,.55); }
+    body.light-mode .auth-brand { color:rgba(9,9,11,.2); }
+    body.light-mode .mtitle { color:#09090b; }
+    body.light-mode .msubtitle { color:rgba(9,9,11,.4); }
+    body.light-mode .modal { background:rgba(240,238,233,.65); backdrop-filter:blur(5px); }
+
+    /* ── Payment modal ── */
+    #payment-modal { background:rgba(9,9,11,.62); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+    .pbox { background:#111; border:1px solid rgba(244,241,235,.1); padding:2.2rem 2rem 1.8rem; width:min(480px,94vw); max-height:92dvh; overflow-y:auto; position:relative; animation:modalIn .22s ease; }
+    .pbox h2 { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; letter-spacing:.1em; margin-bottom:.2rem; }
+    .psub { font-size:.7rem; color:rgba(244,241,235,.35); letter-spacing:.1em; text-transform:uppercase; margin-bottom:1.5rem; }
+    .pgrow { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; }
+    .pfield { margin-bottom:.9rem; }
+    .pfield label { display:block; font-size:.62rem; letter-spacing:.12em; text-transform:uppercase; color:rgba(244,241,235,.35); margin-bottom:.35rem; }
+    .pfield input { width:100%; background:rgba(244,241,235,.04); border:1px solid rgba(244,241,235,.1); color:inherit; padding:.6rem .75rem; font-family:'DM Sans',sans-serif; font-size:.85rem; outline:none; transition:border-color .18s; }
+    .pfield input:focus { border-color:rgba(244,241,235,.35); }
+    #stripe-card-element { background:rgba(244,241,235,.04); border:1px solid rgba(244,241,235,.1); padding:.75rem; transition:border-color .18s; }
+    #stripe-card-element.StripeElement--focus { border-color:rgba(244,241,235,.35); }
+    #stripe-card-element.StripeElement--invalid { border-color:#e07060; }
+    #pay-error { color:#e07060; font-size:.72rem; min-height:1rem; margin:.4rem 0; }
+    #pay-submit { width:100%; background:rgba(244,241,235,.9); color:#09090b; border:none; padding:.9rem; font-family:'DM Sans',sans-serif; font-size:.78rem; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; margin-top:.5rem; transition:opacity .18s; display:flex; align-items:center; justify-content:center; gap:.4rem; }
+    #pay-submit:hover { opacity:.82; }
+    #pay-submit:disabled { opacity:.45; cursor:not-allowed; }
+    .psecure { font-size:.62rem; color:rgba(244,241,235,.25); letter-spacing:.08em; text-align:center; margin-top:.7rem; }
+    .rate-opt { display:flex; align-items:center; justify-content:space-between; gap:.7rem; padding:.6rem .75rem; border:1px solid rgba(244,241,235,.1); cursor:pointer; transition:border-color .18s, background .18s; margin-bottom:.4rem; background:rgba(244,241,235,.02); font-size:.82rem; }
+    .rate-opt:hover { border-color:rgba(244,241,235,.3); background:rgba(244,241,235,.04); }
+    .rate-opt.selected { border-color:rgba(244,241,235,.5); background:rgba(244,241,235,.06); }
+    .rate-meta { font-size:.68rem; color:rgba(244,241,235,.4); margin-top:.15rem; }
+    .wallet-methods { display:none; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.55rem; margin:-.2rem 0 1rem; }
+    .zw-test-mode-banner { display:none; padding:.5rem .75rem; background:rgba(248,145,165,.08); border:1px solid rgba(248,145,165,.2); color:#F891A5; font-size:.65rem; letter-spacing:.08em; text-transform:uppercase; margin-bottom:1rem; }
+    .zw-test-mode-banner.is-visible { display:block; }
+    body.light-mode #payment-modal { background:rgba(240,238,233,.65); }
+    body.light-mode .pbox { background:#F0EEE9; border-color:rgba(9,9,11,.08); color:#09090b; }
+    body.light-mode .pfield label { color:rgba(9,9,11,.38); }
+    body.light-mode .pfield input { background:rgba(9,9,11,.04); border-color:rgba(9,9,11,.1); color:#09090b; }
+    body.light-mode #stripe-card-element { background:rgba(9,9,11,.04); border-color:rgba(9,9,11,.1); }
+    body.light-mode #pay-submit { background:#09090b; color:#E8E3DC; }
+    body.light-mode .psecure { color:rgba(9,9,11,.25); }
+
+    /* ── Success screen ── */
+    #payment-success { display:none; position:fixed; inset:0; background:var(--black); z-index:700; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem; }
+    #payment-success.open { display:flex; }
+    .success-check { width:64px; height:64px; border:1px solid rgba(244,241,235,.2); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.6rem; margin:0 auto 1.5rem; }
+    #payment-success h2 { font-family:'Bebas Neue',sans-serif; font-size:2.5rem; letter-spacing:.1em; margin-bottom:.6rem; }
+    #payment-success p { color:rgba(244,241,235,.45); font-size:.9rem; margin-bottom:1.5rem; max-width:340px; line-height:1.8; }
+    #success-order { font-size:.75rem; letter-spacing:.2em; color:rgba(244,241,235,.25) !important; }
+    #success-continue { background:rgba(244,241,235,.9); color:#09090b; border:none; padding:.9rem 2.5rem; font-family:'DM Sans',sans-serif; font-size:.78rem; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; transition:opacity .18s; }
+    #success-continue:hover { opacity:.82; }
+    body.light-mode #payment-success { background:#F0EEE9; }
+    body.light-mode .success-check { border-color:rgba(9,9,11,.2); }
+    body.light-mode #payment-success p { color:rgba(9,9,11,.45); }
+    body.light-mode #success-continue { background:#09090b; color:#E8E3DC; }
+
+    /* ── Toast ── */
+    #toast { position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%) translateY(10px); background:#111; color:rgba(244,241,235,.9); padding:.5rem 1.2rem; font-size:.72rem; letter-spacing:.08em; opacity:0; transition:opacity .3s, transform .3s; pointer-events:none; z-index:9999; white-space:nowrap; }
+    #toast.on { opacity:1; transform:translateX(-50%) translateY(0); }
+    body.light-mode #toast { background:#F0EEE9; color:#09090b; }
+
+    /* ── Promo code area ── */
+    .csummary { display: block; }
+    .srow { display:flex; justify-content:space-between; align-items:flex-start; padding:.5rem 0; border-bottom:1px solid rgba(244,241,235,.07); font-size:.82rem; color:rgba(244,241,235,.55); gap:.5rem; }
+    .srow:last-child { border-bottom:none; }
+    body.light-mode .srow { border-bottom-color:rgba(9,9,11,.07); color:rgba(9,9,11,.55); }
+  </style>
+</head>
+<body>
+<script>
+(function() {
+  var saved = localStorage.getItem('theme');
+  if (saved !== 'dark') document.body.classList.add('light-mode');
+  document.documentElement.style.backgroundColor = document.body.classList.contains('light-mode') ? '#F0EEE9' : '#09090b';
+})();
+</script>
+
+<div id="toast"></div>
+
+<!-- NAV -->
+<nav id="nav">
+  <a href="/" class="nav-logo">
+    <img src="images/logo.png" alt="ZUWERA" onerror="this.style.display='none';this.nextSibling.style.display='block'">
+    <span style="display:none">ZUWERA</span>
+  </a>
+  <div class="nav-center"></div>
+  <div class="nav-right">
+    <button class="nbtn" id="login-btn">Login</button>
+    <button class="nbtn" id="account-btn" style="display:none">Account</button>
+    <button class="nbtn" id="logout-btn" style="display:none">Sign Out</button>
+    <button class="nbtn" id="theme-toggle-btn" aria-label="Toggle theme" onclick="(function(){var b=document.body;b.classList.toggle('light-mode');try{localStorage.setItem('theme',b.classList.contains('light-mode')?'light':'dark');}catch(e){}})()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    </button>
+  </div>
+</nav>
+
+<!-- BAG PAGE -->
+<main class="bag-main">
+  <header class="cart-page-header">
+    <a href="/" class="cart-back-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Continue Shopping
+    </a>
+    <h1>Your Bag</h1>
+    <div style="width:160px;text-align:right;font-size:.72rem;color:var(--c40);letter-spacing:.08em">
+      <span class="cc">0</span> item<span id="items-s">s</span>
+    </div>
+  </header>
+
+  <div class="cart-page-body">
+    <!-- Items -->
+    <div class="cart-bag-section">
+      <h2>Items</h2>
+      <p class="cart-empty-msg" id="cart-empty-msg" style="display:none">
+        Your bag is empty. <a href="/" style="color:inherit;text-decoration:underline">Continue shopping →</a>
+      </p>
+      <ul id="cart-items-list" style="list-style:none;padding:0;margin:0"></ul>
+    </div>
+
+    <!-- Summary -->
+    <div class="cart-summary">
+      <h2>Summary</h2>
+      <div class="summary-row"><span>Subtotal</span><span class="summary-value" id="summary-subtotal">-</span></div>
+      <div class="summary-row">
+        <div>
+          <div>Shipping</div>
+          <div class="shipping-note" id="shipping-note">Free on orders $100+</div>
+        </div>
+        <span class="summary-value" id="summary-shipping">-</span>
+      </div>
+      <div class="summary-row"><span>Tax</span><span class="summary-value" id="summary-tax">-</span></div>
+      <!-- Promo code UI injected here by commerce-checkout.js -->
+      <div class="csummary" style="display:block"></div>
+      <div class="summary-row total"><span>Total</span><span id="summary-total">-</span></div>
+      <button id="checkout-btn">Checkout</button>
+    </div>
+  </div>
+</main>
+
+<!-- PAYMENT MODAL -->
+<div id="payment-modal" class="modal" role="dialog" aria-modal="true">
+  <div class="pbox">
+    <button class="mclose" id="payment-close">&#215;</button>
+    <h2>Secure Checkout</h2>
+    <p class="psub">Powered by Stripe · 256-bit SSL encryption</p>
+    <div class="zw-test-mode-banner" data-stripe-test-banner>Test mode active. Use Stripe test cards only — real cards will not be charged.</div>
+    <div id="payment-request-btn" style="display:none" aria-hidden="true"></div>
+    <div id="wallet-methods" class="wallet-methods" aria-hidden="true"></div>
+    <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.28)">— or pay with card —</div>
+    <div class="pgrow">
+      <div class="pfield"><label>Full Name</label><input type="text" id="pay-name" placeholder="Jane Smith" autocomplete="name"></div>
+      <div class="pfield"><label>Email</label><input type="email" id="pay-email" placeholder="jane@example.com" autocomplete="email"></div>
+    </div>
+    <div class="pfield"><label>Street Address</label><input type="text" id="pay-addr1" placeholder="123 Main St" autocomplete="street-address"></div>
+    <div class="pfield"><label>Apt / Suite <span style="opacity:.4">(optional)</span></label><input type="text" id="pay-addr2" placeholder="Apt 4B" autocomplete="address-line2"></div>
+    <div class="pgrow" style="grid-template-columns:1fr 80px 120px">
+      <div class="pfield"><label>City</label><input type="text" id="pay-city" placeholder="New York" autocomplete="address-level2"></div>
+      <div class="pfield"><label>State</label><input type="text" id="pay-state" placeholder="NY" maxlength="2" autocomplete="address-level1" style="text-transform:uppercase"></div>
+      <div class="pfield"><label>ZIP</label><input type="text" id="pay-zip" placeholder="10001" maxlength="10" autocomplete="postal-code"></div>
+    </div>
+    <div class="pfield" id="shipping-rates-field" style="display:none"><label>Shipping Method</label><div id="shipping-rates-list"></div></div>
+    <div id="shipping-rates-loading" style="display:none;font-size:.68rem;color:rgba(244,241,235,.35);margin-bottom:1rem">Fetching shipping rates…</div>
+    <div id="shipping-free-row" class="pfield" style="display:none;align-items:center;justify-content:space-between">
+      <label style="margin:0">Shipping</label>
+      <span style="font-size:.82rem;color:rgba(244,241,235,.85)">Free</span>
+    </div>
+    <div class="pfield"><label>Card Details</label><div id="stripe-card-element"></div></div>
+    <p id="pay-error"></p>
+    <button id="pay-submit"><span id="pay-btn-text">Pay Now</span></button>
+    <p class="psecure">Your card is never stored on our servers.</p>
+  </div>
+</div>
+
+<!-- SUCCESS -->
+<div id="payment-success">
+  <div class="success-check">&#10003;</div>
+  <h2>Order Confirmed!</h2>
+  <p id="success-msg">Thank you for your purchase. A confirmation has been sent to your email.</p>
+  <p id="success-order"></p>
+  <button id="success-continue">Continue Shopping</button>
+</div>
+
+<!-- AUTH MODAL -->
+<div id="auth-modal" class="modal" role="dialog" aria-modal="true">
+  <div class="mbox">
+    <button class="mclose" id="auth-modal-close" aria-label="Close">&times;</button>
+    <div class="auth-brand">Zuwera</div>
+    <div class="atabs">
+      <button class="auth-tab active" data-tab="signin">Login</button>
+      <button class="auth-tab" data-tab="signup">Create Account</button>
+    </div>
+    <!-- Sign In -->
+    <div class="auth-panel active" id="panel-signin">
+      <div class="mtitle">Welcome Back</div>
+      <div class="msubtitle">Login to your account</div>
+      <div class="fgroup"><label>Email</label><input type="email" id="signin-email" placeholder="you@example.com" autocomplete="email"></div>
+      <div class="fgroup">
+        <label>Password</label>
+        <div style="position:relative">
+          <input type="password" id="signin-password" placeholder="Password" autocomplete="current-password" style="padding-right:40px">
+          <button type="button" onclick="togglePwd('signin-password',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(244,241,235,.4);cursor:pointer;padding:0;display:flex;align-items:center" aria-label="Toggle password">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <p id="signin-error" class="ferr"></p>
+      <button id="signin-submit" class="auth-submit-btn">Login</button>
+      <p class="alink"><a id="forgot-link">Forgot password?</a></p>
+    </div>
+    <!-- Sign Up -->
+    <div class="auth-panel" id="panel-signup">
+      <div class="mtitle">Join Zuwera</div>
+      <div class="msubtitle">For those who dream</div>
+      <div class="fgroup"><label>Full Name</label><input type="text" id="signup-name" placeholder="Your name" autocomplete="name"></div>
+      <div class="fgroup"><label>Email</label><input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email"></div>
+      <div class="fgroup">
+        <label>Password</label>
+        <div style="position:relative">
+          <input type="password" id="signup-password" placeholder="Min 6 characters" autocomplete="new-password" style="padding-right:40px">
+          <button type="button" onclick="togglePwd('signup-password',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(244,241,235,.4);cursor:pointer;padding:0;display:flex;align-items:center" aria-label="Toggle password">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <p id="signup-error" class="ferr"></p>
+      <p id="signup-success" style="display:none;color:#6fcf6f;font-size:.68rem;letter-spacing:.08em;margin-bottom:.6rem">&#10003; Account created! Please check your email to verify.</p>
+      <button id="signup-submit" class="auth-submit-btn">Create Account</button>
+    </div>
+    <!-- Forgot Password -->
+    <div class="auth-panel" id="panel-forgot">
+      <div class="mtitle">Reset Password</div>
+      <div class="msubtitle">We'll send a link to your email</div>
+      <div class="fgroup"><label>Email</label><input type="email" id="forgot-email" placeholder="you@example.com" autocomplete="email"></div>
+      <p id="forgot-error" class="ferr"></p>
+      <p id="forgot-success" style="display:none;color:#6fcf6f;font-size:.68rem;letter-spacing:.08em;margin-bottom:.6rem">&#10003; Check your email for a reset link.</p>
+      <button id="forgot-submit" class="auth-submit-btn">Send Reset Link</button>
+      <p class="alink"><a id="back-to-signin">&larr; Back to Login</a></p>
+    </div>
+    <!-- Update Password -->
+    <div class="auth-panel" id="panel-update-password">
+      <div class="mtitle">New Password</div>
+      <div class="msubtitle">Enter your new password below</div>
+      <div class="fgroup">
+        <label>New Password</label>
+        <div style="position:relative">
+          <input type="password" id="update-password-input" placeholder="Min 6 characters" style="padding-right:40px">
+          <button type="button" onclick="togglePwd('update-password-input',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(244,241,235,.4);cursor:pointer;padding:0;display:flex;align-items:center" aria-label="Toggle password">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <p id="update-password-error" class="ferr"></p>
+      <button id="update-password-submit" class="auth-submit-btn">Update Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCRIPTS -->
+<script src="supabase.min.js"></script>
+<script>
+/* ===================== CORE SETUP ===================== */
+const SUPABASE_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+window.sb = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+  auth: { persistSession: true, storageKey: 'zuwera-auth', flowType: 'implicit' },
+  global: { headers: { 'X-Client-Info': 'zuwera-store' } },
+}) : null;
+const _sb = window.sb;
+
+/* ── Modal helpers (also provided by auth.js, but defined early for safety) ── */
+window._openModal = function(id) {
+  const m = document.getElementById(id);
+  if (m) { m.classList.add('open'); document.body.style.overflow = 'hidden'; document.documentElement.style.overflow = 'hidden'; }
+};
+window._closeModal = function(id) {
+  const m = document.getElementById(id);
+  if (m) {
+    m.classList.remove('open');
+    if (!document.querySelector('.modal.open')) {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
+  }
+};
+
+/* ── Toast ── */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  setTimeout(() => t.classList.remove('on'), 2600);
+}
+
+/* ── Fetch helper (used by checkout.js) ── */
+async function post(url, body) {
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return resp.json();
+}
+
+/* ── Shipping policy (will be overwritten by config fetch) ── */
+window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
+
+/* ── Cart globals (checkout.js references these) ── */
+let cartItems = [];
+const _cart = {
+  itemsList:  document.getElementById('cart-items-list'),
+  emptyMsg:   document.getElementById('cart-empty-msg'),
+  cartCount:  document.querySelector('.cc'),
+  subtotalEl: document.getElementById('summary-subtotal'),
+  checkoutBtn: document.getElementById('checkout-btn'),
+};
+
+/* ── Stub functions auth.js may call ── */
+window.refreshHeartButtons = window.refreshHeartButtons || function() {};
+window.refreshCartFavs     = window.refreshCartFavs     || function() {};
+
+/* ── Cart helpers ── */
+function normalizeCartPricing(cart) {
+  return (cart || []).map(item => ({
+    ...item,
+    quantity: Math.max(1, parseInt(item.quantity, 10) || 1),
+  }));
+}
+
+function getCheckoutTaxStateCode(fallback = '') {
+  const stateEl = document.getElementById('pay-state');
+  return ((stateEl ? stateEl.value : '') || fallback || '').trim().toUpperCase().slice(0, 2);
+}
+
+function updateCartSummary(subtotal) {
+  const policy = window._shippingPolicy || { enabled: true, threshold: 100, standardRate: 8 };
+  const qualifiesFree = policy.enabled && subtotal >= policy.threshold;
+  const note = document.getElementById('shipping-note');
+  if (note) {
+    if (!policy.enabled) note.textContent = 'Calculated at checkout';
+    else if (subtotal > 0 && qualifiesFree) note.textContent = 'Your order qualifies for free shipping!';
+    else if (subtotal > 0) note.textContent = 'Calculated at checkout';
+    else note.textContent = 'Free on orders $' + policy.threshold + '+';
+  }
+  const subtotalEl = document.getElementById('summary-subtotal');
+  if (subtotalEl) subtotalEl.textContent = subtotal > 0 ? '$' + subtotal.toFixed(2) : '-';
+  if (subtotal === 0) {
+    const sh = document.getElementById('summary-shipping');
+    const tx = document.getElementById('summary-tax');
+    const to = document.getElementById('summary-total');
+    if (sh) sh.textContent = '-';
+    if (tx) tx.textContent = '-';
+    if (to) to.textContent = '-';
+    return;
+  }
+  const tax = window.ZWCheckoutTax ? window.ZWCheckoutTax.taxDollars(subtotal, getCheckoutTaxStateCode()) : 0;
+  const taxEl = document.getElementById('summary-tax');
+  if (taxEl) taxEl.textContent = '$' + tax.toFixed(2);
+  const shippingEl = document.getElementById('summary-shipping');
+  const totalEl = document.getElementById('summary-total');
+  if (qualifiesFree) {
+    if (shippingEl) shippingEl.textContent = 'Free';
+    if (totalEl) totalEl.textContent = '$' + (subtotal + tax).toFixed(2);
+  } else {
+    if (shippingEl) shippingEl.textContent = '-';
+    if (totalEl) totalEl.textContent = '$' + (subtotal + tax).toFixed(2);
+  }
+}
+
+function renderCart() {
+  const raw  = JSON.parse(localStorage.getItem('cart') || '[]');
+  const cart = normalizeCartPricing(raw);
+  cartItems  = cart;
+  const list     = _cart.itemsList;
+  const emptyMsg = _cart.emptyMsg;
+  const ccEl     = _cart.cartCount;
+  const itemsS   = document.getElementById('items-s');
+
+  const totalQty = cart.reduce((s, i) => s + i.quantity, 0);
+  if (ccEl) ccEl.textContent = String(totalQty);
+  if (itemsS) itemsS.textContent = totalQty === 1 ? '' : 's';
+
+  if (!cart.length) {
+    if (list) { list.innerHTML = ''; list.style.display = 'none'; }
+    if (emptyMsg) emptyMsg.style.display = 'block';
+    updateCartSummary(0);
+    return;
+  }
+
+  if (list) list.style.display = '';
+  if (emptyMsg) emptyMsg.style.display = 'none';
+
+  list.innerHTML = cart.map((item, idx) => {
+    const imgSrc = typeof window.optimizeImage === 'function'
+      ? window.optimizeImage(item.image, 150) : (item.image || '');
+    const price  = (parseFloat(item.price) * item.quantity).toFixed(2);
+    return `<li style="display:flex;gap:1rem;align-items:flex-start;padding:1.2rem 0;border-bottom:1px solid rgba(244,241,235,.07)">
+      ${imgSrc ? `<img src="${imgSrc}" alt="${item.title||''}" style="width:60px;height:75px;object-fit:cover;border:1px solid rgba(244,241,235,.08);flex-shrink:0" onerror="if(this.src!=='${item.image}')this.src='${item.image}'">` : '<div style="width:60px;height:75px;background:rgba(244,241,235,.04);flex-shrink:0"></div>'}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:1rem;font-weight:500;margin-bottom:.2rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.title||''}</div>
+        <div style="font-size:.65rem;color:rgba(244,241,235,.4);text-transform:uppercase;letter-spacing:.06em;margin-top:.2rem">${item.colorName||''} / ${item.size||''}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:.5rem">
+          <button onclick="updateCartQuantity(${idx},-1)" style="background:none;border:1px solid rgba(244,241,235,.25);color:inherit;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;flex-shrink:0">−</button>
+          <span style="font-size:.85rem;min-width:1.2rem;text-align:center">${item.quantity}</span>
+          <button onclick="updateCartQuantity(${idx},1)"  style="background:none;border:1px solid rgba(244,241,235,.25);color:inherit;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;flex-shrink:0">+</button>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.5rem;flex-shrink:0">
+        <span style="font-size:.9rem">$${price}</span>
+        <button onclick="removeCartItem(${idx})" style="background:none;border:none;color:rgba(244,241,235,.3);cursor:pointer;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;padding:0">Remove</button>
+      </div>
+    </li>`;
+  }).join('');
+
+  const subtotal = cart.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
+  updateCartSummary(subtotal);
+}
+
+window.updateCartQuantity = function(idx, delta) {
+  const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+  if (cart[idx]) {
+    cart[idx].quantity += delta;
+    if (cart[idx].quantity <= 0) cart.splice(idx, 1);
+    localStorage.setItem('cart', JSON.stringify(cart));
+    renderCart();
+  }
+};
+
+window.removeCartItem = function(idx) {
+  const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+  cart.splice(idx, 1);
+  localStorage.setItem('cart', JSON.stringify(cart));
+  renderCart();
+};
+
+/* ── Nav scroll ── */
+const _navEl = document.getElementById('nav');
+window.addEventListener('scroll', () => {
+  _navEl.classList.toggle('scrolled', window.scrollY > 50);
+}, { passive: true });
+
+/* ── Account/logout buttons ── */
+document.getElementById('account-btn').addEventListener('click', () => {
+  // Navigate back to homepage where full account modal lives
+  window.location.href = '/';
+});
+document.getElementById('logout-btn').addEventListener('click', () => {
+  if (_sb) _sb.auth.signOut().then(() => location.reload());
+});
+document.getElementById('login-btn').addEventListener('click', () => {
+  if (typeof openAuthModal === 'function') openAuthModal('signin');
+  else if (typeof window.__zwOpenAuth === 'function') window.__zwOpenAuth('signin');
+});
+
+/* ── Checkout button ── */
+document.getElementById('checkout-btn').addEventListener('click', () => {
+  if (!cartItems.length) { showToast('Your bag is empty.'); return; }
+  document.getElementById('pay-error').textContent = '';
+  _openModal('payment-modal');
+  const subtotalCents = Math.round(
+    cartItems.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0) * 100
+  ) || 100;
+  if (typeof initPaymentRequest === 'function') initPaymentRequest(subtotalCents);
+});
+
+/* ── Init on DOMContentLoaded ── */
+document.addEventListener('DOMContentLoaded', function() {
+  renderCart();
+
+  // Load shipping policy from commerce config
+  fetch('/api/commerce-config').then(r => r.json()).then(d => {
+    if (d?.config?.shippingPolicy) {
+      window._shippingPolicy = d.config.shippingPolicy;
+      renderCart();
+    }
+  }).catch(() => {});
+
+  // After checkout.js attaches its success listener, we add localStorage clear
+  const successBtn = document.getElementById('success-continue');
+  if (successBtn) {
+    successBtn.addEventListener('click', function() {
+      localStorage.removeItem('cart');
+      cartItems = [];
+      renderCart();
+    });
+  }
+});
+
+/* ── window.__zwOpenAuth (set after auth.js loads) ── */
+window.__zwOpenAuth = function(tab) {
+  if (typeof openAuthModal === 'function') openAuthModal(tab);
+};
+</script>
+
+<script src="image-utils.js?v=1"></script>
+<script src="auth.js?v=1"></script>
+<script src="checkout.js?v=1"></script>
+<script src="commerce-checkout.js?v=1"></script>
+<script src="modal-lock.js?v=2"></script>
+<script src="lang.js?v=5" defer></script>
+</body>
+</html>

@@ -326,8 +326,8 @@
     if (document.getElementById('zw-lang-modal')) return;
 
     const isLightMode = document.body.classList.contains('light-mode');
-    const overlayBg = isLightMode ? '#F0EEE9' : 'rgba(0,0,0,0.72)';
-    const overlayFilter = isLightMode ? 'none' : 'blur(8px)';
+    const overlayBg = isLightMode ? 'rgba(240,238,233,0.65)' : 'rgba(0,0,0,0.72)';
+    const overlayFilter = isLightMode ? 'blur(6px)' : 'blur(8px)';
 
     const modal = document.createElement('div');
     modal.id = 'zw-lang-modal';
@@ -465,9 +465,9 @@
     langModalTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     if (modal) {
       const isLightMode = document.body.classList.contains('light-mode');
-      modal.style.background = isLightMode ? '#F0EEE9' : 'rgba(0,0,0,0.72)';
-      modal.style.backdropFilter = isLightMode ? 'none' : 'blur(8px)';
-      modal.style.webkitBackdropFilter = isLightMode ? 'none' : 'blur(8px)';
+      modal.style.background = isLightMode ? 'rgba(240,238,233,0.65)' : 'rgba(0,0,0,0.72)';
+      modal.style.backdropFilter = isLightMode ? 'blur(6px)' : 'blur(8px)';
+      modal.style.webkitBackdropFilter = isLightMode ? 'blur(6px)' : 'blur(8px)';
     }
     modal.style.display = 'flex';
     lockLangModalScrollFallback();
