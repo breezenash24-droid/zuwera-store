@@ -48,9 +48,9 @@ select:focus-visible{
 /* Modals */
 .modal:not(#cart-modal):not(#mobile-menu),
 .collection-review-modal{
-  background:rgba(9,9,11,.60);
-  backdrop-filter:blur(8px);
-  -webkit-backdrop-filter:blur(8px);
+  background:rgba(9,9,11,.72);
+  backdrop-filter:none;
+  -webkit-backdrop-filter:none;
   align-items:center;
   justify-content:center;
   padding:1rem;
@@ -60,9 +60,9 @@ select:focus-visible{
 body.light-mode .modal:not(#cart-modal):not(#mobile-menu),
 body.light-mode .collection-review-modal,
 body.light-mode #zw-lang-modal{
-  background:rgba(240,238,233,.65) !important;
-  backdrop-filter:blur(8px) !important;
-  -webkit-backdrop-filter:blur(8px) !important;
+  background:rgba(240,238,233,.82) !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
 }
 
 .mbox,
@@ -100,8 +100,8 @@ body.light-mode #zw-lang-box{
   border-radius:0 !important;
   opacity:1 !important;
   z-index:40 !important;
-  backdrop-filter:blur(8px);
-  -webkit-backdrop-filter:blur(8px);
+  backdrop-filter:none;
+  -webkit-backdrop-filter:none;
 }
 
 body.light-mode .mclose,

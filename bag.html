@@ -61,7 +61,7 @@
     body.light-mode .atabs { border-bottom-color:rgba(9,9,11,.08); }
 
     /* ── Modals ── */
-    .modal { display:none; position:fixed; inset:0; z-index:500; background:rgba(9,9,11,.62); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); align-items:center; justify-content:center; padding:1.5rem; overflow-y:auto; }
+    .modal { display:none; position:fixed; inset:0; z-index:500; background:rgba(9,9,11,.75); backdrop-filter:none; -webkit-backdrop-filter:none; align-items:center; justify-content:center; padding:1.5rem; overflow-y:auto; }
     .modal.open { display:flex; }
     #auth-modal { z-index:600; }
     @keyframes modalIn { from { opacity:0; transform:translateY(10px) scale(.98); } to { opacity:1; transform:none; } }
@@ -93,10 +93,10 @@
     body.light-mode .auth-brand { color:rgba(9,9,11,.2); }
     body.light-mode .mtitle { color:#09090b; }
     body.light-mode .msubtitle { color:rgba(9,9,11,.4); }
-    body.light-mode .modal { background:rgba(240,238,233,.65); backdrop-filter:blur(5px); }
+    body.light-mode .modal { background:rgba(240,238,233,.65); backdrop-filter:none; }
 
     /* ── Payment modal ── */
-    #payment-modal { background:rgba(9,9,11,.60); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
+    #payment-modal { background:rgba(9,9,11,.75); backdrop-filter:none; -webkit-backdrop-filter:none; }
     .pbox { background:#111; border:1px solid rgba(244,241,235,.1); padding:2.2rem 2rem 1.8rem; width:min(480px,94vw); max-height:92dvh; overflow-y:auto; position:relative; animation:modalIn .22s ease; }
     .pbox h2 { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; letter-spacing:.1em; margin-bottom:.2rem; }
     .psub { font-size:.7rem; color:rgba(244,241,235,.35); letter-spacing:.1em; text-transform:uppercase; margin-bottom:1.5rem; }
@@ -587,7 +587,7 @@ window.__zwOpenAuth = function(tab) {
 </script>
 
 <script src="image-utils.js?v=1"></script>
-<script src="auth.js?v=5"></script>
+<script src="auth.js?v=6"></script>
 <script>
 /* ── Saved items visibility: flip as soon as auth state is known ── */
 (function() {
