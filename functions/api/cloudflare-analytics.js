@@ -13,11 +13,11 @@ function buildGraphQLBody({ zoneTag, datetimeStart, datetimeEnd }) {
       zones(filter: { zoneTag: $zoneTag }) {
         httpRequests1hGroups(
           limit: 168
-          orderBy: [datetimeHour_ASC]
-          filter: { datetimeHour_geq: $datetimeStart, datetimeHour_lt: $datetimeEnd }
+          orderBy: [datetime_ASC]
+          filter: { datetime_geq: $datetimeStart, datetime_lt: $datetimeEnd }
         ) {
           dimensions {
-            datetimeHour
+            datetime
             clientCountryName
             deviceType
           }
@@ -69,7 +69,7 @@ function aggregate(groups) {
     const visits = Number(row?.sum?.visits || 0);
     const p50 = Number(row?.quantiles?.edgeTimeToFirstByteMsP50 || row?.avg?.edgeTimeToFirstByteMs || 0);
     const country = row?.dimensions?.clientCountryName || 'Unknown';
-    const device = row?.dimensions?.deviceType || 'unknown';
+    const device = (row?.dimensions?.deviceType || 'unknown').toLowerCase();
 
     totals.requests += requests;
     totals.cachedRequests += cachedRequests;
@@ -83,7 +83,7 @@ function aggregate(groups) {
     if (p50 > 0) totals.deviceLcpApproxMs[device].push(p50 * 2.6);
 
     totals.hourSeries.push({
-      t: row?.dimensions?.datetimeHour,
+      t: row?.dimensions?.datetime,
       requests,
       pageViews,
       edgeMs: p50
