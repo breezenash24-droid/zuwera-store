@@ -821,8 +821,10 @@ footer{
 ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */
 .modal{
   display:none;position:fixed;inset:0;z-index:500;
-  background:rgba(9,9,11,.88);backdrop-filter:blur(12px);
+  background:rgba(9,9,11,.62);backdrop-filter:blur(6px);
   align-items:center;justify-content:center;
+  padding:1.5rem;
+  overflow-y:auto;
 }
 .modal.open{display:flex}
 /* Auth modal must sit above cart modal (both .modal, cart is later in DOM) */
@@ -1006,16 +1008,25 @@ footer{
 /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
    CART
 ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */
-#cart-modal{
-  background:var(--ink);flex-direction:column;
-  overflow-y:auto;align-items:stretch;justify-content:flex-start;
-  min-height:100vh;min-height:100dvh;overscroll-behavior:contain;
+/* cart-modal is now a transparent overlay — content lives inside .cbox */
+#cart-modal{ background:none; backdrop-filter:none; align-items:flex-start; justify-content:center; }
+.cbox{
+  background:#111;
+  border:1px solid rgba(244,241,235,.1);
+  width:min(960px,96vw);
+  max-height:88dvh;
+  overflow-y:auto;
+  display:flex;flex-direction:column;
+  position:relative;
+  animation:modalIn .22s ease;
+  overscroll-behavior:contain;
+  margin:auto;
 }
 .cart-hd{
   display:flex;align-items:center;justify-content:space-between;
   padding:1.5rem 2.5rem;border-bottom:1px solid rgba(244,241,235,.07);
-  position:sticky;top:0;background:rgba(9,9,11,.96);
-  backdrop-filter:blur(12px);z-index:10;
+  position:sticky;top:0;background:rgba(17,17,17,.97);
+  backdrop-filter:blur(8px);z-index:10;flex-shrink:0;
 }
 .cart-hd h1{
   font-family:var(--fw);font-weight:900;font-style:italic;
@@ -1077,16 +1088,25 @@ footer{
 #checkout-btn:hover{opacity:.85}
 
 /* ===================== RETURNS MODAL ===================== */
-#returns-modal{
-  background:var(--ink);flex-direction:column;
-  overflow-y:auto;align-items:stretch;justify-content:flex-start;
-  min-height:100vh;min-height:100dvh;overscroll-behavior:contain;
+/* returns-modal is a transparent overlay — content lives inside .ret-inner-box */
+#returns-modal{ background:none; backdrop-filter:none; align-items:flex-start; justify-content:center; }
+.ret-inner-box{
+  background:#111;
+  border:1px solid rgba(244,241,235,.1);
+  width:min(960px,96vw);
+  max-height:88dvh;
+  overflow-y:auto;
+  display:flex;flex-direction:column;
+  position:relative;
+  animation:modalIn .22s ease;
+  overscroll-behavior:contain;
+  margin:auto;
 }
 .ret-hd{
   display:flex;align-items:center;justify-content:space-between;
   padding:1.5rem 2.5rem;border-bottom:1px solid rgba(244,241,235,.07);
-  position:sticky;top:0;background:rgba(9,9,11,.96);
-  backdrop-filter:blur(12px);z-index:10;
+  position:sticky;top:0;background:rgba(17,17,17,.97);
+  backdrop-filter:blur(8px);z-index:10;flex-shrink:0;
 }
 .ret-hd h1{font-family:var(--fw);font-weight:900;font-style:italic;font-size:1.8rem;letter-spacing:.06em}
 .ret-back{
@@ -1165,7 +1185,7 @@ footer{
 .ret-history-item{border-top:1px solid rgba(244,241,235,.06);padding:.9rem 0;font-family:var(--fm);font-size:.72rem;color:rgba(244,241,235,.5);}
 .ret-chip{display:inline-block;font-size:.52rem;letter-spacing:.1em;text-transform:uppercase;border:1px solid rgba(244,241,235,.15);padding:.2rem .55rem;color:rgba(244,241,235,.55);margin-left:.5rem;vertical-align:middle;}
 .ret-chip.approved,.ret-chip.refunded{border-color:rgba(100,220,140,.3);color:rgba(100,220,140,.8)}
-body.light-mode #returns-modal{background:#F0EEE9}
+/* #returns-modal background is now on .ret-inner-box, not the overlay */
 body.light-mode .ret-hd{background:rgba(240,238,233,.96);border-bottom-color:rgba(9,9,11,.07)}
 body.light-mode .ret-back{color:rgba(9,9,11,.35)}
 body.light-mode .ret-policy,.ret-login-prompt{border-color:rgba(9,9,11,.1);background:rgba(9,9,11,.02)}
@@ -1183,11 +1203,8 @@ body.light-mode .ret-history-item{border-top-color:rgba(9,9,11,.07)}
 /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
    PAYMENT
 ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */
-#payment-modal{
-  background:rgba(9,9,11,.96);backdrop-filter:blur(18px);
-  overflow-y:auto;-webkit-overflow-scrolling:touch;
-  padding:calc(1rem + env(safe-area-inset-top,0px)) 1rem calc(1rem + env(safe-area-inset-bottom,0px));
-}
+/* payment-modal uses .modal backdrop — no extra background needed */
+#payment-modal{ background:none; backdrop-filter:none; overflow-y:auto; }
 .pbox{
   background:#111;border:1px solid rgba(244,241,235,.08);
   padding:2.5rem;width:min(580px,96vw);
@@ -1442,9 +1459,9 @@ body.light-mode #toast{background:var(--paper);color:var(--ink)}
 
 /* Modals */
 body.light-mode .modal{
-  background:#F0EEE9;
-  backdrop-filter:none;
-  -webkit-backdrop-filter:none;
+  background:rgba(240,238,233,.65);
+  backdrop-filter:blur(5px);
+  -webkit-backdrop-filter:blur(5px);
 }
 body.light-mode .mbox{background:#F0EEE9;border-color:rgba(9,9,11,.08)}
 body.light-mode .mclose{background:rgba(9,9,11,.05);border-color:rgba(9,9,11,.08);color:#09090b}
@@ -1460,9 +1477,11 @@ body.light-mode .msubtitle{color:rgba(9,9,11,.3)}
 body.light-mode .alink{color:rgba(9,9,11,.25)}
 body.light-mode .alink a{color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,.2)}
 
-/* Cart */
-body.light-mode #cart-modal{background:#F0EEE9}
-body.light-mode .cart-hd{background:#F0EEE9;border-bottom-color:rgba(9,9,11,.07)}
+/* Cart inner box */
+body.light-mode .cbox{background:#F0EEE9;border-color:rgba(9,9,11,.1)}
+body.light-mode .ret-inner-box{background:#F0EEE9;border-color:rgba(9,9,11,.1)}
+body.light-mode .cart-hd{background:rgba(240,238,233,.97);border-bottom-color:rgba(9,9,11,.07)}
+body.light-mode .ret-hd{background:rgba(240,238,233,.97);border-bottom-color:rgba(9,9,11,.07)}
 body.light-mode #cart-items-list{border-top-color:rgba(9,9,11,.07)}
 body.light-mode #cart-items-list li{border-bottom-color:rgba(9,9,11,.07);color:rgba(9,9,11,.7)}
 body.light-mode .csummary{border-color:rgba(9,9,11,.1);background:#F0EEE9}
@@ -1481,11 +1500,7 @@ body.light-mode .cart-back{color:rgba(9,9,11,.45)}
 body.light-mode .csec-t{color:#09090b}
 body.light-mode .cart-favs{border-top-color:rgba(9,9,11,.07)}
 body.light-mode #checkout-btn{background:#09090b;color:#E8E3DC}
-body.light-mode #payment-modal{
-  background:#F0EEE9 !important;
-  backdrop-filter:none;
-  -webkit-backdrop-filter:none;
-}
+/* Payment modal uses shared .modal backdrop in light mode */
 /* Payment */
 body.light-mode .pbox{background:#F0EEE9;border-color:rgba(9,9,11,.08)}
 body.light-mode .psub{color:rgba(9,9,11,.6)}
@@ -1957,6 +1972,7 @@ body.light-mode::after{opacity:0.15}
 </div>
 <!-- CART MODAL -->
 <div id="cart-modal" class="modal" role="dialog" aria-modal="true">
+  <div class="cbox" id="cart-inner">
   <div class="cart-hd">
     <button class="cart-back" id="cart-close">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
@@ -1991,10 +2007,12 @@ body.light-mode::after{opacity:0.15}
       <button id="checkout-btn">Checkout</button>
     </div>
   </div>
+  </div><!-- /.cbox -->
 </div>
 
 <!-- RETURNS MODAL -->
 <div id="returns-modal" class="modal" role="dialog" aria-modal="true">
+  <div class="ret-inner-box">
   <div class="ret-hd">
     <button class="ret-back" id="returns-close">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
@@ -2028,6 +2046,7 @@ body.light-mode::after{opacity:0.15}
       </div>
     </div>
   </div>
+  </div><!-- /.ret-inner-box -->
 </div>
 
 <!-- PAYMENT MODAL -->
