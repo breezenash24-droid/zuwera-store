@@ -1000,18 +1000,18 @@
             <nav class="sidebar-nav">
                 <div class="nav-section">
                     <div class="nav-section-title">Main</div>
-                    <a class="nav-link active" data-page="dashboard" onclick="navigateTo('dashboard')">📊 Dashboard</a>
-                    <a class="nav-link" data-page="products" onclick="navigateTo('products')">👟 Products</a>
-                    <a class="nav-link" data-page="sizecharts" onclick="navigateTo('sizecharts')">📏 Size Charts</a>
-                    <a class="nav-link" data-page="reviews" onclick="navigateTo('reviews')">⭐ Reviews</a>
-                    <a class="nav-link" data-page="users" onclick="navigateTo('users')">👥 Users</a>
-                    <a class="nav-link" data-page="analytics" onclick="navigateTo('analytics')">📈 Analytics</a>
-                    <a class="nav-link" data-page="finance" onclick="navigateTo('finance')">💰 Finance</a>
-                    <a class="nav-link" data-page="shipping" onclick="navigateTo('shipping')">🚚 Shipping</a>
-                    <a class="nav-link" data-page="receipts" onclick="navigateTo('receipts')">🧾 Receipts</a>
-                    <a class="nav-link" data-page="settings" onclick="navigateTo('settings')">⚙️ Settings</a>
-                    <a class="nav-link" data-page="website" onclick="navigateTo('website')">🌐 Website</a>
-                    <a class="nav-link" data-page="audit" onclick="navigateTo('audit')">📋 Audit Log</a>
+                    <a class="nav-link active" data-page="dashboard" onclick="navigateTo('dashboard')">Dashboard</a>
+                    <a class="nav-link" data-page="products" onclick="navigateTo('products')">Products</a>
+                    <a class="nav-link" data-page="sizecharts" onclick="navigateTo('sizecharts')">Size Charts</a>
+                    <a class="nav-link" data-page="reviews" onclick="navigateTo('reviews')">Reviews</a>
+                    <a class="nav-link" data-page="users" onclick="navigateTo('users')">Users</a>
+                    <a class="nav-link" data-page="analytics" onclick="navigateTo('analytics')">Analytics</a>
+                    <a class="nav-link" data-page="finance" onclick="navigateTo('finance')">Finance</a>
+                    <a class="nav-link" data-page="shipping" onclick="navigateTo('shipping')">Shipping</a>
+                    <a class="nav-link" data-page="receipts" onclick="navigateTo('receipts')">Receipts</a>
+                    <a class="nav-link" data-page="settings" onclick="navigateTo('settings')">Settings</a>
+                    <a class="nav-link" data-page="website" onclick="navigateTo('website')">Website</a>
+                    <a class="nav-link" data-page="audit" onclick="navigateTo('audit')">Audit Log</a>
                 </div>
             </nav>
             <div class="sidebar-bottom">
@@ -1037,59 +1037,49 @@
                     </div>
                     <div class="stats-grid">
                         <div class="stat-card">
-                            <div style="font-size:1.3rem;margin-bottom:4px;">📦</div>
-                            <div class="stat-card-title">Total Products</div>
+                                                        <div class="stat-card-title">Total Products</div>
                             <div class="stat-card-value" id="totalProducts">0</div>
                             <div style="font-size:.72rem;color:var(--text-secondary);margin-top:4px;line-height:1.4;">Total items in your catalogue (all statuses)</div>
                         </div>
                         <div class="stat-card">
-                            <div style="font-size:1.3rem;margin-bottom:4px;">✅</div>
-                            <div class="stat-card-title">Live Products</div>
+                                                        <div class="stat-card-title">Live Products</div>
                             <div class="stat-card-value" id="liveProducts">0</div>
                             <div style="font-size:.72rem;color:var(--text-secondary);margin-top:4px;line-height:1.4;">Currently visible and buyable on your store</div>
                         </div>
                         <div class="stat-card">
-                            <div style="font-size:1.3rem;margin-bottom:4px;">📊</div>
-                            <div class="stat-card-title">Total Inventory</div>
+                                                        <div class="stat-card-title">Total Inventory</div>
                             <div class="stat-card-value" id="totalInventory">0</div>
                             <div style="font-size:.72rem;color:var(--text-secondary);margin-top:4px;line-height:1.4;">Sum of all stock units across every product and size</div>
                         </div>
                         <div class="stat-card">
-                            <div style="font-size:1.3rem;margin-bottom:4px;">⚠️</div>
-                            <div class="stat-card-title">Low Stock Alerts</div>
+                                                        <div class="stat-card-title">Low Stock Alerts</div>
                             <div class="stat-card-value" id="lowStockAlerts">0</div>
                             <div style="font-size:.72rem;color:var(--text-secondary);margin-top:4px;line-height:1.4;">Products where stock has dropped below the alert threshold</div>
                         </div>
                     </div>
                     <div style="margin-top:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;">
                       <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                        <div style="font-size:1.4rem;margin-bottom:8px;">👟</div>
-                        <div style="font-weight:700;margin-bottom:6px;">Products</div>
+                                                <div style="font-weight:700;margin-bottom:6px;">Products</div>
                         <div style="color:var(--text-secondary);font-size:.83rem;line-height:1.6;">Add and manage everything you sell. Set prices, upload photos, manage stock per size. Set status to <strong>Live</strong> when ready to sell.</div>
                       </div>
                       <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                        <div style="font-size:1.4rem;margin-bottom:8px;">🧾</div>
-                        <div style="font-weight:700;margin-bottom:6px;">Receipts</div>
+                                                <div style="font-weight:700;margin-bottom:6px;">Receipts</div>
                         <div style="color:var(--text-secondary);font-size:.83rem;line-height:1.6;">Every order that comes through appears here. Search by name, email or order ID. Add tracking numbers to send customers shipping updates.</div>
                       </div>
                       <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                        <div style="font-size:1.4rem;margin-bottom:8px;">💰</div>
-                        <div style="font-weight:700;margin-bottom:6px;">Finance</div>
+                                                <div style="font-weight:700;margin-bottom:6px;">Finance</div>
                         <div style="color:var(--text-secondary);font-size:.83rem;line-height:1.6;">See your total revenue, order counts, and a breakdown by product category. Updated automatically with each new order.</div>
                       </div>
                       <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                        <div style="font-size:1.4rem;margin-bottom:8px;">⚙️</div>
-                        <div style="font-weight:700;margin-bottom:6px;">Settings</div>
+                                                <div style="font-weight:700;margin-bottom:6px;">Settings</div>
                         <div style="color:var(--text-secondary);font-size:.83rem;line-height:1.6;">Control your announcement bar, free shipping threshold, return policy, and all legal pages. Changes go live immediately.</div>
                       </div>
                       <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                        <div style="font-size:1.4rem;margin-bottom:8px;">🌐</div>
-                        <div style="font-weight:700;margin-bottom:6px;">Website</div>
+                                                <div style="font-weight:700;margin-bottom:6px;">Website</div>
                         <div style="color:var(--text-secondary);font-size:.83rem;line-height:1.6;">Edit your homepage hero image, headline, and button text — the big image visitors see first when they land on your site.</div>
                       </div>
                       <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                        <div style="font-size:1.4rem;margin-bottom:8px;">📈</div>
-                        <div style="font-weight:700;margin-bottom:6px;">Analytics</div>
+                                                <div style="font-weight:700;margin-bottom:6px;">Analytics</div>
                         <div style="color:var(--text-secondary);font-size:.83rem;line-height:1.6;">Visual breakdown of your product catalogue — how many are live vs draft, stock levels, gender split, and more.</div>
                       </div>
                     </div>
