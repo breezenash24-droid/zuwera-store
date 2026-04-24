@@ -3655,6 +3655,18 @@ function quickAddSetScrollLock(locked) {
   document.documentElement.style.overflow = locked ? 'hidden' : '';
 }
 
+function quickAddFocusWithoutScroll(element) {
+  if (!element || typeof element.focus !== 'function') return;
+  const currentX = window.scrollX || window.pageXOffset || 0;
+  const currentY = window.scrollY || window.pageYOffset || 0;
+  try {
+    element.focus({ preventScroll: true });
+  } catch (_) {
+    element.focus();
+    window.scrollTo(currentX, currentY);
+  }
+}
+
 function quickAddProductHref(item) {
   if (typeof productHref !== 'function') return '#';
   return productHref({ id: item.productId, sku: item.baseSku || item.sku, title: item.title });
@@ -3809,7 +3821,7 @@ function openQuickAddReviewModal(item) {
   quickAddRenderOptions(item);
   modal.classList.add('open');
   quickAddSetScrollLock(true);
-  document.getElementById('quick-add-review-confirm')?.focus();
+  quickAddFocusWithoutScroll(document.getElementById('quick-add-review-confirm'));
 }
 
 function initQuickAddReviewModal() {

@@ -20,6 +20,11 @@ const _favoriteProductCache = new Map();
 
 // ── Shorthand helpers ──────────────────────────────────────────────
 const $  = id => document.getElementById(id);
+const on = (id, eventName, handler) => {
+  const el = $(id);
+  if (el) el.addEventListener(eventName, handler);
+  return el;
+};
 
 // Disable/re-enable a button with a loading label
 function setBtn(id, loading, defaultLabel) {
@@ -174,11 +179,11 @@ function switchAuthTab(tab) {
 document.querySelectorAll('#auth-modal .auth-tab').forEach(btn => {
   btn.addEventListener('click', () => switchAuthTab(btn.dataset.tab));
 });
-$('auth-modal-close').addEventListener('click', closeAuthModal);
-$('auth-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeAuthModal(); });
-_authEls.loginBtn.addEventListener('click', () => openAuthModal('signin'));
-$('forgot-link').addEventListener('click', e => { e.preventDefault(); switchAuthTab('forgot'); });
-$('back-to-signin').addEventListener('click', e => { e.preventDefault(); switchAuthTab('signin'); });
+on('auth-modal-close', 'click', closeAuthModal);
+on('auth-modal', 'click', e => { if (e.target === e.currentTarget) closeAuthModal(); });
+if (_authEls.loginBtn) _authEls.loginBtn.addEventListener('click', () => openAuthModal('signin'));
+on('forgot-link', 'click', e => { e.preventDefault(); switchAuthTab('forgot'); });
+on('back-to-signin', 'click', e => { e.preventDefault(); switchAuthTab('signin'); });
 
 // ── Cloudflare Turnstile Helper ────────────────────────────────────
 const ZW_TS_KEY = '0x4AAAAAACzvvg-l2dT2z35l';
@@ -286,7 +291,7 @@ async function zwRunTurnstile(action) {
 }
 
 // ── Sign In ────────────────────────────────────────────────────────
-$('signin-submit').addEventListener('click', async () => {
+on('signin-submit', 'click', async () => {
   const email = $('signin-email').value.trim();
   const pass  = $('signin-password').value;
   const err   = $('signin-error');
@@ -311,7 +316,7 @@ $('signin-submit').addEventListener('click', async () => {
 });
 
 // ── Sign Up ────────────────────────────────────────────────────────
-$('signup-submit').addEventListener('click', async () => {
+on('signup-submit', 'click', async () => {
   const name  = $('signup-name').value.trim();
   const email = $('signup-email').value.trim();
   const pass  = $('signup-password').value;
@@ -347,7 +352,7 @@ $('signup-submit').addEventListener('click', async () => {
 });
 
 // ── Forgot Password ────────────────────────────────────────────────
-$('forgot-submit').addEventListener('click', async () => {
+on('forgot-submit', 'click', async () => {
   const email = $('forgot-email').value.trim();
   const err   = $('forgot-error');
   const suc   = $('forgot-success');
@@ -383,7 +388,7 @@ if (updatePassBtn) {
 }
 
 // ── Logout ─────────────────────────────────────────────────────────
-_authEls.logoutBtn.addEventListener('click', async () => {
+if (_authEls.logoutBtn) _authEls.logoutBtn.addEventListener('click', async () => {
   if (_sb) {
     // scope:'global' revokes the refresh token server-side so the session
     // cannot be silently re-established on the next page load.
@@ -396,7 +401,7 @@ _authEls.logoutBtn.addEventListener('click', async () => {
 });
 
 // ── Account Modal ──────────────────────────────────────────────────
-_authEls.accountBtn.addEventListener('click', () => {
+if (_authEls.accountBtn) _authEls.accountBtn.addEventListener('click', () => {
   _openModal('account-modal');
   switchAcctTab('orders');
   loadOrderHistory();
@@ -406,8 +411,8 @@ _authEls.accountBtn.addEventListener('click', () => {
   const err = $('acct-delete-error');
   if (err) err.textContent = '';
 });
-$('account-modal-close').addEventListener('click', () => _closeModal('account-modal'));
-$('account-modal').addEventListener('click', e => {
+on('account-modal-close', 'click', () => _closeModal('account-modal'));
+on('account-modal', 'click', e => {
   if (e.target === e.currentTarget) _closeModal('account-modal');
 });
 
