@@ -362,8 +362,6 @@ window.sb = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_U
   auth: { persistSession: true, storageKey: 'zuwera-auth', flowType: 'implicit' },
   global: { headers: { 'X-Client-Info': 'zuwera-store' } },
 }) : null;
-const _sb = window.sb;
-
 /* ── Modal helpers (also provided by auth.js, but defined early for safety) ── */
 window._openModal = function(id) {
   const m = document.getElementById(id);
@@ -541,7 +539,7 @@ document.getElementById('account-btn').addEventListener('click', () => {
   window.location.href = '/';
 });
 document.getElementById('logout-btn').addEventListener('click', () => {
-  if (_sb) _sb.auth.signOut().then(() => location.reload());
+  if (window.sb) window.sb.auth.signOut().then(() => location.reload());
 });
 document.getElementById('login-btn').addEventListener('click', () => {
   if (typeof openAuthModal === 'function') openAuthModal('signin');
