@@ -2700,7 +2700,7 @@ function renderProductCards(products, grid) {
             <span id="avg-${domId}"><span style="color:rgba(244,241,235,.2)">\u2606\u2606\u2606\u2606\u2606</span></span>
             <span id="cnt-${domId}">Be the first to review</span>
           </button>
-          ${isLive ? `<button type="button" class="pcard-add-btn" data-quick-add="${quickAddPayload}" onclick="return window.__zwQuickAddClick && window.__zwQuickAddClick(event,this)">Add to Bag</button>` : ''}
+          ${isLive ? `<button type="button" class="pcard-add-btn" data-quick-add="${quickAddPayload}">Add to Bag</button>` : ''}
         </div>
         ${isLive ? `<div class="quick-size-panel" id="qsp-${domId}">
           <div class="quick-size-panel-header">
@@ -2785,8 +2785,46 @@ function updateNav() {
 /* AUTH MODAL */
 let _authReturnModalId = null;
 function setPageScrollLock(locked) {
-  document.body.style.overflow = locked ? 'hidden' : '';
-  document.documentElement.style.overflow = locked ? 'hidden' : '';
+  const root = document.documentElement;
+  const body = document.body;
+  if (!root || !body) return;
+  if (!window.__zwPageScrollState) {
+    window.__zwPageScrollState = { locked: false, y: 0 };
+  }
+  const state = window.__zwPageScrollState;
+
+  if (locked) {
+    if (state.locked) return;
+    state.locked = true;
+    state.y = window.scrollY || window.pageYOffset || 0;
+    const scrollbarGap = Math.max(0, window.innerWidth - root.clientWidth);
+    root.style.overflow = 'hidden';
+    root.style.overscrollBehavior = 'none';
+    body.style.position = 'fixed';
+    body.style.setProperty('top', `-${state.y}px`, 'important');
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.width = '100%';
+    body.style.overflow = 'hidden';
+    body.style.overscrollBehavior = 'none';
+    if (scrollbarGap > 0) body.style.paddingRight = `${scrollbarGap}px`;
+    return;
+  }
+
+  if (!state.locked) return;
+  state.locked = false;
+  const restoreY = state.y || 0;
+  root.style.overflow = '';
+  root.style.overscrollBehavior = '';
+  body.style.position = '';
+  body.style.removeProperty('top');
+  body.style.left = '';
+  body.style.right = '';
+  body.style.width = '';
+  body.style.overflow = '';
+  body.style.overscrollBehavior = '';
+  body.style.paddingRight = '';
+  window.scrollTo(0, restoreY);
 }
 function openAuth(tab) {
   const cartModal = document.getElementById('cart-modal');
@@ -3193,6 +3231,20 @@ function buildHomeFavoriteFallbackDetail(productId, favorite) {
   };
 }
 
+const _homeFavoriteAddDedup = new Map();
+
+function shouldSkipHomeFavoriteAdd(key, ttlMs = 700) {
+  if (!key) return false;
+  const now = Date.now();
+  const last = _homeFavoriteAddDedup.get(key) || 0;
+  if (last && (now - last) < ttlMs) return true;
+  _homeFavoriteAddDedup.set(key, now);
+  for (const [entryKey, ts] of _homeFavoriteAddDedup.entries()) {
+    if ((now - ts) > ttlMs * 4) _homeFavoriteAddDedup.delete(entryKey);
+  }
+  return false;
+}
+
 function homeFavoriteCardHtml(favorite, detail, mode) {
   const productId = favorite.product_id;
   const name = detail?.title || favorite.product_name || 'Saved Item';
@@ -3231,13 +3283,11 @@ function homeFavoriteCardHtml(favorite, detail, mode) {
           <button
             type="button"
             data-home-favorite-add="${escapeHomeFavoriteHtml(productId)}"
-            onclick='if(window.addHomeFavoriteToCart){window.addHomeFavoriteToCart(${JSON.stringify(String(productId || ''))});} return false;'
             class="zw-saved-item-btn zw-saved-item-btn--primary"
           >Add to Bag</button>
           <button
             type="button"
             data-home-favorite-remove="${escapeHomeFavoriteHtml(productId)}"
-            onclick='if(window.removeFav){window.removeFav(${JSON.stringify(String(productId || ''))}, this.closest("li, div"));} return false;'
             class="zw-saved-item-btn zw-saved-item-btn--ghost"
           >Remove</button>
         </div>
@@ -3257,6 +3307,7 @@ async function renderHomeFavoriteCollection(listEl, favorites, mode) {
 
 window.addHomeFavoriteToCart = async function(productId) {
   const normalizedProductId = String(productId || '');
+  if (shouldSkipHomeFavoriteAdd(`home-saved:${normalizedProductId}`)) return;
   const favorite = _favs.find((item) => String(item.product_id || '') === normalizedProductId) || { product_id: normalizedProductId };
   try {
     const detail = await getHomeFavoriteDetail(normalizedProductId, favorite) || buildHomeFavoriteFallbackDetail(normalizedProductId, favorite);
@@ -3272,8 +3323,7 @@ window.addHomeFavoriteToCart = async function(productId) {
     const existing = cart.find((item) =>
       String(item.productId || '') === String(detail.id || '') &&
       String(item.size || '') === String(size || '') &&
-      String(item.colorName || '') === String(detail.colorName || '') &&
-      String(item.sku || '') === String(detail.sku || '')
+      String(item.colorName || '') === String(detail.colorName || 'Standard')
     );
     if (existing) {
       existing.quantity += 1;
@@ -3302,6 +3352,7 @@ window.addHomeFavoriteToCart = async function(productId) {
 };
 
 document.addEventListener('click', (event) => {
+  if (event.defaultPrevented) return;
   const addButton = event.target.closest('[data-home-favorite-add]');
   if (addButton) {
     event.preventDefault();
@@ -3651,8 +3702,11 @@ function quickAddMoveGallery(item, direction) {
 }
 
 function quickAddSetScrollLock(locked) {
-  document.body.style.overflow = locked ? 'hidden' : '';
-  document.documentElement.style.overflow = locked ? 'hidden' : '';
+  if (window.ZWModalScrollLock && typeof window.ZWModalScrollLock.refresh === 'function') {
+    window.requestAnimationFrame(() => window.ZWModalScrollLock.refresh());
+    return;
+  }
+  setPageScrollLock(locked);
 }
 
 function quickAddFocusWithoutScroll(element) {
@@ -3821,7 +3875,9 @@ function openQuickAddReviewModal(item) {
   quickAddRenderOptions(item);
   modal.classList.add('open');
   quickAddSetScrollLock(true);
-  quickAddFocusWithoutScroll(document.getElementById('quick-add-review-confirm'));
+  window.requestAnimationFrame(() => {
+    quickAddFocusWithoutScroll(document.getElementById('quick-add-review-confirm'));
+  });
 }
 
 function initQuickAddReviewModal() {

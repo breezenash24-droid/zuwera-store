@@ -728,6 +728,20 @@ function parseFavoriteCartPayload(payload) {
   }
 }
 
+const _favoriteAddDedup = new Map();
+
+function shouldSkipFavoriteAdd(key, ttlMs = 700) {
+  if (!key) return false;
+  const now = Date.now();
+  const last = _favoriteAddDedup.get(key) || 0;
+  if (last && (now - last) < ttlMs) return true;
+  _favoriteAddDedup.set(key, now);
+  for (const [entryKey, ts] of _favoriteAddDedup.entries()) {
+    if ((now - ts) > ttlMs * 4) _favoriteAddDedup.delete(entryKey);
+  }
+  return false;
+}
+
 function favoriteCardHtml(favorite, detail, options) {
   const mode = options?.mode || 'cart';
   const productId = favorite.product_id;
@@ -756,13 +770,11 @@ function favoriteCardHtml(favorite, detail, options) {
             type="button"
             data-favorite-add="${escapeFavoriteHtml(productId)}"
             data-favorite-payload="${cartPayload}"
-            onclick='return window.addFavoriteToCartFromButton ? window.addFavoriteToCartFromButton(this) : false;'
             class="zw-saved-item-btn zw-saved-item-btn--primary"
           >Add to Bag</button>
           <button
             type="button"
             data-favorite-remove="${escapeFavoriteHtml(productId)}"
-            onclick='if(window.removeFavorite){window.removeFavorite(${JSON.stringify(String(productId || ''))}, this.closest("li, div"));} return false;'
             class="zw-saved-item-btn zw-saved-item-btn--ghost"
           >Remove</button>
         </div>
@@ -780,15 +792,11 @@ async function renderFavoriteCollection(listEl, favorites, options) {
   listEl.innerHTML = detailPairs.map(({ favorite, detail }) => favoriteCardHtml(favorite, detail, options)).join('');
 }
 
-window.addFavoriteToCartFromButton = function(button) {
-  if (!button) return false;
-  void window.addFavoriteToCart(button.dataset.favoriteAdd || '', button.dataset.favoritePayload || '');
-  return false;
-};
-
 window.addFavoriteToCart = async function(productId, payload) {
   const payloadData = parseFavoriteCartPayload(payload);
   const normalizedProductId = String(productId || payloadData?.productId || '');
+  const dedupeKey = `saved:${normalizedProductId}:${String(payload || '')}`;
+  if (shouldSkipFavoriteAdd(dedupeKey)) return;
   const favorite = _userFavorites.find((item) => String(item.product_id || '') === normalizedProductId) || { product_id: normalizedProductId };
   try {
     const detail = payloadData ? {
@@ -815,8 +823,7 @@ window.addFavoriteToCart = async function(productId, payload) {
     const existing = cart.find((item) =>
       String(item.productId || '') === String(detail.id || '') &&
       String(item.size || '') === String(size || '') &&
-      String(item.colorName || '') === String((payloadData?.colorName || detail.colorName || 'Standard')) &&
-      String(item.sku || '') === String((payloadData?.sku || detail.sku || ''))
+      String(item.colorName || '') === String((payloadData?.colorName || detail.colorName || 'Standard'))
     );
 
     if (existing) {
@@ -958,6 +965,7 @@ async function removeFavorite(pid, liEl) {
 }
 
 document.addEventListener('click', e => {
+  if (e.defaultPrevented) return;
   const addFavoriteBtn = e.target.closest('[data-favorite-add]');
   if (addFavoriteBtn) {
     e.preventDefault();
