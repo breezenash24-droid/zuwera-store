@@ -23,9 +23,8 @@ function buildGraphQLBody({ zoneTag, datetimeStart, datetimeEnd }) {
             requests
             cachedRequests
             pageViews
-            visits
             encryptedRequests
-            edgeResponseBytes
+            bytes
           }
           uniq {
             uniques
@@ -46,28 +45,25 @@ function buildGraphQLBody({ zoneTag, datetimeStart, datetimeEnd }) {
 }
 
 function aggregate(groups) {
-  let requests = 0, cachedRequests = 0, pageViews = 0, visits = 0, uniques = 0;
+  let requests = 0, cachedRequests = 0, pageViews = 0, uniques = 0;
   const daySeries = [];
 
   for (const row of groups || []) {
     const r = Number(row?.sum?.requests || 0);
     const c = Number(row?.sum?.cachedRequests || 0);
     const pv = Number(row?.sum?.pageViews || 0);
-    const v = Number(row?.sum?.visits || 0);
     const u = Number(row?.uniq?.uniques || 0);
 
     requests += r;
     cachedRequests += c;
     pageViews += pv;
-    visits += v;
     uniques += u;
 
-    daySeries.push({ date: row?.dimensions?.date, requests: r, pageViews: pv, visits: v });
+    daySeries.push({ date: row?.dimensions?.date, requests: r, pageViews: pv });
   }
 
   return {
     pageViews,
-    visits,
     uniqueVisitors: uniques,
     totalRequests: requests,
     cacheHitRatio: requests ? Number(((cachedRequests / requests) * 100).toFixed(2)) : 0,
