@@ -132,7 +132,7 @@ export async function onRequestGet({ env }) {
         success: false,
         error: 'Missing Cloudflare GraphQL configuration.',
         requiredEnv: ['CLOUDFLARE_ZONE_ID', 'CLOUDFLARE_GRAPHQL_TOKEN'],
-      }, 500);
+      }, 200);
     }
 
     const now = new Date();
@@ -161,7 +161,7 @@ export async function onRequestGet({ env }) {
         error: 'Cloudflare GraphQL request failed.',
         status: resp.status,
         details: payload?.errors || payload
-      }, 502);
+      }, 200);
     }
 
     const groups = payload?.data?.viewer?.zones?.[0]?.httpRequests1hGroups || [];
@@ -175,6 +175,6 @@ export async function onRequestGet({ env }) {
       windowDays: 7
     });
   } catch (err) {
-    return json({ success: false, error: err?.message || 'Unexpected analytics error.' }, 500);
+    return json({ success: false, error: err?.message || 'Unexpected analytics error.' }, 200);
   }
 }
