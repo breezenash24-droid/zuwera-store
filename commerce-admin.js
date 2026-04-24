@@ -349,6 +349,7 @@
 
   function renderPromotions() {
     const promos = Array.isArray(state.config.promotions) ? state.config.promotions : [];
+    const showPromo = state.config.show_promo_code !== false;
     return `
       <div class="commerce-card">
         <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;">
@@ -356,7 +357,14 @@
             <h3>Discount Engine</h3>
             <div class="commerce-muted">Create percent-off, fixed-dollar, or shipping promos that validate at checkout.</div>
           </div>
-          <button class="btn btn-secondary btn-sm" id="commerceAddPromoBtn">+ Add Promo</button>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <label style="display:flex;align-items:center;gap:7px;font-size:.78rem;color:var(--text-muted);cursor:pointer;">
+              <input type="checkbox" id="commerceShowPromoCode" ${showPromo ? 'checked' : ''}
+                style="width:15px;height:15px;accent-color:var(--accent,#fff);cursor:pointer;">
+              Show promo code field
+            </label>
+            <button class="btn btn-secondary btn-sm" id="commerceAddPromoBtn">+ Add Promo</button>
+          </div>
         </div>
         <div id="commercePromoList" style="margin-top:14px;">
           ${promos.length ? promos.map((promo, index) => `
@@ -394,7 +402,38 @@
 
   function renderReturns() {
     const requests = Array.isArray(state.returnsState.requests) ? state.returnsState.requests : [];
+    const rp = state.config.returnsPolicy || {};
     return `
+      <div class="commerce-card" style="margin-bottom:16px;">
+        <h3>Return Policy</h3>
+        <div class="commerce-muted" style="margin-bottom:14px;">This policy text appears on your storefront returns page and is shown to customers before they submit a request.</div>
+        <div class="commerce-input-grid">
+          <div>
+            <label>Return window (days)</label>
+            <input class="form-input" id="rp-window" type="number" min="1" max="365" value="${Number(rp.windowDays || 30)}">
+          </div>
+          <div>
+            <label>Item eligibility</label>
+            <select class="form-select" id="rp-eligibility">
+              <option value="all" ${(rp.eligibility || 'all') === 'all' ? 'selected' : ''}>All items</option>
+              <option value="no_sale" ${rp.eligibility === 'no_sale' ? 'selected' : ''}>Exclude sale items</option>
+              <option value="none" ${rp.eligibility === 'none' ? 'selected' : ''}>All sales final (no returns)</option>
+            </select>
+          </div>
+          <div>
+            <label>Return shipping paid by</label>
+            <select class="form-select" id="rp-shipping">
+              <option value="store" ${(rp.shippingPaidBy || 'store') === 'store' ? 'selected' : ''}>Store (free returns)</option>
+              <option value="customer" ${rp.shippingPaidBy === 'customer' ? 'selected' : ''}>Customer</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <label>Policy description (shown to customers)</label>
+          <textarea class="form-input" id="rp-text" rows="4" style="resize:vertical;margin-top:4px;">${escapeHtml(rp.policyText || 'We want you to love your Zuwera piece. If something isn\'t right, you can return it within 30 days of delivery for a full refund or exchange. Items must be unworn, unwashed, and in their original packaging with tags attached.')}</textarea>
+        </div>
+      </div>
+
       <div class="commerce-card">
         <h3>Returns & Exchanges Portal</h3>
         <div class="commerce-muted">Customer-submitted self-serve requests land here for approval, refund, or exchange handling.</div>
@@ -428,6 +467,15 @@
         </div>
       </div>
     `;
+  }
+
+  function readReturnsPolicyFromDom() {
+    return {
+      windowDays: parseInt($('rp-window')?.value || '30', 10) || 30,
+      eligibility: $('rp-eligibility')?.value || 'all',
+      shippingPaidBy: $('rp-shipping')?.value || 'store',
+      policyText: $('rp-text')?.value?.trim() || '',
+    };
   }
 
   function renderOrderWorkflow() {
@@ -948,6 +996,9 @@
   async function saveSettings(message) {
     $('commerceStatus').textContent = 'Saving commerce settings...';
     state.config.promotions = readPromotionsFromDom();
+    const showPromoEl = $('commerceShowPromoCode');
+    if (showPromoEl) state.config.show_promo_code = showPromoEl.checked;
+    if ($('rp-window')) state.config.returnsPolicy = readReturnsPolicyFromDom();
     if ($('commerceInventoryVariantTable') || $('commerceInventoryLocations')) {
       state.inventory = readInventoryFromDom();
     }

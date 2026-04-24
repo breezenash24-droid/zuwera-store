@@ -293,6 +293,70 @@
         #apis-refresh-btn { margin-left: auto; }
         #apis-last-updated { font-size: .8rem; color: var(--text-secondary); margin-top: 4px; }
 
+        /* API key editor */
+        .api-key-chip {
+            font-family: 'Courier New', monospace; font-size: .72rem;
+            background: var(--border); color: var(--text-secondary);
+            padding: 1px 7px; border-radius: 4px; letter-spacing: .04em;
+            display: inline-block; max-width: 100%; overflow: hidden;
+            text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;
+        }
+        .api-edit-btn {
+            background: none; border: 1px solid var(--border);
+            color: var(--text-secondary); cursor: pointer;
+            font-size: .75rem; padding: 3px 10px; border-radius: 5px;
+            transition: border-color .15s, color .15s;
+        }
+        .api-edit-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .api-card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; gap: 8px; flex-wrap: wrap; }
+        .api-card-footer .api-link { margin-top: 0; }
+
+        /* Key edit modal */
+        #api-key-modal {
+            display: none; position: fixed; inset: 0; z-index: 2000;
+            background: rgba(0,0,0,.65);
+            align-items: center; justify-content: center;
+        }
+        #api-key-modal.open { display: flex; }
+        .api-key-modal-box {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: 14px; padding: 28px; width: 100%; max-width: 460px;
+            max-height: 90vh; overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,.4);
+        }
+        .api-key-modal-title { font-weight: 700; font-size: 1.1rem; margin-bottom: 6px; }
+        .api-key-modal-sub {
+            font-size: .82rem; color: var(--text-secondary);
+            margin-bottom: 20px; line-height: 1.5;
+        }
+        .api-key-field { margin-bottom: 16px; }
+        .api-key-field label {
+            display: block; font-size: .82rem; font-weight: 600;
+            margin-bottom: 6px; color: var(--text-secondary);
+        }
+        .api-key-field label span { font-family: 'Courier New', monospace; font-weight: 400; opacity: .65; margin-left: 8px; font-size: .78rem; }
+        .api-key-field-wrap { position: relative; }
+        .api-key-field input {
+            width: 100%; background: var(--bg-primary); border: 1px solid var(--border);
+            border-radius: 7px; padding: 9px 38px 9px 12px; font-size: .85rem;
+            color: var(--text-primary); font-family: 'Courier New', monospace;
+            transition: border-color .15s;
+        }
+        .api-key-field input:focus { outline: none; border-color: var(--accent); }
+        .api-key-field-toggle {
+            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; cursor: pointer;
+            color: var(--text-secondary); font-size: .85rem; padding: 0;
+        }
+        .api-key-warn { font-size: .78rem; color: var(--warning); margin-bottom: 6px; }
+        .api-key-modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .api-key-modal-actions button { flex: 1; padding: 10px; border-radius: 7px; font-weight: 600; cursor: pointer; font-size: .9rem; border: none; }
+        .akm-save { background: var(--accent); color: #fff; }
+        .akm-save:hover { opacity: .9; }
+        .akm-save:disabled { opacity: .5; cursor: not-allowed; }
+        .akm-cancel { background: transparent; border: 1px solid var(--border) !important; color: var(--text-primary); }
+        .api-key-modal-status { margin-top: 14px; font-size: .83rem; text-align: center; min-height: 20px; line-height: 1.4; }
+
         /* Dashboard Alerts */
         #dash-banners { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
         .dash-banner {
@@ -4042,10 +4106,62 @@
         }
 
         // ─── API Status Page ────────────────────────────────────────────────────
+
+        // Key definitions for the editor — which env var names belong to each service
+        const API_KEY_DEFS = {
+            cloudinary: {
+                label: 'Cloudinary',
+                keys: [
+                    { name: 'CLOUDINARY_CLOUD_NAME', label: 'Cloud Name', type: 'text',     placeholder: 'e.g. dubg4loah' },
+                    { name: 'CLOUDINARY_API_KEY',    label: 'API Key',    type: 'text',     placeholder: '688123...' },
+                    { name: 'CLOUDINARY_API_SECRET', label: 'API Secret', type: 'password', placeholder: 'Enter API secret' },
+                ]
+            },
+            resend: {
+                label: 'Resend',
+                keys: [{ name: 'RESEND_API_KEY', label: 'API Key', type: 'password', placeholder: 're_...' }]
+            },
+            brevo: {
+                label: 'Brevo',
+                keys: [{ name: 'BREVO_API_KEY', label: 'API Key', type: 'password', placeholder: 'xkeysib-...' }]
+            },
+            stripe: {
+                label: 'Stripe',
+                keys: [{ name: 'STRIPE_SECRET_KEY', label: 'Secret Key', type: 'password', placeholder: 'sk_live_... or sk_test_...', warn: '⚠️ High security — only update if your key was rotated.' }]
+            },
+            shippo: {
+                label: 'Shippo',
+                keys: [{ name: 'SHIPPO_API_KEY', label: 'API Key', type: 'password', placeholder: 'shippo_live_...' }]
+            },
+            deepl: {
+                label: 'DeepL',
+                keys: [{ name: 'DEEPL_API_KEY', label: 'API Key', type: 'password', placeholder: 'Your DeepL key' }]
+            },
+            cloudflare: {
+                label: 'Cloudflare',
+                keys: [
+                    { name: 'CLOUDFLARE_ZONE_ID',       label: 'Zone ID',   type: 'text',     placeholder: 'Zone ID' },
+                    { name: 'CLOUDFLARE_GRAPHQL_TOKEN',  label: 'API Token', type: 'password', placeholder: 'CF API token' },
+                ]
+            },
+            // supabase excluded — URL/service key bootstrap everything, too risky to edit from UI
+            branding: {
+                label: 'Email Branding',
+                keys: [
+                    { name: 'EMAIL_FROM',     label: 'From Address', type: 'text',     placeholder: 'orders@zuwera.store', warn: 'Must be verified in both Resend and Brevo.' },
+                    { name: 'BRAND_LOGO_URL', label: 'Logo URL',     type: 'text',     placeholder: 'https://zuwera.store/assets/Zuwera_Wordmark_White.png' },
+                ]
+            },
+        };
+
+        // Cached masked key map populated when the page loads
+        let _maskedKeys = {};
+        let _currentKeyService = null;
+
         async function loadApiStatus() {
-            const loadingEl = document.getElementById('apis-loading');
-            const gridEl    = document.getElementById('api-grid');
-            const lastEl    = document.getElementById('apis-last-updated');
+            const loadingEl  = document.getElementById('apis-loading');
+            const gridEl     = document.getElementById('api-grid');
+            const lastEl     = document.getElementById('apis-last-updated');
             const failoverEl = document.getElementById('email-failover-bar');
 
             loadingEl.style.display = 'block';
@@ -4058,6 +4174,8 @@
                 if (!data.ok) throw new Error('API status endpoint failed');
 
                 const s = data.services || {};
+                _maskedKeys = data.maskedKeys || {};
+
                 loadingEl.style.display = 'none';
                 gridEl.style.display    = '';
                 lastEl.textContent = 'Last checked: ' + new Date(data.fetchedAt).toLocaleTimeString();
@@ -4070,17 +4188,19 @@
                 }
 
                 const cards = [
-                    renderApiCard('☁️', 'Cloudinary', s.cloudinary, buildCloudinaryRows, 'https://cloudinary.com/console'),
-                    renderApiCard('✉️', 'Resend', s.resend, buildResendRows, 'https://resend.com/overview'),
-                    renderApiCard('📨', 'Brevo (Email backup)', s.brevo, buildBrevoRows, 'https://app.brevo.com'),
-                    renderApiCard('🌐', 'Cloudflare', s.cloudflare, buildCloudflareRows, 'https://dash.cloudflare.com'),
-                    renderApiCard('🗄️', 'Supabase', s.supabase, buildSupabaseRows, 'https://supabase.com/dashboard'),
-                    renderApiCard('💳', 'Stripe', s.stripe, buildStripeRows, 'https://dashboard.stripe.com'),
-                    renderApiCard('📦', 'Shippo', s.shippo, buildShippoRows, 'https://goshippo.com'),
-                    renderApiCard('🌍', 'DeepL (Translation)', s.deepl, buildDeepLRows, 'https://www.deepl.com/pro-account/usage'),
+                    renderApiCard('☁️', 'Cloudinary',          s.cloudinary, buildCloudinaryRows,  'cloudinary',  'https://cloudinary.com/console'),
+                    renderApiCard('✉️', 'Resend',              s.resend,     buildResendRows,       'resend',      'https://resend.com/overview'),
+                    renderApiCard('📨', 'Brevo (Email backup)', s.brevo,      buildBrevoRows,        'brevo',       'https://app.brevo.com'),
+                    renderApiCard('🌐', 'Cloudflare',          s.cloudflare, buildCloudflareRows,   'cloudflare',  'https://dash.cloudflare.com'),
+                    renderApiCard('🗄️', 'Supabase',           s.supabase,   buildSupabaseRows,     null,          'https://supabase.com/dashboard'),
+                    renderApiCard('💳', 'Stripe',              s.stripe,     buildStripeRows,       'stripe',      'https://dashboard.stripe.com'),
+                    renderApiCard('📦', 'Shippo',              s.shippo,     buildShippoRows,       'shippo',      'https://goshippo.com'),
+                    renderApiCard('🌍', 'DeepL (Translation)', s.deepl,      buildDeepLRows,        'deepl',       'https://www.deepl.com/pro-account/usage'),
+                    renderApiCard('🎨', 'Email Branding',      { ok: true },  () => buildBrandingRows(_maskedKeys), 'branding',    '#'),
                 ];
                 gridEl.innerHTML = cards.join('');
             } catch (e) {
+                loadingEl.style.display = 'block';
                 loadingEl.textContent = '⚠️ Could not load API status: ' + e.message;
             }
         }
@@ -4105,10 +4225,10 @@
         function buildCloudinaryRows(s) {
             if (!s.ok) return '';
             let rows = apiRow('Plan', s.plan || 'Free');
-            if (s.credits) rows += apiRow('Credits used', `${(s.credits.usage||0).toFixed(1)} / ${s.credits.limit || 25}`) + usageBar(s.credits.used_percent || 0);
-            if (s.storage) rows += apiRow('Storage', `${fmtBytes(s.storage.usage)} / ${fmtBytes(s.storage.limit)}`) + usageBar(s.storage.used_percent || 0);
+            if (s.credits)   rows += apiRow('Credits used', `${(s.credits.usage||0).toFixed(1)} / ${s.credits.limit || 25}`) + usageBar(s.credits.used_percent || 0);
+            if (s.storage)   rows += apiRow('Storage', `${fmtBytes(s.storage.usage)} / ${fmtBytes(s.storage.limit)}`) + usageBar(s.storage.used_percent || 0);
             if (s.bandwidth) rows += apiRow('Bandwidth', `${fmtBytes(s.bandwidth.usage)} / ${fmtBytes(s.bandwidth.limit)}`) + usageBar(s.bandwidth.used_percent || 0);
-            if (s.objects) rows += apiRow('Objects (files)', `${(s.objects.usage||0).toLocaleString()} / ${(s.objects.limit||3000).toLocaleString()}`);
+            if (s.objects)   rows += apiRow('Objects (files)', `${(s.objects.usage||0).toLocaleString()} / ${(s.objects.limit||3000).toLocaleString()}`);
             if (s.lastUpdated) rows += apiRow('Data as of', new Date(s.lastUpdated).toLocaleDateString());
             return rows;
         }
@@ -4119,12 +4239,12 @@
             rows += apiRow('Daily limit', '100 emails');
             rows += apiRow('Monthly limit', '3,000 emails');
             if (s.domains?.length) rows += apiRow('Verified domains', s.domains.map(d => `${d.name} (${d.status})`).join(', '));
-            if (s.note) return rows + `<p class="api-note">${s.note}</p>`;
+            if (s.note) rows += `<p class="api-note">${s.note}</p>`;
             return rows;
         }
 
         function buildBrevoRows(s) {
-            if (!s.ok && !s.configured) return `<p class="api-note" style="color:var(--warning);">Not configured — add BREVO_API_KEY to Cloudflare to activate email failover.</p>`;
+            if (!s.ok && !s.configured) return `<p class="api-note" style="color:var(--warning);">Not configured — use the edit button below to add your Brevo key.</p>`;
             if (!s.ok) return `<p class="api-note" style="color:var(--error);">Key error: ${s.error}</p>`;
             let rows = apiRow('Plan', s.plan || 'Free');
             rows += apiRow('Daily limit', '300 emails');
@@ -4166,17 +4286,17 @@
             if (!s.ok) return '';
             let rows = apiRow('Plan', s.plan || 'Free');
             if (s.zoneName) rows += apiRow('Zone', s.zoneName);
-            if (s.status) rows += apiRow('Zone status', s.status);
-            if (s.note) rows += `<p class="api-note">${s.note}</p>`;
+            if (s.status)   rows += apiRow('Zone status', s.status);
+            if (s.note)     rows += `<p class="api-note">${s.note}</p>`;
             return rows;
         }
 
         function buildDeepLRows(s) {
-            if (!s.ok && s.configured === false) return `<p class="api-note" style="color:var(--warning);">Not configured — add DEEPL_API_KEY to Cloudflare to see usage.</p>`;
+            if (!s.ok && s.configured === false) return `<p class="api-note" style="color:var(--warning);">Not configured — use the edit button below to add your DeepL key.</p>`;
             if (!s.ok) return `<p class="api-note" style="color:var(--error);">${s.error || 'Key error'}</p>`;
             const remaining = (s.remaining || 0).toLocaleString();
-            const limit = (s.characterLimit || 0).toLocaleString();
-            const used = (s.characterCount || 0).toLocaleString();
+            const limit     = (s.characterLimit || 0).toLocaleString();
+            const used      = (s.characterCount || 0).toLocaleString();
             let rows = apiRow('Characters used', `${used} / ${limit}`);
             rows += usageBar(s.usedPercent || 0);
             rows += apiRow('Remaining', remaining + ' chars');
@@ -4184,15 +4304,40 @@
             return rows;
         }
 
-        function renderApiCard(icon, name, s, buildRows, dashboardUrl) {
-            // configured:false = not set up (yellow), ok:false with error = error (red)
+        function buildBrandingRows(maskedKeys) {
+            let rows = apiRow('From address', maskedKeys['EMAIL_FROM'] || '<span style="color:var(--warning)">Not set — using orders@zuwera.store</span>');
+            rows += apiRow('Logo URL', maskedKeys['BRAND_LOGO_URL']
+                ? `<a href="${maskedKeys['BRAND_LOGO_URL']}" target="_blank" style="color:var(--accent);font-size:.75rem;word-break:break-all;">Preview ↗</a>`
+                : '<span style="color:var(--warning)">Not set — using default wordmark</span>');
+            rows += `<p class="api-note">Both Resend and Brevo send the exact same email from this address. The from address must be verified in both services.</p>`;
+            return rows;
+        }
+
+        function renderApiCard(icon, name, s, buildRows, serviceKey, dashboardUrl) {
             const notConfigured = s && s.configured === false;
-            const statusClass = !s ? 'status-error' : s.ok ? 'status-ok' : (notConfigured ? 'status-warn' : 'status-error');
-            const badgeClass  = !s ? 'badge-error' : s.ok ? 'badge-ok'  : (notConfigured ? 'badge-warn'  : 'badge-error');
-            const badgeText   = !s ? 'Error' : s.ok ? 'Active' : (notConfigured ? 'Not set up' : 'Error');
-            const rows = s ? buildRows(s) : '';
-            // Only show error message if it's a real error (not just "not configured")
-            const errorMsg = s && !s.ok && s.error && !notConfigured ? `<p class="api-note" style="color:var(--error);">${s.error}</p>` : '';
+            const statusClass   = !s ? 'status-error' : s.ok ? 'status-ok' : (notConfigured ? 'status-warn' : 'status-error');
+            const badgeClass    = !s ? 'badge-error'  : s.ok ? 'badge-ok'  : (notConfigured ? 'badge-warn'  : 'badge-error');
+            const badgeText     = !s ? 'Error'        : s.ok ? 'Active'    : (notConfigured ? 'Not set up'  : 'Error');
+            const rows          = s ? buildRows(s) : '';
+            const errorMsg      = s && !s.ok && s.error && !notConfigured
+                ? `<p class="api-note" style="color:var(--error);">${s.error}</p>` : '';
+
+            // Build masked key chips for keys this service uses
+            let keyChips = '';
+            const def = serviceKey && API_KEY_DEFS[serviceKey];
+            if (def && _maskedKeys) {
+                const chips = def.keys
+                    .filter(k => _maskedKeys[k.name])
+                    .map(k => `<span class="api-key-chip" title="${k.name}">${_maskedKeys[k.name]}</span>`);
+                if (chips.length) {
+                    keyChips = `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;">${chips.join('')}</div>`;
+                }
+            }
+
+            const editBtn = def
+                ? `<button class="api-edit-btn" onclick="openKeyEdit('${serviceKey}')">✏ Edit key${def.keys.length > 1 ? 's' : ''}</button>`
+                : '';
+
             return `
               <div class="api-card ${statusClass}">
                 <div class="api-card-header">
@@ -4204,9 +4349,116 @@
                 </div>
                 ${rows}
                 ${errorMsg}
-                <div class="api-link"><a href="${dashboardUrl}" target="_blank" rel="noopener">Open dashboard ↗</a></div>
+                ${keyChips}
+                <div class="api-card-footer">
+                  <div class="api-link"><a href="${dashboardUrl}" target="_blank" rel="noopener">Open dashboard ↗</a></div>
+                  ${editBtn}
+                </div>
               </div>`;
         }
+
+        // ─── API Key Editor Modal ─────────────────────────────────────────────────
+
+        function openKeyEdit(service) {
+            const def = API_KEY_DEFS[service];
+            if (!def) return;
+            _currentKeyService = service;
+            document.getElementById('akm-title').textContent = 'Edit ' + def.label + ' Keys';
+            document.getElementById('akm-status').textContent = '';
+            document.getElementById('akm-save-btn').disabled = false;
+            document.getElementById('akm-save-btn').textContent = 'Save';
+
+            const fieldsEl = document.getElementById('akm-fields');
+            fieldsEl.innerHTML = def.keys.map(k => {
+                const masked = _maskedKeys[k.name] || '';
+                return `
+                  <div class="api-key-field">
+                    <label for="akf-${k.name}">${k.label}${masked ? `<span>${masked}</span>` : ' <span style="opacity:.4;">not set</span>'}</label>
+                    ${k.warn ? `<div class="api-key-warn">${k.warn}</div>` : ''}
+                    <div class="api-key-field-wrap">
+                      <input id="akf-${k.name}" type="${k.type || 'password'}"
+                        placeholder="${masked ? 'Enter new value to replace…' : (k.placeholder || 'Enter value…')}"
+                        autocomplete="off" spellcheck="false" data-keyname="${k.name}">
+                      ${k.type === 'password' ? `<button type="button" class="api-key-field-toggle" onclick="toggleKeyVis('akf-${k.name}',this)" title="Show/hide">👁</button>` : ''}
+                    </div>
+                  </div>`;
+            }).join('');
+            document.getElementById('api-key-modal').classList.add('open');
+        }
+
+        function closeKeyModal() {
+            document.getElementById('api-key-modal').classList.remove('open');
+            _currentKeyService = null;
+        }
+
+        function toggleKeyVis(inputId, btn) {
+            const inp = document.getElementById(inputId);
+            if (!inp) return;
+            inp.type   = inp.type === 'password' ? 'text' : 'password';
+            btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+        }
+
+        async function saveKeyModal() {
+            const def = API_KEY_DEFS[_currentKeyService];
+            if (!def) return;
+            const statusEl = document.getElementById('akm-status');
+            const saveBtn  = document.getElementById('akm-save-btn');
+
+            // Collect filled-in fields (ignore blanks — means "no change")
+            const updates = [];
+            for (const k of def.keys) {
+                const inp = document.getElementById('akf-' + k.name);
+                const val = (inp?.value || '').trim();
+                if (val && !val.includes('•')) updates.push({ name: k.name, value: val });
+            }
+
+            if (!updates.length) {
+                statusEl.style.color = 'var(--warning)';
+                statusEl.textContent = 'No changes — enter a new value in at least one field.';
+                return;
+            }
+
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving…';
+            statusEl.textContent = '';
+
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                const token = session?.access_token;
+                if (!token) throw new Error('Not authenticated — please refresh and try again');
+
+                let saved = 0;
+                for (const { name, value } of updates) {
+                    const resp = await fetch('/api/update-api-key', {
+                        method:  'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body:    JSON.stringify({ accessToken: token, keyName: name, keyValue: value }),
+                    });
+                    const result = await resp.json();
+                    if (!result.ok) throw new Error(result.error || `Failed to save ${name}`);
+                    saved++;
+                }
+
+                statusEl.style.color = 'var(--success)';
+                statusEl.textContent = `✓ ${saved} key${saved !== 1 ? 's' : ''} saved — takes effect immediately.`;
+
+                // Refresh the page data after a short pause
+                setTimeout(async () => {
+                    closeKeyModal();
+                    await loadApiStatus();
+                }, 1400);
+            } catch (e) {
+                statusEl.style.color = 'var(--error)';
+                statusEl.textContent = '✗ ' + e.message;
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save';
+            }
+        }
+
+        // Close modal when clicking the backdrop
+        document.getElementById('api-key-modal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeKeyModal();
+        });
 
         // Dashboard
         // ─── Alerts panel toggle ───────────────────────────────────────────────
@@ -6836,5 +7088,19 @@
 
 </script>
     <script src="commerce-admin.js?v=1"></script>
+<!-- API Key Editor Modal -->
+<div id="api-key-modal">
+    <div class="api-key-modal-box">
+        <div class="api-key-modal-title" id="akm-title">Edit API Keys</div>
+        <div class="api-key-modal-sub">Changes take effect immediately on the next request — no redeployment needed. Leave a field blank to keep the current value.</div>
+        <div id="akm-fields"></div>
+        <div class="api-key-modal-actions">
+            <button class="akm-cancel" onclick="closeKeyModal()">Cancel</button>
+            <button class="akm-save" id="akm-save-btn" onclick="saveKeyModal()">Save</button>
+        </div>
+        <div class="api-key-modal-status" id="akm-status"></div>
+    </div>
+</div>
+
 </body>
 </html>

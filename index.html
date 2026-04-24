@@ -1059,6 +1059,9 @@ footer{
   font-family:var(--fm);font-size:.68rem;
   color:rgba(244,241,235,.38);gap:.8rem;
 }
+.srow span:last-child, #summary-subtotal, #summary-shipping, #summary-tax {
+  color:rgba(244,241,235,.75);
+}
 .srow.stotal{
   border-bottom:none;border-top:1px solid rgba(244,241,235,.12);
   margin-top:.4rem;padding-top:1rem;
@@ -1072,6 +1075,110 @@ footer{
   margin-top:1.5rem;transition:opacity .2s;
 }
 #checkout-btn:hover{opacity:.85}
+
+/* ===================== RETURNS MODAL ===================== */
+#returns-modal{
+  background:var(--ink);flex-direction:column;
+  overflow-y:auto;align-items:stretch;justify-content:flex-start;
+  min-height:100vh;min-height:100dvh;overscroll-behavior:contain;
+}
+.ret-hd{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1.5rem 2.5rem;border-bottom:1px solid rgba(244,241,235,.07);
+  position:sticky;top:0;background:rgba(9,9,11,.96);
+  backdrop-filter:blur(12px);z-index:10;
+}
+.ret-hd h1{font-family:var(--fw);font-weight:900;font-style:italic;font-size:1.8rem;letter-spacing:.06em}
+.ret-back{
+  font-family:var(--fm);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;
+  color:rgba(244,241,235,.35);display:flex;align-items:center;gap:.35rem;transition:color .2s;
+}
+.ret-back:hover{color:var(--paper)}
+.ret-body{
+  display:grid;grid-template-columns:1fr 340px;
+  max-width:1100px;margin:0 auto;width:100%;
+  padding:3rem 2.5rem 5rem;gap:3rem;align-items:start;
+}
+@media(max-width:800px){.ret-body{grid-template-columns:1fr;gap:2rem;padding:2rem 1.2rem 4rem}}
+.ret-policy{
+  border:1px solid rgba(244,241,235,.08);padding:2rem;
+  background:rgba(244,241,235,.02);
+}
+.ret-policy-title{
+  font-family:var(--fw);font-weight:700;font-style:italic;
+  font-size:1.3rem;letter-spacing:.05em;margin-bottom:1.2rem;
+}
+.ret-policy-highlight{display:flex;gap:1.2rem;flex-wrap:wrap;margin-bottom:1.5rem;}
+.ret-badge{
+  font-family:var(--fm);font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;
+  border:1px solid rgba(244,241,235,.15);padding:.45rem .8rem;color:rgba(244,241,235,.65);
+}
+.ret-policy-body{font-family:var(--fm);font-size:.78rem;line-height:1.85;color:rgba(244,241,235,.55);}
+.ret-orders-section{position:sticky;top:100px}
+.ret-sec-t{
+  font-family:var(--fw);font-weight:700;font-style:italic;
+  font-size:1.3rem;letter-spacing:.05em;margin-bottom:1rem;
+}
+.ret-order-card{
+  border:1px solid rgba(244,241,235,.08);padding:1.2rem;
+  margin-bottom:.8rem;background:rgba(244,241,235,.02);transition:border-color .2s;
+}
+.ret-order-card:hover{border-color:rgba(244,241,235,.18)}
+.ret-order-id{font-family:var(--fw);font-weight:700;font-style:italic;font-size:1rem}
+.ret-order-meta{font-family:var(--fm);font-size:.65rem;color:rgba(244,241,235,.38);margin-top:.2rem;letter-spacing:.04em}
+.ret-order-btn{
+  font-family:var(--fm);font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;
+  border:1px solid rgba(244,241,235,.18);background:none;color:rgba(244,241,235,.65);
+  padding:.4rem .75rem;cursor:pointer;margin-top:.8rem;transition:all .2s;
+}
+.ret-order-btn:hover{border-color:var(--paper);color:var(--paper)}
+.ret-form{border:1px solid rgba(244,241,235,.1);padding:1.4rem;background:rgba(244,241,235,.02);margin-top:1rem;display:none;}
+.ret-form.open{display:block}
+.ret-field{margin-bottom:.9rem}
+.ret-field label{
+  display:block;font-family:var(--fm);font-size:.56rem;letter-spacing:.15em;text-transform:uppercase;
+  color:rgba(244,241,235,.3);margin-bottom:.3rem;
+}
+.ret-field select,.ret-field textarea,.ret-field input{
+  width:100%;background:rgba(244,241,235,.04);border:1px solid rgba(244,241,235,.1);color:var(--paper);
+  padding:.6rem .8rem;font-family:var(--fm);font-size:.82rem;outline:none;transition:border-color .2s;resize:vertical;
+}
+.ret-field select:focus,.ret-field textarea:focus{border-color:rgba(244,241,235,.35)}
+.ret-submit{
+  width:100%;background:var(--paper);color:var(--ink);border:none;padding:.9rem;
+  font-family:var(--fw);font-weight:900;font-style:italic;font-size:1.1rem;letter-spacing:.1em;
+  cursor:pointer;margin-top:.5rem;transition:opacity .2s;
+}
+.ret-submit:hover{opacity:.85}
+.ret-submit:disabled{opacity:.35;cursor:default}
+.ret-status{font-family:var(--fm);font-size:.68rem;color:rgba(244,241,235,.45);margin-top:.6rem;min-height:.9rem}
+.ret-login-prompt{
+  border:1px solid rgba(244,241,235,.08);padding:2rem;text-align:center;
+  font-family:var(--fm);font-size:.78rem;color:rgba(244,241,235,.45);line-height:1.8;
+}
+.ret-login-btn{
+  display:inline-block;margin-top:1rem;font-family:var(--fm);font-size:.6rem;letter-spacing:.14em;
+  text-transform:uppercase;border:1px solid rgba(244,241,235,.2);padding:.6rem 1.2rem;
+  color:rgba(244,241,235,.7);cursor:pointer;transition:all .2s;background:none;
+}
+.ret-login-btn:hover{border-color:var(--paper);color:var(--paper)}
+.ret-history-item{border-top:1px solid rgba(244,241,235,.06);padding:.9rem 0;font-family:var(--fm);font-size:.72rem;color:rgba(244,241,235,.5);}
+.ret-chip{display:inline-block;font-size:.52rem;letter-spacing:.1em;text-transform:uppercase;border:1px solid rgba(244,241,235,.15);padding:.2rem .55rem;color:rgba(244,241,235,.55);margin-left:.5rem;vertical-align:middle;}
+.ret-chip.approved,.ret-chip.refunded{border-color:rgba(100,220,140,.3);color:rgba(100,220,140,.8)}
+body.light-mode #returns-modal{background:#F0EEE9}
+body.light-mode .ret-hd{background:rgba(240,238,233,.96);border-bottom-color:rgba(9,9,11,.07)}
+body.light-mode .ret-back{color:rgba(9,9,11,.35)}
+body.light-mode .ret-policy,.ret-login-prompt{border-color:rgba(9,9,11,.1);background:rgba(9,9,11,.02)}
+body.light-mode .ret-policy-body{color:rgba(9,9,11,.55)}
+body.light-mode .ret-badge{border-color:rgba(9,9,11,.15);color:rgba(9,9,11,.6)}
+body.light-mode .ret-order-card{border-color:rgba(9,9,11,.1);background:transparent}
+body.light-mode .ret-order-meta{color:rgba(9,9,11,.38)}
+body.light-mode .ret-order-btn{border-color:rgba(9,9,11,.2);color:rgba(9,9,11,.6)}
+body.light-mode .ret-field select,body.light-mode .ret-field textarea{background:rgba(9,9,11,.04);border-color:rgba(9,9,11,.12);color:#09090b}
+body.light-mode .ret-submit{background:#09090b;color:#E8E3DC}
+body.light-mode .ret-form{border-color:rgba(9,9,11,.1);background:transparent}
+body.light-mode .ret-history-item{border-top-color:rgba(9,9,11,.07)}
+
 
 /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
    PAYMENT
@@ -1360,6 +1467,10 @@ body.light-mode #cart-items-list{border-top-color:rgba(9,9,11,.07)}
 body.light-mode #cart-items-list li{border-bottom-color:rgba(9,9,11,.07);color:rgba(9,9,11,.7)}
 body.light-mode .csummary{border-color:rgba(9,9,11,.1);background:#F0EEE9}
 body.light-mode .srow{border-bottom-color:rgba(9,9,11,.07);color:rgba(9,9,11,.5)}
+body.light-mode .srow span:last-child,
+body.light-mode #summary-subtotal,
+body.light-mode #summary-shipping,
+body.light-mode #summary-tax{color:rgba(9,9,11,.8)}
 body.light-mode .srow.stotal{border-top-color:rgba(9,9,11,.12);color:#09090b}
 body.light-mode .ship-note{color:rgba(9,9,11,.38)}
 body.light-mode .cempty{color:rgba(9,9,11,.38)}
@@ -1594,6 +1705,7 @@ body.light-mode::after{opacity:0.15}
     <a href="drop001.html">Release 001</a>
     <a href="/sizeguide.html" id="footer-size-guide-link">Size Guide</a>
     <a href="policies.html">Policies</a>
+    <a href="#" id="footer-returns-link">Returns</a>
     <a href="mailto:nasirubreeze@zuwera.store">Contact</a>
   </nav>
   <div class="fright">
@@ -1877,6 +1989,43 @@ body.light-mode::after{opacity:0.15}
       <div class="srow"><span>Tax</span><span id="summary-tax">-</span></div>
       <div class="srow stotal"><span>Total</span><span id="summary-total">-</span></div>
       <button id="checkout-btn">Checkout</button>
+    </div>
+  </div>
+</div>
+
+<!-- RETURNS MODAL -->
+<div id="returns-modal" class="modal" role="dialog" aria-modal="true">
+  <div class="ret-hd">
+    <button class="ret-back" id="returns-close">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Back
+    </button>
+    <h1>Returns</h1>
+    <div style="width:150px"></div>
+  </div>
+  <div class="ret-body">
+    <div>
+      <div class="ret-policy" id="ret-policy-box">
+        <div class="ret-policy-title">Return Policy</div>
+        <div class="ret-policy-highlight" id="ret-policy-badges">
+          <span class="ret-badge" id="ret-badge-window">30-day returns</span>
+          <span class="ret-badge" id="ret-badge-shipping">Free return shipping</span>
+          <span class="ret-badge" id="ret-badge-eligibility">All items eligible</span>
+        </div>
+        <div class="ret-policy-body" id="ret-policy-text">
+          We want you to love your Zuwera piece. If something isn't right, you can return it within 30 days of delivery for a full refund or exchange. Items must be unworn, unwashed, and in their original packaging with tags attached.
+        </div>
+      </div>
+      <div id="ret-history-section" style="margin-top:2rem;display:none">
+        <div class="ret-sec-t">Your Requests</div>
+        <div id="ret-history-list"></div>
+      </div>
+    </div>
+    <div class="ret-orders-section">
+      <div class="ret-sec-t">Start a Return</div>
+      <div id="ret-orders-area">
+        <div id="ret-loading" style="font-family:var(--fm);font-size:.72rem;color:rgba(244,241,235,.35);padding:1rem 0">Loading your orders...</div>
+      </div>
     </div>
   </div>
 </div>
@@ -3152,6 +3301,7 @@ function renderCart() {
   const emptyMsg = document.getElementById('cart-empty-msg');
   if (cart.length === 0) {
     list.innerHTML = '';
+    list.style.display = 'none';
     emptyMsg.style.display = 'block';
     updateCartSummary(0);
     const countEl = document.querySelector('.cc');
@@ -3159,6 +3309,7 @@ function renderCart() {
     refreshCartFavs();
     return;
   }
+  list.style.display = '';
   emptyMsg.style.display = 'none';
   list.innerHTML = cart.map((item, idx) => `
     <li style="display:flex;gap:1rem;align-items:flex-start">
@@ -3233,14 +3384,40 @@ window.__zwOpenCart = function() {
   document.getElementById('cart-modal').classList.add('open');
   document.body.style.overflow='hidden';
   document.documentElement.style.overflow='hidden';
+  if (location.hash !== '#cart') history.pushState({ cart: true }, '', '#cart');
   return false;
 };
 window.__zwCloseCart = function() {
   document.getElementById('cart-modal').classList.remove('open');
   document.body.style.overflow='';
   document.documentElement.style.overflow='';
+  if (location.hash === '#cart') history.pushState({}, '', location.pathname + location.search);
   return false;
 };
+// Reopen cart if user navigates back to #cart hash
+window.addEventListener('popstate', function(e) {
+  if (location.hash === '#cart') {
+    renderCart();
+    document.getElementById('cart-modal').classList.add('open');
+    document.body.style.overflow='hidden';
+    document.documentElement.style.overflow='hidden';
+  } else {
+    document.getElementById('cart-modal').classList.remove('open');
+    document.body.style.overflow='';
+    document.documentElement.style.overflow='';
+  }
+});
+// Auto-open cart on page load if URL contains #cart
+(function() {
+  if (location.hash === '#cart') {
+    document.addEventListener('DOMContentLoaded', function() {
+      renderCart();
+      document.getElementById('cart-modal').classList.add('open');
+      document.body.style.overflow='hidden';
+      document.documentElement.style.overflow='hidden';
+    });
+  }
+})();
 
 document.getElementById('cart-btn').addEventListener('click', (e) => { e.preventDefault(); window.__zwOpenCart(); });
 document.getElementById('cart-close').addEventListener('click', (e) => { e.preventDefault(); window.__zwCloseCart(); });

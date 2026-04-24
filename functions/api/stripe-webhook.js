@@ -20,6 +20,7 @@
  */
 
 import Stripe from 'stripe';
+import { fetchSiteSettings, resolveSetting } from './_settings.js';
 
 // Fallback service-level token map if rate object ID is unavailable
 const SERVICE_TOKEN_MAP = {
@@ -136,6 +137,11 @@ async function logWebhookEvent(env, fields) {
 // ─── Orchestrator ─────────────────────────────────────────────────────────────
 
 async function handleSuccessfulPayment(pi, meta, env, stripe) {
+  // Pre-fetch email keys + branding from Supabase api_key_overrides (admin overrides take priority)
+  const emailKeyCache = await fetchSiteSettings(
+    ['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL'], env
+  );
+
   // Step 1: Purchase the shipping label → gets tracking number
   let labelData = null;
   try {
@@ -165,7 +171,7 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
         })
       : Promise.resolve(null),
 
-    sendConfirmationEmail(pi, meta, tracking, env),
+    sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache),
 
     // Decrement product_sizes stock_quantity for each purchased item
     decrementInventory(meta, env),
@@ -369,13 +375,21 @@ async function saveOrderToSupabase(pi, meta, tracking, env) {
 
 // ─── Send confirmation email ───────────────────────────────────────────────────
 
-async function sendConfirmationEmail(pi, meta, tracking, env) {
-  if (!env.RESEND_API_KEY) return null;
+async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}) {
+  const resendKey = resolveSetting('RESEND_API_KEY', env, emailKeyCache);
+  if (!resendKey) return null;
 
   const toEmail  = (meta.customer_email || '').trim();
   if (!toEmail) return null;
 
-  const fromEmail = (env.RESEND_FROM_EMAIL || 'onboarding@resend.dev').trim(); // trim newlines/spaces
+  // Single from address used by BOTH Resend and Brevo — must be verified in both
+  const fromEmail = resolveSetting('EMAIL_FROM', env, emailKeyCache)
+    || (env.RESEND_FROM_EMAIL || '').trim()
+    || 'orders@zuwera.store';
+
+  // Brand logo — shown in email header (white wordmark works on dark background)
+  const logoUrl = resolveSetting('BRAND_LOGO_URL', env, emailKeyCache)
+    || 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
 
   const orderId      = pi.id.slice(-8).toUpperCase();
   const toName       = meta.customer_name || 'Customer';
@@ -445,8 +459,10 @@ async function sendConfirmationEmail(pi, meta, tracking, env) {
   <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px">
     <tr><td align="center">
       <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;max-width:100%">
-        <tr><td style="background:#09090b;padding:28px 36px">
-          <h1 style="margin:0;font-family:Georgia,serif;font-size:1.6rem;letter-spacing:.12em;color:#f4f1eb">ZUWERA</h1>
+        <tr><td style="background:#09090b;padding:24px 36px;text-align:left">
+          <img src="${logoUrl}" alt="Zuwera" height="36" style="height:36px;width:auto;display:block;border:0;"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+          <span style="display:none;font-family:Georgia,serif;font-size:1.5rem;letter-spacing:.12em;color:#f4f1eb;font-weight:normal">ZUWERA</span>
         </td></tr>
         <tr><td style="padding:32px 36px">
           <h2 style="margin:0 0 8px;font-size:1.1rem">Order Confirmed ✓</h2>
@@ -484,7 +500,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env) {
   const resendResp = await fetch('https://api.resend.com/emails', {
     method:  'POST',
     headers: {
-      Authorization:  'Bearer ' + env.RESEND_API_KEY,
+      Authorization:  'Bearer ' + resendKey,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -505,7 +521,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env) {
   const resendError = resendResp.status + ': ' + await resendResp.text().catch(() => '');
   console.warn('Resend failed (' + resendError + '), trying Brevo fallback…');
 
-  const brevoKey = (env.BREVO_API_KEY || '').trim();
+  const brevoKey = resolveSetting('BREVO_API_KEY', env, emailKeyCache);
   if (!brevoKey) {
     throw new Error('Resend error ' + resendError + ' — no BREVO_API_KEY set for fallback');
   }

@@ -1,6 +1,8 @@
 /**
  * Cloudflare Pages Function: /api/api-status
- * Returns live usage stats for all integrated third-party services.
+ * Returns live usage stats for all integrated third-party services,
+ * plus masked previews of each API key (reads from Supabase site_settings first,
+ * falls back to Cloudflare env vars).
  *
  * Required env vars (set in CF Pages > Settings > Variables & Secrets):
  *   CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
@@ -10,7 +12,10 @@
  *   STRIPE_SECRET_KEY
  *   SHIPPO_API_KEY
  *   CLOUDFLARE_ZONE_ID, CLOUDFLARE_GRAPHQL_TOKEN
+ *   DEEPL_API_KEY            (optional)
  */
+
+import { fetchSiteSettings, resolveSetting, maskKey, ALLOWED_KEYS } from './_settings.js';
 
 function json(body) {
   return new Response(JSON.stringify(body), {
@@ -18,14 +23,17 @@ function json(body) {
   });
 }
 
-async function checkDeepL(env) {
-  const key = (env.DEEPL_API_KEY || env.DEEPL_API_KEY_ || '').trim().replace(/,$/, ''); // strip trailing comma if any
+// ─── Individual service checks ────────────────────────────────────────────────
+// Each check function receives the env + a pre-fetched Supabase settings cache.
+
+async function checkDeepL(env, cache) {
+  const key = resolveSetting('DEEPL_API_KEY', env, cache)
+    || (env.DEEPL_API_KEY_ || '').trim().replace(/,$/, ''); // handle trailing-comma variant
   if (!key) return { ok: false, configured: false, error: 'DEEPL_API_KEY not set' };
   try {
     const resp = await fetch('https://api-free.deepl.com/v2/usage', {
       headers: { Authorization: `DeepL-Auth-Key ${key}` }
     });
-    // Also try paid API endpoint if free fails
     const resp2 = resp.ok ? resp : await fetch('https://api.deepl.com/v2/usage', {
       headers: { Authorization: `DeepL-Auth-Key ${key}` }
     });
@@ -43,11 +51,13 @@ async function checkDeepL(env) {
   } catch (e) { return { ok: false, error: e.message }; }
 }
 
-async function checkCloudinary(env) {
-  const cloudName   = (env.CLOUDINARY_CLOUD_NAME || '').trim();
-  const apiKey      = (env.CLOUDINARY_API_KEY || '').trim();
-  const apiSecret   = (env.CLOUDINARY_API_SECRET || '').trim();
-  if (!cloudName || !apiKey || !apiSecret) return { ok: false, configured: false, error: 'Add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET to Cloudflare to see usage' };
+async function checkCloudinary(env, cache) {
+  const cloudName = resolveSetting('CLOUDINARY_CLOUD_NAME', env, cache);
+  const apiKey    = resolveSetting('CLOUDINARY_API_KEY',    env, cache);
+  const apiSecret = resolveSetting('CLOUDINARY_API_SECRET', env, cache);
+  if (!cloudName || !apiKey || !apiSecret) {
+    return { ok: false, configured: false, error: 'Add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET to edit them here or in Cloudflare' };
+  }
   try {
     const creds = btoa(`${apiKey}:${apiSecret}`);
     const resp  = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/usage`, {
@@ -58,18 +68,18 @@ async function checkCloudinary(env) {
     return {
       ok: true,
       plan: d.plan || 'Free',
-      credits: d.credits   || null,   // { usage, limit, used_percent }
-      storage: d.storage   || null,   // { usage (bytes), limit, used_percent }
-      bandwidth: d.bandwidth || null, // { usage (bytes), limit, used_percent }
-      objects: d.objects   || null,   // { usage, limit }
+      credits:         d.credits         || null,
+      storage:         d.storage         || null,
+      bandwidth:       d.bandwidth       || null,
+      objects:         d.objects         || null,
       transformations: d.transformations || null,
-      lastUpdated: d.last_updated || null,
+      lastUpdated:     d.last_updated    || null,
     };
   } catch (e) { return { ok: false, error: e.message }; }
 }
 
-async function checkResend(env) {
-  const key = (env.RESEND_API_KEY || '').trim();
+async function checkResend(env, cache) {
+  const key = resolveSetting('RESEND_API_KEY', env, cache);
   if (!key) return { ok: false, configured: false, error: 'RESEND_API_KEY not set' };
   try {
     const resp = await fetch('https://api.resend.com/domains', {
@@ -80,7 +90,6 @@ async function checkResend(env) {
     return {
       ok: true,
       keyActive: true,
-      // Resend free: 3,000/month, 100/day — no quota API, show plan defaults
       freePlan: { dailyLimit: 100, monthlyLimit: 3000 },
       domains: (d.data || []).map(dom => ({ name: dom.name, status: dom.status })),
       note: 'Resend does not expose remaining quota via API. Limits shown are Free plan defaults.',
@@ -88,32 +97,32 @@ async function checkResend(env) {
   } catch (e) { return { ok: false, error: e.message }; }
 }
 
-async function checkBrevo(env) {
-  const key = (env.BREVO_API_KEY || '').trim();
+async function checkBrevo(env, cache) {
+  const key = resolveSetting('BREVO_API_KEY', env, cache);
   if (!key) return { ok: false, configured: false, error: 'BREVO_API_KEY not set — email failover not active' };
   try {
     const resp = await fetch('https://api.brevo.com/v3/account', {
       headers: { 'api-key': key, Accept: 'application/json' }
     });
     if (!resp.ok) return { ok: false, keyActive: false, error: `HTTP ${resp.status}` };
-    const d = await resp.json();
+    const d    = await resp.json();
     const plan = Array.isArray(d.plan) ? (d.plan[0] || {}) : (d.plan || {});
     return {
       ok: true,
       configured: true,
       keyActive: true,
-      accountEmail: d.email || '',
-      companyName: d.companyName || '',
-      plan: plan.type || 'free',
-      credits: plan.credits !== undefined ? plan.credits : null,
-      creditsType: plan.creditsType || 'daily',
-      // Brevo free: 300 emails/day, no monthly cap
+      accountEmail: d.email       || '',
+      companyName:  d.companyName || '',
+      plan:         plan.type     || 'free',
+      credits:      plan.credits !== undefined ? plan.credits : null,
+      creditsType:  plan.creditsType || 'daily',
       freePlan: { dailyLimit: 300 },
     };
   } catch (e) { return { ok: false, error: e.message }; }
 }
 
 async function checkSupabase(env) {
+  // Supabase URL/key always come from env (they bootstrap everything else)
   const url = (env.SUPABASE_URL || '').trim();
   const key = (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '').trim();
   if (!url || !key) return { ok: false, error: 'Missing SUPABASE_URL or service key' };
@@ -128,9 +137,9 @@ async function checkSupabase(env) {
       fetch(`${url}/rest/v1/product_sizes?select=id`, { headers }),
     ]);
     const parseCount = (res) => parseInt(res.headers.get('content-range')?.split('/')[1] || '0');
-    const ordersCount  = parseCount(ordersRes);
+    const ordersCount   = parseCount(ordersRes);
     const productsCount = parseCount(productsRes);
-    const sizesCount   = parseCount(sizesRes);
+    const sizesCount    = parseCount(sizesRes);
     let authUsers = null;
     if (usersRes.ok) {
       try { const ud = await usersRes.json(); authUsers = ud.total || null; } catch(_) {}
@@ -146,8 +155,8 @@ async function checkSupabase(env) {
   } catch (e) { return { ok: false, error: e.message }; }
 }
 
-async function checkStripe(env) {
-  const key = (env.STRIPE_SECRET_KEY || '').trim();
+async function checkStripe(env, cache) {
+  const key  = resolveSetting('STRIPE_SECRET_KEY', env, cache);
   if (!key) return { ok: false, error: 'STRIPE_SECRET_KEY not set' };
   const mode = key.startsWith('sk_live_') ? 'live' : key.startsWith('sk_test_') ? 'test' : 'unknown';
   try {
@@ -155,7 +164,7 @@ async function checkStripe(env) {
       headers: { Authorization: `Bearer ${key}` }
     });
     if (!resp.ok) return { ok: false, keyActive: false, mode, error: `HTTP ${resp.status}` };
-    const d = await resp.json();
+    const d    = await resp.json();
     const avail = (d.available || []).map(b => `$${(b.amount / 100).toFixed(2)} ${b.currency.toUpperCase()}`);
     return {
       ok: true,
@@ -167,8 +176,8 @@ async function checkStripe(env) {
   } catch (e) { return { ok: false, error: e.message }; }
 }
 
-async function checkShippo(env) {
-  const key = (env.SHIPPO_API_KEY || '').trim();
+async function checkShippo(env, cache) {
+  const key = resolveSetting('SHIPPO_API_KEY', env, cache);
   if (!key) return { ok: false, error: 'SHIPPO_API_KEY not set' };
   try {
     const resp = await fetch('https://api.goshippo.com/addresses/?results=1', {
@@ -183,56 +192,74 @@ async function checkShippo(env) {
   } catch (e) { return { ok: false, error: e.message }; }
 }
 
-async function checkCloudflare(env) {
-  const zoneTag = (env.CLOUDFLARE_ZONE_ID || env.CF_ZONE_ID || '').trim();
-  const token   = (env.CLOUDFLARE_GRAPHQL_TOKEN || env.CLOUDFLARE_API_TOKEN || env.CF_API_TOKEN || '').trim();
+async function checkCloudflare(env, cache) {
+  const zoneTag = resolveSetting('CLOUDFLARE_ZONE_ID', env, cache)
+    || (env.CF_ZONE_ID || '').trim();
+  const token   = resolveSetting('CLOUDFLARE_GRAPHQL_TOKEN', env, cache)
+    || (env.CLOUDFLARE_API_TOKEN || env.CF_API_TOKEN || '').trim();
   if (!zoneTag || !token) return { ok: false, error: 'Missing CLOUDFLARE_ZONE_ID or CLOUDFLARE_GRAPHQL_TOKEN' };
   try {
-    // Verify token by fetching zone details
     const resp = await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneTag}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (!resp.ok) return { ok: false, keyActive: false, error: `HTTP ${resp.status}` };
-    const d = await resp.json();
+    const d    = await resp.json();
     const zone = d.result || {};
     return {
       ok: true,
       keyActive: true,
-      plan: zone.plan?.name || 'Free',
-      zoneName: zone.name || '',
-      status: zone.status || '',
-      note: 'Cloudflare Pages is free with unlimited requests on the free plan.',
+      plan:     zone.plan?.name || 'Free',
+      zoneName: zone.name       || '',
+      status:   zone.status     || '',
+      note:     'Cloudflare Pages is free with unlimited requests on the free plan.',
     };
   } catch (e) { return { ok: false, error: e.message }; }
 }
 
-export async function onRequestGet({ env }) {
-  // Run all checks in parallel for speed
-  const [cloudinary, resend, brevo, supabase, stripe, shippo, cloudflare, deepl] = await Promise.allSettled([
-    checkCloudinary(env),
-    checkResend(env),
-    checkBrevo(env),
-    checkSupabase(env),
-    checkStripe(env),
-    checkShippo(env),
-    checkCloudflare(env),
-    checkDeepL(env),
-  ]);
+// ─── Entry point ──────────────────────────────────────────────────────────────
 
-  const unwrap = (r) => r.status === 'fulfilled' ? r.value : { ok: false, error: r.reason?.message || 'Unknown error' };
+export async function onRequestGet({ env }) {
+  // Fetch Supabase overrides first (one round-trip, all keys at once)
+  const cacheKeys = [...ALLOWED_KEYS];
+  const cache     = await fetchSiteSettings(cacheKeys, env);
+
+  // Run all service checks in parallel
+  const [cloudinary, resend, brevo, supabase, stripe, shippo, cloudflare, deepl] =
+    await Promise.allSettled([
+      checkCloudinary(env, cache),
+      checkResend(env, cache),
+      checkBrevo(env, cache),
+      checkSupabase(env),          // always uses env for bootstrap keys
+      checkStripe(env, cache),
+      checkShippo(env, cache),
+      checkCloudflare(env, cache),
+      checkDeepL(env, cache),
+    ]);
+
+  const unwrap = (r) =>
+    r.status === 'fulfilled' ? r.value : { ok: false, error: r.reason?.message || 'Unknown error' };
+
+  // Build masked key map for display in the admin UI
+  // Each key shows the value from Supabase (if overridden) or env var, masked.
+  const maskedKeys = {};
+  for (const k of cacheKeys) {
+    const v = cache[k] || (env[k] || '').trim().replace(/,$/, '');
+    maskedKeys[k] = v ? maskKey(v) : null;
+  }
 
   return json({
     ok: true,
     fetchedAt: new Date().toISOString(),
     services: {
-      cloudinary:  unwrap(cloudinary),
-      resend:      unwrap(resend),
-      brevo:       unwrap(brevo),
-      supabase:    unwrap(supabase),
-      stripe:      unwrap(stripe),
-      shippo:      unwrap(shippo),
-      cloudflare:  unwrap(cloudflare),
-      deepl:       unwrap(deepl),
-    }
+      cloudinary: unwrap(cloudinary),
+      resend:     unwrap(resend),
+      brevo:      unwrap(brevo),
+      supabase:   unwrap(supabase),
+      stripe:     unwrap(stripe),
+      shippo:     unwrap(shippo),
+      cloudflare: unwrap(cloudflare),
+      deepl:      unwrap(deepl),
+    },
+    maskedKeys,
   });
 }

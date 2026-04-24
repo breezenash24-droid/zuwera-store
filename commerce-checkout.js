@@ -30,18 +30,23 @@
   }
 
   function ensurePromoUi() {
+    // Respect the show_promo_code config flag (default: show)
+    if (STATE.config && STATE.config.show_promo_code === false) return;
+
     const { host } = getSummaryNodes();
     if (!host || host.querySelector('#zw-promo-shell')) return;
 
     const shell = document.createElement('div');
     shell.id = 'zw-promo-shell';
-    shell.style.cssText = 'margin:0.9rem 0 0.4rem;display:flex;flex-direction:column;gap:0.55rem;';
+    shell.style.cssText = 'margin:0.8rem 0 0.2rem;display:flex;flex-direction:column;gap:0.4rem;';
     shell.innerHTML = `
-      <div style="display:flex;gap:0.5rem;align-items:center;">
-        <input id="zw-promo-input" type="text" placeholder="Promo code" style="flex:1;border:1px solid rgba(244,241,235,.12);background:rgba(255,255,255,.03);color:inherit;border-radius:999px;padding:.62rem .9rem;font:inherit;text-transform:uppercase;">
-        <button id="zw-promo-apply" type="button" style="border:none;border-radius:999px;background:#f38fa9;color:#111;padding:.62rem .95rem;font:inherit;font-weight:700;cursor:pointer;">Apply</button>
+      <div style="display:flex;gap:0.5rem;align-items:stretch;">
+        <input id="zw-promo-input" type="text" placeholder="PROMO CODE"
+          style="flex:1;background:rgba(244,241,235,.04);border:1px solid rgba(244,241,235,.1);color:inherit;padding:.5rem .75rem;font-family:var(--fm,inherit);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;outline:none;transition:border-color .2s;">
+        <button id="zw-promo-apply" type="button"
+          style="border:1px solid rgba(244,241,235,.2);background:transparent;color:inherit;padding:.5rem .9rem;font-family:var(--fm,inherit);font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;white-space:nowrap;transition:border-color .2s,opacity .2s;">Apply</button>
       </div>
-      <div id="zw-promo-message" style="font-size:.78rem;opacity:.68;"></div>
+      <div id="zw-promo-message" style="font-family:var(--fm,inherit);font-size:.62rem;color:rgba(244,241,235,.5);letter-spacing:.03em;min-height:.9rem;"></div>
     `;
 
     const totalRow = host.querySelector('.stotal, .total');
@@ -193,12 +198,17 @@
   }
 
   function init() {
-    ensurePromoUi();
     wrapGlobalPost();
     wrapWalletHelpers();
     observeSummary();
-    renderPromoSummary();
-    loadConfig().then(renderPromoSummary).catch(() => {});
+    // Load config first — ensurePromoUi checks show_promo_code flag
+    loadConfig().then(() => {
+      ensurePromoUi();
+      renderPromoSummary();
+    }).catch(() => {
+      ensurePromoUi(); // fallback: show promo UI even if config fails
+      renderPromoSummary();
+    });
   }
 
   window.zwGetActivePromoCode = currentPromoCode;
