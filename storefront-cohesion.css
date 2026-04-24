@@ -48,9 +48,9 @@ select:focus-visible{
 /* Modals */
 .modal:not(#cart-modal):not(#mobile-menu),
 .collection-review-modal{
-  background:rgba(9,9,11,.88);
-  backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
+  background:rgba(9,9,11,.60);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
   align-items:center;
   justify-content:center;
   padding:1rem;

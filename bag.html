@@ -96,7 +96,7 @@
     body.light-mode .modal { background:rgba(240,238,233,.65); backdrop-filter:blur(5px); }
 
     /* ── Payment modal ── */
-    #payment-modal { background:rgba(9,9,11,.62); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+    #payment-modal { background:rgba(9,9,11,.60); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
     .pbox { background:#111; border:1px solid rgba(244,241,235,.1); padding:2.2rem 2rem 1.8rem; width:min(480px,94vw); max-height:92dvh; overflow-y:auto; position:relative; animation:modalIn .22s ease; }
     .pbox h2 { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; letter-spacing:.1em; margin-bottom:.2rem; }
     .psub { font-size:.7rem; color:rgba(244,241,235,.35); letter-spacing:.1em; text-transform:uppercase; margin-bottom:1.5rem; }
@@ -176,9 +176,6 @@
     <button class="nbtn" id="login-btn">Login</button>
     <button class="nbtn" id="account-btn" style="display:none">Account</button>
     <button class="nbtn" id="logout-btn" style="display:none">Sign Out</button>
-    <button class="nbtn" id="theme-toggle-btn" aria-label="Toggle theme" onclick="(function(){var b=document.body;b.classList.toggle('light-mode');try{localStorage.setItem('theme',b.classList.contains('light-mode')?'light':'dark');}catch(e){}})()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-    </button>
   </div>
 </nav>
 
@@ -203,6 +200,18 @@
         Your bag is empty. <a href="/" style="color:inherit;text-decoration:underline">Continue shopping →</a>
       </p>
       <ul id="cart-items-list" style="list-style:none;padding:0;margin:0"></ul>
+
+      <!-- Saved Items -->
+      <div class="cart-favorites">
+        <h2>Saved Items</h2>
+        <p id="fav-logged-out-msg" class="favorites-msg">
+          <a id="fav-signin-link" href="#" onclick="event.preventDefault();window._openModal&&window._openModal('auth-modal')">Sign in</a> to view your saved items.
+        </p>
+        <div id="fav-logged-in-area" style="display:none">
+          <p id="cart-favs-empty" class="cart-empty-msg" style="display:none">No saved items yet.</p>
+          <ul id="cart-favs-list" style="list-style:none;padding:0;margin:0"></ul>
+        </div>
+      </div>
     </div>
 
     <!-- Summary -->
