@@ -2014,6 +2014,16 @@ body.light-mode::after{opacity:0.15}
       <button id="checkout-btn">Checkout</button>
     </div>
   </div>
+  <div class="cart-shell-footer">
+    <nav class="cart-shell-footer-nav" aria-label="Bag footer links">
+      <a href="/index.html">Home</a>
+      <a href="/drop001.html">Release 001</a>
+      <a href="/sizeguide.html">Size Guide</a>
+      <a href="/policies.html">Policies</a>
+      <a href="mailto:nasirubreeze@zuwera.store">Contact</a>
+    </nav>
+    <p class="cart-shell-footer-copy">Zuwera</p>
+  </div>
   </div><!-- /.cbox -->
 </div>
 
@@ -3216,10 +3226,20 @@ function homeFavoriteCardHtml(favorite, detail, mode) {
         ${subtitle}
         ${metaHtml}
         ${priceHtml}
-        <div style="display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.8rem;">
-          <a href="${href}" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 .85rem;border:1px solid rgba(244,241,235,.14);font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;color:rgba(244,241,235,.76);text-decoration:none;">View Product</a>
-          <button type="button" data-home-favorite-add="${escapeHomeFavoriteHtml(productId)}" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 .85rem;border:none;background:#f4f1eb;color:#09090b;font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;cursor:pointer;">Add to Bag</button>
-          <button type="button" data-home-favorite-remove="${escapeHomeFavoriteHtml(productId)}" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 .85rem;border:1px solid rgba(244,241,235,.08);background:none;color:rgba(244,241,235,.46);font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;cursor:pointer;">Remove</button>
+        <div class="zw-saved-item-actions">
+          <a href="${href}" class="zw-saved-item-link zw-saved-item-btn zw-saved-item-btn--ghost">View Product</a>
+          <button
+            type="button"
+            data-home-favorite-add="${escapeHomeFavoriteHtml(productId)}"
+            onclick='if(window.addHomeFavoriteToCart){window.addHomeFavoriteToCart(${JSON.stringify(String(productId || ''))});} return false;'
+            class="zw-saved-item-btn zw-saved-item-btn--primary"
+          >Add to Bag</button>
+          <button
+            type="button"
+            data-home-favorite-remove="${escapeHomeFavoriteHtml(productId)}"
+            onclick='if(window.removeFav){window.removeFav(${JSON.stringify(String(productId || ''))}, this.closest("li, div"));} return false;'
+            class="zw-saved-item-btn zw-saved-item-btn--ghost"
+          >Remove</button>
         </div>
       </div>
     </${tag}>
@@ -3273,6 +3293,7 @@ window.addHomeFavoriteToCart = async function(productId) {
     }
     localStorage.setItem('cart', JSON.stringify(cart));
     renderCart();
+    if (typeof openCart === 'function') openCart();
     showToast(`Added ${detail.title}${size ? ` (${size})` : ''} to bag.`);
   } catch (error) {
     console.error('addHomeFavoriteToCart failed:', error);

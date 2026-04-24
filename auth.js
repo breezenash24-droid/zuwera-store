@@ -714,10 +714,20 @@ function favoriteCardHtml(favorite, detail, options) {
         <div style="font-size:0.88rem;line-height:1.35;">${escapeFavoriteHtml(name)}</div>
         ${subtitle}
         ${priceHtml}
-        <div style="display:flex;flex-wrap:wrap;gap:0.45rem;margin-top:0.8rem;">
-          <a href="${href}" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 0.85rem;border:1px solid rgba(245,245,240,0.14);font-size:0.66rem;letter-spacing:0.09em;text-transform:uppercase;color:rgba(245,245,240,0.76);text-decoration:none;">View Product</a>
-          <button type="button" data-favorite-add="${escapeFavoriteHtml(productId)}" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 0.85rem;border:none;background:#f5f5f0;color:#09090b;font-size:0.66rem;letter-spacing:0.09em;text-transform:uppercase;cursor:pointer;">Add to Bag</button>
-          <button type="button" data-favorite-remove="${escapeFavoriteHtml(productId)}" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 0.85rem;border:1px solid rgba(245,245,240,0.08);background:none;color:rgba(245,245,240,0.46);font-size:0.66rem;letter-spacing:0.09em;text-transform:uppercase;cursor:pointer;">Remove</button>
+        <div class="zw-saved-item-actions">
+          <a href="${href}" class="zw-saved-item-link zw-saved-item-btn zw-saved-item-btn--ghost">View Product</a>
+          <button
+            type="button"
+            data-favorite-add="${escapeFavoriteHtml(productId)}"
+            onclick='if(window.addFavoriteToCart){window.addFavoriteToCart(${JSON.stringify(String(productId || ''))});} return false;'
+            class="zw-saved-item-btn zw-saved-item-btn--primary"
+          >Add to Bag</button>
+          <button
+            type="button"
+            data-favorite-remove="${escapeFavoriteHtml(productId)}"
+            onclick='if(window.removeFavorite){window.removeFavorite(${JSON.stringify(String(productId || ''))}, this.closest("li, div"));} return false;'
+            class="zw-saved-item-btn zw-saved-item-btn--ghost"
+          >Remove</button>
         </div>
       </div>
     </${listTag}>
@@ -776,6 +786,7 @@ window.addFavoriteToCart = async function(productId) {
     if (typeof loadCartCount === 'function') loadCartCount();
     if (typeof window.renderProductCartItems === 'function') window.renderProductCartItems();
     if (typeof renderCart === 'function') renderCart();
+    if (typeof openCart === 'function') openCart();
     showToast(`Added ${detail.title}${size ? ` (${size})` : ''} to bag.`);
   } catch (error) {
     console.error('addFavoriteToCart failed:', error);
