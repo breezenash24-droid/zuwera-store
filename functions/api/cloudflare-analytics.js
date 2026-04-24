@@ -18,8 +18,6 @@ function buildGraphQLBody({ zoneTag, datetimeStart, datetimeEnd }) {
         ) {
           dimensions {
             datetime
-            clientCountryName
-            deviceType
           }
           sum {
             requests
@@ -33,7 +31,6 @@ function buildGraphQLBody({ zoneTag, datetimeStart, datetimeEnd }) {
           }
           quantiles {
             edgeTimeToFirstByteMsP50
-            edgeTimeToFirstByteMsP95
           }
         }
       }
@@ -51,73 +48,40 @@ function buildGraphQLBody({ zoneTag, datetimeStart, datetimeEnd }) {
 }
 
 function aggregate(groups) {
-  const totals = {
-    requests: 0,
-    cachedRequests: 0,
-    pageViews: 0,
-    uniqueVisitorsEstimate: 0,
-    edgeTtfbSamples: [],
-    deviceLcpApproxMs: {},
-    topLocations: {},
-    hourSeries: []
-  };
+  let requests = 0, cachedRequests = 0, pageViews = 0, visits = 0;
+  const edgeTtfbSamples = [];
+  const hourSeries = [];
 
   for (const row of groups || []) {
-    const requests = Number(row?.sum?.requests || 0);
-    const cachedRequests = Number(row?.sum?.cachedRequests || 0);
-    const pageViews = Number(row?.sum?.pageViews || 0);
-    const visits = Number(row?.sum?.visits || 0);
+    const r = Number(row?.sum?.requests || 0);
+    const c = Number(row?.sum?.cachedRequests || 0);
+    const pv = Number(row?.sum?.pageViews || 0);
+    const v = Number(row?.sum?.visits || 0);
     const p50 = Number(row?.quantiles?.edgeTimeToFirstByteMsP50 || row?.avg?.edgeTimeToFirstByteMs || 0);
-    const country = row?.dimensions?.clientCountryName || 'Unknown';
-    const device = (row?.dimensions?.deviceType || 'unknown').toLowerCase();
 
-    totals.requests += requests;
-    totals.cachedRequests += cachedRequests;
-    totals.pageViews += pageViews;
-    totals.uniqueVisitorsEstimate += visits;
-    if (p50 > 0) totals.edgeTtfbSamples.push(p50);
+    requests += r;
+    cachedRequests += c;
+    pageViews += pv;
+    visits += v;
+    if (p50 > 0) edgeTtfbSamples.push(p50);
 
-    totals.topLocations[country] = (totals.topLocations[country] || 0) + requests;
-
-    if (!totals.deviceLcpApproxMs[device]) totals.deviceLcpApproxMs[device] = [];
-    if (p50 > 0) totals.deviceLcpApproxMs[device].push(p50 * 2.6);
-
-    totals.hourSeries.push({
-      t: row?.dimensions?.datetime,
-      requests,
-      pageViews,
-      edgeMs: p50
-    });
+    hourSeries.push({ t: row?.dimensions?.datetime, requests: r, pageViews: pv, edgeMs: p50 });
   }
 
-  const sortedEdge = [...totals.edgeTtfbSamples].sort((a, b) => a - b);
-  const medianEdgeMs = sortedEdge.length ? sortedEdge[Math.floor(sortedEdge.length / 2)] : 0;
-  const medianLcpApproxMs = medianEdgeMs ? Number((medianEdgeMs * 2.6).toFixed(1)) : 0;
-
-  const deviceVitals = Object.entries(totals.deviceLcpApproxMs).map(([device, values]) => {
-    const sorted = values.sort((a, b) => a - b);
-    return {
-      device,
-      medianLCP: sorted.length ? Number(sorted[Math.floor(sorted.length / 2)].toFixed(1)) : 0
-    };
-  });
-
-  const topLocations = Object.entries(totals.topLocations)
-    .map(([location, requests]) => ({ location, requests }))
-    .sort((a, b) => b.requests - a.requests)
-    .slice(0, 8);
+  const sorted = [...edgeTtfbSamples].sort((a, b) => a - b);
+  const medianEdgeMs = sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
 
   return {
-    pageViews: totals.pageViews,
-    uniqueVisitors: totals.uniqueVisitorsEstimate,
-    medianLCP: medianLcpApproxMs,
-    cacheHitRatio: totals.requests ? Number(((totals.cachedRequests / totals.requests) * 100).toFixed(2)) : 0,
+    pageViews,
+    uniqueVisitors: visits,
+    cacheHitRatio: requests ? Number(((cachedRequests / requests) * 100).toFixed(2)) : 0,
     edgeResponseTime: Number(medianEdgeMs.toFixed(1)),
-    // botManagement not included — requires Cloudflare Enterprise plan
+    totalRequests: requests,
+    // Country/device breakdown not available in httpRequests1hGroups (free plan)
     bots: null,
-    deviceVitals,
-    topLocations,
-    series: totals.hourSeries
+    deviceVitals: [],
+    topLocations: [],
+    series: hourSeries
   };
 }
 
