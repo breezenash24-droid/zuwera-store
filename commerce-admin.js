@@ -460,8 +460,25 @@
                 <div><label>Resolution</label><input class="form-input" data-return-field="resolution" value="${escapeHtml(request.resolution || '')}"></div>
               </div>
               <div style="margin-top:10px;"><label>Notes</label><input class="form-input" data-return-field="notes" value="${escapeHtml(request.notes || '')}"></div>
-              <div class="commerce-muted" style="margin-top:10px;">${escapeHtml(request.userId || '')} - ${new Date(request.createdAt || Date.now()).toLocaleString()}</div>
-              <div class="commerce-actions"><button class="btn btn-secondary btn-sm" data-save-return="${escapeHtml(request.id)}">Save Request</button></div>
+              <div class="commerce-muted" style="margin-top:10px;">${escapeHtml(request.userEmail || request.userId || '')} &middot; ${new Date(request.createdAt || Date.now()).toLocaleString()}</div>
+              ${request.labelUrl ? `
+                <div style="margin-top:10px;padding:10px 12px;background:rgba(100,220,140,.06);border:1px solid rgba(100,220,140,.15);font-size:13px;">
+                  <strong style="color:rgba(100,220,140,.9)">Label generated</strong>
+                  <div class="commerce-muted" style="margin-top:4px;">Tracking: ${escapeHtml(request.trackingNumber || '')} (${escapeHtml(request.carrier || '')})</div>
+                  <a href="${escapeHtml(request.labelUrl)}" target="_blank" style="font-size:12px;color:var(--accent,#a0e0b0);text-decoration:underline;display:inline-block;margin-top:4px;">View / Download Label PDF</a>
+                </div>` : ''}
+              <div class="commerce-actions" style="flex-wrap:wrap;gap:8px;">
+                <button class="btn btn-secondary btn-sm" data-save-return="${escapeHtml(request.id)}">Save</button>
+                ${(request.status === 'approved' || request.status === 'label_sent') && !request.labelUrl ? `
+                  <button class="btn btn-primary btn-sm" data-gen-label="${escapeHtml(request.id)}" data-order-id="${escapeHtml(request.orderId || '')}" data-resolution="${escapeHtml(request.resolution || 'return')}">
+                    Generate Return Label
+                  </button>` : ''}
+                ${request.status === 'label_sent' && request.labelUrl ? `
+                  <button class="btn btn-secondary btn-sm" data-gen-label="${escapeHtml(request.id)}" data-order-id="${escapeHtml(request.orderId || '')}" data-resolution="${escapeHtml(request.resolution || 'return')}" style="opacity:.6">
+                    Regenerate Label
+                  </button>` : ''}
+                <span class="commerce-muted" id="label-status-${escapeHtml(request.id)}" style="font-size:12px;align-self:center;"></span>
+              </div>
             </div>
           `).join('') : '<div class="commerce-muted" style="margin-top:12px;">No return requests yet.</div>'}
         </div>
@@ -923,6 +940,48 @@
         };
         state.returnsState.requests = requests;
         await saveSettings('Return request updated.');
+      });
+    });
+
+    document.querySelectorAll('[data-gen-label]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const returnId = button.dataset.genLabel;
+        const orderId  = button.dataset.orderId;
+        const statusEl = document.getElementById(`label-status-${returnId}`);
+        if (!orderId) { if (statusEl) statusEl.textContent = 'Error: no order ID on this request.'; return; }
+
+        button.disabled = true;
+        if (statusEl) statusEl.textContent = 'Generating label…';
+
+        try {
+          const session = await window.sb.auth.getSession();
+          const token = session?.data?.session?.access_token;
+          if (!token) throw new Error('Not signed in');
+
+          const returnRequest = (state.returnsState.requests || []).find(r => r.id === returnId) || {};
+
+          const resp = await fetch('/api/generate-return-label', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accessToken: token, returnId, orderId, returnRequest }),
+          });
+          const data = await resp.json();
+          if (!data.ok) throw new Error(data.error || 'Unknown error');
+
+          // Update local state
+          const requests = Array.isArray(state.returnsState.requests) ? [...state.returnsState.requests] : [];
+          const idx = requests.findIndex(r => r.id === returnId);
+          if (idx !== -1) {
+            requests[idx] = { ...requests[idx], status: 'label_sent', labelUrl: data.labelUrl, trackingNumber: data.trackingNumber, trackingUrl: data.trackingUrl, carrier: data.carrier, labelSentAt: new Date().toISOString() };
+            state.returnsState.requests = requests;
+          }
+
+          if (statusEl) statusEl.innerHTML = `✓ Label sent &mdash; <a href="${data.labelUrl}" target="_blank" style="color:var(--accent,#a0e0b0)">Download PDF</a> &middot; Tracking: ${data.trackingNumber}`;
+          button.style.display = 'none';
+        } catch (e) {
+          if (statusEl) statusEl.textContent = `Error: ${e.message}`;
+          button.disabled = false;
+        }
       });
     });
 
