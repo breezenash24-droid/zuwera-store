@@ -20,9 +20,35 @@
   <script src="/checkout-tax.js?v=1"></script>
   <script src="https://js.stripe.com/v3/"></script>
   <style>
+    /* ── Nav ── */
+    nav#nav {
+      position:fixed; top:0; left:0; right:0; z-index:220;
+      display:flex; justify-content:space-between; align-items:center;
+      padding:1.2rem 2.5rem;
+      background:#09090b;
+      isolation:isolate;
+      border-bottom:1px solid rgba(244,241,235,.08);
+      box-shadow:0 1px 12px rgba(0,0,0,.3);
+      transition:background .35s, border-color .35s, top .45s ease;
+    }
+    .nav-logo { display:flex; align-items:center; text-decoration:none; }
+    .nav-logo img { height:32px; width:auto; display:block; transition:filter .35s; }
+    .nav-logo span { font-family:'Bebas Neue',sans-serif; font-size:1.4rem; letter-spacing:.15em; color:#f5f5f0; }
+    .nav-right { display:flex; align-items:center; gap:.6rem; }
+    .nbtn { background:none; border:none; color:rgba(244,241,235,.6); font-family:'DM Sans',sans-serif; font-size:.72rem; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; padding:.4rem .8rem; transition:color .2s; }
+    .nbtn:hover { color:#f5f5f0; }
+    body.light-mode nav#nav { background:#F0EEE9; border-bottom-color:rgba(9,9,11,.08); box-shadow:0 1px 12px rgba(9,9,11,.06); }
+    body.light-mode .nav-logo img { filter:invert(1); }
+    body.light-mode .nav-logo span { color:#09090b; }
+    body.light-mode .nbtn { color:rgba(9,9,11,.55); }
+    body.light-mode .nbtn:hover { color:#09090b; }
+    @media (max-width:900px) {
+      nav#nav { padding:calc(.6rem + env(safe-area-inset-top,0px)) 1rem .8rem; }
+    }
+
     /* ── Bag page layout ── */
     .bag-main { padding-top: 4.5rem; min-height: 100dvh; }
-    @media (max-width: 900px) { .bag-main { padding-top: 3.8rem; } }
+    @media (max-width: 900px) { .bag-main { padding-top: 4rem; } }
 
     /* ── Auth modal classes (auth.js uses .auth-tab / .auth-panel) ── */
     .auth-tab  { background:none; border:none; color:rgba(244,241,235,.35); font-family:'DM Sans',sans-serif; font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; cursor:pointer; padding:.3rem .6rem; border-bottom:2px solid transparent; transition:.18s; }
