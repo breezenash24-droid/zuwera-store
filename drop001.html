@@ -430,7 +430,7 @@
 
     .collection-review-modal{
       display:none;position:fixed;inset:0;z-index:2600;
-      background:rgba(9,9,11,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+      background:rgba(9,9,11,.60);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
       align-items:center;justify-content:center;padding:1rem;
     }
     .collection-review-modal.open{display:flex}
@@ -482,7 +482,7 @@
     }
     .collection-review-confirm{grid-column:1/-1!important;background:var(--white)!important;color:var(--black)!important;border-color:var(--white)!important}
     .collection-review-confirm:disabled{opacity:.45;cursor:not-allowed}
-    body.light-mode .collection-review-modal{background:#F0EEE9;backdrop-filter:none;-webkit-backdrop-filter:none}
+    body.light-mode .collection-review-modal{background:rgba(240,238,233,.65);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
     body.light-mode .collection-review-box{background:#F0EEE9;border-color:rgba(9,9,11,.08)}
     body.light-mode .collection-review-close{background:rgba(9,9,11,.05);border-color:rgba(9,9,11,.08);color:#09090b}
     body.light-mode .collection-review-media{background:rgba(9,9,11,.035)}
@@ -659,7 +659,7 @@
     body.light-mode footer p, body.light-mode footer a { color: rgba(10,10,10,0.3); }
     body.light-mode footer a:hover { color: var(--white); }
   </style>
-  <link rel="stylesheet" href="storefront-cohesion.css?v=3">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=4">
   <script src="image-utils.js?v=1"></script>
   <script src="mobile-menu.js?v=1" defer></script>
   <script src="/supabase.min.js"></script>
