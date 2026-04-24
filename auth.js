@@ -693,11 +693,42 @@ function buildFavoriteFallbackDetail(productId, favorite) {
   };
 }
 
+function buildFavoriteCartPayload(detail, favorite) {
+  const productId = String(detail?.id || favorite?.product_id || '');
+  const title = detail?.title || favorite?.product_name || 'Saved Item';
+  const regularPrice = favoriteNumericPrice(detail?.current_price ?? favorite?.price);
+  const memberPrice = favoriteNumericPrice(detail?.member_price);
+  const payload = {
+    productId,
+    title,
+    image: detail?.image || favorite?.product_image || '',
+    size: pickFavoriteSize(detail?.sizes) || 'One Size',
+    colorName: detail?.colorName || 'Standard',
+    sku: detail?.sku || '',
+    regularPrice,
+    memberPrice,
+    price: favoriteEffectivePrice(detail, favorite?.price) || regularPrice,
+    href: detail?.href || favoriteHref(productId, title)
+  };
+  return escapeFavoriteHtml(JSON.stringify(payload));
+}
+
+function parseFavoriteCartPayload(payload) {
+  if (!payload) return null;
+  try {
+    const parsed = JSON.parse(String(payload));
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 function favoriteCardHtml(favorite, detail, options) {
   const mode = options?.mode || 'cart';
   const productId = favorite.product_id;
   const name = detail?.title || favorite.product_name || 'Saved Item';
   const href = detail?.href || favoriteHref(productId, name);
+  const cartPayload = buildFavoriteCartPayload(detail || buildFavoriteFallbackDetail(productId, favorite), favorite);
   const subtitle = detail?.subtitle ? `<div style="font-size:0.66rem;letter-spacing:0.08em;text-transform:uppercase;color:rgba(245,245,240,0.36);margin-top:0.2rem;">${escapeFavoriteHtml(detail.subtitle)}</div>` : '';
   const imageHtml = detail?.image
     ? `<img src="${favoriteOptimizeImage(detail.image, 180)}" alt="${escapeFavoriteHtml(name)}" style="width:68px;height:86px;object-fit:cover;border:1px solid rgba(245,245,240,0.08);flex-shrink:0;" onerror="if(this.src !== '${detail.image}') this.src='${detail.image}';">`
@@ -719,7 +750,8 @@ function favoriteCardHtml(favorite, detail, options) {
           <button
             type="button"
             data-favorite-add="${escapeFavoriteHtml(productId)}"
-            onclick='if(window.addFavoriteToCart){window.addFavoriteToCart(${JSON.stringify(String(productId || ''))});} return false;'
+            data-favorite-payload="${cartPayload}"
+            onclick='return window.addFavoriteToCartFromButton ? window.addFavoriteToCartFromButton(this) : false;'
             class="zw-saved-item-btn zw-saved-item-btn--primary"
           >Add to Bag</button>
           <button
@@ -743,26 +775,43 @@ async function renderFavoriteCollection(listEl, favorites, options) {
   listEl.innerHTML = detailPairs.map(({ favorite, detail }) => favoriteCardHtml(favorite, detail, options)).join('');
 }
 
-window.addFavoriteToCart = async function(productId) {
-  const normalizedProductId = String(productId || '');
+window.addFavoriteToCartFromButton = function(button) {
+  if (!button) return false;
+  void window.addFavoriteToCart(button.dataset.favoriteAdd || '', button.dataset.favoritePayload || '');
+  return false;
+};
+
+window.addFavoriteToCart = async function(productId, payload) {
+  const payloadData = parseFavoriteCartPayload(payload);
+  const normalizedProductId = String(productId || payloadData?.productId || '');
   const favorite = _userFavorites.find((item) => String(item.product_id || '') === normalizedProductId) || { product_id: normalizedProductId };
   try {
-    const detail = await getFavoriteProductDetail(normalizedProductId, favorite) || buildFavoriteFallbackDetail(normalizedProductId, favorite);
+    const detail = payloadData ? {
+      id: payloadData.productId || normalizedProductId,
+      title: payloadData.title || favorite.product_name || 'Saved Item',
+      image: payloadData.image || favorite.product_image || '',
+      colorName: payloadData.colorName || 'Standard',
+      sku: payloadData.sku || '',
+      current_price: favoriteNumericPrice(payloadData.regularPrice),
+      member_price: favoriteNumericPrice(payloadData.memberPrice),
+      sizes: [{ size: payloadData.size || 'One Size', stock_quantity: 1 }],
+      href: payloadData.href || favoriteHref(normalizedProductId, favorite.product_name || 'product')
+    } : (await getFavoriteProductDetail(normalizedProductId, favorite) || buildFavoriteFallbackDetail(normalizedProductId, favorite));
     if (!detail?.id) {
       window.location.href = `/product.html?id=${encodeURIComponent(normalizedProductId)}`;
       return;
     }
 
-    const size = pickFavoriteSize(detail.sizes) || 'One Size';
-    const regularPrice = favoriteNumericPrice(detail.current_price ?? favorite.price);
-    const memberPrice = favoriteNumericPrice(detail.member_price);
-    const effectivePrice = favoriteEffectivePrice(detail, favorite.price);
+    const size = payloadData?.size || pickFavoriteSize(detail.sizes) || 'One Size';
+    const regularPrice = favoriteNumericPrice(payloadData?.regularPrice ?? detail.current_price ?? favorite.price);
+    const memberPrice = favoriteNumericPrice(payloadData?.memberPrice ?? detail.member_price);
+    const effectivePrice = favoriteNumericPrice(payloadData?.price ?? favoriteEffectivePrice(detail, favorite.price));
     const cart = JSON.parse(localStorage.getItem('cart') || '[]');
     const existing = cart.find((item) =>
       String(item.productId || '') === String(detail.id || '') &&
       String(item.size || '') === String(size || '') &&
-      String(item.colorName || '') === String(detail.colorName || '') &&
-      String(item.sku || '') === String(detail.sku || '')
+      String(item.colorName || '') === String((payloadData?.colorName || detail.colorName || 'Standard')) &&
+      String(item.sku || '') === String((payloadData?.sku || detail.sku || ''))
     );
 
     if (existing) {
@@ -770,14 +819,14 @@ window.addFavoriteToCart = async function(productId) {
     } else {
       cart.push({
         productId: detail.id,
-        sku: detail.sku,
+        sku: payloadData?.sku || detail.sku,
         title: detail.title,
         size,
-        colorName: detail.colorName || 'Standard',
+        colorName: payloadData?.colorName || detail.colorName || 'Standard',
         regularPrice,
         memberPrice,
         price: effectivePrice || regularPrice,
-        image: detail.image,
+        image: payloadData?.image || detail.image,
         quantity: 1
       });
     }
@@ -907,7 +956,7 @@ document.addEventListener('click', e => {
   const addFavoriteBtn = e.target.closest('[data-favorite-add]');
   if (addFavoriteBtn) {
     e.preventDefault();
-    void window.addFavoriteToCart(addFavoriteBtn.dataset.favoriteAdd || '');
+    void window.addFavoriteToCart(addFavoriteBtn.dataset.favoriteAdd || '', addFavoriteBtn.dataset.favoritePayload || '');
     return;
   }
 
