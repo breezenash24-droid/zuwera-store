@@ -18,11 +18,36 @@ function json(body) {
   });
 }
 
+async function checkDeepL(env) {
+  const key = (env.DEEPL_API_KEY || env.DEEPL_API_KEY_ || '').trim().replace(/,$/, ''); // strip trailing comma if any
+  if (!key) return { ok: false, configured: false, error: 'DEEPL_API_KEY not set' };
+  try {
+    const resp = await fetch('https://api-free.deepl.com/v2/usage', {
+      headers: { Authorization: `DeepL-Auth-Key ${key}` }
+    });
+    // Also try paid API endpoint if free fails
+    const resp2 = resp.ok ? resp : await fetch('https://api.deepl.com/v2/usage', {
+      headers: { Authorization: `DeepL-Auth-Key ${key}` }
+    });
+    if (!resp2.ok) return { ok: false, keyActive: false, error: `HTTP ${resp2.status} — key may be invalid` };
+    const d = await resp2.json();
+    const pct = d.character_limit > 0 ? ((d.character_count / d.character_limit) * 100) : 0;
+    return {
+      ok: true,
+      keyActive: true,
+      characterCount: d.character_count || 0,
+      characterLimit: d.character_limit || 500000,
+      usedPercent: parseFloat(pct.toFixed(1)),
+      remaining: (d.character_limit || 500000) - (d.character_count || 0),
+    };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
 async function checkCloudinary(env) {
   const cloudName   = (env.CLOUDINARY_CLOUD_NAME || '').trim();
   const apiKey      = (env.CLOUDINARY_API_KEY || '').trim();
   const apiSecret   = (env.CLOUDINARY_API_SECRET || '').trim();
-  if (!cloudName || !apiKey || !apiSecret) return { ok: false, error: 'Missing CLOUDINARY_CLOUD_NAME / API_KEY / API_SECRET' };
+  if (!cloudName || !apiKey || !apiSecret) return { ok: false, configured: false, error: 'Add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET to Cloudflare to see usage' };
   try {
     const creds = btoa(`${apiKey}:${apiSecret}`);
     const resp  = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/usage`, {
@@ -45,7 +70,7 @@ async function checkCloudinary(env) {
 
 async function checkResend(env) {
   const key = (env.RESEND_API_KEY || '').trim();
-  if (!key) return { ok: false, error: 'RESEND_API_KEY not set' };
+  if (!key) return { ok: false, configured: false, error: 'RESEND_API_KEY not set' };
   try {
     const resp = await fetch('https://api.resend.com/domains', {
       headers: { Authorization: `Bearer ${key}` }
@@ -183,7 +208,7 @@ async function checkCloudflare(env) {
 
 export async function onRequestGet({ env }) {
   // Run all checks in parallel for speed
-  const [cloudinary, resend, brevo, supabase, stripe, shippo, cloudflare] = await Promise.allSettled([
+  const [cloudinary, resend, brevo, supabase, stripe, shippo, cloudflare, deepl] = await Promise.allSettled([
     checkCloudinary(env),
     checkResend(env),
     checkBrevo(env),
@@ -191,6 +216,7 @@ export async function onRequestGet({ env }) {
     checkStripe(env),
     checkShippo(env),
     checkCloudflare(env),
+    checkDeepL(env),
   ]);
 
   const unwrap = (r) => r.status === 'fulfilled' ? r.value : { ok: false, error: r.reason?.message || 'Unknown error' };
@@ -206,6 +232,7 @@ export async function onRequestGet({ env }) {
       stripe:      unwrap(stripe),
       shippo:      unwrap(shippo),
       cloudflare:  unwrap(cloudflare),
+      deepl:       unwrap(deepl),
     }
   });
 }

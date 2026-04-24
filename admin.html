@@ -4073,10 +4073,11 @@
                     renderApiCard('☁️', 'Cloudinary', s.cloudinary, buildCloudinaryRows, 'https://cloudinary.com/console'),
                     renderApiCard('✉️', 'Resend', s.resend, buildResendRows, 'https://resend.com/overview'),
                     renderApiCard('📨', 'Brevo (Email backup)', s.brevo, buildBrevoRows, 'https://app.brevo.com'),
+                    renderApiCard('🌐', 'Cloudflare', s.cloudflare, buildCloudflareRows, 'https://dash.cloudflare.com'),
                     renderApiCard('🗄️', 'Supabase', s.supabase, buildSupabaseRows, 'https://supabase.com/dashboard'),
                     renderApiCard('💳', 'Stripe', s.stripe, buildStripeRows, 'https://dashboard.stripe.com'),
                     renderApiCard('📦', 'Shippo', s.shippo, buildShippoRows, 'https://goshippo.com'),
-                    renderApiCard('🌐', 'Cloudflare', s.cloudflare, buildCloudflareRows, 'https://dash.cloudflare.com'),
+                    renderApiCard('🌍', 'DeepL (Translation)', s.deepl, buildDeepLRows, 'https://www.deepl.com/pro-account/usage'),
                 ];
                 gridEl.innerHTML = cards.join('');
             } catch (e) {
@@ -4170,13 +4171,28 @@
             return rows;
         }
 
+        function buildDeepLRows(s) {
+            if (!s.ok && s.configured === false) return `<p class="api-note" style="color:var(--warning);">Not configured — add DEEPL_API_KEY to Cloudflare to see usage.</p>`;
+            if (!s.ok) return `<p class="api-note" style="color:var(--error);">${s.error || 'Key error'}</p>`;
+            const remaining = (s.remaining || 0).toLocaleString();
+            const limit = (s.characterLimit || 0).toLocaleString();
+            const used = (s.characterCount || 0).toLocaleString();
+            let rows = apiRow('Characters used', `${used} / ${limit}`);
+            rows += usageBar(s.usedPercent || 0);
+            rows += apiRow('Remaining', remaining + ' chars');
+            rows += apiRow('Free plan limit', '500,000 chars/month');
+            return rows;
+        }
+
         function renderApiCard(icon, name, s, buildRows, dashboardUrl) {
-            const statusClass = !s ? 'status-error' : s.ok ? 'status-ok' : (s.configured === false ? 'status-warn' : 'status-error');
-            const badgeClass  = !s ? 'badge-error' : s.ok ? 'badge-ok'  : (s.configured === false ? 'badge-warn'  : 'badge-error');
-            const badgeText   = !s ? 'Error' : s.ok ? 'Active' : (s.configured === false ? 'Not set up' : 'Error');
+            // configured:false = not set up (yellow), ok:false with error = error (red)
+            const notConfigured = s && s.configured === false;
+            const statusClass = !s ? 'status-error' : s.ok ? 'status-ok' : (notConfigured ? 'status-warn' : 'status-error');
+            const badgeClass  = !s ? 'badge-error' : s.ok ? 'badge-ok'  : (notConfigured ? 'badge-warn'  : 'badge-error');
+            const badgeText   = !s ? 'Error' : s.ok ? 'Active' : (notConfigured ? 'Not set up' : 'Error');
             const rows = s ? buildRows(s) : '';
-            const errorMsg = s && !s.ok && s.error ? `<p class="api-note" style="color:var(--error);">${s.error}</p>` : '';
-            const setupHint = s && !s.ok && !s.error ? '' : '';
+            // Only show error message if it's a real error (not just "not configured")
+            const errorMsg = s && !s.ok && s.error && !notConfigured ? `<p class="api-note" style="color:var(--error);">${s.error}</p>` : '';
             return `
               <div class="api-card ${statusClass}">
                 <div class="api-card-header">
