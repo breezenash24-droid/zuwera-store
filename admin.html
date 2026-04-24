@@ -220,6 +220,79 @@
             to { opacity: 1; }
         }
 
+        /* APIs Page */
+        .api-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+            margin-top: 24px;
+        }
+        .api-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color .2s;
+        }
+        .api-card.status-ok    { border-left: 3px solid var(--success); }
+        .api-card.status-warn  { border-left: 3px solid var(--warning); }
+        .api-card.status-error { border-left: 3px solid var(--error); }
+        .api-card.status-info  { border-left: 3px solid var(--info); }
+        .api-card-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 14px;
+        }
+        .api-card-title { display: flex; align-items: center; gap: 10px; }
+        .api-card-icon { font-size: 1.4rem; }
+        .api-card-name { font-weight: 700; font-size: 1rem; }
+        .api-status-badge {
+            font-size: .72rem; font-weight: 700; letter-spacing: .04em;
+            padding: 3px 10px; border-radius: 99px; text-transform: uppercase;
+        }
+        .badge-ok    { background: rgba(74,222,128,.15); color: #4ade80; }
+        .badge-warn  { background: rgba(250,204,21,.15); color: #facc15; }
+        .badge-error { background: rgba(239,68,68,.15);  color: #ef4444; }
+        .badge-info  { background: rgba(59,130,246,.15); color: #60a5fa; }
+        body.light-mode .badge-ok    { background: rgba(21,128,61,.1);  color: #15803d; }
+        body.light-mode .badge-warn  { background: rgba(161,98,7,.1);   color: #a16207; }
+        body.light-mode .badge-error { background: rgba(185,28,28,.1);  color: #b91c1c; }
+        body.light-mode .badge-info  { background: rgba(29,78,216,.1);  color: #1d4ed8; }
+        .api-row {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            font-size: .84rem; padding: 5px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .api-row:last-of-type { border-bottom: none; }
+        .api-row-label { color: var(--text-secondary); flex-shrink: 0; margin-right: 8px; }
+        .api-row-value { text-align: right; font-weight: 500; word-break: break-all; }
+        .api-usage-bar {
+            margin-top: 10px; height: 6px; border-radius: 99px;
+            background: var(--border); overflow: hidden;
+        }
+        .api-usage-fill {
+            height: 100%; border-radius: 99px; transition: width .4s;
+            background: var(--success);
+        }
+        .api-usage-fill.warn  { background: var(--warning); }
+        .api-usage-fill.crit  { background: var(--error); }
+        .api-note {
+            font-size: .76rem; color: var(--text-secondary);
+            margin-top: 10px; line-height: 1.5; font-style: italic;
+        }
+        .api-link { font-size: .8rem; margin-top: 10px; }
+        .api-link a { color: var(--accent); text-decoration: none; }
+        .api-link a:hover { text-decoration: underline; }
+        .api-setup-hint {
+            background: rgba(250,204,21,.08); border: 1px solid rgba(250,204,21,.3);
+            border-radius: 6px; padding: 10px 12px; font-size: .8rem;
+            margin-top: 10px; line-height: 1.5; color: var(--warning);
+        }
+        body.light-mode .api-setup-hint { color: #a16207; background: rgba(161,98,7,.06); border-color: rgba(161,98,7,.25); }
+        #apis-refresh-btn { margin-left: auto; }
+        #apis-last-updated { font-size: .8rem; color: var(--text-secondary); margin-top: 4px; }
+
         /* Dashboard Alerts */
         #dash-banners { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
         .dash-banner {
@@ -1080,6 +1153,7 @@
                     <a class="nav-link" data-page="receipts" onclick="navigateTo('receipts')">🧾 Receipts</a>
                     <a class="nav-link" data-page="settings" onclick="navigateTo('settings')">⚙️ Settings</a>
                     <a class="nav-link" data-page="website" onclick="navigateTo('website')">🌐 Website</a>
+                    <a class="nav-link" data-page="apis" onclick="navigateTo('apis')">🔑 APIs</a>
                     <a class="nav-link" data-page="audit" onclick="navigateTo('audit')">📋 Audit Log</a>
                 </div>
             </nav>
@@ -1173,6 +1247,38 @@
                         <div style="font-weight:700;margin-bottom:6px;">Analytics</div>
                         <div style="color:var(--text-secondary);font-size:.83rem;line-height:1.6;">Visual breakdown of your product catalogue — how many are live vs draft, stock levels, gender split, and more.</div>
                       </div>
+                    </div>
+                </div>
+
+                <!-- APIs Page -->
+                <div id="apis" class="page">
+                    <div class="products-header">
+                        <div>
+                            <h2>🔑 API Status</h2>
+                            <p style="color:var(--text-secondary);font-size:.85rem;margin-top:6px;">Live view of every service your store uses — usage, limits, and key health. Auto-checks when you open this page.</p>
+                            <div id="apis-last-updated"></div>
+                        </div>
+                        <button class="btn btn-secondary" id="apis-refresh-btn" onclick="loadApiStatus()">↻ Refresh</button>
+                    </div>
+
+                    <!-- Email failover status bar -->
+                    <div id="email-failover-bar" style="display:none;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.3);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:.85rem;display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:1.1rem;">✉️</span>
+                        <span><strong>Email failover active:</strong> Resend → Brevo. If Resend hits its daily limit or errors, Brevo will automatically handle the send.</span>
+                    </div>
+
+                    <div id="apis-loading" style="color:var(--text-secondary);padding:24px 0;text-align:center;">Checking all services…</div>
+                    <div id="api-grid" class="api-grid" style="display:none;"></div>
+
+                    <!-- Setup guide -->
+                    <div style="margin-top:28px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                        <div style="font-weight:700;margin-bottom:10px;">📋 Adding a Brevo backup email key</div>
+                        <div style="font-size:.85rem;color:var(--text-secondary);line-height:1.7;">
+                            1. Sign up free at <a href="https://brevo.com" target="_blank" style="color:var(--accent);">brevo.com</a> (300 emails/day free, no credit card)<br>
+                            2. Go to <strong>SMTP & API → API Keys → Create API Key</strong><br>
+                            3. Copy the key and add it to Cloudflare Pages → Settings → Variables & Secrets as <code style="background:var(--border);padding:1px 6px;border-radius:4px;">BREVO_API_KEY</code><br>
+                            4. Redeploy — Zuwera will automatically fall back to Brevo if Resend is unavailable
+                        </div>
                     </div>
                 </div>
 
@@ -3904,6 +4010,7 @@
                 receipts: 'Receipts',
                 settings: 'Settings',
                 website: 'Website Settings',
+                apis: 'API Status',
                 audit: 'Audit Log'
             };
 
@@ -3927,9 +4034,162 @@
                 if (typeof window.shipLoadData === 'function') window.shipLoadData();
             } else if (page === 'receipts') {
                 if (typeof window.receiptsLoadData === 'function') window.receiptsLoadData();
+            } else if (page === 'apis') {
+                loadApiStatus();
             } else if (page === 'audit') {
                 loadAuditLog();
             }
+        }
+
+        // ─── API Status Page ────────────────────────────────────────────────────
+        async function loadApiStatus() {
+            const loadingEl = document.getElementById('apis-loading');
+            const gridEl    = document.getElementById('api-grid');
+            const lastEl    = document.getElementById('apis-last-updated');
+            const failoverEl = document.getElementById('email-failover-bar');
+
+            loadingEl.style.display = 'block';
+            gridEl.style.display    = 'none';
+            loadingEl.textContent   = 'Checking all services…';
+
+            try {
+                const resp = await fetch('/api/api-status');
+                const data = await resp.json();
+                if (!data.ok) throw new Error('API status endpoint failed');
+
+                const s = data.services || {};
+                loadingEl.style.display = 'none';
+                gridEl.style.display    = '';
+                lastEl.textContent = 'Last checked: ' + new Date(data.fetchedAt).toLocaleTimeString();
+
+                // Show failover bar if both Resend and Brevo are configured
+                if (s.resend?.keyActive && s.brevo?.configured) {
+                    failoverEl.style.display = 'flex';
+                } else {
+                    failoverEl.style.display = 'none';
+                }
+
+                const cards = [
+                    renderApiCard('☁️', 'Cloudinary', s.cloudinary, buildCloudinaryRows, 'https://cloudinary.com/console'),
+                    renderApiCard('✉️', 'Resend', s.resend, buildResendRows, 'https://resend.com/overview'),
+                    renderApiCard('📨', 'Brevo (Email backup)', s.brevo, buildBrevoRows, 'https://app.brevo.com'),
+                    renderApiCard('🗄️', 'Supabase', s.supabase, buildSupabaseRows, 'https://supabase.com/dashboard'),
+                    renderApiCard('💳', 'Stripe', s.stripe, buildStripeRows, 'https://dashboard.stripe.com'),
+                    renderApiCard('📦', 'Shippo', s.shippo, buildShippoRows, 'https://goshippo.com'),
+                    renderApiCard('🌐', 'Cloudflare', s.cloudflare, buildCloudflareRows, 'https://dash.cloudflare.com'),
+                ];
+                gridEl.innerHTML = cards.join('');
+            } catch (e) {
+                loadingEl.textContent = '⚠️ Could not load API status: ' + e.message;
+            }
+        }
+
+        function fmtBytes(bytes) {
+            if (!bytes) return '0 B';
+            const units = ['B','KB','MB','GB'];
+            let i = 0; let v = bytes;
+            while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+            return v.toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+        }
+
+        function usageBar(pct) {
+            const cls = pct >= 90 ? 'crit' : pct >= 70 ? 'warn' : '';
+            return `<div class="api-usage-bar"><div class="api-usage-fill ${cls}" style="width:${Math.min(pct,100)}%"></div></div>`;
+        }
+
+        function apiRow(label, value) {
+            return `<div class="api-row"><span class="api-row-label">${label}</span><span class="api-row-value">${value}</span></div>`;
+        }
+
+        function buildCloudinaryRows(s) {
+            if (!s.ok) return '';
+            let rows = apiRow('Plan', s.plan || 'Free');
+            if (s.credits) rows += apiRow('Credits used', `${(s.credits.usage||0).toFixed(1)} / ${s.credits.limit || 25}`) + usageBar(s.credits.used_percent || 0);
+            if (s.storage) rows += apiRow('Storage', `${fmtBytes(s.storage.usage)} / ${fmtBytes(s.storage.limit)}`) + usageBar(s.storage.used_percent || 0);
+            if (s.bandwidth) rows += apiRow('Bandwidth', `${fmtBytes(s.bandwidth.usage)} / ${fmtBytes(s.bandwidth.limit)}`) + usageBar(s.bandwidth.used_percent || 0);
+            if (s.objects) rows += apiRow('Objects (files)', `${(s.objects.usage||0).toLocaleString()} / ${(s.objects.limit||3000).toLocaleString()}`);
+            if (s.lastUpdated) rows += apiRow('Data as of', new Date(s.lastUpdated).toLocaleDateString());
+            return rows;
+        }
+
+        function buildResendRows(s) {
+            if (!s.ok) return '';
+            let rows = apiRow('Plan', 'Free');
+            rows += apiRow('Daily limit', '100 emails');
+            rows += apiRow('Monthly limit', '3,000 emails');
+            if (s.domains?.length) rows += apiRow('Verified domains', s.domains.map(d => `${d.name} (${d.status})`).join(', '));
+            if (s.note) return rows + `<p class="api-note">${s.note}</p>`;
+            return rows;
+        }
+
+        function buildBrevoRows(s) {
+            if (!s.ok && !s.configured) return `<p class="api-note" style="color:var(--warning);">Not configured — add BREVO_API_KEY to Cloudflare to activate email failover.</p>`;
+            if (!s.ok) return `<p class="api-note" style="color:var(--error);">Key error: ${s.error}</p>`;
+            let rows = apiRow('Plan', s.plan || 'Free');
+            rows += apiRow('Daily limit', '300 emails');
+            if (s.credits !== null) rows += apiRow('Credits remaining', s.credits.toLocaleString());
+            if (s.accountEmail) rows += apiRow('Account', s.accountEmail);
+            return rows;
+        }
+
+        function buildSupabaseRows(s) {
+            if (!s.ok) return '';
+            const c = s.counts || {};
+            let rows = apiRow('Plan', 'Free');
+            rows += apiRow('DB storage limit', s.limits?.dbStorage || '500 MB');
+            rows += apiRow('File storage limit', s.limits?.fileStorage || '1 GB');
+            rows += apiRow('Bandwidth limit', s.limits?.bandwidth || '2 GB');
+            rows += apiRow('Orders in DB', (c.orders||0).toLocaleString());
+            rows += apiRow('Products in DB', (c.products||0).toLocaleString());
+            if (c.authUsers !== null) rows += apiRow('Auth users', (c.authUsers||0).toLocaleString() + ' / 50,000');
+            if (s.note) rows += `<p class="api-note">${s.note}</p>`;
+            return rows;
+        }
+
+        function buildStripeRows(s) {
+            if (!s.ok) return '';
+            let rows = apiRow('Mode', `<span style="color:${s.mode==='live'?'var(--success)':'var(--warning)'};">${s.mode === 'live' ? '🟢 Live' : '🟡 Test'}</span>`);
+            if (s.availableBalance) rows += apiRow('Balance available', s.availableBalance);
+            if (s.note) rows += `<p class="api-note">${s.note}</p>`;
+            return rows;
+        }
+
+        function buildShippoRows(s) {
+            if (!s.ok) return '';
+            let rows = apiRow('Plan', s.plan || 'Starter');
+            if (s.note) rows += `<p class="api-note">${s.note}</p>`;
+            return rows;
+        }
+
+        function buildCloudflareRows(s) {
+            if (!s.ok) return '';
+            let rows = apiRow('Plan', s.plan || 'Free');
+            if (s.zoneName) rows += apiRow('Zone', s.zoneName);
+            if (s.status) rows += apiRow('Zone status', s.status);
+            if (s.note) rows += `<p class="api-note">${s.note}</p>`;
+            return rows;
+        }
+
+        function renderApiCard(icon, name, s, buildRows, dashboardUrl) {
+            const statusClass = !s ? 'status-error' : s.ok ? 'status-ok' : (s.configured === false ? 'status-warn' : 'status-error');
+            const badgeClass  = !s ? 'badge-error' : s.ok ? 'badge-ok'  : (s.configured === false ? 'badge-warn'  : 'badge-error');
+            const badgeText   = !s ? 'Error' : s.ok ? 'Active' : (s.configured === false ? 'Not set up' : 'Error');
+            const rows = s ? buildRows(s) : '';
+            const errorMsg = s && !s.ok && s.error ? `<p class="api-note" style="color:var(--error);">${s.error}</p>` : '';
+            const setupHint = s && !s.ok && !s.error ? '' : '';
+            return `
+              <div class="api-card ${statusClass}">
+                <div class="api-card-header">
+                  <div class="api-card-title">
+                    <span class="api-card-icon">${icon}</span>
+                    <span class="api-card-name">${name}</span>
+                  </div>
+                  <span class="api-status-badge ${badgeClass}">${badgeText}</span>
+                </div>
+                ${rows}
+                ${errorMsg}
+                <div class="api-link"><a href="${dashboardUrl}" target="_blank" rel="noopener">Open dashboard ↗</a></div>
+              </div>`;
         }
 
         // Dashboard

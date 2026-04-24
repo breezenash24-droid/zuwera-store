@@ -480,7 +480,8 @@ async function sendConfirmationEmail(pi, meta, tracking, env) {
 </body>
 </html>`;
 
-  const resp = await fetch('https://api.resend.com/emails', {
+  // ── Try Resend first ────────────────────────────────────────────────
+  const resendResp = await fetch('https://api.resend.com/emails', {
     method:  'POST',
     headers: {
       Authorization:  'Bearer ' + env.RESEND_API_KEY,
@@ -495,6 +496,41 @@ async function sendConfirmationEmail(pi, meta, tracking, env) {
     }),
   });
 
-  if (!resp.ok) throw new Error('Resend error ' + resp.status + ': ' + await resp.text());
-  return true;
+  if (resendResp.ok) {
+    console.log('Email sent via Resend to', toEmail);
+    return { provider: 'resend' };
+  }
+
+  // ── Resend failed — try Brevo fallback ──────────────────────────────
+  const resendError = resendResp.status + ': ' + await resendResp.text().catch(() => '');
+  console.warn('Resend failed (' + resendError + '), trying Brevo fallback…');
+
+  const brevoKey = (env.BREVO_API_KEY || '').trim();
+  if (!brevoKey) {
+    throw new Error('Resend error ' + resendError + ' — no BREVO_API_KEY set for fallback');
+  }
+
+  const brevoResp = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method:  'POST',
+    headers: {
+      'api-key':      brevoKey,
+      'Content-Type': 'application/json',
+      Accept:         'application/json',
+    },
+    body: JSON.stringify({
+      sender:      { name: 'Zuwera', email: fromEmail },
+      to:          [{ email: toEmail, name: toName }],
+      replyTo:     { email: 'orders@zuwera.store' },
+      subject:     `Order Confirmed – #${orderId}`,
+      htmlContent: html,
+    }),
+  });
+
+  if (!brevoResp.ok) {
+    const brevoError = brevoResp.status + ': ' + await brevoResp.text().catch(() => '');
+    throw new Error('Both email providers failed. Resend: ' + resendError + ' | Brevo: ' + brevoError);
+  }
+
+  console.log('Email sent via Brevo fallback to', toEmail, '(Resend was unavailable)');
+  return { provider: 'brevo', resendError };
 }
