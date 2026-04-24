@@ -14,7 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="base.css?v=1">
   <link rel="stylesheet" href="nav.css?v=1">
-  <link rel="stylesheet" href="cart.css?v=1">
+  <link rel="stylesheet" href="cart.css?v=2">
   <script src="/favicon-utils.js?v=1"></script>
   <script src="/stripe-client-config.js?v=1"></script>
   <script src="/checkout-tax.js?v=1"></script>
@@ -231,6 +231,16 @@
       <div class="summary-row total"><span>Total</span><span id="summary-total">-</span></div>
       <button id="checkout-btn">Checkout</button>
     </div>
+  </div>
+  <div class="cart-shell-footer">
+    <nav class="cart-shell-footer-nav" aria-label="Bag footer links">
+      <a href="/">Home</a>
+      <a href="/drop001.html">Release 001</a>
+      <a href="/sizeguide.html">Size Guide</a>
+      <a href="/policies.html">Policies</a>
+      <a href="mailto:nasirubreeze@zuwera.store">Contact</a>
+    </nav>
+    <p class="cart-shell-footer-copy">Zuwera</p>
   </div>
 </main>
 
@@ -587,7 +597,7 @@ window.__zwOpenAuth = function(tab) {
 </script>
 
 <script src="image-utils.js?v=1"></script>
-<script src="auth.js?v=6"></script>
+<script src="auth.js?v=7"></script>
 <script>
 /* ── Saved items visibility: flip as soon as auth state is known ── */
 (function() {
