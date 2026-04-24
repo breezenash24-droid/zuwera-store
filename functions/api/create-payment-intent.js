@@ -334,7 +334,7 @@ export async function onRequestPost({ request, env }) {
     if (!env.STRIPE_SECRET_KEY) return json({ error: 'Stripe is not configured.' }, 500, headers);
 
     const body = await request.json();
-    const { items, shippingRate, address = {}, userId, promoCode = '' } = body;
+    const { items, shippingRate, address = {}, promoCode = '' } = body;
 
     if (!items?.length || !address?.email) {
       return json({ error: 'Missing required fields: items and address.email' }, 400, headers);
@@ -346,6 +346,7 @@ export async function onRequestPost({ request, env }) {
     const subtotalCents = catalogItems.reduce((sum, item) => sum + item.amount * item.quantity, 0);
     const shipping = await resolveShipping({ shippingRate, address, subtotalCents, catalogItems, env });
     const promotion = await getPromotionForCode(env, promoCode);
+    const normalizedPromoCode = promotion ? normalizePromoCode(promotion.code) : normalizePromoCode(promoCode);
     const discountCents = computePromotionDiscount(promotion, subtotalCents, shipping.shippingCents);
     const discountedSubtotalCents = Math.max(0, subtotalCents - discountCents);
     const { stateCode: taxStateCode, taxRate } = getTaxRateForAddress(address, env, request);
@@ -374,7 +375,10 @@ export async function onRequestPost({ request, env }) {
     const idempotencyPayload = JSON.stringify({
       email: String(address.email || '').toLowerCase().trim(),
       items: lineItems,
+      promoCode: normalizedPromoCode,
+      discountCents,
       shipping: shipping.shippingCents,
+      actualShippingCents: shipping.actualShippingCents,
       ship: {
         line1: address.line1 || '',
         line2: address.line2 || '',
@@ -385,6 +389,7 @@ export async function onRequestPost({ request, env }) {
       },
       taxStateCode,
       taxCents,
+      totalCents,
     });
     const idempotencyHash = (await sha256Base64Url(idempotencyPayload)).slice(0, 40);
     const idempotencyKey = `pi_${idempotencyHash}`;
@@ -399,11 +404,11 @@ export async function onRequestPost({ request, env }) {
         metadata: {
           customer_email: address.email,
           customer_name: address.name || '',
-          user_id: verifiedUser?.id || userId || '',
+          user_id: verifiedUser?.id || '',
           items: JSON.stringify(lineItems),
           inv: JSON.stringify(inventoryItems),
           subtotal_amount_cents: String(subtotalCents),
-          discount_code: promotion ? normalizePromoCode(promotion.code) : '',
+          discount_code: normalizedPromoCode,
           discount_amount_cents: String(discountCents),
           shipping_provider: shipping.provider,
           shipping_service: shipping.servicelevel,
@@ -431,7 +436,7 @@ export async function onRequestPost({ request, env }) {
       orderId: paymentIntent.id,
       subtotal: (subtotalCents / 100).toFixed(2),
       discount: (discountCents / 100).toFixed(2),
-      discountCode: promotion ? normalizePromoCode(promotion.code) : '',
+      discountCode: normalizedPromoCode,
       shipping: (shipping.shippingCents / 100).toFixed(2),
       tax: (taxCents / 100).toFixed(2),
       total: (totalCents / 100).toFixed(2),

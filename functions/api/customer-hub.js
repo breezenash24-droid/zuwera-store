@@ -108,6 +108,7 @@ export async function onRequestPost({ request, env }) {
     }
 
     if (action === 'submit_return') {
+      const eligibleOrders = await getOrdersForUser(env, user.id);
       const requestId = crypto.randomUUID();
       const nextRequest = {
         id: requestId,
@@ -123,6 +124,11 @@ export async function onRequestPost({ request, env }) {
       if (!nextRequest.orderId || !nextRequest.reason) {
         return json({ success: false, error: 'Order and reason are required.' }, 400, cors(env));
       }
+      const matchedOrder = (eligibleOrders || []).find((order) => String(order.id || '').trim() === nextRequest.orderId);
+      if (!matchedOrder) {
+        return json({ success: false, error: 'You can only request returns for your own orders.' }, 403, cors(env));
+      }
+      nextRequest.orderLabel = nextRequest.orderLabel || `#${String(matchedOrder.id || '').slice(-8).toUpperCase()}`;
 
       const requests = Array.isArray(bundle.returnsState?.requests) ? [...bundle.returnsState.requests] : [];
       requests.unshift(nextRequest);

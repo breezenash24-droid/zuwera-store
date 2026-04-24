@@ -48,7 +48,7 @@ select:focus-visible{
 /* Modals */
 .modal:not(#cart-modal):not(#mobile-menu),
 .collection-review-modal{
-  background:rgba(9,9,11,.72);
+  background:transparent;
   backdrop-filter:none;
   -webkit-backdrop-filter:none;
   align-items:center;
@@ -60,7 +60,7 @@ select:focus-visible{
 body.light-mode .modal:not(#cart-modal):not(#mobile-menu),
 body.light-mode .collection-review-modal,
 body.light-mode #zw-lang-modal{
-  background:rgba(240,238,233,.82) !important;
+  background:transparent !important;
   backdrop-filter:none !important;
   -webkit-backdrop-filter:none !important;
 }

@@ -54,6 +54,16 @@ async function postJSON(url, body) {
   return resp.json();
 }
 
+async function getCheckoutAuthPayload() {
+  const sb = window.sb || window._sb || null;
+  if (!sb?.auth?.getSession) return { accessToken: '' };
+  const result = await sb.auth.getSession().catch(() => null);
+  const session = result?.data?.session || null;
+  return {
+    accessToken: session?.access_token || '',
+  };
+}
+
 // ── Cache payment DOM refs once ───────────────────────────────────
 const _pay = {
   errEl:     document.getElementById('pay-error'),
@@ -128,10 +138,12 @@ function initPaymentRequest(subtotalCents) {
   paymentRequest.on('paymentmethod', async (ev) => {
     try {
       const addr = ev.shippingAddress || {};
+      const auth = await getCheckoutAuthPayload();
       const piData = await postJSON('/api/create-payment-intent', {
         items: cartItems,
         shippingRate: selectedShippingRate,
         promoCode: window.zwGetActivePromoCode?.() || '',
+        accessToken: auth.accessToken,
         address: {
           name: ev.payerName || '', email: ev.payerEmail || '',
           line1: addr.addressLine?.[0] || '', line2: addr.addressLine?.[1] || '',
@@ -268,8 +280,12 @@ _pay.btn.addEventListener('click', async () => {
   _pay.btnTxt.textContent = 'Processing…';
 
   try {
+    const auth = await getCheckoutAuthPayload();
     const piData = await postJSON('/api/create-payment-intent', {
-      items: cartItems, shippingRate: selectedShippingRate, promoCode: window.zwGetActivePromoCode?.() || '',
+      items: cartItems,
+      shippingRate: selectedShippingRate,
+      promoCode: window.zwGetActivePromoCode?.() || '',
+      accessToken: auth.accessToken,
       address: { name, email, line1: addr1, line2: addr2, city, state, zip, country: 'US' },
     });
     if (piData.error) {

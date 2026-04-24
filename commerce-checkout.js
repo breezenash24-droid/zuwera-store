@@ -95,6 +95,23 @@
     return 0;
   }
 
+  function getCheckoutStateCode() {
+    const stateField = document.getElementById('pay-state');
+    const fallback = String(stateField?.value || '').trim().toUpperCase();
+    if (typeof window.getCheckoutTaxStateCode === 'function') {
+      return window.getCheckoutTaxStateCode(fallback) || '';
+    }
+    return fallback;
+  }
+
+  function getSummaryTaxCents(subtotalCents, discountCents, fallbackTaxCents) {
+    const discountedSubtotalCents = Math.max(0, subtotalCents - discountCents);
+    if (typeof window.getWalletTaxCents === 'function') {
+      return Math.max(0, Number(window.getWalletTaxCents(discountedSubtotalCents, getCheckoutStateCode()) || 0));
+    }
+    return Math.max(0, Number(fallbackTaxCents || 0));
+  }
+
   function renderPromoSummary() {
     ensurePromoUi();
     const nodes = getSummaryNodes();
@@ -102,9 +119,9 @@
 
     const subtotalCents = parseMoney(nodes.subtotal.textContent);
     const shippingCents = parseMoney(nodes.shipping?.textContent || '');
-    const taxCents = parseMoney(nodes.tax.textContent);
     const discountCents = computeDiscountCents(STATE.promotion, subtotalCents, shippingCents);
-    const totalCents = Math.max(0, subtotalCents + shippingCents + taxCents - discountCents);
+    const taxCents = getSummaryTaxCents(subtotalCents, discountCents, parseMoney(nodes.tax.textContent));
+    const totalCents = Math.max(0, Math.max(0, subtotalCents - discountCents) + shippingCents + taxCents);
 
     const row = document.getElementById('zw-promo-row');
     const value = document.getElementById('zw-promo-discount');
@@ -118,6 +135,7 @@
         ? `${STATE.promotion.label || STATE.promotion.code} applied.`
         : (STATE.code ? 'Promo code not active for this cart.' : '');
     }
+    nodes.tax.textContent = formatMoney(taxCents);
     nodes.total.textContent = subtotalCents ? formatMoney(totalCents) : '-';
   }
 
