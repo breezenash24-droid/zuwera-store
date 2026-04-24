@@ -73,6 +73,11 @@
     root.style.overflow = '';
     root.style.overscrollBehavior = '';
 
+    // Disable smooth-scroll momentarily so the position restore is instant,
+    // not an animated scroll from 0 → restoreY (which causes the visible "jump to top").
+    const prevScrollBehavior = root.style.scrollBehavior;
+    root.style.scrollBehavior = 'auto';
+
     body.style.position = '';
     body.style.removeProperty('top');
     body.style.left = '';
@@ -82,7 +87,16 @@
     body.style.overscrollBehavior = '';
     body.style.paddingRight = '';
 
-    window.scrollTo(0, restoreY);
+    try {
+      window.scrollTo({ top: restoreY, left: 0, behavior: 'instant' });
+    } catch (_) {
+      window.scrollTo(0, restoreY);
+    }
+
+    // Restore scroll-behavior after the browser has painted
+    requestAnimationFrame(() => {
+      root.style.scrollBehavior = prevScrollBehavior;
+    });
   }
 
   function refresh() {

@@ -2814,6 +2814,8 @@ function setPageScrollLock(locked) {
   if (!state.locked) return;
   state.locked = false;
   const restoreY = state.y || 0;
+  const prevScrollBehavior = root.style.scrollBehavior;
+  root.style.scrollBehavior = 'auto';
   root.style.overflow = '';
   root.style.overscrollBehavior = '';
   body.style.position = '';
@@ -2824,7 +2826,12 @@ function setPageScrollLock(locked) {
   body.style.overflow = '';
   body.style.overscrollBehavior = '';
   body.style.paddingRight = '';
-  window.scrollTo(0, restoreY);
+  try {
+    window.scrollTo({ top: restoreY, left: 0, behavior: 'instant' });
+  } catch (_) {
+    window.scrollTo(0, restoreY);
+  }
+  requestAnimationFrame(() => { root.style.scrollBehavior = prevScrollBehavior; });
 }
 function openAuth(tab) {
   const cartModal = document.getElementById('cart-modal');
