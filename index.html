@@ -821,7 +821,7 @@ footer{
 ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */
 .modal{
   display:none;position:fixed;inset:0;z-index:500;
-  background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;
+  background:none;backdrop-filter:none;-webkit-backdrop-filter:none;
   align-items:center;justify-content:center;
   padding:1.5rem;
   overflow-y:auto;
@@ -1462,7 +1462,7 @@ body.light-mode #toast{background:var(--paper);color:var(--ink)}
 
 /* Modals */
 body.light-mode .modal{
-  background:transparent;
+  background:none;
   backdrop-filter:none;
   -webkit-backdrop-filter:none;
 }
@@ -1504,7 +1504,7 @@ body.light-mode .csec-t{color:#09090b}
 body.light-mode .cart-favs{border-top-color:rgba(9,9,11,.07)}
 body.light-mode #checkout-btn{background:#09090b;color:#E8E3DC}
 body.light-mode #payment-modal{
-  background:transparent !important;
+  background:none !important;
   backdrop-filter:none;
   -webkit-backdrop-filter:none;
 }
@@ -3123,16 +3123,17 @@ function buildHomeFavoriteDetail(product, extra, favorite) {
     sizes
   };
   detail.href = productHref({ id: detail.id, sku: detail.sku, title: detail.title });
-  _homeFavoriteCache.set(detail.id, detail);
+  _homeFavoriteCache.set(String(detail.id || ''), detail);
   return detail;
 }
 
 async function getHomeFavoriteDetail(productId, favorite) {
-  if (!productId) return null;
-  if (_homeFavoriteCache.has(productId)) return _homeFavoriteCache.get(productId);
+  const normalizedProductId = String(productId || '');
+  if (!normalizedProductId) return null;
+  if (_homeFavoriteCache.has(normalizedProductId)) return _homeFavoriteCache.get(normalizedProductId);
   try {
     const cached = JSON.parse(sessionStorage.getItem('zw_home_products') || '[]');
-    const matched = Array.isArray(cached) ? cached.find((product) => product?.id === productId) : null;
+    const matched = Array.isArray(cached) ? cached.find((product) => String(product?.id || '') === normalizedProductId) : null;
     if (matched) {
       return buildHomeFavoriteDetail(matched, {
         images: matched.product_images || [],
@@ -3144,7 +3145,7 @@ async function getHomeFavoriteDetail(productId, favorite) {
 
   try {
     const headers = { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` };
-    const encodedId = encodeURIComponent(productId);
+    const encodedId = encodeURIComponent(normalizedProductId);
     const [productResp, imagesResp, colorsResp, sizesResp] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/products?select=*&id=eq.${encodedId}&limit=1`, { headers }),
       fetch(`${SUPABASE_URL}/rest/v1/product_images?select=*&product_id=eq.${encodedId}&order=sort_order.asc`, { headers }),
@@ -3161,6 +3162,25 @@ async function getHomeFavoriteDetail(productId, favorite) {
   } catch {
     return null;
   }
+}
+
+function buildHomeFavoriteFallbackDetail(productId, favorite) {
+  const snapshot = getHomeProductPriceSnapshot(productId) || null;
+  const resolvedId = String(productId || favorite?.product_id || '');
+  const title = favorite?.product_name || snapshot?.title || 'Saved Item';
+  const regularPrice = parseHomeFavoritePrice(favorite?.price ?? snapshot?.regularPrice ?? snapshot?.price);
+  return {
+    id: resolvedId,
+    title,
+    subtitle: snapshot?.subtitle || snapshot?.category || '',
+    sku: String(snapshot?.sku || ''),
+    image: favorite?.product_image || snapshot?.image || snapshot?.image_url || '',
+    current_price: regularPrice,
+    member_price: parseHomeFavoritePrice(snapshot?.memberPrice),
+    colorName: snapshot?.colorName || snapshot?.colorway || 'Standard',
+    sizes: [],
+    href: productHref({ id: resolvedId, sku: snapshot?.sku || '', title })
+  };
 }
 
 function homeFavoriteCardHtml(favorite, detail, mode) {
@@ -3198,8 +3218,8 @@ function homeFavoriteCardHtml(favorite, detail, mode) {
         ${priceHtml}
         <div style="display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.8rem;">
           <a href="${href}" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 .85rem;border:1px solid rgba(244,241,235,.14);font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;color:rgba(244,241,235,.76);text-decoration:none;">View Product</a>
-          <button type="button" onclick="addHomeFavoriteToCart('${productId}')" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 .85rem;border:none;background:#f4f1eb;color:#09090b;font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;cursor:pointer;">Add to Bag</button>
-          <button type="button" onclick="removeFav('${productId}', null)" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 .85rem;border:1px solid rgba(244,241,235,.08);background:none;color:rgba(244,241,235,.46);font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;cursor:pointer;">Remove</button>
+          <button type="button" data-home-favorite-add="${escapeHomeFavoriteHtml(productId)}" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 .85rem;border:none;background:#f4f1eb;color:#09090b;font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;cursor:pointer;">Add to Bag</button>
+          <button type="button" data-home-favorite-remove="${escapeHomeFavoriteHtml(productId)}" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 .85rem;border:1px solid rgba(244,241,235,.08);background:none;color:rgba(244,241,235,.46);font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;cursor:pointer;">Remove</button>
         </div>
       </div>
     </${tag}>
@@ -3216,43 +3236,64 @@ async function renderHomeFavoriteCollection(listEl, favorites, mode) {
 }
 
 window.addHomeFavoriteToCart = async function(productId) {
-  const favorite = _favs.find((item) => item.product_id === productId) || { product_id: productId };
-  const detail = await getHomeFavoriteDetail(productId, favorite);
-  if (!detail) {
-    window.location.href = productHref({ id: productId, title: favorite.product_name || 'product' });
+  const normalizedProductId = String(productId || '');
+  const favorite = _favs.find((item) => String(item.product_id || '') === normalizedProductId) || { product_id: normalizedProductId };
+  try {
+    const detail = await getHomeFavoriteDetail(normalizedProductId, favorite) || buildHomeFavoriteFallbackDetail(normalizedProductId, favorite);
+    if (!detail?.id) {
+      window.location.href = productHref({ id: normalizedProductId, title: favorite.product_name || 'product' });
+      return;
+    }
+    const size = pickHomeFavoriteSize(detail.sizes) || 'One Size';
+    const regularPrice = parseHomeFavoritePrice(detail.current_price ?? favorite.price);
+    const memberPrice = parseHomeFavoritePrice(detail.member_price);
+    const effectivePrice = getHomeFavoritePrice(detail, favorite.price);
+    const cart = normalizeCartPricing(JSON.parse(localStorage.getItem('cart') || '[]'));
+    const existing = cart.find((item) =>
+      String(item.productId || '') === String(detail.id || '') &&
+      String(item.size || '') === String(size || '') &&
+      String(item.colorName || '') === String(detail.colorName || '') &&
+      String(item.sku || '') === String(detail.sku || '')
+    );
+    if (existing) {
+      existing.quantity += 1;
+    } else {
+      cart.push({
+        productId: detail.id,
+        sku: detail.sku,
+        title: detail.title,
+        size,
+        colorName: detail.colorName || 'Standard',
+        regularPrice,
+        memberPrice,
+        price: effectivePrice || regularPrice,
+        image: detail.image,
+        quantity: 1
+      });
+    }
+    localStorage.setItem('cart', JSON.stringify(cart));
+    renderCart();
+    showToast(`Added ${detail.title}${size ? ` (${size})` : ''} to bag.`);
+  } catch (error) {
+    console.error('addHomeFavoriteToCart failed:', error);
+    showToast('Could not add this saved item right now.');
+  }
+};
+
+document.addEventListener('click', (event) => {
+  const addButton = event.target.closest('[data-home-favorite-add]');
+  if (addButton) {
+    event.preventDefault();
+    void window.addHomeFavoriteToCart(addButton.dataset.homeFavoriteAdd || '');
     return;
   }
-  const size = pickHomeFavoriteSize(detail.sizes);
-  const regularPrice = parseHomeFavoritePrice(detail.current_price ?? favorite.price);
-  const memberPrice = parseHomeFavoritePrice(detail.member_price);
-  const effectivePrice = getHomeFavoritePrice(detail, favorite.price);
-  const cart = normalizeCartPricing(JSON.parse(localStorage.getItem('cart') || '[]'));
-  const existing = cart.find((item) =>
-    item.productId === detail.id &&
-    item.size === size &&
-    item.colorName === detail.colorName &&
-    String(item.sku || '') === String(detail.sku || '')
-  );
-  if (existing) {
-    existing.quantity += 1;
-  } else {
-    cart.push({
-      productId: detail.id,
-      sku: detail.sku,
-      title: detail.title,
-      size,
-      colorName: detail.colorName,
-      regularPrice,
-      memberPrice,
-      price: effectivePrice || regularPrice,
-      image: detail.image,
-      quantity: 1
-    });
+
+  const removeButton = event.target.closest('[data-home-favorite-remove]');
+  if (removeButton) {
+    event.preventDefault();
+    void removeFav(removeButton.dataset.homeFavoriteRemove || '', removeButton.closest('li, div'));
   }
-  localStorage.setItem('cart', JSON.stringify(cart));
-  renderCart();
-  showToast(`Added ${detail.title}${size ? ` (${size})` : ''} to bag.`);
-};
+});
 
 function renderAcctFavs() {
   document.getElementById('acct-favs-loading').style.display = 'none';

@@ -1,6 +1,6 @@
 /* ===================== PAYMENT MODAL ===================== */
 #payment-modal {
-  background: transparent;
+  background: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
@@ -150,7 +150,7 @@
 
 /* ===================== LIGHT MODE ===================== */
 body.light-mode #payment-modal {
-  background: transparent;
+  background: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }

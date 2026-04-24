@@ -336,15 +336,15 @@
     modal.setAttribute('aria-label', 'Select language');
     modal.style.cssText = `
       display:none; position:fixed; inset:0; z-index:100000;
-      background:${overlayBg}; backdrop-filter:${overlayFilter}; -webkit-backdrop-filter:${overlayFilter};
-      align-items:center; justify-content:center; padding:1rem;
+      background:${overlayBg}; backdrop-filter:${overlayFilter}; -webkit-backdrop-filter:${overlayFilter}; pointer-events:none;
+      align-items:stretch; justify-content:flex-end; padding:0;
     `;
 
     modal.innerHTML = `
       <div id="zw-lang-box" class="notranslate" translate="no" style="
         background:#0f0f12; border:1px solid rgba(244,241,235,0.1);
-        border-radius:12px; width:100%; max-width:620px;
-        max-height:88dvh; overflow:hidden; display:flex; flex-direction:column;
+        border-radius:0; width:min(34rem, 34vw); max-width:100%;
+        height:100dvh; max-height:100dvh; overflow:hidden; display:flex; flex-direction:column; pointer-events:auto;
         box-shadow:0 24px 64px rgba(0,0,0,0.7);
       ">
         <!-- Header -->
@@ -464,10 +464,12 @@
     const modal = document.getElementById('zw-lang-modal');
     langModalTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     if (modal) {
-      const isLightMode = document.body.classList.contains('light-mode');
-      modal.style.background = 'transparent';
+      modal.style.background = 'none';
       modal.style.backdropFilter = 'none';
       modal.style.webkitBackdropFilter = 'none';
+      modal.style.alignItems = 'stretch';
+      modal.style.justifyContent = 'flex-end';
+      modal.style.padding = '0';
     }
     modal.style.display = 'flex';
     lockLangModalScrollFallback();
@@ -605,8 +607,8 @@
       #zw-lang-grid::-webkit-scrollbar-thumb { background: rgba(244,241,235,0.1); border-radius: 2px; }
       body.light-mode #zw-lang-grid::-webkit-scrollbar-thumb { background: rgba(9,9,11,0.12); }
       @media (max-width: 600px) {
-        #zw-lang-box { max-height: 92dvh; border-radius: 16px 16px 0 0; }
-        #zw-lang-modal { align-items: flex-end !important; }
+        #zw-lang-box { width: 100vw !important; max-width: 100vw !important; height: 100dvh !important; max-height: 100dvh !important; border-radius: 0 !important; }
+        #zw-lang-modal { align-items: stretch !important; justify-content: flex-end !important; }
         #zw-lang-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
       }
     `;

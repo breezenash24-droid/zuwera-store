@@ -625,15 +625,16 @@ function buildFavoriteDetail(product, extra, fallbackFavorite) {
     sizes,
   };
   detail.href = favoriteHref(detail.id, detail.title);
-  _favoriteProductCache.set(detail.id, detail);
+  _favoriteProductCache.set(String(detail.id || ''), detail);
   return detail;
 }
 
 async function getFavoriteProductDetail(productId, fallbackFavorite) {
-  if (!productId) return null;
-  if (_favoriteProductCache.has(productId)) return _favoriteProductCache.get(productId);
+  const normalizedProductId = String(productId || '');
+  if (!normalizedProductId) return null;
+  if (_favoriteProductCache.has(normalizedProductId)) return _favoriteProductCache.get(normalizedProductId);
 
-  if (typeof currentProduct !== 'undefined' && currentProduct?.id === productId) {
+  if (typeof currentProduct !== 'undefined' && String(currentProduct?.id || '') === normalizedProductId) {
     return buildFavoriteDetail(currentProduct, {
       images: currentProduct.images || [],
       colors: currentProduct.colors || [],
@@ -643,7 +644,7 @@ async function getFavoriteProductDetail(productId, fallbackFavorite) {
 
   try {
     const cachedProducts = JSON.parse(sessionStorage.getItem('zw_home_products') || '[]');
-    const cachedProduct = Array.isArray(cachedProducts) ? cachedProducts.find((product) => product?.id === productId) : null;
+    const cachedProduct = Array.isArray(cachedProducts) ? cachedProducts.find((product) => String(product?.id || '') === normalizedProductId) : null;
     if (cachedProduct) {
       return buildFavoriteDetail(cachedProduct, {
         images: cachedProduct.product_images || [],
@@ -655,7 +656,7 @@ async function getFavoriteProductDetail(productId, fallbackFavorite) {
 
   try {
     const headers = { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` };
-    const encodedId = encodeURIComponent(productId);
+    const encodedId = encodeURIComponent(normalizedProductId);
     const [productResp, imagesResp, colorsResp, sizesResp] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/products?select=*&id=eq.${encodedId}&limit=1`, { headers }),
       fetch(`${SUPABASE_URL}/rest/v1/product_images?select=*&product_id=eq.${encodedId}&order=sort_order.asc`, { headers }),
@@ -672,6 +673,24 @@ async function getFavoriteProductDetail(productId, fallbackFavorite) {
   } catch (_) {
     return null;
   }
+}
+
+function buildFavoriteFallbackDetail(productId, favorite) {
+  const normalizedProductId = String(productId || favorite?.product_id || '');
+  const title = favorite?.product_name || 'Saved Item';
+  const regularPrice = favoriteNumericPrice(favorite?.price);
+  return {
+    id: normalizedProductId,
+    title,
+    subtitle: '',
+    image: favorite?.product_image || '',
+    colorName: 'Standard',
+    sku: '',
+    current_price: regularPrice,
+    member_price: 0,
+    sizes: [],
+    href: favoriteHref(normalizedProductId, title)
+  };
 }
 
 function favoriteCardHtml(favorite, detail, options) {
@@ -697,8 +716,8 @@ function favoriteCardHtml(favorite, detail, options) {
         ${priceHtml}
         <div style="display:flex;flex-wrap:wrap;gap:0.45rem;margin-top:0.8rem;">
           <a href="${href}" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 0.85rem;border:1px solid rgba(245,245,240,0.14);font-size:0.66rem;letter-spacing:0.09em;text-transform:uppercase;color:rgba(245,245,240,0.76);text-decoration:none;">View Product</a>
-          <button type="button" onclick="addFavoriteToCart('${productId}')" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 0.85rem;border:none;background:#f5f5f0;color:#09090b;font-size:0.66rem;letter-spacing:0.09em;text-transform:uppercase;cursor:pointer;">Add to Bag</button>
-          <button type="button" onclick="removeFavorite('${productId}', null)" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 0.85rem;border:1px solid rgba(245,245,240,0.08);background:none;color:rgba(245,245,240,0.46);font-size:0.66rem;letter-spacing:0.09em;text-transform:uppercase;cursor:pointer;">Remove</button>
+          <button type="button" data-favorite-add="${escapeFavoriteHtml(productId)}" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 0.85rem;border:none;background:#f5f5f0;color:#09090b;font-size:0.66rem;letter-spacing:0.09em;text-transform:uppercase;cursor:pointer;">Add to Bag</button>
+          <button type="button" data-favorite-remove="${escapeFavoriteHtml(productId)}" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 0.85rem;border:1px solid rgba(245,245,240,0.08);background:none;color:rgba(245,245,240,0.46);font-size:0.66rem;letter-spacing:0.09em;text-transform:uppercase;cursor:pointer;">Remove</button>
         </div>
       </div>
     </${listTag}>
@@ -715,47 +734,53 @@ async function renderFavoriteCollection(listEl, favorites, options) {
 }
 
 window.addFavoriteToCart = async function(productId) {
-  const favorite = _userFavorites.find((item) => item.product_id === productId) || { product_id: productId };
-  const detail = await getFavoriteProductDetail(productId, favorite);
-  if (!detail) {
-    window.location.href = `/product.html?id=${encodeURIComponent(productId)}`;
-    return;
+  const normalizedProductId = String(productId || '');
+  const favorite = _userFavorites.find((item) => String(item.product_id || '') === normalizedProductId) || { product_id: normalizedProductId };
+  try {
+    const detail = await getFavoriteProductDetail(normalizedProductId, favorite) || buildFavoriteFallbackDetail(normalizedProductId, favorite);
+    if (!detail?.id) {
+      window.location.href = `/product.html?id=${encodeURIComponent(normalizedProductId)}`;
+      return;
+    }
+
+    const size = pickFavoriteSize(detail.sizes) || 'One Size';
+    const regularPrice = favoriteNumericPrice(detail.current_price ?? favorite.price);
+    const memberPrice = favoriteNumericPrice(detail.member_price);
+    const effectivePrice = favoriteEffectivePrice(detail, favorite.price);
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const existing = cart.find((item) =>
+      String(item.productId || '') === String(detail.id || '') &&
+      String(item.size || '') === String(size || '') &&
+      String(item.colorName || '') === String(detail.colorName || '') &&
+      String(item.sku || '') === String(detail.sku || '')
+    );
+
+    if (existing) {
+      existing.quantity += 1;
+    } else {
+      cart.push({
+        productId: detail.id,
+        sku: detail.sku,
+        title: detail.title,
+        size,
+        colorName: detail.colorName || 'Standard',
+        regularPrice,
+        memberPrice,
+        price: effectivePrice || regularPrice,
+        image: detail.image,
+        quantity: 1
+      });
+    }
+
+    localStorage.setItem('cart', JSON.stringify(cart));
+    if (typeof loadCartCount === 'function') loadCartCount();
+    if (typeof window.renderProductCartItems === 'function') window.renderProductCartItems();
+    if (typeof renderCart === 'function') renderCart();
+    showToast(`Added ${detail.title}${size ? ` (${size})` : ''} to bag.`);
+  } catch (error) {
+    console.error('addFavoriteToCart failed:', error);
+    showToast('Could not add this saved item right now.');
   }
-
-  const size = pickFavoriteSize(detail.sizes);
-  const regularPrice = favoriteNumericPrice(detail.current_price ?? favorite.price);
-  const memberPrice = favoriteNumericPrice(detail.member_price);
-  const effectivePrice = favoriteEffectivePrice(detail, favorite.price);
-  const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-  const existing = cart.find((item) =>
-    item.productId === detail.id &&
-    item.size === size &&
-    item.colorName === detail.colorName &&
-    String(item.sku || '') === String(detail.sku || '')
-  );
-
-  if (existing) {
-    existing.quantity += 1;
-  } else {
-    cart.push({
-      productId: detail.id,
-      sku: detail.sku,
-      title: detail.title,
-      size,
-      colorName: detail.colorName,
-      regularPrice,
-      memberPrice,
-      price: effectivePrice || regularPrice,
-      image: detail.image,
-      quantity: 1
-    });
-  }
-
-  localStorage.setItem('cart', JSON.stringify(cart));
-  if (typeof loadCartCount === 'function') loadCartCount();
-  if (typeof window.renderProductCartItems === 'function') window.renderProductCartItems();
-  if (typeof renderCart === 'function') renderCart();
-  showToast(`Added ${detail.title}${size ? ` (${size})` : ''} to bag.`);
 };
 
 async function loadAcctFavs() {
@@ -868,6 +893,20 @@ async function removeFavorite(pid, liEl) {
 }
 
 document.addEventListener('click', e => {
+  const addFavoriteBtn = e.target.closest('[data-favorite-add]');
+  if (addFavoriteBtn) {
+    e.preventDefault();
+    void window.addFavoriteToCart(addFavoriteBtn.dataset.favoriteAdd || '');
+    return;
+  }
+
+  const removeFavoriteBtn = e.target.closest('[data-favorite-remove]');
+  if (removeFavoriteBtn) {
+    e.preventDefault();
+    void removeFavorite(removeFavoriteBtn.dataset.favoriteRemove || '', removeFavoriteBtn.closest('li, div'));
+    return;
+  }
+
   const btn = e.target.closest('.heart-btn');
-    if (btn) toggleFavorite(btn);
-    });
+  if (btn) toggleFavorite(btn);
+});
