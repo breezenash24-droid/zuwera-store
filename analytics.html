@@ -23,6 +23,15 @@
       --warning: #facc15;
       --error: #ef4444;
       --info: #3b82f6;
+      /* Card gradient tokens — override in light mode below */
+      --card-bg-start: #1a0f18;
+      --card-bg-end: #120a14;
+      --card-border-clr: rgba(243, 143, 169, 0.35);
+      --glass-bg-start: rgba(30, 20, 25, 0.88);
+      --glass-bg-end: rgba(18, 12, 20, 0.92);
+      --glass-border-clr: rgba(243, 143, 169, 0.4);
+      --table-bg-start: #1a0f18;
+      --table-bg-end: #120a14;
     }
 
     * {
@@ -54,13 +63,13 @@
     .span-12 { grid-column: span 12; }
 
     .glass-card {
-      background: linear-gradient(135deg, rgba(30, 20, 25, 0.85) 0%, rgba(18, 12, 20, 0.9) 100%);
-      border: 1px solid rgba(243, 143, 169, 0.4);
+      background: linear-gradient(135deg, var(--glass-bg-start) 0%, var(--glass-bg-end) 100%);
+      border: 1px solid var(--glass-border-clr);
       border-radius: 12px;
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       padding: 1rem;
-      box-shadow: 0 0 0 1px rgba(243, 143, 169, 0.08) inset, 0 4px 24px rgba(0,0,0,0.4);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.25);
     }
 
     .qos-gauge-track {
@@ -132,6 +141,15 @@
       --dark-bg: #fdfdfc;
       --card-border: #e0e0e0;
       --text-secondary: #666666;
+      /* Light mode card tokens */
+      --card-bg-start: #fff5f7;
+      --card-bg-end: #feeef3;
+      --card-border-clr: rgba(200, 80, 120, 0.28);
+      --glass-bg-start: rgba(255, 245, 248, 0.96);
+      --glass-bg-end: rgba(255, 235, 243, 0.98);
+      --glass-border-clr: rgba(200, 80, 120, 0.35);
+      --table-bg-start: #fff8fa;
+      --table-bg-end: #fef2f5;
     }
 
     /* Navigation */
@@ -219,12 +237,12 @@
     }
 
     .card {
-      background: linear-gradient(135deg, #1a0f18 0%, #120a14 100%);
-      border: 1px solid rgba(243, 143, 169, 0.35);
+      background: linear-gradient(135deg, var(--card-bg-start) 0%, var(--card-bg-end) 100%);
+      border: 1px solid var(--card-border-clr);
       border-radius: 12px;
       padding: 1.5rem;
       transition: all 0.3s ease;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 0 1px rgba(243,143,169,0.07) inset;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
       position: relative;
       overflow: hidden;
     }
@@ -234,12 +252,13 @@
       position: absolute;
       top: 0; left: 0; right: 0;
       height: 2px;
-      background: linear-gradient(90deg, transparent, rgba(248,145,165,0.8), transparent);
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0.7;
     }
 
     .card:hover {
-      border-color: rgba(243, 143, 169, 0.7);
-      box-shadow: 0 4px 32px rgba(248,145,165,0.15), 0 0 0 1px rgba(243,143,169,0.15) inset;
+      border-color: var(--accent);
+      box-shadow: 0 4px 32px rgba(248,145,165,0.12);
       transform: translateY(-1px);
     }
 
@@ -265,12 +284,12 @@
 
     /* Charts */
     .chart-section {
-      background: linear-gradient(135deg, #1a0f18 0%, #120a14 100%);
-      border: 1px solid rgba(243, 143, 169, 0.3);
+      background: linear-gradient(135deg, var(--card-bg-start) 0%, var(--card-bg-end) 100%);
+      border: 1px solid var(--card-border-clr);
       border-radius: 12px;
       padding: 2rem;
       margin-bottom: 2rem;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
     }
 
     .chart-container {
@@ -336,13 +355,13 @@
 
     /* Tables */
     .table-section {
-      background: linear-gradient(135deg, #1a0f18 0%, #120a14 100%);
-      border: 1px solid rgba(243, 143, 169, 0.3);
+      background: linear-gradient(135deg, var(--table-bg-start) 0%, var(--table-bg-end) 100%);
+      border: 1px solid var(--card-border-clr);
       border-radius: 12px;
       padding: 2rem;
       margin-bottom: 2rem;
       overflow-x: auto;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
     }
 
     .table-controls {
@@ -2200,7 +2219,13 @@
 
     // Parent admin page can request a data refresh without full iframe reload.
     window.addEventListener('message', (event) => {
-      if (event?.data?.type !== 'zw-analytics-refresh') return;
+      const { type, mode } = event?.data || {};
+      if (type === 'zw-theme') {
+        if (mode === 'light') document.body.classList.add('light-mode');
+        else document.body.classList.remove('light-mode');
+        return;
+      }
+      if (type !== 'zw-analytics-refresh') return;
       if (dashboardContainer.style.display === 'block') {
         loadDashboardData();
       }

@@ -3576,7 +3576,13 @@
                     });
             }
             
-            // Analytics is now inline — no iframe to reload
+            // Sync theme to embedded analytics iframe
+            const frame = document.getElementById('analyticsFrame');
+            if (frame && frame.contentWindow) {
+                try {
+                    frame.contentWindow.postMessage({ type: 'zw-theme', mode: isDarkMode ? 'dark' : 'light' }, '*');
+                } catch (_) {}
+            }
         }
 
         document.getElementById('themeToggle').addEventListener('click', () => {
@@ -3898,6 +3904,14 @@
                     </div>
                 `;
                 analyticsPage.dataset.externalAnalyticsMounted = '1';
+                // Once iframe loads, sync the current theme
+                document.getElementById('analyticsFrame').addEventListener('load', () => {
+                    try {
+                        document.getElementById('analyticsFrame').contentWindow.postMessage(
+                            { type: 'zw-theme', mode: isDarkMode ? 'dark' : 'light' }, '*'
+                        );
+                    } catch (_) {}
+                });
                 return;
             }
 
