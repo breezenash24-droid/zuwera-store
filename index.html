@@ -3882,6 +3882,9 @@ function openQuickAddReviewModal(item) {
   quickAddRenderGallery(item);
   quickAddRenderOptions(item);
   modal.classList.add('open');
+  modal.style.setProperty('background', 'transparent', 'important');
+  modal.style.setProperty('backdrop-filter', 'none', 'important');
+  modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
   quickAddSetScrollLock(true);
   window.requestAnimationFrame(() => {
     quickAddFocusWithoutScroll(document.getElementById('quick-add-review-confirm'));
