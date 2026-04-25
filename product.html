@@ -167,8 +167,8 @@
   padding: .45rem 2rem;
   display: flex; align-items: center; justify-content: center; gap: 1.5rem;
   font-family: 'IBM Plex Mono', monospace; font-size: .6rem; letter-spacing: .22em; text-transform: uppercase;
-  /* Desktop: sticky so it pushes nav below it; mobile override below */
-  position: sticky; top: 0; z-index: 230;
+  /* Always fixed — never sticky — so body.position:fixed (scroll-lock) can't move it */
+  position: fixed; top: 0; left: 0; right: 0; z-index: 230;
 }
 .bar-sep {
   opacity: .25;
@@ -182,7 +182,7 @@ body.light-mode #bar {
 }
 .product-page { padding-top: 140px; }
 @media (max-width: 900px) {
-  #bar { position: fixed; left: 0; right: 0; }
+  /* Mobile: bar positioned below nav by JS, no other override needed */
 }
 
 /* -- Size Guide Modal -- */
@@ -432,6 +432,8 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
   <span id="announcementText">ALL THE DEVILS ARE HERE</span>
   <span class="bar-sep" aria-hidden="true"></span>
 </div>
+<!-- Spacer holds bar's height in document flow; #bar is always position:fixed -->
+<div id="bar-spacer" style="height:0;transition:height .45s ease;flex-shrink:0;pointer-events:none" aria-hidden="true"></div>
 
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
 <!-- NAVIGATION BAR                                                   -->
@@ -930,17 +932,20 @@ function teardownAnnouncementBarScroll() {
 
 function setAnnouncementBarLayout(barEl, navEl, isVisible) {
   if (!navEl) return;
+  const spacerEl = document.getElementById('bar-spacer');
   const isMob = window.matchMedia('(max-width: 900px)').matches;
   if (isMob) {
-    // Mobile: nav stays at top, bar is positioned below nav
+    // Mobile: nav stays at top, bar fixed below nav, no spacer needed
     navEl.style.top = '0px';
     document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
     if (barEl && isVisible) barEl.style.top = navEl.offsetHeight + 'px';
+    if (spacerEl) spacerEl.style.height = '0';
   } else {
-    // Desktop: bar is sticky at top, nav pushed below bar
-    const nextTop = isVisible ? barEl.offsetHeight : 0;
-    navEl.style.top = nextTop + 'px';
-    document.documentElement.style.setProperty('--mobile-nav-gap', nextTop + 'px');
+    // Desktop: bar always fixed at top:0; nav pushed below; spacer holds bar height in flow
+    const barH = (barEl && isVisible) ? barEl.offsetHeight : 0;
+    navEl.style.top = barH + 'px';
+    document.documentElement.style.setProperty('--mobile-nav-gap', barH + 'px');
+    if (spacerEl) spacerEl.style.height = isVisible ? barH + 'px' : '0';
   }
 }
 
@@ -952,22 +957,16 @@ function applyAnnouncementBar(mode, msgText) {
   const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
 
   teardownAnnouncementBarScroll();
+  // Bar is always position:fixed — position just varies by viewport
   if (isMobileViewport) {
-    barEl.style.position = 'fixed';
     barEl.style.top = (navEl ? navEl.offsetHeight : 0) + 'px';
-    barEl.style.left = '0';
-    barEl.style.right = '0';
   } else {
-    barEl.style.position = 'sticky';
     barEl.style.top = '0';
-    barEl.style.left = '';
-    barEl.style.right = '';
   }
   barEl.style.transition = 'transform .28s ease, opacity .2s ease';
   barEl.style.transform = 'translateY(0)';
   barEl.style.opacity = '1';
   barEl.style.pointerEvents = '';
-  barEl.style.marginBottom = '0';
 
   const textEl = document.getElementById('announcementText');
   const fallbackText = (barEl.dataset.defaultText || (textEl ? textEl.textContent : '') || '').trim();
@@ -1036,22 +1035,22 @@ function applyAnnouncementBar(mode, msgText) {
     return;
   }
 
-  barEl.style.transition = 'transform 0.45s ease, opacity 0.45s ease, margin-bottom 0.45s ease';
+  barEl.style.transition = 'transform 0.45s ease, opacity 0.45s ease';
   let lastScrollY = window.scrollY;
   let isHidden = false;
   const scrollActivationAt = Date.now() + 450;
+  const spacerEl2 = document.getElementById('bar-spacer');
   const syncAnnouncementState = (hidden) => {
-    const hiddenOffset = barEl.offsetHeight;
     barEl.style.transform = hidden ? 'translateY(-100%)' : '';
     barEl.style.opacity = hidden ? '0' : '1';
     barEl.style.pointerEvents = hidden ? 'none' : '';
-    barEl.style.marginBottom = hidden ? (-hiddenOffset) + 'px' : '0';
+    if (spacerEl2) spacerEl2.style.height = hidden ? '0' : barEl.offsetHeight + 'px';
     setAnnouncementBarLayout(barEl, navEl, !hidden);
   };
   syncAnnouncementState(false);
   _productAnnouncementBarScrollHandler = function() {
     const currentY = window.scrollY;
-    if (document.body.dataset.scrollLocked) { lastScrollY = currentY; return; }
+    if (document.body.dataset.scrollLocked || window.__zwScrollLocking || window.__zwScrollRestoring) { lastScrollY = currentY; return; }
     if (Date.now() < scrollActivationAt) {
       lastScrollY = currentY;
       return;
