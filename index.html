@@ -164,6 +164,7 @@
   --mobile-nav-gap:0px;
 }
 html{scroll-behavior:smooth;font-size:16px;background:#09090b;overscroll-behavior-y:auto}
+@keyframes pageIn{from{opacity:0}to{opacity:1}}
 body{
   background:var(--ink);
   color:var(--paper);
@@ -171,6 +172,7 @@ body{
   font-weight:300;
   overflow-x:hidden;
   overscroll-behavior-y:auto;
+  animation:pageIn .35s ease both;
 }
 /* iOS safe-area tint anchor: paints the notch/status-bar zone with the nav color so Safari 26 samples the correct toolbar tint and no gap appears above the header on mobile. */
 .safe-area-tint{position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:var(--ink);z-index:260;pointer-events:none}
@@ -823,6 +825,18 @@ footer{
   opacity:0;transition:all .3s ease;z-index:9997;pointer-events:none;
 }
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── Skeleton cards ── */
+@keyframes skeletonPulse{0%,100%{opacity:.42}50%{opacity:.13}}
+.pcard--skeleton{pointer-events:none!important;cursor:default!important}
+.pcard-skel-img{width:100%;height:100%;background:rgba(244,241,235,.08);animation:skeletonPulse 1.5s ease infinite}
+.pcard-skel-line{background:rgba(244,241,235,.08);border-radius:2px;animation:skeletonPulse 1.5s ease infinite}
+body.light-mode .pcard-skel-img,body.light-mode .pcard-skel-line{background:rgba(9,9,11,.07)}
+
+/* ── Bag count pop ── */
+@keyframes ccPop{0%{transform:scale(1)}40%{transform:scale(1.6)}70%{transform:scale(.92)}100%{transform:scale(1)}}
+.cc{display:inline-block;transform-origin:center}
+.cc.pop{animation:ccPop .4s cubic-bezier(.36,.07,.19,.97)}
 
 /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
    MODALS
@@ -2576,6 +2590,20 @@ async function loadProducts() {
   if (!grid) return;
 
   const cached = sessionStorage.getItem('zw_home_products');
+
+  // Show skeleton placeholders while fetch is in-flight (only when no cache)
+  if (!cached) {
+    grid.innerHTML = Array(4).fill(0).map(() => `
+      <div class="pcard pcard--skeleton" aria-hidden="true" tabindex="-1">
+        <div class="pcard-img"><div class="pcard-skel-img"></div></div>
+        <div class="pcard-info" style="padding:.6rem 0">
+          <div class="pcard-skel-line" style="width:38%;height:.52rem;margin-bottom:.55rem"></div>
+          <div class="pcard-skel-line" style="width:82%;height:.9rem;margin-bottom:.45rem"></div>
+          <div class="pcard-skel-line" style="width:26%;height:.68rem"></div>
+        </div>
+      </div>`).join('');
+  }
+
   if (cached) {
     try {
       const cachedProducts = JSON.parse(cached);
@@ -3497,7 +3525,18 @@ function renderCart() {
   `).join('');
   const subtotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
   updateCartSummary(subtotal);
-  document.querySelector('.cc').textContent = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const ccEl = document.querySelector('.cc');
+  if (ccEl) {
+    const newCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+    const oldCount = parseInt(ccEl.textContent) || 0;
+    ccEl.textContent = newCount;
+    if (newCount > oldCount) {
+      ccEl.classList.remove('pop');
+      void ccEl.offsetWidth; // force reflow to restart animation
+      ccEl.classList.add('pop');
+      ccEl.addEventListener('animationend', () => ccEl.classList.remove('pop'), { once: true });
+    }
+  }
   refreshCartFavs();
 }
 
@@ -3757,7 +3796,7 @@ function quickAddFinalizeReviewedItem(cartItem) {
   if (typeof gtag === 'function') {
     gtag('event', 'add_to_cart', { currency: 'USD', value: cartItem.price, items: [{ item_id: cartItem.productId, item_name: cartItem.title, price: cartItem.price, quantity: 1 }] });
   }
-  showToast('Added to bag ?');
+  showToast('Added to bag');
 }
 
 function closeQuickAddReviewModal() {

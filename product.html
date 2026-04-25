@@ -343,6 +343,15 @@ body.light-mode #all-reviews-modal {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
+/* Fully transparent backdrops — dark & light — for all content modals */
+#size-fit-modal,
+#size-guide-modal,
+#all-reviews-modal,
+#review-modal {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
 body.light-mode #payment-modal {
   background: none !important;
   backdrop-filter: none !important;
@@ -2642,6 +2651,9 @@ window.openSizeFitModal = async function() {
 
   content.innerHTML = '<p class="review-modal-message">Loading fit ratings...</p>';
   modal.classList.add('open');
+  modal.style.setProperty('background', 'transparent', 'important');
+  modal.style.setProperty('backdrop-filter', 'none', 'important');
+  modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
   document.body.style.overflow = 'hidden';
 
   try {
@@ -2724,6 +2736,9 @@ window.openSizeGuideModal = async function() {
   iframe.style.visibility = 'hidden';
   iframe.style.height = '1px';
   modal.classList.add('open');
+  modal.style.setProperty('background', 'transparent', 'important');
+  modal.style.setProperty('backdrop-filter', 'none', 'important');
+  modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
   document.body.style.overflow = 'hidden';
 
   try {
