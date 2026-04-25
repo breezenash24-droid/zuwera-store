@@ -705,11 +705,9 @@ body.light-mode .quick-color-name{color:rgba(9,9,11,.45)}
 body.light-mode .quick-back-btn{color:rgba(9,9,11,.3)}
 body.light-mode .quick-back-btn:hover{color:rgba(9,9,11,.7)}
 
-.quick-add-review-modal,
-body.light-mode .quick-add-review-modal{z-index:650;background:transparent !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important}
-/* Review + lang modals: transparent overlay — panel does the heavy lifting */
-#all-reviews-modal,#review-modal,#zw-lang-modal{background:transparent !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important}
-body.light-mode #all-reviews-modal,body.light-mode #review-modal,body.light-mode #zw-lang-modal{background:transparent !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important}
+/* ALL modal overlays are fully transparent — content panels handle their own backgrounds */
+.modal{background:transparent !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important}
+.quick-add-review-modal{z-index:650}
 .quick-add-review-box{width:min(520px,92vw);padding:0;overflow:hidden}
 .quick-add-product-box{width:min(920px,94vw);max-height:min(760px,92vh);overflow:auto}
 .quick-add-product-layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr)}
@@ -1036,8 +1034,8 @@ body.light-mode .pcard-skel-img,body.light-mode .pcard-skel-line{background:rgba
 /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
    CART
 ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */
-/* cart-modal is now a transparent overlay — content lives inside .cbox */
-#cart-modal{ background:none; backdrop-filter:none; align-items:flex-start; justify-content:center; }
+/* cart-modal layout — overlay is transparent (see .modal rule), content lives inside .cbox */
+#cart-modal{ align-items:flex-start; justify-content:center; }
 .cbox{
   background:#111;
   border:1px solid rgba(244,241,235,.1);
@@ -1139,8 +1137,8 @@ body.light-mode .cart-shell-footer-nav a:hover{color:rgba(9,9,11,.7)!important}
 body.light-mode .cart-shell-footer-copy{color:rgba(9,9,11,.2)}
 
 /* ===================== RETURNS MODAL ===================== */
-/* returns-modal is a transparent overlay — content lives inside .ret-inner-box */
-#returns-modal{ background:none; backdrop-filter:none; align-items:flex-start; justify-content:center; }
+/* returns-modal layout — overlay is transparent (see .modal rule), content lives inside .ret-inner-box */
+#returns-modal{ align-items:flex-start; justify-content:center; }
 .ret-inner-box{
   background:#111;
   border:1px solid rgba(244,241,235,.1);
@@ -4718,5 +4716,50 @@ function declineCookies(){try{localStorage.setItem('zw_cookie_consent','declined
 
 <script src="commerce-checkout.js?v=1"></script>
 <script src="customer-hub.js?v=1"></script>
+
+<script>
+/* ── Modal backdrop transparency enforcer ──────────────────────────────────
+   Applies transparent background via inline setProperty (beats all stylesheets,
+   including cross-origin ones that ignore CSS !important overrides).
+   Watches for class/style mutations so it fires whenever any modal opens.     */
+(function() {
+  function clearBackdrop(el) {
+    if (!el || !el.classList || !el.classList.contains('modal')) return;
+    el.style.setProperty('background', 'transparent', 'important');
+    el.style.setProperty('backdrop-filter', 'none', 'important');
+    el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+  }
+
+  var attrObs = new MutationObserver(function(muts) {
+    for (var i = 0; i < muts.length; i++) { clearBackdrop(muts[i].target); }
+  });
+
+  function observe(el) {
+    clearBackdrop(el);
+    attrObs.observe(el, { attributes: true, attributeFilter: ['class', 'style'] });
+  }
+
+  function init() {
+    document.querySelectorAll('.modal').forEach(observe);
+    // Watch for dynamically-inserted modals (e.g. #zw-lang-modal from lang.js)
+    new MutationObserver(function(muts) {
+      for (var i = 0; i < muts.length; i++) {
+        muts[i].addedNodes.forEach(function(n) {
+          if (n.nodeType === 1) {
+            if (n.classList && n.classList.contains('modal')) observe(n);
+            n.querySelectorAll && n.querySelectorAll('.modal').forEach(observe);
+          }
+        });
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
 </body>
 </html>

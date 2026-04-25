@@ -356,28 +356,8 @@ body.light-mode #payment-modal #payment-close { color: rgba(9,9,11,.35) !importa
 body.light-mode #payment-modal #pay-divider { color: rgba(9,9,11,.35) !important; }
 body.light-mode #payment-modal #pay-submit { background: #09090b !important; color: #E8E3DC !important; }
 body.light-mode #payment-modal #pay-error { color: #c0392b !important; }
-/* Modal overlay backdrop */
-body.light-mode .modal:not(#cart-modal) {
-  background: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-body.light-mode #review-modal,
-body.light-mode #all-reviews-modal {
-  background: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-/* Fully transparent backdrops — dark & light — for all content modals */
-#size-fit-modal,
-#size-guide-modal,
-#all-reviews-modal,
-#review-modal,
-#zw-lang-modal {
-  background: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
+/* ALL modal overlays are fully transparent — content panels handle their own backgrounds */
+.modal{background:transparent !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important}
 body.light-mode #payment-modal {
   background: none !important;
   backdrop-filter: none !important;
@@ -3632,5 +3612,50 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 <div id="toast"></div>
 <script src="commerce-checkout.js?v=1"></script>
 <script src="customer-hub.js?v=1"></script>
+
+<script>
+/* ── Modal backdrop transparency enforcer ──────────────────────────────────
+   Applies transparent background via inline setProperty (beats all stylesheets,
+   including cross-origin ones that ignore CSS !important overrides).
+   Watches for class/style mutations so it fires whenever any modal opens.     */
+(function() {
+  function clearBackdrop(el) {
+    if (!el || !el.classList || !el.classList.contains('modal')) return;
+    el.style.setProperty('background', 'transparent', 'important');
+    el.style.setProperty('backdrop-filter', 'none', 'important');
+    el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+  }
+
+  var attrObs = new MutationObserver(function(muts) {
+    for (var i = 0; i < muts.length; i++) { clearBackdrop(muts[i].target); }
+  });
+
+  function observe(el) {
+    clearBackdrop(el);
+    attrObs.observe(el, { attributes: true, attributeFilter: ['class', 'style'] });
+  }
+
+  function init() {
+    document.querySelectorAll('.modal').forEach(observe);
+    // Watch for dynamically-inserted modals (e.g. #zw-lang-modal from lang.js)
+    new MutationObserver(function(muts) {
+      for (var i = 0; i < muts.length; i++) {
+        muts[i].addedNodes.forEach(function(n) {
+          if (n.nodeType === 1) {
+            if (n.classList && n.classList.contains('modal')) observe(n);
+            n.querySelectorAll && n.querySelectorAll('.modal').forEach(observe);
+          }
+        });
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
 </body>
 </html>
