@@ -208,7 +208,7 @@ body::after{
   display:flex;align-items:center;justify-content:center;gap:1.5rem;
   font-family:var(--fm);font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;
   /* Always fixed — never sticky — so body.position:fixed (scroll-lock) can't move it */
-  position:fixed;top:0;left:0;right:0;z-index:230;
+  position:fixed;top:0;left:0;right:0;z-index:250;
   transition:transform .28s ease, opacity .2s ease;
 }
 .bar-sep{opacity:.25;font-size:0;line-height:1}
@@ -1600,10 +1600,10 @@ body.light-mode::after{opacity:0.15}
 
 </style>
 <link rel="stylesheet" href="reviews-vibe.css?v=13">
-<link rel="stylesheet" href="storefront-cohesion.css?v=6">
-<link rel="stylesheet" href="storefront-mobile-rebuild.css?v=1">
+<link rel="stylesheet" href="storefront-cohesion.css?v=7">
+<link rel="stylesheet" href="storefront-mobile-rebuild.css?v=2">
 <script src="image-utils.js?v=1"></script>
-<script src="mobile-menu.js?v=2" defer></script>
+<script src="mobile-menu.js?v=3" defer></script>
 </head>
 <body>
 
@@ -2193,28 +2193,7 @@ const nav = document.getElementById('nav');
 window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 50), { passive: true });
 
 /* BAR ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â always visible */
-(function() {
-  const bar = document.getElementById('bar');
-  const syncNavOffset = () => {
-    const isMob = window.matchMedia('(max-width: 900px)').matches;
-    if (isMob) {
-      // Mobile: nav at top:0 always, bar fixed below nav
-      nav.style.top = '0px';
-      document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
-      if (bar && bar.style.display !== 'none') {
-        bar.style.top = nav.offsetHeight + 'px';
-      }
-    } else {
-      // Desktop: nav pushed below bar when bar visible
-      const isHidden = bar.style.display === 'none' || bar.style.opacity === '0' || bar.style.pointerEvents === 'none';
-      const nextTop = isHidden ? 0 : bar.offsetHeight;
-      nav.style.top = nextTop + 'px';
-      document.documentElement.style.setProperty('--mobile-nav-gap', nextTop + 'px');
-    }
-  };
-  syncNavOffset();
-  window.addEventListener('resize', syncNavOffset);
-})();
+/* Announcement-bar layout is driven once settings load. */
 
 /* SUPABASE */
 const SUPABASE_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
@@ -2236,37 +2215,35 @@ function teardownAnnouncementBarScroll() {
 function setAnnouncementBarLayout(barEl, navEl, isVisible) {
   if (!navEl) return;
   const spacerEl = document.getElementById('bar-spacer');
-  const isMob = window.matchMedia('(max-width: 900px)').matches;
-  if (isMob) {
-    // Mobile: nav at top:0, bar fixed below nav, no spacer needed
-    navEl.style.top = '0px';
-    document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
-    if (barEl && isVisible) barEl.style.top = navEl.offsetHeight + 'px';
-    if (spacerEl) spacerEl.style.height = '0';
-  } else {
-    // Desktop: bar always fixed at top:0; nav pushed below; spacer holds bar height in flow
-    const barH = (barEl && isVisible) ? barEl.offsetHeight : 0;
-    navEl.style.top = barH + 'px';
-    document.documentElement.style.setProperty('--mobile-nav-gap', barH + 'px');
-    if (spacerEl) spacerEl.style.height = isVisible ? barH + 'px' : '0';
-  }
+  const barH = (barEl && isVisible) ? barEl.offsetHeight : 0;
+  if (barEl) barEl.style.top = '0px';
+  navEl.style.top = barH + 'px';
+  document.documentElement.style.setProperty('--mobile-nav-gap', barH + 'px');
+  if (spacerEl) spacerEl.style.height = isVisible ? barH + 'px' : '0';
 }
+
+function syncAnnouncementBarLayout() {
+  const barEl = document.getElementById('bar');
+  const navEl = document.getElementById('nav');
+  if (!navEl) return;
+  const isVisible = !!barEl &&
+    barEl.style.display !== 'none' &&
+    barEl.style.opacity !== '0' &&
+    barEl.style.pointerEvents !== 'none';
+  setAnnouncementBarLayout(barEl, navEl, isVisible);
+}
+
+window.addEventListener('resize', syncAnnouncementBarLayout, { passive: true });
+window.addEventListener('orientationchange', syncAnnouncementBarLayout, { passive: true });
 
 function applyAnnouncementBar(mode, msgText) {
   const barEl = document.getElementById('bar');
   const navEl = document.getElementById('nav');
   if (!barEl) return;
   const normalizedMode = String(mode || 'on').trim().toLowerCase();
-  const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
 
   teardownAnnouncementBarScroll();
-  if (isMobileViewport) {
-    // Mobile: fixed below nav (bar CSS is already position:fixed)
-    barEl.style.top = (navEl ? navEl.offsetHeight : 0) + 'px';
-  } else {
-    // Desktop: fixed at top:0, nav pushed below by setAnnouncementBarLayout
-    barEl.style.top = '0';
-  }
+  barEl.style.top = '0';
   barEl.style.transition = 'transform .28s ease, opacity .2s ease';
   barEl.style.transform = 'translateY(0)';
   barEl.style.opacity = '1';
@@ -2281,7 +2258,7 @@ function applyAnnouncementBar(mode, msgText) {
   }
 
   if (normalizedMode === 'off') {
-    if (isMobileViewport) {
+    if (window.matchMedia('(max-width: 900px)').matches) {
       barEl.style.display = 'flex';
       barEl.style.transform = 'translateY(calc(-100% - 2px))';
       barEl.style.opacity = '0';
@@ -2298,7 +2275,7 @@ function applyAnnouncementBar(mode, msgText) {
 
   if (normalizedMode !== 'scroll') return;
 
-  if (isMobileViewport) {
+  if (window.matchMedia('(max-width: 900px)').matches) {
     barEl.style.transition = 'transform .28s ease, opacity .2s ease';
     let lastScrollY = window.scrollY;
     let isHidden = false;
@@ -2494,6 +2471,7 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
 })();
 
 let _user = null, _favs = [];
+let _homeProductsFetchPromise = null;
 
 function isSignedInMember() {
   return !!_user;
@@ -2555,6 +2533,11 @@ function normalizeCartPricing(cart) {
   return normalized;
 }
 
+updateNav();
+renderCart();
+void refreshCartFavs();
+void loadProducts();
+
 if (_sb?.auth?.getSession) {
   _sb.auth.getSession()
     .then(({ data }) => {
@@ -2568,11 +2551,13 @@ if (_sb?.auth?.getSession) {
         refreshCartFavs();
       }
       renderCart();
-      loadProducts();
+      void loadProducts();
     })
     .catch(() => {
       updateNav();
       refreshCartFavs();
+      renderCart();
+      void loadProducts();
     });
 }
 
@@ -2655,9 +2640,14 @@ async function loadProducts() {
     } catch(e){}
   }
 
+   if (_homeProductsFetchPromise) {
+    return _homeProductsFetchPromise;
+  }
+
   // Fetch products and images separately so each card only receives images that
   // actually belong to that product.
-  try {
+  _homeProductsFetchPromise = (async () => {
+    try {
     const headers = { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` };
     const [productsResp, imagesResp] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/products?select=*&order=sort_order.asc`, { headers }),
@@ -2687,7 +2677,12 @@ async function loadProducts() {
   } catch(e) {
     console.error('loadProducts error:', e);
     if (!cached) grid.innerHTML = '<div class="pcard" style="opacity:.3;text-align:center;padding:3rem">Could not load products.</div>';
+  } finally {
+    _homeProductsFetchPromise = null;
   }
+  })();
+
+  return _homeProductsFetchPromise;
 }
 
 // Standalone review-summary loader ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â uses direct REST (no _sb dependency,
@@ -2737,7 +2732,7 @@ function renderProductCards(products, grid) {
     grid.classList.add('two-items');
   }
 
-  grid.innerHTML = renderList.map(p => {
+  grid.innerHTML = renderList.map((p, index) => {
     const productName = p.title || p.name || 'Untitled';
     const productCategory = categoryLabelFromProduct(p);
     const productPrice = getEffectiveListPrice(p) || parseFloat(p.msrp || 0) || parseFloat(p.price || 0) || 0;
@@ -2747,8 +2742,10 @@ function renderProductCards(products, grid) {
       p.product_images.sort((a, b) => a.sort_order - b.sort_order);
       if (p.product_images[0].image_url) firstImg = p.product_images[0].image_url;
     }
+    const imageLoading = index < 2 ? 'eager' : 'lazy';
+    const imageFetchPriority = index === 0 ? 'high' : 'auto';
     const imgHtml = firstImg
-      ? `<img src="${firstImg}" alt="${productName}" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:top center">`
+      ? `<img src="${firstImg}" alt="${productName}" loading="${imageLoading}" fetchpriority="${imageFetchPriority}" style="width:100%;height:100%;object-fit:cover;object-position:top center">`
       : `<div class="pcard-img-placeholder">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
             <p>Image Coming Soon</p>
@@ -3961,6 +3958,10 @@ function openQuickAddReviewModal(item) {
 
   quickAddRenderGallery(item);
   quickAddRenderOptions(item);
+  const body = modal.querySelector('.quick-add-review-body');
+  if (body) body.scrollTop = 0;
+  const thumbs = modal.querySelector('#quick-add-review-thumbs');
+  if (thumbs) thumbs.scrollLeft = 0;
   modal.classList.add('open');
   modal.style.setProperty('background', 'transparent', 'important');
   modal.style.setProperty('backdrop-filter', 'none', 'important');
