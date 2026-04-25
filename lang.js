@@ -281,6 +281,7 @@
     root.style.overflow = 'hidden';
     root.style.overscrollBehavior = 'none';
 
+    window.__zwScrollLocking = true;
     body.style.position = 'fixed';
     body.style.setProperty('top', `-${langModalFallbackScrollY}px`, 'important');
     body.style.left = '0';
@@ -292,6 +293,8 @@
     if (scrollbarGap > 0) {
       body.style.paddingRight = `${scrollbarGap}px`;
     }
+
+    requestAnimationFrame(() => { window.__zwScrollLocking = false; });
   }
 
   function unlockLangModalScrollFallback() {
@@ -319,7 +322,9 @@
     body.style.overscrollBehavior = '';
     body.style.paddingRight = '';
 
+    window.__zwScrollRestoring = true;
     window.scrollTo(0, restoreY);
+    requestAnimationFrame(() => { window.__zwScrollRestoring = false; });
   }
 
   function buildModal() {
@@ -464,9 +469,9 @@
     const modal = document.getElementById('zw-lang-modal');
     langModalTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     if (modal) {
-      modal.style.background = 'none';
-      modal.style.backdropFilter = 'none';
-      modal.style.webkitBackdropFilter = 'none';
+      modal.style.setProperty('background', 'transparent', 'important');
+      modal.style.setProperty('backdrop-filter', 'none', 'important');
+      modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
       modal.style.alignItems = 'stretch';
       modal.style.justifyContent = 'flex-end';
       modal.style.padding = '0';

@@ -45,6 +45,8 @@
     root.style.overflow = 'hidden';
     root.style.overscrollBehavior = 'none';
 
+    // Signal that a scroll position snap is about to happen (body→fixed snaps to 0)
+    window.__zwScrollLocking = true;
     body.style.position = 'fixed';
     body.style.setProperty('top', `-${lockedScrollY}px`, 'important');
     body.style.left = '0';
@@ -56,6 +58,9 @@
     if (scrollbarGap > 0) {
       body.style.paddingRight = `${scrollbarGap}px`;
     }
+
+    // Clear locking flag after paint — any scroll event during this frame is suppressed
+    requestAnimationFrame(() => { window.__zwScrollLocking = false; });
   }
 
   function unlockScroll() {
@@ -87,15 +92,18 @@
     body.style.overscrollBehavior = '';
     body.style.paddingRight = '';
 
+    // Signal restore BEFORE scrollTo so scroll handlers can ignore the programmatic jump
+    window.__zwScrollRestoring = true;
     try {
       window.scrollTo({ top: restoreY, left: 0, behavior: 'instant' });
     } catch (_) {
       window.scrollTo(0, restoreY);
     }
 
-    // Restore scroll-behavior after the browser has painted
+    // Restore scroll-behavior and clear flag after the browser has painted
     requestAnimationFrame(() => {
       root.style.scrollBehavior = prevScrollBehavior;
+      window.__zwScrollRestoring = false;
     });
   }
 
