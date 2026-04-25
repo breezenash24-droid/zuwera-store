@@ -185,19 +185,41 @@ body.light-mode #bar {
   #bar { position: fixed; left: 0; right: 0; }
 }
 
-/* -- Size Guide Modal (mobile bottom sheet) -- */
+/* -- Size Guide Modal -- */
+/* Single scrollbar: the .mbox is the ONLY scroll container */
+#size-guide-modal .mbox {
+  max-height: 90dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  width: min(680px, 96vw);
+  display: flex;
+  flex-direction: column;
+}
+.size-guide-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden; /* no second scrollbar here */
+}
+.size-guide-frame-shell {
+  overflow: hidden; /* prevent iframe from adding its own scrollbar */
+  position: relative;
+}
+#size-guide-modal-iframe {
+  display: block;
+  border: none;
+  width: 100%;
+  overflow: hidden;
+}
 @media (max-width: 900px) {
   #size-guide-modal {
     align-items: flex-end;
+    padding: 0;
   }
   #size-guide-modal .mbox {
     width: 100vw;
-    height: auto;
-    min-height: 0;
-    max-height: 90dvh;
+    max-width: 100vw;
     border-radius: 16px 16px 0 0;
     padding: 1.5rem 1.2rem 2.5rem;
-    overflow-y: auto;
   }
 }
 
@@ -826,7 +848,7 @@ body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
     <div class="size-guide-body">
       <div class="size-guide-frame-shell">
         <div id="size-guide-modal-loading" class="size-guide-message">Loading size guide...</div>
-          <iframe id="size-guide-modal-iframe" src="" title="Size Guide" loading="eager" hidden></iframe>
+          <iframe id="size-guide-modal-iframe" src="" title="Size Guide" loading="eager" hidden scrolling="no"></iframe>
       </div>
     </div>
   </div>

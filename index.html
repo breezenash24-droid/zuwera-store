@@ -627,6 +627,7 @@ body.light-mode #mobile-menu-close { color:#09090b !important; }
 .pcard-action{
   display:inline-flex;align-items:center;gap:.4rem;
   margin-top:.9rem;
+  min-height:1.5rem; /* reserve space so async review load never reflows the card */
   font-family:var(--fm);font-size:.55rem;letter-spacing:.16em;text-transform:uppercase;
   color:var(--gold);
   border-bottom:1px solid rgba(248,145,165,.25);
@@ -835,7 +836,7 @@ body.light-mode .pcard-skel-img,body.light-mode .pcard-skel-line{background:rgba
 
 /* ── Bag count pop ── */
 @keyframes ccPop{0%{transform:scale(1)}40%{transform:scale(1.6)}70%{transform:scale(.92)}100%{transform:scale(1)}}
-.cc{display:inline-block;transform-origin:center}
+.cc{transform-origin:center}  /* keep display:flex from the original .cc rule */
 .cc.pop{animation:ccPop .4s cubic-bezier(.36,.07,.19,.97)}
 
 /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
@@ -1108,6 +1109,24 @@ body.light-mode .pcard-skel-img,body.light-mode .pcard-skel-line{background:rgba
   margin-top:1.5rem;transition:opacity .2s;
 }
 #checkout-btn:hover{opacity:.85}
+
+/* ── Cart shell footer ── */
+.cart-shell-footer{
+  border-top:1px solid rgba(244,241,235,.06);
+  padding:1.5rem 2.5rem;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;
+  margin-top:auto;flex-shrink:0;
+}
+.cart-shell-footer-nav{display:flex;flex-wrap:wrap;gap:1.5rem}
+.cart-shell-footer-nav a{
+  font-family:var(--fm);font-size:.55rem;letter-spacing:.14em;text-transform:uppercase;
+  color:rgba(244,241,235,.22)!important;transition:color .2s;text-decoration:none!important;
+}
+.cart-shell-footer-nav a:hover{color:rgba(244,241,235,.7)!important}
+.cart-shell-footer-copy{
+  font-family:var(--fm);font-size:.52rem;letter-spacing:.1em;text-transform:uppercase;
+  color:rgba(244,241,235,.1);
+}
 
 /* ===================== RETURNS MODAL ===================== */
 /* returns-modal is a transparent overlay — content lives inside .ret-inner-box */
@@ -2596,10 +2615,10 @@ async function loadProducts() {
     grid.innerHTML = Array(4).fill(0).map(() => `
       <div class="pcard pcard--skeleton" aria-hidden="true" tabindex="-1">
         <div class="pcard-img"><div class="pcard-skel-img"></div></div>
-        <div class="pcard-info" style="padding:.6rem 0">
+        <div class="pcard-info">
           <div class="pcard-skel-line" style="width:38%;height:.52rem;margin-bottom:.55rem"></div>
           <div class="pcard-skel-line" style="width:82%;height:.9rem;margin-bottom:.45rem"></div>
-          <div class="pcard-skel-line" style="width:26%;height:.68rem"></div>
+          <div class="pcard-skel-line" style="width:26%;height:.68rem;margin-top:.9rem"></div>
         </div>
       </div>`).join('');
   }
