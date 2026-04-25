@@ -347,10 +347,9 @@
 
     modal.innerHTML = `
       <div id="zw-lang-box" class="notranslate" translate="no" style="
-        background:#0f0f12; border:1px solid rgba(244,241,235,0.1);
+        background:#0f0f12; border-left:1px solid rgba(244,241,235,0.1);
         border-radius:0; width:min(34rem, 34vw); max-width:100%;
         height:100dvh; max-height:100dvh; overflow:hidden; display:flex; flex-direction:column;
-        box-shadow:-4px 0 24px rgba(0,0,0,0.25);
       ">
         <!-- Header -->
         <div style="display:flex;align-items:center;justify-content:space-between;
@@ -547,10 +546,15 @@
         background: rgba(9,9,11,0.04);
       }
       /* ── Modal box light mode ── */
+      #zw-lang-modal {
+        background: transparent !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        box-shadow: none !important;
+      }
       body.light-mode #zw-lang-box {
         background: #F0EEE9 !important;
-        border-color: rgba(9,9,11,0.12) !important;
-        box-shadow: 0 24px 64px rgba(9,9,11,0.15) !important;
+        border-left-color: rgba(9,9,11,0.15) !important;
       }
       body.light-mode #zw-lang-box > div:first-child {
         border-bottom-color: rgba(9,9,11,0.08) !important;
