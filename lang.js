@@ -273,28 +273,16 @@
     const scrollbarGap = Math.max(0, window.innerWidth - root.clientWidth);
 
     langModalFallbackLocked = true;
-    langModalFallbackScrollY = window.scrollY || window.pageYOffset || 0;
-
+    // Do NOT use body.position:fixed — that shifts the page content upward and makes
+    // the transparent overlay look dark (body background shows through). Instead just
+    // hide overflow so the page stays exactly where it is.
     root.dataset.scrollLocked = 'true';
     body.dataset.scrollLocked = 'true';
-
     root.style.overflow = 'hidden';
-    root.style.overscrollBehavior = 'none';
-
-    window.__zwScrollLocking = true;
-    body.style.position = 'fixed';
-    body.style.setProperty('top', `-${langModalFallbackScrollY}px`, 'important');
-    body.style.left = '0';
-    body.style.right = '0';
-    body.style.width = '100%';
     body.style.overflow = 'hidden';
+    root.style.overscrollBehavior = 'none';
     body.style.overscrollBehavior = 'none';
-
-    if (scrollbarGap > 0) {
-      body.style.paddingRight = `${scrollbarGap}px`;
-    }
-
-    requestAnimationFrame(() => { window.__zwScrollLocking = false; });
+    if (scrollbarGap > 0) body.style.paddingRight = `${scrollbarGap}px`;
   }
 
   function unlockLangModalScrollFallback() {
@@ -302,29 +290,15 @@
 
     const root = document.documentElement;
     const body = document.body;
-    const restoreY = langModalFallbackScrollY;
 
     langModalFallbackLocked = false;
-    langModalFallbackScrollY = 0;
-
     delete root.dataset.scrollLocked;
     delete body.dataset.scrollLocked;
-
     root.style.overflow = '';
-    root.style.overscrollBehavior = '';
-
-    body.style.position = '';
-    body.style.removeProperty('top');
-    body.style.left = '';
-    body.style.right = '';
-    body.style.width = '';
     body.style.overflow = '';
+    root.style.overscrollBehavior = '';
     body.style.overscrollBehavior = '';
     body.style.paddingRight = '';
-
-    window.__zwScrollRestoring = true;
-    window.scrollTo(0, restoreY);
-    requestAnimationFrame(() => { window.__zwScrollRestoring = false; });
   }
 
   function buildModal() {
