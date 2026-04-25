@@ -285,7 +285,6 @@
     Back
   </a>
   <div class="zw-nav-right">
-    <button class="zw-nav-btn" id="theme-btn">Light / Dark</button>
     <button class="zw-nav-btn" id="logout-btn" style="display:none">Sign Out</button>
   </div>
 </nav>
@@ -444,21 +443,33 @@ async function loadOrders() {
   if (!list || list.dataset.loaded) return;
   if (loading) loading.style.display = 'block';
   try {
-    if (!_sb || !_session) return;
-    const { data } = await _sb.from('orders')
-      .select('id,created_at,status,total_amount')
-      .eq('user_id', _session.user.id)
-      .order('created_at', { ascending: false });
+    if (!_session) return;
+    // Use the hub API (service-role key) so RLS never blocks the query
+    if (!_hubPayload) _hubPayload = await fetchHub();
+    const data = _hubPayload?.orders || [];
     if (loading) loading.style.display = 'none';
-    if (!data?.length) { if (empty) empty.style.display = 'block'; return; }
+    if (!data.length) { if (empty) empty.style.display = 'block'; return; }
     list.dataset.loaded = '1';
-    list.innerHTML = data.map(o => `
-      <div class="order-row">
-        <div class="order-id">Order #${escHtml(String(o.id||'').slice(-8).toUpperCase())}</div>
-        <div class="order-meta">${new Date(o.created_at).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})}${o.total_amount ? ' · $' + parseFloat(o.total_amount).toFixed(2) : ''}</div>
-        <span class="order-status">${escHtml(o.status || 'Confirmed')}</span>
-      </div>
-    `).join('');
+    list.innerHTML = data.map(o => {
+      const fulfillment = o.commerce?.fulfillmentStatus || o.fulfillment_status || '';
+      const displayStatus = o.status || 'confirmed';
+      const statusLabel = fulfillment && fulfillment !== 'unfulfilled'
+        ? fulfillment.replace(/_/g,' ')
+        : displayStatus.replace(/_/g,' ');
+      const tracking = o.commerce?.trackingNumber || o.tracking_number || '';
+      const trackingUrl = o.commerce?.trackingUrl || o.tracking_url || '';
+      return `
+        <div class="order-row">
+          <div class="order-id">Order #${escHtml(String(o.id||'').slice(-8).toUpperCase())}</div>
+          <div class="order-meta">${new Date(o.created_at).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})}${o.total_amount ? ' · $' + parseFloat(o.total_amount).toFixed(2) : ''}</div>
+          <span class="order-status">${escHtml(statusLabel)}</span>
+          ${tracking ? `<div class="order-meta" style="margin-top:.3rem">
+            ${trackingUrl
+              ? `<a href="${escHtml(trackingUrl)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;opacity:.7">Track: ${escHtml(tracking)}</a>`
+              : `Tracking: ${escHtml(tracking)}`}
+          </div>` : ''}
+        </div>`;
+    }).join('');
   } catch(err) {
     if (loading) loading.textContent = 'Could not load orders.';
   }
@@ -682,10 +693,7 @@ function renderProfile() {
             <option value="both" ${profile.preferredChannel === 'both' ? 'selected' : ''}>Both</option>
           </select>
         </div>
-        <div class="zw-field">
-          <label>CRM Notes</label>
-          <input id="prof-notes" type="text" value="${escHtml(profile.notes || '')}" placeholder="VIP, prefers SMS…">
-        </div>
+        <input id="prof-notes" type="hidden" value="${escHtml(profile.notes || '')}">
       </div>
       <label class="zw-check-row">
         <input id="prof-marketing" type="checkbox" ${profile.marketingConsent ? 'checked' : ''}>
@@ -720,12 +728,17 @@ async function saveProfile() {
       zip: document.getElementById('prof-zip')?.value?.trim()
     };
     const hasAddress = newAddress.label && newAddress.line1 && newAddress.city;
-    await postHub('update_profile', {
+    // Build addresses array: preserve existing, append new one if provided
+    const existingAddrs = Array.isArray(_hubPayload?.profile?.savedAddresses)
+      ? _hubPayload.profile.savedAddresses : [];
+    const addresses = hasAddress ? [...existingAddrs, newAddress] : existingAddrs;
+
+    await postHub('save_profile', {
       preferredChannel: document.getElementById('prof-channel')?.value || 'email',
       notes: document.getElementById('prof-notes')?.value?.trim() || '',
       marketingConsent: document.getElementById('prof-marketing')?.checked || false,
       smsConsent: document.getElementById('prof-sms')?.checked || false,
-      ...(hasAddress ? { addAddress: newAddress } : {})
+      addresses,
     });
     if (statusEl) statusEl.textContent = 'Saved!';
     // Reload hub payload and re-render
@@ -797,14 +810,6 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
-
-// Theme toggle
-document.getElementById('theme-btn').addEventListener('click', () => {
-  const isLight = document.body.classList.toggle('light-mode');
-  localStorage.setItem('theme', isLight ? 'light' : 'dark');
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', isLight ? '#F0EEE9' : '#09090b');
-});
 </script>
 </body>
 </html>

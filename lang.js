@@ -341,7 +341,7 @@
     modal.setAttribute('aria-label', 'Select language');
     modal.style.cssText = `
       display:none; position:fixed; inset:0; z-index:100000;
-      background:${overlayBg}; backdrop-filter:${overlayFilter}; -webkit-backdrop-filter:${overlayFilter}; pointer-events:none;
+      background:${overlayBg}; backdrop-filter:${overlayFilter}; -webkit-backdrop-filter:${overlayFilter};
       align-items:stretch; justify-content:flex-end; padding:0;
     `;
 
@@ -349,8 +349,8 @@
       <div id="zw-lang-box" class="notranslate" translate="no" style="
         background:#0f0f12; border:1px solid rgba(244,241,235,0.1);
         border-radius:0; width:min(34rem, 34vw); max-width:100%;
-        height:100dvh; max-height:100dvh; overflow:hidden; display:flex; flex-direction:column; pointer-events:auto;
-        box-shadow:0 24px 64px rgba(0,0,0,0.7);
+        height:100dvh; max-height:100dvh; overflow:hidden; display:flex; flex-direction:column;
+        box-shadow:-4px 0 24px rgba(0,0,0,0.25);
       ">
         <!-- Header -->
         <div style="display:flex;align-items:center;justify-content:space-between;
@@ -468,15 +468,7 @@
     buildModal();
     const modal = document.getElementById('zw-lang-modal');
     langModalTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    if (modal) {
-      modal.style.setProperty('background', 'transparent', 'important');
-      modal.style.setProperty('backdrop-filter', 'none', 'important');
-      modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
-      modal.style.alignItems = 'stretch';
-      modal.style.justifyContent = 'flex-end';
-      modal.style.padding = '0';
-    }
-    modal.style.display = 'flex';
+    if (modal) modal.style.display = 'flex';
     lockLangModalScrollFallback();
     setTimeout(() => {
       const search = document.getElementById('zw-lang-search');
