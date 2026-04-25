@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#09090b">
+  <title>Returns — Zuwera</title>
+  <meta name="description" content="Start a return or exchange for your Zuwera order.">
+  <link rel="icon" type="image/png" href="/images/favicon-black.png?v=1">
+  <script src="/favicon-utils.js?v=1"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    button { cursor: pointer; background: none; border: none; color: inherit; }
+    a { text-decoration: none; color: inherit; }
+
+    :root {
+      --ink: #09090b;
+      --paper: #f4f1eb;
+      --fw: 'Bebas Neue', sans-serif;
+      --fm: 'DM Sans', sans-serif;
+    }
+
+    body {
+      background: var(--ink);
+      color: var(--paper);
+      font-family: var(--fm);
+      font-weight: 300;
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    body.light-mode {
+      background: #F0EEE9;
+      color: var(--ink);
+    }
+
+    /* ── NAV ── */
+    .zw-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.1rem 2.5rem;
+      background: var(--ink);
+      border-bottom: 1px solid rgba(244,241,235,.07);
+      backdrop-filter: blur(8px);
+    }
+    body.light-mode .zw-nav {
+      background: #F0EEE9;
+      border-bottom-color: rgba(9,9,11,.07);
+    }
+    .zw-nav-logo {
+      font-family: var(--fw);
+      font-size: 1.35rem;
+      letter-spacing: .18em;
+      opacity: .85;
+      transition: opacity .2s;
+    }
+    .zw-nav-logo:hover { opacity: 1; }
+    .zw-nav-logo img { height: 22px; width: auto; }
+    .zw-nav-back {
+      font-family: var(--fm);
+      font-size: .6rem;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: rgba(244,241,235,.4);
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      transition: color .2s;
+    }
+    .zw-nav-back:hover { color: var(--paper); }
+    body.light-mode .zw-nav-back { color: rgba(9,9,11,.4); }
+    body.light-mode .zw-nav-back:hover { color: var(--ink); }
+    .zw-nav-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .zw-theme-btn {
+      font-family: var(--fm);
+      font-size: .58rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: rgba(244,241,235,.35);
+      transition: color .2s;
+      padding: .3rem .5rem;
+    }
+    .zw-theme-btn:hover { color: var(--paper); }
+    body.light-mode .zw-theme-btn { color: rgba(9,9,11,.35); }
+    body.light-mode .zw-theme-btn:hover { color: var(--ink); }
+
+    /* ── PAGE LAYOUT ── */
+    .page-wrap {
+      flex: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 3rem 2.5rem 5rem;
+    }
+
+    .page-hd {
+      margin-bottom: 3rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid rgba(244,241,235,.07);
+    }
+    body.light-mode .page-hd { border-bottom-color: rgba(9,9,11,.07); }
+    .page-hd h1 {
+      font-family: var(--fw);
+      font-weight: 900;
+      font-style: italic;
+      font-size: 2.8rem;
+      letter-spacing: .06em;
+      margin-bottom: .4rem;
+    }
+    .page-hd p {
+      font-family: var(--fm);
+      font-size: .75rem;
+      color: rgba(244,241,235,.4);
+      letter-spacing: .04em;
+    }
+    body.light-mode .page-hd p { color: rgba(9,9,11,.4); }
+
+    /* ── TWO-COL BODY ── */
+    .ret-body {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 3rem;
+      align-items: start;
+    }
+    @media(max-width: 800px) {
+      .ret-body { grid-template-columns: 1fr; gap: 2rem; }
+      .page-wrap { padding: 2rem 1.2rem 4rem; }
+    }
+
+    /* ── POLICY CARD ── */
+    .ret-policy {
+      border: 1px solid rgba(244,241,235,.08);
+      padding: 2rem;
+      background: rgba(244,241,235,.02);
+      margin-bottom: 2rem;
+    }
+    body.light-mode .ret-policy { border-color: rgba(9,9,11,.1); background: rgba(9,9,11,.02); }
+    .ret-policy-title {
+      font-family: var(--fw);
+      font-weight: 700;
+      font-style: italic;
+      font-size: 1.3rem;
+      letter-spacing: .05em;
+      margin-bottom: 1.2rem;
+    }
+    .ret-badges {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+    .ret-badge {
+      font-family: var(--fm);
+      font-size: .58rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      border: 1px solid rgba(244,241,235,.15);
+      padding: .45rem .8rem;
+      color: rgba(244,241,235,.65);
+    }
+    body.light-mode .ret-badge { border-color: rgba(9,9,11,.15); color: rgba(9,9,11,.6); }
+    .ret-policy-body {
+      font-family: var(--fm);
+      font-size: .78rem;
+      line-height: 1.85;
+      color: rgba(244,241,235,.55);
+    }
+    body.light-mode .ret-policy-body { color: rgba(9,9,11,.55); }
+
+    /* ── HISTORY SECTION ── */
+    .ret-history-section {
+      display: none;
+    }
+    .ret-history-section.visible {
+      display: block;
+      margin-top: 2rem;
+    }
+    .ret-sec-t {
+      font-family: var(--fw);
+      font-weight: 700;
+      font-style: italic;
+      font-size: 1.3rem;
+      letter-spacing: .05em;
+      margin-bottom: 1rem;
+    }
+    .ret-history-item {
+      border-top: 1px solid rgba(244,241,235,.06);
+      padding: .9rem 0;
+      font-family: var(--fm);
+      font-size: .72rem;
+      color: rgba(244,241,235,.5);
+    }
+    body.light-mode .ret-history-item { border-top-color: rgba(9,9,11,.07); color: rgba(9,9,11,.5); }
+    .ret-chip {
+      display: inline-block;
+      font-size: .52rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      border: 1px solid rgba(244,241,235,.15);
+      padding: .2rem .55rem;
+      color: rgba(244,241,235,.55);
+      margin-left: .5rem;
+      vertical-align: middle;
+    }
+    .ret-chip.approved, .ret-chip.refunded { border-color: rgba(100,220,140,.3); color: rgba(100,220,140,.8); }
+    body.light-mode .ret-chip { border-color: rgba(9,9,11,.15); color: rgba(9,9,11,.5); }
+
+    /* ── RIGHT COL: FORM ── */
+    .ret-sidebar {
+      position: sticky;
+      top: 90px;
+    }
+
+    /* ── AUTH PROMPT ── */
+    .ret-auth-prompt {
+      border: 1px solid rgba(244,241,235,.08);
+      padding: 2.5rem 2rem;
+      text-align: center;
+    }
+    body.light-mode .ret-auth-prompt { border-color: rgba(9,9,11,.1); }
+    .ret-auth-prompt p {
+      font-family: var(--fm);
+      font-size: .78rem;
+      color: rgba(244,241,235,.45);
+      line-height: 1.8;
+      margin-bottom: 1.5rem;
+    }
+    body.light-mode .ret-auth-prompt p { color: rgba(9,9,11,.45); }
+    .ret-auth-btn {
+      display: inline-block;
+      font-family: var(--fm);
+      font-size: .6rem;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      border: 1px solid rgba(244,241,235,.2);
+      padding: .7rem 1.4rem;
+      color: rgba(244,241,235,.7);
+      transition: all .2s;
+    }
+    .ret-auth-btn:hover { border-color: var(--paper); color: var(--paper); }
+    body.light-mode .ret-auth-btn { border-color: rgba(9,9,11,.2); color: rgba(9,9,11,.6); }
+    body.light-mode .ret-auth-btn:hover { border-color: var(--ink); color: var(--ink); }
+
+    /* ── HUB CARD (returns form from customer-hub) ── */
+    .zw-hub-stack { display: flex; flex-direction: column; gap: .9rem; }
+    .zw-hub-card {
+      border: 1px solid rgba(244,241,235,.08);
+      padding: 1.4rem;
+      background: rgba(244,241,235,.02);
+    }
+    body.light-mode .zw-hub-card { border-color: rgba(9,9,11,.1); background: rgba(9,9,11,.02); }
+    .zw-hub-title {
+      font-family: var(--fw);
+      font-weight: 700;
+      font-style: italic;
+      font-size: 1.1rem;
+      letter-spacing: .05em;
+      margin-bottom: .5rem;
+    }
+    .zw-hub-meta {
+      font-size: .75rem;
+      color: rgba(244,241,235,.45);
+      line-height: 1.7;
+    }
+    body.light-mode .zw-hub-meta { color: rgba(9,9,11,.45); }
+    .zw-hub-field {
+      display: flex;
+      flex-direction: column;
+      gap: .3rem;
+      margin-bottom: .75rem;
+    }
+    .zw-hub-field label {
+      font-size: .56rem;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: rgba(244,241,235,.3);
+    }
+    body.light-mode .zw-hub-field label { color: rgba(9,9,11,.4); }
+    .zw-hub-field select,
+    .zw-hub-field input,
+    .zw-hub-field textarea {
+      width: 100%;
+      background: rgba(244,241,235,.04);
+      border: 1px solid rgba(244,241,235,.12);
+      color: var(--paper);
+      padding: .65rem .8rem;
+      font-family: var(--fm);
+      font-size: .82rem;
+      outline: none;
+      transition: border-color .2s;
+      resize: vertical;
+    }
+    .zw-hub-field select:focus,
+    .zw-hub-field input:focus,
+    .zw-hub-field textarea:focus { border-color: rgba(244,241,235,.35); }
+    body.light-mode .zw-hub-field select,
+    body.light-mode .zw-hub-field input,
+    body.light-mode .zw-hub-field textarea {
+      background: rgba(9,9,11,.04);
+      border-color: rgba(9,9,11,.12);
+      color: var(--ink);
+    }
+    .zw-hub-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .75rem;
+    }
+    .zw-hub-actions {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      margin-top: .5rem;
+      flex-wrap: wrap;
+    }
+    .zw-hub-btn {
+      border: 1px solid rgba(244,241,235,.18);
+      background: transparent;
+      color: rgba(244,241,235,.65);
+      padding: .75rem 1.4rem;
+      font-family: var(--fm);
+      font-size: .6rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      transition: all .2s;
+    }
+    .zw-hub-btn:hover { border-color: var(--paper); color: var(--paper); }
+    .zw-hub-btn.primary {
+      background: var(--paper);
+      color: var(--ink);
+      border-color: var(--paper);
+      font-weight: 600;
+    }
+    .zw-hub-btn.primary:hover { background: #e2dfd9; border-color: #e2dfd9; }
+    .zw-hub-btn:disabled { opacity: .35; cursor: default; }
+    body.light-mode .zw-hub-btn { border-color: rgba(9,9,11,.18); color: rgba(9,9,11,.6); }
+    body.light-mode .zw-hub-btn:hover { border-color: var(--ink); color: var(--ink); }
+    body.light-mode .zw-hub-btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+    .zw-hub-status {
+      font-size: .68rem;
+      color: rgba(244,241,235,.4);
+      font-family: var(--fm);
+    }
+    body.light-mode .zw-hub-status { color: rgba(9,9,11,.4); }
+    .zw-hub-address {
+      border: 1px solid rgba(244,241,235,.08);
+      padding: .9rem;
+      margin-bottom: .6rem;
+    }
+    body.light-mode .zw-hub-address { border-color: rgba(9,9,11,.1); }
+    .zw-hub-badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: .62rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: .2rem .6rem;
+      border: 1px solid rgba(244,241,235,.15);
+      color: rgba(244,241,235,.55);
+    }
+    body.light-mode .zw-hub-badge { border-color: rgba(9,9,11,.15); color: rgba(9,9,11,.5); }
+    .zw-hub-empty {
+      font-size: .72rem;
+      color: rgba(244,241,235,.3);
+      font-family: var(--fm);
+      padding: .5rem 0;
+    }
+    body.light-mode .zw-hub-empty { color: rgba(9,9,11,.35); }
+
+    /* ── LOADING STATE ── */
+    .ret-loading {
+      font-family: var(--fm);
+      font-size: .72rem;
+      color: rgba(244,241,235,.3);
+      padding: 1.5rem 0;
+      letter-spacing: .04em;
+    }
+    body.light-mode .ret-loading { color: rgba(9,9,11,.3); }
+
+    /* ── FOOTER ── */
+    .zw-footer {
+      border-top: 1px solid rgba(244,241,235,.07);
+      padding: 2.5rem;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 2rem;
+      margin-top: auto;
+    }
+    body.light-mode .zw-footer { border-top-color: rgba(9,9,11,.07); }
+    .zw-footer-logo {
+      font-family: var(--fw);
+      font-weight: 900;
+      font-style: italic;
+      font-size: 1.4rem;
+      letter-spacing: .12em;
+      opacity: .7;
+    }
+    .zw-footer-logo img { height: 28px; width: auto; display: block; opacity: .7; }
+    .zw-footer-links {
+      display: flex;
+      gap: 2rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .zw-footer-links a {
+      font-family: var(--fm);
+      font-size: .58rem;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: rgba(244,241,235,.25);
+      transition: color .2s;
+    }
+    .zw-footer-links a:hover { color: var(--paper); }
+    body.light-mode .zw-footer-links a { color: rgba(9,9,11,.3); }
+    body.light-mode .zw-footer-links a:hover { color: var(--ink); }
+    .zw-footer-right { text-align: right; }
+    .zw-footer-ig {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      font-family: var(--fm);
+      font-size: .6rem;
+      letter-spacing: .1em;
+      color: rgba(244,241,235,.28);
+      transition: color .2s;
+      margin-bottom: .5rem;
+    }
+    .zw-footer-ig:hover { color: var(--paper); }
+    body.light-mode .zw-footer-ig { color: rgba(9,9,11,.3); }
+    .zw-footer-copy {
+      font-family: var(--fm);
+      font-size: .55rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: rgba(244,241,235,.15);
+    }
+    body.light-mode .zw-footer-copy { color: rgba(9,9,11,.2); }
+    @media(max-width: 900px) {
+      .zw-footer { grid-template-columns: 1fr; text-align: center; gap: 1.5rem; }
+      .zw-footer-right { text-align: center; }
+      .zw-footer-links { justify-content: center; }
+      .zw-footer-logo, .zw-footer-logo img { margin: 0 auto; }
+      .zw-nav { padding: 1rem 1.2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<script>
+(function() {
+  var saved = localStorage.getItem('theme');
+  if (saved !== 'dark') document.body.classList.add('light-mode');
+  var meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', document.body.classList.contains('light-mode') ? '#F0EEE9' : '#09090b');
+})();
+</script>
+
+<!-- NAV -->
+<nav class="zw-nav">
+  <a href="/" class="zw-nav-logo">
+    <img src="images/wordmark.png" alt="ZUWERA" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
+  </a>
+  <a href="javascript:history.back()" class="zw-nav-back">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    Back
+  </a>
+  <div class="zw-nav-right">
+    <button class="zw-theme-btn" id="theme-btn" aria-label="Toggle theme">Light / Dark</button>
+  </div>
+</nav>
+
+<!-- PAGE CONTENT -->
+<main class="page-wrap">
+  <div class="page-hd">
+    <h1>Returns</h1>
+    <p>Free returns &amp; exchanges within 30 days of delivery.</p>
+  </div>
+
+  <div class="ret-body">
+    <!-- LEFT: Policy + History -->
+    <div>
+      <div class="ret-policy">
+        <div class="ret-policy-title">Return Policy</div>
+        <div class="ret-badges">
+          <span class="ret-badge">30-day returns</span>
+          <span class="ret-badge">Free return shipping</span>
+          <span class="ret-badge">All items eligible</span>
+        </div>
+        <div class="ret-policy-body">
+          We want you to love your Zuwera piece. If something isn't right, you can return it within 30 days of delivery for a full refund or exchange. Items must be unworn, unwashed, and in their original packaging with tags attached.
+        </div>
+      </div>
+
+      <div id="ret-history-section" class="ret-history-section">
+        <div class="ret-sec-t">Your Requests</div>
+        <div id="ret-history-list"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Form or Auth Prompt -->
+    <div class="ret-sidebar">
+      <div id="ret-auth-prompt" class="ret-auth-prompt" style="display:none">
+        <p>Sign in to view your orders and start a return or exchange.</p>
+        <a href="/?auth=signin" class="ret-auth-btn">Sign In</a>
+      </div>
+
+      <div id="ret-form-area">
+        <div class="ret-loading" id="ret-loading">Loading your orders...</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- FOOTER -->
+<footer class="zw-footer">
+  <div class="zw-footer-logo">
+    <img src="images/wordmark.png" alt="ZUWERA" loading="lazy" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
+  </div>
+  <nav class="zw-footer-links">
+    <a href="/drop001.html">Release 001</a>
+    <a href="/sizeguide.html">Size Guide</a>
+    <a href="/policies.html">Policies</a>
+    <a href="/returns.html" aria-current="page">Returns</a>
+    <a href="mailto:nasirubreeze@zuwera.store">Contact</a>
+  </nav>
+  <div class="zw-footer-right">
+    <a href="https://instagram.com/Zuw.era" target="_blank" rel="noopener" class="zw-footer-ig">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+      @Zuw.era
+    </a>
+    <p class="zw-footer-copy">&copy; 2026 Zuwera. All rights reserved.</p>
+  </div>
+</footer>
+
+<script src="/supabase.min.js"></script>
+<script>
+const SUPABASE_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+const _sb = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+  auth: { persistSession: true, storageKey: 'zuwera-auth', flowType: 'implicit' }
+}) : null;
+
+function escHtml(v) {
+  return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function getSession() {
+  if (!_sb?.auth?.getSession) return null;
+  const r = await _sb.auth.getSession().catch(() => null);
+  return r?.data?.session || null;
+}
+
+async function fetchHubData(session) {
+  const resp = await fetch('/api/customer-hub', {
+    headers: { Authorization: `Bearer ${session.access_token}` }
+  });
+  const payload = await resp.json().catch(() => ({}));
+  if (!resp.ok || !payload?.success) throw new Error(payload?.error || 'Could not load returns portal.');
+  return payload;
+}
+
+async function postHub(action, data) {
+  const session = await getSession();
+  if (!session?.access_token) throw new Error('Please sign in again.');
+  const resp = await fetch('/api/customer-hub', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+    body: JSON.stringify({ action, ...data })
+  });
+  const res = await resp.json().catch(() => ({}));
+  if (!resp.ok || !res?.success) throw new Error(res?.error || 'Update failed.');
+  return res;
+}
+
+function renderReturns(payload) {
+  const area = document.getElementById('ret-form-area');
+  if (!area) return;
+
+  const orders = Array.isArray(payload?.orders) ? payload.orders : [];
+  const requests = Array.isArray(payload?.returns) ? payload.returns : [];
+
+  // Render history on left side
+  if (requests.length > 0) {
+    const hist = document.getElementById('ret-history-section');
+    const list = document.getElementById('ret-history-list');
+    if (hist && list) {
+      hist.classList.add('visible');
+      list.innerHTML = requests.map(r => `
+        <div class="ret-history-item">
+          <strong>${escHtml(r.orderLabel || '#' + String(r.orderId || '').slice(-8).toUpperCase())}</strong>
+          <span class="ret-chip ${escHtml(r.status || 'requested')}">${escHtml(r.status || 'requested')}</span>
+          <div style="margin-top:.35rem;font-size:.68rem;">${escHtml(r.resolution)} — ${escHtml(r.reason)}</div>
+          <div style="margin-top:.2rem;font-size:.62rem;opacity:.6">${new Date(r.createdAt || Date.now()).toLocaleDateString()}</div>
+        </div>
+      `).join('');
+    }
+  }
+
+  const options = orders.map(o => {
+    const id = String(o.id || '');
+    const label = `#${id.slice(-8).toUpperCase()} — ${new Date(o.created_at || Date.now()).toLocaleDateString()}`;
+    return `<option value="${escHtml(id)}">${escHtml(label)}</option>`;
+  }).join('');
+
+  area.innerHTML = `
+    <div class="zw-hub-stack">
+      <div class="zw-hub-card">
+        <div class="zw-hub-title">Start a Return</div>
+        <div class="zw-hub-meta">Start a return or exchange request. Your team will review and process within 1–3 business days.</div>
+      </div>
+      <div class="zw-hub-card">
+        <div class="zw-hub-field">
+          <label>Order</label>
+          <select id="zw-return-order">${options || '<option value="">No eligible orders found</option>'}</select>
+        </div>
+        <div class="zw-hub-grid">
+          <div class="zw-hub-field">
+            <label>Resolution</label>
+            <select id="zw-return-resolution">
+              <option value="return">Return for refund</option>
+              <option value="exchange">Exchange</option>
+              <option value="store_credit">Store credit</option>
+            </select>
+          </div>
+          <div class="zw-hub-field">
+            <label>Reason</label>
+            <input id="zw-return-reason" type="text" placeholder="Wrong size, damaged item…">
+          </div>
+        </div>
+        <div class="zw-hub-field">
+          <label>Notes (optional)</label>
+          <textarea id="zw-return-notes" rows="3" placeholder="Anything the team should know"></textarea>
+        </div>
+        <div class="zw-hub-actions">
+          <button id="zw-return-submit" class="zw-hub-btn primary" ${orders.length ? '' : 'disabled'}>Submit Request</button>
+          <span id="zw-return-status" class="zw-hub-status"></span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('zw-return-submit')?.addEventListener('click', async () => {
+    const status = document.getElementById('zw-return-status');
+    const orderEl = document.getElementById('zw-return-order');
+    const reasonEl = document.getElementById('zw-return-reason');
+    const resEl = document.getElementById('zw-return-resolution');
+    const notesEl = document.getElementById('zw-return-notes');
+    if (status) status.textContent = 'Submitting…';
+    try {
+      await postHub('submit_return', {
+        orderId: orderEl?.value || '',
+        orderLabel: orderEl?.selectedOptions?.[0]?.textContent || '',
+        resolution: resEl?.value || 'return',
+        reason: reasonEl?.value || '',
+        notes: notesEl?.value || ''
+      });
+      if (status) status.textContent = 'Request submitted!';
+      setTimeout(() => location.reload(), 1200);
+    } catch(err) {
+      if (status) status.textContent = err.message || 'Could not submit request.';
+    }
+  });
+}
+
+async function init() {
+  const loading = document.getElementById('ret-loading');
+  const authPrompt = document.getElementById('ret-auth-prompt');
+  const formArea = document.getElementById('ret-form-area');
+
+  try {
+    const session = await getSession();
+    if (!session) {
+      if (loading) loading.style.display = 'none';
+      if (authPrompt) authPrompt.style.display = 'block';
+      return;
+    }
+    const payload = await fetchHubData(session);
+    if (loading) loading.style.display = 'none';
+    renderReturns(payload);
+  } catch(err) {
+    if (loading) loading.textContent = err.message || 'Could not load returns. Please try again.';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+// Theme toggle
+document.getElementById('theme-btn').addEventListener('click', () => {
+  const isLight = document.body.classList.toggle('light-mode');
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', isLight ? '#F0EEE9' : '#09090b');
+});
+</script>
+</body>
+</html>

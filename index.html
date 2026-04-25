@@ -921,11 +921,13 @@ body.light-mode .pcard-skel-img,body.light-mode .pcard-skel-line{background:rgba
   min-height:100%;
   display:flex;
   flex-direction:column;
+  overflow:hidden;
 }
 .mbox.quick-add-review-box.quick-add-product-box .quick-add-review-media{
   aspect-ratio:auto;
-  min-height:520px;
+  min-height:min(480px,52dvh);
   flex:1 1 auto;
+  overflow:hidden;
 }
 .mbox.quick-add-review-box.quick-add-product-box .quick-add-review-body{
   display:flex;
@@ -955,7 +957,8 @@ body.light-mode .pcard-skel-img,body.light-mode .pcard-skel-line{background:rgba
   .mbox.quick-add-review-box.quick-add-product-box .quick-add-review-media{
     aspect-ratio:3/4;
     min-height:0;
-    max-height:min(68vh,640px);
+    max-height:min(55dvh,500px);
+    overflow:hidden;
   }
   .mbox.quick-add-review-box.quick-add-product-box .quick-add-review-body{
     padding:1.35rem;
@@ -1275,22 +1278,23 @@ body.light-mode .ret-history-item{border-top-color:rgba(9,9,11,.07)}
 .pfield label{
   display:block;font-family:var(--fm);font-size:.56rem;
   letter-spacing:.15em;text-transform:uppercase;
-  color:rgba(244,241,235,.3);margin-bottom:.35rem;
+  color:rgba(244,241,235,.55);margin-bottom:.35rem;
 }
 .pfield input{
-  width:100%;background:rgba(244,241,235,.04);
-  border:1px solid rgba(244,241,235,.1);
+  width:100%;background:rgba(244,241,235,.08);
+  border:1px solid rgba(244,241,235,.2);
   color:var(--paper);padding:.72rem .9rem;
   font-family:var(--fb);font-size:.88rem;outline:none;transition:border-color .2s;
 }
-.pfield input:focus{border-color:rgba(244,241,235,.35)}
+.pfield input::placeholder{color:rgba(244,241,235,.38)}
+.pfield input:focus{background:rgba(244,241,235,.11);border-color:rgba(244,241,235,.42)}
 .pgrow{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
 #stripe-card-element{
-  background:rgba(244,241,235,.04);
-  border:1px solid rgba(244,241,235,.1);
+  background:rgba(244,241,235,.08);
+  border:1px solid rgba(244,241,235,.2);
   padding:.78rem .9rem;transition:border-color .2s;
 }
-#stripe-card-element.StripeElement--focus{border-color:rgba(244,241,235,.35)}
+#stripe-card-element.StripeElement--focus{background:rgba(244,241,235,.11);border-color:rgba(244,241,235,.42)}
 #stripe-card-element.StripeElement--invalid{border-color:var(--red)}
 #pay-error{color:var(--red);font-family:var(--fm);font-size:.68rem;min-height:1rem;margin:.4rem 0}
 .rate-opt{
@@ -1563,8 +1567,9 @@ body.light-mode #payment-modal{
 body.light-mode .pbox{background:#F0EEE9;border-color:rgba(9,9,11,.08)}
 body.light-mode .psub{color:rgba(9,9,11,.6)}
 body.light-mode .pfield label{color:rgba(9,9,11,.7)}
-body.light-mode .pfield input{background:rgba(9,9,11,.04);border-color:rgba(9,9,11,.15);color:rgba(9,9,11,.85)}
-body.light-mode .pfield input::placeholder{color:rgba(9,9,11,.35)}
+body.light-mode .pfield input{background:rgba(9,9,11,.06);border-color:rgba(9,9,11,.2);color:rgba(9,9,11,.9)}
+body.light-mode .pfield input::placeholder{color:rgba(9,9,11,.4)}
+body.light-mode .pfield input:focus{background:rgba(9,9,11,.09);border-color:rgba(9,9,11,.38)}
 body.light-mode .rate-opt{border-color:rgba(9,9,11,.08);background:rgba(9,9,11,.02)}
 body.light-mode .rate-opt:hover{border-color:rgba(9,9,11,.22)}
 body.light-mode .rate-opt.selected{border-color:rgba(9,9,11,.45);background:rgba(9,9,11,.05)}
@@ -1572,7 +1577,8 @@ body.light-mode .rate-meta{color:rgba(9,9,11,.55)}
 body.light-mode #pay-submit{background:#09090b;color:#E8E3DC;border-color:#09090b}
 body.light-mode #pay-submit:hover{background:#1a1a1a;border-color:#1a1a1a}
 body.light-mode .psecure{color:rgba(9,9,11,.55)}
-body.light-mode #stripe-card-element{background:rgba(9,9,11,.04);border-color:rgba(9,9,11,.1)}
+body.light-mode #stripe-card-element{background:rgba(9,9,11,.06);border-color:rgba(9,9,11,.2)}
+body.light-mode #stripe-card-element.StripeElement--focus{background:rgba(9,9,11,.09);border-color:rgba(9,9,11,.38)}
 
 /* Success */
 body.light-mode #payment-success{background:var(--ink)}
@@ -1630,7 +1636,7 @@ body.light-mode::after{opacity:0.15}
   </div>
   <div class="nav-right">
     <button class="nbtn" id="login-btn" onclick="return window.__zwOpenAuth ? window.__zwOpenAuth('signin') : true">Login</button>
-    <button class="nbtn" id="account-btn">Account</button>
+    <button class="nbtn" id="account-btn" onclick="window.location.href='/account.html'">Account</button>
     <button class="nbtn" id="logout-btn">Sign Out</button>
     <button class="nbtn" id="cart-btn" onclick="return window.__zwOpenCart ? window.__zwOpenCart() : true">Bag <span class="cc">0</span></button>
       <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" onclick="return window.openMobileMenu ? window.openMobileMenu() : false;">
@@ -1779,7 +1785,7 @@ body.light-mode::after{opacity:0.15}
     <a href="drop001.html">Release 001</a>
     <a href="/sizeguide.html" id="footer-size-guide-link">Size Guide</a>
     <a href="policies.html">Policies</a>
-    <a href="#" id="footer-returns-link">Returns</a>
+    <a href="/returns.html" id="footer-returns-link">Returns</a>
     <a href="mailto:nasirubreeze@zuwera.store">Contact</a>
   </nav>
   <div class="fright">
@@ -2735,7 +2741,7 @@ function renderProductCards(products, grid) {
       if (p.product_images[0].image_url) firstImg = p.product_images[0].image_url;
     }
     const imgHtml = firstImg
-      ? `<img src="${firstImg}" alt="${productName}" loading="lazy" style="width:100%;height:100%;object-fit:cover">`
+      ? `<img src="${firstImg}" alt="${productName}" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:top center">`
       : `<div class="pcard-img-placeholder">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
             <p>Image Coming Soon</p>
@@ -3092,25 +3098,8 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
   _user = null; updateNav();
 });
 
-/* ACCOUNT MODAL */
-document.getElementById('account-btn').addEventListener('click', () => {
-  document.getElementById('account-modal').classList.add('open');
-  setPageScrollLock(true);
-  switchAcctTab('orders'); loadOrders();
-});
+/* ACCOUNT — navigate to dedicated page */
 document.getElementById('account-modal-close').addEventListener('click', () => { document.getElementById('account-modal').classList.remove('open'); setPageScrollLock(false); });
-// Footer Returns link → open account modal and switch to Returns tab
-(function() {
-  var el = document.getElementById('footer-returns-link');
-  if (el) el.addEventListener('click', function(e) {
-    e.preventDefault();
-    document.getElementById('account-modal').classList.add('open');
-    setPageScrollLock(true);
-    // Switch to Returns tab (added by customer-hub.js)
-    var returnsTab = document.querySelector('#account-modal .atab[data-acctab="returns"]');
-    if (returnsTab) returnsTab.click();
-  });
-})();
 document.getElementById('account-modal').addEventListener('click', e => { if(e.target===e.currentTarget) { document.getElementById('account-modal').classList.remove('open'); setPageScrollLock(false); } });
 function switchAcctTab(t) {
   document.querySelectorAll('#account-modal .atab').forEach(b => b.classList.toggle('active', b.dataset.acctab === t));
@@ -4052,7 +4041,7 @@ async function _initStripe() {
           fontFamily:'"Barlow",sans-serif',
           fontSmoothing:'antialiased',
           fontSize:'15px',
-          '::placeholder':{ color: _isLight ? 'rgba(9,9,11,.35)' : 'rgba(244,241,235,.25)' }
+          '::placeholder':{ color: _isLight ? 'rgba(9,9,11,.4)' : 'rgba(244,241,235,.42)' }
         },
         invalid: { color:'#c0392b', iconColor:'#c0392b' }
       }

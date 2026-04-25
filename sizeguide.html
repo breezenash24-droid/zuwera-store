@@ -568,34 +568,17 @@
     }
 
     /* ────── FOOTER ────── */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 2rem 2.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-top: 4rem;
-    }
-    footer p {
-      font-size: 0.75rem;
-      letter-spacing: 0.1em;
-      color: rgba(244, 241, 235, 0.3);
-      text-transform: uppercase;
-    }
-    footer a {
-      font-size: 0.75rem;
-      letter-spacing: 0.1em;
-      color: rgba(244, 241, 235, 0.3);
-      text-transform: uppercase;
-      text-decoration: none;
-      transition: opacity 0.2s;
-    }
-    footer a:hover {
-      opacity: 0.8;
-      color: var(--text);
-    }
+    footer{border-top:1px solid rgba(244,241,235,.07);padding:2.5rem;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:2rem;margin-top:4rem}
+    .flogo{font-family:'Bebas Neue',sans-serif;font-weight:900;font-size:1.4rem;letter-spacing:.12em;opacity:.7}
+    .flogo img{height:28px;width:auto;display:block;opacity:.7}
+    .flinks{display:flex;gap:2rem;justify-content:center;flex-wrap:wrap}
+    .flinks a{font-family:'DM Sans',sans-serif;font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.25);transition:color .2s;text-decoration:none}
+    .flinks a:hover{color:#f4f1eb}
+    .fright{text-align:right}
+    .fig{display:inline-flex;align-items:center;gap:.4rem;font-family:'DM Sans',sans-serif;font-size:.6rem;letter-spacing:.1em;color:rgba(244,241,235,.28);transition:color .2s;margin-bottom:.5rem;text-decoration:none}
+    .fig:hover{color:#f4f1eb}
+    .fcopy{font-family:'DM Sans',sans-serif;font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.15)}
+    @media(max-width:900px){footer{grid-template-columns:1fr;text-align:center;gap:1.5rem}.fright{text-align:center}.flinks{justify-content:center}.flogo,.flogo img{margin:0 auto}}
 
     /* ────── COOKIE CONSENT ────── */
     .cookie-consent {
@@ -741,7 +724,11 @@
     body.light-mode .sizing-notes { background: rgba(9,9,11,0.03); }
     body.light-mode .tech-card { background: rgba(9,9,11,0.02); }
     body.light-mode .cookie-consent { background: rgba(232,227,220,0.95); }
-    body.light-mode footer p, body.light-mode footer a { color: rgba(9,9,11,0.4); }
+    body.light-mode footer{border-top-color:rgba(9,9,11,.07)}
+    body.light-mode .flinks a{color:rgba(9,9,11,.3)}
+    body.light-mode .flinks a:hover{color:#09090b}
+    body.light-mode .fig{color:rgba(9,9,11,.3)}
+    body.light-mode .fcopy{color:rgba(9,9,11,.2)}
     /* Replace pink accent with black in light mode */
     body.light-mode { --accent: #09090b; }
     body.light-mode .tab-btn.active {
@@ -1075,10 +1062,23 @@
 
   <!-- FOOTER -->
   <footer>
-    <a href="index.html">&larr; Back to Zuwera</a>
-    <p>&copy; 2026 Zuwera. All rights reserved.</p>
-    <a href="policies.html">Policies</a>
-    <a href="mailto:Breezenash24@gmail.com">Contact</a>
+    <div class="flogo">
+      <img src="images/wordmark.png" alt="ZUWERA" loading="lazy" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
+    </div>
+    <nav class="flinks">
+      <a href="/drop001.html">Release 001</a>
+      <a href="/sizeguide.html" aria-current="page">Size Guide</a>
+      <a href="/policies.html">Policies</a>
+      <a href="/returns.html">Returns</a>
+      <a href="mailto:nasirubreeze@zuwera.store">Contact</a>
+    </nav>
+    <div class="fright">
+      <a href="https://instagram.com/Zuw.era" target="_blank" rel="noopener" class="fig">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+        @Zuw.era
+      </a>
+      <p class="fcopy">&copy; 2026 Zuwera. All rights reserved.</p>
+    </div>
   </footer>
 
   <!-- COOKIE CONSENT -->

@@ -599,30 +599,19 @@
 }
 
 /* ===================== FOOTER ===================== */
-footer {
-  border-top: 1px solid var(--border);
-  padding: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.footer-logo {
-  height: 52px;
-  width: auto;
-  mix-blend-mode: screen;
-  opacity: 0.9;
-  image-rendering: -webkit-optimize-contrast;
-}
-
-footer p {
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
-  color: var(--c35);
-  text-transform: uppercase;
-}
+footer{border-top:1px solid rgba(244,241,235,.07);padding:2.5rem;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:2rem}
+.flogo{font-family:'Bebas Neue',sans-serif;font-weight:900;font-size:1.4rem;letter-spacing:.12em;opacity:.7;color:var(--white)}
+.flogo img{height:28px;width:auto;display:block;opacity:.7}
+.flinks{display:flex;gap:2rem;justify-content:center;flex-wrap:wrap}
+.flinks a{font-family:'DM Sans',sans-serif;font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.25);transition:color .2s;text-decoration:none}
+.flinks a:hover{color:#f4f1eb}
+.fright{text-align:right}
+.fig{display:inline-flex;align-items:center;gap:.4rem;font-family:'DM Sans',sans-serif;font-size:.6rem;letter-spacing:.1em;color:rgba(244,241,235,.28);transition:color .2s;margin-bottom:.5rem;text-decoration:none}
+.fig:hover{color:#f4f1eb}
+.fcopy{font-family:'DM Sans',sans-serif;font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.15)}
+@media(max-width:900px){footer{grid-template-columns:1fr;text-align:center;gap:1.5rem}.fright{text-align:center}.flinks{justify-content:center}.flogo,.flogo img{margin:0 auto}}
+/* keep legacy footer-logo for old footer img if still present */
+.footer-logo{height:52px;width:auto;mix-blend-mode:screen;opacity:.9;image-rendering:-webkit-optimize-contrast}
 
 /* ===================== TOAST ===================== */
 .toast {
