@@ -4234,7 +4234,18 @@
         }
 
         function buildResendRows(s) {
-            if (!s.ok) return '';
+            if (!s.ok) {
+                const errMsg = s.error || 'Key error';
+                return `
+                    <p class="api-note" style="color:var(--error);margin-bottom:10px;">⚠️ ${errMsg}</p>
+                    <p class="api-note" style="margin-bottom:6px;"><strong>To fix:</strong></p>
+                    <ol class="api-note" style="margin:0 0 8px;padding-left:18px;line-height:1.9">
+                        <li>Go to <a href="https://resend.com/api-keys" target="_blank" style="color:var(--accent)">resend.com/api-keys</a></li>
+                        <li>Create a new API key (Full access)</li>
+                        <li>Click <strong>✏ Edit key</strong> below and paste the new key</li>
+                    </ol>
+                    <p class="api-note" style="color:rgba(244,241,235,.4)">Brevo is active as fallback while Resend is down.</p>`;
+            }
             let rows = apiRow('Plan', 'Free');
             rows += apiRow('Daily limit', '100 emails');
             rows += apiRow('Monthly limit', '3,000 emails');
