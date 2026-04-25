@@ -4492,7 +4492,54 @@
             if (!s.ok) return '';
             let rows = apiRow('Plan', s.plan || 'Starter');
             if (s.note) rows += `<p class="api-note">${s.note}</p>`;
+            rows += `
+              <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="btn btn-secondary" style="font-size:.75rem;padding:6px 12px;" onclick="testShippoWebhook('transit')">▶ Test: Shipped email</button>
+                <button class="btn btn-secondary" style="font-size:.75rem;padding:6px 12px;" onclick="testShippoWebhook('delivered')">▶ Test: Delivered email</button>
+              </div>
+              <div id="shippo-test-result" style="display:none;margin-top:10px;font-size:.8rem;padding:10px;border-radius:6px;"></div>`;
             return rows;
+        }
+
+        async function testShippoWebhook(event) {
+            const resultEl = document.getElementById('shippo-test-result');
+            if (!resultEl) return;
+
+            const secret = prompt('Enter your SHIPPO_WEBHOOK_SECRET to authenticate the test:');
+            if (!secret) return;
+
+            resultEl.style.display = 'block';
+            resultEl.style.background = 'rgba(244,241,235,.06)';
+            resultEl.style.border = '1px solid var(--border)';
+            resultEl.style.color = 'var(--text-secondary)';
+            resultEl.textContent = `Sending test ${event} event…`;
+
+            try {
+                const resp = await fetch(`/api/shippo-webhook?secret=${encodeURIComponent(secret)}&event=${event}`);
+                const data = await resp.json();
+                if (resp.ok && data.received) {
+                    resultEl.style.background = 'rgba(34,197,94,.08)';
+                    resultEl.style.border = '1px solid rgba(34,197,94,.3)';
+                    resultEl.style.color = '#22c55e';
+                    resultEl.textContent = `✓ ${event === 'transit' ? 'Shipped' : 'Delivered'} email sent to ${data.orderId ? 'order #'+data.orderId : 'customer'}. Check your inbox.`;
+                } else if (resp.status === 401) {
+                    resultEl.style.background = 'rgba(239,68,68,.08)';
+                    resultEl.style.border = '1px solid rgba(239,68,68,.3)';
+                    resultEl.style.color = 'var(--error)';
+                    resultEl.textContent = '✗ Wrong secret. Use the value of SHIPPO_WEBHOOK_SECRET from Cloudflare.';
+                } else if (resp.status === 404) {
+                    resultEl.style.background = 'rgba(245,158,11,.08)';
+                    resultEl.style.border = '1px solid rgba(245,158,11,.3)';
+                    resultEl.style.color = 'var(--warning)';
+                    resultEl.textContent = '⚠ ' + (data.error || 'No orders with tracking numbers found — place a test order first.');
+                } else {
+                    resultEl.style.color = 'var(--error)';
+                    resultEl.textContent = '✗ ' + (data.error || JSON.stringify(data));
+                }
+            } catch (e) {
+                resultEl.style.color = 'var(--error)';
+                resultEl.textContent = '✗ Network error: ' + e.message;
+            }
         }
 
         function buildCloudflareRows(s) {

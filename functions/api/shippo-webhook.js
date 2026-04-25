@@ -219,6 +219,100 @@ function deliveredEmail({ orderId, customerName, logoUrl }) {
 </html>`;
 }
 
+// ─── Test handler (GET) ────────────────────────────────────────────────────────
+// GET /api/shippo-webhook?secret=YOUR_WEBHOOK_SECRET&event=transit|delivered&dry=1
+// Fires a synthetic Shippo event against the most recent order that has a tracking number.
+// Authenticated with SHIPPO_WEBHOOK_SECRET so it can't be triggered by random visitors.
+// Add dry=1 to preview without sending emails or updating the DB.
+
+export async function onRequestGet({ request, env }) {
+  const cache  = await fetchSiteSettings(['SHIPPO_WEBHOOK_SECRET'], env);
+  const secret = resolveSetting('SHIPPO_WEBHOOK_SECRET', env, cache);
+  const url    = new URL(request.url);
+  const given  = url.searchParams.get('secret') || '';
+  const event  = url.searchParams.get('event') || 'transit';   // transit | delivered
+  const dry    = url.searchParams.get('dry') === '1';
+
+  // Require secret to match (timing-safe compare not needed for admin test endpoints)
+  if (!secret || given !== secret) {
+    return json({ error: 'Unauthorized — pass ?secret=YOUR_SHIPPO_WEBHOOK_SECRET' }, 401);
+  }
+
+  // Find the most recent order with a tracking number to use as the test subject
+  const sbK = sbKey(env);
+  let testOrder = null;
+  if (env.SUPABASE_URL && sbK) {
+    try {
+      const resp = await fetch(
+        `${env.SUPABASE_URL}/rest/v1/orders?tracking_number=not.is.null&order=created_at.desc&limit=1`,
+        { headers: { apikey: sbK, Authorization: `Bearer ${sbK}` } }
+      );
+      const rows = resp.ok ? await resp.json() : [];
+      testOrder  = rows?.[0] || null;
+    } catch (_) {}
+  }
+
+  if (!testOrder) {
+    return json({ error: 'No orders with tracking numbers found in Supabase — place a test order first.' }, 404);
+  }
+
+  const status  = event === 'delivered' ? 'DELIVERED' : 'TRANSIT';
+  const carrier = testOrder.shipping_provider || 'USPS';
+
+  const syntheticPayload = {
+    event: 'track_updated',
+    data: {
+      tracking_number:      testOrder.tracking_number,
+      carrier_name:         carrier,
+      carrier:              carrier.toLowerCase(),
+      tracking_url_provider: testOrder.tracking_url || '',
+      eta:                  new Date(Date.now() + 3 * 86400000).toISOString(),
+      tracking_status: { status },
+    },
+  };
+
+  if (dry) {
+    return json({
+      dry_run: true,
+      would_notify: {
+        event:          status,
+        order_id:       testOrder.id,
+        customer_email: testOrder.customer_email,
+        customer_name:  testOrder.customer_name,
+        tracking_number: testOrder.tracking_number,
+        carrier,
+      },
+    });
+  }
+
+  // Reset fulfillment_status so the dedup check doesn't skip the test
+  try {
+    await fetch(`${env.SUPABASE_URL}/rest/v1/orders?id=eq.${testOrder.id}`, {
+      method:  'PATCH',
+      headers: { apikey: sbK, Authorization: `Bearer ${sbK}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ fulfillment_status: 'unfulfilled' }),
+    });
+  } catch (_) {}
+
+  // Re-use the POST handler logic by synthesizing the request
+  const syntheticBody   = JSON.stringify(syntheticPayload);
+  const syntheticSecret = resolveSetting('SHIPPO_WEBHOOK_SECRET', env, cache);
+  const sigBytes        = await crypto.subtle.sign(
+    'HMAC',
+    await crypto.subtle.importKey('raw', new TextEncoder().encode(syntheticSecret), { name:'HMAC', hash:'SHA-256' }, false, ['sign']),
+    new TextEncoder().encode(syntheticBody)
+  );
+  const sigHex = Array.from(new Uint8Array(sigBytes)).map(b => b.toString(16).padStart(2,'0')).join('');
+
+  const syntheticReq = new Request(request.url.replace('?'+url.searchParams.toString(),''), {
+    method:  'POST',
+    headers: { 'X-Shippo-Signature': sigHex, 'Content-Type': 'application/json' },
+    body:    syntheticBody,
+  });
+
+  return onRequestPost({ request: syntheticReq, env });
+}
+
 // ─── Entry point ───────────────────────────────────────────────────────────────
 
 export async function onRequestPost({ request, env }) {
