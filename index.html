@@ -746,8 +746,12 @@ body.light-mode .quick-add-review-modal{z-index:650;background:transparent !impo
 .quick-add-empty-option{font-family:var(--fm);font-size:.68rem;color:rgba(244,241,235,.48);margin:0}
 .quick-add-review-message{font-family:var(--fm);font-size:.68rem;letter-spacing:.06em;color:rgba(244,241,235,.5);min-height:1rem;margin:0}
 .quick-add-review-actions{display:grid;grid-template-columns:1fr 1fr;gap:.65rem}
-.quick-add-review-actions button,.quick-add-review-actions a{min-height:46px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(244,241,235,.12);background:transparent;color:rgba(244,241,235,.72);font-family:var(--fm);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer}
-.quick-add-review-actions .quick-add-review-confirm{grid-column:1/-1;background:#f4f1eb;color:#09090b;border-color:#f4f1eb}
+.quick-add-review-actions button,.quick-add-review-actions a{min-height:46px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(244,241,235,.12);background:transparent;color:rgba(244,241,235,.72);font-family:var(--fm);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer;transition:background .18s ease,color .18s ease,border-color .18s ease,opacity .18s ease,transform .12s ease}
+.quick-add-review-actions button:hover,.quick-add-review-actions a:hover{background:rgba(244,241,235,.1);color:rgba(244,241,235,.92)}
+.quick-add-review-actions button:active,.quick-add-review-actions a:active{transform:scale(.97);opacity:.82}
+.quick-add-review-actions .quick-add-review-confirm{grid-column:1/-1;background:#f4f1eb;color:#09090b;border-color:#f4f1eb;transition:background .18s ease,color .18s ease,border-color .18s ease,transform .12s ease,opacity .18s ease}
+.quick-add-review-actions .quick-add-review-confirm:hover{background:#e2dfd9;border-color:#e2dfd9}
+.quick-add-review-actions .quick-add-review-confirm:active{background:#cac7c1;border-color:#cac7c1;transform:scale(.97)}
 .quick-add-review-actions .quick-add-review-confirm:disabled{opacity:.45;cursor:not-allowed}
 body.light-mode .quick-add-review-media{background:rgba(9,9,11,.035)}
 body.light-mode .quick-add-review-placeholder{color:rgba(9,9,11,.28)}
@@ -764,7 +768,10 @@ body.light-mode .quick-add-option-head strong{color:rgba(9,9,11,.86)}
 body.light-mode .quick-add-color,body.light-mode .quick-add-size{border-color:rgba(9,9,11,.12);color:rgba(9,9,11,.74)}
 body.light-mode .quick-add-empty-option,body.light-mode .quick-add-review-message{color:rgba(9,9,11,.5)}
 body.light-mode .quick-add-review-actions button,body.light-mode .quick-add-review-actions a{border-color:rgba(9,9,11,.12);color:rgba(9,9,11,.68)}
+body.light-mode .quick-add-review-actions button:hover,body.light-mode .quick-add-review-actions a:hover{background:rgba(9,9,11,.06);color:rgba(9,9,11,.88)}
 body.light-mode .quick-add-review-actions .quick-add-review-confirm{background:#09090b;color:#f4f1eb;border-color:#09090b}
+body.light-mode .quick-add-review-actions .quick-add-review-confirm:hover{background:#27272a;border-color:#27272a}
+body.light-mode .quick-add-review-actions .quick-add-review-confirm:active{background:#3f3f46;border-color:#3f3f46;transform:scale(.97)}
 @media(max-width:640px){
   .quick-add-product-layout{grid-template-columns:1fr}
   .quick-add-product-box{max-height:90vh}
