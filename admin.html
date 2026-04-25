@@ -4323,6 +4323,22 @@
                     { name: 'BRAND_LOGO_URL', label: 'Logo URL',     type: 'text',     placeholder: 'https://zuwera.store/assets/Zuwera_Wordmark_White.png' },
                 ]
             },
+            loops: {
+                label: 'Loops',
+                keys: [{ name: 'LOOPS_API_KEY', label: 'API Key', type: 'password', placeholder: 'Your Loops API key' }]
+            },
+            twilio: {
+                label: 'Twilio',
+                keys: [
+                    { name: 'TWILIO_ACCOUNT_SID',  label: 'Account SID',  type: 'text',     placeholder: 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' },
+                    { name: 'TWILIO_AUTH_TOKEN',    label: 'Auth Token',   type: 'password', placeholder: 'Your auth token' },
+                    { name: 'TWILIO_FROM_NUMBER',   label: 'From Number',  type: 'text',     placeholder: '+15551234567' },
+                ]
+            },
+            posthog: {
+                label: 'PostHog',
+                keys: [{ name: 'POSTHOG_API_KEY', label: 'Project API Key', type: 'text', placeholder: 'phc_...' }]
+            },
         };
 
         // Cached masked key map populated when the page loads
@@ -4359,15 +4375,18 @@
                 }
 
                 const cards = [
-                    renderApiCard('☁️', 'Cloudinary',          s.cloudinary, buildCloudinaryRows,  'cloudinary',  'https://cloudinary.com/console'),
-                    renderApiCard('✉️', 'Resend',              s.resend,     buildResendRows,       'resend',      'https://resend.com/overview'),
-                    renderApiCard('📨', 'Brevo (Email backup)', s.brevo,      buildBrevoRows,        'brevo',       'https://app.brevo.com'),
-                    renderApiCard('🌐', 'Cloudflare',          s.cloudflare, buildCloudflareRows,   'cloudflare',  'https://dash.cloudflare.com'),
-                    renderApiCard('🗄️', 'Supabase',           s.supabase,   buildSupabaseRows,     null,          'https://supabase.com/dashboard'),
-                    renderApiCard('💳', 'Stripe',              s.stripe,     buildStripeRows,       'stripe',      'https://dashboard.stripe.com'),
-                    renderApiCard('📦', 'Shippo',              s.shippo,     buildShippoRows,       'shippo',      'https://goshippo.com'),
-                    renderApiCard('🌍', 'DeepL (Translation)', s.deepl,      buildDeepLRows,        'deepl',       'https://www.deepl.com/pro-account/usage'),
-                    renderApiCard('🎨', 'Email Branding',      { ok: true },  () => buildBrandingRows(_maskedKeys), 'branding',    '#'),
+                    renderApiCard('☁️', 'Cloudinary',            s.cloudinary, buildCloudinaryRows,  'cloudinary',  'https://cloudinary.com/console'),
+                    renderApiCard('✉️', 'Resend',                s.resend,     buildResendRows,       'resend',      'https://resend.com/overview'),
+                    renderApiCard('📨', 'Brevo (Email backup)',   s.brevo,      buildBrevoRows,        'brevo',       'https://app.brevo.com'),
+                    renderApiCard('🌐', 'Cloudflare',            s.cloudflare, buildCloudflareRows,   'cloudflare',  'https://dash.cloudflare.com'),
+                    renderApiCard('🗄️', 'Supabase',             s.supabase,   buildSupabaseRows,     null,          'https://supabase.com/dashboard'),
+                    renderApiCard('💳', 'Stripe',                s.stripe,     buildStripeRows,       'stripe',      'https://dashboard.stripe.com'),
+                    renderApiCard('📦', 'Shippo',                s.shippo,     buildShippoRows,       'shippo',      'https://goshippo.com'),
+                    renderApiCard('🌍', 'DeepL (Translation)',   s.deepl,      buildDeepLRows,        'deepl',       'https://www.deepl.com/pro-account/usage'),
+                    renderApiCard('📣', 'Loops (Marketing)',      s.loops,      buildLoopsRows,        'loops',       'https://app.loops.so'),
+                    renderApiCard('💬', 'Twilio (SMS)',           s.twilio,     buildTwilioRows,       'twilio',      'https://console.twilio.com'),
+                    renderApiCard('📊', 'PostHog (Analytics)',    s.posthog,    buildPostHogRows,      'posthog',     'https://app.posthog.com'),
+                    renderApiCard('🎨', 'Email Branding',        { ok: true }, () => buildBrandingRows(_maskedKeys), 'branding', '#'),
                 ];
                 gridEl.innerHTML = cards.join('');
             } catch (e) {
@@ -4406,21 +4425,33 @@
 
         function buildResendRows(s) {
             if (!s.ok) {
-                const errMsg = s.error || 'Key error';
+                const is401  = (s.error || '').includes('401');
+                const errMsg = is401
+                    ? '401 Unauthorized — your Resend API key is invalid or has been rotated.'
+                    : (s.error || 'Key error');
                 return `
-                    <p class="api-note" style="color:var(--error);margin-bottom:10px;">⚠️ ${errMsg}</p>
-                    <p class="api-note" style="margin-bottom:6px;"><strong>To fix:</strong></p>
+                    <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);border-radius:8px;padding:12px 14px;margin-bottom:12px;">
+                      <div style="font-weight:700;color:var(--error);margin-bottom:6px;">🔑 Key issue — emails are going through Brevo fallback</div>
+                      <div style="font-size:.82rem;color:rgba(244,241,235,.75);margin-bottom:10px;">${errMsg}</div>
+                      <button class="btn btn-primary" style="font-size:.75rem;padding:6px 14px;" onclick="openKeyEdit('resend')">Fix Resend key now →</button>
+                    </div>
+                    <p class="api-note" style="margin-bottom:6px;"><strong>Steps:</strong></p>
                     <ol class="api-note" style="margin:0 0 8px;padding-left:18px;line-height:1.9">
                         <li>Go to <a href="https://resend.com/api-keys" target="_blank" style="color:var(--accent)">resend.com/api-keys</a></li>
-                        <li>Create a new API key (Full access)</li>
-                        <li>Click <strong>✏ Edit key</strong> below and paste the new key</li>
-                    </ol>
-                    <p class="api-note" style="color:rgba(244,241,235,.4)">Brevo is active as fallback while Resend is down.</p>`;
+                        <li>Create a new API key with <strong>Full access</strong></li>
+                        <li>Paste it using the button above — takes effect immediately, no redeploy needed</li>
+                    </ol>`;
             }
             let rows = apiRow('Plan', 'Free');
             rows += apiRow('Daily limit', '100 emails');
             rows += apiRow('Monthly limit', '3,000 emails');
-            if (s.domains?.length) rows += apiRow('Verified domains', s.domains.map(d => `${d.name} (${d.status})`).join(', '));
+            if (s.domains?.length) {
+                const domainList = s.domains.map(d => {
+                    const statusColor = d.status === 'verified' ? 'var(--success,#22c55e)' : 'var(--warning,#f59e0b)';
+                    return `<span>${d.name} <span style="color:${statusColor};font-size:.75rem">(${d.status})</span></span>`;
+                }).join('<br>');
+                rows += apiRow('Verified domains', domainList);
+            }
             if (s.note) rows += `<p class="api-note">${s.note}</p>`;
             return rows;
         }
@@ -4483,6 +4514,32 @@
             rows += usageBar(s.usedPercent || 0);
             rows += apiRow('Remaining', remaining + ' chars');
             rows += apiRow('Free plan limit', '500,000 chars/month');
+            return rows;
+        }
+
+        function buildLoopsRows(s) {
+            if (!s.ok && s.configured === false) return `<p class="api-note" style="color:var(--warning);">Not configured — add your Loops API key to enable marketing emails (drop announcements, restock alerts).<br><br><a href="https://app.loops.so/settings/api" target="_blank" style="color:var(--accent)">Get your Loops API key →</a></p>`;
+            if (!s.ok) return `<p class="api-note" style="color:var(--error);">${s.error || 'Key error'}</p>`;
+            let rows = s.teamName ? apiRow('Team', s.teamName) : '';
+            rows += `<p class="api-note">${s.note || 'Loops handles marketing emails separately from transactional emails.'}</p>`;
+            rows += `<p class="api-note">Customers are auto-synced when they save their profile with marketing consent checked.</p>`;
+            return rows;
+        }
+
+        function buildTwilioRows(s) {
+            if (!s.ok && s.configured === false) return `<p class="api-note" style="color:var(--warning);">Not configured — add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER to enable SMS.<br><br><a href="https://console.twilio.com" target="_blank" style="color:var(--accent)">Twilio Console →</a></p>`;
+            if (!s.ok) return `<p class="api-note" style="color:var(--error);">${s.error || 'Credentials error'}</p>`;
+            let rows = s.accountName   ? apiRow('Account', s.accountName)   : '';
+            rows    += s.accountStatus ? apiRow('Status',  s.accountStatus)  : '';
+            rows    += s.fromNumber    ? apiRow('From #',   s.fromNumber)     : '';
+            rows += `<p class="api-note">${s.note || 'SMS sent for shipped/delivered events when customer opted in.'}</p>`;
+            return rows;
+        }
+
+        function buildPostHogRows(s) {
+            if (!s.ok && s.configured === false) return `<p class="api-note" style="color:var(--warning);">Not configured — add your PostHog project API key (starts with phc_) and replace the placeholder in index.html and product.html.<br><br><a href="https://app.posthog.com" target="_blank" style="color:var(--accent)">PostHog App →</a></p>`;
+            if (!s.ok) return `<p class="api-note" style="color:var(--error);">${s.error || 'Invalid key'}</p>`;
+            let rows = `<p class="api-note">${s.note || 'PostHog analytics is live on your storefront.'}</p>`;
             return rows;
         }
 

@@ -7,6 +7,40 @@ import {
   upsertTimelineEntry,
   verifyUser,
 } from './_commerce.js';
+import { fetchSiteSettings, resolveSetting } from './_settings.js';
+
+// ─── Loops subscriber sync ─────────────────────────────────────────────────────
+// Called after save_profile — syncs the customer into Loops if they consented to marketing.
+
+async function syncToLoops(env, { email, firstName, lastName, marketingConsent, smsConsent }) {
+  const cache   = await fetchSiteSettings(['LOOPS_API_KEY'], env);
+  const loopsKey = resolveSetting('LOOPS_API_KEY', env, cache);
+  if (!loopsKey || !email) return;
+  try {
+    // Upsert contact in Loops — creates if new, updates if existing
+    const resp = await fetch('https://app.loops.so/api/v1/contacts/upsert', {
+      method:  'PUT',
+      headers: { Authorization: `Bearer ${loopsKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        firstName:         firstName  || '',
+        lastName:          lastName   || '',
+        subscribed:        marketingConsent,
+        userGroup:         'customer',
+        source:            'zuwera_store',
+        zwMarketingConsent: marketingConsent,
+        zwSmsConsent:       smsConsent,
+      }),
+    });
+    if (!resp.ok) {
+      console.warn('Loops upsert failed:', resp.status, await resp.text().catch(() => ''));
+    } else {
+      console.log('Loops contact synced:', email, '| subscribed:', marketingConsent);
+    }
+  } catch (e) {
+    console.warn('Loops sync error (non-fatal):', e.message);
+  }
+}
 
 function cleanAddress(address = {}) {
   return {
@@ -104,6 +138,16 @@ export async function onRequestPost({ request, env }) {
         [user.id]: nextProfile,
       };
       await setSetting(env, 'commerce_customer_profiles', nextProfiles);
+
+      // Sync to Loops in background (non-blocking, non-fatal)
+      syncToLoops(env, {
+        email:           user.email || '',
+        firstName:       String(body.firstName || '').trim(),
+        lastName:        String(body.lastName  || '').trim(),
+        marketingConsent: Boolean(body.marketingConsent),
+        smsConsent:       Boolean(body.smsConsent),
+      }).catch(e => console.warn('Loops sync failed (non-fatal):', e.message));
+
       return json({ success: true, profile: nextProfile }, 200, cors(env));
     }
 

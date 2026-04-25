@@ -1,121 +1,170 @@
 /**
  * Cloudflare Pages Function: /api/shippo-webhook
  *
- * Receives tracking update events from Shippo and sends
- * "shipped" / "delivered" emails to customers via Resend → Brevo fallback.
+ * Receives Shippo track_updated webhook events and sends
+ * "Your order shipped!" / "Your order was delivered!" emails
+ * plus optional SMS via Twilio (if customer opted in).
  *
- * Environment variables (set in CF Pages Dashboard > Settings > Environment variables):
- *   SHIPPO_WEBHOOK_SECRET  — signing secret from Shippo Dashboard > Webhooks
- *   SUPABASE_URL           — Supabase project URL
- *   SUPABASE_SERVICE_KEY   — Supabase service role key
- *   RESEND_API_KEY         — primary email sender
- *   BREVO_API_KEY          — fallback email sender
- *   EMAIL_FROM             — from address (e.g. orders@zuwera.store)
- *   BRAND_LOGO_URL         — logo shown in email header
+ * Required env vars (set in CF Pages > Settings > Variables & Secrets):
+ *   SHIPPO_WEBHOOK_SECRET    — from Shippo Dashboard > Webhooks > your endpoint > Secret Token
+ *   RESEND_API_KEY           — primary email
+ *   BREVO_API_KEY            — email fallback
+ *   SUPABASE_URL
+ *   SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY)
  *
- * Shippo Dashboard > Webhooks > Add endpoint:
+ * Optional:
+ *   TWILIO_ACCOUNT_SID       — for SMS notifications
+ *   TWILIO_AUTH_TOKEN
+ *   TWILIO_FROM_NUMBER       — your Twilio phone number e.g. +15551234567
+ *   EMAIL_FROM               — sender address (default: orders@zuwera.store)
+ *   BRAND_LOGO_URL
+ *
+ * Register in Shippo Dashboard > Webhooks:
  *   URL:    https://zuwera.store/api/shippo-webhook
  *   Events: track_updated
- *
- * After saving, copy the "Signing Secret" and add it as SHIPPO_WEBHOOK_SECRET
- * in Cloudflare Pages > Settings > Environment variables.
  */
 
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 
-const getSupabaseServiceKey = (env) => env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY;
+const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
 
-// ─── Shippo webhook signature verification ────────────────────────────────────
-async function verifyShippoSignature(rawBody, signatureHeader, secret) {
-  if (!secret || !signatureHeader) return true; // skip if no secret configured
-  try {
-    // Shippo format: "t=<timestamp>,v1=<hmac>"
-    const parts = {};
-    signatureHeader.split(',').forEach(part => {
-      const [k, v] = part.split('=');
-      parts[k] = v;
-    });
-    if (!parts.t || !parts.v1) return false;
-
-    const encoder  = new TextEncoder();
-    const keyData  = encoder.encode(secret);
-    const msgData  = encoder.encode(`${parts.t}.${rawBody}`);
-    const cryptoKey = await crypto.subtle.importKey(
-      'raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-    );
-    const sig = await crypto.subtle.sign('HMAC', cryptoKey, msgData);
-    const computed = Array.from(new Uint8Array(sig))
-      .map(b => b.toString(16).padStart(2, '0')).join('');
-    return computed === parts.v1;
-  } catch (e) {
-    console.error('Signature verification error:', e);
-    return false;
-  }
+function json(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+  });
 }
 
-// ─── Look up order in Supabase by tracking number ────────────────────────────
-async function findOrderByTracking(trackingNumber, env) {
-  const url = (env.SUPABASE_URL || '').trim();
-  const sk  = getSupabaseServiceKey(env);
-  if (!url || !sk || !trackingNumber) return null;
+// ─── Signature verification ────────────────────────────────────────────────────
+// Shippo sends HMAC-SHA256(rawBody, secret) in the X-Shippo-Signature header.
+
+async function verifyShippoSignature(rawBody, signature, secret) {
+  if (!secret || !signature) return !secret; // no secret configured → skip verification
+  try {
+    const enc      = new TextEncoder();
+    const key      = await crypto.subtle.importKey(
+      'raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']
+    );
+    const sigBytes = hexToBytes(signature);
+    return await crypto.subtle.verify('HMAC', key, sigBytes, enc.encode(rawBody));
+  } catch (_) { return false; }
+}
+
+function hexToBytes(hex) {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) bytes[i / 2] = parseInt(hex.slice(i, i + 2), 16);
+  return bytes;
+}
+
+// ─── Supabase helpers ──────────────────────────────────────────────────────────
+
+function sbKey(env) { return env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || ''; }
+
+async function fetchOrderByTracking(trackingNumber, env) {
+  const key = sbKey(env);
+  if (!env.SUPABASE_URL || !key || !trackingNumber) return null;
   try {
     const resp = await fetch(
-      `${url}/rest/v1/orders?tracking_number=eq.${encodeURIComponent(trackingNumber)}&limit=1`,
-      { headers: { apikey: sk, Authorization: `Bearer ${sk}` } }
+      `${env.SUPABASE_URL}/rest/v1/orders?tracking_number=eq.${encodeURIComponent(trackingNumber)}&limit=1`,
+      { headers: { apikey: key, Authorization: `Bearer ${key}` } }
     );
     if (!resp.ok) return null;
     const rows = await resp.json();
     return rows?.[0] || null;
-  } catch (e) {
-    console.error('Supabase order lookup failed:', e);
-    return null;
-  }
+  } catch (_) { return null; }
 }
 
-// ─── Update order status in Supabase ─────────────────────────────────────────
-async function updateOrderStatus(orderId, status, env) {
-  const url = (env.SUPABASE_URL || '').trim();
-  const sk  = getSupabaseServiceKey(env);
-  if (!url || !sk || !orderId) return;
+async function markOrderStatus(orderId, fulfillmentStatus, env) {
+  const key = sbKey(env);
+  if (!env.SUPABASE_URL || !key || !orderId) return;
   try {
-    await fetch(
-      `${url}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`,
+    await fetch(`${env.SUPABASE_URL}/rest/v1/orders?id=eq.${orderId}`, {
+      method:  'PATCH',
+      headers: {
+        apikey: key, Authorization: `Bearer ${key}`,
+        'Content-Type': 'application/json', Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({ fulfillment_status: fulfillmentStatus }),
+    });
+  } catch (_) { /* non-fatal */ }
+}
+
+// ─── Email sending (Resend → Brevo fallback) ───────────────────────────────────
+
+async function sendEmail({ to, toName, subject, html, fromEmail, resendKey, brevoKey }) {
+  const resendResp = await fetch('https://api.resend.com/emails', {
+    method:  'POST',
+    headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from:     `Zuwera <${fromEmail}>`,
+      to:       [to],
+      reply_to: 'orders@zuwera.store',
+      subject,
+      html,
+    }),
+  });
+  if (resendResp.ok) { console.log('Email sent via Resend to', to); return 'resend'; }
+
+  const resendErr = resendResp.status + ': ' + await resendResp.text().catch(() => '');
+  console.warn('Resend failed (' + resendErr + '), trying Brevo…');
+
+  if (!brevoKey) throw new Error('Resend error ' + resendErr + ' — no BREVO_API_KEY for fallback');
+
+  const brevoResp = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method:  'POST',
+    headers: { 'api-key': brevoKey, 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({
+      sender:      { name: 'Zuwera', email: fromEmail },
+      to:          [{ email: to, name: toName }],
+      replyTo:     { email: 'orders@zuwera.store' },
+      subject,
+      htmlContent: html,
+    }),
+  });
+  if (!brevoResp.ok) {
+    const brevoErr = brevoResp.status + ': ' + await brevoResp.text().catch(() => '');
+    throw new Error('Both providers failed. Resend: ' + resendErr + ' | Brevo: ' + brevoErr);
+  }
+  console.log('Email sent via Brevo to', to);
+  return 'brevo';
+}
+
+// ─── SMS via Twilio ────────────────────────────────────────────────────────────
+
+async function sendSms({ to, body, accountSid, authToken, fromNumber }) {
+  if (!accountSid || !authToken || !fromNumber || !to) return;
+  try {
+    const creds = btoa(`${accountSid}:${authToken}`);
+    const resp  = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
       {
-        method:  'PATCH',
-        headers: {
-          apikey:          sk,
-          Authorization:   `Bearer ${sk}`,
-          'Content-Type':  'application/json',
-          Prefer:          'return=minimal',
-        },
-        body: JSON.stringify({ status, updated_at: new Date().toISOString() }),
+        method:  'POST',
+        headers: { Authorization: `Basic ${creds}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+        body:    new URLSearchParams({ To: to, From: fromNumber, Body: body }).toString(),
       }
     );
-  } catch (e) {
-    console.error('Supabase order status update failed:', e);
-  }
+    if (resp.ok) { console.log('SMS sent via Twilio to', to); }
+    else { console.warn('Twilio SMS failed:', resp.status, await resp.text().catch(() => '')); }
+  } catch (e) { console.warn('Twilio SMS error:', e.message); }
 }
 
-// ─── Build tracking email HTML ────────────────────────────────────────────────
-function buildTrackingEmail({ event, order, trackingData, logoUrl }) {
-  const { trackingNumber, trackingUrl, carrier, statusDetails, eta, location } = trackingData;
-  const toName   = order.customer_name || 'Customer';
-  const orderId  = (order.stripe_payment_intent_id || order.id || '').slice(-8).toUpperCase();
-  const etaStr   = eta ? new Date(eta).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' }) : null;
-  const locStr   = location ? [location.city, location.state].filter(Boolean).join(', ') : null;
+// ─── Email templates ───────────────────────────────────────────────────────────
 
-  const isDelivered = event === 'DELIVERED';
-  const headline    = isDelivered ? 'Your order has been delivered 📦' : 'Your order is on its way ✈️';
-  const subline     = isDelivered
-    ? `Order #${orderId} has been delivered. We hope you love it!`
-    : `Order #${orderId} is in transit. Here's the latest update.`;
+function shippedEmail({ orderId, customerName, carrier, trackingNumber, trackingUrl, eta, logoUrl }) {
+  const etaLine = eta
+    ? `<p style="margin:12px 0 0;font-size:.85rem;color:#666">Estimated delivery: <strong>${new Date(eta).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</strong></p>`
+    : '';
+  const trackingBlock = trackingNumber
+    ? `<div style="margin:20px 0;padding:16px;background:#f4f1eb;border-radius:8px;font-size:.9rem">
+        <div style="font-weight:700;margin-bottom:6px">📦 Track Your Order</div>
+        <div>Carrier: <strong>${carrier}</strong></div>
+        <div style="margin-top:4px">Tracking #: ${trackingUrl
+          ? `<a href="${trackingUrl}" style="color:#F891A5">${trackingNumber}</a>`
+          : `<strong>${trackingNumber}</strong>`}</div>
+       </div>`
+    : '';
 
-  const trackingLink = trackingUrl
-    ? `<a href="${trackingUrl}" style="display:inline-block;margin-top:16px;padding:12px 28px;background:#09090b;color:#f4f1eb;text-decoration:none;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;">Track Package ↗</a>`
-    : `<p style="margin:8px 0 0;font-size:.85rem;color:#555;"><strong>Tracking #:</strong> ${trackingNumber}</p>`;
-
-  return `
-<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html>
 <body style="margin:0;padding:0;background:#f4f1eb;font-family:'DM Sans',Helvetica,Arial,sans-serif;color:#09090b">
   <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px">
@@ -126,35 +175,14 @@ function buildTrackingEmail({ event, order, trackingData, logoUrl }) {
                onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
           <span style="display:none;font-family:Georgia,serif;font-size:1.5rem;letter-spacing:.12em;color:#f4f1eb;font-weight:normal">ZUWERA</span>
         </td></tr>
-        <tr><td style="padding:36px 36px 28px">
-          <h2 style="margin:0 0 8px;font-size:1.15rem;font-weight:700">${headline}</h2>
-          <p style="margin:0 0 28px;color:#666;font-size:.9rem">${subline}</p>
-
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9f8f6;border-radius:8px;padding:20px;margin-bottom:24px">
-            <tr>
-              <td style="padding:6px 20px;vertical-align:top">
-                <p style="margin:0 0 4px;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:#999">Carrier</p>
-                <p style="margin:0;font-size:.9rem;font-weight:600;text-transform:uppercase">${carrier || 'Carrier'}</p>
-              </td>
-              ${etaStr ? `<td style="padding:6px 20px;vertical-align:top;border-left:1px solid #eee">
-                <p style="margin:0 0 4px;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:#999">${isDelivered ? 'Delivered' : 'Estimated Delivery'}</p>
-                <p style="margin:0;font-size:.9rem;font-weight:600">${etaStr}</p>
-              </td>` : ''}
-              ${locStr ? `<td style="padding:6px 20px;vertical-align:top;border-left:1px solid #eee">
-                <p style="margin:0 0 4px;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:#999">Last Location</p>
-                <p style="margin:0;font-size:.9rem;font-weight:600">${locStr}</p>
-              </td>` : ''}
-            </tr>
-          </table>
-
-          ${statusDetails ? `<p style="margin:0 0 20px;font-size:.85rem;color:#555;line-height:1.6">${statusDetails}</p>` : ''}
-
-          <div style="text-align:center;padding:4px 0 8px">
-            ${trackingLink}
-          </div>
+        <tr><td style="padding:32px 36px">
+          <h2 style="margin:0 0 8px;font-size:1.3rem">🚀 Your order is on its way!</h2>
+          <p style="margin:0 0 20px;color:#666;font-size:.9rem">Order #${orderId} — Hey ${customerName}, your Zuwera order has shipped!</p>
+          ${trackingBlock}
+          ${etaLine}
         </td></tr>
         <tr><td style="background:#f4f1eb;padding:20px 36px;font-size:.78rem;color:#888;text-align:center">
-          Questions? Reply to this email or visit <a href="https://zuwera.store" style="color:#09090b">zuwera.store</a>
+          Questions? Reply to this email or visit <a href="https://zuwera.store" style="color:#F891A5">zuwera.store</a>
         </td></tr>
       </table>
     </td></tr>
@@ -163,144 +191,160 @@ function buildTrackingEmail({ event, order, trackingData, logoUrl }) {
 </html>`;
 }
 
-// ─── Send email via Resend → Brevo fallback ───────────────────────────────────
-async function sendEmail({ to, subject, html, fromEmail, resendKey, brevoKey }) {
-  // Try Resend first
-  if (resendKey) {
-    const resp = await fetch('https://api.resend.com/emails', {
-      method:  'POST',
-      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: `Zuwera <${fromEmail}>`, to: [to], reply_to: fromEmail, subject, html }),
-    });
-    if (resp.ok) { console.log('Tracking email sent via Resend to', to); return { provider: 'resend' }; }
-    console.warn('Resend failed:', resp.status, '— trying Brevo…');
-  }
-
-  // Brevo fallback
-  if (brevoKey) {
-    const resp = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method:  'POST',
-      headers: { 'api-key': brevoKey, 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({
-        sender:   { name: 'Zuwera', email: fromEmail },
-        to:       [{ email: to }],
-        replyTo:  { email: fromEmail },
-        subject,
-        htmlContent: html,
-      }),
-    });
-    if (resp.ok) { console.log('Tracking email sent via Brevo to', to); return { provider: 'brevo' }; }
-    console.error('Brevo also failed:', resp.status);
-  }
-
-  throw new Error('No working email provider available');
+function deliveredEmail({ orderId, customerName, logoUrl }) {
+  return `<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background:#f4f1eb;font-family:'DM Sans',Helvetica,Arial,sans-serif;color:#09090b">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;max-width:100%">
+        <tr><td style="background:#09090b;padding:24px 36px;text-align:left">
+          <img src="${logoUrl}" alt="Zuwera" height="36" style="height:36px;width:auto;display:block;border:0;"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+          <span style="display:none;font-family:Georgia,serif;font-size:1.5rem;letter-spacing:.12em;color:#f4f1eb;font-weight:normal">ZUWERA</span>
+        </td></tr>
+        <tr><td style="padding:32px 36px">
+          <h2 style="margin:0 0 8px;font-size:1.3rem">✅ Delivered!</h2>
+          <p style="margin:0 0 20px;color:#666;font-size:.9rem">Order #${orderId} — Great news, ${customerName}! Your Zuwera order has been delivered.</p>
+          <p style="margin:0 0 24px;font-size:.9rem;color:#444">We hope you love it. If anything is off, we've got you — head to your account to start a return or exchange.</p>
+          <a href="https://zuwera.store/account.html" style="display:inline-block;padding:12px 24px;background:#09090b;color:#f4f1eb;text-decoration:none;border-radius:6px;font-size:.85rem;letter-spacing:.06em;text-transform:uppercase">My Account</a>
+        </td></tr>
+        <tr><td style="background:#f4f1eb;padding:20px 36px;font-size:.78rem;color:#888;text-align:center">
+          Loving Zuwera? Leave a review — it means the world to us.
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 }
 
-// ─── Entry point ──────────────────────────────────────────────────────────────
+// ─── Entry point ───────────────────────────────────────────────────────────────
+
 export async function onRequestPost({ request, env }) {
   const rawBody = await request.text();
-  const sigHeader = request.headers.get('shippo-signature') || '';
+  const sig     = request.headers.get('X-Shippo-Signature') || '';
+  const cache   = await fetchSiteSettings(
+    ['RESEND_API_KEY', 'BREVO_API_KEY', 'SHIPPO_WEBHOOK_SECRET', 'EMAIL_FROM', 'BRAND_LOGO_URL',
+     'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_FROM_NUMBER'], env
+  );
 
-  // Verify signature (non-fatal if secret not configured — logs warning)
-  const secret = (env.SHIPPO_WEBHOOK_SECRET || '').trim();
-  if (secret) {
-    const valid = await verifyShippoSignature(rawBody, sigHeader, secret);
+  const webhookSecret = resolveSetting('SHIPPO_WEBHOOK_SECRET', env, cache);
+
+  // Verify signature if secret is configured
+  if (webhookSecret) {
+    const valid = await verifyShippoSignature(rawBody, sig, webhookSecret);
     if (!valid) {
-      console.error('Shippo webhook signature invalid — rejected');
-      return new Response('Unauthorized', { status: 401 });
+      console.error('Shippo webhook signature invalid');
+      return json({ error: 'Invalid signature' }, 401);
     }
-  } else {
-    console.warn('SHIPPO_WEBHOOK_SECRET not set — skipping signature verification');
   }
 
   let payload;
-  try {
-    payload = JSON.parse(rawBody);
-  } catch (e) {
-    return new Response('Bad JSON', { status: 400 });
+  try { payload = JSON.parse(rawBody); }
+  catch (_) { return json({ error: 'Invalid JSON' }, 400); }
+
+  const event   = payload.event;
+  const data    = payload.data || {};
+  const status  = data.tracking_status?.status || '';  // TRANSIT, DELIVERED, etc.
+  const trackNo = data.tracking_number || '';
+  const carrier = data.carrier_name || data.carrier || 'your carrier';
+  const eta     = data.eta || null;
+
+  // Only handle shipping tracking events
+  if (event !== 'track_updated') {
+    return json({ received: true, skipped: 'not track_updated' });
   }
 
-  // Only handle track_updated events
-  if (payload.event !== 'track_updated') {
-    return new Response(JSON.stringify({ ok: true, skipped: 'not track_updated' }), {
-      status: 200, headers: { 'Content-Type': 'application/json' },
-    });
+  // Only act on first TRANSIT (= shipped) and DELIVERED
+  if (status !== 'TRANSIT' && status !== 'DELIVERED') {
+    console.log('Ignoring non-actionable status:', status);
+    return json({ received: true, skipped: `status ${status} not actionable` });
   }
 
-  const data   = payload.data || {};
-  const ts     = data.tracking_status || {};
-  const status = ts.status || '';  // TRANSIT, DELIVERED, RETURNED, FAILURE, UNKNOWN, PRE_TRANSIT
-  const trackingNumber = data.tracking_number || '';
-
-  console.log(`Shippo tracking update: ${trackingNumber} → ${status}`);
-
-  // Only send emails for meaningful status changes
-  const emailStatuses = { TRANSIT: true, DELIVERED: true, FAILURE: true };
-  if (!emailStatuses[status]) {
-    return new Response(JSON.stringify({ ok: true, skipped: `no email for status ${status}` }), {
-      status: 200, headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  // Look up the order
-  const order = await findOrderByTracking(trackingNumber, env);
+  // Look up order in Supabase by tracking number
+  const order = await fetchOrderByTracking(trackNo, env);
   if (!order) {
-    console.warn(`No order found for tracking number: ${trackingNumber}`);
-    return new Response(JSON.stringify({ ok: true, skipped: 'order not found' }), {
-      status: 200, headers: { 'Content-Type': 'application/json' },
-    });
+    console.warn('No order found for tracking number:', trackNo);
+    return json({ received: true, skipped: 'order not found' });
   }
 
-  const toEmail = (order.customer_email || '').trim();
-  if (!toEmail) {
-    console.warn('Order found but no customer_email:', order.id);
-    return new Response(JSON.stringify({ ok: true, skipped: 'no customer email' }), {
-      status: 200, headers: { 'Content-Type': 'application/json' },
-    });
+  // Deduplicate — don't send same notification twice
+  const alreadyDone =
+    (status === 'TRANSIT'   && order.fulfillment_status === 'shipped')   ||
+    (status === 'DELIVERED' && order.fulfillment_status === 'delivered');
+  if (alreadyDone) {
+    return json({ received: true, skipped: 'notification already sent' });
   }
 
-  // Fetch email settings
-  const keyCache = await fetchSiteSettings(
-    ['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL'], env
-  );
-  const resendKey = resolveSetting('RESEND_API_KEY', env, keyCache);
-  const brevoKey  = resolveSetting('BREVO_API_KEY',  env, keyCache);
-  const fromEmail = resolveSetting('EMAIL_FROM', env, keyCache) || 'orders@zuwera.store';
-  const logoUrl   = resolveSetting('BRAND_LOGO_URL', env, keyCache)
-    || 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
+  const customerEmail = order.customer_email || '';
+  const customerName  = order.customer_name  || 'Customer';
+  const orderId       = (order.id || '').toString().slice(-8).toUpperCase() || 'ZUWERA';
+  const trackingUrl   = data.tracking_url_provider || data.tracking_status?.tracking_url || '';
+  const smsPhone      = order.sms_phone || order.phone || '';
+  const smsConsent    = order.sms_consent === true || order.sms_consent === 'true';
 
-  // Build and send email
-  const trackingData = {
-    trackingNumber,
-    trackingUrl:   data.tracking_url_provider || '',
-    carrier:       (data.carrier || '').toUpperCase(),
-    statusDetails: ts.status_details || '',
-    eta:           data.eta || null,
-    location:      ts.location || null,
-  };
+  const resendKey  = resolveSetting('RESEND_API_KEY',       env, cache);
+  const brevoKey   = resolveSetting('BREVO_API_KEY',        env, cache);
+  const fromEmail  = resolveSetting('EMAIL_FROM',           env, cache) || 'orders@zuwera.store';
+  const logoUrl    = resolveSetting('BRAND_LOGO_URL',       env, cache) || LOGO_FALLBACK;
+  const twilioSid  = resolveSetting('TWILIO_ACCOUNT_SID',   env, cache);
+  const twilioAuth = resolveSetting('TWILIO_AUTH_TOKEN',    env, cache);
+  const twilioFrom = resolveSetting('TWILIO_FROM_NUMBER',   env, cache);
 
-  const subjects = {
-    TRANSIT:   `Your Zuwera order is on its way 📦`,
-    DELIVERED: `Your Zuwera order has been delivered ✓`,
-    FAILURE:   `Delivery update for your Zuwera order`,
-  };
+  // ── Shipped ────────────────────────────────────────────────────────────────
+  if (status === 'TRANSIT') {
+    const subject = `Your Zuwera order #${orderId} is on its way! 🚀`;
+    const html    = shippedEmail({ orderId, customerName, carrier, trackingNumber: trackNo, trackingUrl, eta, logoUrl });
 
-  const html = buildTrackingEmail({ event: status, order, trackingData, logoUrl });
+    const [emailR, smsR] = await Promise.allSettled([
+      customerEmail && resendKey
+        ? sendEmail({ to: customerEmail, toName: customerName, subject, html, fromEmail, resendKey, brevoKey })
+        : Promise.resolve('skipped — no email or key'),
 
-  try {
-    await sendEmail({ to: toEmail, subject: subjects[status], html, fromEmail, resendKey, brevoKey });
-    // Update order status in Supabase
-    const newStatus = status === 'DELIVERED' ? 'delivered' : status === 'TRANSIT' ? 'shipped' : 'delivery_issue';
-    await updateOrderStatus(order.id, newStatus, env);
-  } catch (e) {
-    console.error('Email send failed:', e.message);
-    // Still return 200 so Shippo doesn't retry — we'll log and investigate
-    return new Response(JSON.stringify({ ok: false, error: e.message }), {
-      status: 200, headers: { 'Content-Type': 'application/json' },
-    });
+      smsConsent && smsPhone
+        ? sendSms({
+            to: smsPhone,
+            body: `Zuwera: Order #${orderId} shipped via ${carrier}! Track: ${trackingUrl || trackNo}`,
+            accountSid: twilioSid, authToken: twilioAuth, fromNumber: twilioFrom,
+          })
+        : Promise.resolve('skipped — no consent/phone'),
+    ]);
+
+    await markOrderStatus(order.id, 'shipped', env);
+
+    if (emailR.status === 'rejected') console.error('Shipped email failed:', emailR.reason?.message);
+    if (smsR.status   === 'rejected') console.error('Shipped SMS failed:',   smsR.reason?.message);
+
+    return json({ received: true, action: 'shipped_notification', orderId });
   }
 
-  return new Response(JSON.stringify({ ok: true, status, to: toEmail }), {
-    status: 200, headers: { 'Content-Type': 'application/json' },
-  });
+  // ── Delivered ──────────────────────────────────────────────────────────────
+  if (status === 'DELIVERED') {
+    const subject = `Your Zuwera order #${orderId} has been delivered ✅`;
+    const html    = deliveredEmail({ orderId, customerName, logoUrl });
+
+    const [emailR, smsR] = await Promise.allSettled([
+      customerEmail && resendKey
+        ? sendEmail({ to: customerEmail, toName: customerName, subject, html, fromEmail, resendKey, brevoKey })
+        : Promise.resolve('skipped'),
+
+      smsConsent && smsPhone
+        ? sendSms({
+            to: smsPhone,
+            body: `Zuwera: Order #${orderId} delivered! Hope you love it 🎉 zuwera.store`,
+            accountSid: twilioSid, authToken: twilioAuth, fromNumber: twilioFrom,
+          })
+        : Promise.resolve('skipped'),
+    ]);
+
+    await markOrderStatus(order.id, 'delivered', env);
+
+    if (emailR.status === 'rejected') console.error('Delivered email failed:', emailR.reason?.message);
+    if (smsR.status   === 'rejected') console.error('Delivered SMS failed:',   smsR.reason?.message);
+
+    return json({ received: true, action: 'delivered_notification', orderId });
+  }
+
+  return json({ received: true });
 }

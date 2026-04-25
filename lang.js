@@ -257,27 +257,16 @@
     }
   }
 
-  function refreshSharedModalLock() {
-    if (!window.ZWModalScrollLock || typeof window.ZWModalScrollLock.refresh !== 'function') {
-      return false;
-    }
-    window.ZWModalScrollLock.refresh();
-    return true;
-  }
-
   function lockLangModalScrollFallback() {
-    if (refreshSharedModalLock() || langModalFallbackLocked || !document.body) return;
+    if (langModalFallbackLocked || !document.body) return;
 
     const root = document.documentElement;
     const body = document.body;
     const scrollbarGap = Math.max(0, window.innerWidth - root.clientWidth);
 
     langModalFallbackLocked = true;
-    // Do NOT use body.position:fixed — that shifts the page content upward and makes
-    // the transparent overlay look dark (body background shows through). Instead just
-    // hide overflow so the page stays exactly where it is.
-    root.dataset.scrollLocked = 'true';
-    body.dataset.scrollLocked = 'true';
+    // Use overflow:hidden ONLY — never body.position:fixed, which snaps the page to top
+    // and makes the transparent overlay show the body background colour behind it.
     root.style.overflow = 'hidden';
     body.style.overflow = 'hidden';
     root.style.overscrollBehavior = 'none';
@@ -286,14 +275,12 @@
   }
 
   function unlockLangModalScrollFallback() {
-    if (refreshSharedModalLock() || !langModalFallbackLocked || !document.body) return;
+    if (!langModalFallbackLocked || !document.body) return;
 
     const root = document.documentElement;
     const body = document.body;
 
     langModalFallbackLocked = false;
-    delete root.dataset.scrollLocked;
-    delete body.dataset.scrollLocked;
     root.style.overflow = '';
     body.style.overflow = '';
     root.style.overscrollBehavior = '';
@@ -436,12 +423,32 @@
     }).join('');
   }
 
+  // ─── Enforce overlay styles (runs after any external style overwrite) ─────────
+  function enforceModalStyles() {
+    const modal = document.getElementById('zw-lang-modal');
+    if (!modal) return;
+    modal.style.setProperty('background', 'transparent', 'important');
+    modal.style.setProperty('backdrop-filter', 'none', 'important');
+    modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+    modal.style.setProperty('align-items', 'stretch', 'important');
+    modal.style.setProperty('justify-content', 'flex-end', 'important');
+    modal.style.setProperty('padding', '0', 'important');
+    modal.style.setProperty('box-shadow', 'none', 'important');
+  }
+
   // ─── Open / Close ─────────────────────────────────────────────────────────────
   function openModal() {
     buildModal();
     const modal = document.getElementById('zw-lang-modal');
     langModalTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    if (modal) modal.style.display = 'flex';
+    if (modal) {
+      modal.style.display = 'flex';
+      // Enforce transparent overlay styles immediately — any external enforcer
+      // (MutationObserver, scroll-lock, light-mode handler) may have overwritten them
+      enforceModalStyles();
+      // Also enforce after a tick, in case something reacts asynchronously
+      requestAnimationFrame(enforceModalStyles);
+    }
     lockLangModalScrollFallback();
     setTimeout(() => {
       const search = document.getElementById('zw-lang-search');

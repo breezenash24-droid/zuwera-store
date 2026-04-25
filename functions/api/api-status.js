@@ -192,6 +192,61 @@ async function checkShippo(env, cache) {
   } catch (e) { return { ok: false, error: e.message }; }
 }
 
+async function checkLoops(env, cache) {
+  const key = resolveSetting('LOOPS_API_KEY', env, cache);
+  if (!key) return { ok: false, configured: false, error: 'LOOPS_API_KEY not set' };
+  try {
+    const resp = await fetch('https://app.loops.so/api/v1/api-key', {
+      headers: { Authorization: `Bearer ${key}` }
+    });
+    if (!resp.ok) return { ok: false, keyActive: false, error: `HTTP ${resp.status} — key may be invalid` };
+    const d = await resp.json();
+    return {
+      ok: true,
+      keyActive: true,
+      teamName: d.teamName || '',
+      note: 'Loops handles marketing emails (drop announcements, restock alerts). Free up to 1,000 contacts.',
+    };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
+async function checkTwilio(env, cache) {
+  const sid   = resolveSetting('TWILIO_ACCOUNT_SID',  env, cache);
+  const token = resolveSetting('TWILIO_AUTH_TOKEN',   env, cache);
+  const from  = resolveSetting('TWILIO_FROM_NUMBER',  env, cache);
+  if (!sid || !token) return { ok: false, configured: false, error: 'TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN not set' };
+  try {
+    const creds = btoa(`${sid}:${token}`);
+    const resp  = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}.json`, {
+      headers: { Authorization: `Basic ${creds}` }
+    });
+    if (!resp.ok) return { ok: false, keyActive: false, error: `HTTP ${resp.status} — credentials may be invalid` };
+    const d = await resp.json();
+    return {
+      ok: true,
+      keyActive: true,
+      accountName:   d.friendly_name || '',
+      accountStatus: d.status        || '',
+      fromNumber:    from            || '(not set)',
+      note: 'SMS notifications for shipped/delivered events. Requires customer SMS opt-in.',
+    };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
+async function checkPostHog(env, cache) {
+  const key = resolveSetting('POSTHOG_API_KEY', env, cache) || (env.POSTHOG_PROJECT_API_KEY || '').trim();
+  if (!key) return { ok: false, configured: false, error: 'POSTHOG_API_KEY not set — add your PostHog project API key' };
+  // PostHog doesn't have a simple "ping" endpoint; we just confirm the key looks valid
+  const looksValid = key.startsWith('phc_');
+  return {
+    ok: looksValid,
+    keyActive: looksValid,
+    note: looksValid
+      ? 'PostHog script is live on your storefront. View events at app.posthog.com.'
+      : 'Key should start with phc_ — check your PostHog project settings.',
+  };
+}
+
 async function checkCloudflare(env, cache) {
   const zoneTag = resolveSetting('CLOUDFLARE_ZONE_ID', env, cache)
     || (env.CF_ZONE_ID || '').trim();
@@ -224,7 +279,7 @@ export async function onRequestGet({ env }) {
   const cache     = await fetchSiteSettings(cacheKeys, env);
 
   // Run all service checks in parallel
-  const [cloudinary, resend, brevo, supabase, stripe, shippo, cloudflare, deepl] =
+  const [cloudinary, resend, brevo, supabase, stripe, shippo, cloudflare, deepl, loops, twilio, posthog] =
     await Promise.allSettled([
       checkCloudinary(env, cache),
       checkResend(env, cache),
@@ -234,6 +289,9 @@ export async function onRequestGet({ env }) {
       checkShippo(env, cache),
       checkCloudflare(env, cache),
       checkDeepL(env, cache),
+      checkLoops(env, cache),
+      checkTwilio(env, cache),
+      checkPostHog(env, cache),
     ]);
 
   const unwrap = (r) =>
@@ -259,6 +317,9 @@ export async function onRequestGet({ env }) {
       shippo:     unwrap(shippo),
       cloudflare: unwrap(cloudflare),
       deepl:      unwrap(deepl),
+      loops:      unwrap(loops),
+      twilio:     unwrap(twilio),
+      posthog:    unwrap(posthog),
     },
     maskedKeys,
   });

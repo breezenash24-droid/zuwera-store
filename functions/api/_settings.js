@@ -21,6 +21,14 @@ const ALLOWED_KEYS = new Set([
   // Email branding
   'EMAIL_FROM',
   'BRAND_LOGO_URL',
+  // Loops (marketing email)
+  'LOOPS_API_KEY',
+  // Twilio (SMS)
+  'TWILIO_ACCOUNT_SID',
+  'TWILIO_AUTH_TOKEN',
+  'TWILIO_FROM_NUMBER',
+  // PostHog (analytics)
+  'POSTHOG_API_KEY',
 ]);
 
 export { ALLOWED_KEYS };

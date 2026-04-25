@@ -3,7 +3,7 @@
 
   const TRACKED_SELECTORS = [
     '.modal',
-    '[role="dialog"]',
+    '[role="dialog"]:not(#zw-lang-modal)',
     '#payment-success',
     '#apple-pay-qr-modal'
   ].join(',');
