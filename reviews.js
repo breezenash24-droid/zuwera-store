@@ -259,8 +259,11 @@ window.openAllReviewsModal = async function(pid, domId, productName) {
 
   list.innerHTML = '<p class="review-modal-message">Loading reviews...</p>';
   summary.innerHTML = '';
-  
+
   modal.classList.add('open');
+  modal.style.setProperty('background', 'transparent', 'important');
+  modal.style.setProperty('backdrop-filter', 'none', 'important');
+  modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
   document.body.style.overflow = 'hidden';
 
   try {
@@ -359,7 +362,11 @@ function openReviewForm(pid, pname) {
 
   setStarSelection(0);
 
-  document.getElementById('review-modal').classList.add('open');
+  const reviewModal = document.getElementById('review-modal');
+  reviewModal.classList.add('open');
+  reviewModal.style.setProperty('background', 'transparent', 'important');
+  reviewModal.style.setProperty('backdrop-filter', 'none', 'important');
+  reviewModal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
   document.body.style.overflow = 'hidden';
 }
 
@@ -405,7 +412,11 @@ function openEditReviewForm(id, rating, pid) {
     btn.textContent = 'Update Review';
   }
   setStarSelection(rating);
-  document.getElementById('review-modal').classList.add('open');
+  const editModal = document.getElementById('review-modal');
+  editModal.classList.add('open');
+  editModal.style.setProperty('background', 'transparent', 'important');
+  editModal.style.setProperty('backdrop-filter', 'none', 'important');
+  editModal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
   document.body.style.overflow = 'hidden';
 }
 

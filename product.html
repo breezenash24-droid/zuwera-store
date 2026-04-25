@@ -1011,6 +1011,7 @@ function applyAnnouncementBar(mode, msgText) {
     syncAnnouncementState(false);
     _productAnnouncementBarScrollHandler = function() {
       const currentY = window.scrollY;
+      if (document.body.dataset.scrollLocked) { lastScrollY = currentY; return; }
       if (Date.now() < scrollActivationAt) {
         lastScrollY = currentY;
         return;
@@ -1051,6 +1052,7 @@ function applyAnnouncementBar(mode, msgText) {
   syncAnnouncementState(false);
   _productAnnouncementBarScrollHandler = function() {
     const currentY = window.scrollY;
+    if (document.body.dataset.scrollLocked) { lastScrollY = currentY; return; }
     if (Date.now() < scrollActivationAt) {
       lastScrollY = currentY;
       return;
