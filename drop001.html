@@ -649,9 +649,9 @@
     body.light-mode .fig{color:rgba(9,9,11,.3)}
     body.light-mode .fcopy{color:rgba(9,9,11,.2)}
   </style>
-  <link rel="stylesheet" href="storefront-cohesion.css?v=5">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=6">
   <script src="image-utils.js?v=1"></script>
-  <script src="mobile-menu.js?v=1" defer></script>
+  <script src="mobile-menu.js?v=2" defer></script>
   <script src="/supabase.min.js"></script>
 </head>
 <body>
@@ -673,7 +673,7 @@
     <a href="index.html" class="nav-logo-link">ZUWERA</a>
     <div class="nav-actions">
       <a href="index.html" class="nav-back">&#8592; Back to Home</a>
-      <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" onclick="return window.openMobileMenu ? window.openMobileMenu() : false;">
+      <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
       </button>
     </div>
@@ -681,7 +681,7 @@
 
   <div id="mobile-menu" class="modal" role="dialog" aria-modal="true" aria-hidden="true" style="z-index:900;">
     <div class="mbox" style="background:transparent; border:none; box-shadow:none; text-align:center;">
-      <button id="mobile-menu-close" class="mclose" onclick="return window.closeMobileMenu ? window.closeMobileMenu() : false;" style="position:fixed; top:1.5rem; right:1.5rem; background:none; border:none; color:#f4f1eb; font-size:2rem; width:40px; height:40px;">&#215;</button>
+      <button id="mobile-menu-close" class="mclose" style="position:fixed; top:1.5rem; right:1.5rem; background:none; border:none; color:#f4f1eb; font-size:2rem; width:40px; height:40px;">&#215;</button>
       <div id="mobile-category-links" class="mobile-nav-links">
         <a href="index.html" class="mobile-nav-link">Home</a>
         <a href="drop001.html" class="mobile-nav-link">Collection</a>
@@ -1140,7 +1140,7 @@ function updateCountdown() {
     })();
   </script>
   <!-- Language selector -->
-  <script src="modal-lock.js?v=3"></script>
+  <script src="modal-lock.js?v=4"></script>
   <script src="lang.js?v=5" defer></script>
 
   <div id="collection-review-modal" class="collection-review-modal" role="dialog" aria-modal="true" aria-labelledby="collection-review-title">
@@ -1523,6 +1523,6 @@ function updateCountdown() {
   }
   initCollectionReviewModal();
   </script>
-<script src="auth.js?v=6" defer></script>
+<script src="auth.js?v=11" defer></script>
 </body>
 </html>

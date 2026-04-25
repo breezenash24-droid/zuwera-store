@@ -623,7 +623,8 @@ function buildFavoriteDetail(product, extra, fallbackFavorite) {
     title: product?.title || fallbackFavorite?.product_name || 'Saved Item',
     subtitle: product?.subtitle || product?.category || '',
     image: primaryImage,
-    colorName: primaryColor?.color_name || product?.colorway || 'Standard',
+    colorName: primaryColor?.color_name || 'Standard',
+    hasExplicitColorVariant: !!primaryColor?.color_name,
     sku: primaryColor?.variant_sku || product?.sku || '',
     current_price: favoriteNumericPrice(product?.current_price ?? product?.price ?? fallbackFavorite?.price),
     member_price: favoriteNumericPrice(product?.member_price),
@@ -690,6 +691,7 @@ function buildFavoriteFallbackDetail(productId, favorite) {
     subtitle: '',
     image: favorite?.product_image || '',
     colorName: 'Standard',
+    hasExplicitColorVariant: false,
     sku: '',
     current_price: regularPrice,
     member_price: 0,
@@ -709,6 +711,7 @@ function buildFavoriteCartPayload(detail, favorite) {
     image: detail?.image || favorite?.product_image || '',
     size: pickFavoriteSize(detail?.sizes) || 'One Size',
     colorName: detail?.colorName || 'Standard',
+    hasExplicitColorVariant: detail?.hasExplicitColorVariant === true,
     sku: detail?.sku || '',
     regularPrice,
     memberPrice,
@@ -726,6 +729,17 @@ function parseFavoriteCartPayload(payload) {
   } catch (_) {
     return null;
   }
+}
+
+function favoriteLineMatchesCartItem(item, detail, size, payloadData) {
+  const productMatches = String(item.productId || '') === String(detail?.id || '');
+  const sizeMatches = String(item.size || '') === String(size || '');
+  if (!productMatches || !sizeMatches) return false;
+
+  const hasExplicitColorVariant = payloadData?.hasExplicitColorVariant === true || detail?.hasExplicitColorVariant === true;
+  if (!hasExplicitColorVariant) return true;
+
+  return String(item.colorName || '').trim().toLowerCase() === String(payloadData?.colorName || detail?.colorName || 'Standard').trim().toLowerCase();
 }
 
 const _favoriteAddDedup = new Map();
@@ -804,6 +818,7 @@ window.addFavoriteToCart = async function(productId, payload) {
       title: payloadData.title || favorite.product_name || 'Saved Item',
       image: payloadData.image || favorite.product_image || '',
       colorName: payloadData.colorName || 'Standard',
+      hasExplicitColorVariant: payloadData.hasExplicitColorVariant === true,
       sku: payloadData.sku || '',
       current_price: favoriteNumericPrice(payloadData.regularPrice),
       member_price: favoriteNumericPrice(payloadData.memberPrice),
@@ -820,11 +835,7 @@ window.addFavoriteToCart = async function(productId, payload) {
     const memberPrice = favoriteNumericPrice(payloadData?.memberPrice ?? detail.member_price);
     const effectivePrice = favoriteNumericPrice(payloadData?.price ?? favoriteEffectivePrice(detail, favorite.price));
     const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const existing = cart.find((item) =>
-      String(item.productId || '') === String(detail.id || '') &&
-      String(item.size || '') === String(size || '') &&
-      String(item.colorName || '') === String((payloadData?.colorName || detail.colorName || 'Standard'))
-    );
+    const existing = cart.find((item) => favoriteLineMatchesCartItem(item, detail, size, payloadData));
 
     if (existing) {
       existing.quantity += 1;

@@ -10,6 +10,8 @@
 
   let locked = false;
   let lockedScrollY = 0;
+  let previousRootScrollBehavior = '';
+  let previousBodyScrollBehavior = '';
 
   function isVisibleOverlay(el) {
     if (!el || !el.isConnected) return false;
@@ -38,12 +40,15 @@
     const root = document.documentElement;
     const body = document.body;
     const scrollbarGap = Math.max(0, window.innerWidth - root.clientWidth);
+    previousRootScrollBehavior = root.style.scrollBehavior || '';
+    previousBodyScrollBehavior = body.style.scrollBehavior || '';
 
     root.dataset.scrollLocked = 'true';
     body.dataset.scrollLocked = 'true';
 
     root.style.overflow = 'hidden';
     root.style.overscrollBehavior = 'none';
+    root.style.scrollBehavior = 'auto';
 
     // Signal that a scroll position snap is about to happen (body→fixed snaps to 0)
     window.__zwScrollLocking = true;
@@ -54,6 +59,7 @@
     body.style.width = '100%';
     body.style.overflow = 'hidden';
     body.style.overscrollBehavior = 'none';
+    body.style.scrollBehavior = 'auto';
 
     if (scrollbarGap > 0) {
       body.style.paddingRight = `${scrollbarGap}px`;
@@ -77,6 +83,7 @@
 
     root.style.overflow = '';
     root.style.overscrollBehavior = '';
+    root.style.scrollBehavior = previousRootScrollBehavior;
 
     // Disable smooth-scroll momentarily so the position restore is instant,
     // not an animated scroll from 0 → restoreY (which causes the visible "jump to top").
@@ -90,6 +97,7 @@
     body.style.width = '';
     body.style.overflow = '';
     body.style.overscrollBehavior = '';
+    body.style.scrollBehavior = previousBodyScrollBehavior;
     body.style.paddingRight = '';
 
     // Signal restore BEFORE scrollTo so scroll handlers can ignore the programmatic jump

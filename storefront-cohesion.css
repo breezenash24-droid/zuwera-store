@@ -674,6 +674,95 @@ body.light-mode .heart-btn{
     -webkit-overflow-scrolling:touch;
   }
 
+  .quick-add-review-modal{
+    align-items:stretch !important;
+    justify-content:flex-end !important;
+    padding:0 !important;
+  }
+
+  .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box{
+    width:100% !important;
+    max-width:100% !important;
+    min-height:100dvh !important;
+    height:100dvh !important;
+    max-height:100dvh !important;
+    border-radius:0 !important;
+    border-left:none !important;
+    border-top:2px solid var(--zw-accent) !important;
+    overflow:hidden !important;
+  }
+
+  .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box .mclose{
+    position:fixed !important;
+    top:calc(1rem + env(safe-area-inset-top,0px)) !important;
+    right:1rem !important;
+  }
+
+  .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box .quick-add-product-layout{
+    grid-template-columns:1fr !important;
+    grid-template-rows:auto 1fr !important;
+    min-height:100% !important;
+    max-height:none !important;
+  }
+
+  .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box .quick-add-product-gallery{
+    min-height:0 !important;
+    border-bottom:1px solid rgba(244,241,235,.08);
+  }
+
+  body.light-mode .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box .quick-add-product-gallery{
+    border-bottom-color:rgba(9,9,11,.08);
+  }
+
+  .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box .quick-add-review-media{
+    aspect-ratio:4/5 !important;
+    min-height:min(42svh,420px) !important;
+    max-height:min(46svh,460px) !important;
+  }
+
+  .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box .quick-add-thumbs{
+    padding:.75rem 1rem !important;
+  }
+
+  .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box .quick-add-review-body{
+    justify-content:flex-start !important;
+    overflow-y:auto !important;
+    padding:1.15rem 1rem calc(1rem + env(safe-area-inset-bottom,0px)) !important;
+  }
+
+  .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box .quick-add-product-meta{
+    flex-wrap:wrap;
+    gap:.5rem 1rem;
+  }
+
+  .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box .quick-add-review-title{
+    font-size:clamp(1.9rem,11vw,2.6rem) !important;
+  }
+
+  .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box .quick-add-option-block{
+    padding:.85rem !important;
+  }
+
+  .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box .quick-add-option-grid{
+    gap:.5rem !important;
+  }
+
+  .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box :is(.quick-add-color,.quick-add-size){
+    min-height:44px !important;
+  }
+
+  .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box .quick-add-review-actions{
+    position:sticky;
+    bottom:0;
+    margin-top:auto;
+    padding-top:.85rem;
+    background:var(--zw-surface);
+  }
+
+  body.light-mode .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box .quick-add-review-actions{
+    background:var(--zw-paper);
+  }
+
   :is(.pcard-add-btn,.product-add-btn,.auth-submit-btn,.btn-primary,#checkout-btn,#pay-submit,.quick-add-review-confirm,.collection-review-confirm){
     min-height:54px;
     padding:1rem !important;
@@ -681,13 +770,24 @@ body.light-mode .heart-btn{
   }
 
   :is(.pgrid,.products-grid,.products-grid.two-items){
+    display:flex !important;
+    overflow-x:auto !important;
+    scroll-snap-type:x mandatory;
     gap:1rem !important;
+    padding-bottom:1rem;
     padding-inline:0 !important;
     scroll-padding-inline:var(--zw-space-page);
+    scrollbar-width:none;
+    -ms-overflow-style:none;
+    -webkit-overflow-scrolling:touch;
   }
 
-  :is(.pgrid .pcard,.products-grid > a){
-    flex-basis:85% !important;
+  :is(.pgrid,.products-grid,.products-grid.two-items)::-webkit-scrollbar{
+    display:none;
+  }
+
+  :is(.pgrid .pcard,.products-grid > a,.products-grid .product-card,.products-grid .pcard){
+    flex:0 0 85% !important;
     scroll-snap-align:start;
   }
 

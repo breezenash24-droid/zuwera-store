@@ -6,25 +6,43 @@
     return document.getElementById('mobile-menu');
   }
 
-  function lockScroll() {
+  function hasSharedScrollLock() {
+    return !!(window.ZWModalScrollLock && typeof window.ZWModalScrollLock.refresh === 'function');
+  }
+
+  function lockScrollFallback() {
     previousBodyOverflow = document.body.style.overflow || '';
     previousHtmlOverflow = document.documentElement.style.overflow || '';
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
   }
 
-  function unlockScroll() {
+  function unlockScrollFallback() {
     if (document.querySelector('.modal.open:not(#mobile-menu)')) return;
     document.body.style.overflow = previousBodyOverflow;
     document.documentElement.style.overflow = previousHtmlOverflow;
   }
 
+  function syncScrollLock() {
+    if (hasSharedScrollLock()) {
+      window.ZWModalScrollLock.refresh();
+      return;
+    }
+
+    if (menu() && menu().classList.contains('open')) {
+      lockScrollFallback();
+    } else {
+      unlockScrollFallback();
+    }
+  }
+
   window.openMobileMenu = function openMobileMenu() {
     var el = menu();
     if (!el) return false;
+    if (el.classList.contains('open')) return false;
     el.classList.add('open');
     el.setAttribute('aria-hidden', 'false');
-    lockScroll();
+    syncScrollLock();
     setTimeout(function () {
       var close = document.getElementById('mobile-menu-close');
       if (close) close.focus({ preventScroll: true });
@@ -35,9 +53,10 @@
   window.closeMobileMenu = function closeMobileMenu() {
     var el = menu();
     if (!el) return false;
+    if (!el.classList.contains('open')) return false;
     el.classList.remove('open');
     el.setAttribute('aria-hidden', 'true');
-    unlockScroll();
+    syncScrollLock();
     return false;
   };
 
@@ -65,6 +84,8 @@
         });
       });
     }
+
+    syncScrollLock();
   });
 
   document.addEventListener('keydown', function (event) {
