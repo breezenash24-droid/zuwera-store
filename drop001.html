@@ -430,26 +430,50 @@
 
     .collection-review-modal{
       display:none;position:fixed;inset:0;z-index:2600;
-      background:rgba(9,9,11,.80);backdrop-filter:none;-webkit-backdrop-filter:none;
-      align-items:center;justify-content:center;padding:1rem;
+      background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;
+      align-items:center;justify-content:center;padding:clamp(.75rem,2.2vw,1.25rem);
     }
     .collection-review-modal.open{display:flex}
     .collection-review-box{
-      width:min(520px,92vw);background:#0f0f0f;border:1px solid rgba(244,241,235,.1);
+      width:min(1080px,94vw);max-height:min(820px,92dvh);
+      background:#0f0f0f;border:1px solid rgba(244,241,235,.1);
       border-top:2px solid var(--pink);position:relative;overflow:hidden;
       animation:collectionModalIn .22s ease;
     }
-    .collection-product-box{width:min(920px,94vw);max-height:min(760px,92vh);overflow:auto}
-    .collection-product-layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr)}
-    .collection-product-gallery{background:rgba(244,241,235,.025)}
+    .collection-product-box{width:min(1080px,94vw);max-height:min(820px,92dvh);overflow:hidden}
+    .collection-product-layout{
+      display:grid;
+      grid-template-columns:minmax(420px,1.08fr) minmax(360px,.92fr);
+      max-height:inherit;
+      min-height:min(620px,84dvh);
+    }
+    .collection-product-gallery{
+      min-height:100%;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      background:rgba(244,241,235,.025);
+    }
     @keyframes collectionModalIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
     .collection-review-close{
-      position:absolute;top:.8rem;right:.8rem;z-index:2;width:32px;height:32px;
-      border:1px solid rgba(244,241,235,.1);background:rgba(9,9,11,.62);color:var(--white);
+      position:absolute;top:.9rem;right:.9rem;z-index:30;width:32px;height:32px;
+      border:1px solid rgba(244,241,235,.12);background:rgba(9,9,11,.72);color:var(--white);
       cursor:pointer;font-size:1.1rem;line-height:1;
+      backdrop-filter:blur(12px);
     }
-    .collection-review-media{aspect-ratio:4/3;background:rgba(244,241,235,.04);display:flex;align-items:center;justify-content:center}
-    .collection-review-media img{width:100%;height:100%;object-fit:cover;display:block}
+    .collection-review-media{
+      position:relative;
+      background:rgba(244,241,235,.04);
+      aspect-ratio:auto;
+      min-height:min(480px,52dvh);
+      flex:1 1 auto;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      touch-action:pan-y pinch-zoom;
+    }
+    .collection-review-media img{width:100%;height:100%;object-fit:contain;object-position:center;display:block}
     .collection-gallery-arrow{
       position:absolute;top:50%;transform:translateY(-50%);z-index:8;
       width:40px;height:40px;border-radius:50%;border:1px solid rgba(244,241,235,.16);
@@ -461,7 +485,13 @@
     .collection-gallery-arrow.prev{left:.85rem}
     .collection-gallery-arrow.next{right:.85rem}
     .collection-review-placeholder{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,235,.28)}
-    .collection-review-body{padding:1.6rem 1.7rem 1.7rem}
+    .collection-review-body{
+      padding:2.1rem 2.2rem 2.2rem;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      overflow-y:auto;
+    }
     .collection-product-body{display:flex;flex-direction:column;gap:1rem}
     .collection-review-kicker{font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--pink);margin-bottom:.45rem}
     .collection-review-title{font-family:var(--font-display);font-size:2.15rem;font-style:italic;letter-spacing:.05em;line-height:.95;text-transform:uppercase;margin-bottom:.25rem}
@@ -472,7 +502,7 @@
     .collection-review-value{display:block;font-size:.78rem;color:rgba(244,241,235,.86);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .collection-thumbs{display:flex;gap:.5rem;padding:.7rem;overflow-x:auto}
     .collection-thumb{width:64px;height:76px;flex:0 0 auto;border:1px solid rgba(244,241,235,.1);background:none;padding:0;opacity:.55;cursor:pointer}
-    .collection-thumb.active{opacity:1;border-color:var(--pink)}
+    .collection-thumb.active{opacity:1;border-color:var(--white)}
     .collection-thumb img{width:100%;height:100%;object-fit:cover;display:block}
     .collection-option-block{border:1px solid rgba(244,241,235,.09);padding:.9rem}
     .collection-option-head{display:flex;justify-content:space-between;gap:1rem;margin-bottom:.75rem;font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.42)}
@@ -481,7 +511,7 @@
     .collection-color,.collection-size{border:1px solid rgba(244,241,235,.12);background:transparent;color:rgba(244,241,235,.76);min-height:38px;padding:0 .8rem;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
     .collection-color{display:flex;align-items:center;gap:.45rem}
     .collection-color span{width:15px;height:15px;border-radius:50%;border:1px solid rgba(244,241,235,.32)}
-    .collection-color.active,.collection-size.active{border-color:var(--pink);color:var(--pink)}
+    .collection-color.active,.collection-size.active{border-color:var(--white);color:var(--white);background:rgba(244,241,235,.1)}
     .collection-size.sold-out{opacity:.35;cursor:not-allowed;text-decoration:line-through}
     .collection-empty-option{font-size:.68rem;color:rgba(244,241,235,.48);margin:0}
     .collection-review-message{font-size:.68rem;letter-spacing:.06em;color:rgba(244,241,235,.5);min-height:1rem;margin:0}
@@ -492,9 +522,9 @@
     }
     .collection-review-confirm{grid-column:1/-1!important;background:var(--white)!important;color:var(--black)!important;border-color:var(--white)!important}
     .collection-review-confirm:disabled{opacity:.45;cursor:not-allowed}
-    body.light-mode .collection-review-modal{background:rgba(240,238,233,.88);backdrop-filter:none;-webkit-backdrop-filter:none}
+    body.light-mode .collection-review-modal{background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
     body.light-mode .collection-review-box{background:#F0EEE9;border-color:rgba(9,9,11,.08)}
-    body.light-mode .collection-review-close{background:rgba(9,9,11,.05);border-color:rgba(9,9,11,.08);color:#09090b}
+    body.light-mode .collection-review-close{background:rgba(9,9,11,.55);border-color:rgba(255,255,255,.2);color:#fff}
     body.light-mode .collection-review-media{background:rgba(9,9,11,.035)}
     body.light-mode .collection-review-placeholder{color:rgba(9,9,11,.28)}
     body.light-mode .collection-review-detail{border-color:rgba(9,9,11,.09)}
@@ -507,10 +537,12 @@
     body.light-mode .collection-option-head{color:rgba(9,9,11,.42)}
     body.light-mode .collection-option-head strong{color:rgba(9,9,11,.86)}
     body.light-mode .collection-color,body.light-mode .collection-size{border-color:rgba(9,9,11,.12);color:rgba(9,9,11,.74)}
+    body.light-mode .collection-color.active,body.light-mode .collection-size.active{border-color:#09090b;color:#09090b;background:rgba(9,9,11,.06)}
+    body.light-mode .collection-thumb.active{border-color:#09090b;opacity:1}
     body.light-mode .collection-empty-option,body.light-mode .collection-review-message{color:rgba(9,9,11,.5)}
     body.light-mode .collection-review-actions button,body.light-mode .collection-review-actions a{border-color:rgba(9,9,11,.12);color:rgba(9,9,11,.68)}
     body.light-mode .collection-review-confirm{background:#09090b!important;color:#f4f1eb!important;border-color:#09090b!important}
-    @media(max-width:640px){
+    @media(max-width:760px){
       .collection-review-modal{align-items:stretch;justify-content:flex-end;padding:0}
       .collection-review-box.collection-product-box{
         width:100%;
@@ -1405,7 +1437,7 @@ function updateCountdown() {
       var total = cart.reduce(function(s,i){ return s + i.quantity; }, 0);
       countEl.textContent = total;
     }
-    showToast('Added to bag ?');
+    showToast('Added to bag');
   }
 
   function closeCollectionReviewModal() {
