@@ -427,13 +427,12 @@
   function enforceModalStyles() {
     const modal = document.getElementById('zw-lang-modal');
     if (!modal) return;
-    const isMobile = window.matchMedia('(max-width: 600px)').matches;
     modal.style.setProperty('background', 'transparent', 'important');
     modal.style.setProperty('backdrop-filter', 'none', 'important');
     modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
-    modal.style.setProperty('align-items', isMobile ? 'stretch' : 'center', 'important');
-    modal.style.setProperty('justify-content', isMobile ? 'flex-end' : 'center', 'important');
-    modal.style.setProperty('padding', isMobile ? '0' : 'clamp(1rem, 3vw, 2rem)', 'important');
+    modal.style.setProperty('align-items', 'center', 'important');
+    modal.style.setProperty('justify-content', 'center', 'important');
+    modal.style.setProperty('padding', 'clamp(0.5rem, 3vw, 2rem)', 'important');
     modal.style.setProperty('box-shadow', 'none', 'important');
   }
 
@@ -592,16 +591,17 @@
       body.light-mode #zw-lang-grid::-webkit-scrollbar-thumb { background: rgba(9,9,11,0.12); }
       @media (max-width: 600px) {
         #zw-lang-box {
-          width: 100vw !important;
-          max-width: 100vw !important;
-          height: 100dvh !important;
-          max-height: 100dvh !important;
-          border-radius: 0 !important;
-          border-left: none !important;
-          border-right: none !important;
-          border-bottom: none !important;
+          width: min(34rem, calc(100vw - 1rem)) !important;
+          max-width: calc(100vw - 1rem) !important;
+          height: auto !important;
+          max-height: min(90dvh, 54rem) !important;
+          border-radius: 18px !important;
         }
-        #zw-lang-modal { align-items: stretch !important; justify-content: flex-end !important; }
+        #zw-lang-modal {
+          align-items: center !important;
+          justify-content: center !important;
+          padding: 0.5rem !important;
+        }
         #zw-lang-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
       }
     `;
