@@ -501,9 +501,13 @@
     .collection-review-label{display:block;font-size:.52rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.34);margin-bottom:.35rem}
     .collection-review-value{display:block;font-size:.78rem;color:rgba(244,241,235,.86);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .collection-thumbs{display:flex;gap:.5rem;padding:.7rem;overflow-x:auto}
-    .collection-thumb{width:64px;height:76px;flex:0 0 auto;border:1px solid rgba(244,241,235,.1);background:none;padding:0;opacity:.55;cursor:pointer}
+    .collection-thumb{
+      width:64px;height:76px;flex:0 0 auto;border:1px solid rgba(244,241,235,.1);
+      background:rgba(244,241,235,.04);padding:0;opacity:.55;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;overflow:hidden;
+    }
     .collection-thumb.active{opacity:1;border-color:var(--white)}
-    .collection-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+    .collection-thumb img{width:100%;height:100%;object-fit:contain;object-position:center;display:block}
     .collection-option-block{border:1px solid rgba(244,241,235,.09);padding:.9rem}
     .collection-option-head{display:flex;justify-content:space-between;gap:1rem;margin-bottom:.75rem;font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.42)}
     .collection-option-head strong{color:rgba(244,241,235,.88);font-weight:500;text-align:right}
@@ -1227,7 +1231,7 @@ function updateCountdown() {
   <script src="modal-lock.js?v=4"></script>
   <script src="lang.js?v=8" defer></script>
 
-  <div id="collection-review-modal" class="collection-review-modal" role="dialog" aria-modal="true" aria-labelledby="collection-review-title">
+  <div id="collection-review-modal" class="collection-review-modal" role="dialog" aria-modal="true" aria-labelledby="collection-review-title" tabindex="-1">
     <div class="collection-review-box collection-product-box">
       <button type="button" class="collection-review-close" id="collection-review-close" aria-label="Close">&times;</button>
       <div class="collection-product-layout">
@@ -1418,6 +1422,15 @@ function updateCountdown() {
     document.documentElement.style.overflow = locked ? 'hidden' : '';
   }
 
+  function collectionFocusWithoutScroll(el) {
+    if (!el || typeof el.focus !== 'function') return;
+    try {
+      el.focus({ preventScroll: true });
+    } catch (_) {
+      el.focus();
+    }
+  }
+
   function collectionReviewHref(item) {
     if (typeof productHref !== 'function') return '#';
     return productHref({ id: item.productId, sku: item.baseSku || item.sku, title: item.title });
@@ -1590,8 +1603,12 @@ function updateCountdown() {
     collectionRenderOptions(item);
     modal.classList.add('open');
     collectionSetScrollLock(true);
-    var confirm = document.getElementById('collection-review-confirm');
-    if (confirm) confirm.focus();
+    var box = modal.querySelector('.collection-review-box');
+    if (box) {
+      box.scrollTop = 0;
+      requestAnimationFrame(function() { box.scrollTop = 0; });
+    }
+    collectionFocusWithoutScroll(modal);
   }
 
   function initCollectionReviewModal() {
