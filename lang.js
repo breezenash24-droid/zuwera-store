@@ -309,8 +309,8 @@
     modal.innerHTML = `
       <div id="zw-lang-box" class="notranslate" translate="no" style="
         background:#0f0f12; border:1px solid rgba(244,241,235,0.1); border-top:2px solid #F891A5;
-        border-radius:18px; width:min(34rem, calc(100vw - 2rem)); max-width:calc(100vw - 2rem);
-        height:auto; max-height:min(92dvh, 54rem); overflow:hidden; display:flex; flex-direction:column;
+        border-radius:18px; width:min(52rem, calc(100vw - 2rem)); max-width:calc(100vw - 2rem);
+        height:auto; max-height:min(92dvh, 58rem); overflow:hidden; display:flex; flex-direction:column;
       ">
         <!-- Header -->
         <div style="display:flex;align-items:center;justify-content:space-between;
