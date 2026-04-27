@@ -174,15 +174,16 @@ body.light-mode .cart-shell-footer-copy{
 
 /* Modals */
 .modal:not(#cart-modal):not(#mobile-menu):not(.quick-add-review-modal):not(.modal--guide),
-.collection-review-modal{
+.collection-review-modal,
+#zw-lang-modal{
   background:none !important;
-  backdrop-filter:none;
-  -webkit-backdrop-filter:none;
-  pointer-events:none;
-  align-items:stretch !important;
-  justify-content:flex-end !important;
-  padding:0 !important;
-  overflow:hidden;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+  pointer-events:auto;
+  align-items:center !important;
+  justify-content:center !important;
+  padding:clamp(1rem, 3vw, 2rem) !important;
+  overflow-y:auto;
   overscroll-behavior:contain;
 }
 
@@ -192,35 +193,35 @@ body.light-mode #zw-lang-modal{
   background:none !important;
   backdrop-filter:none !important;
   -webkit-backdrop-filter:none !important;
-  pointer-events:none;
 }
 
 .modal:not(#cart-modal):not(#mobile-menu):not(.quick-add-review-modal):not(.modal--guide) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.collection-review-box),
 #zw-lang-box{
   background:var(--zw-surface) !important;
   border:1px solid var(--zw-line-dark) !important;
-  border-top:none !important;
-  border-left:2px solid var(--zw-accent) !important;
-  border-radius:0 !important;
-  box-shadow:-28px 0 80px rgba(0,0,0,.24) !important;
+  border-top:2px solid var(--zw-accent) !important;
+  border-left:1px solid var(--zw-line-dark) !important;
+  border-radius:18px !important;
+  box-shadow:0 28px 90px rgba(0,0,0,.28) !important;
   pointer-events:auto;
-  width:var(--zw-panel-width) !important;
-  max-width:min(100vw, var(--zw-panel-width)) !important;
-  height:100dvh !important;
-  max-height:100dvh !important;
-  min-height:100dvh !important;
-  margin:0 0 0 auto !important;
+  width:min(var(--zw-panel-width), calc(100vw - 2rem)) !important;
+  max-width:min(var(--zw-panel-width), calc(100vw - 2rem)) !important;
+  min-height:0 !important;
+  height:auto !important;
+  max-height:min(92dvh, 54rem) !important;
+  margin:auto !important;
   overflow-y:auto !important;
   -webkit-overflow-scrolling:touch;
   overscroll-behavior:contain;
-  animation:zwPanelIn .22s ease;
+  animation:zwCenteredModalIn .22s ease;
 }
 
 body.light-mode .modal:not(#cart-modal):not(#mobile-menu):not(.quick-add-review-modal):not(.modal--guide) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.collection-review-box),
 body.light-mode #zw-lang-box{
   background:var(--zw-paper) !important;
   border-color:var(--zw-line-light) !important;
-  border-left-color:var(--zw-ink) !important;
+  border-top-color:var(--zw-ink) !important;
+  border-left-color:var(--zw-line-light) !important;
   color:var(--zw-ink) !important;
 }
 
@@ -234,13 +235,13 @@ body.light-mode #zw-lang-box{
 
 #all-reviews-modal > .review-list-mbox,
 .collection-review-modal > .collection-review-box{
-  width:var(--zw-panel-wide-width) !important;
-  max-width:min(100vw, var(--zw-panel-wide-width)) !important;
+  width:min(var(--zw-panel-wide-width), calc(100vw - 2rem)) !important;
+  max-width:min(var(--zw-panel-wide-width), calc(100vw - 2rem)) !important;
 }
 
 #payment-modal > .pbox{
-  width:min(40rem, 44vw) !important;
-  max-width:min(100vw, 40rem) !important;
+  width:min(40rem, calc(100vw - 2rem)) !important;
+  max-width:min(40rem, calc(100vw - 2rem)) !important;
 }
 
 #auth-modal > .mbox,
@@ -261,9 +262,9 @@ body.light-mode #zw-lang-box{
   padding:1.6rem 1.35rem 1.35rem !important;
 }
 
-@keyframes zwPanelIn{
-  from{opacity:0;transform:translateX(32px)}
-  to{opacity:1;transform:translateX(0)}
+@keyframes zwCenteredModalIn{
+  from{opacity:0;transform:translateY(18px) scale(.985)}
+  to{opacity:1;transform:translateY(0) scale(1)}
 }
 
 .mclose,
@@ -617,13 +618,14 @@ body.light-mode .heart-btn{
 
 /* Checkout and sticky mobile rhythm. */
 #payment-modal{
-  align-items:stretch !important;
-  justify-content:flex-end !important;
-  padding:0 !important;
+  align-items:center !important;
+  justify-content:center !important;
+  padding:clamp(1rem, 3vw, 2rem) !important;
 }
 
 #payment-modal .pbox{
-  max-height:100dvh !important;
+  max-height:min(92dvh, 54rem) !important;
+  margin:auto !important;
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
 }
