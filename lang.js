@@ -303,14 +303,14 @@
     modal.style.cssText = `
       display:none; position:fixed; inset:0; z-index:100000;
       background:${overlayBg}; backdrop-filter:${overlayFilter}; -webkit-backdrop-filter:${overlayFilter};
-      align-items:stretch; justify-content:flex-end; padding:0;
+      align-items:center; justify-content:center; padding:clamp(1rem, 3vw, 2rem);
     `;
 
     modal.innerHTML = `
       <div id="zw-lang-box" class="notranslate" translate="no" style="
-        background:#0f0f12; border-left:1px solid rgba(244,241,235,0.1);
-        border-radius:0; width:min(34rem, 34vw); max-width:100%;
-        height:100dvh; max-height:100dvh; overflow:hidden; display:flex; flex-direction:column;
+        background:#0f0f12; border:1px solid rgba(244,241,235,0.1); border-top:2px solid #F891A5;
+        border-radius:18px; width:min(34rem, calc(100vw - 2rem)); max-width:calc(100vw - 2rem);
+        height:auto; max-height:min(92dvh, 54rem); overflow:hidden; display:flex; flex-direction:column;
       ">
         <!-- Header -->
         <div style="display:flex;align-items:center;justify-content:space-between;
@@ -427,12 +427,13 @@
   function enforceModalStyles() {
     const modal = document.getElementById('zw-lang-modal');
     if (!modal) return;
+    const isMobile = window.matchMedia('(max-width: 600px)').matches;
     modal.style.setProperty('background', 'transparent', 'important');
     modal.style.setProperty('backdrop-filter', 'none', 'important');
     modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
-    modal.style.setProperty('align-items', 'stretch', 'important');
-    modal.style.setProperty('justify-content', 'flex-end', 'important');
-    modal.style.setProperty('padding', '0', 'important');
+    modal.style.setProperty('align-items', isMobile ? 'stretch' : 'center', 'important');
+    modal.style.setProperty('justify-content', isMobile ? 'flex-end' : 'center', 'important');
+    modal.style.setProperty('padding', isMobile ? '0' : 'clamp(1rem, 3vw, 2rem)', 'important');
     modal.style.setProperty('box-shadow', 'none', 'important');
   }
 
@@ -535,7 +536,8 @@
       }
       body.light-mode #zw-lang-box {
         background: #F0EEE9 !important;
-        border-left-color: rgba(9,9,11,0.15) !important;
+        border-color: rgba(9,9,11,0.15) !important;
+        border-top-color: #09090b !important;
       }
       body.light-mode #zw-lang-box > div:first-child {
         border-bottom-color: rgba(9,9,11,0.08) !important;
@@ -589,7 +591,16 @@
       #zw-lang-grid::-webkit-scrollbar-thumb { background: rgba(244,241,235,0.1); border-radius: 2px; }
       body.light-mode #zw-lang-grid::-webkit-scrollbar-thumb { background: rgba(9,9,11,0.12); }
       @media (max-width: 600px) {
-        #zw-lang-box { width: 100vw !important; max-width: 100vw !important; height: 100dvh !important; max-height: 100dvh !important; border-radius: 0 !important; }
+        #zw-lang-box {
+          width: 100vw !important;
+          max-width: 100vw !important;
+          height: 100dvh !important;
+          max-height: 100dvh !important;
+          border-radius: 0 !important;
+          border-left: none !important;
+          border-right: none !important;
+          border-bottom: none !important;
+        }
         #zw-lang-modal { align-items: stretch !important; justify-content: flex-end !important; }
         #zw-lang-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
       }
