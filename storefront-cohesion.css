@@ -719,18 +719,20 @@ body.light-mode .heart-btn{
     align-items:stretch !important;
     justify-content:flex-end !important;
     padding:0 !important;
+    overflow-y:auto !important;
+    -webkit-overflow-scrolling:touch;
   }
 
   .collection-review-modal > .collection-review-box.collection-product-box{
     width:100% !important;
     max-width:100% !important;
-    min-height:100dvh !important;
+    min-height:auto !important;
     height:auto !important;
-    max-height:100dvh !important;
+    max-height:none !important;
     border-radius:0 !important;
     border-left:none !important;
     border-top:2px solid var(--zw-accent) !important;
-    overflow-y:auto !important;
+    overflow:visible !important;
     overflow-x:hidden !important;
     -webkit-overflow-scrolling:touch;
   }
@@ -744,7 +746,7 @@ body.light-mode .heart-btn{
   .collection-review-modal > .collection-review-box.collection-product-box .collection-product-layout{
     grid-template-columns:1fr !important;
     grid-template-rows:auto auto !important;
-    min-height:100% !important;
+    min-height:0 !important;
     height:auto !important;
     max-height:none !important;
     overflow:visible !important;
@@ -770,16 +772,24 @@ body.light-mode .heart-btn{
   }
 
   .collection-review-modal > .collection-review-box.collection-product-box .collection-thumbs{
+    min-height:84px !important;
     overflow-x:auto !important;
     overflow-y:hidden !important;
-    padding:.65rem .95rem calc(.9rem + env(safe-area-inset-bottom,0px)) !important;
+    padding:.65rem .95rem calc(1.25rem + env(safe-area-inset-bottom,0px)) !important;
+    background:var(--zw-surface) !important;
+    position:relative;
+    z-index:2;
   }
 
   .collection-review-modal > .collection-review-box.collection-product-box .collection-review-body{
     justify-content:flex-start !important;
     min-height:0 !important;
     overflow:visible !important;
-    padding:1.2rem 1rem calc(1.2rem + env(safe-area-inset-bottom,0px)) !important;
+    padding:1.2rem 1rem calc(1.4rem + env(safe-area-inset-bottom,0px)) !important;
+  }
+
+  body.light-mode .collection-review-modal > .collection-review-box.collection-product-box .collection-thumbs{
+    background:var(--zw-paper) !important;
   }
 
   #zw-lang-modal{
