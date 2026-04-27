@@ -1978,4 +1978,16 @@ body.light-mode .review-dialog--classic-form .review-submit-btn:hover {
   .product-fit-actions {
     grid-template-columns: 1fr;
   }
+
+  /* Size & Fit should remain a centered dialog, not a bottom sheet. */
+  #size-fit-modal.modal--review {
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0.75rem !important;
+  }
+
+  #size-fit-modal .review-dialog {
+    max-height: min(90dvh, 54rem) !important;
+    border-radius: 18px !important;
+  }
 }

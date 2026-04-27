@@ -714,7 +714,15 @@ body.light-mode .quick-back-btn:hover{color:rgba(9,9,11,.7)}
 /* ALL modal overlays are fully transparent — content panels handle their own backgrounds */
 .modal{background:transparent !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important}
 /* Lang modal is a custom overlay that is NOT a .modal — enforce transparent overlay here too */
-#zw-lang-modal{background:transparent !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important;align-items:stretch !important;justify-content:flex-end !important;padding:0 !important;box-shadow:none !important}
+#zw-lang-modal{
+  background:transparent !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+  align-items:center !important;
+  justify-content:center !important;
+  padding:clamp(.5rem,3vw,2rem) !important;
+  box-shadow:none !important;
+}
 .quick-add-review-modal{z-index:650}
 .quick-add-review-box{width:min(520px,92vw);padding:0;overflow:hidden}
 .quick-add-product-box{width:min(920px,94vw);max-height:min(760px,92vh);overflow:auto}
