@@ -450,6 +450,16 @@
     }
     .collection-review-media{aspect-ratio:4/3;background:rgba(244,241,235,.04);display:flex;align-items:center;justify-content:center}
     .collection-review-media img{width:100%;height:100%;object-fit:cover;display:block}
+    .collection-gallery-arrow{
+      position:absolute;top:50%;transform:translateY(-50%);z-index:8;
+      width:40px;height:40px;border-radius:50%;border:1px solid rgba(244,241,235,.16);
+      background:rgba(9,9,11,.58);color:#fff;display:flex;align-items:center;justify-content:center;
+      font-size:1.2rem;line-height:1;cursor:pointer;backdrop-filter:blur(10px);
+      transition:background .2s,border-color .2s,opacity .2s;
+    }
+    .collection-gallery-arrow:hover{background:rgba(9,9,11,.82);border-color:rgba(244,241,235,.28)}
+    .collection-gallery-arrow.prev{left:.85rem}
+    .collection-gallery-arrow.next{right:.85rem}
     .collection-review-placeholder{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,235,.28)}
     .collection-review-body{padding:1.6rem 1.7rem 1.7rem}
     .collection-product-body{display:flex;flex-direction:column;gap:1rem}
@@ -501,13 +511,54 @@
     body.light-mode .collection-review-actions button,body.light-mode .collection-review-actions a{border-color:rgba(9,9,11,.12);color:rgba(9,9,11,.68)}
     body.light-mode .collection-review-confirm{background:#09090b!important;color:#f4f1eb!important;border-color:#09090b!important}
     @media(max-width:640px){
-      .collection-product-layout{grid-template-columns:1fr}
-      .collection-product-box{max-height:90vh}
-      .collection-review-body{padding:1.35rem}
+      .collection-review-modal{align-items:stretch;justify-content:flex-end;padding:0}
+      .collection-review-box.collection-product-box{
+        width:100%;
+        max-width:100%;
+        min-height:100dvh;
+        height:auto;
+        max-height:100dvh;
+        border-radius:0;
+        border-left:none;
+        overflow-y:auto;
+        overflow-x:hidden;
+        -webkit-overflow-scrolling:touch;
+      }
+      .collection-review-close{
+        position:fixed;
+        top:calc(1rem + env(safe-area-inset-top,0px));
+        right:1rem;
+      }
+      .collection-product-layout{
+        grid-template-columns:1fr;
+        grid-template-rows:auto auto;
+        min-height:100%;
+        overflow:visible;
+      }
+      .collection-product-gallery{
+        display:grid;
+        grid-template-rows:minmax(0,1fr) auto;
+        min-height:0;
+      }
+      .collection-review-media{
+        aspect-ratio:4/5;
+        min-height:clamp(210px,32svh,330px);
+        max-height:clamp(230px,36svh,350px);
+      }
+      .collection-thumbs{
+        overflow-x:auto;
+        overflow-y:hidden;
+        padding:.65rem .95rem calc(.9rem + env(safe-area-inset-bottom,0px));
+      }
+      .collection-review-body{
+        padding:1.2rem 1rem calc(1.2rem + env(safe-area-inset-bottom,0px));
+        overflow:visible;
+      }
       .collection-review-title{font-size:1.75rem}
       .collection-review-details{grid-template-columns:1fr}
       .collection-review-actions{grid-template-columns:1fr}
       .collection-review-confirm{grid-column:auto!important}
+      .collection-gallery-arrow{width:38px;height:38px}
     }
 
     /* FOOTER */
@@ -1144,34 +1195,34 @@ function updateCountdown() {
   <script src="modal-lock.js?v=4"></script>
   <script src="lang.js?v=8" defer></script>
 
-  <div id="collection-review-modal" class="modal quick-add-review-modal" role="dialog" aria-modal="true" aria-labelledby="collection-review-title">
-    <div class="mbox quick-add-review-box quick-add-product-box">
-      <button type="button" class="mclose collection-review-close" id="collection-review-close" aria-label="Close">&times;</button>
-      <div class="quick-add-product-layout">
-        <div class="quick-add-product-gallery">
-          <div class="quick-add-review-media collection-review-media" id="collection-review-media">
-            <span class="quick-add-review-placeholder collection-review-placeholder">Image Coming Soon</span>
+  <div id="collection-review-modal" class="collection-review-modal" role="dialog" aria-modal="true" aria-labelledby="collection-review-title">
+    <div class="collection-review-box collection-product-box">
+      <button type="button" class="collection-review-close" id="collection-review-close" aria-label="Close">&times;</button>
+      <div class="collection-product-layout">
+        <div class="collection-product-gallery">
+          <div class="collection-review-media" id="collection-review-media">
+            <span class="collection-review-placeholder">Image Coming Soon</span>
           </div>
-          <div class="quick-add-thumbs collection-thumbs" id="collection-review-thumbs" aria-label="Product images"></div>
+          <div class="collection-thumbs" id="collection-review-thumbs" aria-label="Product images"></div>
         </div>
-        <div class="quick-add-review-body quick-add-product-body collection-review-body">
-          <p class="quick-add-review-kicker collection-review-kicker">Mini Product Page</p>
-          <h2 class="quick-add-review-title collection-review-title" id="collection-review-title">Product</h2>
-          <div class="quick-add-product-meta collection-product-meta">
+        <div class="collection-review-body collection-product-body">
+          <p class="collection-review-kicker">Mini Product Page</p>
+          <h2 class="collection-review-title" id="collection-review-title">Product</h2>
+          <div class="collection-product-meta">
             <span id="collection-review-price">$0.00</span>
             <span id="collection-review-sku">-</span>
           </div>
-          <div class="quick-add-option-block collection-option-block">
-            <div class="quick-add-option-head collection-option-head"><span>Color</span><strong id="collection-review-color">Standard</strong></div>
-            <div class="quick-add-option-grid collection-option-grid collection-colors" id="collection-review-colors"></div>
+          <div class="collection-option-block">
+            <div class="collection-option-head"><span>Color</span><strong id="collection-review-color">Standard</strong></div>
+            <div class="collection-option-grid collection-colors" id="collection-review-colors"></div>
           </div>
-          <div class="quick-add-option-block collection-option-block">
-            <div class="quick-add-option-head collection-option-head"><span>Size</span><strong id="collection-review-size">Choose size</strong></div>
-            <div class="quick-add-option-grid collection-option-grid collection-sizes" id="collection-review-sizes"></div>
+          <div class="collection-option-block">
+            <div class="collection-option-head"><span>Size</span><strong id="collection-review-size">Choose size</strong></div>
+            <div class="collection-option-grid collection-sizes" id="collection-review-sizes"></div>
           </div>
-          <p class="quick-add-review-message collection-review-message" id="collection-review-message">Choose your options.</p>
-          <div class="quick-add-review-actions collection-review-actions">
-            <button type="button" class="quick-add-review-confirm collection-review-confirm" id="collection-review-confirm">Add to Bag</button>
+          <p class="collection-review-message" id="collection-review-message">Choose your options.</p>
+          <div class="collection-review-actions">
+            <button type="button" class="collection-review-confirm" id="collection-review-confirm">Add to Bag</button>
             <button type="button" id="collection-review-cancel">Leave</button>
             <a href="#" id="collection-review-view">Full Product Page</a>
           </div>
@@ -1391,9 +1442,9 @@ function updateCountdown() {
     var hasMultipleImages = images.length > 1;
     if (media) {
       media.innerHTML = current
-        ? (hasMultipleImages ? '<button type="button" class="quick-add-gallery-arrow collection-gallery-arrow prev" data-gallery-step="-1" aria-label="Previous product image">&#10094;</button>' : '') +
+        ? (hasMultipleImages ? '<button type="button" class="collection-gallery-arrow prev" data-gallery-step="-1" aria-label="Previous product image">&#10094;</button>' : '') +
           '<img src="' + collectionEscapeAttr(current) + '" alt="' + collectionEscapeAttr(item.title) + '">' +
-          (hasMultipleImages ? '<button type="button" class="quick-add-gallery-arrow collection-gallery-arrow next" data-gallery-step="1" aria-label="Next product image">&#10095;</button>' : '')
+          (hasMultipleImages ? '<button type="button" class="collection-gallery-arrow next" data-gallery-step="1" aria-label="Next product image">&#10095;</button>' : '')
         : '<span class="collection-review-placeholder">Image Coming Soon</span>';
       media.querySelectorAll('[data-gallery-step]').forEach(function(button) {
         button.addEventListener('click', function(event) {
@@ -1415,7 +1466,7 @@ function updateCountdown() {
     }
     if (!thumbs) return;
     thumbs.innerHTML = images.map(function(src, idx) {
-      return '<button type="button" class="quick-add-thumb collection-thumb' + (src === current ? ' active' : '') + '" data-img="' + collectionEscapeAttr(src) + '" aria-label="View product image ' + (idx + 1) + '"><img src="' + collectionEscapeAttr(src) + '" alt=""></button>';
+      return '<button type="button" class="collection-thumb' + (src === current ? ' active' : '') + '" data-img="' + collectionEscapeAttr(src) + '" aria-label="View product image ' + (idx + 1) + '"><img src="' + collectionEscapeAttr(src) + '" alt=""></button>';
     }).join('');
     thumbs.querySelectorAll('.collection-thumb').forEach(function(button) {
       button.addEventListener('click', function() {
@@ -1438,7 +1489,7 @@ function updateCountdown() {
         ? colors.map(function(color, idx) {
             var name = color.color_name || ('Color ' + (idx + 1));
             var active = item.selectedColor && item.selectedColor.color_name === color.color_name ? ' active' : '';
-            return '<button type="button" class="quick-add-color collection-color' + active + '" data-index="' + idx + '" aria-label="' + collectionEscapeAttr(name) + '"><span style="background:' + collectionEscapeAttr(color.hex_color || '#888') + '"></span>' + collectionEscapeAttr(name) + '</button>';
+            return '<button type="button" class="collection-color' + active + '" data-index="' + idx + '" aria-label="' + collectionEscapeAttr(name) + '"><span style="background:' + collectionEscapeAttr(color.hex_color || '#888') + '"></span>' + collectionEscapeAttr(name) + '</button>';
           }).join('')
         : '<p class="collection-empty-option">Standard colorway</p>';
       colorWrap.querySelectorAll('.collection-color').forEach(function(button) {
@@ -1455,7 +1506,7 @@ function updateCountdown() {
         var size = entry[0], stock = entry[1];
         var soldOut = Number(stock) <= 0;
         var active = item.selectedSize === size ? ' active' : '';
-        return '<button type="button" class="quick-add-size collection-size' + active + (soldOut ? ' sold-out' : '') + '" data-size="' + collectionEscapeAttr(size) + '" ' + (soldOut ? 'disabled' : '') + '>' + collectionEscapeAttr(size) + (soldOut ? ' - Sold Out' : '') + '</button>';
+        return '<button type="button" class="collection-size' + active + (soldOut ? ' sold-out' : '') + '" data-size="' + collectionEscapeAttr(size) + '" ' + (soldOut ? 'disabled' : '') + '>' + collectionEscapeAttr(size) + (soldOut ? ' - Sold Out' : '') + '</button>';
       }).join('') || '<p class="collection-empty-option">One Size</p>';
       sizeWrap.querySelectorAll('.collection-size:not(.sold-out)').forEach(function(button) {
         button.addEventListener('click', function() {
