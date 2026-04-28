@@ -258,9 +258,14 @@ body.light-mode #zw-lang-box{
 }
 
 #all-reviews-modal > .review-list-mbox,
-.collection-review-modal > .collection-review-box{
+.collection-review-modal > .collection-review-box:not(.collection-product-box){
   width:min(var(--zw-panel-wide-width), calc(100vw - 2rem)) !important;
   max-width:min(var(--zw-panel-wide-width), calc(100vw - 2rem)) !important;
+}
+/* Mini product page is a centered dialog — restore full dialog width */
+.collection-review-modal > .collection-review-box.collection-product-box{
+  width:min(1080px,94vw) !important;
+  max-width:min(1080px,94vw) !important;
 }
 
 #payment-modal > .pbox{
