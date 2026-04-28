@@ -713,16 +713,8 @@ body.light-mode .quick-back-btn:hover{color:rgba(9,9,11,.7)}
 
 /* ALL modal overlays are fully transparent — content panels handle their own backgrounds */
 .modal{background:transparent !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important}
-/* Lang modal is a custom overlay that is NOT a .modal — enforce transparent overlay here too */
-#zw-lang-modal{
-  background:transparent !important;
-  backdrop-filter:none !important;
-  -webkit-backdrop-filter:none !important;
-  align-items:center !important;
-  justify-content:center !important;
-  padding:clamp(.5rem,3vw,2rem) !important;
-  box-shadow:none !important;
-}
+/* Lang modal overlay — background/alignment enforced here so inline style rewrites can't win */
+#zw-lang-modal{background:transparent !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important;align-items:stretch !important;justify-content:flex-end !important;padding:0 !important;box-shadow:none !important}
 .quick-add-review-modal{z-index:650}
 .quick-add-review-box{width:min(520px,92vw);padding:0;overflow:hidden}
 .quick-add-product-box{width:min(920px,94vw);max-height:min(760px,92vh);overflow:auto}
@@ -751,13 +743,9 @@ body.light-mode .quick-back-btn:hover{color:rgba(9,9,11,.7)}
 .quick-add-review-label{display:block;font-family:var(--fm);font-size:.52rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.34);margin-bottom:.35rem}
 .quick-add-review-value{display:block;font-family:var(--fm);font-size:.78rem;color:rgba(244,241,235,.86);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .quick-add-thumbs{display:flex;gap:.5rem;padding:.7rem;overflow-x:auto}
-.quick-add-thumb{
-  width:64px;height:76px;flex:0 0 auto;border:1px solid rgba(244,241,235,.1);
-  background:rgba(244,241,235,.04);padding:0;opacity:.55;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;overflow:hidden;
-}
+.quick-add-thumb{width:64px;height:76px;flex:0 0 auto;border:1px solid rgba(244,241,235,.1);background:none;padding:0;opacity:.55;cursor:pointer}
 .quick-add-thumb.active{opacity:1;border-color:#f4f1eb}
-.quick-add-thumb img{width:100%;height:100%;object-fit:contain;object-position:center;display:block}
+.quick-add-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .quick-add-option-block{border:1px solid rgba(244,241,235,.09);padding:.9rem}
 .quick-add-option-head{display:flex;justify-content:space-between;gap:1rem;margin-bottom:.75rem;font-family:var(--fm);font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.42)}
 .quick-add-option-head strong{color:rgba(244,241,235,.88);font-weight:500;text-align:right}
@@ -799,17 +787,8 @@ body.light-mode .quick-add-review-actions .quick-add-review-confirm{background:#
 body.light-mode .quick-add-review-actions .quick-add-review-confirm:hover{background:#27272a;border-color:#27272a}
 body.light-mode .quick-add-review-actions .quick-add-review-confirm:active{background:#3f3f46;border-color:#3f3f46;transform:scale(.97)}
 @media(max-width:640px){
-  .quick-add-product-layout{
-    grid-template-columns:1fr;
-    grid-template-rows:auto auto;
-    overflow:visible;
-  }
-  .quick-add-product-box{
-    max-height:100dvh;
-    overflow-y:auto;
-    overflow-x:hidden;
-    -webkit-overflow-scrolling:touch;
-  }
+  .quick-add-product-layout{grid-template-columns:1fr}
+  .quick-add-product-box{max-height:90vh}
   .quick-add-review-body{padding:1.35rem}
   .quick-add-review-title{font-size:1.75rem}
   .quick-add-review-details{grid-template-columns:1fr}
@@ -972,27 +951,21 @@ body.light-mode .pcard-skel-img,body.light-mode .pcard-skel-line{background:rgba
 @media(max-width:760px){
   .mbox.quick-add-review-box.quick-add-product-box{
     width:min(94vw,520px);
-    max-height:100dvh;
-    overflow-y:auto;
-    overflow-x:hidden;
-    -webkit-overflow-scrolling:touch;
+    max-height:90dvh;
+    overflow:auto;
   }
   .mbox.quick-add-review-box.quick-add-product-box .quick-add-product-layout{
     grid-template-columns:1fr;
-    grid-template-rows:auto auto;
-    min-height:100%;
+    min-height:0;
     max-height:none;
-    overflow:visible;
   }
   .mbox.quick-add-review-box.quick-add-product-box .quick-add-product-gallery{
     min-height:0;
-    display:grid;
-    grid-template-rows:minmax(0,1fr) auto;
   }
   .mbox.quick-add-review-box.quick-add-product-box .quick-add-review-media{
     aspect-ratio:3/4;
     min-height:0;
-    max-height:min(50dvh,460px);
+    max-height:min(55dvh,500px);
     overflow:hidden;
   }
   .mbox.quick-add-review-box.quick-add-product-box .quick-add-review-body{
@@ -1627,10 +1600,9 @@ body.light-mode::after{opacity:0.15}
 
 </style>
 <link rel="stylesheet" href="reviews-vibe.css?v=13">
-<link rel="stylesheet" href="storefront-cohesion.css?v=11">
-<link rel="stylesheet" href="storefront-mobile-rebuild.css?v=1">
+<link rel="stylesheet" href="storefront-cohesion.css?v=5">
 <script src="image-utils.js?v=1"></script>
-<script src="mobile-menu.js?v=2" defer></script>
+<script src="mobile-menu.js?v=1" defer></script>
 </head>
 <body>
 
@@ -1676,7 +1648,7 @@ body.light-mode::after{opacity:0.15}
     <button class="nbtn" id="account-btn" onclick="window.location.href='/account.html'">Account</button>
     <button class="nbtn" id="logout-btn">Sign Out</button>
     <button class="nbtn" id="cart-btn" onclick="return window.__zwOpenCart ? window.__zwOpenCart() : true">Bag <span class="cc">0</span></button>
-<button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu">
+      <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" onclick="return window.openMobileMenu ? window.openMobileMenu() : false;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
       </button>
   </div>
@@ -1685,7 +1657,7 @@ body.light-mode::after{opacity:0.15}
 <!-- MOBILE MENU MODAL -->
 <div id="mobile-menu" class="modal" role="dialog" aria-modal="true" aria-hidden="true" style="z-index:900;">
   <div class="mbox" style="background:transparent; border:none; box-shadow:none; text-align:center;">
-  <button id="mobile-menu-close" class="mclose" style="position:fixed; top:1.5rem; right:1.5rem; background:none; border:none; color:#f4f1eb; font-size:2rem; width:40px; height:40px;">&#215;</button>
+    <button id="mobile-menu-close" class="mclose" onclick="return window.closeMobileMenu ? window.closeMobileMenu() : false;" style="position:fixed; top:1.5rem; right:1.5rem; background:none; border:none; color:#f4f1eb; font-size:2rem; width:40px; height:40px;">&#215;</button>
     <div id="mobile-category-links" style="display:flex; flex-direction:column; gap:2.5rem; margin-top:3rem;">
       <a href="drop001.html?category=Jackets">Jackets</a>
     </div>
@@ -3265,8 +3237,7 @@ function buildHomeFavoriteDetail(product, extra, favorite) {
     image: images[0]?.image_url || product?.image_url || '',
     current_price: parseHomeFavoritePrice(product?.current_price ?? product?.price ?? favorite?.price),
     member_price: parseHomeFavoritePrice(product?.member_price),
-    colorName: colors[0]?.color_name || 'Standard',
-    hasExplicitColorVariant: !!colors[0]?.color_name,
+    colorName: colors[0]?.color_name || product?.colorway || 'Standard',
     sizes
   };
   detail.href = productHref({ id: detail.id, sku: detail.sku, title: detail.title });
@@ -3324,8 +3295,7 @@ function buildHomeFavoriteFallbackDetail(productId, favorite) {
     image: favorite?.product_image || snapshot?.image || snapshot?.image_url || '',
     current_price: regularPrice,
     member_price: parseHomeFavoritePrice(snapshot?.memberPrice),
-    colorName: 'Standard',
-    hasExplicitColorVariant: false,
+    colorName: snapshot?.colorName || snapshot?.colorway || 'Standard',
     sizes: [],
     href: productHref({ id: resolvedId, sku: snapshot?.sku || '', title })
   };
@@ -3343,14 +3313,6 @@ function shouldSkipHomeFavoriteAdd(key, ttlMs = 700) {
     if ((now - ts) > ttlMs * 4) _homeFavoriteAddDedup.delete(entryKey);
   }
   return false;
-}
-
-function homeFavoriteLineMatchesCartItem(item, detail, size) {
-  const productMatches = String(item.productId || '') === String(detail?.id || '');
-  const sizeMatches = String(item.size || '') === String(size || '');
-  if (!productMatches || !sizeMatches) return false;
-  if (!detail?.hasExplicitColorVariant) return true;
-  return String(item.colorName || '').trim().toLowerCase() === String(detail?.colorName || 'Standard').trim().toLowerCase();
 }
 
 function homeFavoriteCardHtml(favorite, detail, mode) {
@@ -3428,7 +3390,11 @@ window.addHomeFavoriteToCart = async function(productId) {
     const memberPrice = parseHomeFavoritePrice(detail.member_price);
     const effectivePrice = getHomeFavoritePrice(detail, favorite.price);
     const cart = normalizeCartPricing(JSON.parse(localStorage.getItem('cart') || '[]'));
-    const existing = cart.find((item) => homeFavoriteLineMatchesCartItem(item, detail, size));
+    const existing = cart.find((item) =>
+      String(item.productId || '') === String(detail.id || '') &&
+      String(item.size || '') === String(size || '') &&
+      String(item.colorName || '') === String(detail.colorName || 'Standard')
+    );
     if (existing) {
       existing.quantity += 1;
     } else {
@@ -3818,7 +3784,7 @@ function quickAddMoveGallery(item, direction) {
 
 function quickAddSetScrollLock(locked) {
   if (window.ZWModalScrollLock && typeof window.ZWModalScrollLock.refresh === 'function') {
-    window.ZWModalScrollLock.refresh();
+    window.requestAnimationFrame(() => window.ZWModalScrollLock.refresh());
     return;
   }
   setPageScrollLock(locked);
@@ -3993,6 +3959,9 @@ function openQuickAddReviewModal(item) {
   modal.style.setProperty('backdrop-filter', 'none', 'important');
   modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
   quickAddSetScrollLock(true);
+  window.requestAnimationFrame(() => {
+    quickAddFocusWithoutScroll(document.getElementById('quick-add-review-confirm'));
+  });
 }
 
 function initQuickAddReviewModal() {
@@ -4714,12 +4683,12 @@ function scrollToNotify() {
 </script>
 <!-- Language selector -->
 <script src="modal-lock.js?v=4"></script>
-<script src="lang.js?v=8" defer></script>
+<script src="lang.js?v=6" defer></script>
 <script src="reviews.js?v=9" charset="utf-8"></script>
 
 <!-- PWA Service Worker -->
 <script>
-if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=15').then(reg=>reg.update()).catch(()=>{})}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=11').then(reg=>reg.update()).catch(()=>{})}
 </script>
 
 <!-- Cookie Consent / GDPR -->
