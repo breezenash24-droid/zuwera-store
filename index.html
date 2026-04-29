@@ -4696,13 +4696,13 @@ function scrollToNotify() {
 })();
 </script>
 <!-- Language selector -->
-<script src="modal-lock.js?v=4"></script>
+<script src="modal-lock.js?v=4" defer></script>
 <script src="lang.js?v=6" defer></script>
-<script src="reviews.js?v=9" charset="utf-8"></script>
+<script src="reviews.js?v=9" charset="utf-8" defer></script>
 
 <!-- PWA Service Worker -->
 <script>
-if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=11').then(reg=>reg.update()).catch(()=>{})}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=12').then(reg=>reg.update()).catch(()=>{})}
 </script>
 
 <!-- Cookie Consent / GDPR -->
@@ -4723,8 +4723,8 @@ function acceptCookies(){try{localStorage.setItem('zw_cookie_consent','accepted'
 function declineCookies(){try{localStorage.setItem('zw_cookie_consent','declined');}catch(e){}document.getElementById('cookie-banner').style.display='none'}
 </script>
 
-<script src="commerce-checkout.js?v=1"></script>
-<script src="customer-hub.js?v=1"></script>
+<script src="commerce-checkout.js?v=1" defer></script>
+<script src="customer-hub.js?v=1" defer></script>
 
 <script>
 /* ── Modal backdrop transparency enforcer ──────────────────────────────────

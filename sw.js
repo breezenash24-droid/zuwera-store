@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zuwera-v15';
+const CACHE_NAME = 'zuwera-v16';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -60,18 +60,26 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Scripts and styles: network-first so storefront fixes are not trapped behind an old service-worker cache.
+  // A 6-second timeout prevents a hanging network request from freezing the page renderer.
   if (/\.(css|js)$/i.test(url.pathname)) {
     event.respondWith(
-      fetch(request).then((fetchResponse) => {
-        return caches.open(CACHE_NAME).then((cache) => {
-          cache.put(request, fetchResponse.clone());
-          return fetchResponse;
-        });
-      }).catch(() => {
-        return caches.match(request).then((response) => {
-          return response || new Response('Offline', { status: 503 });
-        });
-      })
+      (function () {
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('SW fetch timeout')), 6000)
+        );
+        return Promise.race([fetch(request), timeoutPromise])
+          .then((fetchResponse) => {
+            return caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, fetchResponse.clone());
+              return fetchResponse;
+            });
+          })
+          .catch(() => {
+            return caches.match(request).then((response) => {
+              return response || new Response('Offline', { status: 503 });
+            });
+          });
+      })()
     );
     return;
   }
