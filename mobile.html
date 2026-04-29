@@ -29,6 +29,7 @@
 <link rel="icon" type="image/png" href="/images/favicon-black.png?v=1" id="site-favicon">
 
 <script src="/favicon-utils.js?v=1"></script>
+<script src="/stripe-client-config.js?v=1"></script>
 
 <!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -362,30 +363,50 @@ body::after {
   gap: 2rem;
 }
 
-.m-accent-line {
-  height: 2px;
-  width: 48px;
+.m-hero-kicker {
+  font-family: var(--fm);
+  font-size: 0.62rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 1.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.m-hero-kicker::before {
+  content: '';
+  width: 32px;
+  height: 1px;
   background: var(--gold);
-  margin-bottom: 1rem;
 }
 
 .m-hero-headline {
   font-family: var(--fw);
-  font-size: 4.5rem;
+  font-size: clamp(4rem, 18vw, 6rem);
   font-weight: 900;
   font-style: italic;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+  line-height: 0.88;
+  letter-spacing: -0.01em;
   margin: 0;
+  color: var(--paper);
+}
+
+.m-hero-headline em {
+  font-style: normal;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(244,241,235,.85);
 }
 
 .m-hero-subheadline {
-  font-family: var(--fm);
-  font-size: 13px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-family: var(--fb);
+  font-weight: 300;
+  font-size: 0.9rem;
+  color: rgba(244,241,235,.45);
   margin: 0;
-  opacity: 0.8;
+  line-height: 1.75;
+  max-width: 280px;
 }
 
 .m-cta-btn {
@@ -460,6 +481,45 @@ body::after {
   text-transform: uppercase;
   opacity: 0.6;
   font-size: 10px;
+}
+
+/* Marquee — same styling as desktop */
+.m-marquee {
+  overflow: hidden;
+  border-top: 1px solid rgba(244,241,235,.08);
+  border-bottom: 1px solid rgba(244,241,235,.08);
+  padding: 0.7rem 0;
+}
+
+.m-marquee-track {
+  display: flex;
+  white-space: nowrap;
+  animation: mMarquee 22s linear infinite;
+}
+
+.m-marquee-item {
+  font-family: var(--fw);
+  font-weight: 700;
+  font-style: italic;
+  font-size: 0.95rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  padding: 0 2rem;
+  color: rgba(244,241,235,.18);
+}
+
+.m-marquee-accent {
+  color: var(--gold);
+  opacity: 0.6;
+  font-size: 0.82rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.5rem;
+}
+
+@keyframes mMarquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 
 /* Products section */
@@ -1403,11 +1463,11 @@ body::after {
     <!-- Hero section -->
     <section id="m-hero">
       <div class="m-hero-content">
-        <div class="m-accent-line"></div>
+        <p class="m-hero-kicker">Release 001 — Sept 20, 2026</p>
         <h1 class="m-hero-headline">
-          FOR THOSE<br>WHO DREAM
+          For Those<br><em>Who Dream.</em>
         </h1>
-        <p class="m-hero-subheadline">Release 001 — Sep 20, 2026</p>
+        <p class="m-hero-subheadline">Bold athletic sportswear, built for those who move with intention.</p>
         <button class="m-cta-btn" id="m-shop-btn">Shop Now</button>
 
         <div id="m-countdown">
@@ -1437,6 +1497,22 @@ body::after {
         </svg>
       </div>
     </section>
+
+    <!-- Marquee strip — matches desktop -->
+    <div class="m-marquee">
+      <div class="m-marquee-track">
+        <span class="m-marquee-item">ZUWERA</span><span class="m-marquee-accent">&#10022;</span>
+        <span class="m-marquee-item">RELEASE 001</span><span class="m-marquee-accent">&#10022;</span>
+        <span class="m-marquee-item">FOR THOSE WHO DREAM</span><span class="m-marquee-accent">&#10022;</span>
+        <span class="m-marquee-item">SEP 20 2026</span><span class="m-marquee-accent">&#10022;</span>
+        <span class="m-marquee-item">ATHLETIC SPORTSWEAR</span><span class="m-marquee-accent">&#10022;</span>
+        <span class="m-marquee-item">ZUWERA</span><span class="m-marquee-accent">&#10022;</span>
+        <span class="m-marquee-item">RELEASE 001</span><span class="m-marquee-accent">&#10022;</span>
+        <span class="m-marquee-item">FOR THOSE WHO DREAM</span><span class="m-marquee-accent">&#10022;</span>
+        <span class="m-marquee-item">SEP 20 2026</span><span class="m-marquee-accent">&#10022;</span>
+        <span class="m-marquee-item">ATHLETIC SPORTSWEAR</span><span class="m-marquee-accent">&#10022;</span>
+      </div>
+    </div>
 
     <!-- Products section -->
     <section id="m-products">
@@ -1679,20 +1755,49 @@ function showMessage(text, type = 'error') {
   setTimeout(() => domEls.authMessage.classList.add('m-hidden'), 4000);
 }
 
-function formatPrice(cents) {
-  return '$' + (cents / 100).toFixed(2);
+function formatPrice(dollars) {
+  return '$' + parseFloat(dollars || 0).toFixed(2);
+}
+
+// Toast notifications — works outside auth sheet
+function showToast(text, type = 'error') {
+  let toast = document.getElementById('m-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'm-toast';
+    toast.style.cssText = `
+      position:fixed;bottom:calc(5rem + var(--safe-bottom,0px));left:50%;
+      transform:translateX(-50%) translateY(20px);
+      background:var(--paper);color:var(--ink);
+      font-family:var(--fm);font-size:13px;letter-spacing:0.05em;
+      padding:0.75rem 1.5rem;border-radius:4px;z-index:9000;
+      transition:opacity 0.3s,transform 0.3s;opacity:0;
+      white-space:nowrap;pointer-events:none;
+    `;
+    document.body.appendChild(toast);
+  }
+  toast.textContent = text;
+  toast.style.background = type === 'success' ? 'var(--gold)' : 'var(--red)';
+  toast.style.color = type === 'success' ? 'var(--ink)' : '#fff';
+  toast.style.opacity = '1';
+  toast.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(-50%) translateY(10px)';
+  }, 3000);
 }
 
 function openSheet(sheet) {
   sheet.classList.add('open');
   domEls.overlay.classList.add('visible');
-  document.body.style.overflow = 'hidden';
 }
 
 function closeSheet(sheet) {
   sheet.classList.remove('open');
-  domEls.overlay.classList.remove('visible');
-  document.body.style.overflow = 'auto';
+  const anyOpen = [domEls.productSheet, domEls.cartSheet, domEls.authSheet, domEls.checkoutOverlay]
+    .some(s => s && s !== sheet && s.classList.contains('open'));
+  if (!anyOpen) domEls.overlay.classList.remove('visible');
 }
 
 function updateCartCount() {
@@ -1751,7 +1856,7 @@ async function loadProducts() {
       return {
         ...p,
         image_url: img?.image_url || '/images/placeholder.jpg',
-        focal_y: img?.image_focal_y || 50
+        focal_y: p.image_focal_y || 50   // focal_y lives on products table, not images
       };
     });
 
@@ -1771,7 +1876,7 @@ function renderProducts() {
       </div>
       <div class="m-product-info">
         <p class="m-product-name">${p.title}</p>
-        <p class="m-product-price">${formatPrice(p.price_cents)}</p>
+        <p class="m-product-price">${formatPrice(p.current_price)}</p>
       </div>
     </button>
   `).join('');
@@ -1794,7 +1899,7 @@ async function openProductSheet(product) {
   selectedSize = null;
 
   domEls.productTitle.textContent = product.title;
-  domEls.productPrice.textContent = formatPrice(product.price_cents);
+  domEls.productPrice.textContent = formatPrice(product.current_price);
   domEls.carouselImage.src = product.image_url;
 
   // Load color variants
@@ -1805,7 +1910,7 @@ async function openProductSheet(product) {
 
   if (!colorError && colors && colors.length > 0) {
     domEls.colorVariants.innerHTML = colors.map(c => `
-      <button class="m-swatch" style="background-color: ${c.hex_value};"
+      <button class="m-swatch" style="background-color: ${c.hex_color || c.hex_value || '#ccc'};"
               data-color-name="${c.color_name}" title="${c.color_name}"></button>
     `).join('');
 
@@ -1830,7 +1935,7 @@ async function openProductSheet(product) {
   if (!sizeError && sizes) {
     domEls.sizesGrid.innerHTML = sizes.map(s => `
       <button class="m-size-btn" data-size="${s.size}"
-              ${s.stock <= 0 ? 'disabled' : ''}>${s.size}</button>
+              ${s.stock_quantity <= 0 ? 'disabled' : ''}>${s.size}</button>
     `).join('');
 
     document.querySelectorAll('.m-size-btn').forEach(btn => {
@@ -1852,7 +1957,7 @@ async function openProductSheet(product) {
 // =========== ADD TO CART ===========
 domEls.addToBagBtn.addEventListener('click', async () => {
   if (!selectedSize) {
-    showMessage('Please select a size', 'error');
+    showToast('Please select a size', 'error');
     return;
   }
 
@@ -1860,7 +1965,7 @@ domEls.addToBagBtn.addEventListener('click', async () => {
     id: crypto.randomUUID(),
     productId: currentProduct.id,
     title: currentProduct.title,
-    price: currentProduct.price_cents,
+    price: currentProduct.current_price,
     size: selectedSize,
     colorName: selectedColor || 'Default',
     image_url: currentProduct.image_url,
@@ -1872,19 +1977,24 @@ domEls.addToBagBtn.addEventListener('click', async () => {
   saveCart();
 
   closeSheet(domEls.productSheet);
-  showMessage('Added to bag!', 'success');
+  showToast('Added to bag!', 'success');
 });
 
 // =========== CART SHEET ===========
 domEls.cartBtn.addEventListener('click', () => openSheet(domEls.cartSheet));
 domEls.cartClose.addEventListener('click', () => closeSheet(domEls.cartSheet));
-domEls.overlay.addEventListener('click', (e) => {
-  if (e.target === domEls.overlay) {
-    if (domEls.authSheet.classList.contains('open')) closeSheet(domEls.authSheet);
-    else if (domEls.checkoutOverlay.classList.contains('open')) closeSheet(domEls.checkoutOverlay);
-    else if (domEls.cartSheet.classList.contains('open')) closeSheet(domEls.cartSheet);
-    else if (domEls.productSheet.classList.contains('open')) closeSheet(domEls.productSheet);
+domEls.overlay.addEventListener('click', () => {
+  // Close menu if open
+  if (domEls.menu.classList.contains('open')) {
+    domEls.menu.classList.remove('open');
+    domEls.menuBtn.classList.remove('open');
+    domEls.overlay.classList.remove('visible');
+    return;
   }
+  if (domEls.authSheet.classList.contains('open')) closeSheet(domEls.authSheet);
+  else if (domEls.checkoutOverlay.classList.contains('open')) closeSheet(domEls.checkoutOverlay);
+  else if (domEls.cartSheet.classList.contains('open')) closeSheet(domEls.cartSheet);
+  else if (domEls.productSheet.classList.contains('open')) closeSheet(domEls.productSheet);
 });
 
 function renderCart() {
@@ -1944,10 +2054,11 @@ function renderCart() {
 }
 
 function updateSummary() {
-  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shippingCost = subtotal > 0 ? 1000 : 0;
+  // Prices are stored as dollars (e.g. 150.00), not cents
+  const subtotal = cart.reduce((sum, item) => sum + (parseFloat(item.price || 0) * item.quantity), 0);
+  const shippingCost = subtotal > 0 ? 10 : 0; // $10 flat shipping
   const taxRate = 0.08;
-  const taxAmount = Math.round((subtotal + shippingCost) * taxRate);
+  const taxAmount = (subtotal + shippingCost) * taxRate;
   const total = subtotal + shippingCost + taxAmount;
 
   domEls.subtotal.textContent = formatPrice(subtotal);
@@ -1961,7 +2072,6 @@ domEls.menuBtn.addEventListener('click', () => {
   domEls.menu.classList.toggle('open');
   domEls.menuBtn.classList.toggle('open');
   domEls.overlay.classList.toggle('visible');
-  document.body.style.overflow = domEls.menu.classList.contains('open') ? 'hidden' : 'auto';
 });
 
 document.querySelectorAll('.m-menu-item').forEach(item => {
@@ -1969,7 +2079,6 @@ document.querySelectorAll('.m-menu-item').forEach(item => {
     domEls.menu.classList.remove('open');
     domEls.menuBtn.classList.remove('open');
     domEls.overlay.classList.remove('visible');
-    document.body.style.overflow = 'auto';
   });
 });
 
@@ -1983,7 +2092,6 @@ domEls.shopBtn.addEventListener('click', () => {
 });
 
 // =========== AUTH ===========
-domEls.authBtn.addEventListener('click', () => openSheet(domEls.authSheet));
 domEls.authClose.addEventListener('click', () => closeSheet(domEls.authSheet));
 
 document.querySelectorAll('.m-auth-tab').forEach(tab => {
@@ -2068,11 +2176,18 @@ domEls.checkoutBtn.addEventListener('click', async () => {
   if (!stripe) {
     const script = document.createElement('script');
     script.src = 'https://js.stripe.com/v3/';
-    script.onload = () => {
-      stripe = Stripe('pk_test_51234'); // Replace with real key
-      cardElement = stripe.elements().create('card');
-      const cardEl = document.getElementById('stripe-card-element');
-      if (cardEl) cardElement.mount(cardEl);
+    script.onload = async () => {
+      try {
+        const pk = await window.zwGetStripePublishableKey();
+        stripe = Stripe(pk);
+        cardElement = stripe.elements().create('card', {
+          style: { base: { color: '#f4f1eb', fontFamily: "'IBM Plex Mono', monospace", fontSize: '14px' } }
+        });
+        const cardEl = document.getElementById('stripe-card-element');
+        if (cardEl) cardElement.mount(cardEl);
+      } catch (e) {
+        console.error('Stripe init failed:', e);
+      }
     };
     document.head.appendChild(script);
   }
@@ -2105,14 +2220,12 @@ domEls.checkoutForm.addEventListener('submit', async (e) => {
     updateAuthUI();
   }
 
-  // Close menu/cart on scroll
-  let lastScrollTop = 0;
+  // Close menu on content scroll
   domEls.content.addEventListener('scroll', () => {
     if (domEls.menu.classList.contains('open')) {
       domEls.menu.classList.remove('open');
       domEls.menuBtn.classList.remove('open');
       domEls.overlay.classList.remove('visible');
-      document.body.style.overflow = 'auto';
     }
   });
 })();
