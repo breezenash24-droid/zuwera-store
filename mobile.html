@@ -36,7 +36,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500&family=Barlow:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500&family=Barlow:wght@300;400&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
 
 <style>
 /* ── TOKENS (identical to desktop) ── */
@@ -399,19 +399,29 @@ img { display: block; max-width: 100%; }
 .m-pcard-info {
   padding: .75rem 0 .25rem;
 }
+.m-pcard-cat {
+  font-family: var(--fm);
+  font-size: .52rem;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: rgba(244,241,235,.25);
+  margin-bottom: .3rem;
+}
 .m-pcard-name {
-  font-family: var(--fb);
-  font-size: .95rem;
-  font-weight: 300;
+  font-family: var(--fw);
+  font-weight: 700;
+  font-style: italic;
+  font-size: 1.25rem;
+  letter-spacing: .04em;
   color: var(--paper);
-  line-height: 1.3;
+  line-height: 1.1;
 }
 .m-pcard-price {
   font-family: var(--fm);
-  font-size: .72rem;
-  letter-spacing: .05em;
-  color: rgba(244,241,235,.55);
-  margin-top: .25rem;
+  font-size: .62rem;
+  letter-spacing: .08em;
+  color: rgba(244,241,235,.35);
+  margin-top: .3rem;
 }
 
 /* ── OVERLAY ── */
@@ -638,11 +648,14 @@ img { display: block; max-width: 100%; }
   border: 1px solid rgba(244,241,235,.2);
   padding: .6rem .9rem;
   min-width: 52px;
+  min-height: 44px;
   text-align: center;
   cursor: pointer;
   transition: border-color .2s, background .2s;
   background: none;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
 }
 .m-size-btn.active {
   background: var(--paper);
@@ -1038,6 +1051,355 @@ img { display: block; max-width: 100%; }
   margin-top: .75rem;
 }
 
+/* ── ANNOUNCEMENT BAR (matches desktop #bar) ── */
+#m-bar {
+  position: fixed;
+  top: var(--safe-top);
+  left: 0; right: 0;
+  background: var(--ink);
+  color: var(--paper);
+  border-bottom: 1px solid rgba(244,241,235,.08);
+  padding: .45rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--fm);
+  font-size: .55rem;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  z-index: 302;
+}
+/* Push the nav header below the bar */
+#mhdr {
+  top: calc(var(--safe-top) + 30px) !important;
+}
+#mpage {
+  padding-top: calc(var(--header-total) + 30px) !important;
+}
+
+/* ── HERO CTA — desktop style outline / ghost buttons ── */
+.m-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  font-family: var(--fm);
+  font-size: .65rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  border: 1px solid rgba(244,241,235,.25);
+  padding: .8rem 1.6rem;
+  color: var(--paper);
+  background: none;
+  cursor: pointer;
+  transition: all .25s;
+  min-height: 48px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.m-btn-outline:active { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+.m-btn-ghost {
+  font-family: var(--fm);
+  font-size: .62rem;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: rgba(244,241,235,.4);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: .25rem 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: color .2s;
+}
+.m-btn-ghost:active { color: var(--paper); }
+
+/* ── ABOUT SECTION ── */
+.m-about {
+  padding: 4.5rem 1.5rem;
+  border-top: 1px solid rgba(244,241,235,.07);
+}
+.m-about-label {
+  font-family: var(--fm);
+  font-size: .6rem;
+  letter-spacing: .25em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+}
+.m-about-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--gold);
+  opacity: .25;
+}
+.m-about-h2 {
+  font-family: var(--fw);
+  font-weight: 900;
+  font-style: italic;
+  font-size: clamp(3rem, 18vw, 5.5rem);
+  line-height: .9;
+  letter-spacing: .02em;
+  margin-bottom: 1.5rem;
+}
+.m-about-body p {
+  font-size: .95rem;
+  line-height: 1.85;
+  color: rgba(244,241,235,.5);
+  margin-bottom: 1.2rem;
+}
+.m-about-stats {
+  display: flex;
+  gap: 2rem;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(244,241,235,.08);
+}
+.m-stat-n {
+  font-family: var(--fw);
+  font-weight: 900;
+  font-style: italic;
+  font-size: 2.8rem;
+  line-height: 1;
+}
+.m-stat-l {
+  font-family: var(--fm);
+  font-size: .52rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: rgba(244,241,235,.3);
+  margin-top: .3rem;
+}
+
+/* ── DROP SECTION ── */
+.m-drop {
+  padding: 4rem 1.5rem;
+  border-top: 1px solid rgba(244,241,235,.07);
+  position: relative;
+  overflow: hidden;
+}
+.m-drop-bg-num {
+  position: absolute;
+  right: -5vw;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--fw);
+  font-weight: 900;
+  font-style: italic;
+  font-size: 60vw;
+  line-height: 1;
+  color: rgba(244,241,235,.015);
+  pointer-events: none;
+  user-select: none;
+  letter-spacing: -.05em;
+}
+.m-drop-eyebrow {
+  font-family: var(--fm);
+  font-size: .6rem;
+  letter-spacing: .25em;
+  text-transform: uppercase;
+  color: rgba(244,241,235,.3);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+}
+.m-drop-eyebrow::before {
+  content: '';
+  width: 24px;
+  height: 1px;
+  background: rgba(244,241,235,.3);
+  flex-shrink: 0;
+}
+.m-drop-title {
+  font-family: var(--fw);
+  font-weight: 900;
+  font-style: italic;
+  font-size: clamp(4.5rem, 28vw, 8rem);
+  line-height: .86;
+  letter-spacing: -.02em;
+  margin-bottom: 2rem;
+}
+.m-drop-title span {
+  display: block;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(244,241,235,.2);
+}
+
+/* Desktop-matching countdown grid */
+.m-cd-label {
+  font-family: var(--fm);
+  font-size: .58rem;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: rgba(244,241,235,.28);
+  margin-bottom: .75rem;
+}
+.m-countdown-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid rgba(244,241,235,.08);
+  border-top: 2px solid var(--gold);
+  margin-bottom: 2rem;
+}
+.m-cdb {
+  padding: 1.2rem .5rem 1rem;
+  text-align: center;
+  border-right: 1px solid rgba(244,241,235,.08);
+  overflow: hidden;
+}
+.m-cdb:last-child { border-right: none; }
+.m-cdn {
+  font-family: var(--fw);
+  font-weight: 900;
+  font-style: italic;
+  font-size: clamp(2rem, 9vw, 3.5rem);
+  line-height: 1;
+  display: block;
+  letter-spacing: -.02em;
+}
+.m-cdl {
+  font-family: var(--fm);
+  font-size: .48rem;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: rgba(244,241,235,.22);
+  margin-top: .35rem;
+  display: block;
+}
+
+/* Notify */
+.m-notify-label {
+  font-family: var(--fm);
+  font-size: .58rem;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: rgba(244,241,235,.28);
+  margin-bottom: .75rem;
+}
+.m-notify-row {
+  display: flex;
+  border: 1px solid rgba(244,241,235,.12);
+  transition: border-color .2s;
+  margin-bottom: .5rem;
+}
+.m-notify-row:focus-within { border-color: rgba(244,241,235,.35); }
+.m-notify-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--paper);
+  font-family: var(--fb);
+  font-size: .9rem;
+  padding: .8rem .9rem;
+}
+.m-notify-input::placeholder { color: rgba(244,241,235,.2); }
+.m-notify-btn {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--fw);
+  font-weight: 700;
+  font-style: italic;
+  font-size: .95rem;
+  letter-spacing: .08em;
+  padding: .8rem 1.2rem;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity .2s;
+  touch-action: manipulation;
+}
+.m-notify-btn:active { opacity: .8; }
+.m-notify-hint {
+  font-family: var(--fm);
+  font-size: .55rem;
+  letter-spacing: .08em;
+  color: rgba(244,241,235,.2);
+}
+#m-notify-success {
+  font-family: var(--fm);
+  font-size: .62rem;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-top: .5rem;
+}
+
+/* ── SECTION HEADER (matches desktop sec-head) ── */
+.m-sec-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: .9rem;
+  border-bottom: 1px solid rgba(244,241,235,.08);
+  margin-bottom: 1.5rem;
+}
+.m-sec-h2 {
+  font-family: var(--fw);
+  font-weight: 900;
+  font-style: italic;
+  font-size: 1.8rem;
+  letter-spacing: .04em;
+}
+.m-sec-sub {
+  font-family: var(--fm);
+  font-size: .52rem;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: rgba(244,241,235,.3);
+}
+
+/* ── FOOTER ── */
+.m-footer {
+  padding: 3rem 1.5rem calc(2rem + var(--safe-bottom));
+  border-top: 1px solid rgba(244,241,235,.08);
+}
+.m-footer-logo {
+  margin-bottom: 1.5rem;
+}
+.m-footer-logo img { height: 22px; width: auto; opacity: .8; }
+.m-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem 1.5rem;
+  margin-bottom: 2rem;
+}
+.m-footer-links a {
+  font-family: var(--fm);
+  font-size: .6rem;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: rgba(244,241,235,.45);
+  text-decoration: none;
+  transition: color .2s;
+}
+.m-footer-links a:active { color: var(--paper); }
+.m-footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(244,241,235,.06);
+  padding-top: 1.25rem;
+}
+.m-footer-ig {
+  font-family: var(--fm);
+  font-size: .58rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(244,241,235,.4);
+  text-decoration: none;
+}
+.m-footer-copy {
+  font-family: var(--fm);
+  font-size: .52rem;
+  letter-spacing: .08em;
+  color: rgba(244,241,235,.2);
+}
+
 /* ── TOAST ── */
 #m-toast {
   position: fixed;
@@ -1069,6 +1431,9 @@ img { display: block; max-width: 100%; }
 
 <!-- Safe area tint — covers Dynamic Island -->
 <div class="safe-tint"></div>
+
+<!-- ANNOUNCEMENT BAR -->
+<div id="m-bar">ALL THE DEVILS ARE HERE</div>
 
 <!-- ── HEADER ── -->
 <header id="mhdr">
@@ -1122,13 +1487,11 @@ img { display: block; max-width: 100%; }
       <h1 class="m-hero-h1">For Those<br><em>Who Dream.</em></h1>
       <p class="m-hero-sub">Bold athletic sportswear, built for those who move with intention.</p>
       <div class="m-hero-cta">
-        <button class="m-btn-primary" id="mbtn-shop">Shop Now</button>
-        <div id="m-countdown">
-          <div class="m-cdu"><div class="m-cdu-val" id="mcd-d">00</div><div class="m-cdu-label">Days</div></div>
-          <div class="m-cdu"><div class="m-cdu-val" id="mcd-h">00</div><div class="m-cdu-label">Hours</div></div>
-          <div class="m-cdu"><div class="m-cdu-val" id="mcd-m">00</div><div class="m-cdu-label">Mins</div></div>
-          <div class="m-cdu"><div class="m-cdu-val" id="mcd-s">00</div><div class="m-cdu-label">Secs</div></div>
-        </div>
+        <button class="m-btn-outline" id="mbtn-shop">
+          Explore Release 001
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+        <button class="m-btn-ghost" id="mbtn-earlyaccess">Get Early Access &rarr;</button>
       </div>
     </div>
   </section>
@@ -1149,11 +1512,70 @@ img { display: block; max-width: 100%; }
     </div>
   </div>
 
+  <!-- ABOUT -->
+  <section class="m-about">
+    <p class="m-about-label">About Zuwera</p>
+    <h2 class="m-about-h2">Built For<br>Movement.</h2>
+    <div class="m-about-body">
+      <p>Bold, athletic, and designed for those who dream big. Zuwera is sportswear built for the relentless — those who push past limits and never stop.</p>
+      <p>Release 001 is the beginning. A collection of jackets crafted for those who move with purpose and style.</p>
+    </div>
+    <div class="m-about-stats">
+      <div><div class="m-stat-n">001</div><div class="m-stat-l">First Release</div></div>
+      <div><div class="m-stat-n">2026</div><div class="m-stat-l">Launching</div></div>
+      <div><div class="m-stat-n">3</div><div class="m-stat-l">Styles</div></div>
+    </div>
+  </section>
+
+  <!-- DROP SECTION -->
+  <section class="m-drop" id="m-drop001">
+    <div class="m-drop-bg-num" aria-hidden="true">001</div>
+    <p class="m-drop-eyebrow">Zuwera Release 001</p>
+    <div class="m-drop-title">Release<br><span>001</span></div>
+    <p class="m-cd-label">Launching In</p>
+    <div class="m-countdown-grid">
+      <div class="m-cdb"><span class="m-cdn" id="dcd-d">00</span><span class="m-cdl">Days</span></div>
+      <div class="m-cdb"><span class="m-cdn" id="dcd-h">00</span><span class="m-cdl">Hours</span></div>
+      <div class="m-cdb"><span class="m-cdn" id="dcd-m">00</span><span class="m-cdl">Mins</span></div>
+      <div class="m-cdb"><span class="m-cdn" id="dcd-s">00</span><span class="m-cdl">Secs</span></div>
+    </div>
+    <p class="m-notify-label">Get Early Access</p>
+    <div class="m-notify-row">
+      <input type="email" class="m-notify-input" id="m-notify-email" placeholder="your@email.com">
+      <button class="m-notify-btn" id="mbtn-notify">Notify Me</button>
+    </div>
+    <p class="m-notify-hint">No spam, ever. Unsubscribe anytime.</p>
+    <p id="m-notify-success" class="m-hidden">&#10003; You're on the list.</p>
+  </section>
+
   <!-- PRODUCTS -->
   <section id="m-products">
-    <p class="m-section-label">Release 001</p>
+    <div class="m-sec-head">
+      <h2 class="m-sec-h2">Release 001 — Jackets</h2>
+      <span class="m-sec-sub">09 / 20 / 2026</span>
+    </div>
     <div id="m-grid"></div>
   </section>
+
+  <!-- FOOTER -->
+  <footer class="m-footer">
+    <div class="m-footer-logo">
+      <img src="/images/wordmark.png" alt="ZUWERA" loading="lazy"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+      <span style="display:none;font-family:var(--fw);font-weight:900;font-style:italic;font-size:1.2rem;letter-spacing:.12em">ZUWERA</span>
+    </div>
+    <nav class="m-footer-links">
+      <a href="/drop001.html">Release 001</a>
+      <a href="/sizeguide.html">Size Guide</a>
+      <a href="/policies.html">Policies</a>
+      <a href="/returns.html">Returns</a>
+      <a href="mailto:nasirubreeze@zuwera.store">Contact</a>
+    </nav>
+    <div class="m-footer-bottom">
+      <a href="https://instagram.com/Zuw.era" target="_blank" rel="noopener" class="m-footer-ig">@Zuw.era</a>
+      <p class="m-footer-copy">&copy; 2026 Zuwera. All rights reserved.</p>
+    </div>
+  </footer>
 
 </div><!-- /mpage -->
 
@@ -1481,17 +1903,48 @@ function fmt(dollars) {
 function tick() {
   const diff = Math.max(0, new Date('2026-09-20T00:00:00Z') - Date.now());
   const p = n => String(n).padStart(2,'0');
-  $('mcd-d').textContent = p(Math.floor(diff/864e5));
-  $('mcd-h').textContent = p(Math.floor(diff%864e5/36e5));
-  $('mcd-m').textContent = p(Math.floor(diff%36e5/6e4));
-  $('mcd-s').textContent = p(Math.floor(diff%6e4/1e3));
+  const d = p(Math.floor(diff/864e5));
+  const h = p(Math.floor(diff%864e5/36e5));
+  const m = p(Math.floor(diff%36e5/6e4));
+  const s = p(Math.floor(diff%6e4/1e3));
+  // Drive the drop section countdown
+  const dd = $('dcd-d'); if (dd) dd.textContent = d;
+  const dh = $('dcd-h'); if (dh) dh.textContent = h;
+  const dm = $('dcd-m'); if (dm) dm.textContent = m;
+  const ds = $('dcd-s'); if (ds) ds.textContent = s;
 }
 tick();
 setInterval(tick, 1000);
 
-// ── SHOP NOW → scroll to products ──
+// ── HERO BUTTONS ──
 E.shopBtn.addEventListener('click', () => {
-  $('m-products').scrollIntoView({ behavior: 'smooth' });
+  $('m-drop001').scrollIntoView({ behavior: 'smooth' });
+});
+const earlyBtn = $('mbtn-earlyaccess');
+if (earlyBtn) earlyBtn.addEventListener('click', () => {
+  const el = $('m-notify-email');
+  if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => el.focus(), 400); }
+});
+
+// ── NOTIFY ME ──
+const notifyBtn = $('mbtn-notify');
+if (notifyBtn) notifyBtn.addEventListener('click', async () => {
+  const emailEl = $('m-notify-email');
+  const email = emailEl ? emailEl.value.trim() : '';
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('Enter a valid email', 'error'); return; }
+  notifyBtn.disabled = true;
+  notifyBtn.textContent = '...';
+  try {
+    await supa.from('waitlist').insert([{ email }]);
+    const success = $('m-notify-success');
+    if (success) success.classList.remove('m-hidden');
+    toast('You\'re on the list!');
+  } catch (err) {
+    toast('Error — try again', 'error');
+  } finally {
+    notifyBtn.disabled = false;
+    notifyBtn.textContent = 'Notify Me';
+  }
 });
 
 // ── LOAD PRODUCTS ──
@@ -1527,6 +1980,7 @@ function renderGrid() {
              loading="lazy">
       </div>
       <div class="m-pcard-info">
+        ${p.category ? `<p class="m-pcard-cat">${p.category}</p>` : ''}
         <p class="m-pcard-name">${p.title || ''}</p>
         <p class="m-pcard-price">${fmt(p.current_price)}</p>
       </div>
