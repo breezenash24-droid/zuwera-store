@@ -105,12 +105,36 @@ export async function verifyAdmin(env, accessToken) {
   return { ...user, profile };
 }
 
-export async function getOrdersForUser(env, userId) {
-  if (!userId) return [];
-  return supabaseSelect(
-    env,
-    `orders?select=*&user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc`
-  );
+export async function getOrdersForUser(env, userId, userEmail = '') {
+  if (!userId && !userEmail) return [];
+
+  // Primary: match by user_id
+  let orders = [];
+  if (userId) {
+    orders = await supabaseSelect(
+      env,
+      `orders?select=*&user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc`
+    );
+  }
+
+  // Email fallback: covers guest checkouts and orders created before user_id was written.
+  // De-duplicate by id so orders that already have user_id set don't appear twice.
+  if (userEmail) {
+    const emailOrders = await supabaseSelect(
+      env,
+      `orders?select=*&email=ilike.${encodeURIComponent(userEmail)}&order=created_at.desc`
+    );
+    if (emailOrders?.length) {
+      const seen = new Set(orders.map((o) => o.id));
+      for (const o of emailOrders) {
+        if (!seen.has(o.id)) orders.push(o);
+      }
+      // Re-sort merged list newest first
+      orders.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }
+  }
+
+  return orders;
 }
 
 export async function getOrdersForAdmin(env, limit = 200) {

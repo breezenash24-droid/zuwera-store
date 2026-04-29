@@ -458,10 +458,21 @@ async function loadOrders() {
         : displayStatus.replace(/_/g,' ');
       const tracking = o.commerce?.trackingNumber || o.tracking_number || '';
       const trackingUrl = o.commerce?.trackingUrl || o.tracking_url || '';
+      // total_amount is legacy/unused; real value lives in `total`
+      const orderTotal = o.total || o.total_amount;
+      // Parse items for a short summary line
+      let itemSummary = '';
+      try {
+        const items = typeof o.items === 'string' ? JSON.parse(o.items) : (Array.isArray(o.items) ? o.items : []);
+        if (items.length) {
+          itemSummary = items.map(i => `${escHtml(i.name || '')}${i.size ? ' / ' + escHtml(i.size) : ''}${i.quantity > 1 ? ' ×' + i.quantity : ''}`).join(', ');
+        }
+      } catch(_) {}
       return `
         <div class="order-row">
           <div class="order-id">Order #${escHtml(String(o.id||'').slice(-8).toUpperCase())}</div>
-          <div class="order-meta">${new Date(o.created_at).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})}${o.total_amount ? ' · $' + parseFloat(o.total_amount).toFixed(2) : ''}</div>
+          <div class="order-meta">${new Date(o.created_at).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})}${orderTotal ? ' · $' + parseFloat(orderTotal).toFixed(2) : ''}</div>
+          ${itemSummary ? `<div class="order-meta" style="margin-top:.2rem;opacity:.5">${itemSummary}</div>` : ''}
           <span class="order-status">${escHtml(statusLabel)}</span>
           ${tracking ? `<div class="order-meta" style="margin-top:.3rem">
             ${trackingUrl

@@ -87,7 +87,7 @@ export async function onRequestGet({ request, env }) {
 
     const [bundle, orders] = await Promise.all([
       getCommerceBundle(env),
-      getOrdersForUser(env, user.id),
+      getOrdersForUser(env, user.id, user.email || ''),
     ]);
 
     const profile = bundle.customerProfiles?.[user.id] || {};
@@ -152,7 +152,7 @@ export async function onRequestPost({ request, env }) {
     }
 
     if (action === 'submit_return') {
-      const eligibleOrders = await getOrdersForUser(env, user.id);
+      const eligibleOrders = await getOrdersForUser(env, user.id, user.email || '');
       const requestId = crypto.randomUUID();
       const nextRequest = {
         id: requestId,
