@@ -721,7 +721,7 @@ body.light-mode .quick-back-btn:hover{color:rgba(9,9,11,.7)}
 .quick-add-product-layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr)}
 .quick-add-product-gallery{background:rgba(244,241,235,.025)}
 .quick-add-review-media{position:relative;background:rgba(244,241,235,.04);aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:pan-y pinch-zoom}
-.quick-add-review-media img{width:100%;height:100%;object-fit:cover;object-position:50% 15%;display:block}
+.quick-add-review-media img{width:100%;height:100%;object-fit:cover;object-position:50% 0%;display:block}
 .quick-add-review-placeholder{font-family:var(--fm);font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,235,.28)}
 .quick-add-gallery-arrow{
   position:absolute;top:50%;transform:translateY(-50%);z-index:8;
@@ -2762,7 +2762,8 @@ function renderProductCards(products, grid) {
       price: Number(productPrice) || 0,
       sku: p.sku || '',
       image: firstImg || '',
-      weightLb: parseFloat(p.shipping_weight_lb) || 0.5
+      weightLb: parseFloat(p.shipping_weight_lb) || 0.5,
+      imageFocalY: p.image_focal_y ?? 0
     }));
     return `
       <div class="pcard" onclick="if(!event.target.closest('.quick-size-panel,.pcard-add-btn')){window.location.href='${productHref(p)}'}" style="cursor:pointer;position:relative;overflow:hidden">
@@ -3841,8 +3842,10 @@ function quickAddRenderGallery(item) {
   item.activeImage = current;
   const hasMultipleImages = images.length > 1;
   if (media) {
+    const focalY = (item.imageFocalY != null ? item.imageFocalY : 0);
+    const imgStyle = `style="object-position:50% ${focalY}%"`;
     media.innerHTML = current
-      ? `${hasMultipleImages ? '<button type="button" class="quick-add-gallery-arrow prev" data-gallery-step="-1" aria-label="Previous product image">&#10094;</button>' : ''}<img src="${quickAddEscapeAttr(current)}" alt="${quickAddEscapeAttr(item.title)}">${hasMultipleImages ? '<button type="button" class="quick-add-gallery-arrow next" data-gallery-step="1" aria-label="Next product image">&#10095;</button>' : ''}`
+      ? `${hasMultipleImages ? '<button type="button" class="quick-add-gallery-arrow prev" data-gallery-step="-1" aria-label="Previous product image">&#10094;</button>' : ''}<img src="${quickAddEscapeAttr(current)}" alt="${quickAddEscapeAttr(item.title)}" ${imgStyle}>${hasMultipleImages ? '<button type="button" class="quick-add-gallery-arrow next" data-gallery-step="1" aria-label="Next product image">&#10095;</button>' : ''}`
       : '<span class="quick-add-review-placeholder">Image Coming Soon</span>';
     media.querySelectorAll('[data-gallery-step]').forEach(button => {
       button.addEventListener('click', (event) => {

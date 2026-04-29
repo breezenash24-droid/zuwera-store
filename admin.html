@@ -3540,6 +3540,15 @@
                             <input type="number" id="shippingWeightLb" class="form-input" placeholder="e.g., 0.5" step="0.01" min="0.01">
                             <div style="font-size:.72rem;color:rgba(244,241,235,.35);margin-top:.3rem">Actual packed weight used for live shipping rates at checkout.</div>
                         </div>
+                        <div class="form-group">
+                            <label class="form-label">Gallery Image Crop Focus</label>
+                            <select id="imageFocalY" class="form-input">
+                                <option value="0">Top — show face/head (crop bottom)</option>
+                                <option value="50">Center — balanced crop</option>
+                                <option value="100">Bottom — show feet/hem (crop top)</option>
+                            </select>
+                            <div style="font-size:.72rem;color:rgba(244,241,235,.35);margin-top:.3rem">Controls which part of the image stays visible when portrait photos are cropped in the mini product modal.</div>
+                        </div>
                     </div>
                     <div class="form-grid">
                         <div class="form-group">
@@ -6522,6 +6531,7 @@
                     fabric_technology: allTechs,
                     fabric_weight_gsm: document.getElementById('fabricWeightGsm').value ? parseFloat(document.getElementById('fabricWeightGsm').value) : null,
                     shipping_weight_lb: document.getElementById('shippingWeightLb').value ? parseFloat(document.getElementById('shippingWeightLb').value) : null,
+                    image_focal_y: parseInt(document.getElementById('imageFocalY').value) || 0,
                     upf_rating: document.getElementById('upfRating').value ? parseInt(document.getElementById('upfRating').value) : null,
                     breathability_mvtr: document.getElementById('breathabilityMvtr').value ? parseFloat(document.getElementById('breathabilityMvtr').value) : null,
                     pom_chest: document.getElementById('pomChest').value ? parseFloat(document.getElementById('pomChest').value) : null,
@@ -6703,6 +6713,7 @@
             
             document.getElementById('fabricWeightGsm').value = product.fabric_weight_gsm || '';
             document.getElementById('shippingWeightLb').value = product.shipping_weight_lb || '';
+            document.getElementById('imageFocalY').value = product.image_focal_y ?? 0;
             document.getElementById('upfRating').value = product.upf_rating || '';
             document.getElementById('breathabilityMvtr').value = product.breathability_mvtr || '';
             document.getElementById('pomChest').value = product.pom_chest || '';
