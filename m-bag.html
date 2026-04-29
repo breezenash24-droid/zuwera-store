@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, viewport-fit=cover">
+<title>My Bag — ZUWERA</title>
+<meta name="description" content="Your ZUWERA bag">
+<link rel="canonical" href="https://zuwera.store/m-bag.html">
+<link rel="icon" type="image/png" href="/images/favicon-black.png?v=1" id="site-favicon">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#09090b">
+
+<script src="/favicon-utils.js?v=1"></script>
+<script src="/stripe-client-config.js?v=1"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500&family=Barlow:wght@300;400&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+<style>
+/* ── TOKENS ── */
+:root {
+  --ink: #09090b;
+  --paper: #f4f1eb;
+  --warm: #e8e2d8;
+  --gold: #F891A5;
+  --red: #c0392b;
+  --fw: 'Barlow Condensed', sans-serif;
+  --fm: 'IBM Plex Mono', monospace;
+  --fb: 'Barlow', sans-serif;
+  --nav-h: 56px;
+  --bar-h: 30px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --header-total: calc(var(--nav-h) + var(--safe-top));
+  --top-offset: calc(var(--header-total) + var(--bar-h));
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; background: var(--ink); }
+body {
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--fb);
+  font-weight: 300;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  opacity: 0.35;
+}
+a { color: inherit; text-decoration: none; }
+button { cursor: pointer; font-family: inherit; border: none; background: none; }
+img { display: block; max-width: 100%; }
+
+/* ── HEADER ── */
+#mbag-hdr {
+  position: fixed;
+  top: var(--safe-top);
+  left: 0; right: 0;
+  height: var(--nav-h);
+  background: var(--ink);
+  border-bottom: 1px solid rgba(244,241,235,.07);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  z-index: 301;
+}
+#mbag-back {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-family: var(--fm);
+  font-size: .6rem;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: rgba(244,241,235,.6);
+  min-width: 44px;
+  min-height: 44px;
+  touch-action: manipulation;
+}
+#mbag-back svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.5; }
+#mbag-logo {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  height: var(--nav-h);
+  display: flex;
+  align-items: center;
+}
+#mbag-logo img { height: 26px; width: auto; }
+#mbag-logo-txt {
+  font-family: var(--fw);
+  font-weight: 900;
+  font-style: italic;
+  font-size: 1.4rem;
+  letter-spacing: .12em;
+  display: none;
+}
+#mbag-count {
+  font-family: var(--fm);
+  font-size: .58rem;
+  letter-spacing: .1em;
+  color: rgba(244,241,235,.35);
+  min-width: 44px;
+  text-align: right;
+}
+
+/* ── BAR ── */
+#mbag-bar {
+  position: fixed;
+  top: calc(var(--safe-top) + var(--nav-h));
+  left: 0; right: 0;
+  height: var(--bar-h);
+  background: var(--ink);
+  color: var(--paper);
+  border-bottom: 1px solid rgba(244,241,235,.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--fm);
+  font-size: .55rem;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  z-index: 299;
+}
+
+/* ── PAGE ── */
+#mbag-page { padding-top: var(--top-offset); min-height: 100svh; }
+
+/* ── EMPTY STATE ── */
+#mbag-empty {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 2rem;
+  text-align: center;
+  gap: 1.5rem;
+}
+#mbag-empty.show { display: flex; }
+#mbag-empty-icon { width: 52px; height: 52px; stroke: rgba(244,241,235,.18); fill: none; stroke-width: 1; }
+#mbag-empty h2 { font-family: var(--fw); font-weight: 700; font-style: italic; font-size: 1.6rem; letter-spacing: .04em; }
+#mbag-empty p { font-family: var(--fm); font-size: .62rem; letter-spacing: .12em; color: rgba(244,241,235,.35); text-transform: uppercase; }
+.mbag-shop-link {
+  font-family: var(--fm);
+  font-size: .65rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  border: 1px solid rgba(244,241,235,.25);
+  padding: .85rem 2rem;
+  color: var(--paper);
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  touch-action: manipulation;
+}
+
+/* ── ITEMS ── */
+#mbag-items-wrap { display: none; }
+#mbag-items-wrap.show { display: block; }
+
+.mbag-sec-label {
+  padding: 1.25rem 1.25rem .65rem;
+  font-family: var(--fm);
+  font-size: .55rem;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: rgba(244,241,235,.35);
+  border-bottom: 1px solid rgba(244,241,235,.06);
+}
+
+.mbag-row {
+  display: flex;
+  gap: .9rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(244,241,235,.06);
+  align-items: flex-start;
+}
+.mbag-row-img {
+  width: 76px;
+  height: 96px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(244,241,235,.04);
+}
+.mbag-row-info { flex: 1; display: flex; flex-direction: column; gap: .2rem; }
+.mbag-row-name {
+  font-family: var(--fw);
+  font-weight: 700;
+  font-style: italic;
+  font-size: 1.1rem;
+  letter-spacing: .03em;
+  line-height: 1.1;
+}
+.mbag-row-meta {
+  font-family: var(--fm);
+  font-size: .58rem;
+  letter-spacing: .08em;
+  color: rgba(244,241,235,.38);
+  text-transform: uppercase;
+  margin-bottom: .25rem;
+}
+.mbag-row-price {
+  font-family: var(--fm);
+  font-size: .78rem;
+  letter-spacing: .06em;
+  margin-top: auto;
+}
+.mbag-row-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: .5rem;
+}
+.mbag-qty {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid rgba(244,241,235,.15);
+}
+.mbag-qty button {
+  width: 36px; height: 36px;
+  font-size: 1rem;
+  color: var(--paper);
+  display: flex; align-items: center; justify-content: center;
+  touch-action: manipulation;
+}
+.mbag-qty button:active { background: rgba(244,241,235,.08); }
+.mbag-qty span {
+  font-family: var(--fm);
+  font-size: .72rem;
+  min-width: 24px;
+  text-align: center;
+  border-left: 1px solid rgba(244,241,235,.1);
+  border-right: 1px solid rgba(244,241,235,.1);
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mbag-remove {
+  font-family: var(--fm);
+  font-size: .55rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(244,241,235,.28);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  touch-action: manipulation;
+}
+
+/* ── PROMO ── */
+.mbag-promo {
+  display: flex;
+  gap: .5rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(244,241,235,.06);
+}
+.mbag-promo input {
+  flex: 1;
+  background: rgba(244,241,235,.05);
+  border: 1px solid rgba(244,241,235,.1);
+  color: var(--paper);
+  font-family: var(--fm);
+  font-size: 1rem; /* 16px — prevents iOS zoom */
+  letter-spacing: .06em;
+  padding: .65rem .75rem;
+  outline: none;
+}
+.mbag-promo input::placeholder { color: rgba(244,241,235,.22); }
+.mbag-promo input:focus { border-color: rgba(244,241,235,.28); }
+.mbag-promo button {
+  font-family: var(--fm);
+  font-size: .6rem;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  border: 1px solid rgba(244,241,235,.18);
+  color: var(--paper);
+  padding: 0 .9rem;
+  min-height: 48px;
+  touch-action: manipulation;
+}
+.mbag-promo button:active { background: rgba(244,241,235,.07); }
+
+/* ── SUMMARY ── */
+.mbag-summary {
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+  border-bottom: 1px solid rgba(244,241,235,.06);
+}
+.mbag-srow {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--fm);
+  font-size: .65rem;
+  letter-spacing: .06em;
+  color: rgba(244,241,235,.45);
+}
+.mbag-srow.total {
+  font-size: .8rem;
+  color: var(--paper);
+  border-top: 1px solid rgba(244,241,235,.09);
+  padding-top: .55rem;
+  margin-top: .1rem;
+}
+
+/* ── CHECKOUT BTN ── */
+.mbag-cta {
+  padding: 1.25rem 1.25rem calc(1.25rem + var(--safe-bottom));
+}
+.mbag-checkout-btn {
+  width: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--fm);
+  font-size: .65rem;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  min-height: 56px;
+  cursor: pointer;
+  transition: opacity .2s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  border: none;
+}
+.mbag-checkout-btn:active { opacity: .8; }
+.mbag-checkout-btn:disabled { opacity: .3; cursor: not-allowed; }
+
+/* ── CHECKOUT OVERLAY (slides in from right) ── */
+#mbag-checkout {
+  position: fixed;
+  inset: 0;
+  background: var(--ink);
+  z-index: 700;
+  transform: translateX(100%);
+  transition: transform .35s cubic-bezier(.32,.72,0,1);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-top: var(--header-total);
+  padding-bottom: calc(1.5rem + var(--safe-bottom));
+}
+#mbag-checkout.open { transform: translateX(0); }
+
+.co-hdr {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .6rem 1rem;
+  border-bottom: 1px solid rgba(244,241,235,.07);
+  position: sticky;
+  top: 0;
+  background: var(--ink);
+  z-index: 2;
+}
+.co-back-btn {
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem;
+  color: rgba(244,241,235,.6);
+  flex-shrink: 0;
+  touch-action: manipulation;
+}
+.co-title-txt {
+  font-family: var(--fm);
+  font-size: .65rem;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+}
+
+.co-body { padding: 1.25rem; }
+
+.co-section {
+  font-family: var(--fm);
+  font-size: .55rem;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: rgba(244,241,235,.35);
+  margin: 1.25rem 0 .6rem;
+}
+.co-section:first-child { margin-top: 0; }
+
+.co-group { margin-bottom: .6rem; }
+.co-label {
+  display: block;
+  font-family: var(--fm);
+  font-size: .55rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: rgba(244,241,235,.35);
+  margin-bottom: .4rem;
+}
+.co-input {
+  width: 100%;
+  background: rgba(244,241,235,.05);
+  border: 1px solid rgba(244,241,235,.1);
+  color: var(--paper);
+  font-family: var(--fb);
+  font-size: 1rem; /* 16px min — no iOS zoom */
+  padding: .75rem;
+  outline: none;
+  transition: border-color .2s;
+}
+.co-input:focus { border-color: rgba(244,241,235,.3); }
+.co-input::placeholder { color: rgba(244,241,235,.22); }
+.co-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+
+#co-stripe { background: rgba(244,241,235,.05); border: 1px solid rgba(244,241,235,.1); padding: .9rem .75rem; margin-bottom: .4rem; }
+
+.co-error {
+  font-family: var(--fm);
+  font-size: .65rem;
+  letter-spacing: .06em;
+  color: transparent;
+  min-height: 1.2rem;
+  margin-bottom: .4rem;
+}
+.co-error.show { color: #e88; }
+
+.co-pay-btn {
+  width: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--fm);
+  font-size: .65rem;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  min-height: 56px;
+  cursor: pointer;
+  transition: opacity .2s;
+  -webkit-tap-highlight-color: transparent;
+  border: none;
+  margin-top: .25rem;
+}
+.co-pay-btn:active { opacity: .8; }
+.co-pay-btn:disabled { opacity: .3; cursor: not-allowed; }
+
+/* Order recap in checkout */
+.co-recap-row {
+  display: flex;
+  gap: .75rem;
+  padding: .65rem 0;
+  border-bottom: 1px solid rgba(244,241,235,.06);
+  align-items: center;
+}
+.co-recap-img { width: 44px; height: 56px; object-fit: cover; flex-shrink: 0; }
+.co-recap-name { font-family: var(--fw); font-weight: 700; font-style: italic; font-size: .95rem; }
+.co-recap-meta { font-family: var(--fm); font-size: .55rem; letter-spacing: .06em; color: rgba(244,241,235,.38); margin-top: .15rem; }
+.co-recap-price { font-family: var(--fm); font-size: .7rem; flex-shrink: 0; margin-left: auto; }
+
+/* ── TOAST ── */
+#mbag-toast {
+  position: fixed;
+  bottom: calc(1.5rem + var(--safe-bottom));
+  left: 50%;
+  transform: translateX(-50%) translateY(130%);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--fm);
+  font-size: .62rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: .7rem 1.2rem;
+  white-space: nowrap;
+  transition: transform .3s ease;
+  z-index: 9000;
+}
+#mbag-toast.show { transform: translateX(-50%) translateY(0); }
+#mbag-toast.error { background: var(--red); color: var(--paper); }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header id="mbag-hdr">
+  <button id="mbag-back">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    Shop
+  </button>
+  <div id="mbag-logo">
+    <img src="/images/logo.png" alt="ZUWERA"
+         onerror="this.style.display='none';document.getElementById('mbag-logo-txt').style.display='block'">
+    <span id="mbag-logo-txt">ZUWERA</span>
+  </div>
+  <span id="mbag-count"></span>
+</header>
+
+<!-- ── ANNOUNCEMENT BAR ── -->
+<div id="mbag-bar">ALL THE DEVILS ARE HERE</div>
+
+<!-- ── PAGE ── -->
+<main id="mbag-page">
+
+  <!-- Empty -->
+  <div id="mbag-empty">
+    <svg id="mbag-empty-icon" viewBox="0 0 52 52" aria-hidden="true">
+      <rect x="6" y="17" width="40" height="30" rx="1"/>
+      <path d="M16 17v-3a10 10 0 0120 0v3"/>
+    </svg>
+    <h2>Your bag is empty</h2>
+    <p>Add items from the shop to get started</p>
+    <button class="mbag-shop-link" id="mbag-go-shop">Explore Release 001 →</button>
+  </div>
+
+  <!-- Items -->
+  <div id="mbag-items-wrap">
+    <p class="mbag-sec-label">Your Bag</p>
+    <div id="mbag-items"></div>
+
+    <div class="mbag-promo">
+      <input type="text" id="mbag-promo-input" placeholder="Promo code">
+      <button id="mbag-promo-btn">Apply</button>
+    </div>
+
+    <div class="mbag-summary">
+      <div class="mbag-srow"><span>Subtotal</span><span id="mb-sub">$0.00</span></div>
+      <div class="mbag-srow"><span>Shipping</span><span id="mb-ship">$0.00</span></div>
+      <div class="mbag-srow"><span>Tax (est.)</span><span id="mb-tax">$0.00</span></div>
+      <div class="mbag-srow total"><span>Total</span><span id="mb-total">$0.00</span></div>
+    </div>
+
+    <div class="mbag-cta">
+      <button class="mbag-checkout-btn" id="mbag-checkout-btn">Proceed to Checkout</button>
+    </div>
+  </div>
+
+</main>
+
+<!-- ── CHECKOUT OVERLAY ── -->
+<div id="mbag-checkout">
+  <div class="co-hdr">
+    <button class="co-back-btn" id="co-back">&#8592;</button>
+    <span class="co-title-txt">Checkout</span>
+  </div>
+  <div class="co-body">
+
+    <p class="co-section">Your Order</p>
+    <div id="co-recap"></div>
+    <div class="mbag-summary" style="margin-bottom:1.5rem">
+      <div class="mbag-srow"><span>Subtotal</span><span id="co-sub">$0.00</span></div>
+      <div class="mbag-srow"><span>Shipping</span><span id="co-ship">$10.00</span></div>
+      <div class="mbag-srow"><span>Tax (est.)</span><span id="co-tax">$0.00</span></div>
+      <div class="mbag-srow total"><span>Total</span><span id="co-total">$0.00</span></div>
+    </div>
+
+    <form id="co-form">
+      <p class="co-section">Contact</p>
+      <div class="co-group">
+        <label class="co-label">Email</label>
+        <input class="co-input" type="email" id="co-email" placeholder="you@example.com" autocomplete="email" required>
+      </div>
+
+      <p class="co-section">Shipping</p>
+      <div class="co-group">
+        <label class="co-label">Full Name</label>
+        <input class="co-input" type="text" id="co-name" placeholder="Your name" autocomplete="name" required>
+      </div>
+      <div class="co-group">
+        <label class="co-label">Address</label>
+        <input class="co-input" type="text" id="co-addr" placeholder="123 Main St" autocomplete="street-address" required>
+      </div>
+      <div class="co-grid">
+        <div class="co-group">
+          <label class="co-label">City</label>
+          <input class="co-input" type="text" id="co-city" placeholder="City" autocomplete="address-level2" required>
+        </div>
+        <div class="co-group">
+          <label class="co-label">State</label>
+          <input class="co-input" type="text" id="co-state" placeholder="CA" maxlength="2" autocomplete="address-level1" required>
+        </div>
+      </div>
+      <div class="co-group">
+        <label class="co-label">ZIP Code</label>
+        <input class="co-input" type="text" id="co-zip" placeholder="90001" autocomplete="postal-code" required>
+      </div>
+
+      <p class="co-section">Payment</p>
+      <div id="co-stripe"></div>
+      <div class="co-error" id="co-err"></div>
+      <button type="submit" class="co-pay-btn" id="co-pay-btn">Place Order</button>
+    </form>
+  </div>
+</div>
+
+<!-- ── TOAST ── -->
+<div id="mbag-toast"></div>
+
+<script src="/supabase.min.js"></script>
+<script>
+'use strict';
+
+// ── STATE ──
+let cart     = JSON.parse(localStorage.getItem('zw-cart') || '[]');
+let stripe   = null;
+let stripeCard = null;
+
+const SUPA_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+const supa = window.supabase.createClient(SUPA_URL, SUPA_ANON);
+
+// ── ELEMENTS ──
+const $ = id => document.getElementById(id);
+const E = {
+  empty:     $('mbag-empty'),
+  wrap:      $('mbag-items-wrap'),
+  items:     $('mbag-items'),
+  count:     $('mbag-count'),
+  sub:       $('mb-sub'),
+  ship:      $('mb-ship'),
+  tax:       $('mb-tax'),
+  total:     $('mb-total'),
+  coBtn:     $('mbag-checkout-btn'),
+  checkout:  $('mbag-checkout'),
+  coBack:    $('co-back'),
+  coForm:    $('co-form'),
+  coEmail:   $('co-email'),
+  coName:    $('co-name'),
+  coAddr:    $('co-addr'),
+  coCity:    $('co-city'),
+  coState:   $('co-state'),
+  coZip:     $('co-zip'),
+  coErr:     $('co-err'),
+  coPay:     $('co-pay-btn'),
+  coSub:     $('co-sub'),
+  coShip:    $('co-ship'),
+  coTax:     $('co-tax'),
+  coTotal:   $('co-total'),
+  coRecap:   $('co-recap'),
+  toast:     $('mbag-toast'),
+};
+
+const fmt = n => '$' + parseFloat(n || 0).toFixed(2);
+
+// ── TOAST ──
+let _tt;
+function toast(msg, type = '') {
+  clearTimeout(_tt);
+  E.toast.textContent = msg;
+  E.toast.className = 'show' + (type ? ' ' + type : '');
+  _tt = setTimeout(() => { E.toast.className = ''; }, 3000);
+}
+
+// ── SAVE ──
+function save() {
+  localStorage.setItem('zw-cart', JSON.stringify(cart));
+  render();
+}
+
+// ── RENDER ──
+function render() {
+  const n = cart.reduce((s, i) => s + i.qty, 0);
+  if (!cart.length) {
+    E.empty.classList.add('show');
+    E.wrap.classList.remove('show');
+    E.count.textContent = '';
+    return;
+  }
+  E.empty.classList.remove('show');
+  E.wrap.classList.add('show');
+  E.count.textContent = n === 1 ? '1 item' : n + ' items';
+
+  E.items.innerHTML = cart.map((item, i) => `
+    <div class="mbag-row">
+      <img class="mbag-row-img" src="${item.img || ''}" alt="${item.title}">
+      <div class="mbag-row-info">
+        <p class="mbag-row-name">${item.title}</p>
+        <p class="mbag-row-meta">${item.size}${item.color ? ' · ' + item.color : ''}</p>
+        <p class="mbag-row-price">${fmt(item.price * item.qty)}</p>
+        <div class="mbag-row-controls">
+          <div class="mbag-qty">
+            <button data-i="${i}" data-d="-1">−</button>
+            <span>${item.qty}</span>
+            <button data-i="${i}" data-d="1">+</button>
+          </div>
+          <button class="mbag-remove" data-rm="${i}">Remove</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  E.items.querySelectorAll('.mbag-qty button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = +btn.dataset.i, d = +btn.dataset.d;
+      cart[i].qty = Math.max(1, cart[i].qty + d);
+      save();
+    });
+  });
+  E.items.querySelectorAll('.mbag-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      cart.splice(+btn.dataset.rm, 1);
+      save();
+    });
+  });
+
+  const sub  = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const ship = sub > 0 ? 10 : 0;
+  const tax  = (sub + ship) * 0.08;
+  E.sub.textContent   = fmt(sub);
+  E.ship.textContent  = ship > 0 ? fmt(ship) : 'FREE';
+  E.tax.textContent   = fmt(tax);
+  E.total.textContent = fmt(sub + ship + tax);
+}
+
+// ── BACK ──
+$('mbag-back').addEventListener('click', () => window.history.back());
+$('mbag-go-shop').addEventListener('click', () => window.location.href = '/mobile.html');
+$('mbag-promo-btn').addEventListener('click', () => {
+  const v = $('mbag-promo-input').value.trim();
+  if (v) toast('Checking code…');
+});
+
+// ── CHECKOUT ──
+E.coBtn.addEventListener('click', async () => {
+  // Render recap + totals
+  const sub  = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const ship = sub > 0 ? 10 : 0;
+  const tax  = (sub + ship) * 0.08;
+  E.coSub.textContent   = fmt(sub);
+  E.coShip.textContent  = fmt(ship);
+  E.coTax.textContent   = fmt(tax);
+  E.coTotal.textContent = fmt(sub + ship + tax);
+  E.coRecap.innerHTML = cart.map(item => `
+    <div class="co-recap-row">
+      <img class="co-recap-img" src="${item.img || ''}" alt="${item.title}">
+      <div>
+        <p class="co-recap-name">${item.title}</p>
+        <p class="co-recap-meta">${item.size}${item.color ? ' · ' + item.color : ''} × ${item.qty}</p>
+      </div>
+      <p class="co-recap-price">${fmt(item.price * item.qty)}</p>
+    </div>
+  `).join('');
+  // Pre-fill email if logged in
+  try {
+    const { data: { session } } = await supa.auth.getSession();
+    if (session?.user?.email) E.coEmail.value = session.user.email;
+  } catch(e) {}
+
+  E.checkout.classList.add('open');
+  if (!stripe) await loadStripe();
+});
+
+E.coBack.addEventListener('click', () => { E.checkout.classList.remove('open'); });
+
+async function loadStripe() {
+  return new Promise(resolve => {
+    const s = document.createElement('script');
+    s.src = 'https://js.stripe.com/v3/';
+    s.onload = async () => {
+      try {
+        const pk = await window.zwGetStripePublishableKey();
+        stripe = Stripe(pk);
+        stripeCard = stripe.elements().create('card', {
+          style: {
+            base: {
+              color: '#f4f1eb',
+              fontFamily: "'IBM Plex Mono', monospace",
+              fontSize: '16px',
+              '::placeholder': { color: 'rgba(244,241,235,0.25)' },
+            },
+            invalid: { color: '#e88' },
+          },
+        });
+        stripeCard.mount('#co-stripe');
+      } catch(err) { console.error(err); }
+      resolve();
+    };
+    document.head.appendChild(s);
+  });
+}
+
+E.coForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!stripe || !stripeCard) { toast('Payment not ready', 'error'); return; }
+  E.coPay.disabled = true;
+  E.coPay.textContent = 'Processing…';
+  E.coErr.className = 'co-error';
+
+  try {
+    const sub = cart.reduce((s, i) => s + i.price * i.qty, 0);
+    const amtCents = Math.round((sub + 10 + (sub + 10) * 0.08) * 100);
+
+    const res = await fetch('/api/create-payment-intent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: amtCents,
+        email:  E.coEmail.value,
+        name:   E.coName.value,
+        address: {
+          line1: E.coAddr.value,
+          city:  E.coCity.value,
+          state: E.coState.value,
+          postal_code: E.coZip.value,
+        },
+        items: cart.map(i => ({
+          product_id: i.pid,
+          title: i.title,
+          size:  i.size,
+          color: i.color,
+          quantity: i.qty,
+          unit_price: Math.round(i.price * 100),
+          image_url: i.img,
+        })),
+      }),
+    });
+    const pi = await res.json();
+    if (!pi.clientSecret) throw new Error(pi.error || 'Payment setup failed');
+
+    const { error } = await stripe.confirmCardPayment(pi.clientSecret, {
+      payment_method: { card: stripeCard },
+    });
+    if (error) throw new Error(error.message);
+
+    cart = [];
+    save();
+    E.checkout.classList.remove('open');
+    toast('Order placed! Check your email.');
+  } catch(err) {
+    E.coErr.textContent = err.message;
+    E.coErr.className = 'co-error show';
+  } finally {
+    E.coPay.disabled = false;
+    E.coPay.textContent = 'Place Order';
+  }
+});
+
+// ── INIT ──
+render();
+</script>
+</body>
+</html>

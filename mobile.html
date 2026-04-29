@@ -2225,10 +2225,9 @@ E.addBtn.addEventListener('click', () => {
   toast('Added to bag!');
 });
 
-// ── CART ──
+// ── CART — navigate to dedicated bag page ──
 E.cartBtn.addEventListener('click', () => {
-  renderCart();
-  openSheet(E.cartSheet);
+  window.location.href = '/m-bag.html';
 });
 E.cartClose.addEventListener('click', () => closeSheet(E.cartSheet));
 
