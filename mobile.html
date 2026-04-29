@@ -553,9 +553,9 @@ img { display: block; max-width: 100%; }
 }
 
 /* ── PRODUCT SHEET ── */
-/* No extra padding — selectors live outside the scrollable body now */
+/* No extra padding needed — add-bar is in flex flow, not overlapping */
 #m-product-sheet .m-sheet-body {
-  padding-bottom: .5rem;
+  padding-bottom: .75rem;
 }
 
 /* Selector panel sits between the scroll body and the add-bar
@@ -678,10 +678,9 @@ img { display: block; max-width: 100%; }
   cursor: not-allowed;
 }
 
-/* Fixed add-to-bag bar */
+/* Add-to-bag bar — flex item at bottom of sheet (NOT absolute, so it doesn't cover selectors) */
 .m-add-bar {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
+  flex-shrink: 0;
   padding: 1rem 1.25rem calc(1rem + var(--safe-bottom));
   background: var(--ink);
   border-top: 1px solid rgba(244,241,235,.08);
@@ -828,7 +827,7 @@ img { display: block; max-width: 100%; }
   border: 1px solid rgba(244,241,235,.12);
   color: var(--paper);
   font-family: var(--fm);
-  font-size: .62rem;
+  font-size: 1rem; /* min 16px — prevents iOS auto-zoom */
   letter-spacing: .1em;
   padding: .65rem .75rem;
 }
@@ -933,7 +932,7 @@ img { display: block; max-width: 100%; }
   border: 1px solid rgba(244,241,235,.12);
   color: var(--paper);
   font-family: var(--fb);
-  font-size: .95rem;
+  font-size: 1rem; /* min 16px — prevents iOS auto-zoom */
   padding: .75rem;
   outline: none;
   transition: border-color .2s;
@@ -1062,19 +1061,20 @@ img { display: block; max-width: 100%; }
   margin-top: .75rem;
 }
 
-/* ── ANNOUNCEMENT BAR (matches desktop #bar) ── */
+/* ── ANNOUNCEMENT BAR — sits BELOW the nav header ──
+   Layout order (top → bottom):
+     safe-tint  (0 → safe-top)
+     #mhdr      (safe-top → safe-top + nav-h)
+     #m-bar     (safe-top + nav-h → safe-top + nav-h + 30px)      */
 #m-bar {
   position: fixed;
-  top: 0;
+  top: calc(var(--safe-top) + var(--nav-h));
   left: 0; right: 0;
+  height: 30px;
   background: var(--ink);
   color: var(--paper);
-  border-bottom: 1px solid rgba(244,241,235,.08);
-  /* Absorb safe-area notch so bar covers it — no transparent gap above */
-  padding-top: calc(var(--safe-top) + .45rem);
-  padding-bottom: .45rem;
-  padding-left: 1rem;
-  padding-right: 1rem;
+  border-bottom: 1px solid rgba(244,241,235,.12);
+  padding: 0 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1082,18 +1082,16 @@ img { display: block; max-width: 100%; }
   font-size: .55rem;
   letter-spacing: .22em;
   text-transform: uppercase;
-  z-index: 302;
+  z-index: 299;   /* below header so it never blocks the hamburger */
 }
-/* Push the nav header tight below the bar — no gap */
+/* Header stays at its original position (on top of everything) */
 #mhdr {
-  top: calc(var(--safe-top) + 30px) !important;
-  border-top: none !important;
+  z-index: 301 !important;
 }
+/* Page pushed below: safe-top + nav + bar */
 #mpage {
   padding-top: calc(var(--header-total) + 30px) !important;
 }
-/* Safe-tint no longer needed — bar covers the notch area */
-.safe-tint { display: none; }
 
 /* ── HERO CTA — desktop style outline / ghost buttons ── */
 .m-btn-outline {
@@ -1312,7 +1310,7 @@ img { display: block; max-width: 100%; }
   outline: none;
   color: var(--paper);
   font-family: var(--fb);
-  font-size: .9rem;
+  font-size: 1rem; /* min 16px — prevents iOS auto-zoom */
   padding: .8rem .9rem;
 }
 .m-notify-input::placeholder { color: rgba(244,241,235,.2); }
