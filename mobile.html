@@ -2643,7 +2643,13 @@ function renderCart() {
     btn.addEventListener('click', () => {
       const i = parseInt(btn.dataset.idx);
       const d = parseInt(btn.dataset.dir);
-      const nextQty = Math.max(1, cartQty(cart[i]) + d);
+      const nextQty = cartQty(cart[i]) + d;
+      if (nextQty <= 0) {
+        cart.splice(i, 1);
+        saveCart();
+        renderCart();
+        return;
+      }
       cart[i].quantity = nextQty;
       cart[i].qty = nextQty;
       saveCart();
