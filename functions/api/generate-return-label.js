@@ -309,6 +309,8 @@ async function updateReturnRequest(returnId, labelData, env, existingValue = nul
     labelAmount:    labelData.amount,
     labelCurrency:  labelData.currency,
     labelSentAt:    new Date().toISOString(),
+    lastLabelError: '',
+    labelErrorAt: '',
   } : r);
 
   await fetch(`${url}/rest/v1/site_settings?key=eq.commerce_returns`, {
@@ -321,16 +323,65 @@ async function updateReturnRequest(returnId, labelData, env, existingValue = nul
   });
 }
 
+async function updateReturnRequestFailure(returnId, errorMessage, env, existingValue = null) {
+  if (!returnId) return null;
+  const url = (env.SUPABASE_URL || env.SUPABASE_PROJECT_URL || '').trim();
+  const sk  = (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '').trim();
+  const existing = existingValue || (await fetchReturnsState(env)).value;
+  const requests = Array.isArray(existing.requests) ? existing.requests : [];
+  const at = new Date().toISOString();
+  let updatedRequest = null;
+  const updated = requests.map((r) => {
+    if (r.id !== returnId) return r;
+    updatedRequest = {
+      ...r,
+      lastLabelError: String(errorMessage || 'Could not generate return label').slice(0, 1000),
+      labelErrorAt: at,
+      updatedAt: at,
+    };
+    return updatedRequest;
+  });
+
+  await fetch(`${url}/rest/v1/site_settings?key=eq.commerce_returns`, {
+    method: 'PATCH',
+    headers: {
+      apikey: sk, Authorization: `Bearer ${sk}`,
+      'Content-Type': 'application/json', Prefer: 'return=minimal',
+    },
+    body: JSON.stringify({ value: { ...existing, requests: updated }, updated_at: at }),
+  });
+  return updatedRequest;
+}
+
+function labelRecovery(errorMessage = '') {
+  const msg = String(errorMessage).toLowerCase();
+  if (msg.includes('no shipping rates')) {
+    return [
+      'Check that the customer address and Zuwera return address are complete.',
+      'If Shippo still has no rate, create the label manually in Shippo and paste the label/tracking into the admin detail panel.',
+    ];
+  }
+  if (msg.includes('missing')) {
+    return ['Fill in the missing address/config fields, then retry the label.'];
+  }
+  if (msg.includes('shippo_api_key')) {
+    return ['Add or fix SHIPPO_API_KEY in Cloudflare or Admin API settings.'];
+  }
+  return ['Retry after checking Shippo/API settings, or save a manual label in the admin detail panel.'];
+}
+
 export async function onRequestOptions({ env }) {
   return new Response(null, { status: 204, headers: cors(env) });
 }
 
 export async function onRequestPost({ request, env }) {
+  let returnId = '';
+  let returnsState = null;
   try {
     const body = await request.json().catch(() => ({}));
     const authHeader = request.headers.get('Authorization') || '';
     const accessToken = String(body.accessToken || authHeader.replace(/^Bearer\s+/i, '') || '').trim();
-    const { returnId } = body;
+    returnId = String(body.returnId || '').trim();
 
     if (!accessToken) return json({ ok: false, error: 'Missing access token' }, 401);
     if (!returnId) return json({ ok: false, error: 'Missing returnId' }, 400);
@@ -338,7 +389,7 @@ export async function onRequestPost({ request, env }) {
     const admin = await verifyAdmin(env, accessToken);
     if (!admin) return json({ ok: false, error: 'Not authorized' }, 403);
 
-    const returnsState = await fetchReturnsState(env);
+    returnsState = await fetchReturnsState(env);
     const returnRequest = returnsState.requests.find(r => r.id === returnId);
     if (!returnRequest) return json({ ok: false, error: 'Return request not found' }, 404);
 
@@ -383,7 +434,21 @@ export async function onRequestPost({ request, env }) {
     );
 
     const order = mergeOrderFallbacks(await fetchOrder(orderId, env), returnRequest);
-    const label = await createShippoLabel(order, env, cache);
+    const manualLabel = body.manualLabel && typeof body.manualLabel === 'object' ? body.manualLabel : null;
+    if (manualLabel && !String(manualLabel.labelUrl || '').trim()) {
+      throw new Error('Manual label email requires a label PDF URL.');
+    }
+    const label = manualLabel && (manualLabel.labelUrl || manualLabel.trackingNumber)
+      ? {
+          labelUrl: String(manualLabel.labelUrl || '').trim(),
+          trackingNumber: String(manualLabel.trackingNumber || '').trim(),
+          trackingUrl: String(manualLabel.trackingUrl || '').trim(),
+          carrier: String(manualLabel.carrier || 'Manual').trim(),
+          service: String(manualLabel.service || '').trim(),
+          amount: '',
+          currency: '',
+        }
+      : await createShippoLabel(order, env, cache);
 
     // Fire email and DB update in parallel
     await Promise.allSettled([
@@ -394,6 +459,7 @@ export async function onRequestPost({ request, env }) {
     console.log(`[return-label] Label generated for return ${returnId}, order ${orderId}`);
     return json({
       ok: true,
+      manual: !!manualLabel,
       labelUrl:       label.labelUrl,
       trackingNumber: label.trackingNumber,
       trackingUrl:    label.trackingUrl,
@@ -401,7 +467,19 @@ export async function onRequestPost({ request, env }) {
       service:        label.service,
     });
   } catch (e) {
-    console.error('[return-label] Error:', e.message);
-    return json({ ok: false, error: e.message || 'Unknown error' }, 500);
+    const message = e.message || 'Unknown error';
+    console.error('[return-label] Error:', message);
+    let updatedRequest = null;
+    try {
+      updatedRequest = await updateReturnRequestFailure(returnId, message, env, returnsState?.value || null);
+    } catch (updateError) {
+      console.error('[return-label] Could not save label failure:', updateError.message);
+    }
+    return json({
+      ok: false,
+      error: message,
+      recovery: labelRecovery(message),
+      request: updatedRequest,
+    }, 500);
   }
 }

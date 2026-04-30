@@ -21,6 +21,17 @@ function profileName(profile = {}) {
   return profile.full_name || profile.name || profile.email || '';
 }
 
+function cleanString(value, fallback = '') {
+  if (value === undefined || value === null) return fallback;
+  return String(value).trim();
+}
+
+function cleanNumber(value, fallback = '') {
+  if (value === '' || value === undefined || value === null) return fallback;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 function addressFromOrder(order = {}) {
   return {
     name: order.customer_name || order.email || order.customer_email || '',
@@ -142,20 +153,32 @@ export async function onRequestPost({ request, env }) {
     requests[idx] = {
       ...current,
       status: nextStatus,
-      resolution: String(body.resolution || current.resolution || 'return').trim(),
-      reason: String(body.reason || current.reason || '').trim(),
-      notes: String(body.notes || current.notes || '').trim(),
-      internalNotes: String(body.internalNotes || current.internalNotes || '').trim(),
-      customerMessage: String(body.customerMessage || current.customerMessage || '').trim(),
-      refundAmount: body.refundAmount === '' || body.refundAmount === undefined
-        ? (current.refundAmount ?? '')
-        : Number(body.refundAmount),
-      exchangeSku: String(body.exchangeSku || current.exchangeSku || '').trim(),
-      adminResolution: String(body.adminResolution || current.adminResolution || '').trim(),
-      inspectionNotes: String(body.inspectionNotes || current.inspectionNotes || '').trim(),
+      resolution: cleanString(body.resolution, current.resolution || 'return'),
+      reason: cleanString(body.reason, current.reason || ''),
+      notes: cleanString(body.notes, current.notes || ''),
+      internalNotes: cleanString(body.internalNotes, current.internalNotes || ''),
+      customerMessage: cleanString(body.customerMessage, current.customerMessage || ''),
+      refundAmount: cleanNumber(body.refundAmount, current.refundAmount ?? ''),
+      exchangeSku: cleanString(body.exchangeSku, current.exchangeSku || ''),
+      adminResolution: cleanString(body.adminResolution, current.adminResolution || ''),
+      inspectionNotes: cleanString(body.inspectionNotes, current.inspectionNotes || ''),
+      labelUrl: cleanString(body.labelUrl, current.labelUrl || ''),
+      trackingNumber: cleanString(body.trackingNumber, current.trackingNumber || ''),
+      trackingUrl: cleanString(body.trackingUrl, current.trackingUrl || ''),
+      carrier: cleanString(body.carrier, current.carrier || ''),
+      service: cleanString(body.service, current.service || ''),
+      labelAmount: cleanNumber(body.labelAmount, current.labelAmount ?? ''),
+      labelCurrency: cleanString(body.labelCurrency, current.labelCurrency || ''),
+      labelSentAt: cleanString(body.labelSentAt, current.labelSentAt || ''),
+      lastLabelError: body.clearLabelError ? '' : cleanString(body.lastLabelError, current.lastLabelError || ''),
+      labelErrorAt: body.clearLabelError ? '' : cleanString(body.labelErrorAt, current.labelErrorAt || ''),
       updatedAt: new Date().toISOString(),
       updatedBy: admin.profile?.email || admin.email || '',
     };
+
+    if (requests[idx].status === 'label_sent' && (requests[idx].labelUrl || requests[idx].trackingNumber) && !requests[idx].labelSentAt) {
+      requests[idx].labelSentAt = requests[idx].updatedAt;
+    }
 
     await setSetting(env, 'commerce_returns', { requests: requests.slice(0, 500) });
 
