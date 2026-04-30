@@ -72,6 +72,12 @@ function enrichRequests(requests = [], orders = [], profiles = []) {
       orderLabel: request.orderLabel || orderLabel(order),
       orderTotal: request.orderTotal ?? orderTotal(order),
       orderStatus: order.status || request.orderStatus || '',
+      paymentStatus: order.payment_status || request.paymentStatus || '',
+      fulfillmentStatus: order.fulfillment_status || request.fulfillmentStatus || '',
+      shippingProvider: order.shipping_provider || request.shippingProvider || '',
+      shippingService: order.shipping_service || request.shippingService || '',
+      outboundTrackingNumber: order.tracking_number || request.outboundTrackingNumber || '',
+      outboundTrackingUrl: order.tracking_url || request.outboundTrackingUrl || '',
       orderCreatedAt: request.orderCreatedAt || order.created_at || '',
       shippingAddress: request.shippingAddress || addressFromOrder(order),
       orderItems: request.orderItems || order.items || [],
@@ -140,6 +146,13 @@ export async function onRequestPost({ request, env }) {
       reason: String(body.reason || current.reason || '').trim(),
       notes: String(body.notes || current.notes || '').trim(),
       internalNotes: String(body.internalNotes || current.internalNotes || '').trim(),
+      customerMessage: String(body.customerMessage || current.customerMessage || '').trim(),
+      refundAmount: body.refundAmount === '' || body.refundAmount === undefined
+        ? (current.refundAmount ?? '')
+        : Number(body.refundAmount),
+      exchangeSku: String(body.exchangeSku || current.exchangeSku || '').trim(),
+      adminResolution: String(body.adminResolution || current.adminResolution || '').trim(),
+      inspectionNotes: String(body.inspectionNotes || current.inspectionNotes || '').trim(),
       updatedAt: new Date().toISOString(),
       updatedBy: admin.profile?.email || admin.email || '',
     };

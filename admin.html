@@ -1373,7 +1373,19 @@
                         </div>
                         <div class="form-section" style="padding:1rem 1.2rem;">
                             <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.4rem">Denied</div>
-                            <div id="ret-stat-denied" style="font-size:1.6rem;font-weight:700;color:#ef4444">—</div>
+                            <div id="ret-stat-denied" style="font-size:1.6rem;font-weight:700;color:#ef4444">-</div>
+                        </div>
+                        <div class="form-section" style="padding:1rem 1.2rem;">
+                            <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.4rem">Labels Sent</div>
+                            <div id="ret-stat-labels" style="font-size:1.6rem;font-weight:700;color:#38bdf8">-</div>
+                        </div>
+                        <div class="form-section" style="padding:1rem 1.2rem;">
+                            <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.4rem">Completed</div>
+                            <div id="ret-stat-completed" style="font-size:1.6rem;font-weight:700;color:#a78bfa">-</div>
+                        </div>
+                        <div class="form-section" style="padding:1rem 1.2rem;">
+                            <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.4rem">Needs Address</div>
+                            <div id="ret-stat-address" style="font-size:1.6rem;font-weight:700;color:#f97316">-</div>
                         </div>
                     </div>
 
@@ -1383,8 +1395,12 @@
                             <option value="">All Statuses</option>
                             <option value="requested">Requested</option>
                             <option value="approved">Approved</option>
+                            <option value="label_sent">Label Sent</option>
                             <option value="denied">Denied</option>
+                            <option value="exchange_in_progress">Exchange In Progress</option>
                             <option value="completed">Completed</option>
+                            <option value="refunded">Refunded</option>
+                            <option value="closed">Closed</option>
                         </select>
                         <select id="ret-filter-type" style="background:var(--surface);border:1px solid var(--border);color:var(--text-primary);padding:.45rem .8rem;font-size:.82rem;border-radius:6px;" onchange="renderReturnsTable()">
                             <option value="">All Types</option>
@@ -1394,6 +1410,8 @@
                         <input id="ret-filter-search" type="text" placeholder="Search email or order…" oninput="renderReturnsTable()"
                             style="background:var(--surface);border:1px solid var(--border);color:var(--text-primary);padding:.45rem .8rem;font-size:.82rem;border-radius:6px;flex:1;min-width:200px;outline:none;">
                     </div>
+
+                    <div id="returns-detail-panel" class="form-section" style="display:none;margin-bottom:1.2rem;padding:1rem 1.2rem;"></div>
 
                     <div id="returns-loading" style="padding:2rem;text-align:center;color:var(--text-secondary);">Loading…</div>
                     <div id="returns-empty" style="display:none;padding:2rem;text-align:center;color:var(--text-secondary);">No return requests yet.</div>
@@ -1406,6 +1424,7 @@
                                     <th style="padding:10px 12px;color:var(--text-secondary);font-weight:500;">Customer</th>
                                     <th style="padding:10px 12px;color:var(--text-secondary);font-weight:500;">Type</th>
                                     <th style="padding:10px 12px;color:var(--text-secondary);font-weight:500;">Reason</th>
+                                    <th style="padding:10px 12px;color:var(--text-secondary);font-weight:500;">Label</th>
                                     <th style="padding:10px 12px;color:var(--text-secondary);font-weight:500;">Status</th>
                                     <th style="padding:10px 12px;color:var(--text-secondary);font-weight:500;">Action</th>
                                 </tr>
@@ -1572,6 +1591,255 @@
                             if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = oldText || 'Send Label'; }
                         }
                     }
+                    </script>
+                    <script>
+                    let _selectedReturnId = null;
+                    const RETURN_STATUSES = [
+                        ['requested', 'Requested'],
+                        ['approved', 'Approved'],
+                        ['label_sent', 'Label Sent'],
+                        ['exchange_in_progress', 'Exchange In Progress'],
+                        ['completed', 'Completed'],
+                        ['refunded', 'Refunded'],
+                        ['denied', 'Denied'],
+                        ['closed', 'Closed'],
+                    ];
+                    const RETURN_STATUS_COLORS = {
+                        requested:'#f59e0b',
+                        approved:'#22c55e',
+                        label_sent:'#38bdf8',
+                        denied:'#ef4444',
+                        completed:'#a78bfa',
+                        refunded:'#6b7280',
+                        closed:'#6b7280',
+                        exchange_in_progress:'#a78bfa',
+                    };
+
+                    function retEscape(value) {
+                        if (typeof escapeHtml === 'function') return escapeHtml(value);
+                        return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+                    }
+                    function retAttr(value) { return retEscape(value).replace(/`/g, '&#96;'); }
+                    function retMoney(value) {
+                        const n = Number(value || 0);
+                        return Number.isFinite(n) ? '$' + n.toFixed(2) : '$0.00';
+                    }
+                    function retDate(value, withTime = false) {
+                        if (!value) return '-';
+                        try {
+                            return new Date(value).toLocaleString('en-US', withTime
+                                ? { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' }
+                                : { month:'short', day:'numeric', year:'numeric' });
+                        } catch (_) { return '-'; }
+                    }
+                    function retAddressMissing(r) {
+                        const a = r.shippingAddress || {};
+                        return !a.line1 || !a.city || !a.state || !a.zip || !a.country;
+                    }
+                    function retStatusBadge(status) {
+                        const color = RETURN_STATUS_COLORS[status] || 'var(--text-secondary)';
+                        return `<span style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:${color};border:1px solid ${color};padding:2px 8px;border-radius:4px;white-space:nowrap;">${retEscape(status || '-')}</span>`;
+                    }
+                    function retStatusOptions(current) {
+                        return RETURN_STATUSES.map(([value, label]) => `<option value="${value}" ${current === value ? 'selected' : ''}>${label}</option>`).join('');
+                    }
+                    function retField(id) { return document.getElementById(id)?.value ?? ''; }
+                    function notifyReturns(message, type = 'info') {
+                        if (typeof showToast === 'function') showToast(message, type);
+                        else if (type === 'error') alert(message);
+                    }
+
+                    loadReturnsPage = async function() {
+                        document.getElementById('returns-loading').style.display = 'block';
+                        document.getElementById('returns-loading').textContent = 'Loading...';
+                        document.getElementById('returns-empty').style.display = 'none';
+                        document.getElementById('returns-table-wrap').style.display = 'none';
+                        document.getElementById('returns-detail-panel').style.display = 'none';
+                        try {
+                            const { data: { session } } = await sb.auth.getSession();
+                            const token = session?.access_token;
+                            if (!token) throw new Error('Missing admin session token.');
+                            const resp = await fetch('/api/admin-returns', {
+                                headers: { Authorization: `Bearer ${token}` }
+                            });
+                            const payload = await resp.json().catch(() => ({}));
+                            if (!resp.ok || !payload.success) throw new Error(payload.error || 'Could not load returns.');
+                            _returnsData = Array.isArray(payload.requests) ? payload.requests : [];
+                            _returnsData.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
+                            if (_selectedReturnId && !_returnsData.some(r => r.id === _selectedReturnId)) _selectedReturnId = null;
+                            document.getElementById('returns-loading').style.display = 'none';
+                            renderReturnsStats();
+                            renderReturnsTable();
+                            renderReturnDetails();
+                        } catch(e) {
+                            document.getElementById('returns-loading').textContent = 'Could not load returns data: ' + e.message;
+                        }
+                    };
+
+                    function renderReturnsStats() {
+                        const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+                        set('ret-stat-total', _returnsData.length);
+                        set('ret-stat-pending', _returnsData.filter(r => r.status === 'requested').length);
+                        set('ret-stat-approved', _returnsData.filter(r => r.status === 'approved').length);
+                        set('ret-stat-denied', _returnsData.filter(r => r.status === 'denied').length);
+                        set('ret-stat-labels', _returnsData.filter(r => r.status === 'label_sent' || r.labelUrl).length);
+                        set('ret-stat-completed', _returnsData.filter(r => ['completed','refunded','closed'].includes(r.status)).length);
+                        set('ret-stat-address', _returnsData.filter(retAddressMissing).length);
+                    }
+
+                    function getFilteredReturns() {
+                        const statusF = document.getElementById('ret-filter-status')?.value || '';
+                        const typeF   = document.getElementById('ret-filter-type')?.value || '';
+                        const searchF = (document.getElementById('ret-filter-search')?.value || '').toLowerCase();
+                        return _returnsData.filter(r => {
+                            if (statusF && r.status !== statusF) return false;
+                            if (typeF && r.resolution !== typeF) return false;
+                            if (searchF) {
+                                const hay = [r.id, r.orderId, r.orderLabel, r.userId, r.userEmail, r.userName, r.customerEmail, r.customerName, r.reason, r.notes, r.internalNotes, r.customerMessage, r.exchangeSku, r.trackingNumber].join(' ').toLowerCase();
+                                if (!hay.includes(searchF)) return false;
+                            }
+                            return true;
+                        });
+                    }
+
+                    renderReturnsTable = function() {
+                        const rows = getFilteredReturns();
+                        const tbody = document.getElementById('returns-tbody');
+                        if (!rows.length) {
+                            document.getElementById('returns-empty').style.display = 'block';
+                            document.getElementById('returns-table-wrap').style.display = 'none';
+                            return;
+                        }
+                        document.getElementById('returns-empty').style.display = 'none';
+                        document.getElementById('returns-table-wrap').style.display = 'block';
+                        tbody.innerHTML = rows.map(r => {
+                            const id = retAttr(r.id || '');
+                            const orderLabel = r.orderLabel || ('#' + String(r.orderId || '').slice(-8).toUpperCase());
+                            const customerName = r.customerName || r.userName || 'Customer';
+                            const customerEmail = r.customerEmail || r.userEmail || '';
+                            const canSendLabel = (r.status === 'approved' || r.status === 'label_sent');
+                            const selectedBg = _selectedReturnId === r.id ? 'background:rgba(56,189,248,.08);' : '';
+                            const labelCell = r.labelUrl
+                                ? `<a href="${retAttr(r.labelUrl)}" target="_blank" onclick="event.stopPropagation()" style="color:#38bdf8;text-decoration:underline;">PDF</a><div style="font-size:.72rem;color:var(--text-secondary);margin-top:4px;">${retEscape([r.carrier, r.service].filter(Boolean).join(' - '))}<br>${retEscape(r.trackingNumber || '')}</div>`
+                                : (retAddressMissing(r) ? '<span style="color:#f97316;font-size:.74rem;">Needs address</span>' : '<span style="color:var(--text-secondary);font-size:.74rem;">Not sent</span>');
+                            return `<tr onclick="retSelectReturn('${id}')" style="border-bottom:1px solid var(--border);cursor:pointer;${selectedBg}">
+                                <td style="padding:10px 12px;white-space:nowrap;color:var(--text-secondary);font-size:.78rem;">${retDate(r.createdAt)}</td>
+                                <td style="padding:10px 12px;font-family:monospace;font-size:.82rem;">${retEscape(orderLabel)}<div style="font-family:inherit;color:var(--text-secondary);font-size:.72rem;margin-top:4px;">${retMoney(r.orderTotal)}${r.orderStatus ? ' - ' + retEscape(r.orderStatus) : ''}</div></td>
+                                <td style="padding:10px 12px;font-size:.82rem;max-width:240px;"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${retAttr(customerName)}">${retEscape(customerName)}</div><div style="color:var(--text-secondary);font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${retAttr(customerEmail || r.userId || '')}">${retEscape(customerEmail || (r.userId ? r.userId.slice(0,8) + '...' : '-'))}</div></td>
+                                <td style="padding:10px 12px;text-transform:capitalize;">${retEscape(r.resolution || 'return')}</td>
+                                <td style="padding:10px 12px;max-width:230px;"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${retAttr(r.reason || '')}">${retEscape(r.reason || '-')}</div><div style="color:var(--text-secondary);font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${retAttr(r.notes || '')}">${retEscape(r.notes || '')}</div></td>
+                                <td style="padding:10px 12px;min-width:120px;">${labelCell}</td>
+                                <td style="padding:10px 12px;">${retStatusBadge(r.status)}</td>
+                                <td style="padding:10px 12px;"><select style="background:var(--surface);border:1px solid var(--border);color:var(--text-primary);font-size:.78rem;padding:3px 6px;border-radius:4px;" onclick="event.stopPropagation()" onchange="updateReturnStatus('${id}', this.value, this)">${retStatusOptions(r.status)}</select><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;"><button type="button" class="btn btn-secondary btn-sm" style="font-size:.72rem;padding:4px 8px;" onclick="event.stopPropagation();retSelectReturn('${id}')">Details</button>${canSendLabel ? `<button type="button" class="btn btn-secondary btn-sm" style="font-size:.72rem;padding:4px 8px;" onclick="event.stopPropagation();sendReturnLabel('${id}', this)">${r.labelUrl ? 'Resend Label' : 'Send Label'}</button>` : ''}</div></td>
+                            </tr>`;
+                        }).join('');
+                    };
+
+                    function retSelectReturn(requestId) {
+                        _selectedReturnId = requestId;
+                        renderReturnsTable();
+                        renderReturnDetails();
+                    }
+
+                    function renderReturnDetails() {
+                        const panel = document.getElementById('returns-detail-panel');
+                        const r = _returnsData.find(x => x.id === _selectedReturnId);
+                        if (!r) { panel.style.display = 'none'; panel.innerHTML = ''; return; }
+                        const id = retAttr(r.id || '');
+                        const a = r.shippingAddress || {};
+                        const orderLabel = r.orderLabel || ('#' + String(r.orderId || '').slice(-8).toUpperCase());
+                        const items = Array.isArray(r.orderItems) ? r.orderItems : [];
+                        const itemsHtml = items.length ? items.map(item => {
+                            const name = item.name || item.title || item.product_title || 'Item';
+                            const qty = item.quantity || item.qty || 1;
+                            const meta = [item.sku, item.size, item.color || item.colorName].filter(Boolean).join(' / ');
+                            return `<div style="display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border);padding:8px 0;"><div><div style="font-weight:600;">${retEscape(name)}</div><div style="color:var(--text-secondary);font-size:.75rem;">${retEscape(meta || 'No variant data')}</div></div><div style="text-align:right;color:var(--text-secondary);font-size:.8rem;">x${retEscape(qty)}<br>${retMoney(item.price || item.unit_price || 0)}</div></div>`;
+                        }).join('') : '<p style="color:var(--text-secondary);font-size:.82rem;">No line item data saved for this request.</p>';
+                        const labelLinks = r.labelUrl
+                            ? `<a href="${retAttr(r.labelUrl)}" target="_blank" style="color:#38bdf8;text-decoration:underline;">Open label PDF</a>${r.trackingUrl ? ` <span style="color:var(--text-secondary);">/</span> <a href="${retAttr(r.trackingUrl)}" target="_blank" style="color:#38bdf8;text-decoration:underline;">Track package</a>` : ''}`
+                            : '<span style="color:var(--text-secondary);">No return label sent yet.</span>';
+                        panel.style.display = 'block';
+                        panel.innerHTML = `
+                            <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:1rem;">
+                                <div><div style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:5px;">Return Workspace</div><h3 style="margin:0 0 6px;font-size:1.1rem;">${retEscape(orderLabel)} - ${retEscape(r.customerName || 'Customer')}</h3><div style="color:var(--text-secondary);font-size:.82rem;">Created ${retDate(r.createdAt, true)}${r.updatedAt ? ` - Updated ${retDate(r.updatedAt, true)}` : ''}</div></div>
+                                <div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','approved')">Approve</button><button class="btn btn-secondary btn-sm" onclick="sendReturnLabel('${id}', this)" ${r.status === 'approved' || r.status === 'label_sent' ? '' : 'disabled'}>${r.labelUrl ? 'Resend Label' : 'Send Label'}</button><button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','completed')">Complete</button><button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','denied')">Deny</button><button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','closed')">Close</button></div>
+                            </div>
+                            <div style="display:grid;grid-template-columns:minmax(260px,1.1fr) minmax(260px,.9fr);gap:1rem;margin-bottom:1rem;">
+                                <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:1rem;">
+                                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.8rem;"><div><label class="form-label">Status</label><select id="ret-detail-status-${id}" class="form-select">${retStatusOptions(r.status)}</select></div><div><label class="form-label">Resolution</label><select id="ret-detail-resolution-${id}" class="form-select"><option value="return" ${r.resolution === 'return' ? 'selected' : ''}>Return / Refund</option><option value="exchange" ${r.resolution === 'exchange' ? 'selected' : ''}>Exchange</option><option value="store_credit" ${r.resolution === 'store_credit' ? 'selected' : ''}>Store Credit</option></select></div><div><label class="form-label">Refund Amount</label><input id="ret-detail-refund-${id}" class="form-input" type="number" min="0" step="0.01" value="${retAttr(r.refundAmount ?? '')}" placeholder="${retMoney(r.orderTotal || 0)}"></div><div><label class="form-label">Exchange SKU / Size</label><input id="ret-detail-exchange-${id}" class="form-input" value="${retAttr(r.exchangeSku || '')}" placeholder="Replacement SKU or size"></div></div>
+                                    <div style="margin-top:.85rem;"><label class="form-label">Customer Reason</label><input id="ret-detail-reason-${id}" class="form-input" value="${retAttr(r.reason || '')}"></div>
+                                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-top:.85rem;"><div><label class="form-label">Customer Notes</label><textarea id="ret-detail-notes-${id}" class="form-textarea" rows="4">${retEscape(r.notes || '')}</textarea></div><div><label class="form-label">Message To Customer</label><textarea id="ret-detail-message-${id}" class="form-textarea" rows="4" placeholder="Optional note for support follow-up">${retEscape(r.customerMessage || '')}</textarea></div><div><label class="form-label">Internal Notes</label><textarea id="ret-detail-internal-${id}" class="form-textarea" rows="4" placeholder="Private team notes">${retEscape(r.internalNotes || '')}</textarea></div><div><label class="form-label">Inspection Notes</label><textarea id="ret-detail-inspection-${id}" class="form-textarea" rows="4" placeholder="Condition, tags, photos, restock notes">${retEscape(r.inspectionNotes || '')}</textarea></div></div>
+                                    <div style="display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap;"><button class="btn btn-primary btn-sm" onclick="saveReturnDetails('${id}', this)">Save Return Details</button><button class="btn btn-secondary btn-sm" onclick="loadReturnsPage()">Reload</button></div>
+                                </div>
+                                <div style="display:grid;gap:.8rem;"><div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:1rem;"><div style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.6rem;">Customer</div><div style="font-weight:600;">${retEscape(r.customerName || r.userName || 'Customer')}</div><div style="color:var(--text-secondary);font-size:.82rem;margin-top:3px;">${retEscape(r.customerEmail || r.userEmail || '-')}</div><div style="color:var(--text-secondary);font-size:.82rem;margin-top:10px;line-height:1.55;">${retEscape(a.name || r.customerName || '')}<br>${retEscape(a.line1 || '')}${a.line2 ? ', ' + retEscape(a.line2) : ''}<br>${retEscape([a.city, a.state, a.zip].filter(Boolean).join(' '))}<br>${retEscape(a.country || '')}</div>${retAddressMissing(r) ? '<div style="margin-top:10px;color:#f97316;font-size:.78rem;">Missing return address fields. Label generation may fail until the original order has a full shipping address.</div>' : ''}</div><div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:1rem;"><div style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.6rem;">Label / Tracking</div><div style="font-size:.85rem;line-height:1.65;">${labelLinks}</div><div style="color:var(--text-secondary);font-size:.8rem;margin-top:8px;">${retEscape([r.carrier, r.service].filter(Boolean).join(' - ') || '')}</div><div style="font-family:monospace;font-size:.82rem;margin-top:4px;">${retEscape(r.trackingNumber || '')}</div></div><div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:1rem;"><div style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.6rem;">Order Items</div>${itemsHtml}</div></div>
+                            </div>`;
+                    }
+
+                    async function persistReturnUpdate(requestId, updates) {
+                        const req = _returnsData.find(r => r.id === requestId);
+                        if (!req) throw new Error('Return request not found.');
+                        const { data: { session } } = await sb.auth.getSession();
+                        const token = session?.access_token;
+                        if (!token) throw new Error('Missing admin session token.');
+                        const resp = await fetch('/api/admin-returns', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ action: 'update_return', returnId: requestId, status: updates.status ?? req.status ?? 'requested', resolution: updates.resolution ?? req.resolution ?? 'return', reason: updates.reason ?? req.reason ?? '', notes: updates.notes ?? req.notes ?? '', internalNotes: updates.internalNotes ?? req.internalNotes ?? '', customerMessage: updates.customerMessage ?? req.customerMessage ?? '', refundAmount: updates.refundAmount ?? req.refundAmount ?? '', exchangeSku: updates.exchangeSku ?? req.exchangeSku ?? '', adminResolution: updates.adminResolution ?? req.adminResolution ?? '', inspectionNotes: updates.inspectionNotes ?? req.inspectionNotes ?? '' })
+                        });
+                        const payload = await resp.json().catch(() => ({}));
+                        if (!resp.ok || !payload.success) throw new Error(payload.error || 'Could not update return.');
+                        Object.assign(req, payload.request || {});
+                        renderReturnsStats(); renderReturnsTable(); renderReturnDetails();
+                        return req;
+                    }
+
+                    updateReturnStatus = async function(requestId, newStatus, selectEl) {
+                        const req = _returnsData.find(r => r.id === requestId);
+                        if (!req) return;
+                        const oldStatus = req.status;
+                        req.status = newStatus;
+                        try { await persistReturnUpdate(requestId, { status: newStatus }); notifyReturns('Return status updated.', 'success'); }
+                        catch(e) { req.status = oldStatus; if (selectEl) selectEl.value = oldStatus; notifyReturns('Could not update status: ' + e.message, 'error'); }
+                    };
+                    async function quickReturnStatus(requestId, status) {
+                        try { await persistReturnUpdate(requestId, { status }); notifyReturns('Return marked ' + status.replace(/_/g, ' ') + '.', 'success'); }
+                        catch (e) { notifyReturns('Could not update return: ' + e.message, 'error'); }
+                    }
+                    async function saveReturnDetails(requestId, buttonEl) {
+                        const oldText = buttonEl?.textContent || '';
+                        if (buttonEl) { buttonEl.disabled = true; buttonEl.textContent = 'Saving...'; }
+                        try {
+                            await persistReturnUpdate(requestId, { status: retField(`ret-detail-status-${requestId}`), resolution: retField(`ret-detail-resolution-${requestId}`), reason: retField(`ret-detail-reason-${requestId}`), notes: retField(`ret-detail-notes-${requestId}`), customerMessage: retField(`ret-detail-message-${requestId}`), internalNotes: retField(`ret-detail-internal-${requestId}`), inspectionNotes: retField(`ret-detail-inspection-${requestId}`), refundAmount: retField(`ret-detail-refund-${requestId}`), exchangeSku: retField(`ret-detail-exchange-${requestId}`) });
+                            notifyReturns('Return details saved.', 'success');
+                        } catch (e) { notifyReturns('Could not save return: ' + e.message, 'error'); }
+                        finally { if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = oldText || 'Save Return Details'; } }
+                    }
+                    sendReturnLabel = async function(requestId, buttonEl) {
+                        const req = _returnsData.find(r => r.id === requestId);
+                        if (!req) return;
+                        const oldText = buttonEl ? buttonEl.textContent : '';
+                        if (buttonEl) { buttonEl.disabled = true; buttonEl.textContent = 'Sending...'; }
+                        try {
+                            const { data: { session } } = await sb.auth.getSession();
+                            const token = session?.access_token;
+                            if (!token) throw new Error('Missing admin session token.');
+                            const resp = await fetch('/api/generate-return-label', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                body: JSON.stringify({ returnId: requestId, orderId: req.orderId, force: req.labelUrl ? 'true' : 'false' })
+                            });
+                            const payload = await resp.json().catch(() => ({}));
+                            if (!resp.ok || !payload.ok) throw new Error(payload.error || 'Could not generate return label.');
+                            Object.assign(req, { status: 'label_sent', labelUrl: payload.labelUrl, trackingNumber: payload.trackingNumber, trackingUrl: payload.trackingUrl, carrier: payload.carrier, service: payload.service, labelSentAt: new Date().toISOString() });
+                            renderReturnsStats();
+                            renderReturnsTable();
+                            renderReturnDetails();
+                            notifyReturns('Return label sent.', 'success');
+                        } catch(e) {
+                            notifyReturns('Could not send return label: ' + e.message, 'error');
+                            if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = oldText || 'Send Label'; }
+                        }
+                    };
                     </script>
                 </div>
 
