@@ -1422,15 +1422,19 @@
                         document.getElementById('returns-empty').style.display = 'none';
                         document.getElementById('returns-table-wrap').style.display = 'none';
                         try {
-                            const { data, error } = await sb.from('site_settings')
-                                .select('value').eq('key', 'commerce_returns').maybeSingle();
-                            if (error) throw error;
-                            const raw = data?.value;
-                            _returnsData = Array.isArray(raw?.requests) ? raw.requests : [];
+                            const { data: { session } } = await sb.auth.getSession();
+                            const token = session?.access_token;
+                            if (!token) throw new Error('Missing admin session token.');
+                            const resp = await fetch('/api/admin-returns', {
+                                headers: { Authorization: `Bearer ${token}` }
+                            });
+                            const payload = await resp.json().catch(() => ({}));
+                            if (!resp.ok || !payload.success) throw new Error(payload.error || 'Could not load returns.');
+                            _returnsData = Array.isArray(payload.requests) ? payload.requests : [];
                             // Update stats
                             const tot = _returnsData.length;
                             const pending  = _returnsData.filter(r => r.status === 'requested').length;
-                            const approved = _returnsData.filter(r => r.status === 'approved').length;
+                            const approved = _returnsData.filter(r => r.status === 'approved' || r.status === 'label_sent').length;
                             const denied   = _returnsData.filter(r => r.status === 'denied').length;
                             document.getElementById('ret-stat-total').textContent   = tot;
                             document.getElementById('ret-stat-pending').textContent  = pending;
@@ -1452,7 +1456,7 @@
                             if (statusF && r.status !== statusF) return false;
                             if (typeF   && r.resolution !== typeF) return false;
                             if (searchF) {
-                                const hay = [r.orderId, r.orderLabel, r.userId, r.reason, r.notes].join(' ').toLowerCase();
+                                const hay = [r.orderId, r.orderLabel, r.userId, r.userEmail, r.userName, r.customerEmail, r.customerName, r.reason, r.notes].join(' ').toLowerCase();
                                 if (!hay.includes(searchF)) return false;
                             }
                             return true;
@@ -1467,15 +1471,24 @@
                         document.getElementById('returns-empty').style.display = 'none';
                         document.getElementById('returns-table-wrap').style.display = 'block';
 
-                        const statusColors = { requested:'#f59e0b', approved:'#22c55e', denied:'#ef4444', completed:'#6b7280' };
+                        const statusColors = { requested:'#f59e0b', approved:'#22c55e', label_sent:'#38bdf8', denied:'#ef4444', completed:'#6b7280', refunded:'#6b7280', closed:'#6b7280', exchange_in_progress:'#a78bfa' };
                         tbody.innerHTML = rows.map(r => {
                             const date = r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
                             const orderLabel = r.orderLabel || ('#' + String(r.orderId||'').slice(-8).toUpperCase());
                             const statusColor = statusColors[r.status] || 'var(--text-secondary)';
+                            const customerName = r.customerName || r.userName || 'Customer';
+                            const customerEmail = r.customerEmail || r.userEmail || '';
+                            const labelHtml = r.labelUrl
+                                ? `<div style="margin-top:6px;font-size:.72rem;"><a href="${r.labelUrl}" target="_blank" style="color:#38bdf8;text-decoration:underline;">Label PDF</a>${r.trackingNumber ? ` · ${r.trackingNumber}` : ''}</div>`
+                                : '';
+                            const canSendLabel = (r.status === 'approved' || r.status === 'label_sent');
                             return `<tr style="border-bottom:1px solid var(--border);">
                                 <td style="padding:10px 12px;white-space:nowrap;color:var(--text-secondary);font-size:.78rem;">${date}</td>
-                                <td style="padding:10px 12px;font-family:monospace;font-size:.82rem;">${orderLabel}</td>
-                                <td style="padding:10px 12px;font-size:.82rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.userId||''}">${r.userId ? r.userId.slice(0,8)+'…' : '—'}</td>
+                                <td style="padding:10px 12px;font-family:monospace;font-size:.82rem;">${orderLabel}${labelHtml}</td>
+                                <td style="padding:10px 12px;font-size:.82rem;max-width:240px;">
+                                    <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${customerName}">${customerName}</div>
+                                    <div style="color:var(--text-secondary);font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${customerEmail || r.userId || ''}">${customerEmail || (r.userId ? r.userId.slice(0,8)+'…' : '—')}</div>
+                                </td>
                                 <td style="padding:10px 12px;text-transform:capitalize;">${r.resolution || 'return'}</td>
                                 <td style="padding:10px 12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(r.reason||'')+(r.notes?' — '+r.notes:'')}">${r.reason || '—'}</td>
                                 <td style="padding:10px 12px;">
@@ -1486,8 +1499,10 @@
                                         <option value="requested"  ${r.status==='requested'  ?'selected':''}>Requested</option>
                                         <option value="approved"   ${r.status==='approved'   ?'selected':''}>Approve</option>
                                         <option value="denied"     ${r.status==='denied'     ?'selected':''}>Deny</option>
+                                        <option value="label_sent" ${r.status==='label_sent' ?'selected':''}>Label Sent</option>
                                         <option value="completed"  ${r.status==='completed'  ?'selected':''}>Complete</option>
                                     </select>
+                                    ${canSendLabel ? `<button type="button" class="btn btn-secondary btn-sm" style="margin-top:6px;font-size:.72rem;padding:4px 8px;" onclick="sendReturnLabel('${r.id}', this)">${r.labelUrl ? 'Resend Label' : 'Send Label'}</button>` : ''}
                                 </td>
                             </tr>`;
                         }).join('');
@@ -1499,16 +1514,62 @@
                         if (!req) return;
                         const oldStatus = req.status;
                         req.status = newStatus;
-                        // Persist back to Supabase via site_settings
                         try {
-                            const { error: saveErr } = await sb.from('site_settings')
-                                .upsert({ key: 'commerce_returns', value: { requests: _returnsData } }, { onConflict: 'key' });
-                            if (saveErr) throw saveErr;
+                            const { data: { session } } = await sb.auth.getSession();
+                            const token = session?.access_token;
+                            if (!token) throw new Error('Missing admin session token.');
+                            const resp = await fetch('/api/admin-returns', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                body: JSON.stringify({
+                                    action: 'update_return',
+                                    returnId: requestId,
+                                    status: newStatus,
+                                    resolution: req.resolution || 'return',
+                                    reason: req.reason || '',
+                                    notes: req.notes || ''
+                                })
+                            });
+                            const payload = await resp.json().catch(() => ({}));
+                            if (!resp.ok || !payload.success) throw new Error(payload.error || 'Could not update status.');
+                            Object.assign(req, payload.request || {});
                             renderReturnsTable();
                         } catch(e) {
                             req.status = oldStatus; // revert
                             if (selectEl) selectEl.value = oldStatus;
                             alert('Could not update status: ' + e.message);
+                        }
+                    }
+
+                    async function sendReturnLabel(requestId, buttonEl) {
+                        const req = _returnsData.find(r => r.id === requestId);
+                        if (!req) return;
+                        const oldText = buttonEl ? buttonEl.textContent : '';
+                        if (buttonEl) { buttonEl.disabled = true; buttonEl.textContent = 'Sending…'; }
+                        try {
+                            const { data: { session } } = await sb.auth.getSession();
+                            const token = session?.access_token;
+                            if (!token) throw new Error('Missing admin session token.');
+                            const resp = await fetch('/api/generate-return-label', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                body: JSON.stringify({ returnId: requestId, orderId: req.orderId, force: req.labelUrl ? 'true' : 'false' })
+                            });
+                            const payload = await resp.json().catch(() => ({}));
+                            if (!resp.ok || !payload.ok) throw new Error(payload.error || 'Could not generate return label.');
+                            Object.assign(req, {
+                                status: 'label_sent',
+                                labelUrl: payload.labelUrl,
+                                trackingNumber: payload.trackingNumber,
+                                trackingUrl: payload.trackingUrl,
+                                carrier: payload.carrier,
+                                service: payload.service,
+                                labelSentAt: new Date().toISOString()
+                            });
+                            renderReturnsTable();
+                        } catch(e) {
+                            alert('Could not send return label: ' + e.message);
+                            if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = oldText || 'Send Label'; }
                         }
                     }
                     </script>

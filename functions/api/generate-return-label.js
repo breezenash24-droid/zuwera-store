@@ -12,31 +12,13 @@
  */
 
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
-
-const ADMIN_EMAILS = ['breezenash24@gmail.com', 'nasirubreeze@zuwera.store'];
+import { cors, verifyAdmin } from './_commerce.js';
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
-}
-
-async function validateAdmin(accessToken, env) {
-  const url    = (env.SUPABASE_URL || env.SUPABASE_PROJECT_URL || '').trim();
-  const anonKey = (env.SUPABASE_ANON_KEY || '').trim();
-  const svcKey  = (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '').trim();
-  const apiKey  = anonKey || svcKey;
-  const resp = await fetch(`${url}/auth/v1/user`, {
-    headers: { apikey: apiKey, Authorization: `Bearer ${accessToken}` },
-  });
-  if (!resp.ok) throw new Error('Session invalid or expired');
-  const user = await resp.json();
-  const emails = [user?.email, ...(Array.isArray(user?.identities)
-    ? user.identities.map(i => i?.identity_data?.email || i?.email) : [])]
-    .filter(Boolean).map(e => String(e).toLowerCase().trim());
-  if (!emails.some(e => ADMIN_EMAILS.includes(e))) throw new Error('Not authorized');
-  return user;
 }
 
 async function fetchOrder(orderId, env) {
@@ -50,6 +32,38 @@ async function fetchOrder(orderId, env) {
   const rows = await resp.json();
   if (!rows?.length) throw new Error('Order not found');
   return rows[0];
+}
+
+async function fetchReturnsState(env) {
+  const url = (env.SUPABASE_URL || env.SUPABASE_PROJECT_URL || '').trim();
+  const sk  = (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '').trim();
+  const resp = await fetch(
+    `${url}/rest/v1/site_settings?key=eq.commerce_returns&select=value&limit=1`,
+    { headers: { apikey: sk, Authorization: `Bearer ${sk}` } }
+  );
+  if (!resp.ok) throw new Error('Could not fetch return requests');
+  const rows = await resp.json().catch(() => []);
+  const value = rows?.[0]?.value || { requests: [] };
+  return {
+    value,
+    requests: Array.isArray(value.requests) ? value.requests : [],
+  };
+}
+
+function mergeOrderFallbacks(order, returnRequest) {
+  const address = returnRequest?.shippingAddress || {};
+  return {
+    ...order,
+    customer_name: order.customer_name || returnRequest?.customerName || returnRequest?.userName || address.name || 'Customer',
+    email: order.email || order.customer_email || returnRequest?.customerEmail || returnRequest?.userEmail || '',
+    customer_email: order.customer_email || order.email || returnRequest?.customerEmail || returnRequest?.userEmail || '',
+    ship_line1: order.ship_line1 || address.line1 || '',
+    ship_line2: order.ship_line2 || address.line2 || '',
+    ship_city: order.ship_city || address.city || '',
+    ship_state: order.ship_state || address.state || '',
+    ship_zip: order.ship_zip || address.zip || '',
+    ship_country: order.ship_country || address.country || 'US',
+  };
 }
 
 async function createShippoLabel(order, env, cache) {
@@ -234,17 +248,11 @@ async function sendLabelEmail(order, label, returnRequest, env, cache) {
   }
 }
 
-async function updateReturnRequest(returnId, labelData, env) {
+async function updateReturnRequest(returnId, labelData, env, existingValue = null) {
   const url = (env.SUPABASE_URL || env.SUPABASE_PROJECT_URL || '').trim();
   const sk  = (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '').trim();
 
-  // Fetch existing commerce_returns
-  const fetchResp = await fetch(
-    `${url}/rest/v1/site_settings?key=eq.commerce_returns&select=value&limit=1`,
-    { headers: { apikey: sk, Authorization: `Bearer ${sk}` } }
-  );
-  const rows = await fetchResp.json().catch(() => []);
-  const existing = rows?.[0]?.value || { requests: [] };
+  const existing = existingValue || (await fetchReturnsState(env)).value;
   const requests = Array.isArray(existing.requests) ? existing.requests : [];
 
   // Update the matching request
@@ -255,6 +263,9 @@ async function updateReturnRequest(returnId, labelData, env) {
     trackingNumber: labelData.trackingNumber,
     trackingUrl:    labelData.trackingUrl,
     carrier:        labelData.carrier,
+    service:        labelData.service,
+    labelAmount:    labelData.amount,
+    labelCurrency:  labelData.currency,
     labelSentAt:    new Date().toISOString(),
   } : r);
 
@@ -268,28 +279,59 @@ async function updateReturnRequest(returnId, labelData, env) {
   });
 }
 
+export async function onRequestOptions({ env }) {
+  return new Response(null, { status: 204, headers: cors(env) });
+}
+
 export async function onRequestPost({ request, env }) {
   try {
     const body = await request.json().catch(() => ({}));
-    const { accessToken, returnId, orderId } = body;
+    const authHeader = request.headers.get('Authorization') || '';
+    const accessToken = String(body.accessToken || authHeader.replace(/^Bearer\s+/i, '') || '').trim();
+    const { returnId } = body;
 
     if (!accessToken) return json({ ok: false, error: 'Missing access token' }, 401);
-    if (!returnId || !orderId) return json({ ok: false, error: 'Missing returnId or orderId' }, 400);
+    if (!returnId) return json({ ok: false, error: 'Missing returnId' }, 400);
 
-    await validateAdmin(accessToken, env);
+    const admin = await verifyAdmin(env, accessToken);
+    if (!admin) return json({ ok: false, error: 'Not authorized' }, 403);
+
+    const returnsState = await fetchReturnsState(env);
+    const returnRequest = returnsState.requests.find(r => r.id === returnId);
+    if (!returnRequest) return json({ ok: false, error: 'Return request not found' }, 404);
+
+    const orderId = String(body.orderId || returnRequest.orderId || '').trim();
+    if (!orderId) return json({ ok: false, error: 'Return request is missing an order id' }, 400);
+
+    const allowedStatuses = new Set(['approved', 'label_sent']);
+    if (!allowedStatuses.has(String(returnRequest.status || '').trim())) {
+      return json({ ok: false, error: 'Approve the return request before generating a label.' }, 409);
+    }
+
+    if (returnRequest.labelUrl && String(body.force || '').toLowerCase() !== 'true') {
+      return json({
+        ok: true,
+        alreadyGenerated: true,
+        labelUrl: returnRequest.labelUrl,
+        trackingNumber: returnRequest.trackingNumber,
+        trackingUrl: returnRequest.trackingUrl,
+        carrier: returnRequest.carrier,
+        service: returnRequest.service,
+      });
+    }
 
     // Pre-fetch Supabase key overrides (Resend, Brevo, Shippo, branding)
     const cache = await fetchSiteSettings(
       ['SHIPPO_API_KEY', 'RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL'], env
     );
 
-    const order = await fetchOrder(orderId, env);
+    const order = mergeOrderFallbacks(await fetchOrder(orderId, env), returnRequest);
     const label = await createShippoLabel(order, env, cache);
 
     // Fire email and DB update in parallel
     await Promise.allSettled([
-      sendLabelEmail(order, label, body.returnRequest || {}, env, cache),
-      updateReturnRequest(returnId, label, env),
+      sendLabelEmail(order, label, returnRequest, env, cache),
+      updateReturnRequest(returnId, label, env, returnsState.value),
     ]);
 
     console.log(`[return-label] Label generated for return ${returnId}, order ${orderId}`);

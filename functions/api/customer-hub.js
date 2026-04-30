@@ -154,9 +154,17 @@ export async function onRequestPost({ request, env }) {
     if (action === 'submit_return') {
       const eligibleOrders = await getOrdersForUser(env, user.id, user.email || '');
       const requestId = crypto.randomUUID();
+      const userName = String(
+        user.user_metadata?.full_name
+        || user.user_metadata?.name
+        || user.email
+        || ''
+      ).trim();
       const nextRequest = {
         id: requestId,
         userId: user.id,
+        userEmail: String(user.email || '').trim(),
+        userName,
         orderId: String(body.orderId || '').trim(),
         orderLabel: String(body.orderLabel || '').trim(),
         resolution: String(body.resolution || 'return').trim(),
@@ -173,6 +181,19 @@ export async function onRequestPost({ request, env }) {
         return json({ success: false, error: 'You can only request returns for your own orders.' }, 403, cors(env));
       }
       nextRequest.orderLabel = nextRequest.orderLabel || `#${String(matchedOrder.id || '').slice(-8).toUpperCase()}`;
+      nextRequest.customerEmail = String(matchedOrder.email || matchedOrder.customer_email || user.email || '').trim();
+      nextRequest.customerName = String(matchedOrder.customer_name || userName || nextRequest.customerEmail || 'Customer').trim();
+      nextRequest.orderTotal = Number(matchedOrder.total || matchedOrder.total_amount || 0);
+      nextRequest.orderCreatedAt = matchedOrder.created_at || '';
+      nextRequest.shippingAddress = {
+        name: nextRequest.customerName,
+        line1: matchedOrder.ship_line1 || '',
+        line2: matchedOrder.ship_line2 || '',
+        city: matchedOrder.ship_city || '',
+        state: matchedOrder.ship_state || '',
+        zip: matchedOrder.ship_zip || '',
+        country: matchedOrder.ship_country || 'US',
+      };
 
       const requests = Array.isArray(bundle.returnsState?.requests) ? [...bundle.returnsState.requests] : [];
       requests.unshift(nextRequest);
