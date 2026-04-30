@@ -1101,8 +1101,8 @@ img { display: block; max-width: 100%; }
   top: calc(var(--safe-top) + var(--nav-h));
   left: 0; right: 0;
   height: 30px;
-  background: var(--ink);
-  color: var(--paper);
+  background: #09090b;
+  color: #f4f1eb;
   border-bottom: 1px solid rgba(244,241,235,.12);
   padding: 0 1rem;
   display: flex;
@@ -1507,6 +1507,11 @@ body.light-mode .m-add-bar,
 body.light-mode .m-ps-selectors,
 body.light-mode .m-checkout-hdr {
   border-color: rgba(9,9,11,.1);
+}
+body.light-mode #m-bar {
+  background: #09090b !important;
+  color: #f4f1eb !important;
+  border-bottom-color: rgba(244,241,235,.12) !important;
 }
 body.light-mode #mhdr-logo img,
 body.light-mode .m-footer-logo img {
