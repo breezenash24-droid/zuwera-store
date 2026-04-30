@@ -1648,8 +1648,7 @@ body.light-mode #m-toast {
 <body>
 <script>
 (function() {
-  var saved = localStorage.getItem('theme');
-  if (saved !== 'dark') document.body.classList.add('light-mode');
+  document.body.classList.add('light-mode');
 })();
 </script>
 
@@ -1686,6 +1685,8 @@ body.light-mode #m-toast {
   <div class="m-menu-links">
     <button class="m-menu-link" data-scroll="m-hero">Home</button>
     <button class="m-menu-link" data-scroll="m-products">Shop</button>
+    <a class="m-menu-link" href="/sizeguide.html">Size Guide</a>
+    <a class="m-menu-link" href="/policies.html">Policies</a>
     <a class="m-menu-link" href="/account.html">Account</a>
     <a class="m-menu-link" href="/returns.html">Returns</a>
   </div>
@@ -2052,11 +2053,12 @@ function syncThemeColor() {
 function applyTheme(mode) {
   const nextMode = mode === 'dark' ? 'dark' : 'light';
   document.body.classList.toggle('light-mode', nextMode === 'light');
-  try { localStorage.setItem('theme', nextMode); } catch (_) {}
   syncThemeColor();
 }
 
 syncThemeColor();
+window.__zwApplyAdminTheme = applyTheme;
+window.__zwSyncThemeColor = syncThemeColor;
 
 // ── iOS SCROLL LOCK (the correct pattern) ──
 function lockScroll() {
@@ -2921,6 +2923,7 @@ async function loadMobileThemeSettings() {
 </script>
 <!-- Language selector -->
 <script src="modal-lock.js?v=4"></script>
+<script src="storefront-theme.js?v=1" defer></script>
 <script src="lang.js?v=8" defer></script>
 </body>
 </html>

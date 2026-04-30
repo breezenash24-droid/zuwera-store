@@ -158,9 +158,8 @@
 <body>
 <script>
 (function() {
-  var saved = localStorage.getItem('theme');
-  if (saved !== 'dark') document.body.classList.add('light-mode');
-  document.documentElement.style.backgroundColor = document.body.classList.contains('light-mode') ? '#F0EEE9' : '#09090b';
+  document.body.classList.add('light-mode');
+  document.documentElement.style.backgroundColor = '#F0EEE9';
 })();
 </script>
 
@@ -630,6 +629,7 @@ window.__zwOpenAuth = function(tab) {
 <script src="checkout.js?v=1"></script>
 <script src="commerce-checkout.js?v=1"></script>
 <script src="modal-lock.js?v=4"></script>
+<script src="storefront-theme.js?v=1" defer></script>
 <script src="lang.js?v=8" defer></script>
 </body>
 </html>

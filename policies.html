@@ -6,7 +6,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#000000">
+  <meta name="theme-color" content="#09090b">
   <title>Policies & FAQ — Zuwera</title>
   <meta name="description" content="Zuwera shipping, returns, privacy policy, terms of service and frequently asked questions.">
   <meta name="robots" content="index, follow">
@@ -78,6 +78,43 @@
       text-decoration: none;
     }
     .nav-back:hover { opacity: 1; }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .hamburger-btn {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      background: none;
+      border: none;
+      color: var(--white);
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .hamburger-btn svg { stroke: currentColor; }
+    .mobile-nav-links {
+      display: flex;
+      flex-direction: column;
+      gap: 2.5rem;
+      margin-top: 3rem;
+      text-align: center;
+    }
+    .mobile-nav-link {
+      color: rgba(244,241,235,.78);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1.05rem;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: color .2s;
+    }
+    .mobile-nav-link:hover { color: #f4f1eb; }
 
     /* PAGE LAYOUT */
     .page-wrap {
@@ -265,6 +302,8 @@
     /* MOBILE */
     @media (max-width: 600px) {
       .nav { padding: 1rem 1.2rem; padding-top: calc(1rem + env(safe-area-inset-top)); }
+      .nav-actions .nav-back { display: none; }
+      .hamburger-btn { display: flex; }
       .page-wrap { padding: 5.5rem 1.2rem 2rem; }
       .page-title { font-size: clamp(2.5rem, 12vw, 4rem); }
       .tab-nav { gap: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
@@ -325,9 +364,20 @@
     body.light-mode .contact-cta a { background: #09090b; color: #E8E3DC; }
     body.light-mode .nav-back { color: rgba(10,10,10,0.55); }
     body.light-mode .nav-back:hover { color: #09090b; opacity: 1; }
+    body.light-mode .hamburger-btn { color: #09090b; }
     body.light-mode .nav-wordmark { color: #09090b; }
+    body.light-mode #mobile-menu {
+      background: #F0EEE9 !important;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+    body.light-mode .mobile-nav-link { color: rgba(9,9,11,.78); }
+    body.light-mode .mobile-nav-link:hover { color: #09090b; }
+    body.light-mode #mobile-menu-close { color: #09090b !important; }
     body.light-mode footer { border-top-color: rgba(10,10,10,0.08); }
-  </style>  <link rel="icon" type="image/png" href="/images/favicon-black.png?v=1">
+  </style>
+  <link rel="stylesheet" href="storefront-cohesion.css?v=11">
+  <link rel="icon" type="image/png" href="/images/favicon-black.png?v=1">
   <script src="/favicon-utils.js?v=1"></script>
 <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DCVWDZ8ZBC"></script>
@@ -343,8 +393,10 @@
   <script>
     // Load theme immediately to prevent flash
     (function() {
-      var saved = localStorage.getItem('theme');
-      if (saved !== 'dark') document.body.classList.add('light-mode');
+      document.body.classList.add('light-mode');
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', '#F0EEE9');
+      document.documentElement.style.backgroundColor = '#F0EEE9';
     })();
   </script>
 
@@ -353,8 +405,27 @@
     <a href="index.html" class="nav-logo-link" aria-label="Back to Zuwera home">
       <span class="nav-wordmark">ZUWERA</span>
     </a>
-    <a href="index.html" class="nav-back">&#8592; Back to Home</a>
+    <div class="nav-actions">
+      <a href="index.html" class="nav-back">&#8592; Back to Home</a>
+      <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+    </div>
   </header>
+
+  <div id="mobile-menu" class="modal" role="dialog" aria-modal="true" aria-hidden="true" style="z-index:900;">
+    <div class="mbox" style="background:transparent; border:none; box-shadow:none; text-align:center;">
+      <button id="mobile-menu-close" class="mclose" style="position:fixed; top:1.5rem; right:1.5rem; background:none; border:none; color:#f4f1eb; font-size:2rem; width:40px; height:40px;">&times;</button>
+      <div id="mobile-category-links" class="mobile-nav-links">
+        <a href="index.html" class="mobile-nav-link">Home</a>
+        <a href="drop001.html" class="mobile-nav-link">Collection</a>
+        <a href="sizeguide.html" class="mobile-nav-link">Size Guide</a>
+        <a href="policies.html" class="mobile-nav-link">Policies</a>
+        <a href="returns.html" class="mobile-nav-link">Returns</a>
+        <a href="mailto:Breezenash24@gmail.com" class="mobile-nav-link">Contact</a>
+      </div>
+    </div>
+  </div>
 
   <!-- PAGE -->
   <main class="page-wrap">
@@ -627,8 +698,9 @@
               }
             }
           } else if (row.key === 'theme') {
-            if (row.value && row.value.mode === 'light') document.body.classList.add('light-mode');
-            else document.body.classList.remove('light-mode');
+            const mode = row.value && row.value.mode === 'dark' ? 'dark' : 'light';
+            if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode);
+            else document.body.classList.toggle('light-mode', mode === 'light');
           } else if (row.key === 'brand') {
             if (row.value && row.value.favicon) {
               const link = document.querySelector('link[rel="icon"]');
@@ -645,6 +717,8 @@
 
   <!-- Language selector -->
   <script src="modal-lock.js?v=4"></script>
-<script src="lang.js?v=8" defer></script>
+  <script src="mobile-menu.js?v=2" defer></script>
+  <script src="storefront-theme.js?v=1" defer></script>
+  <script src="lang.js?v=8" defer></script>
 </body>
 </html>

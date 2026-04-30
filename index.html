@@ -1630,8 +1630,7 @@ body.light-mode::after{opacity:0.15}
     if (meta) meta.setAttribute('content', navBg);
     document.documentElement.style.backgroundColor = navBg;
   }
-  var saved = localStorage.getItem('theme');
-  if (saved !== 'dark') document.body.classList.add('light-mode');
+  document.body.classList.add('light-mode');
   syncThemeColor();
   window.__zwSyncThemeColor = syncThemeColor;
 })();
@@ -1674,6 +1673,9 @@ body.light-mode::after{opacity:0.15}
     <button id="mobile-menu-close" class="mclose" onclick="return window.closeMobileMenu ? window.closeMobileMenu() : false;" style="position:fixed; top:1.5rem; right:1.5rem; background:none; border:none; color:#f4f1eb; font-size:2rem; width:40px; height:40px;">&#215;</button>
     <div id="mobile-category-links" style="display:flex; flex-direction:column; gap:2.5rem; margin-top:3rem;">
       <a href="drop001.html?category=Jackets">Jackets</a>
+      <a href="sizeguide.html">Size Guide</a>
+      <a href="policies.html">Policies</a>
+      <a href="returns.html">Returns</a>
     </div>
   </div>
 </div>
@@ -2441,10 +2443,12 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
         applyAnnouncementBar(mode, msgText);
         announcementApplied = true;
       } else if (row.key === 'theme') {
-        const isLightMode = !!(row.value && row.value.mode === 'light');
-        document.body.classList.toggle('light-mode', isLightMode);
-        try { localStorage.setItem('theme', isLightMode ? 'light' : 'dark'); } catch (e) {}
-        if (window.__zwSyncThemeColor) window.__zwSyncThemeColor();
+        const mode = row.value && row.value.mode === 'dark' ? 'dark' : 'light';
+        if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode);
+        else {
+          document.body.classList.toggle('light-mode', mode === 'light');
+          if (window.__zwSyncThemeColor) window.__zwSyncThemeColor();
+        }
       } else if (row.key === 'hero') {
         const h = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
         if (h.kicker) {
@@ -2636,7 +2640,12 @@ function renderCategoryNavigation(products) {
   const desktop = document.getElementById('nav-category-links');
   const mobile = document.getElementById('mobile-category-links');
   const desktopHtml = labels.map(label => `<a href="${categoryHref(label)}" class="nav-link">${label}</a>`).join('');
-  const mobileHtml = labels.map(label => `<a href="${categoryHref(label)}">${label}</a>`).join('');
+  const mobileUtilityHtml = [
+    '<a href="sizeguide.html">Size Guide</a>',
+    '<a href="policies.html">Policies</a>',
+    '<a href="returns.html">Returns</a>'
+  ].join('');
+  const mobileHtml = labels.map(label => `<a href="${categoryHref(label)}">${label}</a>`).join('') + mobileUtilityHtml;
   if (desktop) desktop.innerHTML = desktopHtml;
   if (mobile) mobile.innerHTML = mobileHtml;
 }
@@ -4702,6 +4711,7 @@ function scrollToNotify() {
 </script>
 <!-- Language selector -->
 <script src="modal-lock.js?v=4" defer></script>
+<script src="storefront-theme.js?v=1" defer></script>
 <script src="lang.js?v=6" defer></script>
 <script src="reviews.js?v=9" charset="utf-8" defer></script>
 

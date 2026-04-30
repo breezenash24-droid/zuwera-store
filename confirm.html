@@ -222,8 +222,7 @@
 <body>
 <script>
   (function() {
-    var saved = localStorage.getItem('theme');
-    if (saved !== 'dark') document.body.classList.add('light-mode');
+    document.body.classList.add('light-mode');
   })();
 </script>
 
@@ -395,5 +394,6 @@
 
 })();
 </script>
+<script src="storefront-theme.js?v=1" defer></script>
 </body>
 </html>

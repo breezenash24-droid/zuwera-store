@@ -467,6 +467,9 @@ posthog.init('REPLACE_WITH_YOUR_POSTHOG_PROJECT_API_KEY', { api_host: 'https://u
   <button id="mobile-menu-close" class="mclose" onclick="return window.closeMobileMenu ? window.closeMobileMenu() : false;" style="position:absolute; top:1.5rem; right:1.5rem; font-size:2rem; background:none; border:none; color:inherit; cursor:pointer;">&#215;</button>
   <div class="mobile-nav-links" id="mobile-category-links">
     <a href="drop001.html" class="mobile-nav-link">Collection</a>
+    <a href="sizeguide.html" class="mobile-nav-link">Size Guide</a>
+    <a href="policies.html" class="mobile-nav-link">Policies</a>
+    <a href="returns.html" class="mobile-nav-link">Returns</a>
   </div>
 </div>
 
@@ -905,8 +908,7 @@ posthog.init('REPLACE_WITH_YOUR_POSTHOG_PROJECT_API_KEY', { api_host: 'https://u
     if (meta) meta.setAttribute('content', navBg);
     document.documentElement.style.backgroundColor = navBg;
   }
-  var saved = localStorage.getItem('theme');
-  if (saved !== 'dark') document.body.classList.add('light-mode');
+  document.body.classList.add('light-mode');
   syncThemeColor();
   window.__zwSyncThemeColor = syncThemeColor;
 })();
@@ -1131,10 +1133,12 @@ async function loadSiteSettings() {
         const cartNote = document.querySelector('.cart-note');
         if (cartNote) cartNote.innerHTML = 'Standard 5-7 days<br>Free on orders over $' + thresh;
       } else if (row.key === 'theme') {
-        const isLightMode = !!(row.value && row.value.mode === 'light');
-        document.body.classList.toggle('light-mode', isLightMode);
-        try { localStorage.setItem('theme', isLightMode ? 'light' : 'dark'); } catch (e) {}
-        if (window.__zwSyncThemeColor) window.__zwSyncThemeColor();
+        const mode = row.value && row.value.mode === 'dark' ? 'dark' : 'light';
+        if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode);
+        else {
+          document.body.classList.toggle('light-mode', mode === 'light');
+          if (window.__zwSyncThemeColor) window.__zwSyncThemeColor();
+        }
       } else if (row.key === 'technologies') {
         try { window.zwTechnologies = typeof row.value === 'string' ? JSON.parse(row.value) : row.value; } catch(e){}
       } else if (row.key === 'brand') {
@@ -1456,7 +1460,12 @@ function applyProductCategoryNavigation(products, fallbackProduct = currentProdu
 
   const mobileLinks = document.getElementById('mobile-category-links');
   if (mobileLinks) {
-    mobileLinks.innerHTML = labels.map((label) => `<a href="${categoryHref(label)}" class="mobile-nav-link">${label}</a>`).join('');
+    const utilityLinks = [
+      '<a href="sizeguide.html" class="mobile-nav-link">Size Guide</a>',
+      '<a href="policies.html" class="mobile-nav-link">Policies</a>',
+      '<a href="returns.html" class="mobile-nav-link">Returns</a>'
+    ].join('');
+    mobileLinks.innerHTML = labels.map((label) => `<a href="${categoryHref(label)}" class="mobile-nav-link">${label}</a>`).join('') + utilityLinks;
   }
 
   const errorBackButton = document.getElementById('errorBackButton');
@@ -3637,6 +3646,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 
 <!-- Language selector -->
 <script src="modal-lock.js?v=4"></script>
+<script src="storefront-theme.js?v=1" defer></script>
 <script src="lang.js?v=6" defer></script>
 <script src="reviews.js?v=9" charset="utf-8"></script>
 
