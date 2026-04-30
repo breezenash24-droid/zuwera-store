@@ -505,28 +505,6 @@ img { display: block; max-width: 100%; }
   transition: border-color .2s;
 }
 #mbtn-auth-menu:active { border-color: rgba(244,241,235,.7); }
-.m-theme-toggle {
-  width: 100%;
-  min-height: 48px;
-  border: 1px solid rgba(244,241,235,.3);
-  color: var(--paper);
-  font-family: var(--fm);
-  font-size: .62rem;
-  letter-spacing: .2em;
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: .8rem 1rem;
-  background: none;
-}
-.m-theme-toggle svg {
-  width: 16px;
-  height: 16px;
-  stroke: currentColor;
-  fill: none;
-  stroke-width: 1.7;
-}
 .m-menu-ig {
   font-family: var(--fm);
   font-size: .62rem;
@@ -1507,7 +1485,6 @@ body.light-mode .m-footer-logo img {
 body.light-mode #mbtn-menu span { background: var(--paper); }
 body.light-mode #mbtn-cart,
 body.light-mode #mbtn-auth-menu,
-body.light-mode .m-theme-toggle,
 body.light-mode .m-size-btn,
 body.light-mode .m-qty button,
 body.light-mode .m-promo-apply,
@@ -1682,13 +1659,6 @@ body.light-mode #m-toast {
     <a class="m-menu-link" href="/returns.html">Returns</a>
   </div>
   <div class="m-menu-footer">
-    <button id="mbtn-theme" class="m-theme-toggle" type="button" aria-label="Toggle color theme">
-      <span id="m-theme-label">Light Mode</span>
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="12" cy="12" r="4"></circle>
-        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
-      </svg>
-    </button>
     <button id="mbtn-auth-menu">Sign In</button>
     <a class="m-menu-ig" href="https://instagram.com/Zuw.era" target="_blank">Instagram &rarr;</a>
   </div>
@@ -2007,8 +1977,6 @@ const E = {
   // auth
   authSheet:  $('m-auth-sheet'),
   authMenuBtn:$('mbtn-auth-menu'),
-  themeBtn:   $('mbtn-theme'),
-  themeLabel: $('m-theme-label'),
   authMsg:    $('m-auth-msg'),
   authTabs:   document.querySelectorAll('.m-auth-tab'),
   siForm:     $('m-signin-form'),
@@ -2042,8 +2010,6 @@ function syncThemeColor() {
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', color);
   document.documentElement.style.backgroundColor = color;
-  if (E.themeLabel) E.themeLabel.textContent = isLight ? 'Dark Mode' : 'Light Mode';
-  if (E.themeBtn) E.themeBtn.setAttribute('aria-pressed', String(isLight));
 }
 
 function applyTheme(mode) {
@@ -2054,11 +2020,6 @@ function applyTheme(mode) {
 }
 
 syncThemeColor();
-if (E.themeBtn) {
-  E.themeBtn.addEventListener('click', () => {
-    applyTheme(document.body.classList.contains('light-mode') ? 'dark' : 'light');
-  });
-}
 
 // ── iOS SCROLL LOCK (the correct pattern) ──
 function lockScroll() {
