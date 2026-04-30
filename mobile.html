@@ -705,6 +705,36 @@ img { display: block; max-width: 100%; }
   opacity: .3;
   cursor: not-allowed;
 }
+.m-add-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .65rem;
+  margin-top: .65rem;
+}
+.m-add-secondary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(244,241,235,.14);
+  background: transparent;
+  color: rgba(244,241,235,.72);
+  font-family: var(--fm);
+  font-size: .58rem;
+  letter-spacing: .13em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+  transition: background .2s, color .2s, border-color .2s, opacity .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.m-add-secondary:active {
+  background: rgba(244,241,235,.08);
+  color: var(--paper);
+  opacity: .82;
+}
 
 /* ── CART SHEET ── */
 .m-cart-hdr {
@@ -1488,6 +1518,7 @@ body.light-mode #mbtn-auth-menu,
 body.light-mode .m-size-btn,
 body.light-mode .m-qty button,
 body.light-mode .m-promo-apply,
+body.light-mode .m-add-secondary,
 body.light-mode .m-btn-outline {
   border-color: rgba(9,9,11,.18);
   color: rgba(9,9,11,.78);
@@ -1795,6 +1826,10 @@ body.light-mode #m-toast {
   </div>
   <div class="m-add-bar">
     <button class="m-add-btn" id="mbtn-add">Add to Bag</button>
+    <div class="m-add-actions">
+      <button class="m-add-secondary" id="mbtn-product-leave" type="button">Leave</button>
+      <a class="m-add-secondary" id="m-product-page-link" href="#">Full Product Page</a>
+    </div>
   </div>
 </div>
 
@@ -1963,6 +1998,8 @@ const E = {
   psSizes:    $('m-sizes'),
   psDesc:     $('m-ps-desc'),
   addBtn:     $('mbtn-add'),
+  leaveBtn:   $('mbtn-product-leave'),
+  productLink:$('m-product-page-link'),
   // cart
   cartSheet:  $('m-cart-sheet'),
   cartClose:  $('mbtn-cart-close'),
@@ -2155,6 +2192,7 @@ E.overlay.addEventListener('click', () => {
 addSwipeToClose(E.pSheet,    () => closeSheet(E.pSheet));
 addSwipeToClose(E.cartSheet, () => closeSheet(E.cartSheet));
 addSwipeToClose(E.authSheet, () => closeSheet(E.authSheet));
+E.leaveBtn?.addEventListener('click', () => closeSheet(E.pSheet));
 
 // ── TOAST ──
 let _toastTimer;
@@ -2180,6 +2218,21 @@ function esc(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+function productSlug(title) {
+  if (!title) return '';
+  return String(title).replace(/^zuwera\s+/i, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function productHref(product) {
+  const slug = productSlug(product?.title || product?.name || product?.slug || '');
+  const params = new URLSearchParams();
+  if (product?.id) params.set('id', product.id);
+  if (product?.sku) params.set('sku', product.sku);
+  const qs = params.toString();
+  if (slug) return `/product/${slug}${qs ? `?${qs}` : ''}`;
+  return `/product${qs ? `?${qs}` : ''}`;
 }
 
 function cartQty(item) {
@@ -2372,6 +2425,7 @@ async function openProductSheet(p) {
   E.psTitle.textContent = p.title || '';
   E.psPrice.textContent = fmt(p.current_price);
   E.psDesc.textContent  = p.description || '';
+  if (E.productLink) E.productLink.href = productHref(p);
 
   // Images
   curImages = p._images?.length ? p._images : [{ image_url: p._primaryImg }];
