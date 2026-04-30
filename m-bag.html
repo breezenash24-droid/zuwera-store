@@ -602,7 +602,9 @@ img { display: block; max-width: 100%; }
 'use strict';
 
 // ── STATE ──
-let cart     = JSON.parse(localStorage.getItem('zw-cart') || '[]');
+const CART_KEY = 'cart';
+const LEGACY_MOBILE_CART_KEY = 'zw-cart';
+let cart     = loadCart();
 let stripe   = null;
 let stripeCard = null;
 
@@ -643,6 +645,62 @@ const E = {
 
 const fmt = n => '$' + parseFloat(n || 0).toFixed(2);
 
+function readStoredCart(key) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function cartQty(item) {
+  return Math.max(1, parseInt(item?.quantity ?? item?.qty ?? 1, 10) || 1);
+}
+
+function cartImage(item) {
+  return item?.image || item?.image_url || item?.img || '/images/placeholder.jpg';
+}
+
+function cartColor(item) {
+  return item?.colorName || item?.color || 'Standard';
+}
+
+function normalizeCartItem(item) {
+  const qty = cartQty(item);
+  const productId = item?.productId || item?.product_id || item?.pid || item?.id || '';
+  const image = cartImage(item);
+  const color = cartColor(item);
+  return {
+    ...item,
+    id: item?.id || (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`),
+    productId,
+    product_id: productId,
+    pid: productId,
+    title: item?.title || item?.name || 'Product',
+    name: item?.name || item?.title || 'Product',
+    size: item?.size || 'One Size',
+    colorName: color,
+    color,
+    price: parseFloat(item?.price ?? item?.regularPrice ?? item?.basePrice ?? 0) || 0,
+    image,
+    image_url: image,
+    img: image,
+    quantity: qty,
+    qty,
+  };
+}
+
+function normalizeCart(items) {
+  return (Array.isArray(items) ? items : []).map(normalizeCartItem);
+}
+
+function loadCart() {
+  const desktopCart = readStoredCart(CART_KEY);
+  const legacyCart = readStoredCart(LEGACY_MOBILE_CART_KEY);
+  return normalizeCart(desktopCart.length ? desktopCart : legacyCart);
+}
+
 // ── TOAST ──
 let _tt;
 function toast(msg, type = '') {
@@ -654,16 +712,20 @@ function toast(msg, type = '') {
 
 // ── SAVE ──
 function save() {
-  localStorage.setItem('zw-cart', JSON.stringify(cart));
+  cart = normalizeCart(cart);
+  localStorage.setItem(CART_KEY, JSON.stringify(cart));
+  localStorage.setItem(LEGACY_MOBILE_CART_KEY, JSON.stringify(cart));
   render();
 }
 
 // ── RENDER ──
 function render() {
+  cart = normalizeCart(cart);
   const n = cart.reduce((s, i) => s + i.qty, 0);
   if (!cart.length) {
     E.empty.classList.add('show');
     E.wrap.classList.remove('show');
+    E.items.innerHTML = '';
     E.count.textContent = '';
     return;
   }
@@ -693,7 +755,14 @@ function render() {
   E.items.querySelectorAll('.mbag-qty button').forEach(btn => {
     btn.addEventListener('click', () => {
       const i = +btn.dataset.i, d = +btn.dataset.d;
-      cart[i].qty = Math.max(1, cart[i].qty + d);
+      const nextQty = cart[i].qty + d;
+      if (nextQty <= 0) {
+        cart.splice(i, 1);
+        save();
+        return;
+      }
+      cart[i].qty = nextQty;
+      cart[i].quantity = nextQty;
       save();
     });
   });

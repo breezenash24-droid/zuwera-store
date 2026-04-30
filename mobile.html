@@ -2641,8 +2641,8 @@ E.addBtn.addEventListener('click', () => {
 // ── CART — navigate to dedicated bag page ──
 E.cartBtn.addEventListener('click', () => {
   cart = loadCart();
-  renderCart();
-  openSheet(E.cartSheet);
+  saveCart();
+  window.location.href = '/m-bag.html';
 });
 E.cartClose.addEventListener('click', () => closeSheet(E.cartSheet));
 
