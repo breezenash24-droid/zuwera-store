@@ -7,7 +7,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#000000">
+  <meta name="theme-color" content="#09090b">
   <title>Size &amp; Fit Guide - Zuwera</title>
   <meta name="description" content="Interactive size guide for Zuwera apparel. Find your perfect fit with our calculator and detailed measurements.">
   <meta name="robots" content="index, follow">
@@ -24,6 +24,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="/images/favicon-black.png?v=1">
   <script src="/favicon-utils.js?v=1"></script>
+  <link rel="stylesheet" href="storefront-cohesion.css?v=11">
+  <script src="mobile-menu.js?v=2" defer></script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-DCVWDZ8ZBC"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -79,6 +81,11 @@
       transition: opacity 0.2s; text-decoration: none;
     }
     .nav-back:hover { opacity: 1; }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
 
     /* ────── PAGE ────── */
     .page-wrap {
@@ -643,6 +650,7 @@
     /* ────── RESPONSIVE ────── */
     @media (max-width: 768px) {
       .nav { padding: 1rem 1.2rem; padding-top: calc(1rem + env(safe-area-inset-top)); }
+      .nav-actions .nav-back { display: none; }
       .page-wrap { padding: 5.5rem 1.2rem 3rem; }
       .page-title { font-size: clamp(2rem, 10vw, 3.5rem); }
       .calculator { padding: 1.5rem; }
@@ -760,16 +768,24 @@
 <body>
 
   <script>
-    // Load theme immediately to prevent flash
+    // Load a neutral theme immediately; admin settings become the source of truth once fetched.
     (function() {
+      function applyThemeMode(mode) {
+        var resolved = mode === 'dark' ? 'dark' : 'light';
+        document.body.classList.toggle('light-mode', resolved === 'light');
+        var color = resolved === 'light' ? '#F0EEE9' : '#09090b';
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', color);
+        document.documentElement.style.backgroundColor = color;
+      }
       if (window.__ZW_SIZEGUIDE_EMBED__ === true) {
         document.body.classList.add('embed-mode');
-        var savedEmbedTheme = localStorage.getItem('theme');
-        if (savedEmbedTheme === 'light') document.body.classList.add('light-mode');
-        return;
       }
-      var saved = localStorage.getItem('theme');
-      if (saved !== 'dark') document.body.classList.add('light-mode');
+      applyThemeMode('light');
+      window.__zwApplyAdminTheme = applyThemeMode;
+      window.__zwSyncThemeColor = function() {
+        applyThemeMode(document.body.classList.contains('light-mode') ? 'light' : 'dark');
+      };
     })();
   </script>
 
@@ -778,8 +794,26 @@
     <a href="index.html" class="nav-logo-link" aria-label="Back to Zuwera home">
       <img src="images/logo.png" alt="Zuwera" class="nav-logo-img">
     </a>
-    <a href="index.html" class="nav-back">&larr; Back</a>
+    <div class="nav-actions">
+      <a href="index.html" class="nav-back">&larr; Back</a>
+      <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+    </div>
   </header>
+
+  <div id="mobile-menu" class="modal" role="dialog" aria-modal="true" aria-hidden="true" style="z-index:900;">
+    <div class="mbox" style="background:transparent; border:none; box-shadow:none; text-align:center;">
+      <button id="mobile-menu-close" class="mclose" style="position:fixed; top:1.5rem; right:1.5rem; background:none; border:none; color:#f4f1eb; font-size:2rem; width:40px; height:40px;">&times;</button>
+      <div id="mobile-category-links" class="mobile-nav-links">
+        <a href="index.html" class="mobile-nav-link">Home</a>
+        <a href="drop001.html" class="mobile-nav-link">Collection</a>
+        <a href="sizeguide.html" class="mobile-nav-link">Size Guide</a>
+        <a href="policies.html" class="mobile-nav-link">Policies</a>
+        <a href="mailto:Breezenash24@gmail.com" class="mobile-nav-link">Contact</a>
+      </div>
+    </div>
+  </div>
 
   <!-- MAIN CONTENT -->
   <main class="page-wrap">
@@ -1235,8 +1269,9 @@
         });
         if (themeRes.ok) {
           const themeData = await themeRes.json();
-          if (themeData && themeData.length > 0 && themeData[0].value && themeData[0].value.mode === 'light') document.body.classList.add('light-mode');
-          else document.body.classList.remove('light-mode');
+          const mode = themeData && themeData.length > 0 && themeData[0].value && themeData[0].value.mode === 'dark' ? 'dark' : 'light';
+          if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode);
+          else document.body.classList.toggle('light-mode', mode === 'light');
         }
         
         const brandRes = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?key=eq.brand`, {
