@@ -4372,7 +4372,17 @@
             },
             shippo: {
                 label: 'Shippo',
-                keys: [{ name: 'SHIPPO_API_KEY', label: 'API Key', type: 'password', placeholder: 'shippo_live_...' }]
+                keys: [
+                    { name: 'SHIPPO_API_KEY', label: 'API Key', type: 'password', placeholder: 'shippo_live_...' },
+                    { name: 'SHIPPO_FROM_NAME', label: 'Return Sender Name', type: 'text', placeholder: 'Zuwera Returns' },
+                    { name: 'SHIPPO_FROM_STREET1', label: 'Return Street Address', type: 'text', placeholder: '123 Main St' },
+                    { name: 'SHIPPO_FROM_STREET2', label: 'Return Address Line 2', type: 'text', placeholder: 'Suite, unit, etc. (optional)' },
+                    { name: 'SHIPPO_FROM_CITY', label: 'Return City', type: 'text', placeholder: 'City' },
+                    { name: 'SHIPPO_FROM_STATE', label: 'Return State', type: 'text', placeholder: 'NY' },
+                    { name: 'SHIPPO_FROM_ZIP', label: 'Return ZIP', type: 'text', placeholder: '10001' },
+                    { name: 'SHIPPO_FROM_COUNTRY', label: 'Return Country', type: 'text', placeholder: 'US' },
+                    { name: 'SHIPPO_FROM_EMAIL', label: 'Return Email', type: 'email', placeholder: 'orders@zuwera.store' },
+                ]
             },
             deepl: {
                 label: 'DeepL',

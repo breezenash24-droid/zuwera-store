@@ -66,6 +66,34 @@ function mergeOrderFallbacks(order, returnRequest) {
   };
 }
 
+function getReturnAddressSetting(key, env, cache, fallback = '') {
+  return String(resolveSetting(key, env, cache) || fallback || '').trim();
+}
+
+function requireAddress(address, label) {
+  const missing = [];
+  if (!address.name) missing.push('name');
+  if (!address.street1) missing.push('street address');
+  if (!address.city) missing.push('city');
+  if (!address.state) missing.push('state');
+  if (!address.zip) missing.push('ZIP');
+  if (!address.country) missing.push('country');
+  if (missing.length) {
+    throw new Error(`${label} is missing ${missing.join(', ')}. Add the missing address details before sending a return label.`);
+  }
+}
+
+function shippoMessages(shipment) {
+  const messages = [
+    ...(Array.isArray(shipment?.messages) ? shipment.messages : []),
+    ...(Array.isArray(shipment?.object_messages) ? shipment.object_messages : []),
+  ];
+  return messages
+    .map((m) => m?.text || m?.message || m?.code || '')
+    .filter(Boolean)
+    .join('; ');
+}
+
 async function createShippoLabel(order, env, cache) {
   const shippoKey = resolveSetting('SHIPPO_API_KEY', env, cache);
   if (!shippoKey) throw new Error('SHIPPO_API_KEY not configured');
@@ -83,15 +111,18 @@ async function createShippoLabel(order, env, cache) {
   };
 
   const addressTo = {
-    name:    env.SHIPPO_FROM_NAME    || 'Zuwera Returns',
-    street1: env.SHIPPO_FROM_STREET1 || '',
-    street2: env.SHIPPO_FROM_STREET2 || '',
-    city:    env.SHIPPO_FROM_CITY    || '',
-    state:   env.SHIPPO_FROM_STATE   || '',
-    zip:     env.SHIPPO_FROM_ZIP     || '',
-    country: env.SHIPPO_FROM_COUNTRY || 'US',
-    email:   env.SHIPPO_FROM_EMAIL   || 'orders@zuwera.store',
+    name:    getReturnAddressSetting('SHIPPO_FROM_NAME', env, cache, 'Zuwera Returns'),
+    street1: getReturnAddressSetting('SHIPPO_FROM_STREET1', env, cache),
+    street2: getReturnAddressSetting('SHIPPO_FROM_STREET2', env, cache),
+    city:    getReturnAddressSetting('SHIPPO_FROM_CITY', env, cache),
+    state:   getReturnAddressSetting('SHIPPO_FROM_STATE', env, cache),
+    zip:     getReturnAddressSetting('SHIPPO_FROM_ZIP', env, cache),
+    country: getReturnAddressSetting('SHIPPO_FROM_COUNTRY', env, cache, 'US'),
+    email:   getReturnAddressSetting('SHIPPO_FROM_EMAIL', env, cache, 'orders@zuwera.store'),
   };
+
+  requireAddress(addressFrom, 'Customer return address');
+  requireAddress(addressTo, 'Zuwera return address');
 
   // Standard parcel for returns (clothing — light package)
   const parcel = {
@@ -119,7 +150,12 @@ async function createShippoLabel(order, env, cache) {
     if (aUsps !== bUsps) return aUsps - bUsps;
     return parseFloat(a.amount) - parseFloat(b.amount);
   });
-  if (!rates.length) throw new Error('No shipping rates available from Shippo');
+  if (!rates.length) {
+    const details = shippoMessages(shipment);
+    throw new Error(details
+      ? `No shipping rates available from Shippo: ${details}`
+      : 'No shipping rates available from Shippo. Confirm the customer shipping address and the Zuwera Shippo return address are complete.');
+  }
   const chosenRate = rates[0];
 
   // 3. Purchase label
@@ -163,13 +199,19 @@ async function sendLabelEmail(order, label, returnRequest, env, cache) {
   const resolution = returnRequest?.resolution || 'return';
   const resolutionLabel = resolution === 'exchange' ? 'exchange'
     : resolution === 'store_credit' ? 'store credit' : 'refund';
+  const storeName = getReturnAddressSetting('SHIPPO_FROM_NAME', env, cache, 'Zuwera');
+  const storeStreet1 = getReturnAddressSetting('SHIPPO_FROM_STREET1', env, cache);
+  const storeCity = getReturnAddressSetting('SHIPPO_FROM_CITY', env, cache);
+  const storeState = getReturnAddressSetting('SHIPPO_FROM_STATE', env, cache);
+  const storeZip = getReturnAddressSetting('SHIPPO_FROM_ZIP', env, cache);
+  const storeCountry = getReturnAddressSetting('SHIPPO_FROM_COUNTRY', env, cache, 'US');
   const storeAddress = [
-    env.SHIPPO_FROM_NAME || 'Zuwera',
-    env.SHIPPO_FROM_STREET1,
-    env.SHIPPO_FROM_CITY && env.SHIPPO_FROM_STATE
-      ? `${env.SHIPPO_FROM_CITY}, ${env.SHIPPO_FROM_STATE} ${env.SHIPPO_FROM_ZIP || ''}`
+    storeName,
+    storeStreet1,
+    storeCity && storeState
+      ? `${storeCity}, ${storeState} ${storeZip || ''}`
       : '',
-    env.SHIPPO_FROM_COUNTRY || 'US',
+    storeCountry,
   ].filter(Boolean).join('\n');
 
   const html = `<!DOCTYPE html>
@@ -322,7 +364,22 @@ export async function onRequestPost({ request, env }) {
 
     // Pre-fetch Supabase key overrides (Resend, Brevo, Shippo, branding)
     const cache = await fetchSiteSettings(
-      ['SHIPPO_API_KEY', 'RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL'], env
+      [
+        'SHIPPO_API_KEY',
+        'SHIPPO_FROM_NAME',
+        'SHIPPO_FROM_STREET1',
+        'SHIPPO_FROM_STREET2',
+        'SHIPPO_FROM_CITY',
+        'SHIPPO_FROM_STATE',
+        'SHIPPO_FROM_ZIP',
+        'SHIPPO_FROM_COUNTRY',
+        'SHIPPO_FROM_EMAIL',
+        'RESEND_API_KEY',
+        'BREVO_API_KEY',
+        'EMAIL_FROM',
+        'BRAND_LOGO_URL',
+      ],
+      env
     );
 
     const order = mergeOrderFallbacks(await fetchOrder(orderId, env), returnRequest);
