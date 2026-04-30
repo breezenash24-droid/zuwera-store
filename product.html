@@ -411,6 +411,41 @@ body.light-mode #mobile-menu-close { color: #09090b !important; }
 body.light-mode #mobile-menu-btn { color: #09090b !important; }
 body.light-mode #mobile-menu-btn svg { stroke: #09090b !important; }
 
+#cart-btn.desktop-bag-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  min-width: 44px;
+  min-height: 36px;
+}
+#cart-btn.desktop-bag-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+  flex-shrink: 0;
+}
+#cart-btn.desktop-bag-btn #cartCount {
+  background: var(--white);
+  color: var(--black);
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .58rem;
+  font-weight: 500;
+  margin-left: 0;
+  padding: 0;
+}
+body.light-mode #cart-btn.desktop-bag-btn #cartCount {
+  background: #09090b;
+  color: #E8E3DC;
+}
+
 @media (max-width: 760px) {
   #desktop-shop-btn { display: none; }
   #mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; }
@@ -453,8 +488,13 @@ posthog.init('REPLACE_WITH_YOUR_POSTHOG_PROJECT_API_KEY', { api_host: 'https://u
     <button class="nav-back" id="account-btn" style="display:none;" onclick="window.location.href='/account.html'">Account</button>
     <button class="nav-back" id="logout-btn" style="display:none;">Sign Out</button>
     <button class="nav-back" id="desktop-shop-btn" onclick="window.location.href='drop001.html'">Shop</button>
-    <button class="nav-back" id="cart-btn" style="opacity:1;display:flex;align-items:center;">
-      Bag <span id="cartCount" style="background:var(--white); color:var(--black); padding:2px 6px; border-radius:50%; font-size:0.65rem; margin-left:4px; font-weight:bold;">0</span>
+    <button class="nav-back desktop-bag-btn" id="cart-btn" aria-label="Bag" style="opacity:1;display:flex;align-items:center;">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <path d="M16 10a4 4 0 01-8 0"></path>
+      </svg>
+      <span id="cartCount">0</span>
     </button>
     <button id="mobile-menu-btn" onclick="return window.openMobileMenu ? window.openMobileMenu() : false;" style="background:none; border:none; cursor:pointer; display:none; -webkit-appearance:none; padding:0;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>

@@ -253,12 +253,19 @@ nav#nav.scrolled{
 }
 .nbtn:hover{color:var(--paper)}
 #cart-btn{
-  display:flex;align-items:center;gap:.5rem;
+  display:flex;align-items:center;justify-content:center;gap:.5rem;
   border:1px solid rgba(244,241,235,.2);
   color:var(--paper);opacity:1;
+  min-width:44px;min-height:36px;
+  padding:.45rem .72rem;
   transition:border-color .2s;
 }
 #cart-btn:hover{border-color:rgba(244,241,235,.5)}
+#cart-btn svg{
+  width:16px;height:16px;
+  stroke:currentColor;fill:none;stroke-width:1.5;
+  flex-shrink:0;
+}
 .cc{
   background:var(--paper);color:var(--ink);
   width:17px;height:17px;border-radius:50%;
@@ -1660,7 +1667,14 @@ body.light-mode::after{opacity:0.15}
     <button class="nbtn" id="login-btn" onclick="return window.__zwOpenAuth ? window.__zwOpenAuth('signin') : true">Login</button>
     <button class="nbtn" id="account-btn" onclick="window.location.href='/account.html'">Account</button>
     <button class="nbtn" id="logout-btn">Sign Out</button>
-    <button class="nbtn" id="cart-btn" onclick="return window.__zwOpenCart ? window.__zwOpenCart() : true">Bag <span class="cc">0</span></button>
+    <button class="nbtn" id="cart-btn" aria-label="Bag" onclick="return window.__zwOpenCart ? window.__zwOpenCart() : true">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <path d="M16 10a4 4 0 01-8 0"></path>
+      </svg>
+      <span class="cc">0</span>
+    </button>
       <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" onclick="return window.openMobileMenu ? window.openMobileMenu() : false;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
       </button>
