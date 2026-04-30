@@ -2900,10 +2900,8 @@ async function loadMobileThemeSettings() {
   const { data: { session } } = await supa.auth.getSession();
   if (session) { user = session.user; updateAuthUI(); }
 
-  // Close menu on outside scroll
-  document.addEventListener('scroll', () => {
-    if (E.menu.classList.contains('open')) closeMenu();
-  }, { passive: true });
+  // The menu uses body scroll-lock; listening for document scroll here causes
+  // the menu to close immediately when opened away from the top of the page.
 })();
 </script>
 </body>
