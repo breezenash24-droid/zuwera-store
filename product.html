@@ -2932,7 +2932,10 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     </div>
     <div id="shipping-rates-field" style="display:none;margin-bottom:.8rem"><label style="display:block;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.4);margin-bottom:.3rem">Shipping Method</label><div id="shipping-rates-list"></div></div>
     <div id="shipping-rates-loading" style="display:none;font-size:.68rem;color:rgba(244,241,235,.35);margin-bottom:1rem">Fetching shipping rates...</div>
-    <div style="margin-bottom:1rem"><label style="display:block;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.4);margin-bottom:.3rem">Card Details</label><div id="stripe-card-element"></div></div>
+    <div style="margin-bottom:1rem">
+      <label style="display:block;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.4);margin-bottom:.3rem">Card Details</label>
+      <div id="stripe-card-element" style="background:rgba(244,241,235,.07);border:1px solid rgba(244,241,235,.22);padding:.82rem .9rem;min-height:42px;transition:border-color .2s,background .2s"></div>
+    </div>
     <p id="pay-error" style="color:#c0392b;font-size:.78rem;min-height:1rem;margin-bottom:.5rem"></p>
     <button id="pay-submit" style="width:100%;background:#f4f1eb;color:#09090b;border:none;padding:1rem;font-family:var(--font-head);font-size:1.1rem;letter-spacing:.14em;cursor:pointer"><span id="pay-btn-text">Pay Now</span></button>
     <p style="text-align:center;font-size:.65rem;color:rgba(244,241,235,.25);margin-top:.8rem">Your card is never stored on our servers.</p>
@@ -3178,7 +3181,15 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
       elements = stripe.elements();
       card = elements.create('card', {
         style: {
-          base: { color:'#f4f1eb', fontFamily:'"DM Sans",sans-serif', fontSmoothing:'antialiased', fontSize:'15px', '::placeholder':{ color:'rgba(244,241,235,.25)' } },
+          base: {
+            color: '#f4f1eb',
+            fontFamily: '"DM Sans","Barlow",sans-serif',
+            fontSmoothing: 'antialiased',
+            fontSize: '16px',
+            fontWeight: '400',
+            letterSpacing: '.02em',
+            '::placeholder': { color: 'rgba(244,241,235,.38)' }
+          },
           invalid: { color:'#c0392b', iconColor:'#c0392b' }
         }
       });

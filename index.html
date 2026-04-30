@@ -1299,12 +1299,14 @@ body.light-mode .ret-history-item{border-top-color:rgba(9,9,11,.07)}
 .pfield input:focus{background:rgba(244,241,235,.11);border-color:rgba(244,241,235,.42)}
 .pgrow{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
 #stripe-card-element{
-  background:rgba(244,241,235,.08);
-  border:1px solid rgba(244,241,235,.2);
-  padding:.78rem .9rem;transition:border-color .2s;
+  background:rgba(244,241,235,.07);
+  border:1px solid rgba(244,241,235,.22);
+  padding:.82rem .9rem;
+  transition:border-color .2s, background .2s;
+  min-height: 42px; /* Prevent collapsed iframe */
 }
-#stripe-card-element.StripeElement--focus{background:rgba(244,241,235,.11);border-color:rgba(244,241,235,.42)}
-#stripe-card-element.StripeElement--invalid{border-color:var(--red)}
+#stripe-card-element.StripeElement--focus{background:rgba(244,241,235,.12);border-color:rgba(244,241,235,.5)}
+#stripe-card-element.StripeElement--invalid{border-color:var(--red);background:rgba(192,57,43,.08)}
 #pay-error{color:var(--red);font-family:var(--fm);font-size:.68rem;min-height:1rem;margin:.4rem 0}
 .rate-opt{
   display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;
@@ -1585,8 +1587,9 @@ body.light-mode .rate-meta{color:rgba(9,9,11,.55)}
 body.light-mode #pay-submit{background:#09090b;color:#E8E3DC;border-color:#09090b}
 body.light-mode #pay-submit:hover{background:#1a1a1a;border-color:#1a1a1a}
 body.light-mode .psecure{color:rgba(9,9,11,.55)}
-body.light-mode #stripe-card-element{background:rgba(9,9,11,.06);border-color:rgba(9,9,11,.2)}
-body.light-mode #stripe-card-element.StripeElement--focus{background:rgba(9,9,11,.09);border-color:rgba(9,9,11,.38)}
+body.light-mode #stripe-card-element{background:rgba(9,9,11,.05);border-color:rgba(9,9,11,.18)}
+body.light-mode #stripe-card-element.StripeElement--focus{background:rgba(9,9,11,.09);border-color:rgba(9,9,11,.42)}
+body.light-mode #stripe-card-element.StripeElement--invalid{border-color:#c0392b;background:rgba(192,57,43,.06)}
 
 /* Success */
 body.light-mode #payment-success{background:var(--ink)}
@@ -4057,11 +4060,13 @@ async function _initStripe() {
     card = elements.create('card', {
       style: {
         base: {
-          color: _isLight ? 'rgba(9,9,11,.85)' : '#f4f1eb',
-          fontFamily:'"Barlow",sans-serif',
+          color: _isLight ? 'rgba(9,9,11,.88)' : '#f4f1eb',
+          fontFamily:'"DM Sans","Barlow",sans-serif',
           fontSmoothing:'antialiased',
-          fontSize:'15px',
-          '::placeholder':{ color: _isLight ? 'rgba(9,9,11,.4)' : 'rgba(244,241,235,.42)' }
+          fontSize:'16px',
+          fontWeight:'400',
+          letterSpacing:'.02em',
+          '::placeholder':{ color: _isLight ? 'rgba(9,9,11,.35)' : 'rgba(244,241,235,.38)' }
         },
         invalid: { color:'#c0392b', iconColor:'#c0392b' }
       }
