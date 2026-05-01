@@ -13,6 +13,7 @@
 
 <script src="/favicon-utils.js?v=1"></script>
 <script src="/stripe-client-config.js?v=1"></script>
+<script src="/storefront-theme.js?v=1" defer></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -338,6 +339,72 @@ img { display: block; max-width: 100%; }
 }
 .mbag-checkout-btn:active { opacity: .8; }
 .mbag-checkout-btn:disabled { opacity: .3; cursor: not-allowed; }
+
+body.light-mode {
+  --ink: #F0EEE9;
+  --paper: #09090b;
+  --warm: #e4e1db;
+  --gold: #09090b;
+  background: var(--ink);
+  color: var(--paper);
+}
+body.light-mode::after { opacity: .18; }
+body.light-mode #mbag-hdr,
+body.light-mode #mbag-page,
+body.light-mode #mbag-checkout,
+body.light-mode .co-hdr {
+  background: var(--ink);
+}
+body.light-mode #mbag-hdr,
+body.light-mode .mbag-sec-label,
+body.light-mode .mbag-row,
+body.light-mode .mbag-promo,
+body.light-mode .mbag-summary,
+body.light-mode .mbag-srow.total,
+body.light-mode .co-hdr {
+  border-color: rgba(9,9,11,.1);
+}
+body.light-mode #mbag-bar {
+  background: #09090b;
+  color: #f4f1eb;
+  border-bottom-color: rgba(244,241,235,.12);
+}
+body.light-mode #mbag-logo img { filter: invert(1); }
+body.light-mode #mbag-back,
+body.light-mode #mbag-count,
+body.light-mode #mbag-empty p,
+body.light-mode .mbag-sec-label,
+body.light-mode .mbag-row-meta,
+body.light-mode .mbag-srow,
+body.light-mode .mbag-remove,
+body.light-mode .co-back-btn {
+  color: rgba(9,9,11,.48);
+}
+body.light-mode #mbag-empty-icon { stroke: rgba(9,9,11,.18); }
+body.light-mode .mbag-row-img,
+body.light-mode .mbag-promo input {
+  background: rgba(9,9,11,.035);
+}
+body.light-mode .mbag-shop-link,
+body.light-mode .mbag-qty,
+body.light-mode .mbag-qty span,
+body.light-mode .mbag-promo input,
+body.light-mode .mbag-promo button {
+  border-color: rgba(9,9,11,.14);
+}
+body.light-mode .mbag-qty button,
+body.light-mode .mbag-promo input,
+body.light-mode .mbag-promo button {
+  color: var(--paper);
+}
+body.light-mode .mbag-checkout-btn {
+  background: var(--paper);
+  color: var(--ink);
+}
+body.light-mode #mbag-toast {
+  background: var(--paper);
+  color: var(--ink);
+}
 
 /* ── CHECKOUT OVERLAY (slides in from right) ── */
 #mbag-checkout {

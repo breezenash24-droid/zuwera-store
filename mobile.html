@@ -191,6 +191,31 @@ img { display: block; max-width: 100%; }
   font-family: var(--fm);
 }
 #mcart-count.show { display: flex; }
+@keyframes mBagTargetPop { 0% { transform: scale(1); } 38% { transform: scale(1.12); } 68% { transform: scale(.96); } 100% { transform: scale(1); } }
+@keyframes mBagCountPop { 0% { transform: scale(1); } 40% { transform: scale(1.55); } 70% { transform: scale(.92); } 100% { transform: scale(1); } }
+#mbtn-cart.bag-target-pop { animation: mBagTargetPop .46s cubic-bezier(.36,.07,.19,.97); }
+#mcart-count.pop { animation: mBagCountPop .4s cubic-bezier(.36,.07,.19,.97); }
+.m-add-bag-flyer {
+  position: fixed;
+  z-index: 9999;
+  width: 64px;
+  height: 80px;
+  object-fit: cover;
+  border: 1px solid rgba(244,241,235,.2);
+  border-radius: 3px;
+  background: #09090b;
+  box-shadow: 0 16px 42px rgba(0,0,0,.32);
+  pointer-events: none;
+  transform: translate3d(0,0,0) scale(1);
+  transform-origin: center;
+  transition: transform .72s cubic-bezier(.18,.84,.28,1), opacity .72s ease;
+  will-change: transform, opacity;
+}
+@media (prefers-reduced-motion: reduce) {
+  #mbtn-cart.bag-target-pop,
+  #mcart-count.pop { animation: none; }
+  .m-add-bag-flyer { display: none; }
+}
 
 /* ── PAGE CONTENT — natural scroll, pushed below fixed header ── */
 #mpage {
@@ -577,7 +602,7 @@ img { display: block; max-width: 100%; }
 }
 .m-ps-images img {
   width: 100%; height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   transition: opacity .18s ease;
 }
 .m-ps-nav {
@@ -633,7 +658,7 @@ img { display: block; max-width: 100%; }
 }
 .m-swatch {
   width: 28px; height: 28px;
-  border-radius: 50%;
+  border-radius: 2px;
   border: 2px solid transparent;
   cursor: pointer;
   transition: border-color .2s, transform .2s;
@@ -641,7 +666,33 @@ img { display: block; max-width: 100%; }
 }
 .m-swatch.active {
   border-color: var(--paper);
-  transform: scale(1.15);
+  transform: translateY(-1px);
+}
+
+.m-heart-btn {
+  position: absolute;
+  top: .55rem;
+  right: .55rem;
+  z-index: 3;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(244,241,235,.16);
+  background: rgba(9,9,11,.58);
+  color: rgba(244,241,235,.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.m-heart-btn.active {
+  color: var(--red);
+  border-color: rgba(192,57,43,.7);
+}
+.m-heart-btn svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
 }
 
 /* Size buttons */
@@ -1614,6 +1665,15 @@ body.light-mode .m-hero .m-btn-outline:active {
 body.light-mode .m-hero .m-btn-ghost:active {
   color: #f4f1eb;
 }
+body.light-mode .m-heart-btn {
+  background: rgba(240,238,233,.82);
+  border-color: rgba(9,9,11,.12);
+  color: rgba(9,9,11,.45);
+}
+body.light-mode .m-heart-btn.active {
+  color: var(--red);
+  border-color: rgba(192,57,43,.7);
+}
 body.light-mode .m-menu-link:active,
 body.light-mode .m-btn-ghost:active,
 body.light-mode .m-footer-links a:active {
@@ -2007,6 +2067,7 @@ let selSize    = null;
 let stripe     = null;
 let stripeCard = null;
 let scrollY    = 0;
+let favoriteIds = new Set();
 
 // ── ELEMENTS ──
 const $ = id => document.getElementById(id);
@@ -2404,8 +2465,11 @@ async function loadProducts() {
 
 function renderGrid() {
   E.grid.innerHTML = products.map(p => `
-    <button class="m-pcard" data-pid="${p.id}">
+    <div class="m-pcard" data-pid="${p.id}" role="button" tabindex="0">
       <div class="m-pcard-img">
+        <span class="m-heart-btn${favoriteIds.has(String(p.id)) ? ' active' : ''}" data-fav-pid="${p.id}" data-fav-name="${esc(p.title || 'Product')}" data-fav-price="${esc(p.current_price || '')}" data-fav-image="${esc(p._primaryImg || '')}" aria-label="Save item" role="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </span>
         <img src="${esc(p._primaryImg)}" alt="${esc(p.title || '')}"
              style="object-position:center ${p._focalY}%"
              loading="lazy">
@@ -2415,7 +2479,7 @@ function renderGrid() {
         <p class="m-pcard-name">${esc(p.title || '')}</p>
         <p class="m-pcard-price">${fmt(p.current_price)}</p>
       </div>
-    </button>
+    </div>
   `).join('');
 
   E.grid.querySelectorAll('.m-pcard').forEach(card => {
@@ -2423,7 +2487,74 @@ function renderGrid() {
       const p = products.find(x => x.id === card.dataset.pid);
       if (p) openProductSheet(p);
     });
+    card.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      const p = products.find(x => x.id === card.dataset.pid);
+      if (p) openProductSheet(p);
+    });
   });
+
+  E.grid.querySelectorAll('.m-heart-btn[data-fav-pid]').forEach(btn => {
+    btn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleFavorite(btn);
+    });
+  });
+}
+
+async function loadFavorites() {
+  if (!user) {
+    favoriteIds = new Set();
+    renderGrid();
+    return;
+  }
+  try {
+    const { data, error } = await supa.from('favorites').select('product_id').eq('user_id', user.id);
+    if (error) throw error;
+    favoriteIds = new Set((data || []).map(row => String(row.product_id)));
+    renderGrid();
+  } catch (error) {
+    console.warn('Could not load mobile favorites:', error.message || error);
+  }
+}
+
+async function toggleFavorite(btn) {
+  if (!user) {
+    openAuthSheet();
+    toast('Sign in to save items', 'error');
+    return;
+  }
+  const productId = String(btn.dataset.favPid || '');
+  if (!productId) return;
+  const isActive = favoriteIds.has(productId);
+  btn.style.pointerEvents = 'none';
+  try {
+    if (isActive) {
+      const { error } = await supa.from('favorites').delete().eq('user_id', user.id).eq('product_id', productId);
+      if (error) throw error;
+      favoriteIds.delete(productId);
+      toast('Removed from saved');
+    } else {
+      const { error } = await supa.from('favorites').upsert({
+        user_id: user.id,
+        product_id: productId,
+        product_name: btn.dataset.favName || 'Product',
+        price: btn.dataset.favPrice || '',
+        product_image: btn.dataset.favImage || ''
+      });
+      if (error) throw error;
+      favoriteIds.add(productId);
+      toast('Saved');
+    }
+    btn.classList.toggle('active', !isActive);
+  } catch (error) {
+    console.warn('Could not update mobile favorite:', error.message || error);
+    toast('Could not update saved item', 'error');
+  } finally {
+    btn.style.pointerEvents = '';
+  }
 }
 
 // ── PRODUCT SHEET ──
@@ -2591,6 +2722,56 @@ function renderDots() {
   }, { passive: true });
 })();
 
+function pulseBagTarget() {
+  E.cartBtn.classList.remove('bag-target-pop');
+  void E.cartBtn.offsetWidth;
+  E.cartBtn.classList.add('bag-target-pop');
+  if (E.cartCount) {
+    E.cartCount.classList.remove('pop');
+    void E.cartCount.offsetWidth;
+    E.cartCount.classList.add('pop');
+  }
+  window.setTimeout(() => E.cartBtn.classList.remove('bag-target-pop'), 520);
+}
+
+function animateAddToBag(sourceEl, imageSrc) {
+  const source = sourceEl && typeof sourceEl.getBoundingClientRect === 'function' ? sourceEl : null;
+  if (!E.cartBtn || !source || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    pulseBagTarget();
+    return;
+  }
+  const sourceRect = source.getBoundingClientRect();
+  const targetRect = E.cartBtn.getBoundingClientRect();
+  if (!sourceRect.width || !sourceRect.height || !targetRect.width || !targetRect.height) {
+    pulseBagTarget();
+    return;
+  }
+  const size = Math.min(76, Math.max(48, Math.min(sourceRect.width, sourceRect.height) * .32));
+  const startX = sourceRect.left + sourceRect.width / 2;
+  const startY = sourceRect.top + sourceRect.height / 2;
+  const endX = targetRect.left + targetRect.width / 2;
+  const endY = targetRect.top + targetRect.height / 2;
+  const flyer = imageSrc ? document.createElement('img') : document.createElement('div');
+  flyer.className = 'm-add-bag-flyer';
+  if (imageSrc) {
+    flyer.src = imageSrc;
+    flyer.alt = '';
+  }
+  flyer.style.width = `${size}px`;
+  flyer.style.height = `${Math.round(size * 1.24)}px`;
+  flyer.style.left = `${startX - size / 2}px`;
+  flyer.style.top = `${startY - (size * 1.24) / 2}px`;
+  document.body.appendChild(flyer);
+  requestAnimationFrame(() => {
+    flyer.style.transform = `translate3d(${endX - startX}px, ${endY - startY}px, 0) scale(.18) rotate(8deg)`;
+    flyer.style.opacity = '0';
+  });
+  window.setTimeout(() => {
+    flyer.remove();
+    pulseBagTarget();
+  }, 760);
+}
+
 // Add to bag
 E.addBtn.addEventListener('click', () => {
   if (!selSize) { toast('Please select a size', 'error'); return; }
@@ -2633,6 +2814,7 @@ E.addBtn.addEventListener('click', () => {
     cart.push(normalizedItem);
   }
   saveCart();
+  animateAddToBag(document.querySelector('#m-ps-images img') || E.addBtn, item.image);
   closeSheet(E.pSheet);
   renderCart();
   toast('Added to bag!');
@@ -2846,7 +3028,9 @@ E.authMenuBtn.addEventListener('click', () => {
   if (user) {
     supa.auth.signOut().then(() => {
       user = null;
+      favoriteIds = new Set();
       updateAuthUI();
+      renderGrid();
       closeMenu();
       toast('Signed out');
     });
@@ -2888,6 +3072,7 @@ E.siForm.addEventListener('submit', async (e) => {
   if (error) { showAuthMsg(error.message); return; }
   user = data.user;
   updateAuthUI();
+  await loadFavorites();
   closeAuthSheet();
   toast('Signed in!');
 });
@@ -2902,6 +3087,7 @@ E.suForm.addEventListener('submit', async (e) => {
   if (error) { showAuthMsg(error.message); return; }
   user = data.user;
   updateAuthUI();
+  await loadFavorites();
   closeAuthSheet();
   toast('Account created! Check your email.');
 });
@@ -2945,7 +3131,7 @@ async function loadMobileThemeSettings() {
 
   // Restore auth session
   const { data: { session } } = await supa.auth.getSession();
-  if (session) { user = session.user; updateAuthUI(); }
+  if (session) { user = session.user; updateAuthUI(); await loadFavorites(); }
 
   // The menu uses body scroll-lock; listening for document scroll here causes
   // the menu to close immediately when opened away from the top of the page.

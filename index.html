@@ -759,7 +759,7 @@ body.light-mode .quick-back-btn:hover{color:rgba(9,9,11,.7)}
 .quick-add-option-grid{display:flex;flex-wrap:wrap;gap:.55rem}
 .quick-add-color,.quick-add-size{border:1px solid rgba(244,241,235,.12);background:transparent;color:rgba(244,241,235,.76);min-height:38px;padding:0 .8rem;font-family:var(--fm);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
 .quick-add-color{display:flex;align-items:center;gap:.45rem}
-.quick-add-color span{width:15px;height:15px;border-radius:50%;border:1px solid rgba(244,241,235,.32)}
+.quick-add-color span{width:15px;height:15px;border-radius:2px;border:1px solid rgba(244,241,235,.32)}
 .quick-add-color.active,.quick-add-size.active{border-color:#f4f1eb;color:#f4f1eb;background:rgba(244,241,235,.1)}
 .quick-add-size.sold-out{opacity:.35;cursor:not-allowed;text-decoration:line-through}
 .quick-add-empty-option{font-family:var(--fm);font-size:.68rem;color:rgba(244,241,235,.48);margin:0}
@@ -856,6 +856,28 @@ body.light-mode .pcard-skel-img,body.light-mode .pcard-skel-line{background:rgba
 @keyframes ccPop{0%{transform:scale(1)}40%{transform:scale(1.6)}70%{transform:scale(.92)}100%{transform:scale(1)}}
 .cc{transform-origin:center}  /* keep display:flex from the original .cc rule */
 .cc.pop{animation:ccPop .4s cubic-bezier(.36,.07,.19,.97)}
+@keyframes bagTargetPop{0%{transform:scale(1)}38%{transform:scale(1.12)}68%{transform:scale(.96)}100%{transform:scale(1)}}
+#cart-btn.bag-target-pop{animation:bagTargetPop .46s cubic-bezier(.36,.07,.19,.97)}
+.add-bag-flyer{
+  position:fixed;
+  z-index:9999;
+  width:72px;
+  height:90px;
+  object-fit:cover;
+  border:1px solid rgba(244,241,235,.2);
+  border-radius:3px;
+  background:#09090b;
+  box-shadow:0 16px 42px rgba(0,0,0,.32);
+  pointer-events:none;
+  transform:translate3d(0,0,0) scale(1);
+  transform-origin:center;
+  transition:transform .72s cubic-bezier(.18,.84,.28,1), opacity .72s ease;
+  will-change:transform,opacity;
+}
+@media (prefers-reduced-motion: reduce){
+  #cart-btn.bag-target-pop,.cc.pop{animation:none}
+  .add-bag-flyer{display:none}
+}
 
 /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
    MODALS
@@ -3492,6 +3514,61 @@ async function loadFavs() {
   void refreshCartFavs();
 }
 
+function pulseBagTarget() {
+  const target = document.getElementById('cart-btn');
+  if (!target) return;
+  target.classList.remove('bag-target-pop');
+  void target.offsetWidth;
+  target.classList.add('bag-target-pop');
+  const count = target.querySelector('.cc');
+  if (count) {
+    count.classList.remove('pop');
+    void count.offsetWidth;
+    count.classList.add('pop');
+  }
+  window.setTimeout(() => target.classList.remove('bag-target-pop'), 520);
+}
+
+function animateAddToBag(sourceEl, imageSrc) {
+  const target = document.getElementById('cart-btn');
+  const source = sourceEl && typeof sourceEl.getBoundingClientRect === 'function' ? sourceEl : null;
+  if (!target || !source || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    pulseBagTarget();
+    return;
+  }
+  const sourceRect = source.getBoundingClientRect();
+  const targetRect = target.getBoundingClientRect();
+  if (!sourceRect.width || !sourceRect.height || !targetRect.width || !targetRect.height) {
+    pulseBagTarget();
+    return;
+  }
+
+  const size = Math.min(92, Math.max(54, Math.min(sourceRect.width, sourceRect.height) * .36));
+  const startX = sourceRect.left + sourceRect.width / 2;
+  const startY = sourceRect.top + sourceRect.height / 2;
+  const endX = targetRect.left + targetRect.width / 2;
+  const endY = targetRect.top + targetRect.height / 2;
+  const flyer = imageSrc ? document.createElement('img') : document.createElement('div');
+  flyer.className = 'add-bag-flyer';
+  if (imageSrc) {
+    flyer.src = imageSrc;
+    flyer.alt = '';
+  }
+  flyer.style.width = `${size}px`;
+  flyer.style.height = `${Math.round(size * 1.24)}px`;
+  flyer.style.left = `${startX - size / 2}px`;
+  flyer.style.top = `${startY - (size * 1.24) / 2}px`;
+  document.body.appendChild(flyer);
+  requestAnimationFrame(() => {
+    flyer.style.transform = `translate3d(${endX - startX}px, ${endY - startY}px, 0) scale(.18) rotate(8deg)`;
+    flyer.style.opacity = '0';
+  });
+  window.setTimeout(() => {
+    flyer.remove();
+    pulseBagTarget();
+  }, 760);
+}
+
 let _cartFavRenderVer = 0;
 async function refreshCartFavs() {
   const myVer = ++_cartFavRenderVer;
@@ -3859,6 +3936,7 @@ function quickAddFinalizeReviewedItem(cartItem) {
   if (typeof gtag === 'function') {
     gtag('event', 'add_to_cart', { currency: 'USD', value: cartItem.price, items: [{ item_id: cartItem.productId, item_name: cartItem.title, price: cartItem.price, quantity: 1 }] });
   }
+  animateAddToBag(document.querySelector('#quick-add-review-media img') || document.getElementById('quick-add-review-confirm'), cartItem.image);
   showToast('Added to bag');
 }
 
@@ -4014,7 +4092,6 @@ function initQuickAddReviewModal() {
     const item = _quickAddReviewItem;
     const colorName = item.selectedColor?.color_name || 'Standard';
     const size = item.selectedSize || 'One Size';
-    closeQuickAddReviewModal();
     quickAddFinalizeReviewedItem({
       productId: item.productId,
       sku: item.sku || item.baseSku || '',
@@ -4028,6 +4105,7 @@ function initQuickAddReviewModal() {
       weightLb: parseFloat(item.weightLb) || 0.5,
       quantity: 1
     });
+    closeQuickAddReviewModal();
   });
   modal.addEventListener('click', function(e) {
     if (e.target === modal) closeQuickAddReviewModal();

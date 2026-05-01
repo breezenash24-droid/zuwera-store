@@ -408,6 +408,7 @@
     .qcol-row{display:flex;flex-wrap:wrap;gap:.55rem;margin-bottom:.2rem}
     .qcol-swatch{
       width:28px;height:28px;border:2px solid rgba(244,241,235,.15);
+      border-radius:2px;
       cursor:pointer;transition:all .15s;flex-shrink:0;
     }
     .qcol-swatch:hover,.qcol-swatch.active{border-color:#f4f1eb;box-shadow:0 0 0 1px #f4f1eb}
@@ -433,13 +434,14 @@
       background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;
       align-items:center;justify-content:center;padding:clamp(.75rem,2.2vw,1.25rem);
     }
-    .collection-review-modal.open{display:flex}
+    .collection-review-modal.open,.collection-review-modal.closing{display:flex}
     .collection-review-box{
       width:min(1080px,94vw);max-height:min(820px,92dvh);
       background:#0f0f0f;border:1px solid rgba(244,241,235,.1);
       border-top:2px solid var(--pink);position:relative;overflow:hidden;
       animation:collectionModalIn .22s ease;
     }
+    .collection-review-modal.closing .collection-review-box{animation:collectionModalOut .2s ease forwards}
     .collection-product-box{width:min(1080px,94vw);max-height:min(820px,92dvh);overflow:hidden}
     .collection-product-layout{
       display:grid;
@@ -455,6 +457,7 @@
       background:rgba(244,241,235,.025);
     }
     @keyframes collectionModalIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes collectionModalOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(18px)}}
     .collection-review-close{
       position:absolute;top:.9rem;right:.9rem;z-index:30;width:32px;height:32px;
       border:1px solid rgba(244,241,235,.12);background:rgba(9,9,11,.72);color:var(--white);
@@ -515,7 +518,7 @@
     .collection-option-grid{display:flex;flex-wrap:wrap;gap:.55rem}
     .collection-color,.collection-size{border:1px solid rgba(244,241,235,.12);background:transparent;color:rgba(244,241,235,.76);min-height:38px;padding:0 .8rem;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
     .collection-color{display:flex;align-items:center;gap:.45rem}
-    .collection-color span{width:15px;height:15px;border-radius:50%;border:1px solid rgba(244,241,235,.32)}
+    .collection-color span{width:15px;height:15px;border-radius:2px;border:1px solid rgba(244,241,235,.32)}
     .collection-color.active,.collection-size.active{border-color:var(--white);color:var(--white);background:rgba(244,241,235,.1)}
     .collection-size.sold-out{opacity:.35;cursor:not-allowed;text-decoration:line-through}
     .collection-empty-option{font-size:.68rem;color:rgba(244,241,235,.48);margin:0}
@@ -552,10 +555,11 @@
       .collection-review-box.collection-product-box{
         width:100%;
         max-width:100%;
-        min-height:100dvh;
+        min-height:auto;
         height:auto;
-        max-height:100dvh;
-        border-radius:0;
+        max-height:92dvh;
+        align-self:flex-end;
+        border-radius:18px 18px 0 0;
         border-left:none;
         overflow-y:auto;
         overflow-x:hidden;
@@ -578,10 +582,11 @@
         min-height:0;
       }
       .collection-review-media{
-        aspect-ratio:4/5;
-        min-height:clamp(210px,32svh,330px);
-        max-height:clamp(230px,36svh,350px);
+        aspect-ratio:3/4;
+        min-height:clamp(360px,58svh,520px);
+        max-height:none;
       }
+      .collection-review-media img{object-fit:contain;object-position:center center}
       .collection-thumbs{
         overflow-x:auto;
         overflow-y:hidden;
@@ -1467,7 +1472,12 @@ function updateCountdown() {
 
   function closeCollectionReviewModal() {
     var modal = document.getElementById('collection-review-modal');
-    if (modal) modal.classList.remove('open');
+    if (modal && modal.classList.contains('open')) {
+      modal.classList.add('closing');
+      window.setTimeout(function() {
+        modal.classList.remove('open', 'closing');
+      }, 190);
+    }
     _collectionReviewItem = null;
     collectionSetScrollLock(false);
   }
@@ -1615,6 +1625,7 @@ function updateCountdown() {
 
     collectionRenderGallery(item);
     collectionRenderOptions(item);
+    modal.classList.remove('closing');
     modal.classList.add('open');
     collectionSetScrollLock(true);
     var box = modal.querySelector('.collection-review-box');
