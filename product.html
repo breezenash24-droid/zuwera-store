@@ -477,7 +477,7 @@ body.light-mode #cart-btn.desktop-bag-btn #cartCount {
   <link rel="stylesheet" href="reviews-vibe.css?v=14">
   <link rel="stylesheet" href="storefront-cohesion.css?v=12">
 <script src="image-utils.js?v=1"></script>
-<script src="mobile-menu.js?v=1" defer></script>
+<script src="mobile-menu.js?v=3" defer></script>
 
 <!-- PostHog analytics -->
 <script>
@@ -518,7 +518,7 @@ posthog.init('REPLACE_WITH_YOUR_POSTHOG_PROJECT_API_KEY', { api_host: 'https://u
       </svg>
       <span id="cartCount">0</span>
     </button>
-    <button id="mobile-menu-btn" onclick="return window.openMobileMenu ? window.openMobileMenu() : false;" style="background:none; border:none; cursor:pointer; display:none; -webkit-appearance:none; padding:0;">
+    <button id="mobile-menu-btn" aria-label="Menu" style="background:none; border:none; cursor:pointer; display:none; -webkit-appearance:none; padding:0;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
     </button>
   </div>

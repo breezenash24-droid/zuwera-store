@@ -1635,7 +1635,7 @@ body.light-mode::after{opacity:0.15}
   <link rel="stylesheet" href="reviews-vibe.css?v=14">
   <link rel="stylesheet" href="storefront-cohesion.css?v=12">
 <script src="image-utils.js?v=1"></script>
-<script src="mobile-menu.js?v=1" defer></script>
+<script src="mobile-menu.js?v=3" defer></script>
 </head>
 <body>
 
@@ -1697,7 +1697,7 @@ body.light-mode::after{opacity:0.15}
       </svg>
       <span class="cc">0</span>
     </button>
-      <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" onclick="return window.openMobileMenu ? window.openMobileMenu() : false;">
+      <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
       </button>
   </div>
@@ -4874,6 +4874,32 @@ function declineCookies(){try{localStorage.setItem('zw_cookie_consent','declined
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
+  }
+})();
+
+(function() {
+  function closeReturnsModal() {
+    var modal = document.getElementById('returns-modal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function initReturnsModalClose() {
+    var modal = document.getElementById('returns-modal');
+    var closeBtn = document.getElementById('returns-close');
+    if (closeBtn) closeBtn.addEventListener('click', closeReturnsModal);
+    if (modal) {
+      modal.addEventListener('click', function(event) {
+        if (event.target === modal) closeReturnsModal();
+      });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initReturnsModalClose);
+  } else {
+    initReturnsModalClose();
   }
 })();
 </script>

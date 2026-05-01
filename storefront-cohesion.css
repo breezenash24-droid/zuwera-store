@@ -997,6 +997,165 @@ body.light-mode .heart-btn{
   }
 }
 
+@media (max-width:900px){
+  :is(nav#nav,.nav,header.nav){
+    min-height:56px !important;
+    z-index:600 !important;
+  }
+
+  :is(nav#nav,.nav,header.nav) :is(.nav-logo,.nav-logo-link){
+    position:absolute !important;
+    left:50% !important;
+    transform:translateX(-50%) !important;
+    z-index:1;
+  }
+
+  :is(nav#nav,.nav,header.nav) :is(.nav-right,.nav-actions){
+    width:100%;
+    margin-left:0 !important;
+    justify-content:flex-end !important;
+  }
+
+  .hamburger-btn,
+  #mobile-menu-btn{
+    position:absolute !important;
+    top:calc(env(safe-area-inset-top,0px) + 6px) !important;
+    left:var(--zw-mobile-gutter,1rem) !important;
+    z-index:3 !important;
+    display:flex !important;
+    flex-direction:column;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:0 !important;
+    width:44px !important;
+    height:44px !important;
+    min-width:44px !important;
+    min-height:44px !important;
+    padding:0 !important;
+    background:none !important;
+    border:0 !important;
+    color:#f4f1eb !important;
+    cursor:pointer;
+    -webkit-appearance:none;
+    appearance:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  .hamburger-btn svg,
+  #mobile-menu-btn svg{
+    position:absolute !important;
+    width:0 !important;
+    height:0 !important;
+    opacity:0 !important;
+    pointer-events:none !important;
+  }
+
+  .hamburger-btn::before,
+  #mobile-menu-btn::before,
+  .hamburger-btn::after,
+  #mobile-menu-btn::after{
+    content:'';
+    position:absolute;
+    width:20px;
+    height:1.5px;
+    background:currentColor;
+    transform-origin:center;
+    transition:transform .3s ease, box-shadow .3s ease, opacity .3s ease;
+  }
+
+  .hamburger-btn::before,
+  #mobile-menu-btn::before{
+    box-shadow:0 -6px 0 currentColor, 0 6px 0 currentColor;
+  }
+
+  .hamburger-btn::after,
+  #mobile-menu-btn::after{
+    opacity:0;
+  }
+
+  .hamburger-btn.open::before,
+  #mobile-menu-btn.open::before{
+    transform:rotate(45deg);
+    box-shadow:none;
+  }
+
+  .hamburger-btn.open::after,
+  #mobile-menu-btn.open::after{
+    opacity:1;
+    transform:rotate(-45deg);
+  }
+
+  body.light-mode .hamburger-btn,
+  body.light-mode #mobile-menu-btn{
+    color:#09090b !important;
+  }
+
+  #mobile-menu{
+    top:var(--zw-mobile-menu-offset, calc(56px + env(safe-area-inset-top,0px))) !important;
+    bottom:0 !important;
+    height:100dvh !important;
+    height:calc(100dvh - var(--zw-mobile-menu-offset, calc(56px + env(safe-area-inset-top,0px)))) !important;
+    min-height:0 !important;
+    padding:1.6rem 1.25rem calc(1.4rem + env(safe-area-inset-bottom,0px)) !important;
+    align-items:stretch !important;
+    justify-content:stretch !important;
+    background:#09090b !important;
+    border-top:1px solid rgba(244,241,235,.08) !important;
+    z-index:500 !important;
+    animation:zwMobileMenuFade .3s ease;
+  }
+
+  @keyframes zwMobileMenuFade{
+    from{opacity:0}
+    to{opacity:1}
+  }
+
+  body.light-mode #mobile-menu{
+    background:#F0EEE9 !important;
+    border-top-color:rgba(9,9,11,.08) !important;
+  }
+
+  #mobile-menu-close{
+    display:none !important;
+  }
+
+  #mobile-menu > .mbox{
+    max-width:none !important;
+    height:100% !important;
+    display:flex !important;
+    flex-direction:column !important;
+  }
+
+  #mobile-menu :is(#mobile-category-links,.mobile-nav-links){
+    flex:1;
+    justify-content:center !important;
+    align-items:stretch !important;
+    gap:.45rem !important;
+  }
+
+  #mobile-menu a,
+  #mobile-menu .mobile-nav-link{
+    display:flex !important;
+    align-items:center;
+    justify-content:center;
+    min-height:56px;
+    padding:0 !important;
+    font-family:var(--zw-font-head) !important;
+    font-size:clamp(2.15rem,12vw,4.2rem) !important;
+    font-weight:900 !important;
+    font-style:italic !important;
+    line-height:1 !important;
+    letter-spacing:.08em !important;
+    color:rgba(244,241,235,.9) !important;
+    text-align:center;
+  }
+
+  body.light-mode #mobile-menu a,
+  body.light-mode #mobile-menu .mobile-nav-link{
+    color:rgba(9,9,11,.84) !important;
+  }
+}
+
 @media(max-width:760px){
   /* Content pages should keep the same mobile rhythm as the landing page. */
   .page-wrap{

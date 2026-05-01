@@ -53,6 +53,7 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --header-total: calc(var(--nav-h) + var(--safe-top));
+  --m-announcement-height: 30px;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -501,12 +502,12 @@ body:has(#m-menu.open) #m-overlay {
 /* ── MENU DRAWER ── */
 #m-menu {
   position: fixed;
-  top: calc(var(--header-total) + 30px);
+  top: calc(var(--header-total) + var(--m-announcement-height));
   left: 0;
   right: 0;
   bottom: 0;
   width: 100vw;
-  height: calc(100dvh - var(--header-total) - 30px);
+  height: calc(100dvh - var(--header-total) - var(--m-announcement-height));
   background: #09090b;
   z-index: 500;
   display: none;
@@ -1238,7 +1239,7 @@ body:has(#m-menu.open) #m-overlay {
 }
 /* Page pushed below: safe-top + nav + bar */
 #mpage {
-  padding-top: calc(var(--header-total) + 30px) !important;
+  padding-top: calc(var(--header-total) + var(--m-announcement-height)) !important;
 }
 
 /* ── HERO CTA — desktop style outline / ghost buttons ── */
@@ -2155,6 +2156,8 @@ const $ = id => document.getElementById(id);
 const E = {
   menuBtn:    $('mbtn-menu'),
   menu:       $('m-menu'),
+  bar:        $('m-bar'),
+  page:       $('mpage'),
   cartBtn:    $('mbtn-cart'),
   cartCount:  $('mcart-count'),
   overlay:    $('m-overlay'),
@@ -2231,6 +2234,94 @@ function applyTheme(mode) {
 syncThemeColor();
 window.__zwApplyAdminTheme = applyTheme;
 window.__zwSyncThemeColor = syncThemeColor;
+
+// ── ADMIN ANNOUNCEMENT BAR ──
+let mobileAnnouncementScrollHandler = null;
+
+function teardownMobileAnnouncementScroll() {
+  if (mobileAnnouncementScrollHandler) {
+    window.removeEventListener('scroll', mobileAnnouncementScrollHandler);
+    mobileAnnouncementScrollHandler = null;
+  }
+}
+
+function setMobileAnnouncementLayout(isVisible) {
+  const barHeight = isVisible && E.bar ? (E.bar.offsetHeight || 30) : 0;
+  document.documentElement.style.setProperty('--m-announcement-height', `${barHeight}px`);
+}
+
+function applyMobileAnnouncementBar(mode, msgText) {
+  if (!E.bar) return;
+
+  const normalizedMode = String(mode || 'on').trim().toLowerCase();
+  const fallbackText = (E.bar.dataset.defaultText || E.bar.textContent || '').trim();
+  if (!E.bar.dataset.defaultText) E.bar.dataset.defaultText = fallbackText;
+
+  const nextText = (typeof msgText === 'string' ? msgText : '').trim();
+  E.bar.textContent = nextText || fallbackText;
+
+  teardownMobileAnnouncementScroll();
+  E.bar.style.display = 'flex';
+  E.bar.style.transform = 'translateY(0)';
+  E.bar.style.opacity = '1';
+  E.bar.style.pointerEvents = '';
+  E.bar.style.transition = 'transform .28s ease, opacity .2s ease';
+
+  if (normalizedMode === 'off') {
+    E.bar.style.display = 'none';
+    E.bar.style.opacity = '0';
+    E.bar.style.pointerEvents = 'none';
+    setMobileAnnouncementLayout(false);
+    return;
+  }
+
+  setMobileAnnouncementLayout(true);
+
+  if (normalizedMode !== 'scroll') return;
+
+  let lastScrollY = window.scrollY;
+  let isHidden = false;
+  const scrollActivationAt = Date.now() + 450;
+
+  const syncAnnouncementState = (hidden) => {
+    E.bar.style.display = 'flex';
+    E.bar.style.transform = hidden ? 'translateY(calc(-100% - 2px))' : 'translateY(0)';
+    E.bar.style.opacity = hidden ? '0' : '1';
+    E.bar.style.pointerEvents = hidden ? 'none' : '';
+    setMobileAnnouncementLayout(!hidden);
+  };
+
+  syncAnnouncementState(false);
+  mobileAnnouncementScrollHandler = function() {
+    const currentY = window.scrollY;
+    if (document.body.dataset.scrollLocked || document.body.style.position === 'fixed') {
+      lastScrollY = currentY;
+      return;
+    }
+    if (Date.now() < scrollActivationAt) {
+      lastScrollY = currentY;
+      return;
+    }
+
+    const scrollingDown = currentY > lastScrollY + 6;
+    const scrollingUp = currentY < lastScrollY - 6;
+
+    if (currentY <= 16 || scrollingUp) {
+      if (isHidden) {
+        isHidden = false;
+        syncAnnouncementState(false);
+      }
+    } else if (currentY > 80 && scrollingDown) {
+      if (!isHidden) {
+        isHidden = true;
+        syncAnnouncementState(true);
+      }
+    }
+
+    lastScrollY = currentY;
+  };
+  window.addEventListener('scroll', mobileAnnouncementScrollHandler, { passive: true });
+}
 
 // ── iOS SCROLL LOCK (the correct pattern) ──
 function lockScroll() {
@@ -3185,17 +3276,42 @@ function updateAuthUI() {
   E.authMenuBtn.textContent = user ? 'Sign Out' : 'Sign In';
 }
 
-async function loadMobileThemeSettings() {
+async function loadMobileSiteSettings() {
   try {
     const { data } = await supa
       .from('site_settings')
       .select('key,value')
-      .eq('key', 'theme')
-      .maybeSingle();
-    const mode = data?.value?.mode;
-    if (mode === 'light' || mode === 'dark') applyTheme(mode);
+      .in('key', ['theme', 'announcement_bar']);
+
+    let announcementApplied = false;
+    (data || []).forEach(row => {
+      if (row.key === 'theme') {
+        let value = row.value;
+        try { if (typeof value === 'string') value = JSON.parse(value); } catch (_) {}
+        const mode = value?.mode;
+        if (mode === 'light' || mode === 'dark') applyTheme(mode);
+      } else if (row.key === 'announcement_bar') {
+        let value = row.value;
+        try { if (typeof value === 'string') value = JSON.parse(value); } catch (_) {}
+
+        let mode = 'on';
+        let msgText = '';
+        if (typeof value === 'object' && value !== null) {
+          mode = value.mode || (value.enabled === false ? 'off' : 'on');
+          msgText = Object.prototype.hasOwnProperty.call(value, 'main') ? (value.main ?? '') : '';
+        } else if (typeof value === 'string') {
+          msgText = value;
+        }
+
+        applyMobileAnnouncementBar(mode, msgText);
+        announcementApplied = true;
+      }
+    });
+
+    if (!announcementApplied) applyMobileAnnouncementBar('on', '');
   } catch (_) {
     syncThemeColor();
+    applyMobileAnnouncementBar('on', '');
   }
 }
 
@@ -3205,7 +3321,7 @@ async function loadMobileThemeSettings() {
   saveCart();
   renderCart();
 
-  await loadMobileThemeSettings();
+  await loadMobileSiteSettings();
 
   // Load products
   await loadProducts();
