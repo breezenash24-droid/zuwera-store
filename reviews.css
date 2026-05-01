@@ -115,11 +115,11 @@
   border: 1px solid rgba(244,241,235,.08);
   border-top: 2px solid #F891A5;
   position: relative;
-  padding: 2.6rem 2.4rem 2.2rem;
+  padding: 3rem 3.2rem 2.6rem;
   animation: modalIn .22s ease;
-  max-width: 920px;
-  width: min(920px, 96vw);
-  max-height: 90vh;
+  max-width: 1080px;
+  width: min(1080px, 96vw);
+  max-height: 92vh;
   overflow-y: auto;
 }
 .review-mbox h2 {
@@ -172,7 +172,7 @@
   line-height: 1.6;
   padding: 0.8rem 1rem;
   resize: vertical;
-  min-height: 100px;    /* explicit – overrides reviews-vibe.css 150px global */
+  min-height: 160px;    /* explicit – overrides reviews-vibe.css 150px global */
   outline: none;
   border-radius: 2px;
   transition: border-color 0.2s;
@@ -298,9 +298,9 @@
   border-top: 2px solid #F891A5;
   position: relative;
   animation: modalIn .22s ease;
-  max-width: 1200px;
-  width: min(1200px, 97vw);
-  max-height: 88vh;
+  max-width: 1280px;
+  width: min(1280px, 98vw);
+  max-height: 92vh;
   overflow-y: auto;
   padding: 2rem;
   border-radius: 4px;
