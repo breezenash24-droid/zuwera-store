@@ -996,3 +996,136 @@ body.light-mode .heart-btn{
     box-shadow:0 -10px 22px rgba(9,9,11,.18);
   }
 }
+
+@media(max-width:760px){
+  /* Content pages should keep the same mobile rhythm as the landing page. */
+  .page-wrap{
+    width:100% !important;
+    max-width:none !important;
+    padding:calc(6.4rem + env(safe-area-inset-top,0px)) var(--zw-space-page) calc(4rem + env(safe-area-inset-bottom,0px)) !important;
+  }
+
+  .page-title{
+    font-family:var(--zw-font-head) !important;
+    font-size:clamp(3.4rem, 16vw, 5.4rem) !important;
+    line-height:.9 !important;
+    letter-spacing:.06em !important;
+    margin-bottom:.85rem !important;
+  }
+
+  .page-subtitle{
+    margin-bottom:2.4rem !important;
+    font-size:.68rem !important;
+    letter-spacing:.22em !important;
+  }
+
+  .tab-nav,
+  .tabs-nav{
+    display:flex !important;
+    flex-wrap:nowrap !important;
+    gap:1.45rem !important;
+    overflow-x:auto !important;
+    overflow-y:hidden !important;
+    margin-inline:calc(var(--zw-space-page) * -1) !important;
+    margin-bottom:2.3rem !important;
+    padding:0 var(--zw-space-page) .7rem !important;
+    scroll-snap-type:x proximity;
+    scrollbar-width:none;
+    -ms-overflow-style:none;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  .tab-nav::-webkit-scrollbar,
+  .tabs-nav::-webkit-scrollbar{
+    display:none;
+  }
+
+  .tab-btn{
+    flex:0 0 auto !important;
+    min-height:44px !important;
+    margin:0 !important;
+    padding:.75rem 0 .65rem !important;
+    white-space:nowrap !important;
+    scroll-snap-align:start;
+  }
+
+  .calculator,
+  .policy-highlight,
+  .sizing-notes,
+  .tech-card,
+  .highlight-card{
+    border-radius:0 !important;
+  }
+
+  .calculator{
+    padding:1.35rem 1rem !important;
+    margin-bottom:2.25rem !important;
+  }
+
+  .calc-grid{
+    grid-template-columns:1fr !important;
+    gap:1rem !important;
+  }
+
+  .calc-input,
+  .calc-select{
+    min-height:52px !important;
+    font-size:1rem !important;
+  }
+
+  .calc-button{
+    width:100% !important;
+    min-height:54px !important;
+    margin-top:.25rem !important;
+    background:var(--zw-paper) !important;
+    color:var(--zw-ink) !important;
+    font-family:var(--zw-font-head) !important;
+    font-size:.95rem !important;
+    letter-spacing:.13em !important;
+  }
+
+  body.light-mode .calc-button{
+    background:var(--zw-ink) !important;
+    color:var(--zw-paper) !important;
+  }
+
+  .table-wrap{
+    margin-inline:calc(var(--zw-space-page) * -1) !important;
+    padding-inline:var(--zw-space-page) !important;
+    overflow-x:auto !important;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  .policy-section{
+    margin-bottom:2.2rem !important;
+    padding-bottom:2.2rem !important;
+  }
+
+  .policy-section h2{
+    font-size:1.55rem !important;
+  }
+
+  .policy-section p,
+  .policy-section ul li,
+  .faq-answer{
+    font-size:.95rem !important;
+    line-height:1.8 !important;
+  }
+
+  .faq-question{
+    min-height:56px !important;
+    padding:1rem 2rem 1rem 0 !important;
+  }
+
+  .contact-cta{
+    padding:1.35rem 1rem !important;
+  }
+
+  .contact-cta a{
+    width:100% !important;
+    min-height:54px !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+  }
+}
