@@ -492,16 +492,29 @@ img { display: block; max-width: 100%; }
   pointer-events: auto;
 }
 
+body:has(#m-menu.open) #m-overlay {
+  display: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* ── MENU DRAWER ── */
 #m-menu {
   position: fixed;
-  top: 0; left: 0; bottom: 0;
-  width: min(320px, 85vw);
-  background: rgba(9,9,11,.98);
+  top: calc(var(--header-total) + 30px);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: calc(100dvh - var(--header-total) - 30px);
+  background: #09090b;
   z-index: 500;
   display: none;
   flex-direction: column;
-  padding-top: var(--header-total);
+  padding: 1.6rem 1.25rem calc(1.4rem + var(--safe-bottom));
+  border-top: 1px solid rgba(244,241,235,.08);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 #m-menu.open {
   display: flex;
@@ -509,35 +522,41 @@ img { display: block; max-width: 100%; }
 }
 
 @keyframes mMenuIn {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .m-menu-links {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 2rem 1.5rem;
-  gap: .25rem;
-  border-top: 1px solid rgba(244,241,235,.07);
+  justify-content: center;
+  align-items: stretch;
+  padding: 0;
+  gap: .45rem;
+  border-top: none;
 }
 
 .m-menu-link {
-  font-family: var(--fm);
-  font-size: .85rem;
-  letter-spacing: .22em;
+  font-family: var(--fw);
+  font-size: clamp(2.15rem, 12vw, 4.2rem);
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: .08em;
   text-transform: uppercase;
-  color: rgba(244,241,235,.78);
-  height: 56px;
+  color: rgba(244,241,235,.9);
+  min-height: 56px;
+  height: auto;
   display: flex;
   align-items: center;
+  justify-content: center;
   background: none;
   border: none;
   padding: 0;
   cursor: pointer;
-  text-align: left;
+  text-align: center;
   text-decoration: none;
-  transition: color .2s;
+  transition: color .2s ease;
   -webkit-tap-highlight-color: transparent;
 }
 .m-menu-link:active { color: var(--paper); }
@@ -705,25 +724,32 @@ img { display: block; max-width: 100%; }
 
 .m-heart-btn {
   position: absolute;
-  top: .55rem;
-  right: .55rem;
+  top: .65rem;
+  right: .65rem;
   z-index: 3;
-  width: 36px;
-  height: 36px;
-  border: 1px solid rgba(244,241,235,.16);
-  background: rgba(9,9,11,.58);
-  color: rgba(244,241,235,.72);
+  background: rgba(9,9,11,.7);
+  border: 1px solid rgba(244,241,235,.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all .2s ease;
+  color: rgba(244,241,235,.3);
 }
+.m-heart-btn:hover,
+.m-heart-btn:focus-visible,
 .m-heart-btn.active {
   color: var(--red);
-  border-color: rgba(192,57,43,.7);
+  border-color: var(--red);
 }
 .m-heart-btn svg {
-  width: 15px;
-  height: 15px;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
   stroke: currentColor;
   fill: none;
   stroke-width: 1.8;
@@ -1610,6 +1636,10 @@ body.light-mode #m-bar {
   color: #f4f1eb !important;
   border-bottom-color: rgba(244,241,235,.12) !important;
 }
+body.light-mode #m-menu {
+  background: #F0EEE9;
+  border-top-color: rgba(9,9,11,.08);
+}
 body.light-mode #mhdr-logo img,
 body.light-mode .m-footer-logo img {
   filter: invert(1);
@@ -1695,6 +1725,9 @@ body.light-mode .m-cdl,
 body.light-mode .m-notify-label {
   color: rgba(9,9,11,.42);
 }
+body.light-mode .m-menu-link {
+  color: rgba(9,9,11,.84);
+}
 body.light-mode .m-hero-sub,
 body.light-mode .m-hero .m-btn-ghost {
   color: rgba(244,241,235,.45);
@@ -1712,13 +1745,15 @@ body.light-mode .m-hero .m-btn-ghost:active {
   color: #f4f1eb;
 }
 body.light-mode .m-heart-btn {
-  background: rgba(240,238,233,.82);
-  border-color: rgba(9,9,11,.12);
-  color: rgba(9,9,11,.45);
+  background: rgba(232,227,220,.7);
+  border-color: rgba(9,9,11,.1);
+  color: rgba(9,9,11,.3);
 }
+body.light-mode .m-heart-btn:hover,
+body.light-mode .m-heart-btn:focus-visible,
 body.light-mode .m-heart-btn.active {
   color: var(--red);
-  border-color: rgba(192,57,43,.7);
+  border-color: var(--red);
 }
 body.light-mode .m-menu-link:active,
 body.light-mode .m-btn-ghost:active,
