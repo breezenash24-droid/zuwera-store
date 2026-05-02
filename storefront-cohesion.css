@@ -569,7 +569,11 @@ body.light-mode :is(.pcard,.product-card):hover{
 
 :is(.pcard-img,.product-img){
   aspect-ratio:3/4;
-  background:transparent !important;
+  background:#f4f1eb !important;
+}
+
+body.light-mode :is(.pcard-img,.product-img){
+  background:#f4f1eb !important;
 }
 
 :is(.pcard-img,.product-img) img{
@@ -906,11 +910,11 @@ body.light-mode .heart-btn{
     min-height:clamp(360px, 54svh, 520px) !important;
     max-height:none !important;
     padding:calc(.75rem + env(safe-area-inset-top,0px)) .85rem .75rem !important;
-    background:#09090b !important;
+    background:#f4f1eb !important;
   }
 
   body.light-mode .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box .quick-add-review-media{
-    background:#F0EEE9 !important;
+    background:#f4f1eb !important;
   }
 
   .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box .quick-add-review-media img{
