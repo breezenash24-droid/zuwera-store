@@ -518,7 +518,7 @@ posthog.init('REPLACE_WITH_YOUR_POSTHOG_PROJECT_API_KEY', { api_host: 'https://u
       </svg>
       <span id="cartCount">0</span>
     </button>
-    <button id="mobile-menu-btn" aria-label="Menu" style="background:none; border:none; cursor:pointer; display:none; -webkit-appearance:none; padding:0;">
+    <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
     </button>
   </div>
@@ -526,12 +526,16 @@ posthog.init('REPLACE_WITH_YOUR_POSTHOG_PROJECT_API_KEY', { api_host: 'https://u
 
 <!-- MOBILE MENU MODAL -->
 <div id="mobile-menu" class="modal" role="dialog" aria-modal="true" aria-hidden="true" style="z-index: 900;">
-  <button id="mobile-menu-close" class="mclose" onclick="return window.closeMobileMenu ? window.closeMobileMenu() : false;" style="position:absolute; top:1.5rem; right:1.5rem; font-size:2rem; background:none; border:none; color:inherit; cursor:pointer;">&#215;</button>
-  <div class="mobile-nav-links" id="mobile-category-links">
-    <a href="drop001.html" class="mobile-nav-link">Collection</a>
-    <a href="sizeguide.html" class="mobile-nav-link">Size Guide</a>
-    <a href="policies.html" class="mobile-nav-link">Policies</a>
-    <a href="returns.html" class="mobile-nav-link">Returns</a>
+  <div class="mbox" style="background:transparent; border:none; box-shadow:none; text-align:center;">
+    <button id="mobile-menu-close" class="mclose" onclick="return window.closeMobileMenu ? window.closeMobileMenu() : false;" style="position:fixed; top:1.5rem; right:1.5rem; background:none; border:none; color:#f4f1eb; font-size:2rem; width:40px; height:40px;">&#215;</button>
+    <div id="mobile-category-links" class="mobile-nav-links">
+      <a href="index.html" class="mobile-nav-link">Home</a>
+      <a href="drop001.html" class="mobile-nav-link">Collection</a>
+      <a href="sizeguide.html" class="mobile-nav-link">Size Guide</a>
+      <a href="policies.html" class="mobile-nav-link">Policies</a>
+      <a href="returns.html" class="mobile-nav-link">Returns</a>
+      <a href="mailto:Breezenash24@gmail.com" class="mobile-nav-link">Contact</a>
+    </div>
   </div>
 </div>
 
@@ -1523,11 +1527,14 @@ function applyProductCategoryNavigation(products, fallbackProduct = currentProdu
   const mobileLinks = document.getElementById('mobile-category-links');
   if (mobileLinks) {
     const utilityLinks = [
+      '<a href="index.html" class="mobile-nav-link">Home</a>',
+      '<a href="drop001.html" class="mobile-nav-link">Collection</a>',
       '<a href="sizeguide.html" class="mobile-nav-link">Size Guide</a>',
       '<a href="policies.html" class="mobile-nav-link">Policies</a>',
-      '<a href="returns.html" class="mobile-nav-link">Returns</a>'
+      '<a href="returns.html" class="mobile-nav-link">Returns</a>',
+      '<a href="mailto:Breezenash24@gmail.com" class="mobile-nav-link">Contact</a>'
     ].join('');
-    mobileLinks.innerHTML = labels.map((label) => `<a href="${categoryHref(label)}" class="mobile-nav-link">${label}</a>`).join('') + utilityLinks;
+    mobileLinks.innerHTML = utilityLinks;
   }
 
   const errorBackButton = document.getElementById('errorBackButton');
