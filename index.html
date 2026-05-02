@@ -1639,16 +1639,6 @@ body.light-mode::after{opacity:0.15}
 </head>
 <body>
 
-<!-- Mobile redirect — sends phone/tablet users to the dedicated mobile page -->
-<script>
-(function(){
-  if(window.innerWidth <= 900 && /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)){
-    var p = window.location.pathname;
-    if(p === '/' || p === '/index.html') window.location.replace('/mobile.html');
-  }
-})();
-</script>
-
 <script>
 // Load theme immediately to prevent flash
 (function() {
