@@ -149,9 +149,63 @@
 
     /* ── Promo code area ── */
     .csummary { display: block; }
+    .cart-summary #zw-promo-shell {
+      width: 100% !important;
+      margin: .85rem 0 .35rem !important;
+      padding: .75rem 0 !important;
+      border-bottom: 1px solid rgba(244,241,235,.07);
+      box-sizing: border-box;
+    }
+    .cart-summary #zw-promo-shell > div:first-child {
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) auto !important;
+      align-items: stretch !important;
+      gap: .55rem !important;
+      width: 100%;
+    }
+    .cart-summary #zw-promo-input,
+    .cart-summary #zw-promo-apply {
+      box-sizing: border-box !important;
+      height: 40px !important;
+      margin: 0 !important;
+      line-height: 1 !important;
+    }
+    .cart-summary #zw-promo-input {
+      width: 100% !important;
+      min-width: 0 !important;
+      padding: 0 .75rem !important;
+    }
+    .cart-summary #zw-promo-apply {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      min-width: 82px !important;
+      padding: 0 .9rem !important;
+    }
+    .cart-summary #zw-promo-message {
+      min-height: 1rem !important;
+      margin-top: .35rem !important;
+      line-height: 1.45 !important;
+    }
     .srow { display:flex; justify-content:space-between; align-items:flex-start; padding:.5rem 0; border-bottom:1px solid rgba(244,241,235,.07); font-size:.82rem; color:rgba(244,241,235,.55); gap:.5rem; }
     .srow:last-child { border-bottom:none; }
     body.light-mode .srow { border-bottom-color:rgba(9,9,11,.07); color:rgba(9,9,11,.55); }
+    body.light-mode .cart-summary #zw-promo-shell { border-bottom-color: rgba(9,9,11,.07); }
+    body.light-mode .cart-summary #zw-promo-input,
+    body.light-mode .cart-summary #zw-promo-apply {
+      border-color: rgba(9,9,11,.14) !important;
+      background: rgba(9,9,11,.035) !important;
+      color: #09090b !important;
+    }
+    body.light-mode .cart-summary #zw-promo-message { color: rgba(9,9,11,.48) !important; }
+    @media (max-width: 420px) {
+      .cart-summary #zw-promo-shell > div:first-child {
+        grid-template-columns: 1fr !important;
+      }
+      .cart-summary #zw-promo-apply {
+        width: 100% !important;
+      }
+    }
 </style>
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=1">
 </head>
