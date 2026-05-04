@@ -3085,11 +3085,24 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 (function() {
   let cartItems = [];
 
-  // Open/close cart modal
-  document.getElementById('cart-btn').addEventListener('click', () => {
-    renderCartItems();
-    document.getElementById('cart-modal').classList.add('open');
-    document.body.style.overflow = 'hidden';
+  function clearProductOverlayState() {
+    document.querySelectorAll('.modal.open').forEach(modal => {
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden', 'true');
+    });
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+  }
+
+  function goToBagPage() {
+    clearProductOverlayState();
+    window.location.assign('/bag.html');
+  }
+
+  // Bag is a dedicated page, not a product-page overlay.
+  document.getElementById('cart-btn').addEventListener('click', e => {
+    e.preventDefault();
+    goToBagPage();
   });
   document.getElementById('cart-close').addEventListener('click', () => {
     document.getElementById('cart-modal').classList.remove('open');
