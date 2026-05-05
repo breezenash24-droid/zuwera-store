@@ -181,9 +181,8 @@ body{
   animation:pageIn .35s ease both;
 }
 /* iOS safe-area tint anchor: paints the notch/status-bar zone with the nav color so Safari 26 samples the correct toolbar tint and no gap appears above the header on mobile. */
-/* #header-group wraps safe-area-tint + #bar + nav in one fixed layer so iOS compositor never inserts a sub-pixel gap between them. */
-#header-group{position:fixed;top:0;left:0;right:0;z-index:300;display:flex;flex-direction:column}
-.safe-area-tint{height:env(safe-area-inset-top,0px);background:var(--ink);pointer-events:none;flex-shrink:0}
+/* iOS safe-area tint anchor */
+.safe-area-tint{position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:var(--ink);z-index:260;pointer-events:none}
 a{color:inherit;text-decoration:none}
 button{cursor:pointer;font-family:inherit;border:none;background:none}
 input,textarea{font-family:inherit}
@@ -209,11 +208,15 @@ body::after{
   padding:.45rem 2rem;
   display:flex;align-items:center;justify-content:center;gap:1.5rem;
   font-family:var(--fm);font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;
-  /* Inside #header-group fixed container — no individual position:fixed needed */
-  overflow:hidden;max-height:3rem;
-  transition:max-height .28s ease, opacity .2s ease, padding .28s ease;
+  position:fixed;top:0;left:0;right:0;z-index:230;
+  transition:transform .28s ease, opacity .2s ease;
 }
-#bar.bar-collapsed{max-height:0;padding-top:0;padding-bottom:0;opacity:0;pointer-events:none}
+/* Gap cover: a 1px same-colour extension below nav ensures the iOS compositor
+   never shows a hairline between the two fixed layers. */
+nav#nav::after{
+  content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;
+  background:var(--ink);z-index:1;
+}
 .bar-sep{opacity:.25;font-size:0;line-height:1}
 .bar-sep::before{content:'\2726';font-size:.62rem}
 
@@ -221,12 +224,12 @@ body::after{
    NAV
 ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */
 nav#nav{
-  /* Inside #header-group fixed container — no individual position:fixed needed */
+  position:fixed;top:0;left:0;right:0;z-index:220;
   display:flex;justify-content:space-between;align-items:center;
   padding:1.5rem 2.5rem;
   background:var(--ink);
   isolation:isolate;
-  transition:background .35s,border-color .35s,padding .35s;
+  transition:background .35s,border-color .35s,padding .35s,top .45s ease;
   border-bottom:1px solid rgba(244,241,235,.07);
 }
 nav#nav.scrolled{
@@ -1419,7 +1422,7 @@ body.light-mode .ret-history-item{border-top-color:rgba(9,9,11,.07)}
   .pgrow{grid-template-columns:1fr}
     .nav-center { display: none; }
     .hamburger-btn { display: flex; align-items: center; justify-content: center; }
-  /* Mobile: nav inside #header-group fixed flex column, bar collapses via max-height */
+  /* Mobile: nav position:fixed top:0; bar fixed below nav via JS */
   nav#nav{z-index:240;padding:.8rem 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s}
     .hero{padding-top:0}
       .hero-inner{min-height:calc(100svh - 60px)}
@@ -1663,19 +1666,16 @@ body.light-mode::after{opacity:0.15}
 })();
 </script>
 
-<div id="toast"></div>
-
-<!-- FIXED HEADER GROUP: safe-area-tint + announcement bar + nav all in ONE fixed layer.
-     iOS compositor renders siblings in the same fixed parent at the same GPU layer boundary,
-     so there is physically no possibility of a sub-pixel gap between bar and nav. -->
-<div id="header-group" aria-label="Site header">
-<div class="safe-area-tint" aria-hidden="true"></div>
-<!-- ANNOUNCEMENT BAR: starts collapsed; applyAnnouncementBar() opens it via bar-collapsed class -->
-<div id="bar" class="bar-collapsed" style="display:flex">
+<div class="safe-area-tint" aria-hidden="true"></div><div id="toast"></div>
+<!-- ANNOUNCEMENT BAR -->
+<div id="bar" style="display:none">
   <span class="bar-sep" aria-hidden="true"></span>
   <span id="announcementText">ALL THE DEVILS ARE HERE</span>
   <span class="bar-sep" aria-hidden="true"></span>
 </div>
+<!-- Spacer holds bar's height in document flow; #bar is always position:fixed -->
+<div id="bar-spacer" style="height:0;transition:height .45s ease;flex-shrink:0;pointer-events:none" aria-hidden="true"></div>
+
 <!-- NAV -->
 <nav id="nav">
   <a href="/" class="nav-logo">
@@ -1702,7 +1702,7 @@ body.light-mode::after{opacity:0.15}
       </button>
   </div>
 </nav>
-</div><!-- /#header-group -->
+
 
 <!-- MOBILE MENU MODAL -->
 <div id="mobile-menu" class="modal" role="dialog" aria-modal="true" aria-hidden="true" style="z-index:900;">
@@ -2246,7 +2246,29 @@ function showToast(msg) {
 const nav = document.getElementById('nav');
 window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 50), { passive: true });
 
-/* BAR — lives inside #header-group fixed flex column; no individual top-setting needed */
+/* BAR — syncNavOffset keeps bar/nav positions aligned on load and resize */
+(function() {
+  const bar = document.getElementById('bar');
+  const syncNavOffset = () => {
+    const isMob = window.matchMedia('(max-width: 900px)').matches;
+    if (isMob) {
+      // Mobile: nav at top:0 always, bar fixed below nav
+      nav.style.top = '0px';
+      document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
+      if (bar && bar.style.display !== 'none') {
+        bar.style.top = nav.offsetHeight + 'px';
+      }
+    } else {
+      // Desktop: nav pushed below bar when bar visible
+      const isHidden = bar.style.display === 'none' || bar.style.opacity === '0' || bar.style.pointerEvents === 'none';
+      const nextTop = isHidden ? 0 : bar.offsetHeight;
+      nav.style.top = nextTop + 'px';
+      document.documentElement.style.setProperty('--mobile-nav-gap', nextTop + 'px');
+    }
+  };
+  syncNavOffset();
+  window.addEventListener('resize', syncNavOffset);
+})();
 
 /* SUPABASE */
 const SUPABASE_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
@@ -2266,16 +2288,43 @@ function teardownAnnouncementBarScroll() {
 }
 
 function setAnnouncementBarLayout(barEl, navEl, isVisible) {
-  /* No-op: #header-group flex column positions bar and nav automatically.
-     No individual top-setting needed. */
+  if (!navEl) return;
+  const spacerEl = document.getElementById('bar-spacer');
+  const isMob = window.matchMedia('(max-width: 900px)').matches;
+  if (isMob) {
+    // Mobile: nav at top:0, bar fixed below nav, no spacer needed
+    navEl.style.top = '0px';
+    document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
+    if (barEl && isVisible) barEl.style.top = navEl.offsetHeight + 'px';
+    if (spacerEl) spacerEl.style.height = '0';
+  } else {
+    // Desktop: bar always fixed at top:0; nav pushed below; spacer holds bar height in flow
+    const barH = (barEl && isVisible) ? barEl.offsetHeight : 0;
+    navEl.style.top = barH + 'px';
+    document.documentElement.style.setProperty('--mobile-nav-gap', barH + 'px');
+    if (spacerEl) spacerEl.style.height = isVisible ? barH + 'px' : '0';
+  }
 }
 
 function applyAnnouncementBar(mode, msgText) {
   const barEl = document.getElementById('bar');
+  const navEl = document.getElementById('nav');
   if (!barEl) return;
   const normalizedMode = String(mode || 'on').trim().toLowerCase();
+  const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
 
   teardownAnnouncementBarScroll();
+  if (isMobileViewport) {
+    // Mobile: fixed below nav (bar CSS is already position:fixed)
+    barEl.style.top = (navEl ? navEl.offsetHeight : 0) + 'px';
+  } else {
+    // Desktop: fixed at top:0, nav pushed below by setAnnouncementBarLayout
+    barEl.style.top = '0';
+  }
+  barEl.style.transition = 'transform .28s ease, opacity .2s ease';
+  barEl.style.transform = 'translateY(0)';
+  barEl.style.opacity = '1';
+  barEl.style.pointerEvents = '';
 
   const textEl = document.getElementById('announcementText');
   const fallbackText = (barEl.dataset.defaultText || (textEl ? textEl.textContent : '') || '').trim();
@@ -2286,21 +2335,77 @@ function applyAnnouncementBar(mode, msgText) {
   }
 
   if (normalizedMode === 'off') {
-    barEl.classList.add('bar-collapsed');
+    if (isMobileViewport) {
+      barEl.style.display = 'flex';
+      barEl.style.transform = 'translateY(calc(-100% - 2px))';
+      barEl.style.opacity = '0';
+      barEl.style.pointerEvents = 'none';
+    } else {
+      barEl.style.display = 'none';
+    }
+    setAnnouncementBarLayout(barEl, navEl, false);
     return;
   }
 
-  // Show bar
-  barEl.classList.remove('bar-collapsed');
+  barEl.style.display = 'flex';
+  setAnnouncementBarLayout(barEl, navEl, true);
 
   if (normalizedMode !== 'scroll') return;
 
-  // Scroll-hide behaviour: collapse bar on scroll down, restore on scroll up
+  if (isMobileViewport) {
+    barEl.style.transition = 'transform .28s ease, opacity .2s ease';
+    let lastScrollY = window.scrollY;
+    let isHidden = false;
+    const scrollActivationAt = Date.now() + 450;
+    const syncAnnouncementState = (hidden) => {
+      barEl.style.display = 'flex';
+      barEl.style.transform = hidden ? 'translateY(calc(-100% - 2px))' : 'translateY(0)';
+      barEl.style.opacity = hidden ? '0' : '1';
+      barEl.style.pointerEvents = hidden ? 'none' : '';
+      barEl.style.marginBottom = '0';
+      setAnnouncementBarLayout(barEl, navEl, !hidden);
+    };
+    syncAnnouncementState(false);
+    _announcementBarScrollHandler = function() {
+      const currentY = window.scrollY;
+      if (document.body.dataset.scrollLocked || window.__zwScrollLocking || window.__zwScrollRestoring) { lastScrollY = currentY; return; }
+      if (Date.now() < scrollActivationAt) { lastScrollY = currentY; return; }
+      const scrollingDown = currentY > lastScrollY + 6;
+      const scrollingUp = currentY < lastScrollY - 6;
+      if (currentY <= 16 || scrollingUp) {
+        if (isHidden) { isHidden = false; syncAnnouncementState(false); }
+      } else if (currentY > 80 && scrollingDown) {
+        if (!isHidden) { isHidden = true; syncAnnouncementState(true); }
+      }
+      lastScrollY = currentY;
+    };
+    window.addEventListener('scroll', _announcementBarScrollHandler, { passive: true });
+    return;
+  }
+
+  barEl.style.transition = 'transform 0.45s ease, opacity 0.45s ease';
   let lastScrollY = window.scrollY;
   let isHidden = false;
   const scrollActivationAt = Date.now() + 450;
+  let _barHideTimer = null;
+  const spacerEl = document.getElementById('bar-spacer');
   const syncAnnouncementState = (hidden) => {
-    barEl.classList.toggle('bar-collapsed', hidden);
+    clearTimeout(_barHideTimer);
+    if (hidden) {
+      barEl.style.transform = 'translateY(-100%)';
+      barEl.style.opacity = '0';
+      barEl.style.pointerEvents = 'none';
+      if (spacerEl) spacerEl.style.height = '0';
+      _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; }, 460);
+    } else {
+      barEl.style.display = 'flex';
+      void barEl.offsetHeight;
+      barEl.style.transform = 'translateY(0)';
+      barEl.style.opacity = '1';
+      barEl.style.pointerEvents = '';
+      if (spacerEl) spacerEl.style.height = barEl.offsetHeight + 'px';
+    }
+    setAnnouncementBarLayout(barEl, navEl, !hidden);
   };
   syncAnnouncementState(false);
   _announcementBarScrollHandler = function() {
@@ -2308,7 +2413,7 @@ function applyAnnouncementBar(mode, msgText) {
     if (document.body.dataset.scrollLocked || window.__zwScrollLocking || window.__zwScrollRestoring) { lastScrollY = currentY; return; }
     if (Date.now() < scrollActivationAt) { lastScrollY = currentY; return; }
     const scrollingDown = currentY > lastScrollY + 6;
-    const scrollingUp  = currentY < lastScrollY - 6;
+    const scrollingUp = currentY < lastScrollY - 6;
     if (currentY <= 16 || scrollingUp) {
       if (isHidden) { isHidden = false; syncAnnouncementState(false); }
     } else if (currentY > 80 && scrollingDown) {
@@ -2635,7 +2740,7 @@ async function loadAllCardReviewSummaries(cardMap) {
   try {
     const idList = pids.map(id => `"${id}"`).join(',');
     const resp = await fetch(
-      `${SUPABASE_URL}/rest/v1/reviews?product_id=in.(${pids.map(id => encodeURIComponent(id)).join(',')})&select=product_id,rating`,
+      `${SUPABASE_URL}/rest/v1/reviews?product_id=in.(${pids.join(',')})&select=product_id,rating`,
       { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` } }
     );
     if (!resp.ok) return;
