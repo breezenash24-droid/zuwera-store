@@ -224,18 +224,7 @@ body::after{
   position:fixed;top:0;left:0;right:0;z-index:230;
   transition:transform .28s ease, opacity .2s ease;
 }
-/* Gap cover: iOS compositor can insert a sub-pixel gap at the boundary between
-   two separate position:fixed layers. Extend #bar 2px downward so its background
-   bleeds into the gap zone between bar-bottom and nav-top. Also extend nav 2px
-   upward as a second defence. Both use var(--ink) so the extensions are invisible. */
-#bar::after{
-  content:'';position:absolute;bottom:-2px;left:0;right:0;height:2px;
-  background:var(--ink);z-index:1;
-}
-nav#nav::before{
-  content:'';position:absolute;top:-2px;left:0;right:0;height:2px;
-  background:var(--ink);z-index:1;
-}
+
 .bar-sep{opacity:.25;font-size:0;line-height:1}
 .bar-sep::before{content:'\2726';font-size:.62rem}
 
@@ -1443,9 +1432,7 @@ body.light-mode .ret-history-item{border-top-color:rgba(9,9,11,.07)}
     .hamburger-btn { display: flex; align-items: center; justify-content: center; }
   /* Mobile: nav position:fixed top:0; bar fixed below nav via JS */
   nav#nav{z-index:240;padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s,top .45s ease}
-  /* Mobile gap covers: bar is BELOW nav, so the seam is at nav-bottom / bar-top */
-  nav#nav::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:2px;background:var(--ink);z-index:1;}
-  #bar::before{content:'';position:absolute;top:-2px;left:0;right:0;height:2px;background:var(--ink);z-index:1;}
+
     .hero{padding-top:0}
       .hero-inner{min-height:calc(100svh - 60px)}
 }
@@ -1461,6 +1448,7 @@ body.light-mode .ret-history-item{border-top-color:rgba(9,9,11,.07)}
   }
   .pgrid::-webkit-scrollbar { display:none; }
   .pgrid .pcard { flex:0 0 85%; scroll-snap-align:start; }
+  .pcard-add-btn{display:none}
   .cart-hd{padding:1.2rem}
   footer{padding:2rem 1.2rem}
   .mbox { padding: 2rem 1.2rem 1.8rem; }
