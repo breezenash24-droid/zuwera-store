@@ -49,7 +49,9 @@
       <div id="zw-promo-message" style="font-family:var(--fm,inherit);font-size:.62rem;color:rgba(244,241,235,.5);letter-spacing:.03em;min-height:.9rem;"></div>
     `;
 
-    const totalRow = host.querySelector('.stotal, .total');
+    const summary = host.closest('.cart-summary') || document.querySelector('.cart-summary');
+    const totalRow = host.querySelector('.stotal, .total')
+      || summary?.querySelector('.stotal, .summary-row.total, .total');
     if (totalRow) {
       totalRow.parentNode.insertBefore(shell, totalRow);
     } else {
@@ -58,10 +60,15 @@
 
     const discountRow = document.createElement('div');
     discountRow.id = 'zw-promo-row';
-    discountRow.className = totalRow?.className || 'srow';
+    discountRow.className = totalRow?.className?.replace(/\btotal\b/g, '').trim()
+      || (summary ? 'summary-row' : 'srow');
     discountRow.style.display = 'none';
     discountRow.innerHTML = '<span>Discount</span><span id="zw-promo-discount">-$0.00</span>';
-    if (totalRow) totalRow.parentNode.insertBefore(discountRow, totalRow);
+    if (totalRow) {
+      totalRow.parentNode.insertBefore(discountRow, totalRow);
+    } else {
+      host.appendChild(discountRow);
+    }
 
     document.getElementById('zw-promo-apply')?.addEventListener('click', applyPromoFromInput);
   }
