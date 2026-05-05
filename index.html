@@ -28,6 +28,19 @@
 <link rel="canonical" href="https://zuwera.store/">
 <link rel="icon" type="image/png" href="/images/favicon-black.png?v=1" id="site-favicon">
 
+<script>
+/* Kick off the products fetch as early as possible — before CSS/JS blocks parsing —
+   so it's already in-flight when loadProducts() runs later. */
+(function(){
+  if(sessionStorage.getItem('zw_home_products')) return; // cached, no need
+  var SUPA='https://qfgnrsifcwdubkolsgsq.supabase.co';
+  var ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+  window.__zwProductsEarlyFetch=fetch(
+    SUPA+'/rest/v1/products?select=*,product_images(*)&order=sort_order.asc',
+    {headers:{apikey:ANON,Authorization:'Bearer '+ANON}}
+  );
+})();
+</script>
 <script src="/favicon-utils.js?v=1"></script>
 <!-- ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ JSON-LD Structured Data ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ -->
 <script type="application/ld+json">
@@ -1429,12 +1442,15 @@ body.light-mode .ret-history-item{border-top-color:rgba(9,9,11,.07)}
     .nav-center { display: none; }
     .hamburger-btn { display: flex; align-items: center; justify-content: center; }
   /* Mobile: nav position:fixed top:0; bar fixed below nav via JS */
-  nav#nav{z-index:240;padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s}
+  nav#nav{z-index:240;padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s,top .45s ease}
+  /* Mobile gap covers: bar is BELOW nav, so the seam is at nav-bottom / bar-top */
+  nav#nav::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:2px;background:var(--ink);z-index:1;}
+  #bar::before{content:'';position:absolute;top:-2px;left:0;right:0;height:2px;background:var(--ink);z-index:1;}
     .hero{padding-top:0}
       .hero-inner{min-height:calc(100svh - 60px)}
 }
 @media(max-width:600px){
-  nav#nav{padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s}
+  nav#nav{padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s,top .45s ease}
 
   .hero-inner{padding:2rem 1.2rem 1.5rem}
   .hero-bottom{padding:1rem 1.2rem 2rem}
@@ -2709,31 +2725,27 @@ async function loadProducts() {
     } catch(e){}
   }
 
-  // Fetch products and images separately so each card only receives images that
-  // actually belong to that product.
+  // Single joined query — products + their images in one round-trip.
+  // We also use window.__zwProductsEarlyFetch if the <head> script kicked it off
+  // early, saving the latency between HTML parse and this script running.
   try {
     const headers = { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` };
-    const [productsResp, imagesResp] = await Promise.all([
-      fetch(`${SUPABASE_URL}/rest/v1/products?select=*&order=sort_order.asc`, { headers }),
-      fetch(`${SUPABASE_URL}/rest/v1/product_images?select=*&order=sort_order.asc`, { headers }),
-    ]);
+    const earlyFetch = window.__zwProductsEarlyFetch;
+    const productsResp = await (earlyFetch || fetch(
+      `${SUPABASE_URL}/rest/v1/products?select=*,product_images(*)&order=sort_order.asc`,
+      { headers }
+    ));
+    window.__zwProductsEarlyFetch = null; // don't reuse a consumed response
     if (!productsResp.ok) throw new Error(`HTTP ${productsResp.status}`);
     const products = await productsResp.json();
-    const imageRows = imagesResp.ok ? await imagesResp.json() : [];
     if (!Array.isArray(products) || products.length === 0) {
       if (!cached) grid.innerHTML = '<div class="pcard" style="opacity:.3;text-align:center;padding:3rem">No products yet.</div>';
       return;
     }
-    const imagesByProductId = new Map();
-    (Array.isArray(imageRows) ? imageRows : []).forEach((image) => {
-      if (!image || !image.product_id) return;
-      const bucket = imagesByProductId.get(image.product_id) || [];
-      bucket.push(image);
-      imagesByProductId.set(image.product_id, bucket);
-    });
+    // Supabase embeds product_images as a nested array; sort them by sort_order.
     const normalizedProducts = products.map((product) => ({
       ...product,
-      product_images: (imagesByProductId.get(product.id) || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)),
+      product_images: (product.product_images || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)),
     }));
     sessionStorage.setItem('zw_home_products', JSON.stringify(normalizedProducts));
     renderCategoryNavigation(normalizedProducts);
