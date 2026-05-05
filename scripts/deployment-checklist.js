@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { spawnSync } = require('child_process');
 
 const root = path.resolve(__dirname, '..');
 
@@ -117,6 +118,20 @@ const checks = [
     name: 'Cache bump script is available',
     pass: () => /"bump-cache": "node scripts\/bump-cache-version\.js"/.test(read('package.json'))
       && fs.existsSync(path.join(root, 'scripts', 'bump-cache-version.js')),
+  },
+  {
+    name: 'Checkout/cart smoke tests pass',
+    pass: () => {
+      const result = spawnSync(process.execPath, [path.join(root, 'scripts', 'checkout-cart-smoke.js')], {
+        cwd: root,
+        encoding: 'utf8',
+      });
+      if (result.status !== 0) {
+        process.stdout.write(result.stdout || '');
+        process.stderr.write(result.stderr || '');
+      }
+      return result.status === 0;
+    },
   },
 ];
 

@@ -183,6 +183,32 @@
       border: 1px solid rgba(244,241,235,.15); padding: .2rem .55rem; margin-top: .4rem; color: rgba(244,241,235,.6);
     }
     body.light-mode .order-status { border-color: rgba(9,9,11,.15); color: rgba(9,9,11,.55); }
+    .order-timeline {
+      display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .45rem;
+      margin-top: .75rem; padding-top: .75rem; border-top: 1px solid rgba(244,241,235,.06);
+    }
+    body.light-mode .order-timeline { border-top-color: rgba(9,9,11,.07); }
+    .order-step {
+      position: relative; min-width: 0; color: rgba(244,241,235,.26); font-size: .56rem;
+      letter-spacing: .08em; text-transform: uppercase; line-height: 1.45;
+    }
+    .order-step::before {
+      content: ""; display: block; width: 8px; height: 8px; border-radius: 50%;
+      border: 1px solid rgba(244,241,235,.18); margin-bottom: .35rem; background: transparent;
+    }
+    .order-step.done { color: rgba(244,241,235,.7); }
+    .order-step.done::before { background: var(--paper); border-color: var(--paper); }
+    .order-step.current { color: var(--paper); }
+    .order-step.current::before { box-shadow: 0 0 0 4px rgba(244,241,235,.08); }
+    body.light-mode .order-step { color: rgba(9,9,11,.28); }
+    body.light-mode .order-step::before { border-color: rgba(9,9,11,.18); }
+    body.light-mode .order-step.done { color: rgba(9,9,11,.68); }
+    body.light-mode .order-step.done::before { background: var(--ink); border-color: var(--ink); }
+    body.light-mode .order-step.current { color: var(--ink); }
+    body.light-mode .order-step.current::before { box-shadow: 0 0 0 4px rgba(9,9,11,.08); }
+    @media (max-width: 640px) {
+      .order-timeline { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem .5rem; }
+    }
 
     /* ── FAVS ── */
     .fav-row {
@@ -386,6 +412,29 @@ function escHtml(v) {
   return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function orderTimelineHtml(order, returnRequests = []) {
+  const fulfillment = String(order?.commerce?.fulfillmentStatus || order?.fulfillment_status || '').toLowerCase();
+  const status = String(order?.status || '').toLowerCase();
+  const payment = String(order?.payment_status || order?.paymentStatus || order?.commerce?.paymentStatus || '').toLowerCase();
+  const hasTracking = Boolean(order?.commerce?.trackingNumber || order?.tracking_number || order?.commerce?.trackingUrl || order?.tracking_url);
+  const hasReturn = returnRequests.some(r => String(r.orderId || r.order_id || '') === String(order?.id || ''));
+  const paid = ['paid','succeeded','processing','confirmed','fulfilled'].some(s => payment.includes(s) || status.includes(s)) || Boolean(order?.payment_intent_id || order?.stripe_payment_intent_id);
+  const packed = ['packed','fulfilled','shipped','delivered','completed'].some(s => fulfillment.includes(s) || status.includes(s));
+  const shipped = hasTracking || ['shipped','fulfilled','delivered','completed'].some(s => fulfillment.includes(s) || status.includes(s));
+  const delivered = ['delivered','completed'].some(s => fulfillment.includes(s) || status.includes(s)) || Boolean(order?.delivered_at || order?.commerce?.deliveredAt);
+  const states = [
+    { key: 'placed', label: 'Placed', done: true },
+    { key: 'paid', label: 'Paid', done: paid },
+    { key: 'packed', label: 'Packed', done: packed },
+    { key: 'shipped', label: 'Shipped', done: shipped },
+    { key: 'delivered', label: 'Delivered', done: delivered },
+    { key: 'return', label: 'Return Requested', done: hasReturn },
+  ];
+  let firstOpen = states.findIndex(step => !step.done);
+  if (firstOpen < 0) firstOpen = states.length - 1;
+  return `<div class="order-timeline">${states.map((step, idx) => `<div class="order-step${step.done ? ' done' : ''}${idx === firstOpen ? ' current' : ''}">${escHtml(step.label)}</div>`).join('')}</div>`;
+}
+
 /* ── SESSION ── */
 async function getSession() {
   if (!_sb?.auth?.getSession) return null;
@@ -446,6 +495,7 @@ async function loadOrders() {
     // Use the hub API (service-role key) so RLS never blocks the query
     if (!_hubPayload) _hubPayload = await fetchHub();
     const data = _hubPayload?.orders || [];
+    const returnRequests = Array.isArray(_hubPayload?.returns) ? _hubPayload.returns : [];
     if (loading) loading.style.display = 'none';
     if (!data.length) { if (empty) empty.style.display = 'block'; return; }
     list.dataset.loaded = '1';
@@ -478,6 +528,7 @@ async function loadOrders() {
               ? `<a href="${escHtml(trackingUrl)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;opacity:.7">Track: ${escHtml(tracking)}</a>`
               : `Tracking: ${escHtml(tracking)}`}
           </div>` : ''}
+          ${orderTimelineHtml(o, returnRequests)}
         </div>`;
     }).join('');
   } catch(err) {

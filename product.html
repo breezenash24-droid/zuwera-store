@@ -1570,9 +1570,6 @@ sb.auth.onAuthStateChange((event, session) => {
     renderPrice();
     if (currentProduct.reviews) renderReviews();
   }
-  if (typeof window.renderProductCartItems === 'function') {
-    window.renderProductCartItems();
-  }
 });
 
 _sessionPromise
@@ -1581,9 +1578,6 @@ _sessionPromise
     if (currentProduct) {
       renderPrice();
       if (currentProduct.reviews) renderReviews();
-    }
-    if (typeof window.renderProductCartItems === 'function') {
-      window.renderProductCartItems();
     }
   })
   .catch(() => {});
@@ -2987,53 +2981,6 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
 <!-- CART MODAL                                                        -->
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
-<div id="cart-modal" class="modal" role="dialog" aria-modal="true">
-  <div class="cart-page-header">
-    <button class="cart-back-btn" id="cart-close">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-      Continue Shopping
-    </button>
-    <h1>Bag</h1>
-    <div style="width:160px"></div>
-  </div>
-  <div class="cart-page-body">
-    <div class="cart-bag-section">
-      <h2>Your Bag</h2>
-      <p id="cart-empty-msg" class="cart-empty-msg">Your bag is empty.</p>
-      <ul id="cart-items-list"></ul>
-      <div class="cart-favorites">
-        <h2>Saved Items</h2>
-        <p id="fav-logged-out-msg" class="favorites-msg"><a id="fav-signin-link">Login</a> to view your saved items</p>
-        <div id="fav-logged-in-area" style="display:none">
-          <p id="cart-favs-empty" style="display:none;font-family:'DM Sans',sans-serif;font-size:.72rem;color:rgba(9,9,11,.4);padding:.3rem 0 .6rem">No saved items yet.</p>
-          <ul id="cart-favs-list" style="list-style:none;padding:0;margin:0"></ul>
-        </div>
-      </div>
-    </div>
-    <div class="cart-summary">
-      <h2>Summary</h2>
-      <div class="summary-row"><span>Subtotal</span><span class="summary-value" id="summary-subtotal">-</span></div>
-      <div class="summary-row">
-        <div><div>Shipping</div><div class="shipping-note cart-note">Standard 5-7 days<br>Free on orders over $100</div></div>
-        <span class="summary-value" id="summary-shipping">-</span>
-      </div>
-      <div class="summary-row"><span>Tax</span><span class="summary-value" id="summary-tax">-</span></div>
-      <div class="summary-row total"><span>Total</span><span id="summary-total">-</span></div>
-      <button id="checkout-btn">Checkout</button>
-    </div>
-  </div>
-  <div class="cart-shell-footer">
-    <nav class="cart-shell-footer-nav" aria-label="Bag footer links">
-      <a href="/index.html">Home</a>
-      <a href="/drop001.html">Release 001</a>
-      <a href="/sizeguide.html">Size Guide</a>
-      <a href="/policies.html">Policies</a>
-      <a href="mailto:nasirubreeze@zuwera.store">Contact</a>
-    </nav>
-    <p class="cart-shell-footer-copy">Zuwera</p>
-  </div>
-</div>
-
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
 <!-- PAYMENT MODAL                                                     -->
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
@@ -3104,13 +3051,6 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     e.preventDefault();
     goToBagPage();
   });
-  document.getElementById('cart-close').addEventListener('click', () => {
-    document.getElementById('cart-modal').classList.remove('open');
-    document.body.style.overflow = '';
-  });
-  document.getElementById('cart-modal').addEventListener('click', e => {
-    if (e.target === e.currentTarget) { document.getElementById('cart-modal').classList.remove('open'); document.body.style.overflow = ''; }
-  });
 
   // All Reviews modal interactions
   document.getElementById('all-reviews-close')?.addEventListener('click', () => {
@@ -3161,136 +3101,9 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 
 
   // Favorites links (placeholder ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â no auth modal on product page)
-  document.getElementById('fav-signin-link').addEventListener('click', () => {
-    document.getElementById('cart-modal')?.classList.remove('open');
+  document.getElementById('fav-signin-link')?.addEventListener('click', () => {
     document.body.style.overflow = '';
     if (typeof openAuthModal === 'function') openAuthModal('signin'); else window.location.href = 'index.html?auth=signin';
-  });
-
-  function getCartPricingSnapshot(productId) {
-    if (currentProduct?.id === productId) {
-      return {
-        regularPrice: getRegularProductPrice(currentProduct),
-        memberPrice: getMemberProductPrice(currentProduct),
-      };
-    }
-
-    try {
-      const cached = JSON.parse(sessionStorage.getItem('zw_home_products') || '[]');
-      const matched = Array.isArray(cached) ? cached.find(product => product?.id === productId) : null;
-      if (!matched) return null;
-      return {
-        regularPrice: getRegularProductPrice(matched),
-        memberPrice: getMemberProductPrice(matched),
-      };
-    } catch {
-      return null;
-    }
-  }
-
-  function normalizeCartPricing(cart) {
-    const sourceCart = Array.isArray(cart) ? cart : [];
-    const normalized = sourceCart.map((item) => {
-      const snapshot = item?.productId ? getCartPricingSnapshot(item.productId) : null;
-      const regularPrice = parseFloat(item?.regularPrice ?? item?.basePrice ?? snapshot?.regularPrice ?? item?.price ?? 0) || 0;
-      const memberPrice = parseFloat(item?.memberPrice ?? item?.member_price ?? snapshot?.memberPrice ?? 0) || 0;
-      const effectivePrice = (isMemberSignedIn() && memberPrice > 0 && (!regularPrice || memberPrice < regularPrice))
-        ? memberPrice
-        : regularPrice;
-
-      return {
-        ...item,
-        regularPrice,
-        memberPrice,
-        price: effectivePrice || regularPrice || (parseFloat(item?.price) || 0),
-      };
-    });
-
-    if (JSON.stringify(normalized) !== JSON.stringify(sourceCart)) {
-      localStorage.setItem('cart', JSON.stringify(normalized));
-    }
-
-    return normalized;
-  }
-
-  // Render cart items from localStorage
-  function renderCartItems() {
-    const cart = normalizeCartPricing(JSON.parse(localStorage.getItem('cart')) || []);
-    cartItems = cart;
-    const list = document.getElementById('cart-items-list');
-    const emptyMsg = document.getElementById('cart-empty-msg');
-
-    if (cart.length === 0) {
-      list.innerHTML = '';
-      emptyMsg.style.display = 'block';
-      updateSummary(0);
-      if (typeof refreshCartFavs === 'function') refreshCartFavs();
-      return;
-    }
-
-    emptyMsg.style.display = 'none';
-    list.innerHTML = cart.map((item, idx) => `
-      <li style="display:flex;gap:1rem;align-items:flex-start">
-        <img src="${optimizeImage(item.image, 150)}" alt="${item.title}" style="width:80px;height:100px;object-fit:cover;border:1px solid rgba(244,241,235,.08)" onerror="if(this.src !== '${item.image}') this.src='${item.image}';">
-        <div style="flex:1">
-          <div style="font-family:var(--font-head);font-size:.95rem;letter-spacing:.08em">${item.title}</div>
-          <div style="font-size:.75rem;color:rgba(244,241,235,.4);margin-top:.2rem">${item.colorName} / ${item.size}</div>
-          <div style="font-size:.75rem;color:inherit;margin-top:.3rem;display:flex;align-items:center;gap:8px">
-            <span style="opacity:0.6">Qty:</span>
-            <button onclick="updateCartQuantity(${idx}, -1)" style="background:none;border:1px solid rgba(150,150,150,.3);color:inherit;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:2px;font-size:1rem;line-height:1">-</button>
-            <span style="min-width:12px;text-align:center">${item.quantity}</span>
-            <button onclick="updateCartQuantity(${idx}, 1)" style="background:none;border:1px solid rgba(150,150,150,.3);color:inherit;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:2px;font-size:1rem;line-height:1">+</button>
-          </div>
-          <div style="margin-top:.4rem;font-size:.85rem">$${(parseFloat(item.price) * item.quantity).toFixed(2)}</div>
-        </div>
-        <button onclick="removeCartItem(${idx})" style="background:none;border:none;color:rgba(244,241,235,.3);cursor:pointer;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase">Remove</button>
-      </li>
-    `).join('');
-
-    const subtotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
-    updateSummary(subtotal);
-    if (typeof refreshCartFavs === 'function') refreshCartFavs();
-  }
-
-  window.renderProductCartItems = renderCartItems;
-
-  window.updateCartQuantity = function(idx, delta) {
-    let cart = JSON.parse(localStorage.getItem('cart')) || [];
-    if (cart[idx]) {
-      cart[idx].quantity += delta;
-      if (cart[idx].quantity <= 0) cart.splice(idx, 1);
-      localStorage.setItem('cart', JSON.stringify(cart));
-      loadCartCount();
-      renderCartItems();
-    }
-  };
-
-  function updateSummary(subtotal) {
-    document.getElementById('summary-subtotal').textContent = subtotal > 0 ? '$' + subtotal.toFixed(2) : '-';
-    const freeAt = window.zwShippingThreshold || 100;
-    const shipRate = window.zwShippingRate || 8;
-    document.getElementById('summary-shipping').textContent = subtotal >= freeAt ? 'Free' : (subtotal > 0 ? '$' + shipRate.toFixed(2) : '\u2014');
-    const shipping = subtotal >= freeAt ? 0 : (subtotal > 0 ? shipRate : 0);
-    const tax = window.ZWCheckoutTax?.taxDollars(subtotal, getCheckoutTaxStateCode()) || 0;
-    document.getElementById('summary-tax').textContent = subtotal > 0 ? '$' + tax.toFixed(2) : '-';
-    document.getElementById('summary-total').textContent = subtotal > 0 ? '$' + (subtotal + shipping + tax).toFixed(2) : '-';
-  }
-
-  // Expose removeCartItem globally
-  window.removeCartItem = function(idx) {
-    let cart = JSON.parse(localStorage.getItem('cart')) || [];
-    cart.splice(idx, 1);
-    localStorage.setItem('cart', JSON.stringify(cart));
-    loadCartCount();
-    renderCartItems();
-  };
-
-  // Checkout button
-  document.getElementById('checkout-btn').addEventListener('click', () => {
-    if (cartItems.length === 0) return;
-    const subtotalText = document.getElementById('summary-subtotal')?.textContent?.replace(/[^0-9.]/g, '') || '0';
-    const subtotalCents = Math.round(parseFloat(subtotalText) * 100) || 100;
-    openPaymentModal(subtotalCents);
   });
 
   // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
@@ -3372,7 +3185,6 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
   function getCheckoutTaxCents(subtotalCents, stateCode = '') {
     return window.ZWCheckoutTax?.taxCents(subtotalCents, getCheckoutTaxStateCode(stateCode)) || 0;
   }
-  let _paymentReturnModalId = null;
   function getWalletTaxCents(subtotalCents, stateCode = '') {
     return getCheckoutTaxCents(subtotalCents, stateCode);
   }
@@ -3437,9 +3249,6 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     applyDetectedState(detected);
   }
   function openPaymentModal(subtotalCents) {
-    const cartModal = document.getElementById('cart-modal');
-    _paymentReturnModalId = cartModal?.classList.contains('open') ? 'cart-modal' : null;
-    if (_paymentReturnModalId) cartModal.classList.remove('open');
     document.getElementById('payment-modal').classList.add('open');
     document.body.style.overflow = 'hidden';
     document.getElementById('pay-error').textContent = '';
@@ -3454,14 +3263,6 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
   }
   function closePayModal(id, { suppressReturn = false } = {}) {
     document.getElementById(id)?.classList.remove('open');
-    const shouldReturnToCart = !suppressReturn && _paymentReturnModalId === 'cart-modal';
-    _paymentReturnModalId = null;
-    if (shouldReturnToCart) {
-      renderCartItems();
-      document.getElementById('cart-modal')?.classList.add('open');
-      document.body.style.overflow = 'hidden';
-      return;
-    }
     document.body.style.overflow='';
   }
 
@@ -3763,8 +3564,6 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     document.body.style.overflow = 'hidden';
     cartItems = [];
     localStorage.removeItem('cart');
-    document.getElementById('cart-items-list').innerHTML = '';
-    document.getElementById('cart-empty-msg').style.display = 'block';
     loadCartCount();
   }
   document.getElementById('success-continue').addEventListener('click', () => {
