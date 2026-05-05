@@ -1,9 +1,26 @@
 /**
  * admin-returns.js — Admin returns management API
  *
- * GET  /api/admin-returns             → { success, requests: [...] }
- * POST /api/admin-returns             → body { action, ... }
- *   action: 'update_return'           → { returnId, status, resolution, reason, notes, internalNotes, shippingAddress }
+ * GET  /api/admin-returns  → { success, requests: [...] }
+ * POST /api/admin-returns  → body { action, ... }
+ *   action: 'update_return'
+ *     returnId        (required)
+ *     status          string — one of VALID_STATUSES
+ *     resolution      string — one of VALID_RESOLUTIONS
+ *     reason          string
+ *     notes           string
+ *     internalNotes   string
+ *     customerMessage string
+ *     exchangeSku     string
+ *     inspectionNotes string
+ *     labelUrl        string
+ *     trackingNumber  string
+ *     trackingUrl     string
+ *     carrier         string
+ *     service         string
+ *     labelSentAt     ISO string
+ *     shippingAddress object
+ *     clearLabelError boolean — if true, nulls out label_error
  *
  * Auth: Bearer <supabase JWT> — must belong to an admin user (role = 'admin' in profiles).
  */
@@ -13,7 +30,7 @@ const { ok, err, preflight } = require('./_shared');
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY;
 
-const VALID_STATUSES   = ['requested','approved','label_sent','denied','exchange_in_progress','completed','refunded','closed'];
+const VALID_STATUSES    = ['requested','approved','label_sent','denied','exchange_in_progress','completed','refunded','closed'];
 const VALID_RESOLUTIONS = ['return','exchange','store_credit'];
 
 // ── Helpers ───────────────────────────────────────────────────────
@@ -66,6 +83,7 @@ function mapRequest(r) {
     internalNotes:   r.internal_notes,
     customerMessage: r.customer_message,
     exchangeSku:     r.exchange_sku,
+    inspectionNotes: r.inspection_notes,
     shippingAddress: r.shipping_address,
     labelUrl:        r.label_url,
     trackingNumber:  r.tracking_number,
@@ -73,7 +91,7 @@ function mapRequest(r) {
     carrier:         r.carrier,
     service:         r.service,
     labelError:      r.label_error,
-    lastLabelError:  r.label_error,
+    lastLabelError:  r.label_error,   // alias used by admin.html
     labelSentAt:     r.label_sent_at,
   };
 }
@@ -92,7 +110,7 @@ exports.handler = async (event) => {
   const admin = await isAdmin(user.id);
   if (!admin) return err(403, 'Admin access required');
 
-  // ── GET: load all return requests ────────────────────────────────
+  // ── GET: load all return requests ─────────────────────────────
   if (event.httpMethod === 'GET') {
     const resp = await sbFetch('/return_requests?order=updated_at.desc&limit=500');
     if (!resp.ok) {
@@ -103,22 +121,39 @@ exports.handler = async (event) => {
     return ok({ success: true, requests: (Array.isArray(rows) ? rows : []).map(mapRequest) });
   }
 
-  // ── POST: actions ─────────────────────────────────────────────────
+  // ── POST: actions ─────────────────────────────────────────────
   if (event.httpMethod === 'POST') {
     let body;
     try { body = JSON.parse(event.body || '{}'); } catch { return err(400, 'Invalid JSON body'); }
 
     if (body.action === 'update_return') {
-      const { returnId, status, resolution, reason, notes, internalNotes, shippingAddress } = body;
+      const {
+        returnId, status, resolution, reason, notes, internalNotes,
+        customerMessage, exchangeSku, inspectionNotes,
+        labelUrl, trackingNumber, trackingUrl, carrier, service, labelSentAt,
+        shippingAddress, clearLabelError,
+      } = body;
+
       if (!returnId) return err(400, 'returnId is required');
 
       const patch = {};
-      if (status     !== undefined && VALID_STATUSES.includes(status))       patch.status         = status;
-      if (resolution !== undefined && VALID_RESOLUTIONS.includes(resolution)) patch.resolution      = resolution;
-      if (reason     !== undefined) patch.reason         = String(reason || '');
-      if (notes      !== undefined) patch.notes          = String(notes || '');
-      if (internalNotes !== undefined) patch.internal_notes = String(internalNotes || '');
-      if (shippingAddress !== undefined) patch.shipping_address = shippingAddress;
+
+      if (status              !== undefined && VALID_STATUSES.includes(status))       patch.status          = status;
+      if (resolution          !== undefined && VALID_RESOLUTIONS.includes(resolution)) patch.resolution       = resolution;
+      if (reason              !== undefined) patch.reason          = String(reason              || '');
+      if (notes               !== undefined) patch.notes           = String(notes               || '');
+      if (internalNotes       !== undefined) patch.internal_notes  = String(internalNotes       || '');
+      if (customerMessage     !== undefined) patch.customer_message = String(customerMessage     || '');
+      if (exchangeSku         !== undefined) patch.exchange_sku     = String(exchangeSku         || '');
+      if (inspectionNotes     !== undefined) patch.inspection_notes = String(inspectionNotes     || '');
+      if (labelUrl            !== undefined) patch.label_url        = String(labelUrl            || '');
+      if (trackingNumber      !== undefined) patch.tracking_number  = String(trackingNumber      || '');
+      if (trackingUrl         !== undefined) patch.tracking_url     = String(trackingUrl         || '');
+      if (carrier             !== undefined) patch.carrier          = String(carrier             || '');
+      if (service             !== undefined) patch.service          = String(service             || '');
+      if (labelSentAt         !== undefined) patch.label_sent_at    = labelSentAt || null;
+      if (shippingAddress     !== undefined) patch.shipping_address = shippingAddress;
+      if (clearLabelError)                   patch.label_error      = null;
 
       if (!Object.keys(patch).length) return err(400, 'No valid fields to update');
 

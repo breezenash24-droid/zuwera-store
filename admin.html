@@ -1439,27 +1439,30 @@
                         </table>
                     </div>
 
-                    <!-- Returns JS loaded below -->
+                    <!-- Returns JS -->
                     <script>
+                    /* ── State ──────────────────────────────────────────────── */
+                    let _returnsData     = [];
                     let _selectedReturnId = null;
+
                     const RETURN_STATUSES = [
-                        ['requested', 'Requested'],
-                        ['approved', 'Approved'],
-                        ['label_sent', 'Label Sent'],
-                        ['exchange_in_progress', 'Exchange In Progress'],
-                        ['completed', 'Completed'],
-                        ['refunded', 'Refunded'],
-                        ['denied', 'Denied'],
-                        ['closed', 'Closed'],
+                        ['requested',           'Requested'],
+                        ['approved',            'Approved'],
+                        ['label_sent',          'Label Sent'],
+                        ['exchange_in_progress','Exchange In Progress'],
+                        ['completed',           'Completed'],
+                        ['refunded',            'Refunded'],
+                        ['denied',              'Denied'],
+                        ['closed',              'Closed'],
                     ];
                     const RETURN_STATUS_COLORS = {
-                        requested:'#f59e0b',
-                        approved:'#22c55e',
-                        label_sent:'#38bdf8',
-                        denied:'#ef4444',
-                        completed:'#a78bfa',
-                        refunded:'#6b7280',
-                        closed:'#6b7280',
+                        requested:           '#f59e0b',
+                        approved:            '#22c55e',
+                        label_sent:          '#38bdf8',
+                        denied:              '#ef4444',
+                        completed:           '#a78bfa',
+                        refunded:            '#6b7280',
+                        closed:              '#6b7280',
                         exchange_in_progress:'#a78bfa',
                     };
 
@@ -1524,7 +1527,7 @@
                         } else if (type === 'error') alert(message);
                     }
 
-                    loadReturnsPage = async function() {
+                    window.loadReturnsPage = async function() {
                         document.getElementById('returns-loading').style.display = 'block';
                         document.getElementById('returns-loading').textContent = 'Loading...';
                         document.getElementById('returns-empty').style.display = 'none';
@@ -1546,7 +1549,7 @@
                             if (_selectedReturnId && !_returnsData.some(r => r.id === _selectedReturnId)) _selectedReturnId = null;
                             document.getElementById('returns-loading').style.display = 'none';
                             renderReturnsStats();
-                            renderReturnsTable();
+                            window.renderReturnsTable();
                             renderReturnDetails();
                         } catch(e) {
                             document.getElementById('returns-loading').textContent = 'Could not load returns data: ' + e.message;
@@ -1583,7 +1586,7 @@
                         });
                     }
 
-                    renderReturnsTable = function() {
+                    window.renderReturnsTable = function() {
                         const rows = getFilteredReturns();
                         const tbody = document.getElementById('returns-tbody');
                         if (!rows.length) {
@@ -1652,22 +1655,107 @@
                         panel.style.display = 'block';
                         panel.innerHTML = `
                             <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:1rem;">
-                                <div><div style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:5px;">Return Workspace</div><h3 style="margin:0 0 6px;font-size:1.1rem;">${retEscape(orderLabel)} - ${retEscape(r.customerName || 'Customer')}</h3><div style="color:var(--text-secondary);font-size:.82rem;">Created ${retDate(r.createdAt, true)}${r.updatedAt ? ` - Updated ${retDate(r.updatedAt, true)}` : ''}</div><div style="margin-top:8px;color:#38bdf8;font-size:.82rem;">Next: ${retEscape(retNextAction(r))}</div></div>
-                                <div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','approved')">Approve</button><button class="btn btn-secondary btn-sm" onclick="sendReturnLabel('${id}', this)" ${sendLabelDisabled}>${sendLabelText}</button><button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','exchange_in_progress')">Exchange Started</button><button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','refunded')">Refunded</button><button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','completed')">Complete</button><button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','denied')">Deny</button><button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','closed')">Close</button></div>
-                            </div>
-                            <div style="display:grid;grid-template-columns:minmax(260px,1.1fr) minmax(260px,.9fr);gap:1rem;margin-bottom:1rem;">
-                                <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:1rem;">
-                                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.8rem;"><div><label class="form-label">Status</label><select id="ret-detail-status-${id}" class="form-select">${retStatusOptions(r.status)}</select></div><div><label class="form-label">Resolution</label><select id="ret-detail-resolution-${id}" class="form-select"><option value="return" ${r.resolution === 'return' ? 'selected' : ''}>Return / Refund</option><option value="exchange" ${r.resolution === 'exchange' ? 'selected' : ''}>Exchange</option><option value="store_credit" ${r.resolution === 'store_credit' ? 'selected' : ''}>Store Credit</option></select></div><div><label class="form-label">Refund Amount</label><input id="ret-detail-refund-${id}" class="form-input" type="number" min="0" step="0.01" value="${retAttr(r.refundAmount ?? '')}" placeholder="${retMoney(r.orderTotal || 0)}"></div><div><label class="form-label">Exchange SKU / Size</label><input id="ret-detail-exchange-${id}" class="form-input" value="${retAttr(r.exchangeSku || '')}" placeholder="Replacement SKU or size"></div></div>
-                                    <div style="margin-top:.85rem;"><label class="form-label">Customer Reason</label><input id="ret-detail-reason-${id}" class="form-input" value="${retAttr(r.reason || '')}"></div>
-                                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-top:.85rem;"><div><label class="form-label">Customer Notes</label><textarea id="ret-detail-notes-${id}" class="form-textarea" rows="4">${retEscape(r.notes || '')}</textarea></div><div><label class="form-label">Message To Customer</label><textarea id="ret-detail-message-${id}" class="form-textarea" rows="4" placeholder="Optional note for support follow-up">${retEscape(r.customerMessage || '')}</textarea></div><div><label class="form-label">Internal Notes</label><textarea id="ret-detail-internal-${id}" class="form-textarea" rows="4" placeholder="Private team notes">${retEscape(r.internalNotes || '')}</textarea></div><div><label class="form-label">Inspection Notes</label><textarea id="ret-detail-inspection-${id}" class="form-textarea" rows="4" placeholder="Condition, tags, photos, restock notes">${retEscape(r.inspectionNotes || '')}</textarea></div></div>
-                                    <div style="display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap;"><button class="btn btn-primary btn-sm" onclick="saveReturnDetails('${id}', this)">Save Return Details</button><button class="btn btn-secondary btn-sm" onclick="loadReturnsPage()">Reload</button></div>
+                                <div>
+                                    <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:5px;">Return Workspace</div>
+                                    <h3 style="margin:0 0 5px;font-size:1.05rem;">${retEscape(orderLabel)} — ${retEscape(r.customerName || 'Customer')}</h3>
+                                    <div style="color:var(--text-secondary);font-size:.78rem;">
+                                        Created ${retDate(r.createdAt, true)}${r.updatedAt ? ' · Updated ' + retDate(r.updatedAt, true) : ''}
+                                    </div>
+                                    <div style="margin-top:6px;color:#38bdf8;font-size:.78rem;">→ ${retEscape(retNextAction(r))}</div>
                                 </div>
-                                <div style="display:grid;gap:.8rem;"><div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:1rem;"><div style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.6rem;">Customer</div><div style="font-weight:600;">${retEscape(r.customerName || r.userName || 'Customer')}</div><div style="color:var(--text-secondary);font-size:.82rem;margin-top:3px;">${retEscape(r.customerEmail || r.userEmail || '-')}</div><div style="color:var(--text-secondary);font-size:.82rem;margin-top:10px;line-height:1.55;">${retEscape(a.name || r.customerName || '')}<br>${retEscape(a.line1 || '')}${a.line2 ? ', ' + retEscape(a.line2) : ''}<br>${retEscape([a.city, a.state, a.zip].filter(Boolean).join(' '))}<br>${retEscape(a.country || '')}</div>${retAddressMissing(r) ? '<div style="margin-top:10px;color:#f97316;font-size:.78rem;">Missing return address fields. Label generation may fail until the original order has a full shipping address.</div>' : ''}</div><div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:1rem;"><div style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.6rem;">Label / Tracking</div><div style="font-size:.85rem;line-height:1.65;">${labelLinks}</div><div style="color:var(--text-secondary);font-size:.8rem;margin-top:8px;">${retEscape([r.carrier, r.service].filter(Boolean).join(' - ') || '')}</div><div style="font-family:monospace;font-size:.82rem;margin-top:4px;">${retEscape(r.trackingNumber || '')}</div>${labelErrorHtml}<div style="margin-top:1rem;border-top:1px solid var(--border);padding-top:.85rem;"><div style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.6rem;">Manual Label Fallback</div><label class="form-label">Label URL</label><input id="ret-detail-label-url-${id}" class="form-input" value="${retAttr(r.labelUrl || '')}" placeholder="https://...label.pdf"><label class="form-label" style="margin-top:.65rem;">Tracking Number</label><input id="ret-detail-tracking-${id}" class="form-input" value="${retAttr(r.trackingNumber || '')}" placeholder="9400..."><div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.65rem;"><div><label class="form-label">Carrier</label><input id="ret-detail-carrier-${id}" class="form-input" value="${retAttr(r.carrier || '')}" placeholder="USPS"></div><div><label class="form-label">Service</label><input id="ret-detail-service-${id}" class="form-input" value="${retAttr(r.service || '')}" placeholder="Ground Advantage"></div></div><label class="form-label" style="margin-top:.65rem;">Tracking URL</label><input id="ret-detail-tracking-url-${id}" class="form-input" value="${retAttr(r.trackingUrl || '')}" placeholder="https://..."><button class="btn btn-secondary btn-sm" style="margin-top:.75rem;" onclick="saveManualReturnLabel('${id}', this)">Save Manual Label</button></div></div><div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:1rem;"><div style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.6rem;">Order Items</div>${itemsHtml}</div></div>
+                                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                                    <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','approved')">Approve</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="sendReturnLabel('${id}', this)" ${sendLabelDisabled}>${sendLabelText}</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','exchange_in_progress')">Exchange Started</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','refunded')">Refunded</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','completed')">Complete</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','denied')">Deny</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','closed')">Close</button>
+                                </div>
+                            </div>
+
+                            <div style="display:grid;grid-template-columns:minmax(260px,1.1fr) minmax(260px,.9fr);gap:1rem;margin-bottom:1rem;">
+
+                                <!-- Left: editable fields -->
+                                <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:1rem;">
+                                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.85rem;">
+                                        <div><label class="form-label">Status</label>
+                                            <select id="ret-detail-status-${id}" class="form-select">${retStatusOptions(r.status)}</select></div>
+                                        <div><label class="form-label">Resolution</label>
+                                            <select id="ret-detail-resolution-${id}" class="form-select">
+                                                <option value="return" ${r.resolution === 'return' ? 'selected' : ''}>Return / Refund</option>
+                                                <option value="exchange" ${r.resolution === 'exchange' ? 'selected' : ''}>Exchange</option>
+                                                <option value="store_credit" ${r.resolution === 'store_credit' ? 'selected' : ''}>Store Credit</option>
+                                            </select></div>
+                                        <div><label class="form-label">Exchange SKU / Size</label>
+                                            <input id="ret-detail-exchange-${id}" class="form-input" value="${retAttr(r.exchangeSku || '')}" placeholder="Replacement SKU or size"></div>
+                                        <div><label class="form-label">Order Total</label>
+                                            <input class="form-input" value="${retAttr(retMoney(r.orderTotal))}" readonly style="opacity:.5;cursor:default"></div>
+                                    </div>
+                                    <div style="margin-bottom:.75rem;"><label class="form-label">Customer Reason</label>
+                                        <input id="ret-detail-reason-${id}" class="form-input" value="${retAttr(r.reason || '')}"></div>
+                                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+                                        <div><label class="form-label">Customer Notes</label>
+                                            <textarea id="ret-detail-notes-${id}" class="form-textarea" rows="3">${retEscape(r.notes || '')}</textarea></div>
+                                        <div><label class="form-label">Message to Customer</label>
+                                            <textarea id="ret-detail-message-${id}" class="form-textarea" rows="3" placeholder="Optional support note">${retEscape(r.customerMessage || '')}</textarea></div>
+                                        <div><label class="form-label">Internal Notes</label>
+                                            <textarea id="ret-detail-internal-${id}" class="form-textarea" rows="3" placeholder="Private team notes">${retEscape(r.internalNotes || '')}</textarea></div>
+                                        <div><label class="form-label">Inspection Notes</label>
+                                            <textarea id="ret-detail-inspection-${id}" class="form-textarea" rows="3" placeholder="Condition, tags, photos, restock">${retEscape(r.inspectionNotes || '')}</textarea></div>
+                                    </div>
+                                    <div style="display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap;">
+                                        <button class="btn btn-primary btn-sm" onclick="saveReturnDetails('${id}', this)">Save Details</button>
+                                        <button class="btn btn-secondary btn-sm" onclick="loadReturnsPage()">Reload</button>
+                                    </div>
+                                </div>
+
+                                <!-- Right: customer info + label -->
+                                <div style="display:grid;gap:.8rem;align-content:start;">
+
+                                    <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:1rem;">
+                                        <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.6rem;">Customer</div>
+                                        <div style="font-weight:600;">${retEscape(r.customerName || 'Customer')}</div>
+                                        <div style="color:var(--text-secondary);font-size:.8rem;margin-top:2px;">${retEscape(r.customerEmail || '-')}</div>
+                                        <div style="color:var(--text-secondary);font-size:.8rem;margin-top:10px;line-height:1.6;">
+                                            ${retEscape(a.name || '')}${a.name ? '<br>' : ''}
+                                            ${retEscape(a.line1 || '')}${a.line2 ? ', ' + retEscape(a.line2) : ''}${a.line1 ? '<br>' : ''}
+                                            ${retEscape([a.city, a.state, a.zip].filter(Boolean).join(' '))}${a.city ? '<br>' : ''}
+                                            ${retEscape(a.country || '')}
+                                        </div>
+                                        ${retAddressMissing(r) ? '<div style="margin-top:8px;color:#f97316;font-size:.75rem;">⚠ Shipping address incomplete — label generation may fail.</div>' : ''}
+                                    </div>
+
+                                    <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:1rem;">
+                                        <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.6rem;">Label / Tracking</div>
+                                        <div style="font-size:.85rem;line-height:1.65;">${labelLinks}</div>
+                                        ${r.carrier || r.service ? `<div style="color:var(--text-secondary);font-size:.78rem;margin-top:6px;">${retEscape([r.carrier, r.service].filter(Boolean).join(' — '))}</div>` : ''}
+                                        ${r.trackingNumber ? `<div style="font-family:monospace;font-size:.78rem;margin-top:3px;">${retEscape(r.trackingNumber)}</div>` : ''}
+                                        ${labelErrorHtml}
+                                        <div style="margin-top:1rem;border-top:1px solid var(--border);padding-top:.85rem;">
+                                            <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.6rem;">Manual Label</div>
+                                            <label class="form-label">Label PDF URL</label>
+                                            <input id="ret-detail-label-url-${id}" class="form-input" value="${retAttr(r.labelUrl || '')}" placeholder="https://...label.pdf">
+                                            <label class="form-label" style="margin-top:.6rem;">Tracking Number</label>
+                                            <input id="ret-detail-tracking-${id}" class="form-input" value="${retAttr(r.trackingNumber || '')}" placeholder="9400...">
+                                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.6rem;">
+                                                <div><label class="form-label">Carrier</label>
+                                                    <input id="ret-detail-carrier-${id}" class="form-input" value="${retAttr(r.carrier || '')}" placeholder="USPS"></div>
+                                                <div><label class="form-label">Service</label>
+                                                    <input id="ret-detail-service-${id}" class="form-input" value="${retAttr(r.service || '')}" placeholder="Ground Advantage"></div>
+                                            </div>
+                                            <label class="form-label" style="margin-top:.6rem;">Tracking URL</label>
+                                            <input id="ret-detail-tracking-url-${id}" class="form-input" value="${retAttr(r.trackingUrl || '')}" placeholder="https://...">
+                                            <button class="btn btn-secondary btn-sm" style="margin-top:.75rem;" onclick="saveManualReturnLabel('${id}', this)">Save Manual Label</button>
+                                        </div>
+                                    </div>
+
+                                    <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:1rem;">
+                                        <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.6rem;">Order Items</div>
+                                        ${itemsHtml}
+                                    </div>
+                                </div>
                             </div>`;
-                        const manualSaveBtn = panel.querySelector(`button[onclick="saveManualReturnLabel('${id}', this)"]`);
-                        if (manualSaveBtn && !document.getElementById(`ret-detail-email-manual-${id}`)) {
-                            manualSaveBtn.insertAdjacentHTML('afterend', `<button id="ret-detail-email-manual-${id}" class="btn btn-secondary btn-sm" style="margin-top:.75rem;margin-left:8px;" onclick="emailManualReturnLabel('${id}', this)">Save + Email Label</button>`);
-                        }
                     }
 
                     async function persistReturnUpdate(requestId, updates) {
@@ -1676,19 +1764,40 @@
                         const { data: { session } } = await sb.auth.getSession();
                         const token = session?.access_token;
                         if (!token) throw new Error('Missing admin session token.');
+                        const patch = {
+                            action:          'update_return',
+                            returnId:        requestId,
+                            status:          updates.status          ?? req.status          ?? 'requested',
+                            resolution:      updates.resolution      ?? req.resolution      ?? 'return',
+                            reason:          updates.reason          ?? req.reason          ?? '',
+                            notes:           updates.notes           ?? req.notes           ?? '',
+                            internalNotes:   updates.internalNotes   ?? req.internalNotes   ?? '',
+                            customerMessage: updates.customerMessage ?? req.customerMessage ?? '',
+                            exchangeSku:     updates.exchangeSku     ?? req.exchangeSku     ?? '',
+                            inspectionNotes: updates.inspectionNotes ?? req.inspectionNotes ?? '',
+                            labelUrl:        updates.labelUrl        ?? req.labelUrl        ?? '',
+                            trackingNumber:  updates.trackingNumber  ?? req.trackingNumber  ?? '',
+                            trackingUrl:     updates.trackingUrl     ?? req.trackingUrl     ?? '',
+                            carrier:         updates.carrier         ?? req.carrier         ?? '',
+                            service:         updates.service         ?? req.service         ?? '',
+                            labelSentAt:     updates.labelSentAt     ?? req.labelSentAt     ?? '',
+                            clearLabelError: updates.clearLabelError || false,
+                        };
                         const resp = await fetch('/api/admin-returns', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                            body: JSON.stringify({ action: 'update_return', returnId: requestId, status: updates.status ?? req.status ?? 'requested', resolution: updates.resolution ?? req.resolution ?? 'return', reason: updates.reason ?? req.reason ?? '', notes: updates.notes ?? req.notes ?? '', internalNotes: updates.internalNotes ?? req.internalNotes ?? '', customerMessage: updates.customerMessage ?? req.customerMessage ?? '', refundAmount: updates.refundAmount ?? req.refundAmount ?? '', exchangeSku: updates.exchangeSku ?? req.exchangeSku ?? '', adminResolution: updates.adminResolution ?? req.adminResolution ?? '', inspectionNotes: updates.inspectionNotes ?? req.inspectionNotes ?? '', labelUrl: updates.labelUrl ?? req.labelUrl ?? '', trackingNumber: updates.trackingNumber ?? req.trackingNumber ?? '', trackingUrl: updates.trackingUrl ?? req.trackingUrl ?? '', carrier: updates.carrier ?? req.carrier ?? '', service: updates.service ?? req.service ?? '', labelSentAt: updates.labelSentAt ?? req.labelSentAt ?? '', clearLabelError: updates.clearLabelError || false })
+                            body: JSON.stringify(patch),
                         });
                         const payload = await resp.json().catch(() => ({}));
                         if (!resp.ok || !payload.success) throw new Error(payload.error || 'Could not update return.');
                         Object.assign(req, payload.request || {});
-                        renderReturnsStats(); renderReturnsTable(); renderReturnDetails();
+                        renderReturnsStats();
+                        window.renderReturnsTable();
+                        renderReturnDetails();
                         return req;
                     }
 
-                    updateReturnStatus = async function(requestId, newStatus, selectEl) {
+                    window.updateReturnStatus = async function(requestId, newStatus, selectEl) {
                         const req = _returnsData.find(r => r.id === requestId);
                         if (!req) return;
                         const oldStatus = req.status;
@@ -1704,10 +1813,22 @@
                         const oldText = buttonEl?.textContent || '';
                         if (buttonEl) { buttonEl.disabled = true; buttonEl.textContent = 'Saving...'; }
                         try {
-                            await persistReturnUpdate(requestId, { status: retField(`ret-detail-status-${requestId}`), resolution: retField(`ret-detail-resolution-${requestId}`), reason: retField(`ret-detail-reason-${requestId}`), notes: retField(`ret-detail-notes-${requestId}`), customerMessage: retField(`ret-detail-message-${requestId}`), internalNotes: retField(`ret-detail-internal-${requestId}`), inspectionNotes: retField(`ret-detail-inspection-${requestId}`), refundAmount: retField(`ret-detail-refund-${requestId}`), exchangeSku: retField(`ret-detail-exchange-${requestId}`) });
+                            await persistReturnUpdate(requestId, {
+                                status:          retField(`ret-detail-status-${requestId}`),
+                                resolution:      retField(`ret-detail-resolution-${requestId}`),
+                                reason:          retField(`ret-detail-reason-${requestId}`),
+                                notes:           retField(`ret-detail-notes-${requestId}`),
+                                customerMessage: retField(`ret-detail-message-${requestId}`),
+                                internalNotes:   retField(`ret-detail-internal-${requestId}`),
+                                inspectionNotes: retField(`ret-detail-inspection-${requestId}`),
+                                exchangeSku:     retField(`ret-detail-exchange-${requestId}`),
+                            });
                             notifyReturns('Return details saved.', 'success');
-                        } catch (e) { notifyReturns('Could not save return: ' + e.message, 'error'); }
-                        finally { if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = oldText || 'Save Return Details'; } }
+                        } catch (e) {
+                            notifyReturns('Could not save return: ' + e.message, 'error');
+                        } finally {
+                            if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = oldText || 'Save Return Details'; }
+                        }
                     }
                     async function saveManualReturnLabel(requestId, buttonEl) {
                         const oldText = buttonEl?.textContent || '';
@@ -1740,49 +1861,11 @@
                             if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = oldText || 'Save Manual Label'; }
                         }
                     }
-                    async function emailManualReturnLabel(requestId, buttonEl) {
-                        const req = _returnsData.find(r => r.id === requestId);
-                        if (!req) return;
-                        const oldText = buttonEl?.textContent || '';
-                        if (buttonEl) { buttonEl.disabled = true; buttonEl.textContent = 'Emailing...'; }
-                        const manualLabel = {
-                            labelUrl: retField(`ret-detail-label-url-${requestId}`).trim(),
-                            trackingNumber: retField(`ret-detail-tracking-${requestId}`).trim(),
-                            trackingUrl: retField(`ret-detail-tracking-url-${requestId}`).trim(),
-                            carrier: retField(`ret-detail-carrier-${requestId}`).trim(),
-                            service: retField(`ret-detail-service-${requestId}`).trim(),
-                        };
-                        if (!manualLabel.labelUrl) {
-                            notifyReturns('Add a label PDF URL before emailing a manual label.', 'error');
-                            if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = oldText || 'Save + Email Label'; }
-                            return;
-                        }
-                        try {
-                            if (req.status === 'requested') {
-                                await persistReturnUpdate(requestId, { status: 'approved' });
-                            }
-                            const { data: { session } } = await sb.auth.getSession();
-                            const token = session?.access_token;
-                            if (!token) throw new Error('Missing admin session token.');
-                            const resp = await fetch('/api/generate-return-label', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                                body: JSON.stringify({ returnId: requestId, orderId: req.orderId, force: 'true', manualLabel })
-                            });
-                            const payload = await resp.json().catch(() => ({}));
-                            if (!resp.ok || !payload.ok) throw new Error(payload.error || 'Could not email manual label.');
-                            Object.assign(req, { status: 'label_sent', ...manualLabel, labelSentAt: new Date().toISOString(), lastLabelError: '', labelErrorAt: '' });
-                            renderReturnsStats();
-                            renderReturnsTable();
-                            renderReturnDetails();
-                            notifyReturns('Manual label saved and emailed to the customer.', 'success');
-                        } catch (e) {
-                            notifyReturns('Could not email manual label: ' + e.message, 'error');
-                        } finally {
-                            if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = oldText || 'Save + Email Label'; }
-                        }
-                    }
-                    sendReturnLabel = async function(requestId, buttonEl) {
+                    /* sendReturnLabel — calls /api/generate-return-label (Shippo integration).
+                       Approve the return first, then attempt to buy a prepaid label.
+                       If Shippo is not yet configured, the endpoint returns a 404/500 and
+                       the admin falls back to saving a manual label in the detail panel. */
+                    window.sendReturnLabel = async function(requestId, buttonEl) {
                         const req = _returnsData.find(r => r.id === requestId);
                         if (!req) return;
                         const oldText = buttonEl ? buttonEl.textContent : '';
@@ -1792,34 +1875,46 @@
                                 if (buttonEl) buttonEl.textContent = 'Approving...';
                                 await persistReturnUpdate(requestId, { status: 'approved' });
                             }
-                            if (buttonEl) buttonEl.textContent = 'Buying label...';
+                            if (buttonEl) buttonEl.textContent = 'Generating label...';
                             const { data: { session } } = await sb.auth.getSession();
                             const token = session?.access_token;
                             if (!token) throw new Error('Missing admin session token.');
                             const resp = await fetch('/api/generate-return-label', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                                body: JSON.stringify({ returnId: requestId, orderId: req.orderId, force: req.labelUrl ? 'true' : 'false' })
+                                body: JSON.stringify({ returnId: requestId, orderId: req.orderId, force: req.labelUrl ? 'true' : 'false' }),
                             });
+                            if (resp.status === 404) {
+                                throw new Error('Shippo label generation is not configured yet. Use the Manual Label section to paste in an external label URL.');
+                            }
                             const payload = await resp.json().catch(() => ({}));
                             if (!resp.ok || !payload.ok) {
-                                const err = new Error(payload.error || 'Could not generate return label.');
-                                err.payload = payload;
-                                throw err;
+                                const shippoErr = new Error(payload.error || 'Could not generate return label.');
+                                shippoErr.payload = payload;
+                                throw shippoErr;
                             }
-                            Object.assign(req, { status: 'label_sent', labelUrl: payload.labelUrl, trackingNumber: payload.trackingNumber, trackingUrl: payload.trackingUrl, carrier: payload.carrier, service: payload.service, labelSentAt: new Date().toISOString(), lastLabelError: '', labelErrorAt: '' });
+                            Object.assign(req, {
+                                status: 'label_sent',
+                                labelUrl: payload.labelUrl,
+                                trackingNumber: payload.trackingNumber,
+                                trackingUrl: payload.trackingUrl,
+                                carrier: payload.carrier,
+                                service: payload.service,
+                                labelSentAt: new Date().toISOString(),
+                                lastLabelError: '',
+                            });
                             renderReturnsStats();
-                            renderReturnsTable();
+                            window.renderReturnsTable();
                             renderReturnDetails();
-                            notifyReturns('Return label sent.', 'success');
+                            notifyReturns('Return label generated and sent to customer.', 'success');
                         } catch(e) {
                             if (e.payload?.request) Object.assign(req, e.payload.request);
-                            else Object.assign(req, { lastLabelError: e.message, labelErrorAt: new Date().toISOString() });
+                            else Object.assign(req, { lastLabelError: e.message });
                             renderReturnsStats();
-                            renderReturnsTable();
+                            window.renderReturnsTable();
                             renderReturnDetails();
-                            const recovery = Array.isArray(e.payload?.recovery) && e.payload.recovery.length ? ' Next: ' + e.payload.recovery.join(' ') : ' You can save an external/manual label in the detail panel.';
-                            notifyReturns('Could not send return label: ' + e.message + recovery, 'error');
+                            const hint = ' Use the Manual Label section in the detail panel to paste an external label URL.';
+                            notifyReturns(e.message + hint, 'error');
                             if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = oldText || 'Send Label'; }
                         }
                     };
