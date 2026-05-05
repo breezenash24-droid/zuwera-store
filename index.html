@@ -657,6 +657,11 @@ body.light-mode #mobile-menu-close { color:#09090b !important; }
 }
 .pcard-add-btn:hover{background:#fff;transform:translateY(-1px)}
 .pcard-add-btn.loading{opacity:.6;pointer-events:none}
+.pcard-add-mobile-label{display:none}
+@media(max-width:900px){
+  .pcard-add-desktop-label{display:none}
+  .pcard-add-mobile-label{display:inline}
+}
 /* Panel that slides up from the bottom of the card */
 .quick-size-panel{
   position:absolute;bottom:0;left:0;right:0;
@@ -2834,7 +2839,7 @@ function renderProductCards(products, grid) {
             <span id="avg-${domId}"><span style="color:rgba(244,241,235,.2)">\u2606\u2606\u2606\u2606\u2606</span></span>
             <span id="cnt-${domId}">Be the first to review</span>
           </button>
-          ${isLive ? `<button type="button" class="pcard-add-btn" data-quick-add="${quickAddPayload}">Add to Bag</button>` : ''}
+          ${isLive ? `<button type="button" class="pcard-add-btn" data-quick-add="${quickAddPayload}"><span class="pcard-add-desktop-label">Add to Bag</span><span class="pcard-add-mobile-label">View Product</span></button>` : ''}
         </div>
         ${isLive ? `<div class="quick-size-panel" id="qsp-${domId}">
           <div class="quick-size-panel-header">
@@ -3762,12 +3767,30 @@ document.addEventListener('click', function(e) {
   }
 });
 
+function shouldBypassQuickAddModal() {
+  return window.matchMedia('(max-width: 900px)').matches;
+}
+
+function quickAddGoToProduct(payload) {
+  const href = productHref({
+    id: payload.productId,
+    sku: payload.sku,
+    title: payload.title
+  });
+  window.location.assign(href);
+}
+
+const QUICK_ADD_BUTTON_LABEL_HTML = '<span class="pcard-add-desktop-label">Add to Bag</span><span class="pcard-add-mobile-label">View Product</span>';
+
+function setQuickAddButtonLoading(btn, loading) {
+  if (!btn) return;
+  btn.classList.toggle('loading', Boolean(loading));
+  btn.innerHTML = loading ? '...' : QUICK_ADD_BUTTON_LABEL_HTML;
+}
+
 async function quickAddToCart(productId, productTitle, productPrice, productSku, productImage, productWeightLb, btn) {
   document.querySelectorAll('.quick-size-panel.open').forEach(p => p.classList.remove('open'));
-  if (btn) {
-    btn.classList.add('loading');
-    btn.textContent = '...';
-  }
+  setQuickAddButtonLoading(btn, true);
 
   const modalItem = {
     productId,
@@ -3818,10 +3841,7 @@ async function quickAddToCart(productId, productTitle, productPrice, productSku,
       message.textContent = 'Options are still loading. You can add the standard option or open the full product page.';
     }
   } finally {
-    if (btn) {
-      btn.classList.remove('loading');
-      btn.textContent = 'Add to Bag';
-    }
+    setQuickAddButtonLoading(btn, false);
   }
 }
 
@@ -3838,6 +3858,11 @@ window.__zwQuickAddClick = function(e, btn) {
     console.error('Quick add payload parse failed:', err);
     showToast('Unable to open product options');
     return;
+  }
+
+  if (shouldBypassQuickAddModal()) {
+    quickAddGoToProduct(payload);
+    return false;
   }
 
   quickAddToCart(
@@ -4058,6 +4083,15 @@ function quickAddRenderOptions(item) {
 }
 
 function openQuickAddReviewModal(item) {
+  if (shouldBypassQuickAddModal()) {
+    quickAddGoToProduct({
+      productId: item.productId,
+      sku: item.baseSku || item.sku,
+      title: item.title
+    });
+    return;
+  }
+
   item.selectedColor = item.colors?.length === 1 ? item.colors[0] : null;
   if (item.selectedColor?.variant_sku) item.sku = item.selectedColor.variant_sku;
   const inStockSizes = (item.sizes || []).filter(([, stock]) => Number(stock) > 0);
