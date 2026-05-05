@@ -2858,7 +2858,7 @@ function renderProductCards(products, grid) {
             <span id="avg-${domId}"><span style="color:rgba(244,241,235,.2)">\u2606\u2606\u2606\u2606\u2606</span></span>
             <span id="cnt-${domId}">Be the first to review</span>
           </button>
-          ${isLive ? `<button type="button" class="pcard-add-btn" data-quick-add="${quickAddPayload}"><span class="pcard-add-desktop-label">Add to Bag</span><span class="pcard-add-mobile-label">View Product</span></button>` : ''}
+          ${isLive && window.innerWidth > 900 ? `<button type="button" class="pcard-add-btn" data-quick-add="${quickAddPayload}"><span class="pcard-add-desktop-label">Add to Bag</span></button>` : ''}
         </div>
         ${isLive ? `<div class="quick-size-panel" id="qsp-${domId}">
           <div class="quick-size-panel-header">
@@ -3798,7 +3798,7 @@ function quickAddGoToProduct(payload) {
   window.location.assign(href);
 }
 
-const QUICK_ADD_BUTTON_LABEL_HTML = '<span class="pcard-add-desktop-label">Add to Bag</span><span class="pcard-add-mobile-label">View Product</span>';
+const QUICK_ADD_BUTTON_LABEL_HTML = '<span class="pcard-add-desktop-label">Add to Bag</span>';
 
 function setQuickAddButtonLoading(btn, loading) {
   if (!btn) return;
