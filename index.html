@@ -211,10 +211,16 @@ body::after{
   position:fixed;top:0;left:0;right:0;z-index:230;
   transition:transform .28s ease, opacity .2s ease;
 }
-/* Gap cover: a 1px same-colour extension below nav ensures the iOS compositor
-   never shows a hairline between the two fixed layers. */
-nav#nav::after{
-  content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;
+/* Gap cover: iOS compositor can insert a sub-pixel gap at the boundary between
+   two separate position:fixed layers. Extend #bar 2px downward so its background
+   bleeds into the gap zone between bar-bottom and nav-top. Also extend nav 2px
+   upward as a second defence. Both use var(--ink) so the extensions are invisible. */
+#bar::after{
+  content:'';position:absolute;bottom:-2px;left:0;right:0;height:2px;
+  background:var(--ink);z-index:1;
+}
+nav#nav::before{
+  content:'';position:absolute;top:-2px;left:0;right:0;height:2px;
   background:var(--ink);z-index:1;
 }
 .bar-sep{opacity:.25;font-size:0;line-height:1}
@@ -1423,12 +1429,12 @@ body.light-mode .ret-history-item{border-top-color:rgba(9,9,11,.07)}
     .nav-center { display: none; }
     .hamburger-btn { display: flex; align-items: center; justify-content: center; }
   /* Mobile: nav position:fixed top:0; bar fixed below nav via JS */
-  nav#nav{z-index:240;padding:.8rem 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s}
+  nav#nav{z-index:240;padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s}
     .hero{padding-top:0}
       .hero-inner{min-height:calc(100svh - 60px)}
 }
 @media(max-width:600px){
-  nav#nav{padding:.8rem 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s}
+  nav#nav{padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s}
 
   .hero-inner{padding:2rem 1.2rem 1.5rem}
   .hero-bottom{padding:1rem 1.2rem 2rem}
@@ -1651,7 +1657,11 @@ body.light-mode::after{opacity:0.15}
 <body>
 
 <script>
-// Load theme immediately to prevent flash
+// Load theme immediately to prevent flash.
+// Default: DARK (the site's primary theme). Only apply light-mode if
+// (a) localStorage says so from a previous storefront-theme.js fetch, or
+// (b) this is the first visit and storefront-theme.js will correct it.
+// This eliminates the white-flash / blank-screen on mobile.
 (function() {
   function syncThemeColor() {
     var isLight = document.body.classList.contains('light-mode');
@@ -1660,7 +1670,11 @@ body.light-mode::after{opacity:0.15}
     if (meta) meta.setAttribute('content', navBg);
     document.documentElement.style.backgroundColor = navBg;
   }
-  document.body.classList.add('light-mode');
+  try {
+    if (localStorage.getItem('zw_theme_mode') === 'light') {
+      document.body.classList.add('light-mode');
+    }
+  } catch(_) {}
   syncThemeColor();
   window.__zwSyncThemeColor = syncThemeColor;
 })();

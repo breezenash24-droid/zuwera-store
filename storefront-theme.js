@@ -12,6 +12,9 @@
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', color);
     document.documentElement.style.backgroundColor = color;
+    // Cache so the next page load can apply the correct theme instantly
+    // without waiting for this Supabase fetch to complete.
+    try { localStorage.setItem('zw_theme_mode', resolved); } catch(_) {}
   }
 
   window.__zwApplyAdminTheme = applyThemeMode;
