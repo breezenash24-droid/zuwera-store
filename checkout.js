@@ -23,10 +23,16 @@ function cardStyleForMode(light) {
 }
 
 function isLightMode() {
-  // Check both body class and localStorage (in case the class hasn't been applied yet)
   if (document.body.classList.contains('light-mode')) return true;
-  try { return localStorage.getItem('theme') === 'light'; } catch (_) { return false; }
+  // storefront-theme.js stores the resolved mode here
+  try { return localStorage.getItem('zw_theme_mode') === 'light'; } catch (_) { return false; }
 }
+
+// Called every time the payment modal opens so colours are always correct
+// regardless of async theme resolution timing.
+window.refreshCardStyle = function() {
+  if (cardElement) cardElement.update({ style: cardStyleForMode(isLightMode()) });
+};
 
 async function initStripe() {
   if (stripe) return stripe;
@@ -39,7 +45,7 @@ async function initStripe() {
     cardElement = elements.create('card', { style: cardStyleForMode(isLightMode()) });
     cardElement.mount('#stripe-card-element');
 
-    // Re-apply card colours whenever the theme class changes on <body>
+    // Also keep card in sync if theme changes while the page is open
     new MutationObserver(() => {
       if (cardElement) cardElement.update({ style: cardStyleForMode(isLightMode()) });
     }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
