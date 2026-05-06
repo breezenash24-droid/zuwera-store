@@ -28,10 +28,23 @@ function isLightMode() {
   try { return localStorage.getItem('zw_theme_mode') === 'light'; } catch (_) { return false; }
 }
 
-// Called every time the payment modal opens so colours are always correct
-// regardless of async theme resolution timing.
+function mountCard() {
+  // Destroy any existing card element first (cardElement.update() does not
+  // reliably re-render base.color after creation — Stripe limitation).
+  if (cardElement) {
+    try { cardElement.destroy(); } catch (_) {}
+    cardElement = null;
+  }
+  const container = document.getElementById('stripe-card-element');
+  if (container) container.innerHTML = '';
+  cardElement = elements.create('card', { style: cardStyleForMode(isLightMode()) });
+  cardElement.mount('#stripe-card-element');
+}
+
+// Called every time the payment modal opens — recreates the card element
+// with the correct current theme colours.
 window.refreshCardStyle = function() {
-  if (cardElement) cardElement.update({ style: cardStyleForMode(isLightMode()) });
+  if (elements) mountCard();
 };
 
 async function initStripe() {
@@ -42,14 +55,7 @@ async function initStripe() {
     const publishableKey = await getCheckoutPublishableKey();
     stripe = Stripe(publishableKey);
     elements = stripe.elements();
-    cardElement = elements.create('card', { style: cardStyleForMode(isLightMode()) });
-    cardElement.mount('#stripe-card-element');
-
-    // Also keep card in sync if theme changes while the page is open
-    new MutationObserver(() => {
-      if (cardElement) cardElement.update({ style: cardStyleForMode(isLightMode()) });
-    }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
-
+    mountCard();
     return stripe;
   })().catch((error) => {
     stripeInitPromise = null;
