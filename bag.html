@@ -626,6 +626,8 @@ document.getElementById('login-btn').addEventListener('click', () => {
 document.getElementById('checkout-btn').addEventListener('click', () => {
   if (!cartItems.length) { showToast('Your bag is empty.'); return; }
   document.getElementById('pay-error').textContent = '';
+  // Prefill checkout fields with the logged-in user's account data every time the modal opens
+  if (_bagUser) prefillCheckoutForUser(_bagUser);
   _openModal('payment-modal');
   const subtotalCents = Math.round(
     cartItems.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0) * 100
@@ -669,6 +671,18 @@ window.__zwOpenAuth = function(tab) {
 (function() {
   if (!window.sb) return;
 
+  function prefillCheckoutForUser(user) {
+    if (!user) return;
+    var email = (user.email || '').trim();
+    var meta  = user.user_metadata || {};
+    var name  = (meta.full_name || meta.name || '').trim();
+    var nameEl  = document.getElementById('pay-name');
+    var emailEl = document.getElementById('pay-email');
+    // Only prefill if the field is currently empty — never overwrite what the user typed
+    if (nameEl  && !nameEl.value.trim()  && name)  nameEl.value  = name;
+    if (emailEl && !emailEl.value.trim() && email) emailEl.value = email;
+  }
+
   function applyAuthState(user) {
     var wasGuest = !_bagUser;
     _bagUser = user || null;
@@ -677,6 +691,7 @@ window.__zwOpenAuth = function(tab) {
     if (user) {
       if (loggedOut) loggedOut.style.display = 'none';
       if (loggedIn)  loggedIn.style.display  = 'block';
+      prefillCheckoutForUser(user);
     } else {
       if (loggedOut) loggedOut.style.display = 'block';
       if (loggedIn)  loggedIn.style.display  = 'none';
