@@ -465,6 +465,7 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
 
 /* ── Cart globals (checkout.js references these) ── */
 let cartItems = [];
+let _bagUser  = null; // tracks signed-in user for member pricing
 const _cart = {
   itemsList:  document.getElementById('cart-items-list'),
   emptyMsg:   document.getElementById('cart-empty-msg'),
@@ -479,10 +480,21 @@ window.refreshCartFavs     = window.refreshCartFavs     || function() {};
 
 /* ── Cart helpers ── */
 function normalizeCartPricing(cart) {
-  return (cart || []).map(item => ({
-    ...item,
-    quantity: Math.max(1, parseInt(item.quantity, 10) || 1),
-  }));
+  return (cart || []).map(item => {
+    const regularPrice = parseFloat(item.regularPrice ?? item.basePrice ?? item.price ?? 0) || 0;
+    const memberPrice  = parseFloat(item.memberPrice ?? item.member_price ?? 0) || 0;
+    const isMember     = Boolean(_bagUser);
+    const effectivePrice = (isMember && memberPrice > 0 && (!regularPrice || memberPrice < regularPrice))
+      ? memberPrice
+      : (regularPrice || parseFloat(item.price) || 0);
+    return {
+      ...item,
+      regularPrice,
+      memberPrice,
+      price: effectivePrice,
+      quantity: Math.max(1, parseInt(item.quantity, 10) || 1),
+    };
+  });
 }
 
 function getCheckoutTaxStateCode(fallback = '') {
@@ -653,11 +665,13 @@ window.__zwOpenAuth = function(tab) {
 <script src="image-utils.js?v=1"></script>
 <script src="auth.js?v=11"></script>
 <script>
-/* ── Saved items visibility: flip as soon as auth state is known ── */
+/* ── Saved items visibility + member pricing: flip as soon as auth state is known ── */
 (function() {
   if (!window.sb) return;
-  window.sb.auth.onAuthStateChange(function(event, session) {
-    var user = session ? session.user : null;
+
+  function applyAuthState(user) {
+    var wasGuest = !_bagUser;
+    _bagUser = user || null;
     var loggedOut = document.getElementById('fav-logged-out-msg');
     var loggedIn  = document.getElementById('fav-logged-in-area');
     if (user) {
@@ -667,16 +681,18 @@ window.__zwOpenAuth = function(tab) {
       if (loggedOut) loggedOut.style.display = 'block';
       if (loggedIn)  loggedIn.style.display  = 'none';
     }
+    // Re-render cart so member prices are applied/removed immediately
+    if (wasGuest !== !_bagUser) renderCart();
+  }
+
+  window.sb.auth.onAuthStateChange(function(event, session) {
+    applyAuthState(session ? session.user : null);
   });
+
   // Also check immediately via getSession in case onAuthStateChange fires late
   window.sb.auth.getSession().then(function(result) {
     var user = result && result.data && result.data.session ? result.data.session.user : null;
-    var loggedOut = document.getElementById('fav-logged-out-msg');
-    var loggedIn  = document.getElementById('fav-logged-in-area');
-    if (user) {
-      if (loggedOut) loggedOut.style.display = 'none';
-      if (loggedIn)  loggedIn.style.display  = 'block';
-    }
+    applyAuthState(user);
   }).catch(function() {});
 })();
 </script>

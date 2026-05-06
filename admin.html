@@ -1597,25 +1597,43 @@
                         const form    = document.getElementById('ret-addr-form');
                         const chevron = document.getElementById('ret-addr-chevron');
                         if (!summary) return;
+                        summary.textContent = 'Loading…';
                         try {
-                            // Use already-loaded _maskedKeys if populated, otherwise fetch fresh
-                            let keys = _maskedKeys && Object.keys(_maskedKeys).length ? _maskedKeys : {};
-                            if (!Object.keys(keys).length) {
-                                const r = await fetch('/api/api-status');
-                                const d = await r.json().catch(() => ({}));
-                                keys = d.maskedKeys || {};
-                            }
-                            const hasStreet  = !!keys.SHIPPO_FROM_STREET1;
-                            const hasCity    = !!keys.SHIPPO_FROM_CITY;
-                            const hasState   = !!keys.SHIPPO_FROM_STATE;
-                            const hasZip     = !!keys.SHIPPO_FROM_ZIP;
+                            const { data: { session } } = await sb.auth.getSession();
+                            const token = session?.access_token;
+                            if (!token) throw new Error('Not authenticated');
+
+                            // Fetch the real unmasked address values
+                            const r = await fetch('/api/get-return-address', {
+                                headers: { Authorization: `Bearer ${token}` }
+                            });
+                            const d = await r.json().catch(() => ({}));
+                            if (!d.ok) throw new Error(d.error || 'Could not load address');
+                            const addr = d.address || {};
+
+                            const hasStreet  = !!addr.SHIPPO_FROM_STREET1;
+                            const hasCity    = !!addr.SHIPPO_FROM_CITY;
+                            const hasState   = !!addr.SHIPPO_FROM_STATE;
+                            const hasZip     = !!addr.SHIPPO_FROM_ZIP;
                             const allSet     = hasStreet && hasCity && hasState && hasZip;
 
+                            // Pre-fill form fields with current values
+                            const fieldMap = {
+                                'ra-name': 'SHIPPO_FROM_NAME', 'ra-street1': 'SHIPPO_FROM_STREET1',
+                                'ra-street2': 'SHIPPO_FROM_STREET2', 'ra-city': 'SHIPPO_FROM_CITY',
+                                'ra-state': 'SHIPPO_FROM_STATE', 'ra-zip': 'SHIPPO_FROM_ZIP',
+                                'ra-country': 'SHIPPO_FROM_COUNTRY',
+                            };
+                            Object.entries(fieldMap).forEach(([id, key]) => {
+                                const el = document.getElementById(id);
+                                if (el && addr[key]) el.value = addr[key];
+                            });
+
                             if (allSet) {
-                                const name = keys.SHIPPO_FROM_NAME ? 'Name ✓' : '';
-                                const parts = [name, 'Street ✓', 'City ✓', 'State ✓', 'ZIP ✓'].filter(Boolean);
-                                summary.textContent = parts.join(' · ');
-                                badge.innerHTML = '<span style="font-size:.75rem;color:var(--success);font-weight:600;">✓ Configured</span>';
+                                const namePart = addr.SHIPPO_FROM_NAME ? addr.SHIPPO_FROM_NAME + ', ' : '';
+                                const cityState = [addr.SHIPPO_FROM_CITY, addr.SHIPPO_FROM_STATE, addr.SHIPPO_FROM_ZIP].filter(Boolean).join(' ');
+                                summary.textContent = namePart + addr.SHIPPO_FROM_STREET1 + (cityState ? ', ' + cityState : '');
+                                badge.innerHTML = '<span style="font-size:.75rem;color:var(--success);font-weight:600;">✓ Ready</span>';
                                 if (form) form.style.display = 'none';
                                 if (chevron) chevron.style.transform = 'rotate(0deg)';
                             } else {
@@ -1636,6 +1654,7 @@
 
                     window.saveReturnAddress = async function() {
                         const statusEl = document.getElementById('ret-addr-status');
+                        const saveBtn  = document.querySelector('#ret-addr-form .btn.btn-primary');
                         const fields = [
                             { id: 'ra-name',    key: 'SHIPPO_FROM_NAME' },
                             { id: 'ra-street1', key: 'SHIPPO_FROM_STREET1' },
@@ -1650,30 +1669,38 @@
                             .filter(u => u.value.length > 0);
 
                         if (!updates.length) {
-                            if (statusEl) { statusEl.style.color = 'var(--warning)'; statusEl.textContent = 'Enter at least one field to save.'; }
+                            if (statusEl) { statusEl.style.color = 'var(--warning)'; statusEl.textContent = 'Fill in at least one field to save.'; }
                             return;
                         }
                         if (statusEl) { statusEl.style.color = 'var(--text-secondary)'; statusEl.textContent = 'Saving…'; }
+                        if (saveBtn) saveBtn.disabled = true;
                         try {
                             const { data: { session } } = await sb.auth.getSession();
                             const token = session?.access_token;
-                            if (!token) throw new Error('Not authenticated');
+                            if (!token) throw new Error('Not authenticated — please refresh and sign in again.');
+                            const errors = [];
+                            let saved = 0;
                             for (const u of updates) {
                                 const r = await fetch('/api/update-api-key', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ accessToken: token, keyName: u.key, keyValue: u.value }),
                                 });
-                                const d = await r.json();
-                                if (!d.ok) throw new Error(d.error || `Failed to save ${u.key}`);
+                                const d = await r.json().catch(() => ({}));
+                                if (d.ok) { saved++; }
+                                else { errors.push(`${u.key}: ${d.error || 'unknown error'}`); }
                             }
-                            if (statusEl) { statusEl.style.color = 'var(--success)'; statusEl.textContent = `✓ ${updates.length} field${updates.length !== 1 ? 's' : ''} saved.`; }
-                            // Clear saved fields and reload status
-                            fields.forEach(f => { const el = document.getElementById(f.id); if (el) el.value = ''; });
-                            _maskedKeys = {}; // force refresh on next load
-                            setTimeout(() => loadReturnAddressCard(), 600);
+                            if (errors.length) {
+                                if (statusEl) { statusEl.style.color = 'var(--error)'; statusEl.textContent = '✗ Errors: ' + errors.join('; '); }
+                            } else {
+                                if (statusEl) { statusEl.style.color = 'var(--success)'; statusEl.textContent = `✓ Saved ${saved} field${saved !== 1 ? 's' : ''}. Reloading…`; }
+                                // Reload card with real values after a brief pause
+                                setTimeout(() => { loadReturnAddressCard(); if (statusEl) statusEl.textContent = ''; }, 900);
+                            }
                         } catch(e) {
                             if (statusEl) { statusEl.style.color = 'var(--error)'; statusEl.textContent = '✗ ' + e.message; }
+                        } finally {
+                            if (saveBtn) saveBtn.disabled = false;
                         }
                     };
 

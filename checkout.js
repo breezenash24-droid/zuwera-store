@@ -17,14 +17,15 @@ async function initStripe() {
     const publishableKey = await getCheckoutPublishableKey();
     stripe = Stripe(publishableKey);
     elements = stripe.elements();
+    const _lightMode = document.body.classList.contains('light-mode');
     cardElement = elements.create('card', {
       style: {
         base: {
-          color: '#f5f5f0',
+          color: _lightMode ? '#09090b' : '#f5f5f0',
           fontFamily: '"DM Sans", sans-serif',
           fontSmoothing: 'antialiased',
           fontSize: '15px',
-          '::placeholder': { color: 'rgba(245,245,240,0.3)' }
+          '::placeholder': { color: _lightMode ? 'rgba(9,9,11,0.35)' : 'rgba(245,245,240,0.3)' }
         },
         invalid: { color: '#e07060', iconColor: '#e07060' }
       }
