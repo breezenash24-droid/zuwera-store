@@ -9,6 +9,25 @@ async function getCheckoutPublishableKey() {
   return data.publishableKey;
 }
 
+function cardStyleForMode(light) {
+  return {
+    base: {
+      color: light ? '#09090b' : '#f5f5f0',
+      fontFamily: '"DM Sans", sans-serif',
+      fontSmoothing: 'antialiased',
+      fontSize: '15px',
+      '::placeholder': { color: light ? 'rgba(9,9,11,0.45)' : 'rgba(245,245,240,0.3)' },
+    },
+    invalid: { color: '#e07060', iconColor: '#e07060' },
+  };
+}
+
+function isLightMode() {
+  // Check both body class and localStorage (in case the class hasn't been applied yet)
+  if (document.body.classList.contains('light-mode')) return true;
+  try { return localStorage.getItem('theme') === 'light'; } catch (_) { return false; }
+}
+
 async function initStripe() {
   if (stripe) return stripe;
   if (stripeInitPromise) return stripeInitPromise;
@@ -17,20 +36,14 @@ async function initStripe() {
     const publishableKey = await getCheckoutPublishableKey();
     stripe = Stripe(publishableKey);
     elements = stripe.elements();
-    const _lightMode = document.body.classList.contains('light-mode');
-    cardElement = elements.create('card', {
-      style: {
-        base: {
-          color: _lightMode ? '#09090b' : '#f5f5f0',
-          fontFamily: '"DM Sans", sans-serif',
-          fontSmoothing: 'antialiased',
-          fontSize: '15px',
-          '::placeholder': { color: _lightMode ? 'rgba(9,9,11,0.35)' : 'rgba(245,245,240,0.3)' }
-        },
-        invalid: { color: '#e07060', iconColor: '#e07060' }
-      }
-    });
+    cardElement = elements.create('card', { style: cardStyleForMode(isLightMode()) });
     cardElement.mount('#stripe-card-element');
+
+    // Re-apply card colours whenever the theme class changes on <body>
+    new MutationObserver(() => {
+      if (cardElement) cardElement.update({ style: cardStyleForMode(isLightMode()) });
+    }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
     return stripe;
   })().catch((error) => {
     stripeInitPromise = null;
