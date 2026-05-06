@@ -12,17 +12,10 @@
  */
 
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
-import { cors, verifyAdmin } from './_commerce.js';
-
-function json(body, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
+import { cors, json, verifyAdmin, getCommerceBundle, setSetting } from './_commerce.js';
 
 async function fetchOrder(orderId, env) {
-  const url = (env.SUPABASE_URL || env.SUPABASE_PROJECT_URL || '').trim();
+  const url = (env.SUPABASE_URL || '').trim();
   const sk  = (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '').trim();
   const resp = await fetch(
     `${url}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}&select=*&limit=1`,
@@ -34,21 +27,6 @@ async function fetchOrder(orderId, env) {
   return rows[0];
 }
 
-async function fetchReturnsState(env) {
-  const url = (env.SUPABASE_URL || env.SUPABASE_PROJECT_URL || '').trim();
-  const sk  = (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '').trim();
-  const resp = await fetch(
-    `${url}/rest/v1/site_settings?key=eq.commerce_returns&select=value&limit=1`,
-    { headers: { apikey: sk, Authorization: `Bearer ${sk}` } }
-  );
-  if (!resp.ok) throw new Error('Could not fetch return requests');
-  const rows = await resp.json().catch(() => []);
-  const value = rows?.[0]?.value || { requests: [] };
-  return {
-    value,
-    requests: Array.isArray(value.requests) ? value.requests : [],
-  };
-}
 
 function mergeOrderFallbacks(order, returnRequest) {
   const address = returnRequest?.shippingAddress || {};
@@ -291,13 +269,9 @@ async function sendLabelEmail(order, label, returnRequest, env, cache) {
 }
 
 async function updateReturnRequest(returnId, labelData, env, existingValue = null) {
-  const url = (env.SUPABASE_URL || env.SUPABASE_PROJECT_URL || '').trim();
-  const sk  = (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '').trim();
-
-  const existing = existingValue || (await fetchReturnsState(env)).value;
+  const existing = existingValue || (await getCommerceBundle(env)).returnsState;
   const requests = Array.isArray(existing.requests) ? existing.requests : [];
 
-  // Update the matching request
   const updated = requests.map(r => r.id === returnId ? {
     ...r,
     status:         'label_sent',
@@ -310,24 +284,15 @@ async function updateReturnRequest(returnId, labelData, env, existingValue = nul
     labelCurrency:  labelData.currency,
     labelSentAt:    new Date().toISOString(),
     lastLabelError: '',
-    labelErrorAt: '',
+    labelErrorAt:   '',
   } : r);
 
-  await fetch(`${url}/rest/v1/site_settings?key=eq.commerce_returns`, {
-    method: 'PATCH',
-    headers: {
-      apikey: sk, Authorization: `Bearer ${sk}`,
-      'Content-Type': 'application/json', Prefer: 'return=minimal',
-    },
-    body: JSON.stringify({ value: { ...existing, requests: updated }, updated_at: new Date().toISOString() }),
-  });
+  await setSetting(env, 'commerce_returns', { ...existing, requests: updated });
 }
 
 async function updateReturnRequestFailure(returnId, errorMessage, env, existingValue = null) {
   if (!returnId) return null;
-  const url = (env.SUPABASE_URL || env.SUPABASE_PROJECT_URL || '').trim();
-  const sk  = (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '').trim();
-  const existing = existingValue || (await fetchReturnsState(env)).value;
+  const existing = existingValue || (await getCommerceBundle(env)).returnsState;
   const requests = Array.isArray(existing.requests) ? existing.requests : [];
   const at = new Date().toISOString();
   let updatedRequest = null;
@@ -342,14 +307,7 @@ async function updateReturnRequestFailure(returnId, errorMessage, env, existingV
     return updatedRequest;
   });
 
-  await fetch(`${url}/rest/v1/site_settings?key=eq.commerce_returns`, {
-    method: 'PATCH',
-    headers: {
-      apikey: sk, Authorization: `Bearer ${sk}`,
-      'Content-Type': 'application/json', Prefer: 'return=minimal',
-    },
-    body: JSON.stringify({ value: { ...existing, requests: updated }, updated_at: at }),
-  });
+  await setSetting(env, 'commerce_returns', { ...existing, requests: updated });
   return updatedRequest;
 }
 
@@ -389,8 +347,9 @@ export async function onRequestPost({ request, env }) {
     const admin = await verifyAdmin(env, accessToken);
     if (!admin) return json({ ok: false, error: 'Not authorized' }, 403);
 
-    returnsState = await fetchReturnsState(env);
-    const returnRequest = returnsState.requests.find(r => r.id === returnId);
+    const bundle = await getCommerceBundle(env);
+    returnsState = bundle.returnsState;
+    const returnRequest = (returnsState.requests || []).find(r => r.id === returnId);
     if (!returnRequest) return json({ ok: false, error: 'Return request not found' }, 404);
 
     const orderId = String(body.orderId || returnRequest.orderId || '').trim();
@@ -453,7 +412,7 @@ export async function onRequestPost({ request, env }) {
     // Fire email and DB update in parallel
     await Promise.allSettled([
       sendLabelEmail(order, label, returnRequest, env, cache),
-      updateReturnRequest(returnId, label, env, returnsState.value),
+      updateReturnRequest(returnId, label, env, returnsState),
     ]);
 
     console.log(`[return-label] Label generated for return ${returnId}, order ${orderId}`);
@@ -471,7 +430,7 @@ export async function onRequestPost({ request, env }) {
     console.error('[return-label] Error:', message);
     let updatedRequest = null;
     try {
-      updatedRequest = await updateReturnRequestFailure(returnId, message, env, returnsState?.value || null);
+      updatedRequest = await updateReturnRequestFailure(returnId, message, env, returnsState || null);
     } catch (updateError) {
       console.error('[return-label] Could not save label failure:', updateError.message);
     }
