@@ -1357,6 +1357,60 @@
                         <button class="btn btn-secondary" id="refreshReturnsBtn" onclick="loadReturnsPage()">Refresh</button>
                     </div>
 
+                    <!-- Return Address Setup Card -->
+                    <div id="ret-addr-card" class="form-section" style="margin-bottom:1.5rem;padding:0;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:1rem 1.2rem;cursor:pointer;" onclick="toggleReturnAddressCard()">
+                            <div>
+                                <div style="font-weight:600;font-size:.9rem;">📍 Return Shipping Address</div>
+                                <div id="ret-addr-summary" style="font-size:.78rem;color:var(--text-secondary);margin-top:2px;">Loading…</div>
+                            </div>
+                            <div style="display:flex;gap:.6rem;align-items:center;">
+                                <span id="ret-addr-badge"></span>
+                                <span id="ret-addr-chevron" style="color:var(--text-secondary);font-size:.85rem;transition:transform .2s;">▾</span>
+                            </div>
+                        </div>
+                        <div id="ret-addr-form" style="display:none;padding:0 1.2rem 1.2rem;border-top:1px solid var(--border);">
+                            <p style="font-size:.78rem;color:var(--text-secondary);line-height:1.6;margin:.9rem 0;">
+                                Prepaid return labels ship <strong>to this address</strong>. Set it once and labels generate automatically.
+                                Leave a field blank to keep the current saved value.
+                            </p>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem;">
+                                <div style="grid-column:1/-1;">
+                                    <label style="font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:4px;">Store / Sender Name</label>
+                                    <input id="ra-name" type="text" placeholder="e.g. Zuwera Returns" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text-primary);padding:.5rem .7rem;font-size:.85rem;border-radius:5px;outline:none;">
+                                </div>
+                                <div style="grid-column:1/-1;">
+                                    <label style="font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:4px;">Street Address</label>
+                                    <input id="ra-street1" type="text" placeholder="e.g. 123 Main St" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text-primary);padding:.5rem .7rem;font-size:.85rem;border-radius:5px;outline:none;">
+                                </div>
+                                <div style="grid-column:1/-1;">
+                                    <label style="font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:4px;">Apt / Suite (optional)</label>
+                                    <input id="ra-street2" type="text" placeholder="Suite 100" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text-primary);padding:.5rem .7rem;font-size:.85rem;border-radius:5px;outline:none;">
+                                </div>
+                                <div>
+                                    <label style="font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:4px;">City</label>
+                                    <input id="ra-city" type="text" placeholder="New York" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text-primary);padding:.5rem .7rem;font-size:.85rem;border-radius:5px;outline:none;">
+                                </div>
+                                <div>
+                                    <label style="font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:4px;">State</label>
+                                    <input id="ra-state" type="text" placeholder="NY" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text-primary);padding:.5rem .7rem;font-size:.85rem;border-radius:5px;outline:none;">
+                                </div>
+                                <div>
+                                    <label style="font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:4px;">ZIP Code</label>
+                                    <input id="ra-zip" type="text" placeholder="10001" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text-primary);padding:.5rem .7rem;font-size:.85rem;border-radius:5px;outline:none;">
+                                </div>
+                                <div>
+                                    <label style="font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:4px;">Country</label>
+                                    <input id="ra-country" type="text" placeholder="US" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text-primary);padding:.5rem .7rem;font-size:.85rem;border-radius:5px;outline:none;">
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:.75rem;align-items:center;margin-top:.9rem;">
+                                <button class="btn btn-primary btn-sm" onclick="saveReturnAddress()">Save Address</button>
+                                <span id="ret-addr-status" style="font-size:.78rem;"></span>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Stats row -->
                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem;">
                         <div class="form-section" style="padding:1rem 1.2rem;">
@@ -1526,6 +1580,102 @@
                             box.textContent = message;
                         } else if (type === 'error') alert(message);
                     }
+
+                    // ── Return Address Card ────────────────────────────────────────
+                    window.toggleReturnAddressCard = function() {
+                        const form = document.getElementById('ret-addr-form');
+                        const chevron = document.getElementById('ret-addr-chevron');
+                        if (!form) return;
+                        const open = form.style.display === 'none';
+                        form.style.display = open ? 'block' : 'none';
+                        if (chevron) chevron.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+                    };
+
+                    window.loadReturnAddressCard = async function() {
+                        const summary = document.getElementById('ret-addr-summary');
+                        const badge   = document.getElementById('ret-addr-badge');
+                        const form    = document.getElementById('ret-addr-form');
+                        const chevron = document.getElementById('ret-addr-chevron');
+                        if (!summary) return;
+                        try {
+                            // Use already-loaded _maskedKeys if populated, otherwise fetch fresh
+                            let keys = _maskedKeys && Object.keys(_maskedKeys).length ? _maskedKeys : {};
+                            if (!Object.keys(keys).length) {
+                                const r = await fetch('/api/api-status');
+                                const d = await r.json().catch(() => ({}));
+                                keys = d.maskedKeys || {};
+                            }
+                            const hasStreet  = !!keys.SHIPPO_FROM_STREET1;
+                            const hasCity    = !!keys.SHIPPO_FROM_CITY;
+                            const hasState   = !!keys.SHIPPO_FROM_STATE;
+                            const hasZip     = !!keys.SHIPPO_FROM_ZIP;
+                            const allSet     = hasStreet && hasCity && hasState && hasZip;
+
+                            if (allSet) {
+                                const name = keys.SHIPPO_FROM_NAME ? 'Name ✓' : '';
+                                const parts = [name, 'Street ✓', 'City ✓', 'State ✓', 'ZIP ✓'].filter(Boolean);
+                                summary.textContent = parts.join(' · ');
+                                badge.innerHTML = '<span style="font-size:.75rem;color:var(--success);font-weight:600;">✓ Configured</span>';
+                                if (form) form.style.display = 'none';
+                                if (chevron) chevron.style.transform = 'rotate(0deg)';
+                            } else {
+                                const missing = [];
+                                if (!hasStreet) missing.push('Street');
+                                if (!hasCity)   missing.push('City');
+                                if (!hasState)  missing.push('State');
+                                if (!hasZip)    missing.push('ZIP');
+                                summary.textContent = 'Missing: ' + missing.join(', ') + ' — labels won\'t generate until this is set.';
+                                badge.innerHTML = '<span style="font-size:.75rem;color:var(--error);font-weight:600;">⚠ Incomplete</span>';
+                                if (form) form.style.display = 'block';
+                                if (chevron) chevron.style.transform = 'rotate(180deg)';
+                            }
+                        } catch(e) {
+                            if (summary) summary.textContent = 'Could not load address status.';
+                        }
+                    };
+
+                    window.saveReturnAddress = async function() {
+                        const statusEl = document.getElementById('ret-addr-status');
+                        const fields = [
+                            { id: 'ra-name',    key: 'SHIPPO_FROM_NAME' },
+                            { id: 'ra-street1', key: 'SHIPPO_FROM_STREET1' },
+                            { id: 'ra-street2', key: 'SHIPPO_FROM_STREET2' },
+                            { id: 'ra-city',    key: 'SHIPPO_FROM_CITY' },
+                            { id: 'ra-state',   key: 'SHIPPO_FROM_STATE' },
+                            { id: 'ra-zip',     key: 'SHIPPO_FROM_ZIP' },
+                            { id: 'ra-country', key: 'SHIPPO_FROM_COUNTRY' },
+                        ];
+                        const updates = fields
+                            .map(f => ({ key: f.key, value: (document.getElementById(f.id)?.value || '').trim() }))
+                            .filter(u => u.value.length > 0);
+
+                        if (!updates.length) {
+                            if (statusEl) { statusEl.style.color = 'var(--warning)'; statusEl.textContent = 'Enter at least one field to save.'; }
+                            return;
+                        }
+                        if (statusEl) { statusEl.style.color = 'var(--text-secondary)'; statusEl.textContent = 'Saving…'; }
+                        try {
+                            const { data: { session } } = await sb.auth.getSession();
+                            const token = session?.access_token;
+                            if (!token) throw new Error('Not authenticated');
+                            for (const u of updates) {
+                                const r = await fetch('/api/update-api-key', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ accessToken: token, keyName: u.key, keyValue: u.value }),
+                                });
+                                const d = await r.json();
+                                if (!d.ok) throw new Error(d.error || `Failed to save ${u.key}`);
+                            }
+                            if (statusEl) { statusEl.style.color = 'var(--success)'; statusEl.textContent = `✓ ${updates.length} field${updates.length !== 1 ? 's' : ''} saved.`; }
+                            // Clear saved fields and reload status
+                            fields.forEach(f => { const el = document.getElementById(f.id); if (el) el.value = ''; });
+                            _maskedKeys = {}; // force refresh on next load
+                            setTimeout(() => loadReturnAddressCard(), 600);
+                        } catch(e) {
+                            if (statusEl) { statusEl.style.color = 'var(--error)'; statusEl.textContent = '✗ ' + e.message; }
+                        }
+                    };
 
                     window.loadReturnsPage = async function() {
                         document.getElementById('returns-loading').style.display = 'block';
@@ -4685,6 +4835,7 @@
                 if (typeof window.receiptsLoadData === 'function') window.receiptsLoadData();
             } else if (page === 'returns') {
                 if (typeof loadReturnsPage === 'function') loadReturnsPage();
+                if (typeof loadReturnAddressCard === 'function') loadReturnAddressCard();
             } else if (page === 'apis') {
                 loadApiStatus();
             } else if (page === 'audit') {
