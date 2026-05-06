@@ -629,8 +629,9 @@ document.getElementById('checkout-btn').addEventListener('click', () => {
   // Prefill checkout fields with the logged-in user's account data every time the modal opens
   if (_bagUser && typeof window.prefillCheckoutForUser === 'function') window.prefillCheckoutForUser(_bagUser);
   _openModal('payment-modal');
-  // Sync card element colours to the current theme every time the modal opens
-  if (typeof window.refreshCardStyle === 'function') window.refreshCardStyle();
+  // Pass the mode explicitly — don't let checkout.js guess asynchronously
+  if (typeof window.refreshCardStyle === 'function')
+    window.refreshCardStyle(document.body.classList.contains('light-mode'));
   const subtotalCents = Math.round(
     cartItems.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0) * 100
   ) || 100;

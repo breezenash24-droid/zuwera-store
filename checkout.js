@@ -28,23 +28,24 @@ function isLightMode() {
   try { return localStorage.getItem('zw_theme_mode') === 'light'; } catch (_) { return false; }
 }
 
-function mountCard() {
-  // Destroy any existing card element first (cardElement.update() does not
-  // reliably re-render base.color after creation — Stripe limitation).
+function mountCard(light) {
+  // Destroy any existing card element first — cardElement.update() does not
+  // reliably re-render base.color after creation (Stripe limitation).
   if (cardElement) {
     try { cardElement.destroy(); } catch (_) {}
     cardElement = null;
   }
   const container = document.getElementById('stripe-card-element');
   if (container) container.innerHTML = '';
-  cardElement = elements.create('card', { style: cardStyleForMode(isLightMode()) });
+  const useLightColors = (light !== undefined) ? Boolean(light) : isLightMode();
+  cardElement = elements.create('card', { style: cardStyleForMode(useLightColors) });
   cardElement.mount('#stripe-card-element');
 }
 
-// Called every time the payment modal opens — recreates the card element
-// with the correct current theme colours.
-window.refreshCardStyle = function() {
-  if (elements) mountCard();
+// Called from the checkout button with the explicit current mode —
+// no async detection, no race condition.
+window.refreshCardStyle = function(light) {
+  if (elements) mountCard(light);
 };
 
 async function initStripe() {
