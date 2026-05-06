@@ -208,6 +208,7 @@
     }
 </style>
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=1">
+<script src="/posthog-init.js?v=1"></script>
 </head>
 <body>
 <script>
@@ -632,6 +633,12 @@ document.getElementById('checkout-btn').addEventListener('click', () => {
   // Pass the mode explicitly — don't let checkout.js guess asynchronously
   if (typeof window.refreshCardStyle === 'function')
     window.refreshCardStyle(document.body.classList.contains('light-mode'));
+  // Analytics
+  zwTrack('checkout_started', {
+    item_count: cartItems.reduce((n, i) => n + i.quantity, 0),
+    value:      cartItems.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0),
+    currency:   'USD',
+  });
   const subtotalCents = Math.round(
     cartItems.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0) * 100
   ) || 100;

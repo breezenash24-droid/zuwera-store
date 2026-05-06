@@ -352,11 +352,12 @@ function showOrderConfirmed(paymentIntentId, email) {
     `Thank you for your purchase. A confirmation has been sent to ${email || 'your email'}.`;
   _openModal('payment-success');
 
+  const _purchaseTotal = cartItems.reduce((s, i) => s + (parseFloat(i.price) * i.quantity), 0);
+
   if (typeof gtag === 'function') {
-    const totalValue = cartItems.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
     gtag('event', 'purchase', {
       transaction_id: paymentIntentId,
-      value: totalValue,
+      value: _purchaseTotal,
       currency: 'USD',
       items: cartItems.map(item => ({
         item_id: item.productId,
@@ -364,6 +365,22 @@ function showOrderConfirmed(paymentIntentId, email) {
         price: item.price,
         quantity: item.quantity
       }))
+    });
+  }
+
+  if (typeof zwTrack === 'function') {
+    zwTrack('purchase_completed', {
+      order_id:   paymentIntentId,
+      value:      _purchaseTotal,
+      currency:   'USD',
+      item_count: cartItems.reduce((n, i) => n + i.quantity, 0),
+      items:      cartItems.map(i => ({
+        product_id:   i.productId,
+        product_name: i.title,
+        price:        i.price,
+        quantity:     i.quantity,
+        size:         i.size  || '',
+      })),
     });
   }
 
