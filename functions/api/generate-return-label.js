@@ -17,30 +17,45 @@ import { cors, json, verifyAdmin, getCommerceBundle, setSetting } from './_comme
 async function fetchOrder(orderId, env) {
   const url = (env.SUPABASE_URL || '').trim();
   const sk  = (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '').trim();
-  const resp = await fetch(
-    `${url}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}&select=*&limit=1`,
-    { headers: { apikey: sk, Authorization: `Bearer ${sk}` } }
-  );
-  if (!resp.ok) throw new Error('Could not fetch order');
-  const rows = await resp.json();
-  if (!rows?.length) throw new Error('Order not found');
-  return rows[0];
+  // If Supabase isn't configured or orderId is missing, return null and let
+  // mergeOrderFallbacks pull address data from the return request instead.
+  if (!url || !sk || !orderId) return null;
+  try {
+    const resp = await fetch(
+      `${url}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}&select=*&limit=1`,
+      { headers: { apikey: sk, Authorization: `Bearer ${sk}` } }
+    );
+    if (!resp.ok) {
+      console.warn('[return-label] Could not fetch order from Supabase:', resp.status);
+      return null;
+    }
+    const rows = await resp.json();
+    // Return null (not throw) when order isn't in Supabase — common in test mode
+    // when the Stripe webhook hasn't been configured to save orders.
+    return rows?.[0] || null;
+  } catch (e) {
+    console.warn('[return-label] fetchOrder error (non-fatal):', e.message);
+    return null;
+  }
 }
 
 
 function mergeOrderFallbacks(order, returnRequest) {
+  // order may be null (e.g. test mode with no Supabase order record).
+  // All address data is also stored directly on the return request when submitted.
+  const o       = order || {};
   const address = returnRequest?.shippingAddress || {};
   return {
-    ...order,
-    customer_name: order.customer_name || returnRequest?.customerName || returnRequest?.userName || address.name || 'Customer',
-    email: order.email || order.customer_email || returnRequest?.customerEmail || returnRequest?.userEmail || '',
-    customer_email: order.customer_email || order.email || returnRequest?.customerEmail || returnRequest?.userEmail || '',
-    ship_line1: order.ship_line1 || address.line1 || '',
-    ship_line2: order.ship_line2 || address.line2 || '',
-    ship_city: order.ship_city || address.city || '',
-    ship_state: order.ship_state || address.state || '',
-    ship_zip: order.ship_zip || address.zip || '',
-    ship_country: order.ship_country || address.country || 'US',
+    ...o,
+    customer_name:  o.customer_name  || returnRequest?.customerName  || returnRequest?.userName  || address.name   || 'Customer',
+    email:          o.email          || o.customer_email || returnRequest?.customerEmail || returnRequest?.userEmail || returnRequest?.email || '',
+    customer_email: o.customer_email || o.email          || returnRequest?.customerEmail || returnRequest?.userEmail || returnRequest?.email || '',
+    ship_line1:  o.ship_line1  || address.line1    || '',
+    ship_line2:  o.ship_line2  || address.line2    || '',
+    ship_city:   o.ship_city   || address.city     || '',
+    ship_state:  o.ship_state  || address.state    || '',
+    ship_zip:    o.ship_zip    || address.zip      || '',
+    ship_country:o.ship_country|| address.country  || 'US',
   };
 }
 
@@ -353,7 +368,12 @@ export async function onRequestPost({ request, env }) {
     if (!returnRequest) return json({ ok: false, error: 'Return request not found' }, 404);
 
     const orderId = String(body.orderId || returnRequest.orderId || '').trim();
-    if (!orderId) return json({ ok: false, error: 'Return request is missing an order id' }, 400);
+    // orderId is optional when the return request already has a shippingAddress —
+    // mergeOrderFallbacks will use the address from the return request directly.
+    const hasAddressFallback = !!(returnRequest.shippingAddress?.line1);
+    if (!orderId && !hasAddressFallback) {
+      return json({ ok: false, error: 'Return request is missing an order ID and has no saved shipping address. Cannot generate a label.' }, 400);
+    }
 
     const allowedStatuses = new Set(['approved', 'label_sent']);
     if (!allowedStatuses.has(String(returnRequest.status || '').trim())) {

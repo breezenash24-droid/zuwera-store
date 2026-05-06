@@ -270,8 +270,9 @@ export async function onRequestPost({ request, env }) {
     const r = (bundle.returnsState?.requests || []).find(x => x.id === returnId);
     if (!r) return json({ ok: false, error: 'Return request not found' }, 404, cors(env));
 
-    const toEmail = (r.customerEmail || r.userEmail || '').trim();
-    if (!toEmail) return json({ ok: false, error: 'No customer email on this return request' }, 400, cors(env));
+    // Check every field name the return request might store the email under
+    const toEmail = (r.customerEmail || r.userEmail || r.email || r.customer_email || '').trim();
+    if (!toEmail) return json({ ok: false, error: 'No customer email found on this return request. Make sure the return was submitted by a signed-in customer.' }, 400, cors(env));
 
     const cache = await fetchSiteSettings(
       ['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL'], env
