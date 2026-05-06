@@ -1,9 +1,9 @@
 /**
  * Cloudflare Pages Function: POST /api/update-api-key
  *
- * Admin-protected endpoint to upsert an API key into Supabase site_settings.
- * Values saved here override the corresponding Cloudflare env vars on every
- * subsequent request — no redeploy required.
+ * Admin-protected endpoint to upsert an API key/setting into Supabase
+ * `site_settings`.  Values saved here override the corresponding Cloudflare
+ * env vars on every subsequent request — no redeploy required.
  *
  * Body: { accessToken: string, keyName: string, keyValue: string }
  */
@@ -66,7 +66,10 @@ export async function onRequestPost({ request, env }) {
     const sk  = (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '').trim();
     if (!url || !sk) return json({ ok: false, error: 'Supabase not configured' }, 500);
 
-    const resp = await fetch(`${url}/rest/v1/api_key_overrides?on_conflict=key`, {
+    // Upsert into `site_settings` (same table used by all commerce functions).
+    // Array body + Prefer merge-duplicates handles INSERT-or-UPDATE on the
+    // unique `key` column without needing an explicit ?on_conflict query param.
+    const resp = await fetch(`${url}/rest/v1/site_settings`, {
       method:  'POST',
       headers: {
         apikey:          sk,
@@ -74,11 +77,7 @@ export async function onRequestPost({ request, env }) {
         'Content-Type':  'application/json',
         Prefer:          'resolution=merge-duplicates,return=minimal',
       },
-      body: JSON.stringify({
-        key:        keyName,
-        value:      keyValue.trim(),
-        updated_at: new Date().toISOString(),
-      }),
+      body: JSON.stringify([{ key: keyName, value: keyValue.trim() }]),
     });
 
     if (!resp.ok) {

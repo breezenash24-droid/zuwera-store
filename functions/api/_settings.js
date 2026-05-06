@@ -1,9 +1,13 @@
 /**
- * Shared helper: read API keys from Supabase site_settings (admin overrides),
+ * Shared helper: read API keys from Supabase `site_settings` (admin overrides),
  * falling back to Cloudflare env vars.
  *
  * Keys stored in site_settings take effect immediately on every request — no
  * Cloudflare redeploy needed.  Env vars remain as the bootstrap fallback.
+ *
+ * NOTE: All API-key overrides are stored in the same `site_settings` table as
+ * the commerce data (commerce_config, commerce_returns, etc.).  There is no
+ * separate `api_key_overrides` table — that table never existed.
  */
 
 const ALLOWED_KEYS = new Set([
@@ -52,7 +56,7 @@ export function maskKey(v) {
 }
 
 /**
- * Fetch multiple keys from Supabase site_settings in one request.
+ * Fetch multiple keys from Supabase `site_settings` in one request.
  * Returns a plain object { KEY_NAME: 'value', ... } for keys that exist.
  */
 export async function fetchSiteSettings(keys, env) {
@@ -62,7 +66,7 @@ export async function fetchSiteSettings(keys, env) {
   try {
     const list = keys.map(k => encodeURIComponent(k)).join(',');
     const resp = await fetch(
-      `${url}/rest/v1/api_key_overrides?key=in.(${list})&select=key,value`,
+      `${url}/rest/v1/site_settings?key=in.(${list})&select=key,value`,
       { headers: { apikey: sk, Authorization: `Bearer ${sk}` } }
     );
     if (!resp.ok) return {};
