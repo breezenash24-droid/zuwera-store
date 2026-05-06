@@ -1843,6 +1843,7 @@
                                 <div style="display:flex;gap:6px;flex-wrap:wrap;">
                                     <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','approved')">Approve</button>
                                     <button class="btn btn-secondary btn-sm" onclick="sendReturnLabel('${id}', this)" ${sendLabelDisabled}>${sendLabelText}</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="sendReturnStatusEmail('${id}', this)" style="background:rgba(56,189,248,.15);border-color:rgba(56,189,248,.4);color:#38bdf8;">✉ Email Update</button>
                                     <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','exchange_in_progress')">Exchange Started</button>
                                     <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','refunded')">Refunded</button>
                                     <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','completed')">Complete</button>
@@ -2038,6 +2039,33 @@
                             if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = oldText || 'Save Manual Label'; }
                         }
                     }
+                    /* sendReturnStatusEmail — fires a status-update email to the customer.
+                       Works at any status stage. The server picks the right copy automatically
+                       and includes the admin's "Message to Customer" field if set. */
+                    window.sendReturnStatusEmail = async function(requestId, buttonEl) {
+                        const req = _returnsData.find(r => r.id === requestId);
+                        if (!req) return;
+                        const oldText = buttonEl ? buttonEl.textContent : '';
+                        if (buttonEl) { buttonEl.disabled = true; buttonEl.textContent = 'Sending…'; }
+                        try {
+                            const { data: { session } } = await sb.auth.getSession();
+                            const token = session?.access_token;
+                            if (!token) throw new Error('Missing admin session token.');
+                            const resp = await fetch('/api/send-return-status-email', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                body: JSON.stringify({ returnId: requestId }),
+                            });
+                            const payload = await resp.json().catch(() => ({}));
+                            if (!resp.ok || !payload.ok) throw new Error(payload.error || 'Could not send status email.');
+                            notifyReturns(`Status email sent to ${payload.sentTo} via ${payload.provider}.`, 'success');
+                        } catch(e) {
+                            notifyReturns('Email failed: ' + e.message, 'error');
+                        } finally {
+                            if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = oldText || '✉ Email Update'; }
+                        }
+                    };
+
                     /* sendReturnLabel — calls /api/generate-return-label (Shippo integration).
                        Approve the return first, then attempt to buy a prepaid label.
                        If Shippo is not yet configured, the endpoint returns a 404/500 and

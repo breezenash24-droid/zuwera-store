@@ -156,6 +156,11 @@
     .status-refunded   { color: #065f46; background: #d1fae5; }
     .status-closed     { color: #374151; background: #f3f4f6; }
 
+    /* ── additional status colors ── */
+    .status-received   { color: #065f46; background: #d1fae5; }
+    .status-inspecting { color: #1e40af; background: #dbeafe; }
+    .status-store_credit_issued { color: #065f46; background: #d1fae5; }
+
     .return-card-what {
       font-size: .75rem; color: var(--ink);
       display: flex; gap: .5rem; align-items: center; flex-wrap: wrap;
@@ -165,15 +170,75 @@
       border: 1px solid var(--border); padding: .15rem .55rem; color: var(--muted);
     }
 
+    /* ── Return progress tracker ── */
+    .ret-progress {
+      margin: 1rem 0 .25rem;
+      display: flex; align-items: flex-start; gap: 0;
+    }
+    .ret-step {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      position: relative;
+    }
+    .ret-step:not(:last-child)::after {
+      content: ''; position: absolute; top: 11px; left: calc(50% + 11px);
+      width: calc(100% - 22px); height: 2px;
+      background: var(--border);
+      transition: background .3s;
+    }
+    .ret-step.done:not(:last-child)::after { background: var(--ink); }
+    .ret-step-dot {
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 2px solid var(--border);
+      background: var(--bg); color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .55rem; font-weight: 700; z-index: 1; position: relative;
+      transition: all .25s;
+    }
+    .ret-step.done .ret-step-dot {
+      border-color: var(--ink); background: var(--ink); color: var(--paper);
+    }
+    .ret-step.active .ret-step-dot {
+      border-color: var(--ink); color: var(--ink); background: var(--paper);
+      box-shadow: 0 0 0 3px rgba(9,9,11,.1);
+    }
+    .ret-step-label {
+      margin-top: .4rem; font-size: .5rem; letter-spacing: .07em;
+      text-transform: uppercase; color: var(--muted); text-align: center; line-height: 1.3;
+    }
+    .ret-step.done .ret-step-label, .ret-step.active .ret-step-label { color: var(--ink); }
+    @media(max-width:480px) { .ret-step-label { font-size: .42rem; } }
+
+    /* ── Label / tracking panel ── */
+    .ret-label-panel {
+      margin-top: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 4px; overflow: hidden;
+    }
+    .ret-label-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: .75rem 1rem; border-bottom: 1px solid var(--border);
+      font-size: .72rem; gap: .75rem;
+    }
+    .ret-label-row:last-child { border-bottom: none; }
+    .ret-label-key { color: var(--muted); flex-shrink: 0; }
+    .ret-label-val { font-weight: 500; text-align: right; word-break: break-all; }
+    .ret-tracking-link {
+      display: inline-flex; align-items: center; gap: .4rem;
+      font-size: .6rem; letter-spacing: .1em; text-transform: uppercase;
+      background: var(--ink); color: var(--paper);
+      padding: .6rem 1.2rem; font-weight: 600; transition: opacity .2s;
+    }
+    .ret-tracking-link:hover { opacity: .75; }
+
     .return-card-msg {
-      margin-top: .75rem;
-      font-size: .72rem; color: rgba(9,9,11,.6); line-height: 1.7;
-      border-left: 2px solid var(--border); padding-left: .8rem;
+      margin-top: .85rem;
+      font-size: .72rem; color: var(--ink); line-height: 1.7;
+      border-left: 2px solid var(--ink); padding-left: .85rem;
     }
 
     .return-card-next {
-      margin-top: .75rem;
-      font-size: .7rem; color: var(--muted); line-height: 1.6;
+      margin-top: .85rem;
+      font-size: .7rem; color: var(--muted); line-height: 1.65;
     }
     .return-card-next strong { color: var(--ink); font-weight: 500; }
 
@@ -583,46 +648,17 @@ async function submitReturn(session, payload) {
 
 // ─── Status labels ─────────────────────────────────────────────────────────
 const STATUS_INFO = {
-  requested: {
-    label: 'Under Review',
-    cls: 'status-requested',
-    next: '<strong>What\'s next:</strong> We\'re reviewing your request and will respond within 1–2 business days.',
-  },
-  approved: {
-    label: 'Approved',
-    cls: 'status-approved',
-    next: '<strong>What\'s next:</strong> Your return is approved. We\'re generating your prepaid shipping label — check your email shortly.',
-  },
-  label_sent: {
-    label: 'Label Ready',
-    cls: 'status-label_sent',
-    next: '<strong>What to do:</strong> Download your prepaid label below, attach it to your package, and drop it off at any USPS location.',
-  },
-  denied: {
-    label: 'Not Approved',
-    cls: 'status-denied',
-    next: 'We were unable to approve this return request. If you have questions, please <a href="mailto:nasirubreeze@zuwera.store" style="color:inherit;text-decoration:underline">contact us</a>.',
-  },
-  exchange_in_progress: {
-    label: 'Exchange in Progress',
-    cls: 'status-exchange_in_progress',
-    next: '<strong>What\'s next:</strong> We\'re processing your exchange. We\'ll be in touch soon.',
-  },
-  completed: {
-    label: 'Complete',
-    cls: 'status-completed',
-    next: 'Your return has been processed. Thank you for shopping with Zuwera.',
-  },
-  refunded: {
-    label: 'Refunded',
-    cls: 'status-refunded',
-    next: '<strong>Your refund has been issued.</strong> It may take 5–7 business days to appear on your statement.',
-  },
-  closed: {
-    label: 'Closed',
-    cls: 'status-closed',
-    next: 'This return request has been closed.',
-  },
+  requested:            { label: 'Under Review',          cls: 'status-requested',            step: 0, next: '<strong>We\'re reviewing your request</strong> and will respond within 1–2 business days. You\'ll get an email update soon.' },
+  approved:             { label: 'Approved',              cls: 'status-approved',             step: 1, next: '<strong>Your return is approved!</strong> We\'re generating your prepaid shipping label — check your email shortly.' },
+  label_sent:           { label: 'Label Ready',           cls: 'status-label_sent',           step: 1, next: '<strong>Action needed:</strong> Download your prepaid label, print it, attach it to your package, and drop it off at any carrier location. No postage needed.' },
+  received:             { label: 'Item Received',         cls: 'status-received',             step: 2, next: '<strong>We got your package!</strong> Our team is processing your return. You\'ll hear back within 3–5 business days.' },
+  inspecting:           { label: 'Being Inspected',       cls: 'status-inspecting',           step: 2, next: '<strong>Almost there.</strong> Your item is being inspected. We\'ll update you once the inspection is complete.' },
+  exchange_in_progress: { label: 'Exchange in Progress',  cls: 'status-exchange_in_progress', step: 3, next: '<strong>Your replacement is on its way.</strong> We\'ll send a shipping confirmation with tracking as soon as it ships.' },
+  refunded:             { label: 'Refunded',              cls: 'status-refunded',             step: 4, next: '<strong>Your refund has been issued.</strong> It may take 3–7 business days to appear on your statement depending on your bank.' },
+  store_credit_issued:  { label: 'Credit Applied',        cls: 'status-store_credit_issued',  step: 4, next: '<strong>Your store credit has been applied.</strong> It\'s available to use on any future Zuwera order.' },
+  completed:            { label: 'Complete',              cls: 'status-completed',            step: 4, next: 'Your return has been fully processed. Thank you for shopping with Zuwera.' },
+  denied:               { label: 'Not Approved',          cls: 'status-denied',               step: -1, next: 'We weren\'t able to approve this request. If you have questions, please reply to the email we sent or <a href="mailto:orders@zuwera.store" style="color:inherit;text-decoration:underline">contact us</a>.' },
+  closed:               { label: 'Closed',                cls: 'status-closed',               step: -1, next: 'This return request has been closed. <a href="mailto:orders@zuwera.store" style="color:inherit;text-decoration:underline">Contact us</a> if you have questions.' },
 };
 
 const RESOLUTION_LABELS = {
@@ -631,29 +667,85 @@ const RESOLUTION_LABELS = {
   store_credit: 'Store Credit',
 };
 
+// ─── Progress tracker helpers ─────────────────────────────────────────────────
+function buildProgressSteps(resolution, currentStep) {
+  // Steps depend on what the customer is getting back
+  const isExchange = resolution === 'exchange';
+  const isCredit   = resolution === 'store_credit';
+  const steps = [
+    { n: 0, label: 'Request\nSubmitted' },
+    { n: 1, label: 'Approved &\nLabel Sent' },
+    { n: 2, label: 'Item\nReceived' },
+    { n: 3, label: isExchange ? 'Exchange\nShipped' : isCredit ? 'Credit\nApplied' : 'Refund\nProcessed' },
+  ];
+  return steps.map((s, i) => {
+    const done   = currentStep > s.n;
+    const active = currentStep === s.n;
+    const cls    = done ? 'done' : active ? 'active' : '';
+    const icon   = done
+      ? `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`
+      : String(s.n + 1);
+    return `<div class="ret-step ${cls}">
+      <div class="ret-step-dot">${icon}</div>
+      <div class="ret-step-label">${s.label.replace('\n', '<br>')}</div>
+    </div>` + (i < steps.length - 1 ? '' : '');
+  }).join('');
+}
+
+function buildLabelPanel(r) {
+  if (!r.labelUrl && !r.trackingNumber) return '';
+  const carrierLine = [r.carrier, r.service].filter(Boolean).join(' — ');
+  return `<div class="ret-label-panel">
+    ${r.labelUrl ? `<div class="ret-label-row">
+      <span class="ret-label-key">Return Label</span>
+      <a href="${esc(r.labelUrl)}" target="_blank" rel="noopener" class="btn-label" style="padding:.5rem 1rem;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download PDF
+      </a>
+    </div>` : ''}
+    ${r.trackingNumber ? `<div class="ret-label-row">
+      <span class="ret-label-key">Tracking #</span>
+      <span class="ret-label-val" style="font-family:monospace;">${esc(r.trackingNumber)}</span>
+    </div>` : ''}
+    ${carrierLine ? `<div class="ret-label-row">
+      <span class="ret-label-key">Carrier</span>
+      <span class="ret-label-val">${esc(carrierLine)}</span>
+    </div>` : ''}
+    ${r.trackingUrl ? `<div class="ret-label-row" style="justify-content:center;">
+      <a href="${esc(r.trackingUrl)}" target="_blank" rel="noopener" class="ret-tracking-link">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 8 16 12 12 16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Track Your Return
+      </a>
+    </div>` : ''}
+  </div>`;
+}
+
 // ─── Render existing returns ──────────────────────────────────────────────────
 function renderExistingReturns(returns) {
   if (!returns.length) return '';
   const cards = returns.map(r => {
-    const info = STATUS_INFO[r.status] || STATUS_INFO.requested;
-    const resLabel = RESOLUTION_LABELS[r.resolution] || r.resolution;
-    const label = r.orderLabel || orderShortId(r.orderId);
-    const msg = r.customerMessage ? `<div class="return-card-msg">${esc(r.customerMessage)}</div>` : '';
-    const labelBtn = r.labelUrl
-      ? `<a href="${esc(r.labelUrl)}" target="_blank" rel="noopener" class="btn-label">
-           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-           Download Label
-         </a>`
+    const info       = STATUS_INFO[r.status] || STATUS_INFO.requested;
+    const resLabel   = RESOLUTION_LABELS[r.resolution] || r.resolution || 'Return';
+    const label      = r.orderLabel || orderShortId(r.orderId);
+    const isTerminal = r.status === 'denied' || r.status === 'closed';
+    const currentStep = isTerminal ? -1 : (info.step ?? 0);
+    const progressHtml = isTerminal ? '' : `
+      <div class="ret-progress">${buildProgressSteps(r.resolution, currentStep)}</div>`;
+    const labelPanel   = buildLabelPanel(r);
+    const adminMsg     = r.customerMessage
+      ? `<div class="return-card-msg">
+           <div style="font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem;">Message from Zuwera</div>
+           ${esc(r.customerMessage)}
+         </div>`
       : '';
-    const trackBtn = r.trackingUrl
-      ? `<a href="${esc(r.trackingUrl)}" target="_blank" rel="noopener" class="btn-track">Track Package</a>`
-      : (r.trackingNumber ? `<span class="btn-track" style="cursor:default">Tracking: ${esc(r.trackingNumber)}</span>` : '');
-    const actions = (labelBtn || trackBtn)
-      ? `<div class="return-card-actions">${labelBtn}${trackBtn}</div>`
-      : '';
+    const detailLines = [
+      r.reason ? `<span>${esc(r.reason)}</span>` : '',
+      r.notes  ? `<span style="color:var(--muted);">${esc(r.notes)}</span>` : '',
+    ].filter(Boolean).join(' · ');
 
     return `
       <div class="return-card">
+        <!-- Header row -->
         <div class="return-card-top">
           <div>
             <div class="return-card-order">${esc(label)}</div>
@@ -663,13 +755,24 @@ function renderExistingReturns(returns) {
             <span class="dot"></span>${info.label}
           </div>
         </div>
-        <div class="return-card-what">
+
+        <!-- Resolution + reason -->
+        <div class="return-card-what" style="margin-top:.55rem;">
           <span class="return-resolution-tag">${esc(resLabel)}</span>
-          <span>${esc(r.reason)}</span>
+          ${detailLines}
         </div>
-        ${msg}
+
+        <!-- Progress tracker (hidden for denied/closed) -->
+        ${progressHtml}
+
+        <!-- Label / tracking panel -->
+        ${labelPanel}
+
+        <!-- Admin message to customer -->
+        ${adminMsg}
+
+        <!-- What's next guidance -->
         <div class="return-card-next">${info.next}</div>
-        ${actions}
       </div>`;
   }).join('');
 
