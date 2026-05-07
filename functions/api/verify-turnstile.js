@@ -42,6 +42,12 @@ export async function onRequestPost(context) {
       body: new URLSearchParams({ secret, response: token, remoteip: ip }).toString()
     });
 
+    if (!verifyRes.ok) {
+      return new Response(
+        JSON.stringify({ success: false, error: `Turnstile service error (${verifyRes.status})` }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
     const result = await verifyRes.json();
 
     if (result.success) {

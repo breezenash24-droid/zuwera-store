@@ -46,6 +46,10 @@ async function stripeRequest(path, method, bodyParts, secretKey) {
     },
     body: bodyStr,
   });
+  if (!resp.ok) {
+    const errText = await resp.text().catch(() => '');
+    throw new Error(`Stripe ${method} ${path} failed (${resp.status}): ${errText}`);
+  }
   return resp.json();
 }
 

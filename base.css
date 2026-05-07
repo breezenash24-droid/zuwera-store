@@ -45,7 +45,7 @@ body {
   color: var(--white);
   font-family: var(--font-body);
   font-weight: 300;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Prevent scrolling behind any open modal */

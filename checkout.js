@@ -276,20 +276,20 @@ function updateCartSummaryShipping(amount) {
   }
 }
 
-_pay.zipInput.addEventListener('input', maybeLoadRates);
-_pay.stateInput.addEventListener('input', maybeLoadRates);
+_pay.zipInput?.addEventListener('input', maybeLoadRates);
+_pay.stateInput?.addEventListener('input', maybeLoadRates);
 
 // ===================== PAYMENT MODAL CLOSE =====================
-document.getElementById('payment-close').addEventListener('click', () => {
+document.getElementById('payment-close')?.addEventListener('click', () => {
   _closeModal('payment-modal');
-  _pay.errEl.textContent = '';
+  if (_pay.errEl) _pay.errEl.textContent = '';
 });
-document.getElementById('payment-modal').addEventListener('click', e => {
+document.getElementById('payment-modal')?.addEventListener('click', e => {
   if (e.target === e.currentTarget) _closeModal('payment-modal');
 });
 
 // ===================== PAY SUBMIT (CARD) =====================
-_pay.btn.addEventListener('click', async () => {
+_pay.btn?.addEventListener('click', async () => {
   const get   = id => document.getElementById(id).value.trim();
   const name  = get('pay-name');
   const email = get('pay-email');
@@ -391,7 +391,7 @@ function showOrderConfirmed(paymentIntentId, email) {
   if (_cart.cartCount) _cart.cartCount.textContent = '0';
 }
 
-document.getElementById('success-continue').addEventListener('click', () => {
+document.getElementById('success-continue')?.addEventListener('click', () => {
   _closeModal('payment-success');
 });
 
