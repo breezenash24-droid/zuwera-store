@@ -867,11 +867,12 @@ function showStep(n) {
   const s = document.querySelector(`.step[data-step="${n}"]`);
   if (s) s.classList.add('active');
   updateStepProgress();
+  updateNextBtn();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function updateNextBtn() {
-  const btn = document.getElementById('wiz-next');
+  const btn = document.querySelector(`.step[data-step="${state.step}"] .wiz-next`);
   if (!btn) return;
   let enabled = false;
   if (state.step === 1) enabled = !!state.selectedOrderId;
@@ -1061,7 +1062,7 @@ function renderWizard(orders) {
         <div class="step-nav">
           <div class="step-nav-left"></div>
           <div class="step-nav-right">
-            <button class="btn-primary" id="wiz-next" disabled onclick="goNext()">Continue</button>
+            <button class="btn-primary wiz-next" data-next-step="1" disabled onclick="goNext()">Continue</button>
           </div>
         </div>
       </div>
@@ -1091,7 +1092,7 @@ function renderWizard(orders) {
             <button class="btn-ghost" onclick="showStep(1)">Back</button>
           </div>
           <div class="step-nav-right">
-            <button class="btn-primary" id="wiz-next" disabled onclick="goNext()">Continue</button>
+            <button class="btn-primary wiz-next" data-next-step="2" disabled onclick="goNext()">Continue</button>
           </div>
         </div>
       </div>
@@ -1119,7 +1120,7 @@ function renderWizard(orders) {
             <button class="btn-ghost" onclick="showStep(2)">Back</button>
           </div>
           <div class="step-nav-right">
-            <button class="btn-primary" id="wiz-next" disabled onclick="goNext()">Review Request</button>
+            <button class="btn-primary wiz-next" data-next-step="3" disabled onclick="goNext()">Review Request</button>
           </div>
         </div>
       </div>

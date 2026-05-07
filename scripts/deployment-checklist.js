@@ -30,6 +30,27 @@ const files = {
   sizeguide: read('sizeguide.html'),
 };
 
+const htmlFiles = {
+  'index.html': files.index,
+  'product.html': files.product,
+  'drop001.html': files.drop,
+  'account.html': files.account,
+  'bag.html': files.bag,
+  'returns.html': files.returns,
+  '404.html': files.notFound,
+  'sizeguide.html': files.sizeguide,
+};
+
+function hasDuplicateIds(html) {
+  const seen = new Set();
+  const dupes = new Set();
+  for (const match of html.matchAll(/\bid=["']([^"']+)["']/g)) {
+    if (seen.has(match[1])) dupes.add(match[1]);
+    seen.add(match[1]);
+  }
+  return dupes.size > 0;
+}
+
 const checks = [
   {
     name: 'Mobile hamburger menu opens as full-screen overlay',
@@ -63,6 +84,10 @@ const checks = [
         && /zw-mobile-menu-footer/.test(file)
         && /window\.zwLang\?\.open/.test(file)
         && /mobile-menu\.js\?v=/.test(file)),
+  },
+  {
+    name: 'Customer-facing pages do not ship duplicate element IDs',
+    pass: () => Object.values(htmlFiles).every(file => !hasDuplicateIds(file)),
   },
   {
     name: 'Homepage footer Size Guide goes to dedicated page',
