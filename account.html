@@ -244,16 +244,16 @@
       border: 1px solid rgba(244,241,235,.08); padding: 3rem 2rem; text-align: center; margin: 2rem 0;
     }
     body.light-mode .auth-wall { border-color: rgba(9,9,11,.1); }
-    .auth-wall h2 { font-family: var(--fw); font-size: 1.8rem; font-style: italic; letter-spacing: .06em; margin-bottom: .75rem; }
+    .auth-wall h2 { font-family: var(--fw); font-size: 1.8rem; font-style: normal; letter-spacing: .06em; margin-bottom: .75rem; }
     .auth-wall p { font-size: .8rem; color: rgba(244,241,235,.45); line-height: 1.8; margin-bottom: 1.5rem; }
     body.light-mode .auth-wall p { color: rgba(9,9,11,.45); }
     .auth-wall-btn {
       display: inline-block; font-family: var(--fm); font-size: .6rem; letter-spacing: .14em; text-transform: uppercase;
-      border: 1px solid rgba(244,241,235,.2); padding: .85rem 1.8rem; color: rgba(244,241,235,.7); transition: all .2s;
+      background: var(--ink); border: 1px solid var(--ink); padding: .85rem 1.8rem; color: var(--paper); transition: all .2s;
     }
-    .auth-wall-btn:hover { border-color: var(--paper); color: var(--paper); }
-    body.light-mode .auth-wall-btn { border-color: rgba(9,9,11,.2); color: rgba(9,9,11,.6); }
-    body.light-mode .auth-wall-btn:hover { border-color: var(--ink); color: var(--ink); }
+    .auth-wall-btn:hover { background: #1a1a1a; border-color: #1a1a1a; }
+    body.light-mode .auth-wall-btn { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    body.light-mode .auth-wall-btn:hover { background: #1a1a1a; border-color: #1a1a1a; }
 
     /* ── RETURNS TAB ── */
     .ret-form-stack { display: flex; flex-direction: column; gap: .9rem; }
