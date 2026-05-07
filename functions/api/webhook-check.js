@@ -44,6 +44,9 @@ export async function onRequestGet({ request, env }) {
   const resp = await fetch('https://api.stripe.com/v1/webhook_endpoints?limit=20', {
     headers: { Authorization: 'Bearer ' + env.STRIPE_SECRET_KEY },
   });
+  if (!resp.ok) {
+    return json({ error: `Stripe API error (${resp.status})` }, 502);
+  }
   const data = await resp.json();
 
   const endpoints = (data.data || []).map((ep) => ({

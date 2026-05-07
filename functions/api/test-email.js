@@ -24,7 +24,7 @@ export async function onRequestPost({ env }) {
     }),
   });
 
-  const body = await resp.json();
+  const body = await resp.json().catch(() => null);
 
   return json({
     resend_status: resp.status,

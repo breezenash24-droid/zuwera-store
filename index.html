@@ -2502,16 +2502,16 @@ function renderProductCards(products, grid) {
       <div class="pcard" onclick="if(!event.target.closest('.quick-size-panel,.pcard-add-btn')){window.location.href='${productHref(p)}'}" style="cursor:pointer;position:relative;overflow:hidden">
         <div class="pcard-img">
           ${imgHtml}
-          <div class="pcard-badge">${badge}</div>
-          <button class="heart-btn" onclick="event.stopPropagation()" data-product-id="${p.id}" data-product-name="${productName}" data-price="${priceDisplay}" data-product-image="${firstImg || ''}" aria-label="Save">
+          <div class="pcard-badge">${escapeHomeFavoriteHtml(badge)}</div>
+          <button class="heart-btn" onclick="event.stopPropagation()" data-product-id="${p.id}" data-product-name="${escapeHomeFavoriteHtml(productName)}" data-price="${priceDisplay}" data-product-image="${firstImg || ''}" aria-label="Save">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           </button>
         </div>
         <div class="pcard-info">
-          <p class="pcard-cat">${productCategory}</p>
-          <p class="pcard-name">${productName}</p>
+          <p class="pcard-cat">${escapeHomeFavoriteHtml(productCategory)}</p>
+          <p class="pcard-name">${escapeHomeFavoriteHtml(productName)}</p>
           <p class="pcard-price">${priceDisplay}</p>
-          <button class="pcard-action" onclick="event.stopPropagation();openAllReviewsModal('${p.id}', '${domId}', '${productName.replace(/'/g, "\\'")}')" data-review-pid="${p.id}" data-review-domid="${domId}">
+          <button class="pcard-action" onclick="event.stopPropagation();openAllReviewsModal('${p.id}', '${domId}', this.dataset.pname)" data-review-pid="${p.id}" data-review-domid="${domId}" data-pname="${escapeHomeFavoriteHtml(productName)}">
             <span id="avg-${domId}"><span style="color:rgba(244,241,235,.2)">\u2606\u2606\u2606\u2606\u2606</span></span>
             <span id="cnt-${domId}">Be the first to review</span>
           </button>
@@ -3671,7 +3671,7 @@ async function _initStripe() {
 
 async function post(url, body) {
   const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
-  return r.json();
+  return r.json().catch(() => ({ error: `HTTP ${r.status}` }));
 }
 async function getCheckoutUserId() {
   if (_user?.id) return _user.id;
