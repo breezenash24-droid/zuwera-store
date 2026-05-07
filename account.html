@@ -50,7 +50,9 @@
     body.light-mode .zw-nav { background: #F0EEE9; border-bottom-color: rgba(9,9,11,.07); }
     .zw-nav-logo { font-family: var(--fw); font-size: 1.35rem; letter-spacing: .18em; opacity: .85; transition: opacity .2s; }
     .zw-nav-logo:hover { opacity: 1; }
-    .zw-nav-logo img { height: 22px; width: auto; }
+    .zw-nav-logo img { height: 22px; width: auto; transition: filter .35s; }
+    body.light-mode .zw-nav-logo img { filter: invert(1); }
+    body.light-mode .zw-footer-logo img { filter: invert(1); }
     .zw-nav-back {
       font-family: var(--fm); font-size: .6rem; letter-spacing: .14em; text-transform: uppercase;
       color: rgba(244,241,235,.4); display: flex; align-items: center; gap: .4rem; transition: color .2s;

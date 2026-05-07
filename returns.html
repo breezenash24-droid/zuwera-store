@@ -55,9 +55,11 @@
       border-bottom: 1px solid var(--border);
       backdrop-filter: blur(8px);
     }
-    .zw-nav-logo img { height: 22px; width: auto; }
+    .zw-nav-logo img { height: 22px; width: auto; transition: filter .35s; }
     .zw-nav-logo { font-family: var(--fw); font-size: 1.35rem; letter-spacing: .18em; opacity: .85; transition: opacity .2s; }
     .zw-nav-logo:hover { opacity: 1; }
+    body.light-mode .zw-nav-logo img { filter: invert(1); }
+    body.light-mode .zw-footer-logo img { filter: invert(1); }
     .zw-nav-back {
       font-size: .6rem; letter-spacing: .14em; text-transform: uppercase;
       color: var(--muted); display: flex; align-items: center; gap: .4rem; transition: color .2s;
