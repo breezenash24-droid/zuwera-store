@@ -21,6 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=17">
   <link rel="icon" type="image/png" href="/images/favicon-black.png?v=1">
   <script src="/favicon-utils.js?v=1"></script>
 <!-- Google tag (gtag.js) -->
@@ -126,6 +127,12 @@
       opacity: 0.7;
     }
     .nav-logo:hover { opacity: 1; }
+    #mobile-menu-btn {
+      position: fixed !important;
+      top: calc(1.1rem + env(safe-area-inset-top,0px)) !important;
+      right: 1.1rem !important;
+      z-index: 250 !important;
+    }
     @media (max-width: 600px) {
       body { padding: calc(2rem + env(safe-area-inset-top)) 1.5rem calc(2rem + env(safe-area-inset-bottom)); min-height: 100svh; }
       .nav-logo { top: calc(1.2rem + env(safe-area-inset-top)); left: 1.2rem; }
@@ -139,6 +146,42 @@
 <body>
 
   <a href="index.html" class="nav-logo">ZUWERA</a>
+  <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" aria-controls="mobile-menu" aria-expanded="false">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="8" x2="21" y2="8"></line><line x1="3" y1="16" x2="21" y2="16"></line></svg>
+  </button>
+
+  <!-- MOBILE MENU MODAL -->
+  <div id="mobile-menu" class="modal zw-mobile-menu" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="mobile-menu-title" style="z-index:900;">
+    <div class="mbox zw-mobile-menu-panel">
+      <div class="zw-mobile-menu-top">
+        <p class="zw-mobile-menu-kicker">Zuwera Navigation</p>
+        <button id="mobile-menu-close" class="mclose zw-mobile-menu-close" onclick="return window.closeMobileMenu ? window.closeMobileMenu() : false;" aria-label="Close menu">Close</button>
+      </div>
+      <nav class="zw-mobile-menu-nav" aria-label="Mobile navigation">
+        <h2 id="mobile-menu-title" class="zw-mobile-menu-title">Menu</h2>
+        <div id="mobile-category-links" class="mobile-nav-links zw-mobile-menu-primary">
+          <a href="drop001.html" class="mobile-nav-link zw-mobile-primary-link">Shop</a>
+          <a href="drop001.html" class="mobile-nav-link zw-mobile-primary-link">Collections</a>
+          <a href="index.html#about" class="mobile-nav-link zw-mobile-primary-link">About</a>
+        </div>
+        <div class="zw-mobile-menu-secondary">
+          <a href="account.html" class="zw-mobile-secondary-link">Account</a>
+          <a href="account.html#orders" class="zw-mobile-secondary-link">Track Order</a>
+          <a href="mailto:nasirubreeze@zuwera.store" class="zw-mobile-secondary-link">Support</a>
+          <a href="bag.html" class="zw-mobile-secondary-link zw-mobile-bag-link" aria-label="Open bag">Bag <span class="zw-mobile-bag-count">0</span></a>
+          <a href="sizeguide.html" class="zw-mobile-secondary-link">Size Guide</a>
+        </div>
+      </nav>
+      <footer class="zw-mobile-menu-footer">
+        <div class="zw-mobile-socials" aria-label="Social links">
+          <a href="https://instagram.com/Zuw.era" target="_blank" rel="noopener">Instagram</a>
+          <a href="mailto:nasirubreeze@zuwera.store">Email</a>
+          <a href="#" onclick="event.preventDefault(); window.closeMobileMenu?.(); setTimeout(() => window.zwLang?.open?.(), 0);">Language</a>
+        </div>
+        <p class="zw-mobile-menu-year">Zuwera &middot; 2026</p>
+      </footer>
+    </div>
+  </div>
 
   <div class="bg-number">404</div>
 
@@ -152,5 +195,7 @@
     </div>
   </div>
 
+  <script src="mobile-menu.js?v=6" defer></script>
+  <script src="lang.js?v=10" defer></script>
 </body>
 </html>

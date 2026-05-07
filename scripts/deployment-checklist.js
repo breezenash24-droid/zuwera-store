@@ -12,9 +12,14 @@ const files = {
   index: read('index.html'),
   product: read('product.html'),
   drop: read('drop001.html'),
+  account: read('account.html'),
+  bag: read('bag.html'),
+  returns: read('returns.html'),
+  notFound: read('404.html'),
   admin: read('admin.html'),
   cohesion: read('storefront-cohesion.css'),
   mobileMenu: read('mobile-menu.js'),
+  lang: read('lang.js'),
   imageUtils: read('image-utils.js'),
   imageConfig: read('functions/api/image-config.js'),
   uploadProductImage: read('functions/api/upload-product-image.js'),
@@ -51,6 +56,15 @@ const checks = [
       && /mobile-menu\.js\?v=/.test(files.drop),
   },
   {
+    name: 'Customer-facing pages share the mobile hamburger menu',
+    pass: () => [files.index, files.drop, files.product, files.sizeguide, files.account, files.bag, files.returns, files.notFound]
+      .every(file => /id="mobile-menu"/.test(file)
+        && /id="mobile-menu-btn"/.test(file)
+        && /zw-mobile-menu-footer/.test(file)
+        && /window\.zwLang\?\.open/.test(file)
+        && /mobile-menu\.js\?v=/.test(file)),
+  },
+  {
     name: 'Homepage footer Size Guide goes to dedicated page',
     pass: () => /<a(?=[^>]*id="footer-size-guide-link")(?=[^>]*href="\/sizeguide\.html")[^>]*>Size Guide<\/a>/.test(files.index)
       && !/id="footer-size-guide-link"[^>]*openSizeGuideModal/.test(files.index),
@@ -74,8 +88,25 @@ const checks = [
     name: 'Mobile hamburger menu has stable footer utilities',
     pass: () => /#mobile-menu\.zw-mobile-menu\.open\{[\s\S]*animation:none/.test(files.cohesion)
       && /#mobile-menu \.zw-mobile-primary-link:hover[\s\S]*padding-left:0/.test(files.cohesion)
-      && /zw-mobile-socials/.test(files.index + files.product + files.drop + files.sizeguide)
-      && /window\.zwLang\?\.open/.test(files.index + files.product + files.drop + files.sizeguide),
+      && /#mobile-menu\.zw-mobile-menu\{[\s\S]*width:100dvw/.test(files.cohesion)
+      && /#mobile-menu\.zw-mobile-menu\{[\s\S]*overscroll-behavior:none/.test(files.cohesion)
+      && /#mobile-menu\.zw-mobile-menu > \.zw-mobile-menu-panel\{[\s\S]*overflow-x:hidden/.test(files.cohesion)
+      && /document\.body\.style\.position = 'fixed'/.test(files.mobileMenu)
+      && /window\.scrollTo\(0, lockedScrollY/.test(files.mobileMenu)
+      && /zw-mobile-socials/.test(files.index + files.product + files.drop + files.sizeguide + files.account + files.bag + files.returns + files.notFound)
+      && /window\.zwLang\?\.open/.test(files.index + files.product + files.drop + files.sizeguide + files.account + files.bag + files.returns + files.notFound)
+      && /injectMobileMenuLanguageButtons/.test(files.lang)
+      && /zw-mobile-lang-trigger/.test(files.lang)
+      && /querySelectorAll\('footer, \.cart-shell-footer'\)/.test(files.lang)
+      && /\.fright, \.zw-footer-right, \.cart-shell-footer-nav/.test(files.lang)
+      && /!node\.classList\.contains\('zw-mobile-menu-footer'\)/.test(files.lang),
+  },
+  {
+    name: 'Mobile announcement bar uses CSS safe-area positioning',
+    pass: () => /@media\(max-width:900px\)\{[\s\S]*#bar\{[\s\S]*top:calc\(0\.8rem \+ env\(safe-area-inset-top,0px\) \+ 0\.9rem\)/.test(files.index)
+      && !/bar\.style\.top\s*=\s*nav\.offsetHeight/.test(files.index)
+      && !/barEl\.style\.top\s*=\s*navEl\.offsetHeight/.test(files.index)
+      && !/barEl\.style\.top\s*=\s*\(navEl \? navEl\.offsetHeight/.test(files.index),
   },
   {
     name: 'Cart shell and empty-bag button are wired',

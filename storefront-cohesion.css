@@ -1488,11 +1488,18 @@ body.light-mode.zw-mobile-menu-open #mobile-menu-btn.open{
   display:none !important;
   position:fixed !important;
   inset:0 !important;
-  width:100vw !important;
+  left:0 !important;
+  right:0 !important;
+  width:100% !important;
+  width:100dvw !important;
+  max-width:100% !important;
   height:100dvh !important;
   min-height:100svh !important;
   padding:0 !important;
   overflow:hidden !important;
+  overflow-x:hidden !important;
+  overscroll-behavior:none !important;
+  touch-action:none !important;
   align-items:stretch !important;
   justify-content:flex-end !important;
   background:var(--zw-ink, #09090b) !important;
@@ -1539,7 +1546,8 @@ body.light-mode #mobile-menu.zw-mobile-menu::before{
   position:relative !important;
   z-index:1 !important;
   width:100% !important;
-  max-width:100% !important;
+  width:100dvw !important;
+  max-width:100dvw !important;
   min-height:100dvh !important;
   height:100dvh !important;
   margin:0 !important;
@@ -1548,7 +1556,10 @@ body.light-mode #mobile-menu.zw-mobile-menu::before{
   grid-template-rows:auto 1fr auto;
   gap:clamp(1.25rem,4dvh,2.4rem);
   overflow-y:auto !important;
+  overflow-x:hidden !important;
   -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain !important;
+  touch-action:pan-y !important;
   background:var(--zw-ink, #09090b) !important;
   border:0 !important;
   border-left:1px solid rgba(244,241,235,.08) !important;
@@ -1559,6 +1570,16 @@ body.light-mode #mobile-menu.zw-mobile-menu::before{
   transform:none !important;
   transition:none !important;
   animation:none !important;
+}
+
+html.zw-mobile-menu-open,
+body.zw-mobile-menu-open{
+  width:100% !important;
+  max-width:100% !important;
+  overflow:hidden !important;
+  overflow-x:hidden !important;
+  overscroll-behavior:none !important;
+  touch-action:none !important;
 }
 
 body.light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel{

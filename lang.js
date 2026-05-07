@@ -451,14 +451,10 @@
   }
 
   // ─── Inject Footer Button ─────────────────────────────────────────────────────
-  function injectFooterButton() {
-    const footer = document.querySelector('footer');
-    if (!footer) return;
-    if (footer.querySelector('.zw-lang-trigger')) return;
-
+  function createLanguageButton(extraClass) {
     const lang = LANGUAGES.find(l => l.code === currentLang) || LANGUAGES[0];
     const btn = document.createElement('button');
-    btn.className = 'zw-lang-trigger notranslate';
+    btn.className = `zw-lang-trigger notranslate${extraClass ? ` ${extraClass}` : ''}`;
     btn.setAttribute('translate', 'no');
     btn.setAttribute('aria-label', 'Change language');
     btn.setAttribute('title', 'Change language');
@@ -473,7 +469,25 @@
       <span class="zw-lang-chip notranslate" translate="no">${lang.flag} ${lang.code.split('-')[0].toUpperCase()}</span>
       <span class="notranslate" translate="no" style="opacity:0.6;">Language</span>
     `;
-    footer.appendChild(btn);
+    return btn;
+  }
+
+  function injectFooterButton() {
+    const footer = Array.from(document.querySelectorAll('footer, .cart-shell-footer'))
+      .find(node => !node.classList.contains('zw-mobile-menu-footer'));
+    if (!footer || footer.querySelector('.zw-lang-trigger')) return;
+    const host = footer.querySelector('.fright, .zw-footer-right, .cart-shell-footer-nav') || footer;
+    host.appendChild(createLanguageButton('zw-footer-lang-trigger'));
+  }
+
+  function injectMobileMenuLanguageButtons() {
+    document.querySelectorAll('.zw-mobile-menu-footer .zw-mobile-socials').forEach(group => {
+      if (group.querySelector('.zw-lang-trigger')) return;
+      group.querySelectorAll('a').forEach(link => {
+        if ((link.textContent || '').trim().toLowerCase() === 'language') link.remove();
+      });
+      group.appendChild(createLanguageButton('zw-mobile-lang-trigger'));
+    });
   }
 
   // ─── Inject Component Styles ──────────────────────────────────────────────────
@@ -497,6 +511,23 @@
         color: #F891A5; border-color: rgba(248,145,165,0.35);
         background: rgba(248,145,165,0.06);
       }
+      .zw-footer-lang-trigger {
+        margin-top: 0.75rem;
+      }
+      .cart-shell-footer-nav .zw-footer-lang-trigger {
+        margin-top: 0; color: inherit;
+      }
+      .zw-mobile-socials .zw-mobile-lang-trigger {
+        width: 100%; min-height: 42px; margin: 0; padding: 0.65rem 0.45rem;
+        justify-content: center; border: 0; border-radius: 0;
+        border-right: 0 !important; background: rgba(244,241,235,0.014);
+        font-family: 'IBM Plex Mono', 'DM Sans', sans-serif;
+        font-size: 0.62rem; letter-spacing: 0.2em;
+      }
+      .zw-mobile-socials .zw-mobile-lang-trigger svg,
+      .zw-mobile-socials .zw-mobile-lang-trigger .zw-lang-chip {
+        display: none;
+      }
       /* ── Trigger button light mode ── */
       body.light-mode .zw-lang-trigger {
         border-color: rgba(9,9,11,0.22);
@@ -505,6 +536,9 @@
       body.light-mode .zw-lang-trigger:hover {
         color: #09090b; border-color: rgba(9,9,11,0.5);
         background: rgba(9,9,11,0.04);
+      }
+      body.light-mode .zw-mobile-socials .zw-mobile-lang-trigger {
+        background: rgba(9,9,11,0.014);
       }
       /* ── Modal overlay — all layout/visual here so inline style can't override ── */
       #zw-lang-modal {
@@ -597,6 +631,7 @@
     // English page: skip GT entirely — no script, no bar, no credits
 
     injectFooterButton();
+    injectMobileMenuLanguageButtons();
     updateLangChip();
   }
 
