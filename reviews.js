@@ -292,7 +292,7 @@ window.openAllReviewsModal = async function(pid, domId, productName) {
 
       let editBtnHtml = '';
       if (user && review.user_id === user.id) {
-        editBtnHtml = `<button class="review-card-action" type="button" onclick="openEditReviewForm('${review.id}', ${review.rating}, '${pid}'); document.getElementById('all-reviews-modal').classList.remove('open');">Edit</button>`;
+        editBtnHtml = `<button class="review-card-action" type="button" onclick="openEditReviewForm('${escHtml(review.id)}', ${Number(review.rating)}, '${escHtml(pid)}'); document.getElementById('all-reviews-modal').classList.remove('open');">Edit</button>`;
       }
 
       const reviewDate = review.created_at

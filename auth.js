@@ -24,6 +24,7 @@ const $  = id => document.getElementById(id);
 // Disable/re-enable a button with a loading label
 function setBtn(id, loading, defaultLabel) {
   const btn = $(id);
+  if (!btn) return null;
   btn.disabled    = loading;
   btn.textContent = loading ? defaultLabel.replace(/.$/, '…') : defaultLabel;
   return btn;
@@ -174,11 +175,11 @@ function switchAuthTab(tab) {
 document.querySelectorAll('#auth-modal .auth-tab').forEach(btn => {
   btn.addEventListener('click', () => switchAuthTab(btn.dataset.tab));
 });
-$('auth-modal-close').addEventListener('click', closeAuthModal);
-$('auth-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeAuthModal(); });
-_authEls.loginBtn.addEventListener('click', () => openAuthModal('signin'));
-$('forgot-link').addEventListener('click', e => { e.preventDefault(); switchAuthTab('forgot'); });
-$('back-to-signin').addEventListener('click', e => { e.preventDefault(); switchAuthTab('signin'); });
+$('auth-modal-close')?.addEventListener('click', closeAuthModal);
+$('auth-modal')?.addEventListener('click', e => { if (e.target === e.currentTarget) closeAuthModal(); });
+_authEls.loginBtn?.addEventListener('click', () => openAuthModal('signin'));
+$('forgot-link')?.addEventListener('click', e => { e.preventDefault(); switchAuthTab('forgot'); });
+$('back-to-signin')?.addEventListener('click', e => { e.preventDefault(); switchAuthTab('signin'); });
 
 // ── Cloudflare Turnstile Helper ────────────────────────────────────
 const ZW_TS_KEY = '0x4AAAAAACzvvg-l2dT2z35l';
@@ -286,7 +287,7 @@ async function zwRunTurnstile(action) {
 }
 
 // ── Sign In ────────────────────────────────────────────────────────
-$('signin-submit').addEventListener('click', async () => {
+$('signin-submit')?.addEventListener('click', async () => {
   const email = $('signin-email').value.trim();
   const pass  = $('signin-password').value;
   const err   = $('signin-error');
@@ -311,7 +312,7 @@ $('signin-submit').addEventListener('click', async () => {
 });
 
 // ── Sign Up ────────────────────────────────────────────────────────
-$('signup-submit').addEventListener('click', async () => {
+$('signup-submit')?.addEventListener('click', async () => {
   const name  = $('signup-name').value.trim();
   const email = $('signup-email').value.trim();
   const pass  = $('signup-password').value;
@@ -347,7 +348,7 @@ $('signup-submit').addEventListener('click', async () => {
 });
 
 // ── Forgot Password ────────────────────────────────────────────────
-$('forgot-submit').addEventListener('click', async () => {
+$('forgot-submit')?.addEventListener('click', async () => {
   const email = $('forgot-email').value.trim();
   const err   = $('forgot-error');
   const suc   = $('forgot-success');
@@ -383,7 +384,7 @@ if (updatePassBtn) {
 }
 
 // ── Logout ─────────────────────────────────────────────────────────
-_authEls.logoutBtn.addEventListener('click', async () => {
+_authEls.logoutBtn?.addEventListener('click', async () => {
   if (_sb) {
     // scope:'global' revokes the refresh token server-side so the session
     // cannot be silently re-established on the next page load.
@@ -396,7 +397,7 @@ _authEls.logoutBtn.addEventListener('click', async () => {
 });
 
 // ── Account Modal ──────────────────────────────────────────────────
-_authEls.accountBtn.addEventListener('click', () => {
+_authEls.accountBtn?.addEventListener('click', () => {
   _openModal('account-modal');
   switchAcctTab('orders');
   loadOrderHistory();
@@ -406,8 +407,8 @@ _authEls.accountBtn.addEventListener('click', () => {
   const err = $('acct-delete-error');
   if (err) err.textContent = '';
 });
-$('account-modal-close').addEventListener('click', () => _closeModal('account-modal'));
-$('account-modal').addEventListener('click', e => {
+$('account-modal-close')?.addEventListener('click', () => _closeModal('account-modal'));
+$('account-modal')?.addEventListener('click', e => {
   if (e.target === e.currentTarget) _closeModal('account-modal');
 });
 
@@ -503,7 +504,7 @@ async function loadOrderHistory() {
     <div style="padding:1rem 0;border-bottom:1px solid rgba(245,245,240,0.08);">
       <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:0.1em;">Order #${order.id?.slice(-8).toUpperCase()}</div>
       <div style="font-size:0.78rem;opacity:0.45;margin-top:0.2rem;">${new Date(order.created_at).toLocaleDateString()}</div>
-      <div style="font-size:0.78rem;opacity:0.6;margin-top:0.3rem;">${order.status || 'Confirmed'}</div>
+      <div style="font-size:0.78rem;opacity:0.6;margin-top:0.3rem;">${escapeFavoriteHtml(order.status || 'Confirmed')}</div>
     </div>
   `).join('');
 }
@@ -654,13 +655,18 @@ async function getFavoriteProductDetail(productId, fallbackFavorite) {
   } catch (_) {}
 
   try {
-    const headers = { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` };
+    const sbUrl = (typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : null)
+      || (typeof PRODUCTS_SUPABASE_URL !== 'undefined' ? PRODUCTS_SUPABASE_URL : null);
+    const sbAnon = (typeof SUPABASE_ANON !== 'undefined' ? SUPABASE_ANON : null)
+      || (typeof PRODUCTS_SUPABASE_ANON !== 'undefined' ? PRODUCTS_SUPABASE_ANON : null);
+    if (!sbUrl || !sbAnon) return null;
+    const headers = { apikey: sbAnon, Authorization: `Bearer ${sbAnon}` };
     const encodedId = encodeURIComponent(productId);
     const [productResp, imagesResp, colorsResp, sizesResp] = await Promise.all([
-      fetch(`${SUPABASE_URL}/rest/v1/products?select=*&id=eq.${encodedId}&limit=1`, { headers }),
-      fetch(`${SUPABASE_URL}/rest/v1/product_images?select=*&product_id=eq.${encodedId}&order=sort_order.asc`, { headers }),
-      fetch(`${SUPABASE_URL}/rest/v1/color_variants?select=*&product_id=eq.${encodedId}&order=sort_order.asc`, { headers }),
-      fetch(`${SUPABASE_URL}/rest/v1/product_sizes?select=*&product_id=eq.${encodedId}`, { headers })
+      fetch(`${sbUrl}/rest/v1/products?select=*&id=eq.${encodedId}&limit=1`, { headers }),
+      fetch(`${sbUrl}/rest/v1/product_images?select=*&product_id=eq.${encodedId}&order=sort_order.asc`, { headers }),
+      fetch(`${sbUrl}/rest/v1/color_variants?select=*&product_id=eq.${encodedId}&order=sort_order.asc`, { headers }),
+      fetch(`${sbUrl}/rest/v1/product_sizes?select=*&product_id=eq.${encodedId}`, { headers })
     ]);
     const productRows = productResp.ok ? await productResp.json() : [];
     const product = Array.isArray(productRows) ? productRows[0] : null;
@@ -697,8 +703,8 @@ function favoriteCardHtml(favorite, detail, options) {
         ${priceHtml}
         <div style="display:flex;flex-wrap:wrap;gap:0.45rem;margin-top:0.8rem;">
           <a href="${href}" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 0.85rem;border:1px solid rgba(245,245,240,0.14);font-size:0.66rem;letter-spacing:0.09em;text-transform:uppercase;color:rgba(245,245,240,0.76);text-decoration:none;">View Product</a>
-          <button type="button" onclick="addFavoriteToCart('${productId}')" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 0.85rem;border:none;background:#f5f5f0;color:#09090b;font-size:0.66rem;letter-spacing:0.09em;text-transform:uppercase;cursor:pointer;">Add to Bag</button>
-          <button type="button" onclick="removeFavorite('${productId}', null)" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 0.85rem;border:1px solid rgba(245,245,240,0.08);background:none;color:rgba(245,245,240,0.46);font-size:0.66rem;letter-spacing:0.09em;text-transform:uppercase;cursor:pointer;">Remove</button>
+          <button type="button" onclick="addFavoriteToCart('${escapeFavoriteHtml(productId)}')" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 0.85rem;border:none;background:#f5f5f0;color:#09090b;font-size:0.66rem;letter-spacing:0.09em;text-transform:uppercase;cursor:pointer;">Add to Bag</button>
+          <button type="button" onclick="removeFavorite('${escapeFavoriteHtml(productId)}', null)" style="display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 0.85rem;border:1px solid rgba(245,245,240,0.08);background:none;color:rgba(245,245,240,0.46);font-size:0.66rem;letter-spacing:0.09em;text-transform:uppercase;cursor:pointer;">Remove</button>
         </div>
       </div>
     </${listTag}>
@@ -770,8 +776,8 @@ async function loadAcctFavs() {
   if (!_userFavorites.length) { empty.style.display = 'block'; return; }
   list.innerHTML = _userFavorites.map(fav => `
     <li style="display:flex;align-items:center;justify-content:space-between;padding:0.8rem 0;border-bottom:1px solid rgba(245,245,240,0.08);">
-      <span style="font-size:0.9rem;">${fav.product_name}</span>
-      <button onclick="removeFavorite('${fav.product_id}', this.closest('li'))"
+      <span style="font-size:0.9rem;">${escapeFavoriteHtml(fav.product_name)}</span>
+      <button onclick="removeFavorite('${escapeFavoriteHtml(fav.product_id)}', this.closest('li'))"
         style="background:none;border:none;cursor:pointer;color:rgba(245,245,240,0.4);font-size:1.1rem;padding:0 0.3rem;"
         aria-label="Remove">✕</button>
     </li>
@@ -833,8 +839,8 @@ function refreshCartFavs() {
   if (empty) empty.style.display = 'none';
   list.innerHTML = _userFavorites.map(fav => `
     <li style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0;border-bottom:1px solid rgba(245,245,240,0.06);font-size:0.85rem;">
-      <span>${fav.product_name}</span>
-      <button onclick="removeFavorite('${fav.product_id}', null)"
+      <span>${escapeFavoriteHtml(fav.product_name)}</span>
+      <button onclick="removeFavorite('${escapeFavoriteHtml(fav.product_id)}', null)"
         style="background:none;border:none;cursor:pointer;color:rgba(245,245,240,0.4);font-size:1rem;"
         aria-label="Remove">✕</button>
     </li>

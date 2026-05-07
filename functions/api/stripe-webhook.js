@@ -44,6 +44,13 @@ export async function onRequestPost({ request, env }) {
   if (!env.RESEND_API_KEY)        console.warn('MISSING ENV: RESEND_API_KEY not set — emails will be skipped');
   if (!env.SUPABASE_URL)          console.warn('MISSING ENV: SUPABASE_URL not set — orders will not be saved');
 
+  if (!env.STRIPE_SECRET_KEY || !env.STRIPE_WEBHOOK_SECRET) {
+    return new Response(
+      JSON.stringify({ error: 'Stripe webhook handler is not configured.' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
   const stripe  = new Stripe(env.STRIPE_SECRET_KEY, { httpClient: Stripe.createFetchHttpClient() });
   const rawBody = await request.text();
   const sig     = request.headers.get('stripe-signature');
