@@ -169,7 +169,7 @@ body{
   color:var(--paper);
   font-family:var(--fb);
   font-weight:300;
-  overflow-x:hidden;
+  overflow-x:clip;
   overscroll-behavior-y:auto;
 }
 /* iOS safe-area tint anchor: paints the notch/status-bar zone with the nav color so Safari 26 samples the correct toolbar tint and no gap appears above the header on mobile. */
@@ -222,6 +222,13 @@ nav#nav.scrolled{
   background:var(--ink);
   border-color:rgba(244,241,235,.07);
   padding:1rem 2.5rem;
+}
+@media(max-width:900px){
+  /* Keep safe-area inset when scrolled so nav height doesn't shrink on iPhone,
+     which would leave a gap between the nav and the announcement bar below it. */
+  nav#nav.scrolled{
+    padding:calc(0.8rem + env(safe-area-inset-top,0px)) 1.2rem 0.9rem;
+  }
 }
 .nav-logo{
   font-family:var(--fw);font-weight:900;font-style:italic;
@@ -1961,6 +1968,10 @@ window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.
   };
   syncNavOffset();
   window.addEventListener('resize', syncNavOffset);
+  // Keep bar flush with nav bottom whenever nav height changes (fonts, scrolled class, etc.)
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(syncNavOffset).observe(nav);
+  }
 })();
 
 /* SUPABASE */
