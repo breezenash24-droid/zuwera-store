@@ -1476,7 +1476,7 @@ body.light-mode #mobile-menu-btn.open{
   overflow:hidden !important;
   align-items:stretch !important;
   justify-content:flex-end !important;
-  background:rgba(9,9,11,.98) !important;
+  background:var(--zw-ink, #09090b) !important;
   color:var(--zw-paper) !important;
   opacity:0;
   z-index:9999 !important;
@@ -1525,7 +1525,7 @@ body.light-mode #mobile-menu.zw-mobile-menu::before{
   gap:clamp(1.25rem,4dvh,2.4rem);
   overflow-y:auto !important;
   -webkit-overflow-scrolling:touch;
-  background:transparent !important;
+  background:var(--zw-ink, #09090b) !important;
   border:0 !important;
   border-left:1px solid rgba(244,241,235,.08) !important;
   border-radius:0 !important;
@@ -1536,6 +1536,7 @@ body.light-mode #mobile-menu.zw-mobile-menu::before{
 }
 
 body.light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel{
+  background:var(--zw-paper) !important;
   border-left-color:rgba(9,9,11,.08) !important;
 }
 
