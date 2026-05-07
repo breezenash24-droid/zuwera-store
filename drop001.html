@@ -742,10 +742,10 @@
     body.light-mode .fig{color:rgba(9,9,11,.3)}
     body.light-mode .fcopy{color:rgba(9,9,11,.2)}
   </style>
-<link rel="stylesheet" href="storefront-cohesion.css?v=12">
+<link rel="stylesheet" href="storefront-cohesion.css?v=13">
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=2">
-  <script src="image-utils.js?v=1"></script>
-  <script src="mobile-menu.js?v=3" defer></script>
+  <script src="image-utils.js?v=2"></script>
+  <script src="mobile-menu.js?v=4" defer></script>
   <script src="storefront-theme.js?v=1" defer></script>
   <script src="/supabase.min.js"></script>
 </head>
@@ -773,23 +773,40 @@
     <a href="index.html" class="nav-logo-link">ZUWERA</a>
     <div class="nav-actions">
       <a href="index.html" class="nav-back">&#8592; Back to Home</a>
-      <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu">
+      <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" aria-controls="mobile-menu" aria-expanded="false">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
       </button>
     </div>
   </header>
 
-  <div id="mobile-menu" class="modal" role="dialog" aria-modal="true" aria-hidden="true" style="z-index:900;">
-    <div class="mbox" style="background:transparent; border:none; box-shadow:none; text-align:center;">
-      <button id="mobile-menu-close" class="mclose" style="position:fixed; top:1.5rem; right:1.5rem; background:none; border:none; color:#f4f1eb; font-size:2rem; width:40px; height:40px;">&#215;</button>
-      <div id="mobile-category-links" class="mobile-nav-links">
-        <a href="index.html" class="mobile-nav-link">Home</a>
-        <a href="drop001.html" class="mobile-nav-link">Collection</a>
-        <a href="sizeguide.html" class="mobile-nav-link">Size Guide</a>
-        <a href="policies.html" class="mobile-nav-link">Policies</a>
-        <a href="returns.html" class="mobile-nav-link">Returns</a>
-        <a href="mailto:Breezenash24@gmail.com" class="mobile-nav-link">Contact</a>
+  <div id="mobile-menu" class="modal zw-mobile-menu" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="mobile-menu-title" style="z-index:900;">
+    <div class="mbox zw-mobile-menu-panel">
+      <div class="zw-mobile-menu-top">
+        <p class="zw-mobile-menu-kicker">Zuwera Navigation</p>
+        <button id="mobile-menu-close" class="mclose zw-mobile-menu-close" aria-label="Close menu">Close</button>
       </div>
+      <nav class="zw-mobile-menu-nav" aria-label="Mobile navigation">
+        <h2 id="mobile-menu-title" class="zw-mobile-menu-title">Menu</h2>
+        <div id="mobile-category-links" class="mobile-nav-links zw-mobile-menu-primary">
+          <a href="drop001.html" class="mobile-nav-link zw-mobile-primary-link">Shop</a>
+          <a href="drop001.html" class="mobile-nav-link zw-mobile-primary-link">Collections</a>
+          <a href="index.html#about" class="mobile-nav-link zw-mobile-primary-link">About</a>
+        </div>
+        <div class="zw-mobile-menu-secondary">
+          <a href="account.html" class="zw-mobile-secondary-link">Account</a>
+          <a href="account.html#orders" class="zw-mobile-secondary-link">Track Order</a>
+          <a href="mailto:nasirubreeze@zuwera.store" class="zw-mobile-secondary-link">Support</a>
+          <a href="bag.html" class="zw-mobile-secondary-link zw-mobile-bag-link" aria-label="Open bag">Bag <span class="zw-mobile-bag-count">0</span></a>
+          <a href="sizeguide.html" class="zw-mobile-secondary-link">Size Guide</a>
+        </div>
+      </nav>
+      <footer class="zw-mobile-menu-footer">
+        <div class="zw-mobile-socials" aria-label="Social links">
+          <a href="https://instagram.com/Zuw.era" target="_blank" rel="noopener">Instagram</a>
+          <a href="mailto:nasirubreeze@zuwera.store">Email</a>
+        </div>
+        <p class="zw-mobile-menu-year">Zuwera &middot; 2026</p>
+      </footer>
     </div>
   </div>
 

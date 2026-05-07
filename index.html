@@ -28,7 +28,7 @@
 <link rel="canonical" href="https://zuwera.store/">
 <link rel="icon" type="image/png" href="/images/favicon-black.png?v=1" id="site-favicon">
 
-<script src="/favicon-utils.js?v=1"></script>
+<script src="/favicon-utils.js?v=1" defer></script>
 <!-- ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ JSON-LD Structured Data ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ -->
 <script type="application/ld+json">
 {
@@ -100,7 +100,8 @@
      single biggest LCP (Largest Contentful Paint) improvement. -->
 <script>
 (function() {
-  var heroSrc = 'images/hero.jpg';
+  var isMobileHero = window.matchMedia && window.matchMedia('(max-width: 760px)').matches;
+  var heroSrc = isMobileHero ? 'images/hero-mobile.jpg' : 'images/hero.jpg';
   try {
     var savedHero = localStorage.getItem('zw-hero-image');
     if (savedHero) heroSrc = savedHero;
@@ -111,6 +112,7 @@
   preload.rel = 'preload';
   preload.as = 'image';
   preload.href = heroSrc;
+  preload.fetchPriority = 'high';
   document.head.appendChild(preload);
 })();
 </script>
@@ -126,9 +128,10 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500&family=Barlow:wght@300;400&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="reviews.css?v=13">
-<script src="/stripe-client-config.js?v=1"></script>
-<script src="/checkout-tax.js?v=1"></script>
+  <link rel="preload" href="reviews.css?v=13" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="reviews.css?v=13"></noscript>
+<script src="/stripe-client-config.js?v=1" defer></script>
+<script src="/checkout-tax.js?v=1" defer></script>
 
 <!-- Stripe is loaded lazily on checkout click to avoid blocking initial render -->
 <!-- defer moves Supabase off the critical path ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â it was previously
@@ -141,7 +144,10 @@
 <!-- PostHog analytics -->
 <script>
 !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+" (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
-posthog.init('REPLACE_WITH_YOUR_POSTHOG_PROJECT_API_KEY', { api_host: 'https://us.i.posthog.com', person_profiles: 'identified_only' });
+var ZW_POSTHOG_KEY = 'REPLACE_WITH_YOUR_POSTHOG_PROJECT_API_KEY';
+if (ZW_POSTHOG_KEY && !/^REPLACE_WITH_/i.test(ZW_POSTHOG_KEY)) {
+  posthog.init(ZW_POSTHOG_KEY, { api_host: 'https://us.i.posthog.com', person_profiles: 'identified_only' });
+}
 </script>
 
 <!-- PWA -->
@@ -310,8 +316,12 @@ body.light-mode #mobile-menu-close { color:#09090b !important; }
   position:absolute;inset:0;
   overflow:hidden;
 }
+.hero-img-wrap picture,
 .hero-img-wrap img{
   width:100%;height:100%;object-fit:cover;object-position:center center;
+}
+.hero-img-wrap picture{display:block}
+.hero-img-wrap img{
   opacity:.35;
   filter:contrast(1.1) saturate(.8);
   transform:scale(1.04);
@@ -657,10 +667,8 @@ body.light-mode #mobile-menu-close { color:#09090b !important; }
 }
 .pcard-add-btn:hover{background:#fff;transform:translateY(-1px)}
 .pcard-add-btn.loading{opacity:.6;pointer-events:none}
-.pcard-add-mobile-label{display:none}
 @media(max-width:900px){
-  .pcard-add-desktop-label{display:none}
-  .pcard-add-mobile-label{display:inline}
+  .pcard-add-btn{display:none}
 }
 /* Panel that slides up from the bottom of the card */
 .quick-size-panel{
@@ -1621,8 +1629,8 @@ body.light-mode .rate-meta{color:rgba(9,9,11,.55)}
 body.light-mode #pay-submit{background:#09090b;color:#E8E3DC;border-color:#09090b}
 body.light-mode #pay-submit:hover{background:#1a1a1a;border-color:#1a1a1a}
 body.light-mode .psecure{color:rgba(9,9,11,.55)}
-body.light-mode #stripe-card-element{background:rgba(9,9,11,.05);border-color:rgba(9,9,11,.18)}
-body.light-mode #stripe-card-element.StripeElement--focus{background:rgba(9,9,11,.09);border-color:rgba(9,9,11,.42)}
+body.light-mode #stripe-card-element{background:#fff;border-color:rgba(9,9,11,.36)}
+body.light-mode #stripe-card-element.StripeElement--focus{background:#fff;border-color:rgba(9,9,11,.62)}
 body.light-mode #stripe-card-element.StripeElement--invalid{border-color:#c0392b;background:rgba(192,57,43,.06)}
 
 /* Success */
@@ -1638,9 +1646,9 @@ body.light-mode::after{opacity:0.15}
 
 </style>
   <link rel="stylesheet" href="reviews-vibe.css?v=14">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=12">
-<script src="image-utils.js?v=1"></script>
-<script src="mobile-menu.js?v=3" defer></script>
+  <link rel="stylesheet" href="storefront-cohesion.css?v=13">
+<script src="image-utils.js?v=2"></script>
+<script src="mobile-menu.js?v=4" defer></script>
 </head>
 <body>
 
@@ -1674,7 +1682,7 @@ body.light-mode::after{opacity:0.15}
 <!-- NAV -->
 <nav id="nav">
   <a href="/" class="nav-logo">
-    <img src="images/logo.png" alt="ZUWERA" onerror="this.style.display='none';this.parentElement.childNodes[this.parentElement.childNodes.length-1].style.display='block'">
+    <img src="images/logo-192.png" srcset="images/logo-192.png 192w, images/logo.png 2000w" sizes="32px" width="32" height="32" alt="ZUWERA" decoding="async" onerror="this.style.display='none';this.parentElement.childNodes[this.parentElement.childNodes.length-1].style.display='block'">
     <span style="display:none">ZUWERA</span>
   </a>
   <div class="nav-center" id="nav-category-links">
@@ -1692,24 +1700,41 @@ body.light-mode::after{opacity:0.15}
       </svg>
       <span class="cc">0</span>
     </button>
-      <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu">
+      <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" aria-controls="mobile-menu" aria-expanded="false">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
       </button>
   </div>
 </nav>
 
 <!-- MOBILE MENU MODAL -->
-<div id="mobile-menu" class="modal" role="dialog" aria-modal="true" aria-hidden="true" style="z-index:900;">
-  <div class="mbox" style="background:transparent; border:none; box-shadow:none; text-align:center;">
-    <button id="mobile-menu-close" class="mclose" onclick="return window.closeMobileMenu ? window.closeMobileMenu() : false;" style="position:fixed; top:1.5rem; right:1.5rem; background:none; border:none; color:#f4f1eb; font-size:2rem; width:40px; height:40px;">&#215;</button>
-    <div id="mobile-category-links" class="mobile-nav-links">
-      <a href="index.html" class="mobile-nav-link">Home</a>
-      <a href="drop001.html" class="mobile-nav-link">Collection</a>
-      <a href="sizeguide.html" class="mobile-nav-link">Size Guide</a>
-      <a href="policies.html" class="mobile-nav-link">Policies</a>
-      <a href="returns.html" class="mobile-nav-link">Returns</a>
-      <a href="mailto:Breezenash24@gmail.com" class="mobile-nav-link">Contact</a>
+<div id="mobile-menu" class="modal zw-mobile-menu" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="mobile-menu-title" style="z-index:900;">
+  <div class="mbox zw-mobile-menu-panel">
+    <div class="zw-mobile-menu-top">
+      <p class="zw-mobile-menu-kicker">Zuwera Navigation</p>
+      <button id="mobile-menu-close" class="mclose zw-mobile-menu-close" onclick="return window.closeMobileMenu ? window.closeMobileMenu() : false;" aria-label="Close menu">Close</button>
     </div>
+    <nav class="zw-mobile-menu-nav" aria-label="Mobile navigation">
+      <h2 id="mobile-menu-title" class="zw-mobile-menu-title">Menu</h2>
+      <div id="mobile-category-links" class="mobile-nav-links zw-mobile-menu-primary">
+        <a href="drop001.html" class="mobile-nav-link zw-mobile-primary-link">Shop</a>
+        <a href="drop001.html" class="mobile-nav-link zw-mobile-primary-link">Collections</a>
+        <a href="index.html#about" class="mobile-nav-link zw-mobile-primary-link">About</a>
+      </div>
+      <div class="zw-mobile-menu-secondary">
+        <a href="account.html" class="zw-mobile-secondary-link">Account</a>
+        <a href="account.html#orders" class="zw-mobile-secondary-link">Track Order</a>
+        <a href="mailto:nasirubreeze@zuwera.store" class="zw-mobile-secondary-link">Support</a>
+        <a href="bag.html" class="zw-mobile-secondary-link zw-mobile-bag-link" aria-label="Open bag">Bag <span class="zw-mobile-bag-count">0</span></a>
+        <a href="sizeguide.html" class="zw-mobile-secondary-link">Size Guide</a>
+      </div>
+    </nav>
+    <footer class="zw-mobile-menu-footer">
+      <div class="zw-mobile-socials" aria-label="Social links">
+        <a href="https://instagram.com/Zuw.era" target="_blank" rel="noopener">Instagram</a>
+        <a href="mailto:nasirubreeze@zuwera.store">Email</a>
+      </div>
+      <p class="zw-mobile-menu-year">Zuwera &middot; 2026</p>
+    </footer>
   </div>
 </div>
 
@@ -1717,11 +1742,18 @@ body.light-mode::after{opacity:0.15}
 <section class="hero">
   <div class="hero-bg"></div>
   <div class="hero-img-wrap">
-    <img id="hero-image" src="images/hero.jpg" alt="" fetchpriority="high">
+    <picture>
+      <source id="hero-mobile-source" media="(max-width: 760px)" srcset="images/hero-mobile.jpg">
+      <img id="hero-image" src="images/hero.jpg" width="4288" height="2848" alt="" fetchpriority="high" decoding="async">
+    </picture>
     <script>
     (function() {
       var hero = document.getElementById('hero-image');
-      if (hero && window.__ZW_HERO_IMAGE) hero.src = window.__ZW_HERO_IMAGE;
+      var mobileSource = document.getElementById('hero-mobile-source');
+      if (window.__ZW_HERO_IMAGE) {
+        if (hero) hero.src = window.__ZW_HERO_IMAGE;
+        if (mobileSource) mobileSource.srcset = window.__ZW_HERO_IMAGE;
+      }
     })();
     </script>
   </div>
@@ -1770,7 +1802,7 @@ body.light-mode::after{opacity:0.15}
 </div>
 
 <!-- ABOUT -->
-<section class="section-about">
+<section class="section-about" id="about">
   <div>
     <p class="about-label">About Zuwera</p>
     <h2 class="about-h2">Built For<br>Movement.</h2>
@@ -2503,6 +2535,8 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
           if (h.image) {
             const el = document.getElementById('hero-image');
             if (el) el.src = h.image;
+            const mobileSource = document.getElementById('hero-mobile-source');
+            if (mobileSource) mobileSource.srcset = h.image;
             window.__ZW_HERO_IMAGE = h.image;
             try { localStorage.setItem('zw-hero-image', h.image); } catch (e) {}
             const preload = document.getElementById('hero-preload');
@@ -2673,16 +2707,13 @@ function renderCategoryNavigation(products) {
   const desktop = document.getElementById('nav-category-links');
   const mobile = document.getElementById('mobile-category-links');
   const desktopHtml = labels.map(label => `<a href="${categoryHref(label)}" class="nav-link">${label}</a>`).join('');
-  const mobileUtilityHtml = [
-    '<a href="index.html" class="mobile-nav-link">Home</a>',
-    '<a href="drop001.html" class="mobile-nav-link">Collection</a>',
-    '<a href="sizeguide.html" class="mobile-nav-link">Size Guide</a>',
-    '<a href="policies.html" class="mobile-nav-link">Policies</a>',
-    '<a href="returns.html" class="mobile-nav-link">Returns</a>',
-    '<a href="mailto:Breezenash24@gmail.com" class="mobile-nav-link">Contact</a>'
+  const mobilePrimaryHtml = [
+    '<a href="drop001.html" class="mobile-nav-link zw-mobile-primary-link">Shop</a>',
+    '<a href="drop001.html" class="mobile-nav-link zw-mobile-primary-link">Collections</a>',
+    '<a href="index.html#about" class="mobile-nav-link zw-mobile-primary-link">About</a>'
   ].join('');
   if (desktop) desktop.innerHTML = desktopHtml;
-  if (mobile) mobile.innerHTML = mobileUtilityHtml;
+  if (mobile) mobile.innerHTML = mobilePrimaryHtml;
 }
 
 async function loadProducts() {
@@ -2839,7 +2870,7 @@ function renderProductCards(products, grid) {
             <span id="avg-${domId}"><span style="color:rgba(244,241,235,.2)">\u2606\u2606\u2606\u2606\u2606</span></span>
             <span id="cnt-${domId}">Be the first to review</span>
           </button>
-          ${isLive ? `<button type="button" class="pcard-add-btn" data-quick-add="${quickAddPayload}"><span class="pcard-add-desktop-label">Add to Bag</span><span class="pcard-add-mobile-label">View Product</span></button>` : ''}
+          ${isLive ? `<button type="button" class="pcard-add-btn" data-quick-add="${quickAddPayload}">Add to Bag</button>` : ''}
         </div>
         ${isLive ? `<div class="quick-size-panel" id="qsp-${domId}">
           <div class="quick-size-panel-header">
@@ -3780,7 +3811,7 @@ function quickAddGoToProduct(payload) {
   window.location.assign(href);
 }
 
-const QUICK_ADD_BUTTON_LABEL_HTML = '<span class="pcard-add-desktop-label">Add to Bag</span><span class="pcard-add-mobile-label">View Product</span>';
+const QUICK_ADD_BUTTON_LABEL_HTML = 'Add to Bag';
 
 function setQuickAddButtonLoading(btn, loading) {
   if (!btn) return;
@@ -4195,6 +4226,25 @@ function _loadStripe(cb) {
   s.onload = () => { _stripeReady = true; _stripeQueue.splice(0).forEach(f => f()); };
   document.head.appendChild(s);
 }
+function getCheckoutCardStyle() {
+  const isLight = document.body.classList.contains('light-mode');
+  return {
+    base: {
+      color: isLight ? '#09090b' : '#f4f1eb',
+      iconColor: isLight ? '#09090b' : '#f4f1eb',
+      fontFamily:'"DM Sans","Barlow",sans-serif',
+      fontSmoothing:'antialiased',
+      fontSize:'16px',
+      fontWeight:'500',
+      letterSpacing:'0',
+      '::placeholder':{ color: isLight ? 'rgba(9,9,11,.58)' : 'rgba(244,241,235,.38)' }
+    },
+    invalid: { color:'#c0392b', iconColor:'#c0392b' }
+  };
+}
+function refreshCheckoutCardTheme() {
+  if (card?.update) card.update({ style: getCheckoutCardStyle() });
+}
 async function _initStripe() {
   if (stripe) return stripe;
   if (_stripeInitPromise) return _stripeInitPromise;
@@ -4202,20 +4252,8 @@ async function _initStripe() {
     const publishableKey = await window.zwGetStripePublishableKey();
     stripe = Stripe(publishableKey);
     elements = stripe.elements();
-    const _isLight = document.body.classList.contains('light-mode');
     card = elements.create('card', {
-      style: {
-        base: {
-          color: _isLight ? 'rgba(9,9,11,.88)' : '#f4f1eb',
-          fontFamily:'"DM Sans","Barlow",sans-serif',
-          fontSmoothing:'antialiased',
-          fontSize:'16px',
-          fontWeight:'400',
-          letterSpacing:'.02em',
-          '::placeholder':{ color: _isLight ? 'rgba(9,9,11,.35)' : 'rgba(244,241,235,.38)' }
-        },
-        invalid: { color:'#c0392b', iconColor:'#c0392b' }
-      }
+      style: getCheckoutCardStyle()
     });
     card.mount('#stripe-card-element');
     return stripe;
@@ -4225,6 +4263,7 @@ async function _initStripe() {
   });
   return _stripeInitPromise;
 }
+window.addEventListener('zw-theme-applied', refreshCheckoutCardTheme);
 
 async function post(url, body) {
   const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
@@ -4356,7 +4395,10 @@ function openPaymentModal(subtotalCents) {
   void prefillCheckoutStateFromGeo();
   _loadStripe(() => {
     void _initStripe()
-      .then(() => initPR(subtotalCents))
+      .then(() => {
+        refreshCheckoutCardTheme();
+        return initPR(subtotalCents);
+      })
       .catch((error) => {
         document.getElementById('pay-error').textContent = error?.message || 'Unable to load secure checkout.';
       });
@@ -4771,12 +4813,11 @@ function scrollToNotify() {
 
 </script>
 <!-- Cloudflare Turnstile ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â invisible bot protection for waitlist -->
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=_zwHomeTsLoad&render=explicit" defer async></script>
 <div id="zw-home-ts-widget" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;" aria-hidden="true"></div>
 <script>
 (function() {
   const ZW_TS_KEY = '0x4AAAAAACzvvg-l2dT2z35l';
-  let _widgetId = null, _pending = null;
+  let _widgetId = null, _pending = null, _turnstileLoadPromise = null;
 
   function _tsCb(token) {
     if (_pending) { const fn = _pending; _pending = null; fn(token); }
@@ -4784,6 +4825,22 @@ function scrollToNotify() {
   function _tsErr() {
     if (_pending) { const fn = _pending; _pending = null; fn(null); }
   }
+
+  function _loadTurnstile() {
+    if (window.turnstile) return Promise.resolve(true);
+    if (_turnstileLoadPromise) return _turnstileLoadPromise;
+    _turnstileLoadPromise = new Promise(resolve => {
+      const script = document.createElement('script');
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=_zwHomeTsLoad&render=explicit';
+      script.async = true;
+      script.defer = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.head.appendChild(script);
+    });
+    return _turnstileLoadPromise;
+  }
+
   function _init() {
     const el = document.getElementById('zw-home-ts-widget');
     if (!el || !window.turnstile || _widgetId !== null) return;
@@ -4794,9 +4851,9 @@ function scrollToNotify() {
     });
   }
   window._zwHomeTsLoad = _init;
-  document.addEventListener('DOMContentLoaded', function() { setTimeout(_init, 800); });
-  function _waitForHomeTurnstile(timeoutMs) {
+  async function _waitForHomeTurnstile(timeoutMs) {
     const maxWait = timeoutMs || 2500;
+    await _loadTurnstile();
     _init();
     if (_widgetId !== null) return Promise.resolve(true);
     return new Promise(resolve => {

@@ -736,6 +736,21 @@
           <div class="card-label">Avg Order Value</div>
           <div class="card-value" id="avgOrderValue">$0.00</div>
         </div>
+        <div class="card">
+          <div class="card-label">Favorites Saved</div>
+          <div class="card-value" id="totalFavorites">0</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Waitlist Entries</div>
+          <div class="card-value" id="totalWaitlist">0</div>
+        </div>
+      </div>
+
+      <div class="chart-section">
+        <h2>Revenue Timeline</h2>
+        <div class="chart-container">
+          <div class="bar-chart" id="revenueChart"></div>
+        </div>
       </div>
 
       <h2 style="margin-top: 2rem; margin-bottom: 1rem;">Technical Command Center</h2>
@@ -941,6 +956,9 @@
 
         <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Top Rated Products</h3>
         <div class="top-products" id="topProductsContainer"></div>
+
+        <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Top Favorite Products</h3>
+        <div class="top-products" id="topFavoritesContainer"></div>
       </div>
     </div>
   </div>

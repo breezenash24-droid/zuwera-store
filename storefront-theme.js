@@ -12,6 +12,7 @@
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', color);
     document.documentElement.style.backgroundColor = color;
+    window.dispatchEvent(new CustomEvent('zw-theme-applied', { detail: { mode: resolved } }));
   }
 
   window.__zwApplyAdminTheme = applyThemeMode;

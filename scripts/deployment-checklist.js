@@ -16,6 +16,7 @@ const files = {
   cohesion: read('storefront-cohesion.css'),
   mobileMenu: read('mobile-menu.js'),
   imageUtils: read('image-utils.js'),
+  imageConfig: read('functions/api/image-config.js'),
   uploadProductImage: read('functions/api/upload-product-image.js'),
   deleteProductImages: read('functions/api/delete-product-images.js'),
   checkout: read('checkout.js'),
@@ -28,6 +29,12 @@ const checks = [
   {
     name: 'Mobile hamburger menu opens as full-screen overlay',
     pass: () => /#mobile-menu\s*\{[\s\S]*height:100dvh/.test(files.cohesion)
+      && /ZUWERA technical mobile hamburger menu/.test(files.cohesion)
+      && /#mobile-menu\.zw-mobile-menu/.test(files.cohesion)
+      && /zw-mobile-primary-link/.test(files.index + files.product + files.drop)
+      && /zw-mobile-secondary-link/.test(files.index + files.product + files.drop)
+      && /zw-mobile-bag-count/.test(files.index + files.product + files.drop)
+      && /cartCount\(\)/.test(files.mobileMenu)
       && /\.modal:not\(#cart-modal\):not\(#mobile-menu\)/.test(files.cohesion)
       && /openMobileMenu/.test(files.mobileMenu)
       && /closeMobileMenu/.test(files.mobileMenu),
@@ -101,6 +108,14 @@ const checks = [
       && /removeUnusedR2ProductImages/.test(files.admin)
       && /PRODUCT_IMAGES_BUCKET/.test(files.uploadProductImage + files.deleteProductImages)
       && /R2_PUBLIC_BASE_URL/.test(files.uploadProductImage + files.deleteProductImages),
+  },
+  {
+    name: 'Cloudinary storefront config comes from admin-managed settings',
+    pass: () => /fetch\('\/api\/image-config'/.test(files.imageUtils)
+      && /setCloudinaryCloudName/.test(files.imageUtils)
+      && /fetchSiteSettings\(\['CLOUDINARY_CLOUD_NAME'\]/.test(files.imageConfig)
+      && /resolveSetting\('CLOUDINARY_CLOUD_NAME'/.test(files.imageConfig)
+      && /CLOUDINARY_CLOUD_NAME/.test(files.admin),
   },
   {
     name: 'Checkout test-mode banner is wired',
