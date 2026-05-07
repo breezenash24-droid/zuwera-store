@@ -15,6 +15,7 @@
     // Cache so the next page load can apply the correct theme instantly
     // without waiting for this Supabase fetch to complete.
     try { localStorage.setItem('zw_theme_mode', resolved); } catch(_) {}
+    window.dispatchEvent(new CustomEvent('zw-theme-applied', { detail: { mode: resolved } }));
   }
 
   window.__zwApplyAdminTheme = applyThemeMode;

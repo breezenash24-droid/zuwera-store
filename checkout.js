@@ -1,6 +1,37 @@
 let stripe, elements, cardElement;
 let stripeInitPromise;
 
+function getStripeCardTheme() {
+  const isLight = document.body.classList.contains('light-mode');
+  return {
+    text: isLight ? '#09090b' : '#f5f5f0',
+    placeholder: isLight ? 'rgba(9,9,11,0.58)' : 'rgba(245,245,240,0.38)',
+    invalid: '#c0392b',
+  };
+}
+
+function getStripeCardStyle() {
+  const theme = getStripeCardTheme();
+  return {
+    base: {
+      color: theme.text,
+      iconColor: theme.text,
+      fontFamily: '"DM Sans", sans-serif',
+      fontSmoothing: 'antialiased',
+      fontSize: '16px',
+      fontWeight: '500',
+      '::placeholder': { color: theme.placeholder },
+    },
+    invalid: { color: theme.invalid, iconColor: theme.invalid },
+  };
+}
+
+function refreshStripeCardTheme() {
+  if (cardElement?.update) {
+    cardElement.update({ style: getStripeCardStyle() });
+  }
+}
+
 async function getCheckoutPublishableKey() {
   if (window.zwGetStripePublishableKey) return window.zwGetStripePublishableKey();
   const resp = await fetch('/api/stripe-config', { headers: { Accept: 'application/json' } });
@@ -13,12 +44,14 @@ function cardStyleForMode(light) {
   return {
     base: {
       color: light ? '#09090b' : '#f5f5f0',
+      iconColor: light ? '#09090b' : '#f5f5f0',
       fontFamily: '"DM Sans", sans-serif',
       fontSmoothing: 'antialiased',
-      fontSize: '15px',
-      '::placeholder': { color: light ? 'rgba(9,9,11,0.45)' : 'rgba(245,245,240,0.3)' },
+      fontSize: '16px',
+      fontWeight: '500',
+      '::placeholder': { color: light ? 'rgba(9,9,11,0.58)' : 'rgba(245,245,240,0.38)' },
     },
-    invalid: { color: '#e07060', iconColor: '#e07060' },
+    invalid: { color: '#c0392b', iconColor: '#c0392b' },
   };
 }
 
@@ -67,7 +100,10 @@ async function initStripe() {
 
 document.addEventListener('DOMContentLoaded', () => {
   void initStripe().catch((error) => console.error('Stripe init failed:', error));
+  refreshStripeCardTheme();
 });
+
+window.addEventListener('zw-theme-applied', refreshStripeCardTheme);
 
 // ===================== HELPERS =====================
 

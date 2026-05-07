@@ -1,8 +1,18 @@
 (function () {
-  const CLOUDINARY_CLOUD_NAME = 'dubg4loah';
+  const DEFAULT_CLOUDINARY_CLOUD_NAME = 'dubg4loah';
   const MAX_DESKTOP_WIDTH = 1400;
   const MAX_TABLET_WIDTH = 1000;
   const MAX_MOBILE_WIDTH = 760;
+  const CLOUDINARY_NAME_RE = /^[a-z0-9_-]{2,64}$/i;
+  let cloudinaryCloudName = DEFAULT_CLOUDINARY_CLOUD_NAME;
+
+  function setCloudinaryCloudName(value) {
+    const next = String(value || '').trim();
+    if (!CLOUDINARY_NAME_RE.test(next)) return false;
+    cloudinaryCloudName = next;
+    if (window.ZuweraImages) window.ZuweraImages.cloudName = cloudinaryCloudName;
+    return true;
+  }
 
   function normalizeWidth(width) {
     const requested = Number(width) || 800;
@@ -34,15 +44,34 @@
     if (!/^https?:\/\//i.test(absoluteUrl)) return absoluteUrl;
 
     const safeWidth = normalizeWidth(width);
-    return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/fetch/f_auto,q_auto,w_${safeWidth}/${encodeURI(absoluteUrl)}`;
+    return `https://res.cloudinary.com/${cloudinaryCloudName}/image/fetch/f_auto,q_auto,w_${safeWidth}/${encodeURI(absoluteUrl)}`;
+  }
+
+  async function loadImageConfig() {
+    if (typeof fetch !== 'function') return null;
+    try {
+      const resp = await fetch('/api/image-config', {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store'
+      });
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      const cloudName = data?.cloudinary?.cloudName || data?.cloudName;
+      if (setCloudinaryCloudName(cloudName)) return data;
+    } catch (_) {}
+    return null;
   }
 
   window.ZuweraImages = {
-    cloudName: CLOUDINARY_CLOUD_NAME,
+    cloudName: cloudinaryCloudName,
+    defaultCloudName: DEFAULT_CLOUDINARY_CLOUD_NAME,
+    loadConfig: loadImageConfig,
     normalizeWidth,
     absoluteImageUrl,
+    setCloudinaryCloudName,
     optimizeImage
   };
 
   window.optimizeImage = optimizeImage;
+  window.ZuweraImages.configReady = loadImageConfig();
 })();

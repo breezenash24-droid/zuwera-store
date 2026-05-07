@@ -13,7 +13,28 @@
   function setButtonState(isOpen) {
     buttons().forEach(function (btn) {
       btn.classList.toggle('open', isOpen);
+      btn.classList.toggle('is-active', isOpen);
       btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      btn.setAttribute('aria-label', isOpen ? 'Close menu' : 'Menu');
+    });
+  }
+
+  function cartCount() {
+    try {
+      var cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      if (!Array.isArray(cart)) return 0;
+      return cart.reduce(function (sum, item) {
+        return sum + (Number(item && item.quantity) || 0);
+      }, 0);
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  function syncMenuBagCount() {
+    var count = String(cartCount());
+    document.querySelectorAll('.zw-mobile-bag-count').forEach(function (el) {
+      el.textContent = count;
     });
   }
 
@@ -72,6 +93,7 @@
     if (!el) return false;
     if (el.classList.contains('open')) return false;
     syncMenuOffset();
+    syncMenuBagCount();
     el.classList.add('open');
     el.setAttribute('aria-hidden', 'false');
     setButtonState(true);
@@ -123,17 +145,17 @@
     });
     if (el) {
       el.addEventListener('click', function (event) {
-        if (event.target === el) window.closeMobileMenu();
-      });
-      el.querySelectorAll('a').forEach(function (link) {
-        link.addEventListener('click', function () {
+        if (event.target === el) {
           window.closeMobileMenu();
-        });
+          return;
+        }
+        if (event.target.closest && event.target.closest('a')) window.closeMobileMenu();
       });
     }
 
     syncScrollLock();
     syncMenuOffset();
+    syncMenuBagCount();
   });
 
   document.addEventListener('keydown', function (event) {
@@ -144,4 +166,6 @@
 
   window.addEventListener('resize', syncMenuOffset, { passive: true });
   window.addEventListener('orientationchange', syncMenuOffset, { passive: true });
+  window.addEventListener('storage', syncMenuBagCount);
+  document.addEventListener('visibilitychange', syncMenuBagCount);
 })();
