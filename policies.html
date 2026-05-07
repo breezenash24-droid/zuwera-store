@@ -376,7 +376,7 @@
     body.light-mode #mobile-menu-close { color: #09090b !important; }
     body.light-mode footer { border-top-color: rgba(10,10,10,0.08); }
   </style>
-  <link rel="stylesheet" href="storefront-cohesion.css?v=16">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=17">
   <link rel="icon" type="image/png" href="/images/favicon-black.png?v=1">
   <script src="/favicon-utils.js?v=1"></script>
 <!-- Google tag (gtag.js) -->
@@ -439,6 +439,7 @@
         <div class="zw-mobile-socials" aria-label="Social links">
           <a href="https://instagram.com/Zuw.era" target="_blank" rel="noopener">Instagram</a>
           <a href="mailto:nasirubreeze@zuwera.store">Email</a>
+          <a href="#" onclick="event.preventDefault(); window.closeMobileMenu?.(); setTimeout(() => window.zwLang?.open?.(), 0);">Language</a>
         </div>
         <p class="zw-mobile-menu-year">Zuwera &middot; 2026</p>
       </footer>

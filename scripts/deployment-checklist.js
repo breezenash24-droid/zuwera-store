@@ -61,11 +61,21 @@ const checks = [
       && /id="viewSizeGuideBtn"[^>]*openSizeGuideModal/.test(files.product),
   },
   {
-    name: 'Product controls render before reviews finish loading',
-    pass: () => /const reviewsPromise = fetch/.test(files.product)
-      && /const \[imagesResp, colorsResp, sizesResp\] = await Promise\.all\(relatedRequests\)/.test(files.product)
+    name: 'Product controls render before media and reviews finish loading',
+    pass: () => /const imagesPromise = fetch/.test(files.product)
+      && /const reviewsPromise = fetch/.test(files.product)
+      && /const \[colorsResp, sizesResp\] = await Promise\.all/.test(files.product)
+      && /currentProduct\.images\s*=\s*ensureProductImageFallback/.test(files.product)
+      && /imagesPromise\.then/.test(files.product)
       && /currentProduct\.reviews\s*=\s*\[\]/.test(files.product)
       && /reviewsPromise\.then/.test(files.product),
+  },
+  {
+    name: 'Mobile hamburger menu has stable footer utilities',
+    pass: () => /#mobile-menu\.zw-mobile-menu\.open\{[\s\S]*animation:none/.test(files.cohesion)
+      && /#mobile-menu \.zw-mobile-primary-link:hover[\s\S]*padding-left:0/.test(files.cohesion)
+      && /zw-mobile-socials/.test(files.index + files.product + files.drop + files.sizeguide)
+      && /window\.zwLang\?\.open/.test(files.index + files.product + files.drop + files.sizeguide),
   },
   {
     name: 'Cart shell and empty-bag button are wired',
