@@ -37,6 +37,8 @@ const checks = [
       && /#mobile-menu\.zw-mobile-menu\{[\s\S]*background:var\(--zw-ink/.test(files.cohesion)
       && /#mobile-menu\.zw-mobile-menu > \.zw-mobile-menu-panel\{[\s\S]*background:var\(--zw-ink/.test(files.cohesion)
       && /body\.light-mode #mobile-menu\.zw-mobile-menu > \.zw-mobile-menu-panel\{[\s\S]*background:var\(--zw-paper/.test(files.cohesion)
+      && /#mobile-menu \.zw-mobile-menu-close\{[\s\S]*position:fixed/.test(files.cohesion)
+      && /zw-mobile-menu-open/.test(files.mobileMenu)
       && /cartCount\(\)/.test(files.mobileMenu)
       && /\.modal:not\(#cart-modal\):not\(#mobile-menu\)/.test(files.cohesion)
       && /openMobileMenu/.test(files.mobileMenu)

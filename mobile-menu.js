@@ -96,6 +96,8 @@
     syncMenuBagCount();
     el.classList.add('open');
     el.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('zw-mobile-menu-open');
+    document.documentElement.classList.add('zw-mobile-menu-open');
     setButtonState(true);
     syncScrollLock();
     setTimeout(function () {
@@ -113,6 +115,8 @@
     if (!el.classList.contains('open')) return false;
     el.classList.remove('open');
     el.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('zw-mobile-menu-open');
+    document.documentElement.classList.remove('zw-mobile-menu-open');
     setButtonState(false);
     syncScrollLock();
     return false;
@@ -129,7 +133,12 @@
     var close = document.getElementById('mobile-menu-close');
     var el = menu();
 
-    if (el) el.setAttribute('aria-hidden', el.classList.contains('open') ? 'false' : 'true');
+    if (el) {
+      var isOpen = el.classList.contains('open');
+      el.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+      document.body.classList.toggle('zw-mobile-menu-open', isOpen);
+      document.documentElement.classList.toggle('zw-mobile-menu-open', isOpen);
+    }
     if (btn) {
       btn.onclick = null;
       btn.removeAttribute('onclick');
