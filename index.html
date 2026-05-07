@@ -2387,10 +2387,11 @@ function applyAnnouncementBar(mode, msgText) {
 
   if (normalizedMode === 'off') {
     if (isMobileViewport) {
-      barEl.style.display = 'flex';
-      barEl.style.transform = 'translateY(calc(-100% - 2px))';
-      barEl.style.opacity = '0';
-      barEl.style.pointerEvents = 'none';
+      // On mobile, hide via display:none (no slide) to avoid leaving a gap
+      barEl.style.display = 'none';
+      barEl.style.transform = 'none';
+      barEl.style.opacity = '1';
+      barEl.style.pointerEvents = '';
     } else {
       barEl.style.display = 'none';
     }
@@ -2404,33 +2405,13 @@ function applyAnnouncementBar(mode, msgText) {
   if (normalizedMode !== 'scroll') return;
 
   if (isMobileViewport) {
-    barEl.style.transition = 'opacity .2s ease';
-    let lastScrollY = window.scrollY;
-    let isHidden = false;
-    const scrollActivationAt = Date.now() + 450;
-    const syncAnnouncementState = (hidden) => {
-      barEl.style.display = 'flex';
-      barEl.style.transform = 'translateY(0)'; // stay in place — sliding up creates a gap
-      barEl.style.opacity = hidden ? '0' : '1';
-      barEl.style.pointerEvents = hidden ? 'none' : '';
-      barEl.style.marginBottom = '0';
-      setAnnouncementBarLayout(barEl, navEl, !hidden);
-    };
-    syncAnnouncementState(false);
-    _announcementBarScrollHandler = function() {
-      const currentY = window.scrollY;
-      if (document.body.dataset.scrollLocked || window.__zwScrollLocking || window.__zwScrollRestoring) { lastScrollY = currentY; return; }
-      if (Date.now() < scrollActivationAt) { lastScrollY = currentY; return; }
-      const scrollingDown = currentY > lastScrollY + 6;
-      const scrollingUp = currentY < lastScrollY - 6;
-      if (currentY <= 16 || scrollingUp) {
-        if (isHidden) { isHidden = false; syncAnnouncementState(false); }
-      } else if (currentY > 80 && scrollingDown) {
-        if (!isHidden) { isHidden = true; syncAnnouncementState(true); }
-      }
-      lastScrollY = currentY;
-    };
-    window.addEventListener('scroll', _announcementBarScrollHandler, { passive: true });
+    // On mobile, keep the bar always visible in scroll mode.
+    // Hiding it (even via opacity) leaves a gap between the nav and page content
+    // because whatever is behind the bar shows through differently from the nav background.
+    barEl.style.transition = 'none';
+    barEl.style.transform = 'translateY(0)';
+    barEl.style.opacity = '1';
+    barEl.style.pointerEvents = '';
     return;
   }
 
