@@ -477,7 +477,7 @@ body.light-mode #cart-btn.desktop-bag-btn #cartCount {
 </style>
 
   <link rel="stylesheet" href="reviews-vibe.css?v=14">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=15">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=16">
 <script src="image-utils.js?v=2"></script>
 <script src="mobile-menu.js?v=5" defer></script>
 
@@ -1701,13 +1701,17 @@ async function loadProduct() {
     fetch(`${_PROD_SB_URL}/rest/v1/product_images?select=*&product_id=eq.${productIdFilter}&order=sort_order.asc`, { headers }),
     fetch(`${_PROD_SB_URL}/rest/v1/color_variants?select=*&product_id=eq.${productIdFilter}&order=sort_order.asc`, { headers }),
     fetch(`${_PROD_SB_URL}/rest/v1/product_sizes?select=*&product_id=eq.${productIdFilter}`, { headers }),
-    fetch(`${_PROD_SB_URL}/rest/v1/reviews?select=*&product_id=eq.${productIdFilter}&order=created_at.desc`, { headers }),
   ];
-  const [imagesResp, colorsResp, sizesResp, reviewsResp] = await Promise.all(relatedRequests);
+  const reviewsPromise = fetch(`${_PROD_SB_URL}/rest/v1/reviews?select=*&product_id=eq.${productIdFilter}&order=created_at.desc`, { headers })
+    .then((reviewsResp) => reviewsResp.ok ? reviewsResp.json() : [])
+    .catch((error) => {
+      console.warn('Review load fallback:', error);
+      return [];
+    });
+  const [imagesResp, colorsResp, sizesResp] = await Promise.all(relatedRequests);
   const imagesData = imagesResp.ok ? await imagesResp.json() : [];
   const colorsData = colorsResp.ok ? await colorsResp.json() : [];
   const sizesData = sizesResp.ok ? await sizesResp.json() : [];
-  const reviewsData = reviewsResp.ok ? await reviewsResp.json() : [];
 
   // Normalize field names
   if (!productData.title && productData.name) productData.title = productData.name;
@@ -1731,14 +1735,18 @@ async function loadProduct() {
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   const inventory = (Array.isArray(sizesData) ? sizesData : [])
     .filter((size) => String(size?.product_id) === strictProductId);
-  const reviews = (Array.isArray(reviewsData) ? reviewsData : [])
-    .filter((review) => String(review?.product_id) === strictProductId);
 
   currentProduct          = productData;
   currentProduct.images   = images;
   currentProduct.colors   = colors;
   currentProduct.inventory = inventory;
-  currentProduct.reviews  = reviews;
+  currentProduct.reviews  = [];
+  reviewsPromise.then((reviewsData) => {
+    if (!currentProduct || String(currentProduct.id) !== strictProductId) return;
+    currentProduct.reviews = (Array.isArray(reviewsData) ? reviewsData : [])
+      .filter((review) => String(review?.product_id) === strictProductId);
+    renderReviews();
+  });
 
   // Ensure main product image is in the gallery
   if (currentProduct.image_url && !currentProduct.images.some(img => img.image_url === currentProduct.image_url)) {

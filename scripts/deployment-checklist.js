@@ -61,6 +61,13 @@ const checks = [
       && /id="viewSizeGuideBtn"[^>]*openSizeGuideModal/.test(files.product),
   },
   {
+    name: 'Product controls render before reviews finish loading',
+    pass: () => /const reviewsPromise = fetch/.test(files.product)
+      && /const \[imagesResp, colorsResp, sizesResp\] = await Promise\.all\(relatedRequests\)/.test(files.product)
+      && /currentProduct\.reviews\s*=\s*\[\]/.test(files.product)
+      && /reviewsPromise\.then/.test(files.product),
+  },
+  {
     name: 'Cart shell and empty-bag button are wired',
     pass: () => /id="cart-modal"/.test(files.index)
       && /id="cart-btn"/.test(files.index)

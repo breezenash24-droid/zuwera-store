@@ -1504,7 +1504,7 @@ body.light-mode.zw-mobile-menu-open #mobile-menu-btn.open{
 #mobile-menu.zw-mobile-menu.open{
   display:flex !important;
   opacity:1;
-  animation:zwMobileMenuFade .18s ease both;
+  animation:zwMobileMenuFade .14s linear both;
 }
 
 body.light-mode #mobile-menu.zw-mobile-menu{
@@ -1551,8 +1551,8 @@ body.light-mode #mobile-menu.zw-mobile-menu::before{
   box-shadow:none !important;
   text-align:left !important;
   isolation:isolate;
-  transform:translateX(5%);
-  animation:zwMobileMenuSlide .26s cubic-bezier(.22,1,.36,1) both;
+  transform:none !important;
+  animation:none !important;
 }
 
 body.light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel{
@@ -1628,7 +1628,7 @@ body.light-mode #mobile-menu .zw-mobile-menu-close{
   display:flex !important;
   align-items:center !important;
   justify-content:center !important;
-  transition:background .18s ease, border-color .18s ease, transform .18s ease !important;
+  transition:background .14s linear, border-color .14s linear, color .14s linear !important;
 }
 
 body.light-mode #mobile-menu .zw-mobile-menu-close{
@@ -1661,7 +1661,6 @@ body.light-mode #mobile-menu .zw-mobile-menu-close{
 #mobile-menu .zw-mobile-menu-close:focus-visible{
   border-color:var(--zw-accent) !important;
   color:var(--zw-accent) !important;
-  transform:translateY(-1px);
 }
 
 .zw-mobile-menu-title{
@@ -1800,11 +1799,6 @@ body.light-mode #mobile-menu .zw-mobile-secondary-link{
 @keyframes zwMobileMenuFade{
   from{opacity:0}
   to{opacity:1}
-}
-
-@keyframes zwMobileMenuSlide{
-  from{transform:translateX(8%)}
-  to{transform:translateX(0)}
 }
 
 @media(max-width:480px){
