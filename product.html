@@ -1067,7 +1067,6 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
               <p id="fitType"></p>
               <p id="modelInfo"></p>
               <p id="fitMeasurementInfo" style="display:none;"></p>
-              <p id="materialInfo"></p>
               <div class="product-fit-actions">
                 <button class="translate-btn" type="button" onclick="openSizeFitModal()">View Fit Ratings</button>
                 <button class="translate-btn" type="button" id="viewSizeGuideBtn" onclick="window.openSizeGuideModal?.()">View Size Guide</button>
@@ -2714,9 +2713,6 @@ function renderAccordions() {
   }
 
   void updateHatFitMeasurementInfo();
-
-  document.getElementById('materialInfo').textContent =
-    `Materials: ${currentProduct.material_composition || 'High-quality athletic fabric'}`;
 
   // Fabric & Materials
   document.getElementById('materialComposition').textContent = `Materials: ${currentProduct.material_composition || 'N/A'}`;
