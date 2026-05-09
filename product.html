@@ -138,8 +138,14 @@
 }
 .review-radio-group label:hover { border-color: rgba(244,241,235,0.3); color: #f4f1eb; background: rgba(244,241,235,0.08); }
 
-.nav-logo-link { text-decoration: none; color: inherit; display: block; width: 108px; height: 30px; overflow: hidden; }
-.nav-wordmark { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.nav-logo-link { text-decoration: none; color: inherit; display: flex; align-items: center; min-height: 30px; }
+.nav-logo-img {
+  display: block;
+  height: 18px;
+  width: auto;
+  filter: invert(1);
+  transition: filter .35s;
+}
 
 @media(max-width: 600px) {
   .review-summary-box { flex-direction: column; gap: 1.5rem; padding: 1.2rem; }
@@ -320,7 +326,7 @@ body.light-mode .alink {color:rgba(9,9,11,.25)}
 body.light-mode .alink a {color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,.2)}
 
 /* ── Light mode: swap ALL pink accents to black ──────────────── */
-body.light-mode .nav-wordmark { filter: invert(1); }
+body.light-mode .nav-logo-img { filter: none; }
 body.light-mode .auth-brand img { filter: invert(1); }
 body.light-mode .mbox { border-top-color: #09090b !important; }
 body.light-mode .atab.active { color: #09090b; }
@@ -504,89 +510,100 @@ input,
 textarea,
 select {
   font-family: var(--font-body);
+  font-weight: 300;
 }
 
-body * {
+body :where(p, li, input, textarea, select, .product-description, .accordion-content, .rs-metric-title, .rs-metric-subtitle, .review-author, .review-body, .review-card, .review-modal-copy) {
   font-family: var(--font-body) !important;
+  font-weight: 300;
+  letter-spacing: 0 !important;
 }
 
-button {
+body button {
   font-family: var(--font-mono) !important;
 }
 
-.product-title,
-.price-current,
+body :is(.product-title, .accordion-header, .mtitle, .review-form-container h4, .rs-rating, .review-modal-title, .review-modal-score, .product-review-title, .fit-modal-title, .review-vibe-title, .flogo, #payment-modal h2, #payment-success h2, .ret-hd h1, .cbox h2, .citem-title) {
+  font-family: var(--font-head) !important;
+  font-weight: 900 !important;
+  font-style: italic;
+  letter-spacing: .04em !important;
+  line-height: .92;
+  text-transform: uppercase;
+}
+
+.product-title {
+  font-size: clamp(2.2rem, 5vw, 3.6rem) !important;
+  max-width: 15ch;
+}
+
 .accordion-header,
 .mtitle,
 .review-form-container h4,
-.rs-rating,
-.review-modal-title,
-.review-modal-score,
-.product-review-title,
 .fit-modal-title,
-.review-vibe-title,
-.flogo,
-#payment-modal h2,
-#payment-success h2,
-.ret-hd h1,
-.cbox h2,
-.citem-title {
-  font-family: var(--font-head) !important;
+.review-vibe-title {
+  line-height: 1;
 }
 
-.nav-back,
-.nbtn,
-.mobile-nav-link,
-.product-subtitle,
-.product-gender-tag span,
-.price-msrp,
-.size-guide-link,
-.size-btn,
-.stock-info,
-.add-to-cart-btn,
-.wallet-chip,
-.review-form-row label,
-.review-submit-btn,
-.translate-btn,
-.rs-count,
-.rs-metric-labels,
-.review-slider-wrap,
-.review-radio-group label,
-.msubtitle,
-.atab,
-.fgroup label,
-.ferr,
-.auth-submit-btn,
-.alink,
-.mclose,
-.flinks a,
-.fig,
-.fcopy,
-#pay-submit,
-#success-continue,
-#pay-divider,
-#pay-error,
-#shipping-rates-loading,
-#payment-modal label,
-#payment-modal p,
-#payment-modal input,
-#success-msg,
-#success-order {
+body :is(.nav-back, .nbtn, .mobile-nav-link, .product-subtitle, .product-gender-tag span, .price-current, .price-msrp, .price-member, .section-label, .size-guide-link, .size-btn, .stock-info, .add-to-cart-btn, .wallet-chip, .review-form-row label, .review-submit-btn, .translate-btn, .rs-count, .rs-metric-labels, .review-slider-wrap, .review-radio-group label, .msubtitle, .atab, .fgroup label, .ferr, .auth-submit-btn, .alink, .mclose, .flinks a, .fig, .fcopy, .admin-response strong, #pay-submit, #success-continue, #pay-divider, #pay-error, #shipping-rates-loading, #payment-modal label, #payment-modal p, #payment-modal input, #success-msg, #success-order) {
   font-family: var(--font-mono) !important;
+  font-weight: 400;
+  letter-spacing: .14em !important;
+  text-transform: uppercase !important;
 }
 
-.product-description,
-.accordion-content,
-.review-form-row input,
-.review-form-row textarea,
-.fgroup input,
-.rs-metric-title,
-.rs-metric-subtitle,
-.review-author,
-.review-body,
-.review-card,
-.review-modal-copy {
-  font-family: var(--font-body) !important;
+.price-current {
+  font-family: var(--font-mono) !important;
+  font-size: 1rem !important;
+  line-height: 1.3;
+  color: var(--white);
+}
+
+.product-subtitle,
+.section-label,
+.size-guide-link,
+.stock-info {
+  font-size: .62rem !important;
+}
+
+body :is(.add-to-cart-btn, .auth-submit-btn, .review-submit-btn, .wallet-chip, #pay-submit, #success-continue) {
+  font-family: var(--font-mono) !important;
+  font-size: .64rem !important;
+  letter-spacing: .16em !important;
+  font-weight: 500;
+}
+
+.product-header {
+  gap: .35rem;
+  padding-bottom: 1.35rem;
+}
+
+.info-section {
+  gap: 2rem;
+}
+
+.product-layout {
+  gap: clamp(2rem, 5vw, 5rem);
+}
+
+.price-section {
+  gap: .25rem;
+}
+
+.colorway-section,
+.size-section {
+  padding: 1.35rem 0;
+}
+
+.section-label {
+  margin-bottom: .9rem;
+}
+
+@media (max-width: 700px) {
+  .product-title {
+    font-size: clamp(2rem, 13vw, 3rem) !important;
+    max-width: 11ch;
+  }
 }
 </style>
 <script src="image-utils.js?v=2"></script>
@@ -613,7 +630,7 @@ button {
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
 <nav class="nav">
   <a href="index.html" class="nav-logo-link" aria-label="Back to Zuwera home">
-    <img src="images/wordmark.png" alt="ZUWERA" class="nav-wordmark">
+    <img src="images/wordmark-nav.png" srcset="images/wordmark-nav@2x.png 2x" alt="ZUWERA" class="nav-logo-img" width="94" height="18" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
   </a>
   <div class="nav-right">
     <button class="nav-back" id="login-btn">Login</button>
