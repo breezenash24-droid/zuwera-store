@@ -456,6 +456,58 @@ body.light-mode #cart-btn.desktop-bag-btn #cartCount {
   background: #09090b;
   color: #E8E3DC;
 }
+.nav .nav-right {
+  gap: .4rem;
+}
+.nav .nbtn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .6rem;
+  font-weight: 400;
+  letter-spacing: .18em;
+  line-height: normal;
+  text-transform: uppercase;
+  color: rgba(244,241,235,.55);
+  padding: .55rem .9rem;
+  transition: color .2s, border-color .2s;
+}
+.nav .nbtn:hover {
+  color: #f4f1eb;
+  opacity: 1;
+}
+.nav #cart-btn.desktop-bag-btn {
+  border: 1px solid rgba(244,241,235,.2);
+  color: #f4f1eb;
+  opacity: 1;
+  padding: .45rem .72rem;
+}
+.nav #cart-btn.desktop-bag-btn:hover {
+  border-color: rgba(244,241,235,.5);
+}
+.nav #cart-btn.desktop-bag-btn .cc {
+  background: var(--white);
+  color: var(--black);
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .58rem;
+  font-weight: 500;
+}
+body.light-mode .nav .nbtn {
+  color: rgba(9,9,11,.55);
+}
+body.light-mode .nav .nbtn:hover {
+  color: #09090b;
+}
+body.light-mode .nav #cart-btn.desktop-bag-btn {
+  border-color: rgba(9,9,11,.2);
+  color: #09090b;
+}
+body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
+  border-color: rgba(9,9,11,.5);
+}
 @keyframes bagTargetPop{0%{transform:scale(1)}38%{transform:scale(1.12)}68%{transform:scale(.96)}100%{transform:scale(1)}}
 #cart-btn.desktop-bag-btn.bag-target-pop{animation:bagTargetPop .46s cubic-bezier(.36,.07,.19,.97)}
 .add-bag-flyer{
@@ -545,7 +597,7 @@ body :is(.product-title, .accordion-header, .mtitle, .review-form-container h4, 
   line-height: 1;
 }
 
-body :is(.nav-back, .nbtn, .mobile-nav-link, .product-subtitle, .product-gender-tag span, .price-current, .price-msrp, .price-member, .section-label, .size-guide-link, .size-btn, .stock-info, .add-to-cart-btn, .wallet-chip, .review-form-row label, .review-submit-btn, .translate-btn, .rs-count, .rs-metric-labels, .review-slider-wrap, .review-radio-group label, .msubtitle, .atab, .fgroup label, .ferr, .auth-submit-btn, .alink, .mclose, .flinks a, .fig, .fcopy, .admin-response strong, #pay-submit, #success-continue, #pay-divider, #pay-error, #shipping-rates-loading, #payment-modal label, #payment-modal p, #payment-modal input, #success-msg, #success-order) {
+body :is(.nav-back, .mobile-nav-link, .product-subtitle, .product-gender-tag span, .price-current, .price-msrp, .price-member, .section-label, .size-guide-link, .size-btn, .stock-info, .add-to-cart-btn, .wallet-chip, .review-form-row label, .review-submit-btn, .translate-btn, .rs-count, .rs-metric-labels, .review-slider-wrap, .review-radio-group label, .msubtitle, .atab, .fgroup label, .ferr, .auth-submit-btn, .alink, .mclose, .flinks a, .fig, .fcopy, .admin-response strong, #pay-submit, #success-continue, #pay-divider, #pay-error, #shipping-rates-loading, #payment-modal label, #payment-modal p, #payment-modal input, #success-msg, #success-order) {
   font-family: var(--font-mono) !important;
   font-weight: 400;
   letter-spacing: .14em !important;
@@ -599,6 +651,71 @@ body :is(.add-to-cart-btn, .auth-submit-btn, .review-submit-btn, .wallet-chip, #
   margin-bottom: .9rem;
 }
 
+.nav .nav-right {
+  gap: .4rem !important;
+}
+
+.nav .nbtn {
+  font-family: var(--font-mono) !important;
+  font-size: .6rem !important;
+  font-weight: 400 !important;
+  letter-spacing: .18em !important;
+  line-height: normal !important;
+  text-transform: uppercase !important;
+  color: rgba(244,241,235,.55) !important;
+  padding: .55rem .9rem !important;
+  background: transparent !important;
+  border: 0;
+  opacity: 1;
+}
+
+.nav .nbtn:hover {
+  color: #f4f1eb !important;
+}
+
+.nav #cart-btn.desktop-bag-btn {
+  border: 1px solid rgba(244,241,235,.2) !important;
+  color: #f4f1eb !important;
+  min-width: 44px;
+  min-height: 36px;
+  padding: .45rem .72rem !important;
+  gap: .5rem !important;
+}
+
+.nav #cart-btn.desktop-bag-btn:hover {
+  border-color: rgba(244,241,235,.5) !important;
+}
+
+.nav #cart-btn.desktop-bag-btn .cc {
+  background: var(--white);
+  color: var(--black);
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .58rem;
+  font-weight: 500;
+}
+
+body.light-mode .nav .nbtn {
+  color: rgba(9,9,11,.55) !important;
+}
+
+body.light-mode .nav .nbtn:hover {
+  color: #09090b !important;
+}
+
+body.light-mode .nav #cart-btn.desktop-bag-btn {
+  border-color: rgba(9,9,11,.2) !important;
+  color: #09090b !important;
+}
+
+body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
+  border-color: rgba(9,9,11,.5) !important;
+}
+
 @media (max-width: 700px) {
   .product-title {
     font-size: clamp(2rem, 13vw, 3rem) !important;
@@ -633,17 +750,17 @@ body :is(.add-to-cart-btn, .auth-submit-btn, .review-submit-btn, .wallet-chip, #
     <img src="images/wordmark-nav.png" srcset="images/wordmark-nav@2x.png 2x" alt="ZUWERA" class="nav-logo-img" width="94" height="18" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
   </a>
   <div class="nav-right">
-    <button class="nav-back" id="login-btn">Login</button>
-    <button class="nav-back" id="account-btn" style="display:none;" onclick="window.location.href='/account.html'">Account</button>
-    <button class="nav-back" id="logout-btn" style="display:none;">Sign Out</button>
-    <button class="nav-back" id="desktop-shop-btn" onclick="window.location.href='drop001.html'">Shop</button>
-    <button class="nav-back desktop-bag-btn" id="cart-btn" aria-label="Bag" style="opacity:1;display:flex;align-items:center;">
+    <button class="nbtn" id="login-btn">Login</button>
+    <button class="nbtn" id="account-btn" style="display:none;" onclick="window.location.href='/account.html'">Account</button>
+    <button class="nbtn" id="logout-btn" style="display:none;">Sign Out</button>
+    <button class="nbtn" id="desktop-shop-btn" onclick="window.location.href='drop001.html'">Shop</button>
+    <button class="nbtn desktop-bag-btn" id="cart-btn" aria-label="Bag" style="opacity:1;display:flex;align-items:center;">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path>
         <line x1="3" y1="6" x2="21" y2="6"></line>
         <path d="M16 10a4 4 0 01-8 0"></path>
       </svg>
-      <span id="cartCount">0</span>
+      <span class="cc" id="cartCount">0</span>
     </button>
     <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" aria-controls="mobile-menu" aria-expanded="false">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
