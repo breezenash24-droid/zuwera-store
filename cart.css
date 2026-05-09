@@ -156,7 +156,7 @@
 
 /* ===================== CART SUMMARY ===================== */
 .cart-summary {
-  background: #111111;
+  background: #0f0f0f111;
   border: 1px solid var(--border-soft);
   padding: 2rem;
   margin-left: 2.5rem;

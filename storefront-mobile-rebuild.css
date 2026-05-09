@@ -393,8 +393,8 @@
   .countdown-block{
     align-items:flex-start !important;
     padding:1rem .95rem;
-    border:1px solid rgba(245,245,240,.12);
-    background:rgba(245,245,240,.02);
+    border:1px solid rgba(244,241,235,.12);
+    background:rgba(244,241,235,.02);
     min-width:0 !important;
   }
 
@@ -419,8 +419,8 @@
   }
 
   .notify-form input{
-    border-right:1px solid rgba(245,245,240,.2) !important;
-    border-bottom:1px solid rgba(245,245,240,.2) !important;
+    border-right:1px solid rgba(244,241,235,.2) !important;
+    border-bottom:1px solid rgba(244,241,235,.2) !important;
     min-height:52px;
   }
 

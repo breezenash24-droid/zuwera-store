@@ -83,7 +83,7 @@
 .gallery-main {
   position: relative;
   aspect-ratio: 3/4;
-  background: #141414;
+  background: #0f0f0f;
   border: none;
   display: flex;
   align-items: center;
@@ -96,7 +96,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, #141414 25%, #1e1e1e 50%, #141414 75%);
+  background: linear-gradient(90deg, #0f0f0f 25%, #1a1a1a 50%, #0f0f0f 75%);
   background-size: 200% 100%;
   animation: imgSkeleton 1.4s ease infinite;
   z-index: 1;
@@ -600,15 +600,15 @@
 
 /* ===================== FOOTER ===================== */
 footer{border-top:1px solid rgba(244,241,235,.07);padding:2.5rem;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:2rem}
-.flogo{font-family:'Bebas Neue',sans-serif;font-weight:900;font-size:1.4rem;letter-spacing:.12em;opacity:.7;color:var(--white)}
+.flogo{font-family:var(--font-head);font-weight:900;font-size:1.4rem;letter-spacing:.12em;opacity:.7;color:var(--white)}
 .flogo img{height:28px;width:auto;display:block;opacity:.7}
 .flinks{display:flex;gap:2rem;justify-content:center;flex-wrap:wrap}
-.flinks a{font-family:'DM Sans',sans-serif;font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.25);transition:color .2s;text-decoration:none}
+.flinks a{font-family:var(--font-body);font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.25);transition:color .2s;text-decoration:none}
 .flinks a:hover{color:#f4f1eb}
 .fright{text-align:right}
-.fig{display:inline-flex;align-items:center;gap:.4rem;font-family:'DM Sans',sans-serif;font-size:.6rem;letter-spacing:.1em;color:rgba(244,241,235,.28);transition:color .2s;margin-bottom:.5rem;text-decoration:none}
+.fig{display:inline-flex;align-items:center;gap:.4rem;font-family:var(--font-body);font-size:.6rem;letter-spacing:.1em;color:rgba(244,241,235,.28);transition:color .2s;margin-bottom:.5rem;text-decoration:none}
 .fig:hover{color:#f4f1eb}
-.fcopy{font-family:'DM Sans',sans-serif;font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.15)}
+.fcopy{font-family:var(--font-body);font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.15)}
 @media(max-width:900px){footer{grid-template-columns:1fr;text-align:center;gap:1.5rem}.fright{text-align:center}.flinks{justify-content:center}.flogo,.flogo img{margin:0 auto}}
 
 /* ===================== TOAST ===================== */
@@ -901,7 +901,7 @@ body.light-mode .thumbnail {
   background: transparent;
 }
 body.light-mode .low-stock-badge {
-  background: rgba(245,245,240,0.9);
+  background: rgba(244,241,235,0.9);
   border-color: var(--white);
   color: var(--white);
 }

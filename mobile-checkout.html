@@ -9,7 +9,7 @@
   <script src="/favicon-utils.js?v=1"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -22,12 +22,18 @@
       --border: rgba(244,241,235,.08);
       --text: #f4f1eb;
       --sub: rgba(244,241,235,.52);
+      --font-head: 'Barlow Condensed', sans-serif;
+      --font-body: 'Barlow', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+      --fw: var(--font-head);
+      --fb: var(--font-body);
+      --fm: var(--font-mono);
     }
     html, body {
       height: 100%;
       background: var(--bg);
       color: var(--text);
-      font-family: 'DM Sans', sans-serif;
+      font-family:var(--font-body);
       -webkit-font-smoothing: antialiased;
     }
     body {
@@ -243,10 +249,10 @@
       padding: 0 1.75rem;
       background: var(--paper);
       color: var(--ink);
-      font-family: 'DM Sans', sans-serif;
-      font-size: .78rem;
+      font-family:var(--font-mono);
+      font-size: .6rem;
       font-weight: 600;
-      letter-spacing: .1em;
+      letter-spacing: .16em;
       text-transform: uppercase;
       text-decoration: none;
       border: none;

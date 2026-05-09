@@ -2,7 +2,9 @@
    Product page is the source of truth for buttons, cards, modals, and mobile rhythm. */
 :root{
   --zw-ink:#09090b;
-  --zw-paper:#F0EEE9;
+  --zw-paper:#f4f1eb;
+  --zw-page:#F0EEE9;
+  --zw-cream:#E8E3DC;
   --zw-surface:#0f0f0f;
   --zw-accent:#F891A5;
   --zw-danger:#c0392b;
@@ -10,8 +12,29 @@
   --zw-line-light:rgba(9,9,11,.1);
   --zw-muted-dark:rgba(244,241,235,.5);
   --zw-muted-light:rgba(9,9,11,.5);
-  --zw-font-head:'Bebas Neue','Barlow Condensed',sans-serif;
-  --zw-font-body:'DM Sans','Barlow',sans-serif;
+  --zw-font-head:'Barlow Condensed',sans-serif;
+  --zw-font-body:'Barlow',sans-serif;
+  --zw-font-mono:'IBM Plex Mono',monospace;
+  --font-head:var(--zw-font-head);
+  --font-body:var(--zw-font-body);
+  --font-mono:var(--zw-font-mono);
+  --fw:var(--zw-font-head);
+  --fb:var(--zw-font-body);
+  --fm:var(--zw-font-mono);
+  --ink:var(--zw-ink);
+  --paper:var(--zw-paper);
+  --black:var(--zw-ink);
+  --white:var(--zw-paper);
+  --gold:var(--zw-accent);
+  --pink:var(--zw-accent);
+  --red:var(--zw-danger);
+  --zw-radius-control:0;
+  --zw-radius-tight:2px;
+  --zw-radius-soft:4px;
+  --zw-motion-fast:.15s;
+  --zw-motion-base:.2s;
+  --zw-motion-panel:.25s;
+  --zw-motion-slow:.35s;
   --zw-space-page:clamp(1.2rem,4vw,2.5rem);
   --zw-panel-width:clamp(24rem,34vw,34rem);
   --zw-panel-wide-width:clamp(32rem,48vw,48rem);
@@ -24,11 +47,11 @@ body{
 }
 
 body.light-mode{
-  background:var(--zw-paper);
+  background:var(--zw-page);
   color:var(--zw-ink);
-  --ink:var(--zw-paper);
+  --ink:var(--zw-page);
   --paper:var(--zw-ink);
-  --black:var(--zw-paper);
+  --black:var(--zw-page);
   --white:var(--zw-ink);
 }
 
@@ -46,6 +69,25 @@ textarea:focus-visible,
 select:focus-visible{
   outline:2px solid color-mix(in srgb, var(--zw-accent) 70%, transparent);
   outline-offset:3px;
+}
+
+/* Shared utility/action typography. */
+:is(.nbtn,.nav-back,.zw-nav-back,.cart-back,.ret-back,.nav-link,.mobile-nav-link,.acct-tab,.tab-btn,.calc-tab,.calc-toggle-btn,.section-label,.size-guide-link,.stock-info,.product-subtitle,.flinks a,.fig,.fcopy,.zw-footer-links a,.zw-footer-ig,.zw-footer-copy){
+  font-family:var(--zw-font-mono) !important;
+  font-size:.6rem;
+  font-weight:400;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  transition:color var(--zw-motion-base) ease,border-color var(--zw-motion-base) ease,opacity var(--zw-motion-base) ease;
+}
+
+/* Keep rounded shapes intentional: sharp controls/cards, true pills only where semantic. */
+:is(.review-form-container,.review-form-row input,.review-form-row textarea,.review-success-msg,.review-summary-box,.order-card,.res-card,.return-card,.zw-card,.pbox,.mbox,.cbox,.rate-opt,.admin-response){
+  border-radius:var(--zw-radius-tight) !important;
+}
+
+:is(.rs-recommend-pill,.review-card-badge,.wallet-chip){
+  border-radius:999px !important;
 }
 
 .zw-saved-item-actions{
@@ -87,8 +129,8 @@ select:focus-visible{
 }
 
 .zw-saved-item-btn--primary:hover{
-  background:#fff;
-  border-color:#fff;
+  background:#f4f1eb;
+  border-color:#f4f1eb;
 }
 
 .zw-saved-item-btn--ghost{
@@ -478,34 +520,40 @@ body.light-mode .zw-test-mode-banner{
 /* Primary buttons follow the product page purchase button. */
 :is(.add-to-cart-btn,.pcard-add-btn,.product-add-btn,.auth-submit-btn,.btn-primary,#checkout-btn,#pay-submit,.quick-add-review-confirm,.collection-review-confirm,.notify-form button,.cookie-accept){
   width:100%;
-  min-height:56px;
+  min-height:48px;
   display:flex;
   align-items:center;
   justify-content:center;
   background:var(--zw-paper) !important;
   color:var(--zw-ink) !important;
   border:0 !important;
-  border-radius:0 !important;
-  padding:1rem 1.15rem !important;
-  font-family:var(--zw-font-head) !important;
-  font-size:1rem !important;
-  font-weight:500 !important;
+  border-radius:var(--zw-radius-control) !important;
+  padding:.75rem 1rem !important;
+  font-family:var(--zw-font-mono) !important;
+  font-size:.6rem !important;
+  font-weight:600 !important;
   font-style:normal !important;
-  letter-spacing:.12em !important;
-  line-height:1 !important;
+  letter-spacing:.16em !important;
+  line-height:normal !important;
   text-transform:uppercase !important;
   cursor:pointer;
-  transition:opacity .2s ease,transform .2s ease,background .2s ease,color .2s ease;
+  transition:background var(--zw-motion-base) ease,color var(--zw-motion-base) ease,border-color var(--zw-motion-base) ease,opacity var(--zw-motion-base) ease,transform var(--zw-motion-fast) ease;
 }
 
 :is(.add-to-cart-btn,.pcard-add-btn,.product-add-btn,.auth-submit-btn,.btn-primary,#checkout-btn,#pay-submit,.quick-add-review-confirm,.collection-review-confirm,.notify-form button,.cookie-accept):hover:not(:disabled):not(.disabled){
-  opacity:.85;
-  transform:translateY(-2px);
+  opacity:1;
+  background:#E8E3DC !important;
+  transform:translateY(-1px);
 }
 
 body.light-mode :is(.add-to-cart-btn,.pcard-add-btn,.product-add-btn,.auth-submit-btn,.btn-primary,#checkout-btn,#pay-submit,.quick-add-review-confirm,.collection-review-confirm,.notify-form button,.cookie-accept){
   background:var(--zw-ink) !important;
-  color:var(--zw-paper) !important;
+  color:var(--zw-cream) !important;
+}
+
+body.light-mode :is(.add-to-cart-btn,.pcard-add-btn,.product-add-btn,.auth-submit-btn,.btn-primary,#checkout-btn,#pay-submit,.quick-add-review-confirm,.collection-review-confirm,.notify-form button,.cookie-accept):hover:not(:disabled):not(.disabled){
+  background:#1a1a1a !important;
+  color:var(--zw-cream) !important;
 }
 
 :is(.add-to-cart-btn,.pcard-add-btn,.product-add-btn,.auth-submit-btn,.btn-primary,#checkout-btn,#pay-submit,.quick-add-review-confirm,.collection-review-confirm,.notify-form button,.cookie-accept):disabled,
@@ -524,13 +572,14 @@ body.light-mode :is(.add-to-cart-btn,.pcard-add-btn,.product-add-btn,.auth-submi
   border:1px solid rgba(244,241,235,.16) !important;
   background:rgba(244,241,235,.04) !important;
   color:rgba(244,241,235,.72) !important;
-  border-radius:0 !important;
-  font-family:var(--zw-font-body) !important;
-  font-size:.72rem !important;
-  letter-spacing:.08em !important;
+  border-radius:var(--zw-radius-control) !important;
+  font-family:var(--zw-font-mono) !important;
+  font-size:.6rem !important;
+  font-weight:400 !important;
+  letter-spacing:.14em !important;
   text-transform:uppercase !important;
   text-decoration:none !important;
-  transition:background .2s ease,border-color .2s ease,color .2s ease,opacity .2s ease;
+  transition:background var(--zw-motion-base) ease,border-color var(--zw-motion-base) ease,color var(--zw-motion-base) ease,opacity var(--zw-motion-base) ease;
 }
 
 :is(.translate-btn,.wallet-chip,.quick-add-review-actions button:not(.quick-add-review-confirm),.quick-add-review-actions a,.collection-review-actions button:not(.collection-review-confirm),.collection-review-actions a,.cookie-decline):hover{
@@ -1723,7 +1772,7 @@ body.light-mode #mobile-menu .zw-mobile-menu-close{
   border:0 !important;
   border-top:1px solid var(--zw-line-dark) !important;
   background:linear-gradient(90deg, rgba(244,241,235,.028), transparent 55%) !important;
-  font-family:var(--zw-font-head, 'Bebas Neue', sans-serif) !important;
+  font-family:var(--zw-font-head, 'Barlow Condensed', sans-serif) !important;
   font-size:clamp(4rem,19vw,7.1rem) !important;
   font-weight:900 !important;
   font-style:italic !important;

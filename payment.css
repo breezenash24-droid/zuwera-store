@@ -5,7 +5,7 @@
   -webkit-backdrop-filter: none;
 }
 .payment-box {
-  background: #141414;
+  background: #0f0f0f;
   border: 1px solid var(--border);
   padding: 2.5rem;
   width: min(560px, 96vw);
@@ -37,7 +37,7 @@
 }
 .pay-field input {
   width: 100%;
-  background: rgba(245,245,240,0.04);
+  background: rgba(244,241,235,0.04);
   border: 1px solid var(--c14);
   color: var(--white);
   padding: 0.75rem 0.9rem;
@@ -50,7 +50,7 @@
 .pay-field input:focus { border-color: var(--c45); }
 .pay-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
 #stripe-card-element {
-  background: rgba(245,245,240,0.04);
+  background: rgba(244,241,235,0.04);
   border: 1px solid var(--c14);
   padding: 0.82rem 0.9rem;
   border-radius: 2px;
@@ -76,10 +76,10 @@
   cursor: pointer;
   transition: border-color 0.18s, background 0.18s;
   border-radius: 2px;
-  background: rgba(245,245,240,0.02);
+  background: rgba(244,241,235,0.02);
 }
-.rate-option:hover    { border-color: var(--c30); background: rgba(245,245,240,0.04); }
-.rate-option.selected { border-color: var(--c55); background: rgba(245,245,240,0.06); }
+.rate-option:hover    { border-color: var(--c30); background: rgba(244,241,235,0.04); }
+.rate-option.selected { border-color: var(--c55); background: rgba(244,241,235,0.06); }
 .rate-name  { font-size: 0.85rem; font-weight: 500; grid-column: 1; grid-row: 1; }
 .rate-meta  { font-size: 0.7rem;  color: var(--c40); grid-column: 1; grid-row: 2; }
 .rate-price { font-size: 0.9rem;  font-weight: 500;  grid-column: 2; grid-row: 1 / 3; justify-self: end; }

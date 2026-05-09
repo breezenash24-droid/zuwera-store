@@ -29,7 +29,7 @@
 <link rel="preconnect" href="https://qfgnrsifcwdubkolsgsq.supabase.co">
 <link rel="preconnect" href="https://js.stripe.com">
 
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500&family=Barlow:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 
 <!-- Stylesheets -->
 <link rel="stylesheet" href="base.css">
@@ -57,7 +57,7 @@
 .wallet-chip{
   display:flex;align-items:center;justify-content:center;
   width:100%;min-height:48px;padding:.8rem 1rem;border:1px solid rgba(244,241,235,.14);border-radius:999px;
-  font-family:'DM Sans',sans-serif;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
+  font-family:var(--font-body);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
   color:#f4f1eb;background:rgba(244,241,235,.03);
   gap:.65rem;cursor:pointer;transition:border-color .18s ease, background .18s ease, color .18s ease, opacity .18s ease;
 }
@@ -74,13 +74,13 @@
 
 /* Review Form */
 .review-form-container { margin-top:20px; padding:24px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); border-radius:10px; }
-.review-form-container h4 { font-family:'Bebas Neue',sans-serif; font-size:1.2rem; letter-spacing:.06em; margin-bottom:16px; color:#f4f1eb }
+.review-form-container h4 { font-family:var(--font-head); font-size:1.2rem; letter-spacing:.06em; margin-bottom:16px; color:#f4f1eb }
 .review-form-row { margin-bottom:14px }
 .review-form-row label { display:block; font-size:.78rem; color:rgba(255,255,255,.5); margin-bottom:6px; letter-spacing:.03em }
 .review-form-row input, .review-form-row textarea {
   width:100%; padding:10px 14px; background:rgba(255,255,255,.05);
   border:1px solid rgba(255,255,255,.1); border-radius:6px; color:#f4f1eb;
-  font-family:'DM Sans',sans-serif; font-size:.9rem; outline:none; transition:border-color .2s;
+  font-family:var(--font-body); font-size:.9rem; outline:none; transition:border-color .2s;
 }
 .review-form-row input:focus, .review-form-row textarea:focus { border-color:rgba(248,145,165,.5) }
 .review-form-row textarea { resize:vertical; min-height:80px }
@@ -90,7 +90,7 @@
 .star-picker span:hover, .star-picker span:hover ~ span { color:rgba(248,145,165,.5) }
 .review-submit-btn {
   padding:12px 28px; background:#f4f1eb; color:#09090b; border:1px solid #f4f1eb;
-  font-family:'DM Sans',sans-serif; font-weight:600; font-size:.85rem;
+  font-family:var(--font-body); font-weight:600; font-size:.85rem;
   letter-spacing:.1em; text-transform:uppercase; cursor:pointer; transition:background .2s,border-color .2s,color .2s;
 }
 .review-submit-btn:hover{background:#e2dfd9;border-color:#e2dfd9}
@@ -105,7 +105,7 @@
 .review-summary-box { display: flex; flex-wrap: wrap; gap: 2rem; background: rgba(244,241,235,0.03); padding: 1.5rem; border: 1px solid rgba(244,241,235,0.08); border-radius: 8px; margin-bottom: 1.5rem; }
 .rs-left { text-align: center; min-width: 140px; display: flex; flex-direction: column; justify-content: center; border-right: 1px solid rgba(244,241,235,0.08); padding-right: 2rem; }
 .rs-right { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 1.2rem; }
-.rs-rating { font-size: 3.5rem; font-family: 'Bebas Neue', sans-serif; color: #F891A5; line-height: 1; }
+.rs-rating { font-size: 3.5rem; font-family:var(--font-head); color: #F891A5; line-height: 1; }
 .rs-stars { color: #F891A5; font-size: 1.2rem; margin: 0.2rem 0; }
 .rs-count { font-size: 0.8rem; color: rgba(244,241,235,0.5); margin-top: 0.2rem; }
 .rs-metric-title { font-size: 0.9rem; font-weight: 500; color: #f4f1eb; margin-bottom: 0.2rem; }
@@ -118,7 +118,7 @@
 .rs-recommend-pill { display: flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.78rem; font-weight: 500; }
 .rs-recommend-pill.yes { background: rgba(74,222,128,0.12); border: 1px solid rgba(74,222,128,0.3); color: #4ade80; }
 .rs-recommend-pill.no { background: rgba(248,145,165,0.1); border: 1px solid rgba(248,145,165,0.2); color: #F891A5; }
-.translate-btn { background: rgba(244,241,235,0.05); border: 1px solid rgba(244,241,235,0.2); color: #f4f1eb; padding: 0.8rem; font-size: 0.8rem; letter-spacing: 0.05em; border-radius: 4px; cursor: pointer; transition: all 0.2s; width: 100%; font-family: 'DM Sans', sans-serif; text-transform: uppercase; margin-bottom: 1.5rem; }
+.translate-btn { background: rgba(244,241,235,0.05); border: 1px solid rgba(244,241,235,0.2); color: #f4f1eb; padding: 0.8rem; font-size: 0.8rem; letter-spacing: 0.05em; border-radius: 4px; cursor: pointer; transition: all 0.2s; width: 100%; font-family:var(--font-body); text-transform: uppercase; margin-bottom: 1.5rem; }
 .translate-btn:hover { border-color: #F891A5; color: #F891A5; background: rgba(248,145,165,0.05); }
 
 .review-slider { width: 100%; margin-top: 0.5rem; accent-color: #F891A5; cursor: pointer; display: block; box-sizing: border-box; -webkit-appearance: none; appearance: none; }
@@ -131,7 +131,7 @@
   cursor: pointer; text-transform: none; letter-spacing: 0.02em;
   border: 1px solid rgba(244,241,235,0.15); background: rgba(244,241,235,0.04);
   color: rgba(244,241,235,0.5); transition: all 0.18s; user-select: none;
-  font-family: 'DM Sans', sans-serif;
+  font-family:var(--font-body);
 }
 .review-radio-group input[type="radio"]:checked + label {
   border-color: #F891A5; background: rgba(248,145,165,0.15); color: #F891A5;
@@ -266,17 +266,17 @@ body.light-mode #bar {
   display:block;width:132px;height:36px;object-fit:cover;object-position:center;
 }
 .mtitle {
-  font-family:'Bebas Neue', sans-serif;font-weight:900;font-style:italic;
+  font-family:var(--font-head);font-weight:900;font-style:italic;
   font-size:2rem;letter-spacing:.04em;margin-bottom:.25rem;color:#f4f1eb;
 }
 .msubtitle {
-  font-family:'DM Sans', sans-serif;font-size:.6rem;letter-spacing:.15em;
+  font-family:var(--font-body);font-size:.6rem;letter-spacing:.15em;
   color:rgba(244,241,235,.3);text-transform:uppercase;margin-bottom:1.6rem;
 }
 .atabs {display:flex;border-bottom:1px solid rgba(244,241,235,.08);margin-bottom:1.8rem}
 .atab {
   flex:1;background:none;border:none; color:rgba(244,241,235,.25);
-  font-family:'DM Sans', sans-serif;font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;
+  font-family:var(--font-body);font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;
   padding:.75rem 0;position:relative;transition:color .2s;cursor:pointer;
 }
 .atab.active {color:#F891A5}
@@ -284,24 +284,24 @@ body.light-mode #bar {
 .apanel {display:none} .apanel.active {display:block}
 .fgroup {margin-bottom:1rem;text-align:left;}
 .fgroup label {
-  display:block;font-family:'DM Sans', sans-serif;font-size:.55rem;
+  display:block;font-family:var(--font-body);font-size:.55rem;
   letter-spacing:.18em;text-transform:uppercase; color:rgba(244,241,235,.38);margin-bottom:.4rem;
 }
 .fgroup input {
   width:100%;background:rgba(244,241,235,.03); border:1px solid rgba(244,241,235,.1);
-  color:#f4f1eb;padding:.82rem 1rem; font-family:'DM Sans', sans-serif;font-size:.9rem;outline:none;
+  color:#f4f1eb;padding:.82rem 1rem; font-family:var(--font-body);font-size:.9rem;outline:none;
   transition:border-color .2s,box-shadow .2s;
 }
 .fgroup input::placeholder {color:rgba(244,241,235,.18)}
 .fgroup input:focus { border-color:#F891A5; box-shadow:0 0 0 3px rgba(248,145,165,.08); }
-.ferr {color:#c0392b;font-family:'DM Sans', sans-serif;font-size:.65rem;min-height:.9rem;margin-top:.3rem}
+.ferr {color:#c0392b;font-family:var(--font-body);font-size:.65rem;min-height:.9rem;margin-top:.3rem}
 .auth-submit-btn {
-  width:100%;background:#f4f1eb;color:#09090b;border:1px solid #f4f1eb; padding:.9rem;font-family:'DM Sans', sans-serif;font-weight:600;
+  width:100%;background:#f4f1eb;color:#09090b;border:1px solid #f4f1eb; padding:.9rem;font-family:var(--font-body);font-weight:600;
   font-size:.85rem;letter-spacing:.12em;text-transform:uppercase; margin-top:1rem;transition:background .2s,color .2s,border-color .2s;cursor:pointer;
 }
 .auth-submit-btn:hover {background:#e2dfd9;border-color:#e2dfd9;color:#09090b}
 .alink {
-  font-family:'DM Sans', sans-serif;font-size:.6rem;letter-spacing:.1em;
+  font-family:var(--font-body);font-size:.6rem;letter-spacing:.1em;
   color:rgba(244,241,235,.25);text-align:center;margin-top:.9rem;
 }
 .alink a {color:rgba(244,241,235,.7);text-decoration:none;border-bottom:1px solid rgba(244,241,235,.2);padding-bottom:1px;transition:color .2s,border-color .2s;cursor:pointer}
@@ -365,7 +365,7 @@ body.light-mode #payment-modal #payment-close { color: rgba(9,9,11,.35) !importa
 body.light-mode #payment-modal #pay-divider { color: rgba(9,9,11,.35) !important; }
 body.light-mode #payment-modal #pay-submit { background: #09090b !important; color: #E8E3DC !important; }
 body.light-mode #payment-modal #pay-error { color: #c0392b !important; }
-body.light-mode #stripe-card-element { background: #fff !important; border-color: rgba(9,9,11,.36) !important; }
+body.light-mode #stripe-card-element { background: #f4f1eb !important; border-color: rgba(9,9,11,.36) !important; }
 body.light-mode #stripe-card-element.StripeElement--focus { border-color: rgba(9,9,11,.62) !important; }
 /* ALL modal overlays are fully transparent — content panels handle their own backgrounds */
 .modal{background:transparent !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important}
@@ -691,6 +691,10 @@ body .product-page .accordion-body .add-to-cart-btn {
   text-transform: uppercase !important;
 }
 
+.product-page .review-write-btn {
+  margin-top: 1rem;
+}
+
 .product-page .accordion-header {
   font-family: var(--font-head) !important;
   font-size: 1rem !important;
@@ -914,7 +918,7 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
         </div>
       </div>
       <p id="signup-error" class="ferr"></p>
-      <p id="signup-success" style="display:none;color:#6fcf6f;font-family:'DM Sans',sans-serif;font-size:.68rem;letter-spacing:.08em;margin-bottom:.6rem">&#10003; Account created! Please check your email to verify.</p>
+      <p id="signup-success" style="display:none;color:#6fcf6f;font-family:var(--font-body);font-size:.68rem;letter-spacing:.08em;margin-bottom:.6rem">&#10003; Account created! Please check your email to verify.</p>
       <button id="signup-submit" class="auth-submit-btn">Create Account</button>
     </div>
     <div class="apanel auth-panel" id="panel-forgot">
@@ -922,7 +926,7 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
       <div class="msubtitle">We'll send a link to your email</div>
       <div class="fgroup"><label>Email</label><input type="email" id="forgot-email" placeholder="you@example.com" autocomplete="email"></div>
       <p id="forgot-error" class="ferr"></p>
-      <p id="forgot-success" style="display:none;color:#6fcf6f;font-family:'DM Sans',sans-serif;font-size:.68rem;letter-spacing:.08em;margin-bottom:.6rem">&#10003; Check your email for a reset link.</p>
+      <p id="forgot-success" style="display:none;color:#6fcf6f;font-family:var(--font-body);font-size:.68rem;letter-spacing:.08em;margin-bottom:.6rem">&#10003; Check your email for a reset link.</p>
       <button id="forgot-submit" class="auth-submit-btn">Send Reset Link</button>
       <p class="alink"><a id="back-to-signin">&larr; Back to Login</a></p>
     </div>
@@ -939,26 +943,26 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
       <button class="atab auth-tab" data-acctab="favorites">Saved Items</button>
     </div>
     <div class="apanel auth-panel active" id="acct-panel-orders">
-      <div id="orders-loading" style="padding:2rem 0;font-family:'DM Sans',sans-serif;font-size:.68rem;color:rgba(244,241,235,.3)">Loading orders...</div>
-      <div id="orders-empty" style="display:none;padding:.5rem 0;font-family:'DM Sans',sans-serif;font-size:.72rem;color:rgba(244,241,235,.35)">No orders yet.</div>
+      <div id="orders-loading" style="padding:2rem 0;font-family:var(--font-body);font-size:.68rem;color:rgba(244,241,235,.3)">Loading orders...</div>
+      <div id="orders-empty" style="display:none;padding:.5rem 0;font-family:var(--font-body);font-size:.72rem;color:rgba(244,241,235,.35)">No orders yet.</div>
       <div id="orders-list"></div>
     </div>
     <div class="apanel auth-panel" id="acct-panel-favorites">
-      <div id="acct-favs-loading" style="padding:2rem 0;font-family:'DM Sans',sans-serif;font-size:.68rem;color:rgba(244,241,235,.3)">Loading saved items...</div>
-      <div id="acct-favs-empty" style="display:none;padding:.5rem 0;font-family:'DM Sans',sans-serif;font-size:.72rem;color:rgba(244,241,235,.35)">No saved items yet.</div>
+      <div id="acct-favs-loading" style="padding:2rem 0;font-family:var(--font-body);font-size:.68rem;color:rgba(244,241,235,.3)">Loading saved items...</div>
+      <div id="acct-favs-empty" style="display:none;padding:.5rem 0;font-family:var(--font-body);font-size:.72rem;color:rgba(244,241,235,.35)">No saved items yet.</div>
       <ul id="acct-favs-list" style="list-style:none;padding:0;margin:0;"></ul>
     </div>
     <!-- Danger Zone -->
     <div style="border-top:1px solid rgba(244,241,235,.06);margin-top:1.6rem;padding-top:1.4rem;">
       <div id="acct-delete-confirm" style="display:none;background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.25);padding:1rem 1.1rem;margin-bottom:1rem;">
-        <p style="font-family:'DM Sans',sans-serif;font-size:.72rem;color:rgba(244,241,235,.7);margin-bottom:.8rem;line-height:1.6;">This will permanently delete your account and all associated data. <strong style="color:#f4f1eb;">This cannot be undone.</strong></p>
+        <p style="font-family:var(--font-body);font-size:.72rem;color:rgba(244,241,235,.7);margin-bottom:.8rem;line-height:1.6;">This will permanently delete your account and all associated data. <strong style="color:#f4f1eb;">This cannot be undone.</strong></p>
         <div style="display:flex;gap:.6rem;">
-          <button id="acct-delete-confirm-btn" style="flex:1;padding:.6rem;background:#dc2626;color:#fff;border:none;font-family:'Bebas Neue',sans-serif;font-style:italic;font-size:1rem;letter-spacing:.08em;cursor:pointer;">Yes, delete my account</button>
-          <button id="acct-delete-cancel-btn" style="flex:1;padding:.6rem;background:transparent;color:rgba(244,241,235,.5);border:1px solid rgba(244,241,235,.15);font-family:'Bebas Neue',sans-serif;font-style:italic;font-size:1rem;letter-spacing:.08em;cursor:pointer;">Cancel</button>
+          <button id="acct-delete-confirm-btn" style="flex:1;padding:.6rem;background:#dc2626;color:#fff;border:none;font-family:var(--font-head);font-style:italic;font-size:1rem;letter-spacing:.08em;cursor:pointer;">Yes, delete my account</button>
+          <button id="acct-delete-cancel-btn" style="flex:1;padding:.6rem;background:transparent;color:rgba(244,241,235,.5);border:1px solid rgba(244,241,235,.15);font-family:var(--font-head);font-style:italic;font-size:1rem;letter-spacing:.08em;cursor:pointer;">Cancel</button>
         </div>
-        <p id="acct-delete-error" style="color:#f87171;font-family:'DM Sans',sans-serif;font-size:.65rem;margin-top:.5rem;min-height:.8rem;"></p>
+        <p id="acct-delete-error" style="color:#f87171;font-family:var(--font-body);font-size:.65rem;margin-top:.5rem;min-height:.8rem;"></p>
       </div>
-      <button id="acct-delete-btn" style="width:100%;padding:.55rem;background:transparent;color:rgba(220,38,38,.7);border:1px solid rgba(220,38,38,.25);font-family:'DM Sans',sans-serif;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:all .2s;" onmouseover="this.style.borderColor='rgba(220,38,38,.6)';this.style.color='#dc2626'" onmouseout="this.style.borderColor='rgba(220,38,38,.25)';this.style.color='rgba(220,38,38,.7)'">Delete account</button>
+      <button id="acct-delete-btn" style="width:100%;padding:.55rem;background:transparent;color:rgba(220,38,38,.7);border:1px solid rgba(220,38,38,.25);font-family:var(--font-body);font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:all .2s;" onmouseover="this.style.borderColor='rgba(220,38,38,.6)';this.style.color='#dc2626'" onmouseout="this.style.borderColor='rgba(220,38,38,.25)';this.style.color='rgba(220,38,38,.7)'">Delete account</button>
     </div>
   </div>
 </div>
@@ -1114,7 +1118,7 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
             </button>
             <div class="accordion-body">
               <div id="reviewsContent"></div>
-              <button class="add-to-cart-btn" style="min-height:40px; padding:0.8rem; font-size:0.85rem; margin-top:1rem; background:var(--paper); color:var(--ink); font-weight:bold; letter-spacing:0.1em; text-transform:uppercase;" onclick="openReviewForm(currentProduct.id, currentProduct.title)">Write a Review</button>
+              <button class="add-to-cart-btn review-write-btn" onclick="openReviewForm(currentProduct.id, currentProduct.title)">Write a Review</button>
             </div>
           </div>
 
@@ -2836,7 +2840,7 @@ function renderReviews() {
     const productId = String(currentProduct?.id || '').replace(/'/g, "\\'");
     const adminResponseHtml = review.admin_response ? `
       <div class="admin-response" style="margin-top: 12px; padding: 12px; background: var(--admin-res-bg, rgba(248,145,165,0.08)); border-left: 2px solid var(--admin-res-text, #F891A5); border-radius: 4px;">
-        <strong style="color: var(--admin-res-text, #F891A5); font-size: 0.85rem; letter-spacing: 0.05em; font-family: 'Bebas Neue', sans-serif;">Zuwera Team</strong>
+        <strong style="color: var(--admin-res-text, #F891A5); font-size: 0.85rem; letter-spacing: 0.05em; font-family:var(--font-head);">Zuwera Team</strong>
         <p style="margin-top: 4px; font-size: 0.85rem; color: var(--admin-res-text, rgba(255,255,255,0.7));">${safeEsc(review.admin_response)}</p>
       </div>
     ` : '';
@@ -3354,7 +3358,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 <!-- PAYMENT MODAL                                                     -->
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
 <div id="payment-modal" class="modal" role="dialog" aria-modal="true">
-  <div style="max-width:480px;margin:3rem auto;background:#111;border:1px solid rgba(244,241,235,.08);padding:2.5rem 2rem;position:relative">
+  <div style="max-width:480px;margin:3rem auto;background:#0f0f0f;border:1px solid rgba(244,241,235,.08);padding:2.5rem 2rem;position:relative">
     <button style="position:absolute;top:1rem;right:1.2rem;background:none;border:none;color:rgba(244,241,235,.35);font-size:1.5rem;cursor:pointer" id="payment-close">&#215;</button>
     <h2 style="font-family:var(--font-head);font-size:1.4rem;letter-spacing:.12em;margin-bottom:.3rem">Secure Checkout</h2>
     <p style="font-size:.7rem;color:rgba(244,241,235,.3);letter-spacing:.08em;margin-bottom:1.5rem">Powered by Stripe - 256-bit SSL encryption</p>

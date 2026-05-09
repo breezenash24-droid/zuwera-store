@@ -9,7 +9,7 @@
 <script src="/favicon-utils.js?v=1"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,900;1,900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -17,8 +17,14 @@
     --black: #09090b;
     --white: #f4f1eb;
     --pink:  #F891A5;
-    --mono:  'DM Sans', sans-serif;
-    --head:  'Barlow Condensed', sans-serif;
+    --font-head: 'Barlow Condensed', sans-serif;
+    --font-body: 'Barlow', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --fw: var(--font-head);
+    --fb: var(--font-body);
+    --fm: var(--font-mono);
+    --mono: var(--font-body);
+    --head:  var(--font-head);
   }
 
   html, body {
@@ -130,18 +136,18 @@
     background: var(--white);
     color: var(--black);
     border: none;
-    font-family: var(--head);
-    font-style: italic;
-    font-size: 1.1rem;
-    font-weight: 900;
-    letter-spacing: .12em;
+    font-family: var(--fm);
+    font-style: normal;
+    font-size: .6rem;
+    font-weight: 600;
+    letter-spacing: .16em;
     text-transform: uppercase;
     cursor: pointer;
     text-decoration: none;
-    transition: background .2s, color .2s;
+    transition: background .2s, color .2s, transform .15s;
     margin-top: .5rem;
   }
-  .btn-primary:hover { background: var(--pink); color: var(--black); }
+  .btn-primary:hover { background: #E8E3DC; color: var(--black); transform: translateY(-1px); }
   .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
 
   .btn-ghost {
@@ -151,15 +157,15 @@
     background: transparent;
     color: rgba(244,241,235,.5);
     border: 1px solid rgba(244,241,235,.15);
-    font-family: var(--head);
-    font-style: italic;
-    font-size: 1rem;
-    font-weight: 700;
-    letter-spacing: .1em;
+    font-family: var(--fm);
+    font-style: normal;
+    font-size: .6rem;
+    font-weight: 400;
+    letter-spacing: .14em;
     text-transform: uppercase;
     cursor: pointer;
     text-decoration: none;
-    transition: all .2s;
+    transition: border-color .2s, color .2s, background .2s;
     margin-top: .75rem;
   }
   .btn-ghost:hover { border-color: var(--white); color: var(--white); }
@@ -203,7 +209,7 @@
 
   /* LIGHT MODE */
   body.light-mode {
-    background: #f5f5f0;
+    background: #f4f1eb;
     color: #09090b;
     --black: #F0EEE9;
     --white: #09090b;

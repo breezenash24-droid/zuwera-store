@@ -21,7 +21,7 @@
   <meta name="twitter:description" content="Shop Zuwera by category. Browse the latest collection pieces and sign up to be notified when they go live.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="/images/favicon-black.png?v=1">
   <script src="/favicon-utils.js?v=1"></script>
 <!-- Google tag (gtag.js) -->
@@ -37,13 +37,19 @@
     :root {
       --black: #09090b;
       --white: #F0EEE9;
-      --muted: rgba(245,245,240,0.5);
-      --border: rgba(245,245,240,0.1);
+      --font-head: 'Barlow Condensed', sans-serif;
+      --font-body: 'Barlow', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+      --fw: var(--font-head);
+      --fb: var(--font-body);
+      --fm: var(--font-mono);
+      --muted: rgba(244,241,235,0.5);
+      --border: rgba(244,241,235,0.1);
     }
     body {
       background: var(--black);
       color: var(--white);
-      font-family: 'DM Sans', sans-serif;
+      font-family:var(--font-body);
       font-weight: 300;
       overflow-x: hidden;
     }
@@ -57,7 +63,7 @@
       justify-content: space-between;
       align-items: center;
       padding: 1.2rem 2.5rem;
-      background: #000;
+      background: #09090b;
       border-bottom: 1px solid rgba(255,255,255,0.08);
     }
     .nav-logo-link {
@@ -77,7 +83,7 @@
     .nav-back {
       background: none; border: none;
       color: var(--white);
-      font-family: 'DM Sans', sans-serif;
+      font-family:var(--font-body);
       font-size: 0.8rem; font-weight: 500;
       letter-spacing: 0.12em; text-transform: uppercase;
       cursor: pointer; opacity: 0.55;
@@ -106,7 +112,7 @@
       content: '';
       position: absolute;
       inset: 0;
-      background: radial-gradient(ellipse at center, rgba(245,245,240,0.04) 0%, transparent 70%);
+      background: radial-gradient(ellipse at center, rgba(244,241,235,0.04) 0%, transparent 70%);
       pointer-events: none;
     }
     .drop-label {
@@ -117,7 +123,7 @@
       margin-bottom: 1.2rem;
     }
     .drop-title {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family:var(--font-head);
       font-size: clamp(5rem, 16vw, 14rem);
       letter-spacing: 0.04em;
       line-height: 0.88;
@@ -125,7 +131,7 @@
     }
     .drop-title span {
       display: block;
-      color: rgba(245,245,240,0.12);
+      color: rgba(244,241,235,0.12);
       font-size: clamp(2rem, 6vw, 5rem);
       letter-spacing: 0.2em;
     }
@@ -153,7 +159,7 @@
       min-width: 60px;
     }
     .countdown-num {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family:var(--font-head);
       font-size: clamp(2.5rem, 6vw, 4rem);
       letter-spacing: 0.05em;
       line-height: 1;
@@ -165,9 +171,9 @@
       color: var(--muted);
     }
     .countdown-divider {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family:var(--font-head);
       font-size: 3rem;
-      color: rgba(245,245,240,0.15);
+      color: rgba(244,241,235,0.15);
       align-self: flex-start;
       padding-top: 0.2rem;
     }
@@ -182,24 +188,24 @@
     }
     .notify-form input {
       flex: 1;
-      background: rgba(245,245,240,0.05);
-      border: 1px solid rgba(245,245,240,0.2);
+      background: rgba(244,241,235,0.05);
+      border: 1px solid rgba(244,241,235,0.2);
       border-right: none;
       color: var(--white);
-      font-family: 'DM Sans', sans-serif;
+      font-family:var(--font-body);
       font-size: 0.85rem;
       padding: 0.8rem 1rem;
       outline: none;
       transition: border-color 0.2s;
     }
-    .notify-form input:focus { border-color: rgba(245,245,240,0.5); }
-    .notify-form input::placeholder { color: rgba(245,245,240,0.3); }
+    .notify-form input:focus { border-color: rgba(244,241,235,0.5); }
+    .notify-form input::placeholder { color: rgba(244,241,235,0.3); }
     .notify-form button {
       background: var(--white);
       color: var(--black);
       border: none;
       padding: 0.8rem 1.4rem;
-      font-family: 'Bebas Neue', sans-serif;
+      font-family:var(--font-head);
       font-size: 0.95rem;
       letter-spacing: 0.12em;
       cursor: pointer;
@@ -209,13 +215,13 @@
     .notify-form button:hover { opacity: 0.85; }
     .notify-note {
       font-size: 0.7rem;
-      color: rgba(245,245,240,0.3);
+      color: rgba(244,241,235,0.3);
       letter-spacing: 0.08em;
     }
     .notify-success {
       display: none;
       font-size: 0.82rem;
-      color: rgba(245,245,240,0.6);
+      color: rgba(244,241,235,0.6);
       letter-spacing: 0.1em;
       text-transform: uppercase;
       margin-top: 0.5rem;
@@ -236,7 +242,7 @@
       padding-bottom: 1rem;
     }
     .section-header h2 {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family:var(--font-head);
       font-size: 1.8rem;
       letter-spacing: 0.1em;
     }
@@ -341,7 +347,7 @@
     }
     .coming-soon-badge {
       background: rgba(10,10,10,0.85);
-      border: 1px solid rgba(245,245,240,0.2);
+      border: 1px solid rgba(244,241,235,0.2);
       backdrop-filter: blur(8px);
       padding: 0.5rem 1.2rem;
       font-size: 0.65rem;
@@ -361,7 +367,7 @@
       margin-bottom: 0.3rem;
     }
     .product-name {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family:var(--font-head);
       font-size: 1.2rem;
       letter-spacing: 0.08em;
       margin-bottom: 0.3rem;
@@ -378,7 +384,7 @@
       letter-spacing: 0.18em;
       text-transform: uppercase;
       color: var(--white);
-      border-bottom: 1px solid rgba(245,245,240,0.3);
+      border-bottom: 1px solid rgba(244,241,235,0.3);
       padding-bottom: 1px;
       cursor: pointer;
       transition: border-color 0.2s;
@@ -612,15 +618,15 @@
 
     /* FOOTER */
     footer{border-top:1px solid rgba(244,241,235,.07);padding:2.5rem;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:2rem}
-    .flogo{font-family:'Bebas Neue',sans-serif;font-weight:900;font-size:1.4rem;letter-spacing:.12em;opacity:.7}
+    .flogo{font-family:var(--font-head);font-weight:900;font-size:1.4rem;letter-spacing:.12em;opacity:.7}
     .flogo img{height:28px;width:auto;display:block;opacity:.7}
     .flinks{display:flex;gap:2rem;justify-content:center;flex-wrap:wrap}
-    .flinks a{font-family:'DM Sans',sans-serif;font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.25);transition:color .2s;text-decoration:none}
+    .flinks a{font-family:var(--font-body);font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.25);transition:color .2s;text-decoration:none}
     .flinks a:hover{color:#f4f1eb}
     .fright{text-align:right}
-    .fig{display:inline-flex;align-items:center;gap:.4rem;font-family:'DM Sans',sans-serif;font-size:.6rem;letter-spacing:.1em;color:rgba(244,241,235,.28);transition:color .2s;margin-bottom:.5rem;text-decoration:none}
+    .fig{display:inline-flex;align-items:center;gap:.4rem;font-family:var(--font-body);font-size:.6rem;letter-spacing:.1em;color:rgba(244,241,235,.28);transition:color .2s;margin-bottom:.5rem;text-decoration:none}
     .fig:hover{color:#f4f1eb}
-    .fcopy{font-family:'DM Sans',sans-serif;font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.15)}
+    .fcopy{font-family:var(--font-body);font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.15)}
     @media(max-width:900px){footer{grid-template-columns:1fr;text-align:center;gap:1.5rem}.fright{text-align:center}.flinks{justify-content:center}.flogo,.flogo img{margin:0 auto}}
 
     @media (max-width: 768px) {
@@ -654,7 +660,7 @@
       .notify-section { padding: 3rem 1rem; }
       .notify-form { flex-direction: column; gap: 0; }
       .notify-form input {
-        border-right: 1px solid rgba(245,245,240,0.2);
+        border-right: 1px solid rgba(244,241,235,0.2);
         border-bottom: none;
         border-radius: 0;
         padding: 0.9rem 1rem;
@@ -957,7 +963,7 @@ function updateCountdown() {
       const now = new Date();
       const diff = dropDate - now;
       if (diff <= 0) {
-        document.getElementById('countdown').innerHTML = '<p style="font-family:Bebas Neue,sans-serif;font-size:2rem;letter-spacing:0.1em;">We Are Live</p>';
+        document.getElementById('countdown').innerHTML = '<p style="font-family:var(--font-head);font-size:2rem;letter-spacing:0.1em;">We Are Live</p>';
         return;
       }
       const days  = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -1011,7 +1017,7 @@ function updateCountdown() {
         if (!toast) {
           toast = document.createElement('div');
           toast.id = 'collection-toast';
-          toast.style.cssText = 'position:fixed;left:50%;bottom:1.5rem;transform:translateX(-50%);padding:.8rem 1rem;background:rgba(9,9,11,.92);border:1px solid rgba(245,245,240,.12);color:#f5f5f0;font-family:var(--font-mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;z-index:2500;opacity:0;pointer-events:none;transition:opacity .2s ease;';
+          toast.style.cssText = 'position:fixed;left:50%;bottom:1.5rem;transform:translateX(-50%);padding:.8rem 1rem;background:rgba(9,9,11,.92);border:1px solid rgba(244,241,235,.12);color:#f4f1eb;font-family:var(--font-mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;z-index:2500;opacity:0;pointer-events:none;transition:opacity .2s ease;';
           document.body.appendChild(toast);
         }
         toast.textContent = message;

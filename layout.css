@@ -133,7 +133,7 @@ footer p {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, var(--c06) 0%, transparent 70%);  /* was rgba(245,245,240,0.04) → --c06 is close enough */
+  background: radial-gradient(ellipse at center, var(--c06) 0%, transparent 70%);  /* was rgba(244,241,235,0.04) → --c06 is close enough */
   pointer-events: none;
 }
 .drop-label {
@@ -205,7 +205,7 @@ footer p {
 }
 .notify-form-inline input {
   flex: 1;
-  background: rgba(245,245,240,0.05);
+  background: rgba(244,241,235,0.05);
   border: 1px solid var(--c20);
   border-right: none;
   color: var(--white);

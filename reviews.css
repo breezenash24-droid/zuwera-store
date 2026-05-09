@@ -123,7 +123,7 @@
   overflow-y: auto;
 }
 .review-mbox h2 {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-head);
   font-size: 2rem;
   font-weight: 900;
   font-style: italic;
@@ -132,7 +132,7 @@
   color: var(--paper, #f4f1eb);
 }
 .review-mbox .review-product-label {
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.6rem;
   color: rgba(244,241,235,0.3);
   letter-spacing: 0.15em;
@@ -234,7 +234,7 @@
 .review-summary-box { display: flex; flex-wrap: wrap; gap: 2rem; background: rgba(244,241,235,0.03); padding: 1.5rem; border: 1px solid rgba(244,241,235,0.08); border-radius: 8px; margin-bottom: 1.5rem; }
 .rs-left { text-align: center; min-width: 140px; display: flex; flex-direction: column; justify-content: center; border-right: 1px solid rgba(244,241,235,0.08); padding-right: 2rem; }
 .rs-right { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 1.2rem; }
-.rs-rating { font-size: 3.5rem; font-family: 'Bebas Neue', sans-serif; color: #F891A5; line-height: 1; }
+.rs-rating { font-size: 3.5rem; font-family: var(--font-head); color: #F891A5; line-height: 1; }
 .rs-stars { color: #F891A5; font-size: 1.2rem; margin: 0.2rem 0; }
 .rs-count { font-size: 0.8rem; color: rgba(244,241,235,0.5); margin-top: 0.2rem; }
 .rs-metric-title { font-size: 0.9rem; font-weight: 500; color: #f4f1eb; margin-bottom: 0.2rem; }
@@ -242,7 +242,7 @@
 .rs-metric-bar { height: 4px; background: rgba(244,241,235,0.1); border-radius: 2px; position: relative; margin-bottom: 0.4rem; }
 .rs-metric-fill { position: absolute; top: 0; width: 12px; height: 12px; background: #F891A5; border-radius: 50%; transform: translate(-50%, -4px); }
 .rs-metric-labels { display: flex; justify-content: space-between; font-size: 0.7rem; color: rgba(244,241,235,0.5); text-transform: uppercase; letter-spacing: 0.05em; }
-.translate-btn { background: rgba(244,241,235,0.05); border: 1px solid rgba(244,241,235,0.2); color: #f4f1eb; padding: 0.8rem; font-size: 0.8rem; letter-spacing: 0.05em; border-radius: 4px; cursor: pointer; transition: all 0.2s; width: 100%; font-family: 'DM Sans', sans-serif; text-transform: uppercase; margin-bottom: 1.5rem; }
+.translate-btn { background: rgba(244,241,235,0.05); border: 1px solid rgba(244,241,235,0.2); color: #f4f1eb; padding: 0.8rem; font-size: 0.8rem; letter-spacing: 0.05em; border-radius: 4px; cursor: pointer; transition: all 0.2s; width: 100%; font-family: var(--font-body); text-transform: uppercase; margin-bottom: 1.5rem; }
 .translate-btn:hover { border-color: #F891A5; color: #F891A5; background: rgba(248,145,165,0.05); }
 
 .review-mbox .review-slider { width: 100%; margin-top: 0.5rem; accent-color: #F891A5; cursor: pointer; }
@@ -256,7 +256,7 @@
   cursor: pointer; text-transform: none; letter-spacing: 0.02em;
   border: 1px solid rgba(244,241,235,0.15); background: rgba(244,241,235,0.04);
   color: rgba(244,241,235,0.5); transition: all 0.18s; user-select: none;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-body);
 }
 .review-mbox .review-radio-group input[type="radio"]:checked + label { border-color: #F891A5; background: rgba(248,145,165,0.15); color: #F891A5; }
 .review-mbox .review-radio-group label:hover { border-color: rgba(244,241,235,0.3); color: #f4f1eb; background: rgba(244,241,235,0.08); }
@@ -267,7 +267,7 @@
   align-items: center;
   gap: 8px;
   color: rgba(244,241,235,0.9);
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.85rem;
   letter-spacing: normal;
   text-transform: none;
@@ -285,7 +285,7 @@
   display: block;
   margin-bottom: 0.5rem;
   color: rgba(244,241,235,0.7);
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.8rem;
 }
 .review-mbox .review-form-row + .review-form-row { margin-top: 1rem; }
@@ -306,7 +306,7 @@
   border-radius: 4px;
 }
 .review-list-title {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-head);
   font-size: 2rem;
   font-weight: 900;
   font-style: italic;
@@ -339,7 +339,7 @@
   border: 1px solid rgba(244,241,235,0.2);
   padding: 0.8rem 2.7rem 0.8rem 1rem;
   border-radius: 4px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.85rem;
   outline: none;
   appearance: none;
@@ -366,7 +366,7 @@
 .review-list-mbox .review-card-stars { font-size: 0.82rem; }
 .review-list-mbox .review-card-author {
   color: #f4f1eb;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.85rem;
   font-weight: 400;
   opacity: 0.8;
@@ -376,7 +376,7 @@
   background: none;
   border: none;
   color: rgba(244,241,235,0.45);
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.78rem;
   letter-spacing: 0;
   text-transform: none;
@@ -388,14 +388,14 @@
   border-radius: 4px;
   background: rgba(16,185,129,0.1);
   color: #10b981;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.65rem;
   letter-spacing: 0;
   text-transform: none;
 }
 .review-list-mbox .review-card-action {
   color: #F891A5;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.75rem;
   letter-spacing: 0;
   text-transform: none;
@@ -404,7 +404,7 @@
 .review-list-mbox .review-card-title {
   margin-bottom: 6px;
   color: #f4f1eb;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 1rem;
   font-style: normal;
   font-weight: 700;
@@ -413,7 +413,7 @@
 }
 .review-list-mbox .review-card-body {
   color: rgba(244,241,235,0.8);
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.9rem;
   line-height: 1.6;
 }
@@ -427,7 +427,7 @@
 .review-list-mbox .review-admin-label {
   margin-bottom: 4px;
   color: var(--admin-res-text, #f891a5);
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-head);
   font-size: 0.85rem;
   letter-spacing: 0.05em;
   text-transform: none;
@@ -435,7 +435,7 @@
 .review-list-mbox .review-admin-body,
 .review-list-mbox .review-modal-message {
   color: rgba(244,241,235,0.7);
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.85rem;
   line-height: 1.55;
   letter-spacing: 0;
