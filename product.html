@@ -29,7 +29,7 @@
 <link rel="preconnect" href="https://qfgnrsifcwdubkolsgsq.supabase.co">
 <link rel="preconnect" href="https://js.stripe.com">
 
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500&family=Barlow:wght@300;400&display=swap" rel="stylesheet">
 
 <!-- Stylesheets -->
 <link rel="stylesheet" href="base.css">
@@ -138,7 +138,8 @@
 }
 .review-radio-group label:hover { border-color: rgba(244,241,235,0.3); color: #f4f1eb; background: rgba(244,241,235,0.08); }
 
-.nav-logo-link { text-decoration: none; color: inherit; }
+.nav-logo-link { text-decoration: none; color: inherit; display: block; width: 108px; height: 30px; overflow: hidden; }
+.nav-wordmark { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
 
 @media(max-width: 600px) {
   .review-summary-box { flex-direction: column; gap: 1.5rem; padding: 1.2rem; }
@@ -252,9 +253,11 @@ body.light-mode #bar {
 }
 .mclose:hover {opacity:1;background:rgba(244,241,235,.1)}
 .auth-brand {
-  font-family:'Bebas Neue', sans-serif;font-weight:900;letter-spacing:.55em;text-transform:uppercase;
-  font-size:1.6rem;color:#F891A5;text-align:center; margin-bottom:1.6rem;padding-bottom:1.4rem;
+  display:flex;justify-content:center; margin-bottom:1.6rem;padding-bottom:1.4rem;
   border-bottom:1px solid rgba(244,241,235,.06);
+}
+.auth-brand img {
+  display:block;width:132px;height:36px;object-fit:cover;object-position:center;
 }
 .mtitle {
   font-family:'Bebas Neue', sans-serif;font-weight:900;font-style:italic;
@@ -317,8 +320,8 @@ body.light-mode .alink {color:rgba(9,9,11,.25)}
 body.light-mode .alink a {color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,.2)}
 
 /* ── Light mode: swap ALL pink accents to black ──────────────── */
-body.light-mode .nav-wordmark { color: #09090b !important; }
-body.light-mode .auth-brand { color: #09090b; }
+body.light-mode .nav-wordmark { filter: invert(1); }
+body.light-mode .auth-brand img { filter: invert(1); }
 body.light-mode .mbox { border-top-color: #09090b !important; }
 body.light-mode .atab.active { color: #09090b; }
 body.light-mode .atab.active::after { background: #09090b; }
@@ -478,6 +481,114 @@ body.light-mode #cart-btn.desktop-bag-btn #cartCount {
 
   <link rel="stylesheet" href="reviews-vibe.css?v=14">
   <link rel="stylesheet" href="storefront-cohesion.css?v=17">
+<style>
+/* Product page typography alignment with the homepage brand system. */
+:root {
+  --font-head: 'Barlow Condensed', sans-serif;
+  --font-body: 'Barlow', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-display: var(--font-head);
+  --fw: var(--font-head);
+  --fb: var(--font-body);
+  --fm: var(--font-mono);
+  --zw-font-head: var(--font-head);
+  --zw-font-body: var(--font-body);
+  --zw-font-mono: var(--font-mono);
+  --review-head-font: var(--font-head);
+  --review-body-font: var(--font-body);
+  --review-mono-font: var(--font-mono);
+}
+
+body,
+input,
+textarea,
+select {
+  font-family: var(--font-body);
+}
+
+body * {
+  font-family: var(--font-body) !important;
+}
+
+button {
+  font-family: var(--font-mono) !important;
+}
+
+.product-title,
+.price-current,
+.accordion-header,
+.mtitle,
+.review-form-container h4,
+.rs-rating,
+.review-modal-title,
+.review-modal-score,
+.product-review-title,
+.fit-modal-title,
+.review-vibe-title,
+.flogo,
+#payment-modal h2,
+#payment-success h2,
+.ret-hd h1,
+.cbox h2,
+.citem-title {
+  font-family: var(--font-head) !important;
+}
+
+.nav-back,
+.nbtn,
+.mobile-nav-link,
+.product-subtitle,
+.product-gender-tag span,
+.price-msrp,
+.size-guide-link,
+.size-btn,
+.stock-info,
+.add-to-cart-btn,
+.wallet-chip,
+.review-form-row label,
+.review-submit-btn,
+.translate-btn,
+.rs-count,
+.rs-metric-labels,
+.review-slider-wrap,
+.review-radio-group label,
+.msubtitle,
+.atab,
+.fgroup label,
+.ferr,
+.auth-submit-btn,
+.alink,
+.mclose,
+.flinks a,
+.fig,
+.fcopy,
+#pay-submit,
+#success-continue,
+#pay-divider,
+#pay-error,
+#shipping-rates-loading,
+#payment-modal label,
+#payment-modal p,
+#payment-modal input,
+#success-msg,
+#success-order {
+  font-family: var(--font-mono) !important;
+}
+
+.product-description,
+.accordion-content,
+.review-form-row input,
+.review-form-row textarea,
+.fgroup input,
+.rs-metric-title,
+.rs-metric-subtitle,
+.review-author,
+.review-body,
+.review-card,
+.review-modal-copy {
+  font-family: var(--font-body) !important;
+}
+</style>
 <script src="image-utils.js?v=2"></script>
 <script src="mobile-menu.js?v=6" defer></script>
 
@@ -502,7 +613,7 @@ body.light-mode #cart-btn.desktop-bag-btn #cartCount {
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
 <nav class="nav">
   <a href="index.html" class="nav-logo-link" aria-label="Back to Zuwera home">
-    <span class="nav-wordmark" style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:.18em;color:#f4f1eb;">ZUWERA</span>
+    <img src="images/wordmark.png" alt="ZUWERA" class="nav-wordmark">
   </a>
   <div class="nav-right">
     <button class="nav-back" id="login-btn">Login</button>
@@ -560,7 +671,7 @@ body.light-mode #cart-btn.desktop-bag-btn #cartCount {
 <div id="auth-modal" class="modal" role="dialog" aria-modal="true">
   <div class="mbox">
     <button class="mclose" id="auth-modal-close">&#215;</button>
-    <div class="auth-brand">Zuwera</div>
+    <div class="auth-brand"><img src="images/wordmark.png" alt="ZUWERA"></div>
     <div class="atabs">
       <button class="atab auth-tab active" data-tab="signin">Login</button>
       <button class="atab auth-tab" data-tab="signup">Create Account</button>
@@ -3194,7 +3305,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
           base: {
             color: _isLight ? '#09090b' : '#f4f1eb',
             iconColor: _isLight ? '#09090b' : '#f4f1eb',
-            fontFamily: '"DM Sans","Barlow",sans-serif',
+            fontFamily: '"Barlow",sans-serif',
             fontSmoothing: 'antialiased',
             fontSize: '16px',
             fontWeight: '500',

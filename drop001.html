@@ -61,11 +61,18 @@
       border-bottom: 1px solid rgba(255,255,255,0.08);
     }
     .nav-logo-link {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.6rem;
-      letter-spacing: 0.18em;
-      color: var(--white);
+      display: block;
+      width: 108px;
+      height: 30px;
+      overflow: hidden;
       text-decoration: none;
+    }
+    .nav-logo-link img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
     }
     .nav-back {
       background: none; border: none;
@@ -683,7 +690,7 @@
       background: #F0EEE9;
       border-bottom-color: rgba(10,10,10,0.08);
     }
-    body.light-mode .nav-logo-link { color: var(--white); }
+    body.light-mode .nav-logo-link img { filter: invert(1); }
     body.light-mode .nav-back { color: var(--white); }
     body.light-mode .drop-hero::before {
       background: radial-gradient(ellipse at center, rgba(10,10,10,0.04) 0%, transparent 70%);
@@ -770,7 +777,9 @@
 </script>
 
   <header class="nav">
-    <a href="index.html" class="nav-logo-link">ZUWERA</a>
+    <a href="index.html" class="nav-logo-link" aria-label="Back to Zuwera home">
+      <img src="images/wordmark.png" alt="ZUWERA">
+    </a>
     <div class="nav-actions">
       <a href="index.html" class="nav-back">&#8592; Back to Home</a>
       <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" aria-controls="mobile-menu" aria-expanded="false">

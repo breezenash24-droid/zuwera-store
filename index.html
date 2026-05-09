@@ -1044,10 +1044,12 @@ body.light-mode .pcard-skel-img,body.light-mode .pcard-skel-line{background:rgba
 
 /* Brand mark inside modal */
 .auth-brand{
-  font-family:var(--fw);font-weight:900;letter-spacing:.55em;text-transform:uppercase;
-  font-size:.6rem;color:var(--gold);text-align:center;
+  display:flex;justify-content:center;
   margin-bottom:1.6rem;padding-bottom:1.4rem;
   border-bottom:1px solid rgba(244,241,235,.06);
+}
+.auth-brand img{
+  display:block;width:132px;height:36px;object-fit:cover;object-position:center;
 }
 .mtitle{
   font-family:var(--fw);font-weight:900;font-style:italic;
@@ -1628,6 +1630,7 @@ body.light-mode .auth-submit-btn:hover,body.light-mode .btn-primary:hover{backgr
 body.light-mode .atab{color:rgba(9,9,11,.25)}
 body.light-mode .atabs{border-bottom-color:rgba(9,9,11,.08)}
 body.light-mode .auth-brand{border-bottom-color:rgba(9,9,11,.06)}
+body.light-mode .auth-brand img{filter:invert(1)}
 body.light-mode .msubtitle{color:rgba(9,9,11,.3)}
 body.light-mode .alink{color:rgba(9,9,11,.25)}
 body.light-mode .alink a{color:rgba(9,9,11,.7);border-bottom-color:rgba(9,9,11,.2)}
@@ -2055,7 +2058,7 @@ body.light-mode::after{opacity:0.15}
 <div id="auth-modal" class="modal" role="dialog" aria-modal="true">
   <div class="mbox">
     <button class="mclose" id="auth-modal-close" aria-label="Close">&times;</button>
-    <div class="auth-brand">Zuwera</div>
+    <div class="auth-brand"><img src="images/wordmark.png" alt="ZUWERA"></div>
     <div class="atabs">
       <button class="atab active" data-tab="signin">Login</button>
       <button class="atab" data-tab="signup">Create Account</button>

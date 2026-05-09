@@ -75,7 +75,8 @@
     .mclose:hover { background:rgba(244,241,235,.1); }
     .mtitle { font-size:1.5rem; font-family:'Bebas Neue',sans-serif; letter-spacing:.1em; margin-bottom:.3rem; }
     .msubtitle { font-size:.72rem; color:rgba(244,241,235,.4); letter-spacing:.08em; text-transform:uppercase; margin-bottom:1.6rem; }
-    .auth-brand { font-family:'Bebas Neue',sans-serif; font-size:1.2rem; letter-spacing:.2em; color:rgba(244,241,235,.2); margin-bottom:1.4rem; }
+    .auth-brand { display:flex; justify-content:center; margin-bottom:1.4rem; }
+    .auth-brand img { display:block; width:132px; height:36px; object-fit:cover; object-position:center; opacity:.28; }
     .fgroup { margin-bottom:1rem; }
     .fgroup label { display:block; font-size:.62rem; letter-spacing:.12em; text-transform:uppercase; color:rgba(244,241,235,.35); margin-bottom:.4rem; }
     .fgroup input { width:100%; background:rgba(244,241,235,.04); border:1px solid rgba(244,241,235,.1); color:inherit; padding:.65rem .8rem; font-family:'DM Sans',sans-serif; font-size:.85rem; outline:none; transition:border-color .18s; }
@@ -93,7 +94,7 @@
     body.light-mode .auth-submit-btn { background:#09090b; color:#E8E3DC; }
     body.light-mode .alink { color:rgba(9,9,11,.3); }
     body.light-mode .alink a { color:rgba(9,9,11,.55); }
-    body.light-mode .auth-brand { color:rgba(9,9,11,.2); }
+    body.light-mode .auth-brand img { filter:invert(1); }
     body.light-mode .mtitle { color:#09090b; }
     body.light-mode .msubtitle { color:rgba(9,9,11,.4); }
     body.light-mode .modal { background:rgba(240,238,233,.65); backdrop-filter:none; }
@@ -387,7 +388,7 @@
 <div id="auth-modal" class="modal" role="dialog" aria-modal="true">
   <div class="mbox">
     <button class="mclose" id="auth-modal-close" aria-label="Close">&times;</button>
-    <div class="auth-brand">Zuwera</div>
+    <div class="auth-brand"><img src="images/wordmark.png" alt="ZUWERA"></div>
     <div class="atabs">
       <button class="auth-tab active" data-tab="signin">Login</button>
       <button class="auth-tab" data-tab="signup">Create Account</button>
