@@ -76,18 +76,16 @@
       border-bottom: 1px solid rgba(255,255,255,0.08);
     }
     .nav-logo-link {
-      display: block;
-      width: 108px;
-      height: 30px;
-      overflow: hidden;
+      display: flex;
+      align-items: center;
       text-decoration: none;
     }
     .nav-logo-link img {
       display: block;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: center;
+      height: 32px;
+      width: auto;
+      filter: invert(1);
+      transition: filter .35s;
     }
     .nav-back {
       background: none; border: none;
@@ -705,7 +703,7 @@
       background: #F0EEE9;
       border-bottom-color: rgba(10,10,10,0.08);
     }
-    body.light-mode .nav-logo-link img { filter: invert(1); }
+    body.light-mode .nav-logo-link img { filter: none; }
     body.light-mode .nav-back { color: var(--white); }
     body.light-mode .drop-hero::before {
       background: radial-gradient(ellipse at center, rgba(10,10,10,0.04) 0%, transparent 70%);
@@ -793,7 +791,7 @@
 
   <header class="nav">
     <a href="/" class="nav-logo-link" aria-label="Back to Zuwera home">
-      <img src="images/wordmark.png" alt="ZUWERA">
+      <img src="images/logo-192.png" srcset="images/logo-192.png 192w, images/logo.png 2000w" sizes="32px" width="32" height="32" alt="ZUWERA" decoding="async">
     </a>
     <div class="nav-actions">
       <a href="/" class="nav-back" data-history-back>&#8592; Back to Home</a>
