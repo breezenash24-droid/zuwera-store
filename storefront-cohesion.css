@@ -12,15 +12,33 @@
   --zw-line-light:rgba(9,9,11,.1);
   --zw-muted-dark:rgba(244,241,235,.5);
   --zw-muted-light:rgba(9,9,11,.5);
+  /* ── Font families ── */
   --zw-font-head:'Barlow Condensed',sans-serif;
   --zw-font-body:'Barlow',sans-serif;
   --zw-font-mono:'IBM Plex Mono',monospace;
-  --font-head:var(--zw-font-head);
-  --font-body:var(--zw-font-body);
-  --font-mono:var(--zw-font-mono);
+  /* Canonical aliases — use these in all page CSS */
+  --font-display:var(--zw-font-head);   /* hero / large display text */
+  --font-head:var(--zw-font-head);      /* section headings, wordmarks */
+  --font-body:var(--zw-font-body);      /* body copy, UI prose */
+  --font-mono:var(--zw-font-mono);      /* labels, tags, data */
   --fw:var(--zw-font-head);
   --fb:var(--zw-font-body);
   --fm:var(--zw-font-mono);
+
+  /* ── Type scale ── */
+  --zw-text-hero:clamp(3.5rem,8vw,6rem);    /* hero headlines */
+  --zw-text-display:clamp(2rem,4vw,3rem);   /* section / page titles */
+  --zw-text-title:1.4rem;                    /* card / widget headings */
+  --zw-text-body:0.92rem;                    /* body copy */
+  --zw-text-small:0.78rem;                   /* captions, secondary text */
+  --zw-text-label:0.6rem;                    /* uppercase labels, nav */
+  --zw-text-micro:0.55rem;                   /* copyright, fine print */
+
+  /* ── Letter spacing scale ── */
+  --zw-ls-display:0.06em;
+  --zw-ls-heading:0.08em;
+  --zw-ls-label:0.14em;
+  --zw-ls-wide:0.22em;
   --ink:var(--zw-ink);
   --paper:var(--zw-paper);
   --black:var(--zw-ink);
