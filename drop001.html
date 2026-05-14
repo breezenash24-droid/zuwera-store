@@ -84,7 +84,7 @@
       display: block;
       height: 32px;
       width: auto;
-      filter: invert(1);
+      filter: none;
       transition: filter .35s;
     }
     .nav-back {
@@ -703,7 +703,7 @@
       background: #F0EEE9;
       border-bottom-color: rgba(10,10,10,0.08);
     }
-    body.light-mode .nav-logo-link img { filter: none; }
+    body.light-mode .nav-logo-link img { filter: invert(1); }
     body.light-mode .nav-back { color: var(--white); }
     body.light-mode .drop-hero::before {
       background: radial-gradient(ellipse at center, rgba(10,10,10,0.04) 0%, transparent 70%);
