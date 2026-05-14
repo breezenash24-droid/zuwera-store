@@ -1,27 +1,37 @@
-const CACHE_NAME = 'zuwera-v25';
+const CACHE_NAME = 'zuwera-v26';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/bag.html',
-  '/images/hero-mobile.jpg',
-  '/images/logo-192.png',
   '/drop001.html',
+  '/product.html',
+  '/account.html',
+  '/returns.html',
+  '/policies.html',
   '/sizeguide.html',
+  '/bag.html',
+  '/confirm.html',
   '/base.css',
   '/nav.css',
+  '/layout.css',
+  '/cart.css',
+  '/payment.css',
+  '/product.css',
+  '/storefront-cohesion.css',
+  '/storefront-theme.js',
   '/image-utils.js',
   '/mobile-menu.js',
   '/stripe-client-config.js',
   '/checkout-tax.js',
-  '/layout.css',
-  '/cart.css',
-  '/favicon-utils.js?v=1',
+  '/favicon-utils.js',
+  '/images/logo-192.png',
   '/images/logo.png',
+  '/images/wordmark-nav.png',
+  '/images/wordmark-footer.png',
+  '/images/hero-mobile.jpg',
+  '/images/favicon-32.png',
   '/images/favicon-black.png',
-  '/images/favicon-black.png?v=1',
   '/images/favicon-black-192.png',
-  '/images/favicon-black-512.png',
-  '/images/wordmark.png'
+  '/images/apple-touch-icon.png'
 ];
 
 // Install event: cache static assets
