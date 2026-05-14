@@ -54,9 +54,9 @@
     body.light-mode .zw-nav { background: #F0EEE9; border-bottom-color: rgba(9,9,11,.07); }
     .zw-nav-logo { font-family: var(--fw); font-size: 1.35rem; letter-spacing: .18em; opacity: .85; transition: opacity .2s; }
     .zw-nav-logo:hover { opacity: 1; }
-    .zw-nav-logo img { height: 18px; width: auto; transition: filter .35s; filter: invert(1); }
+    .zw-nav-logo img { height: 22px; width: auto; transition: filter .35s; filter: invert(1); }
     body.light-mode .zw-nav-logo img { filter: none; }
-    body.light-mode .zw-footer-logo img { filter: invert(1); }
+    body.light-mode .zw-footer-logo img { filter: none; }
     .zw-nav-back {
       font-family: var(--fm); font-size: .6rem; letter-spacing: .14em; text-transform: uppercase;
       color: rgba(244,241,235,.4); display: flex; align-items: center; gap: .4rem; transition: color .2s;
@@ -270,8 +270,8 @@
       display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 2rem; margin-top: auto;
     }
     body.light-mode .zw-footer { border-top-color: rgba(9,9,11,.07); }
-    .zw-footer-logo { font-family: var(--fw); font-weight: 900; font-style: italic; font-size: 1.4rem; letter-spacing: .12em; opacity: .7; }
-    .zw-footer-logo img { height: 28px; width: auto; display: block; opacity: .7; }
+    .zw-footer-logo { font-family: var(--fw); font-weight: 900; font-style: italic; font-size: 1.4rem; letter-spacing: .12em; opacity: .85; }
+    .zw-footer-logo img { height: 34px; width: auto; display: block; filter: invert(1); }
     .zw-footer-links { display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap; }
     .zw-footer-links a { font-family: var(--fm); font-size: .58rem; letter-spacing: .14em; text-transform: uppercase; color: rgba(244,241,235,.25); transition: color .2s; }
     .zw-footer-links a:hover { color: var(--paper); }
@@ -312,7 +312,7 @@
 <!-- NAV -->
 <nav class="zw-nav">
   <a href="/" class="zw-nav-logo">
-    <img src="images/wordmark-nav.png" srcset="images/wordmark-nav@2x.png 2x" alt="ZUWERA" width="94" height="18" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
+    <img src="images/wordmark-nav.png" srcset="images/wordmark-nav@2x.png 2x" alt="ZUWERA" width="113" height="22" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
   </a>
   <a href="/" class="zw-nav-back" data-history-back>
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
@@ -424,7 +424,7 @@
 <!-- FOOTER -->
 <footer class="zw-footer">
   <div class="zw-footer-logo">
-    <img src="images/wordmark.png" alt="ZUWERA" loading="lazy" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
+    <img src="images/wordmark-footer.png" srcset="images/wordmark-footer@2x.png 2x" alt="ZUWERA" width="175" height="34" loading="lazy" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
   </div>
   <nav class="zw-footer-links">
     <a href="/drop001.html">Release 001</a>

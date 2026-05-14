@@ -64,13 +64,13 @@
       cursor: pointer;
     }
     .nav-logo-img {
-      height: 18px;
+      height: 22px;
       width: auto;
       transition: filter .35s;
       filter: invert(1);
     }
     body.light-mode .nav-logo-img { filter: none; }
-    body.light-mode .flogo img { filter: invert(1); }
+    body.light-mode .flogo img { filter: none; }
     .nav-back {
       background: none;
       border: none;
@@ -327,8 +327,8 @@
 
     /* FOOTER */
     footer{border-top:1px solid rgba(244,241,235,.07);padding:2.5rem;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:2rem;margin-top:2rem}
-    .flogo{font-family:var(--font-head);font-weight:900;font-size:1.4rem;letter-spacing:.12em;opacity:.7}
-    .flogo img{height:28px;width:auto;display:block;opacity:.7}
+    .flogo{font-family:var(--font-head);font-weight:900;font-size:1.4rem;letter-spacing:.12em;opacity:.85}
+    .flogo img{height:34px;width:auto;display:block;filter:invert(1)}
     .flinks{display:flex;gap:2rem;justify-content:center;flex-wrap:wrap}
     .flinks a{font-family:var(--font-body);font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.25);transition:color .2s;text-decoration:none}
     .flinks a:hover{color:#f4f1eb}
@@ -413,7 +413,7 @@
   <!-- NAV -->
   <header class="nav">
     <a href="/" class="nav-logo-link" aria-label="Back to Zuwera home">
-      <img src="images/wordmark-nav.png" srcset="images/wordmark-nav@2x.png 2x" alt="ZUWERA" class="nav-logo-img" width="94" height="18" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
+      <img src="images/wordmark-nav.png" srcset="images/wordmark-nav@2x.png 2x" alt="ZUWERA" class="nav-logo-img" width="113" height="22" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
     </a>
     <div class="nav-actions">
       <a href="/" class="nav-back" data-history-back>&#8592; Back</a>
@@ -651,7 +651,7 @@
 
   <footer>
     <div class="flogo">
-      <img src="images/wordmark.png" alt="ZUWERA" loading="lazy" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
+      <img src="images/wordmark-footer.png" srcset="images/wordmark-footer@2x.png 2x" alt="ZUWERA" width="175" height="34" loading="lazy" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
     </div>
     <nav class="flinks">
       <a href="/drop001.html">Release 001</a>
