@@ -3,10 +3,22 @@
 # (Netlify also supports this file format, so it works on both platforms.)
 
 /*
-  X-Frame-Options: SAMEORIGIN
+  X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: payment=(*)
+
+# Allow analytics.html to be embedded as an iframe within the same site (admin dashboard)
+/analytics.html
+  X-Frame-Options: SAMEORIGIN
+
+# Allow sizeguide to be embedded as an iframe in the product page size modal
+# CF Pages serves sizeguide.html at /sizeguide (pretty URL) — both rules needed
+/sizeguide
+  X-Frame-Options: SAMEORIGIN
+
+/sizeguide.html
+  X-Frame-Options: SAMEORIGIN
 
 /*.html
   Cache-Control: public, max-age=0, must-revalidate
@@ -16,6 +28,9 @@
 
 /*.js
   Cache-Control: public, max-age=31536000, immutable
+
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
 
 /*.woff2
   Cache-Control: public, max-age=31536000, immutable
