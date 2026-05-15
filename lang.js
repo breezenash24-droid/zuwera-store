@@ -116,8 +116,7 @@
       .goog-te-gadget,
       .goog-te-gadget img,
       .goog-logo-link,
-      iframe.skiptranslate,
-      div.skiptranslate { display: none !important; visibility: hidden !important; }
+      iframe.skiptranslate { display: none !important; visibility: hidden !important; }
       /* Prevent GT from pushing the body down */
       body:not([data-scroll-locked="true"]) { top: 0 !important; }
       /* Hide the floating "X" restore bar that sometimes appears */
@@ -138,10 +137,8 @@
       document.body.style.setProperty('top', '0', 'important');
     }
     // Hide any injected banner iframes
-    document.querySelectorAll('.goog-te-banner-frame, iframe.skiptranslate, div.skiptranslate').forEach(el => {
-      if (el.tagName !== 'BODY' && el.tagName !== 'HTML') {
-        el.style.setProperty('display', 'none', 'important');
-      }
+    document.querySelectorAll('.goog-te-banner-frame, iframe.skiptranslate').forEach(el => {
+      el.style.setProperty('display', 'none', 'important');
     });
   }
 
