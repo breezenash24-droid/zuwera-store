@@ -79,15 +79,24 @@
   // Derive current language from the cookie (source of truth).
   let currentLang = readGoogTransCookie();
   // Keep localStorage in sync for chip display
-  if (currentLang !== 'en') {
-    localStorage.setItem('zw_lang', currentLang);
-  } else {
-    // English: aggressively clear the cookie right now, before GT script can load
-    localStorage.removeItem('zw_lang');
-    clearGoogTransCookie();
-    // Clean up any cache-bust params we added during English reset
-    if (location.search && (location.search.includes('_=') || location.search.includes('_bfc='))) {
-      history.replaceState(null, '', location.origin + location.pathname);
+  try {
+    if (currentLang !== 'en') {
+      localStorage.setItem('zw_lang', currentLang);
+    } else {
+      // English: aggressively clear the cookie right now, before GT script can load
+      localStorage.removeItem('zw_lang');
+      clearGoogTransCookie();
+      // Clean up any cache-bust params we added during English reset
+      if (location.search && (location.search.includes('_=') || location.search.includes('_bfc='))) {
+        history.replaceState(null, '', location.origin + location.pathname);
+      }
+    }
+  } catch (e) {
+    if (currentLang === 'en') {
+      clearGoogTransCookie();
+      if (location.search && (location.search.includes('_=') || location.search.includes('_bfc='))) {
+        history.replaceState(null, '', location.origin + location.pathname);
+      }
     }
   }
 
@@ -107,7 +116,8 @@
       .goog-te-gadget,
       .goog-te-gadget img,
       .goog-logo-link,
-      .skiptranslate { display: none !important; visibility: hidden !important; }
+      iframe.skiptranslate,
+      div.skiptranslate { display: none !important; visibility: hidden !important; }
       /* Prevent GT from pushing the body down */
       body:not([data-scroll-locked="true"]) { top: 0 !important; }
       /* Hide the floating "X" restore bar that sometimes appears */
@@ -128,8 +138,10 @@
       document.body.style.setProperty('top', '0', 'important');
     }
     // Hide any injected banner iframes
-    document.querySelectorAll('.goog-te-banner-frame, .skiptranslate').forEach(el => {
-      el.style.setProperty('display', 'none', 'important');
+    document.querySelectorAll('.goog-te-banner-frame, iframe.skiptranslate, div.skiptranslate').forEach(el => {
+      if (el.tagName !== 'BODY' && el.tagName !== 'HTML') {
+        el.style.setProperty('display', 'none', 'important');
+      }
     });
   }
 
