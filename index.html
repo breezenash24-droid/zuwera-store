@@ -150,7 +150,7 @@
 <!-- defer moves Supabase off the critical path ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â it was previously
      render-blocking (parsing stopped until this ~200 KB bundle downloaded
      and executed). defer lets HTML continue parsing in parallel. -->
-<script src="/supabase.min.js"></script>
+<script src="/supabase.min.js" defer></script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-DCVWDZ8ZBC"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-DCVWDZ8ZBC');</script>
 
@@ -1695,9 +1695,9 @@ body.light-mode::after{opacity:0.15}
 
 </style>
   <link rel="stylesheet" href="reviews-vibe.css?v=14">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=17">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=18">
 <script src="image-utils.js?v=2"></script>
-<script src="mobile-menu.js?v=6" defer></script>
+<script src="mobile-menu.js?v=7" defer></script>
 </head>
 <body>
 
@@ -4947,7 +4947,7 @@ function scrollToNotify() {
 
 <!-- PWA Service Worker -->
 <script>
-if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=12').then(reg=>reg.update()).catch(()=>{})}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=13').then(reg=>reg.update()).catch(()=>{})}
 </script>
 
 <!-- Cookie Consent / GDPR -->
