@@ -2820,10 +2820,13 @@ async function loadAllCardReviewSummaries(cardMap) {
   if (!pids.length) return;
   try {
     const idList = pids.map(id => `"${id}"`).join(',');
-    const resp = await fetch(
-      `${SUPABASE_URL}/rest/v1/reviews?product_id=in.(${pids.join(',')})&select=product_id,rating`,
-      { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` } }
-    );
+    const resp = await Promise.race([
+      fetch(
+        `${SUPABASE_URL}/rest/v1/reviews?product_id=in.(${pids.join(',')})&select=product_id,rating`,
+        { headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` } }
+      ),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('review timeout')), 6000))
+    ]);
     if (!resp.ok) return;
     const rows = await resp.json();
     if (!Array.isArray(rows)) return;
@@ -4853,7 +4856,7 @@ function scrollToNotify() {
 
 <!-- PWA Service Worker -->
 <script>
-if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=13').then(reg=>reg.update()).catch(()=>{})}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js?v=14').then(reg=>reg.update()).catch(()=>{})}
 </script>
 
 <!-- Cookie Consent / GDPR -->
