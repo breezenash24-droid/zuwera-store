@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zuwera-v26';
+const CACHE_NAME = 'zuwera-v27';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -114,27 +114,38 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // HTML: network-first strategy
+  // HTML: network-first with timeout so a hanging fetch never freezes the browser tab
   if (request.headers.get('accept')?.includes('text/html')) {
     event.respondWith(
-      fetch(request).then((fetchResponse) => {
-        return caches.open(CACHE_NAME).then((cache) => {
-          cache.put(request, fetchResponse.clone());
-          return fetchResponse;
-        });
-      }).catch(() => {
-        return caches.match(request).then((response) => {
-          return response || new Response('Offline', { status: 503 });
-        });
-      })
+      (function () {
+        const timeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('SW HTML timeout')), 8000)
+        );
+        return Promise.race([fetch(request), timeout])
+          .then((fetchResponse) => {
+            return caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, fetchResponse.clone());
+              return fetchResponse;
+            });
+          })
+          .catch(() => {
+            return caches.match(request).then((response) => {
+              return response || new Response('Offline', { status: 503 });
+            });
+          });
+      })()
     );
     return;
   }
 
-  // Default: network-first
+  // Default: network-first with timeout
   event.respondWith(
-    fetch(request).catch(() => {
-      return caches.match(request);
-    })
+    (function () {
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('SW default timeout')), 8000)
+      );
+      return Promise.race([fetch(request), timeout])
+        .catch(() => caches.match(request));
+    })()
   );
 });

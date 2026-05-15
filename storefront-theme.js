@@ -23,16 +23,20 @@
 
   async function loadSiteSettings() {
     try {
+      var controller = new AbortController();
+      var timeoutId = setTimeout(function() { controller.abort(); }, 5000);
       var response = await fetch(
         SUPABASE_URL + '/rest/v1/site_settings?key=in.(theme,brand)&select=key,value',
         {
           cache: 'no-store',
+          signal: controller.signal,
           headers: {
             apikey: SUPABASE_ANON,
             Authorization: 'Bearer ' + SUPABASE_ANON
           }
         }
       );
+      clearTimeout(timeoutId);
       if (!response.ok) return;
       var rows = await response.json();
 

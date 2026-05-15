@@ -2503,10 +2503,14 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
 /* -- LOAD SITE SETTINGS (announcement bar) -- */
 (async function loadSiteSettings() {
   try {
-    const resp = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?select=*`, {
-      cache: 'no-store',
-      headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` }
-    });
+    const _settingsTimeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000));
+    const resp = await Promise.race([
+      fetch(`${SUPABASE_URL}/rest/v1/site_settings?select=*`, {
+        cache: 'no-store',
+        headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` }
+      }),
+      _settingsTimeout
+    ]);
     if (!resp.ok) {
       applyAnnouncementBar('on', '');
       return;
@@ -2664,7 +2668,10 @@ function normalizeCartPricing(cart) {
 }
 
 if (_sb?.auth?.getSession) {
-  _sb.auth.getSession()
+  Promise.race([
+    _sb.auth.getSession(),
+    new Promise((_, rej) => setTimeout(() => rej(new Error('session timeout')), 5000))
+  ])
     .then(({ data }) => {
       _user = data?.session?.user ?? null;
       updateNav();
@@ -2681,6 +2688,7 @@ if (_sb?.auth?.getSession) {
     .catch(() => {
       updateNav();
       refreshCartFavs();
+      loadProducts();
     });
 }
 
@@ -3133,11 +3141,7 @@ document.getElementById('signin-submit').addEventListener('click', async () => {
     closeAuth();
     showToast('Welcome back!');
   };
-  if (typeof window._zwHomeTs === 'function') {
-    await window._zwHomeTs(runSignIn);
-  } else {
-    await runSignIn(null);
-  }
+  await runSignIn(null);
 });
 
 document.getElementById('signup-submit').addEventListener('click', async () => {
@@ -3175,11 +3179,7 @@ document.getElementById('signup-submit').addEventListener('click', async () => {
       showToast('Account created! Welcome to Zuwera.');
     }
   };
-  if (typeof window._zwHomeTs === 'function') {
-    await window._zwHomeTs(runSignUp);
-  } else {
-    await runSignUp(null);
-  }
+  await runSignUp(null);
 });
 
 document.getElementById('forgot-submit').addEventListener('click', async () => {
@@ -3202,11 +3202,7 @@ document.getElementById('forgot-submit').addEventListener('click', async () => {
     setDisabled('forgot-submit', false, 'Send Reset Link');
     suc.style.display = 'block';
   };
-  if (typeof window._zwHomeTs === 'function') {
-    await window._zwHomeTs(runForgot);
-  } else {
-    await runForgot(null);
-  }
+  await runForgot(null);
 });
 
 document.getElementById('update-password-submit').addEventListener('click', async () => {
@@ -4833,17 +4829,6 @@ async function homeNotifyMe() {
   if(!email||!email.includes('@')){ inp.style.outlineColor='var(--red)'; inp.focus(); return; }
   inp.style.outlineColor='';
 
-  // Run Turnstile verification before inserting into waitlist
-  if (window._zwHomeTs) {
-    window._zwHomeTs(async () => {
-      if(_sb){ try{ await _sb.from('waitlist').upsert({ email, source:'drop001_home' }); } catch{} }
-      if (typeof gtag === 'function') gtag('event', 'generate_lead', { content_name: 'waitlist', source: 'home' });
-      inp.closest('.notify-row').style.display='none';
-      document.querySelector('.notify-hint').style.display='none';
-      document.getElementById('home-notify-success').style.display='block';
-    });
-    return;
-  }
   if(_sb){ try{ await _sb.from('waitlist').upsert({ email, source:'drop001_home' }); } catch{} }
   if (typeof gtag === 'function') gtag('event', 'generate_lead', { content_name: 'waitlist', source: 'home' });
   inp.closest('.notify-row').style.display='none';
@@ -4859,97 +4844,7 @@ function scrollToNotify() {
 }
 
 </script>
-<!-- Cloudflare Turnstile ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â invisible bot protection for waitlist -->
-<div id="zw-home-ts-widget" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;" aria-hidden="true"></div>
-<script>
-(function() {
-  const ZW_TS_KEY = '0x4AAAAAACzvvg-l2dT2z35l';
-  let _widgetId = null, _pending = null, _turnstileLoadPromise = null;
 
-  function _tsCb(token) {
-    if (_pending) { const fn = _pending; _pending = null; fn(token); }
-  }
-  function _tsErr() {
-    if (_pending) { const fn = _pending; _pending = null; fn(null); }
-  }
-
-  function _loadTurnstile() {
-    if (window.turnstile) return Promise.resolve(true);
-    if (_turnstileLoadPromise) return _turnstileLoadPromise;
-    _turnstileLoadPromise = new Promise(resolve => {
-      const script = document.createElement('script');
-      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=_zwHomeTsLoad&render=explicit';
-      script.async = true;
-      script.defer = true;
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.head.appendChild(script);
-    });
-    return _turnstileLoadPromise;
-  }
-
-  function _init() {
-    const el = document.getElementById('zw-home-ts-widget');
-    if (!el || !window.turnstile || _widgetId !== null) return;
-    _widgetId = window.turnstile.render(el, {
-      sitekey: ZW_TS_KEY, size: 'invisible',
-      callback: _tsCb, 'error-callback': _tsErr,
-      'expired-callback': function() { if (_widgetId !== null) window.turnstile.reset(_widgetId); }
-    });
-  }
-  window._zwHomeTsLoad = _init;
-  async function _waitForHomeTurnstile(timeoutMs) {
-    const maxWait = timeoutMs || 2500;
-    await _loadTurnstile();
-    _init();
-    if (_widgetId !== null) return Promise.resolve(true);
-    return new Promise(resolve => {
-      const started = Date.now();
-      const tick = () => {
-        _init();
-        if (_widgetId !== null) { resolve(true); return; }
-        if (Date.now() - started >= maxWait) { resolve(false); return; }
-        setTimeout(tick, 50);
-      };
-      tick();
-    });
-  }
-
-  window._zwHomeTs = async function(action) {
-    await _waitForHomeTurnstile(2500);
-    if (!window.turnstile || _widgetId === null) { await action(null); return; }
-    let settled = false;
-    const finish = async (token) => {
-      if (settled) return;
-      settled = true;
-      _pending = null;
-      await action(token);
-      if (_widgetId !== null) window.turnstile.reset(_widgetId);
-    };
-    _pending = async (token) => {
-      if (token) {
-        try {
-          const r = await fetch('/api/verify-turnstile', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token })
-          });
-          const d = await r.json();
-          if (!d.success) console.warn('[Turnstile] home:', d.error);
-        } catch(e) { console.warn('[Turnstile] home error:', e); }
-      }
-      await finish(token);
-    };
-    try {
-      window.turnstile.execute(_widgetId);
-    } catch (e) {
-      console.warn('[Turnstile] home execute error:', e);
-      await finish(null);
-      return;
-    }
-    setTimeout(() => { void finish(null); }, 4500);
-  };
-})();
-</script>
 <!-- Language selector -->
 <script src="modal-lock.js?v=4" defer></script>
 <script src="storefront-theme.js?v=2" defer></script>
