@@ -145,8 +145,11 @@ async function upsertAdminProfile(user, config) {
 export async function onRequestPost({ request, env }) {
   try {
     const config = resolveSupabaseConfig(env);
-    if (!looksLikeSupabaseUrl(config.supabaseUrl) || !looksLikeJwt(config.serviceKey)) {
-      return json({ success: false, error: 'Supabase admin access is not configured.' }, 500);
+
+    // At minimum we need a valid Supabase URL and either anon or service key to verify the user.
+    const hasVerifyKey = looksLikeJwt(config.anonKey) || looksLikeJwt(config.serviceKey);
+    if (!looksLikeSupabaseUrl(config.supabaseUrl) || !hasVerifyKey) {
+      return json({ success: false, error: 'Supabase admin access is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY in CF Pages environment variables.' }, 500);
     }
 
     const body = await request.json().catch(() => ({}));
@@ -166,7 +169,16 @@ export async function onRequestPost({ request, env }) {
       return json({ success: false, error: 'Your account does not have admin privileges.' }, 403);
     }
 
-    const profile = await upsertAdminProfile(user, config);
+    // Profile upsert requires the service role key — skip gracefully if not configured.
+    let profile = { id: user.id, email: user.email, role: 'admin' };
+    if (looksLikeJwt(config.serviceKey)) {
+      try {
+        profile = await upsertAdminProfile(user, config);
+      } catch (_) {
+        // non-fatal — user is still an admin, profile just won't be updated
+      }
+    }
+
     return json({ success: true, role: 'admin', profile, recoveredFromSwappedEnv: config.recoveredFromSwappedEnv });
   } catch (err) {
     return json({ success: false, error: err.message || 'Admin access failed.' }, 500);

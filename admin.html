@@ -4403,7 +4403,7 @@
             setTimeout(initAdminTurnstile, 800);
         });
 
-        function waitForAdminTurnstile(timeoutMs = 6000) {
+        function waitForAdminTurnstile(timeoutMs = 2500) {
             initAdminTurnstile();
             if (adminTsWidgetId !== null) return Promise.resolve(true);
             return new Promise(resolve => {
@@ -4633,7 +4633,9 @@
         // Auth State
         async function checkAuthState() {
             try {
-                const { data: { session }, error } = await sb.auth.getSession();
+                const sessionPromise = sb.auth.getSession();
+                const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('session timeout')), 5000));
+                const { data: { session }, error } = await Promise.race([sessionPromise, timeout]);
                 if (error) throw error;
                 if (session) {
                     currentUser = session.user;
