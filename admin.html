@@ -10,7 +10,7 @@
     <script src="/favicon-utils.js?v=1"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-primary: #09090b;
@@ -42,7 +42,7 @@
 
         html, body {
             height: 100%;
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Barlow', sans-serif;
             background-color: var(--bg-primary);
             color: var(--text-primary);
             transition: background-color 0.3s, color 0.3s;
@@ -75,7 +75,7 @@
         }
 
         .auth-form h1 {
-            font-family: 'Bebas Neue', sans-serif;
+            font-family: 'Barlow Condensed', sans-serif;
             font-size: 2.5rem;
             margin-bottom: 10px;
             letter-spacing: 2px;
@@ -98,7 +98,7 @@
         }
 
         .sidebar-logo {
-            font-family: 'Bebas Neue', sans-serif;
+            font-family: 'Barlow Condensed', sans-serif;
             font-size: 1.8rem;
             margin-bottom: 40px;
             letter-spacing: 1px;
@@ -194,7 +194,7 @@
         }
 
         .header-title {
-            font-family: 'Bebas Neue', sans-serif;
+            font-family: 'Barlow Condensed', sans-serif;
             font-size: 1.8rem;
             letter-spacing: 1px;
         }
@@ -450,7 +450,7 @@
         }
 
         .stat-card-value {
-            font-family: 'Bebas Neue', sans-serif;
+            font-family: 'Barlow Condensed', sans-serif;
             font-size: 2.5rem;
             font-weight: bold;
         }
@@ -476,7 +476,7 @@
             border: 1px solid var(--border);
             border-radius: 6px;
             color: var(--text-primary);
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Barlow', sans-serif;
         }
 
         .search-filter input::placeholder {
@@ -488,7 +488,7 @@
             border: none;
             border-radius: 6px;
             cursor: pointer;
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Barlow', sans-serif;
             font-weight: 600;
             transition: all 0.3s;
             text-decoration: none;
@@ -625,7 +625,7 @@
             border: 1px solid var(--border);
             border-radius: 6px;
             color: var(--text-primary);
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Barlow', sans-serif;
             font-size: 0.95rem;
             transition: border-color 0.3s;
         }
@@ -661,7 +661,7 @@
             border-bottom: 3px solid transparent;
             color: var(--text-secondary);
             cursor: pointer;
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Barlow', sans-serif;
             font-weight: 600;
             transition: all 0.3s;
             white-space: nowrap;
@@ -821,7 +821,7 @@
         }
 
         .modal-header {
-            font-family: 'Bebas Neue', sans-serif;
+            font-family: 'Barlow Condensed', sans-serif;
             font-size: 1.8rem;
             margin-bottom: 20px;
             letter-spacing: 1px;
@@ -881,7 +881,7 @@
         }
 
         .access-denied h1 {
-            font-family: 'Bebas Neue', sans-serif;
+            font-family: 'Barlow Condensed', sans-serif;
             font-size: 2.5rem;
             margin-bottom: 20px;
             letter-spacing: 1px;
@@ -1161,7 +1161,7 @@
         .review-summary-stats .rating { color: var(--warning); }
 .image-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
         .image-row .form-input { flex: 1; }
-        .image-row .btn-upload { padding: 8px 12px; font-size: 0.85rem; white-space: nowrap; background: var(--accent); color: #000; border: none; border-radius: 6px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+        .image-row .btn-upload { padding: 8px 12px; font-size: 0.85rem; white-space: nowrap; background: var(--accent); color: #000; border: none; border-radius: 6px; cursor: pointer; font-family: 'Barlow', sans-serif; }
         .image-row .btn-upload:hover { opacity: 0.9; }
         .image-preview { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); }
     </style>
@@ -1191,7 +1191,7 @@
             <div id="resetMsg" style="margin-top: 12px; font-size: 0.9rem; display: none;"></div>
         </form>
         <div id="accessDenied" class="access-denied" style="display: none; width: 100%; max-width: 400px; padding: 40px; background-color: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border);">
-            <h1 style="font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; margin-bottom: 20px; letter-spacing: 1px; color: var(--error);">ACCESS DENIED</h1>
+            <h1 style="font-family: 'Barlow Condensed', sans-serif; font-size: 2.5rem; margin-bottom: 20px; letter-spacing: 1px; color: var(--error);">ACCESS DENIED</h1>
             <p style="color: var(--text-secondary); margin-bottom: 30px;">You do not have admin privileges.</p>
             <p id="accessDeniedError" style="color:var(--error); font-size:0.85rem; margin-top:-15px; margin-bottom:30px; word-wrap:break-word; display:none;"></p>
             <button class="btn btn-primary" id="signOutAccessBtn" style="width: 100%;">Sign Out</button>
@@ -1240,7 +1240,7 @@
                 <!-- Dashboard Page -->
                 <div id="dashboard" class="page active">
                     <div style="background:linear-gradient(135deg,rgba(248,145,165,.12),rgba(248,145,165,.04));border:1px solid rgba(248,145,165,.25);border-radius:12px;padding:24px;margin-bottom:24px;">
-                      <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:.08em;margin-bottom:6px;">Welcome to your Store Dashboard</div>
+                      <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.6rem;letter-spacing:.08em;margin-bottom:6px;">Welcome to your Store Dashboard</div>
                       <p style="color:var(--text-secondary);font-size:.9rem;margin:0;">Everything you need to run Zuwera is in the left sidebar. Here's a quick guide to get you started.</p>
                     </div>
                     <!-- Critical banners (dismissible, rendered by JS) -->
@@ -2276,7 +2276,7 @@
                     #ana-wrap .ana-card-value { font-size:2.2rem; font-weight:700; color:var(--accent); }
                     #ana-wrap .ana-card-sub { font-size:.85rem; color:var(--text-secondary); margin-top:.3rem; }
                     #ana-wrap .ana-section { background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:8px; padding:1.8rem; margin-bottom:1.8rem; overflow-x:auto; }
-                    #ana-wrap .ana-section h2 { font-family:'Bebas Neue',sans-serif; font-size:1.35rem; letter-spacing:.06em; margin-bottom:1.2rem; color:var(--text-primary); }
+                    #ana-wrap .ana-section h2 { font-family:'Barlow Condensed',sans-serif; font-size:1.35rem; letter-spacing:.06em; margin-bottom:1.2rem; color:var(--text-primary); }
                     #ana-wrap .ana-bar-chart { display:flex; align-items:flex-end; gap:.8rem; height:260px; margin-top:.8rem; }
                     #ana-wrap .ana-bar-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:.4rem; }
                     #ana-wrap .ana-bar { width:100%; border-radius:4px 4px 0 0; transition:opacity .2s; position:relative; }
@@ -2308,7 +2308,7 @@
                     #ana-wrap .ana-export-btn { background:var(--accent); border:1px solid var(--accent); color:#09090b; padding:.4rem .85rem; border-radius:4px; cursor:pointer; font-weight:600; font-size:.85rem; }
                     #ana-wrap .ana-stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1.2rem; margin-bottom:1.8rem; }
                     #ana-wrap .ana-stat-card { background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:8px; padding:1.4rem; }
-                    #ana-wrap .ana-stat-card h3 { font-family:'Bebas Neue',sans-serif; font-size:1.1rem; letter-spacing:.06em; margin-bottom:.8rem; }
+                    #ana-wrap .ana-stat-card h3 { font-family:'Barlow Condensed',sans-serif; font-size:1.1rem; letter-spacing:.06em; margin-bottom:.8rem; }
                     #ana-wrap .ana-stat-row { display:flex; justify-content:space-between; padding:.6rem 0; border-bottom:1px solid var(--border-color); }
                     #ana-wrap .ana-stat-row:last-child { border-bottom:none; }
                     #ana-wrap .ana-stat-label { color:var(--text-secondary); font-size:.88rem; }
@@ -2327,7 +2327,7 @@
                     <button id="ana-refresh-btn" onclick="anaLoadData()">↺ Refresh Data</button>
 
                     <!-- Sales Overview -->
-                    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.06em;margin-bottom:1.2rem;">Sales Overview</h2>
+                    <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:1.5rem;letter-spacing:.06em;margin-bottom:1.2rem;">Sales Overview</h2>
                     <div class="ana-overview-grid">
                       <div class="ana-card"><div class="ana-card-label">Total Revenue</div><div class="ana-card-value" id="ana-totalRevenue">—</div></div>
                       <div class="ana-card"><div class="ana-card-label">Total Orders</div><div class="ana-card-value" id="ana-totalOrders">—</div></div>
@@ -2341,7 +2341,7 @@
                     </div>
 
                     <!-- Inventory Overview -->
-                    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.06em;margin-bottom:1.2rem;margin-top:1rem;">Inventory &amp; Catalog</h2>
+                    <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:1.5rem;letter-spacing:.06em;margin-bottom:1.2rem;margin-top:1rem;">Inventory &amp; Catalog</h2>
                     <div class="ana-overview-grid">
                       <div class="ana-card"><div class="ana-card-label">Total Products</div><div class="ana-card-value" id="ana-totalProducts">—</div></div>
                       <div class="ana-card"><div class="ana-card-label">Live Products</div><div class="ana-card-value" id="ana-liveProducts">—</div></div>
@@ -3686,7 +3686,7 @@
 
                     <!-- Announcement Bar -->
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
-                        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:16px;">Announcement Bar</div>
+                        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:16px;">Announcement Bar</div>
                         <div style="margin-bottom:16px;">
                             <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:8px;">Banner Mode</label>
                             <div style="display:flex; flex-direction:column; gap:8px;">
@@ -3717,7 +3717,7 @@
 
                     <!-- Shipping Policy -->
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
-                        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:20px;">Shipping &amp; Returns Policy</div>
+                        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:20px;">Shipping &amp; Returns Policy</div>
 
                         <!-- Free Shipping Toggle -->
                         <div style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:20px;">
@@ -3765,7 +3765,7 @@
                     <!-- Fabric Technologies -->
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                            <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.08em;">Fabric Technologies</div>
+                            <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;letter-spacing:.08em;">Fabric Technologies</div>
                             <button type="button" class="btn btn-secondary btn-sm" id="addTechBtn">+ Add Tech</button>
                         </div>
                         <div id="techListContainer" style="display:flex;flex-direction:column;gap:16px;margin-bottom:16px;"></div>
@@ -3774,7 +3774,7 @@
 
                     <!-- Legal Policies -->
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
-                        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:16px;">Legal Policies</div>
+                        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:16px;">Legal Policies</div>
                         <div class="tabs" id="legalTabs" style="margin-bottom: 16px;">
                             <button type="button" class="tab-button active" data-tab="legal-shipping">Shipping</button>
                             <button type="button" class="tab-button" data-tab="legal-returns">Returns</button>
@@ -3803,7 +3803,7 @@
                     <!-- FAQ -->
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                            <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.08em;">Frequently Asked Questions</div>
+                            <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;letter-spacing:.08em;">Frequently Asked Questions</div>
                             <button type="button" class="btn btn-secondary btn-sm" id="addFaqBtn">+ Add FAQ</button>
                         </div>
                         <div id="faqListContainer" style="display:flex;flex-direction:column;gap:16px;margin-bottom:16px;"></div>
@@ -3820,7 +3820,7 @@
                         
                         <!-- Brand Assets -->
                         <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:24px">
-                            <h3 style="margin-bottom:16px;font-size:1.1rem;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;">Brand Assets</h3>
+                            <h3 style="margin-bottom:16px;font-size:1.1rem;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">Brand Assets</h3>
                             <div class="form-group">
                                 <label class="form-label">Favicon URL</label>
                                 <div class="image-row" style="margin-bottom:0">
@@ -3845,7 +3845,7 @@
                         </div>
 
                         <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:24px">
-                            <h3 style="margin-bottom:16px;font-size:1.1rem;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;">Hero Section</h3>
+                            <h3 style="margin-bottom:16px;font-size:1.1rem;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;">Hero Section</h3>
                             <div class="form-group">
                                 <label class="form-label">Kicker Text</label>
                                 <input type="text" class="form-input" id="heroKicker" placeholder="Release 001 — Sept 20, 2026">

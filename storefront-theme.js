@@ -12,8 +12,6 @@
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', color);
     document.documentElement.style.backgroundColor = color;
-    // Cache so the next page load can apply the correct theme instantly
-    // without waiting for this Supabase fetch to complete.
     try { localStorage.setItem('zw_theme_mode', resolved); } catch(_) {}
     window.dispatchEvent(new CustomEvent('zw-theme-applied', { detail: { mode: resolved } }));
   }
@@ -23,27 +21,41 @@
     applyThemeMode(document.body && document.body.classList.contains('light-mode') ? 'light' : 'dark');
   };
 
-  async function loadAdminTheme() {
+  async function loadSiteSettings() {
     try {
-      var response = await fetch(SUPABASE_URL + '/rest/v1/site_settings?key=eq.theme&select=value', {
-        cache: 'no-store',
-        headers: {
-          apikey: SUPABASE_ANON,
-          Authorization: 'Bearer ' + SUPABASE_ANON
+      var response = await fetch(
+        SUPABASE_URL + '/rest/v1/site_settings?key=in.(theme,brand)&select=key,value',
+        {
+          cache: 'no-store',
+          headers: {
+            apikey: SUPABASE_ANON,
+            Authorization: 'Bearer ' + SUPABASE_ANON
+          }
         }
-      });
+      );
       if (!response.ok) return;
       var rows = await response.json();
-      var mode = rows && rows[0] && rows[0].value && rows[0].value.mode === 'dark' ? 'dark' : 'light';
-      applyThemeMode(mode);
+
+      rows.forEach(function(row) {
+        if (row.key === 'theme') {
+          var mode = row.value && row.value.mode === 'dark' ? 'dark' : 'light';
+          applyThemeMode(mode);
+        }
+        if (row.key === 'brand') {
+          var faviconUrl = row.value && row.value.favicon;
+          if (faviconUrl && window.__zwApplyFavicon) {
+            window.__zwApplyFavicon(faviconUrl);
+          }
+        }
+      });
     } catch (_) {
       if (window.__zwSyncThemeColor) window.__zwSyncThemeColor();
     }
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadAdminTheme);
+    document.addEventListener('DOMContentLoaded', loadSiteSettings);
   } else {
-    loadAdminTheme();
+    loadSiteSettings();
   }
 })();
