@@ -187,6 +187,7 @@ on('back-to-signin', 'click', e => { e.preventDefault(); switchAuthTab('signin')
 
 // ── Cloudflare Turnstile Helper ────────────────────────────────────
 const ZW_TS_KEY = '0x4AAAAAACzvvg-l2dT2z35l';
+const ZW_TS_ENABLED = !!document.querySelector('script[src*="challenges.cloudflare.com/turnstile"]');
 let _zwTsWidgetId = null;
 let _zwTsPendingCb = null;
 
@@ -231,6 +232,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function _zwWaitForTurnstile(timeoutMs = 2500) {
+  if (!ZW_TS_ENABLED && !window.turnstile) return Promise.resolve(false);
   _zwInitTurnstile();
   if (_zwTsWidgetId !== null) return Promise.resolve(true);
   return new Promise(resolve => {

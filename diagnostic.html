@@ -452,9 +452,9 @@ async function checkTurnstile() {
 
   // Warning about Turnstile being in the code but deleted from Cloudflare dashboard
   addCheck('ts', {
-    name: 'Turnstile code vs dashboard mismatch',
-    status: 'warn',
-    detail: 'index.html still contains Turnstile code (ZW_TS_KEY + _zwHomeTs wrappers) but Turnstile was deleted from the Cloudflare dashboard. This means:\n• Sign-in/sign-up calls window._zwHomeTs() which tries to load the Turnstile script\n• If the CF dashboard widget is gone, the token verification at /api/verify-turnstile may fail\n• Watch for sign-in failures in Chrome/Brave — this could still be blocking auth forms.'
+    name: 'Public Turnstile disabled',
+    status: 'info',
+    detail: 'Public storefront auth skips Turnstile unless the SDK is explicitly loaded. Admin still has its own Turnstile flow.'
   });
 
   updateBadge('ts');
