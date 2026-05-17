@@ -1,5 +1,7 @@
 /* Storefront cohesion layer.
    Product page is the source of truth for buttons, cards, modals, and mobile rhythm. */
+html{background:#09090b;color-scheme:dark light}
+html:has(body.light-mode){background:#F0EEE9;color-scheme:light}
 :root{
   --zw-ink:#09090b;
   --zw-paper:#f4f1eb;
