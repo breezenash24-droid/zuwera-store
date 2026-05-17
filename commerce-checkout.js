@@ -142,8 +142,10 @@
         ? `${STATE.promotion.label || STATE.promotion.code} applied.`
         : (STATE.code ? 'Promo code not active for this cart.' : '');
     }
-    nodes.tax.textContent = formatMoney(taxCents);
-    nodes.total.textContent = subtotalCents ? formatMoney(totalCents) : '-';
+    const nextTaxText = formatMoney(taxCents);
+    const nextTotalText = subtotalCents ? formatMoney(totalCents) : '-';
+    if (nodes.tax.textContent !== nextTaxText) nodes.tax.textContent = nextTaxText;
+    if (nodes.total.textContent !== nextTotalText) nodes.total.textContent = nextTotalText;
   }
 
   async function applyPromoFromInput() {
