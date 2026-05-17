@@ -2012,3 +2012,26 @@ body.light-mode .fcopy{color:rgba(9,9,11,.15)}
 @media(max-width:600px){
   footer:not(.zw-mobile-menu-footer){padding:2rem 1.2rem}
 }
+
+/* ── Language trigger — brand override (beats lang.js injected styles) ── */
+.zw-lang-trigger{
+  font-family:var(--fm) !important;
+  font-size:.6rem !important;
+  letter-spacing:.14em !important;
+  border-radius:2px !important;
+  border-color:rgba(244,241,235,.1) !important;
+}
+.zw-lang-trigger:hover{
+  color:var(--paper) !important;
+  border-color:rgba(244,241,235,.3) !important;
+  background:rgba(244,241,235,.05) !important;
+}
+body.light-mode .zw-lang-trigger{
+  border-color:rgba(9,9,11,.15) !important;
+  color:rgba(9,9,11,.45) !important;
+}
+body.light-mode .zw-lang-trigger:hover{
+  color:rgba(9,9,11,.8) !important;
+  border-color:rgba(9,9,11,.35) !important;
+  background:rgba(9,9,11,.03) !important;
+}
