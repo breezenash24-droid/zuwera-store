@@ -803,6 +803,7 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
 <script src="mobile-menu.js?v=4c6ccedc" defer></script>
 
 <!-- PostHog analytics -->
+<script>try{var _t=localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':'#09090b'}catch(_){}</script>
 <script src="/posthog-init.js?v=e62ca5bb"></script>
 </head>
 <body>
@@ -1309,7 +1310,7 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
     if (meta) meta.setAttribute('content', navBg);
     document.documentElement.style.backgroundColor = navBg;
   }
-  document.body.classList.add('light-mode');
+  try { if(localStorage.getItem('zw_theme_mode')==='light') document.body.classList.add('light-mode'); } catch(_) {}
   syncThemeColor();
   window.__zwSyncThemeColor = syncThemeColor;
 })();
