@@ -62,4 +62,33 @@
   } else {
     loadSiteSettings();
   }
+
+  if ('serviceWorker' in navigator) {
+    (function clearStaleServiceWorkers() {
+      var hadController = !!navigator.serviceWorker.controller;
+      var clearRegistrations = navigator.serviceWorker.getRegistrations
+        ? navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            return Promise.all(registrations.map(function(registration) {
+              return registration.unregister();
+            }));
+          })
+        : Promise.resolve();
+      var clearCaches = window.caches && window.caches.keys
+        ? window.caches.keys().then(function(keys) {
+            return Promise.all(keys.map(function(key) { return window.caches.delete(key); }));
+          })
+        : Promise.resolve();
+
+      Promise.all([clearRegistrations, clearCaches])
+        .then(function() {
+          if (!hadController) return;
+          try {
+            if (sessionStorage.getItem('zw_sw_clear_reload')) return;
+            sessionStorage.setItem('zw_sw_clear_reload', '1');
+          } catch (_) {}
+          window.location.reload();
+        })
+        .catch(function() {});
+    })();
+  }
 })();
