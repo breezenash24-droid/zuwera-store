@@ -311,13 +311,13 @@
     modal.setAttribute('aria-label', 'Select language');
     // Only set positioning in inline style — background/alignment live in the
     // injected stylesheet below so they can never be overwritten by JS
-    modal.style.cssText = 'display:none; position:fixed; inset:0; z-index:100000;';
+    modal.style.cssText = 'display:none; position:fixed; inset:0; z-index:100000; align-items:center; justify-content:center; padding:1rem;';
 
     modal.innerHTML = `
       <div id="zw-lang-box" class="notranslate" translate="no" style="
-        background:#0f0f12; border-left:1px solid rgba(244,241,235,0.1);
-        border-radius:0; width:min(34rem, 34vw); max-width:100%;
-        height:100dvh; max-height:100dvh; overflow:hidden; display:flex; flex-direction:column;
+        background:#0f0f12; border:1px solid rgba(244,241,235,0.1);
+        border-radius:18px; width:min(34rem, calc(100vw - 2rem)); max-width:100%;
+        height:auto; max-height:min(92dvh, 58rem); overflow:hidden; display:flex; flex-direction:column;
       ">
         <!-- Header -->
         <div style="display:flex;align-items:center;justify-content:space-between;
@@ -619,8 +619,8 @@
       #zw-lang-grid::-webkit-scrollbar-thumb { background: rgba(244,241,235,0.1); border-radius: 2px; }
       body.light-mode #zw-lang-grid::-webkit-scrollbar-thumb { background: rgba(9,9,11,0.12); }
       @media (max-width: 600px) {
-        #zw-lang-box { width: 100vw !important; max-width: 100vw !important; height: 100dvh !important; max-height: 100dvh !important; border-radius: 0 !important; }
-        #zw-lang-modal { align-items: stretch !important; justify-content: flex-end !important; }
+        #zw-lang-box { width: calc(100vw - 2rem) !important; max-width: calc(100vw - 2rem) !important; height: auto !important; max-height: 92dvh !important; border-radius: 18px !important; }
+        #zw-lang-modal { align-items: center !important; justify-content: center !important; }
         #zw-lang-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
       }
     `;

@@ -11,7 +11,7 @@
   padding: 0.6rem 0;
   margin-top: 0.5rem;
   color: rgba(244,241,235,0.5);
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.65rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -40,7 +40,7 @@
   border-top: 1px solid rgba(244,241,235,0.06);
 }
 .reviews-loading {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.65rem;
   color: rgba(244,241,235,0.3);
   padding: 0.4rem 0;
@@ -67,7 +67,7 @@
 }
 .review-item-stars { color: #F891A5; font-size: 0.75rem; }
 .review-item-meta {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.58rem;
   color: rgba(244,241,235,0.3);
   letter-spacing: 0.1em;
@@ -78,7 +78,7 @@
   line-height: 1.65;
 }
 .review-item-author {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.6rem;
   color: rgba(244,241,235,0.35);
   letter-spacing: 0.1em;
@@ -95,7 +95,7 @@
   background: none;
   border: 1px solid rgba(244,241,235,0.2);
   color: rgba(244,241,235,0.7);
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.62rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -167,7 +167,7 @@
   background: rgba(244,241,235,0.04);
   border: 1px solid rgba(244,241,235,0.14);
   color: rgba(244,241,235,0.9);
-  font-family: 'Barlow', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.9rem;
   line-height: 1.6;
   padding: 0.8rem 1rem;
@@ -191,7 +191,7 @@
   color: #09090b;
   border: none;
   padding: 0.9rem;
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: var(--font-head);
   font-style: normal;      /* override reviews-vibe.css italic */
   font-size: 1rem;
   font-weight: 700;
@@ -209,7 +209,7 @@
 /* ── Error ── */
 .review-mbox .review-error {
   color: #e07060;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.68rem;
   min-height: 1rem;
   margin-bottom: 0.6rem;

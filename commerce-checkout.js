@@ -34,7 +34,7 @@
     if (STATE.config && STATE.config.show_promo_code === false) return;
 
     const { host } = getSummaryNodes();
-    if (!host || host.querySelector('#zw-promo-shell')) return;
+    if (!host || document.getElementById('zw-promo-shell')) return;
 
     const shell = document.createElement('div');
     shell.id = 'zw-promo-shell';

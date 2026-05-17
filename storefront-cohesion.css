@@ -16,14 +16,7 @@
   --zw-font-head:'Barlow Condensed',sans-serif;
   --zw-font-body:'Barlow',sans-serif;
   --zw-font-mono:'IBM Plex Mono',monospace;
-  /* Canonical aliases — use these in all page CSS */
-  --font-display:var(--zw-font-head);   /* hero / large display text */
-  --font-head:var(--zw-font-head);      /* section headings, wordmarks */
-  --font-body:var(--zw-font-body);      /* body copy, UI prose */
-  --font-mono:var(--zw-font-mono);      /* labels, tags, data */
-  --fw:var(--zw-font-head);
-  --fb:var(--zw-font-body);
-  --fm:var(--zw-font-mono);
+  /* --font-* and --fw/fb/fm canonical variables are defined in base.css */
 
   /* ── Type scale ── */
   --zw-text-hero:clamp(3.5rem,8vw,6rem);    /* hero headlines */
