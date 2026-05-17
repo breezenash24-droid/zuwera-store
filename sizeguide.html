@@ -784,7 +784,7 @@
       if (window.__ZW_SIZEGUIDE_EMBED__ === true) {
         document.body.classList.add('embed-mode');
       }
-      applyThemeMode('light');
+      try { applyThemeMode(localStorage.getItem('zw_theme_mode') === 'light' ? 'light' : 'dark'); } catch(_) { applyThemeMode('dark'); }
       window.__zwApplyAdminTheme = applyThemeMode;
       window.__zwSyncThemeColor = function() {
         applyThemeMode(document.body.classList.contains('light-mode') ? 'light' : 'dark');

@@ -762,7 +762,7 @@
     if (meta) meta.setAttribute('content', color);
     document.documentElement.style.backgroundColor = color;
   }
-  applyThemeMode('light');
+  try { applyThemeMode(localStorage.getItem('zw_theme_mode') === 'light' ? 'light' : 'dark'); } catch(_) { applyThemeMode('dark'); }
   window.__zwApplyAdminTheme = applyThemeMode;
   window.__zwSyncThemeColor = function() {
     applyThemeMode(document.body.classList.contains('light-mode') ? 'light' : 'dark');
