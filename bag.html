@@ -323,8 +323,14 @@
         <span class="summary-value" id="summary-shipping">-</span>
       </div>
       <div class="summary-row"><span>Tax</span><span class="summary-value" id="summary-tax">-</span></div>
-      <!-- Promo code UI injected here by commerce-checkout.js -->
-      <div class="csummary" style="display:block"></div>
+      <div id="zw-promo-shell">
+        <div>
+          <input id="zw-promo-input" type="text" placeholder="PROMO CODE" autocomplete="off">
+          <button id="zw-promo-apply" type="button">Apply</button>
+        </div>
+        <div id="zw-promo-message"></div>
+      </div>
+      <div id="zw-promo-row" class="summary-row" style="display:none"><span>Discount</span><span id="zw-promo-discount">-$0.00</span></div>
       <div class="summary-row total"><span>Total</span><span id="summary-total">-</span></div>
       <button id="checkout-btn">Checkout</button>
     </div>
@@ -765,7 +771,7 @@ window.__zwOpenAuth = function(tab) {
 })();
 </script>
 <script src="checkout.js?v=1"></script>
-<script src="commerce-checkout.js?v=2"></script>
+<script src="commerce-checkout.js?v=3"></script>
 <script src="modal-lock.js?v=4"></script>
 <script src="storefront-theme.js?v=4" defer></script>
 <script src="lang.js?v=10" defer></script>

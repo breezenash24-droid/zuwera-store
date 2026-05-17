@@ -30,11 +30,26 @@
   }
 
   function ensurePromoUi() {
-    // Respect the show_promo_code config flag (default: show)
-    if (STATE.config && STATE.config.show_promo_code === false) return;
+    if (STATE.config && STATE.config.show_promo_code === false) {
+      const shell = document.getElementById('zw-promo-shell');
+      if (shell) shell.style.display = 'none';
+      return;
+    }
 
+    // If the shell is already in the DOM (static HTML or previously injected), just wire the button.
+    const existing = document.getElementById('zw-promo-shell');
+    if (existing) {
+      const btn = document.getElementById('zw-promo-apply');
+      if (btn && !btn.__zwWired) {
+        btn.addEventListener('click', applyPromoFromInput);
+        btn.__zwWired = true;
+      }
+      return;
+    }
+
+    // Injection fallback for pages that don't have static promo HTML.
     const { host } = getSummaryNodes();
-    if (!host || document.getElementById('zw-promo-shell')) return;
+    if (!host) return;
 
     const shell = document.createElement('div');
     shell.id = 'zw-promo-shell';
