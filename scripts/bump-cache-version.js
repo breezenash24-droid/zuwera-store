@@ -1,51 +1,77 @@
+/**
+ * Asset version stamper — run automatically via `npm install` (postinstall).
+ * Computes a content-hash for every .js and .css file in the repo root,
+ * then rewrites every `filename.js?v=xxx` / `filename.css?v=xxx` reference
+ * in all HTML files to use the new hash.
+ *
+ * Because the hash is derived from the file's content, the URL only changes
+ * when the file changes — so browsers and CDNs cache assets for up to a year
+ * and only fetch a new copy when something actually changed.
+ */
+
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const root = path.resolve(__dirname, '..');
-const targets = [
+
+const htmlFiles = [
   '404.html',
   'account.html',
+  'admin.html',
+  'analytics.html',
   'bag.html',
   'confirm.html',
   'drop001.html',
   'index.html',
+  'mobile-checkout.html',
   'policies.html',
   'product.html',
   'returns.html',
   'sizeguide.html',
 ];
 
-function read(file) {
-  return fs.readFileSync(path.join(root, file), 'utf8');
+function contentHash(filePath) {
+  try {
+    const buf = fs.readFileSync(filePath);
+    return crypto.createHash('sha256').update(buf).digest('hex').slice(0, 8);
+  } catch (_) {
+    return null;
+  }
 }
 
-function write(file, content) {
-  fs.writeFileSync(path.join(root, file), content);
+// Build filename → 8-char hash map for every .js and .css in repo root.
+const hashes = {};
+for (const entry of fs.readdirSync(root)) {
+  if (/\.(js|css)$/.test(entry) && fs.statSync(path.join(root, entry)).isFile()) {
+    const h = contentHash(path.join(root, entry));
+    if (h) hashes[entry] = h;
+  }
 }
 
-function nextVersion(contents, pattern) {
-  const versions = [...contents.matchAll(pattern)].map(match => Number(match[1])).filter(Number.isFinite);
-  return (versions.length ? Math.max(...versions) : 0) + 1;
+// Match any `filename.js?v=anything` or `filename.css?v=anything` reference.
+const assetRef = /([\w.-]+\.(?:js|css))\?v=[A-Za-z0-9_-]+/g;
+
+let changedFiles = 0;
+for (const file of htmlFiles) {
+  const fp = path.join(root, file);
+  if (!fs.existsSync(fp)) continue;
+
+  const original = fs.readFileSync(fp, 'utf8');
+  const updated = original.replace(assetRef, (match, name) => {
+    return hashes[name] ? `${name}?v=${hashes[name]}` : match;
+  });
+
+  if (updated !== original) {
+    fs.writeFileSync(fp, updated);
+    changedFiles++;
+    console.log(`  updated: ${file}`);
+  }
 }
 
-const combined = targets.map(read).join('\n') + '\n' + read('sw.js');
-const nextCss = nextVersion(combined, /storefront-cohesion\.css\?v=(\d+)/g);
-const nextMenu = nextVersion(combined, /mobile-menu\.js\?v=(\d+)/g);
-const nextTheme = nextVersion(combined, /storefront-theme\.js\?v=(\d+)/g);
-const nextCommerce = nextVersion(combined, /commerce-checkout\.js\?v=(\d+)/g);
-const nextSw = nextVersion(combined, /sw\.js\?v=(\d+)/g);
-const nextCache = nextVersion(read('sw.js'), /zuwera-v(\d+)/g);
+const summary = Object.entries(hashes)
+  .sort(([a], [b]) => a.localeCompare(b))
+  .map(([f, h]) => `  ${h}  ${f}`)
+  .join('\n');
 
-for (const file of targets) {
-  let content = read(file)
-    .replace(/storefront-cohesion\.css\?v=\d+/g, `storefront-cohesion.css?v=${nextCss}`)
-    .replace(/mobile-menu\.js\?v=\d+/g, `mobile-menu.js?v=${nextMenu}`)
-    .replace(/storefront-theme\.js\?v=\d+/g, `storefront-theme.js?v=${nextTheme}`)
-    .replace(/commerce-checkout\.js\?v=\d+/g, `commerce-checkout.js?v=${nextCommerce}`);
-  if (file === 'index.html') content = content.replace(/sw\.js\?v=\d+/g, `sw.js?v=${nextSw}`);
-  write(file, content);
-}
-
-write('sw.js', read('sw.js').replace(/zuwera-v\d+/g, `zuwera-v${nextCache}`));
-
-console.log(`Bumped storefront CSS to v${nextCss}, mobile menu JS to v${nextMenu}, storefront theme JS to v${nextTheme}, commerce checkout JS to v${nextCommerce}, service worker URL to v${nextSw}, cache to zuwera-v${nextCache}.`);
+console.log(`\n[asset-versions] ${changedFiles} HTML file(s) updated.\n${summary}\n`);
