@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="base.css?v=ace563fe">
   <link rel="stylesheet" href="nav.css?v=45571be5">
   <link rel="stylesheet" href="cart.css?v=10101f01">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=b881d3f9">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=9ed9d0c0">
   <script src="/favicon-utils.js?v=00b5644f"></script>
   <script src="/stripe-client-config.js?v=f4503bed"></script>
   <script src="/checkout-tax.js?v=d7a3117c"></script>
@@ -336,17 +336,28 @@
       <button id="checkout-btn">Checkout</button>
     </div>
   </div>
-  <div class="cart-shell-footer">
-    <nav class="cart-shell-footer-nav" aria-label="Bag footer links">
-      <a href="/">Home</a>
-      <a href="/drop001.html">Release 001</a>
-      <a href="/sizeguide.html">Size Guide</a>
-      <a href="/policies.html">Policies</a>
-      <a href="mailto:nasirubreeze@zuwera.store">Contact</a>
-    </nav>
-    <p class="cart-shell-footer-copy">Zuwera</p>
-  </div>
 </main>
+
+<footer>
+  <div class="flogo">
+    <img src="images/wordmark-footer.png" srcset="images/wordmark-footer@2x.png 2x" alt="ZUWERA" width="175" height="34" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+    <span style="display:none">ZUWERA</span>
+  </div>
+  <nav class="flinks">
+    <a href="/drop001.html">Release 001</a>
+    <a href="/sizeguide.html">Size Guide</a>
+    <a href="/policies.html">Policies</a>
+    <a href="/returns.html">Returns</a>
+    <a href="mailto:nasirubreeze@zuwera.store">Contact</a>
+  </nav>
+  <div class="fright">
+    <a href="https://instagram.com/Zuw.era" target="_blank" rel="noopener" class="fig">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+      @Zuw.era
+    </a>
+    <p class="fcopy">&copy; 2026 Zuwera. All rights reserved.</p>
+  </div>
+</footer>
 
 <!-- PAYMENT MODAL -->
 <div id="payment-modal" class="modal" role="dialog" aria-modal="true">
