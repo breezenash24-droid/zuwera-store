@@ -156,10 +156,17 @@
       .btn-group { width: 100%; }
       .btn-primary, .btn-secondary { flex: 1; text-align: center; }
     }
-  </style>
+    body.light-mode { --black: #F0EEE9; --white: #09090b; }
+    body.light-mode .bg-number { color: rgba(9,9,11,.025); }
+    body.light-mode .label { color: rgba(9,9,11,.35); }
+    body.light-mode p { color: rgba(9,9,11,.5); }
+    body.light-mode .btn-secondary { color: rgba(9,9,11,.7); border-color: rgba(9,9,11,.2); }
+    body.light-mode .btn-secondary:hover { border-color: rgba(9,9,11,.6); }
+    body.light-mode .nav-logo img { filter: invert(1); }  </style>
 <script src="/posthog-init.js?v=3"></script>
 </head>
 <body>
+<script>(function(){try{var m=localStorage.getItem('zw_theme_mode');if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}}catch(_){}})()</script>
 
   <a href="/" class="nav-logo" aria-label="Back to Zuwera home">
     <img src="images/wordmark.png" alt="ZUWERA">
@@ -213,6 +220,7 @@
     </div>
   </div>
 
+  <script src="storefront-theme.js?v=4" defer></script>
   <script src="mobile-menu.js?v=8" defer></script>
   <script src="lang.js?v=10" defer></script>
 </body>

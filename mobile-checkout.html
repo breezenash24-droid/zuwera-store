@@ -294,9 +294,21 @@
       border-radius: 2px;
       margin-top: .25rem;
     }
-  </style>
+    /* Light mode */
+    body.light-mode {
+      --bg: #F0EEE9;
+      --surface: #ffffff;
+      --border: rgba(9,9,11,.1);
+      --text: #09090b;
+      --sub: rgba(9,9,11,.5);
+    }
+    body.light-mode .mc-header { border-bottom-color: rgba(9,9,11,.1); }
+    body.light-mode .mc-secure { color: rgba(9,9,11,.28); }
+    body.light-mode .mc-success-order { background: rgba(9,9,11,.04); border-color: rgba(9,9,11,.1); }
+    body.light-mode .mc-logo img { filter: invert(1); }  </style>
 </head>
 <body>
+<script>(function(){try{var m=localStorage.getItem('zw_theme_mode');if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}}catch(_){}})()</script>
 
   <header class="mc-header">
     <a href="https://zuwera.store" class="mc-logo" aria-label="Back to Zuwera home">
@@ -622,5 +634,6 @@
       });
     })();
   </script>
+<script src="storefront-theme.js?v=4" defer></script>
 </body>
 </html>
