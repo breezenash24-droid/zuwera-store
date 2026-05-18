@@ -876,7 +876,11 @@ function updateNextBtn() {
   let enabled = false;
   if (state.step === 1) enabled = !!state.selectedOrderId;
   if (state.step === 2) enabled = !!state.selectedResolution;
-  if (state.step === 3) enabled = !!(state.selectedReason && (state.selectedReason !== 'Other' || state.otherNotes.trim()));
+  if (state.step === 3) {
+    const reasonOk = !!(state.selectedReason && (state.selectedReason !== 'Other' || state.otherNotes.trim()));
+    const exchangeOk = state.selectedResolution !== 'exchange' || !!state.exchangeSize.trim();
+    enabled = reasonOk && exchangeOk;
+  }
   btn.disabled = !enabled;
 }
 
@@ -984,8 +988,9 @@ async function handleSubmit() {
       reason: reason + exchangeNote,
       notes: '',
     });
+    window.removeEventListener('beforeunload', _warnBeforeUnload);
     if (statusEl) { statusEl.textContent = '✓ Request submitted!'; statusEl.className = 'submit-status success'; }
-    setTimeout(() => location.reload(), 1400);
+    setTimeout(() => location.reload(), 3000);
   } catch(e) {
     state.submitting = false;
     if (btn) btn.disabled = false;
@@ -994,6 +999,16 @@ async function handleSubmit() {
 }
 window.handleSubmit = handleSubmit;
 window.showStep = showStep;
+
+// ─── Beforeunload guard ───────────────────────────────────────────────────────
+function _wizardHasData() {
+  return !!(state.selectedOrderId || state.selectedResolution || state.selectedReason ||
+    state.exchangeSize || state.otherNotes.trim() || state.extraNotes.trim());
+}
+function _warnBeforeUnload(e) {
+  if (_wizardHasData()) { e.preventDefault(); e.returnValue = ''; }
+}
+window.addEventListener('beforeunload', _warnBeforeUnload);
 
 // ─── Render wizard ────────────────────────────────────────────────────────────
 function renderWizard(orders) {
@@ -1062,7 +1077,7 @@ function renderWizard(orders) {
         <div class="step-nav">
           <div class="step-nav-left"></div>
           <div class="step-nav-right">
-            <button class="btn-primary wiz-next" data-next-step="1" disabled onclick="goNext()">Continue</button>
+            <button class="btn-primary wiz-next" disabled onclick="goNext()">Continue</button>
           </div>
         </div>
       </div>
@@ -1092,7 +1107,7 @@ function renderWizard(orders) {
             <button class="btn-ghost" onclick="showStep(1)">Back</button>
           </div>
           <div class="step-nav-right">
-            <button class="btn-primary wiz-next" data-next-step="2" disabled onclick="goNext()">Continue</button>
+            <button class="btn-primary wiz-next" disabled onclick="goNext()">Continue</button>
           </div>
         </div>
       </div>
@@ -1105,22 +1120,22 @@ function renderWizard(orders) {
         </div>
         <div class="step3-field" id="other-notes-field" style="display:none">
           <label>Tell us more</label>
-          <textarea id="other-notes" rows="3" placeholder="Describe your reason…" oninput="state.otherNotes=this.value;updateNextBtn()"></textarea>
+          <textarea id="other-notes" rows="3" maxlength="600" placeholder="Describe your reason…" oninput="state.otherNotes=this.value;updateNextBtn()"></textarea>
         </div>
         <div class="step3-field" style="display:block">
           <label>Additional notes (optional)</label>
-          <textarea id="extra-notes" rows="2" placeholder="Anything else we should know…" oninput="state.extraNotes=this.value"></textarea>
+          <textarea id="extra-notes" rows="2" maxlength="600" placeholder="Anything else we should know…" oninput="state.extraNotes=this.value"></textarea>
         </div>
         <div class="step3-field" id="exchange-size-field" style="display:none">
-          <label>What size or item would you like instead?</label>
-          <input type="text" id="exchange-size" placeholder="e.g. Medium, or Black size M" oninput="state.exchangeSize=this.value">
+          <label>What size or item would you like instead? <span style="color:var(--accent-red)">*</span></label>
+          <input type="text" id="exchange-size" placeholder="e.g. Medium, or Black size M" oninput="state.exchangeSize=this.value;updateNextBtn()">
         </div>
         <div class="step-nav">
           <div class="step-nav-left">
             <button class="btn-ghost" onclick="showStep(2)">Back</button>
           </div>
           <div class="step-nav-right">
-            <button class="btn-primary wiz-next" data-next-step="3" disabled onclick="goNext()">Review Request</button>
+            <button class="btn-primary wiz-next" disabled onclick="goNext()">Review Request</button>
           </div>
         </div>
       </div>

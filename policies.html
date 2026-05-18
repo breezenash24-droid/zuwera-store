@@ -450,6 +450,7 @@
     <!-- TABS -->
     <nav class="tab-nav" aria-label="Policy sections">
       <button class="tab-btn active" data-tab="shipping">Shipping</button>
+      <button class="tab-btn" data-tab="returns">Returns</button>
       <button class="tab-btn" data-tab="privacy">Privacy</button>
       <button class="tab-btn" data-tab="terms">Terms</button>
       <button class="tab-btn" data-tab="faq">FAQ</button>
@@ -485,6 +486,42 @@
         <h2>Order Issues</h2>
         <p>If your order arrives damaged, incorrect, or does not arrive within the estimated window, please contact us at <strong><a href="mailto:Breezenash24@gmail.com">Breezenash24@gmail.com</a></strong> within 7 days of the expected delivery date and we will make it right.</p>
         <p>Zuwera is not responsible for delays caused by carrier disruptions, weather events, or incorrect shipping addresses provided at checkout.</p>
+      </div>
+
+    </div>
+
+    <!-- RETURNS -->
+    <div class="tab-panel" id="tab-returns">
+
+      <div class="policy-section">
+        <h2>Return Policy</h2>
+        <p>We want you to love what you wear. If you are not completely satisfied with your Zuwera purchase, you may return eligible items within <strong>30 days</strong> of the delivery date for a full refund, exchange, or store credit. Items must be unworn, unwashed, and in their original condition with all tags attached.</p>
+      </div>
+
+      <div class="policy-section">
+        <h2>How to Start a Return</h2>
+        <ul>
+          <li>Sign in to your account and visit the <a href="/returns.html">Returns page</a> to submit your request</li>
+          <li>We'll review your request within 1–2 business days and email you a prepaid return shipping label</li>
+          <li>Pack your item securely and drop it off at any USPS location — no postage needed</li>
+          <li>Refunds are processed within 5–7 business days of receiving your return</li>
+        </ul>
+        <p>Refunds are issued to your original payment method. Depending on your bank, it may take an additional 3–5 business days to appear on your statement.</p>
+      </div>
+
+      <div class="policy-section">
+        <h2>Non-Returnable Items</h2>
+        <ul>
+          <li>Items marked Final Sale at time of purchase</li>
+          <li>Items that have been worn, washed, or altered</li>
+          <li>Items without original tags or packaging</li>
+          <li>Gift cards</li>
+        </ul>
+      </div>
+
+      <div class="policy-section">
+        <h2>Exchanges</h2>
+        <p>Select "Exchange" when submitting your return request. Once we receive your item, we'll process your exchange and ship the new size or style. You can also place a new order immediately to secure your preferred item before stock runs out.</p>
       </div>
 
     </div>
@@ -692,10 +729,10 @@
         data.forEach(row => {
           if (row.key === 'legal_policies') {
             const p = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
-            if (p.shipping) document.getElementById('tab-shipping').innerHTML = p.shipping;
-            if (p.returns) document.getElementById('tab-returns').innerHTML = p.returns;
-            if (p.privacy) document.getElementById('tab-privacy').innerHTML = p.privacy;
-            if (p.terms) document.getElementById('tab-terms').innerHTML = p.terms;
+            ['shipping', 'returns', 'privacy', 'terms'].forEach(k => {
+              const el = document.getElementById('tab-' + k);
+              if (el && p[k]) el.innerHTML = p[k];
+            });
           } else if (row.key === 'faq') {
             const faqs = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
             if (faqs && faqs.length > 0) {

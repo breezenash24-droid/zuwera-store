@@ -1599,11 +1599,18 @@
                         exchange_in_progress:'#a78bfa',
                     };
 
+                    function syncReturnsUI() {
+                        renderReturnsStats();
+                        window.renderReturnsTable();
+                        renderReturnDetails();
+                    }
+
                     function retEscape(value) {
                         if (typeof escapeHtml === 'function') return escapeHtml(value);
                         return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
                     }
                     function retAttr(value) { return retEscape(value).replace(/`/g, '&#96;'); }
+                    function retSafeUrl(url) { return url && /^https?:\/\//i.test(String(url)) ? String(url) : null; }
                     function retMoney(value) {
                         const n = Number(value || 0);
                         return Number.isFinite(n) ? '$' + n.toFixed(2) : '$0.00';
@@ -1861,8 +1868,9 @@
                             const labelError = retLabelError(r);
                             const nextAction = retNextAction(r);
                             const selectedBg = _selectedReturnId === r.id ? 'background:rgba(56,189,248,.08);' : '';
-                            const labelCell = r.labelUrl
-                                ? `<a href="${retAttr(r.labelUrl)}" target="_blank" onclick="event.stopPropagation()" style="color:#38bdf8;text-decoration:underline;">PDF</a><div style="font-size:.72rem;color:var(--text-secondary);margin-top:4px;">${retEscape([r.carrier, r.service].filter(Boolean).join(' - '))}<br>${retEscape(r.trackingNumber || '')}</div>`
+                            const _safeLabelUrl = retSafeUrl(r.labelUrl);
+                            const labelCell = _safeLabelUrl
+                                ? `<a href="${retAttr(_safeLabelUrl)}" target="_blank" onclick="event.stopPropagation()" style="color:#38bdf8;text-decoration:underline;">PDF</a><div style="font-size:.72rem;color:var(--text-secondary);margin-top:4px;">${retEscape([r.carrier, r.service].filter(Boolean).join(' - '))}<br>${retEscape(r.trackingNumber || '')}</div>`
                                 : (labelError
                                     ? `<span style="color:#f97316;font-size:.74rem;">Label error</span><div style="font-size:.7rem;color:var(--text-secondary);max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${retAttr(labelError)}">${retEscape(labelError)}</div>`
                                     : (retAddressMissing(r) ? '<span style="color:#f97316;font-size:.74rem;">Needs address</span>' : '<span style="color:var(--text-secondary);font-size:.74rem;">Not sent</span>'));
@@ -1899,8 +1907,10 @@
                             const meta = [item.sku, item.size, item.color || item.colorName].filter(Boolean).join(' / ');
                             return `<div style="display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border);padding:8px 0;"><div><div style="font-weight:600;">${retEscape(name)}</div><div style="color:var(--text-secondary);font-size:.75rem;">${retEscape(meta || 'No variant data')}</div></div><div style="text-align:right;color:var(--text-secondary);font-size:.8rem;">x${retEscape(qty)}<br>${retMoney(item.price || item.unit_price || 0)}</div></div>`;
                         }).join('') : '<p style="color:var(--text-secondary);font-size:.82rem;">No line item data saved for this request.</p>';
-                        const labelLinks = r.labelUrl
-                            ? `<a href="${retAttr(r.labelUrl)}" target="_blank" style="color:#38bdf8;text-decoration:underline;">Open label PDF</a>${r.trackingUrl ? ` <span style="color:var(--text-secondary);">/</span> <a href="${retAttr(r.trackingUrl)}" target="_blank" style="color:#38bdf8;text-decoration:underline;">Track package</a>` : ''}`
+                        const _detailLabelUrl = retSafeUrl(r.labelUrl);
+                        const _detailTrackUrl = retSafeUrl(r.trackingUrl);
+                        const labelLinks = _detailLabelUrl
+                            ? `<a href="${retAttr(_detailLabelUrl)}" target="_blank" style="color:#38bdf8;text-decoration:underline;">Open label PDF</a>${_detailTrackUrl ? ` <span style="color:var(--text-secondary);">/</span> <a href="${retAttr(_detailTrackUrl)}" target="_blank" style="color:#38bdf8;text-decoration:underline;">Track package</a>` : ''}`
                             : '<span style="color:var(--text-secondary);">No return label sent yet.</span>';
                         const labelError = retLabelError(r);
                         const labelErrorHtml = labelError
@@ -2048,9 +2058,7 @@
                         const payload = await resp.json().catch(() => ({}));
                         if (!resp.ok || !payload.success) throw new Error(payload.error || 'Could not update return.');
                         Object.assign(req, payload.request || {});
-                        renderReturnsStats();
-                        window.renderReturnsTable();
-                        renderReturnDetails();
+                        syncReturnsUI();
                         return req;
                     }
 
@@ -2058,11 +2066,11 @@
                         const req = _returnsData.find(r => r.id === requestId);
                         if (!req) return;
                         const oldStatus = req.status;
-                        req.status = newStatus;
                         try { await persistReturnUpdate(requestId, { status: newStatus }); notifyReturns('Return status updated.', 'success'); }
-                        catch(e) { req.status = oldStatus; if (selectEl) selectEl.value = oldStatus; notifyReturns('Could not update status: ' + e.message, 'error'); }
+                        catch(e) { if (selectEl) selectEl.value = oldStatus; notifyReturns('Could not update status: ' + e.message, 'error'); }
                     };
                     async function quickReturnStatus(requestId, status) {
+                        if (status === 'denied' && !confirm('Mark this return as denied? The customer will be notified.')) return;
                         try { await persistReturnUpdate(requestId, { status }); notifyReturns('Return marked ' + status.replace(/_/g, ' ') + '.', 'success'); }
                         catch (e) { notifyReturns('Could not update return: ' + e.message, 'error'); }
                     }
@@ -2187,16 +2195,12 @@
                                 labelSentAt: new Date().toISOString(),
                                 lastLabelError: '',
                             });
-                            renderReturnsStats();
-                            window.renderReturnsTable();
-                            renderReturnDetails();
+                            syncReturnsUI();
                             notifyReturns('Return label generated and sent to customer.', 'success');
                         } catch(e) {
                             if (e.payload?.request) Object.assign(req, e.payload.request);
                             else Object.assign(req, { lastLabelError: e.message });
-                            renderReturnsStats();
-                            window.renderReturnsTable();
-                            renderReturnDetails();
+                            syncReturnsUI();
                             const hint = ' Use the Manual Label section in the detail panel to paste an external label URL.';
                             notifyReturns(e.message + hint, 'error');
                             if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = oldText || 'Send Label'; }
