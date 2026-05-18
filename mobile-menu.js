@@ -216,8 +216,36 @@
   });
 
   document.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape' && menu()?.classList.contains('open')) {
+    var el = menu();
+    if (!el || !el.classList.contains('open')) return;
+
+    if (event.key === 'Escape') {
       window.closeMobileMenu();
+      var btn = document.getElementById('mobile-menu-btn') || document.querySelector('.hamburger-btn');
+      if (btn) btn.focus({ preventScroll: true });
+      return;
+    }
+
+    if (event.key === 'Tab') {
+      var focusable = Array.prototype.slice.call(
+        el.querySelectorAll('a[href],button:not([disabled]),[tabindex]:not([tabindex="-1"])')
+      ).filter(function (node) {
+        return window.getComputedStyle(node).display !== 'none';
+      });
+      if (focusable.length === 0) { event.preventDefault(); return; }
+      var first = focusable[0];
+      var last = focusable[focusable.length - 1];
+      if (event.shiftKey) {
+        if (document.activeElement === first) {
+          event.preventDefault();
+          last.focus({ preventScroll: true });
+        }
+      } else {
+        if (document.activeElement === last) {
+          event.preventDefault();
+          first.focus({ preventScroll: true });
+        }
+      }
     }
   });
 

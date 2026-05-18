@@ -1,9 +1,10 @@
 /* Storefront cohesion layer.
    Product page is the source of truth for buttons, cards, modals, and mobile rhythm. */
-html{background:#09090b;color-scheme:dark light}
+html{background:#09090b;color-scheme:dark light;text-size-adjust:100%;-webkit-text-size-adjust:100%}
 html:has(body.light-mode){background:#F0EEE9;color-scheme:light}
 html::before{content:'';position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:#09090b;z-index:650;pointer-events:none}
 html:has(body.light-mode)::before{background:#F0EEE9}
+a,button,[role="button"]{touch-action:manipulation}
 :root{
   --zw-ink:#09090b;
   --zw-paper:#f4f1eb;
@@ -268,7 +269,6 @@ body.light-mode #zw-lang-modal{
   max-height:min(92dvh, 54rem) !important;
   margin:auto !important;
   overflow-y:auto !important;
-  -webkit-overflow-scrolling:touch;
   overscroll-behavior:contain;
   animation:zwCenteredModalIn .22s ease;
 }
@@ -295,7 +295,6 @@ body.light-mode .modal:not(#cart-modal):not(#mobile-menu):not(.quick-add-review-
   max-height:min(92dvh, 58rem) !important;
   margin:auto !important;
   overflow-y:auto !important;
-  -webkit-overflow-scrolling:touch;
   overscroll-behavior:contain;
   animation:zwCenteredModalIn .22s ease;
 }
@@ -395,96 +394,6 @@ body.light-mode #zw-lang-close{
   color:var(--zw-ink) !important;
 }
 
-/* The mobile nav uses .modal for toggling, but it should behave like a full-screen menu,
-   not like the bottom-sheet dialogs below. */
-#mobile-menu{
-  display:none !important;
-  position:fixed !important;
-  top:0 !important;
-  right:0 !important;
-  bottom:0 !important;
-  left:0 !important;
-  inset:0 !important;
-  width:100vw !important;
-  height:100vh !important;
-  height:100svh !important;
-  height:100dvh !important;
-  min-height:100svh !important;
-  max-height:none !important;
-  box-sizing:border-box !important;
-  padding:calc(5rem + env(safe-area-inset-top,0px)) 1.5rem calc(2rem + env(safe-area-inset-bottom,0px)) !important;
-  align-items:flex-start !important;
-  justify-content:flex-start !important;
-  overflow-y:auto !important;
-  -webkit-overflow-scrolling:touch;
-  overscroll-behavior:contain;
-  background:rgba(9,9,11,.98) !important;
-  z-index:9999 !important;
-}
-
-#mobile-menu.open{
-  display:flex !important;
-}
-
-html:has(#mobile-menu.open),
-body:has(#mobile-menu.open){
-  overflow:hidden !important;
-}
-
-body.light-mode #mobile-menu{
-  background:var(--zw-paper) !important;
-  color:var(--zw-ink) !important;
-  backdrop-filter:none !important;
-  -webkit-backdrop-filter:none !important;
-}
-
-#mobile-menu > .mbox{
-  width:100% !important;
-  max-width:28rem !important;
-  max-height:none !important;
-  min-height:0 !important;
-  padding:0 !important;
-  overflow:visible !important;
-  background:transparent !important;
-  border:0 !important;
-  box-shadow:none !important;
-  text-align:center !important;
-  margin:0 auto !important;
-}
-
-#mobile-menu :is(#mobile-category-links,.mobile-nav-links){
-  width:100%;
-  display:flex !important;
-  flex-direction:column !important;
-  align-items:center !important;
-  justify-content:flex-start !important;
-  gap:clamp(1rem,3.8dvh,2rem) !important;
-  margin:0 !important;
-}
-
-#mobile-menu a,
-#mobile-menu .mobile-nav-link{
-  display:block;
-  width:100%;
-  padding:.15rem 0;
-  font-family:var(--zw-font-head) !important;
-  font-size:clamp(1.25rem,7vw,2.35rem) !important;
-  line-height:.95 !important;
-  letter-spacing:.12em !important;
-  color:rgba(244,241,235,.86) !important;
-}
-
-body.light-mode #mobile-menu a,
-body.light-mode #mobile-menu .mobile-nav-link{
-  color:rgba(9,9,11,.82) !important;
-}
-
-#mobile-menu-close{
-  position:fixed !important;
-  top:calc(1rem + env(safe-area-inset-top,0px)) !important;
-  right:1rem !important;
-  z-index:5 !important;
-}
 
 .hamburger-btn,
 #mobile-menu-btn{
@@ -740,7 +649,6 @@ body.light-mode .heart-btn{
   max-height:min(92dvh, 54rem) !important;
   margin:auto !important;
   overflow-y:auto;
-  -webkit-overflow-scrolling:touch;
 }
 
 @media(max-width:760px){
@@ -785,16 +693,14 @@ body.light-mode .heart-btn{
     border-left:none !important;
     border-top:2px solid var(--zw-accent) !important;
     overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
-  }
+    }
 
   .collection-review-modal{
     align-items:stretch !important;
     justify-content:flex-end !important;
     padding:0 !important;
     overflow-y:auto !important;
-    -webkit-overflow-scrolling:touch;
-  }
+    }
 
   .collection-review-modal > .collection-review-box.collection-product-box{
     width:100% !important;
@@ -807,8 +713,7 @@ body.light-mode .heart-btn{
     border-top:2px solid var(--zw-accent) !important;
     overflow:visible !important;
     overflow-x:hidden !important;
-    -webkit-overflow-scrolling:touch;
-  }
+    }
 
   .collection-review-modal > .collection-review-box.collection-product-box .collection-review-close{
     position:fixed !important;
@@ -928,8 +833,7 @@ body.light-mode .heart-btn{
     background:var(--zw-surface) !important;
     overflow-y:auto !important;
     overflow-x:hidden !important;
-    -webkit-overflow-scrolling:touch;
-  }
+    }
 
   body.light-mode .quick-add-review-modal{
     background:rgba(9,9,11,.28) !important;
@@ -1058,8 +962,7 @@ body.light-mode .heart-btn{
     scroll-padding-inline:var(--zw-space-page);
     scrollbar-width:none;
     -ms-overflow-style:none;
-    -webkit-overflow-scrolling:touch;
-  }
+    }
 
   :is(.pgrid,.products-grid,.products-grid.two-items)::-webkit-scrollbar{
     display:none;
@@ -1292,8 +1195,7 @@ body.light-mode .heart-btn{
     scroll-snap-type:x proximity;
     scrollbar-width:none;
     -ms-overflow-style:none;
-    -webkit-overflow-scrolling:touch;
-  }
+    }
 
   .tab-nav::-webkit-scrollbar,
   .tabs-nav::-webkit-scrollbar{
@@ -1353,8 +1255,7 @@ body.light-mode .heart-btn{
     margin-inline:calc(var(--zw-space-page) * -1) !important;
     padding-inline:var(--zw-space-page) !important;
     overflow-x:auto !important;
-    -webkit-overflow-scrolling:touch;
-  }
+    }
 
   .policy-section{
     margin-bottom:2.2rem !important;
@@ -1519,23 +1420,9 @@ body.light-mode #mobile-menu-btn.open{
   color:var(--zw-ink) !important;
 }
 
-body.zw-mobile-menu-open .hamburger-btn.open,
-body.zw-mobile-menu-open #mobile-menu-btn.open{
-  position:fixed !important;
-  top:calc(env(safe-area-inset-top,0px) + 1rem) !important;
-  right:clamp(1rem,5vw,1.45rem) !important;
-  width:46px !important;
-  height:46px !important;
-  border:1px solid rgba(244,241,235,.16) !important;
-  background:var(--zw-ink, #09090b) !important;
-  color:var(--zw-paper) !important;
-}
-
-body.light-mode.zw-mobile-menu-open .hamburger-btn.open,
-body.light-mode.zw-mobile-menu-open #mobile-menu-btn.open{
-  border-color:rgba(9,9,11,.14) !important;
-  background:var(--zw-paper) !important;
-  color:var(--zw-ink) !important;
+body.zw-mobile-menu-open .hamburger-btn,
+body.zw-mobile-menu-open #mobile-menu-btn{
+  display:none !important;
 }
 
 .hamburger-btn.open::before,
@@ -1623,7 +1510,6 @@ body.light-mode #mobile-menu.zw-mobile-menu::before{
   gap:clamp(1.25rem,4dvh,2.4rem);
   overflow-y:auto !important;
   overflow-x:hidden !important;
-  -webkit-overflow-scrolling:touch;
   overscroll-behavior:contain !important;
   touch-action:pan-y !important;
   background:var(--zw-ink, #09090b) !important;

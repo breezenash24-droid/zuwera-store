@@ -311,7 +311,6 @@
     overflow-x:auto;
     padding:0 var(--zw-mobile-gutter) .25rem;
     scroll-snap-type:x proximity;
-    -webkit-overflow-scrolling:touch;
   }
 
   .gallery-thumbnails::-webkit-scrollbar{
