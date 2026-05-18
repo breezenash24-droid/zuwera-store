@@ -1027,7 +1027,8 @@ body.light-mode .heart-btn{
     backface-visibility:hidden;
   }
 
-  :is(nav#nav,.nav,header.nav) :is(.nav-logo,.nav-logo-link){
+  :is(nav#nav,.nav,header.nav) :is(.nav-logo,.nav-logo-link),
+  .zw-nav .zw-nav-logo{
     position:absolute !important;
     left:50% !important;
     transform:translateX(-50%) !important;
