@@ -406,12 +406,15 @@
       transition: border-color .2s;
     }
     .step3-field input:focus,
-    .step3-field textarea:focus { border-color: rgba(9,9,11,.4); }
+    .step3-field textarea:focus { border-color: rgba(244,241,235,.5); }
+    body.light-mode .step3-field input:focus,
+    body.light-mode .step3-field textarea:focus { border-color: rgba(9,9,11,.4); }
     .exchange-note {
       margin-top: 1.2rem; padding: 1rem;
       background: rgba(37,99,235,.06); border: 1px solid rgba(37,99,235,.15);
-      font-size: .72rem; color: rgba(9,9,11,.7); line-height: 1.7;
+      font-size: .72rem; color: rgba(244,241,235,.7); line-height: 1.7;
     }
+    body.light-mode .exchange-note { color: rgba(9,9,11,.7); }
 
     /* ── STEP 4: Review ── */
     .review-card {

@@ -35,6 +35,16 @@
       --fw: var(--font-head);
       --fb: var(--font-body);
       --fm: var(--font-mono);
+      --a-border: rgba(244,241,235,.08);
+      --a-border-soft: rgba(244,241,235,.06);
+      --a-border-mid: rgba(244,241,235,.15);
+      --a-muted: rgba(244,241,235,.4);
+      --a-dim: rgba(244,241,235,.3);
+      --a-faint: rgba(244,241,235,.25);
+      --a-surface: rgba(244,241,235,.02);
+      --a-surface-med: rgba(244,241,235,.04);
+      --a-input-border: rgba(244,241,235,.12);
+      --a-input-focus: rgba(244,241,235,.35);
     }
 
     body {
@@ -47,7 +57,19 @@
       display: flex;
       flex-direction: column;
     }
-    body.light-mode { background: #F0EEE9; color: var(--ink); }
+    body.light-mode {
+      background: #F0EEE9; color: var(--ink);
+      --a-border: rgba(9,9,11,.1);
+      --a-border-soft: rgba(9,9,11,.07);
+      --a-border-mid: rgba(9,9,11,.14);
+      --a-muted: rgba(9,9,11,.45);
+      --a-dim: rgba(9,9,11,.35);
+      --a-faint: rgba(9,9,11,.25);
+      --a-surface: rgba(9,9,11,.02);
+      --a-surface-med: rgba(9,9,11,.04);
+      --a-input-border: rgba(9,9,11,.12);
+      --a-input-focus: rgba(9,9,11,.35);
+    }
 
     /* ── NAV ── */
     .zw-nav {
@@ -139,6 +161,9 @@
       outline: none; transition: border-color .2s; resize: vertical;
     }
     .zw-field input:focus, .zw-field select:focus, .zw-field textarea:focus { border-color: rgba(244,241,235,.35); }
+    body.light-mode .zw-field input:focus,
+    body.light-mode .zw-field select:focus,
+    body.light-mode .zw-field textarea:focus { border-color: rgba(9,9,11,.4); }
     body.light-mode .zw-field input,
     body.light-mode .zw-field select,
     body.light-mode .zw-field textarea {
@@ -638,13 +663,13 @@ function renderReturnsContent(payload) {
   }).join('');
 
   const historyHtml = requests.length ? requests.map(r => `
-    <div style="padding:.8rem 0;border-top:1px solid rgba(244,241,235,.06)">
+    <div style="padding:.8rem 0;border-top:1px solid var(--a-border-soft)">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">
         <strong style="font-size:.78rem">${escHtml(r.orderLabel || '#' + String(r.orderId||'').slice(-8).toUpperCase())}</strong>
         <span class="zw-badge">${escHtml(r.status || 'requested')}</span>
       </div>
-      <div style="font-size:.68rem;color:rgba(244,241,235,.4);margin-top:.3rem">${escHtml(r.resolution)} — ${escHtml(r.reason)}</div>
-      <div style="font-size:.62rem;color:rgba(244,241,235,.3);margin-top:.2rem">${new Date(r.createdAt||Date.now()).toLocaleDateString()}</div>
+      <div style="font-size:.68rem;color:var(--a-muted);margin-top:.3rem">${escHtml(r.resolution)} — ${escHtml(r.reason)}</div>
+      <div style="font-size:.62rem;color:var(--a-dim);margin-top:.2rem">${new Date(r.createdAt||Date.now()).toLocaleDateString()}</div>
     </div>
   `).join('') : '<div class="zw-empty">No return or exchange requests yet.</div>';
 
@@ -756,8 +781,8 @@ function renderProfile() {
     <div class="zw-card" style="margin-bottom:1rem">
       <div class="zw-card-title">Saved Addresses</div>
       <div id="prof-addresses-list" style="margin-top:.75rem">${addressesHtml}</div>
-      <div style="margin-top:1rem;border-top:1px solid rgba(244,241,235,.06);padding-top:1rem">
-        <div style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.3);margin-bottom:.75rem">Add New Address</div>
+      <div style="margin-top:1rem;border-top:1px solid var(--a-border-soft);padding-top:1rem">
+        <div style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--a-dim);margin-bottom:.75rem">Add New Address</div>
         <div class="zw-grid-2">
           <div class="zw-field"><label>Address Label</label><input id="prof-label" type="text" placeholder="Home, Studio…"></div>
           <div class="zw-field"><label>Recipient Name</label><input id="prof-addr-name" type="text" placeholder="Jane Smith" value="${escHtml(userName)}"></div>

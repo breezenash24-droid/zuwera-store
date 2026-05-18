@@ -22,6 +22,22 @@
   <script src="/checkout-tax.js?v=d7a3117c"></script>
   <script src="https://js.stripe.com/v3/"></script>
   <style>
+    :root {
+      --cart-border: rgba(244,241,235,.07);
+      --cart-img-border: rgba(244,241,235,.08);
+      --cart-surface: rgba(244,241,235,.04);
+      --cart-muted: rgba(244,241,235,.4);
+      --cart-btn-border: rgba(244,241,235,.25);
+      --cart-dim: rgba(244,241,235,.3);
+    }
+    body.light-mode {
+      --cart-border: rgba(9,9,11,.07);
+      --cart-img-border: rgba(9,9,11,.08);
+      --cart-surface: rgba(9,9,11,.04);
+      --cart-muted: rgba(9,9,11,.45);
+      --cart-btn-border: rgba(9,9,11,.22);
+      --cart-dim: rgba(9,9,11,.35);
+    }
     /* ── Nav ── */
     nav#nav {
       position:fixed; top:0; left:0; right:0; z-index:220;
@@ -621,20 +637,20 @@ function renderCart() {
     const imgSrc = typeof window.optimizeImage === 'function'
       ? window.optimizeImage(item.image, 150) : (item.image || '');
     const price  = (parseFloat(item.price) * item.quantity).toFixed(2);
-    return `<li style="display:flex;gap:1rem;align-items:flex-start;padding:1.2rem 0;border-bottom:1px solid rgba(244,241,235,.07)">
-      ${imgSrc ? `<img src="${imgSrc}" alt="${item.title||''}" style="width:60px;height:75px;object-fit:cover;border:1px solid rgba(244,241,235,.08);flex-shrink:0" onerror="if(this.src!=='${item.image}')this.src='${item.image}'">` : '<div style="width:60px;height:75px;background:rgba(244,241,235,.04);flex-shrink:0"></div>'}
+    return `<li style="display:flex;gap:1rem;align-items:flex-start;padding:1.2rem 0;border-bottom:1px solid var(--cart-border)">
+      ${imgSrc ? `<img src="${imgSrc}" alt="${item.title||''}" style="width:60px;height:75px;object-fit:cover;border:1px solid var(--cart-img-border);flex-shrink:0" onerror="if(this.src!=='${item.image}')this.src='${item.image}'">` : '<div style="width:60px;height:75px;background:var(--cart-surface);flex-shrink:0"></div>'}
       <div style="flex:1;min-width:0">
         <div style="font-family:var(--font-head);font-size:1rem;font-weight:600;letter-spacing:.04em;margin-bottom:.2rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.title||''}</div>
-        <div style="font-family:var(--font-mono);font-size:.65rem;color:rgba(244,241,235,.4);text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem">${item.colorName||''} / ${item.size||''}</div>
+        <div style="font-family:var(--font-mono);font-size:.65rem;color:var(--cart-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem">${item.colorName||''} / ${item.size||''}</div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:.5rem">
-          <button onclick="updateCartQuantity(${idx},-1)" style="background:none;border:1px solid rgba(244,241,235,.25);color:inherit;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;flex-shrink:0">−</button>
+          <button onclick="updateCartQuantity(${idx},-1)" style="background:none;border:1px solid var(--cart-btn-border);color:inherit;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;flex-shrink:0">−</button>
           <span style="font-size:.85rem;min-width:1.2rem;text-align:center">${item.quantity}</span>
-          <button onclick="updateCartQuantity(${idx},1)"  style="background:none;border:1px solid rgba(244,241,235,.25);color:inherit;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;flex-shrink:0">+</button>
+          <button onclick="updateCartQuantity(${idx},1)"  style="background:none;border:1px solid var(--cart-btn-border);color:inherit;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;flex-shrink:0">+</button>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.5rem;flex-shrink:0">
         <span style="font-size:.9rem">$${price}</span>
-        <button onclick="removeCartItem(${idx})" style="background:none;border:none;color:rgba(244,241,235,.3);cursor:pointer;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;padding:0">Remove</button>
+        <button onclick="removeCartItem(${idx})" style="background:none;border:none;color:var(--cart-dim);cursor:pointer;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;padding:0">Remove</button>
       </div>
     </li>`;
   }).join('');

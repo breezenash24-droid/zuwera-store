@@ -397,6 +397,20 @@ body.light-mode .acct-section-title { color: rgba(9,9,11,.35); }
 body.light-mode .acct-section { border-top-color: rgba(9,9,11,.08); }
 body.light-mode .order-card { background: #F0EEE9; border-color: rgba(9,9,11,.08); }
 body.light-mode .order-status { color: rgba(9,9,11,.35); }
+/* Password toggle eye buttons inside auth modal */
+body.light-mode .mbox button[type="button"] { color: rgba(9,9,11,.4) !important; }
+/* Account modal loading/empty state inline colors */
+body.light-mode #orders-loading,
+body.light-mode #orders-empty,
+body.light-mode #acct-favs-loading,
+body.light-mode #acct-favs-empty { color: rgba(9,9,11,.35) !important; }
+/* Account modal danger zone inline colors */
+body.light-mode #acct-delete-confirm p { color: rgba(9,9,11,.7) !important; }
+body.light-mode #acct-delete-cancel-btn { color: rgba(9,9,11,.5) !important; border-color: rgba(9,9,11,.15) !important; }
+body.light-mode #account-modal .mbox > div[style*="border-top"] { border-top-color: rgba(9,9,11,.06) !important; }
+/* Size guide modal card rows */
+body.light-mode .review-modal-card { border-bottom-color: rgba(9,9,11,.08) !important; }
+body.light-mode .review-card-body { color: rgba(9,9,11,.7) !important; }
 /* Toast */
 body.light-mode #toast { background: #09090b; color: #E8E3DC; }
 
@@ -3173,6 +3187,12 @@ function generateHatFitModalHtml(activeRow, allRows = [], fitReviews = []) {
     return '<p class="review-modal-message">Could not find hat sizing for this product right now.</p>';
   }
 
+  const _isLight = document.body.classList.contains('light-mode');
+  const _cardBorder = _isLight ? 'rgba(9,9,11,0.08)' : 'rgba(244,241,235,0.08)';
+  const _cardText = _isLight ? 'rgba(9,9,11,0.7)' : 'rgba(244,241,235,0.72)';
+  const _inactiveBadgeBg = _isLight ? 'rgba(9,9,11,0.03)' : 'rgba(244,241,235,0.03)';
+  const _inactiveBadgeBorder = _isLight ? 'rgba(9,9,11,0.08)' : 'rgba(244,241,235,0.08)';
+
   const sizeLabel = escapeSizeFitHtml(formatProductSizeLabel(activeRow.size_label || 'One Size'));
   const circumference = [
     activeRow.head_circ_in ? `${escapeSizeFitHtml(activeRow.head_circ_in)} in` : '',
@@ -3183,20 +3203,20 @@ function generateHatFitModalHtml(activeRow, allRows = [], fitReviews = []) {
     const isActive = normalizeSizeLabel(row?.size_label) === normalizeSizeLabel(activeRow.size_label);
     const badgeStyle = isActive
       ? 'background: rgba(248,145,165,0.14); border-color: rgba(248,145,165,0.35);'
-      : 'background: rgba(244,241,235,0.03); border-color: rgba(244,241,235,0.08);';
+      : `background: ${_inactiveBadgeBg}; border-color: ${_inactiveBadgeBorder};`;
     const label = escapeSizeFitHtml(formatProductSizeLabel(row?.size_label || ''));
     const measurements = [
       row?.head_circ_in ? `${escapeSizeFitHtml(row.head_circ_in)} in` : '',
       row?.head_circ_cm ? `${escapeSizeFitHtml(row.head_circ_cm)} cm` : ''
     ].filter(Boolean).join(' / ');
     return `
-      <div class="review-modal-card" style="padding: 1rem 0; border-bottom: 1px solid rgba(244,241,235,0.08);">
+      <div class="review-modal-card" style="padding: 1rem 0; border-bottom: 1px solid ${_cardBorder};">
         <div class="review-card-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
           <div>
             <div class="review-card-title" style="font-size:0.95rem; font-weight:600; margin-bottom:4px;">${label}</div>
-            <div class="review-card-body" style="font-size:0.88rem; color: rgba(244,241,235,0.72);">${measurements || 'Measurement not available'}</div>
+            <div class="review-card-body" style="font-size:0.88rem; color: ${_cardText};">${measurements || 'Measurement not available'}</div>
           </div>
-          <span class="review-card-badge" style="padding:4px 8px; border:1px solid rgba(244,241,235,0.08); border-radius:999px; font-size:0.72rem; ${badgeStyle}">${isActive ? 'Selected' : 'Guide'}</span>
+          <span class="review-card-badge" style="padding:4px 8px; border:1px solid ${_inactiveBadgeBorder}; border-radius:999px; font-size:0.72rem; ${badgeStyle}">${isActive ? 'Selected' : 'Guide'}</span>
         </div>
       </div>
     `;
