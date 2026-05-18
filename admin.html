@@ -24,6 +24,11 @@
             --warning: #f59e0b;
             --error: #ef4444;
             --info: #3b82f6;
+            /* Aliases for consistency */
+            --surface: var(--bg-secondary);
+            --text-muted: var(--text-secondary);
+            --radius-md: 8px;
+            --border-color: var(--border);
         }
 
         body.light-mode {
@@ -807,7 +812,7 @@
         }
 
         body.light-mode .modal {
-            background-color: #F0EEE9;
+            background-color: rgba(240, 238, 233, 0.85);
         }
 
         .modal-content {
@@ -1233,19 +1238,28 @@
             <div class="sidebar-logo">ZW</div>
             <nav class="sidebar-nav">
                 <div class="nav-section">
-                    <div class="nav-section-title">Main</div>
+                    <div class="nav-section-title">Overview</div>
                     <a class="nav-link active" data-page="dashboard" onclick="navigateTo('dashboard')">📊 Dashboard</a>
+                    <a class="nav-link" data-page="analytics" onclick="navigateTo('analytics')">📈 Analytics</a>
+                    <a class="nav-link" data-page="finance" onclick="navigateTo('finance')">💰 Finance</a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Catalogue</div>
                     <a class="nav-link" data-page="products" onclick="navigateTo('products')">👟 Products</a>
                     <a class="nav-link" data-page="sizecharts" onclick="navigateTo('sizecharts')">📏 Size Charts</a>
                     <a class="nav-link" data-page="reviews" onclick="navigateTo('reviews')">⭐ Reviews</a>
-                    <a class="nav-link" data-page="users" onclick="navigateTo('users')">👥 Users</a>
-                    <a class="nav-link" data-page="analytics" onclick="navigateTo('analytics')">📈 Analytics</a>
-                    <a class="nav-link" data-page="finance" onclick="navigateTo('finance')">💰 Finance</a>
-                    <a class="nav-link" data-page="shipping" onclick="navigateTo('shipping')">🚚 Shipping</a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Operations</div>
                     <a class="nav-link" data-page="receipts" onclick="navigateTo('receipts')">🧾 Receipts</a>
+                    <a class="nav-link" data-page="shipping" onclick="navigateTo('shipping')">🚚 Shipping</a>
                     <a class="nav-link" data-page="returns" onclick="navigateTo('returns')">↩ Returns</a>
+                    <a class="nav-link" data-page="users" onclick="navigateTo('users')">👥 Users</a>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Configuration</div>
                     <a class="nav-link" data-page="settings" onclick="navigateTo('settings')">⚙️ Settings</a>
-                    <a class="nav-link" data-page="website" onclick="navigateTo('website')">🌐 Website</a>
+                    <a class="nav-link" data-page="website" onclick="navigateTo('website')">🎨 Appearance</a>
                     <a class="nav-link" data-page="apis" onclick="navigateTo('apis')">🔑 APIs</a>
                     <a class="nav-link" data-page="audit" onclick="navigateTo('audit')">📋 Audit Log</a>
                 </div>
@@ -1355,7 +1369,7 @@
                     </div>
 
                     <!-- Email failover status bar -->
-                    <div id="email-failover-bar" style="display:none;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.3);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:.85rem;display:flex;align-items:center;gap:10px;">
+                    <div id="email-failover-bar" style="display:none;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.3);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:.85rem;align-items:center;gap:10px;">
                         <span style="font-size:1.1rem;">✉️</span>
                         <span><strong>Email failover active:</strong> Resend → Brevo. If Resend hits its daily limit or errors, Brevo will automatically handle the send.</span>
                     </div>
@@ -2823,7 +2837,7 @@
                   </div>
 
                   <!-- Top customer banner -->
-                  <div id="fin-top-customer-wrap" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:28px;display:flex;align-items:center;gap:16px;">
+                  <div id="fin-top-customer-wrap" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:28px;align-items:center;gap:16px;">
                     <div style="font-size:22px;">🏆</div>
                     <div>
                       <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:2px;">Top Customer</p>
@@ -3314,6 +3328,7 @@
                   <script>
                   (function() {
                     let _shipLoaded = false;
+                    let _shipListenersAttached = false;
                     let _shipOrders = [];
                     let _shipPage = 1;
                     const PAGE_SIZE = 25;
@@ -3432,18 +3447,21 @@
                         // Individual orders
                         shipRenderOrders(_shipOrders, 1);
 
-                        // Search
-                        shipEl('ship-search').addEventListener('input', function() {
-                          _shipPage = 1;
-                          const q = this.value.toLowerCase();
-                          const filtered = q ? _shipOrders.filter(o =>
-                            (o.customer_name||'').toLowerCase().includes(q) ||
-                            (o.email||'').toLowerCase().includes(q) ||
-                            (o.shipping_provider||'').toLowerCase().includes(q) ||
-                            (o.shipping_service||'').toLowerCase().includes(q)
-                          ) : _shipOrders;
-                          shipRenderOrders(filtered, 1);
-                        });
+                        // Search (guard against re-registration on reload)
+                        if (!_shipListenersAttached) {
+                          _shipListenersAttached = true;
+                          shipEl('ship-search').addEventListener('input', function() {
+                            _shipPage = 1;
+                            const q = this.value.toLowerCase();
+                            const filtered = q ? _shipOrders.filter(o =>
+                              (o.customer_name||'').toLowerCase().includes(q) ||
+                              (o.email||'').toLowerCase().includes(q) ||
+                              (o.shipping_provider||'').toLowerCase().includes(q) ||
+                              (o.shipping_service||'').toLowerCase().includes(q)
+                            ) : _shipOrders;
+                            shipRenderOrders(filtered, 1);
+                          });
+                        }
 
                       } catch(e) { shipErr('Failed to load shipping data: ' + e.message); }
                     };
@@ -3499,6 +3517,7 @@
                   <script>
                   (function() {
                     let _recLoaded = false;
+                    let _recListenersAttached = false;
                     let _allReceipts = [];
                     let _filteredReceipts = [];
 
@@ -3693,9 +3712,12 @@
                         updateStats();
                         renderReceipts();
 
-                        // Attach event listeners
-                        recEl('rec-search').addEventListener('input', filterReceipts);
-                        recEl('rec-sort').addEventListener('change', renderReceipts);
+                        // Attach event listeners once — guard against re-registration on reload
+                        if (!_recListenersAttached) {
+                          _recListenersAttached = true;
+                          recEl('rec-search').addEventListener('input', filterReceipts);
+                          recEl('rec-sort').addEventListener('change', renderReceipts);
+                        }
 
                       } catch (e) {
                         recErr('Failed to load receipts: ' + e.message);
@@ -3759,7 +3781,7 @@
                                     <div style="font-size:.75rem;color:var(--text-secondary);margin-top:2px;">Customers won't be charged for shipping when their order reaches the threshold.</div>
                                 </div>
                             </div>
-                            <div id="freeShippingThresholdRow" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                            <div id="freeShippingThresholdRow" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);align-items:center;gap:10px;flex-wrap:wrap;">
                                 <span style="font-size:.85rem;color:var(--text-secondary);">Free shipping on orders over</span>
                                 <div style="position:relative;display:inline-flex;align-items:center;">
                                     <span style="position:absolute;left:10px;font-size:.85rem;pointer-events:none;">$</span>
@@ -5031,7 +5053,7 @@
                 receipts: 'Receipts',
                 returns: 'Returns & Exchanges',
                 settings: 'Settings',
-                website: 'Website Settings',
+                website: 'Appearance',
                 apis: 'API Status',
                 audit: 'Audit Log'
             };
@@ -5315,7 +5337,11 @@
             resultEl.textContent = `Sending test ${event} event…`;
 
             try {
-                const resp = await fetch(`/api/shippo-webhook?secret=${encodeURIComponent(secret)}&event=${event}`);
+                const resp = await fetch(`/api/shippo-webhook?event=${encodeURIComponent(event)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ secret, event }),
+                });
                 const data = await resp.json();
                 if (resp.ok && data.received) {
                     resultEl.style.background = 'rgba(34,197,94,.08)';
@@ -5910,15 +5936,15 @@
                     html += group.reviews.map(r => {
                         const date = new Date(r.created_at).toLocaleDateString();
                         const rating = '⭐'.repeat(r.rating);
-                        const safeTitle = escapeJsString(r.title || '');
-                        const safeBody = escapeJsString(r.body || '');
-                        const safeAdminResponse = escapeJsString(r.admin_response || '');
                         const displayTitle = escapeHtml(r.title || '');
                         const displayBody = escapeHtml(r.body || '');
                         const displayAdminResponse = escapeHtml(r.admin_response || '');
                         const displayNickname = escapeHtml(r.nickname || r.reviewer_name || 'Anonymous');
-                        const safeNickname = escapeJsString(r.nickname || r.reviewer_name || 'Anonymous');
-                        
+                        const attrTitle = escapeAttr(r.title || '');
+                        const attrBody = escapeAttr(r.body || '');
+                        const attrAdminResponse = escapeAttr(r.admin_response || '');
+                        const attrNickname = escapeAttr(r.nickname || r.reviewer_name || 'Anonymous');
+
                         return `
                             <tr>
                                 <td style="white-space: nowrap;">${date}</td>
@@ -5931,7 +5957,12 @@
                                 </td>
                                 <td>
                                     <div class="action-buttons">
-                                        <button class="btn btn-secondary btn-sm" onclick="openEditReview('${r.id}', '${safeTitle}', '${safeBody}', '${safeAdminResponse}', '${safeNickname}')">Edit/Reply</button>
+                                        <button class="btn btn-secondary btn-sm btn-edit-review"
+                                            data-id="${r.id}"
+                                            data-title="${attrTitle}"
+                                            data-body="${attrBody}"
+                                            data-admin-response="${attrAdminResponse}"
+                                            data-nickname="${attrNickname}">Edit/Reply</button>
                                         <button class="btn btn-danger btn-sm" onclick="deleteReview('${r.id}')">Delete</button>
                                     </div>
                                 </td>
@@ -5975,6 +6006,18 @@
             document.getElementById('editReviewAdminResponse').value = adminResponse || '';
             document.getElementById('editReviewModal').classList.add('active');
         };
+
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.btn-edit-review');
+            if (!btn) return;
+            openEditReview(
+                btn.dataset.id,
+                btn.dataset.title,
+                btn.dataset.body,
+                btn.dataset.adminResponse,
+                btn.dataset.nickname
+            );
+        });
 
         document.getElementById('editReviewForm')?.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -6088,10 +6131,12 @@
         };
 
         // Products
+        let _allProducts = [];
         async function loadProducts() {
             try {
                 const { data: products } = await sb.from('products').select('*, product_images(*)').order('created_at', { ascending: false });
-                displayProductsTable(products || []);
+                _allProducts = products || [];
+                displayProductsTable(_allProducts);
             } catch (error) {
                 console.error('Error loading products:', error);
             }
@@ -6142,15 +6187,16 @@
             });
         }
 
-        // Products Search
-        document.getElementById('productSearch').addEventListener('input', async (e) => {
+        // Products Search — filter the in-memory list instead of re-fetching
+        document.getElementById('productSearch').addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase();
-            const { data: products } = await sb.from('products').select('*, product_images(*)');
-            const filtered = (products || []).filter(p =>
-                (p.sku || '').toLowerCase().includes(query) ||
-                (p.title || '').toLowerCase().includes(query) ||
-                (p.colorway || '').toLowerCase().includes(query)
-            );
+            const filtered = query
+                ? _allProducts.filter(p =>
+                    (p.sku || '').toLowerCase().includes(query) ||
+                    (p.title || '').toLowerCase().includes(query) ||
+                    (p.colorway || '').toLowerCase().includes(query)
+                  )
+                : _allProducts;
             displayProductsTable(filtered);
         });
 
@@ -7553,15 +7599,16 @@
                 imageRows.forEach((img, idx) => {
                     const row = document.createElement('div');
                     row.className = 'image-row';
+                    const safeUrl = escapeAttr(img.image_url || '');
                     row.innerHTML = '<span style="font-weight:600;min-width:60px;">Image ' + (idx + 1) + '</span>' +
-                        '<input type="text" class="form-input product-image-url" placeholder="Paste image URL..." value="' + img.image_url + '">' +
+                        '<input type="text" class="form-input product-image-url" placeholder="Paste image URL..." value="' + safeUrl + '">' +
                         '<label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label>' +
-                        '<img class="image-preview" src="' + img.image_url + '" style="display:block">' +
+                        '<img class="image-preview" src="' + safeUrl + '" style="display:block">' +
                         '<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button>';
                     container.appendChild(row);
                 });
             } else {
-                const imgUrl = product.image_url || '';
+                const imgUrl = escapeAttr(product.image_url || '');
                 const row = document.createElement('div');
                 row.className = 'image-row';
                 row.innerHTML = '<span style="font-weight:600;min-width:60px;">Image 1</span>' +
@@ -8468,14 +8515,15 @@
         }
 
         async function saveFonts() {
-            _fontHistory.push(JSON.parse(JSON.stringify(_fontsState)));
-            if (_fontHistory.length > 20) _fontHistory.shift();
-            _updateUndoUI();
+            const snapshot = JSON.parse(JSON.stringify(_fontsState));
             const { error } = await sb.from('site_settings').upsert(
                 { key: 'fonts', value: _fontsState, updated_at: new Date().toISOString() },
                 { onConflict: 'key' }
             );
             if (error) { showToast('Error saving typography', 'error'); return; }
+            _fontHistory.push(snapshot);
+            if (_fontHistory.length > 20) _fontHistory.shift();
+            _updateUndoUI();
             try { localStorage.setItem('zw_fonts', JSON.stringify(buildFontCache(_fontsState))); } catch(_) {}
             await logAdminAudit('settings.update', 'site_settings', 'fonts', {
                 head: _fontsState.roles.head.name, body: _fontsState.roles.body.name, mono: _fontsState.roles.mono.name,
