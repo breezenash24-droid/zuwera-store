@@ -2,6 +2,8 @@
    Product page is the source of truth for buttons, cards, modals, and mobile rhythm. */
 html{background:#09090b;color-scheme:dark light}
 html:has(body.light-mode){background:#F0EEE9;color-scheme:light}
+html::before{content:'';position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:#09090b;z-index:650;pointer-events:none}
+html:has(body.light-mode)::before{background:#F0EEE9}
 :root{
   --zw-ink:#09090b;
   --zw-paper:#f4f1eb;
@@ -1098,6 +1100,8 @@ body.light-mode .heart-btn{
   :is(nav#nav,.nav,header.nav){
     min-height:56px !important;
     z-index:600 !important;
+    -webkit-backface-visibility:hidden;
+    backface-visibility:hidden;
   }
 
   :is(nav#nav,.nav,header.nav) :is(.nav-logo,.nav-logo-link){
