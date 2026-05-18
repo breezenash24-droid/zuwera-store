@@ -1441,8 +1441,6 @@ body.zw-mobile-menu-open #mobile-menu-btn{
   display:none !important;
   position:fixed !important;
   inset:0 !important;
-  left:0 !important;
-  right:0 !important;
   width:100% !important;
   width:100dvw !important;
   max-width:100% !important;
@@ -1454,10 +1452,9 @@ body.zw-mobile-menu-open #mobile-menu-btn{
   overscroll-behavior:none !important;
   touch-action:none !important;
   align-items:stretch !important;
-  justify-content:flex-end !important;
+  justify-content:flex-start !important;
   background:var(--zw-ink, #09090b) !important;
   color:var(--zw-paper) !important;
-  opacity:0;
   transform:none !important;
   transition:none !important;
   animation:none !important;
@@ -1514,14 +1511,19 @@ body.light-mode #mobile-menu.zw-mobile-menu::before{
   touch-action:pan-y !important;
   background:var(--zw-ink, #09090b) !important;
   border:0 !important;
-  border-left:1px solid rgba(244,241,235,.08) !important;
   border-radius:0 !important;
   box-shadow:none !important;
   text-align:left !important;
   isolation:isolate;
-  transform:none !important;
-  transition:none !important;
-  animation:none !important;
+}
+
+#mobile-menu.zw-mobile-menu.open > .zw-mobile-menu-panel{
+  animation:zwMenuPanelIn .26s cubic-bezier(.4,0,.2,1) both !important;
+}
+
+@keyframes zwMenuPanelIn{
+  from{opacity:0;transform:translateX(1.5rem)}
+  to{opacity:1;transform:translateX(0)}
 }
 
 html.zw-mobile-menu-open,
@@ -1676,7 +1678,7 @@ body.light-mode #mobile-menu .zw-mobile-menu-close{
   border-top:1px solid var(--zw-line-dark) !important;
   background:linear-gradient(90deg, rgba(244,241,235,.028), transparent 55%) !important;
   font-family:var(--zw-font-head, 'Barlow Condensed', sans-serif) !important;
-  font-size:clamp(4rem,19vw,7.1rem) !important;
+  font-size:clamp(3.6rem,16vw,6.2rem) !important;
   font-weight:900 !important;
   font-style:italic !important;
   line-height:.82 !important;
@@ -1690,10 +1692,10 @@ body.light-mode #mobile-menu .zw-mobile-menu-close{
 }
 
 #mobile-menu .zw-mobile-primary-link::after{
-  content:'/';
+  content:'→';
   margin-left:1rem;
   font-family:var(--zw-font-mono, 'IBM Plex Mono', monospace);
-  font-size:clamp(1rem,4vw,1.35rem);
+  font-size:clamp(.85rem,3.5vw,1.15rem);
   font-style:normal;
   font-weight:400;
   color:var(--zw-accent);
@@ -1817,8 +1819,7 @@ body.light-mode .zw-mobile-socials a{
 }
 
 .zw-mobile-menu-year::after{
-  content:'Footer';
-  color:var(--zw-accent);
+  content:'';
 }
 
 .zw-mobile-socials a:hover,
@@ -1838,7 +1839,7 @@ body.light-mode .zw-mobile-socials a{
   }
 
   #mobile-menu .zw-mobile-primary-link{
-    font-size:clamp(3.6rem,18vw,5.4rem) !important;
+    font-size:clamp(3rem,15vw,4.8rem) !important;
   }
 
   #mobile-menu .zw-mobile-menu-secondary{
