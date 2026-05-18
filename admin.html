@@ -650,6 +650,43 @@
             min-height: 120px;
         }
 
+        /* Policy visual editor */
+        .policy-editor-wrap { display: flex; flex-direction: column; gap: 0; }
+        .policy-editor-toolbar {
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+            background: var(--bg-primary); border: 1px solid var(--border); border-bottom: none;
+            border-radius: 6px 6px 0 0; padding: 6px 10px;
+        }
+        .policy-format-btns { display: flex; gap: 4px; flex-wrap: wrap; }
+        .policy-fmt-btn {
+            background: none; border: 1px solid transparent; color: var(--text-primary);
+            border-radius: 4px; padding: 3px 8px; font-size: .82rem; cursor: pointer; line-height: 1.4;
+            font-family: inherit;
+        }
+        .policy-fmt-btn:hover { background: var(--surface); border-color: var(--border); }
+        .policy-fmt-btn.active { background: var(--surface); border-color: var(--border); }
+        .policy-mode-toggle { display: flex; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; }
+        .policy-mode-btn {
+            background: none; border: none; color: var(--text-secondary); padding: 3px 11px;
+            font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; cursor: pointer;
+        }
+        .policy-mode-btn.active { background: var(--surface); color: var(--text-primary); }
+        .policy-visual-editor {
+            border: 1px solid var(--border); border-radius: 0 0 6px 6px;
+            min-height: 300px; padding: 16px 18px; outline: none;
+            font-size: .92rem; line-height: 1.7; color: var(--text-primary);
+            background: var(--bg-secondary); overflow-y: auto;
+        }
+        .policy-visual-editor h2 { font-size: 1.1rem; font-weight: 600; margin: 1.2em 0 .4em; letter-spacing: .04em; }
+        .policy-visual-editor h3 { font-size: .95rem; font-weight: 600; margin: 1em 0 .3em; }
+        .policy-visual-editor p { margin: 0 0 .8em; }
+        .policy-visual-editor ul { padding-left: 1.4em; margin: .4em 0 .8em; }
+        .policy-visual-editor li { margin-bottom: .3em; }
+        .policy-visual-editor a { color: var(--accent, #F891A5); text-decoration: underline; }
+        [data-policy-html-mode="true"] .policy-visual-editor { display: none; }
+        [data-policy-html-mode="true"] .policy-html-textarea { display: block !important; border-radius: 0 0 6px 6px; }
+        [data-policy-html-mode="false"] .policy-html-textarea { display: none !important; }
+
         /* Tabs */
         .tabs {
             display: flex;
@@ -3835,20 +3872,92 @@
                             <button type="button" class="tab-button" data-tab="legal-terms">Terms</button>
                         </div>
                         <div id="legal-shipping" class="tab-content active">
-                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Shipping Policy (HTML allowed)</label>
-                            <textarea id="settShippingText" class="form-textarea" style="height: 300px; font-family: monospace; font-size: 0.85rem;"></textarea>
+                            <div class="policy-editor-wrap" data-policy-html-mode="false" data-policy-id="settShippingText">
+                                <div class="policy-editor-toolbar">
+                                    <div class="policy-format-btns">
+                                        <button type="button" class="policy-fmt-btn" data-cmd="formatBlock" data-val="h2" title="Section heading">H2</button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="formatBlock" data-val="h3" title="Sub-heading">H3</button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="formatBlock" data-val="p" title="Paragraph">¶</button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="bold" title="Bold"><strong>B</strong></button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="italic" title="Italic"><em>I</em></button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="insertUnorderedList" title="Bullet list">&#8801;</button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="createLink" title="Insert link">&#128279;</button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="removeFormat" title="Clear formatting">&#10006;</button>
+                                    </div>
+                                    <div class="policy-mode-toggle">
+                                        <button type="button" class="policy-mode-btn active" data-mode="visual">Visual</button>
+                                        <button type="button" class="policy-mode-btn" data-mode="html">HTML</button>
+                                    </div>
+                                </div>
+                                <div class="policy-visual-editor" id="settShippingVisual" contenteditable="true" spellcheck="true"></div>
+                                <textarea id="settShippingText" class="form-textarea policy-html-textarea" style="height:300px;font-family:monospace;font-size:.85rem;border-radius:0 0 6px 6px;display:none;"></textarea>
+                            </div>
                         </div>
                         <div id="legal-returns" class="tab-content">
-                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Return Policy (HTML allowed)</label>
-                            <textarea id="settReturnsText" class="form-textarea" style="height: 300px; font-family: monospace; font-size: 0.85rem;"></textarea>
+                            <div class="policy-editor-wrap" data-policy-html-mode="false" data-policy-id="settReturnsText">
+                                <div class="policy-editor-toolbar">
+                                    <div class="policy-format-btns">
+                                        <button type="button" class="policy-fmt-btn" data-cmd="formatBlock" data-val="h2" title="Section heading">H2</button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="formatBlock" data-val="h3" title="Sub-heading">H3</button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="formatBlock" data-val="p" title="Paragraph">¶</button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="bold" title="Bold"><strong>B</strong></button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="italic" title="Italic"><em>I</em></button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="insertUnorderedList" title="Bullet list">&#8801;</button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="createLink" title="Insert link">&#128279;</button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="removeFormat" title="Clear formatting">&#10006;</button>
+                                    </div>
+                                    <div class="policy-mode-toggle">
+                                        <button type="button" class="policy-mode-btn active" data-mode="visual">Visual</button>
+                                        <button type="button" class="policy-mode-btn" data-mode="html">HTML</button>
+                                    </div>
+                                </div>
+                                <div class="policy-visual-editor" id="settReturnsVisual" contenteditable="true" spellcheck="true"></div>
+                                <textarea id="settReturnsText" class="form-textarea policy-html-textarea" style="height:300px;font-family:monospace;font-size:.85rem;border-radius:0 0 6px 6px;display:none;"></textarea>
+                            </div>
                         </div>
                         <div id="legal-privacy" class="tab-content">
-                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Privacy Policy (HTML allowed)</label>
-                            <textarea id="settPrivacyText" class="form-textarea" style="height: 300px; font-family: monospace; font-size: 0.85rem;"></textarea>
+                            <div class="policy-editor-wrap" data-policy-html-mode="false" data-policy-id="settPrivacyText">
+                                <div class="policy-editor-toolbar">
+                                    <div class="policy-format-btns">
+                                        <button type="button" class="policy-fmt-btn" data-cmd="formatBlock" data-val="h2" title="Section heading">H2</button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="formatBlock" data-val="h3" title="Sub-heading">H3</button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="formatBlock" data-val="p" title="Paragraph">¶</button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="bold" title="Bold"><strong>B</strong></button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="italic" title="Italic"><em>I</em></button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="insertUnorderedList" title="Bullet list">&#8801;</button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="createLink" title="Insert link">&#128279;</button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="removeFormat" title="Clear formatting">&#10006;</button>
+                                    </div>
+                                    <div class="policy-mode-toggle">
+                                        <button type="button" class="policy-mode-btn active" data-mode="visual">Visual</button>
+                                        <button type="button" class="policy-mode-btn" data-mode="html">HTML</button>
+                                    </div>
+                                </div>
+                                <div class="policy-visual-editor" id="settPrivacyVisual" contenteditable="true" spellcheck="true"></div>
+                                <textarea id="settPrivacyText" class="form-textarea policy-html-textarea" style="height:300px;font-family:monospace;font-size:.85rem;border-radius:0 0 6px 6px;display:none;"></textarea>
+                            </div>
                         </div>
                         <div id="legal-terms" class="tab-content">
-                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:6px;">Terms of Service (HTML allowed)</label>
-                            <textarea id="settTermsText" class="form-textarea" style="height: 300px; font-family: monospace; font-size: 0.85rem;"></textarea>
+                            <div class="policy-editor-wrap" data-policy-html-mode="false" data-policy-id="settTermsText">
+                                <div class="policy-editor-toolbar">
+                                    <div class="policy-format-btns">
+                                        <button type="button" class="policy-fmt-btn" data-cmd="formatBlock" data-val="h2" title="Section heading">H2</button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="formatBlock" data-val="h3" title="Sub-heading">H3</button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="formatBlock" data-val="p" title="Paragraph">¶</button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="bold" title="Bold"><strong>B</strong></button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="italic" title="Italic"><em>I</em></button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="insertUnorderedList" title="Bullet list">&#8801;</button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="createLink" title="Insert link">&#128279;</button>
+                                        <button type="button" class="policy-fmt-btn" data-cmd="removeFormat" title="Clear formatting">&#10006;</button>
+                                    </div>
+                                    <div class="policy-mode-toggle">
+                                        <button type="button" class="policy-mode-btn active" data-mode="visual">Visual</button>
+                                        <button type="button" class="policy-mode-btn" data-mode="html">HTML</button>
+                                    </div>
+                                </div>
+                                <div class="policy-visual-editor" id="settTermsVisual" contenteditable="true" spellcheck="true"></div>
+                                <textarea id="settTermsText" class="form-textarea policy-html-textarea" style="height:300px;font-family:monospace;font-size:.85rem;border-radius:0 0 6px 6px;display:none;"></textarea>
+                            </div>
                         </div>
                         <button type="button" class="btn btn-primary btn-sm" id="saveLegalBtn" style="margin-top: 16px;">Save Policies</button>
                     </div>
@@ -7935,6 +8044,7 @@
                 document.getElementById('settReturnsText').value = v.returns || '';
                 document.getElementById('settPrivacyText').value = v.privacy || '';
                 document.getElementById('settTermsText').value = v.terms || '';
+                syncPolicyVisualEditors();
                 hasLegal = true;
             } else if (row.key === 'faq') {
                 const v = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
@@ -7952,6 +8062,7 @@
             document.getElementById('settReturnsText').value = defaultPolicies.returns;
             document.getElementById('settPrivacyText').value = defaultPolicies.privacy;
             document.getElementById('settTermsText').value = defaultPolicies.terms;
+            syncPolicyVisualEditors();
         }
         if (!hasFaq) {
             window._loadedFaq = defaultFaq;
@@ -8103,7 +8214,76 @@
         }
     });
 
+    // ── Policy Visual Editor ──────────────────────────────────────────────────
+    const _policyPairs = [
+        { textareaId: 'settShippingText', visualId: 'settShippingVisual' },
+        { textareaId: 'settReturnsText',  visualId: 'settReturnsVisual'  },
+        { textareaId: 'settPrivacyText',  visualId: 'settPrivacyVisual'  },
+        { textareaId: 'settTermsText',    visualId: 'settTermsVisual'    },
+    ];
+
+    function syncPolicyVisualEditors() {
+        _policyPairs.forEach(({ textareaId, visualId }) => {
+            const ta = document.getElementById(textareaId);
+            const ve = document.getElementById(visualId);
+            if (ta && ve) ve.innerHTML = ta.value;
+        });
+    }
+
+    function flushPolicyVisualEditors() {
+        _policyPairs.forEach(({ textareaId, visualId }) => {
+            const ta = document.getElementById(textareaId);
+            const ve = document.getElementById(visualId);
+            const wrap = ve?.closest('.policy-editor-wrap');
+            if (!ta || !ve || !wrap) return;
+            if (wrap.dataset.policyHtmlMode !== 'true') {
+                ta.value = ve.innerHTML;
+            }
+        });
+    }
+
+    document.querySelectorAll('.policy-editor-wrap').forEach(wrap => {
+        const textareaId = wrap.dataset.policyId;
+        const ta = document.getElementById(textareaId);
+        const ve = wrap.querySelector('.policy-visual-editor');
+        if (!ta || !ve) return;
+
+        // Mode toggle
+        wrap.querySelectorAll('.policy-mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const isHtml = btn.dataset.mode === 'html';
+                if (isHtml) {
+                    ta.value = ve.innerHTML;
+                } else {
+                    ve.innerHTML = ta.value;
+                }
+                wrap.dataset.policyHtmlMode = isHtml ? 'true' : 'false';
+                wrap.querySelectorAll('.policy-mode-btn').forEach(b => b.classList.toggle('active', b === btn));
+            });
+        });
+
+        // Toolbar commands
+        wrap.querySelectorAll('.policy-fmt-btn').forEach(btn => {
+            btn.addEventListener('mousedown', e => {
+                e.preventDefault(); // keep focus in editor
+                ve.focus();
+                const cmd = btn.dataset.cmd;
+                const val = btn.dataset.val || null;
+                if (cmd === 'createLink') {
+                    const url = prompt('Enter URL:');
+                    if (url) document.execCommand(cmd, false, url);
+                } else {
+                    document.execCommand(cmd, false, val);
+                }
+            });
+        });
+
+        // Sync to textarea on every keystroke (so save always has fresh content)
+        ve.addEventListener('input', () => { ta.value = ve.innerHTML; });
+    });
+
     document.getElementById('saveLegalBtn')?.addEventListener('click', async () => {
+        flushPolicyVisualEditors();
         const val = {
             shipping: document.getElementById('settShippingText').value.trim(),
             returns: document.getElementById('settReturnsText').value.trim(),
