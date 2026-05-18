@@ -1064,6 +1064,10 @@ function updateCountdown() {
             });
             if (error) throw error;
             collectionFavoriteIds.add(productId);
+            btn.classList.remove('heart-pop');
+            void btn.offsetWidth;
+            btn.classList.add('heart-pop');
+            btn.addEventListener('animationend', () => btn.classList.remove('heart-pop'), { once: true });
             if (typeof showToast === 'function') showToast('Saved!');
           }
           refreshCollectionFavoriteButtons();

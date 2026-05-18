@@ -549,20 +549,3 @@ body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba
   .review-list-translate { width: 100% !important; }
 }
 
-/* ── Heart button pop animation ── */
-@keyframes heartPop {
-  0%   { transform: scale(1); }
-  35%  { transform: scale(1.4); }
-  65%  { transform: scale(0.88); }
-  100% { transform: scale(1); }
-}
-/* Plays once when .active is first applied (item saved) */
-.heart-btn.active {
-  animation: heartPop 0.38s cubic-bezier(.36,.07,.19,.97);
-  fill: var(--red, #e07060) !important;
-}
-/* Active SVG fill */
-.heart-btn.active svg {
-  fill: var(--red, #e07060);
-  stroke: var(--red, #e07060);
-}

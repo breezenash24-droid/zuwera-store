@@ -1977,6 +1977,10 @@ document.getElementById('saveProductBtn')?.addEventListener('click', async funct
       });
       if (error) throw error;
       _productFavIds.add(pid);
+      this.classList.remove('heart-pop');
+      void this.offsetWidth;
+      this.classList.add('heart-pop');
+      this.addEventListener('animationend', () => this.classList.remove('heart-pop'), { once: true });
       showToast('Saved to favorites.');
     }
     refreshHeartButtons();
