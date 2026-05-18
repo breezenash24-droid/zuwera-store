@@ -1173,11 +1173,14 @@
         .font-select { background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary); padding: 7px 10px; border-radius: 6px; font-size: .85rem; cursor: pointer; min-width: 190px; flex-shrink: 0; }
         .font-select:focus { outline: none; border-color: var(--accent); }
         .font-role-sample { padding: 12px 0 0; border-top: 1px solid var(--border); }
+        .font-tab-content { display: none; }
+        .font-tab-content.active { display: block; }
         /* preview panel */
         .fp-nav { display: flex; align-items: center; justify-content: space-between; padding: .75rem 1.4rem; border-bottom: 1px solid rgba(244,241,235,.08); }
         .fp-wordmark { font-weight: 900; font-style: italic; font-size: 1.2rem; letter-spacing: .15em; color: #f4f1eb; }
         .fp-nav-right { display: flex; gap: 1.2rem; }
         .fp-navlink { font-size: .58rem; letter-spacing: .2em; text-transform: uppercase; color: rgba(244,241,235,.5); }
+        .fp-announce { font-size: .56rem; letter-spacing: .22em; text-transform: uppercase; text-align: center; padding: .4rem 1rem; background: rgba(244,241,235,.04); border-bottom: 1px solid rgba(244,241,235,.06); color: rgba(244,241,235,.45); }
         .fp-hero { padding: 2rem 1.4rem; border-bottom: 1px solid rgba(244,241,235,.08); }
         .fp-kicker { font-size: .58rem; letter-spacing: .22em; text-transform: uppercase; color: rgba(244,241,235,.38); margin-bottom: .8rem; }
         .fp-heading { font-weight: 900; font-style: italic; font-size: 2.2rem; text-transform: uppercase; line-height: .95; letter-spacing: .02em; margin-bottom: 1rem; color: #f4f1eb; }
@@ -1185,10 +1188,10 @@
         .fp-cta { display: inline-block; border: 1px solid rgba(244,241,235,.8); padding: .6rem 1.4rem; font-size: .58rem; letter-spacing: .22em; text-transform: uppercase; color: #f4f1eb; }
         .fp-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: rgba(244,241,235,.05); }
         .fp-card { background: #09090b; padding: 1rem; }
-        .fp-card-img { background: rgba(244,241,235,.07); height: 90px; margin-bottom: .7rem; border-radius: 2px; }
-        .fp-card-name { font-weight: 700; font-style: italic; font-size: .9rem; text-transform: uppercase; letter-spacing: .03em; margin-bottom: .2rem; color: #f4f1eb; }
-        .fp-card-meta { font-size: .55rem; letter-spacing: .15em; text-transform: uppercase; color: rgba(244,241,235,.38); margin-bottom: .3rem; }
-        .fp-card-price { font-size: .7rem; letter-spacing: .06em; color: rgba(244,241,235,.55); }
+        .fp-card-img { background: rgba(244,241,235,.07); height: 80px; margin-bottom: .6rem; border-radius: 2px; }
+        .fp-card-cat { font-size: .5rem; letter-spacing: .18em; text-transform: uppercase; color: rgba(244,241,235,.32); margin-bottom: .2rem; }
+        .fp-card-name { font-weight: 700; font-style: italic; font-size: .88rem; text-transform: uppercase; letter-spacing: .03em; margin-bottom: .2rem; color: #f4f1eb; }
+        .fp-card-price { font-size: .65rem; letter-spacing: .06em; color: rgba(244,241,235,.5); }
     </style>
 </head>
 <body>
@@ -3899,80 +3902,98 @@
 
                         <!-- Typography -->
                         <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:24px">
-                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-                                <h3 style="font-size:1.1rem;letter-spacing:.06em;">Typography</h3>
-                                <div style="display:flex;align-items:center;gap:10px">
+                            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:16px;flex-wrap:wrap">
+                                <div>
+                                    <h3 style="font-size:1.1rem;letter-spacing:.06em;margin-bottom:5px">Typography</h3>
+                                    <p style="font-size:.82rem;color:var(--text-secondary);line-height:1.5;max-width:480px">Control typefaces across the entire storefront. Use <strong>Section Overrides</strong> to fine-tune individual areas. Import any Google Font by name.</p>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
                                     <span id="font-undo-count" style="font-size:.75rem;color:var(--text-secondary)"></span>
                                     <button class="btn btn-secondary btn-sm" id="fontUndoBtn" disabled onclick="undoFonts()">↩ Undo</button>
                                 </div>
                             </div>
-                            <p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:24px;line-height:1.5">Control the typefaces used across the storefront. Each role targets a different section of the site. Changes preview live below — hit Save to apply globally.</p>
 
-                            <!-- Font role cards -->
-                            <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:28px">
+                            <!-- Inner tabs -->
+                            <div class="tabs" style="margin-bottom:20px">
+                                <button type="button" class="tab-button active" data-font-tab="base" onclick="switchFontTab('base')">Base Fonts</button>
+                                <button type="button" class="tab-button" data-font-tab="sections" onclick="switchFontTab('sections')">Section Overrides</button>
+                                <button type="button" class="tab-button" data-font-tab="import" onclick="switchFontTab('import')">Import Fonts</button>
+                            </div>
 
-                                <!-- Heading -->
-                                <div class="font-role-card">
-                                    <div class="font-role-header">
-                                        <div>
-                                            <div class="font-role-label">Heading</div>
-                                            <div class="font-role-desc">Logo wordmark, hero text, product names, section titles</div>
+                            <!-- Tab: Base Fonts -->
+                            <div id="font-tab-base" class="font-tab-content active">
+                                <p style="font-size:.8rem;color:var(--text-secondary);margin-bottom:16px;line-height:1.5">Three roles that every element inherits from. Override specific sections in the next tab.</p>
+                                <div style="display:flex;flex-direction:column;gap:14px">
+                                    <div class="font-role-card">
+                                        <div class="font-role-header">
+                                            <div><div class="font-role-label">Heading</div><div class="font-role-desc">Logo, hero text, product names, section titles</div></div>
+                                            <select class="font-select" id="font-head-select" onchange="onFontRoleChange('head',this.value)"></select>
                                         </div>
-                                        <select class="font-select" id="font-head-select" onchange="onFontSelectChange('head',this.value)">
-                                            <option value="Barlow Condensed">Barlow Condensed</option>
-                                            <option value="Oswald">Oswald</option>
-                                            <option value="Rajdhani">Rajdhani</option>
-                                            <option value="Bebas Neue">Bebas Neue</option>
-                                            <option value="Anton">Anton</option>
-                                            <option value="League Gothic">League Gothic</option>
-                                        </select>
+                                        <div class="font-role-sample" id="font-head-sample" style="font-size:1.8rem;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.04em;line-height:1.1">FOR THOSE WHO DREAM.</div>
                                     </div>
-                                    <div class="font-role-sample" id="font-head-sample" style="font-size:1.8rem;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.04em;line-height:1.1">FOR THOSE WHO DREAM.</div>
-                                </div>
-
-                                <!-- Body -->
-                                <div class="font-role-card">
-                                    <div class="font-role-header">
-                                        <div>
-                                            <div class="font-role-label">Body</div>
-                                            <div class="font-role-desc">Paragraphs, descriptions, form inputs, most UI text</div>
+                                    <div class="font-role-card">
+                                        <div class="font-role-header">
+                                            <div><div class="font-role-label">Body</div><div class="font-role-desc">Paragraphs, descriptions, form inputs</div></div>
+                                            <select class="font-select" id="font-body-select" onchange="onFontRoleChange('body',this.value)"></select>
                                         </div>
-                                        <select class="font-select" id="font-body-select" onchange="onFontSelectChange('body',this.value)">
-                                            <option value="Barlow">Barlow</option>
-                                            <option value="Inter">Inter</option>
-                                            <option value="DM Sans">DM Sans</option>
-                                            <option value="Outfit">Outfit</option>
-                                            <option value="Manrope">Manrope</option>
-                                            <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
-                                        </select>
+                                        <div class="font-role-sample" id="font-body-sample" style="font-size:.88rem;line-height:1.65;color:var(--text-secondary)">Bold athletic sportswear built for the relentless. Each piece is designed to move with you — through training, through the city, through whatever comes next.</div>
                                     </div>
-                                    <div class="font-role-sample" id="font-body-sample" style="font-size:.88rem;line-height:1.65;color:var(--text-secondary)">Bold athletic sportswear built for the relentless. Each piece is designed to move with you — through training, through the city, through whatever comes next.</div>
-                                </div>
-
-                                <!-- Mono / Labels -->
-                                <div class="font-role-card">
-                                    <div class="font-role-header">
-                                        <div>
-                                            <div class="font-role-label">Labels &amp; Mono</div>
-                                            <div class="font-role-desc">Nav links, announcement bar, price tags, product labels, buttons</div>
+                                    <div class="font-role-card">
+                                        <div class="font-role-header">
+                                            <div><div class="font-role-label">Labels &amp; Mono</div><div class="font-role-desc">Nav links, price tags, announcement bar, buttons</div></div>
+                                            <select class="font-select" id="font-mono-select" onchange="onFontRoleChange('mono',this.value)"></select>
                                         </div>
-                                        <select class="font-select" id="font-mono-select" onchange="onFontSelectChange('mono',this.value)">
-                                            <option value="IBM Plex Mono">IBM Plex Mono</option>
-                                            <option value="Space Mono">Space Mono</option>
-                                            <option value="JetBrains Mono">JetBrains Mono</option>
-                                            <option value="Courier Prime">Courier Prime</option>
-                                            <option value="Roboto Mono">Roboto Mono</option>
-                                        </select>
+                                        <div class="font-role-sample" id="font-mono-sample" style="font-size:.7rem;letter-spacing:.2em;text-transform:uppercase">RELEASE 001 · SIZE M · $89.00</div>
                                     </div>
-                                    <div class="font-role-sample" id="font-mono-sample" style="font-size:.7rem;letter-spacing:.2em;text-transform:uppercase">RELEASE 001 · SIZE M · $89.00</div>
                                 </div>
                             </div>
 
-                            <!-- Live site preview -->
-                            <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px">
-                                <div style="padding:9px 16px;background:var(--bg-primary);border-bottom:1px solid var(--border);font-size:.72rem;color:var(--text-secondary);letter-spacing:.1em;text-transform:uppercase">Storefront Preview</div>
+                            <!-- Tab: Section Overrides -->
+                            <div id="font-tab-sections" class="font-tab-content">
+                                <p style="font-size:.8rem;color:var(--text-secondary);margin-bottom:16px;line-height:1.5">Override the font for a specific area of the site. Choosing "Default" falls back to the base role.</p>
+                                <div id="section-overrides-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px"></div>
+                            </div>
+
+                            <!-- Tab: Import Fonts -->
+                            <div id="font-tab-import" class="font-tab-content">
+                                <div style="max-width:540px">
+                                    <div style="margin-bottom:24px">
+                                        <div style="font-weight:700;font-size:.9rem;margin-bottom:6px">Import from Google Fonts</div>
+                                        <p style="font-size:.8rem;color:var(--text-secondary);margin-bottom:12px;line-height:1.5">Type the exact family name from Google Fonts. It will be added to all font dropdowns and the live preview.</p>
+                                        <div style="display:flex;gap:8px">
+                                            <input type="text" id="font-import-name" class="form-input" placeholder="e.g. Playfair Display, Cormorant Garamond" style="flex:1">
+                                            <button class="btn btn-primary btn-sm" onclick="importGoogleFont()">Import</button>
+                                        </div>
+                                        <div id="font-import-status" style="font-size:.8rem;margin-top:8px;min-height:18px;color:var(--text-secondary)"></div>
+                                        <div id="font-import-preview" style="margin-top:12px;padding:14px;background:var(--bg-primary);border-radius:6px;border:1px solid var(--border);display:none">
+                                            <div style="font-size:.65rem;color:var(--text-secondary);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">Preview</div>
+                                            <div id="font-import-sample" style="font-size:1.5rem;line-height:1.3;margin-bottom:4px">The quick brown fox jumps over the lazy dog.</div>
+                                            <div id="font-import-name-label" style="font-size:.7rem;color:var(--text-secondary);letter-spacing:.08em"></div>
+                                        </div>
+                                    </div>
+                                    <div style="border-top:1px solid var(--border);padding-top:20px;margin-bottom:24px">
+                                        <div style="font-weight:700;font-size:.9rem;margin-bottom:6px">Or paste a CSS import URL</div>
+                                        <p style="font-size:.8rem;color:var(--text-secondary);margin-bottom:12px;line-height:1.5">Use any web font by pasting its <code>@import</code> URL, then give it a name to use in dropdowns.</p>
+                                        <div style="display:flex;flex-direction:column;gap:8px">
+                                            <input type="url" id="font-custom-url" class="form-input" placeholder="https://fonts.googleapis.com/css2?family=...">
+                                            <div style="display:flex;gap:8px">
+                                                <input type="text" id="font-custom-name" class="form-input" placeholder="Font name (e.g. My Custom Font)" style="flex:1">
+                                                <button class="btn btn-secondary btn-sm" onclick="addCustomFontUrl()">Add</button>
+                                            </div>
+                                        </div>
+                                        <div id="font-custom-status" style="font-size:.8rem;margin-top:8px;min-height:18px;color:var(--text-secondary)"></div>
+                                    </div>
+                                    <div>
+                                        <div style="font-weight:700;font-size:.9rem;margin-bottom:12px">Imported fonts</div>
+                                        <div id="custom-fonts-list"><p style="font-size:.82rem;color:var(--text-secondary)">No custom fonts imported yet.</p></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Live preview (always visible) -->
+                            <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:24px;margin-bottom:20px">
+                                <div style="padding:9px 16px;background:var(--bg-primary);border-bottom:1px solid var(--border);font-size:.7rem;color:var(--text-secondary);letter-spacing:.1em;text-transform:uppercase">Storefront Preview</div>
                                 <div id="font-site-preview" style="background:#09090b;color:#f4f1eb">
-                                    <!-- Nav -->
                                     <div class="fp-nav">
                                         <span class="fp-wordmark">ZUWERA</span>
                                         <div class="fp-nav-right">
@@ -3981,31 +4002,30 @@
                                             <span class="fp-navlink">BAG (2)</span>
                                         </div>
                                     </div>
-                                    <!-- Hero -->
+                                    <div class="fp-announce">FREE SHIPPING ON ALL ORDERS OVER $100 · USE CODE LAUNCH</div>
                                     <div class="fp-hero">
                                         <div class="fp-kicker">RELEASE 001 — SEPT 2026</div>
                                         <div class="fp-heading">FOR THOSE<br><em>WHO DREAM.</em></div>
                                         <div class="fp-subtext">Bold athletic sportswear built for the relentless. Each piece is designed to move with you.</div>
                                         <div class="fp-cta">EXPLORE RELEASE 001</div>
                                     </div>
-                                    <!-- Product cards -->
                                     <div class="fp-cards">
                                         <div class="fp-card">
                                             <div class="fp-card-img"></div>
+                                            <div class="fp-card-cat">CREW NECK</div>
                                             <div class="fp-card-name">Shadow Crew Neck</div>
-                                            <div class="fp-card-meta">Crew Neck · S–XL</div>
                                             <div class="fp-card-price">$89.00</div>
                                         </div>
                                         <div class="fp-card">
                                             <div class="fp-card-img" style="background:rgba(244,241,235,.05)"></div>
+                                            <div class="fp-card-cat">JOGGER</div>
                                             <div class="fp-card-name">Void Jogger</div>
-                                            <div class="fp-card-meta">Jogger · XS–XXL</div>
                                             <div class="fp-card-price">$109.00</div>
                                         </div>
                                         <div class="fp-card">
                                             <div class="fp-card-img" style="background:rgba(244,241,235,.04)"></div>
+                                            <div class="fp-card-cat">SHORTS</div>
                                             <div class="fp-card-name">Obsidian Shorts</div>
-                                            <div class="fp-card-meta">Shorts · S–XL</div>
                                             <div class="fp-card-price">$72.00</div>
                                         </div>
                                     </div>
@@ -8122,67 +8142,378 @@
         // ── TYPOGRAPHY ────────────────────────────────────────────────────
         const FONT_DEFS = {
             head: [
-                { name: 'Barlow Condensed', stack: "'Barlow Condensed', sans-serif", weights: 'ital,wght@0,400;0,700;0,900;1,900' },
-                { name: 'Oswald',           stack: "'Oswald', sans-serif",           weights: 'wght@400;600;700' },
-                { name: 'Rajdhani',         stack: "'Rajdhani', sans-serif",         weights: 'wght@400;600;700' },
-                { name: 'Bebas Neue',       stack: "'Bebas Neue', sans-serif",       weights: 'wght@400' },
-                { name: 'Anton',            stack: "'Anton', sans-serif",            weights: 'wght@400' },
-                { name: 'League Gothic',    stack: "'League Gothic', sans-serif",    weights: 'wght@400' },
+                { name: 'Barlow Condensed', stack: "'Barlow Condensed', sans-serif", url: null },
+                { name: 'Oswald',           stack: "'Oswald', sans-serif",           url: 'https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&display=swap' },
+                { name: 'Rajdhani',         stack: "'Rajdhani', sans-serif",         url: 'https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap' },
+                { name: 'Bebas Neue',       stack: "'Bebas Neue', sans-serif",       url: 'https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap' },
+                { name: 'Anton',            stack: "'Anton', sans-serif",            url: 'https://fonts.googleapis.com/css2?family=Anton&display=swap' },
+                { name: 'League Gothic',    stack: "'League Gothic', sans-serif",    url: 'https://fonts.googleapis.com/css2?family=League+Gothic&display=swap' },
+                { name: 'Michroma',         stack: "'Michroma', sans-serif",         url: 'https://fonts.googleapis.com/css2?family=Michroma&display=swap' },
+                { name: 'Exo 2',            stack: "'Exo 2', sans-serif",            url: 'https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,400;0,700;1,900&display=swap' },
             ],
             body: [
-                { name: 'Barlow',            stack: "'Barlow', sans-serif",            weights: 'wght@300;400;500;600' },
-                { name: 'Inter',             stack: "'Inter', sans-serif",             weights: 'wght@300;400;500;600' },
-                { name: 'DM Sans',           stack: "'DM Sans', sans-serif",           weights: 'opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600' },
-                { name: 'Outfit',            stack: "'Outfit', sans-serif",            weights: 'wght@300;400;500;600' },
-                { name: 'Manrope',           stack: "'Manrope', sans-serif",           weights: 'wght@300;400;500;600;700' },
-                { name: 'Plus Jakarta Sans', stack: "'Plus Jakarta Sans', sans-serif", weights: 'wght@300;400;500;600;700' },
+                { name: 'Barlow',            stack: "'Barlow', sans-serif",            url: null },
+                { name: 'Inter',             stack: "'Inter', sans-serif",             url: 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap' },
+                { name: 'DM Sans',           stack: "'DM Sans', sans-serif",           url: 'https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap' },
+                { name: 'Outfit',            stack: "'Outfit', sans-serif",            url: 'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap' },
+                { name: 'Manrope',           stack: "'Manrope', sans-serif",           url: 'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap' },
+                { name: 'Plus Jakarta Sans', stack: "'Plus Jakarta Sans', sans-serif", url: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap' },
             ],
             mono: [
-                { name: 'IBM Plex Mono',  stack: "'IBM Plex Mono', monospace",  weights: 'wght@300;400;500;600' },
-                { name: 'Space Mono',     stack: "'Space Mono', monospace",     weights: 'wght@400;700' },
-                { name: 'JetBrains Mono', stack: "'JetBrains Mono', monospace", weights: 'wght@300;400;500;600' },
-                { name: 'Courier Prime',  stack: "'Courier Prime', monospace",  weights: 'wght@400;700' },
-                { name: 'Roboto Mono',    stack: "'Roboto Mono', monospace",    weights: 'wght@300;400;500' },
+                { name: 'IBM Plex Mono',  stack: "'IBM Plex Mono', monospace",  url: null },
+                { name: 'Space Mono',     stack: "'Space Mono', monospace",     url: 'https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap' },
+                { name: 'JetBrains Mono', stack: "'JetBrains Mono', monospace", url: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap' },
+                { name: 'Courier Prime',  stack: "'Courier Prime', monospace",  url: 'https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap' },
+                { name: 'Roboto Mono',    stack: "'Roboto Mono', monospace",    url: 'https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500&display=swap' },
             ],
         };
-        const FONT_DEFAULTS = { head: 'Barlow Condensed', body: 'Barlow', mono: 'IBM Plex Mono' };
-        let _curFonts = { ...FONT_DEFAULTS };
+
+        const SECTION_DEFS = [
+            { id: 'logo',         label: 'Logo / Wordmark',  role: 'head', sample: 'ZUWERA',                      cssSel: '.flogo, .nav-logo span, .zw-nav-logo span',       previewEl: '.fp-wordmark',             previewAll: false },
+            { id: 'nav',          label: 'Navigation Links',  role: 'mono', sample: 'SHOP · DROP 001 · BAG',       cssSel: '.nbtn, .mobile-nav-link, .zw-mobile-primary-link', previewEl: '.fp-navlink',              previewAll: true  },
+            { id: 'announce',     label: 'Announcement Bar',  role: 'mono', sample: 'FREE SHIPPING OVER $100',     cssSel: '#announcementText',                                previewEl: '.fp-announce',             previewAll: false },
+            { id: 'hero-title',   label: 'Hero Heading',      role: 'head', sample: 'FOR THOSE WHO DREAM.',        cssSel: '.hero-h1',                                         previewEl: '.fp-heading',              previewAll: false },
+            { id: 'hero-sub',     label: 'Hero Subtext',      role: 'body', sample: 'Bold athletic sportswear.',   cssSel: '.hero-sub',                                        previewEl: '.fp-subtext',              previewAll: false },
+            { id: 'sec-head',     label: 'Section Headings',  role: 'head', sample: 'ALSO FROM THIS DROP',         cssSel: '.sec-head h2',                                     previewEl: null,                       previewAll: false },
+            { id: 'product-name', label: 'Product Names',     role: 'head', sample: 'Shadow Crew Neck',            cssSel: '.pcard-name',                                      previewEl: '.fp-card-name',            previewAll: true  },
+            { id: 'price',        label: 'Prices & Labels',   role: 'mono', sample: '$89.00 · SIZE M',             cssSel: '.pcard-price, .pcard-cat',                         previewEl: '.fp-card-price,.fp-card-cat', previewAll: true  },
+            { id: 'btn',          label: 'Buttons & CTAs',    role: 'mono', sample: 'ADD TO BAG',                  cssSel: '.add-to-cart-btn, .pcard-add-btn, #checkout-btn, #pay-submit', previewEl: '.fp-cta', previewAll: false },
+            { id: 'footer',       label: 'Footer',            role: 'mono', sample: 'RETURNS · PRIVACY · TERMS',   cssSel: '.fcopy, .flinks a, .fig',                          previewEl: null,                       previewAll: false },
+        ];
+
+        const _defaultFontsState = () => ({
+            roles: {
+                head: { ...FONT_DEFS.head[0] },
+                body: { ...FONT_DEFS.body[0] },
+                mono: { ...FONT_DEFS.mono[0] },
+            },
+            sections: Object.fromEntries(SECTION_DEFS.map(s => [s.id, null])),
+            custom: [],
+        });
+
+        let _fontsState = _defaultFontsState();
         let _fontHistory = [];
 
-        function _loadGoogleFont(name, weights) {
-            const id = 'gf-' + name.replace(/\s+/g, '-').toLowerCase();
+        function _loadFontUrl(url) {
+            if (!url) return;
+            const id = 'gf-' + btoa(url).replace(/[^a-z0-9]/gi, '').slice(0, 40);
             if (document.getElementById(id)) return;
             const link = document.createElement('link');
-            link.id = id; link.rel = 'stylesheet';
-            link.href = 'https://fonts.googleapis.com/css2?family=' + name.replace(/ /g, '+') + ':' + weights + '&display=swap';
+            link.id = id; link.rel = 'stylesheet'; link.href = url;
             document.head.appendChild(link);
         }
 
-        function onFontSelectChange(role, fontName) {
-            _curFonts[role] = fontName;
-            const def = FONT_DEFS[role].find(f => f.name === fontName);
-            if (def) {
-                _loadGoogleFont(fontName, def.weights);
-                document.getElementById('font-' + role + '-sample').style.fontFamily = def.stack;
-            }
-            _updateSitePreview();
+        function _allFontDefs() {
+            const seen = new Set();
+            const all = [];
+            ['head','body','mono'].forEach(role => {
+                FONT_DEFS[role].forEach(f => { if (!seen.has(f.name)) { seen.add(f.name); all.push(f); } });
+            });
+            (_fontsState.custom || []).forEach(f => { if (!seen.has(f.name)) { seen.add(f.name); all.push(f); } });
+            return all;
         }
 
-        function _updateSitePreview() {
+        function _lookupFont(name) {
+            return _allFontDefs().find(f => f.name === name) || { name, stack: "'" + name + "', sans-serif", url: null };
+        }
+
+        function _populateRoleSelect(sel, role, currentName) {
+            sel.innerHTML = '';
+            const groups = [
+                { label: 'Heading Fonts', defs: FONT_DEFS.head },
+                { label: 'Body Fonts', defs: FONT_DEFS.body },
+                { label: 'Mono Fonts', defs: FONT_DEFS.mono },
+            ];
+            if (_fontsState.custom.length) groups.push({ label: 'Custom Imports', defs: _fontsState.custom });
+            groups.forEach(g => {
+                const grp = document.createElement('optgroup');
+                grp.label = g.label;
+                g.defs.forEach(f => {
+                    const opt = document.createElement('option');
+                    opt.value = f.name; opt.textContent = f.name;
+                    if (f.name === currentName) opt.selected = true;
+                    grp.appendChild(opt);
+                });
+                sel.appendChild(grp);
+            });
+        }
+
+        function _populateSectionSelect(sel, sectionDef) {
+            const roleLabel = { head: 'Heading', body: 'Body', mono: 'Labels' }[sectionDef.role] || sectionDef.role;
+            sel.innerHTML = '<option value="__default__">Default (' + roleLabel + ')</option>';
+            const groups = [
+                { label: 'Heading Fonts', defs: FONT_DEFS.head },
+                { label: 'Body Fonts', defs: FONT_DEFS.body },
+                { label: 'Mono Fonts', defs: FONT_DEFS.mono },
+            ];
+            if (_fontsState.custom.length) groups.push({ label: 'Custom Imports', defs: _fontsState.custom });
+            groups.forEach(g => {
+                const grp = document.createElement('optgroup');
+                grp.label = g.label;
+                g.defs.forEach(f => {
+                    const opt = document.createElement('option');
+                    opt.value = f.name; opt.textContent = f.name;
+                    grp.appendChild(opt);
+                });
+                sel.appendChild(grp);
+            });
+            const ov = _fontsState.sections[sectionDef.id];
+            sel.value = ov ? ov.name : '__default__';
+        }
+
+        function switchFontTab(tab) {
+            document.querySelectorAll('[data-font-tab]').forEach(b => b.classList.toggle('active', b.dataset.fontTab === tab));
+            document.querySelectorAll('.font-tab-content').forEach(el => el.style.display = 'none');
+            const content = document.getElementById('font-tab-' + tab);
+            if (content) content.style.display = 'block';
+        }
+
+        function onFontRoleChange(role, fontName) {
+            const def = _lookupFont(fontName);
+            _fontsState.roles[role] = { ...def };
+            if (def.url) _loadFontUrl(def.url);
+            const sample = document.getElementById('font-' + role + '-sample');
+            if (sample) sample.style.fontFamily = def.stack;
+            _refreshPreview();
+        }
+
+        function onSectionFontChange(sectionId, fontName) {
+            if (fontName === '__default__') {
+                _fontsState.sections[sectionId] = null;
+            } else {
+                const def = _lookupFont(fontName);
+                _fontsState.sections[sectionId] = { ...def };
+                if (def.url) _loadFontUrl(def.url);
+            }
+            // Update section card sample text
+            const sampleEl = document.getElementById('section-sample-' + sectionId);
+            if (sampleEl) {
+                const stack = _fontsState.sections[sectionId]
+                    ? _fontsState.sections[sectionId].stack
+                    : _fontsState.roles[SECTION_DEFS.find(s=>s.id===sectionId).role].stack;
+                sampleEl.style.fontFamily = stack;
+            }
+            _refreshPreview();
+        }
+
+        function _refreshPreview() {
             const p = document.getElementById('font-site-preview');
             if (!p) return;
-            const headStack = (FONT_DEFS.head.find(f => f.name === _curFonts.head) || {}).stack || _curFonts.head;
-            const bodyStack = (FONT_DEFS.body.find(f => f.name === _curFonts.body) || {}).stack || _curFonts.body;
-            const monoStack = (FONT_DEFS.mono.find(f => f.name === _curFonts.mono) || {}).stack || _curFonts.mono;
-            p.querySelector('.fp-wordmark').style.fontFamily   = headStack;
-            p.querySelectorAll('.fp-navlink').forEach(el => el.style.fontFamily = monoStack);
-            p.querySelector('.fp-kicker').style.fontFamily     = monoStack;
-            p.querySelector('.fp-heading').style.fontFamily    = headStack;
-            p.querySelector('.fp-subtext').style.fontFamily    = bodyStack;
-            p.querySelector('.fp-cta').style.fontFamily        = monoStack;
-            p.querySelectorAll('.fp-card-name').forEach(el => el.style.fontFamily = headStack);
-            p.querySelectorAll('.fp-card-meta').forEach(el => el.style.fontFamily = monoStack);
-            p.querySelectorAll('.fp-card-price').forEach(el => el.style.fontFamily = monoStack);
+            const roleStack = role => _fontsState.roles[role] ? _fontsState.roles[role].stack : '';
+            const secStack = id => {
+                const ov = _fontsState.sections[id];
+                if (ov) return ov.stack;
+                const def = SECTION_DEFS.find(s => s.id === id);
+                return def ? roleStack(def.role) : '';
+            };
+            const apply = (sel, stack, all) => {
+                const els = all ? p.querySelectorAll(sel) : [p.querySelector(sel)];
+                els.forEach(el => { if (el) el.style.fontFamily = stack; });
+            };
+            apply('.fp-wordmark',  secStack('logo'),         false);
+            apply('.fp-navlink',   secStack('nav'),          true);
+            apply('.fp-announce',  secStack('announce'),     false);
+            apply('.fp-heading',   secStack('hero-title'),   false);
+            apply('.fp-subtext',   secStack('hero-sub'),     false);
+            apply('.fp-cta',       secStack('btn'),          false);
+            apply('.fp-card-name', secStack('product-name'), true);
+            apply('.fp-card-cat',  secStack('price'),        true);
+            apply('.fp-card-price',secStack('price'),        true);
+            apply('.fp-kicker',    roleStack('mono'),        false);
+        }
+
+        function _renderSectionOverrides() {
+            const grid = document.getElementById('section-overrides-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            SECTION_DEFS.forEach(sec => {
+                const ov = _fontsState.sections[sec.id];
+                const roleStack = _fontsState.roles[sec.role] ? _fontsState.roles[sec.role].stack : '';
+                const sampleStack = ov ? ov.stack : roleStack;
+                const roleLabel = { head: 'Heading', body: 'Body', mono: 'Labels' }[sec.role] || sec.role;
+                const card = document.createElement('div');
+                card.className = 'font-role-card';
+                card.style.cssText = 'padding:14px';
+                card.innerHTML = `
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+                        <div>
+                            <div class="font-role-label" style="font-size:.82rem">${sec.label}</div>
+                            <div class="font-role-desc" style="font-size:.72rem">Default: ${roleLabel}</div>
+                        </div>
+                        <select class="font-select" id="section-sel-${sec.id}" style="min-width:150px;font-size:.78rem;padding:5px 8px" onchange="onSectionFontChange('${sec.id}',this.value)"></select>
+                    </div>
+                    <div id="section-sample-${sec.id}" style="font-size:.78rem;padding:8px 0 0;border-top:1px solid var(--border);color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:${sampleStack}">${sec.sample}</div>
+                `;
+                grid.appendChild(card);
+                _populateSectionSelect(card.querySelector('#section-sel-' + sec.id), sec);
+            });
+        }
+
+        function _refreshSectionSelects() {
+            SECTION_DEFS.forEach(sec => {
+                const sel = document.getElementById('section-sel-' + sec.id);
+                if (!sel) return;
+                const cur = sel.value;
+                _populateSectionSelect(sel, sec);
+                sel.value = _fontsState.sections[sec.id] ? _fontsState.sections[sec.id].name : '__default__';
+            });
+            ['head','body','mono'].forEach(role => {
+                const sel = document.getElementById('font-' + role + '-select');
+                if (!sel) return;
+                const cur = sel.value;
+                _populateRoleSelect(sel, role, cur);
+            });
+        }
+
+        function _renderCustomFontsList() {
+            const list = document.getElementById('custom-fonts-list');
+            if (!list) return;
+            if (!_fontsState.custom.length) {
+                list.innerHTML = '<p style="font-size:.82rem;color:var(--text-secondary)">No custom fonts imported yet.</p>';
+                return;
+            }
+            list.innerHTML = _fontsState.custom.map((f, i) => `
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg-primary);border-radius:6px;border:1px solid var(--border);margin-bottom:8px;gap:12px">
+                    <div style="min-width:0">
+                        <div style="font-size:.88rem;font-weight:600;margin-bottom:3px">${f.name}</div>
+                        <div style="font-size:.8rem;color:var(--text-secondary);font-family:${f.stack};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">The quick brown fox — 0123456789</div>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" onclick="removeCustomFont(${i})" style="flex-shrink:0">Remove</button>
+                </div>
+            `).join('');
+        }
+
+        async function importGoogleFont() {
+            const input = document.getElementById('font-import-name');
+            const status = document.getElementById('font-import-status');
+            const previewBox = document.getElementById('font-import-preview');
+            const sample = document.getElementById('font-import-sample');
+            const nameLabel = document.getElementById('font-import-name-label');
+            const name = input.value.trim();
+            if (!name) { status.textContent = 'Enter a font name first.'; status.style.color = 'var(--warning)'; return; }
+            const existing = _allFontDefs().find(f => f.name.toLowerCase() === name.toLowerCase());
+            if (existing) { status.textContent = '"' + name + '" is already available in the dropdowns.'; status.style.color = 'var(--warning)'; return; }
+            status.textContent = 'Loading font...'; status.style.color = 'var(--text-secondary)';
+            previewBox.style.display = 'none';
+            const url = 'https://fonts.googleapis.com/css2?family=' + name.replace(/ /g, '+') + ':ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&display=swap';
+            _loadFontUrl(url);
+            await new Promise(r => setTimeout(r, 900));
+            const stack = "'" + name + "', sans-serif";
+            sample.style.fontFamily = stack;
+            sample.textContent = name + ' — The quick brown fox jumps over the lazy dog. 0123456789';
+            nameLabel.textContent = name;
+            previewBox.style.display = 'block';
+            // Remove any previous confirm button
+            previewBox.querySelectorAll('.font-import-confirm').forEach(b => b.remove());
+            const confirmBtn = document.createElement('button');
+            confirmBtn.className = 'btn btn-primary btn-sm font-import-confirm';
+            confirmBtn.style.cssText = 'margin-top:12px';
+            confirmBtn.textContent = 'Use "' + name + '" in dropdowns';
+            confirmBtn.onclick = () => {
+                _fontsState.custom.push({ name, stack, url });
+                _renderCustomFontsList();
+                _refreshSectionSelects();
+                input.value = '';
+                previewBox.style.display = 'none';
+                status.textContent = '"' + name + '" added to all font dropdowns.';
+                status.style.color = 'var(--success)';
+                confirmBtn.remove();
+            };
+            previewBox.appendChild(confirmBtn);
+            status.textContent = 'Font loaded — confirm below to add it to dropdowns.';
+            status.style.color = 'var(--text-secondary)';
+        }
+
+        function addCustomFontUrl() {
+            const urlInput = document.getElementById('font-custom-url');
+            const nameInput = document.getElementById('font-custom-name');
+            const status = document.getElementById('font-custom-status');
+            const url = urlInput.value.trim();
+            const name = nameInput.value.trim();
+            if (!url || !name) { status.textContent = 'Both URL and font name are required.'; status.style.color = 'var(--warning)'; return; }
+            _loadFontUrl(url);
+            const stack = "'" + name + "', sans-serif";
+            _fontsState.custom.push({ name, stack, url });
+            _renderCustomFontsList();
+            _refreshSectionSelects();
+            urlInput.value = ''; nameInput.value = '';
+            status.textContent = '"' + name + '" added to dropdowns.'; status.style.color = 'var(--success)';
+        }
+
+        function removeCustomFont(idx) {
+            _fontsState.custom.splice(idx, 1);
+            _renderCustomFontsList();
+            _refreshSectionSelects();
+        }
+
+        function buildFontCache(state) {
+            const cache = { vars: {}, urls: [], css: '' };
+            const cssLines = [];
+            const varMaps = { head: ['--font-head','--font-display','--fw'], body: ['--font-body','--fb'], mono: ['--font-mono','--fm'] };
+            ['head','body','mono'].forEach(role => {
+                const r = state.roles[role];
+                if (!r) return;
+                varMaps[role].forEach(v => { cache.vars[v] = r.stack; });
+                if (r.url && !cache.urls.includes(r.url)) cache.urls.push(r.url);
+            });
+            SECTION_DEFS.forEach(sec => {
+                const ov = state.sections[sec.id];
+                if (!ov) return;
+                cssLines.push(sec.cssSel + '{font-family:' + ov.stack + '!important}');
+                if (ov.url && !cache.urls.includes(ov.url)) cache.urls.push(ov.url);
+            });
+            (state.custom || []).forEach(f => { if (f.url && !cache.urls.includes(f.url)) cache.urls.push(f.url); });
+            cache.css = cssLines.join(' ');
+            return cache;
+        }
+
+        async function saveFonts() {
+            _fontHistory.push(JSON.parse(JSON.stringify(_fontsState)));
+            if (_fontHistory.length > 20) _fontHistory.shift();
+            _updateUndoUI();
+            const { error } = await sb.from('site_settings').upsert(
+                { key: 'fonts', value: _fontsState, updated_at: new Date().toISOString() },
+                { onConflict: 'key' }
+            );
+            if (error) { showToast('Error saving typography', 'error'); return; }
+            try { localStorage.setItem('zw_fonts', JSON.stringify(buildFontCache(_fontsState))); } catch(_) {}
+            await logAdminAudit('settings.update', 'site_settings', 'fonts', {
+                head: _fontsState.roles.head.name, body: _fontsState.roles.body.name, mono: _fontsState.roles.mono.name,
+                overrides: Object.entries(_fontsState.sections).filter(([,v])=>v).map(([k,v])=>k+'='+v.name).join(','),
+            });
+            showToast('Typography saved!', 'success');
+        }
+
+        function undoFonts() {
+            if (!_fontHistory.length) return;
+            _fontsState = JSON.parse(JSON.stringify(_fontHistory.pop()));
+            _applyStateToUI();
+            _updateUndoUI();
+            showToast('Typography reverted', 'info');
+        }
+
+        function resetFonts() {
+            _fontHistory.push(JSON.parse(JSON.stringify(_fontsState)));
+            if (_fontHistory.length > 20) _fontHistory.shift();
+            _fontsState = _defaultFontsState();
+            _applyStateToUI();
+            _updateUndoUI();
+            showToast('Reset to default fonts', 'info');
+        }
+
+        function _applyStateToUI() {
+            ['head','body','mono'].forEach(role => {
+                const sel = document.getElementById('font-' + role + '-select');
+                if (sel) { _populateRoleSelect(sel, role, _fontsState.roles[role].name); }
+                const sample = document.getElementById('font-' + role + '-sample');
+                if (sample && _fontsState.roles[role]) {
+                    sample.style.fontFamily = _fontsState.roles[role].stack;
+                    if (_fontsState.roles[role].url) _loadFontUrl(_fontsState.roles[role].url);
+                }
+            });
+            _renderSectionOverrides();
+            _renderCustomFontsList();
+            _refreshPreview();
         }
 
         function _updateUndoUI() {
@@ -8190,68 +8521,33 @@
             const cnt = document.getElementById('font-undo-count');
             if (!btn) return;
             btn.disabled = _fontHistory.length === 0;
-            cnt.textContent = _fontHistory.length ? _fontHistory.length + ' undo' + (_fontHistory.length > 1 ? 's' : '') + ' available' : '';
-        }
-
-        async function saveFonts() {
-            _fontHistory.push({ ..._curFonts });
-            if (_fontHistory.length > 20) _fontHistory.shift();
-            _updateUndoUI();
-            const { error } = await sb.from('site_settings').upsert(
-                { key: 'fonts', value: { ..._curFonts }, updated_at: new Date().toISOString() },
-                { onConflict: 'key' }
-            );
-            if (error) { showToast('Error saving typography', 'error'); return; }
-            await logAdminAudit('settings.update', 'site_settings', 'fonts', _curFonts);
-            showToast('Typography saved!', 'success');
-        }
-
-        function undoFonts() {
-            if (!_fontHistory.length) return;
-            const prev = _fontHistory.pop();
-            _curFonts = { ...prev };
-            ['head', 'body', 'mono'].forEach(role => {
-                const sel = document.getElementById('font-' + role + '-select');
-                if (sel) sel.value = _curFonts[role];
-                onFontSelectChange(role, _curFonts[role]);
-            });
-            _updateUndoUI();
-            showToast('Typography reverted', 'info');
-        }
-
-        function resetFonts() {
-            _fontHistory.push({ ..._curFonts });
-            if (_fontHistory.length > 20) _fontHistory.shift();
-            _curFonts = { ...FONT_DEFAULTS };
-            ['head', 'body', 'mono'].forEach(role => {
-                const sel = document.getElementById('font-' + role + '-select');
-                if (sel) sel.value = FONT_DEFAULTS[role];
-                onFontSelectChange(role, FONT_DEFAULTS[role]);
-            });
-            _updateUndoUI();
-            showToast('Reset to default fonts', 'info');
+            cnt.textContent = _fontHistory.length ? _fontHistory.length + ' undo' + (_fontHistory.length > 1 ? 's' : '') : '';
         }
 
         async function loadFonts() {
             try {
                 const { data } = await sb.from('site_settings').select('value').eq('key', 'fonts').maybeSingle();
-                if (data && data.value) {
-                    _curFonts = {
-                        head: data.value.head || FONT_DEFAULTS.head,
-                        body: data.value.body || FONT_DEFAULTS.body,
-                        mono: data.value.mono || FONT_DEFAULTS.mono,
+                if (data && data.value && data.value.roles) {
+                    _fontsState = {
+                        roles: {
+                            head: data.value.roles.head || { ...FONT_DEFS.head[0] },
+                            body: data.value.roles.body || { ...FONT_DEFS.body[0] },
+                            mono: data.value.roles.mono || { ...FONT_DEFS.mono[0] },
+                        },
+                        sections: { ...Object.fromEntries(SECTION_DEFS.map(s=>[s.id,null])), ...(data.value.sections||{}) },
+                        custom: data.value.custom || [],
                     };
-                } else {
-                    _curFonts = { ...FONT_DEFAULTS };
+                    (_fontsState.custom || []).forEach(f => { if (f.url) _loadFontUrl(f.url); });
+                } else if (data && data.value && (data.value.head || data.value.body || data.value.mono)) {
+                    // Legacy flat format — migrate
+                    const headDef = FONT_DEFS.head.find(f=>f.name===data.value.head) || FONT_DEFS.head[0];
+                    const bodyDef = FONT_DEFS.body.find(f=>f.name===data.value.body) || FONT_DEFS.body[0];
+                    const monoDef = FONT_DEFS.mono.find(f=>f.name===data.value.mono) || FONT_DEFS.mono[0];
+                    _fontsState = _defaultFontsState();
+                    _fontsState.roles = { head: headDef, body: bodyDef, mono: monoDef };
                 }
-            } catch (_) {
-                _curFonts = { ...FONT_DEFAULTS };
-            }
-            ['head', 'body', 'mono'].forEach(role => {
-                const sel = document.getElementById('font-' + role + '-select');
-                if (sel) sel.value = _curFonts[role];
-                onFontSelectChange(role, _curFonts[role]);
-            });
+            } catch (_) { /* keep defaults */ }
+            _applyStateToUI();
             _updateUndoUI();
         }
 

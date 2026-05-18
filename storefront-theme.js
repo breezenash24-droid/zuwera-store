@@ -16,13 +16,61 @@
     window.dispatchEvent(new CustomEvent('zw-theme-applied', { detail: { mode: resolved } }));
   }
 
-  var FONT_STACKS = {
+  // CSS selectors for each section override target (must match SECTION_DEFS in admin.html)
+  var SECTION_SELECTORS = {
+    'logo':         '.flogo, .nav-logo span, .zw-nav-logo span',
+    'nav':          '.nbtn, .mobile-nav-link, .zw-mobile-primary-link',
+    'announce':     '#announcementText',
+    'hero-title':   '.hero-h1',
+    'hero-sub':     '.hero-sub',
+    'sec-head':     '.sec-head h2',
+    'product-name': '.pcard-name',
+    'price':        '.pcard-price, .pcard-cat',
+    'btn':          '.add-to-cart-btn, .pcard-add-btn, #checkout-btn, #pay-submit',
+    'footer':       '.fcopy, .flinks a, .fig',
+  };
+
+  function _loadFontUrl(url) {
+    var id = 'gf-' + btoa(url).replace(/[^a-z0-9]/gi, '').substring(0, 32);
+    if (document.getElementById(id)) return;
+    var link = document.createElement('link');
+    link.id = id; link.rel = 'stylesheet'; link.href = url;
+    document.head.appendChild(link);
+  }
+
+  function _buildGoogleFontUrl(family) {
+    return 'https://fonts.googleapis.com/css2?family=' + family.replace(/ /g, '+') + ':wght@300;400;500;600;700&display=swap';
+  }
+
+  // Legacy flat-format font names → Google Font URLs
+  var LEGACY_FONT_URLS = {
+    'Oswald':           'https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&display=swap',
+    'Rajdhani':         'https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&display=swap',
+    'Bebas Neue':       'https://fonts.googleapis.com/css2?family=Bebas+Neue:wght@400&display=swap',
+    'Anton':            'https://fonts.googleapis.com/css2?family=Anton:wght@400&display=swap',
+    'League Gothic':    'https://fonts.googleapis.com/css2?family=League+Gothic:wght@400&display=swap',
+    'Michroma':         'https://fonts.googleapis.com/css2?family=Michroma:wght@400&display=swap',
+    'Exo 2':            'https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700&display=swap',
+    'Inter':            'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap',
+    'DM Sans':          'https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap',
+    'Outfit':           'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
+    'Manrope':          'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap',
+    'Plus Jakarta Sans':'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap',
+    'Space Mono':       'https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap',
+    'JetBrains Mono':   'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap',
+    'Courier Prime':    'https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap',
+    'Roboto Mono':      'https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;600;700&display=swap',
+  };
+
+  var LEGACY_FONT_STACKS = {
     'Barlow Condensed': "'Barlow Condensed', sans-serif",
     'Oswald':           "'Oswald', sans-serif",
     'Rajdhani':         "'Rajdhani', sans-serif",
     'Bebas Neue':       "'Bebas Neue', sans-serif",
     'Anton':            "'Anton', sans-serif",
     'League Gothic':    "'League Gothic', sans-serif",
+    'Michroma':         "'Michroma', sans-serif",
+    'Exo 2':            "'Exo 2', sans-serif",
     'Barlow':           "'Barlow', sans-serif",
     'Inter':            "'Inter', sans-serif",
     'DM Sans':          "'DM Sans', sans-serif",
@@ -36,37 +84,109 @@
     'Roboto Mono':      "'Roboto Mono', monospace",
   };
 
-  function loadGoogleFont(family) {
-    var id = 'gf-' + family.replace(/\s+/g, '-').toLowerCase();
-    if (document.getElementById(id)) return;
-    var link = document.createElement('link');
-    link.id = id; link.rel = 'stylesheet';
-    link.href = 'https://fonts.googleapis.com/css2?family=' + family.replace(/ /g, '+') + ':wght@300;400;500;600;700&display=swap';
-    document.head.appendChild(link);
-  }
-
   function applyStorefrontFonts(fonts) {
     if (!fonts) return;
+
     var root = document.documentElement;
-    if (fonts.head && fonts.head !== 'Barlow Condensed') {
-      var headStack = FONT_STACKS[fonts.head] || ("'" + fonts.head + "', sans-serif");
-      root.style.setProperty('--font-head', headStack);
-      root.style.setProperty('--font-display', headStack);
-      root.style.setProperty('--fw', headStack);
-      loadGoogleFont(fonts.head);
+    var vars = {};
+    var urls = [];
+    var cssParts = [];
+
+    // ── New format: { roles, sections, custom } ──
+    if (fonts.roles) {
+      var roles = fonts.roles;
+
+      if (roles.head && roles.head.stack) {
+        vars['--font-head'] = roles.head.stack;
+        vars['--font-display'] = roles.head.stack;
+        vars['--fw'] = roles.head.stack;
+        if (roles.head.url) urls.push(roles.head.url);
+      }
+      if (roles.body && roles.body.stack) {
+        vars['--font-body'] = roles.body.stack;
+        vars['--fb'] = roles.body.stack;
+        if (roles.body.url) urls.push(roles.body.url);
+      }
+      if (roles.mono && roles.mono.stack) {
+        vars['--font-mono'] = roles.mono.stack;
+        vars['--fm'] = roles.mono.stack;
+        if (roles.mono.url) urls.push(roles.mono.url);
+      }
+
+      // Custom fonts
+      if (Array.isArray(fonts.custom)) {
+        fonts.custom.forEach(function(f) {
+          if (f && f.url) urls.push(f.url);
+        });
+      }
+
+      // Section overrides → CSS injection
+      if (fonts.sections) {
+        Object.keys(fonts.sections).forEach(function(sectionId) {
+          var override = fonts.sections[sectionId];
+          if (!override || !override.stack) return;
+          var sel = SECTION_SELECTORS[sectionId];
+          if (!sel) return;
+          cssParts.push(sel + '{font-family:' + override.stack + '!important}');
+          if (override.url) urls.push(override.url);
+        });
+      }
+
+    } else {
+      // ── Legacy flat format: { head: 'Name', body: 'Name', mono: 'Name' } ──
+      if (fonts.head && fonts.head !== 'Barlow Condensed') {
+        var headStack = LEGACY_FONT_STACKS[fonts.head] || ("'" + fonts.head + "', sans-serif");
+        vars['--font-head'] = headStack;
+        vars['--font-display'] = headStack;
+        vars['--fw'] = headStack;
+        var headUrl = LEGACY_FONT_URLS[fonts.head] || _buildGoogleFontUrl(fonts.head);
+        urls.push(headUrl);
+      }
+      if (fonts.body && fonts.body !== 'Barlow') {
+        var bodyStack = LEGACY_FONT_STACKS[fonts.body] || ("'" + fonts.body + "', sans-serif");
+        vars['--font-body'] = bodyStack;
+        vars['--fb'] = bodyStack;
+        var bodyUrl = LEGACY_FONT_URLS[fonts.body] || _buildGoogleFontUrl(fonts.body);
+        urls.push(bodyUrl);
+      }
+      if (fonts.mono && fonts.mono !== 'IBM Plex Mono') {
+        var monoStack = LEGACY_FONT_STACKS[fonts.mono] || ("'" + fonts.mono + "', monospace");
+        vars['--font-mono'] = monoStack;
+        vars['--fm'] = monoStack;
+        var monoUrl = LEGACY_FONT_URLS[fonts.mono] || _buildGoogleFontUrl(fonts.mono);
+        urls.push(monoUrl);
+      }
     }
-    if (fonts.body && fonts.body !== 'Barlow') {
-      var bodyStack = FONT_STACKS[fonts.body] || ("'" + fonts.body + "', sans-serif");
-      root.style.setProperty('--font-body', bodyStack);
-      root.style.setProperty('--fb', bodyStack);
-      loadGoogleFont(fonts.body);
+
+    // Apply CSS variables
+    Object.keys(vars).forEach(function(k) { root.style.setProperty(k, vars[k]); });
+
+    // Load font stylesheets (deduplicated)
+    var seen = {};
+    urls.forEach(function(u) {
+      if (!u || seen[u]) return;
+      seen[u] = true;
+      _loadFontUrl(u);
+    });
+
+    // Inject section overrides
+    var css = cssParts.join('');
+    var styleEl = document.getElementById('zw-font-overrides');
+    if (css) {
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'zw-font-overrides';
+        document.head.appendChild(styleEl);
+      }
+      styleEl.textContent = css;
+    } else if (styleEl) {
+      styleEl.textContent = '';
     }
-    if (fonts.mono && fonts.mono !== 'IBM Plex Mono') {
-      var monoStack = FONT_STACKS[fonts.mono] || ("'" + fonts.mono + "', monospace");
-      root.style.setProperty('--font-mono', monoStack);
-      root.style.setProperty('--fm', monoStack);
-      loadGoogleFont(fonts.mono);
-    }
+
+    // Save to localStorage for FOUC prevention on next load
+    try {
+      localStorage.setItem('zw_fonts', JSON.stringify({ vars: vars, urls: Object.keys(seen), css: css }));
+    } catch(_) {}
   }
 
   window.__zwApplyAdminTheme = applyThemeMode;
