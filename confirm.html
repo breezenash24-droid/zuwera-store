@@ -24,15 +24,13 @@
     --fw: var(--font-head);
     --fb: var(--font-body);
     --fm: var(--font-mono);
-    --mono: var(--font-body);
-    --head:  var(--font-head);
   }
 
   html, body {
     height: 100%;
     background: var(--black);
     color: var(--white);
-    font-family: var(--mono);
+    font-family: var(--fb);
   }
 
   body {
@@ -102,7 +100,7 @@
   }
 
   .state-title {
-    font-family: var(--head);
+    font-family: var(--fw);
     font-style: italic;
     font-size: 1.8rem;
     letter-spacing: .04em;
@@ -187,7 +185,7 @@
     border: 1px solid rgba(244,241,235,.1);
     color: var(--white);
     padding: .82rem 1rem;
-    font-family: var(--mono);
+    font-family: var(--fb);
     font-size: .9rem;
     outline: none;
     transition: border-color .2s, box-shadow .2s;

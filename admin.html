@@ -1164,6 +1164,31 @@
         .image-row .btn-upload { padding: 8px 12px; font-size: 0.85rem; white-space: nowrap; background: var(--accent); color: #000; border: none; border-radius: 6px; cursor: pointer; font-family: 'Barlow', sans-serif; }
         .image-row .btn-upload:hover { opacity: 0.9; }
         .image-preview { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); }
+
+        /* ── Typography Section ──────────────────────────────────────────── */
+        .font-role-card { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 18px; }
+        .font-role-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+        .font-role-label { font-weight: 700; font-size: .9rem; margin-bottom: 3px; }
+        .font-role-desc { font-size: .78rem; color: var(--text-secondary); line-height: 1.4; max-width: 300px; }
+        .font-select { background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary); padding: 7px 10px; border-radius: 6px; font-size: .85rem; cursor: pointer; min-width: 190px; flex-shrink: 0; }
+        .font-select:focus { outline: none; border-color: var(--accent); }
+        .font-role-sample { padding: 12px 0 0; border-top: 1px solid var(--border); }
+        /* preview panel */
+        .fp-nav { display: flex; align-items: center; justify-content: space-between; padding: .75rem 1.4rem; border-bottom: 1px solid rgba(244,241,235,.08); }
+        .fp-wordmark { font-weight: 900; font-style: italic; font-size: 1.2rem; letter-spacing: .15em; color: #f4f1eb; }
+        .fp-nav-right { display: flex; gap: 1.2rem; }
+        .fp-navlink { font-size: .58rem; letter-spacing: .2em; text-transform: uppercase; color: rgba(244,241,235,.5); }
+        .fp-hero { padding: 2rem 1.4rem; border-bottom: 1px solid rgba(244,241,235,.08); }
+        .fp-kicker { font-size: .58rem; letter-spacing: .22em; text-transform: uppercase; color: rgba(244,241,235,.38); margin-bottom: .8rem; }
+        .fp-heading { font-weight: 900; font-style: italic; font-size: 2.2rem; text-transform: uppercase; line-height: .95; letter-spacing: .02em; margin-bottom: 1rem; color: #f4f1eb; }
+        .fp-subtext { font-size: .82rem; line-height: 1.6; max-width: 320px; color: rgba(244,241,235,.5); margin-bottom: 1.2rem; }
+        .fp-cta { display: inline-block; border: 1px solid rgba(244,241,235,.8); padding: .6rem 1.4rem; font-size: .58rem; letter-spacing: .22em; text-transform: uppercase; color: #f4f1eb; }
+        .fp-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: rgba(244,241,235,.05); }
+        .fp-card { background: #09090b; padding: 1rem; }
+        .fp-card-img { background: rgba(244,241,235,.07); height: 90px; margin-bottom: .7rem; border-radius: 2px; }
+        .fp-card-name { font-weight: 700; font-style: italic; font-size: .9rem; text-transform: uppercase; letter-spacing: .03em; margin-bottom: .2rem; color: #f4f1eb; }
+        .fp-card-meta { font-size: .55rem; letter-spacing: .15em; text-transform: uppercase; color: rgba(244,241,235,.38); margin-bottom: .3rem; }
+        .fp-card-price { font-size: .7rem; letter-spacing: .06em; color: rgba(244,241,235,.55); }
     </style>
 </head>
 <body>
@@ -3871,6 +3896,127 @@
                                 <button class="btn btn-secondary" onclick="window.open(window.location.origin,'_blank')">Preview Site</button>
                             </div>
                         </div>
+
+                        <!-- Typography -->
+                        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:24px">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                                <h3 style="font-size:1.1rem;letter-spacing:.06em;">Typography</h3>
+                                <div style="display:flex;align-items:center;gap:10px">
+                                    <span id="font-undo-count" style="font-size:.75rem;color:var(--text-secondary)"></span>
+                                    <button class="btn btn-secondary btn-sm" id="fontUndoBtn" disabled onclick="undoFonts()">↩ Undo</button>
+                                </div>
+                            </div>
+                            <p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:24px;line-height:1.5">Control the typefaces used across the storefront. Each role targets a different section of the site. Changes preview live below — hit Save to apply globally.</p>
+
+                            <!-- Font role cards -->
+                            <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:28px">
+
+                                <!-- Heading -->
+                                <div class="font-role-card">
+                                    <div class="font-role-header">
+                                        <div>
+                                            <div class="font-role-label">Heading</div>
+                                            <div class="font-role-desc">Logo wordmark, hero text, product names, section titles</div>
+                                        </div>
+                                        <select class="font-select" id="font-head-select" onchange="onFontSelectChange('head',this.value)">
+                                            <option value="Barlow Condensed">Barlow Condensed</option>
+                                            <option value="Oswald">Oswald</option>
+                                            <option value="Rajdhani">Rajdhani</option>
+                                            <option value="Bebas Neue">Bebas Neue</option>
+                                            <option value="Anton">Anton</option>
+                                            <option value="League Gothic">League Gothic</option>
+                                        </select>
+                                    </div>
+                                    <div class="font-role-sample" id="font-head-sample" style="font-size:1.8rem;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.04em;line-height:1.1">FOR THOSE WHO DREAM.</div>
+                                </div>
+
+                                <!-- Body -->
+                                <div class="font-role-card">
+                                    <div class="font-role-header">
+                                        <div>
+                                            <div class="font-role-label">Body</div>
+                                            <div class="font-role-desc">Paragraphs, descriptions, form inputs, most UI text</div>
+                                        </div>
+                                        <select class="font-select" id="font-body-select" onchange="onFontSelectChange('body',this.value)">
+                                            <option value="Barlow">Barlow</option>
+                                            <option value="Inter">Inter</option>
+                                            <option value="DM Sans">DM Sans</option>
+                                            <option value="Outfit">Outfit</option>
+                                            <option value="Manrope">Manrope</option>
+                                            <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
+                                        </select>
+                                    </div>
+                                    <div class="font-role-sample" id="font-body-sample" style="font-size:.88rem;line-height:1.65;color:var(--text-secondary)">Bold athletic sportswear built for the relentless. Each piece is designed to move with you — through training, through the city, through whatever comes next.</div>
+                                </div>
+
+                                <!-- Mono / Labels -->
+                                <div class="font-role-card">
+                                    <div class="font-role-header">
+                                        <div>
+                                            <div class="font-role-label">Labels &amp; Mono</div>
+                                            <div class="font-role-desc">Nav links, announcement bar, price tags, product labels, buttons</div>
+                                        </div>
+                                        <select class="font-select" id="font-mono-select" onchange="onFontSelectChange('mono',this.value)">
+                                            <option value="IBM Plex Mono">IBM Plex Mono</option>
+                                            <option value="Space Mono">Space Mono</option>
+                                            <option value="JetBrains Mono">JetBrains Mono</option>
+                                            <option value="Courier Prime">Courier Prime</option>
+                                            <option value="Roboto Mono">Roboto Mono</option>
+                                        </select>
+                                    </div>
+                                    <div class="font-role-sample" id="font-mono-sample" style="font-size:.7rem;letter-spacing:.2em;text-transform:uppercase">RELEASE 001 · SIZE M · $89.00</div>
+                                </div>
+                            </div>
+
+                            <!-- Live site preview -->
+                            <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px">
+                                <div style="padding:9px 16px;background:var(--bg-primary);border-bottom:1px solid var(--border);font-size:.72rem;color:var(--text-secondary);letter-spacing:.1em;text-transform:uppercase">Storefront Preview</div>
+                                <div id="font-site-preview" style="background:#09090b;color:#f4f1eb">
+                                    <!-- Nav -->
+                                    <div class="fp-nav">
+                                        <span class="fp-wordmark">ZUWERA</span>
+                                        <div class="fp-nav-right">
+                                            <span class="fp-navlink">SHOP</span>
+                                            <span class="fp-navlink">DROP 001</span>
+                                            <span class="fp-navlink">BAG (2)</span>
+                                        </div>
+                                    </div>
+                                    <!-- Hero -->
+                                    <div class="fp-hero">
+                                        <div class="fp-kicker">RELEASE 001 — SEPT 2026</div>
+                                        <div class="fp-heading">FOR THOSE<br><em>WHO DREAM.</em></div>
+                                        <div class="fp-subtext">Bold athletic sportswear built for the relentless. Each piece is designed to move with you.</div>
+                                        <div class="fp-cta">EXPLORE RELEASE 001</div>
+                                    </div>
+                                    <!-- Product cards -->
+                                    <div class="fp-cards">
+                                        <div class="fp-card">
+                                            <div class="fp-card-img"></div>
+                                            <div class="fp-card-name">Shadow Crew Neck</div>
+                                            <div class="fp-card-meta">Crew Neck · S–XL</div>
+                                            <div class="fp-card-price">$89.00</div>
+                                        </div>
+                                        <div class="fp-card">
+                                            <div class="fp-card-img" style="background:rgba(244,241,235,.05)"></div>
+                                            <div class="fp-card-name">Void Jogger</div>
+                                            <div class="fp-card-meta">Jogger · XS–XXL</div>
+                                            <div class="fp-card-price">$109.00</div>
+                                        </div>
+                                        <div class="fp-card">
+                                            <div class="fp-card-img" style="background:rgba(244,241,235,.04)"></div>
+                                            <div class="fp-card-name">Obsidian Shorts</div>
+                                            <div class="fp-card-meta">Shorts · S–XL</div>
+                                            <div class="fp-card-price">$72.00</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+                                <button class="btn btn-primary" onclick="saveFonts()">Save Typography</button>
+                                <button class="btn btn-secondary btn-sm" onclick="resetFonts()">Reset to Defaults</button>
+                            </div>
+                        </div>
                     </div>
             </div>
         </div>
@@ -4846,7 +4992,7 @@
         }
 
         function navigateTo(page) {
-            if (page === 'website') setTimeout(loadWebsiteSettings, 100);
+            if (page === 'website') { setTimeout(loadWebsiteSettings, 100); setTimeout(loadFonts, 120); }
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(page).classList.add('active');
 
@@ -7971,6 +8117,142 @@
                 if (brandData.admin_res_bg) document.documentElement.style.setProperty('--admin-res-bg', brandData.admin_res_bg);
                 if (brandData.admin_res_text) document.documentElement.style.setProperty('--admin-res-text', brandData.admin_res_text);
             }
+        }
+
+        // ── TYPOGRAPHY ────────────────────────────────────────────────────
+        const FONT_DEFS = {
+            head: [
+                { name: 'Barlow Condensed', stack: "'Barlow Condensed', sans-serif", weights: 'ital,wght@0,400;0,700;0,900;1,900' },
+                { name: 'Oswald',           stack: "'Oswald', sans-serif",           weights: 'wght@400;600;700' },
+                { name: 'Rajdhani',         stack: "'Rajdhani', sans-serif",         weights: 'wght@400;600;700' },
+                { name: 'Bebas Neue',       stack: "'Bebas Neue', sans-serif",       weights: 'wght@400' },
+                { name: 'Anton',            stack: "'Anton', sans-serif",            weights: 'wght@400' },
+                { name: 'League Gothic',    stack: "'League Gothic', sans-serif",    weights: 'wght@400' },
+            ],
+            body: [
+                { name: 'Barlow',            stack: "'Barlow', sans-serif",            weights: 'wght@300;400;500;600' },
+                { name: 'Inter',             stack: "'Inter', sans-serif",             weights: 'wght@300;400;500;600' },
+                { name: 'DM Sans',           stack: "'DM Sans', sans-serif",           weights: 'opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600' },
+                { name: 'Outfit',            stack: "'Outfit', sans-serif",            weights: 'wght@300;400;500;600' },
+                { name: 'Manrope',           stack: "'Manrope', sans-serif",           weights: 'wght@300;400;500;600;700' },
+                { name: 'Plus Jakarta Sans', stack: "'Plus Jakarta Sans', sans-serif", weights: 'wght@300;400;500;600;700' },
+            ],
+            mono: [
+                { name: 'IBM Plex Mono',  stack: "'IBM Plex Mono', monospace",  weights: 'wght@300;400;500;600' },
+                { name: 'Space Mono',     stack: "'Space Mono', monospace",     weights: 'wght@400;700' },
+                { name: 'JetBrains Mono', stack: "'JetBrains Mono', monospace", weights: 'wght@300;400;500;600' },
+                { name: 'Courier Prime',  stack: "'Courier Prime', monospace",  weights: 'wght@400;700' },
+                { name: 'Roboto Mono',    stack: "'Roboto Mono', monospace",    weights: 'wght@300;400;500' },
+            ],
+        };
+        const FONT_DEFAULTS = { head: 'Barlow Condensed', body: 'Barlow', mono: 'IBM Plex Mono' };
+        let _curFonts = { ...FONT_DEFAULTS };
+        let _fontHistory = [];
+
+        function _loadGoogleFont(name, weights) {
+            const id = 'gf-' + name.replace(/\s+/g, '-').toLowerCase();
+            if (document.getElementById(id)) return;
+            const link = document.createElement('link');
+            link.id = id; link.rel = 'stylesheet';
+            link.href = 'https://fonts.googleapis.com/css2?family=' + name.replace(/ /g, '+') + ':' + weights + '&display=swap';
+            document.head.appendChild(link);
+        }
+
+        function onFontSelectChange(role, fontName) {
+            _curFonts[role] = fontName;
+            const def = FONT_DEFS[role].find(f => f.name === fontName);
+            if (def) {
+                _loadGoogleFont(fontName, def.weights);
+                document.getElementById('font-' + role + '-sample').style.fontFamily = def.stack;
+            }
+            _updateSitePreview();
+        }
+
+        function _updateSitePreview() {
+            const p = document.getElementById('font-site-preview');
+            if (!p) return;
+            const headStack = (FONT_DEFS.head.find(f => f.name === _curFonts.head) || {}).stack || _curFonts.head;
+            const bodyStack = (FONT_DEFS.body.find(f => f.name === _curFonts.body) || {}).stack || _curFonts.body;
+            const monoStack = (FONT_DEFS.mono.find(f => f.name === _curFonts.mono) || {}).stack || _curFonts.mono;
+            p.querySelector('.fp-wordmark').style.fontFamily   = headStack;
+            p.querySelectorAll('.fp-navlink').forEach(el => el.style.fontFamily = monoStack);
+            p.querySelector('.fp-kicker').style.fontFamily     = monoStack;
+            p.querySelector('.fp-heading').style.fontFamily    = headStack;
+            p.querySelector('.fp-subtext').style.fontFamily    = bodyStack;
+            p.querySelector('.fp-cta').style.fontFamily        = monoStack;
+            p.querySelectorAll('.fp-card-name').forEach(el => el.style.fontFamily = headStack);
+            p.querySelectorAll('.fp-card-meta').forEach(el => el.style.fontFamily = monoStack);
+            p.querySelectorAll('.fp-card-price').forEach(el => el.style.fontFamily = monoStack);
+        }
+
+        function _updateUndoUI() {
+            const btn = document.getElementById('fontUndoBtn');
+            const cnt = document.getElementById('font-undo-count');
+            if (!btn) return;
+            btn.disabled = _fontHistory.length === 0;
+            cnt.textContent = _fontHistory.length ? _fontHistory.length + ' undo' + (_fontHistory.length > 1 ? 's' : '') + ' available' : '';
+        }
+
+        async function saveFonts() {
+            _fontHistory.push({ ..._curFonts });
+            if (_fontHistory.length > 20) _fontHistory.shift();
+            _updateUndoUI();
+            const { error } = await sb.from('site_settings').upsert(
+                { key: 'fonts', value: { ..._curFonts }, updated_at: new Date().toISOString() },
+                { onConflict: 'key' }
+            );
+            if (error) { showToast('Error saving typography', 'error'); return; }
+            await logAdminAudit('settings.update', 'site_settings', 'fonts', _curFonts);
+            showToast('Typography saved!', 'success');
+        }
+
+        function undoFonts() {
+            if (!_fontHistory.length) return;
+            const prev = _fontHistory.pop();
+            _curFonts = { ...prev };
+            ['head', 'body', 'mono'].forEach(role => {
+                const sel = document.getElementById('font-' + role + '-select');
+                if (sel) sel.value = _curFonts[role];
+                onFontSelectChange(role, _curFonts[role]);
+            });
+            _updateUndoUI();
+            showToast('Typography reverted', 'info');
+        }
+
+        function resetFonts() {
+            _fontHistory.push({ ..._curFonts });
+            if (_fontHistory.length > 20) _fontHistory.shift();
+            _curFonts = { ...FONT_DEFAULTS };
+            ['head', 'body', 'mono'].forEach(role => {
+                const sel = document.getElementById('font-' + role + '-select');
+                if (sel) sel.value = FONT_DEFAULTS[role];
+                onFontSelectChange(role, FONT_DEFAULTS[role]);
+            });
+            _updateUndoUI();
+            showToast('Reset to default fonts', 'info');
+        }
+
+        async function loadFonts() {
+            try {
+                const { data } = await sb.from('site_settings').select('value').eq('key', 'fonts').maybeSingle();
+                if (data && data.value) {
+                    _curFonts = {
+                        head: data.value.head || FONT_DEFAULTS.head,
+                        body: data.value.body || FONT_DEFAULTS.body,
+                        mono: data.value.mono || FONT_DEFAULTS.mono,
+                    };
+                } else {
+                    _curFonts = { ...FONT_DEFAULTS };
+                }
+            } catch (_) {
+                _curFonts = { ...FONT_DEFAULTS };
+            }
+            ['head', 'body', 'mono'].forEach(role => {
+                const sel = document.getElementById('font-' + role + '-select');
+                if (sel) sel.value = _curFonts[role];
+                onFontSelectChange(role, _curFonts[role]);
+            });
+            _updateUndoUI();
         }
 
         async function saveHeroSettings() {

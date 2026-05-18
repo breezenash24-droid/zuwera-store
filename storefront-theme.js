@@ -16,6 +16,59 @@
     window.dispatchEvent(new CustomEvent('zw-theme-applied', { detail: { mode: resolved } }));
   }
 
+  var FONT_STACKS = {
+    'Barlow Condensed': "'Barlow Condensed', sans-serif",
+    'Oswald':           "'Oswald', sans-serif",
+    'Rajdhani':         "'Rajdhani', sans-serif",
+    'Bebas Neue':       "'Bebas Neue', sans-serif",
+    'Anton':            "'Anton', sans-serif",
+    'League Gothic':    "'League Gothic', sans-serif",
+    'Barlow':           "'Barlow', sans-serif",
+    'Inter':            "'Inter', sans-serif",
+    'DM Sans':          "'DM Sans', sans-serif",
+    'Outfit':           "'Outfit', sans-serif",
+    'Manrope':          "'Manrope', sans-serif",
+    'Plus Jakarta Sans':"'Plus Jakarta Sans', sans-serif",
+    'IBM Plex Mono':    "'IBM Plex Mono', monospace",
+    'Space Mono':       "'Space Mono', monospace",
+    'JetBrains Mono':   "'JetBrains Mono', monospace",
+    'Courier Prime':    "'Courier Prime', monospace",
+    'Roboto Mono':      "'Roboto Mono', monospace",
+  };
+
+  function loadGoogleFont(family) {
+    var id = 'gf-' + family.replace(/\s+/g, '-').toLowerCase();
+    if (document.getElementById(id)) return;
+    var link = document.createElement('link');
+    link.id = id; link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=' + family.replace(/ /g, '+') + ':wght@300;400;500;600;700&display=swap';
+    document.head.appendChild(link);
+  }
+
+  function applyStorefrontFonts(fonts) {
+    if (!fonts) return;
+    var root = document.documentElement;
+    if (fonts.head && fonts.head !== 'Barlow Condensed') {
+      var headStack = FONT_STACKS[fonts.head] || ("'" + fonts.head + "', sans-serif");
+      root.style.setProperty('--font-head', headStack);
+      root.style.setProperty('--font-display', headStack);
+      root.style.setProperty('--fw', headStack);
+      loadGoogleFont(fonts.head);
+    }
+    if (fonts.body && fonts.body !== 'Barlow') {
+      var bodyStack = FONT_STACKS[fonts.body] || ("'" + fonts.body + "', sans-serif");
+      root.style.setProperty('--font-body', bodyStack);
+      root.style.setProperty('--fb', bodyStack);
+      loadGoogleFont(fonts.body);
+    }
+    if (fonts.mono && fonts.mono !== 'IBM Plex Mono') {
+      var monoStack = FONT_STACKS[fonts.mono] || ("'" + fonts.mono + "', monospace");
+      root.style.setProperty('--font-mono', monoStack);
+      root.style.setProperty('--fm', monoStack);
+      loadGoogleFont(fonts.mono);
+    }
+  }
+
   window.__zwApplyAdminTheme = applyThemeMode;
   window.__zwSyncThemeColor = function() {
     applyThemeMode(document.body && document.body.classList.contains('light-mode') ? 'light' : 'dark');
@@ -26,7 +79,7 @@
       var controller = new AbortController();
       var timeoutId = setTimeout(function() { controller.abort(); }, 5000);
       var response = await fetch(
-        SUPABASE_URL + '/rest/v1/site_settings?key=in.(theme,brand)&select=key,value',
+        SUPABASE_URL + '/rest/v1/site_settings?key=in.(theme,brand,fonts)&select=key,value',
         {
           cache: 'no-store',
           signal: controller.signal,
@@ -50,6 +103,9 @@
           if (faviconUrl && window.__zwApplyFavicon) {
             window.__zwApplyFavicon(faviconUrl);
           }
+        }
+        if (row.key === 'fonts') {
+          applyStorefrontFonts(row.value);
         }
       });
     } catch (_) {
