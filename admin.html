@@ -2192,6 +2192,9 @@
                             <tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Open this page after creating the audit table in Supabase.</td></tr>
                         </tbody>
                     </table>
+                    <div style="text-align:center;margin-top:16px;">
+                        <button id="auditLoadMoreBtn" class="btn btn-secondary" style="display:none;">Load more</button>
+                    </div>
                 </div>
 
                 <!-- Products Page -->
@@ -5839,39 +5842,65 @@
             }
         }
 
-        async function loadAuditLog() {
+        const AUDIT_PAGE_SIZE = 50;
+        let _auditOffset = 0;
+        let _auditTotalLoaded = 0;
+
+        function _renderAuditRows(rows, append) {
+            const tbody = document.getElementById('auditTableBody');
+            if (!tbody) return;
+            const html = rows.map(row => `
+                <tr>
+                    <td style="white-space:nowrap;">${escapeHtml(new Date(row.created_at).toLocaleString())}</td>
+                    <td>${escapeHtml(row.admin_email || 'Unknown')}</td>
+                    <td><strong>${escapeHtml(row.action || '')}</strong></td>
+                    <td>${escapeHtml(row.resource_type || '')}${row.resource_id ? `<br><span style="color:var(--text-secondary);font-size:.75rem;">${escapeHtml(row.resource_id)}</span>` : ''}</td>
+                    <td style="max-width:360px;white-space:normal;">${formatAuditDetails(row.metadata)}</td>
+                </tr>
+            `).join('');
+            if (append) {
+                tbody.insertAdjacentHTML('beforeend', html);
+            } else {
+                tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">No audit events yet.</td></tr>';
+            }
+        }
+
+        async function loadAuditLog(append = false) {
             const tbody = document.getElementById('auditTableBody');
             const status = document.getElementById('auditStatus');
+            const loadMoreBtn = document.getElementById('auditLoadMoreBtn');
             if (!tbody) return;
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Loading audit events...</td></tr>';
+            if (!append) {
+                _auditOffset = 0;
+                _auditTotalLoaded = 0;
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Loading audit events...</td></tr>';
+                if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+            }
             if (status) status.textContent = '';
             try {
                 const { data, error } = await sb
                     .from('admin_audit_log')
                     .select('created_at,admin_email,action,resource_type,resource_id,metadata')
                     .order('created_at', { ascending: false })
-                    .limit(100);
+                    .range(_auditOffset, _auditOffset + AUDIT_PAGE_SIZE - 1);
                 if (error) throw error;
                 const rows = data || [];
-                if (status) status.textContent = rows.length ? `Showing latest ${rows.length} admin events.` : 'No audit events yet.';
-                tbody.innerHTML = rows.length ? rows.map(row => `
-                    <tr>
-                        <td style="white-space:nowrap;">${escapeHtml(new Date(row.created_at).toLocaleString())}</td>
-                        <td>${escapeHtml(row.admin_email || 'Unknown')}</td>
-                        <td><strong>${escapeHtml(row.action || '')}</strong></td>
-                        <td>${escapeHtml(row.resource_type || '')}${row.resource_id ? `<br><span style="color:var(--text-secondary);font-size:.75rem;">${escapeHtml(row.resource_id)}</span>` : ''}</td>
-                        <td style="max-width:360px;white-space:normal;">${formatAuditDetails(row.metadata)}</td>
-                    </tr>
-                `).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">No audit events yet.</td></tr>';
+                _auditTotalLoaded += rows.length;
+                _auditOffset += rows.length;
+                _renderAuditRows(rows, append);
+                const hasMore = rows.length === AUDIT_PAGE_SIZE;
+                if (loadMoreBtn) loadMoreBtn.style.display = hasMore ? 'inline-block' : 'none';
+                if (status) status.textContent = _auditTotalLoaded ? `Showing ${_auditTotalLoaded} events${hasMore ? ' — more available' : ''}.` : 'No audit events yet.';
             } catch (error) {
                 auditTableReady = false;
                 if (status) status.textContent = 'Audit table is not available yet. Run supabase-admin-audit-log.sql in Supabase, then refresh.';
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Audit log table not found or policy not configured.</td></tr>';
+                if (!append) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Audit log table not found or policy not configured.</td></tr>';
                 console.warn('Audit log load failed:', error);
             }
         }
 
-        document.getElementById('refreshAuditBtn')?.addEventListener('click', loadAuditLog);
+        document.getElementById('refreshAuditBtn')?.addEventListener('click', () => loadAuditLog(false));
+        document.getElementById('auditLoadMoreBtn')?.addEventListener('click', () => loadAuditLog(true));
 
         // Reviews
         async function loadAdminReviews() {

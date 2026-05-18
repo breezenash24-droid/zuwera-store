@@ -82,6 +82,8 @@ if (_sb) {
       const expectedUserId = _currentUser.id;
       setTimeout(async () => {
         try {
+          // Bail if the session already changed between the listener firing and now
+          if (!_currentUser || _currentUser.id !== expectedUserId) return;
           const { data, error } = await _sb.auth.getUser();
           // Only sign out if we definitively confirm a DIFFERENT user — never on errors
           if (!error && data?.user && data.user.id !== expectedUserId) {
@@ -144,9 +146,10 @@ function openAuthModal(tab) {
   _openModal('auth-modal');
   switchAuthTab(tab || 'signin');
 }
+const _ALLOWED_RETURN_MODALS = new Set(['cart-modal', 'payment-modal']);
 function closeAuthModal() {
   _closeModal('auth-modal');
-  if (_authReturnModalId) {
+  if (_authReturnModalId && _ALLOWED_RETURN_MODALS.has(_authReturnModalId)) {
     const returnModal = document.getElementById(_authReturnModalId);
     const returnId = _authReturnModalId;
     _authReturnModalId = null;
@@ -158,6 +161,8 @@ function closeAuthModal() {
         if (typeof renderCart === 'function') renderCart();
       }
     }
+  } else {
+    _authReturnModalId = null;
   }
 }
 function switchAuthTab(tab) {

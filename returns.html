@@ -732,10 +732,11 @@ function buildProgressSteps(resolution, currentStep) {
 function buildLabelPanel(r) {
   if (!r.labelUrl && !r.trackingNumber) return '';
   const carrierLine = [r.carrier, r.service].filter(Boolean).join(' — ');
+  const safeLabelUrl = r.labelUrl && /^https?:\/\//i.test(r.labelUrl) ? r.labelUrl : null;
   return `<div class="ret-label-panel">
-    ${r.labelUrl ? `<div class="ret-label-row">
+    ${safeLabelUrl ? `<div class="ret-label-row">
       <span class="ret-label-key">Return Label</span>
-      <a href="${esc(r.labelUrl)}" target="_blank" rel="noopener" class="btn-label" style="padding:.5rem 1rem;">
+      <a href="${esc(safeLabelUrl)}" target="_blank" rel="noopener" class="btn-label" style="padding:.5rem 1rem;">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Download PDF
       </a>
@@ -841,7 +842,8 @@ const state = {
   selectedResolution: null,
   selectedReason: null,
   exchangeSize: '',
-  notes: '',
+  otherNotes: '',
+  extraNotes: '',
   submitting: false,
 };
 
@@ -874,7 +876,7 @@ function updateNextBtn() {
   let enabled = false;
   if (state.step === 1) enabled = !!state.selectedOrderId;
   if (state.step === 2) enabled = !!state.selectedResolution;
-  if (state.step === 3) enabled = !!(state.selectedReason && (state.selectedReason !== 'Other' || state.notes.trim()));
+  if (state.step === 3) enabled = !!(state.selectedReason && (state.selectedReason !== 'Other' || state.otherNotes.trim()));
   btn.disabled = !enabled;
 }
 
@@ -904,8 +906,9 @@ function buildStep4Review() {
   const exchangeSizeRow = (state.selectedResolution === 'exchange' && state.exchangeSize)
     ? `<div class="review-row"><div class="review-label">Exchange for</div><div class="review-value">${esc(state.exchangeSize)}</div></div>`
     : '';
-  const notesRow = state.notes.trim()
-    ? `<div class="review-row"><div class="review-label">Notes</div><div class="review-value">${esc(state.notes)}</div></div>`
+  const combinedNotes = [state.otherNotes, state.extraNotes].filter(s => s && s.trim()).map(s => s.trim()).join(' — ');
+  const notesRow = combinedNotes
+    ? `<div class="review-row"><div class="review-label">Notes</div><div class="review-value">${esc(combinedNotes)}</div></div>`
     : '';
 
   document.querySelector('.step[data-step="4"]').innerHTML = `
@@ -963,9 +966,9 @@ async function handleSubmit() {
   if (btn) btn.disabled = true;
   if (statusEl) { statusEl.textContent = 'Submitting…'; statusEl.className = 'submit-status'; }
 
-  const reason = state.selectedReason === 'Other' && state.notes.trim()
-    ? state.notes.trim()
-    : state.selectedReason + (state.notes.trim() ? ' — ' + state.notes.trim() : '');
+  const reason = state.selectedReason === 'Other' && state.otherNotes.trim()
+    ? state.otherNotes.trim()
+    : state.selectedReason + (state.extraNotes.trim() ? ' — ' + state.extraNotes.trim() : '');
 
   const exchangeNote = (state.selectedResolution === 'exchange' && state.exchangeSize)
     ? '\nExchange for: ' + state.exchangeSize
@@ -1102,11 +1105,11 @@ function renderWizard(orders) {
         </div>
         <div class="step3-field" id="other-notes-field" style="display:none">
           <label>Tell us more</label>
-          <textarea id="other-notes" rows="3" placeholder="Describe your reason…" oninput="state.notes=this.value;updateNextBtn()"></textarea>
+          <textarea id="other-notes" rows="3" placeholder="Describe your reason…" oninput="state.otherNotes=this.value;updateNextBtn()"></textarea>
         </div>
         <div class="step3-field" style="display:block">
           <label>Additional notes (optional)</label>
-          <textarea id="extra-notes" rows="2" placeholder="Anything else we should know…" oninput="state.notes=this.value"></textarea>
+          <textarea id="extra-notes" rows="2" placeholder="Anything else we should know…" oninput="state.extraNotes=this.value"></textarea>
         </div>
         <div class="step3-field" id="exchange-size-field" style="display:none">
           <label>What size or item would you like instead?</label>
@@ -1165,7 +1168,7 @@ window.selectReason = function(el) {
   const extraField = document.querySelector('.step3-field:not(#other-notes-field):not(#exchange-size-field)');
   if (otherField) otherField.style.display = isOther ? 'flex' : 'none';
   if (extraField) extraField.style.display = isOther ? 'none' : 'flex';
-  if (isOther) { state.notes = ''; document.getElementById('other-notes').value = ''; }
+  if (isOther) { state.otherNotes = ''; document.getElementById('other-notes').value = ''; }
   updateNextBtn();
 };
 

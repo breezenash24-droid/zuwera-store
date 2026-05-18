@@ -367,27 +367,27 @@
 
     <!-- ORDERS -->
     <div class="acct-panel active" id="panel-orders">
-      <div class="zw-loading" id="orders-loading">Loading your orders…</div>
+      <div class="zw-loading" id="orders-loading" role="status" aria-live="polite">Loading your orders…</div>
       <div id="orders-empty" class="zw-empty" style="display:none">No orders yet. <a href="/drop001.html" style="text-decoration:underline;opacity:.6">Browse Release 001</a></div>
       <div id="orders-list"></div>
     </div>
 
     <!-- SAVED ITEMS -->
     <div class="acct-panel" id="panel-saved">
-      <div class="zw-loading" id="saved-loading">Loading saved items…</div>
+      <div class="zw-loading" id="saved-loading" role="status" aria-live="polite">Loading saved items…</div>
       <div id="saved-empty" class="zw-empty" style="display:none">No saved items yet.</div>
       <div id="saved-list"></div>
     </div>
 
     <!-- RETURNS -->
     <div class="acct-panel" id="panel-returns">
-      <div class="zw-loading" id="returns-loading">Loading returns portal…</div>
+      <div class="zw-loading" id="returns-loading" role="status" aria-live="polite">Loading returns portal…</div>
       <div id="returns-content"></div>
     </div>
 
     <!-- PROFILE -->
     <div class="acct-panel" id="panel-profile">
-      <div class="zw-loading" id="profile-loading">Loading your profile…</div>
+      <div class="zw-loading" id="profile-loading" role="status" aria-live="polite">Loading your profile…</div>
       <div id="profile-content"></div>
     </div>
 
@@ -516,7 +516,11 @@ async function loadOrders() {
   if (!list || list.dataset.loaded) return;
   if (loading) loading.style.display = 'block';
   try {
-    if (!_session) return;
+    if (!_session) {
+      if (loading) loading.style.display = 'none';
+      if (empty) empty.style.display = 'block';
+      return;
+    }
     // Use the hub API (service-role key) so RLS never blocks the query
     if (!_hubPayload) _hubPayload = await fetchHub();
     const data = _hubPayload?.orders || [];

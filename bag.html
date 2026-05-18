@@ -705,13 +705,21 @@ document.getElementById('checkout-btn').addEventListener('click', () => {
 document.addEventListener('DOMContentLoaded', function() {
   renderCart();
 
-  // Load shipping policy from commerce config
-  fetch('/api/commerce-config').then(r => r.json()).then(d => {
-    if (d?.config?.shippingPolicy) {
-      window._shippingPolicy = d.config.shippingPolicy;
+  // Load shipping policy from commerce config (cached so re-renders don't re-fetch)
+  if (window._commerceConfigCache) {
+    if (window._commerceConfigCache.shippingPolicy) {
+      window._shippingPolicy = window._commerceConfigCache.shippingPolicy;
       renderCart();
     }
-  }).catch(() => {});
+  } else {
+    fetch('/api/commerce-config').then(r => r.json()).then(d => {
+      window._commerceConfigCache = d?.config || {};
+      if (window._commerceConfigCache.shippingPolicy) {
+        window._shippingPolicy = window._commerceConfigCache.shippingPolicy;
+        renderCart();
+      }
+    }).catch(() => {});
+  }
 
   // After checkout.js attaches its success listener, we add localStorage clear
   const successBtn = document.getElementById('success-continue');

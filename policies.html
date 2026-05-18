@@ -670,10 +670,8 @@
 
     function attachFaqListeners() {
       document.querySelectorAll('.faq-question').forEach(q => {
-        const newQ = q.cloneNode(true);
-        q.parentNode.replaceChild(newQ, q);
-        newQ.addEventListener('click', () => {
-          const item = newQ.closest('.faq-item');
+        q.addEventListener('click', () => {
+          const item = q.closest('.faq-item');
           const wasOpen = item.classList.contains('open');
           document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
           if (!wasOpen) item.classList.add('open');
