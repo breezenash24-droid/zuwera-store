@@ -887,6 +887,7 @@ footer{
 .pcard-skel-img{width:100%;height:100%;background:rgba(244,241,235,.08);animation:skeletonPulse 1.5s ease infinite}
 .pcard-skel-line{background:rgba(244,241,235,.08);border-radius:2px;animation:skeletonPulse 1.5s ease infinite}
 body.light-mode .pcard-skel-img,body.light-mode .pcard-skel-line{background:rgba(9,9,11,.07)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
 /* ── Bag count pop ── */
 @keyframes ccPop{0%{transform:scale(1)}40%{transform:scale(1.6)}70%{transform:scale(.92)}100%{transform:scale(1)}}
@@ -2326,15 +2327,22 @@ body.light-mode::after{opacity:0.15}
 <script>
 console.log('[ZUWERA] build: 2026-05-14-v2 | supabase-timeout fix');
 /* TOAST */
+let _toastTimer = null;
 function showToast(msg) {
   const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('on');
-  setTimeout(() => t.classList.remove('on'), 2600);
+  t.textContent = msg;
+  clearTimeout(_toastTimer);
+  t.classList.add('on');
+  _toastTimer = setTimeout(() => t.classList.remove('on'), 2600);
 }
 
 /* NAV SCROLL */
 const nav = document.getElementById('nav');
-window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 50), { passive: true });
+let _navScrolled = false;
+window.addEventListener('scroll', () => {
+  const s = window.scrollY > 50;
+  if (s !== _navScrolled) { _navScrolled = s; nav.classList.toggle('scrolled', s); }
+}, { passive: true });
 
 /* BAR — syncNavOffset keeps bar/nav positions aligned on load and resize */
 (function() {
@@ -2546,11 +2554,11 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
         const h = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
         if (h.kicker) {
             const el = document.querySelector('.hero-kicker');
-            if (el) el.innerHTML = h.kicker;
+            if (el) el.textContent = h.kicker;
           }
           if (h.heading) {
             const el = document.querySelector('.hero-h1');
-            if (el) el.innerHTML = h.heading;
+            if (el) el.textContent = h.heading;
           }
           if (h.subtext) {
             const el = document.querySelector('.hero-sub');
@@ -2558,7 +2566,11 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
           }
           if (h.cta_text) {
             const el = document.querySelector('.hero-cta-row .btn-outline');
-            if (el) el.innerHTML = h.cta_text + '\n        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+            if (el) {
+              const svg = el.querySelector('svg');
+              el.textContent = h.cta_text;
+              if (svg) el.appendChild(svg);
+            }
           }
           if (h.image) {
             const el = document.getElementById('hero-image');
@@ -2850,8 +2862,9 @@ async function loadAllCardReviewSummaries(cardMap) {
       const avgEl = document.getElementById(`avg-${domId}`);
       const cntEl = document.getElementById(`cnt-${domId}`);
       if (avgEl) avgEl.innerHTML =
-        `<span style="color:#F891A5">${'\u2605'.repeat(full)}</span>` +
-        `<span style="color:rgba(244,241,235,.15)">${'\u2605'.repeat(5 - full)}</span>`;
+        `<span style="color:#F891A5" aria-hidden="true">${'\u2605'.repeat(full)}</span>` +
+        `<span style="color:rgba(244,241,235,.15)" aria-hidden="true">${'\u2605'.repeat(5 - full)}</span>` +
+        `<span class="sr-only">${avg.toFixed(1)} out of 5 stars</span>`;
       if (cntEl) cntEl.textContent =
         `${ratings.length} review${ratings.length !== 1 ? 's' : ''} \u00B7 ${avg.toFixed(1)}`;
     });
@@ -3275,7 +3288,8 @@ function renderAcctFavs() {
   const list = document.getElementById('acct-favs-list');
   if(!_favs.length){ empty.style.display = 'block'; list.innerHTML=''; return; }
   empty.style.display = 'none';
-  list.innerHTML = _favs.map(f => `<div style="display:flex;align-items:center;justify-content:space-between;padding:.7rem 0;border-bottom:1px solid rgba(244,241,235,.07);font-family:var(--fm);font-size:.72rem"><span>${f.product_name}</span><button onclick="removeFav('${f.product_id}',null)" style="background:none;border:none;color:rgba(244,241,235,.3);font-size:1rem">&times;</button></div>`).join('');
+  list.innerHTML = _favs.map(f => `<div style="display:flex;align-items:center;justify-content:space-between;padding:.7rem 0;border-bottom:1px solid rgba(244,241,235,.07);font-family:var(--fm);font-size:.72rem"><span>${escapeHomeFavoriteHtml(f.product_name)}</span><button data-fav-id="${escapeHomeFavoriteHtml(f.product_id)}" style="background:none;border:none;color:rgba(244,241,235,.3);font-size:1rem;cursor:pointer" aria-label="Remove saved item">&times;</button></div>`).join('');
+  list.querySelectorAll('[data-fav-id]').forEach(btn => btn.addEventListener('click', () => removeFav(btn.dataset.favId, null)));
 }
 
 /* FAVORITES */
@@ -3473,7 +3487,7 @@ function homeFavoriteCardHtml(favorite, detail, mode) {
     ? `<div style="font-size:.68rem;color:rgba(244,241,235,.52);margin-top:.35rem;letter-spacing:.04em;">${escapeHomeFavoriteHtml(colorName)}</div>`
     : '';
   const imageHtml = detail?.image
-    ? `<img src="${typeof window.optimizeImage === 'function' ? window.optimizeImage(detail.image, 180) : detail.image}" alt="${escapeHomeFavoriteHtml(name)}" style="width:68px;height:86px;object-fit:cover;border:1px solid rgba(244,241,235,.08);flex-shrink:0;" onerror="if(this.src !== '${detail.image}') this.src='${detail.image}';">`
+    ? `<img src="${typeof window.optimizeImage === 'function' ? window.optimizeImage(detail.image, 180) : escapeHomeFavoriteHtml(detail.image)}" alt="${escapeHomeFavoriteHtml(name)}" loading="lazy" style="width:68px;height:86px;object-fit:cover;border:1px solid rgba(244,241,235,.08);flex-shrink:0;" data-fallback="${escapeHomeFavoriteHtml(detail.image)}" onerror="var f=this.dataset.fallback;if(f&&this.src!==f)this.src=f;">`
     : `<div style="width:68px;height:86px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(244,241,235,.08);color:rgba(244,241,235,.28);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;flex-shrink:0;">No Image</div>`;
   const displayPrice = getHomeFavoritePrice(detail, favorite.price);
   const priceHtml = displayPrice > 0
@@ -3663,13 +3677,20 @@ async function refreshCartFavs() {
   if(empty) empty.style.display='none';
   // Snapshot current favs before async work starts
   const snapshot = [..._favs];
-  const pairs = await Promise.all(snapshot.map(async (fav) => ({
-    fav,
-    detail: await getHomeFavoriteDetail(fav.product_id, fav)
-  })));
-  // If a newer render started while we were fetching, discard this result
-  if (myVer !== _cartFavRenderVer) return;
-  if (list) list.innerHTML = pairs.map(({ fav, detail }) => homeFavoriteCardHtml(fav, detail, 'cart')).join('');
+  try {
+    const pairs = await Promise.all(snapshot.map(async (fav) => ({
+      fav,
+      detail: await getHomeFavoriteDetail(fav.product_id, fav)
+    })));
+    // If a newer render started while we were fetching, discard this result
+    if (myVer !== _cartFavRenderVer) return;
+    if (list) list.innerHTML = pairs.map(({ fav, detail }) => homeFavoriteCardHtml(fav, detail, 'cart')).join('');
+  } catch(e) {
+    console.error('refreshCartFavs failed:', e);
+    if (myVer === _cartFavRenderVer && list) {
+      list.innerHTML = '<div style="padding:1rem;text-align:center;opacity:.4;font-family:var(--fm);font-size:.7rem;">Could not load saved items.</div>';
+    }
+  }
 }
 
 async function toggleFav(btn) {
@@ -3730,18 +3751,18 @@ function renderCart() {
   emptyMsg.style.display = 'none';
   list.innerHTML = cart.map((item, idx) => `
     <li style="display:flex;gap:1rem;align-items:flex-start">
-      <img src="${typeof window.optimizeImage === 'function' ? window.optimizeImage(item.image, 150) : item.image}" alt="${item.title}" style="width:60px;height:75px;object-fit:cover;border:1px solid rgba(244,241,235,.08)" onerror="if(this.src !== '${item.image}') this.src='${item.image}';">
+      <img src="${typeof window.optimizeImage === 'function' ? window.optimizeImage(item.image, 150) : escapeHomeFavoriteHtml(item.image)}" alt="${escapeHomeFavoriteHtml(item.title)}" loading="lazy" style="width:60px;height:75px;object-fit:cover;border:1px solid rgba(244,241,235,.08)" data-fallback="${escapeHomeFavoriteHtml(item.image)}" onerror="var f=this.dataset.fallback;if(f&&this.src!==f)this.src=f;">
       <div style="flex:1">
-        <div style="font-family:var(--fw);font-style:italic;font-weight:700;font-size:1.1rem">${item.title}</div>
-        <div style="font-family:var(--fm);font-size:.65rem;color:rgba(244,241,235,.4);margin-top:.2rem;text-transform:uppercase">${item.colorName} / ${item.size}</div>
+        <div style="font-family:var(--fw);font-style:italic;font-weight:700;font-size:1.1rem">${escapeHomeFavoriteHtml(item.title)}</div>
+        <div style="font-family:var(--fm);font-size:.65rem;color:rgba(244,241,235,.4);margin-top:.2rem;text-transform:uppercase">${escapeHomeFavoriteHtml(item.colorName)} / ${escapeHomeFavoriteHtml(item.size)}</div>
         <div style="font-size:.85rem;margin-top:.4rem;display:flex;align-items:center;gap:8px">
-          <button onclick="updateCartQuantity(${idx}, -1)" style="background:none;border:1px solid rgba(244,241,235,.3);color:inherit;width:20px;height:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:2px;font-size:.9rem;line-height:1">-</button>
+          <button aria-label="Decrease quantity" onclick="updateCartQuantity(${idx}, -1)" style="background:none;border:1px solid rgba(244,241,235,.3);color:inherit;width:20px;height:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:2px;font-size:.9rem;line-height:1">-</button>
           <span>${item.quantity}</span>
-          <button onclick="updateCartQuantity(${idx}, 1)" style="background:none;border:1px solid rgba(244,241,235,.3);color:inherit;width:20px;height:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:2px;font-size:.9rem;line-height:1">+</button>
+          <button aria-label="Increase quantity" onclick="updateCartQuantity(${idx}, 1)" style="background:none;border:1px solid rgba(244,241,235,.3);color:inherit;width:20px;height:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:2px;font-size:.9rem;line-height:1">+</button>
         </div>
         <div style="font-size:.85rem;margin-top:.4rem">$${(parseFloat(item.price) * item.quantity).toFixed(2)}</div>
       </div>
-      <button onclick="removeCartItem(${idx})" style="background:none;border:none;color:rgba(244,241,235,.3);cursor:pointer;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase">Remove</button>
+      <button aria-label="Remove item from cart" onclick="removeCartItem(${idx})" style="background:none;border:none;color:rgba(244,241,235,.3);cursor:pointer;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase">Remove</button>
     </li>
   `).join('');
   const subtotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
@@ -4730,13 +4751,17 @@ function maybeLoadRates() {
       d.rates.slice(0,5).forEach((rate, i) => {
         const el = document.createElement('div');
         el.className = 'rate-opt' + (i===0?' selected':'');
-        el.innerHTML = `<span class="rate-name">${rate.provider} ${rate.servicelevel}</span><span class="rate-meta">${rate.days?rate.days+' business days':''}</span><span class="rate-price">$${parseFloat(rate.amount).toFixed(2)}</span>`;
+        el.innerHTML = `<span class="rate-name">${escapeHomeFavoriteHtml(rate.provider)} ${escapeHomeFavoriteHtml(rate.servicelevel)}</span><span class="rate-meta">${rate.days ? escapeHomeFavoriteHtml(String(rate.days)) + ' business days' : ''}</span><span class="rate-price">$${parseFloat(rate.amount).toFixed(2)}</span>`;
         el.addEventListener('click', () => { document.querySelectorAll('.rate-opt').forEach(x => x.classList.remove('selected')); el.classList.add('selected'); selRate=rate; updateShip(rate.amount); });
         list.appendChild(el);
       });
       selRate = d.rates[0]; updateShip(d.rates[0].amount);
       document.getElementById('shipping-rates-field').style.display = 'block';
-    } catch(e){ document.getElementById('shipping-rates-loading').style.display='none'; }
+    } catch(e) {
+      document.getElementById('shipping-rates-loading').style.display = 'none';
+      const ratesList = document.getElementById('shipping-rates-list');
+      if (ratesList) ratesList.innerHTML = '<div style="padding:.8rem;text-align:center;color:rgba(244,241,235,.4);font-size:.8rem;">Could not load shipping options. Please check your address and try again.</div>';
+    }
   }, 600);
 }
 function updateShip(amount) {
