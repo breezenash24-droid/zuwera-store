@@ -9,6 +9,10 @@
   Permissions-Policy: payment=(*)
 
 # Allow analytics.html to be embedded as an iframe within the same site (admin dashboard)
+# Both rules needed — CF Pages serves analytics.html at /analytics (pretty URL) too
+/analytics
+  X-Frame-Options: SAMEORIGIN
+
 /analytics.html
   X-Frame-Options: SAMEORIGIN
 
