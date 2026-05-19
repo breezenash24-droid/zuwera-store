@@ -1051,6 +1051,23 @@ function updateCountdown() {
         }
 
         const isActive = collectionFavoriteIds.has(productId);
+
+        // Optimistic visual update — fires before DB round-trip
+        if (!isActive) {
+          collectionFavoriteIds.add(productId);
+          applyHeartFill(btn, true);
+          const svgEl = btn.querySelector('svg');
+          if (svgEl && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            svgEl.animate(
+              [{ transform: 'scale(1)' }, { transform: 'scale(1.6)' }, { transform: 'scale(0.85)' }, { transform: 'scale(1)' }],
+              { duration: 360, easing: 'cubic-bezier(.36,.07,.19,.97)' }
+            );
+          }
+        } else {
+          collectionFavoriteIds.delete(productId);
+          applyHeartFill(btn, false);
+        }
+
         btn.disabled = true;
         try {
           if (isActive) {
@@ -1060,7 +1077,6 @@ function updateCountdown() {
               .eq('user_id', collectionUser.id)
               .eq('product_id', productId);
             if (error) throw error;
-            collectionFavoriteIds.delete(productId);
             if (typeof showToast === 'function') showToast('Removed from saved.');
           } else {
             const { error } = await sb.from('favorites').upsert({
@@ -1071,19 +1087,13 @@ function updateCountdown() {
               product_image: btn.dataset.productImage || '',
             });
             if (error) throw error;
-            collectionFavoriteIds.add(productId);
-            const svgEl = btn.querySelector('svg');
-            if (svgEl && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-              svgEl.animate(
-                [{ transform: 'scale(1)' }, { transform: 'scale(1.6)' }, { transform: 'scale(0.85)' }, { transform: 'scale(1)' }],
-                { duration: 360, easing: 'cubic-bezier(.36,.07,.19,.97)' }
-              );
-            }
             if (typeof showToast === 'function') showToast('Saved!');
           }
-          refreshCollectionFavoriteButtons();
           collectionToast(isActive ? 'Removed from favorites.' : 'Saved to favorites.');
         } catch (error) {
+          // Revert optimistic update on failure
+          if (!isActive) { collectionFavoriteIds.delete(productId); applyHeartFill(btn, false); }
+          else { collectionFavoriteIds.add(productId); applyHeartFill(btn, true); }
           console.warn('Collection favorite toggle failed:', error.message || error);
           collectionToast('Could not update saved items.');
         } finally {

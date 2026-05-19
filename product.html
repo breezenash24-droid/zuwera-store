@@ -1968,12 +1968,28 @@ document.getElementById('saveProductBtn')?.addEventListener('click', async funct
   const pid = this.dataset.productId;
   if (!pid) return;
   const isActive = _productFavIds.has(pid);
+
+  // Optimistic visual update — fires before DB round-trip
+  if (!isActive) {
+    _productFavIds.add(pid);
+    applyHeartFill(this, true);
+    const svgEl = this.querySelector('svg');
+    if (svgEl && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      svgEl.animate(
+        [{ transform: 'scale(1)' }, { transform: 'scale(1.6)' }, { transform: 'scale(0.85)' }, { transform: 'scale(1)' }],
+        { duration: 360, easing: 'cubic-bezier(.36,.07,.19,.97)' }
+      );
+    }
+  } else {
+    _productFavIds.delete(pid);
+    applyHeartFill(this, false);
+  }
+
   this.disabled = true;
   try {
     if (isActive) {
       const { error } = await sb.from('favorites').delete().eq('user_id', currentUser.id).eq('product_id', pid);
       if (error) throw error;
-      _productFavIds.delete(pid);
       showToast('Removed from favorites.');
     } else {
       const { error } = await sb.from('favorites').upsert({
@@ -1984,18 +2000,12 @@ document.getElementById('saveProductBtn')?.addEventListener('click', async funct
         product_image: this.dataset.productImage || '',
       });
       if (error) throw error;
-      _productFavIds.add(pid);
-      const svgEl = this.querySelector('svg');
-      if (svgEl && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        svgEl.animate(
-          [{ transform: 'scale(1)' }, { transform: 'scale(1.6)' }, { transform: 'scale(0.85)' }, { transform: 'scale(1)' }],
-          { duration: 360, easing: 'cubic-bezier(.36,.07,.19,.97)' }
-        );
-      }
       showToast('Saved to favorites.');
     }
-    refreshHeartButtons();
   } catch(e) {
+    // Revert optimistic update on failure
+    if (!isActive) { _productFavIds.delete(pid); applyHeartFill(this, false); }
+    else { _productFavIds.add(pid); applyHeartFill(this, true); }
     console.warn('Favorite toggle failed:', e);
     showToast('Could not update saved items.');
   } finally {
