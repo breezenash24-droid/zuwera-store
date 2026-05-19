@@ -4,12 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#F0EEE9" media="(prefers-color-scheme: light)">
   <title>Pay with Apple Pay — Zuwera</title>
   <link rel="icon" type="image/png" href="/images/favicon-black.png?v=1">
-  <script src="/favicon-utils.js?v=00b5644f"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://js.stripe.com">
+  <link rel="dns-prefetch" href="https://js.stripe.com">
+  <link rel="preload" as="image" href="images/wordmark.png">
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="/favicon-utils.js?v=00b5644f" defer></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -86,18 +91,27 @@
     /* Loading spinner */
     .mc-spinner {
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
+      gap: 1.25rem;
       min-height: 60vh;
     }
-    .mc-spinner::after {
-      content: '';
+    .mc-spinner-ring {
       width: 36px;
       height: 36px;
       border: 2px solid var(--border);
       border-top-color: var(--pink);
       border-radius: 50%;
       animation: spin .7s linear infinite;
+      flex-shrink: 0;
+    }
+    .mc-spinner-text {
+      font-size: .7rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--sub);
+      font-family: var(--font-mono);
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -278,12 +292,14 @@
       font-weight: 600;
       color: var(--text);
     }
-    .mc-unsupported p { font-size: .84rem; color: var(--sub); line-height: 1.6; max-width: 280px; }
+    .mc-unsupported p { font-size: .84rem; color: var(--sub); line-height: 1.6; max-width: 300px; }
+    .mc-unsupported-actions { display: flex; flex-direction: column; gap: .6rem; align-items: center; width: 100%; max-width: 280px; margin-top: .5rem; }
     .mc-unsupported a {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-height: 44px;
+      min-height: 48px;
+      width: 100%;
       padding: 0 1.5rem;
       border: 1px solid var(--border);
       color: var(--sub);
@@ -292,7 +308,15 @@
       text-transform: uppercase;
       text-decoration: none;
       border-radius: 2px;
-      margin-top: .25rem;
+    }
+    .mc-unsupported a.primary {
+      background: var(--paper);
+      color: var(--ink);
+      border-color: var(--paper);
+      font-family: var(--font-mono);
+      font-size: .65rem;
+      font-weight: 600;
+      letter-spacing: .14em;
     }
     /* Light mode */
     body.light-mode {
@@ -312,19 +336,22 @@
 
   <header class="mc-header">
     <a href="https://zuwera.store" class="mc-logo" aria-label="Back to Zuwera home">
-      <img src="images/wordmark.png" alt="ZUWERA">
+      <img src="images/wordmark.png" alt="ZUWERA" width="108" height="30" fetchpriority="high">
     </a>
   </header>
 
   <main class="mc-main">
 
     <!-- Loading -->
-    <div id="state-loading" class="active">
-      <div class="mc-spinner"></div>
+    <div id="state-loading" class="active" role="status" aria-live="polite" aria-label="Loading checkout">
+      <div class="mc-spinner">
+        <div class="mc-spinner-ring" aria-hidden="true"></div>
+        <span class="mc-spinner-text">Loading checkout…</span>
+      </div>
     </div>
 
     <!-- Checkout -->
-    <div id="state-checkout">
+    <div id="state-checkout" aria-live="polite">
       <p class="mc-section-label">Order Summary</p>
       <ul class="mc-items" id="mc-items-list"></ul>
 
@@ -337,7 +364,7 @@
 
       <div class="mc-pay-section">
         <p class="mc-section-label">Payment</p>
-        <div id="mc-error"></div>
+        <div id="mc-error" role="alert" aria-live="assertive"></div>
         <div id="pr-button-wrap">
           <div id="pr-button"></div>
         </div>
@@ -363,12 +390,15 @@
     </div>
 
     <!-- Unsupported (Apple Pay not available on this device) -->
-    <div id="state-unsupported">
+    <div id="state-unsupported" role="alert">
       <div class="mc-unsupported">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <h2>Apple Pay Unavailable</h2>
-        <p>Apple Pay requires Safari on an iPhone or Mac with Apple Pay set up. Please open this page in Safari.</p>
-        <a href="https://zuwera.store">Go to Zuwera Store</a>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <h2 id="unsupported-title">Apple Pay Unavailable</h2>
+        <p id="unsupported-msg">Apple Pay requires Safari on an iPhone or Mac with Apple Pay configured. Open this link in Safari, or return to the store to check out another way.</p>
+        <div class="mc-unsupported-actions">
+          <a href="https://zuwera.store" class="primary">Return to Store</a>
+          <a href="https://support.apple.com/en-us/HT204506" target="_blank" rel="noopener noreferrer">How to set up Apple Pay →</a>
+        </div>
       </div>
     </div>
 
@@ -620,9 +650,9 @@
       const rawCart = parseCart();
       if (!rawCart) {
         showState('state-unsupported');
-        document.querySelector('.mc-unsupported h2').textContent = 'Cart Not Found';
-        document.querySelector('.mc-unsupported p').textContent =
-          'No cart data was found. Please go back to the store and try again.';
+        document.getElementById('unsupported-title').textContent = 'Cart Not Found';
+        document.getElementById('unsupported-msg').textContent =
+          'No cart data was found. Please return to the store and try again.';
         return;
       }
 
