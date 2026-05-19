@@ -358,6 +358,20 @@ body.light-mode #zw-lang-box{
   padding:1.8rem 1.7rem 2rem !important;
 }
 
+/* Desktop: reviews modals use more screen space */
+@media(min-width:769px){
+  #all-reviews-modal > .review-list-mbox{
+    width:min(960px,92vw) !important;
+    max-width:min(960px,92vw) !important;
+    max-height:min(88dvh,62rem) !important;
+  }
+  #review-modal > .review-mbox{
+    width:min(680px,92vw) !important;
+    max-width:min(680px,92vw) !important;
+    max-height:min(88dvh,58rem) !important;
+  }
+}
+
 #payment-modal > .pbox,
 #zw-lang-box{
   padding:1.6rem 1.35rem 1.35rem !important;
