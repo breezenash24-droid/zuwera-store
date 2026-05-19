@@ -313,6 +313,12 @@ body.light-mode #zw-lang-box{
   width:var(--zw-panel-width) !important;
 }
 
+/* Override the variables that the high-specificity general rule reads from,
+   so it produces the right size for the all-reviews modal. */
+#all-reviews-modal{
+  --zw-panel-width: min(1020px, 99vw);
+  --zw-panel-wide-width: min(1020px, 99vw);
+}
 #all-reviews-modal > .review-list-mbox{
   width:min(1020px, calc(100vw - 2rem)) !important;
   max-width:min(1020px, calc(100vw - 2rem)) !important;
