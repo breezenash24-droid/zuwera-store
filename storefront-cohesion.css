@@ -1984,3 +1984,21 @@ body.light-mode .zw-lang-trigger:hover{
     gap:0.85rem !important;
   }
 }
+
+/* Skip-to-content accessibility link */
+.skip-link{
+  position:absolute;
+  top:-100%;
+  left:1rem;
+  z-index:10000;
+  padding:0.6rem 1.2rem;
+  background:var(--white,#F0EEE9);
+  color:var(--black,#09090b);
+  font-weight:700;
+  font-size:0.9rem;
+  text-decoration:none;
+  border-radius:0 0 6px 6px;
+  transition:top 0.15s ease;
+  white-space:nowrap;
+}
+.skip-link:focus{top:0;}

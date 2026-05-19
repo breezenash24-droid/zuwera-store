@@ -323,7 +323,7 @@
         <div style="display:flex;align-items:center;justify-content:space-between;
              padding:1.4rem 1.6rem 1rem; border-bottom:1px solid rgba(244,241,235,0.07); flex-shrink:0;">
           <div>
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:0.1em;color:#f4f1eb;">
+            <div style="font-family:var(--font-head),'Barlow Condensed',sans-serif;font-size:1.5rem;letter-spacing:0.1em;color:#f4f1eb;">
               Choose Language
             </div>
             <div style="font-size:0.72rem;color:rgba(244,241,235,0.4);letter-spacing:0.08em;text-transform:uppercase;margin-top:2px;">

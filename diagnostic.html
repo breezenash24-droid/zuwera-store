@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Zuwera — Full Site Diagnostics</title>
+  <meta name="robots" content="noindex, nofollow">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, -apple-system, sans-serif; background: #09090b; color: #e4e4e7; min-height: 100vh; padding: 24px 16px 60px; }
@@ -49,8 +50,61 @@
     .section.collapsed .chevron { transform: rotate(-90deg); }
     #progress { font-size: 13px; color: #71717a; margin-bottom: 16px; min-height: 20px; }
   </style>
+  <style>
+    #diag-auth-overlay { position:fixed; inset:0; background:#09090b; z-index:9999; display:flex; align-items:center; justify-content:center; }
+    #diag-auth-box { background:#18181b; border:1px solid #27272a; border-radius:12px; padding:2rem; width:min(360px,92vw); text-align:center; }
+    #diag-auth-box h2 { font-size:18px; font-weight:700; color:#fafafa; margin-bottom:8px; }
+    #diag-auth-box p { font-size:13px; color:#71717a; margin-bottom:20px; }
+    #diag-auth-email, #diag-auth-password { width:100%; background:#09090b; border:1px solid #27272a; color:#fafafa; border-radius:7px; padding:10px 14px; font-size:14px; margin-bottom:10px; box-sizing:border-box; }
+    #diag-auth-submit { width:100%; background:#fafafa; color:#09090b; border:none; padding:11px; border-radius:7px; cursor:pointer; font-size:14px; font-weight:600; }
+    #diag-auth-submit:disabled { opacity:0.5; cursor:not-allowed; }
+    #diag-auth-error { color:#f87171; font-size:13px; margin-top:10px; min-height:18px; }
+  </style>
 </head>
 <body>
+  <div id="diag-auth-overlay">
+    <div id="diag-auth-box">
+      <h2>Admin Access Required</h2>
+      <p>Sign in with your Zuwera admin account to access diagnostics.</p>
+      <input type="email" id="diag-auth-email" placeholder="Email" autocomplete="email">
+      <input type="password" id="diag-auth-password" placeholder="Password" autocomplete="current-password">
+      <button id="diag-auth-submit" onclick="diagSignIn()">Sign In</button>
+      <div id="diag-auth-error"></div>
+    </div>
+  </div>
+  <script src="/supabase.min.js?v=3277b334"></script>
+  <script>
+  (function() {
+    const _sbDiag = window.supabase.createClient(
+      'https://qfgnrsifcwdubkolsgsq.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY'
+    );
+    window._sbDiag = _sbDiag;
+    _sbDiag.auth.getSession().then(({ data: { session } }) => {
+      if (session) document.getElementById('diag-auth-overlay').style.display = 'none';
+    }).catch(() => {});
+    window.diagSignIn = async function() {
+      const btn = document.getElementById('diag-auth-submit');
+      const errEl = document.getElementById('diag-auth-error');
+      const email = document.getElementById('diag-auth-email').value.trim();
+      const password = document.getElementById('diag-auth-password').value;
+      errEl.textContent = '';
+      btn.disabled = true;
+      try {
+        const { error } = await _sbDiag.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        document.getElementById('diag-auth-overlay').style.display = 'none';
+      } catch(e) {
+        errEl.textContent = e.message || 'Sign-in failed.';
+      } finally {
+        btn.disabled = false;
+      }
+    };
+    document.getElementById('diag-auth-password').addEventListener('keydown', e => {
+      if (e.key === 'Enter') window.diagSignIn();
+    });
+  })();
+  </script>
   <h1>Zuwera — Site Diagnostics</h1>
   <p class="subtitle">Run from <strong>zuwera.store/diagnostic.html</strong> for accurate results (same-origin checks require the live domain)</p>
 

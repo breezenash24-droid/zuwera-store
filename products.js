@@ -106,7 +106,6 @@ async function loadProducts(gridSelector = '#products-grid') {
     let data = await productsResp.json();
     const imageRows = imagesResp.ok ? await imagesResp.json() : [];
 
-    console.log('✅ Loaded', data?.length || 0, 'products from Supabase');
 
     if (!data || data.length === 0) {
       console.warn('No products in Supabase — using fallback demo');

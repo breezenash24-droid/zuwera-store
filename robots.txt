@@ -1,4 +1,12 @@
 User-agent: *
 Allow: /
+Disallow: /admin.html
+Disallow: /admin
+Disallow: /diagnostic.html
+Disallow: /diagnostic
+Disallow: /analytics.html
+Disallow: /analytics
+Disallow: /account.html
+Disallow: /account
 
 Sitemap: https://zuwera.store/sitemap.xml

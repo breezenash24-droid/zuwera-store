@@ -513,9 +513,9 @@ async function loadOrderHistory() {
   if (error || !data?.length) { empty.style.display = 'block'; return; }
   list.innerHTML = data.map(order => `
     <div style="padding:1rem 0;border-bottom:1px solid rgba(245,245,240,0.08);">
-      <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:0.1em;">Order #${order.id?.slice(-8).toUpperCase()}</div>
+      <div style="font-family:var(--font-head),'Barlow Condensed',sans-serif;letter-spacing:0.1em;">Order #${escapeFavoriteHtml(order.id?.slice(-8).toUpperCase())}</div>
       <div style="font-size:0.78rem;opacity:0.45;margin-top:0.2rem;">${new Date(order.created_at).toLocaleDateString()}</div>
-      <div style="font-size:0.78rem;opacity:0.6;margin-top:0.3rem;">${order.status || 'Confirmed'}</div>
+      <div style="font-size:0.78rem;opacity:0.6;margin-top:0.3rem;">${escapeFavoriteHtml(order.status || 'Confirmed')}</div>
     </div>
   `).join('');
 }

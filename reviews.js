@@ -628,9 +628,8 @@ window.translateReviews = async function(domId) {
 
       data.translations.forEach((translatedText, index) => {
         const mapping = map[index];
-        const txt = document.createElement('textarea');
-        txt.innerHTML = translatedText;
-        mapping.obj[mapping.field] = txt.value;
+        const _decoded = new DOMParser().parseFromString(translatedText, 'text/html').body.textContent ?? translatedText;
+        mapping.obj[mapping.field] = _decoded;
       });
     }
 

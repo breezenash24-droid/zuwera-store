@@ -28,9 +28,10 @@
   <meta property="og:url" content="https://zuwera.store/drop001.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Zuwera">
-  <meta name="twitter:fav-logged-in-areaheart-btnd" content="summary">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Collection - Zuwera">
   <meta name="twitter:description" content="Shop Zuwera by category. Browse the latest collection pieces and sign up to be notified when they go live.">
+  <link rel="preload" as="image" href="/images/wordmark.png" fetchpriority="high">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -750,13 +751,14 @@
   </style>
 <link rel="stylesheet" href="storefront-cohesion.css?v=d7f3a0c2">
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=6a5e8a27">
-  <script src="image-utils.js?v=6eef467b"></script>
+  <script src="image-utils.js?v=6eef467b" defer></script>
   <script src="mobile-menu.js?v=4c6ccedc" defer></script>
   <script src="storefront-theme.js?v=227b8ced" defer></script>
   <script src="/supabase.min.js?v=3277b334"></script>
 <script>try{var _t=localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
 </head>
 <body>
+<a class="skip-link" href="#main-content">Skip to content</a>
 <script>(function(){try{var m=localStorage.getItem('zw_theme_mode');if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}}catch(_){}})()</script>
 <script>
 // Load a neutral theme immediately; admin settings become the source of truth once fetched.
@@ -815,7 +817,7 @@
         <div class="zw-mobile-socials" aria-label="Social links">
           <a href="https://instagram.com/Zuw.era" target="_blank" rel="noopener">Instagram</a>
           <a href="mailto:nasirubreeze@zuwera.store">Email</a>
-          <a href="#" onclick="event.preventDefault(); window.closeMobileMenu?.(); setTimeout(() => window.zwLang?.open?.(), 0);">Language</a>
+          <button type="button" onclick="window.closeMobileMenu?.(); setTimeout(() => window.zwLang?.open?.(), 0);" style="background:none;border:none;color:inherit;cursor:pointer;font:inherit;padding:0;text-align:inherit;">Language</button>
         </div>
         <p class="zw-mobile-menu-year">Zuwera &middot; 2026</p>
       </footer>
@@ -864,7 +866,7 @@
   </section>
 
   <!-- PRODUCTS GRID -->
-  <section class="products-section">
+  <section class="products-section" id="main-content">
     <div class="section-header">
       <h2>Release 001 — Jackets</h2>
       <span>Releasing 09 / 20 / 2026</span>
@@ -1332,7 +1334,7 @@ function updateCountdown() {
           <div class="collection-review-actions">
             <button type="button" class="collection-review-confirm" id="collection-review-confirm">Add to Bag</button>
             <button type="button" id="collection-review-cancel">Leave</button>
-            <a href="#" id="collection-review-view">Full Product Page</a>
+            <a href="" id="collection-review-view">Full Product Page</a>
           </div>
         </div>
       </div>
