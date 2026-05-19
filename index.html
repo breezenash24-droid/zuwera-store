@@ -650,10 +650,14 @@ body.light-mode #mobile-menu-close { color:#09090b !important; }
   backdrop-filter:blur(8px);border-radius:50%;
   width:34px;height:34px;
   display:flex;align-items:center;justify-content:center;
-  transition:all .2s;color:rgba(244,241,235,.3);
+  transition:color .2s,border-color .2s,opacity .2s,background .2s;color:rgba(244,241,235,.3);
 }
 .heart-btn:hover,.heart-btn.active{color:var(--red);border-color:var(--red)}
-.heart-btn svg{width:14px;height:14px;pointer-events:none}
+.heart-btn.active svg,.heart-btn.active svg path,.heart-btn.active svg circle{fill:var(--red)!important;stroke:var(--red)!important}
+.heart-btn svg{width:14px;height:14px;pointer-events:none;transform-box:fill-box;transform-origin:center}
+@keyframes svgHeartPop{0%{transform:scale(1)}35%{transform:scale(1.55)}65%{transform:scale(0.87)}100%{transform:scale(1)}}
+.heart-btn svg.heart-pop{animation:svgHeartPop .36s cubic-bezier(.36,.07,.19,.97)}
+@media(prefers-reduced-motion:reduce){.heart-btn svg.heart-pop{animation:none}}
 .pcard-info{
   padding:1.4rem 1.5rem;
   border-top:1px solid rgba(244,241,235,.06);
@@ -3292,9 +3296,17 @@ function renderAcctFavs() {
 }
 
 /* FAVORITES */
+function applyHeartFill(btn, active) {
+  btn.classList.toggle('active', active);
+  btn.querySelectorAll('svg path, svg circle').forEach(el => {
+    el.style.fill = active ? 'var(--red)' : '';
+    el.style.stroke = active ? 'var(--red)' : '';
+  });
+}
+
 function refreshHearts() {
   const ids = new Set(_favs.map(f => f.product_id));
-  document.querySelectorAll('.heart-btn').forEach(b => b.classList.toggle('active', ids.has(b.dataset.productId)));
+  document.querySelectorAll('.heart-btn').forEach(b => applyHeartFill(b, ids.has(b.dataset.productId)));
 }
 
 const _homeFavoriteCache = new Map();
@@ -3697,20 +3709,37 @@ async function toggleFav(btn) {
   const pid = btn.dataset.productId, pname = btn.dataset.productName, price = btn.dataset.price;
   const pimage = btn.dataset.productImage || '';
   const isActive = _favs.some(f => f.product_id === pid);
+
+  // Optimistic visual update — fires before DB round-trip
+  if (!isActive) {
+    _favs.push({ product_id:pid, product_name:pname, price, product_image:pimage });
+    applyHeartFill(btn, true);
+    const svgEl = btn.querySelector('svg');
+    if (svgEl) {
+      svgEl.classList.remove('heart-pop');
+      void svgEl.offsetWidth;
+      svgEl.classList.add('heart-pop');
+      svgEl.addEventListener('animationend', () => svgEl.classList.remove('heart-pop'), { once: true });
+    }
+  } else {
+    _favs = _favs.filter(f => f.product_id !== pid);
+    applyHeartFill(btn, false);
+  }
+
   btn.disabled = true;
   try {
-    if(isActive){
+    if (isActive) {
       await removeFav(pid, null, { silentToast:true });
       showToast('Removed from favorites.');
-    }
-    else {
+    } else {
       if(_sb) await _sb.from('favorites').upsert({ user_id:_user.id, product_id:pid, product_name:pname, price, product_image:pimage });
-      _favs.push({ product_id:pid, product_name:pname, price, product_image:pimage });
-      refreshHearts();
       void refreshCartFavs();
       showToast('Saved to favorites.');
     }
   } catch (error) {
+    // Revert optimistic update on failure
+    if (!isActive) { _favs = _favs.filter(f => f.product_id !== pid); applyHeartFill(btn, false); }
+    else { _favs.push({ product_id:pid, product_name:pname, price, product_image:pimage }); applyHeartFill(btn, true); }
     console.error('toggleFav failed:', error);
     showToast('Could not update saved items.');
   } finally {
