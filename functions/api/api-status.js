@@ -23,6 +23,15 @@ function json(body) {
   });
 }
 
+function withTimeout(promise, ms = 6000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`Request timed out after ${ms / 1000}s`)), ms)
+    ),
+  ]);
+}
+
 // ─── Individual service checks ────────────────────────────────────────────────
 // Each check function receives the env + a pre-fetched Supabase settings cache.
 
@@ -31,12 +40,12 @@ async function checkDeepL(env, cache) {
     || (env.DEEPL_API_KEY_ || '').trim().replace(/,$/, ''); // handle trailing-comma variant
   if (!key) return { ok: false, configured: false, error: 'DEEPL_API_KEY not set' };
   try {
-    const resp = await fetch('https://api-free.deepl.com/v2/usage', {
+    const resp = await withTimeout(fetch('https://api-free.deepl.com/v2/usage', {
       headers: { Authorization: `DeepL-Auth-Key ${key}` }
-    });
-    const resp2 = resp.ok ? resp : await fetch('https://api.deepl.com/v2/usage', {
+    }));
+    const resp2 = resp.ok ? resp : await withTimeout(fetch('https://api.deepl.com/v2/usage', {
       headers: { Authorization: `DeepL-Auth-Key ${key}` }
-    });
+    }));
     if (!resp2.ok) return { ok: false, keyActive: false, error: `HTTP ${resp2.status} — key may be invalid` };
     const d = await resp2.json();
     const pct = d.character_limit > 0 ? ((d.character_count / d.character_limit) * 100) : 0;
@@ -60,9 +69,9 @@ async function checkCloudinary(env, cache) {
   }
   try {
     const creds = btoa(`${apiKey}:${apiSecret}`);
-    const resp  = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/usage`, {
+    const resp  = await withTimeout(fetch(`https://api.cloudinary.com/v1_1/${cloudName}/usage`, {
       headers: { Authorization: `Basic ${creds}` }
-    });
+    }));
     if (!resp.ok) return { ok: false, error: `HTTP ${resp.status}` };
     const d = await resp.json();
     return {
@@ -82,9 +91,9 @@ async function checkResend(env, cache) {
   const key = resolveSetting('RESEND_API_KEY', env, cache);
   if (!key) return { ok: false, configured: false, error: 'RESEND_API_KEY not set' };
   try {
-    const resp = await fetch('https://api.resend.com/domains', {
+    const resp = await withTimeout(fetch('https://api.resend.com/domains', {
       headers: { Authorization: `Bearer ${key}` }
-    });
+    }));
     if (!resp.ok) return { ok: false, keyActive: false, error: `HTTP ${resp.status} — key may be invalid` };
     const d = await resp.json();
     return {
@@ -101,9 +110,9 @@ async function checkBrevo(env, cache) {
   const key = resolveSetting('BREVO_API_KEY', env, cache);
   if (!key) return { ok: false, configured: false, error: 'BREVO_API_KEY not set — email failover not active' };
   try {
-    const resp = await fetch('https://api.brevo.com/v3/account', {
+    const resp = await withTimeout(fetch('https://api.brevo.com/v3/account', {
       headers: { 'api-key': key, Accept: 'application/json' }
-    });
+    }));
     if (!resp.ok) return { ok: false, keyActive: false, error: `HTTP ${resp.status}` };
     const d    = await resp.json();
     const plan = Array.isArray(d.plan) ? (d.plan[0] || {}) : (d.plan || {});
@@ -129,12 +138,12 @@ async function checkSupabase(env) {
   try {
     const headers = { apikey: key, Authorization: `Bearer ${key}`, Prefer: 'count=exact', 'Range-Unit': 'items', Range: '0-0' };
     const [ordersRes, productsRes, usersRes, sizesRes] = await Promise.all([
-      fetch(`${url}/rest/v1/orders?select=id`,   { headers }),
-      fetch(`${url}/rest/v1/products?select=id`, { headers }),
-      fetch(`${url}/auth/v1/admin/users?page=1&per_page=1`, {
+      withTimeout(fetch(`${url}/rest/v1/orders?select=id`,   { headers })),
+      withTimeout(fetch(`${url}/rest/v1/products?select=id`, { headers })),
+      withTimeout(fetch(`${url}/auth/v1/admin/users?page=1&per_page=1`, {
         headers: { apikey: key, Authorization: `Bearer ${key}` }
-      }),
-      fetch(`${url}/rest/v1/product_sizes?select=id`, { headers }),
+      })),
+      withTimeout(fetch(`${url}/rest/v1/product_sizes?select=id`, { headers })),
     ]);
     const parseCount = (res) => parseInt(res.headers.get('content-range')?.split('/')[1] || '0');
     const ordersCount   = parseCount(ordersRes);
@@ -160,9 +169,9 @@ async function checkStripe(env, cache) {
   if (!key) return { ok: false, error: 'STRIPE_SECRET_KEY not set' };
   const mode = key.startsWith('sk_live_') ? 'live' : key.startsWith('sk_test_') ? 'test' : 'unknown';
   try {
-    const resp = await fetch('https://api.stripe.com/v1/balance', {
+    const resp = await withTimeout(fetch('https://api.stripe.com/v1/balance', {
       headers: { Authorization: `Bearer ${key}` }
-    });
+    }));
     if (!resp.ok) return { ok: false, keyActive: false, mode, error: `HTTP ${resp.status}` };
     const d    = await resp.json();
     const avail = (d.available || []).map(b => `$${(b.amount / 100).toFixed(2)} ${b.currency.toUpperCase()}`);
@@ -180,14 +189,21 @@ async function checkShippo(env, cache) {
   const key = resolveSetting('SHIPPO_API_KEY', env, cache);
   if (!key) return { ok: false, error: 'SHIPPO_API_KEY not set' };
   try {
-    const resp = await fetch('https://api.goshippo.com/addresses/?results=1', {
-      headers: { Authorization: `ShippoToken ${key}` }
-    });
+    const [addrResp, shipResp] = await Promise.all([
+      withTimeout(fetch('https://api.goshippo.com/addresses/?results=1', { headers: { Authorization: `ShippoToken ${key}` } })),
+      withTimeout(fetch('https://api.goshippo.com/shipments/?results=1', { headers: { Authorization: `ShippoToken ${key}` } })),
+    ]);
+    if (!addrResp.ok) return { ok: false, keyActive: false, error: `HTTP ${addrResp.status} — key may be invalid` };
+    let totalShipments = null;
+    if (shipResp.ok) {
+      try { const d = await shipResp.json(); totalShipments = d.count ?? null; } catch (_) {}
+    }
     return {
-      ok: resp.ok,
-      keyActive: resp.ok,
+      ok: true,
+      keyActive: true,
       plan: 'Starter (pay-per-label)',
-      note: 'Shippo Starter is free — you only pay for shipping labels. No quota limits.',
+      totalShipments,
+      note: 'Shippo Starter is free — you only pay when a label is purchased. No monthly quota limits.',
     };
   } catch (e) { return { ok: false, error: e.message }; }
 }
@@ -196,9 +212,9 @@ async function checkLoops(env, cache) {
   const key = resolveSetting('LOOPS_API_KEY', env, cache);
   if (!key) return { ok: false, configured: false, error: 'LOOPS_API_KEY not set' };
   try {
-    const resp = await fetch('https://app.loops.so/api/v1/api-key', {
+    const resp = await withTimeout(fetch('https://app.loops.so/api/v1/api-key', {
       headers: { Authorization: `Bearer ${key}` }
-    });
+    }));
     if (!resp.ok) return { ok: false, keyActive: false, error: `HTTP ${resp.status} — key may be invalid` };
     const d = await resp.json();
     return {
@@ -217,9 +233,9 @@ async function checkTwilio(env, cache) {
   if (!sid || !token) return { ok: false, configured: false, error: 'TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN not set' };
   try {
     const creds = btoa(`${sid}:${token}`);
-    const resp  = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}.json`, {
+    const resp  = await withTimeout(fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}.json`, {
       headers: { Authorization: `Basic ${creds}` }
-    });
+    }));
     if (!resp.ok) return { ok: false, keyActive: false, error: `HTTP ${resp.status} — credentials may be invalid` };
     const d = await resp.json();
     return {
@@ -235,16 +251,29 @@ async function checkTwilio(env, cache) {
 
 async function checkPostHog(env, cache) {
   const key = resolveSetting('POSTHOG_API_KEY', env, cache) || (env.POSTHOG_PROJECT_API_KEY || '').trim();
-  if (!key) return { ok: false, configured: false, error: 'POSTHOG_API_KEY not set — add your PostHog project API key' };
-  // PostHog doesn't have a simple "ping" endpoint; we just confirm the key looks valid
-  const looksValid = key.startsWith('phc_');
-  return {
-    ok: looksValid,
-    keyActive: looksValid,
-    note: looksValid
-      ? 'PostHog script is live on your storefront. View events at app.posthog.com.'
-      : 'Key should start with phc_ — check your PostHog project settings.',
-  };
+  if (!key) return { ok: false, configured: false, error: 'POSTHOG_API_KEY not set — add your PostHog project API key (starts with phc_)' };
+  if (!key.startsWith('phc_') || key.length < 20) {
+    return { ok: false, keyActive: false, error: 'Key should start with phc_ and be at least 20 characters — check your PostHog project settings.' };
+  }
+  // Validate against the PostHog decide endpoint — fastest ping that accepts project API keys
+  try {
+    const resp = await withTimeout(fetch('https://us.i.posthog.com/decide/?v=3', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key: key, distinct_id: '__admin_ping__' }),
+    }));
+    const ok = resp.status === 200 || resp.status === 400; // 400 = key found but bad payload; both confirm key exists
+    if (!ok && resp.status === 401) return { ok: false, keyActive: false, error: 'Key rejected (401) — check your PostHog project API key' };
+    return {
+      ok: true,
+      keyActive: true,
+      validated: true,
+      note: 'PostHog analytics is active. View events and recordings at app.posthog.com.',
+    };
+  } catch (e) {
+    // If decide endpoint fails, fall back to format-only confirmation
+    return { ok: true, keyActive: true, validated: false, note: 'Key format looks valid. Could not reach PostHog to confirm — check app.posthog.com.' };
+  }
 }
 
 async function checkCloudflare(env, cache) {
@@ -254,9 +283,9 @@ async function checkCloudflare(env, cache) {
     || (env.CLOUDFLARE_API_TOKEN || env.CF_API_TOKEN || '').trim();
   if (!zoneTag || !token) return { ok: false, error: 'Missing CLOUDFLARE_ZONE_ID or CLOUDFLARE_GRAPHQL_TOKEN' };
   try {
-    const resp = await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneTag}`, {
+    const resp = await withTimeout(fetch(`https://api.cloudflare.com/client/v4/zones/${zoneTag}`, {
       headers: { Authorization: `Bearer ${token}` }
-    });
+    }));
     if (!resp.ok) return { ok: false, keyActive: false, error: `HTTP ${resp.status}` };
     const d    = await resp.json();
     const zone = d.result || {};

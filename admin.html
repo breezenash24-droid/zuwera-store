@@ -5351,7 +5351,7 @@
         }
 
         function buildCloudinaryRows(s) {
-            if (!s.ok) return '';
+            if (!s.ok) return `<p class="api-note" style="color:var(--error);">Connection failed: ${s.error || 'Unknown error'}</p><p class="api-note">Check your Cloud Name, API Key, and API Secret in the editor below.</p>`;
             let rows = apiRow('Plan', s.plan || 'Free');
             if (s.credits)   rows += apiRow('Credits used', `${(s.credits.usage||0).toFixed(1)} / ${s.credits.limit || 25}`) + usageBar(s.credits.used_percent || 0);
             if (s.storage)   rows += apiRow('Storage', `${fmtBytes(s.storage.usage)} / ${fmtBytes(s.storage.limit)}`) + usageBar(s.storage.used_percent || 0);
@@ -5391,7 +5391,40 @@
                 rows += apiRow('Verified domains', domainList);
             }
             if (s.note) rows += `<p class="api-note">${s.note}</p>`;
+            rows += `
+              <div style="margin-top:12px;">
+                <button class="btn btn-secondary" style="font-size:.75rem;padding:6px 12px;" onclick="sendTestEmail()">▶ Send test email</button>
+                <div id="resend-test-result" style="display:none;margin-top:10px;font-size:.8rem;padding:10px;border-radius:6px;"></div>
+              </div>`;
             return rows;
+        }
+
+        async function sendTestEmail() {
+            const resultEl = document.getElementById('resend-test-result');
+            if (!resultEl) return;
+            resultEl.style.display = 'block';
+            resultEl.style.background = 'rgba(244,241,235,.06)';
+            resultEl.style.border = '1px solid var(--border)';
+            resultEl.style.color = 'var(--text-secondary)';
+            resultEl.textContent = 'Sending test email…';
+            try {
+                const resp = await fetch('/api/test-email', { method: 'POST' });
+                const data = await resp.json().catch(() => ({}));
+                if (resp.ok && data.resend_ok) {
+                    resultEl.style.background = 'rgba(34,197,94,.08)';
+                    resultEl.style.border = '1px solid rgba(34,197,94,.3)';
+                    resultEl.style.color = '#22c55e';
+                    resultEl.textContent = `✓ Test email sent to ${data.to_email}. Check your inbox.`;
+                } else {
+                    resultEl.style.background = 'rgba(239,68,68,.08)';
+                    resultEl.style.border = '1px solid rgba(239,68,68,.3)';
+                    resultEl.style.color = 'var(--error)';
+                    resultEl.textContent = '✗ ' + (data.resend_response?.message || data.error || `HTTP ${resp.status}`);
+                }
+            } catch (e) {
+                resultEl.style.color = 'var(--error)';
+                resultEl.textContent = '✗ Network error: ' + e.message;
+            }
         }
 
         function buildBrevoRows(s) {
@@ -5405,7 +5438,7 @@
         }
 
         function buildSupabaseRows(s) {
-            if (!s.ok) return '';
+            if (!s.ok) return `<p class="api-note" style="color:var(--error);">Connection failed: ${s.error || 'Unknown error'}</p><p class="api-note">Ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set in Cloudflare Pages → Settings → Variables &amp; Secrets.</p>`;
             const c = s.counts || {};
             let rows = apiRow('Plan', 'Free');
             rows += apiRow('DB storage limit', s.limits?.dbStorage || '500 MB');
@@ -5419,16 +5452,23 @@
         }
 
         function buildStripeRows(s) {
-            if (!s.ok) return '';
-            let rows = apiRow('Mode', `<span style="color:${s.mode==='live'?'var(--success)':'var(--warning)'};">${s.mode === 'live' ? '🟢 Live' : '🟡 Test'}</span>`);
+            if (!s.ok) return `<p class="api-note" style="color:var(--error);">Connection failed: ${s.error || 'Unknown error'}</p><p class="api-note">Verify your STRIPE_SECRET_KEY starts with <code>sk_live_</code> or <code>sk_test_</code>. Update it using the edit button below.</p>`;
+            let rows = '';
+            if (s.mode === 'test') {
+                rows += `<div style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:.82rem;">
+                  <strong style="color:var(--warning);">⚠ Test mode active</strong> — no real payments are processed. Switch to a <code>sk_live_</code> key when you're ready to go live.
+                </div>`;
+            }
+            rows += apiRow('Mode', `<span style="color:${s.mode==='live'?'var(--success)':'var(--warning)'};">${s.mode === 'live' ? '🟢 Live' : '🟡 Test'}</span>`);
             if (s.availableBalance) rows += apiRow('Balance available', s.availableBalance);
             if (s.note) rows += `<p class="api-note">${s.note}</p>`;
             return rows;
         }
 
         function buildShippoRows(s) {
-            if (!s.ok) return '';
+            if (!s.ok) return `<p class="api-note" style="color:var(--error);">Connection failed: ${s.error || 'Unknown error'}</p><p class="api-note">Check your SHIPPO_API_KEY starts with <code>shippo_live_</code>. Update it using the edit button below.</p>`;
             let rows = apiRow('Plan', s.plan || 'Starter');
+            if (s.totalShipments !== null) rows += apiRow('Total shipments', s.totalShipments.toLocaleString());
             if (s.note) rows += `<p class="api-note">${s.note}</p>`;
             rows += `
               <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
@@ -5485,7 +5525,7 @@
         }
 
         function buildCloudflareRows(s) {
-            if (!s.ok) return '';
+            if (!s.ok) return `<p class="api-note" style="color:var(--error);">Connection failed: ${s.error || 'Unknown error'}</p><p class="api-note">Set CLOUDFLARE_ZONE_ID and CLOUDFLARE_GRAPHQL_TOKEN in Cloudflare Pages → Settings → Variables &amp; Secrets, or use the editor below.</p>`;
             let rows = apiRow('Plan', s.plan || 'Free');
             if (s.zoneName) rows += apiRow('Zone', s.zoneName);
             if (s.status)   rows += apiRow('Zone status', s.status);
@@ -5516,19 +5556,28 @@
         }
 
         function buildTwilioRows(s) {
-            if (!s.ok && s.configured === false) return `<p class="api-note" style="color:var(--warning);">Not configured — add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER to enable SMS.<br><br><a href="https://console.twilio.com" target="_blank" style="color:var(--accent)">Twilio Console →</a></p>`;
-            if (!s.ok) return `<p class="api-note" style="color:var(--error);">${s.error || 'Credentials error'}</p>`;
+            if (!s.ok && s.configured === false) return `
+                <p class="api-note" style="color:var(--text-secondary);margin-bottom:10px;"><strong>Optional</strong> — Twilio sends SMS notifications to customers when their order is shipped or delivered. Customers must opt in.</p>
+                <p class="api-note" style="margin-bottom:10px;">To set up: get a Twilio number, then add <code>TWILIO_ACCOUNT_SID</code>, <code>TWILIO_AUTH_TOKEN</code>, and <code>TWILIO_FROM_NUMBER</code> to your Cloudflare environment or use the editor below.</p>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+                  <button class="btn btn-secondary" style="font-size:.75rem;padding:6px 12px;" onclick="openKeyEdit('twilio')">✏ Add Twilio credentials</button>
+                  <a href="https://console.twilio.com" target="_blank" rel="noopener" class="btn btn-secondary" style="font-size:.75rem;padding:6px 12px;text-decoration:none;">Open Console ↗</a>
+                </div>`;
+            if (!s.ok) return `<p class="api-note" style="color:var(--error);">Credentials error: ${s.error || 'Unknown error'}</p><p class="api-note">Check your Account SID and Auth Token in the <a href="https://console.twilio.com" target="_blank" style="color:var(--accent)">Twilio Console</a>.</p>`;
             let rows = s.accountName   ? apiRow('Account', s.accountName)   : '';
             rows    += s.accountStatus ? apiRow('Status',  s.accountStatus)  : '';
             rows    += s.fromNumber    ? apiRow('From #',   s.fromNumber)     : '';
-            rows += `<p class="api-note">${s.note || 'SMS sent for shipped/delivered events when customer opted in.'}</p>`;
+            rows += `<p class="api-note">${s.note || 'SMS notifications sent for shipped/delivered events when customer opted in.'}</p>`;
             return rows;
         }
 
         function buildPostHogRows(s) {
-            if (!s.ok && s.configured === false) return `<p class="api-note" style="color:var(--warning);">Not configured — add your PostHog project API key (starts with phc_) and replace the placeholder in index.html and product.html.<br><br><a href="https://app.posthog.com" target="_blank" style="color:var(--accent)">PostHog App →</a></p>`;
+            if (!s.ok && s.configured === false) return `<p class="api-note" style="color:var(--warning);">Not configured — add your PostHog project API key (starts with <code>phc_</code>) using the editor below. Also set it in your PostHog init script on each storefront page.<br><br><a href="https://app.posthog.com/project/settings" target="_blank" style="color:var(--accent)">Get your API key →</a></p>`;
             if (!s.ok) return `<p class="api-note" style="color:var(--error);">${s.error || 'Invalid key'}</p>`;
-            let rows = `<p class="api-note">${s.note || 'PostHog analytics is live on your storefront.'}</p>`;
+            let rows = s.validated
+                ? apiRow('Validation', '<span style="color:var(--success);">✓ Confirmed with PostHog API</span>')
+                : apiRow('Validation', '<span style="color:var(--warning);">Format OK — could not reach PostHog to confirm</span>');
+            rows += `<p class="api-note">${s.note || 'PostHog analytics is live on your storefront.'}</p>`;
             return rows;
         }
 
