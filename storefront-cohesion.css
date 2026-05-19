@@ -632,9 +632,11 @@ body.light-mode :is(.pcard-badge,.coming-soon-badge){
   border-color:var(--zw-danger) !important;
 }
 
-.heart-btn.active svg{
-  fill:var(--zw-danger);
-  stroke:var(--zw-danger);
+.heart-btn.active svg,
+.heart-btn.active svg path,
+.heart-btn.active svg circle{
+  fill:var(--zw-danger) !important;
+  stroke:var(--zw-danger) !important;
 }
 
 @keyframes heartPop{
