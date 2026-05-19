@@ -253,7 +253,15 @@ body.light-mode #bar {
   color: rgba(244, 241, 235, .3);
 }
 .heart-btn:hover, .heart-btn.active { color: var(--red); border-color: var(--red); }
-.heart-btn svg { width: 14px; height: 14px; pointer-events: none; }
+.heart-btn svg { width: 14px; height: 14px; pointer-events: none; transform-box: fill-box; transform-origin: center; }
+@keyframes svgHeartPop {
+  0%  { transform: scale(1); }
+  35% { transform: scale(1.55); }
+  65% { transform: scale(0.87); }
+  100%{ transform: scale(1); }
+}
+.heart-btn svg.heart-pop { animation: svgHeartPop .36s cubic-bezier(.36,.07,.19,.97); }
+@media (prefers-reduced-motion: reduce) { .heart-btn svg.heart-pop { animation: none; } }
 body.light-mode .heart-btn { background: rgba(255,255,255,.75); border-color: rgba(9,9,11,.12); color: rgba(9,9,11,.3); }
 body.light-mode .heart-btn:hover, body.light-mode .heart-btn.active { color: var(--red); border-color: var(--red); }
 </style>
@@ -1974,11 +1982,11 @@ document.getElementById('saveProductBtn')?.addEventListener('click', async funct
     _productFavIds.add(pid);
     applyHeartFill(this, true);
     const svgEl = this.querySelector('svg');
-    if (svgEl && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      svgEl.animate(
-        [{ transform: 'scale(1)' }, { transform: 'scale(1.6)' }, { transform: 'scale(0.85)' }, { transform: 'scale(1)' }],
-        { duration: 360, easing: 'cubic-bezier(.36,.07,.19,.97)' }
-      );
+    if (svgEl) {
+      svgEl.classList.remove('heart-pop');
+      void svgEl.offsetWidth;
+      svgEl.classList.add('heart-pop');
+      svgEl.addEventListener('animationend', () => svgEl.classList.remove('heart-pop'), { once: true });
     }
   } else {
     _productFavIds.delete(pid);
