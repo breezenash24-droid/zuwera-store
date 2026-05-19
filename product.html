@@ -1932,9 +1932,17 @@ async function renderProductCategoryNavigation(fallbackProduct = currentProduct)
 // ── Favorites ────────────────────────────────────────────────────────────────
 let _productFavIds = new Set();
 
+function applyHeartFill(btn, active) {
+  btn.classList.toggle('active', active);
+  btn.querySelectorAll('svg path, svg circle').forEach(el => {
+    el.style.fill = active ? '#c0392b' : '';
+    el.style.stroke = active ? '#c0392b' : '';
+  });
+}
+
 function refreshHeartButtons() {
   document.querySelectorAll('.heart-btn[data-product-id]').forEach(btn => {
-    btn.classList.toggle('active', _productFavIds.has(btn.dataset.productId));
+    applyHeartFill(btn, _productFavIds.has(btn.dataset.productId));
   });
 }
 
@@ -1977,10 +1985,13 @@ document.getElementById('saveProductBtn')?.addEventListener('click', async funct
       });
       if (error) throw error;
       _productFavIds.add(pid);
-      this.classList.remove('heart-pop');
-      void this.offsetWidth;
-      this.classList.add('heart-pop');
-      this.addEventListener('animationend', () => this.classList.remove('heart-pop'), { once: true });
+      const svgEl = this.querySelector('svg');
+      if (svgEl && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        svgEl.animate(
+          [{ transform: 'scale(1)' }, { transform: 'scale(1.6)' }, { transform: 'scale(0.85)' }, { transform: 'scale(1)' }],
+          { duration: 360, easing: 'cubic-bezier(.36,.07,.19,.97)' }
+        );
+      }
       showToast('Saved to favorites.');
     }
     refreshHeartButtons();

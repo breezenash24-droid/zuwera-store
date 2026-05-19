@@ -1010,9 +1010,17 @@ function updateCountdown() {
         }, 2200);
       }
 
+      function applyHeartFill(btn, active) {
+        btn.classList.toggle('active', active);
+        btn.querySelectorAll('svg path, svg circle').forEach(el => {
+          el.style.fill = active ? '#c0392b' : '';
+          el.style.stroke = active ? '#c0392b' : '';
+        });
+      }
+
       function refreshCollectionFavoriteButtons() {
         document.querySelectorAll('.heart-btn[data-product-id]').forEach(btn => {
-          btn.classList.toggle('active', collectionFavoriteIds.has(btn.dataset.productId));
+          applyHeartFill(btn, collectionFavoriteIds.has(btn.dataset.productId));
         });
       }
 
@@ -1064,10 +1072,13 @@ function updateCountdown() {
             });
             if (error) throw error;
             collectionFavoriteIds.add(productId);
-            btn.classList.remove('heart-pop');
-            void btn.offsetWidth;
-            btn.classList.add('heart-pop');
-            btn.addEventListener('animationend', () => btn.classList.remove('heart-pop'), { once: true });
+            const svgEl = btn.querySelector('svg');
+            if (svgEl && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+              svgEl.animate(
+                [{ transform: 'scale(1)' }, { transform: 'scale(1.6)' }, { transform: 'scale(0.85)' }, { transform: 'scale(1)' }],
+                { duration: 360, easing: 'cubic-bezier(.36,.07,.19,.97)' }
+              );
+            }
             if (typeof showToast === 'function') showToast('Saved!');
           }
           refreshCollectionFavoriteButtons();
