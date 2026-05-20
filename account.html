@@ -621,6 +621,18 @@ document.querySelectorAll('.acct-tab').forEach(b => {
 });
 
 /* ── ORDERS ── */
+async function fetchProductImageMap(productIds) {
+  if (!_sb || !productIds.length) return {};
+  try {
+    const { data } = await _sb.from('products')
+      .select('id, image_url')
+      .in('id', [...new Set(productIds)]);
+    const map = {};
+    for (const p of data || []) if (p.image_url) map[p.id] = p.image_url;
+    return map;
+  } catch(_) { return {}; }
+}
+
 async function loadOrders() {
   const loading = document.getElementById('orders-loading');
   const empty = document.getElementById('orders-empty');
@@ -633,12 +645,25 @@ async function loadOrders() {
       if (empty) empty.style.display = 'block';
       return;
     }
-    // Use the hub API (service-role key) so RLS never blocks the query
     if (!_hubPayload) _hubPayload = await fetchHub();
     const data = _hubPayload?.orders || [];
     const returnRequests = Array.isArray(_hubPayload?.returns) ? _hubPayload.returns : [];
     if (loading) loading.style.display = 'none';
     if (!data.length) { if (empty) empty.style.display = 'block'; return; }
+
+    // Collect all productIds that have no stored image so we can fetch them once
+    const missingImgIds = [];
+    for (const o of data) {
+      try {
+        const items = typeof o.items === 'string' ? JSON.parse(o.items) : (Array.isArray(o.items) ? o.items : []);
+        for (const i of items) {
+          const img = (i.image || i.imageUrl || i.img || '').trim();
+          if (!img && (i.productId || i.product_id)) missingImgIds.push(i.productId || i.product_id);
+        }
+      } catch(_) {}
+    }
+    const productImgMap = await fetchProductImageMap(missingImgIds);
+
     list.dataset.loaded = '1';
     const ordersTab = document.querySelector('.acct-tab[data-tab="orders"]');
     if (ordersTab) ordersTab.innerHTML = `Orders <span class="tab-count">${data.length}</span>`;
@@ -651,22 +676,22 @@ async function loadOrders() {
       const tracking = o.commerce?.trackingNumber || o.tracking_number || '';
       const trackingUrl = o.commerce?.trackingUrl || o.tracking_url || '';
       const orderTotal = o.total || o.total_amount;
-      // Status color class
       const statusStr = (fulfillment || displayStatus).toLowerCase();
       const statusColorClass = /delivered|completed/.test(statusStr) ? ' status-delivered'
         : /shipped|fulfil/.test(statusStr) ? ' status-shipped'
         : /pack|process/.test(statusStr) ? ' status-packing'
         : /cancel|refund|return/.test(statusStr) ? ' status-cancelled'
         : '';
-      // Parse items — render thumbnails + name/size chips
       let itemsHtml = '';
       try {
         const items = typeof o.items === 'string' ? JSON.parse(o.items) : (Array.isArray(o.items) ? o.items : []);
         if (items.length) {
           const shown = items.slice(0, 5);
           const chips = shown.map(i => {
-            const img = (i.image || i.imageUrl || i.img || '').trim();
-            const safeImg = img && /^https?:\/\//i.test(img) ? img : '';
+            const storedImg = (i.image || i.imageUrl || i.img || '').trim();
+            const pid = i.productId || i.product_id || '';
+            const resolvedImg = storedImg || (pid ? productImgMap[pid] || '' : '');
+            const safeImg = resolvedImg && /^https?:\/\//i.test(resolvedImg) ? resolvedImg : '';
             const name = escHtml((i.name || i.title || '').replace(/\p{Extended_Pictographic}/gu, '').trim());
             const meta = [i.size ? escHtml(i.size) : '', i.quantity > 1 ? `×${i.quantity}` : ''].filter(Boolean).join(' · ');
             return `<div class="order-item-chip">
