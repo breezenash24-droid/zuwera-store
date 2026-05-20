@@ -1713,61 +1713,103 @@
       const effectiveRateEl = document.getElementById('taxEffectiveRate');
       const summaryCardEl = document.getElementById('totalTaxCollected');
 
-      // Group orders by ship_state
+      // Group orders by state (unknown state → '—')
       const byState = {};
+      const byMonth = {};
       let grandTaxTotal = 0;
       let grandSubtotal = 0;
+      let ordersWithTax = 0;
 
       (allOrders || []).forEach(order => {
-        const state = (order.ship_state || '').trim().toUpperCase();
+        const state = (order.ship_state || '').trim().toUpperCase() || '—';
         const tax = parseFloat(order.tax) || 0;
         const subtotal = parseFloat(order.subtotal) || 0;
-        const total = parseFloat(order.total) || 0;
         grandTaxTotal += tax;
         grandSubtotal += subtotal;
-        if (!state) return;
-        if (!byState[state]) byState[state] = { orders: 0, subtotal: 0, tax: 0, total: 0 };
+        if (tax > 0) ordersWithTax++;
+
+        // by state
+        if (!byState[state]) byState[state] = { orders: 0, subtotal: 0, tax: 0 };
         byState[state].orders++;
         byState[state].subtotal += subtotal;
         byState[state].tax += tax;
-        byState[state].total += total;
+
+        // by month (YYYY-MM)
+        const d = new Date(order.created_at || 0);
+        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const monthLabel = d.toLocaleString('default', { month: 'short', year: '2-digit' });
+        if (!byMonth[monthKey]) byMonth[monthKey] = { label: monthLabel, tax: 0, subtotal: 0, orders: 0 };
+        byMonth[monthKey].tax += tax;
+        byMonth[monthKey].subtotal += subtotal;
+        byMonth[monthKey].orders++;
       });
 
-      const statesWithTax = Object.keys(byState).filter(s => byState[s].tax > 0);
+      const statesWithTax = Object.keys(byState).filter(s => byState[s].tax > 0 && s !== '—');
       const effectiveRate = grandSubtotal > 0 ? ((grandTaxTotal / grandSubtotal) * 100).toFixed(2) : '0.00';
 
       if (summaryCardEl) summaryCardEl.textContent = `$${grandTaxTotal.toFixed(2)}`;
-      if (stateCountEl) stateCountEl.textContent = statesWithTax.length || '0';
+      if (stateCountEl) stateCountEl.textContent = statesWithTax.length || (grandTaxTotal > 0 ? '—' : '0');
       if (totalCollectedEl) totalCollectedEl.textContent = `$${grandTaxTotal.toFixed(2)}`;
       if (effectiveRateEl) effectiveRateEl.textContent = `${effectiveRate}%`;
 
       if (!container) return;
 
-      if (Object.keys(byState).length === 0) {
-        const noOrderMsg = allOrders.length === 0
-          ? 'No orders yet — tax data will appear here once customers start buying.'
-          : 'Orders exist but none have state/tax data saved. Tax tracking applies to orders placed after the tax update was deployed.';
-        container.innerHTML = `<div class="diag-box"><div class="diag-title">No tax data yet</div><div class="diag-item">${noOrderMsg}</div></div>`;
+      if (allOrders.length === 0) {
+        container.innerHTML = `<div class="diag-box"><div class="diag-title">No orders yet</div><div class="diag-item">Tax data will appear here once customers start buying.</div></div>`;
         return;
       }
+
+      // ── Month-by-month bar chart ──
+      const monthKeys = Object.keys(byMonth).sort();
+      const maxMonthTax = Math.max(...monthKeys.map(k => byMonth[k].tax), 0.01);
+      const monthBars = monthKeys.map(k => {
+        const m = byMonth[k];
+        const pct = ((m.tax / maxMonthTax) * 100).toFixed(1);
+        const hasTax = m.tax > 0;
+        return `
+          <div class="bar-item" style="min-width:52px;">
+            <div class="bar-value" style="font-size:0.72rem;">$${m.tax.toFixed(0)}</div>
+            <div class="bar-wrapper">
+              <div class="bar ${hasTax ? 'bar-live' : 'bar-draft'}" style="height:${pct}%"></div>
+            </div>
+            <div class="bar-label" style="font-size:0.7rem;">${m.label}</div>
+          </div>`;
+      }).join('');
+
+      // ── State breakdown table ──
+      const stateNote = Object.keys(byState).includes('—')
+        ? `<p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:0.75rem;">Orders marked <strong>—</strong> have no state on record (placed before address storage was enabled).</p>`
+        : '';
 
       const rows = Object.entries(byState)
         .sort((a, b) => b[1].tax - a[1].tax)
         .map(([state, d]) => {
           const rate = d.subtotal > 0 ? ((d.tax / d.subtotal) * 100).toFixed(2) : '0.00';
           const taxDisplay = d.tax > 0
-            ? `<span style="color:var(--success)">$${d.tax.toFixed(2)}</span>`
-            : `<span style="color:var(--text-secondary)">$0.00</span>`;
+            ? `<span style="color:var(--success);font-weight:600;">$${d.tax.toFixed(2)}</span>`
+            : `<span style="color:var(--text-secondary);">$0.00</span>`;
+          const stateDisplay = state === '—'
+            ? `<span style="color:var(--text-secondary);">— (no state)</span>`
+            : `<span style="font-family:monospace;font-weight:700;">${state}</span>`;
           return `<tr>
-            <td style="font-family:monospace;font-weight:600;">${state}</td>
+            <td>${stateDisplay}</td>
             <td>${d.orders}</td>
             <td>$${d.subtotal.toFixed(2)}</td>
             <td>${taxDisplay}</td>
-            <td style="color:var(--text-secondary)">${rate}%</td>
+            <td style="color:var(--text-secondary);">${rate}%</td>
           </tr>`;
         }).join('');
 
       container.innerHTML = `
+        ${monthKeys.length > 0 ? `
+        <div style="margin-bottom:1.5rem;">
+          <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.6rem;color:var(--text-secondary);letter-spacing:0.04em;text-transform:uppercase;">Tax Collected by Month</div>
+          <div class="chart-container" style="height:160px;">
+            <div class="bar-chart" style="align-items:flex-end;">${monthBars}</div>
+          </div>
+        </div>` : ''}
+        <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.6rem;color:var(--text-secondary);letter-spacing:0.04em;text-transform:uppercase;">By State</div>
+        ${stateNote}
         <table>
           <thead>
             <tr>
@@ -1781,11 +1823,11 @@
           <tbody>${rows}</tbody>
           <tfoot>
             <tr style="border-top:2px solid var(--card-border);font-weight:700;">
-              <td>Total</td>
-              <td>${allOrders.length}</td>
+              <td>All States</td>
+              <td>${allOrders.length} (${ordersWithTax} taxed)</td>
               <td>$${grandSubtotal.toFixed(2)}</td>
-              <td style="color:var(--success)">$${grandTaxTotal.toFixed(2)}</td>
-              <td style="color:var(--text-secondary)">${effectiveRate}%</td>
+              <td style="color:var(--success);">$${grandTaxTotal.toFixed(2)}</td>
+              <td style="color:var(--text-secondary);">${effectiveRate}%</td>
             </tr>
           </tfoot>
         </table>`;
