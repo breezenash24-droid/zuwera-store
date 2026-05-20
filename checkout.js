@@ -174,6 +174,7 @@ function initPaymentRequest(subtotalCents) {
     const addr = ev.shippingAddress;
     try {
       const data = await postJSON('/api/shippo-rates', {
+        items: cartItems,
         address: {
           name: '',
           line1: addr.addressLine?.[0] || '',
@@ -281,6 +282,7 @@ function maybeLoadRates() {
     _pay.ratesLoading.style.display = 'block';
     try {
       const data = await postJSON('/api/shippo-rates', {
+        items: cartItems,
         address: {
           name:  document.getElementById('pay-name').value.trim(),
           line1: document.getElementById('pay-addr1').value.trim(),
