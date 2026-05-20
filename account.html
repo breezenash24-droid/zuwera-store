@@ -124,13 +124,14 @@
     body.light-mode .acct-tabs { border-bottom-color: rgba(9,9,11,.1); }
     .acct-tab {
       font-family: var(--fm); font-size: .6rem; letter-spacing: .14em; text-transform: uppercase;
-      padding: .8rem 1.4rem; color: rgba(244,241,235,.35); border-bottom: 2px solid transparent;
-      transition: color .2s, border-color .2s; margin-bottom: -1px;
+      padding: .85rem 1.5rem; color: rgba(244,241,235,.35); border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s, background .15s; margin-bottom: -1px;
+      position: relative;
     }
-    .acct-tab:hover { color: rgba(244,241,235,.7); }
+    .acct-tab:hover { color: rgba(244,241,235,.75); background: rgba(244,241,235,.025); }
     .acct-tab.active { color: var(--paper); border-bottom-color: var(--paper); }
     body.light-mode .acct-tab { color: rgba(9,9,11,.35); }
-    body.light-mode .acct-tab:hover { color: rgba(9,9,11,.65); }
+    body.light-mode .acct-tab:hover { color: rgba(9,9,11,.65); background: rgba(9,9,11,.025); }
     body.light-mode .acct-tab.active { color: #09090b; border-bottom-color: #09090b; }
 
     /* ── PANELS ── */
@@ -207,20 +208,42 @@
     body.light-mode .zw-loading { color: rgba(9,9,11,.3); }
 
     /* ── ORDERS ── */
-    .order-row {
-      padding: .9rem 0; border-bottom: 1px solid rgba(244,241,235,.06);
+    .order-card {
+      border: 1px solid var(--a-border); background: var(--a-surface);
+      padding: 1.2rem 1.35rem; margin-bottom: .65rem;
       font-family: var(--fm); font-size: .72rem;
     }
-    body.light-mode .order-row { border-bottom-color: rgba(9,9,11,.07); }
-    .order-row:last-child { border-bottom: none; }
+    body.light-mode .order-card { border-color: rgba(9,9,11,.1); background: rgba(9,9,11,.018); }
+    .order-card-head {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: .65rem;
+    }
+    .order-card-head-right { display: flex; flex-direction: column; align-items: flex-end; gap: .3rem; flex-shrink: 0; }
+    .order-total { font-size: .8rem; letter-spacing: .03em; }
     .order-id { font-family: var(--fw); font-style: italic; font-size: 1rem; letter-spacing: .04em; }
     .order-meta { color: rgba(244,241,235,.38); margin-top: .15rem; font-size: .65rem; letter-spacing: .04em; }
     body.light-mode .order-meta { color: rgba(9,9,11,.4); }
     .order-status {
       display: inline-block; font-size: .52rem; letter-spacing: .1em; text-transform: uppercase;
-      border: 1px solid rgba(244,241,235,.15); padding: .2rem .55rem; margin-top: .4rem; color: rgba(244,241,235,.6);
+      border: 1px solid rgba(244,241,235,.15); padding: .2rem .55rem; color: rgba(244,241,235,.6);
     }
     body.light-mode .order-status { border-color: rgba(9,9,11,.15); color: rgba(9,9,11,.55); }
+    .order-status.status-shipped { border-color: rgba(100,160,255,.3); color: rgba(100,160,255,.9); }
+    .order-status.status-delivered { border-color: rgba(80,200,110,.3); color: rgba(80,200,110,.9); }
+    .order-status.status-packing { border-color: rgba(255,185,60,.3); color: rgba(255,185,60,.9); }
+    .order-status.status-cancelled { border-color: rgba(255,90,90,.3); color: rgba(255,90,90,.9); }
+    body.light-mode .order-status.status-shipped { border-color: rgba(30,90,210,.3); color: rgba(30,90,210,.85); }
+    body.light-mode .order-status.status-delivered { border-color: rgba(20,140,60,.3); color: rgba(20,140,60,.85); }
+    body.light-mode .order-status.status-packing { border-color: rgba(190,120,0,.3); color: rgba(190,120,0,.85); }
+    body.light-mode .order-status.status-cancelled { border-color: rgba(190,30,30,.3); color: rgba(190,30,30,.85); }
+    .track-btn {
+      display: inline-block; margin-top: .6rem;
+      font-family: var(--fm); font-size: .58rem; letter-spacing: .1em; text-transform: uppercase;
+      color: rgba(244,241,235,.45); border-bottom: 1px solid rgba(244,241,235,.15); padding-bottom: .1rem;
+      transition: color .2s, border-color .2s;
+    }
+    .track-btn:hover { color: var(--paper); border-color: rgba(244,241,235,.5); }
+    body.light-mode .track-btn { color: rgba(9,9,11,.4); border-color: rgba(9,9,11,.18); }
+    body.light-mode .track-btn:hover { color: #09090b; border-color: rgba(9,9,11,.5); }
     .order-timeline {
       display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .45rem;
       margin-top: .75rem; padding-top: .75rem; border-top: 1px solid rgba(244,241,235,.06);
@@ -247,6 +270,54 @@
     @media (max-width: 640px) {
       .order-timeline { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem .5rem; }
     }
+
+    /* ── TAB COUNT BADGE ── */
+    .tab-count {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 16px; height: 16px; padding: 0 .3rem; border-radius: 8px;
+      background: rgba(244,241,235,.1); font-size: .52rem;
+      font-family: var(--fm); letter-spacing: 0; margin-left: .3rem;
+    }
+    .acct-tab.active .tab-count { background: rgba(244,241,235,.22); }
+    body.light-mode .tab-count { background: rgba(9,9,11,.08); }
+    body.light-mode .acct-tab.active .tab-count { background: rgba(9,9,11,.18); }
+
+    /* ── EMPTY STATE ── */
+    .empty-state { padding: 2.5rem 1rem; text-align: center; }
+    .empty-state-dash { font-family: var(--fw); font-size: 2rem; color: rgba(244,241,235,.12); line-height: 1; margin-bottom: .75rem; }
+    body.light-mode .empty-state-dash { color: rgba(9,9,11,.1); }
+    .empty-state-title { font-family: var(--fw); font-size: 1.1rem; letter-spacing: .06em; margin-bottom: .4rem; }
+    .empty-state-desc { font-size: .75rem; color: var(--a-muted); line-height: 1.7; max-width: 300px; margin: 0 auto .9rem; }
+    .empty-state-link {
+      display: inline-block; font-family: var(--fm); font-size: .58rem; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--a-dim); border-bottom: 1px solid var(--a-border-mid); padding-bottom: .15rem;
+      transition: color .2s, border-color .2s;
+    }
+    .empty-state-link:hover { color: var(--paper); border-color: rgba(244,241,235,.4); }
+    body.light-mode .empty-state-link:hover { color: #09090b; border-color: rgba(9,9,11,.4); }
+
+    /* ── ORDER ITEMS ── */
+    .order-items-row { display: flex; flex-wrap: wrap; gap: .4rem; margin: .6rem 0 .35rem; }
+    .order-item-chip {
+      display: flex; align-items: center; gap: .5rem;
+      background: rgba(244,241,235,.03); border: 1px solid rgba(244,241,235,.07);
+      padding: .35rem .55rem; max-width: 240px;
+    }
+    .order-item-img {
+      width: 40px; height: 40px; object-fit: cover; flex-shrink: 0;
+      background: rgba(244,241,235,.07);
+    }
+    .order-item-name { font-size: .71rem; font-weight: 500; line-height: 1.3; }
+    .order-item-meta { font-size: .6rem; color: rgba(244,241,235,.4); margin-top: .1rem; font-family: var(--fm); }
+    .order-item-more {
+      display: flex; align-items: center;
+      font-size: .6rem; color: rgba(244,241,235,.3); font-family: var(--fm);
+      padding: .35rem .55rem;
+    }
+    body.light-mode .order-item-chip { background: rgba(9,9,11,.025); border-color: rgba(9,9,11,.09); }
+    body.light-mode .order-item-img { background: rgba(9,9,11,.07); }
+    body.light-mode .order-item-meta { color: rgba(9,9,11,.45); }
+    body.light-mode .order-item-more { color: rgba(9,9,11,.35); }
 
     /* ── FAVS ── */
     .fav-row {
@@ -395,14 +466,28 @@
     <!-- ORDERS -->
     <div class="acct-panel active" id="panel-orders">
       <div class="zw-loading" id="orders-loading" role="status" aria-live="polite">Loading your orders…</div>
-      <div id="orders-empty" class="zw-empty" style="display:none">No orders yet. <a href="/drop001.html" style="text-decoration:underline;opacity:.6">Browse Release 001</a></div>
+      <div id="orders-empty" style="display:none">
+        <div class="empty-state">
+          <div class="empty-state-dash">—</div>
+          <div class="empty-state-title">No Orders Yet</div>
+          <div class="empty-state-desc">When you place your first order it'll appear here with real-time tracking.</div>
+          <a href="/drop001.html" class="empty-state-link">Browse Release 001 →</a>
+        </div>
+      </div>
       <div id="orders-list"></div>
     </div>
 
     <!-- SAVED ITEMS -->
     <div class="acct-panel" id="panel-saved">
       <div class="zw-loading" id="saved-loading" role="status" aria-live="polite">Loading saved items…</div>
-      <div id="saved-empty" class="zw-empty" style="display:none">No saved items yet.</div>
+      <div id="saved-empty" style="display:none">
+        <div class="empty-state">
+          <div class="empty-state-dash">—</div>
+          <div class="empty-state-title">Nothing Saved Yet</div>
+          <div class="empty-state-desc">Tap the heart on any product to save it here for later.</div>
+          <a href="/drop001.html" class="empty-state-link">Browse Release 001 →</a>
+        </div>
+      </div>
       <div id="saved-list"></div>
     </div>
 
@@ -555,6 +640,8 @@ async function loadOrders() {
     if (loading) loading.style.display = 'none';
     if (!data.length) { if (empty) empty.style.display = 'block'; return; }
     list.dataset.loaded = '1';
+    const ordersTab = document.querySelector('.acct-tab[data-tab="orders"]');
+    if (ordersTab) ordersTab.innerHTML = `Orders <span class="tab-count">${data.length}</span>`;
     list.innerHTML = data.map(o => {
       const fulfillment = o.commerce?.fulfillmentStatus || o.fulfillment_status || '';
       const displayStatus = o.status || 'confirmed';
@@ -563,28 +650,51 @@ async function loadOrders() {
         : displayStatus.replace(/_/g,' ');
       const tracking = o.commerce?.trackingNumber || o.tracking_number || '';
       const trackingUrl = o.commerce?.trackingUrl || o.tracking_url || '';
-      // total_amount is legacy/unused; real value lives in `total`
       const orderTotal = o.total || o.total_amount;
-      // Parse items for a short summary line
-      let itemSummary = '';
+      // Status color class
+      const statusStr = (fulfillment || displayStatus).toLowerCase();
+      const statusColorClass = /delivered|completed/.test(statusStr) ? ' status-delivered'
+        : /shipped|fulfil/.test(statusStr) ? ' status-shipped'
+        : /pack|process/.test(statusStr) ? ' status-packing'
+        : /cancel|refund|return/.test(statusStr) ? ' status-cancelled'
+        : '';
+      // Parse items — render thumbnails + name/size chips
+      let itemsHtml = '';
       try {
         const items = typeof o.items === 'string' ? JSON.parse(o.items) : (Array.isArray(o.items) ? o.items : []);
         if (items.length) {
-          itemSummary = items.map(i => `${escHtml(i.name || '')}${i.size ? ' / ' + escHtml(i.size) : ''}${i.quantity > 1 ? ' ×' + i.quantity : ''}`).join(', ');
+          const shown = items.slice(0, 5);
+          const chips = shown.map(i => {
+            const img = (i.image || i.imageUrl || i.img || '').trim();
+            const safeImg = img && /^https?:\/\//i.test(img) ? img : '';
+            const name = escHtml((i.name || i.title || '').replace(/\p{Extended_Pictographic}/gu, '').trim());
+            const meta = [i.size ? escHtml(i.size) : '', i.quantity > 1 ? `×${i.quantity}` : ''].filter(Boolean).join(' · ');
+            return `<div class="order-item-chip">
+              ${safeImg ? `<img src="${escHtml(safeImg)}" alt="${name}" class="order-item-img" loading="lazy">` : '<div class="order-item-img"></div>'}
+              <div><div class="order-item-name">${name}</div>${meta ? `<div class="order-item-meta">${meta}</div>` : ''}</div>
+            </div>`;
+          }).join('');
+          const extra = items.length > 5 ? `<div class="order-item-more">+${items.length - 5} more</div>` : '';
+          itemsHtml = `<div class="order-items-row">${chips}${extra}</div>`;
         }
       } catch(_) {}
       return `
-        <div class="order-row">
-          <div class="order-id">Order #${escHtml(String(o.id||'').slice(-8).toUpperCase())}</div>
-          <div class="order-meta">${new Date(o.created_at).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})}${orderTotal ? ' · $' + parseFloat(orderTotal).toFixed(2) : ''}</div>
-          ${itemSummary ? `<div class="order-meta" style="margin-top:.2rem;opacity:.5">${itemSummary}</div>` : ''}
-          <span class="order-status">${escHtml(statusLabel)}</span>
-          ${tracking ? `<div class="order-meta" style="margin-top:.3rem">
-            ${trackingUrl
-              ? `<a href="${escHtml(trackingUrl)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;opacity:.7">Track: ${escHtml(tracking)}</a>`
-              : `Tracking: ${escHtml(tracking)}`}
-          </div>` : ''}
+        <div class="order-card">
+          <div class="order-card-head">
+            <div>
+              <div class="order-id">Order #${escHtml(String(o.id||'').slice(-8).toUpperCase())}</div>
+              <div class="order-meta">${new Date(o.created_at).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})}</div>
+            </div>
+            <div class="order-card-head-right">
+              <span class="order-status${statusColorClass}">${escHtml(statusLabel)}</span>
+              ${orderTotal ? `<div class="order-total">$${parseFloat(orderTotal).toFixed(2)}</div>` : ''}
+            </div>
+          </div>
+          ${itemsHtml}
           ${orderTimelineHtml(o, returnRequests)}
+          ${tracking ? `<div>${trackingUrl
+            ? `<a href="${escHtml(trackingUrl)}" target="_blank" rel="noopener" class="track-btn">Track Shipment →</a>`
+            : `<div class="order-meta" style="margin-top:.5rem">Tracking: ${escHtml(tracking)}</div>`}</div>` : ''}
         </div>`;
     }).join('');
   } catch(err) {
@@ -898,9 +1008,11 @@ async function init() {
     const email = _session.user?.email || '';
     const meta = _session.user?.user_metadata || {};
     const name = meta.full_name || '';
-    const display = name ? `${name} · ${email}` : email;
+    const firstName = name ? name.split(' ')[0] : '';
+    const h1 = document.querySelector('.page-hd h1');
+    if (h1) h1.textContent = firstName ? `Hey, ${firstName}.` : 'My Account';
     const emailEl = document.getElementById('acct-email-display');
-    if (emailEl) emailEl.textContent = display;
+    if (emailEl) emailEl.textContent = name ? `${name} · ${email}` : email;
     const signedInEl = document.getElementById('acct-signed-in-as');
     if (signedInEl) signedInEl.textContent = `Signed in as ${email}`;
 
