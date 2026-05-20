@@ -367,6 +367,70 @@
     /* ── RETURNS TAB ── */
     .ret-form-stack { display: flex; flex-direction: column; gap: .9rem; }
 
+    .ret-order-preview {
+      display: none; flex-wrap: wrap; gap: .4rem;
+      padding: .75rem; margin-top: .5rem;
+      background: rgba(244,241,235,.025); border: 1px solid rgba(244,241,235,.06);
+    }
+    body.light-mode .ret-order-preview { background: rgba(9,9,11,.02); border-color: rgba(9,9,11,.07); }
+    .ret-order-preview.visible { display: flex; }
+    .ret-preview-label {
+      width: 100%; font-size: .52rem; letter-spacing: .12em; text-transform: uppercase;
+      color: rgba(244,241,235,.28); margin-bottom: .3rem; font-family: var(--fm);
+    }
+    body.light-mode .ret-preview-label { color: rgba(9,9,11,.35); }
+
+    .ret-card {
+      border: 1px solid var(--a-border); background: var(--a-surface);
+      padding: 1.2rem 1.35rem; margin-bottom: .65rem; font-family: var(--fm);
+    }
+    body.light-mode .ret-card { border-color: rgba(9,9,11,.1); background: rgba(9,9,11,.018); }
+    .ret-card-head {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 1rem; margin-bottom: .6rem;
+    }
+    .ret-card-head-right { display: flex; flex-direction: column; align-items: flex-end; gap: .3rem; flex-shrink: 0; }
+    .ret-id { font-family: var(--fw); font-style: italic; font-size: 1rem; letter-spacing: .04em; }
+    .ret-meta { color: rgba(244,241,235,.38); margin-top: .15rem; font-size: .65rem; letter-spacing: .04em; }
+    body.light-mode .ret-meta { color: rgba(9,9,11,.4); }
+
+    .ret-status {
+      display: inline-block; font-size: .52rem; letter-spacing: .1em; text-transform: uppercase;
+      border: 1px solid rgba(244,241,235,.15); padding: .2rem .55rem; color: rgba(244,241,235,.6);
+    }
+    body.light-mode .ret-status { border-color: rgba(9,9,11,.15); color: rgba(9,9,11,.55); }
+    .ret-status.ret-s-requested  { border-color: rgba(255,185,60,.35);  color: rgba(255,185,60,.9); }
+    .ret-status.ret-s-approved   { border-color: rgba(100,160,255,.35); color: rgba(100,160,255,.9); }
+    .ret-status.ret-s-label_sent { border-color: rgba(248,145,165,.4);  color: rgba(248,145,165,1); }
+    .ret-status.ret-s-completed  { border-color: rgba(80,200,110,.35);  color: rgba(80,200,110,.9); }
+    .ret-status.ret-s-denied     { border-color: rgba(255,90,90,.35);   color: rgba(255,90,90,.9); }
+    body.light-mode .ret-status.ret-s-requested  { border-color: rgba(190,120,0,.3);  color: rgba(190,120,0,.85); }
+    body.light-mode .ret-status.ret-s-approved   { border-color: rgba(30,90,210,.3);  color: rgba(30,90,210,.85); }
+    body.light-mode .ret-status.ret-s-label_sent { border-color: rgba(200,60,90,.3);  color: rgba(200,60,90,.9); }
+    body.light-mode .ret-status.ret-s-completed  { border-color: rgba(20,140,60,.3);  color: rgba(20,140,60,.85); }
+    body.light-mode .ret-status.ret-s-denied     { border-color: rgba(190,30,30,.3);  color: rgba(190,30,30,.85); }
+
+    .ret-next {
+      margin-top: .75rem; padding: .65rem .8rem;
+      background: rgba(244,241,235,.025); border-left: 2px solid rgba(244,241,235,.12);
+      font-size: .7rem; line-height: 1.65; color: rgba(244,241,235,.55);
+    }
+    body.light-mode .ret-next { background: rgba(9,9,11,.025); border-left-color: rgba(9,9,11,.15); color: rgba(9,9,11,.55); }
+    .ret-next strong { color: rgba(244,241,235,.8); display: block; margin-bottom: .25rem; font-size: .6rem; letter-spacing: .08em; text-transform: uppercase; }
+    body.light-mode .ret-next strong { color: rgba(9,9,11,.75); }
+
+    .ret-tracking-row { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .6rem; align-items: center; }
+    .ret-track-btn {
+      display: inline-block; border: 1px solid rgba(244,241,235,.2); color: rgba(244,241,235,.7);
+      padding: .4rem .9rem; font-size: .56rem; letter-spacing: .1em; text-transform: uppercase;
+      font-family: var(--fm); transition: all .18s; text-decoration: none;
+    }
+    .ret-track-btn:hover { border-color: var(--paper); color: var(--paper); }
+    body.light-mode .ret-track-btn { border-color: rgba(9,9,11,.2); color: rgba(9,9,11,.65); }
+    body.light-mode .ret-track-btn:hover { border-color: #09090b; color: #09090b; }
+    .ret-track-num { font-size: .65rem; color: rgba(244,241,235,.45); font-family: var(--fm); letter-spacing: .04em; }
+    body.light-mode .ret-track-num { color: rgba(9,9,11,.5); }
+
     /* ── FOOTER ── */
     footer { margin-top: auto; }
     @media(max-width: 900px) {
@@ -787,28 +851,126 @@ async function loadReturns() {
   }
 }
 
+function retStatusClass(s) {
+  const k = String(s || '').toLowerCase().replace(/\s+/g,'_');
+  if (/request/.test(k)) return 'ret-s-requested';
+  if (/approv/.test(k)) return 'ret-s-approved';
+  if (/label/.test(k)) return 'ret-s-label_sent';
+  if (/complet|close|done/.test(k)) return 'ret-s-completed';
+  if (/deny|denied|reject/.test(k)) return 'ret-s-denied';
+  return '';
+}
+
+function retStatusLabel(s) {
+  const k = String(s || '').toLowerCase();
+  if (/request/.test(k)) return 'Under Review';
+  if (/approv/.test(k)) return 'Approved';
+  if (/label/.test(k)) return 'Label Sent';
+  if (/complet/.test(k)) return 'Completed';
+  if (/close/.test(k)) return 'Closed';
+  if (/deny|denied|reject/.test(k)) return 'Denied';
+  return s || 'Requested';
+}
+
+function retResolutionLabel(r) {
+  if (r === 'exchange') return 'Exchange';
+  if (r === 'store_credit') return 'Store Credit';
+  return 'Refund';
+}
+
+function retNextSteps(r, userEmail) {
+  const s = String(r.status || '').toLowerCase();
+  const email = r.customerEmail || userEmail || 'your email';
+  if (/request/.test(s)) return { title: 'Under Review', body: 'We\'ve received your request and will respond within 1–3 business days.' };
+  if (/approv/.test(s)) return { title: 'Approved', body: 'Your return is approved. We\'re preparing your prepaid shipping label — you\'ll receive an email shortly.' };
+  if (/label/.test(s)) return { title: 'Label Ready', body: `Your prepaid return label was sent to <strong style="font-style:normal">${escHtml(email)}</strong>. Print it, attach it to your package, and drop off at any ${escHtml(r.carrier || 'carrier')} location.` };
+  if (/complet/.test(s)) return { title: 'Complete', body: 'Your return has been received and processed. Thank you.' };
+  if (/deny|denied|reject/.test(s)) return { title: 'Not Approved', body: 'Unfortunately this return request wasn\'t approved. Contact us if you have questions.' };
+  return null;
+}
+
+function retBuildItemChips(order) {
+  if (!order) return '';
+  let items = [];
+  try { items = JSON.parse(order.items || '[]'); } catch(_) {}
+  if (!items.length) return '';
+  const chips = items.slice(0, 4).map(i => {
+    const img = i.image || i.imageUrl || i.img || '';
+    const safeImg = img && /^https?:\/\//i.test(img) ? img : '';
+    const name = escHtml((i.name || i.title || '').replace(/\p{Extended_Pictographic}/gu, '').trim());
+    const meta = [i.size ? escHtml(i.size) : '', i.colorName ? escHtml(i.colorName) : ''].filter(Boolean).join(' · ');
+    return `<div class="order-item-chip">
+      ${safeImg ? `<img src="${escHtml(safeImg)}" alt="${name}" class="order-item-img" loading="lazy">` : '<div class="order-item-img"></div>'}
+      <div><div class="order-item-name">${name}</div>${meta ? `<div class="order-item-meta">${meta}</div>` : ''}</div>
+    </div>`;
+  }).join('');
+  const extra = items.length > 4 ? `<div class="order-item-more">+${items.length - 4} more</div>` : '';
+  return `<div class="order-items-row">${chips}${extra}</div>`;
+}
+
 function renderReturnsContent(payload) {
   const content = document.getElementById('returns-content');
   if (!content) return;
   const orders = Array.isArray(payload?.orders) ? payload.orders : [];
   const requests = Array.isArray(payload?.returns) ? payload.returns : [];
+  const userEmail = _session?.user?.email || '';
+
+  // Build lookup: orderId → order
+  const orderMap = {};
+  orders.forEach(o => { if (o.id) orderMap[String(o.id)] = o; });
 
   const options = orders.map(o => {
     const id = String(o.id || '');
-    const label = `#${id.slice(-8).toUpperCase()} — ${new Date(o.created_at || Date.now()).toLocaleDateString()}`;
+    const dt = new Date(o.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    let itemCount = 0;
+    try { itemCount = JSON.parse(o.items || '[]').length; } catch(_) {}
+    const label = `#${id.slice(-8).toUpperCase()} — ${dt}${itemCount ? ` · ${itemCount} item${itemCount !== 1 ? 's' : ''}` : ''}`;
     return `<option value="${escHtml(id)}">${escHtml(label)}</option>`;
   }).join('');
 
-  const historyHtml = requests.length ? requests.map(r => `
-    <div style="padding:.8rem 0;border-top:1px solid var(--a-border-soft)">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">
-        <strong style="font-size:.78rem">${escHtml(r.orderLabel || '#' + String(r.orderId||'').slice(-8).toUpperCase())}</strong>
-        <span class="zw-badge">${escHtml(r.status || 'requested')}</span>
-      </div>
-      <div style="font-size:.68rem;color:var(--a-muted);margin-top:.3rem">${escHtml(r.resolution)} — ${escHtml(r.reason)}</div>
-      <div style="font-size:.62rem;color:var(--a-dim);margin-top:.2rem">${new Date(r.createdAt||Date.now()).toLocaleDateString()}</div>
-    </div>
-  `).join('') : '<div class="zw-empty">No return or exchange requests yet.</div>';
+  const historyHtml = requests.length ? requests.slice().sort((a, b) =>
+    new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+  ).map(r => {
+    const statusCls = retStatusClass(r.status);
+    const statusLbl = retStatusLabel(r.status);
+    const resLbl = retResolutionLabel(r.resolution);
+    const dt = new Date(r.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const order = orderMap[String(r.orderId || '')];
+    const itemChips = retBuildItemChips(order);
+    const next = retNextSteps(r, userEmail);
+
+    const safeLabel = r.labelUrl && /^https?:\/\//i.test(r.labelUrl) ? r.labelUrl : '';
+    const safeTrack = r.trackingUrl && /^https?:\/\//i.test(r.trackingUrl) ? r.trackingUrl : '';
+
+    const trackingRow = (r.trackingNumber || safeLabel || safeTrack) ? `
+      <div class="ret-tracking-row">
+        ${r.trackingNumber ? `<span class="ret-track-num">${escHtml(r.carrier || '')} ${escHtml(r.trackingNumber)}</span>` : ''}
+        ${safeLabel ? `<a href="${escHtml(safeLabel)}" target="_blank" rel="noopener" class="ret-track-btn">Download Label →</a>` : ''}
+        ${safeTrack ? `<a href="${escHtml(safeTrack)}" target="_blank" rel="noopener" class="ret-track-btn">Track Return →</a>` : ''}
+      </div>` : '';
+
+    const nextHtml = next ? `
+      <div class="ret-next">
+        <strong>${escHtml(next.title)}</strong>
+        ${next.body}
+      </div>` : '';
+
+    return `
+      <div class="ret-card">
+        <div class="ret-card-head">
+          <div>
+            <div class="ret-id">${escHtml(r.orderLabel || '#' + String(r.orderId || '').slice(-8).toUpperCase())}</div>
+            <div class="ret-meta">${escHtml(resLbl)} · ${escHtml(r.reason || '')} · ${escHtml(dt)}</div>
+          </div>
+          <div class="ret-card-head-right">
+            <span class="ret-status ${statusCls}">${escHtml(statusLbl)}</span>
+          </div>
+        </div>
+        ${itemChips}
+        ${trackingRow}
+        ${nextHtml}
+      </div>`;
+  }).join('') : '<div class="zw-empty">No return or exchange requests yet.</div>';
 
   content.innerHTML = `
     <div class="ret-form-stack">
@@ -821,7 +983,8 @@ function renderReturnsContent(payload) {
           <label>Order</label>
           <select id="ret-order">${options || '<option value="">No eligible orders found</option>'}</select>
         </div>
-        <div class="zw-grid-2">
+        <div id="ret-order-preview" class="ret-order-preview"></div>
+        <div class="zw-grid-2" style="margin-top:.75rem">
           <div class="zw-field">
             <label>Resolution</label>
             <select id="ret-resolution">
@@ -844,29 +1007,47 @@ function renderReturnsContent(payload) {
           <span id="ret-status" class="zw-status"></span>
         </div>
       </div>
-      <div class="zw-card">
+      ${requests.length ? `<div class="zw-card">
         <div class="zw-card-title">Request History</div>
-        ${historyHtml}
-      </div>
+        <div style="margin-top:.75rem">${historyHtml}</div>
+      </div>` : `<div class="zw-card"><div class="zw-empty" style="padding:.25rem 0">No return or exchange requests yet.</div></div>`}
     </div>
   `;
+
+  // Order preview on change
+  function showOrderPreview(orderId) {
+    const preview = document.getElementById('ret-order-preview');
+    if (!preview) return;
+    const order = orderMap[orderId];
+    if (!order) { preview.className = 'ret-order-preview'; preview.innerHTML = ''; return; }
+    const chips = retBuildItemChips(order);
+    if (!chips) { preview.className = 'ret-order-preview'; preview.innerHTML = ''; return; }
+    preview.innerHTML = `<div class="ret-preview-label">Items in this order</div>${chips}`;
+    preview.className = 'ret-order-preview visible';
+  }
+
+  const orderEl = document.getElementById('ret-order');
+  if (orderEl) {
+    showOrderPreview(orderEl.value);
+    orderEl.addEventListener('change', () => showOrderPreview(orderEl.value));
+  }
 
   document.getElementById('ret-submit')?.addEventListener('click', async () => {
     const statusEl = document.getElementById('ret-status');
     if (statusEl) statusEl.textContent = 'Submitting…';
     try {
-      const orderEl = document.getElementById('ret-order');
+      const selOrderEl = document.getElementById('ret-order');
       await postHub('submit_return', {
-        orderId: orderEl?.value || '',
-        orderLabel: orderEl?.selectedOptions?.[0]?.textContent || '',
+        orderId: selOrderEl?.value || '',
+        orderLabel: selOrderEl?.selectedOptions?.[0]?.textContent || '',
         resolution: document.getElementById('ret-resolution')?.value || 'return',
         reason: document.getElementById('ret-reason')?.value || '',
         notes: document.getElementById('ret-notes')?.value || ''
       });
       if (statusEl) statusEl.textContent = 'Request submitted!';
       _hubPayload = null;
-      const content = document.getElementById('returns-content');
-      if (content) { delete content.dataset.loaded; }
+      const c = document.getElementById('returns-content');
+      if (c) { delete c.dataset.loaded; }
       setTimeout(() => loadReturns(), 1000);
     } catch(err) {
       if (statusEl) statusEl.textContent = err.message || 'Could not submit.';
