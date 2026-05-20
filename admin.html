@@ -5418,6 +5418,7 @@
                 const keyList = missing.length ? `<strong>${missing.join(', ')}</strong>` : 'one or more Cloudinary keys';
                 return `<p class="api-note" style="color:var(--warning);">Missing ${keyList}. Add to Cloudflare Pages → Settings → Variables &amp; Secrets, or use the editor below.</p>`;
             }
+            if (!s.ok && s.is401) return `<p class="api-note" style="color:var(--error);"><strong>401 Unauthorized</strong> — <code>CLOUDINARY_CLOUD_NAME</code> does not match the account that owns your API key/secret.<br><br>Find your cloud name in the <a href="https://cloudinary.com/console" target="_blank" style="color:var(--accent)">Cloudinary console</a> under Account Details (top-left dropdown). It must exactly match what you entered.</p>`;
             if (!s.ok) return `<p class="api-note" style="color:var(--error);">Connection failed: ${s.error || 'Unknown error'}</p><p class="api-note">Check your Cloud Name, API Key, and API Secret in the editor below.</p>`;
             let rows = apiRow('Plan', s.plan || 'Free');
             if (s.credits)   rows += apiRow('Credits used', `${(s.credits.usage||0).toFixed(1)} / ${s.credits.limit || 25}`) + usageBar(s.credits.used_percent || 0);

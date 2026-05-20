@@ -36,8 +36,11 @@ function withTimeout(promise, ms = 6000) {
 // Each check function receives the env + a pre-fetched Supabase settings cache.
 
 async function checkDeepL(env, cache) {
+  // translate.js accepts DEEPL_API_KEY, DEEPL_AUTH_KEY, or DEEPL_KEY — match that fallback chain
   const key = resolveSetting('DEEPL_API_KEY', env, cache)
-    || (env.DEEPL_API_KEY_ || '').trim().replace(/,$/, ''); // handle trailing-comma variant
+    || (env.DEEPL_API_KEY_ || '').trim().replace(/,$/, '')
+    || resolveSetting('DEEPL_AUTH_KEY', env, cache)
+    || resolveSetting('DEEPL_KEY', env, cache);
   if (!key) return { ok: false, configured: false, optional: true, error: 'DEEPL_API_KEY not set' };
   try {
     const resp = await withTimeout(fetch('https://api-free.deepl.com/v2/usage', {
@@ -76,7 +79,16 @@ async function checkCloudinary(env, cache) {
     const resp  = await withTimeout(fetch(`https://api.cloudinary.com/v1_1/${cloudName}/usage`, {
       headers: { Authorization: `Basic ${creds}` }
     }));
-    if (!resp.ok) return { ok: false, error: `HTTP ${resp.status}` };
+    if (!resp.ok) {
+      const is401 = resp.status === 401;
+      return {
+        ok: false,
+        is401,
+        error: is401
+          ? 'HTTP 401 — CLOUDINARY_CLOUD_NAME does not match the account these credentials belong to'
+          : `HTTP ${resp.status}`,
+      };
+    }
     const d = await resp.json();
     return {
       ok: true,
@@ -254,7 +266,20 @@ async function checkTwilio(env, cache) {
 }
 
 async function checkPostHog(env, cache) {
-  const key = resolveSetting('POSTHOG_API_KEY', env, cache) || (env.POSTHOG_PROJECT_API_KEY || '').trim();
+  let key = resolveSetting('POSTHOG_API_KEY', env, cache) || (env.POSTHOG_PROJECT_API_KEY || '').trim();
+
+  // Fall back to reading the phc_ key embedded in the static posthog-init.js asset
+  if (!key && env.ASSETS) {
+    try {
+      const assetResp = await env.ASSETS.fetch(new Request('https://placeholder.local/posthog-init.js'));
+      if (assetResp.ok) {
+        const text  = await assetResp.text();
+        const match = text.match(/phc_[A-Za-z0-9_]{20,}/);
+        if (match) key = match[0];
+      }
+    } catch (_) {}
+  }
+
   if (!key) return { ok: false, configured: false, optional: true, error: 'POSTHOG_API_KEY not set — add your PostHog project API key (starts with phc_)' };
   if (!key.startsWith('phc_') || key.length < 20) {
     return { ok: false, keyActive: false, error: 'Key should start with phc_ and be at least 20 characters — check your PostHog project settings.' };
