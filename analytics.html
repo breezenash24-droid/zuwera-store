@@ -751,6 +751,11 @@
           <div class="card-label">Waitlist Entries</div>
           <div class="card-value" id="totalWaitlist">0</div>
         </div>
+        <div class="card">
+          <div class="card-label">Tax Collected</div>
+          <div class="card-value" id="totalTaxCollected">$0.00</div>
+          <div class="card-subtitle">all orders, all states</div>
+        </div>
       </div>
 
       <div class="chart-section">
@@ -829,6 +834,35 @@
           <div class="spinner"></div>
           <span>Loading orders...</span>
         </div>
+      </div>
+
+      <!-- Tax Compliance Report -->
+      <div class="table-section" id="taxReportSection">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem;">
+          <h2 style="margin:0;">Tax Liability by State</h2>
+          <span style="font-size:0.82rem;color:var(--text-secondary);">Calculated from charged amounts — no external API needed</span>
+        </div>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.25rem;">
+          <div class="glass-card" style="flex:1;min-width:160px;padding:0.9rem 1.1rem;">
+            <div class="card-label">States with Nexus</div>
+            <div class="card-value mono-metric" id="taxStateCount" style="font-size:1.6rem;">—</div>
+          </div>
+          <div class="glass-card" style="flex:1;min-width:160px;padding:0.9rem 1.1rem;">
+            <div class="card-label">Total Tax Collected</div>
+            <div class="card-value mono-metric" id="taxTotalCollected" style="font-size:1.6rem;">—</div>
+          </div>
+          <div class="glass-card" style="flex:1;min-width:160px;padding:0.9rem 1.1rem;">
+            <div class="card-label">Effective Tax Rate</div>
+            <div class="card-value mono-metric" id="taxEffectiveRate" style="font-size:1.6rem;">—</div>
+          </div>
+        </div>
+        <div id="taxTableContainer">
+          <div class="loading"><div class="spinner"></div><span>Loading tax data...</span></div>
+        </div>
+        <p style="margin-top:1rem;font-size:0.8rem;color:var(--text-secondary);line-height:1.5;">
+          This report reflects sales tax <em>collected</em> at checkout. Use it as input for state filings (TaxJar, Avalara, or direct state portals).
+          If a state shows $0 tax, orders there may have been placed before tax collection was enabled.
+        </p>
       </div>
 
       <h2 style="margin-top: 2.5rem; margin-bottom: 1.5rem;">Inventory & Catalog</h2>
@@ -1210,6 +1244,7 @@
           updateOrderAnalytics();
           updateRevenueChart();
           renderOrdersTable();
+          renderTaxComplianceReport();
         });
         await runDashboardStep('COMMAND_CENTER_RENDER', 'Technical Command Center failed to render.', updateCommandCenter);
       } catch (error) {
@@ -1669,6 +1704,88 @@
       });
       html += `</tbody></table>`;
       container.innerHTML = html;
+    };
+
+    const renderTaxComplianceReport = () => {
+      const container = document.getElementById('taxTableContainer');
+      const stateCountEl = document.getElementById('taxStateCount');
+      const totalCollectedEl = document.getElementById('taxTotalCollected');
+      const effectiveRateEl = document.getElementById('taxEffectiveRate');
+      const summaryCardEl = document.getElementById('totalTaxCollected');
+
+      // Group orders by ship_state
+      const byState = {};
+      let grandTaxTotal = 0;
+      let grandSubtotal = 0;
+
+      (allOrders || []).forEach(order => {
+        const state = (order.ship_state || '').trim().toUpperCase();
+        const tax = parseFloat(order.tax) || 0;
+        const subtotal = parseFloat(order.subtotal) || 0;
+        const total = parseFloat(order.total) || 0;
+        grandTaxTotal += tax;
+        grandSubtotal += subtotal;
+        if (!state) return;
+        if (!byState[state]) byState[state] = { orders: 0, subtotal: 0, tax: 0, total: 0 };
+        byState[state].orders++;
+        byState[state].subtotal += subtotal;
+        byState[state].tax += tax;
+        byState[state].total += total;
+      });
+
+      const statesWithTax = Object.keys(byState).filter(s => byState[s].tax > 0);
+      const effectiveRate = grandSubtotal > 0 ? ((grandTaxTotal / grandSubtotal) * 100).toFixed(2) : '0.00';
+
+      if (summaryCardEl) summaryCardEl.textContent = `$${grandTaxTotal.toFixed(2)}`;
+      if (stateCountEl) stateCountEl.textContent = statesWithTax.length || '0';
+      if (totalCollectedEl) totalCollectedEl.textContent = `$${grandTaxTotal.toFixed(2)}`;
+      if (effectiveRateEl) effectiveRateEl.textContent = `${effectiveRate}%`;
+
+      if (!container) return;
+
+      if (Object.keys(byState).length === 0) {
+        container.innerHTML = '<p style="color:var(--text-secondary);padding:1rem 0;">No orders with state data found yet.</p>';
+        return;
+      }
+
+      const rows = Object.entries(byState)
+        .sort((a, b) => b[1].tax - a[1].tax)
+        .map(([state, d]) => {
+          const rate = d.subtotal > 0 ? ((d.tax / d.subtotal) * 100).toFixed(2) : '0.00';
+          const taxDisplay = d.tax > 0
+            ? `<span style="color:var(--success)">$${d.tax.toFixed(2)}</span>`
+            : `<span style="color:var(--text-secondary)">$0.00</span>`;
+          return `<tr>
+            <td style="font-family:monospace;font-weight:600;">${state}</td>
+            <td>${d.orders}</td>
+            <td>$${d.subtotal.toFixed(2)}</td>
+            <td>${taxDisplay}</td>
+            <td style="color:var(--text-secondary)">${rate}%</td>
+          </tr>`;
+        }).join('');
+
+      container.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>State</th>
+              <th>Orders</th>
+              <th>Taxable Revenue</th>
+              <th>Tax Collected</th>
+              <th>Effective Rate</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+          <tfoot>
+            <tr style="border-top:2px solid var(--card-border);font-weight:700;">
+              <td>Total</td>
+              <td>${allOrders.length}</td>
+              <td>$${grandSubtotal.toFixed(2)}</td>
+              <td style="color:var(--success)">$${grandTaxTotal.toFixed(2)}</td>
+              <td style="color:var(--text-secondary)">${effectiveRate}%</td>
+            </tr>
+          </tfoot>
+        </table>`;
     };
 
     // Status Chart
