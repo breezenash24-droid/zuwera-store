@@ -1721,8 +1721,9 @@
           if (sizeData) {
             let html = `<div class="highlight-title">Recommended: Size ${window.recommendedSize}</div><div class="highlight-grid">`;
 
+            const HIDDEN_KEYS = new Set(['id', 'category', 'size_label', 'created_at', 'updated_at', 'product_id']);
             Object.keys(sizeData).forEach(key => {
-              if (key !== 'category' && key !== 'size_label' && sizeData[key]) {
+              if (!HIDDEN_KEYS.has(key) && sizeData[key]) {
                 const label = formatLabel(key);
                 html += `<div class="highlight-item"><div class="highlight-label">${label}</div><div class="highlight-value">${sizeData[key]}</div></div>`;
               }
