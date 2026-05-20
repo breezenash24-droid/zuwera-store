@@ -894,6 +894,12 @@ window.__zwOpenAuth = function(tab) {
       f('pay-city',  addr.city);
       f('pay-state', addr.state);
       f('pay-zip',   addr.zip);
+      // Fire input events so checkout.js recalculates shipping rates and tax
+      var inputEvt = new Event('input', { bubbles: true });
+      var zipEl2   = document.getElementById('pay-zip');
+      var stateEl2 = document.getElementById('pay-state');
+      if (zipEl2)   zipEl2.dispatchEvent(inputEvt);
+      if (stateEl2) stateEl2.dispatchEvent(new Event('input', { bubbles: true }));
     }
   };
 
