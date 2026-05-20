@@ -232,7 +232,7 @@ body.light-mode .cart-shell-footer-copy{
 }
 
 /* Modals */
-.modal:not(#cart-modal):not(#mobile-menu):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review),
+.modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review),
 .collection-review-modal,
 #zw-lang-modal{
   background:none !important;
@@ -246,7 +246,7 @@ body.light-mode .cart-shell-footer-copy{
   overscroll-behavior:contain;
 }
 
-body.light-mode .modal:not(#cart-modal):not(#mobile-menu):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review),
+body.light-mode .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review),
 body.light-mode .collection-review-modal,
 body.light-mode #zw-lang-modal{
   background:none !important;
@@ -254,7 +254,7 @@ body.light-mode #zw-lang-modal{
   -webkit-backdrop-filter:none !important;
 }
 
-.modal:not(#cart-modal):not(#mobile-menu):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.collection-review-box){
+.modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.collection-review-box){
   background:var(--zw-surface) !important;
   border:1px solid var(--zw-line-dark) !important;
   border-top:2px solid var(--zw-accent) !important;
@@ -273,7 +273,7 @@ body.light-mode #zw-lang-modal{
   animation:zwCenteredModalIn .22s ease;
 }
 
-body.light-mode .modal:not(#cart-modal):not(#mobile-menu):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.collection-review-box){
+body.light-mode .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.collection-review-box){
   background:var(--zw-paper) !important;
   border-color:var(--zw-line-light) !important;
   border-top-color:var(--zw-ink) !important;
@@ -714,13 +714,13 @@ body.light-mode .heart-btn{
     display:flex !important;
   }
 
-  .modal:not(#cart-modal):not(#mobile-menu):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review){
+  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review){
     align-items:stretch !important;
     justify-content:flex-end !important;
     padding:0 !important;
   }
 
-  .modal:not(#cart-modal):not(#mobile-menu):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review) > :is(.mbox,.collection-review-box,.pbox,.review-mbox,.review-list-mbox){
+  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review) > :is(.mbox,.collection-review-box,.pbox,.review-mbox,.review-list-mbox){
     width:100% !important;
     max-width:100% !important;
     min-height:100dvh !important;
