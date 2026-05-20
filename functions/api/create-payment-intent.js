@@ -268,6 +268,7 @@ async function resolveCatalogItems(items, env, isMember) {
       quantity: parseQuantity(raw?.quantity),
       amount: priceCents,
       shippingWeightLb: Number.parseFloat(product.shipping_weight_lb) || Number.parseFloat(raw?.weightLb) || 0.5,
+      image: product.image_url || raw?.image || raw?.imageUrl || raw?.img || '',
     });
   }
 
