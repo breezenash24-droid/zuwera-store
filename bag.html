@@ -657,8 +657,8 @@ function updateCartSummary(subtotal) {
   const tax = window.ZWCheckoutTax && state ? window.ZWCheckoutTax.taxDollars(subtotal, state) : 0;
   const taxEl = document.getElementById('summary-tax');
   const taxNote = document.getElementById('tax-note');
-  if (taxEl) taxEl.textContent = state ? '$' + tax.toFixed(2) : '-';
-  if (taxNote) taxNote.textContent = state ? 'Est. ' + state + ' sales tax' : 'Calculated at checkout';
+  if (taxEl) taxEl.textContent = '-';
+  if (taxNote) taxNote.textContent = 'Calculated at checkout';
   const shippingEl = document.getElementById('summary-shipping');
   const totalEl = document.getElementById('summary-total');
   if (qualifiesFree) {
