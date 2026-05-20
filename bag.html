@@ -744,8 +744,7 @@ window.addEventListener('scroll', () => {
 
 /* ── Account/logout buttons ── */
 document.getElementById('account-btn').addEventListener('click', () => {
-  // Navigate back to homepage where full account modal lives
-  window.location.href = '/';
+  window.location.href = '/account.html';
 });
 document.getElementById('logout-btn').addEventListener('click', () => {
   if (window.sb) window.sb.auth.signOut().then(() => location.reload());
