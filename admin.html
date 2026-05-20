@@ -29,14 +29,17 @@
             --text-muted: var(--text-secondary);
             --radius-md: 8px;
             --border-color: var(--border);
+            --bg-tertiary: #141416;
         }
 
         body.light-mode {
             --bg-primary: #F0EEE9;
             --bg-secondary: #fdfdfc;
+            --bg-tertiary: #e8e6e1;
             --text-primary: #111;
             --text-secondary: #666;
             --border: #e5e5e5;
+            --border-color: #e5e5e5;
         }
 
         * {
@@ -849,7 +852,7 @@
         }
 
         body.light-mode .modal {
-            background-color: rgba(240, 238, 233, 0.85);
+            background-color: rgba(17, 17, 17, 0.45);
         }
 
         .modal-content {
@@ -3285,7 +3288,7 @@
                             datasets: [{
                               data: cats.map(([,d]) => d.revenue.toFixed(2)),
                               backgroundColor: cats.map((_, i) => CAT_COLORS[i % CAT_COLORS.length]),
-                              borderColor: '#09090b',
+                              borderColor: getComputedStyle(document.body).getPropertyValue('--bg-primary').trim() || '#09090b',
                               borderWidth: 3
                             }]
                           },
@@ -3293,7 +3296,7 @@
                             responsive: true,
                             cutout: '65%',
                             plugins: {
-                              legend: { position: 'bottom', labels: { color: '#9b9b9b', padding: 16, font: { size: 12 } } },
+                              legend: { position: 'bottom', labels: { color: getComputedStyle(document.body).getPropertyValue('--text-secondary').trim() || '#9b9b9b', padding: 16, font: { size: 12 } } },
                               tooltip: { callbacks: { label: ctx => ` ${ctx.label}: $${parseFloat(ctx.parsed).toFixed(2)}` } }
                             }
                           }
@@ -4465,7 +4468,7 @@
                         <div class="form-group">
                             <label class="form-label">Shipping Weight (lb) <span style="color:#e07060;font-size:.75em">Required</span></label>
                             <input type="number" id="shippingWeightLb" class="form-input" placeholder="e.g., 0.5" step="0.01" min="0.01">
-                            <div style="font-size:.72rem;color:rgba(244,241,235,.35);margin-top:.3rem">Actual packed weight used for live shipping rates at checkout.</div>
+                            <div style="font-size:.72rem;color:var(--text-secondary);margin-top:.3rem">Actual packed weight used for live shipping rates at checkout.</div>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Gallery Image Crop Focus</label>
@@ -4474,7 +4477,7 @@
                                 <option value="50">Center — balanced crop</option>
                                 <option value="100">Bottom — show feet/hem (crop top)</option>
                             </select>
-                            <div style="font-size:.72rem;color:rgba(244,241,235,.35);margin-top:.3rem">Controls which part of the image stays visible when portrait photos are cropped in the mini product modal.</div>
+                            <div style="font-size:.72rem;color:var(--text-secondary);margin-top:.3rem">Controls which part of the image stays visible when portrait photos are cropped in the mini product modal.</div>
                         </div>
                     </div>
                     <div class="form-grid">
@@ -5381,7 +5384,7 @@
                 return `
                     <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);border-radius:8px;padding:12px 14px;margin-bottom:12px;">
                       <div style="font-weight:700;color:var(--error);margin-bottom:6px;">🔑 Key issue — emails are going through Brevo fallback</div>
-                      <div style="font-size:.82rem;color:rgba(244,241,235,.75);margin-bottom:10px;">${errMsg}</div>
+                      <div style="font-size:.82rem;color:var(--text-primary);margin-bottom:10px;">${errMsg}</div>
                       <button class="btn btn-primary" style="font-size:.75rem;padding:6px 14px;" onclick="openKeyEdit('resend')">Fix Resend key now →</button>
                     </div>
                     <p class="api-note" style="margin-bottom:6px;"><strong>Steps:</strong></p>
@@ -5414,7 +5417,7 @@
             const resultEl = document.getElementById('resend-test-result');
             if (!resultEl) return;
             resultEl.style.display = 'block';
-            resultEl.style.background = 'rgba(244,241,235,.06)';
+            resultEl.style.background = 'var(--bg-secondary)';
             resultEl.style.border = '1px solid var(--border)';
             resultEl.style.color = 'var(--text-secondary)';
             resultEl.textContent = 'Sending test email…';
@@ -5498,7 +5501,7 @@
             if (!secret) return;
 
             resultEl.style.display = 'block';
-            resultEl.style.background = 'rgba(244,241,235,.06)';
+            resultEl.style.background = 'var(--bg-secondary)';
             resultEl.style.border = '1px solid var(--border)';
             resultEl.style.color = 'var(--text-secondary)';
             resultEl.textContent = `Sending test ${event} event…`;
@@ -6400,7 +6403,7 @@
                 const statusClass = escapeAttr((product.status || 'draft').toLowerCase().replace(/\s+/g, '-'));
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td><div class="product-image" style="${safeImg ? `background-image:url('${escapeAttr(safeImg)}');background-size:cover;background-position:center;` : 'background:linear-gradient(135deg,#1a1a1e,#2a2a2f);'}"></div></td>
+                    <td><div class="product-image" style="${safeImg ? `background-image:url('${escapeAttr(safeImg)}');background-size:cover;background-position:center;` : 'background:var(--bg-tertiary);'}"></div></td>
                     <td><strong>${escapeHtml(product.sku || 'N/A')}</strong></td>
                     <td>${escapeHtml(product.title || 'N/A')}</td>
                     <td>${escapeHtml(product.colorway || 'N/A')}</td>
