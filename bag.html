@@ -391,7 +391,13 @@
         </div>
         <span class="summary-value" id="summary-shipping">-</span>
       </div>
-      <div class="summary-row"><span>Tax</span><span class="summary-value" id="summary-tax">-</span></div>
+      <div class="summary-row">
+        <div>
+          <div>Tax</div>
+          <div class="shipping-note" id="tax-note">Calculated at checkout</div>
+        </div>
+        <span class="summary-value" id="summary-tax">-</span>
+      </div>
       <div id="zw-promo-shell">
         <div>
           <input id="zw-promo-input" type="text" placeholder="PROMO CODE" autocomplete="off">
@@ -679,15 +685,20 @@ function updateCartSummary(subtotal) {
   if (subtotal === 0) {
     const sh = document.getElementById('summary-shipping');
     const tx = document.getElementById('summary-tax');
+    const txNote = document.getElementById('tax-note');
     const to = document.getElementById('summary-total');
     if (sh) sh.textContent = '-';
     if (tx) tx.textContent = '-';
+    if (txNote) txNote.textContent = 'Calculated at checkout';
     if (to) to.textContent = '-';
     return;
   }
-  const tax = window.ZWCheckoutTax ? window.ZWCheckoutTax.taxDollars(subtotal, getCheckoutTaxStateCode()) : 0;
+  const state = getCheckoutTaxStateCode ? getCheckoutTaxStateCode() : '';
+  const tax = window.ZWCheckoutTax && state ? window.ZWCheckoutTax.taxDollars(subtotal, state) : 0;
   const taxEl = document.getElementById('summary-tax');
-  if (taxEl) taxEl.textContent = tax > 0 ? '$' + tax.toFixed(2) : (getCheckoutTaxStateCode() ? '$0.00' : '—');
+  const taxNote = document.getElementById('tax-note');
+  if (taxEl) taxEl.textContent = state ? '$' + tax.toFixed(2) : '-';
+  if (taxNote) taxNote.textContent = state ? 'Est. ' + state + ' sales tax' : 'Calculated at checkout';
   const shippingEl = document.getElementById('summary-shipping');
   const totalEl = document.getElementById('summary-total');
   if (qualifiesFree) {
