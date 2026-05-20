@@ -5254,6 +5254,7 @@
                     { name: 'SHIPPO_FROM_ZIP', label: 'Return ZIP', type: 'text', placeholder: '10001' },
                     { name: 'SHIPPO_FROM_COUNTRY', label: 'Return Country', type: 'text', placeholder: 'US' },
                     { name: 'SHIPPO_FROM_EMAIL', label: 'Return Email', type: 'email', placeholder: 'orders@zuwera.store' },
+                    { name: 'SHIPPO_FROM_PHONE', label: 'Return Phone (required by Shippo)', type: 'text', placeholder: '+12125551234' },
                 ]
             },
             deepl: {
@@ -5507,10 +5508,8 @@
             resultEl.textContent = `Sending test ${event} event…`;
 
             try {
-                const resp = await fetch(`/api/shippo-webhook?event=${encodeURIComponent(event)}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ secret, event }),
+                const resp = await fetch(`/api/shippo-webhook?secret=${encodeURIComponent(secret)}&event=${encodeURIComponent(event)}`, {
+                    method: 'GET',
                 });
                 const data = await resp.json();
                 if (resp.ok && data.received) {

@@ -18,6 +18,7 @@ const ADDRESS_KEYS = [
   'SHIPPO_FROM_ZIP',
   'SHIPPO_FROM_COUNTRY',
   'SHIPPO_FROM_EMAIL',
+  'SHIPPO_FROM_PHONE',
 ];
 
 export async function onRequestOptions({ env }) {

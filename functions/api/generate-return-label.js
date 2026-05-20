@@ -101,6 +101,7 @@ async function createShippoLabel(order, env, cache) {
     zip:     order.ship_zip     || '',
     country: order.ship_country || 'US',
     email:   order.email        || order.customer_email || '',
+    phone:   order.ship_phone   || order.phone          || '',
   };
 
   const addressTo = {
@@ -112,6 +113,7 @@ async function createShippoLabel(order, env, cache) {
     zip:     getReturnAddressSetting('SHIPPO_FROM_ZIP', env, cache),
     country: getReturnAddressSetting('SHIPPO_FROM_COUNTRY', env, cache, 'US'),
     email:   getReturnAddressSetting('SHIPPO_FROM_EMAIL', env, cache, 'orders@zuwera.store'),
+    phone:   getReturnAddressSetting('SHIPPO_FROM_PHONE', env, cache),
   };
 
   requireAddress(addressFrom, 'Customer return address');
@@ -404,6 +406,7 @@ export async function onRequestPost({ request, env }) {
         'SHIPPO_FROM_ZIP',
         'SHIPPO_FROM_COUNTRY',
         'SHIPPO_FROM_EMAIL',
+        'SHIPPO_FROM_PHONE',
         'RESEND_API_KEY',
         'BREVO_API_KEY',
         'EMAIL_FROM',

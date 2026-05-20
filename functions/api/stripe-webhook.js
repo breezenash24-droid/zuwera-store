@@ -215,6 +215,7 @@ async function createShippingLabel(pi, meta, env) {
       zip:     env.SHIPPO_FROM_ZIP     || '',
       country: env.SHIPPO_FROM_COUNTRY || 'US',
       email:   env.SHIPPO_FROM_EMAIL   || 'orders@zuwera.store',
+      phone:   env.SHIPPO_FROM_PHONE   || '',
     };
     // Scale parcel weight/size by total item quantity
     const _labelItems   = (() => { try { return JSON.parse(meta.items || '[]'); } catch { return []; } })();

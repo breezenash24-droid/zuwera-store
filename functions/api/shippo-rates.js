@@ -173,6 +173,7 @@ export async function onRequestPost({ request, env }) {
       zip: env.SHIPPO_FROM_ZIP || '',
       country: env.SHIPPO_FROM_COUNTRY || 'US',
       email: env.SHIPPO_FROM_EMAIL || 'orders@zuwera.store',
+      phone: env.SHIPPO_FROM_PHONE || '',
     };
 
     const resp = await fetch('https://api.goshippo.com/shipments/', {
