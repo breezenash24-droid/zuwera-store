@@ -101,7 +101,7 @@ async function createShippoLabel(order, env, cache) {
     zip:     order.ship_zip     || '',
     country: order.ship_country || 'US',
     email:   order.email        || order.customer_email || '',
-    phone:   order.ship_phone   || order.phone          || '',
+    phone:   order.ship_phone   || order.phone          || getReturnAddressSetting('SHIPPO_FROM_PHONE', env, cache, ''),
   };
 
   const addressTo = {
