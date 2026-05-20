@@ -285,10 +285,17 @@ async function doFetchRates(zip, state) {
       state, zip, country: 'US',
     },
   });
+  const subtotal = cartItems.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0);
+  const policy   = window._shippingPolicy || { enabled: true, threshold: 100, standardRate: 8 };
+  const qualifiesFree = policy.enabled && subtotal >= policy.threshold;
+
   if (data.rates?.length) {
     selectedShippingRate = data.rates[0];
-  } else if (data.error) {
-    console.error('Shippo rates error:', data.error);
+    updateCartSummaryShipping(qualifiesFree ? 0 : parseFloat(data.rates[0].amount));
+  } else {
+    if (data.error) console.error('Shippo rates error:', data.error);
+    // Show standard fallback rate so the customer knows what they'll pay
+    if (!qualifiesFree) updateCartSummaryShipping(policy.standardRate || 8);
   }
 }
 
@@ -311,15 +318,27 @@ function maybeLoadRates() {
 }
 
 function updateCartSummaryShipping(amount) {
-  // Shipping is always free to the customer — amount is used for internal metadata only.
+  const dollarAmt = Number(amount) || 0;
+  const shippingText = dollarAmt > 0 ? `$${dollarAmt.toFixed(2)}` : 'Free';
   if (_pay.shippingEl) {
-    _pay.shippingEl.textContent = 'Free';
+    _pay.shippingEl.textContent = shippingText;
     _pay.shippingEl.classList.remove('dash');
   }
   if (_pay.totalEl) {
     const parse = el => parseFloat(el?.textContent?.replace(/[^0-9.]/g, '') || '0');
-    _pay.totalEl.textContent = `$${(parse(_cart.subtotalEl) + parse(_pay.taxEl)).toFixed(2)}`;
+    _pay.totalEl.textContent = `$${(parse(_cart.subtotalEl) + parse(_pay.taxEl) + dollarAmt).toFixed(2)}`;
     _pay.totalEl.classList.remove('dash');
+  }
+  // Keep payment modal summary in sync
+  const pmShipping = document.getElementById('pm-shipping');
+  const pmTotal    = document.getElementById('pm-total');
+  const pmToggle   = document.getElementById('pm-toggle-total');
+  if (pmShipping) pmShipping.textContent = shippingText;
+  if (pmTotal || pmToggle) {
+    const parse = el => parseFloat(el?.textContent?.replace(/[^0-9.]/g, '') || '0');
+    const tot = `$${(parse(document.getElementById('pm-subtotal')) + parse(document.getElementById('pm-tax')) + dollarAmt).toFixed(2)}`;
+    if (pmTotal)  pmTotal.textContent  = tot;
+    if (pmToggle) pmToggle.textContent = tot;
   }
 }
 
