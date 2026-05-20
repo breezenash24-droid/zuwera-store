@@ -278,8 +278,11 @@
       display: grid; grid-template-columns: 56px 1fr auto;
       align-items: center; gap: .75rem;
       padding: .6rem 0; border-bottom: 1px solid rgba(244,241,235,.06);
+      color: inherit; text-decoration: none;
     }
     body.light-mode .ord-item-row { border-bottom-color: rgba(9,9,11,.07); }
+    a.ord-item-row { cursor: pointer; }
+    a.ord-item-row:hover .ord-item-name { text-decoration: underline; text-underline-offset: 2px; }
     .ord-item-img {
       width: 56px; height: 56px; object-fit: cover;
       flex-shrink: 0; display: block; background: rgba(244,241,235,.07);
@@ -374,7 +377,10 @@
       display: flex; align-items: center; gap: .5rem;
       background: rgba(244,241,235,.03); border: 1px solid rgba(244,241,235,.07);
       padding: .35rem .55rem; max-width: 240px;
+      color: inherit; text-decoration: none;
     }
+    a.order-item-chip { cursor: pointer; }
+    a.order-item-chip:hover .order-item-name { text-decoration: underline; text-underline-offset: 2px; }
     .order-item-img {
       width: 40px; height: 40px; object-fit: cover; flex-shrink: 0;
       background: rgba(244,241,235,.07);
@@ -394,7 +400,7 @@
     /* ── FAVS ── */
     .fav-card {
       display: grid; grid-template-columns: 80px 1fr auto;
-      align-items: center; gap: 1rem;
+      align-items: center; gap: 1rem; cursor: pointer;
       padding: .85rem 0; border-bottom: 1px solid rgba(244,241,235,.06);
       font-family: var(--fm);
     }
@@ -881,14 +887,17 @@ async function loadOrders() {
             ].filter(Boolean).join(' · ');
             const rawItemPrice = parseFloat(i.price || i.unit_price || i.amount || 0);
             const itemPrice = rawItemPrice > 0 ? `$${(rawItemPrice > 500 ? rawItemPrice / 100 : rawItemPrice).toFixed(2)}` : '';
-            return `<div class="ord-item-row">
+            const itemHref = pid ? `/product.html?id=${encodeURIComponent(pid)}` : i.sku ? `/product.html?sku=${encodeURIComponent(i.sku)}` : '';
+            const rowTag = itemHref ? `a href="${escHtml(itemHref)}"` : 'div';
+            const rowClose = itemHref ? 'a' : 'div';
+            return `<${rowTag} class="ord-item-row">
               ${safeImg ? `<img src="${escHtml(safeImg)}" alt="${name}" class="ord-item-img" loading="lazy">` : '<div class="ord-item-img"></div>'}
               <div class="ord-item-info">
                 <div class="ord-item-name">${name}</div>
                 ${attrs ? `<div class="ord-item-attrs">${attrs}</div>` : ''}
               </div>
               ${itemPrice ? `<div class="ord-item-price">${itemPrice}</div>` : ''}
-            </div>`;
+            </${rowClose}>`;
           }).join('');
           const extra = items.length > 4 ? `<div class="ord-item-more">+ ${items.length - 4} more item${items.length - 4 > 1 ? 's' : ''}</div>` : '';
           itemsHtml = `<div class="ord-item-list">${rows}${extra}</div>`;
@@ -982,7 +991,7 @@ async function loadSaved() {
       const pid = escHtml(f.product_id || '');
       const href = f.product_id ? `/product.html?id=${pid}` : '#';
       return `
-        <div class="fav-card" id="fav-${pid}">
+        <div class="fav-card" id="fav-${pid}" onclick="if(!event.target.closest('.fav-rm,.fav-card-actions'))window.location.href='${href}'"  role="link" tabindex="0">
           <a href="${href}" class="fav-card-img-wrap" aria-label="${name}">
             ${img
               ? `<img src="${escHtml(img)}" alt="${name}" class="fav-card-img" loading="lazy">`
@@ -1087,10 +1096,13 @@ function retBuildItemChips(order, productImgMap = {}) {
     const safeImg = validStored || productImgMap[pid] || productImgMap[i.sku] || '';
     const name = escHtml((i.name || i.title || '').replace(/\p{Extended_Pictographic}/gu, '').trim());
     const meta = [i.size ? escHtml(i.size) : '', (i.colorName || i.color) ? escHtml(i.colorName || i.color) : ''].filter(Boolean).join(' · ');
-    return `<div class="order-item-chip">
+    const chipHref = pid ? `/product.html?id=${encodeURIComponent(pid)}` : i.sku ? `/product.html?sku=${encodeURIComponent(i.sku)}` : '';
+    const chipTag = chipHref ? `a href="${escHtml(chipHref)}"` : 'div';
+    const chipClose = chipHref ? 'a' : 'div';
+    return `<${chipTag} class="order-item-chip">
       ${safeImg ? `<img src="${escHtml(safeImg)}" alt="${name}" class="order-item-img" loading="lazy">` : '<div class="order-item-img"></div>'}
       <div><div class="order-item-name">${name}</div>${meta ? `<div class="order-item-meta">${meta}</div>` : ''}</div>
-    </div>`;
+    </${chipClose}>`;
   }).join('');
   const extra = items.length > 4 ? `<div class="order-item-more">+${items.length - 4} more</div>` : '';
   return `<div class="order-items-row">${chips}${extra}</div>`;
