@@ -38,7 +38,7 @@ function withTimeout(promise, ms = 6000) {
 async function checkDeepL(env, cache) {
   const key = resolveSetting('DEEPL_API_KEY', env, cache)
     || (env.DEEPL_API_KEY_ || '').trim().replace(/,$/, ''); // handle trailing-comma variant
-  if (!key) return { ok: false, configured: false, error: 'DEEPL_API_KEY not set' };
+  if (!key) return { ok: false, configured: false, optional: true, error: 'DEEPL_API_KEY not set' };
   try {
     const resp = await withTimeout(fetch('https://api-free.deepl.com/v2/usage', {
       headers: { Authorization: `DeepL-Auth-Key ${key}` }
@@ -64,8 +64,12 @@ async function checkCloudinary(env, cache) {
   const cloudName = resolveSetting('CLOUDINARY_CLOUD_NAME', env, cache);
   const apiKey    = resolveSetting('CLOUDINARY_API_KEY',    env, cache);
   const apiSecret = resolveSetting('CLOUDINARY_API_SECRET', env, cache);
-  if (!cloudName || !apiKey || !apiSecret) {
-    return { ok: false, configured: false, error: 'Add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET to edit them here or in Cloudflare' };
+  const missing = [];
+  if (!cloudName) missing.push('CLOUDINARY_CLOUD_NAME');
+  if (!apiKey)    missing.push('CLOUDINARY_API_KEY');
+  if (!apiSecret) missing.push('CLOUDINARY_API_SECRET');
+  if (missing.length) {
+    return { ok: false, configured: false, missing, error: `Missing key${missing.length > 1 ? 's' : ''}: ${missing.join(', ')}` };
   }
   try {
     const creds = btoa(`${apiKey}:${apiSecret}`);
@@ -108,7 +112,7 @@ async function checkResend(env, cache) {
 
 async function checkBrevo(env, cache) {
   const key = resolveSetting('BREVO_API_KEY', env, cache);
-  if (!key) return { ok: false, configured: false, error: 'BREVO_API_KEY not set — email failover not active' };
+  if (!key) return { ok: false, configured: false, optional: true, error: 'BREVO_API_KEY not set — email failover not active' };
   try {
     const resp = await withTimeout(fetch('https://api.brevo.com/v3/account', {
       headers: { 'api-key': key, Accept: 'application/json' }
@@ -166,7 +170,7 @@ async function checkSupabase(env) {
 
 async function checkStripe(env, cache) {
   const key  = resolveSetting('STRIPE_SECRET_KEY', env, cache);
-  if (!key) return { ok: false, error: 'STRIPE_SECRET_KEY not set' };
+  if (!key) return { ok: false, configured: false, error: 'STRIPE_SECRET_KEY not set' };
   const mode = key.startsWith('sk_live_') ? 'live' : key.startsWith('sk_test_') ? 'test' : 'unknown';
   try {
     const resp = await withTimeout(fetch('https://api.stripe.com/v1/balance', {
@@ -187,7 +191,7 @@ async function checkStripe(env, cache) {
 
 async function checkShippo(env, cache) {
   const key = resolveSetting('SHIPPO_API_KEY', env, cache);
-  if (!key) return { ok: false, error: 'SHIPPO_API_KEY not set' };
+  if (!key) return { ok: false, configured: false, error: 'SHIPPO_API_KEY not set' };
   try {
     const [addrResp, shipResp] = await Promise.all([
       withTimeout(fetch('https://api.goshippo.com/addresses/?results=1', { headers: { Authorization: `ShippoToken ${key}` } })),
@@ -210,7 +214,7 @@ async function checkShippo(env, cache) {
 
 async function checkLoops(env, cache) {
   const key = resolveSetting('LOOPS_API_KEY', env, cache);
-  if (!key) return { ok: false, configured: false, error: 'LOOPS_API_KEY not set' };
+  if (!key) return { ok: false, configured: false, optional: true, error: 'LOOPS_API_KEY not set' };
   try {
     const resp = await withTimeout(fetch('https://app.loops.so/api/v1/api-key', {
       headers: { Authorization: `Bearer ${key}` }
@@ -230,7 +234,7 @@ async function checkTwilio(env, cache) {
   const sid   = resolveSetting('TWILIO_ACCOUNT_SID',  env, cache);
   const token = resolveSetting('TWILIO_AUTH_TOKEN',   env, cache);
   const from  = resolveSetting('TWILIO_FROM_NUMBER',  env, cache);
-  if (!sid || !token) return { ok: false, configured: false, error: 'TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN not set' };
+  if (!sid || !token) return { ok: false, configured: false, optional: true, error: 'TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN not set' };
   try {
     const creds = btoa(`${sid}:${token}`);
     const resp  = await withTimeout(fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}.json`, {
@@ -251,7 +255,7 @@ async function checkTwilio(env, cache) {
 
 async function checkPostHog(env, cache) {
   const key = resolveSetting('POSTHOG_API_KEY', env, cache) || (env.POSTHOG_PROJECT_API_KEY || '').trim();
-  if (!key) return { ok: false, configured: false, error: 'POSTHOG_API_KEY not set — add your PostHog project API key (starts with phc_)' };
+  if (!key) return { ok: false, configured: false, optional: true, error: 'POSTHOG_API_KEY not set — add your PostHog project API key (starts with phc_)' };
   if (!key.startsWith('phc_') || key.length < 20) {
     return { ok: false, keyActive: false, error: 'Key should start with phc_ and be at least 20 characters — check your PostHog project settings.' };
   }

@@ -5413,6 +5413,11 @@
         }
 
         function buildCloudinaryRows(s) {
+            if (!s.ok && s.configured === false) {
+                const missing = s.missing || [];
+                const keyList = missing.length ? `<strong>${missing.join(', ')}</strong>` : 'one or more Cloudinary keys';
+                return `<p class="api-note" style="color:var(--warning);">Missing ${keyList}. Add to Cloudflare Pages → Settings → Variables &amp; Secrets, or use the editor below.</p>`;
+            }
             if (!s.ok) return `<p class="api-note" style="color:var(--error);">Connection failed: ${s.error || 'Unknown error'}</p><p class="api-note">Check your Cloud Name, API Key, and API Secret in the editor below.</p>`;
             let rows = apiRow('Plan', s.plan || 'Free');
             if (s.credits)   rows += apiRow('Credits used', `${(s.credits.usage||0).toFixed(1)} / ${s.credits.limit || 25}`) + usageBar(s.credits.used_percent || 0);
@@ -5424,6 +5429,7 @@
         }
 
         function buildResendRows(s) {
+            if (!s.ok && s.configured === false) return `<p class="api-note" style="color:var(--warning);">RESEND_API_KEY not set. Use the editor below to add your Resend key.</p>`;
             if (!s.ok) {
                 const is401  = (s.error || '').includes('401');
                 const errMsg = is401
@@ -5514,6 +5520,7 @@
         }
 
         function buildStripeRows(s) {
+            if (!s.ok && s.configured === false) return `<p class="api-note" style="color:var(--warning);">STRIPE_SECRET_KEY not set. Add it in Cloudflare Pages → Settings → Variables &amp; Secrets or use the editor below.</p>`;
             if (!s.ok) return `<p class="api-note" style="color:var(--error);">Connection failed: ${s.error || 'Unknown error'}</p><p class="api-note">Verify your STRIPE_SECRET_KEY starts with <code>sk_live_</code> or <code>sk_test_</code>. Update it using the edit button below.</p>`;
             let rows = '';
             if (s.mode === 'test') {
@@ -5528,6 +5535,7 @@
         }
 
         function buildShippoRows(s) {
+            if (!s.ok && s.configured === false) return `<p class="api-note" style="color:var(--warning);">SHIPPO_API_KEY not set. Add it in Cloudflare Pages → Settings → Variables &amp; Secrets or use the editor below.</p>`;
             if (!s.ok) return `<p class="api-note" style="color:var(--error);">Connection failed: ${s.error || 'Unknown error'}</p><p class="api-note">Check your SHIPPO_API_KEY starts with <code>shippo_live_</code>. Update it using the edit button below.</p>`;
             let rows = apiRow('Plan', s.plan || 'Starter');
             if (s.totalShipments !== null) rows += apiRow('Total shipments', s.totalShipments.toLocaleString());
@@ -5652,9 +5660,10 @@
 
         function renderApiCard(icon, name, s, buildRows, serviceKey, dashboardUrl) {
             const notConfigured = s && s.configured === false;
+            const isOptional    = s && s.optional === true;
             const statusClass   = !s ? 'status-error' : s.ok ? 'status-ok' : (notConfigured ? 'status-warn' : 'status-error');
-            const badgeClass    = !s ? 'badge-error'  : s.ok ? 'badge-ok'  : (notConfigured ? 'badge-warn'  : 'badge-error');
-            const badgeText     = !s ? 'Error'        : s.ok ? 'Active'    : (notConfigured ? 'Not set up'  : 'Error');
+            const badgeClass    = !s ? 'badge-error'  : s.ok ? 'badge-ok'  : (notConfigured && isOptional ? 'badge-info' : notConfigured ? 'badge-warn' : 'badge-error');
+            const badgeText     = !s ? 'Error'        : s.ok ? 'Active'    : (notConfigured && isOptional ? 'Optional'   : notConfigured ? 'Not set up' : 'Error');
             const rows          = s ? buildRows(s) : '';
             const errorMsg      = s && !s.ok && s.error && !notConfigured
                 ? `<p class="api-note" style="color:var(--error);">${s.error}</p>` : '';
