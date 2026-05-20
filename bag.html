@@ -670,6 +670,12 @@ function updateCartSummary(subtotal) {
   }
 }
 
+function esc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 function renderCart() {
   const raw  = JSON.parse(localStorage.getItem('cart') || '[]');
   const cart = normalizeCartPricing(raw);
@@ -698,10 +704,10 @@ function renderCart() {
       ? window.optimizeImage(item.image, 150) : (item.image || '');
     const price  = (parseFloat(item.price) * item.quantity).toFixed(2);
     return `<li style="display:flex;gap:1rem;align-items:flex-start;padding:1.2rem 0;border-bottom:1px solid var(--cart-border)">
-      ${imgSrc ? `<img src="${imgSrc}" alt="${item.title||''}" style="width:60px;height:75px;object-fit:cover;border:1px solid var(--cart-img-border);flex-shrink:0" onerror="if(this.src!=='${item.image}')this.src='${item.image}'">` : '<div style="width:60px;height:75px;background:var(--cart-surface);flex-shrink:0"></div>'}
+      ${imgSrc ? `<img src="${esc(imgSrc)}" alt="${esc(item.title)}" style="width:60px;height:75px;object-fit:cover;border:1px solid var(--cart-img-border);flex-shrink:0" data-fallback="${esc(item.image||'')}" onerror="var f=this.dataset.fallback;if(f&&this.src!==f)this.src=f">` : '<div style="width:60px;height:75px;background:var(--cart-surface);flex-shrink:0"></div>'}
       <div style="flex:1;min-width:0">
-        <div style="font-family:var(--font-head);font-size:1rem;font-weight:600;letter-spacing:.04em;margin-bottom:.2rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.title||''}</div>
-        <div style="font-family:var(--font-mono);font-size:.65rem;color:var(--cart-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem">${item.colorName||''} / ${item.size||''}</div>
+        <div style="font-family:var(--font-head);font-size:1rem;font-weight:600;letter-spacing:.04em;margin-bottom:.2rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(item.title)}</div>
+        <div style="font-family:var(--font-mono);font-size:.65rem;color:var(--cart-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem">${esc(item.colorName)} / ${esc(item.size)}</div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:.5rem">
           <button onclick="updateCartQuantity(${idx},-1)" style="background:none;border:1px solid var(--cart-btn-border);color:inherit;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;flex-shrink:0">−</button>
           <span style="font-size:.85rem;min-width:1.2rem;text-align:center">${item.quantity}</span>
@@ -771,10 +777,10 @@ document.getElementById('checkout-btn').addEventListener('click', () => {
           ? window.optimizeImage(item.image, 160) : (item.image || '');
         const price = (parseFloat(item.price) * item.quantity).toFixed(2);
         const imgHtml = imgSrc
-          ? `<img src="${imgSrc}" alt="" class="pm-item-img" onerror="if(this.src!=='${item.image||''}')this.src='${item.image||''}';">`
+          ? `<img src="${esc(imgSrc)}" alt="${esc(item.title)}" class="pm-item-img" data-fallback="${esc(item.image||'')}" onerror="var f=this.dataset.fallback;if(f&&this.src!==f)this.src=f">`
           : `<div class="pm-item-img-placeholder"></div>`;
-        const meta = [item.colorName, item.size].filter(Boolean).join(' / ');
-        const cleanTitle = (item.title || '').replace(/\p{Extended_Pictographic}/gu, '').replace(/\s+/g, ' ').trim();
+        const meta = [item.colorName, item.size].filter(Boolean).map(esc).join(' / ');
+        const cleanTitle = esc((item.title || '').replace(/\p{Extended_Pictographic}/gu, '').replace(/\s+/g, ' ').trim());
         return `<div class="pm-item">${imgHtml}<div class="pm-item-info"><div class="pm-item-title">${cleanTitle}</div>${meta ? `<div class="pm-item-meta">${meta}</div>` : ''}<div class="pm-item-meta">Qty ${item.quantity}</div></div><div class="pm-item-price">$${price}</div></div>`;
       }).join('');
     }
