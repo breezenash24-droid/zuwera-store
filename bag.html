@@ -117,10 +117,41 @@
     body.light-mode .modal { background:rgba(240,238,233,.65); backdrop-filter:none; }
 
     /* ── Payment modal ── */
-    #payment-modal { background:transparent; backdrop-filter:none; -webkit-backdrop-filter:none; }
-    .pbox { background:#0f0f0f; border:1px solid rgba(244,241,235,.1); padding:2.2rem 2rem 1.8rem; width:min(480px,94vw); max-height:92dvh; overflow-y:auto; position:relative; animation:modalIn .22s ease; }
+    #payment-modal { background:rgba(9,9,11,.78); backdrop-filter:none; -webkit-backdrop-filter:none; align-items:center; }
+    .pbox { background:#0f0f0f; border:1px solid rgba(244,241,235,.1); padding:0; width:min(880px,96vw); max-height:92dvh; overflow-y:auto; position:relative; animation:modalIn .22s ease; }
+    .pbox .mclose { position:absolute; top:1rem; right:1rem; z-index:10; }
+
+    /* Two-column grid */
+    .pmodal-grid { display:grid; grid-template-columns:42% 1fr; min-height:460px; }
+
+    /* Left: Order summary */
+    .pmodal-left { background:rgba(244,241,235,.03); border-right:1px solid rgba(244,241,235,.08); padding:2.2rem 1.8rem 2rem; display:flex; flex-direction:column; }
+    .pm-label { font-size:.65rem; letter-spacing:.2em; text-transform:uppercase; color:rgba(244,241,235,.3); margin-bottom:1.25rem; }
+    .pm-items { display:flex; flex-direction:column; gap:.85rem; margin-bottom:1.2rem; }
+    .pm-item { display:flex; gap:.85rem; align-items:flex-start; }
+    .pm-item-img { width:72px; height:90px; object-fit:cover; border:1px solid rgba(244,241,235,.08); flex-shrink:0; display:block; }
+    .pm-item-img-placeholder { width:72px; height:90px; background:rgba(244,241,235,.04); flex-shrink:0; }
+    .pm-item-info { flex:1; min-width:0; }
+    .pm-item-title { font-family:var(--font-head); font-size:.95rem; font-weight:600; letter-spacing:.04em; line-height:1.25; }
+    .pm-item-meta { font-size:.65rem; color:rgba(244,241,235,.4); text-transform:uppercase; letter-spacing:.08em; margin-top:.2rem; }
+    .pm-item-price { font-size:.88rem; flex-shrink:0; font-variant-numeric:tabular-nums; }
+    .pm-lines { border-top:1px solid rgba(244,241,235,.07); padding-top:.85rem; margin-top:auto; display:flex; flex-direction:column; gap:.38rem; }
+    .pm-line { display:flex; justify-content:space-between; font-size:.82rem; color:rgba(244,241,235,.5); font-variant-numeric:tabular-nums; }
+    .pm-total-row { display:flex; justify-content:space-between; font-size:.98rem; font-weight:600; border-top:1px solid rgba(244,241,235,.1); margin-top:.65rem; padding-top:.65rem; color:rgba(244,241,235,.95); font-variant-numeric:tabular-nums; }
+
+    /* Mobile toggle (hidden on desktop) */
+    .pm-toggle { display:none; width:100%; background:none; border:none; color:inherit; cursor:pointer; padding:0; font-family:var(--font-body); font-size:.84rem; }
+    .pm-toggle-inner { display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
+    .pm-toggle-left { display:flex; align-items:center; gap:.4rem; color:rgba(244,241,235,.6); font-size:.78rem; letter-spacing:.06em; text-transform:uppercase; }
+    .pm-toggle-right { font-weight:600; font-size:.92rem; }
+    .pm-chevron { transition:transform .2s; flex-shrink:0; }
+    .pm-toggle[aria-expanded="true"] .pm-chevron { transform:rotate(180deg); }
+    .pm-summary-body { display:block; } /* always visible on desktop */
+
+    /* Right: Form */
+    .pmodal-right { padding:2.2rem 2rem 1.8rem; overflow-y:auto; }
     .pbox h2 { font-family:var(--font-head); font-size:1.8rem; letter-spacing:.1em; margin-bottom:.2rem; }
-    .psub { font-size:.7rem; color:rgba(244,241,235,.35); letter-spacing:.1em; text-transform:uppercase; margin-bottom:1.5rem; }
+    .psub { font-size:.7rem; color:rgba(244,241,235,.35); letter-spacing:.1em; text-transform:uppercase; margin-bottom:1.4rem; }
     .pgrow { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; }
     .pfield { margin-bottom:.9rem; }
     .pfield label { display:block; font-size:.62rem; letter-spacing:.12em; text-transform:uppercase; color:rgba(244,241,235,.35); margin-bottom:.35rem; }
@@ -141,23 +172,38 @@
     .wallet-methods { display:none; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.55rem; margin:-.2rem 0 1rem; }
     .zw-test-mode-banner { display:none; padding:.5rem .75rem; background:rgba(248,145,165,.08); border:1px solid rgba(248,145,165,.2); color:#F891A5; font-size:.65rem; letter-spacing:.08em; text-transform:uppercase; margin-bottom:1rem; }
     .zw-test-mode-banner.is-visible { display:block; }
-    body.light-mode #payment-modal { background:transparent; }
+
+    /* Mobile: stack, collapse summary */
+    @media (max-width:660px) {
+      #payment-modal { align-items:flex-end; padding:0; }
+      .pbox { width:100%; max-height:96dvh; border-bottom:none; border-left:none; border-right:none; }
+      .pmodal-grid { grid-template-columns:1fr; min-height:0; }
+      .pmodal-left { border-right:none; border-bottom:1px solid rgba(244,241,235,.08); padding:1rem 1.2rem; }
+      .pmodal-right { padding:1.4rem 1.2rem 1.8rem; }
+      .pm-label { display:none; }
+      .pm-toggle { display:block; }
+      .pm-summary-body { display:none; margin-top:.85rem; }
+      .pm-summary-body.open { display:block; }
+    }
+
+    /* Light mode */
+    body.light-mode #payment-modal { background:rgba(240,238,233,.75); }
     body.light-mode .pbox { background:#F0EEE9; border-color:rgba(9,9,11,.08); color:#09090b; }
+    body.light-mode .pmodal-left { background:rgba(9,9,11,.025); border-right-color:rgba(9,9,11,.07); }
+    body.light-mode .pm-label { color:rgba(9,9,11,.32); }
+    body.light-mode .pm-toggle-left { color:rgba(9,9,11,.55); }
+    body.light-mode .pm-item-img { border-color:rgba(9,9,11,.08); }
+    body.light-mode .pm-item-meta { color:rgba(9,9,11,.4); }
+    body.light-mode .pm-line { color:rgba(9,9,11,.52); }
+    body.light-mode .pm-lines { border-color:rgba(9,9,11,.07); }
+    body.light-mode .pm-total-row { color:#09090b; border-color:rgba(9,9,11,.1); }
     body.light-mode .pfield label { color:rgba(9,9,11,.38); }
     body.light-mode .pfield input { background:rgba(9,9,11,.04); border-color:rgba(9,9,11,.1); color:#09090b; }
     body.light-mode #stripe-card-element { background:#f4f1eb; border-color:rgba(9,9,11,.36); }
     body.light-mode #stripe-card-element.StripeElement--focus { border-color:rgba(9,9,11,.62); }
     body.light-mode #pay-submit { background:#09090b; color:#E8E3DC; }
     body.light-mode .psecure { color:rgba(9,9,11,.25); }
-
-    /* ── Payment modal order summary ── */
-    .pay-order-summary { border:1px solid rgba(244,241,235,.09); padding:.7rem 1rem; margin-bottom:1.3rem; background:rgba(244,241,235,.03); }
-    .pay-order-row { display:flex; justify-content:space-between; align-items:center; font-size:.84rem; padding:.22rem 0; color:rgba(244,241,235,.6); }
-    .pay-order-row span:last-child { font-variant-numeric:tabular-nums; }
-    .pay-order-total { border-top:1px solid rgba(244,241,235,.1); margin-top:.35rem; padding-top:.45rem; font-weight:600; color:rgba(244,241,235,.95); font-size:.92rem; }
-    body.light-mode .pay-order-summary { border-color:rgba(9,9,11,.09); background:rgba(9,9,11,.03); }
-    body.light-mode .pay-order-row { color:rgba(9,9,11,.6); }
-    body.light-mode .pay-order-total { border-color:rgba(9,9,11,.1); color:#09090b; }
+    body.light-mode .pmodal-left + .pmodal-right { border-top-color:rgba(9,9,11,.07); }
 
     /* ── Success screen ── */
     #payment-success { display:none; position:fixed; inset:0; background:var(--black); z-index:700; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem; }
@@ -384,39 +430,67 @@
 <!-- PAYMENT MODAL -->
 <div id="payment-modal" class="modal" role="dialog" aria-modal="true">
   <div class="pbox">
-    <button class="mclose" id="payment-close">&#215;</button>
-    <h2>Secure Checkout</h2>
-    <p class="psub">Powered by Stripe · 256-bit SSL encryption</p>
-    <div class="pay-order-summary">
-      <div class="pay-order-row"><span>Subtotal</span><span id="pay-modal-subtotal">—</span></div>
-      <div class="pay-order-row"><span id="pay-modal-tax-label">Tax</span><span id="pay-modal-tax">—</span></div>
-      <div class="pay-order-row pay-order-total"><span>Total</span><span id="pay-modal-total">—</span></div>
+    <button class="mclose" id="payment-close" aria-label="Close checkout">&#215;</button>
+    <div class="pmodal-grid">
+
+      <!-- LEFT: Order Summary -->
+      <div class="pmodal-left">
+        <!-- Desktop label -->
+        <div class="pm-label">Order Summary</div>
+        <!-- Mobile toggle -->
+        <button class="pm-toggle" id="pm-summary-toggle" aria-expanded="false" aria-controls="pm-summary-body">
+          <div class="pm-toggle-inner">
+            <span class="pm-toggle-left">
+              Order Summary
+              <svg class="pm-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+            <span class="pm-toggle-right" id="pm-toggle-total">—</span>
+          </div>
+        </button>
+        <!-- Summary body (always open on desktop, toggled on mobile) -->
+        <div class="pm-summary-body" id="pm-summary-body">
+          <div class="pm-items" id="pm-items"></div>
+          <div class="pm-lines">
+            <div class="pm-line"><span>Subtotal</span><span id="pm-subtotal">—</span></div>
+            <div class="pm-line"><span>Shipping</span><span id="pm-shipping">Free</span></div>
+            <div class="pm-line"><span id="pm-tax-label">Tax</span><span id="pm-tax">—</span></div>
+          </div>
+          <div class="pm-total-row"><span>Total</span><span id="pm-total">—</span></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Payment Form -->
+      <div class="pmodal-right">
+        <h2>Secure Checkout</h2>
+        <p class="psub">Powered by Stripe · 256-bit SSL encryption</p>
+        <div class="zw-test-mode-banner" data-stripe-test-banner>Test mode active. Use Stripe test cards only — real cards will not be charged.</div>
+        <div id="payment-request-btn" style="display:none" aria-hidden="true"></div>
+        <div id="wallet-methods" class="wallet-methods" aria-hidden="true"></div>
+        <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.28)">— or pay with card —</div>
+        <div class="pgrow">
+          <div class="pfield"><label>Full Name</label><input type="text" id="pay-name" placeholder="Jane Smith" autocomplete="name"></div>
+          <div class="pfield"><label>Email</label><input type="email" id="pay-email" placeholder="jane@example.com" autocomplete="email"></div>
+        </div>
+        <div class="pfield"><label>Street Address</label><input type="text" id="pay-addr1" placeholder="123 Main St" autocomplete="street-address"></div>
+        <div class="pfield"><label>Apt / Suite <span style="opacity:.4">(optional)</span></label><input type="text" id="pay-addr2" placeholder="Apt 4B" autocomplete="address-line2"></div>
+        <div class="pgrow" style="grid-template-columns:1fr 80px 120px">
+          <div class="pfield"><label>City</label><input type="text" id="pay-city" placeholder="New York" autocomplete="address-level2"></div>
+          <div class="pfield"><label>State</label><input type="text" id="pay-state" placeholder="NY" maxlength="2" autocomplete="address-level1" style="text-transform:uppercase"></div>
+          <div class="pfield"><label>ZIP</label><input type="text" id="pay-zip" placeholder="10001" maxlength="10" autocomplete="postal-code"></div>
+        </div>
+        <div class="pfield" id="shipping-rates-field" style="display:none"><label>Shipping Method</label><div id="shipping-rates-list"></div></div>
+        <div id="shipping-rates-loading" style="display:none;font-size:.68rem;color:rgba(244,241,235,.35);margin-bottom:1rem">Fetching shipping rates…</div>
+        <div id="shipping-free-row" class="pfield" style="display:none;align-items:center;justify-content:space-between">
+          <label style="margin:0">Shipping</label>
+          <span style="font-size:.82rem;color:rgba(244,241,235,.85)">Free</span>
+        </div>
+        <div class="pfield"><label>Card Details</label><div id="stripe-card-element"></div></div>
+        <p id="pay-error"></p>
+        <button id="pay-submit"><span id="pay-btn-text">Pay Now</span></button>
+        <p class="psecure">Your card is never stored on our servers.</p>
+      </div>
+
     </div>
-    <div class="zw-test-mode-banner" data-stripe-test-banner>Test mode active. Use Stripe test cards only — real cards will not be charged.</div>
-    <div id="payment-request-btn" style="display:none" aria-hidden="true"></div>
-    <div id="wallet-methods" class="wallet-methods" aria-hidden="true"></div>
-    <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.28)">— or pay with card —</div>
-    <div class="pgrow">
-      <div class="pfield"><label>Full Name</label><input type="text" id="pay-name" placeholder="Jane Smith" autocomplete="name"></div>
-      <div class="pfield"><label>Email</label><input type="email" id="pay-email" placeholder="jane@example.com" autocomplete="email"></div>
-    </div>
-    <div class="pfield"><label>Street Address</label><input type="text" id="pay-addr1" placeholder="123 Main St" autocomplete="street-address"></div>
-    <div class="pfield"><label>Apt / Suite <span style="opacity:.4">(optional)</span></label><input type="text" id="pay-addr2" placeholder="Apt 4B" autocomplete="address-line2"></div>
-    <div class="pgrow" style="grid-template-columns:1fr 80px 120px">
-      <div class="pfield"><label>City</label><input type="text" id="pay-city" placeholder="New York" autocomplete="address-level2"></div>
-      <div class="pfield"><label>State</label><input type="text" id="pay-state" placeholder="NY" maxlength="2" autocomplete="address-level1" style="text-transform:uppercase"></div>
-      <div class="pfield"><label>ZIP</label><input type="text" id="pay-zip" placeholder="10001" maxlength="10" autocomplete="postal-code"></div>
-    </div>
-    <div class="pfield" id="shipping-rates-field" style="display:none"><label>Shipping Method</label><div id="shipping-rates-list"></div></div>
-    <div id="shipping-rates-loading" style="display:none;font-size:.68rem;color:rgba(244,241,235,.35);margin-bottom:1rem">Fetching shipping rates…</div>
-    <div id="shipping-free-row" class="pfield" style="display:none;align-items:center;justify-content:space-between">
-      <label style="margin:0">Shipping</label>
-      <span style="font-size:.82rem;color:rgba(244,241,235,.85)">Free</span>
-    </div>
-    <div class="pfield"><label>Card Details</label><div id="stripe-card-element"></div></div>
-    <p id="pay-error"></p>
-    <button id="pay-submit"><span id="pay-btn-text">Pay Now</span></button>
-    <p class="psecure">Your card is never stored on our servers.</p>
   </div>
 </div>
 
@@ -717,17 +791,26 @@ document.getElementById('checkout-btn').addEventListener('click', () => {
   // Prefill checkout fields with the logged-in user's account data every time the modal opens
   if (_bagUser && typeof window.prefillCheckoutForUser === 'function') window.prefillCheckoutForUser(_bagUser);
   _openModal('payment-modal');
-  // Populate the modal order summary with current cart totals
+  // Populate order summary panel
   (function() {
     const _sub = cartItems.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0);
-    const _subEl = document.getElementById('pay-modal-subtotal');
-    const _taxEl = document.getElementById('pay-modal-tax');
-    const _totEl = document.getElementById('pay-modal-total');
-    const _taxLbl = document.getElementById('pay-modal-tax-label');
-    if (_subEl) _subEl.textContent = `$${_sub.toFixed(2)}`;
-    if (_taxEl) _taxEl.textContent = '—';
-    if (_totEl) _totEl.textContent = `$${_sub.toFixed(2)}`;
-    if (_taxLbl) _taxLbl.textContent = 'Tax';
+    const itemsEl = document.getElementById('pm-items');
+    if (itemsEl) {
+      itemsEl.innerHTML = cartItems.map(item => {
+        const imgSrc = typeof window.optimizeImage === 'function'
+          ? window.optimizeImage(item.image, 160) : (item.image || '');
+        const price = (parseFloat(item.price) * item.quantity).toFixed(2);
+        const imgHtml = imgSrc
+          ? `<img src="${imgSrc}" alt="" class="pm-item-img" onerror="if(this.src!=='${item.image||''}')this.src='${item.image||''}';">`
+          : `<div class="pm-item-img-placeholder"></div>`;
+        const meta = [item.colorName, item.size].filter(Boolean).join(' / ');
+        return `<div class="pm-item">${imgHtml}<div class="pm-item-info"><div class="pm-item-title">${item.title||''}</div>${meta ? `<div class="pm-item-meta">${meta}</div>` : ''}<div class="pm-item-meta">Qty ${item.quantity}</div></div><div class="pm-item-price">$${price}</div></div>`;
+      }).join('');
+    }
+    const policy = window._shippingPolicy || { enabled: true, threshold: 100 };
+    const shippingText = policy.enabled && _sub >= policy.threshold ? 'Free' : '—';
+    const elMap = { 'pm-subtotal': `$${_sub.toFixed(2)}`, 'pm-tax': '—', 'pm-total': `$${_sub.toFixed(2)}`, 'pm-toggle-total': `$${_sub.toFixed(2)}`, 'pm-shipping': shippingText, 'pm-tax-label': 'Tax' };
+    Object.entries(elMap).forEach(([id, val]) => { const el = document.getElementById(id); if (el) el.textContent = val; });
   })();
   // Pass the mode explicitly — don't let checkout.js guess asynchronously
   if (typeof window.refreshCardStyle === 'function')
@@ -763,6 +846,14 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }).catch(() => {});
   }
+
+  // Mobile: toggle order summary accordion
+  document.getElementById('pm-summary-toggle')?.addEventListener('click', function() {
+    const body = document.getElementById('pm-summary-body');
+    const expanded = this.getAttribute('aria-expanded') === 'true';
+    this.setAttribute('aria-expanded', String(!expanded));
+    body?.classList.toggle('open', !expanded);
+  });
 
   // After checkout.js attaches its success listener, we add localStorage clear
   const successBtn = document.getElementById('success-continue');
@@ -829,7 +920,7 @@ window.__zwOpenAuth = function(tab) {
   }).catch(function() {});
 })();
 </script>
-<script src="checkout.js?v=6fcf80c1"></script>
+<script src="checkout.js?v=faa41166"></script>
 <script src="commerce-checkout.js?v=f884ded3"></script>
 <script src="modal-lock.js?v=72e2f101"></script>
 <script src="storefront-theme.js?v=227b8ced" defer></script>

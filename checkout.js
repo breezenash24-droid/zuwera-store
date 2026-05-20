@@ -327,15 +327,17 @@ function refreshTaxDisplay() {
   if (_pay.taxEl) _pay.taxEl.textContent = tax > 0 ? `$${tax.toFixed(2)}` : (state ? '$0.00' : '—');
   if (_pay.totalEl) _pay.totalEl.textContent = `$${total.toFixed(2)}`;
 
-  // Update the payment modal order summary (what the user actually sees)
-  const modalSubtotal = document.getElementById('pay-modal-subtotal');
-  const modalTax     = document.getElementById('pay-modal-tax');
-  const modalTaxLbl  = document.getElementById('pay-modal-tax-label');
-  const modalTotal   = document.getElementById('pay-modal-total');
-  if (modalSubtotal) modalSubtotal.textContent = `$${subtotal.toFixed(2)}`;
-  if (modalTax) modalTax.textContent = tax > 0 ? `$${tax.toFixed(2)}` : (state ? '$0.00' : '—');
-  if (modalTaxLbl) modalTaxLbl.textContent = state && tax > 0 ? `Tax (${state})` : 'Tax';
-  if (modalTotal) modalTotal.textContent = `$${total.toFixed(2)}`;
+  // Update payment modal order summary panel
+  const pmTax        = document.getElementById('pm-tax');
+  const pmTaxLbl     = document.getElementById('pm-tax-label');
+  const pmTotal      = document.getElementById('pm-total');
+  const pmToggleTot  = document.getElementById('pm-toggle-total');
+  const pmSubtotal   = document.getElementById('pm-subtotal');
+  if (pmSubtotal)   pmSubtotal.textContent   = `$${subtotal.toFixed(2)}`;
+  if (pmTax)        pmTax.textContent        = tax > 0 ? `$${tax.toFixed(2)}` : (state ? '$0.00' : '—');
+  if (pmTaxLbl)     pmTaxLbl.textContent     = state && tax > 0 ? `Tax (${state})` : 'Tax';
+  if (pmTotal)      pmTotal.textContent      = `$${total.toFixed(2)}`;
+  if (pmToggleTot)  pmToggleTot.textContent  = `$${total.toFixed(2)}`;
 }
 
 _pay.zipInput?.addEventListener('input', maybeLoadRates);
