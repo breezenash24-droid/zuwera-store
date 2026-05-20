@@ -270,6 +270,24 @@ function initPaymentRequest(subtotalCents) {
 
 // ===================== LIVE SHIPPING RATES =====================
 let ratesFetchTimeout = null;
+let ratesFetchPromise = null;
+
+async function doFetchRates(zip, state) {
+  const data = await postJSON('/api/shippo-rates', {
+    items: cartItems,
+    address: {
+      name:  document.getElementById('pay-name').value.trim(),
+      line1: document.getElementById('pay-addr1').value.trim(),
+      city:  document.getElementById('pay-city').value.trim(),
+      state, zip, country: 'US',
+    },
+  });
+  if (data.rates?.length) {
+    selectedShippingRate = data.rates[0];
+  } else if (data.error) {
+    console.error('Shippo rates error:', data.error);
+  }
+}
 
 function maybeLoadRates() {
   const zip   = _pay.zipInput.value.trim();
@@ -277,29 +295,15 @@ function maybeLoadRates() {
   if (zip.length < 5 || state.length < 2) return;
 
   clearTimeout(ratesFetchTimeout);
-  ratesFetchTimeout = setTimeout(async () => {
+  ratesFetchTimeout = setTimeout(() => {
     _pay.ratesField.style.display   = 'none';
     _pay.ratesLoading.style.display = 'block';
-    try {
-      const data = await postJSON('/api/shippo-rates', {
-        items: cartItems,
-        address: {
-          name:  document.getElementById('pay-name').value.trim(),
-          line1: document.getElementById('pay-addr1').value.trim(),
-          city:  document.getElementById('pay-city').value.trim(),
-          state, zip, country: 'US',
-        },
-      });
-        _pay.ratesLoading.style.display = 'none';
-      // Silently auto-select the cheapest rate for fulfillment metadata.
-      // Shipping is free to the customer — no dropdown shown.
-      if (data.rates?.length) {
-        selectedShippingRate = data.rates[0];
-      }
-    } catch (err) {
-      _pay.ratesLoading.style.display = 'none';
+    ratesFetchPromise = doFetchRates(zip, state).catch(err => {
       console.error('Rate fetch error:', err);
-    }
+    }).finally(() => {
+      _pay.ratesLoading.style.display = 'none';
+      ratesFetchPromise = null;
+    });
   }, 600);
 }
 
@@ -373,6 +377,17 @@ _pay.btn?.addEventListener('click', async () => {
   _pay.btnTxt.textContent = 'Processing…';
 
   try {
+    // If the debounced rate fetch hasn't fired or finished yet, resolve it now
+    // before creating the payment intent so the correct Shippo rate is used.
+    if (!selectedShippingRate && zip.length >= 5 && state.length >= 2) {
+      clearTimeout(ratesFetchTimeout);
+      if (ratesFetchPromise) {
+        await ratesFetchPromise;
+      } else {
+        try { await doFetchRates(zip, state); } catch (_) {}
+      }
+    }
+
     const auth = await getCheckoutAuthPayload();
     const piData = await postJSON('/api/create-payment-intent', {
       items: cartItems,
