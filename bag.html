@@ -808,9 +808,25 @@ document.getElementById('checkout-btn').addEventListener('click', () => {
 
 /* ── Init on DOMContentLoaded ── */
 document.addEventListener('DOMContentLoaded', function() {
+  // Pre-read the Supabase session from localStorage so the first renderCart()
+  // uses the correct member/guest pricing with no flash on refresh.
+  // Supabase stores sessions under keys matching sb-<ref>-auth-token.
+  try {
+    for (var _i = 0; _i < localStorage.length; _i++) {
+      var _k = localStorage.key(_i);
+      if (_k && /^sb-[a-z0-9-]+-auth-token$/.test(_k)) {
+        var _sess = JSON.parse(localStorage.getItem(_k) || 'null');
+        if (_sess && _sess.user && Number(_sess.expires_at || 0) * 1000 > Date.now()) {
+          _bagUser = _sess.user;
+        }
+        break;
+      }
+    }
+  } catch (_) {}
+
   renderCart();
 
-  // Load shipping policy from commerce config (cached so re-renders don't re-fetch)
+  // Load shipping policy — only re-render if the policy actually differs from default
   if (window._commerceConfigCache) {
     if (window._commerceConfigCache.shippingPolicy) {
       window._shippingPolicy = window._commerceConfigCache.shippingPolicy;
@@ -819,8 +835,9 @@ document.addEventListener('DOMContentLoaded', function() {
   } else {
     fetch('/api/commerce-config').then(r => r.json()).then(d => {
       window._commerceConfigCache = d?.config || {};
-      if (window._commerceConfigCache.shippingPolicy) {
-        window._shippingPolicy = window._commerceConfigCache.shippingPolicy;
+      var newPolicy = window._commerceConfigCache.shippingPolicy;
+      if (newPolicy && JSON.stringify(newPolicy) !== JSON.stringify(window._shippingPolicy)) {
+        window._shippingPolicy = newPolicy;
         renderCart();
       }
     }).catch(() => {});
