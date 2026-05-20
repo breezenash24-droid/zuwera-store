@@ -2135,6 +2135,8 @@
                         }
                     }
                     async function saveManualReturnLabel(requestId, buttonEl) {
+                        const req = _returnsData.find(r => r.id === requestId);
+                        if (!req) return;
                         const oldText = buttonEl?.textContent || '';
                         if (buttonEl) { buttonEl.disabled = true; buttonEl.textContent = 'Saving...'; }
                         const labelUrl = retField(`ret-detail-label-url-${requestId}`).trim();
@@ -2148,7 +2150,27 @@
                             return;
                         }
                         try {
-                            await persistReturnUpdate(requestId, {
+                            if (req.status === 'requested') {
+                                if (buttonEl) buttonEl.textContent = 'Approving...';
+                                await persistReturnUpdate(requestId, { status: 'approved' });
+                            }
+                            if (buttonEl) buttonEl.textContent = 'Saving & emailing...';
+                            const { data: { session } } = await sb.auth.getSession();
+                            const token = session?.access_token;
+                            if (!token) throw new Error('Missing admin session token.');
+                            const resp = await fetch('/api/generate-return-label', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                body: JSON.stringify({
+                                    returnId: requestId,
+                                    orderId: req.orderId,
+                                    force: 'true',
+                                    manualLabel: { labelUrl, trackingNumber, trackingUrl, carrier, service },
+                                }),
+                            });
+                            const payload = await resp.json().catch(() => ({}));
+                            if (!resp.ok || !payload.ok) throw new Error(payload.error || 'Could not save manual label.');
+                            Object.assign(req, {
                                 status: 'label_sent',
                                 labelUrl,
                                 trackingNumber,
@@ -2156,9 +2178,9 @@
                                 carrier,
                                 service,
                                 labelSentAt: new Date().toISOString(),
-                                clearLabelError: true,
                             });
-                            notifyReturns('Manual label/tracking saved. Customer email is not sent for manual labels.', 'success');
+                            syncReturnsUI();
+                            notifyReturns('Manual label saved and email sent to customer.', 'success');
                         } catch (e) {
                             notifyReturns('Could not save manual label: ' + e.message, 'error');
                         } finally {

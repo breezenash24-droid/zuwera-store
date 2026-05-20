@@ -417,8 +417,8 @@ export async function onRequestPost({ request, env }) {
 
     const order = mergeOrderFallbacks(await fetchOrder(orderId, env), returnRequest);
     const manualLabel = body.manualLabel && typeof body.manualLabel === 'object' ? body.manualLabel : null;
-    if (manualLabel && !String(manualLabel.labelUrl || '').trim()) {
-      throw new Error('Manual label email requires a label PDF URL.');
+    if (manualLabel && !String(manualLabel.labelUrl || '').trim() && !String(manualLabel.trackingNumber || '').trim()) {
+      throw new Error('Manual label requires a label PDF URL or tracking number.');
     }
     const label = manualLabel && (manualLabel.labelUrl || manualLabel.trackingNumber)
       ? {
