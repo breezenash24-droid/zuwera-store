@@ -764,10 +764,9 @@ document.getElementById('login-btn').addEventListener('click', () => {
 document.getElementById('checkout-btn').addEventListener('click', () => {
   if (!cartItems.length) { showToast('Your bag is empty.'); return; }
   document.getElementById('pay-error').textContent = '';
-  // Prefill checkout fields with the logged-in user's account data every time the modal opens
-  if (_bagUser && typeof window.prefillCheckoutForUser === 'function') window.prefillCheckoutForUser(_bagUser);
   _openModal('payment-modal');
-  // Populate order summary panel
+  // Populate order summary panel first, then prefill — so prefill's input events
+  // fire after the panel is initialised and tax/total are set correctly.
   (function() {
     const _sub = cartItems.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0);
     const itemsEl = document.getElementById('pm-items');
@@ -789,6 +788,9 @@ document.getElementById('checkout-btn').addEventListener('click', () => {
     const elMap = { 'pm-subtotal': `$${_sub.toFixed(2)}`, 'pm-tax': '—', 'pm-total': `$${_sub.toFixed(2)}`, 'pm-toggle-total': `$${_sub.toFixed(2)}`, 'pm-shipping': shippingText, 'pm-tax-label': 'Tax' };
     Object.entries(elMap).forEach(([id, val]) => { const el = document.getElementById(id); if (el) el.textContent = val; });
   })();
+  // Prefill checkout fields after panel init so the input events that calculate
+  // tax and trigger shipping rate fetch run last and are not overwritten.
+  if (_bagUser && typeof window.prefillCheckoutForUser === 'function') window.prefillCheckoutForUser(_bagUser);
   // Pass the mode explicitly — don't let checkout.js guess asynchronously
   if (typeof window.refreshCardStyle === 'function')
     window.refreshCardStyle(document.body.classList.contains('light-mode'));

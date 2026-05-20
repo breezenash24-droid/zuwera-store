@@ -175,6 +175,7 @@ function initPaymentRequest(subtotalCents) {
     try {
       const data = await postJSON('/api/shippo-rates', {
         items: cartItems,
+        totalWeightLb: cartItems.reduce((s, i) => s + ((parseFloat(i.weightLb) || 0.5) * (i.quantity || 1)), 0),
         address: {
           name: '',
           line1: addr.addressLine?.[0] || '',
@@ -273,8 +274,10 @@ let ratesFetchTimeout = null;
 let ratesFetchPromise = null;
 
 async function doFetchRates(zip, state) {
+  const totalWeightLb = cartItems.reduce((s, i) => s + ((parseFloat(i.weightLb) || 0.5) * (i.quantity || 1)), 0);
   const data = await postJSON('/api/shippo-rates', {
     items: cartItems,
+    totalWeightLb,
     address: {
       name:  document.getElementById('pay-name').value.trim(),
       line1: document.getElementById('pay-addr1').value.trim(),
