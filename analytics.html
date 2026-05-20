@@ -753,8 +753,8 @@
         </div>
         <div class="card">
           <div class="card-label">Tax Collected</div>
-          <div class="card-value" id="totalTaxCollected">$0.00</div>
-          <div class="card-subtitle">all orders, all states</div>
+          <div class="card-value" id="totalTaxCollected">—</div>
+          <div class="card-subtitle">see Tax Liability section below</div>
         </div>
       </div>
 
@@ -1744,7 +1744,10 @@
       if (!container) return;
 
       if (Object.keys(byState).length === 0) {
-        container.innerHTML = '<p style="color:var(--text-secondary);padding:1rem 0;">No orders with state data found yet.</p>';
+        const noOrderMsg = allOrders.length === 0
+          ? 'No orders yet — tax data will appear here once customers start buying.'
+          : 'Orders exist but none have state/tax data saved. Tax tracking applies to orders placed after the tax update was deployed.';
+        container.innerHTML = `<div class="diag-box"><div class="diag-title">No tax data yet</div><div class="diag-item">${noOrderMsg}</div></div>`;
         return;
       }
 
