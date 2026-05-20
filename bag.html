@@ -856,6 +856,17 @@ window.__zwOpenAuth = function(tab) {
 (function() {
   if (!window.sb) return;
 
+  var _bagHubData = null;
+
+  function fetchBagHub(accessToken) {
+    if (!accessToken) return;
+    fetch('/api/customer-hub', {
+      headers: { Authorization: accessToken, Accept: 'application/json' }
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      if (d.success) _bagHubData = d;
+    }).catch(function() {});
+  }
+
   // Exposed on window so the checkout-btn click handler (outer scope) can call it
   window.prefillCheckoutForUser = function prefillCheckoutForUser(user) {
     if (!user) return;
@@ -867,9 +878,26 @@ window.__zwOpenAuth = function(tab) {
     // Only prefill if the field is currently empty — never overwrite what the user typed
     if (nameEl  && !nameEl.value.trim()  && name)  nameEl.value  = name;
     if (emailEl && !emailEl.value.trim() && email) emailEl.value = email;
+
+    // Prefill address from saved addresses (primary or first)
+    var addrs = _bagHubData && _bagHubData.profile && Array.isArray(_bagHubData.profile.savedAddresses)
+      ? _bagHubData.profile.savedAddresses : [];
+    var addr = addrs.find(function(a) { return a.isPrimary; }) || addrs[0] || null;
+    if (addr) {
+      var f = function(id, val) {
+        var el = document.getElementById(id);
+        if (el && !el.value.trim() && val) el.value = val;
+      };
+      if (!nameEl?.value?.trim() && addr.name) nameEl.value = addr.name;
+      f('pay-addr1', addr.line1);
+      f('pay-addr2', addr.line2);
+      f('pay-city',  addr.city);
+      f('pay-state', addr.state);
+      f('pay-zip',   addr.zip);
+    }
   };
 
-  function applyAuthState(user) {
+  function applyAuthState(user, accessToken) {
     var wasGuest = !_bagUser;
     _bagUser = user || null;
     var loggedOut = document.getElementById('fav-logged-out-msg');
@@ -877,6 +905,7 @@ window.__zwOpenAuth = function(tab) {
     if (user) {
       if (loggedOut) loggedOut.style.display = 'none';
       if (loggedIn)  loggedIn.style.display  = 'block';
+      fetchBagHub(accessToken);
       window.prefillCheckoutForUser(user);
     } else {
       if (loggedOut) loggedOut.style.display = 'block';
@@ -887,13 +916,13 @@ window.__zwOpenAuth = function(tab) {
   }
 
   window.sb.auth.onAuthStateChange(function(event, session) {
-    applyAuthState(session ? session.user : null);
+    applyAuthState(session ? session.user : null, session ? session.access_token : null);
   });
 
   // Also check immediately via getSession in case onAuthStateChange fires late
   window.sb.auth.getSession().then(function(result) {
-    var user = result && result.data && result.data.session ? result.data.session.user : null;
-    applyAuthState(user);
+    var session = result && result.data && result.data.session ? result.data.session : null;
+    applyAuthState(session ? session.user : null, session ? session.access_token : null);
   }).catch(function() {});
 })();
 </script>

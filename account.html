@@ -1273,10 +1273,13 @@ function renderProfile() {
   const userEmail = _session?.user?.email || '';
 
   const addressesHtml = addresses.length ? addresses.map((addr, idx) => `
-    <div class="addr-card">
+    <div class="addr-card" id="addr-card-${idx}">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">
         <strong style="font-size:.8rem">${escHtml(addr.label || 'Address ' + (idx+1))}</strong>
-        ${addr.isPrimary ? '<span class="zw-badge">Primary</span>' : ''}
+        <div style="display:flex;align-items:center;gap:.5rem">
+          ${addr.isPrimary ? '<span class="zw-badge">Primary</span>' : ''}
+          <button onclick="deleteAddress(${idx})" style="background:none;border:none;color:var(--a-dim);cursor:pointer;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:4px;transition:color .15s" onmouseover="this.style.color='var(--a-error,#ef4444)'" onmouseout="this.style.color='var(--a-dim)'">Remove</button>
+        </div>
       </div>
       <div class="addr-meta">${[addr.name, addr.line1, addr.line2, [addr.city,addr.state,addr.zip].filter(Boolean).join(' '), addr.country].filter(Boolean).map(escHtml).join('<br>')}</div>
     </div>
@@ -1343,9 +1346,17 @@ function renderProfile() {
       <button id="prof-save" class="zw-btn primary">Save Profile</button>
       <span id="prof-status" class="zw-status"></span>
     </div>
+
+    <div class="zw-card" style="margin-top:1.5rem;border-color:rgba(239,68,68,.25)">
+      <div class="zw-card-title" style="color:var(--a-error,#ef4444)">Delete My Data</div>
+      <p style="font-size:.78rem;color:var(--a-dim);margin:.5rem 0 1rem">This permanently removes all your saved addresses, preferences, and profile data from our system. Your order history and account login are not affected.</p>
+      <button id="prof-delete-data" class="zw-btn" style="background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.3)">Delete All Saved Data</button>
+      <span id="prof-delete-status" class="zw-status"></span>
+    </div>
   `;
 
   document.getElementById('prof-save')?.addEventListener('click', saveProfile);
+  document.getElementById('prof-delete-data')?.addEventListener('click', deleteAllProfileData);
 }
 
 async function saveProfile() {
@@ -1387,6 +1398,37 @@ async function saveProfile() {
     }, 2000);
   } catch(err) {
     if (statusEl) statusEl.textContent = err.message || 'Could not save profile.';
+  }
+}
+
+async function deleteAddress(idx) {
+  if (!confirm('Remove this address?')) return;
+  try {
+    await postHub('delete_address', { index: idx });
+    _hubPayload = null;
+    const content = document.getElementById('profile-content');
+    if (content) delete content.dataset.loaded;
+    _hubPayload = await fetchHub();
+    renderProfile();
+  } catch(err) {
+    alert(err.message || 'Could not remove address.');
+  }
+}
+
+async function deleteAllProfileData() {
+  if (!confirm('Permanently delete all your saved addresses and preferences? This cannot be undone.')) return;
+  const statusEl = document.getElementById('prof-delete-status');
+  if (statusEl) statusEl.textContent = 'Deleting…';
+  try {
+    await postHub('delete_profile_data', {});
+    _hubPayload = null;
+    const content = document.getElementById('profile-content');
+    if (content) delete content.dataset.loaded;
+    _hubPayload = await fetchHub();
+    renderProfile();
+    if (statusEl) statusEl.textContent = 'All profile data deleted.';
+  } catch(err) {
+    if (statusEl) statusEl.textContent = err.message || 'Could not delete data.';
   }
 }
 

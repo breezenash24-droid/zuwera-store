@@ -214,6 +214,26 @@ export async function onRequestPost({ request, env }) {
       return json({ success: true, request: nextRequest }, 200, cors(env));
     }
 
+    if (action === 'delete_address') {
+      const idx = Number(body.index);
+      const currentProfile = bundle.customerProfiles?.[user.id] || {};
+      const existing = Array.isArray(currentProfile.savedAddresses) ? currentProfile.savedAddresses : [];
+      if (isNaN(idx) || idx < 0 || idx >= existing.length) {
+        return json({ success: false, error: 'Invalid address index.' }, 400, cors(env));
+      }
+      const updated = existing.filter((_, i) => i !== idx).map((a, i) => ({ ...a, isPrimary: i === 0 }));
+      const nextProfile = { ...currentProfile, savedAddresses: updated, updatedAt: new Date().toISOString() };
+      await setSetting(env, 'commerce_customer_profiles', { ...(bundle.customerProfiles || {}), [user.id]: nextProfile });
+      return json({ success: true, profile: nextProfile }, 200, cors(env));
+    }
+
+    if (action === 'delete_profile_data') {
+      const nextProfiles = { ...(bundle.customerProfiles || {}) };
+      delete nextProfiles[user.id];
+      await setSetting(env, 'commerce_customer_profiles', nextProfiles);
+      return json({ success: true }, 200, cors(env));
+    }
+
     return json({ success: false, error: 'Unsupported action.' }, 400, cors(env));
   } catch (error) {
     return json({ success: false, error: error?.message || 'Could not update customer hub.' }, 500, cors(env));
