@@ -226,63 +226,22 @@
 
     /* ── Promo code area ── */
     .csummary { display: block; }
-    .cart-summary #zw-promo-shell {
-      width: 100% !important;
-      margin: .85rem 0 .35rem !important;
-      padding: .75rem 0 !important;
-      border-bottom: 1px solid rgba(244,241,235,.07);
-      box-sizing: border-box;
-    }
-    .cart-summary #zw-promo-shell > div:first-child {
-      display: grid !important;
-      grid-template-columns: minmax(0, 1fr) auto !important;
-      align-items: stretch !important;
-      gap: .55rem !important;
-      width: 100%;
-    }
-    .cart-summary #zw-promo-input,
-    .cart-summary #zw-promo-apply {
-      box-sizing: border-box !important;
-      height: 40px !important;
-      margin: 0 !important;
-      line-height: 1 !important;
-    }
-    .cart-summary #zw-promo-input {
-      width: 100% !important;
-      min-width: 0 !important;
-      padding: 0 .75rem !important;
-    }
-    .cart-summary #zw-promo-apply {
-      display: inline-flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      min-width: 82px !important;
-      padding: 0 .9rem !important;
-    }
-    .cart-summary #zw-promo-message {
-      min-height: 1rem !important;
-      margin-top: .35rem !important;
-      line-height: 1.45 !important;
-    }
     .srow { display:flex; justify-content:space-between; align-items:flex-start; padding:.5rem 0; border-bottom:1px solid rgba(244,241,235,.07); font-size:.82rem; color:rgba(244,241,235,.55); gap:.5rem; }
     .srow:last-child { border-bottom:none; }
     body.light-mode .srow { border-bottom-color:rgba(9,9,11,.07); color:rgba(9,9,11,.55); }
-    body.light-mode .cart-summary #zw-promo-shell { border-bottom-color: rgba(9,9,11,.07); }
-    body.light-mode .cart-summary #zw-promo-input,
-    body.light-mode .cart-summary #zw-promo-apply {
-      border-color: rgba(9,9,11,.14) !important;
-      background: rgba(9,9,11,.035) !important;
-      color: #09090b !important;
-    }
-    body.light-mode .cart-summary #zw-promo-message { color: rgba(9,9,11,.48) !important; }
-    @media (max-width: 420px) {
-      .cart-summary #zw-promo-shell > div:first-child {
-        grid-template-columns: 1fr !important;
-      }
-      .cart-summary #zw-promo-apply {
-        width: 100% !important;
-      }
-    }
+    /* Promo block inside the payment modal right panel */
+    #zw-promo-shell { margin-bottom:.9rem; }
+    #zw-promo-shell .pm-promo-row { display:flex; gap:.5rem; align-items:stretch; }
+    #zw-promo-input { flex:1; background:rgba(244,241,235,.04); border:1px solid rgba(244,241,235,.1); color:inherit; padding:.6rem .75rem; font-family:var(--font-body); font-size:.75rem; letter-spacing:.1em; text-transform:uppercase; outline:none; transition:border-color .18s; min-width:0; }
+    #zw-promo-input:focus { border-color:rgba(244,241,235,.35); }
+    #zw-promo-apply { border:1px solid rgba(244,241,235,.2); background:transparent; color:inherit; padding:.6rem 1rem; font-family:var(--font-body); font-size:.65rem; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; white-space:nowrap; flex-shrink:0; transition:border-color .2s,opacity .2s; }
+    #zw-promo-apply:hover { border-color:rgba(244,241,235,.5); }
+    #zw-promo-message { font-size:.65rem; color:rgba(244,241,235,.5); min-height:.85rem; margin-top:.25rem; }
+    body.light-mode #zw-promo-input { background:rgba(9,9,11,.04); border-color:rgba(9,9,11,.1); color:#09090b; }
+    body.light-mode #zw-promo-input:focus { border-color:rgba(9,9,11,.35); }
+    body.light-mode #zw-promo-apply { border-color:rgba(9,9,11,.2); color:#09090b; }
+    body.light-mode #zw-promo-apply:hover { border-color:rgba(9,9,11,.5); }
+    body.light-mode #zw-promo-message { color:rgba(9,9,11,.48); }
 </style>
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=6a5e8a27">
   <script src="mobile-menu.js?v=4c6ccedc" defer></script>
@@ -398,15 +357,7 @@
         </div>
         <span class="summary-value" id="summary-tax">-</span>
       </div>
-      <div id="zw-promo-shell">
-        <div>
-          <input id="zw-promo-input" type="text" placeholder="PROMO CODE" autocomplete="off">
-          <button id="zw-promo-apply" type="button">Apply</button>
-        </div>
-        <div id="zw-promo-message"></div>
-      </div>
-      <div id="zw-promo-row" class="summary-row" style="display:none"><span>Discount</span><span id="zw-promo-discount">-$0.00</span></div>
-      <div class="summary-row total"><span>Total</span><span id="summary-total">-</span></div>
+<div class="summary-row total"><span>Total</span><span id="summary-total">-</span></div>
       <button id="checkout-btn">Checkout</button>
     </div>
   </div>
@@ -459,6 +410,7 @@
           <div class="pm-lines">
             <div class="pm-line"><span>Subtotal</span><span id="pm-subtotal">—</span></div>
             <div class="pm-line"><span>Shipping</span><span id="pm-shipping">Free</span></div>
+            <div class="pm-line" id="zw-promo-row" style="display:none"><span>Discount</span><span id="zw-promo-discount" style="color:rgba(110,210,130,.9)">-$0.00</span></div>
             <div class="pm-line"><span id="pm-tax-label">Tax</span><span id="pm-tax">—</span></div>
           </div>
           <div class="pm-total-row"><span>Total</span><span id="pm-total">—</span></div>
@@ -489,6 +441,14 @@
         <div id="shipping-free-row" class="pfield" style="display:none;align-items:center;justify-content:space-between">
           <label style="margin:0">Shipping</label>
           <span style="font-size:.82rem;color:rgba(244,241,235,.85)">Free</span>
+        </div>
+        <div id="zw-promo-shell">
+          <label style="display:block;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,241,235,.35);margin-bottom:.35rem;">Promo Code <span style="opacity:.55">(optional)</span></label>
+          <div class="pm-promo-row">
+            <input id="zw-promo-input" type="text" placeholder="PROMO CODE" autocomplete="off">
+            <button id="zw-promo-apply" type="button">Apply</button>
+          </div>
+          <div id="zw-promo-message"></div>
         </div>
         <div class="pfield"><label>Card Details</label><div id="stripe-card-element"></div></div>
         <p id="pay-error"></p>
