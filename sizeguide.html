@@ -55,6 +55,13 @@
       --border: rgba(244, 241, 235, 0.15);
       --hover: rgba(244, 241, 235, 0.08);
     }
+    body.light-mode {
+      --bg: #F0EEE9;
+      --text: #09090b;
+      --muted: rgba(9, 9, 11, 0.6);
+      --border: rgba(9, 9, 11, 0.15);
+      --hover: rgba(9, 9, 11, 0.06);
+    }
 
     body {
       background: var(--bg);
@@ -73,8 +80,8 @@
       justify-content: space-between;
       align-items: center;
       padding: 1.2rem 2.5rem;
-      background: #09090b;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
     }
     .nav-logo-link {
       display: flex; align-items: center;
