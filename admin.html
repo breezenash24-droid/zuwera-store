@@ -821,7 +821,7 @@
 
         .size-row {
             display: grid;
-            grid-template-columns: minmax(0, 1.4fr) minmax(120px, 0.8fr) auto;
+            grid-template-columns: 1fr auto;
             gap: 12px;
             align-items: end;
             background-color: var(--bg-primary);
@@ -834,17 +834,60 @@
             margin-bottom: 0;
         }
 
-        .size-row .size-stock {
+        .size-row-remove {
+            align-self: center;
+        }
+
+        /* Stock matrix (color × size grid) */
+        .stock-matrix {
             width: 100%;
-            padding: 10px 12px;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        .stock-matrix th, .stock-matrix td {
+            border: 1px solid var(--border);
+            padding: 6px 10px;
+            text-align: center;
+        }
+        .stock-matrix th {
             background-color: var(--bg-secondary);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .stock-matrix .size-label-cell {
+            text-align: left;
+            font-weight: 500;
+            background-color: var(--bg-secondary);
+            white-space: nowrap;
+            min-width: 70px;
+        }
+        .stock-cell {
+            width: 72px;
+            padding: 6px 6px;
+            background-color: var(--bg-primary);
             border: 1px solid var(--border);
             border-radius: 4px;
             color: var(--text-primary);
+            text-align: center;
+            font-size: 0.88rem;
         }
-
-        .size-row-remove {
-            align-self: center;
+        .stock-cell:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .color-header-swatch {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+            vertical-align: middle;
+            border: 1px solid rgba(255,255,255,.15);
+        }
+        .stock-matrix-wrap {
+            overflow-x: auto;
+            margin-top: 14px;
+            margin-bottom: 6px;
         }
 
         @media (max-width: 720px) {
@@ -888,6 +931,11 @@
             width: 90%;
             max-height: 90vh;
             overflow-y: auto;
+        }
+
+        #productFormModal .modal-content {
+            max-width: 920px;
+            width: 95%;
         }
 
         .modal-header {
@@ -4493,8 +4541,9 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Size & Stock</label>
-                        <p class="form-hint" style="margin-bottom: 12px;">Suggested sizes come from your size guide, but every size name stays editable so you can type custom options when needed.</p>
-                        <div id="sizeGridContainer" class="size-grid"></div>
+                        <p class="form-hint" style="margin-bottom: 12px;">Add sizes below, then set stock per color in the table. Add colors first in the <strong>Color Variants</strong> tab — the stock columns update automatically when you switch here.</p>
+                        <div id="sizeGridContainer" class="size-grid" style="margin-bottom: 4px;"></div>
+                        <div id="stockMatrixWrapper"></div>
                     </div>
                 </div>
 
@@ -6547,16 +6596,18 @@
         });
 
         // Form Tabs
-            document.querySelectorAll('#productFormModal .tab-button').forEach(button => {
+        document.querySelectorAll('#productFormModal .tab-button').forEach(button => {
             button.addEventListener('click', (e) => {
                 e.preventDefault();
                 const tab = button.dataset.tab;
 
-                    document.querySelectorAll('#productFormModal .tab-button').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('#productFormModal .tab-button').forEach(b => b.classList.remove('active'));
                 button.classList.add('active');
 
-                    document.querySelectorAll('#productFormModal .tab-content').forEach(c => c.classList.remove('active'));
+                document.querySelectorAll('#productFormModal .tab-content').forEach(c => c.classList.remove('active'));
                 document.getElementById(tab).classList.add('active');
+
+                if (tab === 'inventory') rebuildStockMatrix();
             });
         });
 
@@ -7344,7 +7395,7 @@
             if (inputCm) inputCm.value = row?.head_circ_cm || '';
         }
 
-        function addSizeRow(sizeLabel = '', stockValue = '') {
+        function addSizeRow(sizeLabel = '', { suppressRebuild = false } = {}) {
             const container = document.getElementById('sizeGridContainer');
             const row = document.createElement('div');
             row.className = 'size-row';
@@ -7353,16 +7404,13 @@
                     <label class="form-label">Size Name</label>
                     <input type="text" class="form-input size-name-input" list="sizeGuideSizeOptions" placeholder="e.g., S, Medium, 30, One Size" value="${escapeHtml(sizeLabel)}">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Stock</label>
-                    <input type="number" class="size-stock" placeholder="0" min="0" value="${escapeHtml(stockValue)}">
-                </div>
-                <button type="button" class="btn btn-secondary btn-sm size-row-remove">Remove</button>
+                <button type="button" class="btn btn-secondary btn-sm size-row-remove" style="align-self:flex-end">Remove</button>
             `;
 
             row.querySelector('.size-row-remove').addEventListener('click', () => {
                 row.remove();
-                if (!document.querySelector('.size-row')) addSizeRow('', '');
+                if (!document.querySelector('.size-row')) addSizeRow('', { suppressRebuild: true });
+                rebuildStockMatrix();
             });
 
             row.querySelector('.size-name-input')?.addEventListener('blur', () => {
@@ -7370,7 +7418,12 @@
                 renderSizeRows(sortedRows);
             });
 
+            row.querySelector('.size-name-input')?.addEventListener('input', () => {
+                rebuildStockMatrix();
+            });
+
             container.appendChild(row);
+            if (!suppressRebuild) rebuildStockMatrix();
         }
 
         function sortSizeRowEntries(entries = [], profile = getResolvedSizeGuideProfile()) {
@@ -7387,28 +7440,110 @@
             const sortedEntries = sortSizeRowEntries(entries);
 
             if (!sortedEntries.length) {
-                addSizeRow('', '');
-                return;
+                addSizeRow('', { suppressRebuild: true });
+            } else {
+                sortedEntries.forEach(entry => {
+                    addSizeRow(entry.size || entry.size_label || '', { suppressRebuild: true });
+                });
             }
-
-            sortedEntries.forEach(entry => {
-                addSizeRow(entry.size || entry.size_label || '', entry.stock_quantity ?? entry.stock ?? '');
-            });
+            rebuildStockMatrix();
         }
 
         function hasMeaningfulSizeRows() {
-            return Array.from(document.querySelectorAll('.size-row')).some(row => {
-                const sizeName = row.querySelector('.size-name-input')?.value.trim();
-                const stockValue = row.querySelector('.size-stock')?.value.trim();
-                return Boolean(sizeName || stockValue);
-            });
+            return Array.from(document.querySelectorAll('#sizeGridContainer .size-name-input'))
+                .some(i => i.value.trim());
         }
 
         function getCurrentSizeRows() {
-            return Array.from(document.querySelectorAll('.size-row')).map(row => ({
-                size: row.querySelector('.size-name-input')?.value.trim() || '',
-                stock: row.querySelector('.size-stock')?.value.trim() || ''
+            return Array.from(document.querySelectorAll('#sizeGridContainer .size-name-input')).map(i => ({
+                size: i.value.trim()
             }));
+        }
+
+        function rebuildStockMatrix() {
+            // Snapshot existing stock values from current matrix before clearing
+            const existingStock = {};
+            document.querySelectorAll('.stock-cell').forEach(input => {
+                const color = input.dataset.color;
+                const size = input.dataset.size;
+                if (!color || !size) return;
+                if (!existingStock[color]) existingStock[color] = {};
+                existingStock[color][size] = input.value;
+            });
+
+            // Merge pending stock from load
+            if (window._pendingStockData) {
+                Object.entries(window._pendingStockData).forEach(([color, sizeMap]) => {
+                    if (!existingStock[color]) existingStock[color] = {};
+                    Object.entries(sizeMap).forEach(([size, qty]) => {
+                        if (!(existingStock[color][size] > '')) {
+                            existingStock[color][size] = String(qty);
+                        }
+                    });
+                });
+                window._pendingStockData = null;
+            }
+
+            const colorEntries = getColorVariantEntries();
+            const colors = colorEntries.length > 0 ? colorEntries : [{ color_name: null, hex_color: null }];
+
+            const sizes = Array.from(document.querySelectorAll('#sizeGridContainer .size-name-input'))
+                .map(i => i.value.trim()).filter(Boolean);
+
+            const wrapper = document.getElementById('stockMatrixWrapper');
+            if (!wrapper) return;
+
+            if (!sizes.length) {
+                wrapper.innerHTML = '<p style="color:var(--text-secondary);font-size:.85rem;margin-top:8px">No sizes added yet — use "Use Guide Sizes" or "+ Add Custom Size" above.</p>';
+                return;
+            }
+
+            const theadCols = colors.map(c => {
+                const colorKey = c.color_name ?? '__nocolor__';
+                const swatch = c.hex_color
+                    ? `<span class="color-header-swatch" style="background:${escapeAttr(c.hex_color)}"></span>`
+                    : '';
+                return `<th data-color="${escapeAttr(colorKey)}">${swatch}${escapeHtml(c.color_name ?? 'Stock')}</th>`;
+            }).join('');
+
+            const tbody = sizes.map(size => {
+                const cells = colors.map(c => {
+                    const colorKey = c.color_name ?? '__nocolor__';
+                    const qty = existingStock[colorKey]?.[size] ?? '';
+                    return `<td><input type="number" class="stock-cell" data-color="${escapeAttr(colorKey)}" data-size="${escapeAttr(size)}" min="0" placeholder="0" value="${escapeHtml(String(qty))}"></td>`;
+                }).join('');
+                return `<tr><td class="size-label-cell">${escapeHtml(size)}</td>${cells}</tr>`;
+            }).join('');
+
+            const noColorNote = colorEntries.length === 0
+                ? '<p style="font-size:.8rem;color:var(--text-secondary);margin-top:6px">No color variants added yet — go to the <strong>Color Variants</strong> tab to add colors. Stock will then be tracked per color.</p>'
+                : '';
+
+            wrapper.innerHTML = `
+                <div class="stock-matrix-wrap">
+                    <table class="stock-matrix">
+                        <thead><tr><th style="text-align:left">Size</th>${theadCols}</tr></thead>
+                        <tbody>${tbody}</tbody>
+                    </table>
+                </div>${noColorNote}`;
+        }
+
+        function getStockMatrixEntries() {
+            const entries = [];
+            document.querySelectorAll('.stock-cell').forEach(input => {
+                const colorKey = input.dataset.color;
+                const size = input.dataset.size;
+                if (!size) return;
+                const raw = input.value.trim();
+                const qty = raw === '' ? 0 : parseInt(raw, 10);
+                if (isNaN(qty) || qty < 0) return;
+                entries.push({
+                    size,
+                    color_name: colorKey === '__nocolor__' ? null : colorKey,
+                    stock_quantity: qty
+                });
+            });
+            return entries;
         }
 
         function buildGuideSeedRows(guideRows, existingRows = []) {
@@ -7757,32 +7892,17 @@
                     const { error } = await sb.from('product_sizes').delete().eq('product_id', productId);
                     if (error) throw error;
                 }
-                const sizeRows = sortSizeRowEntries(getCurrentSizeRows(), getResolvedSizeGuideProfile());
-                const seenSizes = new Set();
-                for (const row of sizeRows) {
-                    const sizeName = row?.size?.trim();
-                    const stockValue = String(row?.stock ?? '').trim();
-                    if (!sizeName && stockValue === '') continue;
-                    if (!sizeName) {
-                        throw new Error('Every stock row needs a size name before saving.');
-                    }
-                    if (stockValue === '') continue;
-
-                    const sizeKey = normalizeSizeKey(sizeName);
-                    if (seenSizes.has(sizeKey)) {
-                        throw new Error(`Duplicate size "${sizeName}" found. Keep each size label unique.`);
-                    }
-                    seenSizes.add(sizeKey);
-
-                    const parsedStock = parseInt(stockValue, 10);
-                    if (Number.isNaN(parsedStock) || parsedStock < 0) {
-                        throw new Error(`Stock for "${sizeName}" must be a whole number of 0 or more.`);
-                    }
-
+                const stockEntries = getStockMatrixEntries();
+                const seenKeys = new Set();
+                for (const entry of stockEntries) {
+                    const key = normalizeSizeKey(entry.size) + '|' + (entry.color_name ?? '');
+                    if (seenKeys.has(key)) continue;
+                    seenKeys.add(key);
                     const { error } = await sb.from('product_sizes').insert([{
                         product_id: productId,
-                        size: sizeName,
-                        stock_quantity: parsedStock
+                        size: entry.size,
+                        color_name: entry.color_name,
+                        stock_quantity: entry.stock_quantity
                     }]);
                     if (error) throw error;
                 }
@@ -7805,7 +7925,7 @@
                     image_count: imageUrls.length,
                     removed_storage_images: removedStorageImages,
                     color_count: colorEntries.length,
-                    size_count: seenSizes.size
+                    size_count: seenKeys.size
                 });
 
                 showToast(publish ? 'Product published!' : 'Draft saved!', 'success');
@@ -7945,13 +8065,19 @@
             const sizeRows = Array.isArray(sizesResult?.data) ? sizesResult.data : [];
             if (sizesResult?.error) console.error('Error loading product sizes:', sizesResult.error);
             if (sizeRows.length > 0) {
-                const sortedSizeRows = sortSizeRowEntries(sizeRows.map(inv => ({
-                    size: inv.size,
-                    stock_quantity: inv.stock_quantity
-                })));
-                renderSizeRows(sortedSizeRows);
-                if (!document.getElementById('pomGuideSizeInput').value && sortedSizeRows[0]?.size) {
-                    document.getElementById('pomGuideSizeInput').value = sortedSizeRows[0].size;
+                // Build pending stock map keyed by color_name → size → quantity
+                window._pendingStockData = {};
+                for (const row of sizeRows) {
+                    const colorKey = row.color_name ?? '__nocolor__';
+                    if (!window._pendingStockData[colorKey]) window._pendingStockData[colorKey] = {};
+                    window._pendingStockData[colorKey][row.size] = row.stock_quantity;
+                }
+                // Unique sorted size list drives the matrix rows
+                const uniqueSizes = [...new Set(sizeRows.map(r => r.size))];
+                const sortedSizes = sortSizeRowEntries(uniqueSizes.map(s => ({ size: s })));
+                renderSizeRows(sortedSizes); // calls rebuildStockMatrix, which drains _pendingStockData
+                if (!document.getElementById('pomGuideSizeInput').value && sortedSizes[0]?.size) {
+                    document.getElementById('pomGuideSizeInput').value = sortedSizes[0].size;
                 }
                 await syncSizeGuideUi({ forceSizeRows: false, keepManualRows: true });
             } else {
@@ -7964,6 +8090,9 @@
             document.getElementById('imagesContainer').innerHTML = '<div class="image-row"><span style="font-weight:600;min-width:60px;">Image 1</span><input type="text" class="form-input product-image-url" placeholder="Paste image URL..."><label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label><img class="image-preview" style="display:none"><button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button></div>';
             document.getElementById('colorVariantsContainer').innerHTML = '';
             document.getElementById('sizeGridContainer').innerHTML = '';
+            window._pendingStockData = null;
+            const smw = document.getElementById('stockMatrixWrapper');
+            if (smw) smw.innerHTML = '';
             document.getElementById('sizeGuideProfile').value = 'auto';
             document.getElementById('pomGuideSizeInput').value = '';
             document.getElementById('pomHeadCircIn').value = '';
