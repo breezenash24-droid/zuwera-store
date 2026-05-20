@@ -334,8 +334,8 @@ body.light-mode #zw-lang-box{
 }
 
 #payment-modal > .pbox{
-  width:min(40rem, calc(100vw - 2rem)) !important;
-  max-width:min(40rem, calc(100vw - 2rem)) !important;
+  width:min(1040px, calc(100vw - 3rem)) !important;
+  max-width:min(1040px, calc(100vw - 3rem)) !important;
 }
 
 #size-fit-modal{
@@ -368,9 +368,14 @@ body.light-mode #zw-lang-box{
   max-height:min(88dvh, 64rem) !important;
 }
 
-#payment-modal > .pbox,
 #zw-lang-box{
   padding:1.6rem 1.35rem 1.35rem !important;
+}
+#payment-modal > .pbox{
+  padding:0 !important;
+  overflow:hidden !important;
+  display:flex !important;
+  flex-direction:column !important;
 }
 
 @keyframes zwCenteredModalIn{
@@ -678,9 +683,9 @@ body.light-mode .heart-btn{
 }
 
 #payment-modal .pbox{
-  max-height:min(92dvh, 54rem) !important;
+  max-height:94dvh !important;
   margin:auto !important;
-  overflow-y:auto;
+  overflow:hidden !important;
 }
 
 @media(max-width:760px){
@@ -1020,7 +1025,7 @@ body.light-mode .heart-btn{
 
   #payment-modal .pbox{
     border-radius:0 !important;
-    padding:1.35rem 1rem calc(1rem + env(safe-area-inset-bottom,0px)) !important;
+    padding:0 !important;
   }
 
   #pay-submit{
