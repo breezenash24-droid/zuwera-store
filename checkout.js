@@ -148,6 +148,7 @@ const _pay = {
 let paymentRequest    = null;
 let prButtonEl        = null;
 let selectedShippingRate = null;
+let prTaxCents = 0;
 
 function initPaymentRequest(subtotalCents) {
   // If a paymentRequest already exists (user opened checkout a second time),
@@ -182,10 +183,11 @@ function initPaymentRequest(subtotalCents) {
       });
       // Silently store the cheapest rate for fulfillment — customer pays $0 shipping.
       if (data.rates?.length) selectedShippingRate = data.rates[0];
+      prTaxCents = window.ZWCheckoutTax ? window.ZWCheckoutTax.taxCents(subtotalCents, addr.region || '') : 0;
       ev.updateWith({
         status: 'success',
         shippingOptions: [{ id: 'free', label: 'Free Shipping', detail: 'Standard delivery', amount: 0 }],
-        total: { label: 'Zuwera', amount: subtotalCents },
+        total: { label: 'Zuwera', amount: subtotalCents + prTaxCents },
       });
     } catch { ev.updateWith({ status: 'fail' }); }
   });
@@ -194,7 +196,7 @@ function initPaymentRequest(subtotalCents) {
     // Shipping is always free — total never includes a shipping cost.
     ev.updateWith({
       status: 'success',
-      total: { label: 'Zuwera', amount: subtotalCents },
+      total: { label: 'Zuwera', amount: subtotalCents + prTaxCents },
     });
   });
 
@@ -312,8 +314,19 @@ function updateCartSummaryShipping(amount) {
   }
 }
 
+function refreshTaxDisplay() {
+  if (!window.ZWCheckoutTax) return;
+  const parse = el => parseFloat(el?.textContent?.replace(/[^0-9.]/g, '') || '0');
+  const subtotal = parse(_cart.subtotalEl);
+  if (!subtotal) return;
+  const state = (_pay.stateInput?.value || '').trim().toUpperCase().slice(0, 2);
+  const tax = window.ZWCheckoutTax.taxDollars(subtotal, state);
+  if (_pay.taxEl) _pay.taxEl.textContent = `$${tax.toFixed(2)}`;
+  if (_pay.totalEl) _pay.totalEl.textContent = `$${(subtotal + tax).toFixed(2)}`;
+}
+
 _pay.zipInput?.addEventListener('input', maybeLoadRates);
-_pay.stateInput?.addEventListener('input', maybeLoadRates);
+_pay.stateInput?.addEventListener('input', () => { maybeLoadRates(); refreshTaxDisplay(); });
 
 // ===================== PAYMENT MODAL CLOSE =====================
 document.getElementById('payment-close')?.addEventListener('click', () => {
