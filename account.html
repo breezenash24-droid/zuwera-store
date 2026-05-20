@@ -970,6 +970,8 @@ async function loadSaved() {
     if (loading) loading.style.display = 'none';
     if (!data?.length) { if (empty) empty.style.display = 'block'; return; }
     list.dataset.loaded = '1';
+    const savedTab = document.querySelector('.acct-tab[data-tab="saved"]');
+    if (savedTab) savedTab.innerHTML = `Saved Items <span class="tab-count">${data.length}</span>`;
     list.innerHTML = data.map(f => {
       const name = escHtml((f.product_name || 'Product').replace(/\p{Extended_Pictographic}/gu, '').trim());
       const rawPrice = parseFloat(f.price);
