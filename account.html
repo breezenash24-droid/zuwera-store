@@ -271,6 +271,78 @@
       .order-timeline { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem .5rem; }
     }
 
+    /* ── ORDER DETAIL ROWS ── */
+    .ord-item-list { display: flex; flex-direction: column; margin: .65rem 0 0; border-top: 1px solid rgba(244,241,235,.06); }
+    body.light-mode .ord-item-list { border-top-color: rgba(9,9,11,.07); }
+    .ord-item-row {
+      display: grid; grid-template-columns: 56px 1fr auto;
+      align-items: center; gap: .75rem;
+      padding: .6rem 0; border-bottom: 1px solid rgba(244,241,235,.06);
+    }
+    body.light-mode .ord-item-row { border-bottom-color: rgba(9,9,11,.07); }
+    .ord-item-img {
+      width: 56px; height: 56px; object-fit: cover;
+      flex-shrink: 0; display: block; background: rgba(244,241,235,.07);
+    }
+    body.light-mode .ord-item-img { background: rgba(9,9,11,.07); }
+    .ord-item-info { min-width: 0; }
+    .ord-item-name { font-size: .76rem; font-weight: 500; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ord-item-attrs { font-size: .62rem; color: rgba(244,241,235,.4); margin-top: .2rem; font-family: var(--fm); }
+    body.light-mode .ord-item-attrs { color: rgba(9,9,11,.45); }
+    .ord-item-price { font-size: .72rem; letter-spacing: .02em; flex-shrink: 0; }
+    .ord-item-more { font-size: .62rem; color: rgba(244,241,235,.3); font-family: var(--fm); padding: .45rem 0; }
+    body.light-mode .ord-item-more { color: rgba(9,9,11,.35); }
+
+    /* ── ORDER TRACKING ROW ── */
+    .order-track-row { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .65rem; align-items: center; }
+    .order-track-btn {
+      display: inline-block; border: 1px solid rgba(244,241,235,.2); color: rgba(244,241,235,.7);
+      padding: .4rem .9rem; font-size: .56rem; letter-spacing: .1em; text-transform: uppercase;
+      font-family: var(--fm); transition: all .18s; text-decoration: none;
+    }
+    .order-track-btn:hover { border-color: var(--paper); color: var(--paper); }
+    body.light-mode .order-track-btn { border-color: rgba(9,9,11,.2); color: rgba(9,9,11,.65); }
+    body.light-mode .order-track-btn:hover { border-color: #09090b; color: #09090b; }
+    .order-track-num { font-size: .65rem; color: rgba(244,241,235,.45); font-family: var(--fm); letter-spacing: .04em; }
+    body.light-mode .order-track-num { color: rgba(9,9,11,.5); }
+
+    /* ── ORDER NEXT STEPS ── */
+    .order-next {
+      margin-top: .75rem; padding: .65rem .8rem;
+      background: rgba(244,241,235,.025); border-left: 2px solid rgba(244,241,235,.12);
+      font-size: .7rem; line-height: 1.65; color: rgba(244,241,235,.55);
+    }
+    body.light-mode .order-next { background: rgba(9,9,11,.025); border-left-color: rgba(9,9,11,.15); color: rgba(9,9,11,.55); }
+    .order-next strong {
+      color: rgba(244,241,235,.8); display: block; margin-bottom: .25rem;
+      font-size: .6rem; letter-spacing: .08em; text-transform: uppercase;
+    }
+    body.light-mode .order-next strong { color: rgba(9,9,11,.75); }
+
+    /* ── ORDER FOOTER ── */
+    .order-footer {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      margin-top: .85rem; padding-top: .75rem; border-top: 1px solid rgba(244,241,235,.06);
+      gap: 1rem; flex-wrap: wrap;
+    }
+    body.light-mode .order-footer { border-top-color: rgba(9,9,11,.07); }
+    .order-addr-label {
+      font-size: .52rem; letter-spacing: .1em; text-transform: uppercase;
+      color: rgba(244,241,235,.28); margin-bottom: .25rem; font-family: var(--fm);
+    }
+    body.light-mode .order-addr-label { color: rgba(9,9,11,.35); }
+    .order-addr { font-size: .68rem; color: rgba(244,241,235,.45); line-height: 1.65; font-family: var(--fm); }
+    body.light-mode .order-addr { color: rgba(9,9,11,.5); }
+    .order-return-link {
+      background: none; border: none; border-bottom: 1px solid rgba(244,241,235,.12);
+      font-family: var(--fm); font-size: .56rem; letter-spacing: .1em; text-transform: uppercase;
+      color: rgba(244,241,235,.4); padding: 0 0 .1rem; cursor: pointer;
+      transition: color .2s, border-color .2s; white-space: nowrap;
+    }
+    .order-return-link:hover { color: var(--paper); border-bottom-color: rgba(244,241,235,.4); }
+    body.light-mode .order-return-link { color: rgba(9,9,11,.4); border-bottom-color: rgba(9,9,11,.18); }
+    body.light-mode .order-return-link:hover { color: #09090b; border-bottom-color: rgba(9,9,11,.5); }
+
     /* ── TAB COUNT BADGE ── */
     .tab-count {
       display: inline-flex; align-items: center; justify-content: center;
@@ -638,6 +710,18 @@ function escHtml(v) {
   return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function orderNextSteps(order) {
+  const fulfillment = String(order?.commerce?.fulfillmentStatus || order?.fulfillment_status || '').toLowerCase();
+  const status = String(order?.status || '').toLowerCase();
+  const s = fulfillment || status;
+  const hasTracking = Boolean(order?.commerce?.trackingNumber || order?.tracking_number);
+  if (/cancel/.test(s)) return { title: 'Cancelled', body: 'This order has been cancelled. Any charge will be refunded within 5–10 business days.' };
+  if (/delivered|completed/.test(s) || order?.delivered_at || order?.commerce?.deliveredAt) return { title: 'Delivered', body: 'Your order was delivered. We hope you love it. If anything isn\'t right, hit <em>Start a Return</em> below.' };
+  if (hasTracking || /shipped|fulfil/.test(s)) return { title: 'On Its Way', body: 'Your order has shipped. Use the tracking link below to follow it in real time.' };
+  if (/pack|process/.test(s)) return { title: 'Being Packed', body: 'Your order is being packed and will ship very soon. A tracking number will be emailed to you when it leaves our hands.' };
+  return { title: 'Order Received', body: 'We\'ve received your order and are getting it ready. You\'ll get a shipping confirmation email when it\'s on its way.' };
+}
+
 function orderTimelineHtml(order, returnRequests = []) {
   const fulfillment = String(order?.commerce?.fulfillmentStatus || order?.fulfillment_status || '').toLowerCase();
   const status = String(order?.status || '').toLowerCase();
@@ -710,16 +794,33 @@ document.querySelectorAll('.acct-tab').forEach(b => {
 });
 
 /* ── ORDERS ── */
-async function fetchProductImageMap(productIds) {
-  if (!_sb || !productIds.length) return {};
+async function fetchProductImageMap() {
+  if (!_sb) return {};
   try {
-    const { data } = await _sb.from('products')
-      .select('id, image_url')
-      .in('id', [...new Set(productIds)]);
+    const { data } = await _sb.from('products').select('id, sku, image_url');
     const map = {};
-    for (const p of data || []) if (p.image_url) map[p.id] = p.image_url;
+    for (const p of data || []) {
+      if (!p.image_url) continue;
+      if (p.id)  map[p.id]  = p.image_url;
+      if (p.sku) map[p.sku] = p.image_url;
+    }
     return map;
   } catch(_) { return {}; }
+}
+
+function buildTrackingUrl(carrier, trackingNumber) {
+  if (!trackingNumber) return '';
+  const tn = String(trackingNumber).trim();
+  const c  = String(carrier || '').toLowerCase();
+  if (/usps/.test(c) || /^(94|93|92|91|90|420)\d/.test(tn))
+    return `https://tools.usps.com/go/TrackConfirmAction?qtc_tLabels1=${encodeURIComponent(tn)}`;
+  if (/fedex/.test(c) || /^\d{12}$|^\d{15}$|^\d{22}$/.test(tn))
+    return `https://www.fedex.com/fedextrack/?trknbr=${encodeURIComponent(tn)}`;
+  if (/ups/.test(c) || /^1Z/i.test(tn))
+    return `https://www.ups.com/track?tracknum=${encodeURIComponent(tn)}`;
+  if (/dhl/.test(c))
+    return `https://www.dhl.com/us-en/home/tracking.html?tracking-id=${encodeURIComponent(tn)}`;
+  return `https://t.17track.net/en#nums=${encodeURIComponent(tn)}`;
 }
 
 async function loadOrders() {
@@ -740,18 +841,7 @@ async function loadOrders() {
     if (loading) loading.style.display = 'none';
     if (!data.length) { if (empty) empty.style.display = 'block'; return; }
 
-    // Collect all productIds that have no stored image so we can fetch them once
-    const missingImgIds = [];
-    for (const o of data) {
-      try {
-        const items = typeof o.items === 'string' ? JSON.parse(o.items) : (Array.isArray(o.items) ? o.items : []);
-        for (const i of items) {
-          const img = (i.image || i.imageUrl || i.img || '').trim();
-          if (!img && (i.productId || i.product_id)) missingImgIds.push(i.productId || i.product_id);
-        }
-      } catch(_) {}
-    }
-    const productImgMap = await fetchProductImageMap(missingImgIds);
+    const productImgMap = await fetchProductImageMap();
 
     list.dataset.loaded = '1';
     const ordersTab = document.querySelector('.acct-tab[data-tab="orders"]');
@@ -762,8 +852,6 @@ async function loadOrders() {
       const statusLabel = fulfillment && fulfillment !== 'unfulfilled'
         ? fulfillment.replace(/_/g,' ')
         : displayStatus.replace(/_/g,' ');
-      const tracking = o.commerce?.trackingNumber || o.tracking_number || '';
-      const trackingUrl = o.commerce?.trackingUrl || o.tracking_url || '';
       const orderTotal = o.total || o.total_amount;
       const statusStr = (fulfillment || displayStatus).toLowerCase();
       const statusColorClass = /delivered|completed/.test(statusStr) ? ' status-delivered'
@@ -771,33 +859,83 @@ async function loadOrders() {
         : /pack|process/.test(statusStr) ? ' status-packing'
         : /cancel|refund|return/.test(statusStr) ? ' status-cancelled'
         : '';
+
+      // Items — full detail rows
       let itemsHtml = '';
+      let itemCount = 0;
       try {
         const items = typeof o.items === 'string' ? JSON.parse(o.items) : (Array.isArray(o.items) ? o.items : []);
+        itemCount = items.length;
         if (items.length) {
-          const shown = items.slice(0, 5);
-          const chips = shown.map(i => {
+          const shown = items.slice(0, 4);
+          const rows = shown.map(i => {
             const storedImg = (i.image || i.imageUrl || i.img || '').trim();
+            const validStored = storedImg && /^https?:\/\//i.test(storedImg) ? storedImg : '';
             const pid = i.productId || i.product_id || '';
-            const resolvedImg = storedImg || (pid ? productImgMap[pid] || '' : '');
-            const safeImg = resolvedImg && /^https?:\/\//i.test(resolvedImg) ? resolvedImg : '';
+            const safeImg = validStored || productImgMap[pid] || productImgMap[i.sku] || '';
             const name = escHtml((i.name || i.title || '').replace(/\p{Extended_Pictographic}/gu, '').trim());
-            const meta = [i.size ? escHtml(i.size) : '', i.quantity > 1 ? `×${i.quantity}` : ''].filter(Boolean).join(' · ');
-            return `<div class="order-item-chip">
-              ${safeImg ? `<img src="${escHtml(safeImg)}" alt="${name}" class="order-item-img" loading="lazy">` : '<div class="order-item-img"></div>'}
-              <div><div class="order-item-name">${name}</div>${meta ? `<div class="order-item-meta">${meta}</div>` : ''}</div>
+            const attrs = [
+              i.size ? escHtml(i.size) : '',
+              (i.colorName || i.color) ? escHtml(i.colorName || i.color) : '',
+              (i.quantity || 1) > 1 ? `Qty ${i.quantity}` : ''
+            ].filter(Boolean).join(' · ');
+            const rawItemPrice = parseFloat(i.price || i.unit_price || i.amount || 0);
+            const itemPrice = rawItemPrice > 0 ? `$${(rawItemPrice > 500 ? rawItemPrice / 100 : rawItemPrice).toFixed(2)}` : '';
+            return `<div class="ord-item-row">
+              ${safeImg ? `<img src="${escHtml(safeImg)}" alt="${name}" class="ord-item-img" loading="lazy">` : '<div class="ord-item-img"></div>'}
+              <div class="ord-item-info">
+                <div class="ord-item-name">${name}</div>
+                ${attrs ? `<div class="ord-item-attrs">${attrs}</div>` : ''}
+              </div>
+              ${itemPrice ? `<div class="ord-item-price">${itemPrice}</div>` : ''}
             </div>`;
           }).join('');
-          const extra = items.length > 5 ? `<div class="order-item-more">+${items.length - 5} more</div>` : '';
-          itemsHtml = `<div class="order-items-row">${chips}${extra}</div>`;
+          const extra = items.length > 4 ? `<div class="ord-item-more">+ ${items.length - 4} more item${items.length - 4 > 1 ? 's' : ''}</div>` : '';
+          itemsHtml = `<div class="ord-item-list">${rows}${extra}</div>`;
         }
       } catch(_) {}
+
+      // Tracking row
+      const tracking = o.tracking_number || o.commerce?.trackingNumber || '';
+      const carrier  = o.shipping_provider || o.commerce?.carrier || '';
+      const trackingUrl = o.tracking_url || o.commerce?.trackingUrl || '';
+      const safeTrackUrl = (trackingUrl && /^https?:\/\//i.test(trackingUrl) ? trackingUrl : '')
+        || buildTrackingUrl(carrier, tracking);
+      const trackRow = (tracking || safeTrackUrl) ? `
+        <div class="order-track-row">
+          ${tracking ? `<span class="order-track-num">${escHtml(carrier ? carrier + ' · ' + tracking : tracking)}</span>` : ''}
+          ${safeTrackUrl ? `<a href="${escHtml(safeTrackUrl)}" target="_blank" rel="noopener" class="order-track-btn">Track Shipment →</a>` : ''}
+        </div>` : '';
+
+      // Next steps
+      const next = orderNextSteps(o);
+      const nextHtml = `<div class="order-next"><strong>${escHtml(next.title)}</strong>${next.body}</div>`;
+
+      // Shipping address (DB columns: ship_line1, ship_line2, ship_city, ship_state, ship_zip)
+      const shipName   = escHtml(o.customer_name || o.ship_name || '');
+      const shipStreet = escHtml(o.ship_line1 || o.ship_address || '');
+      const shipApt    = escHtml(o.ship_line2 || '');
+      const shipCity   = escHtml([o.ship_city, o.ship_state, o.ship_zip].filter(Boolean).join(', '));
+      const addrLines  = [shipName, shipStreet, shipApt, shipCity].filter(Boolean);
+      const addrHtml = addrLines.length > 1 ? `
+        <div>
+          <div class="order-addr-label">Shipped to</div>
+          <div class="order-addr">${addrLines.join('<br>')}</div>
+        </div>` : '';
+
+      // Return action
+      const hasReturn = returnRequests.some(r => String(r.orderId || r.order_id || '') === String(o.id || ''));
+      const returnAction = hasReturn
+        ? `<span class="order-track-num">Return requested</span>`
+        : `<button class="order-return-link" onclick="switchTab('returns')">Start a Return →</button>`;
+      const footer = `<div class="order-footer">${addrHtml}<div style="padding-bottom:.05rem">${returnAction}</div></div>`;
+
       return `
         <div class="order-card">
           <div class="order-card-head">
             <div>
               <div class="order-id">Order #${escHtml(String(o.id||'').slice(-8).toUpperCase())}</div>
-              <div class="order-meta">${new Date(o.created_at).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})}</div>
+              <div class="order-meta">${new Date(o.created_at).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})}${itemCount ? ` · ${itemCount} item${itemCount !== 1 ? 's' : ''}` : ''}</div>
             </div>
             <div class="order-card-head-right">
               <span class="order-status${statusColorClass}">${escHtml(statusLabel)}</span>
@@ -806,9 +944,9 @@ async function loadOrders() {
           </div>
           ${itemsHtml}
           ${orderTimelineHtml(o, returnRequests)}
-          ${tracking ? `<div>${trackingUrl
-            ? `<a href="${escHtml(trackingUrl)}" target="_blank" rel="noopener" class="track-btn">Track Shipment →</a>`
-            : `<div class="order-meta" style="margin-top:.5rem">Tracking: ${escHtml(tracking)}</div>`}</div>` : ''}
+          ${trackRow}
+          ${nextHtml}
+          ${footer}
         </div>`;
     }).join('');
   } catch(err) {
@@ -888,7 +1026,10 @@ async function loadReturns() {
     if (!_hubPayload) _hubPayload = await fetchHub();
     if (loading) loading.style.display = 'none';
     content.dataset.loaded = '1';
-    renderReturnsContent(_hubPayload);
+
+    const productImgMap = await fetchProductImageMap();
+
+    renderReturnsContent(_hubPayload, productImgMap);
   } catch(err) {
     if (loading) loading.textContent = err.message || 'Could not load returns.';
   }
@@ -932,16 +1073,18 @@ function retNextSteps(r, userEmail) {
   return null;
 }
 
-function retBuildItemChips(order) {
+function retBuildItemChips(order, productImgMap = {}) {
   if (!order) return '';
   let items = [];
   try { items = JSON.parse(order.items || '[]'); } catch(_) {}
   if (!items.length) return '';
   const chips = items.slice(0, 4).map(i => {
-    const img = i.image || i.imageUrl || i.img || '';
-    const safeImg = img && /^https?:\/\//i.test(img) ? img : '';
+    const stored = i.image || i.imageUrl || i.img || '';
+    const validStored = stored && /^https?:\/\//i.test(stored) ? stored : '';
+    const pid = i.productId || i.product_id || '';
+    const safeImg = validStored || productImgMap[pid] || productImgMap[i.sku] || '';
     const name = escHtml((i.name || i.title || '').replace(/\p{Extended_Pictographic}/gu, '').trim());
-    const meta = [i.size ? escHtml(i.size) : '', i.colorName ? escHtml(i.colorName) : ''].filter(Boolean).join(' · ');
+    const meta = [i.size ? escHtml(i.size) : '', (i.colorName || i.color) ? escHtml(i.colorName || i.color) : ''].filter(Boolean).join(' · ');
     return `<div class="order-item-chip">
       ${safeImg ? `<img src="${escHtml(safeImg)}" alt="${name}" class="order-item-img" loading="lazy">` : '<div class="order-item-img"></div>'}
       <div><div class="order-item-name">${name}</div>${meta ? `<div class="order-item-meta">${meta}</div>` : ''}</div>
@@ -951,7 +1094,7 @@ function retBuildItemChips(order) {
   return `<div class="order-items-row">${chips}${extra}</div>`;
 }
 
-function renderReturnsContent(payload) {
+function renderReturnsContent(payload, productImgMap = {}) {
   const content = document.getElementById('returns-content');
   if (!content) return;
   const orders = Array.isArray(payload?.orders) ? payload.orders : [];
@@ -979,11 +1122,12 @@ function renderReturnsContent(payload) {
     const resLbl = retResolutionLabel(r.resolution);
     const dt = new Date(r.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     const order = orderMap[String(r.orderId || '')];
-    const itemChips = retBuildItemChips(order);
+    const itemChips = retBuildItemChips(order, productImgMap);
     const next = retNextSteps(r, userEmail);
 
     const safeLabel = r.labelUrl && /^https?:\/\//i.test(r.labelUrl) ? r.labelUrl : '';
-    const safeTrack = r.trackingUrl && /^https?:\/\//i.test(r.trackingUrl) ? r.trackingUrl : '';
+    const safeTrack = (r.trackingUrl && /^https?:\/\//i.test(r.trackingUrl) ? r.trackingUrl : '')
+      || buildTrackingUrl(r.carrier, r.trackingNumber);
 
     const trackingRow = (r.trackingNumber || safeLabel || safeTrack) ? `
       <div class="ret-tracking-row">
@@ -1063,7 +1207,7 @@ function renderReturnsContent(payload) {
     if (!preview) return;
     const order = orderMap[orderId];
     if (!order) { preview.className = 'ret-order-preview'; preview.innerHTML = ''; return; }
-    const chips = retBuildItemChips(order);
+    const chips = retBuildItemChips(order, productImgMap);
     if (!chips) { preview.className = 'ret-order-preview'; preview.innerHTML = ''; return; }
     preview.innerHTML = `<div class="ret-preview-label">Items in this order</div>${chips}`;
     preview.className = 'ret-order-preview visible';
