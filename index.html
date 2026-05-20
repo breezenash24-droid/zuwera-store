@@ -976,7 +976,7 @@ body.light-mode .pcard-skel-img,body.light-mode .pcard-skel-line{background:rgba
 /* Keep the quick-add mini product page from inheriting the small auth modal shell. */
 .mbox.quick-add-review-box.quick-add-product-box{
   width:min(1080px,94vw);
-  max-height:min(820px,92dvh);
+  max-height:min(900px,94dvh);
   padding:0;
   overflow:hidden;
 }
@@ -1002,9 +1002,12 @@ body.light-mode .pcard-skel-img,body.light-mode .pcard-skel-line{background:rgba
 .mbox.quick-add-review-box.quick-add-product-box .quick-add-review-media{
   aspect-ratio:auto;
   min-height:min(480px,52dvh);
-  max-height:min(580px,68dvh);
+  max-height:min(680px,78dvh);
   flex:1 1 auto;
   overflow:hidden;
+}
+.mbox.quick-add-review-box.quick-add-product-box .quick-add-review-media img{
+  object-fit:contain;
 }
 .mbox.quick-add-review-box.quick-add-product-box .quick-add-review-body{
   display:flex;
