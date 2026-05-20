@@ -150,6 +150,15 @@
     body.light-mode #pay-submit { background:#09090b; color:#E8E3DC; }
     body.light-mode .psecure { color:rgba(9,9,11,.25); }
 
+    /* ── Payment modal order summary ── */
+    .pay-order-summary { border:1px solid rgba(244,241,235,.09); padding:.7rem 1rem; margin-bottom:1.3rem; background:rgba(244,241,235,.03); }
+    .pay-order-row { display:flex; justify-content:space-between; align-items:center; font-size:.84rem; padding:.22rem 0; color:rgba(244,241,235,.6); }
+    .pay-order-row span:last-child { font-variant-numeric:tabular-nums; }
+    .pay-order-total { border-top:1px solid rgba(244,241,235,.1); margin-top:.35rem; padding-top:.45rem; font-weight:600; color:rgba(244,241,235,.95); font-size:.92rem; }
+    body.light-mode .pay-order-summary { border-color:rgba(9,9,11,.09); background:rgba(9,9,11,.03); }
+    body.light-mode .pay-order-row { color:rgba(9,9,11,.6); }
+    body.light-mode .pay-order-total { border-color:rgba(9,9,11,.1); color:#09090b; }
+
     /* ── Success screen ── */
     #payment-success { display:none; position:fixed; inset:0; background:var(--black); z-index:700; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem; }
     #payment-success.open { display:flex; }
@@ -378,6 +387,11 @@
     <button class="mclose" id="payment-close">&#215;</button>
     <h2>Secure Checkout</h2>
     <p class="psub">Powered by Stripe · 256-bit SSL encryption</p>
+    <div class="pay-order-summary">
+      <div class="pay-order-row"><span>Subtotal</span><span id="pay-modal-subtotal">—</span></div>
+      <div class="pay-order-row"><span id="pay-modal-tax-label">Tax</span><span id="pay-modal-tax">—</span></div>
+      <div class="pay-order-row pay-order-total"><span>Total</span><span id="pay-modal-total">—</span></div>
+    </div>
     <div class="zw-test-mode-banner" data-stripe-test-banner>Test mode active. Use Stripe test cards only — real cards will not be charged.</div>
     <div id="payment-request-btn" style="display:none" aria-hidden="true"></div>
     <div id="wallet-methods" class="wallet-methods" aria-hidden="true"></div>
@@ -599,7 +613,7 @@ function updateCartSummary(subtotal) {
   }
   const tax = window.ZWCheckoutTax ? window.ZWCheckoutTax.taxDollars(subtotal, getCheckoutTaxStateCode()) : 0;
   const taxEl = document.getElementById('summary-tax');
-  if (taxEl) taxEl.textContent = '$' + tax.toFixed(2);
+  if (taxEl) taxEl.textContent = tax > 0 ? '$' + tax.toFixed(2) : (getCheckoutTaxStateCode() ? '$0.00' : '—');
   const shippingEl = document.getElementById('summary-shipping');
   const totalEl = document.getElementById('summary-total');
   if (qualifiesFree) {
@@ -703,6 +717,18 @@ document.getElementById('checkout-btn').addEventListener('click', () => {
   // Prefill checkout fields with the logged-in user's account data every time the modal opens
   if (_bagUser && typeof window.prefillCheckoutForUser === 'function') window.prefillCheckoutForUser(_bagUser);
   _openModal('payment-modal');
+  // Populate the modal order summary with current cart totals
+  (function() {
+    const _sub = cartItems.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0);
+    const _subEl = document.getElementById('pay-modal-subtotal');
+    const _taxEl = document.getElementById('pay-modal-tax');
+    const _totEl = document.getElementById('pay-modal-total');
+    const _taxLbl = document.getElementById('pay-modal-tax-label');
+    if (_subEl) _subEl.textContent = `$${_sub.toFixed(2)}`;
+    if (_taxEl) _taxEl.textContent = '—';
+    if (_totEl) _totEl.textContent = `$${_sub.toFixed(2)}`;
+    if (_taxLbl) _taxLbl.textContent = 'Tax';
+  })();
   // Pass the mode explicitly — don't let checkout.js guess asynchronously
   if (typeof window.refreshCardStyle === 'function')
     window.refreshCardStyle(document.body.classList.contains('light-mode'));
@@ -803,7 +829,7 @@ window.__zwOpenAuth = function(tab) {
   }).catch(function() {});
 })();
 </script>
-<script src="checkout.js?v=d793d3b6"></script>
+<script src="checkout.js?v=6fcf80c1"></script>
 <script src="commerce-checkout.js?v=f884ded3"></script>
 <script src="modal-lock.js?v=72e2f101"></script>
 <script src="storefront-theme.js?v=227b8ced" defer></script>

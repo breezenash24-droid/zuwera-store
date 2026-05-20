@@ -321,8 +321,21 @@ function refreshTaxDisplay() {
   if (!subtotal) return;
   const state = (_pay.stateInput?.value || '').trim().toUpperCase().slice(0, 2);
   const tax = window.ZWCheckoutTax.taxDollars(subtotal, state);
-  if (_pay.taxEl) _pay.taxEl.textContent = `$${tax.toFixed(2)}`;
-  if (_pay.totalEl) _pay.totalEl.textContent = `$${(subtotal + tax).toFixed(2)}`;
+  const total = subtotal + tax;
+
+  // Update cart sidebar elements (kept in sync even though hidden behind modal)
+  if (_pay.taxEl) _pay.taxEl.textContent = tax > 0 ? `$${tax.toFixed(2)}` : (state ? '$0.00' : '—');
+  if (_pay.totalEl) _pay.totalEl.textContent = `$${total.toFixed(2)}`;
+
+  // Update the payment modal order summary (what the user actually sees)
+  const modalSubtotal = document.getElementById('pay-modal-subtotal');
+  const modalTax     = document.getElementById('pay-modal-tax');
+  const modalTaxLbl  = document.getElementById('pay-modal-tax-label');
+  const modalTotal   = document.getElementById('pay-modal-total');
+  if (modalSubtotal) modalSubtotal.textContent = `$${subtotal.toFixed(2)}`;
+  if (modalTax) modalTax.textContent = tax > 0 ? `$${tax.toFixed(2)}` : (state ? '$0.00' : '—');
+  if (modalTaxLbl) modalTaxLbl.textContent = state && tax > 0 ? `Tax (${state})` : 'Tax';
+  if (modalTotal) modalTotal.textContent = `$${total.toFixed(2)}`;
 }
 
 _pay.zipInput?.addEventListener('input', maybeLoadRates);
