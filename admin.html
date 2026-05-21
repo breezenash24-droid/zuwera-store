@@ -7935,7 +7935,11 @@
                 console.error('Error saving product:', error);
                 let msg = error.message;
                 if (msg && msg.includes('duplicate key value')) {
-                    msg = 'A product with this SKU already exists. Please use a unique SKU.';
+                    if (msg.includes('products_sku_key') || msg.includes('sku')) {
+                        msg = 'A product with this SKU already exists. Please use a unique SKU.';
+                    } else {
+                        msg = 'A duplicate entry was detected while saving. Check your size or color data for conflicts.';
+                    }
                 }
                 showToast('Error saving product: ' + msg, 'error');
             }
