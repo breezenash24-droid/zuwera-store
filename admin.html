@@ -5755,7 +5755,8 @@
                 if (token) {
                     await verifyAdminTurnstileToken(token);
                 } else {
-                    console.warn('[Admin Turnstile] No token received, continuing without captcha verification.');
+                    // Widget was loaded but timed out or errored — fail closed
+                    throw new Error('Security check timed out. Please refresh the page and try again.');
                 }
                 await action(token);
             } finally {
