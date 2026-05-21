@@ -177,9 +177,12 @@
     @media (max-width:660px) {
       #payment-modal { align-items:flex-end; padding:0; }
       .pbox { width:100%; max-height:96dvh; border-bottom:none; border-left:none; border-right:none; }
-      .pmodal-grid { grid-template-columns:1fr; min-height:0; }
-      .pmodal-left { border-right:none; border-bottom:1px solid rgba(244,241,235,.08); padding:1rem 1.2rem; }
-      .pmodal-right { padding:1.4rem 1.2rem 1.8rem; }
+      /* grid-template-rows:auto 1fr gives pmodal-left its natural height and
+         pmodal-right the remaining bounded height — this is what makes
+         overflow-y:auto actually scroll and position:sticky work on #pay-submit */
+      .pmodal-grid { grid-template-columns:1fr; grid-template-rows:auto 1fr; min-height:0; }
+      .pmodal-left { border-right:none; border-bottom:1px solid rgba(244,241,235,.08); padding:1rem 1.2rem; max-height:38dvh; overflow-y:auto; }
+      .pmodal-right { padding:1.4rem 1.2rem calc(1.8rem + env(safe-area-inset-bottom,0px)); }
       .pm-label { display:none; }
       .pm-toggle { display:block; }
       .pm-summary-body { display:none; margin-top:.85rem; }
@@ -766,6 +769,12 @@ document.getElementById('checkout-btn').addEventListener('click', () => {
   if (!cartItems.length) { showToast('Your bag is empty.'); return; }
   document.getElementById('pay-error').textContent = '';
   _openModal('payment-modal');
+  // Auto-expand order summary on mobile so item prices are always visible
+  if (window.innerWidth <= 660) {
+    const _sb = document.getElementById('pm-summary-body');
+    const _st = document.getElementById('pm-summary-toggle');
+    if (_sb) { _sb.classList.add('open'); _st?.setAttribute('aria-expanded', 'true'); }
+  }
   // Populate order summary panel first, then prefill — so prefill's input events
   // fire after the panel is initialised and tax/total are set correctly.
   (function() {

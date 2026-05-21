@@ -979,7 +979,7 @@ body.light-mode .heart-btn{
     position:sticky;
     bottom:0;
     margin-top:auto;
-    padding:.85rem 0 0;
+    padding:.85rem 0 calc(.85rem + env(safe-area-inset-bottom,0px));
     background:var(--zw-surface);
     box-shadow:0 -16px 24px rgba(9,9,11,.38);
   }
