@@ -203,7 +203,7 @@ function buildEmail({ r, status, resolution, fromFirstName, logoUrl }) {
         ${adminMsg ? `
         <div style="margin:20px 0;padding:16px 20px;border-left:3px solid #38bdf8;background:rgba(56,189,248,.06);">
           <p style="margin:0 0 6px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.35);">Message from Zuwera</p>
-          <p style="margin:0;font-size:14px;color:rgba(244,241,235,.85);line-height:1.6;">${adminMsg.replace(/\n/g, '<br>')}</p>
+          <p style="margin:0;font-size:14px;color:rgba(244,241,235,.85);line-height:1.6;">${adminMsg.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/\n/g,'<br>')}</p>
         </div>` : ''}
 
         <p style="margin:20px 0 6px">Questions? Reply to this email or visit <a href="https://zuwera.store/returns.html" style="color:#38bdf8;">your return portal</a>.</p>

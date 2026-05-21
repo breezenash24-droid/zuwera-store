@@ -16,10 +16,13 @@ import {
 import { fetchSiteSettings } from './_settings.js';
 
 const CORS = (env) => ({
-  'Access-Control-Allow-Origin': env.SITE_URL || '*',
+  'Access-Control-Allow-Origin': env.SITE_URL || 'https://zuwera.store',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Content-Type': 'application/json',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
 });
 
 const US_STATE_NAME_TO_CODE = {
@@ -249,7 +252,7 @@ async function sha256Base64Url(value) {
 
 async function verifySignedRateToken(rate, address, env, expectedParcelWeight = '') {
   if (!rate?.rateToken) return null;
-  const secret = env.CHECKOUT_RATE_SECRET || env.STRIPE_SECRET_KEY;
+  const secret = env.CHECKOUT_RATE_SECRET;
   if (!secret) return null;
 
   const [body, sig] = String(rate.rateToken).split('.');

@@ -10,10 +10,13 @@ export function json(body, status = 200, extraHeaders = {}) {
 
 export function cors(env) {
   return {
-    'Access-Control-Allow-Origin': env.SITE_URL || '*',
+    'Access-Control-Allow-Origin': env.SITE_URL || 'https://zuwera.store',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Content-Type': 'application/json',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
   };
 }
 

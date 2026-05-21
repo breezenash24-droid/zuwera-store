@@ -459,7 +459,7 @@ export async function onRequestPost({ request, env }) {
     }
     return json({
       ok: false,
-      error: message,
+      error: 'Label generation failed. Please try again or contact support.',
       recovery: labelRecovery(message),
       request: updatedRequest,
     }, 500);

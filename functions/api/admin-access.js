@@ -1,7 +1,5 @@
-const DEFAULT_ADMIN_EMAILS = [
-  'breezenash24@gmail.com',
-  'nasirubreeze@zuwera.store'
-];
+// Admin emails are configured via the ADMIN_EMAILS environment variable (comma-separated).
+const DEFAULT_ADMIN_EMAILS = [];
 
 const DEFAULT_ADMIN_USER_IDS = [];
 

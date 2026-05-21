@@ -8,10 +8,13 @@
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 
 const CORS = (env) => ({
-  'Access-Control-Allow-Origin': env.SITE_URL || '*',
+  'Access-Control-Allow-Origin': env.SITE_URL || 'https://zuwera.store',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
   'Content-Type': 'application/json',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
 });
 
 // Build a parcel spec for shipping rate calculations.
@@ -125,7 +128,7 @@ async function hmacSha256(message, secret) {
 }
 
 async function signRate(rate, address, env, parcel) {
-  const secret = env.CHECKOUT_RATE_SECRET || env.STRIPE_SECRET_KEY;
+  const secret = env.CHECKOUT_RATE_SECRET;
   if (!secret) return '';
 
   const payload = {

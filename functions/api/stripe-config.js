@@ -9,11 +9,14 @@ const FALLBACK_TEST_PUBLISHABLE_KEY = 'pk_test_51T8ct20oFp4PJGitdabh4D80ReyWXbo7
 const FALLBACK_LIVE_PUBLISHABLE_KEY = 'pk_live_51T8ct20oFp4PJGitDcNMSLu9jQMFajtwqib8dTX4WhubBon2Pso2VgkHhTHcbuKNUi9ljfwMX8Bx2uhEp1Fp2VfY00LFKvLEy4';
 
 const CORS = (env) => ({
-  'Access-Control-Allow-Origin': env.SITE_URL || '*',
+  'Access-Control-Allow-Origin': env.SITE_URL || 'https://zuwera.store',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
   'Content-Type': 'application/json',
-  'Cache-Control': 'no-store'
+  'Cache-Control': 'no-store',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
 });
 
 function modeFromKey(key) {

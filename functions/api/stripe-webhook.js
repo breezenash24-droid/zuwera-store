@@ -284,42 +284,24 @@ async function decrementInventory(meta, env) {
   }
   if (!Array.isArray(invItems) || !invItems.length) return;
 
-  const authHeaders = {
+  const rpcHeaders = {
     apikey:         serviceKey,
     Authorization:  'Bearer ' + serviceKey,
     'Content-Type': 'application/json',
-    Prefer:         'return=minimal',
   };
 
   for (const { p: productId, s: size, q: qty } of invItems) {
     if (!productId || !size || !qty) continue;
     try {
-      // Fetch current stock for this product + size
-      const getRes = await fetch(
-        `${env.SUPABASE_URL}/rest/v1/product_sizes?select=stock_quantity&product_id=eq.${encodeURIComponent(productId)}&size=eq.${encodeURIComponent(size)}&limit=1`,
-        { headers: { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey } }
-      );
-      if (!getRes.ok) {
-        console.warn(`decrementInventory: GET failed for ${productId} / ${size}:`, getRes.status);
-        continue;
-      }
-      const rows = await getRes.json();
-      if (!rows?.length) {
-        console.warn(`decrementInventory: no row found for productId=${productId} size=${size}`);
-        continue;
-      }
-
-      const currentStock = parseInt(rows[0].stock_quantity ?? '0', 10);
-      const newStock     = Math.max(0, currentStock - qty);
-
-      const patchRes = await fetch(
-        `${env.SUPABASE_URL}/rest/v1/product_sizes?product_id=eq.${encodeURIComponent(productId)}&size=eq.${encodeURIComponent(size)}`,
-        { method: 'PATCH', headers: authHeaders, body: JSON.stringify({ stock_quantity: newStock }) }
-      );
-      if (!patchRes.ok) {
-        console.warn(`decrementInventory: PATCH failed for ${productId} / ${size}:`, await patchRes.text());
+      const rpcRes = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/decrement_stock`, {
+        method:  'POST',
+        headers: rpcHeaders,
+        body:    JSON.stringify({ p_product_id: productId, p_size: size, p_qty: qty }),
+      });
+      if (!rpcRes.ok) {
+        console.warn(`decrementInventory: RPC failed for ${productId} / ${size}:`, await rpcRes.text());
       } else {
-        console.log(`Inventory updated: ${productId} / ${size}: ${currentStock} → ${newStock}`);
+        console.log(`Inventory decremented: ${productId} / ${size} by ${qty}`);
       }
     } catch (e) {
       console.warn(`decrementInventory error for ${productId} / ${size}:`, e.message);
@@ -332,6 +314,19 @@ async function decrementInventory(meta, env) {
 async function saveOrderToSupabase(pi, meta, tracking, env) {
   const serviceKey = getSupabaseServiceKey(env);
   if (!env.SUPABASE_URL || !serviceKey) throw new Error('Supabase order storage is not configured');
+
+  // Idempotency: skip if an order for this PaymentIntent already exists
+  const existingRes = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/orders?stripe_payment_intent_id=eq.${encodeURIComponent(pi.id)}&select=id&limit=1`,
+    { headers: { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey } }
+  );
+  if (existingRes.ok) {
+    const existing = await existingRes.json().catch(() => []);
+    if (Array.isArray(existing) && existing.length) {
+      console.log(`Order for PI ${pi.id} already exists — idempotent skip`);
+      return true;
+    }
+  }
 
   const items         = (() => { try { return JSON.parse(meta.items || '[]'); } catch { return []; } })();
   const subtotalCents = parseInt(meta.subtotal_amount_cents    || '0', 10);

@@ -336,6 +336,11 @@ on('signup-submit', 'click', async () => {
   setBtn('signup-submit', true, 'Create Account');
 
   await zwRunTurnstile(async (captchaToken) => {
+    if (ZW_TS_ENABLED && !captchaToken) {
+      err.textContent = 'CAPTCHA verification failed. Please refresh the page and try again.';
+      setBtn('signup-submit', false, 'Create Account');
+      return;
+    }
     if (_sb) {
       const signUpOpts = { data: { full_name: name }, emailRedirectTo: 'https://zuwera.store/confirm.html' };
       if (captchaToken) signUpOpts.captchaToken = captchaToken;

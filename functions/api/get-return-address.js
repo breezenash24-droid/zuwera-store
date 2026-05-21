@@ -25,9 +25,12 @@ export async function onRequestOptions({ env }) {
   return new Response(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': env.SITE_URL || '*',
+      'Access-Control-Allow-Origin': env.SITE_URL || 'https://zuwera.store',
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
     },
   });
 }

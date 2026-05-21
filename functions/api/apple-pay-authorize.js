@@ -8,10 +8,13 @@
 import Stripe from 'stripe';
 
 const CORS = (env) => ({
-  'Access-Control-Allow-Origin': env.SITE_URL || '*',
+  'Access-Control-Allow-Origin': env.SITE_URL || 'https://zuwera.store',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
   'Content-Type': 'application/json',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
 });
 
 const US_STATE_NAME_TO_CODE = {
@@ -32,7 +35,7 @@ const DEFAULT_US_STATE_TAX_RATES = {
   AL: 0.04, AK: 0, AZ: 0.056, AR: 0.065, CA: 0.0725,
   CO: 0.029, CT: 0.0635, DE: 0, FL: 0.06, GA: 0.04,
   HI: 0.04, ID: 0.06, IL: 0.0625, IN: 0.07, IA: 0.06,
-  KS: 0.065, KY: 0.06, LA: 0.0445, ME: 0.055, MD: 0.06,
+  KS: 0.065, KY: 0.06, LA: 0.05, ME: 0.055, MD: 0.06,
   MA: 0.0625, MI: 0.06, MN: 0.06875, MS: 0.07, MO: 0.04225,
   MT: 0, NE: 0.055, NV: 0.0685, NH: 0, NJ: 0.06625,
   NM: 0.05125, NY: 0.04, NC: 0.0475, ND: 0.05, OH: 0.0575,

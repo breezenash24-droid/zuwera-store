@@ -14,10 +14,13 @@
  */
 
 const CORS = (env) => ({
-  'Access-Control-Allow-Origin': env.SITE_URL || '*',
+  'Access-Control-Allow-Origin': env.SITE_URL || 'https://zuwera.store',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
   'Content-Type': 'application/json',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
 });
 
 function isAppleValidationURL(urlValue) {
