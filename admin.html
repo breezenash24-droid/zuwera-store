@@ -1342,6 +1342,34 @@
             <p id="accessDeniedError" style="color:var(--error); font-size:0.85rem; margin-top:-15px; margin-bottom:30px; word-wrap:break-word; display:none;"></p>
             <button class="btn btn-primary" id="signOutAccessBtn" style="width: 100%;">Sign Out</button>
         </div>
+
+        <!-- MFA Challenge: shown when factors are enrolled but not yet verified this session -->
+        <div id="mfaChallenge" style="display:none; width:100%; max-width:400px; padding:40px; background:var(--bg-secondary); border-radius:12px; border:1px solid var(--border); text-align:center;">
+            <div style="font-size:2.2rem; margin-bottom:12px;">🔐</div>
+            <h2 style="font-family:'Barlow Condensed',sans-serif; font-size:2rem; margin-bottom:8px; letter-spacing:1px;">Two-Factor Auth</h2>
+            <p style="color:var(--text-secondary); font-size:0.88rem; margin-bottom:24px; line-height:1.5;">Enter the 6-digit code from your authenticator app.</p>
+            <input type="text" id="mfaChallengeCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="000000" class="form-input" style="text-align:center; font-size:1.6rem; letter-spacing:0.4em; margin-bottom:16px;">
+            <button id="mfaChallengeBtn" class="btn btn-primary" style="width:100%;" onclick="submitMFAChallenge()">Verify</button>
+            <div id="mfaChallengeError" style="color:var(--error); margin-top:12px; font-size:0.85rem; display:none;"></div>
+            <button onclick="logout()" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:0.82rem;margin-top:18px;text-decoration:underline;display:block;width:100%;">Sign out</button>
+        </div>
+
+        <!-- MFA Enrollment: shown when no factors enrolled — must set up before entering admin -->
+        <div id="mfaEnroll" style="display:none; width:100%; max-width:440px; padding:40px; background:var(--bg-secondary); border-radius:12px; border:1px solid var(--border); text-align:center;">
+            <div style="font-size:2.2rem; margin-bottom:12px;">🛡️</div>
+            <h2 style="font-family:'Barlow Condensed',sans-serif; font-size:2rem; margin-bottom:8px; letter-spacing:1px;">Secure Your Account</h2>
+            <p style="color:var(--text-secondary); font-size:0.88rem; margin-bottom:20px; line-height:1.5;">Two-factor authentication is required to access the admin panel.<br>Scan the QR code with Google Authenticator, Authy, or 1Password.</p>
+            <div id="mfaQR" style="margin:0 auto 16px; width:180px; height:180px; background:#fff; padding:8px; border-radius:8px; display:flex; align-items:center; justify-content:center; overflow:hidden;"></div>
+            <details style="margin-bottom:20px; text-align:left; color:var(--text-secondary);">
+                <summary style="font-size:0.8rem; cursor:pointer; margin-bottom:8px;">Can't scan? Enter code manually</summary>
+                <code id="mfaSecret" style="font-size:0.72rem; word-break:break-all; color:var(--text-primary); background:var(--bg-primary); padding:8px 12px; border-radius:6px; display:block; margin-top:8px; line-height:1.6;"></code>
+            </details>
+            <p style="color:var(--text-secondary); font-size:0.85rem; margin-bottom:10px;">Enter the 6-digit code from your app to confirm:</p>
+            <input type="text" id="mfaEnrollCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="000000" class="form-input" style="text-align:center; font-size:1.6rem; letter-spacing:0.4em; margin-bottom:16px;">
+            <button id="mfaEnrollBtn" class="btn btn-primary" style="width:100%;" onclick="submitMFAEnroll()">Enable Two-Factor Authentication</button>
+            <div id="mfaEnrollError" style="color:var(--error); margin-top:12px; font-size:0.85rem; display:none;"></div>
+            <button onclick="logout()" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:0.82rem;margin-top:18px;text-decoration:underline;display:block;width:100%;">Sign out</button>
+        </div>
     </div>
 
     <!-- Admin Panel -->
@@ -5765,6 +5793,163 @@
         }
 
 
+        // MFA state
+        let _mfaChallengeFactorId = null;
+        let _mfaChallengeId       = null;
+        let _mfaEnrollFactorId    = null;
+
+        // ── MFA helpers ─────────────────────────────────────────────────────────
+
+        // Called after /api/admin-access confirms the user is an admin.
+        // Checks AAL level and routes to: challenge, enrollment, or admin panel.
+        async function checkMFAAndProceed() {
+            try {
+                const { data, error } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+                if (error) throw error;
+
+                if (data.currentLevel === 'aal2') {
+                    showAdminPanel(); return;
+                }
+                if (data.nextLevel === 'aal2') {
+                    await startMFAChallenge();
+                } else {
+                    await startMFAEnrollment();
+                }
+            } catch (e) {
+                showAccessDenied('MFA check failed: ' + (e.message || 'Unknown error'));
+            }
+        }
+
+        function _showMFAPanel(panelId) {
+            document.getElementById('authForm').style.display = 'none';
+            document.getElementById('accessDenied').style.display = 'none';
+            document.getElementById('mfaChallenge').style.display = 'none';
+            document.getElementById('mfaEnroll').style.display = 'none';
+            document.getElementById(panelId).style.display = 'block';
+        }
+
+        async function startMFAChallenge() {
+            try {
+                const { data: factors, error: listErr } = await sb.auth.mfa.listFactors();
+                if (listErr) throw listErr;
+                const totp = factors?.totp?.[0];
+                if (!totp) { showAdminPanel(); return; }
+
+                const { data: challenge, error: cErr } = await sb.auth.mfa.challenge({ factorId: totp.id });
+                if (cErr) throw cErr;
+
+                _mfaChallengeFactorId = totp.id;
+                _mfaChallengeId       = challenge.id;
+                _showMFAPanel('mfaChallenge');
+                const inp = document.getElementById('mfaChallengeCode');
+                inp.value = '';
+                document.getElementById('mfaChallengeError').style.display = 'none';
+                setTimeout(() => inp.focus(), 50);
+            } catch (e) {
+                showAccessDenied('Could not start MFA verification: ' + (e.message || 'Unknown error'));
+            }
+        }
+
+        window.submitMFAChallenge = async function() {
+            const code   = document.getElementById('mfaChallengeCode').value.replace(/\s/g, '');
+            const errEl  = document.getElementById('mfaChallengeError');
+            const btn    = document.getElementById('mfaChallengeBtn');
+            errEl.style.display = 'none';
+            if (code.length !== 6) {
+                errEl.textContent = 'Enter the 6-digit code from your authenticator app.';
+                errEl.style.display = 'block'; return;
+            }
+            btn.disabled = true; btn.textContent = 'Verifying…';
+            try {
+                const { error } = await sb.auth.mfa.verify({
+                    factorId: _mfaChallengeFactorId,
+                    challengeId: _mfaChallengeId,
+                    code,
+                });
+                if (error) throw error;
+                showAdminPanel();
+            } catch (e) {
+                errEl.textContent = (e.message || 'Invalid code. Please try again.');
+                errEl.style.display = 'block';
+                document.getElementById('mfaChallengeCode').value = '';
+                // Refresh challenge so the old one doesn't expire
+                try {
+                    const { data: nc } = await sb.auth.mfa.challenge({ factorId: _mfaChallengeFactorId });
+                    if (nc) _mfaChallengeId = nc.id;
+                } catch (_) {}
+            } finally {
+                btn.disabled = false; btn.textContent = 'Verify';
+            }
+        };
+
+        async function startMFAEnrollment() {
+            try {
+                const { data, error } = await sb.auth.mfa.enroll({
+                    factorType: 'totp',
+                    friendlyName: 'Admin Authenticator',
+                });
+                if (error) throw error;
+                _mfaEnrollFactorId = data.id;
+
+                const qrEl = document.getElementById('mfaQR');
+                qrEl.innerHTML = data.totp.qr_code;
+                const svg = qrEl.querySelector('svg');
+                if (svg) { svg.style.width = '100%'; svg.style.height = '100%'; }
+                document.getElementById('mfaSecret').textContent = data.totp.secret;
+
+                _showMFAPanel('mfaEnroll');
+                const inp = document.getElementById('mfaEnrollCode');
+                inp.value = '';
+                document.getElementById('mfaEnrollError').style.display = 'none';
+                setTimeout(() => inp.focus(), 50);
+            } catch (e) {
+                showAccessDenied('Could not start MFA setup: ' + (e.message || 'Unknown error'));
+            }
+        }
+
+        window.submitMFAEnroll = async function() {
+            const code  = document.getElementById('mfaEnrollCode').value.replace(/\s/g, '');
+            const errEl = document.getElementById('mfaEnrollError');
+            const btn   = document.getElementById('mfaEnrollBtn');
+            errEl.style.display = 'none';
+            if (code.length !== 6) {
+                errEl.textContent = 'Enter the 6-digit code shown in your authenticator app.';
+                errEl.style.display = 'block'; return;
+            }
+            btn.disabled = true; btn.textContent = 'Verifying…';
+            try {
+                const { data: challenge, error: cErr } = await sb.auth.mfa.challenge({ factorId: _mfaEnrollFactorId });
+                if (cErr) throw cErr;
+                const { error: vErr } = await sb.auth.mfa.verify({
+                    factorId: _mfaEnrollFactorId,
+                    challengeId: challenge.id,
+                    code,
+                });
+                if (vErr) throw vErr;
+                showAdminPanel();
+            } catch (e) {
+                errEl.textContent = (e.message || 'Invalid code. Please try again.');
+                errEl.style.display = 'block';
+                document.getElementById('mfaEnrollCode').value = '';
+            } finally {
+                btn.disabled = false; btn.textContent = 'Enable Two-Factor Authentication';
+            }
+        };
+
+        // Auto-submit when 6 digits entered
+        document.addEventListener('DOMContentLoaded', () => {
+            ['mfaChallengeCode', 'mfaEnrollCode'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.addEventListener('input', () => {
+                    el.value = el.value.replace(/\D/g, '').slice(0, 6);
+                    if (el.value.length === 6) {
+                        id === 'mfaChallengeCode' ? submitMFAChallenge() : submitMFAEnroll();
+                    }
+                });
+            });
+        });
+
         // State Management
         let currentUser = null;
         let currentProduct = null;
@@ -5958,7 +6143,7 @@
                 try {
                     const serverAccess = await requestServerAdminAccess();
                     if (serverAccess?.role === 'admin' || serverAccess?.profile?.role === 'admin') {
-                        showAdminPanel();
+                        await checkMFAAndProceed();
                         return;
                     }
                 } catch (serverErr) {
@@ -5979,6 +6164,8 @@
             document.getElementById('authGate').style.display = 'flex';
             document.getElementById('authForm').style.display = 'block';
             document.getElementById('accessDenied').style.display = 'none';
+            document.getElementById('mfaChallenge').style.display = 'none';
+            document.getElementById('mfaEnroll').style.display = 'none';
             document.getElementById('adminPanel').style.display = 'none';
         }
 
