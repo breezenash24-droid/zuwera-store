@@ -13,6 +13,7 @@ import {
   normalizePromoCode,
   sanitizeCommerceConfig,
 } from './_commerce.js';
+import { fetchSiteSettings } from './_settings.js';
 
 const CORS = (env) => ({
   'Access-Control-Allow-Origin': env.SITE_URL || '*',
@@ -39,7 +40,7 @@ const DEFAULT_US_STATE_TAX_RATES = {
   AL: 0.04, AK: 0, AZ: 0.056, AR: 0.065, CA: 0.0725,
   CO: 0.029, CT: 0.0635, DE: 0, FL: 0.06, GA: 0.04,
   HI: 0.04, ID: 0.06, IL: 0.0625, IN: 0.07, IA: 0.06,
-  KS: 0.065, KY: 0.06, LA: 0.0445, ME: 0.055, MD: 0.06,
+  KS: 0.065, KY: 0.06, LA: 0.05, ME: 0.055, MD: 0.06,
   MA: 0.0625, MI: 0.06, MN: 0.06875, MS: 0.07, MO: 0.04225,
   MT: 0, NE: 0.055, NV: 0.0685, NH: 0, NJ: 0.06625,
   NM: 0.05125, NY: 0.04, NC: 0.0475, ND: 0.05, OH: 0.0575,
@@ -47,6 +48,47 @@ const DEFAULT_US_STATE_TAX_RATES = {
   SD: 0.042, TN: 0.07, TX: 0.0625, UT: 0.061, VT: 0.06,
   VA: 0.053, WA: 0.065, WV: 0.06, WI: 0.05, WY: 0.04,
   DC: 0.06,
+};
+
+// Ohio county combined rates (state 5.75% + county levy)
+const OH_COUNTY_RATES = {
+  Adams:0.0725,Allen:0.0675,Ashland:0.07,Ashtabula:0.07,Athens:0.07,
+  Auglaize:0.0725,Belmont:0.0725,Brown:0.0725,Butler:0.07,Carroll:0.0725,
+  Champaign:0.0725,Clark:0.0725,Clermont:0.07,Clinton:0.0725,Columbiana:0.0725,
+  Coshocton:0.0725,Crawford:0.0725,Cuyahoga:0.08,Darke:0.0725,Defiance:0.0725,
+  Delaware:0.07,Erie:0.0675,Fairfield:0.0675,Fayette:0.0725,Franklin:0.075,
+  Fulton:0.0725,Gallia:0.0725,Geauga:0.07,Greene:0.0675,Guernsey:0.0725,
+  Hamilton:0.07,Hancock:0.0675,Hardin:0.0725,Harrison:0.0725,Henry:0.0725,
+  Highland:0.0725,Hocking:0.0725,Holmes:0.0725,Huron:0.0725,Jackson:0.0725,
+  Jefferson:0.0725,Knox:0.0725,Lake:0.0725,Lawrence:0.0725,Licking:0.0725,
+  Logan:0.0725,Lorain:0.065,Lucas:0.0725,Madison:0.07,Mahoning:0.0725,
+  Marion:0.0725,Medina:0.0675,Meigs:0.0725,Mercer:0.0725,Miami:0.0675,
+  Monroe:0.0725,Montgomery:0.075,Morgan:0.0725,Morrow:0.0725,Muskingum:0.0725,
+  Noble:0.0725,Ottawa:0.07,Paulding:0.0725,Perry:0.0725,Pickaway:0.0725,
+  Pike:0.0725,Portage:0.0725,Preble:0.07,Putnam:0.0725,Richland:0.0725,
+  Ross:0.0725,Sandusky:0.0725,Scioto:0.0725,Seneca:0.0725,Shelby:0.0725,
+  Stark:0.065,Summit:0.0675,Trumbull:0.0725,Tuscarawas:0.0725,Union:0.07,
+  VanWert:0.0725,Vinton:0.0725,Warren:0.0675,Washington:0.0725,Wayne:0.0675,
+  Williams:0.0725,Wood:0.0675,Wyandot:0.0725,
+};
+
+const OH_ZIP3_TO_COUNTY = {
+  '430':'Franklin','431':'Franklin','432':'Franklin','433':'Marion','434':'Wood',
+  '435':'Defiance','436':'Lucas','437':'Muskingum','438':'Coshocton',
+  '440':'Lorain','441':'Cuyahoga','442':'Summit','443':'Summit',
+  '444':'Mahoning','445':'Mahoning','446':'Stark','447':'Stark','448':'Stark',
+  '449':'Richland',
+  '450':'Hamilton','451':'Clermont','452':'Hamilton','453':'Miami','454':'Montgomery',
+  '455':'Clark','456':'Ross','457':'Athens','458':'Allen','459':'Allen',
+};
+
+const IL_ZIP3_RATES = {
+  '600':0.0825,'601':0.0725,'602':0.0725,'603':0.07,'604':0.0825,'605':0.0725,
+  '606':0.1025,'607':0.1025,'608':0.0825,'609':0.075,
+  '610':0.0825,'611':0.08,'612':0.0825,'613':0.0625,'614':0.085,'615':0.085,
+  '616':0.0825,'617':0.0625,'618':0.0725,'619':0.0725,
+  '620':0.0835,'621':0.0725,'622':0.0625,'623':0.085,'624':0.085,'625':0.09,
+  '626':0.085,'627':0.085,'628':0.0625,'629':0.0725,
 };
 
 function json(body, status, headers) {
@@ -109,14 +151,38 @@ function detectUsStateFromRequest(request) {
   return '';
 }
 
-function getTaxRateForAddress(address, env, request) {
+function getTaxRateForAddress(address, env, request, dbOverrides = {}) {
   const country = String(address?.country || 'US').trim().toUpperCase();
   if (country !== 'US') return { stateCode: '', taxRate: 0 };
   const stateCode = normalizeStateCode(address?.state) || detectUsStateFromRequest(request);
   const configuredRates = parseConfiguredStateRates(env.STATE_TAX_RATES || env.SALES_TAX_BY_STATE || env.TAX_RATES_BY_STATE);
-  const mergedRates = { ...DEFAULT_US_STATE_TAX_RATES, ...configuredRates };
+  const ohCounty = { ...OH_COUNTY_RATES, ...(dbOverrides.ohCountyRates || {}) };
+  const ilZip3   = { ...IL_ZIP3_RATES,   ...(dbOverrides.ilZip3Rates   || {}) };
+  const flat     = { KY: 0.06, IN: 0.07, ...(dbOverrides.flatRates     || {}) };
+  const mergedRates = { ...DEFAULT_US_STATE_TAX_RATES, ...configuredRates, ...(dbOverrides.stateRates || {}) };
   const fallbackRate = normalizeRate(env.DEFAULT_SALES_TAX_RATE) ?? 0;
-  const taxRate = stateCode ? (mergedRates[stateCode] ?? fallbackRate) : fallbackRate;
+
+  if (!stateCode) return { stateCode: '', taxRate: fallbackRate };
+
+  // KY/IN: flat statewide rates, no county add-ons
+  if (flat[stateCode] !== undefined) return { stateCode, taxRate: flat[stateCode] };
+
+  const zip = String(address?.zip || address?.postal_code || '').replace(/\D/g, '');
+
+  // Ohio: county-level lookup via ZIP3 prefix
+  if (stateCode === 'OH' && zip.length >= 3) {
+    const county = OH_ZIP3_TO_COUNTY[zip.slice(0, 3)];
+    const taxRate = (county && ohCounty[county]) ? ohCounty[county] : (mergedRates.OH || 0.0725);
+    return { stateCode, taxRate };
+  }
+
+  // Illinois: ZIP3-level lookup
+  if (stateCode === 'IL' && zip.length >= 3) {
+    const taxRate = ilZip3[zip.slice(0, 3)] ?? (mergedRates.IL || 0.0625);
+    return { stateCode, taxRate };
+  }
+
+  const taxRate = mergedRates[stateCode] ?? fallbackRate;
   return { stateCode, taxRate };
 }
 
@@ -350,7 +416,9 @@ export async function onRequestPost({ request, env }) {
     const normalizedPromoCode = promotion ? normalizePromoCode(promotion.code) : normalizePromoCode(promoCode);
     const discountCents = computePromotionDiscount(promotion, subtotalCents, shipping.shippingCents);
     const discountedSubtotalCents = Math.max(0, subtotalCents - discountCents);
-    const { stateCode: taxStateCode, taxRate } = getTaxRateForAddress(address, env, request);
+    const taxSettings = await fetchSiteSettings(['tax_rate_overrides'], env);
+    const dbOverrides = (() => { try { const v = taxSettings.tax_rate_overrides; return (v && typeof v === 'object') ? v : JSON.parse(v || '{}'); } catch (_) { return {}; } })();
+    const { stateCode: taxStateCode, taxRate } = getTaxRateForAddress(address, env, request, dbOverrides);
     const taxCents = discountedSubtotalCents > 0 ? Math.round(discountedSubtotalCents * taxRate) : 0;
     const totalCents = discountedSubtotalCents + shipping.shippingCents + taxCents;
 

@@ -3570,6 +3570,29 @@
                     <div id="tax-rate-content"></div>
                   </div>
 
+                  <!-- Rate Editor -->
+                  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:24px;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;flex-wrap:wrap;gap:12px;">
+                      <div>
+                        <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:4px;">Rate Editor</p>
+                        <p style="font-size:12px;color:var(--text-secondary);line-height:1.6;max-width:560px;">Edit any rate and click <b style="color:var(--text-primary);">Save Changes</b>. State rate changes apply live at checkout. Ohio county &amp; Illinois ZIP3 changes are saved for reference — redeploy <code style="background:var(--bg-primary);padding:1px 5px;border-radius:3px;font-size:11px;">checkout-tax.js</code> to apply them on the checkout page.</p>
+                      </div>
+                      <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;">
+                        <button onclick="taxReReset()" style="padding:6px 13px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);cursor:pointer;font-size:12px;">Reset</button>
+                        <button onclick="taxReCopyJSON()" style="padding:6px 13px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--text-primary);cursor:pointer;font-size:12px;">Copy STATE_TAX_RATES JSON</button>
+                        <button onclick="taxReSave()" style="padding:6px 16px;background:var(--accent);border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:12px;font-weight:600;">Save Changes</button>
+                      </div>
+                    </div>
+                    <div id="tax-re-msg" style="display:none;padding:10px 14px;border-radius:6px;font-size:12px;margin-bottom:14px;line-height:1.5;"></div>
+                    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px;">
+                      <button onclick="taxReTab('state',this)" id="tax-re-tab-state" style="padding:8px 16px;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--text-primary);cursor:pointer;font-size:12px;font-weight:600;margin-bottom:-1px;">State Rates</button>
+                      <button onclick="taxReTab('oh',this)" id="tax-re-tab-oh" style="padding:8px 16px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-secondary);cursor:pointer;font-size:12px;">Ohio Counties</button>
+                      <button onclick="taxReTab('il',this)" id="tax-re-tab-il" style="padding:8px 16px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-secondary);cursor:pointer;font-size:12px;">Illinois ZIP3</button>
+                      <button onclick="taxReTab('flat',this)" id="tax-re-tab-flat" style="padding:8px 16px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-secondary);cursor:pointer;font-size:12px;">KY / IN Flat</button>
+                    </div>
+                    <div id="tax-re-content"></div>
+                  </div>
+
                   <script>
                   (function() {
                     let _taxLoaded = false;
@@ -3621,7 +3644,7 @@
                     const STATE_RATES = {
                       AL:0.04,AK:0,AZ:0.056,AR:0.065,CA:0.0725,CO:0.029,CT:0.0635,DE:0,
                       FL:0.06,GA:0.04,HI:0.04,ID:0.06,IL:0.0625,IN:0.07,IA:0.06,KS:0.065,
-                      KY:0.06,LA:0.0445,ME:0.055,MD:0.06,MA:0.0625,MI:0.06,MN:0.06875,
+                      KY:0.06,LA:0.05,ME:0.055,MD:0.06,MA:0.0625,MI:0.06,MN:0.06875,
                       MS:0.07,MO:0.04225,MT:0,NE:0.055,NV:0.0685,NH:0,NJ:0.06625,
                       NM:0.05125,NY:0.04,NC:0.0475,ND:0.05,OH:0.0575,OK:0.045,OR:0,
                       PA:0.06,RI:0.07,SC:0.06,SD:0.042,TN:0.07,TX:0.0625,UT:0.061,
@@ -3828,6 +3851,10 @@
                       if (!window.sb) return;
                       taxErr('');
                       buildCalendar();
+                      taxReLoadSaved(); // merge any saved rate overrides into local tables
+                      // Init Rate Editor default tab
+                      const reBtn = document.getElementById('tax-re-tab-state');
+                      if (reBtn && !document.getElementById('tax-re-content')?.children.length) taxReTab('state', reBtn);
 
                       // Default to OH tab
                       const ohBtn = document.getElementById('tax-rtab-OH');
@@ -4009,6 +4036,225 @@
                       a.download = `zuwera-tax-${new Date().toISOString().slice(0,10)}.csv`;
                       a.click();
                     };
+
+                    // ── Rate Editor ───────────────────────────────────────────────────
+                    let _reEdited = {};
+
+                    function taxReMsg(msg, isErr) {
+                      const el = document.getElementById('tax-re-msg');
+                      if (!el) return;
+                      el.style.display = 'block';
+                      el.style.background = isErr ? '#2a1a1a' : 'rgba(16,185,129,.08)';
+                      el.style.border = '1px solid ' + (isErr ? '#ef4444' : '#10b981');
+                      el.style.color = isErr ? '#f87171' : '#34d399';
+                      el.textContent = msg;
+                      setTimeout(() => { if (el.textContent === msg) el.style.display = 'none'; }, 5000);
+                    }
+
+                    function taxReMarkEdit(section, key, newVal) {
+                      if (!_reEdited[section]) _reEdited[section] = {};
+                      const tbl = section==='stateRates'?STATE_RATES:section==='ohCountyRates'?OH_COUNTY:section==='ilZip3Rates'?IL_ZIP3:FLAT;
+                      const orig = tbl[key] || 0;
+                      if (Math.abs(newVal - orig) < 0.000001) delete _reEdited[section][key];
+                      else _reEdited[section][key] = newVal;
+                      const prefix = section==='stateRates'?'S':section==='ohCountyRates'?'C':section==='ilZip3Rates'?'IL':'F';
+                      const diffEl = document.getElementById('tax-re-diff-'+prefix+'-'+key);
+                      if (diffEl) {
+                        const diff = newVal - orig;
+                        if (Math.abs(diff) < 0.000001) { diffEl.textContent = ''; }
+                        else {
+                          diffEl.textContent = (diff>0?'+':'')+(diff*100).toFixed(4)+'%';
+                          diffEl.style.color = diff>0 ? 'var(--error)' : 'var(--success)';
+                        }
+                      }
+                    }
+
+                    window.taxReTab = function(tab, btn) {
+                      document.querySelectorAll('[id^="tax-re-tab-"]').forEach(b => {
+                        b.style.borderBottomColor = 'transparent';
+                        b.style.color = 'var(--text-secondary)';
+                        b.style.fontWeight = '400';
+                      });
+                      btn.style.borderBottomColor = 'var(--accent)';
+                      btn.style.color = 'var(--text-primary)';
+                      btn.style.fontWeight = '600';
+                      const el = document.getElementById('tax-re-content');
+                      if (!el) return;
+
+                      const inStyle = 'width:72px;text-align:right;padding:4px 7px;background:var(--bg-primary);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-size:13px;';
+                      const thStyle = 'padding:8px 12px;font-size:12px;color:var(--text-secondary);font-weight:500;';
+
+                      if (tab === 'state') {
+                        const rows = Object.entries(STATE_RATES).sort((a,b)=>a[0].localeCompare(b[0])).map(([s,r]) => {
+                          const skip = FLAT[s]!==undefined||s==='OH'||s==='IL';
+                          const cur = _reEdited.stateRates?.[s] ?? r;
+                          return `<tr style="border-bottom:1px solid var(--border);">
+                            <td style="padding:8px 12px;font-size:13px;">${STATE_NAMES[s]||s} <span style="color:var(--text-secondary);font-size:11px;">(${s})</span></td>
+                            <td style="padding:8px 12px;text-align:right;">${skip
+                              ? `<span style="font-size:13px;color:var(--text-secondary);">${fmtPct(r)}</span>`
+                              : `<input type="number" step="0.0025" min="0" max="0.2" value="${(cur*100).toFixed(4)}"
+                                  onchange="taxReMarkEdit('stateRates','${s}',parseFloat(this.value)/100)"
+                                  style="${inStyle}"> %`}</td>
+                            <td style="padding:8px 12px;text-align:right;font-size:12px;color:var(--text-secondary);">default: ${fmtPct(r)}</td>
+                            <td id="tax-re-diff-S-${s}" style="padding:8px 12px;font-size:12px;width:80px;"></td>
+                            <td style="padding:8px 12px;font-size:11px;color:var(--text-secondary);">${skip?'use dedicated tab':''}</td>
+                          </tr>`;
+                        }).join('');
+                        el.innerHTML = `<div style="overflow-x:auto;max-height:480px;overflow-y:auto;">
+                          <table style="width:100%;border-collapse:collapse;">
+                            <thead style="position:sticky;top:0;background:var(--bg-secondary);">
+                              <tr style="border-bottom:2px solid var(--border);">
+                                <th style="text-align:left;${thStyle}">State</th>
+                                <th style="text-align:right;${thStyle}">Rate (%)</th>
+                                <th style="text-align:right;${thStyle}">Default</th>
+                                <th style="${thStyle}">Change</th>
+                                <th style="${thStyle}">Note</th>
+                              </tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                          </table>
+                        </div>
+                        <p style="font-size:11px;color:var(--text-secondary);margin-top:12px;">Enter as percentage (e.g. 6.5 for 6.5%). OH/KY/IN/IL use dedicated tabs.</p>`;
+
+                      } else if (tab === 'oh') {
+                        const rows = Object.entries(OH_COUNTY).sort((a,b)=>a[0].localeCompare(b[0])).map(([county,r]) => {
+                          const zip3s = Object.entries(OH_ZIP3).filter(([,c])=>c===county).map(([z])=>z).join(', ');
+                          const cur = _reEdited.ohCountyRates?.[county] ?? r;
+                          return `<tr style="border-bottom:1px solid var(--border);">
+                            <td style="padding:8px 12px;font-size:13px;">${county}</td>
+                            <td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);">${zip3s||'—'}xx</td>
+                            <td style="padding:8px 12px;text-align:right;">
+                              <input type="number" step="0.0025" min="0" max="0.2" value="${(cur*100).toFixed(4)}"
+                                onchange="taxReMarkEdit('ohCountyRates','${county}',parseFloat(this.value)/100)"
+                                style="${inStyle}"> %
+                            </td>
+                            <td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);">default: ${fmtPct(r)}</td>
+                            <td id="tax-re-diff-C-${county}" style="padding:8px 12px;font-size:12px;width:80px;"></td>
+                          </tr>`;
+                        }).join('');
+                        el.innerHTML = `<div style="overflow-x:auto;max-height:480px;overflow-y:auto;">
+                          <table style="width:100%;border-collapse:collapse;">
+                            <thead style="position:sticky;top:0;background:var(--bg-secondary);">
+                              <tr style="border-bottom:2px solid var(--border);">
+                                <th style="text-align:left;${thStyle}">County</th>
+                                <th style="text-align:left;${thStyle}">ZIP Prefixes</th>
+                                <th style="text-align:right;${thStyle}">Rate (%)</th>
+                                <th style="${thStyle}">Default</th>
+                                <th style="${thStyle}">Change</th>
+                              </tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                          </table>
+                        </div>
+                        <p style="font-size:11px;color:var(--warning);margin-top:12px;">County changes require redeploying checkout-tax.js. Verify at tax.ohio.gov.</p>`;
+
+                      } else if (tab === 'il') {
+                        const rows = Object.entries(IL_ZIP3).sort((a,b)=>a[0].localeCompare(b[0])).map(([zip3,r]) => {
+                          const cur = _reEdited.ilZip3Rates?.[zip3] ?? r;
+                          return `<tr style="border-bottom:1px solid var(--border);">
+                            <td style="padding:8px 12px;font-size:13px;">${zip3}xx</td>
+                            <td style="padding:8px 12px;text-align:right;">
+                              <input type="number" step="0.0025" min="0" max="0.2" value="${(cur*100).toFixed(4)}"
+                                onchange="taxReMarkEdit('ilZip3Rates','${zip3}',parseFloat(this.value)/100)"
+                                style="${inStyle}"> %
+                            </td>
+                            <td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);">default: ${fmtPct(r)}</td>
+                            <td id="tax-re-diff-IL-${zip3}" style="padding:8px 12px;font-size:12px;width:80px;"></td>
+                          </tr>`;
+                        }).join('');
+                        el.innerHTML = `<div style="overflow-x:auto;max-height:400px;overflow-y:auto;">
+                          <table style="width:100%;border-collapse:collapse;">
+                            <thead style="position:sticky;top:0;background:var(--bg-secondary);">
+                              <tr style="border-bottom:2px solid var(--border);">
+                                <th style="text-align:left;${thStyle}">ZIP Prefix</th>
+                                <th style="text-align:right;${thStyle}">Rate (%)</th>
+                                <th style="${thStyle}">Default</th>
+                                <th style="${thStyle}">Change</th>
+                              </tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                          </table>
+                        </div>
+                        <p style="font-size:11px;color:var(--warning);margin-top:12px;">IL ZIP3 changes require redeploying checkout-tax.js. Verify at tax.illinois.gov.</p>`;
+
+                      } else if (tab === 'flat') {
+                        const rows = Object.entries(FLAT).map(([s,r]) => {
+                          const cur = _reEdited.flatRates?.[s] ?? r;
+                          return `<tr style="border-bottom:1px solid var(--border);">
+                            <td style="padding:12px;font-size:13px;">${STATE_NAMES[s]||s} <span style="color:var(--text-secondary);font-size:11px;">(${s})</span></td>
+                            <td style="padding:12px;text-align:right;">
+                              <input type="number" step="0.0025" min="0" max="0.2" value="${(cur*100).toFixed(4)}"
+                                onchange="taxReMarkEdit('flatRates','${s}',parseFloat(this.value)/100)"
+                                style="${inStyle}"> %
+                            </td>
+                            <td style="padding:12px;font-size:12px;color:var(--text-secondary);">default: ${fmtPct(r)}</td>
+                            <td id="tax-re-diff-F-${s}" style="padding:12px;font-size:12px;width:80px;"></td>
+                          </tr>`;
+                        }).join('');
+                        el.innerHTML = `<table style="width:100%;border-collapse:collapse;">
+                          <thead>
+                            <tr style="border-bottom:2px solid var(--border);">
+                              <th style="text-align:left;${thStyle}">State</th>
+                              <th style="text-align:right;${thStyle}">Rate (%)</th>
+                              <th style="${thStyle}">Default</th>
+                              <th style="${thStyle}">Change</th>
+                            </tr>
+                          </thead>
+                          <tbody>${rows}</tbody>
+                        </table>
+                        <p style="font-size:11px;color:var(--text-secondary);margin-top:12px;">KY and IN have uniform statewide rates with no local add-ons.</p>`;
+                      }
+                    };
+
+                    window.taxReReset = function() {
+                      _reEdited = {};
+                      const active = document.querySelector('[id^="tax-re-tab-"][style*="var(--accent)"]');
+                      if (active) active.click();
+                    };
+
+                    window.taxReCopyJSON = function() {
+                      const merged = { ...STATE_RATES, ...(_reEdited.stateRates || {}) };
+                      const json = JSON.stringify(merged, null, 2);
+                      navigator.clipboard?.writeText(json)
+                        .then(() => taxReMsg('STATE_TAX_RATES JSON copied — paste into Cloudflare Pages env vars.'))
+                        .catch(() => taxReMsg('Copy failed. Open console to retrieve.', true));
+                    };
+
+                    window.taxReSave = async function() {
+                      if (!window.sb) { taxReMsg('Supabase not ready.', true); return; }
+                      const payload = {
+                        stateRates:    { ...STATE_RATES,  ...(_reEdited.stateRates    || {}) },
+                        ohCountyRates: { ...OH_COUNTY,    ...(_reEdited.ohCountyRates  || {}) },
+                        ilZip3Rates:   { ...IL_ZIP3,      ...(_reEdited.ilZip3Rates    || {}) },
+                        flatRates:     { ...FLAT,         ...(_reEdited.flatRates      || {}) },
+                        updatedAt:     new Date().toISOString(),
+                        editedKeys:    JSON.parse(JSON.stringify(_reEdited)),
+                      };
+                      const { error } = await window.sb.from('site_settings')
+                        .upsert({ key: 'tax_rate_overrides', value: payload }, { onConflict: 'key' });
+                      if (error) { taxReMsg('Save failed: ' + error.message, true); return; }
+                      // Apply state/flat overrides to local tables immediately
+                      if (_reEdited.stateRates) Object.assign(STATE_RATES, _reEdited.stateRates);
+                      if (_reEdited.flatRates)  Object.assign(FLAT, _reEdited.flatRates);
+                      _reEdited = {};
+                      taxReMsg('Saved! State changes are live. County/ZIP changes take effect after redeploying checkout-tax.js.');
+                      // Reload active tab to clear diff indicators
+                      const active = document.querySelector('[id^="tax-re-tab-"][style*="var(--accent)"]');
+                      if (active) active.click();
+                    };
+
+                    // Load saved overrides into local tables on Tax page open
+                    async function taxReLoadSaved() {
+                      try {
+                        const { data } = await window.sb?.from('site_settings').select('value').eq('key','tax_rate_overrides').maybeSingle() || {};
+                        if (!data?.value) return;
+                        const ov = typeof data.value === 'object' ? data.value : JSON.parse(data.value);
+                        if (ov.stateRates)    Object.assign(STATE_RATES, ov.stateRates);
+                        if (ov.ohCountyRates) Object.assign(OH_COUNTY,   ov.ohCountyRates);
+                        if (ov.ilZip3Rates)   Object.assign(IL_ZIP3,     ov.ilZip3Rates);
+                        if (ov.flatRates)     Object.assign(FLAT,         ov.flatRates);
+                      } catch(_) {}
+                    }
 
                     // Auto-init calendar (no DB needed)
                     buildCalendar();

@@ -3,12 +3,12 @@
 
   // ── Flat-rate states (no county or local add-ons) ─────────────────────────
   // KY and IN have statewide uniform rates — no ZIP lookup needed.
-  const FLAT = { KY: 0.06, IN: 0.07 };
+  let FLAT = { KY: 0.06, IN: 0.07 };
 
   // ── Ohio county combined rates (state 5.75% + county levy) ────────────────
   // Source: Ohio Department of Taxation — verify at tax.ohio.gov before filing.
   // Some ZIP3 prefixes straddle county lines; the dominant county is used.
-  const OH_COUNTY = {
+  let OH_COUNTY = {
     Adams: 0.0725, Allen: 0.0675, Ashland: 0.07, Ashtabula: 0.07,
     Athens: 0.07, Auglaize: 0.0725, Belmont: 0.0725, Brown: 0.0725,
     Butler: 0.07, Carroll: 0.0725, Champaign: 0.0725, Clark: 0.0725,
@@ -34,7 +34,7 @@
   };
 
   // ZIP3 (first 3 digits of ZIP code) → Ohio county name
-  const OH_ZIP3 = {
+  let OH_ZIP3 = {
     '430': 'Franklin', '431': 'Franklin', '432': 'Franklin', // Columbus
     '433': 'Marion',   '434': 'Wood',                        // Marion / NW Ohio
     '435': 'Defiance', '436': 'Lucas',                       // NW corner / Toledo
@@ -58,7 +58,7 @@
   // ── Illinois ZIP3 combined rates ───────────────────────────────────────────
   // Illinois has complex city/district layering — these are county-level base
   // rates. Individual municipalities (especially Chicago suburbs) may be higher.
-  const IL_ZIP3 = {
+  let IL_ZIP3 = {
     '600': 0.0825, '601': 0.0725, '602': 0.0725,            // Cook suburbs / DuPage
     '603': 0.07,   '604': 0.0825, '605': 0.0725,            // Lake IL / Cook SW
     '606': 0.1025, '607': 0.1025,                            // Chicago city
@@ -75,11 +75,11 @@
   };
 
   // ── State base rates (fallback when no county/ZIP lookup exists) ───────────
-  const STATE_RATES = {
+  let STATE_RATES = {
     AL: 0.04,  AK: 0,      AZ: 0.056,  AR: 0.065,  CA: 0.0725,
     CO: 0.029, CT: 0.0635, DE: 0,      FL: 0.06,   GA: 0.04,
     HI: 0.04,  ID: 0.06,   IL: 0.0625, IN: 0.07,   IA: 0.06,
-    KS: 0.065, KY: 0.06,   LA: 0.0445, ME: 0.055,  MD: 0.06,
+    KS: 0.065, KY: 0.06,   LA: 0.05,   ME: 0.055,  MD: 0.06,
     MA: 0.0625,MI: 0.06,   MN: 0.06875,MS: 0.07,   MO: 0.04225,
     MT: 0,     NE: 0.055,  NV: 0.0685, NH: 0,      NJ: 0.06625,
     NM: 0.05125,NY: 0.04,  NC: 0.0475, ND: 0.05,   OH: 0.0575,
@@ -135,4 +135,19 @@
     taxCents:   cents,
     taxDollars: dollars,
   };
+
+  // Merge any admin-saved overrides from /api/tax-config (non-blocking)
+  (async function () {
+    try {
+      const r = await fetch('/api/tax-config', { cache: 'no-store' });
+      if (!r.ok) return;
+      const ov = await r.json();
+      if (ov && typeof ov === 'object') {
+        if (ov.stateRates)    Object.assign(STATE_RATES, ov.stateRates);
+        if (ov.ohCountyRates) Object.assign(OH_COUNTY,   ov.ohCountyRates);
+        if (ov.ilZip3Rates)   Object.assign(IL_ZIP3,     ov.ilZip3Rates);
+        if (ov.flatRates)     Object.assign(FLAT,         ov.flatRates);
+      }
+    } catch (_) {}
+  })();
 }());
