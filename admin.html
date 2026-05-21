@@ -5892,9 +5892,7 @@
                 _mfaEnrollFactorId = data.id;
 
                 const qrEl = document.getElementById('mfaQR');
-                qrEl.innerHTML = data.totp.qr_code;
-                const svg = qrEl.querySelector('svg');
-                if (svg) { svg.style.width = '100%'; svg.style.height = '100%'; }
+                qrEl.innerHTML = `<img src="${data.totp.qr_code}" style="width:100%;height:100%;object-fit:contain;" alt="MFA QR Code">`;
                 document.getElementById('mfaSecret').textContent = data.totp.secret;
 
                 _showMFAPanel('mfaEnroll');
