@@ -169,7 +169,7 @@
   .section-about{
     grid-template-columns:1fr !important;
     gap:2rem !important;
-    padding:var(--zw-mobile-section-gap) var(--zw-mobile-gutter) !important;
+    padding:var(--zw-mobile-section-gap) var(--zw-mobile-gutter) 2rem !important;
   }
 
   .about-body{
@@ -197,7 +197,7 @@
   .drop-inner{
     grid-template-columns:1fr !important;
     gap:2rem !important;
-    padding:var(--zw-mobile-section-gap) var(--zw-mobile-gutter) !important;
+    padding:2rem var(--zw-mobile-gutter) var(--zw-mobile-section-gap) !important;
   }
 
   .drop-bg-num{

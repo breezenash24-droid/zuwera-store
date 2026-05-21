@@ -492,7 +492,7 @@
   function injectMobileMenuLanguageButtons() {
     document.querySelectorAll('.zw-mobile-menu-footer .zw-mobile-socials').forEach(group => {
       if (group.querySelector('.zw-lang-trigger')) return;
-      group.querySelectorAll('a').forEach(link => {
+      group.querySelectorAll('a, button:not(.zw-lang-trigger)').forEach(link => {
         if ((link.textContent || '').trim().toLowerCase() === 'language') link.remove();
       });
       group.appendChild(createLanguageButton('zw-mobile-lang-trigger'));

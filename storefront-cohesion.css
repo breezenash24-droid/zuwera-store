@@ -1034,13 +1034,8 @@ body.light-mode .heart-btn{
     padding:0 !important;
   }
 
-  #pay-submit{
-    position:sticky !important;
-    bottom:calc(.65rem + env(safe-area-inset-bottom,0px)) !important;
-    z-index:5;
-    box-shadow:0 -10px 22px rgba(9,9,11,.18);
-  }
 }
+
 
 @media (max-width:900px){
   :is(nav#nav,.nav,header.nav){
@@ -1620,6 +1615,7 @@ body.light-mode .zw-mobile-menu-top{
 .zw-mobile-menu-kicker,
 .zw-mobile-menu-year,
 .zw-mobile-socials a,
+.zw-mobile-socials button.zw-mobile-lang-trigger,
 #mobile-menu .zw-mobile-secondary-link,
 #mobile-menu .zw-mobile-menu-close{
   font-family:var(--zw-font-mono, 'IBM Plex Mono', monospace) !important;
@@ -1633,6 +1629,7 @@ body.light-mode .zw-mobile-menu-top{
 body.light-mode .zw-mobile-menu-kicker,
 body.light-mode .zw-mobile-menu-year,
 body.light-mode .zw-mobile-socials a,
+body.light-mode .zw-mobile-socials button.zw-mobile-lang-trigger,
 body.light-mode #mobile-menu .zw-mobile-secondary-link,
 body.light-mode #mobile-menu .zw-mobile-menu-close{
   color:rgba(9,9,11,.48) !important;
@@ -1974,6 +1971,9 @@ body.light-mode .zw-lang-trigger:hover{
   color:rgba(9,9,11,.8) !important;
   border-color:rgba(9,9,11,.35) !important;
   background:rgba(9,9,11,.03) !important;
+}
+.zw-mobile-socials .zw-mobile-lang-trigger span:not(.zw-lang-chip){
+  opacity:1 !important;
 }
 
 /* ── Mobile optimizations ─────────────────────────────────────────────────── */
