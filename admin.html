@@ -4080,6 +4080,7 @@
                     }
 
                     function taxReMarkEdit(section, key, newVal) {
+                      if (isNaN(newVal) || !isFinite(newVal)) return;
                       if (!_reEdited[section]) _reEdited[section] = {};
                       const tbl = section==='stateRates'?STATE_RATES:section==='ohCountyRates'?OH_COUNTY:section==='ilZip3Rates'?IL_ZIP3:FLAT;
                       const orig = tbl[key] || 0;
@@ -4121,7 +4122,8 @@
                             <td style="padding:8px 12px;text-align:right;">${skip
                               ? `<span style="font-size:13px;color:var(--text-secondary);">${fmtPct(r)}</span>`
                               : `<input type="number" step="0.01" min="0" max="20" value="${(cur*100).toFixed(4)}"
-                                  onchange="taxReMarkEdit('stateRates','${s}',parseFloat(this.value)/100)"
+                                  data-section="stateRates" data-key="${s}"
+                                  oninput="taxReMarkEdit('stateRates','${s}',parseFloat(this.value)/100)"
                                   style="${inStyle}"> %`}</td>
                             <td style="padding:8px 12px;text-align:right;font-size:12px;color:var(--text-secondary);">default: ${fmtPct(r)}</td>
                             <td id="tax-re-diff-S-${s}" style="padding:8px 12px;font-size:12px;width:80px;"></td>
@@ -4153,7 +4155,8 @@
                             <td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);">${zip3s||'—'}xx</td>
                             <td style="padding:8px 12px;text-align:right;">
                               <input type="number" step="0.01" min="0" max="20" value="${(cur*100).toFixed(4)}"
-                                onchange="taxReMarkEdit('ohCountyRates','${county}',parseFloat(this.value)/100)"
+                                data-section="ohCountyRates" data-key="${county}"
+                                oninput="taxReMarkEdit('ohCountyRates','${county}',parseFloat(this.value)/100)"
                                 style="${inStyle}"> %
                             </td>
                             <td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);">default: ${fmtPct(r)}</td>
@@ -4183,7 +4186,8 @@
                             <td style="padding:8px 12px;font-size:13px;">${zip3}xx</td>
                             <td style="padding:8px 12px;text-align:right;">
                               <input type="number" step="0.01" min="0" max="20" value="${(cur*100).toFixed(4)}"
-                                onchange="taxReMarkEdit('ilZip3Rates','${zip3}',parseFloat(this.value)/100)"
+                                data-section="ilZip3Rates" data-key="${zip3}"
+                                oninput="taxReMarkEdit('ilZip3Rates','${zip3}',parseFloat(this.value)/100)"
                                 style="${inStyle}"> %
                             </td>
                             <td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);">default: ${fmtPct(r)}</td>
@@ -4212,7 +4216,8 @@
                             <td style="padding:12px;font-size:13px;">${STATE_NAMES[s]||s} <span style="color:var(--text-secondary);font-size:11px;">(${s})</span></td>
                             <td style="padding:12px;text-align:right;">
                               <input type="number" step="0.01" min="0" max="20" value="${(cur*100).toFixed(4)}"
-                                onchange="taxReMarkEdit('flatRates','${s}',parseFloat(this.value)/100)"
+                                data-section="flatRates" data-key="${s}"
+                                oninput="taxReMarkEdit('flatRates','${s}',parseFloat(this.value)/100)"
                                 style="${inStyle}"> %
                             </td>
                             <td style="padding:12px;font-size:12px;color:var(--text-secondary);">default: ${fmtPct(r)}</td>
@@ -4250,6 +4255,11 @@
 
                     window.taxReSave = async function() {
                       if (!window.sb) { taxReMsg('Supabase not ready.', true); return; }
+                      // Flush any input values not yet captured by oninput (e.g. on mobile tap-to-save)
+                      document.querySelectorAll('#tax-re-content input[type="number"][data-section][data-key]').forEach(function(inp) {
+                        const val = parseFloat(inp.value);
+                        if (!isNaN(val) && isFinite(val)) taxReMarkEdit(inp.dataset.section, inp.dataset.key, val / 100);
+                      });
                       const payload = {
                         stateRates:    { ...STATE_RATES,  ...(_reEdited.stateRates    || {}) },
                         ohCountyRates: { ...OH_COUNTY,    ...(_reEdited.ohCountyRates  || {}) },
@@ -4261,9 +4271,11 @@
                       const { error } = await window.sb.from('site_settings')
                         .upsert({ key: 'tax_rate_overrides', value: payload }, { onConflict: 'key' });
                       if (error) { taxReMsg('Save failed: ' + error.message, true); return; }
-                      // Apply state/flat overrides to local tables immediately
-                      if (_reEdited.stateRates) Object.assign(STATE_RATES, _reEdited.stateRates);
-                      if (_reEdited.flatRates)  Object.assign(FLAT, _reEdited.flatRates);
+                      // Apply all overrides to local tables so the editor reflects saved state
+                      if (_reEdited.stateRates)    Object.assign(STATE_RATES, _reEdited.stateRates);
+                      if (_reEdited.flatRates)     Object.assign(FLAT,        _reEdited.flatRates);
+                      if (_reEdited.ohCountyRates) Object.assign(OH_COUNTY,   _reEdited.ohCountyRates);
+                      if (_reEdited.ilZip3Rates)   Object.assign(IL_ZIP3,     _reEdited.ilZip3Rates);
                       _reEdited = {};
                       taxReMsg('Saved! State changes are live. County/ZIP changes take effect after redeploying checkout-tax.js.');
                       // Reload active tab to clear diff indicators
