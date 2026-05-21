@@ -5884,17 +5884,9 @@
 
         async function startMFAEnrollment() {
             try {
-                // Remove any dangling unverified factors left from previous attempts
-                const { data: existing } = await sb.auth.mfa.listFactors();
-                for (const f of (existing?.totp || [])) {
-                    if (f.status === 'unverified') {
-                        await sb.auth.mfa.unenroll({ factorId: f.id }).catch(() => {});
-                    }
-                }
-
                 const { data, error } = await sb.auth.mfa.enroll({
                     factorType: 'totp',
-                    friendlyName: 'Admin Authenticator',
+                    friendlyName: 'Admin (' + new Date().toISOString().slice(0, 10) + ')',
                 });
                 if (error) throw error;
                 _mfaEnrollFactorId = data.id;
