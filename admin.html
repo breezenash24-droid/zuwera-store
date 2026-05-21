@@ -3879,8 +3879,8 @@
                       if (!window.sb) return;
                       taxErr('');
                       buildCalendar();
-                      taxReLoadSaved(); // merge any saved rate overrides into local tables
-                      // Init Rate Editor default tab
+                      // Load saved overrides first, then render the editor so it shows correct values
+                      await taxReLoadSaved();
                       const reBtn = document.getElementById('tax-re-tab-state');
                       if (reBtn && !document.getElementById('tax-re-content')?.children.length) taxReTab('state', reBtn);
 
@@ -4120,7 +4120,7 @@
                             <td style="padding:8px 12px;font-size:13px;">${STATE_NAMES[s]||s} <span style="color:var(--text-secondary);font-size:11px;">(${s})</span></td>
                             <td style="padding:8px 12px;text-align:right;">${skip
                               ? `<span style="font-size:13px;color:var(--text-secondary);">${fmtPct(r)}</span>`
-                              : `<input type="number" step="0.0025" min="0" max="0.2" value="${(cur*100).toFixed(4)}"
+                              : `<input type="number" step="0.01" min="0" max="20" value="${(cur*100).toFixed(4)}"
                                   onchange="taxReMarkEdit('stateRates','${s}',parseFloat(this.value)/100)"
                                   style="${inStyle}"> %`}</td>
                             <td style="padding:8px 12px;text-align:right;font-size:12px;color:var(--text-secondary);">default: ${fmtPct(r)}</td>
@@ -4152,7 +4152,7 @@
                             <td style="padding:8px 12px;font-size:13px;">${county}</td>
                             <td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);">${zip3s||'—'}xx</td>
                             <td style="padding:8px 12px;text-align:right;">
-                              <input type="number" step="0.0025" min="0" max="0.2" value="${(cur*100).toFixed(4)}"
+                              <input type="number" step="0.01" min="0" max="20" value="${(cur*100).toFixed(4)}"
                                 onchange="taxReMarkEdit('ohCountyRates','${county}',parseFloat(this.value)/100)"
                                 style="${inStyle}"> %
                             </td>
@@ -4182,7 +4182,7 @@
                           return `<tr style="border-bottom:1px solid var(--border);">
                             <td style="padding:8px 12px;font-size:13px;">${zip3}xx</td>
                             <td style="padding:8px 12px;text-align:right;">
-                              <input type="number" step="0.0025" min="0" max="0.2" value="${(cur*100).toFixed(4)}"
+                              <input type="number" step="0.01" min="0" max="20" value="${(cur*100).toFixed(4)}"
                                 onchange="taxReMarkEdit('ilZip3Rates','${zip3}',parseFloat(this.value)/100)"
                                 style="${inStyle}"> %
                             </td>
@@ -4211,7 +4211,7 @@
                           return `<tr style="border-bottom:1px solid var(--border);">
                             <td style="padding:12px;font-size:13px;">${STATE_NAMES[s]||s} <span style="color:var(--text-secondary);font-size:11px;">(${s})</span></td>
                             <td style="padding:12px;text-align:right;">
-                              <input type="number" step="0.0025" min="0" max="0.2" value="${(cur*100).toFixed(4)}"
+                              <input type="number" step="0.01" min="0" max="20" value="${(cur*100).toFixed(4)}"
                                 onchange="taxReMarkEdit('flatRates','${s}',parseFloat(this.value)/100)"
                                 style="${inStyle}"> %
                             </td>
