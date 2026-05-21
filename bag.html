@@ -609,6 +609,64 @@ const _cart = {
 window.refreshHeartButtons = window.refreshHeartButtons || function() {};
 window.refreshCartFavs     = window.refreshCartFavs     || function() {};
 
+/* ── Promo code state ── */
+var _zwActivePromo = null; // { code, discountCents, discount, label }
+
+window.zwGetActivePromoCode = function() {
+  return _zwActivePromo ? _zwActivePromo.code : '';
+};
+
+function zwPromoUpdateSummaryTotals() {
+  var subtotalEl = document.getElementById('pm-subtotal');
+  var totalEl    = document.getElementById('pm-total');
+  var toggleEl   = document.getElementById('pm-toggle-total');
+  if (!subtotalEl || !totalEl) return;
+  var subtotal = parseFloat((subtotalEl.textContent || '').replace('$', '')) || 0;
+  var discount = _zwActivePromo ? (parseFloat(_zwActivePromo.discount) || 0) : 0;
+  var shippingEl = document.getElementById('pm-shipping');
+  var shipping = shippingEl && shippingEl.textContent !== 'Free'
+    ? parseFloat((shippingEl.textContent || '').replace('$', '')) || 0
+    : 0;
+  var total = Math.max(0, subtotal - discount) + shipping;
+  totalEl.textContent = '$' + total.toFixed(2);
+  if (toggleEl) toggleEl.textContent = '$' + total.toFixed(2);
+}
+
+function zwClearPromo(clearInput) {
+  _zwActivePromo = null;
+  var msgEl    = document.getElementById('zw-promo-message');
+  var rowEl    = document.getElementById('zw-promo-row');
+  var applyBtn = document.getElementById('zw-promo-apply');
+  var inputEl  = document.getElementById('zw-promo-input');
+  if (rowEl)    rowEl.style.display = 'none';
+  if (msgEl)    { msgEl.textContent = ''; msgEl.style.color = ''; }
+  if (applyBtn) { applyBtn.textContent = 'Apply'; applyBtn.disabled = false; }
+  if (clearInput && inputEl) inputEl.value = '';
+  zwPromoUpdateSummaryTotals();
+}
+
+function zwApplyPromo(promo) {
+  _zwActivePromo = promo;
+  var rowEl      = document.getElementById('zw-promo-row');
+  var discountEl = document.getElementById('zw-promo-discount');
+  var applyBtn   = document.getElementById('zw-promo-apply');
+  var msgEl      = document.getElementById('zw-promo-message');
+  if (rowEl)      rowEl.style.display = '';
+  if (discountEl) discountEl.textContent = '-$' + promo.discount;
+  if (applyBtn)   { applyBtn.textContent = 'Remove'; applyBtn.disabled = false; }
+  if (msgEl)      { msgEl.textContent = promo.message || (promo.label + ' applied!'); msgEl.style.color = 'rgba(110,210,130,.9)'; }
+  zwPromoUpdateSummaryTotals();
+}
+
+function zwResetPromoUI() {
+  if (_zwActivePromo) {
+    zwApplyPromo(_zwActivePromo);
+  } else {
+    var rowEl = document.getElementById('zw-promo-row');
+    if (rowEl) rowEl.style.display = 'none';
+  }
+}
+
 /* ── Cart helpers ── */
 function normalizeCartPricing(cart) {
   return (cart || []).map(item => {
@@ -769,6 +827,7 @@ document.getElementById('checkout-btn').addEventListener('click', () => {
   if (!cartItems.length) { showToast('Your bag is empty.'); return; }
   document.getElementById('pay-error').textContent = '';
   _openModal('payment-modal');
+  zwResetPromoUI();
   // Auto-expand order summary on mobile so item prices are always visible
   if (window.innerWidth <= 660) {
     const _sb = document.getElementById('pm-summary-body');
@@ -850,6 +909,10 @@ document.addEventListener('DOMContentLoaded', function() {
         window._shippingPolicy = newPolicy;
         renderCart();
       }
+      if (window._commerceConfigCache.show_promo_code === false) {
+        var shell = document.getElementById('zw-promo-shell');
+        if (shell) shell.style.display = 'none';
+      }
     }).catch(() => {});
   }
 
@@ -867,9 +930,84 @@ document.addEventListener('DOMContentLoaded', function() {
     successBtn.addEventListener('click', function() {
       localStorage.removeItem('cart');
       cartItems = [];
+      zwClearPromo(true);
       renderCart();
     });
   }
+
+  // ── Promo apply / remove button ──
+  var _promoApplyBtn = document.getElementById('zw-promo-apply');
+  var _promoInputEl  = document.getElementById('zw-promo-input');
+  var _promoMsgEl    = document.getElementById('zw-promo-message');
+
+  if (_promoApplyBtn) {
+    _promoApplyBtn.addEventListener('click', async function() {
+      // Toggle: if promo is active, this button acts as Remove
+      if (_zwActivePromo) {
+        zwClearPromo(true);
+        return;
+      }
+      var code = (_promoInputEl ? _promoInputEl.value : '').trim().toUpperCase();
+      if (!code) {
+        if (_promoMsgEl) { _promoMsgEl.textContent = 'Enter a promo code.'; _promoMsgEl.style.color = ''; }
+        return;
+      }
+      _promoApplyBtn.disabled = true;
+      _promoApplyBtn.textContent = '…';
+      if (_promoMsgEl) { _promoMsgEl.textContent = ''; _promoMsgEl.style.color = ''; }
+      try {
+        var resp = await fetch('/api/validate-promo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            promoCode: code,
+            items: cartItems.map(function(item) {
+              return {
+                productId: item.productId || item.id || '',
+                price: parseFloat(item.price) || 0,
+                quantity: parseInt(item.quantity, 10) || 1,
+                collectionId: item.collectionId || item.collection || '',
+              };
+            }),
+          }),
+        });
+        var data = await resp.json();
+        if (data.valid) {
+          zwApplyPromo(data);
+        } else {
+          if (_promoMsgEl) { _promoMsgEl.textContent = data.message || 'Invalid promo code.'; _promoMsgEl.style.color = ''; }
+          _promoApplyBtn.disabled = false;
+          _promoApplyBtn.textContent = 'Apply';
+        }
+      } catch (_e) {
+        if (_promoMsgEl) { _promoMsgEl.textContent = 'Could not validate code. Try again.'; _promoMsgEl.style.color = ''; }
+        _promoApplyBtn.disabled = false;
+        _promoApplyBtn.textContent = 'Apply';
+      }
+    });
+  }
+
+  // Clear active promo if user edits the input field
+  if (_promoInputEl) {
+    _promoInputEl.addEventListener('input', function() {
+      if (_zwActivePromo) {
+        _zwActivePromo = null;
+        var rowEl = document.getElementById('zw-promo-row');
+        if (rowEl) rowEl.style.display = 'none';
+        if (_promoApplyBtn) { _promoApplyBtn.textContent = 'Apply'; _promoApplyBtn.disabled = false; }
+        zwPromoUpdateSummaryTotals();
+      }
+    });
+  }
+
+  // Check show_promo_code setting from commerce config
+  (function checkPromoVisibility() {
+    var cached = window._commerceConfigCache;
+    if (cached && cached.show_promo_code === false) {
+      var shell = document.getElementById('zw-promo-shell');
+      if (shell) shell.style.display = 'none';
+    }
+  })();
 });
 
 /* ── window.__zwOpenAuth (set after auth.js loads) ── */

@@ -392,6 +392,16 @@
                 <label>Description</label>
                 <input class="form-input" data-field="description" value="${escapeHtml(promo.description || '')}">
               </div>
+              <div class="commerce-input-grid" style="margin-top:10px;">
+                <div>
+                  <label>Target Product IDs <span style="font-weight:400;opacity:.55;font-size:.8em">(comma-separated — blank = all products)</span></label>
+                  <input class="form-input" data-field="targetProductIds" value="${escapeHtml((Array.isArray(promo.targetProductIds) ? promo.targetProductIds : []).join(', '))}" placeholder="uuid1, uuid2, …">
+                </div>
+                <div>
+                  <label>Target Collections <span style="font-weight:400;opacity:.55;font-size:.8em">(comma-separated — blank = all collections)</span></label>
+                  <input class="form-input" data-field="targetCollectionIds" value="${escapeHtml((Array.isArray(promo.targetCollectionIds) ? promo.targetCollectionIds : []).join(', '))}" placeholder="drop001, jackets, …">
+                </div>
+              </div>
               <div class="commerce-actions"><button class="btn btn-danger btn-sm" data-remove-promo="${index}">Remove</button></div>
             </div>
           `).join('') : '<div class="commerce-muted">No promotions yet.</div>'}
@@ -804,6 +814,8 @@
       minSubtotal: Number(node.querySelector('[data-field="minSubtotal"]')?.value || 0),
       description: node.querySelector('[data-field="description"]')?.value || '',
       active: node.querySelector('[data-field="active"]')?.value !== 'false',
+      targetProductIds: String(node.querySelector('[data-field="targetProductIds"]')?.value || '').split(',').map((s) => s.trim()).filter(Boolean),
+      targetCollectionIds: String(node.querySelector('[data-field="targetCollectionIds"]')?.value || '').split(',').map((s) => s.trim()).filter(Boolean),
     })).filter((promo) => promo.code.trim());
   }
 

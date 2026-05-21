@@ -417,7 +417,7 @@ export async function onRequestPost({ request, env }) {
     const shipping = await resolveShipping({ shippingRate, address, subtotalCents, catalogItems, env });
     const promotion = await getPromotionForCode(env, promoCode);
     const normalizedPromoCode = promotion ? normalizePromoCode(promotion.code) : normalizePromoCode(promoCode);
-    const discountCents = computePromotionDiscount(promotion, subtotalCents, shipping.shippingCents);
+    const discountCents = computePromotionDiscount(promotion, subtotalCents, shipping.shippingCents, catalogItems);
     const discountedSubtotalCents = Math.max(0, subtotalCents - discountCents);
     const taxSettings = await fetchSiteSettings(['tax_rate_overrides'], env);
     const dbOverrides = (() => { try { const v = taxSettings.tax_rate_overrides; return (v && typeof v === 'object') ? v : JSON.parse(v || '{}'); } catch (_) { return {}; } })();

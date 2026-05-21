@@ -167,6 +167,8 @@ export function sanitizeCommerceConfig(rawConfig = {}) {
         minSubtotal: Number(promo.minSubtotal || 0),
         description: String(promo.description || ''),
         active: promo.active !== false,
+        targetProductIds: Array.isArray(promo.targetProductIds) ? promo.targetProductIds.map(String).filter(Boolean) : [],
+        targetCollectionIds: Array.isArray(promo.targetCollectionIds) ? promo.targetCollectionIds.map(String).filter(Boolean) : [],
       })),
     integrations: config.integrations || {},
     shippingAutomation: config.shippingAutomation || {},
@@ -217,8 +219,27 @@ export function sanitizeInventoryState(rawInventory = {}) {
   };
 }
 
-export function computePromotionDiscount(promotion, subtotalCents, shippingCents = 0) {
+export function computePromotionDiscount(promotion, subtotalCents, shippingCents = 0, cartItems = null) {
   if (!promotion) return 0;
+
+  const targetProductIds = Array.isArray(promotion.targetProductIds) ? promotion.targetProductIds : [];
+  const targetCollectionIds = Array.isArray(promotion.targetCollectionIds) ? promotion.targetCollectionIds : [];
+  const hasTargets = targetProductIds.length > 0 || targetCollectionIds.length > 0;
+
+  // When targets are specified, compute discount only on matching line items
+  let applicableSubtotalCents = subtotalCents;
+  if (hasTargets && Array.isArray(cartItems) && cartItems.length > 0) {
+    applicableSubtotalCents = cartItems.reduce((sum, item) => {
+      const pid = String(item.productId || item.product_id || item.id || '');
+      const cid = String(item.collectionId || item.collection_id || item.collection || '');
+      const matches =
+        (targetProductIds.length > 0 && targetProductIds.includes(pid)) ||
+        (targetCollectionIds.length > 0 && targetCollectionIds.includes(cid));
+      if (!matches) return sum;
+      return sum + Math.round(Number(item.amount || 0) * Number(item.quantity || 1));
+    }, 0);
+  }
+
   const minSubtotalCents = Math.round(Number(promotion.minSubtotal || 0) * 100);
   if (subtotalCents < minSubtotalCents) return 0;
 
@@ -226,10 +247,10 @@ export function computePromotionDiscount(promotion, subtotalCents, shippingCents
   const value = Number(promotion.value || 0);
 
   if (type === 'percent') {
-    return Math.max(0, Math.min(subtotalCents, Math.round(subtotalCents * (value / 100))));
+    return Math.max(0, Math.min(applicableSubtotalCents, Math.round(applicableSubtotalCents * (value / 100))));
   }
   if (type === 'fixed') {
-    return Math.max(0, Math.min(subtotalCents, Math.round(value * 100)));
+    return Math.max(0, Math.min(applicableSubtotalCents, Math.round(value * 100)));
   }
   if (type === 'shipping') {
     return Math.max(0, Math.min(shippingCents, Math.round(value * 100) || shippingCents));
