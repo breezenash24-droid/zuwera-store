@@ -404,7 +404,10 @@
               </div>
               <div class="commerce-actions"><button class="btn btn-danger btn-sm" data-remove-promo="${index}">Remove</button></div>
             </div>
-          `).join('') : '<div class="commerce-muted">No promotions yet.</div>'}
+          `).join('') : '<div class="commerce-muted">No promotions yet. Click "+ Add Promo" to create one.</div>'}
+        </div>
+        <div style="margin-top:16px;display:flex;justify-content:flex-end;">
+          <button class="btn btn-primary" id="commerceSavePromosBtn">Save Promotions</button>
         </div>
       </div>
     `;
@@ -927,6 +930,8 @@
       state.config.promotions = [...(state.config.promotions || []), { code: '', label: '', type: 'percent', value: 10, minSubtotal: 0, description: '', active: true }];
       renderCommerce();
     });
+
+    $('commerceSavePromosBtn')?.addEventListener('click', () => saveSettings('Promotions saved.'));
 
     document.querySelectorAll('[data-remove-promo]').forEach((button) => {
       button.addEventListener('click', () => {
