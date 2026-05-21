@@ -213,7 +213,7 @@
       border: 2px solid var(--border);
       background: var(--bg); color: var(--muted);
       display: flex; align-items: center; justify-content: center;
-      font-size: .55rem; font-weight: 700; z-index: 1; position: relative;
+      font-size: .62rem; font-weight: 700; z-index: 1; position: relative;
       transition: all .25s;
     }
     .ret-step.done .ret-step-dot {
@@ -224,11 +224,10 @@
       box-shadow: 0 0 0 3px var(--border);
     }
     .ret-step-label {
-      margin-top: .4rem; font-size: .5rem; letter-spacing: .07em;
+      margin-top: .4rem; font-size: .62rem; letter-spacing: .07em;
       text-transform: uppercase; color: var(--muted); text-align: center; line-height: 1.3;
     }
     .ret-step.done .ret-step-label, .ret-step.active .ret-step-label { color: var(--ink); }
-    @media(max-width:480px) { .ret-step-label { font-size: .42rem; } }
 
     /* ── Label / tracking panel ── */
     .ret-label-panel {
@@ -499,7 +498,7 @@
 
     @media(max-width: 600px) {
       .page-inner { padding: 2rem 1.2rem 4rem; }
-      .zw-nav { padding: 1rem 1.2rem; }
+      .zw-nav { padding: calc(1rem + env(safe-area-inset-top, 0px)) 1.2rem 1rem; }
       .page-hd h1 { font-size: 2.2rem; }
       .review-label { width: 80px; }
     }

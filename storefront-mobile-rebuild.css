@@ -309,9 +309,12 @@
     grid-template-columns:none !important;
     gap:.6rem !important;
     overflow-x:auto;
+    scrollbar-width:none;
+    -ms-overflow-style:none;
     padding:0 var(--zw-mobile-gutter) .25rem;
     scroll-snap-type:x proximity;
   }
+  .gallery-thumbnails::-webkit-scrollbar{display:none}
 
   .gallery-thumbnails::-webkit-scrollbar{
     display:none;

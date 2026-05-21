@@ -415,8 +415,8 @@ body.light-mode #zw-lang-close{
   display:none;
   align-items:center;
   justify-content:center;
-  width:42px;
-  height:42px;
+  width:48px;
+  height:48px;
   background:none;
   border:0;
   color:inherit;
@@ -790,11 +790,14 @@ body.light-mode .heart-btn{
     min-height:84px !important;
     overflow-x:auto !important;
     overflow-y:hidden !important;
+    scrollbar-width:none;
+    -ms-overflow-style:none;
     padding:.65rem .95rem calc(1.25rem + env(safe-area-inset-bottom,0px)) !important;
     background:var(--zw-surface) !important;
     position:relative;
     z-index:2;
   }
+  .collection-review-modal > .collection-review-box.collection-product-box .collection-thumbs::-webkit-scrollbar{display:none}
 
   .collection-review-modal > .collection-review-box.collection-product-box .collection-review-body{
     justify-content:flex-start !important;
@@ -933,8 +936,11 @@ body.light-mode .heart-btn{
     flex:0 0 auto !important;
     overflow-x:auto !important;
     overflow-y:hidden !important;
+    scrollbar-width:none;
+    -ms-overflow-style:none;
     padding:.65rem .95rem .85rem !important;
   }
+  .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box .quick-add-thumbs::-webkit-scrollbar{display:none}
 
   .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box .quick-add-thumb{
     width:58px !important;
@@ -1293,7 +1299,10 @@ body.light-mode .heart-btn{
     margin-inline:calc(var(--zw-space-page) * -1) !important;
     padding-inline:var(--zw-space-page) !important;
     overflow-x:auto !important;
+    scrollbar-width:none;
+    -ms-overflow-style:none;
     }
+  .table-wrap::-webkit-scrollbar{display:none}
 
   .policy-section{
     margin-bottom:2.2rem !important;
@@ -1633,9 +1642,9 @@ body.light-mode #mobile-menu .zw-mobile-menu-close{
   position:fixed !important;
   top:calc(env(safe-area-inset-top,0px) + 1rem) !important;
   right:clamp(1rem,5vw,1.45rem) !important;
-  width:46px !important;
-  height:46px !important;
-  min-height:46px !important;
+  width:48px !important;
+  height:48px !important;
+  min-height:48px !important;
   padding:0 !important;
   border:1px solid rgba(244,241,235,.16) !important;
   background:var(--zw-ink, #09090b) !important;

@@ -142,6 +142,9 @@
     document.documentElement.classList.add('zw-mobile-menu-open');
     setButtonState(true);
     syncScrollLock();
+    if (window.history && window.history.pushState) {
+      window.history.pushState({ zwMenu: true }, '');
+    }
     setTimeout(function () {
       var close = document.getElementById('mobile-menu-close');
       var btn = document.getElementById('mobile-menu-btn') || document.querySelector('.hamburger-btn');
@@ -161,6 +164,9 @@
     document.documentElement.classList.remove('zw-mobile-menu-open');
     setButtonState(false);
     syncScrollLock();
+    if (window.history.state && window.history.state.zwMenu) {
+      window.history.back();
+    }
     return false;
   };
 
@@ -199,6 +205,12 @@
     });
     document.querySelectorAll('[data-history-back]').forEach(function (trigger) {
       trigger.addEventListener('click', goBackOrHome);
+    });
+    window.addEventListener('popstate', function () {
+      var el = menu();
+      if (el && el.classList.contains('open')) {
+        window.closeMobileMenu();
+      }
     });
     if (el) {
       el.addEventListener('click', function (event) {

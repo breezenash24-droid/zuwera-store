@@ -5,7 +5,8 @@
     '.modal',
     '[role="dialog"]:not(#zw-lang-modal)',
     '#payment-success',
-    '#apple-pay-qr-modal'
+    '#apple-pay-qr-modal',
+    '#mobile-menu.open'
   ].join(',');
 
   let locked = false;
