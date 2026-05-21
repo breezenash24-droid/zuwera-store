@@ -654,7 +654,8 @@ function updateCartSummary(subtotal) {
     return;
   }
   const state = getCheckoutTaxStateCode ? getCheckoutTaxStateCode() : '';
-  const tax = window.ZWCheckoutTax && state ? window.ZWCheckoutTax.taxDollars(subtotal, state) : 0;
+  const zip   = (document.getElementById('pay-zip')?.value || '').trim();
+  const tax = window.ZWCheckoutTax && state ? window.ZWCheckoutTax.taxDollars(subtotal, state, zip) : 0;
   const taxEl = document.getElementById('summary-tax');
   const taxNote = document.getElementById('tax-note');
   if (taxEl) taxEl.textContent = '-';

@@ -185,7 +185,7 @@ function initPaymentRequest(subtotalCents) {
       });
       // Silently store the cheapest rate for fulfillment — customer pays $0 shipping.
       if (data.rates?.length) selectedShippingRate = data.rates[0];
-      prTaxCents = window.ZWCheckoutTax ? window.ZWCheckoutTax.taxCents(subtotalCents, addr.region || '') : 0;
+      prTaxCents = window.ZWCheckoutTax ? window.ZWCheckoutTax.taxCents(subtotalCents, addr.region || '', addr.postalCode || '') : 0;
       ev.updateWith({
         status: 'success',
         shippingOptions: [{ id: 'free', label: 'Free Shipping', detail: 'Standard delivery', amount: 0 }],
@@ -348,7 +348,8 @@ function refreshTaxDisplay() {
   const subtotal = parse(_cart.subtotalEl);
   if (!subtotal) return;
   const state = (_pay.stateInput?.value || '').trim().toUpperCase().slice(0, 2);
-  const tax = window.ZWCheckoutTax.taxDollars(subtotal, state);
+  const zip   = (_pay.zipInput?.value   || '').trim();
+  const tax = window.ZWCheckoutTax.taxDollars(subtotal, state, zip);
   const total = subtotal + tax;
 
   // Update cart sidebar elements (kept in sync even though hidden behind modal)
@@ -368,7 +369,7 @@ function refreshTaxDisplay() {
   if (pmToggleTot)  pmToggleTot.textContent  = `$${total.toFixed(2)}`;
 }
 
-_pay.zipInput?.addEventListener('input', maybeLoadRates);
+_pay.zipInput?.addEventListener('input', () => { maybeLoadRates(); if ((_pay.zipInput?.value || '').length >= 5) refreshTaxDisplay(); });
 _pay.stateInput?.addEventListener('input', () => { maybeLoadRates(); refreshTaxDisplay(); });
 
 // ===================== PAYMENT MODAL CLOSE =====================
