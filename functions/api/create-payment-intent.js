@@ -356,17 +356,27 @@ export async function onRequestPost({ request, env }) {
 
     if (totalCents <= 0) return json({ error: 'Invalid payment amount.' }, 400, headers);
 
-    // Image URLs stay out of metadata because Stripe limits each metadata value to 500 chars.
+    // Stripe limits each metadata value to 500 chars. product_id (36-char UUID)
+    // and tax_behavior are omitted — product_id is already in `inv` below.
     const lineItems = catalogItems.map((item) => ({
-      product_id: item.productId,
-      sku: item.sku,
-      name: item.name,
-      size: item.size,
-      color: item.colorName,
-      amount: item.amount,
+      sku:      item.sku,
+      name:     item.name,
+      size:     item.size,
+      color:    item.colorName,
+      amount:   item.amount,
       quantity: item.quantity,
-      tax_behavior: 'exclusive',
     }));
+
+    // Guard: if still over 490 chars (large carts / long names), drop size+color,
+    // then as a last resort truncate names. Webhook only requires name/sku/amount/qty.
+    let metaItems = JSON.stringify(lineItems);
+    if (metaItems.length > 490) {
+      metaItems = JSON.stringify(lineItems.map(({ sku, name, amount, quantity }) => ({ sku, name, amount, quantity })));
+    }
+    if (metaItems.length > 490) {
+      metaItems = JSON.stringify(lineItems.map(({ sku, name, amount, quantity }) => ({ sku, name: name.slice(0, 28), amount, quantity })));
+    }
+
     const inventoryItems = catalogItems.map((item) => ({
       p: String(item.productId || ''),
       s: String(item.size || ''),
@@ -406,7 +416,7 @@ export async function onRequestPost({ request, env }) {
           customer_email: address.email,
           customer_name: address.name || '',
           user_id: verifiedUser?.id || '',
-          items: JSON.stringify(lineItems),
+          items: metaItems,
           inv: JSON.stringify(inventoryItems),
           subtotal_amount_cents: String(subtotalCents),
           discount_code: normalizedPromoCode,
