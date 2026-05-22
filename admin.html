@@ -1056,148 +1056,186 @@
             }
         }
 
+        /* ── Mobile bottom nav (hidden on desktop) ─────────────────── */
+        #mobile-bottom-nav { display: none; }
+        #mobile-more-overlay { display: none; }
+        #mobile-more-drawer { display: none; }
+
         @media (max-width: 768px) {
-            .container {
-                flex-direction: column;
-            }
+            /* Hide desktop sidebar — replaced by bottom nav */
+            .sidebar { display: none !important; }
+            .container { flex-direction: column; }
 
-            .sidebar {
-                width: 100%;
-                border-right: none;
-                border-bottom: 1px solid var(--border);
-                display: grid;
-                grid-template-columns: auto 1fr auto;
-                grid-template-rows: auto auto;
-                align-items: center;
-                padding: 10px 15px;
-                gap: 10px 15px;
-            }
+            .main-content { flex: 1; min-height: 0; }
 
-            .sidebar-logo {
-                grid-column: 1;
-                grid-row: 1;
-                margin-bottom: 0;
-            }
+            .header { padding: 12px 16px; }
+            .header-title { font-size: 1.3rem; }
 
-            .sidebar-nav {
-                grid-column: 1 / -1;
-                grid-row: 2;
-                display: flex;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-                padding-bottom: 4px;
-            }
+            /* Room for fixed bottom nav */
+            .content-area { padding: 16px 16px 84px; }
 
-            .sidebar-nav::-webkit-scrollbar {
-                display: none;
-            }
+            /* Tables */
+            .products-table { font-size: 0.85rem; display: block; overflow-x: auto; white-space: nowrap; }
+            .products-table th, .products-table td { padding: 8px; }
+            .product-image { width: 40px; height: 40px; }
+            .products-header { flex-direction: column; align-items: stretch; gap: 12px; }
+            .products-header .btn { width: 100%; text-align: center; }
+            .search-filter { flex-direction: column; }
+            .search-filter input, .search-filter select { width: 100% !important; }
 
-            .nav-section {
-                margin-bottom: 0;
-                display: flex;
-                gap: 8px;
-            }
+            /* Modals */
+            .modal-content { padding: 20px 15px; width: 95%; }
+            .modal-actions { flex-direction: column; gap: 10px; }
+            .modal-actions .btn { width: 100%; }
 
-            .nav-section-title {
-                display: none;
-            }
+            /* Show mobile nav elements */
+            #mobile-bottom-nav { display: flex; }
+            #mobile-more-overlay { display: block; position: fixed; inset: 0; background: rgba(0,0,0,0); z-index: 950; pointer-events: none; transition: background 0.25s; }
+            #mobile-more-overlay.open { background: rgba(0,0,0,0.55); pointer-events: auto; }
+            #mobile-more-drawer { display: block; }
+        }
 
-            .nav-link {
-                margin-bottom: 0;
-                padding: 8px 14px;
-                font-size: 0.85rem;
-                white-space: nowrap;
-                border-left: none;
-                border-bottom: 3px solid transparent;
-            }
+        /* ── Bottom nav bar ──────────────────────────────────────────── */
+        #mobile-bottom-nav {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            z-index: 900;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
 
-            .nav-link:hover, .nav-link.active {
-                border-left-color: transparent;
-                border-bottom-color: var(--accent);
-            }
+        .mob-nav-btn {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: 8px 4px 10px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-family: 'Barlow', sans-serif;
+            min-height: 56px;
+            transition: color 0.15s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .mob-nav-btn.active { color: var(--accent); }
+        .mob-nav-icon { font-size: 1.35rem; line-height: 1; }
+        .mob-nav-label { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
 
-            .sidebar-bottom {
-                grid-column: 3;
-                grid-row: 1;
-                border-top: none;
-                padding-top: 0;
-                display: flex;
-                gap: 10px;
-                align-items: center;
-            }
+        /* ── More drawer ─────────────────────────────────────────────── */
+        #mobile-more-drawer {
+            position: fixed;
+            left: 0; right: 0;
+            bottom: -100%;
+            background: var(--bg-secondary);
+            border-radius: 20px 20px 0 0;
+            border-top: 1px solid var(--border);
+            z-index: 960;
+            max-height: 85dvh;
+            overflow-y: auto;
+            transition: bottom 0.3s cubic-bezier(.32,.72,0,1);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        #mobile-more-drawer.open { bottom: 0; }
 
-            .theme-toggle {
-                margin-bottom: 0;
-            }
+        .mob-drawer-handle {
+            width: 36px; height: 4px;
+            background: var(--border);
+            border-radius: 99px;
+            margin: 12px auto 0;
+        }
 
-            #themeLabel {
-                display: none;
-            }
+        .mob-drawer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px 8px;
+        }
+        .mob-drawer-title {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1.1rem;
+            letter-spacing: 0.1em;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+        .mob-drawer-close {
+            background: var(--bg-primary);
+            border: none;
+            color: var(--text-secondary);
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-            .main-content {
-                flex: 1;
-                min-height: 0;
-            }
+        .mob-drawer-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            margin: 8px 0 0;
+        }
+        .mob-drawer-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 18px 8px;
+            background: var(--bg-secondary);
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-family: 'Barlow', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            -webkit-tap-highlight-color: transparent;
+            transition: background 0.12s;
+        }
+        .mob-drawer-item:active { background: var(--bg-primary); }
+        .mob-drawer-item-icon { font-size: 1.5rem; line-height: 1; }
 
-            .header {
-                padding: 15px;
-            }
-
-            .content-area {
-                padding: 15px;
-            }
-
-            .products-table {
-                font-size: 0.85rem;
-            }
-
-            .products-table th, .products-table td {
-                padding: 8px;
-            }
-
-            .products-table {
-                display: block;
-                overflow-x: auto;
-                white-space: nowrap;
-            }
-
-            .product-image {
-                width: 40px;
-                height: 40px;
-            }
-
-            .products-header {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 12px;
-            }
-
-            .products-header .btn {
-                width: 100%;
-                text-align: center;
-            }
-
-            .search-filter {
-                flex-direction: column;
-            }
-
-            .search-filter input, .search-filter select {
-                width: 100% !important;
-            }
-
-            .modal-content {
-                padding: 20px 15px;
-                width: 95%;
-            }
-            
-            .modal-actions {
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            .modal-actions .btn {
-                width: 100%;
-            }
+        .mob-drawer-footer {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px 20px;
+        }
+        .mob-drawer-theme {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: var(--bg-primary);
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.88rem;
+            font-weight: 500;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .mob-drawer-logout {
+            padding: 12px 20px;
+            background: var(--error);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'Barlow', sans-serif;
+            font-weight: 700;
+            font-size: 0.88rem;
+            -webkit-tap-highlight-color: transparent;
         }
     
         /* ============ Enhanced Polish ============ */
@@ -1414,6 +1452,84 @@
                 <button class="logout-btn" id="logoutBtn">Sign Out</button>
             </div>
         </aside>
+
+        <!-- Mobile bottom navigation (≤768px) -->
+        <nav id="mobile-bottom-nav" aria-label="Main navigation">
+            <button class="mob-nav-btn active" data-mob-page="dashboard" onclick="navigateTo('dashboard')">
+                <span class="mob-nav-icon">📊</span>
+                <span class="mob-nav-label">Home</span>
+            </button>
+            <button class="mob-nav-btn" data-mob-page="products" onclick="navigateTo('products')">
+                <span class="mob-nav-icon">👟</span>
+                <span class="mob-nav-label">Products</span>
+            </button>
+            <button class="mob-nav-btn" data-mob-page="receipts" onclick="navigateTo('receipts')">
+                <span class="mob-nav-icon">🧾</span>
+                <span class="mob-nav-label">Orders</span>
+            </button>
+            <button class="mob-nav-btn" data-mob-page="finance" onclick="navigateTo('finance')">
+                <span class="mob-nav-icon">💰</span>
+                <span class="mob-nav-label">Finance</span>
+            </button>
+            <button class="mob-nav-btn" id="mob-more-btn" onclick="openMobileMore()">
+                <span class="mob-nav-icon">☰</span>
+                <span class="mob-nav-label">More</span>
+            </button>
+        </nav>
+
+        <!-- Mobile drawer overlay -->
+        <div id="mobile-more-overlay" onclick="closeMobileMore()"></div>
+
+        <!-- Mobile more drawer -->
+        <div id="mobile-more-drawer" role="dialog" aria-modal="true" aria-label="More navigation">
+            <div class="mob-drawer-handle"></div>
+            <div class="mob-drawer-header">
+                <span class="mob-drawer-title">ALL SECTIONS</span>
+                <button class="mob-drawer-close" onclick="closeMobileMore()" aria-label="Close">✕</button>
+            </div>
+            <div class="mob-drawer-grid">
+                <button class="mob-drawer-item" onclick="navigateTo('analytics');closeMobileMore()">
+                    <span class="mob-drawer-item-icon">📈</span>Analytics
+                </button>
+                <button class="mob-drawer-item" onclick="navigateTo('tax');closeMobileMore()">
+                    <span class="mob-drawer-item-icon">🧾</span>Tax
+                </button>
+                <button class="mob-drawer-item" onclick="navigateTo('sizecharts');closeMobileMore()">
+                    <span class="mob-drawer-item-icon">📏</span>Size Charts
+                </button>
+                <button class="mob-drawer-item" onclick="navigateTo('reviews');closeMobileMore()">
+                    <span class="mob-drawer-item-icon">⭐</span>Reviews
+                </button>
+                <button class="mob-drawer-item" onclick="navigateTo('shipping');closeMobileMore()">
+                    <span class="mob-drawer-item-icon">🚚</span>Shipping
+                </button>
+                <button class="mob-drawer-item" onclick="navigateTo('returns');closeMobileMore()">
+                    <span class="mob-drawer-item-icon">↩</span>Returns
+                </button>
+                <button class="mob-drawer-item" onclick="navigateTo('users');closeMobileMore()">
+                    <span class="mob-drawer-item-icon">👥</span>Users
+                </button>
+                <button class="mob-drawer-item" onclick="navigateTo('settings');closeMobileMore()">
+                    <span class="mob-drawer-item-icon">⚙️</span>Settings
+                </button>
+                <button class="mob-drawer-item" onclick="navigateTo('website');closeMobileMore()">
+                    <span class="mob-drawer-item-icon">🎨</span>Appearance
+                </button>
+                <button class="mob-drawer-item" onclick="navigateTo('apis');closeMobileMore()">
+                    <span class="mob-drawer-item-icon">🔑</span>APIs
+                </button>
+                <button class="mob-drawer-item" onclick="navigateTo('audit');closeMobileMore()">
+                    <span class="mob-drawer-item-icon">📋</span>Audit Log
+                </button>
+            </div>
+            <div class="mob-drawer-footer">
+                <div class="mob-drawer-theme" onclick="document.getElementById('themeToggle').click()">
+                    <span id="mobThemeIcon">🌙</span>
+                    <span id="mobThemeLabel">Dark mode</span>
+                </div>
+                <button class="mob-drawer-logout" onclick="logout()">Sign Out</button>
+            </div>
+        </div>
 
         <!-- Main Content -->
         <div class="main-content">
@@ -6076,10 +6192,14 @@
                 body.classList.remove('light-mode');
                 document.getElementById('themeIcon').textContent = '🌙';
                 document.getElementById('themeLabel').textContent = 'Dark';
+                const mi = document.getElementById('mobThemeIcon'); if (mi) mi.textContent = '🌙';
+                const ml = document.getElementById('mobThemeLabel'); if (ml) ml.textContent = 'Dark mode';
             } else {
                 body.classList.add('light-mode');
                 document.getElementById('themeIcon').textContent = '☀️';
                 document.getElementById('themeLabel').textContent = 'Light';
+                const mi = document.getElementById('mobThemeIcon'); if (mi) mi.textContent = '☀️';
+                const ml = document.getElementById('mobThemeLabel'); if (ml) ml.textContent = 'Light mode';
             }
             localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
         
@@ -6330,6 +6450,12 @@
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
             document.querySelector(`[data-page="${page}"]`).classList.add('active');
 
+            // sync mobile bottom nav
+            document.querySelectorAll('.mob-nav-btn').forEach(b => b.classList.remove('active'));
+            const mobBtn = document.querySelector(`.mob-nav-btn[data-mob-page="${page}"]`);
+            if (mobBtn) mobBtn.classList.add('active');
+            else { const moreBtn = document.getElementById('mob-more-btn'); if (moreBtn) moreBtn.classList.add('active'); }
+
             const titles = {
                 dashboard: 'Dashboard',
                 products: 'Product Inventory',
@@ -6378,6 +6504,18 @@
             } else if (page === 'audit') {
                 loadAuditLog();
             }
+        }
+
+        // ─── Mobile more drawer ─────────────────────────────────────────────────
+        function openMobileMore() {
+            document.getElementById('mobile-more-drawer').classList.add('open');
+            document.getElementById('mobile-more-overlay').classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeMobileMore() {
+            document.getElementById('mobile-more-drawer').classList.remove('open');
+            document.getElementById('mobile-more-overlay').classList.remove('open');
+            document.body.style.overflow = '';
         }
 
         // ─── API Status Page ────────────────────────────────────────────────────
