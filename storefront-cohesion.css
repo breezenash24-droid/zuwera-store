@@ -1059,6 +1059,13 @@ body.light-mode .heart-btn{
     overflow-x:hidden !important;
   }
 
+  #payment-modal .pbox .mclose{
+    position:fixed !important;
+    top:calc(1rem + env(safe-area-inset-top,0px)) !important;
+    right:1rem !important;
+    z-index:600 !important;
+  }
+
 }
 
 
