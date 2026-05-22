@@ -1053,7 +1053,7 @@ body.light-mode .heart-btn{
 
   #payment-modal .pbox{
     border-radius:0 !important;
-    padding:0 !important;
+    padding:.65rem 0 0 !important;
     max-height:calc(100dvh - 56px - env(safe-area-inset-top,0px)) !important;
     overflow:hidden !important;
   }

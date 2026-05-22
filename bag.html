@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="base.css?v=ace563fe">
   <link rel="stylesheet" href="nav.css?v=45571be5">
   <link rel="stylesheet" href="cart.css?v=10101f01">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=26052106">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=26052107">
   <script src="/favicon-utils.js?v=00b5644f"></script>
   <script src="/stripe-client-config.js?v=f4503bed"></script>
   <script src="/checkout-tax.js?v=d7a3117c"></script>
@@ -142,8 +142,8 @@
     /* Mobile toggle (hidden on desktop) */
     .pm-toggle { display:none; width:100%; background:none; border:none; color:inherit; cursor:pointer; padding:0; font-family:var(--font-body); font-size:.84rem; }
     .pm-toggle-inner { display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
-    .pm-toggle-left { display:flex; align-items:center; gap:.4rem; color:rgba(244,241,235,.6); font-size:.78rem; letter-spacing:.06em; text-transform:uppercase; }
-    .pm-toggle-right { font-weight:600; font-size:.92rem; }
+    .pm-toggle-left { display:flex; align-items:center; gap:.4rem; color:rgba(244,241,235,.6); font-size:.78rem; letter-spacing:.06em; text-transform:uppercase; min-width:0; overflow:hidden; }
+    .pm-toggle-right { font-weight:600; font-size:.92rem; flex-shrink:0; }
     .pm-chevron { transition:transform .2s; flex-shrink:0; }
     .pm-toggle[aria-expanded="true"] .pm-chevron { transform:rotate(180deg); }
     .pm-summary-body { display:block; }
