@@ -12,7 +12,7 @@
   max-height: min(92vh, 820px);
   padding: 0;
   overflow: hidden;
-  border-top: 2px solid var(--gold, #f891a5);
+  border-top: 2px solid var(--zw-accent);
   background:
     radial-gradient(circle at top left, rgba(248,145,165,0.16), transparent 30%),
     linear-gradient(180deg, rgba(244,241,235,0.035), rgba(244,241,235,0.015)),
@@ -72,7 +72,7 @@
 }
 
 .size-guide-kicker {
-  color: var(--gold, #f891a5);
+  color: var(--zw-accent);
   font-family: var(--fm, "IBM Plex Mono", monospace);
   font-size: 0.56rem;
   letter-spacing: 0.24em;
@@ -126,7 +126,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.75rem;
-  color: var(--gold, #f891a5);
+  color: var(--zw-accent);
   font-family: var(--review-mono-font);
   font-size: 0.58rem;
   letter-spacing: 0.24em;
@@ -402,7 +402,7 @@
 .star-selector button.lit,
 .star-selector button.hover,
 .star-selector button:hover {
-  color: #f891a5;
+  color: var(--zw-accent);
 }
 
 .star-selector button:hover,
@@ -461,7 +461,7 @@
   margin: 0.2rem 0 0;
   background: transparent;
   border: 1px solid rgba(244,241,235,0.28);
-  accent-color: #f891a5;
+  accent-color: var(--zw-accent);
 }
 
 .review-toggle-copy {
@@ -496,7 +496,7 @@
   width: 100%;
   margin-top: 0.7rem;
   background: transparent;
-  accent-color: #f891a5;
+  accent-color: var(--zw-accent);
   cursor: pointer;
   appearance: none;
 }
@@ -511,7 +511,7 @@
   width: 14px;
   height: 14px;
   margin-top: -5px;
-  background: #f891a5;
+  background: var(--zw-accent);
   border: 0;
   border-radius: 50%;
   appearance: none;
@@ -527,7 +527,7 @@
 .review-slider::-moz-range-thumb {
   width: 14px;
   height: 14px;
-  background: #f891a5;
+  background: var(--zw-accent);
   border: 0;
   border-radius: 50%;
 }
@@ -582,7 +582,7 @@
 .review-radio-group input[type="radio"]:checked + label {
   border-color: rgba(248,145,165,0.55);
   background: rgba(248,145,165,0.12);
-  color: #f891a5;
+  color: var(--zw-accent);
 }
 
 .review-error {
@@ -745,7 +745,7 @@
 }
 
 .rs-rating {
-  color: #f891a5;
+  color: var(--zw-accent);
   font-family: var(--review-head-font);
   font-size: 4rem;
   font-style: italic;
@@ -756,7 +756,7 @@
 
 .rs-stars {
   margin: 0.25rem 0;
-  color: #f891a5;
+  color: var(--zw-accent);
   font-size: 1.05rem;
   letter-spacing: 0.1em;
 }
@@ -798,7 +798,7 @@
   top: 50%;
   width: 14px;
   height: 14px;
-  background: #f891a5;
+  background: var(--zw-accent);
   border-radius: 50%;
   box-shadow: 0 0 0 4px rgba(248,145,165,0.12);
   transform: translate(-50%, -50%);
@@ -847,7 +847,7 @@
 .rs-recommend-pill.no {
   border-color: rgba(248,145,165,0.2);
   background: rgba(248,145,165,0.08);
-  color: #f891a5;
+  color: var(--zw-accent);
 }
 
 .review-modal-card {
@@ -872,7 +872,7 @@
 }
 
 .review-card-stars {
-  color: #f891a5;
+  color: var(--zw-accent);
   font-size: 0.82rem;
   letter-spacing: 0.1em;
 }
@@ -916,7 +916,7 @@
   padding: 0;
   background: none;
   border: none;
-  color: #f891a5;
+  color: var(--zw-accent);
   cursor: pointer;
   font-family: var(--review-mono-font);
   font-size: 0.52rem;
@@ -961,13 +961,13 @@
   margin-top: 1rem;
   padding: 1rem 1rem 1rem 1.1rem;
   background: rgba(248,145,165,0.06);
-  border-left: 2px solid #f891a5;
+  border-left: 2px solid var(--zw-accent);
 }
 
 .review-admin-label {
   display: block;
   margin-bottom: 0.45rem;
-  color: #f891a5;
+  color: var(--zw-accent);
   font-family: var(--review-mono-font);
   font-size: 0.54rem;
   letter-spacing: 0.18em;
@@ -1320,8 +1320,8 @@
 
 .review-dialog--classic-list .translate-btn--legacy:hover,
 .review-dialog--classic-list .review-select--legacy:focus {
-  border-color: #f891a5;
-  color: #f891a5;
+  border-color: var(--zw-accent);
+  color: var(--zw-accent);
   background: rgba(248,145,165,0.05);
   box-shadow: none;
 }
@@ -1417,7 +1417,7 @@
 }
 
 .review-dialog--classic-list .review-card-action {
-  color: #f891a5;
+  color: var(--zw-accent);
   font-family: var(--font-body);
   font-size: 0.75rem;
   letter-spacing: 0;
@@ -1446,14 +1446,14 @@
 .review-dialog--classic-list .review-admin-response {
   margin-top: 12px;
   padding: 12px;
-  border-left: 2px solid var(--admin-res-text, #f891a5);
+  border-left: 2px solid var(--admin-res-text, var(--zw-accent));
   border-radius: 4px;
   background: var(--admin-res-bg, rgba(248,145,165,0.08));
 }
 
 .review-dialog--classic-list .review-admin-label {
   margin-bottom: 4px;
-  color: var(--admin-res-text, #f891a5);
+  color: var(--admin-res-text, var(--zw-accent));
   font-family: var(--review-head-font);
   font-size: 0.85rem;
   letter-spacing: 0.05em;
@@ -1613,7 +1613,7 @@
 .review-dialog--classic-form .review-submit-btn {
   padding: 12px 28px;
   border-radius: 6px;
-  background: #f891a5;
+  background: var(--zw-accent);
   color: #09090b;
   font-family: var(--font-body);
   font-size: 0.85rem;
@@ -1859,7 +1859,7 @@ body.light-mode .review-dialog--classic-form .review-toggle-hint {
 }
 
 body.light-mode .review-dialog--classic-form .review-submit-btn {
-  background: #f891a5;
+  background: var(--zw-accent);
   color: #09090b;
 }
 

@@ -60,7 +60,7 @@
   --border:       var(--c10);
   --border-soft:  var(--c08);
   --muted:        var(--c50);
-  --err:          #e07060;
+  --err:          #ef4444;
 }
 
 body {
