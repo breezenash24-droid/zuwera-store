@@ -1066,7 +1066,7 @@
             .sidebar { display: none !important; }
             .container { flex-direction: column; }
 
-            .main-content { flex: 1; min-height: 0; }
+            .main-content { flex: 1; min-height: 0; overflow-x: hidden; }
 
             .header { padding: 12px 16px; }
             .header-title { font-size: 1.3rem; }
@@ -3178,7 +3178,7 @@
                   </div>
 
                   <!-- Category breakdown -->
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:24px;">
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;">
                       <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:20px;">Revenue by Category</p>
                       <canvas id="fin-category-chart" height="200"></canvas>
@@ -3666,7 +3666,7 @@
                   </div>
 
                   <!-- Two-column: Rate Lookup + Filing Calendar -->
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;">
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:24px;margin-bottom:24px;">
 
                     <!-- ZIP Rate Lookup -->
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;">
