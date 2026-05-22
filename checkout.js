@@ -266,7 +266,7 @@ function initPaymentRequest(subtotalCents) {
       _pay.prBtn.style.display  = 'block';
       _pay.divider.style.display = 'block';
     }
-  });
+  }).catch(err => console.warn('Apple/Google Pay unavailable:', err));
 }
 
 // ===================== LIVE SHIPPING RATES =====================

@@ -623,8 +623,9 @@ function zwPromoUpdateSummaryTotals() {
   var subtotal = parseFloat((subtotalEl.textContent || '').replace('$', '')) || 0;
   var discount = _zwActivePromo ? (parseFloat(_zwActivePromo.discount) || 0) : 0;
   var shippingEl = document.getElementById('pm-shipping');
-  var shipping = shippingEl && shippingEl.textContent !== 'Free'
-    ? parseFloat((shippingEl.textContent || '').replace('$', '')) || 0
+  var shippingText = shippingEl ? (shippingEl.textContent || '').trim() : '';
+  var shipping = shippingText && shippingText !== 'Free' && shippingText !== '—'
+    ? parseFloat(shippingText.replace('$', '')) || 0
     : 0;
   var total = Math.max(0, subtotal - discount) + shipping;
   totalEl.textContent = '$' + total.toFixed(2);
@@ -782,7 +783,7 @@ function renderCart() {
     </li>`;
   }).join('');
 
-  const subtotal = cart.reduce((sum, item) => sum + parseFloat(item.price) * item.quantity, 0);
+  const subtotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) || 0) * item.quantity, 0);
   updateCartSummary(subtotal);
 }
 

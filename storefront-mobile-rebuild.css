@@ -316,10 +316,6 @@
   }
   .gallery-thumbnails::-webkit-scrollbar{display:none}
 
-  .gallery-thumbnails::-webkit-scrollbar{
-    display:none;
-  }
-
   .thumbnail{
     flex:0 0 72px;
     aspect-ratio:3 / 4 !important;
