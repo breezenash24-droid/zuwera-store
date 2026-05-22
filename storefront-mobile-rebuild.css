@@ -102,7 +102,7 @@
 
   /* Homepage */
   .hero{
-    min-height:auto !important;
+    min-height:0 !important;
     grid-template-rows:auto auto !important;
     padding-top:0 !important;
   }
