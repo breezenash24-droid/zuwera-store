@@ -931,7 +931,15 @@
       renderCommerce();
     });
 
-    $('commerceSavePromosBtn')?.addEventListener('click', () => saveSettings('Promotions saved.'));
+    $('commerceSavePromosBtn')?.addEventListener('click', async () => {
+      const btn = $('commerceSavePromosBtn');
+      const orig = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      const ok = await saveSettings('Promotions saved.');
+      btn.textContent = ok ? 'Saved ✓' : 'Error — try again';
+      setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2200);
+    });
 
     document.querySelectorAll('[data-remove-promo]').forEach((button) => {
       button.addEventListener('click', () => {
@@ -1120,9 +1128,10 @@
     const result = await window.sb.from('site_settings').upsert(payload, { onConflict: 'key' });
     if (result.error) {
       $('commerceStatus').textContent = result.error.message || 'Could not save commerce settings.';
-      return;
+      return false;
     }
     $('commerceStatus').textContent = message || 'Commerce settings saved.';
+    return true;
   }
 
   function installNavigationHook() {
