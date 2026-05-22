@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="base.css?v=ace563fe">
   <link rel="stylesheet" href="nav.css?v=45571be5">
   <link rel="stylesheet" href="cart.css?v=10101f01">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=26052103">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=26052104">
   <script src="/favicon-utils.js?v=00b5644f"></script>
   <script src="/stripe-client-config.js?v=f4503bed"></script>
   <script src="/checkout-tax.js?v=d7a3117c"></script>
@@ -176,9 +176,9 @@
     /* Mobile: single continuous scroll */
     @media (max-width:660px) {
       #payment-modal { align-items:flex-end; padding:0; }
-      .pbox { width:100%; max-height:96dvh; border-bottom:none; border-left:none; border-right:none; overflow-y:auto; overflow-x:hidden; }
-      /* Both panels natural height — pbox is the sole scroll container */
-      .pmodal-grid { grid-template-columns:1fr; grid-template-rows:auto auto; min-height:auto; overflow:visible; }
+      /* pbox clips — pmodal-grid is the single scroll container */
+      .pbox { width:100%; max-height:calc(100dvh - 56px - env(safe-area-inset-top,0px)); border-bottom:none; border-left:none; border-right:none; overflow:hidden; }
+      .pmodal-grid { grid-template-columns:1fr; grid-template-rows:auto auto; flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; }
       .pmodal-left { border-right:none; border-bottom:1px solid rgba(244,241,235,.08); padding:1rem 1.2rem; max-height:none; overflow:visible; }
       body.light-mode .pmodal-left { border-bottom-color:rgba(9,9,11,.08); }
       .pmodal-right { padding:1.4rem 1.2rem calc(1.8rem + env(safe-area-inset-bottom,0px)); overflow:visible; }
