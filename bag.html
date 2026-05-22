@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="base.css?v=ace563fe">
   <link rel="stylesheet" href="nav.css?v=45571be5">
   <link rel="stylesheet" href="cart.css?v=10101f01">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=25042cf1">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=26052101">
   <script src="/favicon-utils.js?v=00b5644f"></script>
   <script src="/stripe-client-config.js?v=f4503bed"></script>
   <script src="/checkout-tax.js?v=d7a3117c"></script>
@@ -173,16 +173,17 @@
     .zw-test-mode-banner { display:none; padding:.5rem .75rem; background:rgba(248,145,165,.08); border:1px solid rgba(248,145,165,.2); color:#F891A5; font-size:.65rem; letter-spacing:.08em; text-transform:uppercase; margin-bottom:1rem; }
     .zw-test-mode-banner.is-visible { display:block; }
 
-    /* Mobile: stack, collapse summary */
+    /* Mobile: single continuous scroll */
     @media (max-width:660px) {
       #payment-modal { align-items:flex-end; padding:0; }
-      .pbox { width:100%; max-height:96dvh; border-bottom:none; border-left:none; border-right:none; }
-      /* grid-template-rows:auto 1fr gives pmodal-left its natural height and
-         pmodal-right the remaining bounded height — this is what makes
-         overflow-y:auto actually scroll and position:sticky work on #pay-submit */
-      .pmodal-grid { grid-template-columns:1fr; grid-template-rows:auto 1fr; min-height:0; }
-      .pmodal-left { border-right:none; border-bottom:1px solid rgba(244,241,235,.08); padding:1rem 1.2rem; max-height:38dvh; overflow-y:auto; }
-      .pmodal-right { padding:1.4rem 1.2rem calc(1.8rem + env(safe-area-inset-bottom,0px)); }
+      .pbox { width:100%; max-height:96dvh; border-bottom:none; border-left:none; border-right:none; overflow-y:auto; overflow-x:hidden; }
+      /* Close button re-enters flow as sticky so it stays visible while scrolling */
+      .pbox .mclose { position:sticky !important; top:.85rem !important; right:auto !important; align-self:flex-end !important; margin-right:.85rem !important; flex-shrink:0; }
+      /* Both panels natural height — pbox is the sole scroll container */
+      .pmodal-grid { grid-template-columns:1fr; grid-template-rows:auto auto; min-height:auto; overflow:visible; }
+      .pmodal-left { border-right:none; border-bottom:1px solid rgba(244,241,235,.08); padding:1rem 1.2rem; max-height:none; overflow:visible; }
+      body.light-mode .pmodal-left { border-bottom-color:rgba(9,9,11,.08); }
+      .pmodal-right { padding:1.4rem 1.2rem calc(1.8rem + env(safe-area-inset-bottom,0px)); overflow:visible; }
       .pm-label { display:none; }
       .pm-toggle { display:block; }
       .pm-summary-body { display:none; margin-top:.85rem; }
