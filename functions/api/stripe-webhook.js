@@ -398,6 +398,11 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
   const toName       = meta.customer_name || 'Customer';
   const totalDollars = (pi.amount / 100).toFixed(2);
   const carrier      = [meta.shipping_provider, meta.shipping_service].filter(Boolean).join(' ') || 'Standard Shipping';
+  const subtotalCents = parseInt(meta.subtotal_amount_cents  || '0', 10);
+  const shippingCents = parseInt(meta.charged_shipping_cents || '0', 10);
+  const taxCents      = parseInt(meta.tax_amount_cents       || '0', 10);
+  const discountCode  = (meta.discount_code || '').toUpperCase();
+  const discountCents = parseInt(meta.discount_amount_cents  || '0', 10);
 
   // Fetch product images from Supabase by SKU/name (images are NOT stored in metadata
   // because long URLs exceed Stripe's 500-char per-value metadata limit)
@@ -424,75 +429,145 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
     } catch (_) { /* non-fatal — email still sends without images */ }
   }
 
-  let itemsHtml = '';
-  try {
-    itemsHtml = JSON.parse(meta.items || '[]').map(i => {
-      const imageUrl = productImageMap[(i.sku || '').toLowerCase()]
-                    || productImageMap[(i.name || '').trim().toLowerCase()]
-                    || '';
-      const imgHtml = imageUrl
-        ? `<img src="${imageUrl}" alt="${i.name}" width="64" height="64" style="width:64px;height:64px;object-fit:cover;border-radius:6px;display:block;">`
-        : `<div style="width:64px;height:64px;border-radius:6px;background:#f4f1eb;display:flex;align-items:center;justify-content:center;font-size:1.4rem;">👕</div>`;
-      return `<tr>
-        <td style="padding:10px 0;border-bottom:1px solid #eee;vertical-align:middle;width:80px">${imgHtml}</td>
-        <td style="padding:10px 8px;border-bottom:1px solid #eee;vertical-align:middle">
-          <div style="font-weight:600;font-size:.9rem">${i.name}</div>
-          ${i.sku ? `<div style="font-size:.78rem;color:#999">SKU: ${i.sku}</div>` : ''}
-        </td>
-        <td style="padding:10px 0;border-bottom:1px solid #eee;text-align:right;vertical-align:middle;white-space:nowrap;font-size:.9rem">${i.quantity} × $${(i.amount / 100).toFixed(2)}</td>
-      </tr>`;
-    }).join('');
-  } catch (_) {
-    itemsHtml = '<tr><td colspan="3">Your Zuwera order</td></tr>';
-  }
+  let parsedItems = [];
+  try { parsedItems = JSON.parse(meta.items || '[]'); } catch (_) {}
 
-  const trackingHtml = tracking.number
-    ? `<p style="margin:16px 0 0">
-        <strong>Tracking:</strong>
-        ${tracking.url
-          ? `<a href="${tracking.url}" style="color:#F891A5">${tracking.number}</a>`
-          : tracking.number}
-       </p>`
-    : '';
+  const itemsHtml = parsedItems.length
+    ? parsedItems.map(i => {
+        const imageUrl = productImageMap[(i.sku || '').toLowerCase()]
+                      || productImageMap[(i.name || '').trim().toLowerCase()]
+                      || '';
+        const imgCell = imageUrl
+          ? `<img src="${imageUrl}" alt="${i.name}" width="72" height="90" style="width:72px;height:90px;object-fit:cover;border-radius:4px;display:block;">`
+          : `<div style="width:72px;height:90px;background:rgba(244,241,235,.06);border-radius:4px;"></div>`;
+        const variant = [i.size, i.color].filter(Boolean).join(' · ');
+        return `<tr>
+          <td style="padding:16px 0;border-bottom:1px solid rgba(244,241,235,.08);vertical-align:top;width:80px;">${imgCell}</td>
+          <td style="padding:16px 12px;border-bottom:1px solid rgba(244,241,235,.08);vertical-align:top;">
+            <div style="font-weight:600;font-size:15px;color:#f4f1eb;margin-bottom:4px;">${i.name}</div>
+            ${variant ? `<div style="font-size:13px;color:rgba(244,241,235,.5);margin-bottom:4px;">${variant}</div>` : ''}
+            ${i.sku ? `<div style="font-size:11px;color:rgba(244,241,235,.3);letter-spacing:.04em;font-family:monospace;">SKU: ${i.sku}</div>` : ''}
+          </td>
+          <td style="padding:16px 0;border-bottom:1px solid rgba(244,241,235,.08);vertical-align:top;text-align:right;white-space:nowrap;">
+            <div style="font-size:14px;color:#f4f1eb;font-weight:500;">$${(i.amount / 100).toFixed(2)}</div>
+            ${i.quantity > 1 ? `<div style="font-size:12px;color:rgba(244,241,235,.45);margin-top:3px;">× ${i.quantity}</div>` : ''}
+          </td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="3" style="padding:16px 0;color:rgba(244,241,235,.5);">Your Zuwera order</td></tr>';
+
+  const addrParts = [
+    meta.ship_line1,
+    meta.ship_line2,
+    [meta.ship_city, meta.ship_state, meta.ship_zip].filter(Boolean).join(', '),
+    meta.ship_country && meta.ship_country.toUpperCase() !== 'US' ? meta.ship_country : '',
+  ].filter(Boolean);
+
+  const addressHtml = addrParts.length ? `
+      <tr><td style="padding:0 0 28px;">
+        <p style="margin:0 0 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.4);font-weight:600;">Ships To</p>
+        <p style="margin:0;font-size:14px;color:rgba(244,241,235,.7);line-height:1.65;">${toName}<br>${addrParts.join('<br>')}</p>
+      </td></tr>` : '';
+
+  const discountRow = discountCode && discountCents > 0 ? `
+            <tr>
+              <td style="padding:4px 0;font-size:14px;color:rgba(244,241,235,.55);">Discount (${discountCode})</td>
+              <td style="padding:4px 0;font-size:14px;text-align:right;color:#86c98e;">−$${(discountCents / 100).toFixed(2)}</td>
+            </tr>` : '';
+
+  const shippingDisplay = meta.free_shipping === 'true' ? 'Free' : `$${(shippingCents / 100).toFixed(2)}`;
+
+  const etaText = (() => {
+    const s = (meta.shipping_service || '').toLowerCase();
+    if (/priority|express|overnight/.test(s)) return '1–3 business days';
+    if (/first.?class/.test(s)) return '3–5 business days';
+    if (/ground/.test(s)) return '5–7 business days';
+    return '3–7 business days';
+  })();
+
+  const carrierHtml = `
+      <tr><td style="padding:0 0 32px;">
+        <p style="margin:0 0 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.4);font-weight:600;">Delivery</p>
+        <p style="margin:0;font-size:14px;color:rgba(244,241,235,.7);">Ships via ${carrier}</p>
+        <p style="margin:4px 0 0;font-size:14px;color:rgba(244,241,235,.5);">Estimated delivery: ${etaText}</p>
+        ${tracking.number ? `<p style="margin:6px 0 0;font-size:14px;color:rgba(244,241,235,.7);">Tracking: ${tracking.url ? `<a href="${tracking.url}" style="color:#f4f1eb;text-decoration:underline;">${tracking.number}</a>` : tracking.number}</p>` : ''}
+      </td></tr>`;
 
   const html = `
 <!DOCTYPE html>
-<html>
-<body style="margin:0;padding:0;background:#f4f1eb;font-family:'DM Sans',Helvetica,Arial,sans-serif;color:#09090b">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px">
-    <tr><td align="center">
-      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;max-width:100%">
-        <tr><td style="background:#09090b;padding:24px 36px;text-align:left">
-          <img src="${logoUrl}" alt="Zuwera" height="36" style="height:36px;width:auto;display:block;border:0;"
-               onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-          <span style="display:none;font-family:Georgia,serif;font-size:1.5rem;letter-spacing:.12em;color:#f4f1eb;font-weight:normal">ZUWERA</span>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Order Confirmed – Zuwera</title>
+</head>
+<body style="margin:0;padding:0;background:#09090b;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#f4f1eb;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+    <tr><td align="center" style="padding:40px 20px 56px;">
+      <table width="560" cellpadding="0" cellspacing="0" role="presentation" style="max-width:100%;width:100%;">
+
+        <!-- Wordmark -->
+        <tr><td style="padding-bottom:32px;">
+          <img src="${logoUrl}" alt="ZUWERA" height="28" style="height:28px;width:auto;border:0;display:block;" onerror="this.style.display='none'">
         </td></tr>
-        <tr><td style="padding:32px 36px">
-          <h2 style="margin:0 0 8px;font-size:1.1rem">Order Confirmed ✓</h2>
-          <p style="margin:0 0 24px;color:#666;font-size:.9rem">Order #${orderId} — Thank you, ${toName}!</p>
-          <table width="100%" cellpadding="0" cellspacing="0" style="font-size:.9rem;margin-bottom:20px">
+
+        <!-- Confirmation heading -->
+        <tr><td style="border-top:1px solid rgba(244,241,235,.12);padding:28px 0 32px;">
+          <p style="margin:0 0 6px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,241,235,.4);font-weight:600;">Order Confirmed</p>
+          <h1 style="margin:0 0 10px;font-size:34px;font-weight:700;line-height:1;color:#f4f1eb;">#${orderId}</h1>
+          <p style="margin:0;font-size:14px;color:rgba(244,241,235,.5);line-height:1.6;">Thanks, ${toName}. Your order is confirmed and being prepared.</p>
+        </td></tr>
+
+        <!-- Items -->
+        <tr><td>
+          <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
             ${itemsHtml}
           </table>
-          <table width="100%" cellpadding="0" cellspacing="0" style="font-size:.9rem">
+        </td></tr>
+
+        <!-- Pricing -->
+        <tr><td style="padding:20px 0 0;">
+          <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
             <tr>
-              <td style="padding:4px 0;color:#666">Shipping</td>
-              <td style="padding:4px 0;text-align:right">${meta.free_shipping === 'true' ? 'Free' : '$' + (parseInt(meta.charged_shipping_cents || '0') / 100).toFixed(2)}</td>
+              <td style="padding:6px 0;font-size:14px;color:rgba(244,241,235,.55);">Subtotal</td>
+              <td style="padding:6px 0;font-size:14px;text-align:right;color:#f4f1eb;">$${(subtotalCents / 100).toFixed(2)}</td>
+            </tr>
+            ${discountRow}
+            <tr>
+              <td style="padding:6px 0;font-size:14px;color:rgba(244,241,235,.55);">Shipping</td>
+              <td style="padding:6px 0;font-size:14px;text-align:right;color:#f4f1eb;">${shippingDisplay}</td>
             </tr>
             <tr>
-              <td style="padding:4px 0;color:#666">Tax</td>
-              <td style="padding:4px 0;text-align:right">$${(parseInt(meta.tax_amount_cents || '0') / 100).toFixed(2)}</td>
+              <td style="padding:6px 0 0;font-size:14px;color:rgba(244,241,235,.55);">Tax</td>
+              <td style="padding:6px 0 0;font-size:14px;text-align:right;color:#f4f1eb;">$${(taxCents / 100).toFixed(2)}</td>
             </tr>
             <tr>
-              <td style="padding:8px 0 0;font-weight:700">Total</td>
-              <td style="padding:8px 0 0;text-align:right;font-weight:700">$${totalDollars}</td>
+              <td colspan="2" style="padding:0;"><div style="margin:12px 0;border-top:1px solid rgba(244,241,235,.12);"></div></td>
+            </tr>
+            <tr>
+              <td style="font-size:16px;font-weight:700;color:#f4f1eb;padding-bottom:24px;">Total</td>
+              <td style="font-size:16px;font-weight:700;text-align:right;color:#f4f1eb;padding-bottom:24px;">$${totalDollars}</td>
             </tr>
           </table>
-          <p style="margin:20px 0 0;font-size:.85rem;color:#666">Ships via <strong>${carrier}</strong></p>
-          ${trackingHtml}
         </td></tr>
-        <tr><td style="background:#f4f1eb;padding:20px 36px;font-size:.78rem;color:#888;text-align:center">
-          Questions? Reply to this email or visit zuwera.store
+
+        <!-- Shipping address -->
+        ${addressHtml}
+
+        <!-- Carrier / tracking -->
+        ${carrierHtml}
+
+        <!-- Footer -->
+        <tr><td style="padding:32px 0 0;border-top:1px solid rgba(244,241,235,.08);">
+          <p style="margin:0 0 6px;font-size:13px;color:rgba(244,241,235,.5);">
+            <a href="https://zuwera.store/account/orders" style="color:rgba(244,241,235,.75);text-decoration:underline;">View order status</a>
+            &nbsp;·&nbsp;
+            <a href="https://zuwera.store/returns" style="color:rgba(244,241,235,.75);text-decoration:underline;">30-day free returns</a>
+          </p>
+          <p style="margin:0 0 20px;font-size:13px;color:rgba(244,241,235,.35);">Questions? <a href="mailto:orders@zuwera.store" style="color:rgba(244,241,235,.55);text-decoration:underline;">orders@zuwera.store</a></p>
+          <p style="margin:0;font-size:12px;color:rgba(244,241,235,.2);">© ${new Date().getFullYear()} Zuwera. All rights reserved.</p>
         </td></tr>
+
       </table>
     </td></tr>
   </table>

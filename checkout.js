@@ -432,6 +432,7 @@ _pay.btn?.addEventListener('click', async () => {
       shipping: { name, address: { line1: addr1, line2: addr2, city, state, postal_code: zip, country: 'US' } },
     });
     if (error) {
+      console.error('Stripe confirmCardPayment error:', error);
       _pay.errEl.textContent = error.message;
       _pay.btn.disabled = false;
       _pay.btnTxt.textContent = 'Pay Now';
