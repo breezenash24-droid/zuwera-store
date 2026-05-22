@@ -375,7 +375,7 @@ async function resolveShipping({ shippingRate, address, subtotalCents, catalogIt
   const signedRate = await verifySignedRateToken(shippingRate, address, env, getExpectedParcelWeight(catalogItems || []));
   const rateAmountCents = signedRate ? toCents(signedRate.amount) : 0;
 
-  if (shippingRate?.objectId && !signedRate) {
+  if (shippingRate?.objectId && !signedRate && !qualifiesFree) {
     throw new Error('Selected shipping rate expired. Please reload shipping options.');
   }
 
