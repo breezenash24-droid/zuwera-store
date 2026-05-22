@@ -409,6 +409,18 @@ body.light-mode #zw-lang-close{
   color:var(--zw-ink) !important;
 }
 
+.pbox .mclose{
+  background:rgba(244,241,235,.12) !important;
+  border-color:rgba(244,241,235,.2) !important;
+  color:rgba(244,241,235,.85) !important;
+}
+
+body.light-mode .pbox .mclose{
+  background:rgba(9,9,11,.08) !important;
+  border-color:rgba(9,9,11,.2) !important;
+  color:rgba(9,9,11,.85) !important;
+}
+
 
 .hamburger-btn,
 #mobile-menu-btn{
@@ -714,13 +726,13 @@ body.light-mode .heart-btn{
     display:flex !important;
   }
 
-  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review){
+  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal){
     align-items:stretch !important;
     justify-content:flex-end !important;
     padding:0 !important;
   }
 
-  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review) > :is(.mbox,.collection-review-box,.pbox,.review-mbox,.review-list-mbox){
+  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal) > :is(.mbox,.collection-review-box,.pbox,.review-mbox,.review-list-mbox){
     width:100% !important;
     max-width:100% !important;
     min-height:100dvh !important;
@@ -993,6 +1005,16 @@ body.light-mode .heart-btn{
     min-height:54px;
     padding:1rem !important;
     font-size:.92rem !important;
+  }
+
+  :is(.pgrid,.products-grid) .product-add-btn,
+  :is(.pgrid,.products-grid) .pcard-add-btn{
+    display:none !important;
+  }
+
+  .heart-btn{
+    width:26px !important;
+    height:26px !important;
   }
 
   :is(.pgrid,.products-grid,.products-grid.two-items){
