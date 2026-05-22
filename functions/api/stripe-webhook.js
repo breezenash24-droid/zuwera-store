@@ -560,7 +560,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
         <!-- Footer -->
         <tr><td style="padding:32px 0 0;border-top:1px solid rgba(244,241,235,.08);">
           <p style="margin:0 0 6px;font-size:13px;color:rgba(244,241,235,.5);">
-            <a href="https://zuwera.store/account/orders" style="color:rgba(244,241,235,.75);text-decoration:underline;">View order status</a>
+            <a href="https://zuwera.store/account" style="color:rgba(244,241,235,.75);text-decoration:underline;">View order status</a>
             &nbsp;·&nbsp;
             <a href="https://zuwera.store/returns" style="color:rgba(244,241,235,.75);text-decoration:underline;">30-day free returns</a>
           </p>
