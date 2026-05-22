@@ -376,10 +376,19 @@ async function resolveShipping({ shippingRate, address, subtotalCents, catalogIt
   const rateAmountCents = signedRate ? toCents(signedRate.amount) : 0;
 
   if (shippingRate?.objectId && !signedRate && !qualifiesFree) {
-    throw new Error('Selected shipping rate expired. Please reload shipping options.');
+    // Only throw when CHECKOUT_RATE_SECRET is configured — without a secret, token
+    // signing is disabled so signedRate is always null (not a real expiry).
+    if (env.CHECKOUT_RATE_SECRET) {
+      throw new Error('Selected shipping rate expired. Please reload shipping options.');
+    }
   }
 
-  const actualShippingCents = signedRate ? rateAmountCents : policy.standardCents;
+  // Without a verified token, fall back to the client-sent rate amount rather than
+  // the policy standard rate, so customers pay the Shippo-quoted price.
+  const fallbackCents = shippingRate?.amount ? toCents(shippingRate.amount) : 0;
+  const actualShippingCents = signedRate
+    ? rateAmountCents
+    : (shippingRate?.objectId ? fallbackCents : policy.standardCents);
   const shippingCents = qualifiesFree ? 0 : actualShippingCents;
 
   return {
@@ -387,9 +396,9 @@ async function resolveShipping({ shippingRate, address, subtotalCents, catalogIt
     signedRate,
     actualShippingCents,
     shippingCents,
-    provider: signedRate?.provider || '',
-    servicelevel: signedRate?.servicelevel || '',
-    rateObjectId: signedRate?.rateId || '',
+    provider: signedRate?.provider || shippingRate?.provider || '',
+    servicelevel: signedRate?.servicelevel || shippingRate?.servicelevel || '',
+    rateObjectId: signedRate?.rateId || shippingRate?.objectId || '',
   };
 }
 
