@@ -144,7 +144,7 @@ export async function onRequestPost({ request, env }) {
     if (idx === -1) return json({ success: false, error: 'Return request not found.' }, 404, cors(env));
 
     const current = requests[idx];
-    const allowedStatuses = new Set(['requested', 'approved', 'denied', 'completed', 'label_sent', 'exchange_in_progress', 'refunded', 'closed']);
+    const allowedStatuses = new Set(['requested', 'approved', 'denied', 'completed', 'label_sent', 'item_received', 'exchange_in_progress', 'refunded', 'closed']);
     const nextStatus = String(body.status || current.status || 'requested').trim();
     if (!allowedStatuses.has(nextStatus)) {
       return json({ success: false, error: 'Unsupported return status.' }, 400, cors(env));

@@ -1812,6 +1812,7 @@
                         ['requested',           'Requested'],
                         ['approved',            'Approved'],
                         ['label_sent',          'Label Sent'],
+                        ['item_received',       'Item Received'],
                         ['exchange_in_progress','Exchange In Progress'],
                         ['completed',           'Completed'],
                         ['refunded',            'Refunded'],
@@ -1822,12 +1823,14 @@
                         requested:           '#f59e0b',
                         approved:            '#22c55e',
                         label_sent:          '#38bdf8',
+                        item_received:       '#34d399',
                         denied:              '#ef4444',
                         completed:           '#a78bfa',
                         refunded:            '#6b7280',
                         closed:              '#6b7280',
                         exchange_in_progress:'#a78bfa',
                     };
+                    const REFUND_ALLOWED_STATUSES = new Set(['item_received', 'completed', 'refunded', 'closed']);
 
                     function syncReturnsUI() {
                         renderReturnsStats();
@@ -1852,14 +1855,18 @@
                         return String(r.lastLabelError || r.labelError || '').trim();
                     }
                     function retCanAttemptLabel(r) {
-                        return ['requested', 'approved', 'label_sent', 'exchange_in_progress'].includes(r.status || '');
+                        return ['requested', 'approved', 'label_sent', 'item_received', 'exchange_in_progress'].includes(r.status || '');
+                    }
+                    function retCanRefund(r) {
+                        return REFUND_ALLOWED_STATUSES.has(r.status || '');
                     }
                     function retNextAction(r) {
                         if (retLabelError(r)) return 'Fix label issue or save a manual label';
                         if (retAddressMissing(r)) return 'Add/fix customer address';
                         if (r.status === 'requested') return 'Review, approve, then send label';
                         if (r.status === 'approved' && !r.labelUrl) return 'Send return label';
-                        if (r.status === 'label_sent') return 'Wait for package / inspect item';
+                        if (r.status === 'label_sent') return 'Waiting for item — mark received once it arrives';
+                        if (r.status === 'item_received') return 'Item received — inspect then issue refund or complete';
                         if (r.status === 'exchange_in_progress') return 'Send replacement / update exchange';
                         if (r.status === 'completed' || r.status === 'refunded' || r.status === 'closed') return 'Finished';
                         if (r.status === 'denied') return 'Denied';
@@ -2151,8 +2158,9 @@
                                     <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','approved')">Approve</button>
                                     <button class="btn btn-secondary btn-sm" onclick="sendReturnLabel('${id}', this)" ${sendLabelDisabled}>${sendLabelText}</button>
                                     <button class="btn btn-secondary btn-sm" onclick="sendReturnStatusEmail('${id}', this)" style="background:rgba(56,189,248,.15);border-color:rgba(56,189,248,.4);color:#38bdf8;">✉ Email Update</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','item_received')" style="background:rgba(52,211,153,.15);border-color:rgba(52,211,153,.4);color:#34d399;">Item Received</button>
                                     <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','exchange_in_progress')">Exchange Started</button>
-                                    <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','refunded')">Refunded</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="quickMarkRefunded('${id}')" ${retCanRefund(r) ? '' : 'disabled title="Item must be received before marking refunded"'}>Refunded</button>
                                     <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','completed')">Complete</button>
                                     <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','denied')">Deny</button>
                                     <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','closed')">Close</button>
@@ -2289,8 +2297,23 @@
                     };
                     async function quickReturnStatus(requestId, status) {
                         if (status === 'denied' && !confirm('Mark this return as denied? The customer will be notified.')) return;
+                        if (status === 'refunded') {
+                            const req = _returnsData.find(r => r.id === requestId);
+                            if (req && !retCanRefund(req)) {
+                                notifyReturns('Cannot mark refunded — the item has not been received yet. Mark "Item Received" first.', 'error');
+                                return;
+                            }
+                        }
                         try { await persistReturnUpdate(requestId, { status }); notifyReturns('Return marked ' + status.replace(/_/g, ' ') + '.', 'success'); }
                         catch (e) { notifyReturns('Could not update return: ' + e.message, 'error'); }
+                    }
+                    async function quickMarkRefunded(requestId) {
+                        const req = _returnsData.find(r => r.id === requestId);
+                        if (!req || !retCanRefund(req)) {
+                            notifyReturns('Cannot mark refunded — the item has not been received yet. Mark "Item Received" first.', 'error');
+                            return;
+                        }
+                        await quickReturnStatus(requestId, 'refunded');
                     }
                     async function saveReturnDetails(requestId, buttonEl) {
                         const oldText = buttonEl?.textContent || '';

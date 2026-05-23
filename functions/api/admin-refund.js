@@ -13,7 +13,7 @@
  */
 
 import Stripe from 'stripe';
-import { cors, json, verifyAdmin, getSetting, setSetting } from './_commerce.js';
+import { cors, json, verifyAdmin, getSetting, setSetting, getCommerceBundle } from './_commerce.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 
 const RATE_LIMIT_KEY = 'refund_rate_limit';
@@ -129,7 +129,23 @@ export async function onRequestPost({ request, env }) {
     return json({ error: 'No Stripe payment on record for this order — cannot issue refund.' }, 400, h);
   }
 
-  // ── 8. Issue Stripe refund ───────────────────────────────────────────────────
+  // ── 8. Block refund if associated return item not yet received ───────────────
+  if (action === 'refund' || action === 'cancel_refund') {
+    try {
+      const bundle = await getCommerceBundle(env);
+      const requests = Array.isArray(bundle.returnsState?.requests) ? bundle.returnsState.requests : [];
+      const linked = requests.find(r => String(r.orderId || '') === String(orderId));
+      const REFUND_ALLOWED = new Set(['item_received', 'completed', 'refunded', 'closed']);
+      if (linked && !REFUND_ALLOWED.has(linked.status || '')) {
+        await audit(env, { adminId, adminEmail, orderId, action, success: false, note: `blocked: return status is "${linked.status}"` });
+        return json({
+          error: `Cannot issue refund — the returned item has not been received yet (return status: "${linked.status}"). Mark the return as "Item Received" before refunding.`,
+        }, 400, h);
+      }
+    } catch { /* if bundle fetch fails, do not block the refund — log only */ }
+  }
+
+  // ── 9. Issue Stripe refund ───────────────────────────────────────────────────
   let stripeRefundId     = null;
   let stripeRefundAmount = null;
 
@@ -162,7 +178,7 @@ export async function onRequestPost({ request, env }) {
     }
   }
 
-  // ── 9. Update order in Supabase ──────────────────────────────────────────────
+  // ── 10. Update order in Supabase ─────────────────────────────────────────────
   const orderTotalCents = Math.round(Number(order.total || 0) * 100);
   const isFullRefund    = action === 'cancel_refund'
     || (action === 'refund' && (!amountCents || Math.round(Number(amountCents)) >= orderTotalCents));
@@ -177,7 +193,7 @@ export async function onRequestPost({ request, env }) {
     body:    JSON.stringify(patch),
   });
 
-  // ── 10. Audit log ─────────────────────────────────────────────────────────────
+  // ── 11. Audit log ─────────────────────────────────────────────────────────────
   await audit(env, {
     adminId, adminEmail, orderId, action, success: true,
     reason:            reason || '',
@@ -188,7 +204,7 @@ export async function onRequestPost({ request, env }) {
     orderTotal:        order.total,
   });
 
-  // ── 11. Customer refund notification email ────────────────────────────────────
+  // ── 12. Customer refund notification email ────────────────────────────────────
   if ((action === 'cancel_refund' || action === 'refund') && order.email) {
     await sendRefundEmail(env, {
       customerEmail:     order.email,
