@@ -1143,7 +1143,8 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
     const resLbl = retResolutionLabel(r.resolution);
     const dt = new Date(r.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     const order = orderMap[String(r.orderId || '')];
-    const itemChips = retBuildItemChips(order, productImgMap, productIdMap);
+    const retItemsForChips = (Array.isArray(r.returnItems) && r.returnItems.length) ? { ...order, items: JSON.stringify(r.returnItems) } : order;
+    const itemChips = retBuildItemChips(retItemsForChips, productImgMap, productIdMap);
     const next = retNextSteps(r, userEmail);
 
     const safeLabel = r.labelUrl && /^https?:\/\//i.test(r.labelUrl) ? r.labelUrl : '';
@@ -1191,7 +1192,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
           <label>Order</label>
           <select id="ret-order">${options || '<option value="">No eligible orders found</option>'}</select>
         </div>
-        <div id="ret-order-preview" class="ret-order-preview"></div>
+        <div id="ret-item-picker" style="display:none;margin-top:.75rem;"></div>
         <div class="zw-grid-2" style="margin-top:.75rem">
           <div class="zw-field">
             <label>Resolution</label>
@@ -1222,26 +1223,77 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
     </div>
   `;
 
-  // Order preview on change
-  function showOrderPreview(orderId) {
-    const preview = document.getElementById('ret-order-preview');
-    if (!preview) return;
+  // Item selection state for the new return form
+  let _retSelectedItems = [];
+
+  function showItemPicker(orderId) {
+    const picker = document.getElementById('ret-item-picker');
+    if (!picker) return;
+    _retSelectedItems = [];
     const order = orderMap[orderId];
-    if (!order) { preview.className = 'ret-order-preview'; preview.innerHTML = ''; return; }
-    const chips = retBuildItemChips(order, productImgMap, productIdMap);
-    if (!chips) { preview.className = 'ret-order-preview'; preview.innerHTML = ''; return; }
-    preview.innerHTML = `<div class="ret-preview-label">Items in this order</div>${chips}`;
-    preview.className = 'ret-order-preview visible';
+    let items = [];
+    try { items = typeof order?.items === 'string' ? JSON.parse(order.items) : (Array.isArray(order?.items) ? order.items : []); } catch(_) {}
+    if (!items.length) { picker.style.display = 'none'; picker.innerHTML = ''; return; }
+
+    picker.style.display = 'block';
+    picker.innerHTML = `
+      <div style="font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.35);margin-bottom:.5rem;font-family:var(--fm);">Items in this order — select which to return</div>
+      <div style="display:flex;flex-direction:column;gap:.4rem;" id="ret-item-list">
+        ${items.map((item, idx) => {
+          const name = escHtml((item.name || item.title || 'Item').trim());
+          const meta = [item.size, item.color || item.colorName].filter(Boolean).map(escHtml).join(' · ');
+          const storedImg = (item.image || item.imageUrl || item.img || '').trim();
+          const validImg = storedImg && /^https?:\/\//i.test(storedImg) ? storedImg : '';
+          const nameKey = (item.name || item.title || '').trim().toLowerCase();
+          const img = validImg || productImgMap[nameKey] || productImgMap[item.sku] || '';
+          return `<label data-idx="${idx}" style="display:flex;align-items:center;gap:.75rem;padding:.65rem .8rem;border:1px solid rgba(244,241,235,.1);border-radius:7px;cursor:pointer;transition:border-color .15s;background:rgba(244,241,235,.02);" onclick="retToggleItem(${idx},this)">
+            <div class="ret-item-chk" style="width:16px;height:16px;border:1.5px solid rgba(244,241,235,.3);border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .12s;">
+              <svg width="10" height="8" viewBox="0 0 10 8" fill="none" style="display:none;"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            ${img ? `<img src="${escHtml(img)}" alt="${name}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0;">` : ''}
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:.8rem;font-weight:500;">${name}</div>
+              ${meta ? `<div style="font-size:.68rem;color:rgba(244,241,235,.4);margin-top:1px;">${meta}</div>` : ''}
+            </div>
+          </label>`;
+        }).join('')}
+      </div>`;
+
+    // store items array on picker for submit access
+    picker._items = items;
   }
+
+  window.retToggleItem = function(idx, labelEl) {
+    const picker = document.getElementById('ret-item-picker');
+    const items = picker?._items || [];
+    const item = items[idx];
+    if (!item) return;
+    const chk = labelEl.querySelector('.ret-item-chk');
+    const svg = chk?.querySelector('svg');
+    if (_retSelectedItems.includes(item)) {
+      _retSelectedItems = _retSelectedItems.filter(i => i !== item);
+      if (chk) { chk.style.background = 'transparent'; chk.style.borderColor = 'rgba(244,241,235,.3)'; }
+      if (svg) svg.style.display = 'none';
+      labelEl.style.borderColor = 'rgba(244,241,235,.1)';
+    } else {
+      _retSelectedItems.push(item);
+      if (chk) { chk.style.background = 'rgba(244,241,235,.9)'; chk.style.borderColor = 'rgba(244,241,235,.9)'; }
+      if (svg) svg.style.display = 'block';
+      labelEl.style.borderColor = 'rgba(244,241,235,.4)';
+    }
+  };
 
   const orderEl = document.getElementById('ret-order');
   if (orderEl) {
-    showOrderPreview(orderEl.value);
-    orderEl.addEventListener('change', () => showOrderPreview(orderEl.value));
+    showItemPicker(orderEl.value);
+    orderEl.addEventListener('change', () => showItemPicker(orderEl.value));
   }
 
   document.getElementById('ret-submit')?.addEventListener('click', async () => {
     const statusEl = document.getElementById('ret-status');
+    const picker = document.getElementById('ret-item-picker');
+    const allItems = picker?._items || [];
+    const returnItems = _retSelectedItems.length > 0 ? _retSelectedItems : allItems;
     if (statusEl) statusEl.textContent = 'Submitting…';
     try {
       const selOrderEl = document.getElementById('ret-order');
@@ -1250,7 +1302,8 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
         orderLabel: selOrderEl?.selectedOptions?.[0]?.textContent || '',
         resolution: document.getElementById('ret-resolution')?.value || 'return',
         reason: document.getElementById('ret-reason')?.value || '',
-        notes: document.getElementById('ret-notes')?.value || ''
+        notes: document.getElementById('ret-notes')?.value || '',
+        returnItems,
       });
       if (statusEl) statusEl.textContent = 'Request submitted!';
       _hubPayload = null;
