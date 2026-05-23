@@ -470,6 +470,25 @@
     /* ── RETURNS TAB ── */
     .ret-form-stack { display: flex; flex-direction: column; gap: .9rem; }
 
+    .ret-item-row {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .65rem .8rem; cursor: pointer; transition: border-color .15s;
+      border: 1px solid rgba(244,241,235,.1); border-radius: 7px;
+      background: rgba(244,241,235,.02);
+    }
+    body.light-mode .ret-item-row { border-color: rgba(9,9,11,.1); background: rgba(9,9,11,.02); }
+    .ret-item-row.selected { border-color: rgba(244,241,235,.45); }
+    body.light-mode .ret-item-row.selected { border-color: rgba(9,9,11,.55); }
+
+    .ret-item-chk {
+      width: 16px; height: 16px; flex-shrink: 0; border-radius: 3px;
+      border: 1.5px solid rgba(244,241,235,.3);
+      display: flex; align-items: center; justify-content: center; transition: all .12s;
+    }
+    body.light-mode .ret-item-chk { border-color: rgba(9,9,11,.3); }
+    .ret-item-chk.checked { background: rgba(244,241,235,.9); border-color: rgba(244,241,235,.9); }
+    body.light-mode .ret-item-chk.checked { background: #09090b; border-color: #09090b; }
+
     .ret-order-preview {
       display: none; flex-wrap: wrap; gap: .4rem;
       padding: .75rem; margin-top: .5rem;
@@ -1246,8 +1265,8 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
           const validImg = storedImg && /^https?:\/\//i.test(storedImg) ? storedImg : '';
           const nameKey = (item.name || item.title || '').trim().toLowerCase();
           const img = validImg || productImgMap[nameKey] || productImgMap[item.sku] || '';
-          return `<label data-idx="${idx}" style="display:flex;align-items:center;gap:.75rem;padding:.65rem .8rem;border:1px solid rgba(244,241,235,.1);border-radius:7px;cursor:pointer;transition:border-color .15s;background:rgba(244,241,235,.02);" onclick="retToggleItem(${idx},this)">
-            <div class="ret-item-chk" style="width:16px;height:16px;border:1.5px solid rgba(244,241,235,.3);border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .12s;">
+          return `<label data-idx="${idx}" class="ret-item-row" onclick="retToggleItem(${idx},this)">
+            <div class="ret-item-chk">
               <svg width="10" height="8" viewBox="0 0 10 8" fill="none" style="display:none;"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
             ${img ? `<img src="${escHtml(img)}" alt="${name}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0;">` : ''}
@@ -1272,14 +1291,14 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
     const svg = chk?.querySelector('svg');
     if (_retSelectedItems.includes(item)) {
       _retSelectedItems = _retSelectedItems.filter(i => i !== item);
-      if (chk) { chk.style.background = 'transparent'; chk.style.borderColor = 'rgba(244,241,235,.3)'; }
+      chk?.classList.remove('checked');
+      labelEl.classList.remove('selected');
       if (svg) svg.style.display = 'none';
-      labelEl.style.borderColor = 'rgba(244,241,235,.1)';
     } else {
       _retSelectedItems.push(item);
-      if (chk) { chk.style.background = 'rgba(244,241,235,.9)'; chk.style.borderColor = 'rgba(244,241,235,.9)'; }
+      chk?.classList.add('checked');
+      labelEl.classList.add('selected');
       if (svg) svg.style.display = 'block';
-      labelEl.style.borderColor = 'rgba(244,241,235,.4)';
     }
   };
 
