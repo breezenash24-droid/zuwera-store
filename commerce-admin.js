@@ -544,13 +544,182 @@
                   <div><label>Tags</label><input class="form-input" data-order-field="tags" value="${escapeHtml(Array.isArray(override.tags) ? override.tags.join(', ') : '')}" placeholder="vip, launch-day, wholesale"></div>
                   <div><label>Internal notes</label><input class="form-input" data-order-field="notes" value="${escapeHtml(override.notes || '')}" placeholder="Refund approved, size swap pending"></div>
                 </div>
-                <div class="commerce-actions"><button class="btn btn-secondary btn-sm" data-save-order="${escapeHtml(order.id)}">Save Workflow</button></div>
+                ${(() => { try { const its = JSON.parse(order.items || '[]'); if (Array.isArray(its) && its.length) return `<div style="margin:8px 0 2px;font-size:12px;color:var(--text-secondary,#888)">${its.map((it) => `${escapeHtml(it.name || it.title || 'Item')} ×${it.quantity || 1}${it.size ? ` · ${escapeHtml(it.size)}` : ''}`).join(', ')}</div>`; } catch {} return ''; })()}
+                <div class="commerce-actions">
+                  <button class="btn btn-secondary btn-sm" data-save-order="${escapeHtml(order.id)}">Save Workflow</button>
+                  <button class="btn btn-danger btn-sm" data-order-action="cancel-refund" data-order-id="${escapeHtml(order.id)}" data-order-total="${total}" data-order-email="${escapeHtml(order.email || '')}">Cancel / Refund</button>
+                </div>
               </div>
             `;
           }).join('')}
         </div>
       </div>
     `;
+  }
+
+  // ── Refund / Cancel modal ────────────────────────────────────────────────────
+  let _zwRefOrderId = null;
+  let _zwRefTotal   = 0;
+
+  function mountRefundModal() {
+    if (document.getElementById('zw-refund-overlay')) return;
+    const el = document.createElement('div');
+    el.id = 'zw-refund-overlay';
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-modal', 'true');
+    el.style.cssText = 'display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.84);align-items:center;justify-content:center;padding:1rem';
+    el.innerHTML = `
+      <div style="background:var(--bg-primary,#141414);border:1px solid var(--border,rgba(255,255,255,.12));border-top:3px solid #e05050;border-radius:14px;padding:2rem 2rem 1.6rem;max-width:500px;width:100%;max-height:90dvh;overflow-y:auto">
+        <h3 style="margin:0 0 4px;font-size:1.1rem;font-weight:700">Cancel / Refund Order</h3>
+        <div id="zw-ref-summary" style="font-size:13px;color:var(--text-secondary,#888);padding-bottom:1rem;border-bottom:1px solid var(--border,rgba(255,255,255,.08));margin-bottom:1.4rem"></div>
+
+        <div style="margin-bottom:1.3rem">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">Action</div>
+          <label style="display:flex;gap:10px;margin-bottom:10px;cursor:pointer;font-size:13px;line-height:1.45">
+            <input type="radio" name="zw-ref-act" value="cancel" style="margin-top:3px;accent-color:#e05050;flex-shrink:0">
+            <span><strong>Cancel only</strong> — no money returned<br><span style="color:var(--text-secondary,#888);font-size:12px">Use when payment never succeeded or was already voided.</span></span>
+          </label>
+          <label style="display:flex;gap:10px;margin-bottom:10px;cursor:pointer;font-size:13px;line-height:1.45">
+            <input type="radio" name="zw-ref-act" value="cancel_refund" checked style="margin-top:3px;accent-color:#e05050;flex-shrink:0">
+            <span><strong>Cancel + Full Refund</strong><br><span style="color:var(--text-secondary,#888);font-size:12px">Cancel the order and return the full amount via Stripe.</span></span>
+          </label>
+          <label style="display:flex;gap:10px;cursor:pointer;font-size:13px;line-height:1.45">
+            <input type="radio" name="zw-ref-act" value="refund" style="margin-top:3px;accent-color:#e05050;flex-shrink:0">
+            <span><strong>Partial Refund</strong> — order stays open<br><span style="color:var(--text-secondary,#888);font-size:12px">Refund a specific dollar amount. Order status is unchanged.</span></span>
+          </label>
+        </div>
+
+        <div id="zw-ref-partial-row" style="display:none;margin-bottom:1.3rem">
+          <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px">Refund Amount (USD)</label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="color:var(--text-secondary,#888)">$</span>
+            <input id="zw-ref-amount" type="number" min="0.01" step="0.01" class="form-input" placeholder="0.00" style="max-width:130px">
+          </div>
+          <div style="font-size:11px;color:var(--text-secondary,#888);margin-top:5px">Order total: <span id="zw-ref-max-label">—</span></div>
+        </div>
+
+        <div style="margin-bottom:1.3rem">
+          <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px">Reason</label>
+          <select id="zw-ref-reason" class="form-select">
+            <option value="customer_request">Customer request</option>
+            <option value="out_of_stock">Item out of stock / unfulfillable</option>
+            <option value="duplicate">Duplicate order</option>
+            <option value="fraudulent">Fraudulent</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div style="background:rgba(224,80,80,0.08);border:1px solid rgba(224,80,80,0.22);border-radius:8px;padding:12px 14px;margin-bottom:1.5rem">
+          <div style="color:#e05050;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">⚠ Irreversible</div>
+          <div style="font-size:12px;color:var(--text-secondary,#999);line-height:1.5">Stripe refunds cannot be undone and money is returned immediately. Confirm the customer request before submitting.</div>
+        </div>
+
+        <div style="margin-bottom:1.6rem">
+          <label style="display:block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px">Refund Authorization Code</label>
+          <div style="font-size:12px;color:var(--text-secondary,#888);margin-bottom:8px;line-height:1.5">Required for every refund. Separate from your admin password and never stored in the browser. 5 wrong attempts locks access for 1 hour and alerts your email.</div>
+          <input id="zw-ref-key" type="password" class="form-input" autocomplete="new-password" placeholder="Enter your authorization code" spellcheck="false">
+        </div>
+
+        <div style="display:flex;gap:10px">
+          <button id="zw-ref-close" class="btn btn-secondary" style="flex:1">Close</button>
+          <button id="zw-ref-submit" class="btn btn-danger" style="flex:1;background:#e05050;border-color:#c03030">Confirm</button>
+        </div>
+        <div id="zw-ref-error" style="margin-top:12px;color:#e05050;font-size:12px;min-height:18px;text-align:center"></div>
+      </div>
+    `;
+    document.body.appendChild(el);
+
+    el.addEventListener('click', (e) => { if (e.target === el) zwCloseRefundModal(); });
+    document.getElementById('zw-ref-close').addEventListener('click', zwCloseRefundModal);
+    el.querySelectorAll('[name="zw-ref-act"]').forEach((r) => r.addEventListener('change', () => {
+      const partial = document.querySelector('[name="zw-ref-act"]:checked')?.value === 'refund';
+      document.getElementById('zw-ref-partial-row').style.display = partial ? 'block' : 'none';
+    }));
+    document.getElementById('zw-ref-submit').addEventListener('click', zwSubmitRefund);
+    document.getElementById('zw-ref-key').addEventListener('keydown', (e) => { if (e.key === 'Enter') zwSubmitRefund(); });
+  }
+
+  function zwOpenRefundModal(orderId, total, email) {
+    _zwRefOrderId = orderId;
+    _zwRefTotal   = parseFloat(total) || 0;
+    document.getElementById('zw-ref-summary').innerHTML =
+      `<strong>#${escapeHtml(String(orderId).slice(-8).toUpperCase())}</strong> &nbsp;·&nbsp; ${escapeHtml(email || 'Customer')} &nbsp;·&nbsp; <strong>${money(_zwRefTotal)}</strong>`;
+    document.getElementById('zw-ref-max-label').textContent = money(_zwRefTotal);
+    document.querySelector('[name="zw-ref-act"][value="cancel_refund"]').checked = true;
+    document.getElementById('zw-ref-partial-row').style.display = 'none';
+    document.getElementById('zw-ref-amount').value  = '';
+    document.getElementById('zw-ref-reason').value  = 'customer_request';
+    document.getElementById('zw-ref-key').value     = '';
+    document.getElementById('zw-ref-error').textContent = '';
+    const overlay = document.getElementById('zw-refund-overlay');
+    overlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => document.getElementById('zw-ref-key')?.focus(), 120);
+  }
+
+  function zwCloseRefundModal() {
+    const el = document.getElementById('zw-refund-overlay');
+    if (el) el.style.display = 'none';
+    document.body.style.overflow = '';
+    const key = document.getElementById('zw-ref-key');
+    if (key) key.value = '';
+  }
+
+  async function zwSubmitRefund() {
+    const action   = document.querySelector('[name="zw-ref-act"]:checked')?.value;
+    const refundKey = (document.getElementById('zw-ref-key')?.value || '').trim();
+    const reason   = document.getElementById('zw-ref-reason')?.value || 'customer_request';
+    const errEl    = document.getElementById('zw-ref-error');
+    const btn      = document.getElementById('zw-ref-submit');
+    if (errEl) errEl.textContent = '';
+
+    if (!refundKey) {
+      if (errEl) errEl.textContent = 'Authorization code is required.';
+      document.getElementById('zw-ref-key')?.focus();
+      return;
+    }
+
+    let amountCents = null;
+    if (action === 'refund') {
+      const raw = parseFloat(document.getElementById('zw-ref-amount')?.value || '');
+      if (!raw || raw <= 0)             { if (errEl) errEl.textContent = 'Enter a refund amount greater than $0.'; return; }
+      if (raw > _zwRefTotal + 0.005)    { if (errEl) errEl.textContent = `Cannot exceed order total of ${money(_zwRefTotal)}.`; return; }
+      amountCents = Math.round(raw * 100);
+    }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Processing…'; }
+
+    try {
+      const session = await window.sb.auth.getSession();
+      const token   = session?.data?.session?.access_token;
+      if (!token) throw new Error('Session expired. Refresh the page and try again.');
+
+      const resp = await fetch('/api/admin-refund', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ accessToken: token, orderId: _zwRefOrderId, refundKey, action, amountCents, reason }),
+      });
+      const data = await resp.json().catch(() => ({}));
+
+      if (!resp.ok || !data.success) {
+        if (errEl) errEl.textContent = data.error || 'Request failed. Try again.';
+        if (btn) { btn.disabled = false; btn.textContent = 'Confirm'; }
+        const keyEl = document.getElementById('zw-ref-key');
+        if (keyEl) { keyEl.value = ''; keyEl.focus(); }
+        return;
+      }
+
+      zwCloseRefundModal();
+      const label = action === 'cancel' ? 'Order cancelled' : action === 'cancel_refund' ? 'Order cancelled & refunded' : 'Partial refund issued';
+      const statusEl = $('commerceStatus');
+      if (statusEl) statusEl.textContent = `✓ ${label}${data.stripeRefundId ? ` — Stripe ${data.stripeRefundId}` : ''}`;
+      await loadCommerceData();
+    } catch (err) {
+      if (errEl) errEl.textContent = err.message || 'Network error. Try again.';
+      if (btn) { btn.disabled = false; btn.textContent = 'Confirm'; }
+      const keyEl = document.getElementById('zw-ref-key');
+      if (keyEl) { keyEl.value = ''; keyEl.focus(); }
+    }
   }
 
   function renderCustomerCrm() {
@@ -926,6 +1095,11 @@
   }
 
   function bindCommerceEvents() {
+    mountRefundModal();
+    document.querySelectorAll('[data-order-action="cancel-refund"]').forEach((btn) => {
+      btn.addEventListener('click', () => zwOpenRefundModal(btn.dataset.orderId, btn.dataset.orderTotal, btn.dataset.orderEmail));
+    });
+
     $('commerceAddPromoBtn')?.addEventListener('click', () => {
       state.config.promotions = [...(state.config.promotions || []), { code: '', label: '', type: 'percent', value: 10, minSubtotal: 0, description: '', active: true }];
       renderCommerce();
