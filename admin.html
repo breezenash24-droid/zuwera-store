@@ -4499,11 +4499,64 @@
                     <div id="ship-pagination" style="display:flex;gap:8px;justify-content:center;margin-top:16px;"></div>
                   </div>
 
+                  <!-- Return Shipments -->
+                  <div style="margin-top:32px;">
+                    <div style="margin-bottom:20px;">
+                      <h3 style="margin:0 0 4px;font-size:1rem;font-weight:700;">Return Shipments</h3>
+                      <p style="margin:0;color:var(--text-secondary);font-size:.85rem;">Return labels sent and packages in transit back to you.</p>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;margin-bottom:24px;">
+                      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                        <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Total Returns</p>
+                        <p id="ret-ship-total" style="font-size:24px;font-weight:700;">—</p>
+                      </div>
+                      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                        <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Labels Sent</p>
+                        <p id="ret-ship-labels" style="font-size:24px;font-weight:700;color:#38bdf8;">—</p>
+                      </div>
+                      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                        <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">In Transit</p>
+                        <p id="ret-ship-transit" style="font-size:24px;font-weight:700;color:#f59e0b;">—</p>
+                      </div>
+                      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                        <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Items Received</p>
+                        <p id="ret-ship-received" style="font-size:24px;font-weight:700;color:#34d399;">—</p>
+                      </div>
+                    </div>
+
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;">
+                      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+                        <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin:0;">Return Requests</p>
+                        <input id="ret-ship-search" type="text" placeholder="Search customer, order, tracking…" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:7px 12px;font-size:13px;color:var(--text-primary);width:260px;">
+                      </div>
+                      <div style="overflow-x:auto;">
+                        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                          <thead>
+                            <tr style="border-bottom:2px solid var(--border);">
+                              <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Date</th>
+                              <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Customer</th>
+                              <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Order</th>
+                              <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Reason</th>
+                              <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Carrier / Tracking</th>
+                              <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody id="ret-ship-tbody">
+                            <tr class="empty-row"><td colspan="6">Loading…</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+
                   <script>
                   (function() {
                     let _shipLoaded = false;
                     let _shipListenersAttached = false;
+                    let _retShipListenerAttached = false;
                     let _shipOrders = [];
+                    let _shipReturns = [];
                     let _shipPage = 1;
                     const PAGE_SIZE = 25;
 
@@ -4563,6 +4616,7 @@
 
                     window.shipLoadData = async function() {
                       sectionEl('ship-error').style.display = 'none';
+                      retShipLoad();
 
                       try {
                         const { data: orders, error } = await sb.from('orders')
@@ -4631,6 +4685,71 @@
 
                       } catch(e) { shipErr('Failed to load shipping data: ' + e.message); }
                     };
+
+                    const RET_STATUS_COLORS = {
+                      requested:'#f59e0b', approved:'#22c55e', label_sent:'#38bdf8',
+                      item_received:'#34d399', exchange_in_progress:'#a78bfa',
+                      completed:'#a78bfa', refunded:'#6b7280', closed:'#6b7280', denied:'#ef4444',
+                    };
+
+                    function retShipRender(list) {
+                      const tbody = sectionEl('ret-ship-tbody');
+                      if (!list.length) {
+                        tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No return requests found.</td></tr>';
+                        return;
+                      }
+                      tbody.innerHTML = list.map(r => {
+                        const color = RET_STATUS_COLORS[r.status] || 'var(--text-secondary)';
+                        const badge = `<span style="font-size:.7rem;letter-spacing:.07em;text-transform:uppercase;color:${color};border:1px solid ${color};padding:2px 7px;border-radius:4px;white-space:nowrap;">${escapeHtml(r.status || '—')}</span>`;
+                        const safeTrack = r.trackingUrl && /^https?:\/\//i.test(r.trackingUrl) ? r.trackingUrl : null;
+                        const trackCell = r.trackingNumber
+                          ? (safeTrack
+                              ? `<a href="${escapeAttr(safeTrack)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:none;">${escapeHtml(r.trackingNumber)}</a>`
+                              : escapeHtml(r.trackingNumber))
+                          : '—';
+                        const carrier = escapeHtml([r.carrier, r.service].filter(Boolean).join(' — ') || (r.trackingNumber ? '' : '—'));
+                        return `<tr style="border-bottom:1px solid var(--border);">
+                          <td style="padding:12px;white-space:nowrap;color:var(--text-secondary);font-size:.82rem;">${fmtDate(r.createdAt)}</td>
+                          <td style="padding:12px;"><div style="font-weight:600;">${escapeHtml(r.customerName || '—')}</div><div style="color:var(--text-secondary);font-size:.75rem;">${escapeHtml(r.customerEmail || '')}</div></td>
+                          <td style="padding:12px;font-family:monospace;font-size:.82rem;">${escapeHtml(r.orderLabel || '—')}<div style="font-family:inherit;color:var(--text-secondary);font-size:.72rem;">${r.orderTotal != null ? fmt$(r.orderTotal) : ''}</div></td>
+                          <td style="padding:12px;color:var(--text-secondary);font-size:.82rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeAttr(r.reason || '')}">${escapeHtml(r.reason || '—')}</td>
+                          <td style="padding:12px;"><div style="color:var(--text-secondary);font-size:.78rem;">${carrier}</div><div>${trackCell}</div></td>
+                          <td style="padding:12px;">${badge}</td>
+                        </tr>`;
+                      }).join('');
+                    }
+
+                    async function retShipLoad() {
+                      try {
+                        const { data: { session } } = await sb.auth.getSession();
+                        const token = session?.access_token;
+                        if (!token) return;
+                        const resp = await fetch('/api/admin-returns', { headers: { Authorization: `Bearer ${token}` } });
+                        const payload = resp.ok ? await resp.json().catch(() => ({})) : {};
+                        _shipReturns = Array.isArray(payload.requests) ? payload.requests.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) : [];
+
+                        sectionEl('ret-ship-total').textContent   = _shipReturns.length;
+                        sectionEl('ret-ship-labels').textContent  = _shipReturns.filter(r => r.labelUrl || r.trackingNumber).length;
+                        sectionEl('ret-ship-transit').textContent = _shipReturns.filter(r => r.status === 'label_sent').length;
+                        sectionEl('ret-ship-received').textContent= _shipReturns.filter(r => r.status === 'item_received').length;
+
+                        retShipRender(_shipReturns);
+
+                        if (!_retShipListenerAttached) {
+                          _retShipListenerAttached = true;
+                          sectionEl('ret-ship-search').addEventListener('input', function() {
+                            const q = this.value.toLowerCase();
+                            const filtered = q ? _shipReturns.filter(r =>
+                              (r.customerName||'').toLowerCase().includes(q) ||
+                              (r.customerEmail||'').toLowerCase().includes(q) ||
+                              (r.orderLabel||'').toLowerCase().includes(q) ||
+                              (r.trackingNumber||'').toLowerCase().includes(q)
+                            ) : _shipReturns;
+                            retShipRender(filtered);
+                          });
+                        }
+                      } catch { /* non-fatal — outbound shipping data still shows */ }
+                    }
                   })();
                   </script>
                 </div>
