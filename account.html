@@ -803,12 +803,13 @@ document.querySelectorAll('.acct-tab').forEach(b => {
 async function fetchProductImageMap() {
   if (!_sb) return {};
   try {
-    const { data } = await _sb.from('products').select('id, sku, image_url');
+    const { data } = await _sb.from('products').select('id, sku, title, image_url');
     const map = {};
     for (const p of data || []) {
       if (!p.image_url) continue;
-      if (p.id)  map[p.id]  = p.image_url;
-      if (p.sku) map[p.sku] = p.image_url;
+      if (p.id)    map[p.id]  = p.image_url;
+      if (p.sku)   map[p.sku] = p.image_url;
+      if (p.title) map[p.title.trim().toLowerCase()] = p.image_url;
     }
     return map;
   } catch(_) { return {}; }
@@ -878,8 +879,9 @@ async function loadOrders() {
             const storedImg = (i.image || i.imageUrl || i.img || '').trim();
             const validStored = storedImg && /^https?:\/\//i.test(storedImg) ? storedImg : '';
             const pid = i.productId || i.product_id || '';
-            const safeImg = validStored || productImgMap[pid] || productImgMap[i.sku] || '';
-            const name = escHtml((i.name || i.title || '').replace(/\p{Extended_Pictographic}/gu, '').trim());
+            const itemName = (i.name || i.title || '').replace(/\p{Extended_Pictographic}/gu, '').trim();
+            const safeImg = validStored || productImgMap[pid] || productImgMap[i.sku] || productImgMap[itemName.toLowerCase()] || '';
+            const name = escHtml(itemName);
             const attrs = [
               i.size ? escHtml(i.size) : '',
               (i.colorName || i.color) ? escHtml(i.colorName || i.color) : '',
@@ -1093,8 +1095,9 @@ function retBuildItemChips(order, productImgMap = {}) {
     const stored = i.image || i.imageUrl || i.img || '';
     const validStored = stored && /^https?:\/\//i.test(stored) ? stored : '';
     const pid = i.productId || i.product_id || '';
-    const safeImg = validStored || productImgMap[pid] || productImgMap[i.sku] || '';
-    const name = escHtml((i.name || i.title || '').replace(/\p{Extended_Pictographic}/gu, '').trim());
+    const itemName = (i.name || i.title || '').replace(/\p{Extended_Pictographic}/gu, '').trim();
+    const safeImg = validStored || productImgMap[pid] || productImgMap[i.sku] || productImgMap[itemName.toLowerCase()] || '';
+    const name = escHtml(itemName);
     const meta = [i.size ? escHtml(i.size) : '', (i.colorName || i.color) ? escHtml(i.colorName || i.color) : ''].filter(Boolean).join(' · ');
     const chipHref = pid ? `/product.html?id=${encodeURIComponent(pid)}` : i.sku ? `/product.html?sku=${encodeURIComponent(i.sku)}` : '';
     const chipTag = chipHref ? `a href="${escHtml(chipHref)}"` : 'div';
