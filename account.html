@@ -488,6 +488,8 @@
     body.light-mode .ret-item-chk { border-color: rgba(9,9,11,.3); }
     .ret-item-chk.checked { background: rgba(244,241,235,.9); border-color: rgba(244,241,235,.9); }
     body.light-mode .ret-item-chk.checked { background: #09090b; border-color: #09090b; }
+    .ret-item-meta { color: rgba(244,241,235,.45); }
+    body.light-mode .ret-item-meta { color: rgba(9,9,11,.5); }
 
     .ret-order-preview {
       display: none; flex-wrap: wrap; gap: .4rem;
@@ -1272,7 +1274,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
             ${img ? `<img src="${escHtml(img)}" alt="${name}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0;">` : ''}
             <div style="flex:1;min-width:0;">
               <div style="font-size:.8rem;font-weight:500;">${name}</div>
-              ${meta ? `<div style="font-size:.68rem;color:rgba(244,241,235,.4);margin-top:1px;">${meta}</div>` : ''}
+              ${meta ? `<div class="ret-item-meta" style="font-size:.68rem;margin-top:1px;">${meta}</div>` : ''}
             </div>
           </label>`;
         }).join('')}
