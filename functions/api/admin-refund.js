@@ -289,32 +289,97 @@ async function sendRefundEmail(env, { customerEmail, customerName, orderNumber, 
 
     if (!customerEmail || (!resendKey && !brevoKey)) return;
 
-    const isPartial  = action === 'refund';
-    const refundAmt  = stripeRefundAmount ? `$${(stripeRefundAmount / 100).toFixed(2)}` : `$${Number(orderTotal || 0).toFixed(2)}`;
-    const reasonText = reason === 'duplicate' ? 'Duplicate order'
-      : reason === 'fraudulent' ? 'Fraudulent transaction'
-      : reason === 'out_of_stock' ? 'Item out of stock'
+    const isPartial   = action === 'refund';
+    const refundAmt   = stripeRefundAmount ? `$${(stripeRefundAmount / 100).toFixed(2)}` : `$${Number(orderTotal || 0).toFixed(2)}`;
+    const orderAmt    = `$${Number(orderTotal || 0).toFixed(2)}`;
+    const firstName   = esc(String(customerName || '').split(' ')[0] || 'there');
+    const reasonText  = reason === 'duplicate'   ? 'Duplicate order'
+      : reason === 'fraudulent'                  ? 'Fraudulent transaction'
+      : reason === 'out_of_stock'                ? 'Item out of stock'
       : 'Customer request';
 
     const subject = isPartial
-      ? `Your partial refund for order ${orderNumber} is on its way`
-      : `Your refund for order ${orderNumber} is on its way`;
+      ? `Partial refund of ${refundAmt} processed — Order ${esc(orderNumber)}`
+      : `Your refund of ${refundAmt} is on its way — Order ${esc(orderNumber)}`;
 
-    const html = `
-<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#111;background:#fff">
-  <div style="border-top:3px solid #111;padding-top:20px">
-    <p style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#888;margin:0 0 18px">Zuwera</p>
-    <h2 style="margin:0 0 8px;font-size:1.3rem">Your refund is on its way</h2>
-    <p style="color:#555;margin:0 0 24px;font-size:14px;line-height:1.6">Hi ${esc(customerName)}, your ${isPartial ? 'partial refund' : 'refund'} for order <strong>${esc(orderNumber)}</strong> has been processed. The amount below will appear back on your original payment method within <strong>5–10 business days</strong> depending on your bank.</p>
-    <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:24px;border:1px solid #eee;border-radius:8px;overflow:hidden">
-      <tr style="background:#f9f9f9"><td style="padding:12px 16px;color:#888;width:40%">Order</td><td style="padding:12px 16px"><strong>${esc(orderNumber)}</strong></td></tr>
-      <tr><td style="padding:12px 16px;color:#888;border-top:1px solid #eee">Refund amount</td><td style="padding:12px 16px;border-top:1px solid #eee"><strong style="font-size:16px">${esc(refundAmt)}</strong></td></tr>
-      <tr style="background:#f9f9f9"><td style="padding:12px 16px;color:#888;border-top:1px solid #eee">Reason</td><td style="padding:12px 16px;border-top:1px solid #eee">${esc(reasonText)}</td></tr>
-    </table>
-    <p style="font-size:13px;color:#888;line-height:1.6">If you have any questions, reply to this email or contact us at <a href="mailto:${esc(fromEmail)}" style="color:#111">${esc(fromEmail)}</a>.</p>
-    <p style="font-size:12px;color:#bbb;margin-top:24px;border-top:1px solid #eee;padding-top:12px">Zuwera &nbsp;·&nbsp; This is an automated message</p>
-  </div>
-</body></html>`;
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${subject}</title></head>
+<body style="margin:0;padding:0;background:#f4f1eb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f1eb;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:540px;">
+
+        <!-- Header -->
+        <tr><td style="padding-bottom:28px;" align="center">
+          <p style="margin:0;font-size:13px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#09090b;">ZUWERA</p>
+        </td></tr>
+
+        <!-- Card -->
+        <tr><td style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.07);">
+
+          <!-- Green top bar -->
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="background:#09090b;padding:28px 36px 24px;">
+              <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.45);">${isPartial ? 'Partial Refund' : 'Refund Confirmed'}</p>
+              <h1 style="margin:0;font-size:26px;font-weight:800;color:#ffffff;line-height:1.2;">Your money is<br>on its way back.</h1>
+            </td></tr>
+
+            <!-- Refund amount hero -->
+            <tr><td style="background:#f4f1eb;padding:28px 36px;border-bottom:1px solid #e8e4db;">
+              <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#888;">Amount refunded</p>
+              <p style="margin:0;font-size:42px;font-weight:900;color:#09090b;letter-spacing:-.02em;">${esc(refundAmt)}</p>
+              ${isPartial ? `<p style="margin:6px 0 0;font-size:12px;color:#888;">Partial refund · Order total was ${esc(orderAmt)}</p>` : ''}
+            </td></tr>
+
+            <!-- Details -->
+            <tr><td style="padding:28px 36px;">
+              <p style="margin:0 0 20px;font-size:15px;color:#444;line-height:1.7;">Hi ${firstName}, we've processed your ${isPartial ? 'partial refund' : 'refund'}. Depending on your bank or card issuer, it will appear on your statement within <strong style="color:#09090b;">5–10 business days</strong>.</p>
+
+              <!-- Order summary table -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e8e4db;border-radius:8px;overflow:hidden;margin-bottom:24px;">
+                <tr style="background:#f9f7f3;">
+                  <td style="padding:11px 16px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#888;width:45%;">Order</td>
+                  <td style="padding:11px 16px;font-size:13px;font-weight:700;color:#09090b;">${esc(orderNumber)}</td>
+                </tr>
+                <tr style="border-top:1px solid #e8e4db;">
+                  <td style="padding:11px 16px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#888;">Refund</td>
+                  <td style="padding:11px 16px;font-size:13px;font-weight:700;color:#09090b;">${esc(refundAmt)}</td>
+                </tr>
+                <tr style="border-top:1px solid #e8e4db;background:#f9f7f3;">
+                  <td style="padding:11px 16px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#888;">Reason</td>
+                  <td style="padding:11px 16px;font-size:13px;color:#09090b;">${esc(reasonText)}</td>
+                </tr>
+                <tr style="border-top:1px solid #e8e4db;">
+                  <td style="padding:11px 16px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#888;">Timeline</td>
+                  <td style="padding:11px 16px;font-size:13px;color:#09090b;">5–10 business days</td>
+                </tr>
+              </table>
+
+              <!-- What to do block -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f1eb;border-radius:8px;margin-bottom:24px;">
+                <tr><td style="padding:16px 20px;">
+                  <p style="margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#888;">Don't see it after 10 days?</p>
+                  <p style="margin:0;font-size:13px;color:#555;line-height:1.6;">Check your bank statement for a credit from Stripe or Zuwera. If it still hasn't appeared, reply to this email and we'll look into it right away.</p>
+                </td></tr>
+              </table>
+
+              <p style="margin:0;font-size:13px;color:#888;line-height:1.6;">Questions? Reach us at <a href="mailto:${esc(fromEmail)}" style="color:#09090b;font-weight:600;">${esc(fromEmail)}</a></p>
+            </td></tr>
+          </table>
+
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="padding:24px 0 8px;" align="center">
+          <p style="margin:0;font-size:11px;color:#aaa;letter-spacing:.04em;">© ZUWERA · <a href="https://zuwera.store" style="color:#aaa;text-decoration:none;">zuwera.store</a> · This is an automated message</p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 
     if (resendKey) {
       await fetch('https://api.resend.com/emails', {
