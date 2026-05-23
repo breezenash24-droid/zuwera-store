@@ -737,27 +737,22 @@ function escHtml(v) {
   return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// Seeded with generic CSS colors as fallback; Zuwera colorways are merged in from DB at runtime
 const _COLOR_MAP = {
-  'blue':           '#3b82f6',
-  'blueish purple': '#7c6fcd',
-  'humanity':       '#c8a882',
-  'tennesee':       '#f97316',
-  'tennessee':      '#f97316',
-  'yellow':         '#facc15',
-  'black':          '#1a1a1a',
-  'white':          '#f5f5f0',
-  'red':            '#ef4444',
-  'green':          '#22c55e',
-  'navy':           '#1e3a5f',
-  'grey':           '#9ca3af',
-  'gray':           '#9ca3af',
-  'pink':           '#ec4899',
-  'orange':         '#f97316',
-  'purple':         '#a855f7',
-  'brown':          '#92400e',
-  'tan':            '#d4a96a',
-  'cream':          '#f5e6c8',
-  'beige':          '#e8d5b7',
+  'black':  '#1a1a1a',
+  'white':  '#f5f5f0',
+  'red':    '#ef4444',
+  'green':  '#22c55e',
+  'navy':   '#1e3a5f',
+  'grey':   '#9ca3af',
+  'gray':   '#9ca3af',
+  'pink':   '#ec4899',
+  'orange': '#f97316',
+  'purple': '#a855f7',
+  'brown':  '#92400e',
+  'tan':    '#d4a96a',
+  'cream':  '#f5e6c8',
+  'beige':  '#e8d5b7',
 };
 function colorSwatch(name) {
   if (!name) return '';
@@ -860,16 +855,23 @@ document.querySelectorAll('.acct-tab').forEach(b => {
 async function fetchProductImageMap() {
   if (!_sb) return { imgs: {}, ids: {} };
   try {
-    const { data } = await _sb.from('products').select('id, sku, title, image_url');
+    const [{ data: products }, { data: sizes }] = await Promise.all([
+      _sb.from('products').select('id, sku, title, image_url'),
+      _sb.from('product_sizes').select('color_name, color_hex').not('color_hex', 'is', null),
+    ]);
     const imgs = {}, ids = {};
-    for (const p of data || []) {
+    for (const p of products || []) {
       const key = p.title ? p.title.trim().toLowerCase() : null;
       if (p.id)  { ids[p.id]  = p.id; if (p.image_url) imgs[p.id]  = p.image_url; }
       if (p.sku) { ids[p.sku] = p.id; if (p.image_url) imgs[p.sku] = p.image_url; }
       if (key)   { ids[key]   = p.id; if (p.image_url) imgs[key]   = p.image_url; }
     }
-    return { imgs, ids };
-  } catch(_) { return { imgs: {}, ids: {} }; }
+    const colors = {};
+    for (const s of sizes || []) {
+      if (s.color_name && s.color_hex) colors[s.color_name.trim().toLowerCase()] = s.color_hex.trim();
+    }
+    return { imgs, ids, colors };
+  } catch(_) { return { imgs: {}, ids: {}, colors: {} }; }
 }
 
 function buildTrackingUrl(carrier, trackingNumber) {
@@ -905,7 +907,8 @@ async function loadOrders() {
     if (loading) loading.style.display = 'none';
     if (!data.length) { if (empty) empty.style.display = 'block'; return; }
 
-    const { imgs: productImgMap, ids: productIdMap } = await fetchProductImageMap();
+    const { imgs: productImgMap, ids: productIdMap, colors: colorMap } = await fetchProductImageMap();
+    if (colorMap) Object.assign(_COLOR_MAP, colorMap);
 
     list.dataset.loaded = '1';
     const ordersTab = document.querySelector('.acct-tab[data-tab="orders"]');
@@ -1095,7 +1098,8 @@ async function loadReturns() {
     if (loading) loading.style.display = 'none';
     content.dataset.loaded = '1';
 
-    const { imgs: productImgMap, ids: productIdMap } = await fetchProductImageMap();
+    const { imgs: productImgMap, ids: productIdMap, colors: colorMap } = await fetchProductImageMap();
+    if (colorMap) Object.assign(_COLOR_MAP, colorMap);
 
     renderReturnsContent(_hubPayload, productImgMap, productIdMap);
   } catch(err) {
