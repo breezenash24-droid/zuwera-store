@@ -446,7 +446,7 @@
               const override = state.orderOps[order.id] || {};
               const status = override.fulfillmentStatus || order.fulfillment_status || 'unfulfilled';
               return `<tr>
-                <td><strong>#${escapeHtml(String(order.id||'').slice(-8).toUpperCase())}</strong></td>
+                <td><strong>${escapeHtml(order.order_number || '#' + String(order.id||'').slice(-8).toUpperCase())}</strong></td>
                 <td>${escapeHtml(order.email || order.customer_name || 'Unknown')}</td>
                 <td class="cz-order-date">${fmtDate(order.created_at)}</td>
                 <td class="cz-order-total">${money(orderTotal(order))}</td>
@@ -668,7 +668,7 @@
               <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">
                 <div>
                   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                    <strong>#${escapeHtml(String(order.id || '').slice(-8).toUpperCase())}</strong>
+                    <strong>${escapeHtml(order.order_number || '#' + String(order.id || '').slice(-8).toUpperCase())}</strong>
                     <span class="${statusChipClass(fulfillStatus)}">${escapeHtml(fulfillStatus)}</span>
                     ${orderStatus !== 'active' ? `<span class="${statusChipClass(orderStatus)}">${escapeHtml(orderStatus)}</span>` : ''}
                     ${fraudStatus !== 'clear' ? `<span class="${statusChipClass(fraudStatus)}">${escapeHtml(fraudStatus)}</span>` : ''}
@@ -701,7 +701,7 @@
               </div>
               <div class="commerce-actions">
                 <button class="btn btn-secondary btn-sm" data-save-order="${escapeHtml(order.id)}">Save</button>
-                <button class="btn btn-danger btn-sm" data-order-action="cancel-refund" data-order-id="${escapeHtml(order.id)}" data-order-total="${total}" data-order-email="${escapeHtml(order.email || '')}">Cancel / Refund</button>
+                <button class="btn btn-danger btn-sm" data-order-action="cancel-refund" data-order-id="${escapeHtml(order.id)}" data-order-label="${escapeHtml(order.order_number || '#' + String(order.id||'').slice(-8).toUpperCase())}" data-order-total="${total}" data-order-email="${escapeHtml(order.email || '')}">Cancel / Refund</button>
               </div>
             </div>
           `;
@@ -793,11 +793,11 @@
     document.getElementById('zw-ref-key').addEventListener('keydown', (e) => { if (e.key === 'Enter') zwSubmitRefund(); });
   }
 
-  function zwOpenRefundModal(orderId, total, email) {
+  function zwOpenRefundModal(orderId, total, email, label) {
     _zwRefOrderId = orderId;
     _zwRefTotal   = parseFloat(total) || 0;
     document.getElementById('zw-ref-summary').innerHTML =
-      `<strong>#${escapeHtml(String(orderId).slice(-8).toUpperCase())}</strong> &nbsp;·&nbsp; ${escapeHtml(email || 'Customer')} &nbsp;·&nbsp; <strong>${money(_zwRefTotal)}</strong>`;
+      `<strong>${escapeHtml(label || String(orderId))}</strong> &nbsp;·&nbsp; ${escapeHtml(email || 'Customer')} &nbsp;·&nbsp; <strong>${money(_zwRefTotal)}</strong>`;
     document.getElementById('zw-ref-max-label').textContent = money(_zwRefTotal);
     document.querySelector('[name="zw-ref-act"][value="cancel_refund"]').checked = true;
     document.getElementById('zw-ref-partial-row').style.display = 'none';
@@ -1279,7 +1279,7 @@
     }
 
     document.querySelectorAll('[data-order-action="cancel-refund"]').forEach((btn) => {
-      btn.addEventListener('click', () => zwOpenRefundModal(btn.dataset.orderId, btn.dataset.orderTotal, btn.dataset.orderEmail));
+      btn.addEventListener('click', () => zwOpenRefundModal(btn.dataset.orderId, btn.dataset.orderTotal, btn.dataset.orderEmail, btn.dataset.orderLabel));
     });
 
     $('commerceAddPromoBtn')?.addEventListener('click', () => {

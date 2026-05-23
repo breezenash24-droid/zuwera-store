@@ -5387,6 +5387,9 @@
                                 <option value="Unisex">Unisex</option>
                                 <option value="Kids">Kids</option>
                             </select>
+                            <div id="categoryCodeBadge" style="display:none;margin-top:8px;font-size:12px;color:var(--text-secondary);">
+                                Order code: <strong id="categoryCodeValue" style="color:var(--accent);letter-spacing:.05em;"></strong>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Colorway / Summary Label</label>
@@ -7873,6 +7876,40 @@
             showToast('SKU generated: ' + newSku, 'success');
         });
 
+        // Category code derivation
+        function deriveCategoryCode(gender, subtitle) {
+            const g = (gender || '').toLowerCase();
+            const s = (subtitle || '').toLowerCase();
+            if (s === 'sports bras') return 'SBR';
+            if (s === 'caps' || s === 'beanies') return 'HAT';
+            if (['bags', 'socks', 'headbands', 'wristbands'].includes(s)) return 'ACC';
+            if (['tracksuits', 'matching sets', 'co-ord sets'].includes(s)) return 'SET';
+            if (['jackets', 'windbreakers', 'puffer jackets', 'vests'].includes(s)) return 'OUT';
+            if (g === 'kids') return 'KDS';
+            const prefix = g === 'men' ? 'M' : g === 'women' ? 'W' : g === 'unisex' ? 'U' : '';
+            if (!prefix) return '';
+            const bottoms = ['joggers', 'sweatpants', 'shorts', 'leggings', 'track pants', 'cargo pants'];
+            return prefix + (bottoms.includes(s) ? 'BT' : 'TP');
+        }
+
+        function updateCategoryBadge() {
+            const code = deriveCategoryCode(
+                document.getElementById('gender').value,
+                document.getElementById('subtitle').value
+            );
+            const badge = document.getElementById('categoryCodeBadge');
+            const val = document.getElementById('categoryCodeValue');
+            if (code && badge && val) {
+                val.textContent = code;
+                badge.style.display = 'block';
+            } else if (badge) {
+                badge.style.display = 'none';
+            }
+        }
+
+        document.getElementById('gender').addEventListener('change', updateCategoryBadge);
+        document.getElementById('subtitle').addEventListener('change', updateCategoryBadge);
+
         // Installment calculation
         document.getElementById('currentPrice').addEventListener('input', (e) => {
             const price = parseFloat(e.target.value);
@@ -9022,7 +9059,11 @@
                     status: publish ? document.getElementById('productStatus').value : 'Draft',
                     sort_order: document.getElementById('sortOrder').value ? parseInt(document.getElementById('sortOrder').value) : null,
                     low_stock_threshold: parseInt(document.getElementById('lowStockThreshold').value) || 10,
-                    image_url: imageUrls[0] || null
+                    image_url: imageUrls[0] || null,
+                    category: deriveCategoryCode(
+                        document.getElementById('gender').value,
+                        document.getElementById('subtitle').value
+                    ),
                 };
 
                 const sustainTags = [];
@@ -9152,6 +9193,7 @@
             document.getElementById('title').value = product.title;
             document.getElementById('subtitle').value = product.subtitle;
             document.getElementById('gender').value = product.gender;
+            updateCategoryBadge();
             document.getElementById('sizeGuideProfile').value = 'auto';
             document.getElementById('pomGuideSizeInput').value = '';
             document.getElementById('pomHeadCircIn').value = '';

@@ -329,6 +329,33 @@ async function saveOrderToSupabase(pi, meta, tracking, env) {
   }
 
   const items         = (() => { try { return JSON.parse(meta.items || '[]'); } catch { return []; } })();
+
+  // Generate structured order number (e.g. ZW-MTP-00143)
+  let orderNumber = null;
+  try {
+    const firstProductId = items[0]?.productId || items[0]?.product_id || '';
+    if (firstProductId) {
+      const catRes = await fetch(
+        `${env.SUPABASE_URL}/rest/v1/products?select=category&id=eq.${encodeURIComponent(firstProductId)}&limit=1`,
+        { headers: { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey } }
+      );
+      const catRows = catRes.ok ? await catRes.json().catch(() => []) : [];
+      const categoryCode = catRows[0]?.category || '';
+      if (categoryCode) {
+        const prefix = `ZW-${categoryCode}-`;
+        const countRes = await fetch(
+          `${env.SUPABASE_URL}/rest/v1/orders?select=id&order_number=like.${encodeURIComponent(prefix + '%')}`,
+          { headers: { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey, Prefer: 'count=exact' } }
+        );
+        const countHeader = countRes.headers?.get('content-range') || '';
+        const total = parseInt(countHeader.split('/')[1] || '0', 10) || 0;
+        orderNumber = prefix + String(total + 1).padStart(5, '0');
+      }
+    }
+  } catch (e) {
+    console.warn('Order number generation failed (non-fatal):', e.message);
+  }
+
   const subtotalCents = parseInt(meta.subtotal_amount_cents    || '0', 10);
   // charged_shipping_cents = what the customer actually paid (0 for free shipping)
   const shippingCents = parseInt(meta.charged_shipping_cents   || meta.shipping_amount_cents || '0', 10);
@@ -365,6 +392,7 @@ async function saveOrderToSupabase(pi, meta, tracking, env) {
       tracking_url:      tracking.url,
       label_url:         tracking.label,
       status:           'confirmed',
+      order_number:      orderNumber,
     }),
   });
 
