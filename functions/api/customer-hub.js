@@ -160,6 +160,7 @@ export async function onRequestPost({ request, env }) {
         || user.email
         || ''
       ).trim();
+      const submittedItems = Array.isArray(body.returnItems) ? body.returnItems : [];
       const nextRequest = {
         id: requestId,
         userId: user.id,
@@ -172,6 +173,7 @@ export async function onRequestPost({ request, env }) {
         notes: String(body.notes || '').trim(),
         status: 'requested',
         createdAt: new Date().toISOString(),
+        returnItems: submittedItems.slice(0, 20),
       };
       if (!nextRequest.orderId || !nextRequest.reason) {
         return json({ success: false, error: 'Order and reason are required.' }, 400, cors(env));
@@ -185,6 +187,16 @@ export async function onRequestPost({ request, env }) {
       nextRequest.customerName = String(matchedOrder.customer_name || userName || nextRequest.customerEmail || 'Customer').trim();
       nextRequest.orderTotal = Number(matchedOrder.total || matchedOrder.total_amount || 0);
       nextRequest.orderCreatedAt = matchedOrder.created_at || '';
+      try {
+        const allItems = typeof matchedOrder.items === 'string' ? JSON.parse(matchedOrder.items) : (Array.isArray(matchedOrder.items) ? matchedOrder.items : []);
+        nextRequest.orderItems = allItems;
+        // If customer selected specific items, validate they're plausible (name match)
+        if (nextRequest.returnItems.length > 0) {
+          const allNames = new Set(allItems.map(i => String(i.name || i.title || '').trim().toLowerCase()));
+          nextRequest.returnItems = nextRequest.returnItems.filter(i => allNames.has(String(i.name || i.title || '').trim().toLowerCase()));
+        }
+        if (nextRequest.returnItems.length === 0) nextRequest.returnItems = allItems;
+      } catch (_) { nextRequest.orderItems = []; }
       nextRequest.shippingAddress = {
         name: nextRequest.customerName,
         line1: matchedOrder.ship_line1 || '',

@@ -92,6 +92,9 @@ function enrichRequests(requests = [], orders = [], profiles = []) {
       orderCreatedAt: request.orderCreatedAt || order.created_at || '',
       shippingAddress: request.shippingAddress || addressFromOrder(order),
       orderItems: request.orderItems || order.items || [],
+      returnItems: Array.isArray(request.returnItems) && request.returnItems.length > 0
+        ? request.returnItems
+        : (request.orderItems || order.items || []),
     };
   });
 }

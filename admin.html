@@ -2137,13 +2137,21 @@
                         const id = retAttr(r.id || '');
                         const a = r.shippingAddress || {};
                         const orderLabel = r.orderLabel || ('#' + String(r.orderId || '').slice(-8).toUpperCase());
-                        const items = Array.isArray(r.orderItems) ? r.orderItems : [];
-                        const itemsHtml = items.length ? items.map(item => {
-                            const name = item.name || item.title || item.product_title || 'Item';
-                            const qty = item.quantity || item.qty || 1;
-                            const meta = [item.sku, item.size, item.color || item.colorName].filter(Boolean).join(' / ');
-                            return `<div style="display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border);padding:8px 0;"><div><div style="font-weight:600;">${escapeHtml(name)}</div><div style="color:var(--text-secondary);font-size:.75rem;">${escapeHtml(meta || 'No variant data')}</div></div><div style="text-align:right;color:var(--text-secondary);font-size:.8rem;">x${escapeHtml(qty)}<br>${retMoney(item.price || item.unit_price || 0)}</div></div>`;
-                        }).join('') : '<p style="color:var(--text-secondary);font-size:.82rem;">No line item data saved for this request.</p>';
+                        function renderItemRows(items) {
+                            return items.length ? items.map(item => {
+                                const name = item.name || item.title || item.product_title || 'Item';
+                                const qty = item.quantity || item.qty || 1;
+                                const meta = [item.sku, item.size, item.color || item.colorName].filter(Boolean).join(' / ');
+                                return `<div style="display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border);padding:8px 0;"><div><div style="font-weight:600;">${escapeHtml(name)}</div><div style="color:var(--text-secondary);font-size:.75rem;">${escapeHtml(meta || 'No variant data')}</div></div><div style="text-align:right;color:var(--text-secondary);font-size:.8rem;">x${escapeHtml(String(qty))}<br>${retMoney(item.price || item.unit_price || 0)}</div></div>`;
+                            }).join('') : '<p style="color:var(--text-secondary);font-size:.82rem;">No line item data.</p>';
+                        }
+                        const returnItems = Array.isArray(r.returnItems) && r.returnItems.length ? r.returnItems : null;
+                        const orderItems = Array.isArray(r.orderItems) ? r.orderItems : [];
+                        const isPartial = returnItems && orderItems.length > 0 && returnItems.length < orderItems.length;
+                        const returnItemsHtml = renderItemRows(returnItems || orderItems);
+                        const orderItemsHtml = isPartial
+                            ? `<details style="margin-top:.75rem;"><summary style="font-size:.72rem;color:var(--text-secondary);cursor:pointer;user-select:none;">Full order (${orderItems.length} item${orderItems.length !== 1 ? 's' : ''})</summary><div style="margin-top:.5rem;">${renderItemRows(orderItems)}</div></details>`
+                            : '';
                         const _detailLabelUrl = retSafeUrl(r.labelUrl);
                         const _detailTrackUrl = retSafeUrl(r.trackingUrl);
                         const labelLinks = _detailLabelUrl
@@ -2256,8 +2264,12 @@
                                     </div>
 
                                     <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:1rem;">
-                                        <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.6rem;">Order Items</div>
-                                        ${itemsHtml}
+                                        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.6rem;">
+                                            <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);">Items Being Returned</div>
+                                            ${isPartial ? `<span style="font-size:.68rem;padding:.15rem .45rem;border-radius:4px;background:rgba(251,191,36,.15);color:#fbbf24;border:1px solid rgba(251,191,36,.3);">Partial return</span>` : ''}
+                                        </div>
+                                        ${returnItemsHtml}
+                                        ${orderItemsHtml}
                                     </div>
                                 </div>
                             </div>`;
