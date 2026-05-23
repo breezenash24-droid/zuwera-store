@@ -881,8 +881,8 @@ async function loadOrders() {
             const rawPid = i.productId || i.product_id || '';
             const itemName = (i.name || i.title || '').replace(/\p{Extended_Pictographic}/gu, '').trim();
             const nameKey = itemName.toLowerCase();
-            const resolvedId = productIdMap[rawPid] || productIdMap[i.sku] || productIdMap[nameKey] || '';
-            const safeImg = validStored || productImgMap[rawPid] || productImgMap[i.sku] || productImgMap[nameKey] || '';
+            const resolvedId = productIdMap[nameKey] || productIdMap[rawPid] || productIdMap[i.sku] || '';
+            const safeImg = validStored || productImgMap[nameKey] || productImgMap[rawPid] || productImgMap[i.sku] || '';
             const name = escHtml(itemName);
             const attrs = [
               i.size ? escHtml(i.size) : '',
