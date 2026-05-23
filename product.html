@@ -1215,9 +1215,13 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
 <!-- REVIEW MODAL -->
 <div id="review-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
   <div class="review-mbox">
-    <button class="mclose" id="review-modal-close" aria-label="Close">&#215;</button>
-    <h2 id="review-modal-title">Write a Review</h2>
-    <p class="review-product-label" id="review-product-label"></p>
+    <div class="review-mbox-hd">
+      <div>
+        <p class="review-mbox-eyebrow" id="review-product-label"></p>
+        <h2 class="review-mbox-title" id="review-modal-title">Write a Review</h2>
+      </div>
+      <button class="mclose" id="review-modal-close" aria-label="Close">&#215;</button>
+    </div>
 
     <div class="star-selector" id="star-selector" role="group" aria-label="Star rating">
       <button type="button" data-v="1" aria-label="1 star">&#9733;</button>
