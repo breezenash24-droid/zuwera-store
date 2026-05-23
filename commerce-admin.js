@@ -36,6 +36,8 @@
     products: [],
     productSizes: [],
     edgeMetrics: null,
+    activeTab: 'overview',
+    orderSearch: '',
   };
 
   function $(id) {
@@ -147,6 +149,7 @@
     const style = document.createElement('style');
     style.id = 'commerce-admin-style';
     style.textContent = `
+      /* ── Layout ── */
       .commerce-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; margin-bottom:24px; }
       .commerce-card { background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:20px; }
       .commerce-card h3 { margin-bottom:10px; }
@@ -155,7 +158,6 @@
       .commerce-muted { color:var(--text-secondary); font-size:13px; }
       .commerce-input-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
       .commerce-promo-item, .commerce-return-item, .commerce-order-item, .commerce-customer-item, .commerce-location-item { background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:14px; }
-      .commerce-chip { display:inline-flex; align-items:center; padding:4px 10px; border-radius:999px; background:rgba(248,145,165,0.14); color:var(--accent); font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
       .commerce-section-title { margin:26px 0 14px; padding-bottom:8px; border-bottom:1px solid var(--border); }
       .commerce-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
       .commerce-mini-table { width:100%; border-collapse:collapse; }
@@ -163,6 +165,44 @@
       .commerce-location-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-top:14px; }
       .commerce-note { font-size:12px; color:var(--text-secondary); margin-top:6px; }
       .commerce-loc-inputs { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:8px; }
+
+      /* ── Tabs ── */
+      .cz-tabs { display:flex; gap:2px; border-bottom:2px solid var(--border); margin-bottom:22px; overflow-x:auto; scrollbar-width:none; }
+      .cz-tabs::-webkit-scrollbar { display:none; }
+      .cz-tab { padding:10px 18px; font-size:13px; font-weight:600; color:var(--text-secondary); background:none; border:none; border-bottom:2px solid transparent; margin-bottom:-2px; cursor:pointer; white-space:nowrap; transition:color .15s,border-color .15s; border-radius:0; }
+      .cz-tab:hover { color:var(--text-primary,#fff); }
+      .cz-tab.active { color:var(--accent,#f891a5); border-bottom-color:var(--accent,#f891a5); }
+
+      /* ── Status chips ── */
+      .commerce-chip { display:inline-flex; align-items:center; padding:3px 9px; border-radius:4px; font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
+      .cz-chip-unfulfilled { background:rgba(255,200,60,.13); color:#f5c842; }
+      .cz-chip-picking, .cz-chip-packed { background:rgba(100,160,255,.13); color:#7ab4ff; }
+      .cz-chip-shipped { background:rgba(80,190,255,.14); color:#50bfff; }
+      .cz-chip-delivered { background:rgba(80,220,140,.14); color:#50dc8c; }
+      .cz-chip-returned { background:rgba(180,120,255,.14); color:#b478ff; }
+      .cz-chip-cancelled { background:rgba(224,80,80,.13); color:#e05050; }
+      .cz-chip-refunded { background:rgba(180,120,255,.14); color:#b478ff; }
+      .cz-chip-paid, .cz-chip-clear { background:rgba(80,220,140,.12); color:#50dc8c; }
+      .cz-chip-review { background:rgba(255,200,60,.13); color:#f5c842; }
+      .cz-chip-high_risk { background:rgba(224,80,80,.15); color:#e05050; }
+      .cz-chip-blocked { background:rgba(180,30,30,.2); color:#ff6060; }
+      .cz-chip-default { background:rgba(248,145,165,0.14); color:var(--accent,#f891a5); }
+
+      /* ── Stat cards ── */
+      .cz-stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:24px; }
+      .cz-stat { background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:18px 20px; }
+      .cz-stat-label { font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--text-secondary); margin-bottom:8px; }
+      .cz-stat-value { font-size:28px; font-weight:800; line-height:1; }
+      .cz-stat-sub { font-size:11px; color:var(--text-secondary); margin-top:6px; }
+
+      /* ── Order search ── */
+      .cz-order-search { position:relative; margin-bottom:16px; }
+      .cz-order-search input { width:100%; padding:9px 14px 9px 36px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:8px; color:var(--text-primary,#fff); font-size:13px; box-sizing:border-box; }
+      .cz-order-search input:focus { outline:none; border-color:var(--accent,#f891a5); }
+      .cz-order-search::before { content:"⌕"; position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-secondary); font-size:16px; pointer-events:none; }
+      .cz-order-meta { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+      .cz-order-date { font-size:11px; color:var(--text-secondary); }
+      .cz-order-total { font-size:13px; font-weight:700; }
     `;
     document.head.appendChild(style);
   }
@@ -347,6 +387,96 @@
     };
   }
 
+  function statusChipClass(status) {
+    const s = String(status || '').toLowerCase().replace(/\s+/g, '_');
+    const known = ['unfulfilled','picking','packed','shipped','delivered','returned','cancelled','refunded','paid','clear','review','high_risk','blocked'];
+    return known.includes(s) ? `commerce-chip cz-chip-${s}` : 'commerce-chip cz-chip-default';
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    return d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' })
+      + ' · ' + d.toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit' });
+  }
+
+  const TABS = [
+    { id:'overview',   label:'Overview' },
+    { id:'orders',     label:'Orders' },
+    { id:'returns',    label:'Returns' },
+    { id:'promotions', label:'Promotions' },
+    { id:'inventory',  label:'Inventory' },
+    { id:'customers',  label:'Customers' },
+    { id:'settings',   label:'Settings' },
+  ];
+
+  function renderTabs() {
+    return `<div class="cz-tabs" id="czTabBar">
+      ${TABS.map(t => `<button class="cz-tab${state.activeTab === t.id ? ' active' : ''}" data-tab="${t.id}">${t.label}</button>`).join('')}
+    </div>`;
+  }
+
+  function renderOverview() {
+    const metrics = computeConversionMetrics();
+    const invMetrics = computeInventoryMetrics();
+    const openReturns = (state.returnsState.requests || []).filter(r => !['closed','refunded'].includes(r.status)).length;
+    const livePromos = (state.config.promotions || []).filter(p => p.active !== false).length;
+    const recentOrders = state.orders.slice(0, 8);
+
+    return `
+      <div class="cz-stat-grid">
+        <div class="cz-stat"><div class="cz-stat-label">Total Revenue</div><div class="cz-stat-value">${money(metrics.revenue)}</div><div class="cz-stat-sub">${metrics.totalOrders} orders</div></div>
+        <div class="cz-stat"><div class="cz-stat-label">Avg Order Value</div><div class="cz-stat-value">${money(metrics.aov)}</div><div class="cz-stat-sub">per transaction</div></div>
+        <div class="cz-stat"><div class="cz-stat-label">Repeat Rate</div><div class="cz-stat-value">${metrics.repeatRate.toFixed(1)}%</div><div class="cz-stat-sub">${metrics.repeatCustomers} repeat buyers</div></div>
+        <div class="cz-stat"><div class="cz-stat-label">Open Returns</div><div class="cz-stat-value">${openReturns}</div><div class="cz-stat-sub">awaiting action</div></div>
+        <div class="cz-stat"><div class="cz-stat-label">Low-Stock Variants</div><div class="cz-stat-value">${invMetrics.lowStockCount}</div><div class="cz-stat-sub">below reorder point</div></div>
+        <div class="cz-stat"><div class="cz-stat-label">Live Promotions</div><div class="cz-stat-value">${livePromos}</div><div class="cz-stat-sub">active discount codes</div></div>
+      </div>
+
+      <div class="commerce-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <h3 style="margin:0">Recent Orders</h3>
+          <button class="btn btn-secondary btn-sm" data-tab="orders">View All</button>
+        </div>
+        <table class="commerce-mini-table">
+          <thead><tr><th>Order</th><th>Customer</th><th>Date</th><th>Total</th><th>Status</th></tr></thead>
+          <tbody>
+            ${recentOrders.length ? recentOrders.map(order => {
+              const override = state.orderOps[order.id] || {};
+              const status = override.fulfillmentStatus || order.fulfillment_status || 'unfulfilled';
+              return `<tr>
+                <td><strong>#${escapeHtml(String(order.id||'').slice(-8).toUpperCase())}</strong></td>
+                <td>${escapeHtml(order.email || order.customer_name || 'Unknown')}</td>
+                <td class="cz-order-date">${fmtDate(order.created_at)}</td>
+                <td class="cz-order-total">${money(orderTotal(order))}</td>
+                <td><span class="${statusChipClass(status)}">${escapeHtml(status)}</span></td>
+              </tr>`;
+            }).join('') : '<tr><td colspan="5" class="commerce-muted">No orders yet.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+
+      ${invMetrics.lowStockCount > 0 ? `
+      <div class="commerce-card" style="margin-top:16px;border-color:rgba(255,200,60,.25);">
+        <h3 style="color:#f5c842;margin-bottom:12px">⚠ Low-Stock Alert</h3>
+        <table class="commerce-mini-table">
+          <thead><tr><th>Product</th><th>Variant</th><th>Available</th><th>Reorder at</th></tr></thead>
+          <tbody>
+            ${invMetrics.rows.filter(r => r.lowStock).slice(0, 6).map(r => `
+              <tr>
+                <td><strong>${escapeHtml(r.productTitle)}</strong></td>
+                <td>${escapeHtml(r.variantLabel)}</td>
+                <td style="color:#f5c842;font-weight:700">${r.available}</td>
+                <td>${r.reorderPoint}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>` : ''}
+    `;
+  }
+
   function renderPromotions() {
     const promos = Array.isArray(state.config.promotions) ? state.config.promotions : [];
     const showPromo = state.config.show_promo_code !== false;
@@ -509,50 +639,74 @@
   }
 
   function renderOrderWorkflow() {
+    const q = state.orderSearch.toLowerCase().trim();
+    const filtered = q
+      ? state.orders.filter(o =>
+          String(o.id||'').toLowerCase().includes(q) ||
+          String(o.email||'').toLowerCase().includes(q) ||
+          String(o.customer_name||'').toLowerCase().includes(q) ||
+          String(o.status||'').toLowerCase().includes(q) ||
+          String(o.fulfillment_status||'').toLowerCase().includes(q)
+        )
+      : state.orders;
+    const visible = filtered.slice(0, 50);
+
     return `
-      <div class="commerce-card">
-        <h3>Order Management Workflow</h3>
-        <div class="commerce-muted">Track fulfillment state, fraud review, notes, tags, cancellations, refunds, and tracking from one place.</div>
-        <div style="margin-top:14px;">
-          ${state.orders.slice(0, 15).map((order) => {
-            const override = state.orderOps[order.id] || {};
-            const total = orderTotal(order);
-            return `
-              <div class="commerce-order-item" data-order-id="${escapeHtml(order.id)}">
-                <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;">
-                  <div>
+      <div class="cz-order-search">
+        <input id="czOrderSearch" type="text" placeholder="Search by order ID, email, or status…" value="${escapeHtml(state.orderSearch)}">
+      </div>
+      <div class="commerce-muted" style="margin-bottom:12px;">Showing ${visible.length} of ${filtered.length} orders${q ? ` matching "${escapeHtml(q)}"` : ''}</div>
+      <div>
+        ${visible.map((order) => {
+          const override = state.orderOps[order.id] || {};
+          const total = orderTotal(order);
+          const fulfillStatus = override.fulfillmentStatus || order.fulfillment_status || 'unfulfilled';
+          const fraudStatus = override.fraudStatus || 'clear';
+          const orderStatus = order.status || 'pending';
+          return `
+            <div class="commerce-order-item" data-order-id="${escapeHtml(order.id)}">
+              <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">
+                <div>
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                     <strong>#${escapeHtml(String(order.id || '').slice(-8).toUpperCase())}</strong>
-                    <div class="commerce-muted">${escapeHtml(order.email || order.customer_name || 'Unknown customer')} - ${money(total)}</div>
+                    <span class="${statusChipClass(fulfillStatus)}">${escapeHtml(fulfillStatus)}</span>
+                    ${orderStatus !== 'active' ? `<span class="${statusChipClass(orderStatus)}">${escapeHtml(orderStatus)}</span>` : ''}
+                    ${fraudStatus !== 'clear' ? `<span class="${statusChipClass(fraudStatus)}">${escapeHtml(fraudStatus)}</span>` : ''}
                   </div>
-                  <span class="commerce-chip">${escapeHtml(override.fulfillmentStatus || order.fulfillment_status || 'unfulfilled')}</span>
-                </div>
-                <div class="commerce-input-grid" style="margin-top:12px;">
-                  <div><label>Fulfillment</label>
-                    <select class="form-select" data-order-field="fulfillmentStatus">
-                      ${['unfulfilled', 'picking', 'packed', 'shipped', 'delivered', 'returned'].map((value) => `<option value="${value}" ${(override.fulfillmentStatus || 'unfulfilled') === value ? 'selected' : ''}>${value}</option>`).join('')}
-                    </select>
+                  <div class="cz-order-meta" style="margin-top:5px;">
+                    <span>${escapeHtml(order.email || order.customer_name || 'Unknown customer')}</span>
+                    <span class="cz-order-date">${fmtDate(order.created_at)}</span>
+                    <span class="cz-order-total">${money(total)}</span>
                   </div>
-                  <div><label>Fraud</label>
-                    <select class="form-select" data-order-field="fraudStatus">
-                      ${['clear', 'review', 'high_risk', 'blocked'].map((value) => `<option value="${value}" ${(override.fraudStatus || 'clear') === value ? 'selected' : ''}>${value}</option>`).join('')}
-                    </select>
-                  </div>
-                  <div><label>Tracking #</label><input class="form-input" data-order-field="trackingNumber" value="${escapeHtml(override.trackingNumber || order.tracking_number || '')}"></div>
-                  <div><label>Tracking URL</label><input class="form-input" data-order-field="trackingUrl" value="${escapeHtml(override.trackingUrl || order.tracking_url || '')}"></div>
-                </div>
-                <div class="commerce-input-grid" style="margin-top:10px;">
-                  <div><label>Tags</label><input class="form-input" data-order-field="tags" value="${escapeHtml(Array.isArray(override.tags) ? override.tags.join(', ') : '')}" placeholder="vip, launch-day, wholesale"></div>
-                  <div><label>Internal notes</label><input class="form-input" data-order-field="notes" value="${escapeHtml(override.notes || '')}" placeholder="Refund approved, size swap pending"></div>
-                </div>
-                ${(() => { try { const its = JSON.parse(order.items || '[]'); if (Array.isArray(its) && its.length) return `<div style="margin:8px 0 2px;font-size:12px;color:var(--text-secondary,#888)">${its.map((it) => `${escapeHtml(it.name || it.title || 'Item')} ×${it.quantity || 1}${it.size ? ` · ${escapeHtml(it.size)}` : ''}`).join(', ')}</div>`; } catch {} return ''; })()}
-                <div class="commerce-actions">
-                  <button class="btn btn-secondary btn-sm" data-save-order="${escapeHtml(order.id)}">Save Workflow</button>
-                  <button class="btn btn-danger btn-sm" data-order-action="cancel-refund" data-order-id="${escapeHtml(order.id)}" data-order-total="${total}" data-order-email="${escapeHtml(order.email || '')}">Cancel / Refund</button>
                 </div>
               </div>
-            `;
-          }).join('')}
-        </div>
+              ${(() => { try { const its = parseOrderItems(order); if (its.length) return `<div style="margin:8px 0 4px;font-size:12px;color:var(--text-secondary,#888);line-height:1.6">${its.map((it) => `${escapeHtml(it.name || it.title || 'Item')} ×${it.quantity || 1}${it.size ? ` · ${escapeHtml(it.size)}` : ''}`).join(' &nbsp;·&nbsp; ')}</div>`; } catch {} return ''; })()}
+              <div class="commerce-input-grid" style="margin-top:12px;">
+                <div><label>Fulfillment</label>
+                  <select class="form-select" data-order-field="fulfillmentStatus">
+                    ${['unfulfilled', 'picking', 'packed', 'shipped', 'delivered', 'returned'].map((value) => `<option value="${value}" ${fulfillStatus === value ? 'selected' : ''}>${value}</option>`).join('')}
+                  </select>
+                </div>
+                <div><label>Fraud</label>
+                  <select class="form-select" data-order-field="fraudStatus">
+                    ${['clear', 'review', 'high_risk', 'blocked'].map((value) => `<option value="${value}" ${fraudStatus === value ? 'selected' : ''}>${value}</option>`).join('')}
+                  </select>
+                </div>
+                <div><label>Tracking #</label><input class="form-input" data-order-field="trackingNumber" value="${escapeHtml(override.trackingNumber || order.tracking_number || '')}"></div>
+                <div><label>Tracking URL</label><input class="form-input" data-order-field="trackingUrl" value="${escapeHtml(override.trackingUrl || order.tracking_url || '')}"></div>
+              </div>
+              <div class="commerce-input-grid" style="margin-top:10px;">
+                <div><label>Tags</label><input class="form-input" data-order-field="tags" value="${escapeHtml(Array.isArray(override.tags) ? override.tags.join(', ') : '')}" placeholder="vip, launch-day, wholesale"></div>
+                <div><label>Internal notes</label><input class="form-input" data-order-field="notes" value="${escapeHtml(override.notes || '')}" placeholder="Refund approved, size swap pending"></div>
+              </div>
+              <div class="commerce-actions">
+                <button class="btn btn-secondary btn-sm" data-save-order="${escapeHtml(order.id)}">Save</button>
+                <button class="btn btn-danger btn-sm" data-order-action="cancel-refund" data-order-id="${escapeHtml(order.id)}" data-order-total="${total}" data-order-email="${escapeHtml(order.email || '')}">Cancel / Refund</button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+        ${visible.length === 0 ? '<div class="commerce-muted">No orders match your search.</div>' : ''}
       </div>
     `;
   }
@@ -946,34 +1100,35 @@
     mountCommerceStyles();
     const mount = $('commerceMount');
     if (!mount) return;
-    const metrics = computeConversionMetrics();
-    const inventoryMetrics = computeInventoryMetrics();
-    mount.innerHTML = `
-      <div class="commerce-grid">
-        <div class="stat-card"><div class="stat-card-title">Live Promotions</div><div class="stat-card-value">${(state.config.promotions || []).filter((promo) => promo.active !== false).length}</div></div>
-        <div class="stat-card"><div class="stat-card-title">Open Return Requests</div><div class="stat-card-value">${(state.returnsState.requests || []).filter((request) => !['closed', 'refunded'].includes(request.status)).length}</div></div>
-        <div class="stat-card"><div class="stat-card-title">Tracked Customers</div><div class="stat-card-value">${computeCustomerRows().length}</div></div>
-        <div class="stat-card"><div class="stat-card-title">Commerce Revenue</div><div class="stat-card-value">${money(metrics.revenue)}</div></div>
-        <div class="stat-card"><div class="stat-card-title">Reserved Units</div><div class="stat-card-value">${inventoryMetrics.totalReserved}</div></div>
-        <div class="stat-card"><div class="stat-card-title">Low-Stock Variants</div><div class="stat-card-value">${inventoryMetrics.lowStockCount}</div></div>
-      </div>
-      ${renderPromotions()}
-      <div class="commerce-section-title">Post-Purchase Operations</div>
-      <div class="commerce-grid">
-        ${renderReturns()}
-        ${renderOrderWorkflow()}
-      </div>
-      <div class="commerce-section-title">Customer Growth</div>
-      <div class="commerce-grid">
-        ${renderCustomerCrm()}
-        ${renderIntegrations()}
-      </div>
-      <div class="commerce-section-title">Merchandising & Analytics</div>
-      <div class="commerce-grid">
-        ${renderInventoryDepth()}
-        ${renderAnalytics()}
-      </div>
-    `;
+
+    let tabContent = '';
+    switch (state.activeTab) {
+      case 'overview':
+        tabContent = renderOverview();
+        break;
+      case 'orders':
+        tabContent = `<div class="commerce-card">${renderOrderWorkflow()}</div>`;
+        break;
+      case 'returns':
+        tabContent = renderReturns();
+        break;
+      case 'promotions':
+        tabContent = renderPromotions();
+        break;
+      case 'inventory':
+        tabContent = renderInventoryDepth();
+        break;
+      case 'customers':
+        tabContent = renderCustomerCrm();
+        break;
+      case 'settings':
+        tabContent = renderIntegrations() + '<div style="margin-top:16px;">' + renderAnalytics() + '</div>';
+        break;
+      default:
+        tabContent = renderOverview();
+    }
+
+    mount.innerHTML = renderTabs() + tabContent;
     bindCommerceEvents();
   }
 
@@ -1096,6 +1251,33 @@
 
   function bindCommerceEvents() {
     mountRefundModal();
+
+    // Tab navigation
+    document.querySelectorAll('.cz-tab').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.activeTab = btn.dataset.tab;
+        renderCommerce();
+      });
+    });
+
+    // "View All" from overview recent orders table
+    document.querySelectorAll('[data-tab]').forEach((btn) => {
+      if (btn.classList.contains('cz-tab')) return;
+      btn.addEventListener('click', () => {
+        state.activeTab = btn.dataset.tab;
+        renderCommerce();
+      });
+    });
+
+    // Order search
+    const searchEl = $('czOrderSearch');
+    if (searchEl) {
+      searchEl.addEventListener('input', () => {
+        state.orderSearch = searchEl.value;
+        renderCommerce();
+      });
+    }
+
     document.querySelectorAll('[data-order-action="cancel-refund"]').forEach((btn) => {
       btn.addEventListener('click', () => zwOpenRefundModal(btn.dataset.orderId, btn.dataset.orderTotal, btn.dataset.orderEmail));
     });
@@ -1253,7 +1435,7 @@
 
   async function saveSettings(message) {
     $('commerceStatus').textContent = 'Saving commerce settings...';
-    state.config.promotions = readPromotionsFromDom();
+    if ($('commercePromoList')) state.config.promotions = readPromotionsFromDom();
     const showPromoEl = $('commerceShowPromoCode');
     if (showPromoEl) state.config.show_promo_code = showPromoEl.checked;
     if ($('rp-window')) state.config.returnsPolicy = readReturnsPolicyFromDom();
