@@ -295,6 +295,18 @@ async function fetchProductByFilter(env, filterKey, filterValue) {
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+async function fetchSizeStockQty(env, productId, size) {
+  const headers = catalogHeaders(env);
+  if (!headers || !productId || !size) return null;
+  const url = `${env.SUPABASE_URL}/rest/v1/product_sizes?select=stock_quantity&product_id=eq.${encodeURIComponent(productId)}&size=eq.${encodeURIComponent(size)}&limit=1`;
+  const resp = await fetch(url, { headers }).catch(() => null);
+  if (!resp || !resp.ok) return null;
+  const rows = await resp.json().catch(() => []);
+  if (!Array.isArray(rows) || !rows.length) return null;
+  const qty = rows[0]?.stock_quantity;
+  return typeof qty === 'number' ? qty : null;
+}
+
 async function verifyAccessToken(accessToken, env) {
   const token = String(accessToken || '').trim();
   if (!token || !env.SUPABASE_URL) return null;
@@ -328,13 +340,28 @@ async function resolveCatalogItems(items, env, isMember) {
       : regularCents;
     if (priceCents <= 0) throw new Error(`Product has no checkout price: ${product.title || product.name || product.id}`);
 
+    const itemSize = String(raw?.size || '').trim();
+    const itemQty = parseQuantity(raw?.quantity);
+
+    if (itemSize) {
+      const available = await fetchSizeStockQty(env, product.id, itemSize);
+      if (available !== null && available < itemQty) {
+        const name = product.title || product.name || 'An item';
+        throw new Error(
+          available <= 0
+            ? `${name} (${itemSize}) is out of stock.`
+            : `Only ${available} left in stock for ${name} (${itemSize}).`
+        );
+      }
+    }
+
     resolved.push({
       productId: product.id,
       sku: sku || product.sku || '',
       name: product.title || product.name || raw?.title || raw?.name || 'Product',
-      size: String(raw?.size || '').trim(),
+      size: itemSize,
       colorName: String(raw?.colorName || '').trim(),
-      quantity: parseQuantity(raw?.quantity),
+      quantity: itemQty,
       amount: priceCents,
       shippingWeightLb: Number.parseFloat(product.shipping_weight_lb) || Number.parseFloat(raw?.weightLb) || 0.5,
       image: product.image_url || raw?.image || raw?.imageUrl || raw?.img || '',

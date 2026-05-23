@@ -3110,6 +3110,13 @@ function addToCart() {
   const regularPrice = getRegularProductPrice(currentProduct);
   const memberPrice = getMemberProductPrice(currentProduct);
   const effectivePrice = getEffectiveProductPrice(currentProduct);
+
+  const stockQty = currentProduct.inventory.length
+    ? currentProduct.inventory
+        .filter(inv => normalizeSizeLabel(inv?.size) === normalizeSizeLabel(selectedSize))
+        .reduce((sum, inv) => sum + (inv?.stock_quantity || 0), 0)
+    : null;
+
   const cartItem = {
     productId: currentProduct.id,
     sku: selectedColorSku || currentProduct.sku,
@@ -3121,6 +3128,7 @@ function addToCart() {
     price: effectivePrice,
     image: currentProduct.images[0]?.image_url || '',
     weightLb: parseFloat(currentProduct.shipping_weight_lb) || 0.5,
+    stockQty,
     quantity: 1
   };
 
@@ -3134,7 +3142,13 @@ function addToCart() {
   );
 
   if (existingIdx > -1) {
+    const maxQty = stockQty !== null ? stockQty : 99;
+    if (cart[existingIdx].quantity >= maxQty) {
+      showToast(`Only ${maxQty} in stock`);
+      return;
+    }
     cart[existingIdx].quantity += 1;
+    cart[existingIdx].stockQty = stockQty;
   } else {
     cart.push(cartItem);
   }
