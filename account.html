@@ -801,18 +801,18 @@ document.querySelectorAll('.acct-tab').forEach(b => {
 
 /* ── ORDERS ── */
 async function fetchProductImageMap() {
-  if (!_sb) return {};
+  if (!_sb) return { imgs: {}, ids: {} };
   try {
     const { data } = await _sb.from('products').select('id, sku, title, image_url');
-    const map = {};
+    const imgs = {}, ids = {};
     for (const p of data || []) {
-      if (!p.image_url) continue;
-      if (p.id)    map[p.id]  = p.image_url;
-      if (p.sku)   map[p.sku] = p.image_url;
-      if (p.title) map[p.title.trim().toLowerCase()] = p.image_url;
+      const key = p.title ? p.title.trim().toLowerCase() : null;
+      if (p.id)  { ids[p.id]  = p.id; if (p.image_url) imgs[p.id]  = p.image_url; }
+      if (p.sku) { ids[p.sku] = p.id; if (p.image_url) imgs[p.sku] = p.image_url; }
+      if (key)   { ids[key]   = p.id; if (p.image_url) imgs[key]   = p.image_url; }
     }
-    return map;
-  } catch(_) { return {}; }
+    return { imgs, ids };
+  } catch(_) { return { imgs: {}, ids: {} }; }
 }
 
 function buildTrackingUrl(carrier, trackingNumber) {
@@ -848,7 +848,7 @@ async function loadOrders() {
     if (loading) loading.style.display = 'none';
     if (!data.length) { if (empty) empty.style.display = 'block'; return; }
 
-    const productImgMap = await fetchProductImageMap();
+    const { imgs: productImgMap, ids: productIdMap } = await fetchProductImageMap();
 
     list.dataset.loaded = '1';
     const ordersTab = document.querySelector('.acct-tab[data-tab="orders"]');
@@ -878,9 +878,11 @@ async function loadOrders() {
           const rows = shown.map(i => {
             const storedImg = (i.image || i.imageUrl || i.img || '').trim();
             const validStored = storedImg && /^https?:\/\//i.test(storedImg) ? storedImg : '';
-            const pid = i.productId || i.product_id || '';
+            const rawPid = i.productId || i.product_id || '';
             const itemName = (i.name || i.title || '').replace(/\p{Extended_Pictographic}/gu, '').trim();
-            const safeImg = validStored || productImgMap[pid] || productImgMap[i.sku] || productImgMap[itemName.toLowerCase()] || '';
+            const nameKey = itemName.toLowerCase();
+            const resolvedId = productIdMap[rawPid] || productIdMap[i.sku] || productIdMap[nameKey] || '';
+            const safeImg = validStored || productImgMap[rawPid] || productImgMap[i.sku] || productImgMap[nameKey] || '';
             const name = escHtml(itemName);
             const attrs = [
               i.size ? escHtml(i.size) : '',
@@ -889,7 +891,7 @@ async function loadOrders() {
             ].filter(Boolean).join(' · ');
             const rawItemPrice = parseFloat(i.price || i.unit_price || i.amount || 0);
             const itemPrice = rawItemPrice > 0 ? `$${(rawItemPrice > 500 ? rawItemPrice / 100 : rawItemPrice).toFixed(2)}` : '';
-            const itemHref = pid ? `/product.html?id=${encodeURIComponent(pid)}` : i.sku ? `/product.html?sku=${encodeURIComponent(i.sku)}` : '';
+            const itemHref = resolvedId ? `/product.html?id=${encodeURIComponent(resolvedId)}` : '';
             const rowTag = itemHref ? `a href="${escHtml(itemHref)}"` : 'div';
             const rowClose = itemHref ? 'a' : 'div';
             return `<${rowTag} class="ord-item-row">
@@ -1040,9 +1042,9 @@ async function loadReturns() {
     if (loading) loading.style.display = 'none';
     content.dataset.loaded = '1';
 
-    const productImgMap = await fetchProductImageMap();
+    const { imgs: productImgMap, ids: productIdMap } = await fetchProductImageMap();
 
-    renderReturnsContent(_hubPayload, productImgMap);
+    renderReturnsContent(_hubPayload, productImgMap, productIdMap);
   } catch(err) {
     if (loading) loading.textContent = err.message || 'Could not load returns.';
   }
@@ -1086,7 +1088,7 @@ function retNextSteps(r, userEmail) {
   return null;
 }
 
-function retBuildItemChips(order, productImgMap = {}) {
+function retBuildItemChips(order, productImgMap = {}, productIdMap = {}) {
   if (!order) return '';
   let items = [];
   try { items = JSON.parse(order.items || '[]'); } catch(_) {}
@@ -1094,12 +1096,14 @@ function retBuildItemChips(order, productImgMap = {}) {
   const chips = items.slice(0, 4).map(i => {
     const stored = i.image || i.imageUrl || i.img || '';
     const validStored = stored && /^https?:\/\//i.test(stored) ? stored : '';
-    const pid = i.productId || i.product_id || '';
+    const rawPid = i.productId || i.product_id || '';
     const itemName = (i.name || i.title || '').replace(/\p{Extended_Pictographic}/gu, '').trim();
-    const safeImg = validStored || productImgMap[pid] || productImgMap[i.sku] || productImgMap[itemName.toLowerCase()] || '';
+    const nameKey = itemName.toLowerCase();
+    const resolvedId = productIdMap[rawPid] || productIdMap[i.sku] || productIdMap[nameKey] || '';
+    const safeImg = validStored || productImgMap[rawPid] || productImgMap[i.sku] || productImgMap[nameKey] || '';
     const name = escHtml(itemName);
     const meta = [i.size ? escHtml(i.size) : '', (i.colorName || i.color) ? escHtml(i.colorName || i.color) : ''].filter(Boolean).join(' · ');
-    const chipHref = pid ? `/product.html?id=${encodeURIComponent(pid)}` : i.sku ? `/product.html?sku=${encodeURIComponent(i.sku)}` : '';
+    const chipHref = resolvedId ? `/product.html?id=${encodeURIComponent(resolvedId)}` : '';
     const chipTag = chipHref ? `a href="${escHtml(chipHref)}"` : 'div';
     const chipClose = chipHref ? 'a' : 'div';
     return `<${chipTag} class="order-item-chip">
@@ -1111,7 +1115,7 @@ function retBuildItemChips(order, productImgMap = {}) {
   return `<div class="order-items-row">${chips}${extra}</div>`;
 }
 
-function renderReturnsContent(payload, productImgMap = {}) {
+function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
   const content = document.getElementById('returns-content');
   if (!content) return;
   const orders = Array.isArray(payload?.orders) ? payload.orders : [];
@@ -1139,7 +1143,7 @@ function renderReturnsContent(payload, productImgMap = {}) {
     const resLbl = retResolutionLabel(r.resolution);
     const dt = new Date(r.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     const order = orderMap[String(r.orderId || '')];
-    const itemChips = retBuildItemChips(order, productImgMap);
+    const itemChips = retBuildItemChips(order, productImgMap, productIdMap);
     const next = retNextSteps(r, userEmail);
 
     const safeLabel = r.labelUrl && /^https?:\/\//i.test(r.labelUrl) ? r.labelUrl : '';
@@ -1224,7 +1228,7 @@ function renderReturnsContent(payload, productImgMap = {}) {
     if (!preview) return;
     const order = orderMap[orderId];
     if (!order) { preview.className = 'ret-order-preview'; preview.innerHTML = ''; return; }
-    const chips = retBuildItemChips(order, productImgMap);
+    const chips = retBuildItemChips(order, productImgMap, productIdMap);
     if (!chips) { preview.className = 'ret-order-preview'; preview.innerHTML = ''; return; }
     preview.innerHTML = `<div class="ret-preview-label">Items in this order</div>${chips}`;
     preview.className = 'ret-order-preview visible';
