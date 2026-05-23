@@ -1742,86 +1742,52 @@
                         </div>
                     </div>
 
-                    <!-- Stats row -->
-                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem;">
-                        <div class="form-section" style="padding:1rem 1.2rem;">
-                            <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.4rem">Total Requests</div>
-                            <div id="ret-stat-total" style="font-size:1.6rem;font-weight:700">—</div>
-                        </div>
-                        <div class="form-section" style="padding:1rem 1.2rem;">
-                            <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.4rem">Pending</div>
-                            <div id="ret-stat-pending" style="font-size:1.6rem;font-weight:700;color:#f59e0b">—</div>
-                        </div>
-                        <div class="form-section" style="padding:1rem 1.2rem;">
-                            <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.4rem">Approved</div>
-                            <div id="ret-stat-approved" style="font-size:1.6rem;font-weight:700;color:#22c55e">—</div>
-                        </div>
-                        <div class="form-section" style="padding:1rem 1.2rem;">
-                            <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.4rem">Denied</div>
-                            <div id="ret-stat-denied" style="font-size:1.6rem;font-weight:700;color:#ef4444">-</div>
-                        </div>
-                        <div class="form-section" style="padding:1rem 1.2rem;">
-                            <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.4rem">Labels Sent</div>
-                            <div id="ret-stat-labels" style="font-size:1.6rem;font-weight:700;color:#38bdf8">-</div>
-                        </div>
-                        <div class="form-section" style="padding:1rem 1.2rem;">
-                            <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.4rem">Completed</div>
-                            <div id="ret-stat-completed" style="font-size:1.6rem;font-weight:700;color:#a78bfa">-</div>
-                        </div>
-                        <div class="form-section" style="padding:1rem 1.2rem;">
-                            <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.4rem">Needs Address</div>
-                            <div id="ret-stat-address" style="font-size:1.6rem;font-weight:700;color:#f97316">-</div>
-                        </div>
-                    </div>
+                    <!-- Pipeline tabs -->
+                    <div id="ret-pipeline" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem;"></div>
 
-                    <!-- Filter -->
-                    <div style="display:flex;gap:.75rem;margin-bottom:1.2rem;flex-wrap:wrap;align-items:center;">
-                        <select id="ret-filter-status" style="background:var(--surface);border:1px solid var(--border);color:var(--text-primary);padding:.45rem .8rem;font-size:.82rem;border-radius:6px;" onchange="renderReturnsTable()">
-                            <option value="">All Statuses</option>
-                            <option value="__open">Open / Needs Work</option>
-                            <option value="__needs_label">Needs Label</option>
-                            <option value="__needs_address">Needs Address</option>
-                            <option value="__label_error">Label Error</option>
-                            <option value="requested">Requested</option>
-                            <option value="approved">Approved</option>
-                            <option value="label_sent">Label Sent</option>
-                            <option value="denied">Denied</option>
-                            <option value="exchange_in_progress">Exchange In Progress</option>
-                            <option value="completed">Completed</option>
-                            <option value="refunded">Refunded</option>
-                            <option value="closed">Closed</option>
-                        </select>
+                    <!-- Search + type filter -->
+                    <div style="display:flex;gap:.6rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center;">
+                        <input id="ret-filter-search" type="text" placeholder="Search customer, order, reason…" oninput="renderReturnsTable()"
+                            style="background:var(--surface);border:1px solid var(--border);color:var(--text-primary);padding:.45rem .8rem;font-size:.82rem;border-radius:6px;flex:1;min-width:180px;outline:none;">
                         <select id="ret-filter-type" style="background:var(--surface);border:1px solid var(--border);color:var(--text-primary);padding:.45rem .8rem;font-size:.82rem;border-radius:6px;" onchange="renderReturnsTable()">
                             <option value="">All Types</option>
                             <option value="return">Return</option>
                             <option value="exchange">Exchange</option>
                             <option value="store_credit">Store Credit</option>
                         </select>
-                        <input id="ret-filter-search" type="text" placeholder="Search email or order…" oninput="renderReturnsTable()"
-                            style="background:var(--surface);border:1px solid var(--border);color:var(--text-primary);padding:.45rem .8rem;font-size:.82rem;border-radius:6px;flex:1;min-width:200px;outline:none;">
                     </div>
 
-                    <div id="returns-status" style="display:none;margin:-.35rem 0 1rem;padding:.75rem .9rem;border:1px solid var(--border);border-radius:8px;background:var(--bg-primary);font-size:.84rem;color:var(--text-secondary);line-height:1.5;"></div>
-                    <div id="returns-detail-panel" class="form-section" style="display:none;margin-bottom:1.2rem;padding:1rem 1.2rem;"></div>
+                    <!-- Hidden compat IDs for stat callers -->
+                    <span id="ret-stat-total" style="display:none"></span>
+                    <span id="ret-stat-pending" style="display:none"></span>
+                    <span id="ret-stat-approved" style="display:none"></span>
+                    <span id="ret-stat-denied" style="display:none"></span>
+                    <span id="ret-stat-labels" style="display:none"></span>
+                    <span id="ret-stat-completed" style="display:none"></span>
+                    <span id="ret-stat-address" style="display:none"></span>
+
+                    <div id="returns-status" style="display:none;margin-bottom:1rem;padding:.75rem .9rem;border:1px solid var(--border);border-radius:8px;background:var(--bg-primary);font-size:.84rem;color:var(--text-secondary);line-height:1.5;"></div>
 
                     <div id="returns-loading" style="padding:2rem;text-align:center;color:var(--text-secondary);">Loading…</div>
-                    <div id="returns-empty" style="display:none;padding:2rem;text-align:center;color:var(--text-secondary);">No return requests yet.</div>
-                    <div id="returns-table-wrap" style="display:none;overflow-x:auto;">
-                        <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
-                            <thead>
-                                <tr style="border-bottom:1px solid var(--border);text-align:left;">
-                                    <th style="padding:10px 12px;color:var(--text-secondary);font-weight:500;white-space:nowrap;">Date</th>
-                                    <th style="padding:10px 12px;color:var(--text-secondary);font-weight:500;">Order</th>
-                                    <th style="padding:10px 12px;color:var(--text-secondary);font-weight:500;">Customer</th>
-                                    <th style="padding:10px 12px;color:var(--text-secondary);font-weight:500;">Type</th>
-                                    <th style="padding:10px 12px;color:var(--text-secondary);font-weight:500;">Reason</th>
-                                    <th style="padding:10px 12px;color:var(--text-secondary);font-weight:500;">Label</th>
-                                    <th style="padding:10px 12px;color:var(--text-secondary);font-weight:500;">Status</th>
-                                    <th style="padding:10px 12px;color:var(--text-secondary);font-weight:500;">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="returns-tbody"></tbody>
-                        </table>
+
+                    <!-- Two-panel split -->
+                    <div id="ret-split" style="display:none;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden;min-height:520px;">
+
+                        <!-- Left: card list -->
+                        <div id="ret-list-pane" style="width:340px;min-width:280px;flex-shrink:0;background:var(--bg-primary);overflow-y:auto;max-height:78vh;">
+                            <div id="ret-cards" style="display:flex;flex-direction:column;"></div>
+                            <div id="ret-list-empty" style="display:none;padding:2.5rem 1rem;text-align:center;color:var(--text-secondary);font-size:.85rem;">No returns match this filter.</div>
+                        </div>
+
+                        <!-- Right: detail pane -->
+                        <div id="ret-detail-pane" style="flex:1;background:var(--bg-secondary);overflow-y:auto;max-height:78vh;">
+                            <div id="ret-detail-empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:400px;color:var(--text-secondary);gap:10px;">
+                                <div style="font-size:2rem;opacity:.3;">↩</div>
+                                <div style="font-size:.88rem;">Select a return from the list to view details</div>
+                            </div>
+                            <div id="returns-detail-panel" style="display:none;padding:1.2rem;"></div>
+                        </div>
+
                     </div>
 
                     <!-- Returns JS -->
@@ -2037,59 +2003,69 @@
                         }
                     };
 
+                    let _retStage = 'open'; // active pipeline tab
+
+                    const PIPELINE_TABS = [
+                        { key:'open',     label:'Needs Action',  match: r => ['requested','approved'].includes(r.status) },
+                        { key:'transit',  label:'In Transit',    match: r => r.status === 'label_sent' },
+                        { key:'received', label:'Item Received', match: r => r.status === 'item_received' },
+                        { key:'done',     label:'Done',          match: r => ['completed','refunded','closed','denied','exchange_in_progress'].includes(r.status) },
+                        { key:'all',      label:'All',           match: () => true },
+                    ];
+
                     window.loadReturnsPage = async function() {
                         document.getElementById('returns-loading').style.display = 'block';
-                        document.getElementById('returns-loading').textContent = 'Loading...';
-                        document.getElementById('returns-empty').style.display = 'none';
-                        document.getElementById('returns-table-wrap').style.display = 'none';
-                        document.getElementById('returns-detail-panel').style.display = 'none';
+                        document.getElementById('returns-loading').textContent = 'Loading…';
+                        document.getElementById('ret-split').style.display = 'none';
                         const statusBox = document.getElementById('returns-status');
                         if (statusBox) { statusBox.style.display = 'none'; statusBox.textContent = ''; }
                         try {
                             const { data: { session } } = await sb.auth.getSession();
                             const token = session?.access_token;
                             if (!token) throw new Error('Missing admin session token.');
-                            const resp = await fetch('/api/admin-returns', {
-                                headers: { Authorization: `Bearer ${token}` }
-                            });
+                            const resp = await fetch('/api/admin-returns', { headers: { Authorization: `Bearer ${token}` } });
                             const payload = await resp.json().catch(() => ({}));
                             if (!resp.ok || !payload.success) throw new Error(payload.error || 'Could not load returns.');
                             _returnsData = Array.isArray(payload.requests) ? payload.requests : [];
                             _returnsData.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
                             if (_selectedReturnId && !_returnsData.some(r => r.id === _selectedReturnId)) _selectedReturnId = null;
                             document.getElementById('returns-loading').style.display = 'none';
+                            document.getElementById('ret-split').style.display = 'flex';
                             renderReturnsStats();
                             window.renderReturnsTable();
                             renderReturnDetails();
                         } catch(e) {
-                            document.getElementById('returns-loading').textContent = 'Could not load returns data: ' + e.message;
+                            document.getElementById('returns-loading').textContent = 'Could not load returns: ' + e.message;
                         }
                     };
 
                     function renderReturnsStats() {
-                        const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
-                        set('ret-stat-total', _returnsData.length);
-                        set('ret-stat-pending', _returnsData.filter(r => r.status === 'requested').length);
-                        set('ret-stat-approved', _returnsData.filter(r => r.status === 'approved').length);
-                        set('ret-stat-denied', _returnsData.filter(r => r.status === 'denied').length);
-                        set('ret-stat-labels', _returnsData.filter(r => r.status === 'label_sent' || r.labelUrl).length);
-                        set('ret-stat-completed', _returnsData.filter(r => ['completed','refunded','closed'].includes(r.status)).length);
-                        set('ret-stat-address', _returnsData.filter(retAddressMissing).length);
+                        // Render pipeline tabs with live counts
+                        const pipeline = document.getElementById('ret-pipeline');
+                        if (!pipeline) return;
+                        pipeline.innerHTML = PIPELINE_TABS.map(tab => {
+                            const count = _returnsData.filter(tab.match).length;
+                            const active = _retStage === tab.key;
+                            const urgentDot = (tab.key === 'open' && count > 0) ? `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#f59e0b;margin-right:4px;vertical-align:middle;"></span>` : '';
+                            return `<button onclick="retSetStage('${tab.key}')" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1px solid ${active?'var(--accent)':'var(--border)'};background:${active?'var(--accent)':'transparent'};color:${active?'#09090b':'var(--text-primary)'};font-size:.8rem;font-weight:${active?'700':'500'};cursor:pointer;white-space:nowrap;transition:all .15s;">${urgentDot}${tab.label}<span style="background:${active?'rgba(0,0,0,.18)':'var(--border)'};border-radius:99px;font-size:.7rem;padding:1px 7px;font-weight:700;">${count}</span></button>`;
+                        }).join('');
                     }
 
+                    window.retSetStage = function(key) {
+                        _retStage = key;
+                        renderReturnsStats();
+                        window.renderReturnsTable();
+                    };
+
                     function getFilteredReturns() {
-                        const statusF = document.getElementById('ret-filter-status')?.value || '';
+                        const tab   = PIPELINE_TABS.find(t => t.key === _retStage) || PIPELINE_TABS[PIPELINE_TABS.length - 1];
                         const typeF   = document.getElementById('ret-filter-type')?.value || '';
                         const searchF = (document.getElementById('ret-filter-search')?.value || '').toLowerCase();
                         return _returnsData.filter(r => {
-                            if (statusF === '__open' && ['denied', 'completed', 'refunded', 'closed'].includes(r.status || '')) return false;
-                            else if (statusF === '__needs_label' && !retLabelMissing(r)) return false;
-                            else if (statusF === '__needs_address' && !retAddressMissing(r)) return false;
-                            else if (statusF === '__label_error' && !retLabelError(r)) return false;
-                            else if (statusF && !statusF.startsWith('__') && r.status !== statusF) return false;
+                            if (!tab.match(r)) return false;
                             if (typeF && r.resolution !== typeF) return false;
                             if (searchF) {
-                                const hay = [r.id, r.orderId, r.orderLabel, r.userId, r.userEmail, r.userName, r.customerEmail, r.customerName, r.reason, r.notes, r.internalNotes, r.customerMessage, r.exchangeSku, r.trackingNumber, r.labelUrl, retLabelError(r), retNextAction(r)].join(' ').toLowerCase();
+                                const hay = [r.id, r.orderId, r.orderLabel, r.userId, r.userEmail, r.userName, r.customerEmail, r.customerName, r.reason, r.notes, r.internalNotes, r.customerMessage, r.exchangeSku, r.trackingNumber].join(' ').toLowerCase();
                                 if (!hay.includes(searchF)) return false;
                             }
                             return true;
@@ -2098,39 +2074,44 @@
 
                     window.renderReturnsTable = function() {
                         const rows = getFilteredReturns();
-                        const tbody = document.getElementById('returns-tbody');
+                        const cards = document.getElementById('ret-cards');
+                        const empty = document.getElementById('ret-list-empty');
                         if (!rows.length) {
-                            document.getElementById('returns-empty').style.display = 'block';
-                            document.getElementById('returns-table-wrap').style.display = 'none';
+                            cards.innerHTML = '';
+                            empty.style.display = 'block';
                             return;
                         }
-                        document.getElementById('returns-empty').style.display = 'none';
-                        document.getElementById('returns-table-wrap').style.display = 'block';
-                        tbody.innerHTML = rows.map(r => {
-                            const id = retAttr(r.id || '');
-                            const orderLabel = r.orderLabel || ('#' + String(r.orderId || '').slice(-8).toUpperCase());
-                            const customerName = r.customerName || r.userName || 'Customer';
-                            const customerEmail = r.customerEmail || r.userEmail || '';
-                            const canSendLabel = retCanAttemptLabel(r);
-                            const labelError = retLabelError(r);
-                            const nextAction = retNextAction(r);
-                            const selectedBg = _selectedReturnId === r.id ? 'background:rgba(56,189,248,.08);' : '';
-                            const _safeLabelUrl = retSafeUrl(r.labelUrl);
-                            const labelCell = _safeLabelUrl
-                                ? `<a href="${retAttr(_safeLabelUrl)}" target="_blank" onclick="event.stopPropagation()" style="color:#38bdf8;text-decoration:underline;">PDF</a><div style="font-size:.72rem;color:var(--text-secondary);margin-top:4px;">${escapeHtml([r.carrier, r.service].filter(Boolean).join(' - '))}<br>${escapeHtml(r.trackingNumber || '')}</div>`
-                                : (labelError
-                                    ? `<span style="color:#f97316;font-size:.74rem;">Label error</span><div style="font-size:.7rem;color:var(--text-secondary);max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${retAttr(labelError)}">${escapeHtml(labelError)}</div>`
-                                    : (retAddressMissing(r) ? '<span style="color:#f97316;font-size:.74rem;">Needs address</span>' : '<span style="color:var(--text-secondary);font-size:.74rem;">Not sent</span>'));
-                            return `<tr onclick="retSelectReturn('${id}')" style="border-bottom:1px solid var(--border);cursor:pointer;${selectedBg}">
-                                <td style="padding:10px 12px;white-space:nowrap;color:var(--text-secondary);font-size:.78rem;">${fmtDate(r.createdAt)}</td>
-                                <td style="padding:10px 12px;font-family:monospace;font-size:.82rem;">${escapeHtml(orderLabel)}<div style="font-family:inherit;color:var(--text-secondary);font-size:.72rem;margin-top:4px;">${retMoney(r.orderTotal)}${r.orderStatus ? ' - ' + escapeHtml(r.orderStatus) : ''}</div></td>
-                                <td style="padding:10px 12px;font-size:.82rem;max-width:240px;"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${retAttr(customerName)}">${escapeHtml(customerName)}</div><div style="color:var(--text-secondary);font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${retAttr(customerEmail || r.userId || '')}">${escapeHtml(customerEmail || (r.userId ? r.userId.slice(0,8) + '...' : '-'))}</div><div style="color:#38bdf8;font-size:.7rem;margin-top:4px;">${escapeHtml(nextAction)}</div></td>
-                                <td style="padding:10px 12px;text-transform:capitalize;">${escapeHtml(r.resolution || 'return')}</td>
-                                <td style="padding:10px 12px;max-width:230px;"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${retAttr(r.reason || '')}">${escapeHtml(r.reason || '-')}</div><div style="color:var(--text-secondary);font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${retAttr(r.notes || '')}">${escapeHtml(r.notes || '')}</div></td>
-                                <td style="padding:10px 12px;min-width:120px;">${labelCell}</td>
-                                <td style="padding:10px 12px;">${retStatusBadge(r.status)}</td>
-                                <td style="padding:10px 12px;"><select style="background:var(--surface);border:1px solid var(--border);color:var(--text-primary);font-size:.78rem;padding:3px 6px;border-radius:4px;" onclick="event.stopPropagation()" onchange="updateReturnStatus('${id}', this.value, this)">${retStatusOptions(r.status)}</select><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;"><button type="button" class="btn btn-secondary btn-sm" style="font-size:.72rem;padding:4px 8px;" onclick="event.stopPropagation();retSelectReturn('${id}')">Details</button>${canSendLabel ? `<button type="button" class="btn btn-secondary btn-sm" style="font-size:.72rem;padding:4px 8px;" onclick="event.stopPropagation();sendReturnLabel('${id}', this)">${r.status === 'requested' ? 'Approve + Label' : (r.labelUrl ? 'Resend Label' : 'Send Label')}</button>` : ''}</div></td>
-                            </tr>`;
+                        empty.style.display = 'none';
+                        cards.innerHTML = rows.map(r => {
+                            const id          = retAttr(r.id || '');
+                            const orderLabel  = r.orderLabel || ('#' + String(r.orderId || '').slice(-8).toUpperCase());
+                            const name        = r.customerName || r.userName || 'Customer';
+                            const email       = r.customerEmail || r.userEmail || '';
+                            const color       = RETURN_STATUS_COLORS[r.status] || 'var(--text-secondary)';
+                            const nextAction  = retNextAction(r);
+                            const labelError  = retLabelError(r);
+                            const isSelected  = _selectedReturnId === r.id;
+                            const hasProblem  = labelError || retAddressMissing(r);
+                            const resType     = { return:'Return', exchange:'Exchange', store_credit:'Credit' }[r.resolution] || 'Return';
+                            return `<div onclick="retSelectReturn('${id}')" style="padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;gap:12px;align-items:stretch;background:${isSelected ? 'var(--bg-secondary)' : 'transparent'};transition:background .12s;" onmouseover="if(!${isSelected})this.style.background='var(--bg-secondary)'" onmouseout="if(!${isSelected})this.style.background='transparent'">
+                                <div style="width:3px;border-radius:2px;flex-shrink:0;background:${hasProblem ? '#f97316' : color};"></div>
+                                <div style="flex:1;min-width:0;">
+                                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:3px;">
+                                        <div style="font-weight:600;font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(name)}</div>
+                                        <div style="font-size:.7rem;color:var(--text-secondary);white-space:nowrap;flex-shrink:0;">${fmtDate(r.createdAt)}</div>
+                                    </div>
+                                    <div style="font-size:.75rem;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px;">${escapeHtml(email || '—')}</div>
+                                    <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:5px;">
+                                        <span style="font-family:monospace;font-size:.75rem;color:var(--text-secondary);">${escapeHtml(orderLabel)}</span>
+                                        <span style="font-size:.72rem;color:var(--text-secondary);">${retMoney(r.orderTotal)} · ${resType}</span>
+                                    </div>
+                                    ${r.reason ? `<div style="font-size:.75rem;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px;" title="${retAttr(r.reason)}">${escapeHtml(r.reason)}</div>` : ''}
+                                    <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+                                        ${retStatusBadge(r.status)}
+                                        ${hasProblem ? `<span style="font-size:.7rem;color:#f97316;font-weight:600;">${labelError ? '⚠ Label error' : '⚠ No address'}</span>` : `<span style="font-size:.7rem;color:${color};">${escapeHtml(nextAction)}</span>`}
+                                    </div>
+                                </div>
+                            </div>`;
                         }).join('');
                     };
 
@@ -2138,12 +2119,21 @@
                         _selectedReturnId = requestId;
                         renderReturnsTable();
                         renderReturnDetails();
+                        const card = document.querySelector(`#ret-cards [onclick*="${CSS.escape(requestId)}"]`);
+                        if (card) card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
                     }
 
                     function renderReturnDetails() {
                         const panel = document.getElementById('returns-detail-panel');
+                        const empty = document.getElementById('ret-detail-empty');
                         const r = _returnsData.find(x => x.id === _selectedReturnId);
-                        if (!r) { panel.style.display = 'none'; panel.innerHTML = ''; return; }
+                        if (!r) {
+                            panel.style.display = 'none';
+                            panel.innerHTML = '';
+                            if (empty) empty.style.display = 'flex';
+                            return;
+                        }
+                        if (empty) empty.style.display = 'none';
                         const id = retAttr(r.id || '');
                         const a = r.shippingAddress || {};
                         const orderLabel = r.orderLabel || ('#' + String(r.orderId || '').slice(-8).toUpperCase());
