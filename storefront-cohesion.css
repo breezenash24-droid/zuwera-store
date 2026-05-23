@@ -2070,3 +2070,8 @@ body.light-mode .zw-lang-trigger:hover{
   white-space:nowrap;
 }
 .skip-link:focus{top:0;}
+
+/* Hide nav back buttons on mobile — browser provides native back navigation */
+@media(max-width:900px){
+  .zw-nav-back,.nav-back,.ret-back,.cart-back{display:none !important;}
+}

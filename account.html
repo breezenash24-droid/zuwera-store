@@ -558,9 +558,11 @@
     /* ── FOOTER ── */
     footer { margin-top: auto; }
     @media(max-width: 900px) {
-      .zw-nav { padding: 1rem 1.2rem; }
+      .zw-nav { padding: 1rem 1.2rem; justify-content: flex-end; }
       .page-wrap { padding: 2rem 1.2rem 4rem; }
-      .acct-tab { padding: .7rem .9rem; }
+      .acct-tab { padding: .7rem .85rem; white-space: nowrap; }
+      .acct-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .acct-tabs::-webkit-scrollbar { display: none; }
       .zw-grid-2 { grid-template-columns: 1fr; }
       .zw-grid-3 { grid-template-columns: 1fr 1fr; }
     }
