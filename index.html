@@ -1532,6 +1532,10 @@ body.light-mode #bar{
   border-bottom-color:rgba(244,241,235,.1);
 }
 
+/* Hero kicker — always light; hero bg is always a dark photo */
+body.light-mode .hero-kicker{color:rgba(244,241,235,.7)}
+body.light-mode .hero-kicker::before{background:rgba(244,241,235,.7)}
+
 /* Marquee */
 body.light-mode .marquee{border-color:rgba(9,9,11,.08)}
 body.light-mode .marquee-item{color:rgba(9,9,11,.18)}
