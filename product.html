@@ -148,7 +148,6 @@
   filter: none;
   transition: filter .35s;
 }
-.nav { padding: 0.5rem 2.5rem; }
 
 @media(max-width: 600px) {
   .review-summary-box { flex-direction: column; gap: 1.5rem; padding: 1.2rem; }
@@ -579,6 +578,9 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
   <link rel="stylesheet" href="reviews-vibe.css?v=764cbdc4">
   <link rel="stylesheet" href="storefront-cohesion.css?v=24931bf0">
 <style>
+/* Nav padding — overrides nav.css after all external sheets load */
+.nav { padding: 0.5rem 2.5rem !important; }
+
 /* Product page typography alignment with the homepage brand system. */
 :root {
   --font-head: 'Barlow Condensed', sans-serif;
