@@ -36,7 +36,7 @@ export async function onRequestPost({ request, env }) {
     return json({ error: 'Invalid request body.' }, 400, h);
   }
 
-  const { accessToken, orderId, refundKey, action, amountCents, reason } = body;
+  const { accessToken, orderId, refundKey, action, amountCents, reason, customerNote } = body;
 
   // ── 1. Verify admin JWT ──────────────────────────────────────────────────────
   const admin = await verifyAdmin(env, accessToken);
@@ -214,6 +214,7 @@ export async function onRequestPost({ request, env }) {
       orderTotal:        order.total,
       stripeRefundAmount,
       reason,
+      customerNote:      String(customerNote || '').trim(),
     });
   }
 
@@ -296,7 +297,7 @@ async function sendLockoutAlert(env, { adminEmail, adminId, orderId, attempts, l
 
 // ── Customer refund / cancellation email ─────────────────────────────────────
 
-async function sendRefundEmail(env, { customerEmail, customerName, orderNumber, action, orderTotal, stripeRefundAmount, reason }) {
+async function sendRefundEmail(env, { customerEmail, customerName, orderNumber, action, orderTotal, stripeRefundAmount, reason, customerNote }) {
   try {
     const cache     = await fetchSiteSettings(['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM'], env);
     const resendKey = resolveSetting('RESEND_API_KEY', env, cache);
@@ -379,6 +380,13 @@ async function sendRefundEmail(env, { customerEmail, customerName, orderNumber, 
                   <p style="margin:0;font-size:13px;color:#555;line-height:1.6;">Check your bank statement for a credit from Stripe or Zuwera. If it still hasn't appeared, reply to this email and we'll look into it right away.</p>
                 </td></tr>
               </table>
+
+              ${customerNote ? `
+              <!-- Personal note from store -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e8e4db;border-radius:8px;margin-bottom:24px;">
+                <tr style="background:#f9f7f3;"><td style="padding:11px 16px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#888;">A note from us</td></tr>
+                <tr><td style="padding:14px 16px;font-size:13px;color:#09090b;line-height:1.65;white-space:pre-wrap;">${esc(customerNote)}</td></tr>
+              </table>` : ''}
 
               <p style="margin:0;font-size:13px;color:#888;line-height:1.6;">Questions? Reach us at <a href="mailto:${esc(fromEmail)}" style="color:#09090b;font-weight:600;">${esc(fromEmail)}</a></p>
             </td></tr>

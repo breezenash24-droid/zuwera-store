@@ -825,6 +825,11 @@
           </select>
         </div>
 
+        <div style="margin-bottom:1.3rem">
+          <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px">Note to Customer <span style="font-weight:400;color:var(--text-secondary,#888)">(optional)</span></label>
+          <textarea id="zw-ref-note" class="form-textarea" rows="3" placeholder="Add a personal message that will appear in the refund email…" style="resize:vertical;font-size:13px;line-height:1.5"></textarea>
+        </div>
+
         <div style="background:rgba(224,80,80,0.08);border:1px solid rgba(224,80,80,0.22);border-radius:8px;padding:12px 14px;margin-bottom:1.5rem">
           <div style="color:#e05050;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">⚠ Irreversible</div>
           <div style="font-size:12px;color:var(--text-secondary,#999);line-height:1.5">Stripe refunds cannot be undone and money is returned immediately. Confirm the customer request before submitting.</div>
@@ -865,6 +870,7 @@
     document.getElementById('zw-ref-partial-row').style.display = 'none';
     document.getElementById('zw-ref-amount').value  = '';
     document.getElementById('zw-ref-reason').value  = 'customer_request';
+    document.getElementById('zw-ref-note').value    = '';
     document.getElementById('zw-ref-key').value     = '';
     document.getElementById('zw-ref-error').textContent = '';
     const overlay = document.getElementById('zw-refund-overlay');
@@ -882,10 +888,11 @@
   }
 
   async function zwSubmitRefund() {
-    const action   = document.querySelector('[name="zw-ref-act"]:checked')?.value;
-    const refundKey = (document.getElementById('zw-ref-key')?.value || '').trim();
-    const reason   = document.getElementById('zw-ref-reason')?.value || 'customer_request';
-    const errEl    = document.getElementById('zw-ref-error');
+    const action      = document.querySelector('[name="zw-ref-act"]:checked')?.value;
+    const refundKey   = (document.getElementById('zw-ref-key')?.value || '').trim();
+    const reason      = document.getElementById('zw-ref-reason')?.value || 'customer_request';
+    const customerNote = (document.getElementById('zw-ref-note')?.value || '').trim();
+    const errEl       = document.getElementById('zw-ref-error');
     const btn      = document.getElementById('zw-ref-submit');
     if (errEl) errEl.textContent = '';
 
@@ -913,7 +920,7 @@
       const resp = await fetch('/api/admin-refund', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ accessToken: token, orderId: _zwRefOrderId, refundKey, action, amountCents, reason }),
+        body:    JSON.stringify({ accessToken: token, orderId: _zwRefOrderId, refundKey, action, amountCents, reason, customerNote }),
       });
       const data = await resp.json().catch(() => ({}));
 
