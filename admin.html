@@ -1345,6 +1345,7 @@
         .fp-card-cat { font-size: .5rem; letter-spacing: .18em; text-transform: uppercase; color: rgba(244,241,235,.32); margin-bottom: .2rem; }
         .fp-card-name { font-weight: 700; font-style: italic; font-size: .88rem; text-transform: uppercase; letter-spacing: .03em; margin-bottom: .2rem; color: #f4f1eb; }
         .fp-card-price { font-size: .65rem; letter-spacing: .06em; color: rgba(244,241,235,.5); }
+        .empty-row td { text-align:center; padding:24px; color:var(--text-secondary); }
     </style>
 </head>
 <body>
@@ -1834,23 +1835,11 @@
                         renderReturnDetails();
                     }
 
-                    function retEscape(value) {
-                        if (typeof escapeHtml === 'function') return escapeHtml(value);
-                        return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-                    }
-                    function retAttr(value) { return retEscape(value).replace(/`/g, '&#96;'); }
+                    function retAttr(value) { return escapeHtml(value).replace(/`/g, '&#96;'); }
                     function retSafeUrl(url) { return url && /^https?:\/\//i.test(String(url)) ? String(url) : null; }
                     function retMoney(value) {
                         const n = Number(value || 0);
                         return Number.isFinite(n) ? '$' + n.toFixed(2) : '$0.00';
-                    }
-                    function retDate(value, withTime = false) {
-                        if (!value) return '-';
-                        try {
-                            return new Date(value).toLocaleString('en-US', withTime
-                                ? { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' }
-                                : { month:'short', day:'numeric', year:'numeric' });
-                        } catch (_) { return '-'; }
                     }
                     function retAddressMissing(r) {
                         const a = r.shippingAddress || {};
@@ -1878,7 +1867,7 @@
                     }
                     function retStatusBadge(status) {
                         const color = RETURN_STATUS_COLORS[status] || 'var(--text-secondary)';
-                        return `<span style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:${color};border:1px solid ${color};padding:2px 8px;border-radius:4px;white-space:nowrap;">${retEscape(status || '-')}</span>`;
+                        return `<span style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:${color};border:1px solid ${color};padding:2px 8px;border-radius:4px;white-space:nowrap;">${escapeHtml(status || '-')}</span>`;
                     }
                     function retStatusOptions(current) {
                         return RETURN_STATUSES.map(([value, label]) => `<option value="${value}" ${current === value ? 'selected' : ''}>${label}</option>`).join('');
@@ -2099,16 +2088,16 @@
                             const selectedBg = _selectedReturnId === r.id ? 'background:rgba(56,189,248,.08);' : '';
                             const _safeLabelUrl = retSafeUrl(r.labelUrl);
                             const labelCell = _safeLabelUrl
-                                ? `<a href="${retAttr(_safeLabelUrl)}" target="_blank" onclick="event.stopPropagation()" style="color:#38bdf8;text-decoration:underline;">PDF</a><div style="font-size:.72rem;color:var(--text-secondary);margin-top:4px;">${retEscape([r.carrier, r.service].filter(Boolean).join(' - '))}<br>${retEscape(r.trackingNumber || '')}</div>`
+                                ? `<a href="${retAttr(_safeLabelUrl)}" target="_blank" onclick="event.stopPropagation()" style="color:#38bdf8;text-decoration:underline;">PDF</a><div style="font-size:.72rem;color:var(--text-secondary);margin-top:4px;">${escapeHtml([r.carrier, r.service].filter(Boolean).join(' - '))}<br>${escapeHtml(r.trackingNumber || '')}</div>`
                                 : (labelError
-                                    ? `<span style="color:#f97316;font-size:.74rem;">Label error</span><div style="font-size:.7rem;color:var(--text-secondary);max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${retAttr(labelError)}">${retEscape(labelError)}</div>`
+                                    ? `<span style="color:#f97316;font-size:.74rem;">Label error</span><div style="font-size:.7rem;color:var(--text-secondary);max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${retAttr(labelError)}">${escapeHtml(labelError)}</div>`
                                     : (retAddressMissing(r) ? '<span style="color:#f97316;font-size:.74rem;">Needs address</span>' : '<span style="color:var(--text-secondary);font-size:.74rem;">Not sent</span>'));
                             return `<tr onclick="retSelectReturn('${id}')" style="border-bottom:1px solid var(--border);cursor:pointer;${selectedBg}">
-                                <td style="padding:10px 12px;white-space:nowrap;color:var(--text-secondary);font-size:.78rem;">${retDate(r.createdAt)}</td>
-                                <td style="padding:10px 12px;font-family:monospace;font-size:.82rem;">${retEscape(orderLabel)}<div style="font-family:inherit;color:var(--text-secondary);font-size:.72rem;margin-top:4px;">${retMoney(r.orderTotal)}${r.orderStatus ? ' - ' + retEscape(r.orderStatus) : ''}</div></td>
-                                <td style="padding:10px 12px;font-size:.82rem;max-width:240px;"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${retAttr(customerName)}">${retEscape(customerName)}</div><div style="color:var(--text-secondary);font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${retAttr(customerEmail || r.userId || '')}">${retEscape(customerEmail || (r.userId ? r.userId.slice(0,8) + '...' : '-'))}</div><div style="color:#38bdf8;font-size:.7rem;margin-top:4px;">${retEscape(nextAction)}</div></td>
-                                <td style="padding:10px 12px;text-transform:capitalize;">${retEscape(r.resolution || 'return')}</td>
-                                <td style="padding:10px 12px;max-width:230px;"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${retAttr(r.reason || '')}">${retEscape(r.reason || '-')}</div><div style="color:var(--text-secondary);font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${retAttr(r.notes || '')}">${retEscape(r.notes || '')}</div></td>
+                                <td style="padding:10px 12px;white-space:nowrap;color:var(--text-secondary);font-size:.78rem;">${fmtDate(r.createdAt)}</td>
+                                <td style="padding:10px 12px;font-family:monospace;font-size:.82rem;">${escapeHtml(orderLabel)}<div style="font-family:inherit;color:var(--text-secondary);font-size:.72rem;margin-top:4px;">${retMoney(r.orderTotal)}${r.orderStatus ? ' - ' + escapeHtml(r.orderStatus) : ''}</div></td>
+                                <td style="padding:10px 12px;font-size:.82rem;max-width:240px;"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${retAttr(customerName)}">${escapeHtml(customerName)}</div><div style="color:var(--text-secondary);font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${retAttr(customerEmail || r.userId || '')}">${escapeHtml(customerEmail || (r.userId ? r.userId.slice(0,8) + '...' : '-'))}</div><div style="color:#38bdf8;font-size:.7rem;margin-top:4px;">${escapeHtml(nextAction)}</div></td>
+                                <td style="padding:10px 12px;text-transform:capitalize;">${escapeHtml(r.resolution || 'return')}</td>
+                                <td style="padding:10px 12px;max-width:230px;"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${retAttr(r.reason || '')}">${escapeHtml(r.reason || '-')}</div><div style="color:var(--text-secondary);font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${retAttr(r.notes || '')}">${escapeHtml(r.notes || '')}</div></td>
                                 <td style="padding:10px 12px;min-width:120px;">${labelCell}</td>
                                 <td style="padding:10px 12px;">${retStatusBadge(r.status)}</td>
                                 <td style="padding:10px 12px;"><select style="background:var(--surface);border:1px solid var(--border);color:var(--text-primary);font-size:.78rem;padding:3px 6px;border-radius:4px;" onclick="event.stopPropagation()" onchange="updateReturnStatus('${id}', this.value, this)">${retStatusOptions(r.status)}</select><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;"><button type="button" class="btn btn-secondary btn-sm" style="font-size:.72rem;padding:4px 8px;" onclick="event.stopPropagation();retSelectReturn('${id}')">Details</button>${canSendLabel ? `<button type="button" class="btn btn-secondary btn-sm" style="font-size:.72rem;padding:4px 8px;" onclick="event.stopPropagation();sendReturnLabel('${id}', this)">${r.status === 'requested' ? 'Approve + Label' : (r.labelUrl ? 'Resend Label' : 'Send Label')}</button>` : ''}</div></td>
@@ -2134,7 +2123,7 @@
                             const name = item.name || item.title || item.product_title || 'Item';
                             const qty = item.quantity || item.qty || 1;
                             const meta = [item.sku, item.size, item.color || item.colorName].filter(Boolean).join(' / ');
-                            return `<div style="display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border);padding:8px 0;"><div><div style="font-weight:600;">${retEscape(name)}</div><div style="color:var(--text-secondary);font-size:.75rem;">${retEscape(meta || 'No variant data')}</div></div><div style="text-align:right;color:var(--text-secondary);font-size:.8rem;">x${retEscape(qty)}<br>${retMoney(item.price || item.unit_price || 0)}</div></div>`;
+                            return `<div style="display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border);padding:8px 0;"><div><div style="font-weight:600;">${escapeHtml(name)}</div><div style="color:var(--text-secondary);font-size:.75rem;">${escapeHtml(meta || 'No variant data')}</div></div><div style="text-align:right;color:var(--text-secondary);font-size:.8rem;">x${escapeHtml(qty)}<br>${retMoney(item.price || item.unit_price || 0)}</div></div>`;
                         }).join('') : '<p style="color:var(--text-secondary);font-size:.82rem;">No line item data saved for this request.</p>';
                         const _detailLabelUrl = retSafeUrl(r.labelUrl);
                         const _detailTrackUrl = retSafeUrl(r.trackingUrl);
@@ -2143,7 +2132,7 @@
                             : '<span style="color:var(--text-secondary);">No return label sent yet.</span>';
                         const labelError = retLabelError(r);
                         const labelErrorHtml = labelError
-                            ? `<div style="margin-top:.75rem;padding:.75rem;border:1px solid rgba(249,115,22,.35);border-radius:8px;color:#f97316;background:rgba(249,115,22,.08);font-size:.82rem;line-height:1.45;"><strong>Last label attempt failed:</strong> ${retEscape(labelError)}${r.labelErrorAt ? `<br><span style="color:var(--text-secondary);">At ${retDate(r.labelErrorAt, true)}</span>` : ''}<br><span style="color:var(--text-secondary);">Use the manual label fields below if Shippo has no available rates for this address.</span></div>`
+                            ? `<div style="margin-top:.75rem;padding:.75rem;border:1px solid rgba(249,115,22,.35);border-radius:8px;color:#f97316;background:rgba(249,115,22,.08);font-size:.82rem;line-height:1.45;"><strong>Last label attempt failed:</strong> ${escapeHtml(labelError)}${r.labelErrorAt ? `<br><span style="color:var(--text-secondary);">At ${new Date(r.labelErrorAt).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'})}</span>` : ''}<br><span style="color:var(--text-secondary);">Use the manual label fields below if Shippo has no available rates for this address.</span></div>`
                             : '';
                         const sendLabelDisabled = retCanAttemptLabel(r) ? '' : 'disabled';
                         const sendLabelText = r.status === 'requested' ? 'Approve + Send Label' : (r.labelUrl ? 'Resend Label' : 'Send Label');
@@ -2152,11 +2141,11 @@
                             <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:1rem;">
                                 <div>
                                     <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:5px;">Return Workspace</div>
-                                    <h3 style="margin:0 0 5px;font-size:1.05rem;">${retEscape(orderLabel)} — ${retEscape(r.customerName || 'Customer')}</h3>
+                                    <h3 style="margin:0 0 5px;font-size:1.05rem;">${escapeHtml(orderLabel)} — ${escapeHtml(r.customerName || 'Customer')}</h3>
                                     <div style="color:var(--text-secondary);font-size:.78rem;">
-                                        Created ${retDate(r.createdAt, true)}${r.updatedAt ? ' · Updated ' + retDate(r.updatedAt, true) : ''}
+                                        Created ${r.createdAt ? new Date(r.createdAt).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}) : '-'}${r.updatedAt ? ' · Updated ' + new Date(r.updatedAt).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}) : ''}
                                     </div>
-                                    <div style="margin-top:6px;color:#38bdf8;font-size:.78rem;">→ ${retEscape(retNextAction(r))}</div>
+                                    <div style="margin-top:6px;color:#38bdf8;font-size:.78rem;">→ ${escapeHtml(retNextAction(r))}</div>
                                 </div>
                                 <div style="display:flex;gap:6px;flex-wrap:wrap;">
                                     <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','approved')">Approve</button>
@@ -2192,13 +2181,13 @@
                                         <input id="ret-detail-reason-${id}" class="form-input" value="${retAttr(r.reason || '')}"></div>
                                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
                                         <div><label class="form-label">Customer Notes</label>
-                                            <textarea id="ret-detail-notes-${id}" class="form-textarea" rows="3">${retEscape(r.notes || '')}</textarea></div>
+                                            <textarea id="ret-detail-notes-${id}" class="form-textarea" rows="3">${escapeHtml(r.notes || '')}</textarea></div>
                                         <div><label class="form-label">Message to Customer</label>
-                                            <textarea id="ret-detail-message-${id}" class="form-textarea" rows="3" placeholder="Optional support note">${retEscape(r.customerMessage || '')}</textarea></div>
+                                            <textarea id="ret-detail-message-${id}" class="form-textarea" rows="3" placeholder="Optional support note">${escapeHtml(r.customerMessage || '')}</textarea></div>
                                         <div><label class="form-label">Internal Notes</label>
-                                            <textarea id="ret-detail-internal-${id}" class="form-textarea" rows="3" placeholder="Private team notes">${retEscape(r.internalNotes || '')}</textarea></div>
+                                            <textarea id="ret-detail-internal-${id}" class="form-textarea" rows="3" placeholder="Private team notes">${escapeHtml(r.internalNotes || '')}</textarea></div>
                                         <div><label class="form-label">Inspection Notes</label>
-                                            <textarea id="ret-detail-inspection-${id}" class="form-textarea" rows="3" placeholder="Condition, tags, photos, restock">${retEscape(r.inspectionNotes || '')}</textarea></div>
+                                            <textarea id="ret-detail-inspection-${id}" class="form-textarea" rows="3" placeholder="Condition, tags, photos, restock">${escapeHtml(r.inspectionNotes || '')}</textarea></div>
                                     </div>
                                     <div style="display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap;">
                                         <button class="btn btn-primary btn-sm" onclick="saveReturnDetails('${id}', this)">Save Details</button>
@@ -2211,13 +2200,13 @@
 
                                     <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:1rem;">
                                         <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.6rem;">Customer</div>
-                                        <div style="font-weight:600;">${retEscape(r.customerName || 'Customer')}</div>
-                                        <div style="color:var(--text-secondary);font-size:.8rem;margin-top:2px;">${retEscape(r.customerEmail || '-')}</div>
+                                        <div style="font-weight:600;">${escapeHtml(r.customerName || 'Customer')}</div>
+                                        <div style="color:var(--text-secondary);font-size:.8rem;margin-top:2px;">${escapeHtml(r.customerEmail || '-')}</div>
                                         <div style="color:var(--text-secondary);font-size:.8rem;margin-top:10px;line-height:1.6;">
-                                            ${retEscape(a.name || '')}${a.name ? '<br>' : ''}
-                                            ${retEscape(a.line1 || '')}${a.line2 ? ', ' + retEscape(a.line2) : ''}${a.line1 ? '<br>' : ''}
-                                            ${retEscape([a.city, a.state, a.zip].filter(Boolean).join(' '))}${a.city ? '<br>' : ''}
-                                            ${retEscape(a.country || '')}
+                                            ${escapeHtml(a.name || '')}${a.name ? '<br>' : ''}
+                                            ${escapeHtml(a.line1 || '')}${a.line2 ? ', ' + escapeHtml(a.line2) : ''}${a.line1 ? '<br>' : ''}
+                                            ${escapeHtml([a.city, a.state, a.zip].filter(Boolean).join(' '))}${a.city ? '<br>' : ''}
+                                            ${escapeHtml(a.country || '')}
                                         </div>
                                         ${retAddressMissing(r) ? '<div style="margin-top:8px;color:#f97316;font-size:.75rem;">⚠ Shipping address incomplete — label generation may fail.</div>' : ''}
                                     </div>
@@ -2225,8 +2214,8 @@
                                     <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:1rem;">
                                         <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.6rem;">Label / Tracking</div>
                                         <div style="font-size:.85rem;line-height:1.65;">${labelLinks}</div>
-                                        ${r.carrier || r.service ? `<div style="color:var(--text-secondary);font-size:.78rem;margin-top:6px;">${retEscape([r.carrier, r.service].filter(Boolean).join(' — '))}</div>` : ''}
-                                        ${r.trackingNumber ? `<div style="font-family:monospace;font-size:.78rem;margin-top:3px;">${retEscape(r.trackingNumber)}</div>` : ''}
+                                        ${r.carrier || r.service ? `<div style="color:var(--text-secondary);font-size:.78rem;margin-top:6px;">${escapeHtml([r.carrier, r.service].filter(Boolean).join(' — '))}</div>` : ''}
+                                        ${r.trackingNumber ? `<div style="font-family:monospace;font-size:.78rem;margin-top:3px;">${escapeHtml(r.trackingNumber)}</div>` : ''}
                                         ${labelErrorHtml}
                                         <div style="margin-top:1rem;border-top:1px solid var(--border);padding-top:.85rem;">
                                             <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.6rem;">Manual Label</div>
@@ -2768,16 +2757,15 @@
                     let _anaInvFilter = 'all';
                     let _anaLoaded = false;
 
-                    function anaEl(id) { return document.getElementById(id); }
                     function anaErr(msg) {
                       const d = document.createElement('div');
                       d.className = 'ana-err'; d.textContent = msg;
-                      anaEl('ana-error-container').appendChild(d);
+                      sectionEl('ana-error-container').appendChild(d);
                     }
 
                     // ── Bar chart helper ──
                     function anaBarChart(containerId, entries, colorMap) {
-                      const c = anaEl(containerId); if (!c) return;
+                      const c = sectionEl(containerId); if (!c) return;
                       c.innerHTML = '';
                       const maxVal = Math.max(...entries.map(e => e.val), 1);
                       entries.forEach(e => {
@@ -2815,14 +2803,14 @@
                     async function anaLoadEngagement() {
                       const { data: favs } = await sb.from('favorites').select('*');
                       const { data: waitlist } = await sb.from('waitlist').select('*');
-                      anaEl('ana-totalFavorites').textContent = favs ? favs.length : 0;
-                      anaEl('ana-totalWaitlist').textContent = waitlist ? waitlist.length : 0;
+                      sectionEl('ana-totalFavorites').textContent = favs ? favs.length : 0;
+                      sectionEl('ana-totalWaitlist').textContent = waitlist ? waitlist.length : 0;
 
                       // Top favorites
                       const fc = {};
                       (favs || []).forEach(f => { fc[f.product_name] = (fc[f.product_name] || 0) + 1; });
                       const top = Object.entries(fc).sort((a,b) => b[1]-a[1]).slice(0,5);
-                      const favEl = anaEl('ana-topFavorites');
+                      const favEl = sectionEl('ana-topFavorites');
                       favEl.innerHTML = top.length
                         ? top.map(([name,cnt]) => `<div class="ana-prod-card"><div class="ana-prod-title">${name}</div><div style="color:var(--text-secondary);font-size:.85rem;">${cnt} saves</div></div>`).join('')
                         : '<p style="color:var(--text-secondary)">No favorites yet.</p>';
@@ -2843,23 +2831,23 @@
                       });
                       const prices = _anaProds.filter(p => p.current_price).map(p => Number(p.current_price));
                       const avgPrice = prices.length ? (prices.reduce((a,b)=>a+b,0)/prices.length) : 0;
-                      anaEl('ana-totalProducts').textContent = _anaProds.length;
-                      anaEl('ana-liveProducts').textContent = live;
-                      anaEl('ana-totalInventory').textContent = inv.toLocaleString();
-                      anaEl('ana-lowStockAlerts').textContent = low;
-                      anaEl('ana-avgPrice').textContent = `$${avgPrice.toFixed(2)}`;
-                      anaEl('ana-colorVariants').textContent = colors;
+                      sectionEl('ana-totalProducts').textContent = _anaProds.length;
+                      sectionEl('ana-liveProducts').textContent = live;
+                      sectionEl('ana-totalInventory').textContent = inv.toLocaleString();
+                      sectionEl('ana-lowStockAlerts').textContent = low;
+                      sectionEl('ana-avgPrice').textContent = `$${avgPrice.toFixed(2)}`;
+                      sectionEl('ana-colorVariants').textContent = colors;
                     }
 
                     function anaUpdateOrders() {
                       const tot = _anaOrders.length;
                       const rev = _anaOrders.reduce((s,o) => s + (Number(o.total)||Number(o.total_amount)||0), 0);
                       const aov = tot ? rev/tot : 0;
-                      anaEl('ana-totalOrders').textContent = tot;
-                      anaEl('ana-totalRevenue').textContent = `$${rev.toFixed(2)}`;
-                      anaEl('ana-avgOrderValue').textContent = `$${aov.toFixed(2)}`;
+                      sectionEl('ana-totalOrders').textContent = tot;
+                      sectionEl('ana-totalRevenue').textContent = `$${rev.toFixed(2)}`;
+                      sectionEl('ana-avgOrderValue').textContent = `$${aov.toFixed(2)}`;
 
-                      const c = anaEl('ana-ordersTable');
+                      const c = sectionEl('ana-ordersTable');
                       if (!tot) { c.innerHTML = '<p style="color:var(--text-secondary);padding:1.5rem 0;">No orders yet.</p>'; return; }
                       const rows = [..._anaOrders].sort((a,b) => new Date(b.created_at)-new Date(a.created_at)).slice(0,10)
                         .map(o => {
@@ -2897,7 +2885,7 @@
                       ], { men:'bar-men', women:'bar-women', unisex:'bar-unisex', kids:'bar-kids' });
 
                       // Revenue timeline
-                      const rc = anaEl('ana-revenueChart');
+                      const rc = sectionEl('ana-revenueChart');
                       if (!_anaOrders.length) { rc.innerHTML = '<p style="color:var(--text-secondary);padding:2rem;">No sales data yet.</p>'; return; }
                       const byDate = {};
                       _anaOrders.forEach(o => {
@@ -2921,12 +2909,12 @@
                       const onSale=_anaProds.filter(p=>Number(p.current_price)<Number(p.msrp)).length;
                       const saleProd=_anaProds.filter(p=>Number(p.msrp)>Number(p.current_price)&&Number(p.current_price)>0);
                       const disc=saleProd.length?saleProd.reduce((s,p)=>s+((Number(p.msrp)-Number(p.current_price))/Number(p.msrp)*100),0)/saleProd.length:0;
-                      anaEl('ana-avgMSRP').textContent=`$${avg(m,'msrp').toFixed(2)}`;
-                      anaEl('ana-avgCurrentPrice').textContent=`$${avg(cp,'current_price').toFixed(2)}`;
-                      anaEl('ana-avgMemberPrice').textContent=`$${avg(mp,'member_price').toFixed(2)}`;
-                      anaEl('ana-productsOnSale').textContent=onSale;
-                      anaEl('ana-salePercentage').textContent=`${_anaProds.length?((onSale/_anaProds.length)*100).toFixed(1):0}%`;
-                      anaEl('ana-avgDiscount').textContent=`${disc.toFixed(1)}%`;
+                      sectionEl('ana-avgMSRP').textContent=`$${avg(m,'msrp').toFixed(2)}`;
+                      sectionEl('ana-avgCurrentPrice').textContent=`$${avg(cp,'current_price').toFixed(2)}`;
+                      sectionEl('ana-avgMemberPrice').textContent=`$${avg(mp,'member_price').toFixed(2)}`;
+                      sectionEl('ana-productsOnSale').textContent=onSale;
+                      sectionEl('ana-salePercentage').textContent=`${_anaProds.length?((onSale/_anaProds.length)*100).toFixed(1):0}%`;
+                      sectionEl('ana-avgDiscount').textContent=`${disc.toFixed(1)}%`;
                     }
 
                     async function anaUpdateReviews() {
@@ -2935,24 +2923,24 @@
                         const byProd = {}; const ratings = [];
                         (reviews||[]).forEach(r => { if(!byProd[r.product_id]) byProd[r.product_id]=[]; byProd[r.product_id].push(r); if(r.rating) ratings.push(r.rating); });
                         const avg = ratings.length?(ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(2):0;
-                        anaEl('ana-avgRating').textContent=`${avg} ⭐`;
-                        anaEl('ana-totalReviews').textContent=reviews?.length||0;
-                        anaEl('ana-noReviewsCount').textContent=_anaProds.filter(p=>!byProd[p.id]).length;
+                        sectionEl('ana-avgRating').textContent=`${avg} ⭐`;
+                        sectionEl('ana-totalReviews').textContent=reviews?.length||0;
+                        sectionEl('ana-noReviewsCount').textContent=_anaProds.filter(p=>!byProd[p.id]).length;
                         const top=_anaProds.filter(p=>byProd[p.id]).map(p=>{
                           const rs=byProd[p.id]; const ar=rs.reduce((s,r)=>s+(r.rating||0),0)/rs.length;
                           return {...p,avgRating:ar,reviewCount:rs.length};
                         }).sort((a,b)=>b.avgRating-a.avgRating).slice(0,5);
-                        anaEl('ana-topProducts').innerHTML=top.length
+                        sectionEl('ana-topProducts').innerHTML=top.length
                           ?top.map(p=>`<div class="ana-prod-card"><div class="ana-prod-title">${p.title}</div><div>${'⭐'.repeat(Math.round(p.avgRating))} ${p.avgRating.toFixed(1)}</div><div style="color:var(--text-secondary);font-size:.82rem">${p.reviewCount} reviews</div></div>`).join('')
                           :'<p style="color:var(--text-secondary)">No reviews yet.</p>';
                       } catch(e) {
-                        anaEl('ana-avgRating').textContent='—'; anaEl('ana-totalReviews').textContent='—';
-                        anaEl('ana-noReviewsCount').textContent='—';
+                        sectionEl('ana-avgRating').textContent='—'; sectionEl('ana-totalReviews').textContent='—';
+                        sectionEl('ana-noReviewsCount').textContent='—';
                       }
                     }
 
                     function anaRenderInventory() {
-                      const search=(anaEl('ana-invSearch')?.value||'').toLowerCase();
+                      const search=(sectionEl('ana-invSearch')?.value||'').toLowerCase();
                       let rows=[];
                       _anaProds.forEach(p => {
                         const sizes=p.product_sizes||[];
@@ -2966,7 +2954,7 @@
                         if(typeof av==='string') return _anaInvSort.dir==='asc'?String(av).localeCompare(String(bv)):String(bv).localeCompare(String(av));
                         return _anaInvSort.dir==='asc'?av-bv:bv-av;
                       });
-                      const c=anaEl('ana-inventoryTable');
+                      const c=sectionEl('ana-inventoryTable');
                       if(!rows.length){c.innerHTML='<p style="color:var(--text-secondary);padding:1.5rem 0;">No records found.</p>';return;}
                       c.innerHTML=`<table><thead><tr>
                         <th data-ana-inv-key="title">Product</th><th data-ana-inv-key="sku">SKU</th>
@@ -2987,7 +2975,7 @@
                     }
 
                     function anaRenderCatalog() {
-                      const search=(anaEl('ana-catSearch')?.value||'').toLowerCase();
+                      const search=(sectionEl('ana-catSearch')?.value||'').toLowerCase();
                       let rows=_anaProds.map(p=>({
                         id:p.id,sku:p.sku,title:p.title,gender:p.gender||'N/A',colorway:p.colorway||'N/A',
                         msrp:Number(p.msrp)||0,currentPrice:Number(p.current_price)||0,status:p.status,
@@ -3000,7 +2988,7 @@
                         if(typeof av==='string') return _anaCatSort.dir==='asc'?String(av).localeCompare(String(bv)):String(bv).localeCompare(String(av));
                         return _anaCatSort.dir==='asc'?av-bv:bv-av;
                       });
-                      const c=anaEl('ana-catalogTable');
+                      const c=sectionEl('ana-catalogTable');
                       if(!rows.length){c.innerHTML='<p style="color:var(--text-secondary);padding:1.5rem 0;">No products found.</p>';return;}
                       c.innerHTML=`<table><thead><tr>
                         <th data-ana-cat-key="sku">SKU</th><th data-ana-cat-key="title">Title</th>
@@ -3055,7 +3043,7 @@
 
                     // ── Main load ──
                     window.anaLoadData = async function() {
-                      anaEl('ana-error-container').innerHTML='';
+                      sectionEl('ana-error-container').innerHTML='';
                       try {
                         await anaLoadProds();
                         await Promise.all([anaLoadOrders(), anaLoadEngagement()]);
@@ -3162,7 +3150,7 @@
                           </tr>
                         </thead>
                         <tbody id="fin-product-tbody">
-                          <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-secondary);">Loading…</td></tr>
+                          <tr class="empty-row"><td colspan="5">Loading…</td></tr>
                         </tbody>
                       </table>
                     </div>
@@ -3191,7 +3179,7 @@
                           </tr>
                         </thead>
                         <tbody id="fin-category-tbody">
-                          <tr><td colspan="3" style="text-align:center;padding:24px;color:var(--text-secondary);">Loading…</td></tr>
+                          <tr class="empty-row"><td colspan="3">Loading…</td></tr>
                         </tbody>
                       </table>
                     </div>
@@ -3211,7 +3199,7 @@
                         </tr>
                       </thead>
                       <tbody id="fin-monthly-tbody">
-                        <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-secondary);">Loading…</td></tr>
+                        <tr class="empty-row"><td colspan="5">Loading…</td></tr>
                       </tbody>
                     </table>
                   </div>
@@ -3240,17 +3228,15 @@
 
                     const CAT_COLORS = ['#F891A5','#a78bfa','#34d399','#fbbf24','#60a5fa','#f87171','#e879f9','#2dd4bf','#fb923c','#94a3b8'];
 
-                    function finEl(id) { return document.getElementById(id); }
                     function finErr(msg) {
-                      const el = finEl('fin-error');
+                      const el = sectionEl('fin-error');
                       el.textContent = msg;
                       el.style.display = 'block';
                     }
-                    function fmt$(n) { return '$' + parseFloat(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
                     function fmtN(n) { return parseInt(n||0).toLocaleString(); }
 
                     window.finLoadData = async function() {
-                      finEl('fin-error').style.display = 'none';
+                      sectionEl('fin-error').style.display = 'none';
 
                       // Ensure Chart.js is loaded before proceeding
                       await new Promise(function(resolve, reject) { loadChartJs(function(err){ err ? reject(err) : resolve(); }); });
@@ -3362,20 +3348,20 @@
                         const aov = confirmed.length ? totalRev / confirmed.length : 0;
 
                         // ── Populate stat cards ──
-                        finEl('fin-total-rev').textContent = fmt$(totalRev);
-                        finEl('fin-total-orders').textContent = fmtN(confirmed.length);
-                        finEl('fin-aov').textContent = fmt$(aov);
-                        finEl('fin-units').textContent = fmtN(unitsSold);
+                        sectionEl('fin-total-rev').textContent = fmt$(totalRev);
+                        sectionEl('fin-total-orders').textContent = fmtN(confirmed.length);
+                        sectionEl('fin-aov').textContent = fmt$(aov);
+                        sectionEl('fin-units').textContent = fmtN(unitsSold);
 
-                        finEl('fin-this-month').textContent = fmt$(thisMonthRev);
-                        finEl('fin-last-month').textContent = fmt$(lastMonthRev);
-                        finEl('fin-tax-total').textContent  = fmt$(totalTax);
-                        finEl('fin-shipping-absorbed').textContent = fmt$(totalAbsorbed);
-                        finEl('fin-refund-rate').textContent = refundRate + '%';
-                        finEl('fin-avg-items').textContent   = avgItems;
+                        sectionEl('fin-this-month').textContent = fmt$(thisMonthRev);
+                        sectionEl('fin-last-month').textContent = fmt$(lastMonthRev);
+                        sectionEl('fin-tax-total').textContent  = fmt$(totalTax);
+                        sectionEl('fin-shipping-absorbed').textContent = fmt$(totalAbsorbed);
+                        sectionEl('fin-refund-rate').textContent = refundRate + '%';
+                        sectionEl('fin-avg-items').textContent   = avgItems;
 
                         // MoM badge
-                        const momBadge = finEl('fin-mom-badge');
+                        const momBadge = sectionEl('fin-mom-badge');
                         if (momChange !== null) {
                           const up = parseFloat(momChange) >= 0;
                           momBadge.textContent = (up ? '▲' : '▼') + ' ' + Math.abs(momChange) + '% vs last month';
@@ -3384,17 +3370,17 @@
 
                         // Top customer
                         if (topCust) {
-                          const wrap = finEl('fin-top-customer-wrap');
+                          const wrap = sectionEl('fin-top-customer-wrap');
                           if (wrap) { wrap.style.display = 'flex'; }
-                          finEl('fin-top-customer-name').textContent = topCust.name;
-                          finEl('fin-top-customer-stats').textContent = topCust.orders + ' order' + (topCust.orders !== 1 ? 's' : '') + ' · ' + fmt$(topCust.total) + ' total';
+                          sectionEl('fin-top-customer-name').textContent = topCust.name;
+                          sectionEl('fin-top-customer-stats').textContent = topCust.orders + ' order' + (topCust.orders !== 1 ? 's' : '') + ' · ' + fmt$(topCust.total) + ' total';
                         }
 
                         // Monthly breakdown table (last 12 months)
-                        const monthlyTbody = finEl('fin-monthly-tbody');
+                        const monthlyTbody = sectionEl('fin-monthly-tbody');
                         const sortedMonths = Object.keys(monthMap).sort().reverse().slice(0, 12);
                         if (sortedMonths.length === 0) {
-                          monthlyTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-secondary);">No data</td></tr>';
+                          monthlyTbody.innerHTML = '<tr class="empty-row"><td colspan="5">No data</td></tr>';
                         } else {
                           monthlyTbody.innerHTML = sortedMonths.map((m, i) => {
                             const d = monthMap[m];
@@ -3421,9 +3407,9 @@
 
                         // Product table
                         const prods = Object.entries(prodMap).sort((a,b) => b[1].revenue - a[1].revenue);
-                        const tbody = finEl('fin-product-tbody');
+                        const tbody = sectionEl('fin-product-tbody');
                         if (prods.length === 0) {
-                          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-secondary);">No order items found</td></tr>';
+                          tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No order items found</td></tr>';
                         } else {
                           tbody.innerHTML = prods.map(([name, d]) => {
                             const pct = totalRev > 0 ? ((d.revenue/totalRev)*100).toFixed(1) : '0.0';
@@ -3456,7 +3442,7 @@
                         const last30 = sortedDays.slice(-30);
                         const revValues = last30.map(d => dayMap[d].toFixed(2));
 
-                        const ctx1 = finEl('fin-revenue-chart').getContext('2d');
+                        const ctx1 = sectionEl('fin-revenue-chart').getContext('2d');
                         if (finRevenueChart) finRevenueChart.destroy();
                         finRevenueChart = new Chart(ctx1, {
                           type: 'line',
@@ -3476,7 +3462,7 @@
 
                         // Product bar chart (top 8)
                         const top8 = prods.slice(0,8);
-                        const ctx2 = finEl('fin-product-chart').getContext('2d');
+                        const ctx2 = sectionEl('fin-product-chart').getContext('2d');
                         if (finProductChart) finProductChart.destroy();
                         finProductChart = new Chart(ctx2, {
                           type: 'bar',
@@ -3498,9 +3484,9 @@
                         const cats = Object.entries(catMap).sort((a,b) => b[1].revenue - a[1].revenue);
 
                         // Category table
-                        const ctbody = finEl('fin-category-tbody');
+                        const ctbody = sectionEl('fin-category-tbody');
                         if (cats.length === 0) {
-                          ctbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:24px;color:var(--text-secondary);">No category data</td></tr>';
+                          ctbody.innerHTML = '<tr class="empty-row"><td colspan="3">No category data</td></tr>';
                         } else {
                           ctbody.innerHTML = cats.map(([cat, d], i) => `
                             <tr style="border-bottom:1px solid var(--border);">
@@ -3516,7 +3502,7 @@
                         }
 
                         // Category doughnut chart
-                        const ctx3 = finEl('fin-category-chart').getContext('2d');
+                        const ctx3 = sectionEl('fin-category-chart').getContext('2d');
                         if (finCategoryChart) finCategoryChart.destroy();
                         finCategoryChart = new Chart(ctx3, {
                           type: 'doughnut',
@@ -3612,7 +3598,7 @@
                           </tr>
                         </thead>
                         <tbody id="tax-nexus-tbody">
-                          <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-secondary);">Loading…</td></tr>
+                          <tr class="empty-row"><td colspan="6">Loading…</td></tr>
                         </tbody>
                       </table>
                     </div>
@@ -3633,7 +3619,7 @@
                           </tr>
                         </thead>
                         <tbody id="tax-state-tbody">
-                          <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-secondary);">Loading…</td></tr>
+                          <tr class="empty-row"><td colspan="5">Loading…</td></tr>
                         </tbody>
                       </table>
                     </div>
@@ -3656,7 +3642,7 @@
                           </tr>
                         </thead>
                         <tbody id="tax-oh-tbody">
-                          <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-secondary);">Loading…</td></tr>
+                          <tr class="empty-row"><td colspan="6">Loading…</td></tr>
                         </tbody>
                       </table>
                     </div>
@@ -3821,7 +3807,6 @@
                       return STATE_RATES[s] || 0;
                     }
 
-                    function fmt$(n) { return '$' + parseFloat(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
                     function fmtPct(r) { return (r*100).toFixed(2) + '%'; }
 
                     function taxErr(msg) {
@@ -4061,7 +4046,7 @@
                         const nexusTb = document.getElementById('tax-nexus-tbody');
                         const nexusStates = Object.keys(ytdByState).sort();
                         if (!nexusStates.length) {
-                          nexusTb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-secondary);">No orders recorded yet for this calendar year.</td></tr>';
+                          nexusTb.innerHTML = '<tr class="empty-row"><td colspan="6">No orders recorded yet for this calendar year.</td></tr>';
                         } else {
                           const REV_THRESHOLD = 100000;
                           const ORD_THRESHOLD = 200;
@@ -4102,7 +4087,7 @@
                         const stateTb = document.getElementById('tax-state-tbody');
                         const sortedStates = Object.entries(byState).sort((a,b)=>b[1].tax-a[1].tax);
                         if (!sortedStates.length) {
-                          stateTb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-secondary);">No orders with state data yet.</td></tr>';
+                          stateTb.innerHTML = '<tr class="empty-row"><td colspan="5">No orders with state data yet.</td></tr>';
                         } else {
                           stateTb.innerHTML = sortedStates.map(([s, d]) => {
                             const rate = d.subtotal > 0 ? d.tax / d.subtotal : 0;
@@ -4459,7 +4444,7 @@
                           </tr>
                         </thead>
                         <tbody id="ship-carrier-tbody">
-                          <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-secondary);">Loading…</td></tr>
+                          <tr class="empty-row"><td colspan="4">Loading…</td></tr>
                         </tbody>
                       </table>
                     </div>
@@ -4484,7 +4469,7 @@
                           </tr>
                         </thead>
                         <tbody id="ship-orders-tbody">
-                          <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-secondary);">Loading…</td></tr>
+                          <tr class="empty-row"><td colspan="6">Loading…</td></tr>
                         </tbody>
                       </table>
                     </div>
@@ -4499,25 +4484,17 @@
                     let _shipPage = 1;
                     const PAGE_SIZE = 25;
 
-                    function shipEl(id) { return document.getElementById(id); }
                     function shipErr(msg) {
-                      const el = shipEl('ship-error');
+                      const el = sectionEl('ship-error');
                       el.textContent = msg;
                       el.style.display = 'block';
                     }
-                    function fmt$(n) { return '$' + parseFloat(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
-                    function fmtDate(str) {
-                      if (!str) return '—';
-                      const d = new Date(str);
-                      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                    }
-
                     function shipRenderOrders(orders, page) {
-                      const tbody = shipEl('ship-orders-tbody');
+                      const tbody = sectionEl('ship-orders-tbody');
                       const start = (page-1)*PAGE_SIZE;
                       const slice = orders.slice(start, start+PAGE_SIZE);
                       if (slice.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-secondary);">No orders found</td></tr>';
+                        tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No orders found</td></tr>';
                       } else {
                         tbody.innerHTML = slice.map(o => {
                           const carrier = escapeHtml([o.shipping_provider, o.shipping_service].filter(Boolean).join(' — ') || '—');
@@ -4541,7 +4518,7 @@
 
                       // Pagination
                       const pages = Math.ceil(orders.length / PAGE_SIZE);
-                      const pag = shipEl('ship-pagination');
+                      const pag = sectionEl('ship-pagination');
                       if (pages <= 1) { pag.innerHTML = ''; return; }
                       pag.innerHTML = Array.from({length:pages},(_,i)=>i+1).map(p =>
                         `<button onclick="window._shipGoPage(${p})" style="padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:${p===page?'var(--accent)':'var(--bg-primary)'};color:${p===page?'#09090b':'var(--text-primary)'};cursor:pointer;font-size:12px;">${p}</button>`
@@ -4550,7 +4527,7 @@
 
                     window._shipGoPage = function(p) {
                       _shipPage = p;
-                      const q = shipEl('ship-search')?.value.toLowerCase() || '';
+                      const q = sectionEl('ship-search')?.value.toLowerCase() || '';
                       const filtered = q ? _shipOrders.filter(o =>
                         (o.customer_name||'').toLowerCase().includes(q) ||
                         (o.email||'').toLowerCase().includes(q) ||
@@ -4562,7 +4539,7 @@
                     };
 
                     window.shipLoadData = async function() {
-                      shipEl('ship-error').style.display = 'none';
+                      sectionEl('ship-error').style.display = 'none';
 
                       try {
                         const { data: orders, error } = await sb.from('orders')
@@ -4583,10 +4560,10 @@
                         });
                         const avg = withShip > 0 ? totalShip / withShip : 0;
 
-                        shipEl('ship-total').textContent = fmt$(totalShip);
-                        shipEl('ship-count').textContent = withShip.toLocaleString();
-                        shipEl('ship-avg').textContent = fmt$(avg);
-                        shipEl('ship-free').textContent = freeShip.toLocaleString();
+                        sectionEl('ship-total').textContent = fmt$(totalShip);
+                        sectionEl('ship-count').textContent = withShip.toLocaleString();
+                        sectionEl('ship-avg').textContent = fmt$(avg);
+                        sectionEl('ship-free').textContent = freeShip.toLocaleString();
 
                         // Carrier breakdown
                         const carrierMap = {};
@@ -4597,9 +4574,9 @@
                           carrierMap[key].total += parseFloat(o.shipping || 0);
                         });
                         const carriers = Object.entries(carrierMap).sort((a,b) => b[1].total - a[1].total);
-                        const ctbody = shipEl('ship-carrier-tbody');
+                        const ctbody = sectionEl('ship-carrier-tbody');
                         if (carriers.length === 0) {
-                          ctbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-secondary);">No data</td></tr>';
+                          ctbody.innerHTML = '<tr class="empty-row"><td colspan="4">No data</td></tr>';
                         } else {
                           ctbody.innerHTML = carriers.map(([name, d]) => `
                             <tr style="border-bottom:1px solid var(--border);">
@@ -4616,7 +4593,7 @@
                         // Search (guard against re-registration on reload)
                         if (!_shipListenersAttached) {
                           _shipListenersAttached = true;
-                          shipEl('ship-search').addEventListener('input', function() {
+                          sectionEl('ship-search').addEventListener('input', function() {
                             _shipPage = 1;
                             const q = this.value.toLowerCase();
                             const filtered = q ? _shipOrders.filter(o =>
@@ -4687,19 +4664,11 @@
                     let _allReceipts = [];
                     let _filteredReceipts = [];
 
-                    function recEl(id) { return document.getElementById(id); }
                     function recErr(msg) {
-                      const el = recEl('rec-error');
+                      const el = sectionEl('rec-error');
                       el.textContent = msg;
                       el.style.display = 'block';
                     }
-                    function fmt$(n) { return '$' + parseFloat(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
-                    function fmtDate(str) {
-                      if (!str) return '—';
-                      const d = new Date(str);
-                      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                    }
-
                     function sortReceipts(receipts, sortBy) {
                       const sorted = [...receipts];
                       if (sortBy === 'newest') {
@@ -4715,9 +4684,9 @@
                     }
 
                     function renderReceipts() {
-                      const sortBy = recEl('rec-sort')?.value || 'newest';
+                      const sortBy = sectionEl('rec-sort')?.value || 'newest';
                       const sorted = sortReceipts(_filteredReceipts, sortBy);
-                      const container = recEl('rec-list-container');
+                      const container = sectionEl('rec-list-container');
 
                       if (sorted.length === 0) {
                         container.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:40px;font-size:13px;">No receipts found.</p>';
@@ -4830,13 +4799,13 @@
                       const revenue = allOrders.reduce((sum, o) => sum + (parseFloat(o.total) || 0), 0);
                       const avg = total > 0 ? revenue / total : 0;
 
-                      recEl('rec-total-orders').textContent = total.toLocaleString();
-                      recEl('rec-total-revenue').textContent = fmt$(revenue);
-                      recEl('rec-avg-order').textContent = fmt$(avg);
+                      sectionEl('rec-total-orders').textContent = total.toLocaleString();
+                      sectionEl('rec-total-revenue').textContent = fmt$(revenue);
+                      sectionEl('rec-avg-order').textContent = fmt$(avg);
                     }
 
                     function filterReceipts() {
-                      const q = recEl('rec-search')?.value.toLowerCase() || '';
+                      const q = sectionEl('rec-search')?.value.toLowerCase() || '';
                       _filteredReceipts = q ? _allReceipts.filter(o => {
                         const customerName = (o.customer_name || '').toLowerCase();
                         const email        = (o.email || '').toLowerCase();
@@ -4863,7 +4832,7 @@
                     };
 
                     window.receiptsLoadData = async function() {
-                      recEl('rec-error').style.display = 'none';
+                      sectionEl('rec-error').style.display = 'none';
 
                       try {
                         const { data: orders, error } = await sb.from('orders')
@@ -4881,8 +4850,8 @@
                         // Attach event listeners once — guard against re-registration on reload
                         if (!_recListenersAttached) {
                           _recListenersAttached = true;
-                          recEl('rec-search').addEventListener('input', filterReceipts);
-                          recEl('rec-sort').addEventListener('change', renderReceipts);
+                          sectionEl('rec-search').addEventListener('input', filterReceipts);
+                          sectionEl('rec-sort').addEventListener('change', renderReceipts);
                         }
 
                       } catch (e) {
@@ -8056,6 +8025,16 @@
         function escapeAttr(value) {
             return escapeHtml(value).replace(/'/g, '&#39;');
         }
+
+        function fmtDate(str) {
+            if (!str) return '—';
+            const d = new Date(str);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function fmt$(n) { return '$' + parseFloat(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+        function sectionEl(id) { return document.getElementById(id); }
 
         function escapeJsString(value) {
             return String(value ?? '')
