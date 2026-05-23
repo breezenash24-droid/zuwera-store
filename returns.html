@@ -836,12 +836,16 @@ const REASONS = [
   "Other",
 ];
 
+let _orders = [];
+
 const state = {
   step: 1,
   selectedOrderId: null,
   selectedOrderLabel: null,
   selectedOrderDate: null,
   selectedOrderAmount: null,
+  selectedOrderItems: [],
+  selectedItems: [],
   selectedResolution: null,
   selectedReason: null,
   exchangeSize: '',
@@ -878,8 +882,9 @@ function updateNextBtn() {
   if (!btn) return;
   let enabled = false;
   if (state.step === 1) enabled = !!state.selectedOrderId;
-  if (state.step === 2) enabled = !!state.selectedResolution;
-  if (state.step === 3) {
+  if (state.step === 2) enabled = state.selectedItems.length > 0;
+  if (state.step === 3) enabled = !!state.selectedResolution;
+  if (state.step === 4) {
     const reasonOk = !!(state.selectedReason && (state.selectedReason !== 'Other' || state.otherNotes.trim()));
     const exchangeOk = state.selectedResolution !== 'exchange' || !!state.exchangeSize.trim();
     enabled = reasonOk && exchangeOk;
@@ -887,7 +892,7 @@ function updateNextBtn() {
   btn.disabled = !enabled;
 }
 
-function buildStep4Review() {
+function buildStep5Review() {
   const resolutionLabel = { return: 'Refund to original payment', exchange: 'Exchange for new item', store_credit: 'Store credit' }[state.selectedResolution] || state.selectedResolution;
   const nextSteps = {
     return: [
@@ -918,7 +923,14 @@ function buildStep4Review() {
     ? `<div class="review-row"><div class="review-label">Notes</div><div class="review-value">${esc(combinedNotes)}</div></div>`
     : '';
 
-  document.querySelector('.step[data-step="4"]').innerHTML = `
+  const itemsRow = state.selectedItems.length
+    ? `<div class="review-row"><div class="review-label">Items</div><div class="review-value">${state.selectedItems.map(i => {
+        const meta = [i.size, i.color || i.colorName].filter(Boolean).join(' · ');
+        return esc((i.name || i.title || 'Item') + (meta ? ' — ' + meta : ''));
+      }).join('<br>')}</div></div>`
+    : '';
+
+  document.querySelector('.step[data-step="5"]').innerHTML = `
     <div style="margin-bottom:1.5rem">
       <h3 style="font-family:var(--fw);font-size:1.1rem;letter-spacing:.05em;margin-bottom:.3rem">Review your request</h3>
       <p style="font-size:.75rem;color:var(--muted)">Everything look right? We'll get back to you within 1–2 business days.</p>
@@ -929,6 +941,7 @@ function buildStep4Review() {
         <div class="review-label">Order</div>
         <div class="review-value">${esc(state.selectedOrderLabel)} &nbsp;·&nbsp; ${esc(state.selectedOrderDate)}${state.selectedOrderAmount ? ' &nbsp;·&nbsp; ' + esc(state.selectedOrderAmount) : ''}</div>
       </div>
+      ${itemsRow}
       <div class="review-row">
         <div class="review-label">Request type</div>
         <div class="review-value">${esc(resolutionLabel)}</div>
@@ -954,7 +967,7 @@ function buildStep4Review() {
 
     <div class="step-nav">
       <div class="step-nav-left">
-        <button class="btn-ghost" onclick="showStep(3)">Back</button>
+        <button class="btn-ghost" onclick="showStep(4)">Back</button>
       </div>
       <div class="step-nav-right" style="flex-direction:column;align-items:flex-end;gap:.4rem">
         <button class="btn-primary" id="submit-btn" onclick="handleSubmit()">Submit Request</button>
@@ -990,6 +1003,7 @@ async function handleSubmit() {
       resolution: state.selectedResolution,
       reason: reason + exchangeNote,
       notes: '',
+      returnItems: state.selectedItems,
     });
     window.removeEventListener('beforeunload', _warnBeforeUnload);
     if (statusEl) { statusEl.textContent = '✓ Request submitted!'; statusEl.className = 'submit-status success'; }
@@ -1015,6 +1029,7 @@ window.addEventListener('beforeunload', _warnBeforeUnload);
 
 // ─── Render wizard ────────────────────────────────────────────────────────────
 function renderWizard(orders) {
+  _orders = orders;
   const orderCards = orders.length
     ? orders.map(o => {
         const id = String(o.id || '');
@@ -1059,16 +1074,21 @@ function renderWizard(orders) {
         <div class="sp-line"></div>
         <div class="sp-item" data-step="2">
           <div class="sp-dot">2</div>
-          <div class="sp-label">Request type</div>
+          <div class="sp-label">Items</div>
         </div>
         <div class="sp-line"></div>
         <div class="sp-item" data-step="3">
           <div class="sp-dot">3</div>
-          <div class="sp-label">Reason</div>
+          <div class="sp-label">Request type</div>
         </div>
         <div class="sp-line"></div>
         <div class="sp-item" data-step="4">
           <div class="sp-dot">4</div>
+          <div class="sp-label">Reason</div>
+        </div>
+        <div class="sp-line"></div>
+        <div class="sp-item" data-step="5">
+          <div class="sp-dot">5</div>
           <div class="sp-label">Confirm</div>
         </div>
       </div>
@@ -1085,8 +1105,22 @@ function renderWizard(orders) {
         </div>
       </div>
 
-      <!-- Step 2: Resolution -->
+      <!-- Step 2: Select items -->
       <div class="step" data-step="2">
+        <p style="font-size:.78rem;color:var(--muted);margin-bottom:1.2rem">Which items would you like to return or exchange? Select one or more.</p>
+        <div id="item-picker" style="display:flex;flex-direction:column;gap:.6rem;"></div>
+        <div class="step-nav">
+          <div class="step-nav-left">
+            <button class="btn-ghost" onclick="showStep(1)">Back</button>
+          </div>
+          <div class="step-nav-right">
+            <button class="btn-primary wiz-next" disabled onclick="goNext()">Continue</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Resolution -->
+      <div class="step" data-step="3">
         <p style="font-size:.78rem;color:var(--muted);margin-bottom:1.2rem">What would you like us to do?</p>
         <div class="res-cards">
           <button class="res-card" data-value="return" onclick="selectResolution(this)">
@@ -1107,7 +1141,7 @@ function renderWizard(orders) {
         </div>
         <div class="step-nav">
           <div class="step-nav-left">
-            <button class="btn-ghost" onclick="showStep(1)">Back</button>
+            <button class="btn-ghost" onclick="showStep(2)">Back</button>
           </div>
           <div class="step-nav-right">
             <button class="btn-primary wiz-next" disabled onclick="goNext()">Continue</button>
@@ -1115,8 +1149,8 @@ function renderWizard(orders) {
         </div>
       </div>
 
-      <!-- Step 3: Reason -->
-      <div class="step" data-step="3">
+      <!-- Step 4: Reason -->
+      <div class="step" data-step="4">
         <p class="reason-intro" id="reason-intro">Why are you returning this item? Pick the option that best describes it.</p>
         <div class="reason-chips">
           ${REASONS.map(r => `<button class="reason-chip" onclick="selectReason(this)">${esc(r)}</button>`).join('')}
@@ -1135,7 +1169,7 @@ function renderWizard(orders) {
         </div>
         <div class="step-nav">
           <div class="step-nav-left">
-            <button class="btn-ghost" onclick="showStep(2)">Back</button>
+            <button class="btn-ghost" onclick="showStep(3)">Back</button>
           </div>
           <div class="step-nav-right">
             <button class="btn-primary wiz-next" disabled onclick="goNext()">Review Request</button>
@@ -1143,8 +1177,8 @@ function renderWizard(orders) {
         </div>
       </div>
 
-      <!-- Step 4: Review + Submit (content built dynamically) -->
-      <div class="step" data-step="4"></div>
+      <!-- Step 5: Review + Submit (content built dynamically) -->
+      <div class="step" data-step="5"></div>
     </div>`;
 }
 
@@ -1156,6 +1190,60 @@ window.selectOrder = function(el) {
   state.selectedOrderLabel  = el.dataset.label;
   state.selectedOrderDate   = el.dataset.date;
   state.selectedOrderAmount = el.dataset.amount;
+
+  // Parse items from the selected order and populate the item picker
+  const order = _orders.find(o => String(o.id) === state.selectedOrderId);
+  let items = [];
+  try { items = typeof order?.items === 'string' ? JSON.parse(order.items) : (Array.isArray(order?.items) ? order.items : []); } catch(_) {}
+  state.selectedOrderItems = items;
+  state.selectedItems = [];
+
+  const picker = document.getElementById('item-picker');
+  if (picker) {
+    if (!items.length) {
+      picker.innerHTML = '<p style="font-size:.78rem;color:var(--muted)">No item details found for this order.</p>';
+    } else {
+      picker.innerHTML = items.map((item, idx) => {
+        const name = esc((item.name || item.title || 'Item').trim());
+        const meta = [item.size, item.color || item.colorName].filter(Boolean).map(esc).join(' · ');
+        const price = parseFloat(item.amount || item.price || item.unit_price || 0);
+        const priceStr = price > 0 ? fmtAmt(price > 500 ? price / 100 : price) : '';
+        return `<label style="display:flex;align-items:center;gap:.9rem;padding:.85rem 1rem;border:1px solid var(--border-color);border-radius:8px;cursor:pointer;transition:border-color .15s;" onclick="toggleItemPick(${idx},this)">
+          <div style="width:18px;height:18px;border:1.5px solid var(--muted);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;" class="item-check-box">
+            <svg width="11" height="9" viewBox="0 0 11 9" fill="none" style="display:none"><path d="M1 4.5L4 7.5L10 1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:.82rem;font-weight:500;">${name}</div>
+            ${meta ? `<div style="font-size:.72rem;color:var(--muted);margin-top:2px;">${meta}</div>` : ''}
+          </div>
+          ${priceStr ? `<div style="font-size:.8rem;color:var(--muted);flex-shrink:0;">${priceStr}</div>` : ''}
+        </label>`;
+      }).join('');
+    }
+  }
+
+  updateNextBtn();
+};
+
+window.toggleItemPick = function(idx, labelEl) {
+  const item = state.selectedOrderItems[idx];
+  if (!item) return;
+  const already = state.selectedItems.findIndex((_, i) => state.selectedItems[i] === item);
+  const checkBox = labelEl.querySelector('.item-check-box');
+  const checkMark = checkBox?.querySelector('svg');
+  if (state.selectedItems.includes(item)) {
+    state.selectedItems = state.selectedItems.filter(i => i !== item);
+    if (checkBox) checkBox.style.borderColor = 'var(--muted)';
+    if (checkBox) checkBox.style.background = 'transparent';
+    if (checkMark) checkMark.style.display = 'none';
+    labelEl.style.borderColor = 'var(--border-color)';
+  } else {
+    state.selectedItems.push(item);
+    if (checkBox) checkBox.style.borderColor = 'currentColor';
+    if (checkBox) checkBox.style.background = 'currentColor';
+    if (checkMark) { checkMark.style.display = 'block'; checkMark.style.stroke = 'var(--bg)'; }
+    labelEl.style.borderColor = 'currentColor';
+  }
   updateNextBtn();
 };
 
@@ -1191,8 +1279,8 @@ window.selectReason = function(el) {
 };
 
 window.goNext = function() {
-  if (state.step === 3) {
-    buildStep4Review();
+  if (state.step === 4) {
+    buildStep5Review();
   }
   showStep(state.step + 1);
 };
