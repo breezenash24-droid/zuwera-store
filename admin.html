@@ -7880,14 +7880,16 @@
         function deriveCategoryCode(gender, subtitle) {
             const g = (gender || '').toLowerCase();
             const s = (subtitle || '').toLowerCase();
+            const prefix = g === 'men' ? 'M' : g === 'women' ? 'W' : g === 'unisex' ? 'U' : '';
+            // Gender-neutral categories
             if (s === 'sports bras') return 'SBR';
             if (s === 'caps' || s === 'beanies') return 'HAT';
             if (['bags', 'socks', 'headbands', 'wristbands'].includes(s)) return 'ACC';
-            if (['tracksuits', 'matching sets', 'co-ord sets'].includes(s)) return 'SET';
-            if (['jackets', 'windbreakers', 'puffer jackets', 'vests'].includes(s)) return 'OUT';
             if (g === 'kids') return 'KDS';
-            const prefix = g === 'men' ? 'M' : g === 'women' ? 'W' : g === 'unisex' ? 'U' : '';
             if (!prefix) return '';
+            // Gender-prefixed categories
+            if (['tracksuits', 'matching sets', 'co-ord sets'].includes(s)) return prefix + 'ST';
+            if (['jackets', 'windbreakers', 'puffer jackets', 'vests'].includes(s)) return prefix + 'OT';
             const bottoms = ['joggers', 'sweatpants', 'shorts', 'leggings', 'track pants', 'cargo pants'];
             return prefix + (bottoms.includes(s) ? 'BT' : 'TP');
         }
