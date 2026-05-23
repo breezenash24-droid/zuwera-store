@@ -2750,7 +2750,7 @@ function normalizeCategoryLabel(value) {
 }
 
 function categoryLabelFromProduct(product) {
-  return normalizeCategoryLabel(product?.category || product?.subtitle || 'Jackets') || 'Jackets';
+  return normalizeCategoryLabel(product?.subtitle || 'Jackets') || 'Jackets';
 }
 
 function categoryHref(category) {
@@ -3414,7 +3414,7 @@ function buildHomeFavoriteDetail(product, extra, favorite) {
   const detail = {
     id: product?.id || favorite?.product_id,
     title: product?.title || favorite?.product_name || 'Saved Item',
-    subtitle: product?.category || product?.subtitle || '',
+    subtitle: product?.subtitle || '',
     sku: product?.sku || '',
     image: images[0]?.image_url || product?.image_url || '',
     current_price: parseHomeFavoritePrice(product?.current_price ?? product?.price ?? favorite?.price),

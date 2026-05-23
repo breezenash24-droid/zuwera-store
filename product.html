@@ -1854,7 +1854,7 @@ function syncSizeGuideVisibility(sizeLabels = getAvailableProductSizes()) {
 }
 
 function categoryLabelFromProduct(product) {
-  return normalizeCategoryLabel(product?.category || product?.subtitle || '') || 'Jackets';
+  return normalizeCategoryLabel(product?.subtitle || '') || 'Jackets';
 }
 
 function categoryHref(category) {
@@ -2302,7 +2302,6 @@ function resolveGuideGender(product) {
     product?.gender_tag,
     product?.title,
     product?.subtitle,
-    product?.category
   ];
 
   for (const field of fields) {
@@ -2317,8 +2316,7 @@ function resolveGuideGender(product) {
 }
 
 function classifyGuideCategory(product) {
-  const rawLabel = normalizeGuideText(product?.category)
-    || normalizeGuideText(product?.subtitle)
+  const rawLabel = normalizeGuideText(product?.subtitle)
     || normalizeGuideText(product?.title)
     || 'Apparel';
   const lower = rawLabel.toLowerCase();
