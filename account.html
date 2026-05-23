@@ -737,6 +737,42 @@ function escHtml(v) {
   return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+const _COLOR_MAP = {
+  'blue':           '#3b82f6',
+  'blueish purple': '#7c6fcd',
+  'humanity':       '#c8a882',
+  'tennesee':       '#f97316',
+  'tennessee':      '#f97316',
+  'yellow':         '#facc15',
+  'black':          '#1a1a1a',
+  'white':          '#f5f5f0',
+  'red':            '#ef4444',
+  'green':          '#22c55e',
+  'navy':           '#1e3a5f',
+  'grey':           '#9ca3af',
+  'gray':           '#9ca3af',
+  'pink':           '#ec4899',
+  'orange':         '#f97316',
+  'purple':         '#a855f7',
+  'brown':          '#92400e',
+  'tan':            '#d4a96a',
+  'cream':          '#f5e6c8',
+  'beige':          '#e8d5b7',
+};
+function colorSwatch(name) {
+  if (!name) return '';
+  const hex = _COLOR_MAP[name.toLowerCase().trim()];
+  if (!hex) return '';
+  return `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${hex};border:1px solid rgba(0,0,0,.18);margin-right:3px;vertical-align:middle;flex-shrink:0;"></span>`;
+}
+function itemMetaHtml(size, colorName, qty) {
+  const parts = [];
+  if (size) parts.push(escHtml(size));
+  if (colorName) parts.push(colorSwatch(colorName) + escHtml(colorName));
+  if (qty > 1) parts.push(`Qty ${qty}`);
+  return parts.join(' · ');
+}
+
 function orderNextSteps(order) {
   const fulfillment = String(order?.commerce?.fulfillmentStatus || order?.fulfillment_status || '').toLowerCase();
   const status = String(order?.status || '').toLowerCase();
@@ -905,11 +941,7 @@ async function loadOrders() {
             const resolvedId = productIdMap[nameKey] || productIdMap[rawPid] || productIdMap[i.sku] || '';
             const safeImg = validStored || productImgMap[nameKey] || productImgMap[rawPid] || productImgMap[i.sku] || '';
             const name = escHtml(itemName);
-            const attrs = [
-              i.size ? escHtml(i.size) : '',
-              (i.colorName || i.color) ? escHtml(i.colorName || i.color) : '',
-              (i.quantity || 1) > 1 ? `Qty ${i.quantity}` : ''
-            ].filter(Boolean).join(' · ');
+            const attrs = itemMetaHtml(i.size, i.colorName || i.color, i.quantity || 1);
             const rawItemPrice = parseFloat(i.price || i.unit_price || i.amount || 0);
             const itemPrice = rawItemPrice > 0 ? `$${(rawItemPrice > 500 ? rawItemPrice / 100 : rawItemPrice).toFixed(2)}` : '';
             const itemHref = resolvedId ? `/product.html?id=${encodeURIComponent(resolvedId)}` : '';
@@ -1123,7 +1155,7 @@ function retBuildItemChips(order, productImgMap = {}, productIdMap = {}) {
     const resolvedId = productIdMap[rawPid] || productIdMap[i.sku] || productIdMap[nameKey] || '';
     const safeImg = validStored || productImgMap[rawPid] || productImgMap[i.sku] || productImgMap[nameKey] || '';
     const name = escHtml(itemName);
-    const meta = [i.size ? escHtml(i.size) : '', (i.colorName || i.color) ? escHtml(i.colorName || i.color) : ''].filter(Boolean).join(' · ');
+    const meta = itemMetaHtml(i.size, i.colorName || i.color, 1);
     const chipHref = resolvedId ? `/product.html?id=${encodeURIComponent(resolvedId)}` : '';
     const chipTag = chipHref ? `a href="${escHtml(chipHref)}"` : 'div';
     const chipClose = chipHref ? 'a' : 'div';
@@ -1262,7 +1294,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
       <div style="display:flex;flex-direction:column;gap:.4rem;" id="ret-item-list">
         ${items.map((item, idx) => {
           const name = escHtml((item.name || item.title || 'Item').trim());
-          const meta = [item.size, item.color || item.colorName].filter(Boolean).map(escHtml).join(' · ');
+          const meta = itemMetaHtml(item.size, item.color || item.colorName, 1);
           const storedImg = (item.image || item.imageUrl || item.img || '').trim();
           const validImg = storedImg && /^https?:\/\//i.test(storedImg) ? storedImg : '';
           const nameKey = (item.name || item.title || '').trim().toLowerCase();
