@@ -404,6 +404,7 @@
   const TABS = [
     { id:'overview',   label:'Overview' },
     { id:'orders',     label:'Orders' },
+    { id:'cancelled',  label:'Cancelled & Refunded' },
     { id:'returns',    label:'Returns' },
     { id:'promotions', label:'Promotions' },
     { id:'inventory',  label:'Inventory' },
@@ -474,6 +475,67 @@
           </tbody>
         </table>
       </div>` : ''}
+    `;
+  }
+
+  function renderCancelledOrders() {
+    const cancelled = state.orders.filter(o =>
+      ['cancelled', 'refunded'].includes(String(o.status || '').toLowerCase()) ||
+      String(o.fulfillment_status || '').toLowerCase() === 'cancelled'
+    );
+
+    const totalRefunded = cancelled
+      .filter(o => String(o.status || '').toLowerCase() === 'refunded')
+      .reduce((sum, o) => sum + orderTotal(o), 0);
+
+    const totalCancelled = cancelled
+      .filter(o => String(o.status || '').toLowerCase() === 'cancelled')
+      .length;
+
+    const totalRefundedCount = cancelled
+      .filter(o => String(o.status || '').toLowerCase() === 'refunded')
+      .length;
+
+    return `
+      <div class="cz-stat-grid" style="margin-bottom:20px;">
+        <div class="cz-stat"><div class="cz-stat-label">Cancelled Orders</div><div class="cz-stat-value">${totalCancelled}</div><div class="cz-stat-sub">no payment returned</div></div>
+        <div class="cz-stat"><div class="cz-stat-label">Refunded Orders</div><div class="cz-stat-value">${totalRefundedCount}</div><div class="cz-stat-sub">money returned to customer</div></div>
+        <div class="cz-stat"><div class="cz-stat-label">Total Refunded</div><div class="cz-stat-value">${money(totalRefunded)}</div><div class="cz-stat-sub">across all refunded orders</div></div>
+      </div>
+
+      <div class="commerce-card">
+        <h3 style="margin-bottom:14px;">Cancelled & Refunded Orders</h3>
+        ${cancelled.length ? `
+          <table class="commerce-mini-table">
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Customer</th>
+                <th>Date</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${cancelled.map(order => {
+                const status = String(order.status || '').toLowerCase();
+                const ops = state.orderOps[order.id] || {};
+                return `<tr>
+                  <td><strong>${escapeHtml(order.order_number || '#' + String(order.id||'').slice(-8).toUpperCase())}</strong></td>
+                  <td>
+                    ${escapeHtml(order.email || order.customer_name || 'Unknown')}
+                  </td>
+                  <td class="cz-order-date">${fmtDate(order.created_at)}</td>
+                  <td class="cz-order-total">${money(orderTotal(order))}</td>
+                  <td><span class="${statusChipClass(status)}">${escapeHtml(status)}</span></td>
+                  <td class="commerce-muted">${escapeHtml(ops.notes || '—')}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        ` : `<div class="commerce-muted">No cancelled or refunded orders yet.</div>`}
+      </div>
     `;
   }
 
@@ -1108,6 +1170,9 @@
         break;
       case 'orders':
         tabContent = `<div class="commerce-card">${renderOrderWorkflow()}</div>`;
+        break;
+      case 'cancelled':
+        tabContent = renderCancelledOrders();
         break;
       case 'returns':
         tabContent = renderReturns();
