@@ -168,8 +168,7 @@ export async function onRequestPost({ request, env }) {
     || (action === 'refund' && (!amountCents || Math.round(Number(amountCents)) >= orderTotalCents));
 
   const patch = {
-    status:             action === 'cancel' ? 'cancelled' : isFullRefund ? 'refunded' : order.status,
-    fulfillment_status: ['cancel', 'cancel_refund'].includes(action) ? 'cancelled' : order.fulfillment_status,
+    status: action === 'cancel' ? 'cancelled' : isFullRefund ? 'refunded' : order.status,
   };
 
   await fetch(`${env.SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`, {
