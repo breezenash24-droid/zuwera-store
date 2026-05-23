@@ -1071,8 +1071,7 @@
             .header { padding: 12px 16px; }
             .header-title { font-size: 1.3rem; }
 
-            /* Room for fixed bottom nav */
-            .content-area { padding: 16px 16px 84px; }
+            .content-area { padding: 16px; }
 
             /* Tables */
             .products-table { font-size: 0.85rem; display: block; overflow-x: auto; white-space: nowrap; }
@@ -1088,8 +1087,8 @@
             .modal-actions { flex-direction: column; gap: 10px; }
             .modal-actions .btn { width: 100%; }
 
-            /* Show mobile nav elements */
-            #mobile-bottom-nav { display: flex; }
+            /* Show mobile nav elements — in normal flow, pinned below content */
+            #mobile-bottom-nav { display: flex; order: 99; width: 100%; }
             #mobile-more-overlay { display: block; position: fixed; inset: 0; background: rgba(0,0,0,0); z-index: 950; pointer-events: none; transition: background 0.25s; }
             #mobile-more-overlay.open { background: rgba(0,0,0,0.55); pointer-events: auto; }
             #mobile-more-drawer { display: block; }
@@ -1097,12 +1096,10 @@
 
         /* ── Bottom nav bar ──────────────────────────────────────────── */
         #mobile-bottom-nav {
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
             background: var(--bg-secondary);
             border-top: 1px solid var(--border);
-            z-index: 900;
             padding-bottom: env(safe-area-inset-bottom);
+            flex-shrink: 0;
         }
 
         .mob-nav-btn {
@@ -6518,22 +6515,6 @@
             document.body.style.overflow = '';
         }
 
-        // Keep mobile nav above browser chrome (Chrome Android bottom bar / iOS home indicator)
-        (function () {
-            const nav = document.getElementById('mobile-bottom-nav');
-            if (!nav || !window.visualViewport) return;
-            function syncNavPosition() {
-                if (window.innerWidth > 768) { nav.style.bottom = ''; return; }
-                // Gap between layout viewport and visual viewport = browser UI height
-                const browserUIHeight = Math.max(0,
-                    window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop
-                );
-                nav.style.bottom = browserUIHeight + 'px';
-            }
-            window.visualViewport.addEventListener('resize', syncNavPosition);
-            window.visualViewport.addEventListener('scroll', syncNavPosition);
-            syncNavPosition();
-        })();
 
         // ─── API Status Page ────────────────────────────────────────────────────
 
