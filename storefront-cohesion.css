@@ -1097,6 +1097,13 @@ body.light-mode .heart-btn{
     z-index:1;
   }
 
+  :is(nav#nav,.nav,header.nav) :is(.nav-logo,.nav-logo-link) img,
+  :is(nav#nav,.nav,header.nav) .nav-logo-img,
+  .zw-nav .zw-nav-logo img{
+    height:28px !important;
+    width:auto !important;
+  }
+
   :is(nav#nav,.nav,header.nav) :is(.nav-right,.nav-actions){
     width:100%;
     margin-left:0 !important;
