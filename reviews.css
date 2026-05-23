@@ -330,7 +330,7 @@
   cursor: pointer;
 }
 .review-list-write-btn { margin-bottom: 1.5rem; }
-.review-list-toolbar { display: flex; gap: 10px; margin-bottom: 1.5rem; }
+.review-list-toolbar { display: none !important; }
 .review-list-select {
   flex: 1;
   min-width: 0;

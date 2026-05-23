@@ -198,6 +198,9 @@
       return;
     }
 
+    // Mark as manually set so auto-detect never overrides this choice
+    try { localStorage.setItem('zw_lang_init', 'manual'); } catch (e) {}
+
     if (code === 'en') {
       // ── Reset to English ──
       // Step 1: Use GT's own combo to restore original DOM (handles bfcache case)
@@ -627,8 +630,34 @@
     document.head.appendChild(style);
   }
 
+  // ─── Browser Language Auto-Detection ─────────────────────────────────────────
+  // Runs once per device on first visit. Silently applies the browser's preferred
+  // language so the page is already translated when it loads.
+  function autoDetectLanguage() {
+    try {
+      if (localStorage.getItem('zw_lang_init')) return; // already initialised
+      localStorage.setItem('zw_lang_init', 'auto');
+    } catch (e) { return; }
+
+    if (currentLang !== 'en') return; // cookie already set — nothing to do
+
+    const preferred = (navigator.languages && navigator.languages[0]) || navigator.language || '';
+    if (!preferred) return;
+
+    const lower = preferred.toLowerCase();
+    // zh-TW / zh-HK → zh-CN; strip region for everything else
+    const code = lower.startsWith('zh') ? 'zh-CN' : lower.split('-')[0];
+    const match = LANGUAGES.find(l => l.code === code);
+    if (!match || match.code === 'en') return;
+
+    setGoogTransCookie(match.code);
+    try { localStorage.setItem('zw_lang', match.code); } catch (e) {}
+    location.replace(location.origin + location.pathname + '?_=' + Date.now());
+  }
+
   // ─── Init ─────────────────────────────────────────────────────────────────────
   function init() {
+    autoDetectLanguage();
     injectStyles();
 
     if (currentLang !== 'en') {
