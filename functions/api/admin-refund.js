@@ -189,6 +189,19 @@ export async function onRequestPost({ request, env }) {
     orderTotal:        order.total,
   });
 
+  // ── 11. Customer refund notification email ────────────────────────────────────
+  if ((action === 'cancel_refund' || action === 'refund') && order.email) {
+    await sendRefundEmail(env, {
+      customerEmail:     order.email,
+      customerName:      order.customer_name || order.email,
+      orderNumber:       order.order_number || String(orderId).slice(-8).toUpperCase(),
+      action,
+      orderTotal:        order.total,
+      stripeRefundAmount,
+      reason,
+    });
+  }
+
   return json({
     success: true, action, orderId,
     newStatus: patch.status, stripeRefundId, stripeRefundAmount,
@@ -264,6 +277,68 @@ async function sendLockoutAlert(env, { adminEmail, adminId, orderId, attempts, l
       });
     }
   } catch { /* alert is best-effort, never block the lockout response */ }
+}
+
+// ── Customer refund / cancellation email ─────────────────────────────────────
+
+async function sendRefundEmail(env, { customerEmail, customerName, orderNumber, action, orderTotal, stripeRefundAmount, reason }) {
+  try {
+    const cache     = await fetchSiteSettings(['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM'], env);
+    const resendKey = resolveSetting('RESEND_API_KEY', env, cache);
+    const brevoKey  = resolveSetting('BREVO_API_KEY',  env, cache);
+    const fromEmail = resolveSetting('EMAIL_FROM', env, cache) || 'support@zuwera.store';
+
+    if (!customerEmail || (!resendKey && !brevoKey)) return;
+
+    const isPartial  = action === 'refund';
+    const refundAmt  = stripeRefundAmount ? `$${(stripeRefundAmount / 100).toFixed(2)}` : `$${Number(orderTotal || 0).toFixed(2)}`;
+    const reasonText = reason === 'duplicate' ? 'Duplicate order'
+      : reason === 'fraudulent' ? 'Fraudulent transaction'
+      : reason === 'out_of_stock' ? 'Item out of stock'
+      : 'Customer request';
+
+    const subject = isPartial
+      ? `Your partial refund for order ${orderNumber} is on its way`
+      : `Your refund for order ${orderNumber} is on its way`;
+
+    const html = `
+<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#111;background:#fff">
+  <div style="border-top:3px solid #111;padding-top:20px">
+    <p style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#888;margin:0 0 18px">Zuwera</p>
+    <h2 style="margin:0 0 8px;font-size:1.3rem">Your refund is on its way</h2>
+    <p style="color:#555;margin:0 0 24px;font-size:14px;line-height:1.6">Hi ${esc(customerName)}, your ${isPartial ? 'partial refund' : 'refund'} for order <strong>${esc(orderNumber)}</strong> has been processed. The amount below will appear back on your original payment method within <strong>5–10 business days</strong> depending on your bank.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:24px;border:1px solid #eee;border-radius:8px;overflow:hidden">
+      <tr style="background:#f9f9f9"><td style="padding:12px 16px;color:#888;width:40%">Order</td><td style="padding:12px 16px"><strong>${esc(orderNumber)}</strong></td></tr>
+      <tr><td style="padding:12px 16px;color:#888;border-top:1px solid #eee">Refund amount</td><td style="padding:12px 16px;border-top:1px solid #eee"><strong style="font-size:16px">${esc(refundAmt)}</strong></td></tr>
+      <tr style="background:#f9f9f9"><td style="padding:12px 16px;color:#888;border-top:1px solid #eee">Reason</td><td style="padding:12px 16px;border-top:1px solid #eee">${esc(reasonText)}</td></tr>
+    </table>
+    <p style="font-size:13px;color:#888;line-height:1.6">If you have any questions, reply to this email or contact us at <a href="mailto:${esc(fromEmail)}" style="color:#111">${esc(fromEmail)}</a>.</p>
+    <p style="font-size:12px;color:#bbb;margin-top:24px;border-top:1px solid #eee;padding-top:12px">Zuwera &nbsp;·&nbsp; This is an automated message</p>
+  </div>
+</body></html>`;
+
+    if (resendKey) {
+      await fetch('https://api.resend.com/emails', {
+        method:  'POST',
+        headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ from: fromEmail, to: [customerEmail], subject, html }),
+      });
+      return;
+    }
+
+    if (brevoKey) {
+      await fetch('https://api.brevo.com/v3/smtp/email', {
+        method:  'POST',
+        headers: { 'api-key': brevoKey, 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          sender:      { email: fromEmail, name: 'Zuwera' },
+          to:          [{ email: customerEmail }],
+          subject,
+          htmlContent: html,
+        }),
+      });
+    }
+  } catch { /* never block the refund response because email failed */ }
 }
 
 function esc(s) {
