@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="zuwera-deployment" content="2026-04-19-mobile-menu-v3">
     <meta name="robots" content="noindex, nofollow">
     <title>Zuwera Admin Panel</title>
@@ -6517,6 +6517,23 @@
             document.getElementById('mobile-more-overlay').classList.remove('open');
             document.body.style.overflow = '';
         }
+
+        // Keep mobile nav above browser chrome (Chrome Android bottom bar / iOS home indicator)
+        (function () {
+            const nav = document.getElementById('mobile-bottom-nav');
+            if (!nav || !window.visualViewport) return;
+            function syncNavPosition() {
+                if (window.innerWidth > 768) { nav.style.bottom = ''; return; }
+                // Gap between layout viewport and visual viewport = browser UI height
+                const browserUIHeight = Math.max(0,
+                    window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop
+                );
+                nav.style.bottom = browserUIHeight + 'px';
+            }
+            window.visualViewport.addEventListener('resize', syncNavPosition);
+            window.visualViewport.addEventListener('scroll', syncNavPosition);
+            syncNavPosition();
+        })();
 
         // ─── API Status Page ────────────────────────────────────────────────────
 
