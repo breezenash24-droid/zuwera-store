@@ -9401,6 +9401,10 @@
                     if (error) throw error;
                 }
                 const stockEntries = getStockMatrixEntries();
+                const colorHexMap = {};
+                getColorVariantEntries().forEach(e => {
+                    if (e.color_name && e.hex_color) colorHexMap[e.color_name.trim()] = e.hex_color.trim();
+                });
                 const seenKeys = new Set();
                 for (const entry of stockEntries) {
                     const key = normalizeSizeKey(entry.size) + '|' + (entry.color_name ?? '');
@@ -9410,6 +9414,7 @@
                         product_id: productId,
                         size: entry.size,
                         color_name: entry.color_name,
+                        color_hex: entry.color_name ? (colorHexMap[entry.color_name] || null) : null,
                         stock_quantity: entry.stock_quantity
                     }]);
                     if (error) throw error;
