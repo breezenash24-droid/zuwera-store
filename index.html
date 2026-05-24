@@ -3302,16 +3302,6 @@ async function loadOrders() {
   if(!data?.length){ empty.style.display = 'block'; return; }
   list.innerHTML = data.map(o => `<div style="padding:.9rem 0;border-bottom:1px solid rgba(244,241,235,.07);font-family:var(--fm);font-size:.68rem"><div style="letter-spacing:.1em">Order #${(o.id||'').slice(-8).toUpperCase()}</div><div style="opacity:.35;margin-top:.2rem">${new Date(o.created_at).toLocaleDateString()}</div><div style="opacity:.5;margin-top:.15rem">${o.status||'Confirmed'}</div></div>`).join('');
 }
-function renderAcctFavs() {
-  document.getElementById('acct-favs-loading').style.display = 'none';
-  const empty = document.getElementById('acct-favs-empty');
-  const list = document.getElementById('acct-favs-list');
-  if(!_favs.length){ empty.style.display = 'block'; list.innerHTML=''; return; }
-  empty.style.display = 'none';
-  list.innerHTML = _favs.map(f => `<div style="display:flex;align-items:center;justify-content:space-between;padding:.7rem 0;border-bottom:1px solid rgba(244,241,235,.07);font-family:var(--fm);font-size:.72rem"><span>${escapeHomeFavoriteHtml(f.product_name)}</span><button data-fav-id="${escapeHomeFavoriteHtml(f.product_id)}" style="background:none;border:none;color:rgba(244,241,235,.3);font-size:1rem;cursor:pointer" aria-label="Remove saved item">&times;</button></div>`).join('');
-  list.querySelectorAll('[data-fav-id]').forEach(btn => btn.addEventListener('click', () => removeFav(btn.dataset.favId, null)));
-}
-
 /* FAVORITES */
 function applyHeartFill(btn, active) {
   btn.classList.toggle('active', active);
@@ -4902,9 +4892,12 @@ tick(); const cdI = setInterval(tick, 1000);
 
 /* NOTIFY */
 async function homeNotifyMe() {
+  const btn = document.querySelector('.notify-row button');
+  if(btn && btn.disabled) return;
+  if(btn) btn.disabled = true;
   const inp = document.getElementById('home-notify-email');
   const email = inp.value.trim();
-  if(!email||!email.includes('@')){ inp.style.outlineColor='var(--red)'; inp.focus(); return; }
+  if(!email||!email.includes('@')){ inp.style.outlineColor='var(--red)'; inp.focus(); if(btn) btn.disabled=false; return; }
   inp.style.outlineColor='';
 
   if(_sb){ try{ await _sb.from('waitlist').upsert({ email, source:'drop001_home' }); } catch{} }
