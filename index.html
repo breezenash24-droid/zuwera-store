@@ -251,11 +251,7 @@ nav#nav.scrolled{
   nav#nav.scrolled{
     padding:calc(0.8rem + env(safe-area-inset-top,0px)) 1.2rem 0.9rem;
   }
-  /* Pin bar below nav using CSS so env(safe-area-inset-top) is resolved
-     correctly before the first iOS Safari paint. */
-  #bar{
-    top:calc(0.8rem + env(safe-area-inset-top,0px) + 0.9rem);
-  }
+  /* Mobile: bar positioned below nav by JS (navEl.offsetHeight), no CSS override needed */
 }
 .nav-logo{
   font-family:var(--fw);font-weight:900;font-style:italic;
@@ -2371,10 +2367,10 @@ window.addEventListener('scroll', () => {
   const syncNavOffset = () => {
     const isMob = window.matchMedia('(max-width: 900px)').matches;
     if (isMob) {
-      // Mobile: nav at top:0 always, bar top is set by CSS safe-area calc.
+      // Mobile: nav at top:0, bar fixed directly below nav
       nav.style.top = '0px';
       document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
-      if (bar) bar.style.top = '';
+      if (bar) bar.style.top = nav.offsetHeight + 'px';
     } else {
       // Desktop: nav pushed below bar when bar visible
       const isHidden = bar.style.display === 'none' || bar.style.opacity === '0' || bar.style.pointerEvents === 'none';
@@ -2413,10 +2409,10 @@ function setAnnouncementBarLayout(barEl, navEl, isVisible) {
   const spacerEl = document.getElementById('bar-spacer');
   const isMob = window.matchMedia('(max-width: 900px)').matches;
   if (isMob) {
-    // Mobile: nav at top:0, bar fixed below nav, no spacer needed
+    // Mobile: nav at top:0, bar fixed directly below nav
     navEl.style.top = '0px';
     document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
-    if (barEl) barEl.style.top = '';
+    if (barEl && isVisible) barEl.style.top = navEl.offsetHeight + 'px';
     if (spacerEl) spacerEl.style.height = '0';
   } else {
     // Desktop: bar always fixed at top:0; nav pushed below; spacer holds bar height in flow
@@ -2436,8 +2432,8 @@ function applyAnnouncementBar(mode, msgText) {
 
   teardownAnnouncementBarScroll();
   if (isMobileViewport) {
-    // Mobile: CSS handles bar top via env(safe-area-inset-top) calc.
-    barEl.style.top = '';
+    // Mobile: bar fixed directly below nav
+    barEl.style.top = (navEl ? navEl.offsetHeight : 0) + 'px';
   } else {
     // Desktop: fixed at top:0, nav pushed below by setAnnouncementBarLayout
     barEl.style.top = '0';
