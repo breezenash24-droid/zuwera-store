@@ -1988,7 +1988,7 @@ body.light-mode::after{opacity:0.15}
 </script>
 
 <!-- ALL REVIEWS MODAL -->
-<div id="all-reviews-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="all-reviews-title">
+<div id="all-reviews-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="all-reviews-title" aria-hidden="true">
   <div class="review-list-mbox">
     <button id="all-reviews-close" class="mclose review-list-close" aria-label="Close">&#215;</button>
     <h2 id="all-reviews-title" class="review-list-title">All Reviews</h2>
@@ -2025,7 +2025,7 @@ body.light-mode::after{opacity:0.15}
 </div>
 
 <!-- REVIEW MODAL -->
-<div id="review-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
+<div id="review-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="review-modal-title" aria-hidden="true">
   <div class="review-mbox">
     <div class="review-mbox-hd">
       <div>
@@ -2080,16 +2080,16 @@ body.light-mode::after{opacity:0.15}
 </div>
 
 <!-- AUTH MODAL -->
-<div id="auth-modal" class="modal" role="dialog" aria-modal="true">
+<div id="auth-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" aria-hidden="true">
   <div class="mbox">
-    <button class="mclose" id="auth-modal-close" aria-label="Close">&times;</button>
+    <button class="mclose" id="auth-modal-close" aria-label="Close">&#215;</button>
     <div class="auth-brand"><img src="images/wordmark.png" alt="ZUWERA"></div>
     <div class="atabs">
       <button class="atab active" data-tab="signin">Login</button>
       <button class="atab" data-tab="signup">Create Account</button>
     </div>
     <div class="apanel active" id="panel-signin">
-      <div class="mtitle">Welcome Back</div>
+      <div class="mtitle" id="auth-modal-title">Welcome Back</div>
       <div class="msubtitle">Login to your account</div>
       <div class="fgroup"><label>Email</label><input type="email" id="signin-email" placeholder="you@example.com" autocomplete="email"></div>
       <div class="fgroup">
@@ -2151,10 +2151,10 @@ body.light-mode::after{opacity:0.15}
 </div>
 
 <!-- ACCOUNT MODAL -->
-<div id="account-modal" class="modal" role="dialog" aria-modal="true">
+<div id="account-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="account-modal-title" aria-hidden="true">
   <div class="mbox" style="max-width:500px;max-height:80vh;overflow-y:auto">
-    <button class="mclose" id="account-modal-close" aria-label="Close">&times;</button>
-    <div class="mtitle">My Account</div>
+    <button class="mclose" id="account-modal-close" aria-label="Close">&#215;</button>
+    <div class="mtitle" id="account-modal-title">My Account</div>
     <div class="atabs">
       <button class="atab active" data-acctab="orders">Orders</button>
       <button class="atab" data-acctab="favorites">Saved Items</button>
@@ -2173,9 +2173,9 @@ body.light-mode::after{opacity:0.15}
 </div>
 
 <!-- QUICK ADD PRODUCT MODAL -->
-<div id="quick-add-review-modal" class="modal quick-add-review-modal" role="dialog" aria-modal="true" aria-labelledby="quick-add-review-title">
+<div id="quick-add-review-modal" class="modal quick-add-review-modal" role="dialog" aria-modal="true" aria-labelledby="quick-add-review-title" aria-hidden="true">
   <div class="mbox quick-add-review-box quick-add-product-box">
-    <button class="mclose" id="quick-add-review-close" aria-label="Close">&times;</button>
+    <button class="mclose" id="quick-add-review-close" aria-label="Close">&#215;</button>
     <div class="quick-add-product-layout">
       <div class="quick-add-product-gallery">
         <div class="quick-add-review-media" id="quick-add-review-media">
@@ -2209,14 +2209,14 @@ body.light-mode::after{opacity:0.15}
   </div>
 </div>
 <!-- CART MODAL -->
-<div id="cart-modal" class="modal" role="dialog" aria-modal="true">
+<div id="cart-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="cart-modal-title" aria-hidden="true">
   <div class="cbox" id="cart-inner">
   <div class="cart-hd">
     <button class="cart-back" id="cart-close">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
       Continue Shopping
     </button>
-    <h2>Bag</h2>
+    <h2 id="cart-modal-title">Bag</h2>
     <div style="width:150px"></div>
   </div>
   <div class="cart-body">
@@ -2259,14 +2259,14 @@ body.light-mode::after{opacity:0.15}
 </div>
 
 <!-- RETURNS MODAL -->
-<div id="returns-modal" class="modal" role="dialog" aria-modal="true">
+<div id="returns-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="returns-modal-title" aria-hidden="true">
   <div class="ret-inner-box">
   <div class="ret-hd">
     <button class="ret-back" id="returns-close">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
       Back
     </button>
-    <h2>Returns</h2>
+    <h2 id="returns-modal-title">Returns</h2>
     <div style="width:150px"></div>
   </div>
   <div class="ret-body">
@@ -2298,10 +2298,10 @@ body.light-mode::after{opacity:0.15}
 </div>
 
 <!-- PAYMENT MODAL -->
-<div id="payment-modal" class="modal" role="dialog" aria-modal="true">
+<div id="payment-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title" aria-hidden="true">
   <div class="pbox">
-    <button class="mclose" id="payment-close">&#215;</button>
-    <h2>Secure Checkout</h2>
+    <button class="mclose" id="payment-close" aria-label="Close checkout">&#215;</button>
+    <h2 id="payment-modal-title">Secure Checkout</h2>
     <p class="psub">Powered by Stripe - 256-bit SSL encryption</p>
     <div class="zw-test-mode-banner" data-stripe-test-banner>Test checkout mode is active. Use Stripe test cards only; real cards will not be charged.</div>
     <div id="payment-request-btn" style="display:none" aria-hidden="true"></div>

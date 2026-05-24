@@ -388,7 +388,7 @@
 </footer>
 
 <!-- PAYMENT MODAL -->
-<div id="payment-modal" class="modal" role="dialog" aria-modal="true">
+<div id="payment-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title" aria-hidden="true">
   <div class="pbox">
     <button class="mclose" id="payment-close" aria-label="Close checkout">&#215;</button>
     <div class="pmodal-grid">
@@ -422,7 +422,7 @@
 
       <!-- RIGHT: Payment Form -->
       <div class="pmodal-right">
-        <h2>Secure Checkout</h2>
+        <h2 id="payment-modal-title">Secure Checkout</h2>
         <p class="psub">Powered by Stripe · 256-bit SSL encryption</p>
         <div class="zw-test-mode-banner" data-stripe-test-banner>Test mode active. Use Stripe test cards only — real cards will not be charged.</div>
         <div id="payment-request-btn" style="display:none" aria-hidden="true"></div>
@@ -473,9 +473,9 @@
 </div>
 
 <!-- AUTH MODAL -->
-<div id="auth-modal" class="modal" role="dialog" aria-modal="true">
+<div id="auth-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" aria-hidden="true">
   <div class="mbox">
-    <button class="mclose" id="auth-modal-close" aria-label="Close">&times;</button>
+    <button class="mclose" id="auth-modal-close" aria-label="Close">&#215;</button>
     <div class="auth-brand"><img src="images/wordmark.png" alt="ZUWERA"></div>
     <div class="atabs">
       <button class="auth-tab active" data-tab="signin">Login</button>
@@ -483,7 +483,7 @@
     </div>
     <!-- Sign In -->
     <div class="auth-panel active" id="panel-signin">
-      <div class="mtitle">Welcome Back</div>
+      <div class="mtitle" id="auth-modal-title">Welcome Back</div>
       <div class="msubtitle">Login to your account</div>
       <div class="fgroup"><label>Email</label><input type="email" id="signin-email" placeholder="you@example.com" autocomplete="email"></div>
       <div class="fgroup">

@@ -922,16 +922,16 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
 </div>
 
 <!-- AUTH MODAL -->
-<div id="auth-modal" class="modal" role="dialog" aria-modal="true">
+<div id="auth-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" aria-hidden="true">
   <div class="mbox">
-    <button class="mclose" id="auth-modal-close">&#215;</button>
+    <button class="mclose" id="auth-modal-close" aria-label="Close">&#215;</button>
     <div class="auth-brand"><img src="images/wordmark.png" alt="ZUWERA"></div>
     <div class="atabs">
       <button class="atab auth-tab active" data-tab="signin">Login</button>
       <button class="atab auth-tab" data-tab="signup">Create Account</button>
     </div>
     <div class="apanel auth-panel active" id="panel-signin">
-      <div class="mtitle">Welcome Back</div>
+      <div class="mtitle" id="auth-modal-title">Welcome Back</div>
       <div class="msubtitle">Login to your account</div>
       <div class="fgroup"><label>Email</label><input type="email" id="signin-email" placeholder="you@example.com" autocomplete="email"></div>
       <div class="fgroup">
@@ -978,10 +978,10 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
 </div>
 
 <!-- ACCOUNT MODAL -->
-<div id="account-modal" class="modal" role="dialog" aria-modal="true">
+<div id="account-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="account-modal-title" aria-hidden="true">
   <div class="mbox" style="max-width:500px;max-height:80vh;overflow-y:auto">
-    <button class="mclose" id="account-modal-close">&#215;</button>
-    <div class="mtitle">My Account</div>
+    <button class="mclose" id="account-modal-close" aria-label="Close">&#215;</button>
+    <div class="mtitle" id="account-modal-title">My Account</div>
     <div class="atabs">
       <button class="atab auth-tab active" data-acctab="orders">Orders</button>
       <button class="atab auth-tab" data-acctab="favorites">Saved Items</button>
@@ -1176,7 +1176,7 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
 </main>
 
 <!-- ALL REVIEWS MODAL -->
-<div id="all-reviews-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="all-reviews-title">
+<div id="all-reviews-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="all-reviews-title" aria-hidden="true">
   <div class="review-list-mbox">
     <button id="all-reviews-close" class="mclose review-list-close" aria-label="Close">&#215;</button>
     <h2 id="all-reviews-title" class="review-list-title">All Reviews</h2>
@@ -1213,7 +1213,7 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
 </div>
 
 <!-- REVIEW MODAL -->
-<div id="review-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
+<div id="review-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="review-modal-title" aria-hidden="true">
   <div class="review-mbox">
     <div class="review-mbox-hd">
       <div>
@@ -1268,7 +1268,7 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
 </div>
 
 <!-- SIZE & FIT MODAL (fit ratings - kept for internal use) -->
-<div id="size-fit-modal" class="modal modal--review" role="dialog" aria-modal="true" aria-labelledby="size-fit-title">
+<div id="size-fit-modal" class="modal modal--review" role="dialog" aria-modal="true" aria-labelledby="size-fit-title" aria-hidden="true">
   <div class="mbox review-dialog">
     <button id="size-fit-close" class="mclose review-modal-close" aria-label="Close">&#215;</button>
     <div class="review-modal-intro">
@@ -1283,7 +1283,7 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
 </div>
 
 <!-- SIZE GUIDE MODAL -->
-<div id="size-guide-modal" class="modal modal--guide" role="dialog" aria-modal="true" aria-labelledby="size-guide-modal-title">
+<div id="size-guide-modal" class="modal modal--guide" role="dialog" aria-modal="true" aria-labelledby="size-guide-modal-title" aria-hidden="true">
   <div class="mbox size-guide-dialog">
     <button id="size-guide-close" class="mclose size-guide-close" aria-label="Close">&#215;</button>
     <div class="size-guide-head">
@@ -3530,10 +3530,10 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
 <!-- PAYMENT MODAL                                                     -->
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
-<div id="payment-modal" class="modal" role="dialog" aria-modal="true">
+<div id="payment-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title" aria-hidden="true">
   <div style="max-width:480px;margin:3rem auto;background:#0f0f0f;border:1px solid rgba(244,241,235,.08);padding:2.5rem 2rem;position:relative">
-    <button style="position:absolute;top:1rem;right:1.2rem;background:none;border:none;color:rgba(244,241,235,.35);font-size:1.5rem;cursor:pointer" id="payment-close">&#215;</button>
-    <h2 style="font-family:var(--font-head);font-size:1.4rem;letter-spacing:.12em;margin-bottom:.3rem">Secure Checkout</h2>
+    <button class="mclose" style="position:absolute;top:1rem;right:1.2rem" id="payment-close" aria-label="Close checkout">&#215;</button>
+    <h2 id="payment-modal-title" style="font-family:var(--font-head);font-size:1.4rem;letter-spacing:.12em;margin-bottom:.3rem">Secure Checkout</h2>
     <p style="font-size:.7rem;color:rgba(244,241,235,.3);letter-spacing:.08em;margin-bottom:1.5rem">Powered by Stripe - 256-bit SSL encryption</p>
     <div class="zw-test-mode-banner" data-stripe-test-banner>Test checkout mode is active. Use Stripe test cards only; real cards will not be charged.</div>
     <div id="payment-request-btn" style="display:none" aria-hidden="true"></div>

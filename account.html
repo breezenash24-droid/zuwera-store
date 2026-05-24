@@ -898,6 +898,7 @@ async function loadOrders() {
   const empty = document.getElementById('orders-empty');
   const list = document.getElementById('orders-list');
   if (!list || list.dataset.loaded) return;
+  list.dataset.loaded = '1';
   if (loading) loading.style.display = 'block';
   try {
     if (!_session) {
@@ -914,7 +915,6 @@ async function loadOrders() {
     const { imgs: productImgMap, ids: productIdMap, colors: colorMap } = await fetchProductImageMap();
     if (colorMap) Object.assign(_COLOR_MAP, colorMap);
 
-    list.dataset.loaded = '1';
     const ordersTab = document.querySelector('.acct-tab[data-tab="orders"]');
     if (ordersTab) ordersTab.innerHTML = `Orders <span class="tab-count">${data.length}</span>`;
     list.innerHTML = data.map(o => {
@@ -1035,7 +1035,11 @@ async function loadSaved() {
   if (!list || list.dataset.loaded) return;
   if (loading) loading.style.display = 'block';
   try {
-    if (!_sb || !_session) return;
+    if (!_sb || !_session) {
+      if (loading) loading.style.display = 'none';
+      if (empty) empty.style.display = 'block';
+      return;
+    }
     const { data } = await _sb.from('favorites')
       .select('product_id,product_name,price,product_image')
       .eq('user_id', _session.user.id)
@@ -1097,10 +1101,10 @@ async function loadReturns() {
   const loading = document.getElementById('returns-loading');
   const content = document.getElementById('returns-content');
   if (!content || content.dataset.loaded) { if (loading) loading.style.display = 'none'; return; }
+  content.dataset.loaded = '1';
   try {
     if (!_hubPayload) _hubPayload = await fetchHub();
     if (loading) loading.style.display = 'none';
-    content.dataset.loaded = '1';
 
     const { imgs: productImgMap, ids: productIdMap, colors: colorMap } = await fetchProductImageMap();
     if (colorMap) Object.assign(_COLOR_MAP, colorMap);
@@ -1351,6 +1355,9 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
   }
 
   document.getElementById('ret-submit')?.addEventListener('click', async () => {
+    const btn = document.getElementById('ret-submit');
+    if (btn?.disabled) return;
+    if (btn) btn.disabled = true;
     const statusEl = document.getElementById('ret-status');
     const picker = document.getElementById('ret-item-picker');
     const allItems = picker?._items || [];
@@ -1372,6 +1379,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
       if (c) { delete c.dataset.loaded; }
       setTimeout(() => loadReturns(), 1000);
     } catch(err) {
+      if (btn) btn.disabled = false;
       if (statusEl) statusEl.textContent = err.message || 'Could not submit.';
     }
   });
@@ -1481,6 +1489,9 @@ function renderProfile() {
 }
 
 async function saveProfile() {
+  const btn = document.getElementById('prof-save');
+  if (btn?.disabled) return;
+  if (btn) btn.disabled = true;
   const statusEl = document.getElementById('prof-status');
   if (statusEl) statusEl.textContent = 'Saving…';
   try {
@@ -1518,6 +1529,7 @@ async function saveProfile() {
       if (s) s.textContent = '';
     }, 2000);
   } catch(err) {
+    if (btn) btn.disabled = false;
     if (statusEl) statusEl.textContent = err.message || 'Could not save profile.';
   }
 }
@@ -1596,8 +1608,9 @@ async function init() {
     // Load the default (orders) tab
     loadOrders();
 
-    // Check URL param for tab
-    const urlTab = new URLSearchParams(window.location.search).get('tab');
+    // Check URL param or hash for tab
+    const urlTab = new URLSearchParams(window.location.search).get('tab')
+      || window.location.hash.slice(1);
     if (urlTab && ['orders','saved','returns','profile'].includes(urlTab)) {
       switchTab(urlTab);
     }

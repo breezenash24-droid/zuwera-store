@@ -254,6 +254,7 @@ window.openAllReviewsModal = async function(pid, domId, productName) {
   
   writeBtn.onclick = () => {
     modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
     openReviewForm(pid, productName);
   };
 
@@ -261,6 +262,7 @@ window.openAllReviewsModal = async function(pid, domId, productName) {
   summary.innerHTML = '';
 
   modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
   modal.style.setProperty('background', 'transparent', 'important');
   modal.style.setProperty('backdrop-filter', 'none', 'important');
   modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
@@ -295,7 +297,7 @@ window.openAllReviewsModal = async function(pid, domId, productName) {
 
       let editBtnHtml = '';
       if (user && review.user_id === user.id) {
-        editBtnHtml = `<button class="review-card-action" type="button" onclick="openEditReviewForm('${escHtml(review.id)}', ${Number(review.rating)}, '${escHtml(pid)}'); document.getElementById('all-reviews-modal').classList.remove('open');">Edit</button>`;
+        editBtnHtml = `<button class="review-card-action" type="button" onclick="openEditReviewForm('${escHtml(review.id)}', ${Number(review.rating)}, '${escHtml(pid)}'); (function(m){if(m){m.classList.remove('open');m.setAttribute('aria-hidden','true');}})(document.getElementById('all-reviews-modal'));">Edit</button>`;
       }
 
       const reviewDate = review.created_at
@@ -364,6 +366,7 @@ function openReviewForm(pid, pname) {
 
   const reviewModal = document.getElementById('review-modal');
   reviewModal.classList.add('open');
+  reviewModal.setAttribute('aria-hidden', 'false');
   reviewModal.style.setProperty('background', 'transparent', 'important');
   reviewModal.style.setProperty('backdrop-filter', 'none', 'important');
   reviewModal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
@@ -414,6 +417,7 @@ function openEditReviewForm(id, rating, pid) {
   setStarSelection(rating);
   const editModal = document.getElementById('review-modal');
   editModal.classList.add('open');
+  editModal.setAttribute('aria-hidden', 'false');
   editModal.style.setProperty('background', 'transparent', 'important');
   editModal.style.setProperty('backdrop-filter', 'none', 'important');
   editModal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
@@ -508,7 +512,8 @@ async function submitReview() {
   // Bust cache so the new review shows immediately
   delete _reviewCache[submittedProductId];
 
-  document.getElementById('review-modal').classList.remove('open');
+  const _rm = document.getElementById('review-modal');
+  if (_rm) { _rm.classList.remove('open'); _rm.setAttribute('aria-hidden', 'true'); }
   document.body.style.overflow = '';
   if (typeof showToast === 'function') {
     showToast(submittedWasEdit ? 'Review updated.' : 'Review submitted. Thank you!');
@@ -657,20 +662,18 @@ window.translateReviews = async function(domId) {
 // -- Close review modal on backdrop click -----------------------------
 (function() {
   const _rm = document.getElementById('review-modal');
+  function closeReviewModal() {
+    if (!_rm) return;
+    _rm.classList.remove('open');
+    _rm.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
   if (_rm) {
-    _rm.addEventListener('click', e => {
-      if (e.target === e.currentTarget) {
-        _rm.classList.remove('open');
-        document.body.style.overflow = '';
-      }
-    });
+    _rm.addEventListener('click', e => { if (e.target === e.currentTarget) closeReviewModal(); });
   }
   const _rmc = document.getElementById('review-modal-close');
   if (_rmc) {
-    _rmc.addEventListener('click', () => {
-      if (_rm) _rm.classList.remove('open');
-      document.body.style.overflow = '';
-    });
+    _rmc.addEventListener('click', closeReviewModal);
   }
 })();
 
@@ -678,16 +681,13 @@ window.translateReviews = async function(domId) {
 document.addEventListener('DOMContentLoaded', () => {
   const allModal = document.getElementById('all-reviews-modal');
   if (allModal) {
-    allModal.addEventListener('click', e => {
-      if (e.target === e.currentTarget) {
-        allModal.classList.remove('open');
-        document.body.style.overflow = '';
-      }
-    });
-    const closeBtn = document.getElementById('all-reviews-close');
-    if (closeBtn) closeBtn.addEventListener('click', () => {
+    function closeAllReviewsModal() {
       allModal.classList.remove('open');
+      allModal.setAttribute('aria-hidden', 'true');
       document.body.style.overflow = '';
-    });
+    }
+    allModal.addEventListener('click', e => { if (e.target === e.currentTarget) closeAllReviewsModal(); });
+    const closeBtn = document.getElementById('all-reviews-close');
+    if (closeBtn) closeBtn.addEventListener('click', closeAllReviewsModal);
   }
 });

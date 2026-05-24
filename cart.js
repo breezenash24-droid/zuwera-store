@@ -5,6 +5,7 @@ function _openModal(id) {
   const el = document.getElementById(id);
   if (!el) return;
   el.classList.add('open');
+  el.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
 }
 
@@ -12,6 +13,7 @@ function _closeModal(id) {
   const el = document.getElementById(id);
   if (!el) return;
   el.classList.remove('open');
+  el.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
 }
 

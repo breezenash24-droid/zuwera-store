@@ -795,7 +795,7 @@
     <div class="mbox zw-mobile-menu-panel">
       <div class="zw-mobile-menu-top">
         <p class="zw-mobile-menu-kicker">Zuwera Navigation</p>
-        <button id="mobile-menu-close" class="mclose zw-mobile-menu-close" aria-label="Close menu">Close</button>
+        <button id="mobile-menu-close" class="mclose zw-mobile-menu-close" aria-label="Close menu" onclick="return window.closeMobileMenu ? window.closeMobileMenu() : false;">Close</button>
       </div>
       <nav class="zw-mobile-menu-nav" aria-label="Mobile navigation">
         <h2 id="mobile-menu-title" class="zw-mobile-menu-title">Menu</h2>
@@ -1306,9 +1306,9 @@ function updateCountdown() {
   <script src="modal-lock.js?v=72e2f101"></script>
   <script src="lang.js?v=1329682b" defer></script>
 
-  <div id="collection-review-modal" class="collection-review-modal" role="dialog" aria-modal="true" aria-labelledby="collection-review-title" tabindex="-1">
+  <div id="collection-review-modal" class="collection-review-modal" role="dialog" aria-modal="true" aria-labelledby="collection-review-title" aria-hidden="true" tabindex="-1">
     <div class="collection-review-box collection-product-box">
-      <button type="button" class="collection-review-close" id="collection-review-close" aria-label="Close">&times;</button>
+      <button type="button" class="collection-review-close" id="collection-review-close" aria-label="Close">&#215;</button>
       <div class="collection-product-layout">
         <div class="collection-product-gallery">
           <div class="collection-review-media" id="collection-review-media">
@@ -1534,6 +1534,7 @@ function updateCountdown() {
       modal.classList.add('closing');
       window.setTimeout(function() {
         modal.classList.remove('open', 'closing');
+        modal.setAttribute('aria-hidden', 'true');
       }, 190);
     }
     _collectionReviewItem = null;
@@ -1685,6 +1686,7 @@ function updateCountdown() {
     collectionRenderOptions(item);
     modal.classList.remove('closing');
     modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
     collectionSetScrollLock(true);
     var box = modal.querySelector('.collection-review-box');
     if (box) {

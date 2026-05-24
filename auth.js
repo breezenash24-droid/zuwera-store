@@ -142,6 +142,7 @@ function openAuthModal(tab) {
   _authReturnModalId = cart?.classList.contains('open') ? 'cart-modal' : null;
   if (cart?.classList.contains('open')) {
     cart.classList.remove('open');
+    cart.setAttribute('aria-hidden', 'true');
   }
   _openModal('auth-modal');
   switchAuthTab(tab || 'signin');
@@ -155,6 +156,7 @@ function closeAuthModal() {
     _authReturnModalId = null;
     if (returnModal) {
       returnModal.classList.add('open');
+      returnModal.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
       if (returnId === 'cart-modal') {
         if (typeof window.renderProductCartItems === 'function') window.renderProductCartItems();
