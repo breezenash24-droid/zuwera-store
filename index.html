@@ -1439,6 +1439,7 @@ body.light-mode .ret-history-item{border-top-color:rgba(9,9,11,.07)}
 @media(max-width:900px){
   .hero{min-height:0!important;grid-template-rows:auto auto!important}
   .hero-inner{min-height:0!important;padding-top:calc(5.5rem + env(safe-area-inset-top,0px))!important}
+  .hero-img-wrap::after{background:linear-gradient(to bottom,rgba(9,9,11,1) 0,rgba(9,9,11,1) calc(5.5rem + env(safe-area-inset-top,0px)),transparent calc(5.5rem + env(safe-area-inset-top,0px) + 2rem),transparent 50%,rgba(9,9,11,.85) 100%),radial-gradient(ellipse 60% 60% at 50% 50%,transparent 0%,rgba(9,9,11,.5) 100%)}
   .section-about{grid-template-columns:1fr!important;gap:2rem!important;padding:0 1.5rem 2rem!important}
   .drop-inner{grid-template-columns:1fr!important;gap:2rem!important;padding:2rem 1.5rem 4rem!important}
   .drop-bg-num{display:none}
@@ -2469,17 +2470,6 @@ function applyAnnouncementBar(mode, msgText) {
   setAnnouncementBarLayout(barEl, navEl, true);
 
   if (normalizedMode !== 'scroll') return;
-
-  if (isMobileViewport) {
-    // On mobile, keep the bar always visible in scroll mode.
-    // Hiding it (even via opacity) leaves a gap between the nav and page content
-    // because whatever is behind the bar shows through differently from the nav background.
-    barEl.style.transition = 'none';
-    barEl.style.transform = 'translateY(0)';
-    barEl.style.opacity = '1';
-    barEl.style.pointerEvents = '';
-    return;
-  }
 
   barEl.style.transition = 'transform 0.45s ease, opacity 0.45s ease';
   let lastScrollY = window.scrollY;
