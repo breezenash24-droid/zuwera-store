@@ -296,7 +296,7 @@ nav#nav.scrolled{
 }
 #account-btn{display:none!important}
 #logout-btn{display:none!important}
-#account-btn.show,#logout-btn.show{display:flex!important}
+#account-btn.show{display:flex!important}
 
 .hamburger-btn { display:none; background:none; border:none; color:#f4f1eb !important; cursor:pointer; -webkit-appearance:none; appearance:none; padding:0; -webkit-tap-highlight-color: transparent; }
 .hamburger-btn svg { stroke: #f4f1eb !important; }
@@ -3039,8 +3039,8 @@ function updateNav() {
   const lo = document.getElementById('logout-btn');
   const on = !!_user;
   li.style.display = on ? 'none' : '';
-  if (on) { ac.classList.add('show'); lo.classList.add('show'); }
-  else { ac.classList.remove('show'); lo.classList.remove('show'); }
+  if (on) { ac.classList.add('show'); }
+  else { ac.classList.remove('show'); }
   if (on && _user) {
     const name = _user.user_metadata?.full_name || _user.email.split('@')[0];
     ac.textContent = name.split(' ')[0];
