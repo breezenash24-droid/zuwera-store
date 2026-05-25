@@ -1763,7 +1763,7 @@ body.light-mode::after{opacity:0.15}
 
 </style>
   <link rel="stylesheet" href="reviews-vibe.css?v=764cbdc4">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=25042cf1">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=25052601">
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=7b6f9b38">
 <script src="image-utils.js?v=6eef467b" defer></script>
 <script src="mobile-menu.js?v=4c6ccedc" defer></script>
@@ -2425,7 +2425,7 @@ body.light-mode::after{opacity:0.15}
 <!-- Supabase must remain synchronous because the following inline script creates the client immediately. -->
 <script src="/supabase.min.js?v=3277b334"></script>
 <script>
-console.log('[ZUWERA] build: 2026-05-14-v2 | supabase-timeout fix');
+console.log('[ZUWERA] build: 2026-05-25-v1 | full-page checkout');
 /* TOAST */
 let _toastTimer = null;
 function showToast(msg) {
@@ -4554,6 +4554,7 @@ function openPaymentModal(subtotalCents) {
   _paymentReturnModalId = cartModal?.classList.contains('open') ? 'cart-modal' : null;
   if (_paymentReturnModalId) cartModal.classList.remove('open');
   const coPage = document.getElementById('checkout-page');
+  if (!coPage) return;
   coPage.classList.add('open');
   const itemsLine = document.getElementById('co-items-line');
   if (itemsLine) {
