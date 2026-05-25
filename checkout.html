@@ -24,14 +24,13 @@
       --font-head: 'Barlow Condensed', sans-serif;
       --font-body: 'Barlow', sans-serif;
       --font-mono: 'IBM Plex Mono', monospace;
-      --bg: #09090b;
-      --surface: #0f0f0f;
-      --border: rgba(244,241,235,.08);
-      --border-mid: rgba(244,241,235,.12);
-      --text: #f4f1eb;
-      --sub: rgba(244,241,235,.45);
-      --dim: rgba(244,241,235,.28);
-      --gold: #9b8b6e;
+      --bg:      #09090b;
+      --surface: #111113;
+      --border:  rgba(244,241,235,.09);
+      --border2: rgba(244,241,235,.14);
+      --text:    #f4f1eb;
+      --sub:     rgba(244,241,235,.45);
+      --dim:     rgba(244,241,235,.25);
     }
 
     html, body {
@@ -43,18 +42,18 @@
     }
     body { display: flex; flex-direction: column; }
 
-    /* ── Light mode ── */
+    /* Light mode */
     body.light-mode {
-      --bg: #F0EEE9;
+      --bg:      #F0EEE9;
       --surface: #ffffff;
-      --border: rgba(9,9,11,.08);
-      --border-mid: rgba(9,9,11,.14);
-      --text: #09090b;
-      --sub: rgba(9,9,11,.48);
-      --dim: rgba(9,9,11,.28);
+      --border:  rgba(9,9,11,.08);
+      --border2: rgba(9,9,11,.14);
+      --text:    #09090b;
+      --sub:     rgba(9,9,11,.48);
+      --dim:     rgba(9,9,11,.28);
     }
 
-    /* ── Header ── */
+    /* ───────────────────────────────── Header ── */
     .co-header {
       position: sticky;
       top: 0;
@@ -62,26 +61,24 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: calc(env(safe-area-inset-top, 0px) + .9rem) 1.5rem .9rem;
+      padding: calc(env(safe-area-inset-top, 0px) + .85rem) 1.25rem .85rem;
       background: var(--bg);
       border-bottom: 1px solid var(--border);
     }
     .co-back {
       display: flex;
       align-items: center;
-      gap: .35rem;
-      width: 90px;
+      gap: .4rem;
       font-family: var(--font-body);
-      font-size: .58rem;
+      font-size: .6rem;
       letter-spacing: .14em;
       text-transform: uppercase;
       color: var(--sub);
       text-decoration: none;
       transition: color .18s;
-      flex-shrink: 0;
+      min-width: 70px;
     }
     .co-back:hover { color: var(--text); }
-    .co-back svg { flex-shrink: 0; }
     .co-logo-wrap {
       display: flex;
       align-items: center;
@@ -89,137 +86,190 @@
       flex: 1;
       text-decoration: none;
     }
-    .co-logo-wrap img { display: block; height: 28px; width: auto; }
+    .co-logo-wrap img { display: block; height: 26px; width: auto; }
     body.light-mode .co-logo-wrap img { filter: invert(1); }
     .co-header-right {
-      width: 90px;
       display: flex;
-      justify-content: flex-end;
       align-items: center;
+      justify-content: flex-end;
       color: var(--dim);
-      flex-shrink: 0;
+      min-width: 70px;
     }
 
-    /* ── Main layout ── */
-    .co-main {
+    /* ───────────────────────────────── Page body ── */
+    .co-body {
       flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
-    .co-grid {
-      flex: 1;
-      display: grid;
-      grid-template-columns: 400px 1fr;
-      max-width: 1100px;
       width: 100%;
+      max-width: 560px;
       margin: 0 auto;
-      align-items: start;
+      padding: 2rem 1.5rem calc(env(safe-area-inset-bottom, 0px) + 2.5rem);
     }
 
-    /* ── Order summary (left) ── */
-    .co-summary-panel {
-      background: rgba(244,241,235,.025);
-      border-right: 1px solid var(--border);
-      padding: 2.2rem 1.8rem;
-      position: sticky;
-      top: 60px;
-      max-height: calc(100dvh - 60px);
-      overflow-y: auto;
-      overflow-x: hidden;
-      display: flex;
-      flex-direction: column;
+    /* ───────────────────────────────── Page title ── */
+    .co-page-title {
+      text-align: center;
+      margin-bottom: 2rem;
     }
-    body.light-mode .co-summary-panel { background: rgba(9,9,11,.02); border-right-color: var(--border); }
-
-    /* Desktop label */
-    .pm-label {
-      font-size: .62rem;
-      letter-spacing: .2em;
+    .co-checkout-h {
+      font-family: var(--font-head);
+      font-size: 2.6rem;
+      font-weight: 700;
+      letter-spacing: .12em;
       text-transform: uppercase;
+      line-height: 1;
+      margin-bottom: .45rem;
+    }
+    .co-checkout-sub {
+      font-size: .78rem;
       color: var(--sub);
-      margin-bottom: 1.4rem;
+      letter-spacing: .06em;
     }
 
-    /* Mobile toggle (hidden on desktop) */
-    .pm-toggle { display: none; width: 100%; background: none; border: none; color: inherit; cursor: pointer; padding: 0; font-family: var(--font-body); font-size: .84rem; }
-    .pm-toggle-inner { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
-    .pm-toggle-left { display: flex; align-items: center; gap: .4rem; color: var(--sub); font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; min-width: 0; overflow: hidden; }
-    .pm-toggle-right { font-weight: 600; font-size: .92rem; flex-shrink: 0; }
-    .pm-chevron { transition: transform .2s; flex-shrink: 0; }
-    .pm-toggle[aria-expanded="true"] .pm-chevron { transform: rotate(180deg); }
-    .pm-summary-body { display: block; }
+    /* ───────────────────────────────── Section headings ── */
+    .co-section {
+      margin-bottom: 1.75rem;
+    }
+    .co-section-hd {
+      display: flex;
+      align-items: center;
+      gap: .8rem;
+      margin-bottom: 1.1rem;
+      padding-bottom: .75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .co-section-label {
+      font-family: var(--font-head);
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      line-height: 1;
+    }
 
-    /* Items */
-    .pm-items { display: flex; flex-direction: column; gap: .85rem; margin-bottom: 1.2rem; }
+    /* ───────────────────────────────── Order summary ── */
+    .co-summary-toggle {
+      width: 100%;
+      background: none;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      color: inherit;
+      cursor: pointer;
+      padding: .9rem 0;
+      font-family: var(--font-body);
+      margin-bottom: 1.6rem;
+    }
+    .co-sum-toggle-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: .5rem;
+    }
+    .co-sum-toggle-left {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      font-family: var(--font-head);
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    .co-sum-chevron { transition: transform .22s; flex-shrink: 0; }
+    .co-summary-toggle[aria-expanded="true"] .co-sum-chevron { transform: rotate(180deg); }
+    .co-sum-toggle-right { font-size: .92rem; font-weight: 600; flex-shrink: 0; }
+
+    .co-summary-body { display: none; margin-bottom: .5rem; }
+    .co-summary-body.open { display: block; }
+
+    /* Items in summary */
+    .pm-items { display: flex; flex-direction: column; gap: .9rem; margin-bottom: 1.1rem; }
     .pm-item { display: flex; gap: .85rem; align-items: flex-start; }
-    .pm-item-img { width: 68px; height: 85px; object-fit: cover; border: 1px solid var(--border); flex-shrink: 0; display: block; }
-    .pm-item-img-placeholder { width: 68px; height: 85px; background: rgba(244,241,235,.04); flex-shrink: 0; }
+    .pm-item-img { width: 64px; height: 80px; object-fit: cover; border: 1px solid var(--border); flex-shrink: 0; display: block; }
+    .pm-item-img-placeholder { width: 64px; height: 80px; background: rgba(244,241,235,.04); flex-shrink: 0; }
     .pm-item-info { flex: 1; min-width: 0; }
-    .pm-item-title { font-family: var(--font-head); font-size: .95rem; font-weight: 600; letter-spacing: .04em; line-height: 1.25; }
+    .pm-item-title { font-family: var(--font-head); font-size: .95rem; font-weight: 600; letter-spacing: .04em; line-height: 1.3; }
     .pm-item-meta { font-size: .65rem; color: var(--sub); text-transform: uppercase; letter-spacing: .08em; margin-top: .2rem; }
     .pm-item-price { font-size: .88rem; flex-shrink: 0; font-variant-numeric: tabular-nums; }
 
-    /* Totals */
-    .pm-lines { border-top: 1px solid var(--border); padding-top: .85rem; margin-top: auto; display: flex; flex-direction: column; gap: .38rem; }
+    .pm-lines { border-top: 1px solid var(--border); padding-top: .85rem; margin-top: .2rem; display: flex; flex-direction: column; gap: .4rem; margin-bottom: .9rem; }
     .pm-line { display: flex; justify-content: space-between; font-size: .82rem; color: var(--sub); font-variant-numeric: tabular-nums; }
-    .pm-total-row { display: flex; justify-content: space-between; font-size: .98rem; font-weight: 600; border-top: 1px solid var(--border-mid); margin-top: .65rem; padding-top: .65rem; color: var(--text); font-variant-numeric: tabular-nums; }
+    .pm-total-row { display: flex; justify-content: space-between; font-size: 1rem; font-weight: 600; border-top: 1px solid var(--border2); padding-top: .7rem; color: var(--text); font-variant-numeric: tabular-nums; margin-bottom: 1.6rem; }
 
-    /* ── Form panel (right) ── */
-    .co-form-panel {
-      padding: 2.2rem 2.4rem 3rem;
-      overflow-y: auto;
-    }
-    .co-form-inner { max-width: 560px; }
-
-    /* Section labels */
-    .co-sec-label {
+    /* ───────────────────────────────── Form fields ── */
+    .pgrow { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; }
+    .pfield { margin-bottom: .8rem; }
+    .pfield label {
+      display: block;
       font-size: .58rem;
-      letter-spacing: .2em;
+      letter-spacing: .14em;
       text-transform: uppercase;
       color: var(--sub);
-      margin: 1.4rem 0 .8rem;
+      margin-bottom: .35rem;
     }
-    .co-sec-label:first-child { margin-top: 0; }
-
-    /* Form fields */
-    .pgrow { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
-    .pfield { margin-bottom: .85rem; }
-    .pfield label { display: block; font-size: .6rem; letter-spacing: .12em; text-transform: uppercase; color: var(--sub); margin-bottom: .35rem; }
-    .pfield input { width: 100%; background: rgba(244,241,235,.04); border: 1px solid var(--border-mid); color: inherit; padding: .65rem .8rem; font-family: var(--font-body); font-size: .88rem; outline: none; transition: border-color .18s; -webkit-appearance: none; border-radius: 2px; }
-    .pfield input:focus { border-color: rgba(244,241,235,.4); }
-    body.light-mode .pfield input { background: rgba(9,9,11,.04); border-color: rgba(9,9,11,.14); color: #09090b; }
+    .pfield input {
+      width: 100%;
+      background: rgba(244,241,235,.04);
+      border: 1px solid var(--border2);
+      color: inherit;
+      padding: .72rem .85rem;
+      font-family: var(--font-body);
+      font-size: .9rem;
+      outline: none;
+      transition: border-color .18s;
+      -webkit-appearance: none;
+      border-radius: 0;
+    }
+    .pfield input:focus { border-color: rgba(244,241,235,.45); }
+    body.light-mode .pfield input { background: rgba(9,9,11,.04); border-color: rgba(9,9,11,.16); color: #09090b; }
     body.light-mode .pfield input:focus { border-color: rgba(9,9,11,.45); }
     body.light-mode .pfield label { color: var(--sub); }
 
     /* Shipping rate options */
-    .rate-opt { display: flex; align-items: center; justify-content: space-between; gap: .7rem; padding: .6rem .8rem; border: 1px solid var(--border-mid); cursor: pointer; transition: border-color .18s, background .18s; margin-bottom: .4rem; background: rgba(244,241,235,.02); font-size: .82rem; border-radius: 2px; }
-    .rate-opt:hover { border-color: rgba(244,241,235,.3); background: rgba(244,241,235,.04); }
-    .rate-opt.selected { border-color: rgba(244,241,235,.55); background: rgba(244,241,235,.06); }
+    .rate-opt { display: flex; align-items: center; justify-content: space-between; gap: .7rem; padding: .65rem .85rem; border: 1px solid var(--border2); cursor: pointer; transition: border-color .18s, background .18s; margin-bottom: .4rem; background: rgba(244,241,235,.02); font-size: .84rem; }
+    .rate-opt:hover { border-color: rgba(244,241,235,.35); background: rgba(244,241,235,.04); }
+    .rate-opt.selected { border-color: rgba(244,241,235,.6); background: rgba(244,241,235,.07); }
     .rate-meta { font-size: .68rem; color: var(--sub); margin-top: .15rem; }
     body.light-mode .rate-opt { background: rgba(9,9,11,.02); border-color: rgba(9,9,11,.12); }
-    body.light-mode .rate-opt:hover { border-color: rgba(9,9,11,.3); }
     body.light-mode .rate-opt.selected { border-color: rgba(9,9,11,.55); }
 
-    /* Stripe card element */
-    #stripe-card-element { background: rgba(244,241,235,.04); border: 1px solid var(--border-mid); padding: .78rem .8rem; transition: border-color .18s; border-radius: 2px; }
-    #stripe-card-element.StripeElement--focus { border-color: rgba(244,241,235,.4); }
+    /* Stripe card */
+    #stripe-card-element { background: rgba(244,241,235,.04); border: 1px solid var(--border2); padding: .8rem .85rem; transition: border-color .18s; }
+    #stripe-card-element.StripeElement--focus { border-color: rgba(244,241,235,.45); }
     #stripe-card-element.StripeElement--invalid { border-color: #e07060; }
     body.light-mode #stripe-card-element { background: #f4f1eb; border-color: rgba(9,9,11,.28); }
     body.light-mode #stripe-card-element.StripeElement--focus { border-color: rgba(9,9,11,.55); }
 
-    /* Error */
     #pay-error { color: #e07060; font-size: .72rem; min-height: 1rem; margin: .4rem 0; }
 
-    /* Submit button */
+    /* Wallet methods */
+    .wallet-methods { display: none; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; margin: -.2rem 0 1rem; }
+
+    /* Test banner */
+    .zw-test-mode-banner { display: none; padding: .5rem .8rem; background: rgba(248,145,165,.08); border: 1px solid rgba(248,145,165,.2); color: #F891A5; font-size: .65rem; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 1rem; }
+    .zw-test-mode-banner.is-visible { display: block; }
+
+    /* Promo */
+    #zw-promo-shell { margin-bottom: .9rem; }
+    #zw-promo-shell .pm-promo-row { display: flex; gap: .5rem; align-items: stretch; }
+    #zw-promo-input { flex: 1; background: rgba(244,241,235,.04); border: 1px solid var(--border2); color: inherit; padding: .65rem .85rem; font-family: var(--font-body); font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; outline: none; transition: border-color .18s; min-width: 0; }
+    #zw-promo-input:focus { border-color: rgba(244,241,235,.45); }
+    #zw-promo-apply { border: 1px solid rgba(244,241,235,.22); background: transparent; color: inherit; padding: .65rem 1.1rem; font-family: var(--font-body); font-size: .65rem; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: border-color .2s; }
+    #zw-promo-apply:hover { border-color: rgba(244,241,235,.5); }
+    #zw-promo-message { font-size: .65rem; color: var(--sub); min-height: .85rem; margin-top: .3rem; }
+    body.light-mode #zw-promo-input { background: rgba(9,9,11,.04); border-color: rgba(9,9,11,.14); color: #09090b; }
+    body.light-mode #zw-promo-apply { border-color: rgba(9,9,11,.2); color: #09090b; }
+
+    /* Submit */
     #pay-submit {
       width: 100%;
       background: rgba(244,241,235,.92);
       color: #09090b;
       border: none;
-      padding: .95rem;
-      font-family: var(--font-body);
-      font-size: .78rem;
-      letter-spacing: .16em;
+      padding: 1rem;
+      font-family: var(--font-head);
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: .2em;
       text-transform: uppercase;
       cursor: pointer;
       margin-top: .5rem;
@@ -228,35 +278,20 @@
       align-items: center;
       justify-content: center;
       gap: .4rem;
-      border-radius: 2px;
     }
     #pay-submit:hover { opacity: .82; }
-    #pay-submit:disabled { opacity: .4; cursor: not-allowed; }
+    #pay-submit:disabled { opacity: .38; cursor: not-allowed; }
     body.light-mode #pay-submit { background: #09090b; color: #E8E3DC; }
 
-    .psecure { font-size: .62rem; color: var(--dim); letter-spacing: .06em; text-align: center; margin-top: .75rem; }
+    .psecure {
+      font-size: .62rem;
+      color: var(--dim);
+      letter-spacing: .06em;
+      text-align: center;
+      margin-top: .75rem;
+    }
 
-    /* Wallet methods */
-    .wallet-methods { display: none; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; margin: -.2rem 0 1rem; }
-
-    /* Test mode banner */
-    .zw-test-mode-banner { display: none; padding: .5rem .75rem; background: rgba(248,145,165,.08); border: 1px solid rgba(248,145,165,.22); color: #F891A5; font-size: .65rem; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 1rem; border-radius: 2px; }
-    .zw-test-mode-banner.is-visible { display: block; }
-
-    /* Promo code */
-    #zw-promo-shell { margin-bottom: .9rem; }
-    #zw-promo-shell .pm-promo-row { display: flex; gap: .5rem; align-items: stretch; }
-    #zw-promo-input { flex: 1; background: rgba(244,241,235,.04); border: 1px solid var(--border-mid); color: inherit; padding: .62rem .8rem; font-family: var(--font-body); font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; outline: none; transition: border-color .18s; min-width: 0; border-radius: 2px; }
-    #zw-promo-input:focus { border-color: rgba(244,241,235,.4); }
-    #zw-promo-apply { border: 1px solid rgba(244,241,235,.2); background: transparent; color: inherit; padding: .62rem 1rem; font-family: var(--font-body); font-size: .65rem; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: border-color .2s, opacity .2s; border-radius: 2px; }
-    #zw-promo-apply:hover { border-color: rgba(244,241,235,.5); }
-    #zw-promo-message { font-size: .65rem; color: var(--sub); min-height: .85rem; margin-top: .25rem; }
-    body.light-mode #zw-promo-input { background: rgba(9,9,11,.04); border-color: rgba(9,9,11,.14); color: #09090b; }
-    body.light-mode #zw-promo-input:focus { border-color: rgba(9,9,11,.4); }
-    body.light-mode #zw-promo-apply { border-color: rgba(9,9,11,.2); color: #09090b; }
-    body.light-mode #zw-promo-apply:hover { border-color: rgba(9,9,11,.5); }
-
-    /* ── Success overlay ── */
+    /* ───────────────────────────────── Success ── */
     #payment-success {
       display: none;
       position: fixed;
@@ -275,47 +310,20 @@
     #payment-success h2 { font-family: var(--font-head); font-size: 2.5rem; letter-spacing: .1em; margin-bottom: .6rem; }
     #payment-success p { color: var(--sub); font-size: .9rem; margin-bottom: 1.5rem; max-width: 340px; line-height: 1.8; }
     #success-order { font-size: .75rem; letter-spacing: .2em; color: var(--dim) !important; }
-    #success-continue { background: rgba(244,241,235,.9); color: #09090b; border: none; padding: .9rem 2.5rem; font-family: var(--font-body); font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; transition: opacity .18s; border-radius: 2px; margin-top: 1rem; }
+    #success-continue { background: rgba(244,241,235,.9); color: #09090b; border: none; padding: .9rem 2.5rem; font-family: var(--font-body); font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; transition: opacity .18s; margin-top: 1rem; }
     #success-continue:hover { opacity: .82; }
     body.light-mode #success-continue { background: #09090b; color: #E8E3DC; }
 
-    /* ── Toast ── */
-    #toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%) translateY(10px); background: var(--surface); color: rgba(244,241,235,.9); padding: .5rem 1.2rem; font-size: .72rem; letter-spacing: .08em; opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; z-index: 9999; white-space: nowrap; }
+    /* ───────────────────────────────── Toast ── */
+    #toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%) translateY(10px); background: #0f0f0f; color: rgba(244,241,235,.9); padding: .5rem 1.2rem; font-size: .72rem; letter-spacing: .08em; opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; z-index: 9999; white-space: nowrap; }
     #toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
     body.light-mode #toast { background: #F0EEE9; color: #09090b; }
 
-    /* ── Mobile (≤ 800px) ── */
-    @media (max-width: 800px) {
-      .co-header { padding: calc(env(safe-area-inset-top, 0px) + .75rem) 1rem .75rem; }
-
-      .co-grid {
-        grid-template-columns: 1fr;
-        display: flex;
-        flex-direction: column;
-      }
-
-      /* Summary: collapsible on mobile */
-      .co-summary-panel {
-        position: static;
-        max-height: none;
-        overflow: visible;
-        border-right: none;
-        border-bottom: 1px solid var(--border);
-        padding: 1rem 1.2rem;
-        background: rgba(244,241,235,.02);
-      }
-      .pm-label { display: none; }
-      .pm-toggle { display: block; }
-      .pm-summary-body { display: none; margin-top: .85rem; }
-      .pm-summary-body.open { display: block; }
-
-      .co-form-panel {
-        padding: 1.4rem 1.2rem calc(env(safe-area-inset-bottom, 0px) + 1.5rem);
-      }
-      .co-form-inner { max-width: 100%; }
-
+    /* ───────────────────────────────── Mobile tweaks ── */
+    @media (max-width: 600px) {
+      .co-body { padding: 1.5rem 1.1rem calc(env(safe-area-inset-bottom, 0px) + 2rem); }
+      .co-checkout-h { font-size: 2.1rem; }
       .pgrow { grid-template-columns: 1fr !important; }
-      .co-sec-label { margin-top: 1.2rem; }
     }
   </style>
 </head>
@@ -326,7 +334,7 @@
 
 <!-- HEADER -->
 <header class="co-header">
-  <a href="/bag.html" class="co-back" id="co-back-btn">
+  <a href="/bag.html" class="co-back">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
     Bag
   </a>
@@ -338,90 +346,102 @@
   </div>
 </header>
 
-<!-- MAIN -->
-<main class="co-main">
-  <div class="co-grid">
+<!-- BODY -->
+<div class="co-body">
 
-    <!-- ORDER SUMMARY -->
-    <aside class="co-summary-panel" aria-label="Order summary">
-      <!-- Desktop label -->
-      <div class="pm-label">Order Summary</div>
-      <!-- Mobile toggle -->
-      <button class="pm-toggle" id="pm-summary-toggle" aria-expanded="false" aria-controls="pm-summary-body">
-        <div class="pm-toggle-inner">
-          <span class="pm-toggle-left">
-            Order Summary
-            <svg class="pm-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-          </span>
-          <span class="pm-toggle-right" id="pm-toggle-total">—</span>
-        </div>
-      </button>
-      <!-- Summary body -->
-      <div class="pm-summary-body" id="pm-summary-body">
-        <div class="pm-items" id="pm-items"></div>
-        <div class="pm-lines">
-          <div class="pm-line"><span>Subtotal</span><span id="pm-subtotal">—</span></div>
-          <div class="pm-line"><span>Shipping</span><span id="pm-shipping">—</span></div>
-          <div class="pm-line" id="zw-promo-row" style="display:none"><span>Discount</span><span id="zw-promo-discount" style="color:rgba(110,210,130,.9)">—</span></div>
-          <div class="pm-line"><span id="pm-tax-label">Tax</span><span id="pm-tax">—</span></div>
-        </div>
-        <div class="pm-total-row"><span>Total</span><span id="pm-total">—</span></div>
-      </div>
-    </aside>
-
-    <!-- FORM -->
-    <div class="co-form-panel">
-      <div class="co-form-inner">
-        <div class="zw-test-mode-banner" data-stripe-test-banner>Test mode active — use Stripe test cards only.</div>
-
-        <div id="payment-request-btn" style="display:none" aria-hidden="true"></div>
-        <div id="wallet-methods" class="wallet-methods" aria-hidden="true"></div>
-        <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.28)">— or pay with card —</div>
-
-        <div class="co-sec-label">Contact</div>
-        <div class="pgrow">
-          <div class="pfield"><label for="pay-name">Full Name</label><input type="text" id="pay-name" placeholder="Jane Smith" autocomplete="name"></div>
-          <div class="pfield"><label for="pay-email">Email</label><input type="email" id="pay-email" placeholder="jane@example.com" autocomplete="email"></div>
-        </div>
-
-        <div class="co-sec-label">Address</div>
-        <div class="pfield"><label for="pay-addr1">Street Address</label><input type="text" id="pay-addr1" placeholder="123 Main St" autocomplete="street-address"></div>
-        <div class="pfield"><label for="pay-addr2">Apt / Suite <span style="opacity:.4">(optional)</span></label><input type="text" id="pay-addr2" placeholder="Apt 4B" autocomplete="address-line2"></div>
-        <div class="pgrow" style="grid-template-columns:1fr 80px 120px">
-          <div class="pfield"><label for="pay-city">City</label><input type="text" id="pay-city" placeholder="New York" autocomplete="address-level2"></div>
-          <div class="pfield"><label for="pay-state">State</label><input type="text" id="pay-state" placeholder="NY" maxlength="2" autocomplete="address-level1" style="text-transform:uppercase"></div>
-          <div class="pfield"><label for="pay-zip">ZIP</label><input type="text" id="pay-zip" placeholder="10001" maxlength="10" autocomplete="postal-code"></div>
-        </div>
-
-        <div class="pfield" id="shipping-rates-field" style="display:none"><label>Shipping Method</label><div id="shipping-rates-list"></div></div>
-        <div id="shipping-rates-loading" style="display:none;font-size:.68rem;color:var(--sub);margin-bottom:1rem;letter-spacing:.04em">Fetching shipping rates…</div>
-        <div id="shipping-free-row" class="pfield" style="display:none;align-items:center;justify-content:space-between">
-          <label style="margin:0">Shipping</label>
-          <span style="font-size:.82rem;color:rgba(244,241,235,.85)">Free</span>
-        </div>
-
-        <div id="zw-promo-shell">
-          <label style="display:block;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--sub);margin-bottom:.35rem;">Promo Code <span style="opacity:.5">(optional)</span></label>
-          <div class="pm-promo-row">
-            <input id="zw-promo-input" type="text" placeholder="PROMO CODE" autocomplete="off" aria-label="Promo code">
-            <button id="zw-promo-apply" type="button">Apply</button>
-          </div>
-          <div id="zw-promo-message" aria-live="polite"></div>
-        </div>
-
-        <div class="co-sec-label">Payment</div>
-        <div class="pfield"><label>Card Details</label><div id="stripe-card-element"></div></div>
-        <p id="pay-error" role="alert" aria-live="assertive"></p>
-
-        <button id="pay-submit" type="button">
-          <span id="pay-btn-text">Pay Now</span>
-        </button>
-        <p class="psecure">Your card is never stored on our servers &mdash; secured by Stripe.</p>
-      </div>
-    </div>
-
+  <!-- PAGE TITLE -->
+  <div class="co-page-title">
+    <h1 class="co-checkout-h">Checkout</h1>
+    <div class="co-checkout-sub" id="co-checkout-sub">Loading…</div>
   </div>
-</main>
+
+  <!-- ORDER SUMMARY (collapsible) -->
+  <button class="co-summary-toggle" id="pm-summary-toggle" aria-expanded="false" aria-controls="pm-summary-body">
+    <div class="co-sum-toggle-inner">
+      <span class="co-sum-toggle-left">
+        In Your Bag
+        <svg class="co-sum-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </span>
+      <span class="co-sum-toggle-right" id="pm-toggle-total">—</span>
+    </div>
+  </button>
+  <div class="co-summary-body" id="pm-summary-body">
+    <div class="pm-items" id="pm-items"></div>
+    <div class="pm-lines">
+      <div class="pm-line"><span>Subtotal</span><span id="pm-subtotal">—</span></div>
+      <div class="pm-line"><span>Shipping</span><span id="pm-shipping">—</span></div>
+      <div class="pm-line" id="zw-promo-row" style="display:none"><span>Discount</span><span id="zw-promo-discount" style="color:rgba(110,210,130,.9)">—</span></div>
+      <div class="pm-line"><span id="pm-tax-label">Tax</span><span id="pm-tax">—</span></div>
+    </div>
+    <div class="pm-total-row"><span>Total</span><span id="pm-total">—</span></div>
+  </div>
+
+  <!-- WALLET BUTTONS -->
+  <div class="zw-test-mode-banner" data-stripe-test-banner>Test mode active — use Stripe test cards only.</div>
+  <div id="payment-request-btn" style="display:none" aria-hidden="true"></div>
+  <div id="wallet-methods" class="wallet-methods" aria-hidden="true"></div>
+  <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0 1.4rem;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.28)">— or pay with card —</div>
+
+  <!-- CONTACT -->
+  <div class="co-section">
+    <div class="co-section-hd">
+      <span class="co-section-label">Contact</span>
+    </div>
+    <div class="pfield"><label for="pay-name">Full Name</label><input type="text" id="pay-name" placeholder="Jane Smith" autocomplete="name"></div>
+    <div class="pfield"><label for="pay-email">Email</label><input type="email" id="pay-email" placeholder="jane@example.com" autocomplete="email"></div>
+  </div>
+
+  <!-- ADDRESS -->
+  <div class="co-section">
+    <div class="co-section-hd">
+      <span class="co-section-label">Address</span>
+    </div>
+    <div class="pfield"><label for="pay-addr1">Street Address</label><input type="text" id="pay-addr1" placeholder="123 Main St" autocomplete="street-address"></div>
+    <div class="pfield"><label for="pay-addr2">Apt / Suite <span style="opacity:.4">(optional)</span></label><input type="text" id="pay-addr2" placeholder="Apt 4B" autocomplete="address-line2"></div>
+    <div class="pgrow" style="grid-template-columns:1fr 80px 120px">
+      <div class="pfield"><label for="pay-city">City</label><input type="text" id="pay-city" placeholder="New York" autocomplete="address-level2"></div>
+      <div class="pfield"><label for="pay-state">State</label><input type="text" id="pay-state" placeholder="NY" maxlength="2" autocomplete="address-level1" style="text-transform:uppercase"></div>
+      <div class="pfield"><label for="pay-zip">ZIP</label><input type="text" id="pay-zip" placeholder="10001" maxlength="10" autocomplete="postal-code"></div>
+    </div>
+  </div>
+
+  <!-- SHIPPING -->
+  <div class="co-section">
+    <div class="co-section-hd">
+      <span class="co-section-label">Shipping</span>
+    </div>
+    <div id="shipping-rates-loading" style="display:none;font-size:.72rem;color:var(--sub);letter-spacing:.04em;margin-bottom:.5rem">Fetching rates…</div>
+    <div id="shipping-rates-field" style="display:none"><div id="shipping-rates-list"></div></div>
+    <div id="shipping-free-row" style="display:none;display:flex;align-items:center;justify-content:space-between;font-size:.84rem">
+      <span>Standard Shipping</span>
+      <span style="color:rgba(244,241,235,.85)">Free</span>
+    </div>
+  </div>
+
+  <!-- PROMO -->
+  <div id="zw-promo-shell" style="margin-bottom:1.75rem">
+    <label style="display:block;font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--sub);margin-bottom:.35rem">Promo Code <span style="opacity:.5">(optional)</span></label>
+    <div class="pm-promo-row">
+      <input id="zw-promo-input" type="text" placeholder="PROMO CODE" autocomplete="off" aria-label="Promo code">
+      <button id="zw-promo-apply" type="button">Apply</button>
+    </div>
+    <div id="zw-promo-message" aria-live="polite"></div>
+  </div>
+
+  <!-- PAYMENT -->
+  <div class="co-section">
+    <div class="co-section-hd">
+      <span class="co-section-label">Payment</span>
+    </div>
+    <div class="pfield"><label>Card Details</label><div id="stripe-card-element"></div></div>
+    <p id="pay-error" role="alert" aria-live="assertive"></p>
+    <button id="pay-submit" type="button">
+      <span id="pay-btn-text">Pay Now</span>
+    </button>
+    <p class="psecure">Secured by Stripe &mdash; your card is never stored on our servers.</p>
+  </div>
+
+</div><!-- /.co-body -->
 
 <!-- SUCCESS -->
 <div id="payment-success" role="dialog" aria-modal="true" aria-label="Order confirmed">
@@ -432,7 +452,7 @@
   <button id="success-continue">Continue Shopping</button>
 </div>
 
-<!-- AUTH MODAL (stub — auth.js references this) -->
+<!-- auth-modal stub (auth.js may reference this ID) -->
 <div id="auth-modal" style="display:none" aria-hidden="true"></div>
 
 <script src="/posthog-init.js?v=e62ca5bb"></script>
@@ -442,25 +462,20 @@ window.cartItems = [];
 window._zwActivePromo = null;
 window._shippingPolicy = { enabled: true, threshold: 100 };
 
-/* ── Helpers ── */
-function esc(s) {
-  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
 window.showToast = function(msg, dur) {
   var el = document.getElementById('toast');
   if (!el) return;
   el.textContent = msg;
   el.classList.add('on');
   clearTimeout(el._t);
-  el._t = setTimeout(function(){ el.classList.remove('on'); }, dur || 3000);
+  el._t = setTimeout(function(){ el.classList.remove('on'); }, dur || 3200);
 };
 
 window.zwTrack = function(event, props) {
   try { if (window.posthog) window.posthog.capture(event, props); } catch(_) {}
 };
 
-/* ── Modal stubs (checkout.js calls _openModal/_closeModal) ── */
+/* checkout.js calls _openModal / _closeModal */
 window._openModal = function(id) {
   if (id === 'payment-success') {
     var el = document.getElementById('payment-success');
@@ -476,35 +491,41 @@ window._closeModal = function(id) {
   }
 };
 
-/* ── Promo stubs ── */
 window.zwResetPromoUI = function() {};
-window.zwClearPromo   = function(silent) {
+window.zwClearPromo = function() {
   window._zwActivePromo = null;
   var row = document.getElementById('zw-promo-row');
   if (row) row.style.display = 'none';
-  var applyBtn = document.getElementById('zw-promo-apply');
-  if (applyBtn) { applyBtn.textContent = 'Apply'; applyBtn.disabled = false; }
+  var btn = document.getElementById('zw-promo-apply');
+  if (btn) { btn.textContent = 'Apply'; btn.disabled = false; }
   if (typeof window.zwPromoUpdateSummaryTotals === 'function') window.zwPromoUpdateSummaryTotals();
 };
 
-/* ── Read cart from localStorage ── */
+/* ── Read cart ── */
 (function() {
   try {
-    var raw = localStorage.getItem('cart');
-    var cart = raw ? JSON.parse(raw) : [];
+    var cart = JSON.parse(localStorage.getItem('cart') || '[]');
     if (!Array.isArray(cart)) cart = [];
     window.cartItems = cart;
-  } catch(_) {
-    window.cartItems = [];
-  }
+  } catch(_) { window.cartItems = []; }
 
-  /* Redirect back to bag if cart is empty */
   if (!window.cartItems.length) {
     location.replace('/bag.html');
     return;
   }
 
-  /* Render order summary items */
+  /* Subtitle: "N items · $XX.XX" */
+  function updateSubtitle() {
+    var cart = window.cartItems;
+    var n = cart.reduce(function(s,i){ return s + (i.quantity||1); }, 0);
+    var sub = cart.reduce(function(s,i){ return s + parseFloat(i.price||0)*(i.quantity||1); }, 0);
+    var el = document.getElementById('co-checkout-sub');
+    if (el) el.textContent = n + ' item' + (n!==1?'s':'') + ' · $' + sub.toFixed(2);
+  }
+  updateSubtitle();
+
+  /* Render order summary */
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function renderSummary() {
     var cart = window.cartItems;
     var itemsEl = document.getElementById('pm-items');
@@ -512,31 +533,29 @@ window.zwClearPromo   = function(silent) {
       itemsEl.innerHTML = cart.map(function(item) {
         var imgSrc = (typeof window.optimizeImage === 'function')
           ? window.optimizeImage(item.image, 160) : (item.image || '');
-        var price = (parseFloat(item.price || 0) * (item.quantity || 1)).toFixed(2);
+        var price = (parseFloat(item.price||0)*(item.quantity||1)).toFixed(2);
         var imgHtml = imgSrc
-          ? '<img src="' + esc(imgSrc) + '" alt="' + esc(item.title || item.name || '') + '" class="pm-item-img" onerror="this.style.display=\'none\'">'
+          ? '<img src="'+esc(imgSrc)+'" alt="'+esc(item.title||item.name||'')+'" class="pm-item-img" onerror="this.style.display=\'none\'">'
           : '<div class="pm-item-img-placeholder"></div>';
         var meta = [item.colorName, item.size].filter(Boolean).map(esc).join(' / ');
-        var cleanTitle = esc((item.title || item.name || '').replace(/\p{Extended_Pictographic}/gu, '').replace(/\s+/g,' ').trim());
-        return '<div class="pm-item">' + imgHtml + '<div class="pm-item-info"><div class="pm-item-title">' + cleanTitle + '</div>' + (meta ? '<div class="pm-item-meta">' + meta + '</div>' : '') + '<div class="pm-item-meta">Qty ' + (item.quantity || 1) + '</div></div><div class="pm-item-price">$' + price + '</div></div>';
+        var cleanTitle = esc((item.title||item.name||'').replace(/\p{Extended_Pictographic}/gu,'').replace(/\s+/g,' ').trim());
+        return '<div class="pm-item">'+imgHtml+'<div class="pm-item-info"><div class="pm-item-title">'+cleanTitle+'</div>'+(meta?'<div class="pm-item-meta">'+meta+'</div>':'')+'<div class="pm-item-meta">Qty '+(item.quantity||1)+'</div></div><div class="pm-item-price">$'+price+'</div></div>';
       }).join('');
     }
 
-    /* Initial totals (tax calculated later by commerce-checkout.js) */
     var policy = window._shippingPolicy || { enabled: true, threshold: 100 };
-    var sub = cart.reduce(function(s, i) { return s + parseFloat(i.price || 0) * (i.quantity || 1); }, 0);
+    var sub = cart.reduce(function(s,i){ return s + parseFloat(i.price||0)*(i.quantity||1); }, 0);
     var shipping = (policy.enabled && sub >= policy.threshold) ? 'Free' : '—';
-    var subFmt = '$' + sub.toFixed(2);
-
-    var set = function(id, val) { var e = document.getElementById(id); if (e) e.textContent = val; };
-    set('pm-subtotal', subFmt);
+    var fmt = '$'+sub.toFixed(2);
+    function set(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; }
+    set('pm-subtotal', fmt);
     set('pm-shipping', shipping);
     set('pm-tax', '—');
-    set('pm-total', subFmt);
-    set('pm-toggle-total', subFmt);
+    set('pm-total', fmt);
+    set('pm-toggle-total', fmt);
   }
-
   renderSummary();
+  window._zwRenderCheckoutSummary = renderSummary;
 })();
 </script>
 
@@ -547,24 +566,12 @@ window.zwClearPromo   = function(silent) {
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 
-  /* Re-render summary in case optimizeImage is now available */
-  var cart = window.cartItems;
-  if (cart && cart.length) {
-    var itemsEl = document.getElementById('pm-items');
-    if (itemsEl && typeof window.optimizeImage === 'function') {
-      function escL(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-      itemsEl.innerHTML = cart.map(function(item) {
-        var imgSrc = window.optimizeImage(item.image, 160);
-        var price = (parseFloat(item.price || 0) * (item.quantity || 1)).toFixed(2);
-        var imgHtml = imgSrc ? '<img src="' + escL(imgSrc) + '" alt="' + escL(item.title || item.name || '') + '" class="pm-item-img" onerror="this.style.display=\'none\'">' : '<div class="pm-item-img-placeholder"></div>';
-        var meta = [item.colorName, item.size].filter(Boolean).map(escL).join(' / ');
-        var cleanTitle = escL((item.title || item.name || '').replace(/\p{Extended_Pictographic}/gu,'').replace(/\s+/g,' ').trim());
-        return '<div class="pm-item">' + imgHtml + '<div class="pm-item-info"><div class="pm-item-title">' + cleanTitle + '</div>' + (meta ? '<div class="pm-item-meta">' + meta + '</div>' : '') + '<div class="pm-item-meta">Qty ' + (item.quantity||1) + '</div></div><div class="pm-item-price">$' + price + '</div></div>';
-      }).join('');
-    }
+  /* Re-render items now that optimizeImage is available */
+  if (typeof window._zwRenderCheckoutSummary === 'function') {
+    window._zwRenderCheckoutSummary();
   }
 
-  /* Mobile order summary toggle */
+  /* Order summary toggle */
   var toggleBtn = document.getElementById('pm-summary-toggle');
   if (toggleBtn) {
     toggleBtn.addEventListener('click', function() {
@@ -575,79 +582,53 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  /* Success continue button — clear cart and go home */
+  /* Success: clear cart and go home */
   var contBtn = document.getElementById('success-continue');
   if (contBtn) {
     contBtn.addEventListener('click', function() {
-      try {
-        localStorage.removeItem('cart');
-        window.cartItems = [];
-        if (typeof window.zwClearPromo === 'function') window.zwClearPromo(true);
-      } catch(_) {}
+      try { localStorage.removeItem('cart'); window.cartItems = []; } catch(_) {}
+      if (typeof window.zwClearPromo === 'function') window.zwClearPromo(true);
       location.assign('/');
     });
   }
 
-  /* Promo code apply/remove */
-  var promoApplyBtn = document.getElementById('zw-promo-apply');
-  var promoInputEl  = document.getElementById('zw-promo-input');
-  var promoMsgEl    = document.getElementById('zw-promo-message');
-
-  if (promoApplyBtn) {
-    promoApplyBtn.addEventListener('click', async function() {
-      if (window._zwActivePromo) {
-        window.zwClearPromo(true);
-        return;
-      }
-      var code = (promoInputEl ? promoInputEl.value : '').trim().toUpperCase();
-      if (!code) {
-        if (promoMsgEl) promoMsgEl.textContent = 'Enter a promo code.';
-        return;
-      }
-      promoApplyBtn.disabled = true;
-      promoApplyBtn.textContent = '…';
-      if (promoMsgEl) { promoMsgEl.textContent = ''; }
+  /* Promo code */
+  var promoBtn = document.getElementById('zw-promo-apply');
+  var promoInput = document.getElementById('zw-promo-input');
+  var promoMsg = document.getElementById('zw-promo-message');
+  if (promoBtn) {
+    promoBtn.addEventListener('click', async function() {
+      if (window._zwActivePromo) { window.zwClearPromo(true); return; }
+      var code = (promoInput ? promoInput.value : '').trim().toUpperCase();
+      if (!code) { if (promoMsg) promoMsg.textContent = 'Enter a promo code.'; return; }
+      promoBtn.disabled = true; promoBtn.textContent = '…';
+      if (promoMsg) promoMsg.textContent = '';
       try {
-        var resp = await fetch('/api/validate-promo', {
+        var r = await fetch('/api/validate-promo', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            promoCode: code,
-            items: window.cartItems.map(function(item) {
-              return {
-                productId: item.productId || item.id || '',
-                price: parseFloat(item.price) || 0,
-                quantity: parseInt(item.quantity, 10) || 1,
-                collectionId: item.collectionId || item.collection || '',
-              };
-            }),
-          }),
+          body: JSON.stringify({ promoCode: code, items: window.cartItems.map(function(i){ return { productId: i.productId||i.id||'', price: parseFloat(i.price)||0, quantity: parseInt(i.quantity,10)||1, collectionId: i.collectionId||i.collection||'' }; }) })
         });
-        var data = await resp.json();
-        if (data.valid) {
-          if (typeof window.zwApplyPromo === 'function') window.zwApplyPromo(data);
+        var d = await r.json();
+        if (d.valid) {
+          if (typeof window.zwApplyPromo === 'function') window.zwApplyPromo(d);
         } else {
-          if (promoMsgEl) promoMsgEl.textContent = data.message || 'Invalid promo code.';
-          promoApplyBtn.disabled = false;
-          promoApplyBtn.textContent = 'Apply';
+          if (promoMsg) promoMsg.textContent = d.message || 'Invalid promo code.';
+          promoBtn.disabled = false; promoBtn.textContent = 'Apply';
         }
       } catch(_) {
-        if (promoMsgEl) promoMsgEl.textContent = 'Could not validate code. Try again.';
-        promoApplyBtn.disabled = false;
-        promoApplyBtn.textContent = 'Apply';
+        if (promoMsg) promoMsg.textContent = 'Could not validate. Try again.';
+        promoBtn.disabled = false; promoBtn.textContent = 'Apply';
       }
     });
   }
-
-  if (promoInputEl) {
-    promoInputEl.addEventListener('input', function() {
-      if (window._zwActivePromo) {
-        window.zwClearPromo(true);
-      }
+  if (promoInput) {
+    promoInput.addEventListener('input', function() {
+      if (window._zwActivePromo) window.zwClearPromo(true);
     });
   }
 
-  /* Load commerce config (promo visibility + shipping policy) */
+  /* Commerce config (shipping policy, promo visibility) */
   if (window._commerceConfigCache) {
     if (window._commerceConfigCache.shippingPolicy) window._shippingPolicy = window._commerceConfigCache.shippingPolicy;
     if (window._commerceConfigCache.show_promo_code === false) {
@@ -656,7 +637,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   } else {
     fetch('/api/commerce-config').then(function(r){ return r.json(); }).then(function(d) {
-      window._commerceConfigCache = (d && d.config) || {};
+      window._commerceConfigCache = (d&&d.config)||{};
       if (window._commerceConfigCache.shippingPolicy) window._shippingPolicy = window._commerceConfigCache.shippingPolicy;
       if (window._commerceConfigCache.show_promo_code === false) {
         var shell = document.getElementById('zw-promo-shell');
@@ -665,29 +646,28 @@ document.addEventListener('DOMContentLoaded', function() {
     }).catch(function(){});
   }
 
-  /* Init wallet payment request (Apple Pay / Google Pay) */
-  var sub = window.cartItems.reduce(function(s,i){ return s + parseFloat(i.price||0)*(i.quantity||1); }, 0);
-  var subtotalCents = Math.round(sub * 100) || 100;
+  /* Init wallet pay (Apple Pay / Google Pay) */
+  var sub = window.cartItems.reduce(function(s,i){ return s+parseFloat(i.price||0)*(i.quantity||1); },0);
+  var subtotalCents = Math.round(sub*100)||100;
   if (typeof window.initPaymentRequest === 'function') window.initPaymentRequest(subtotalCents);
 
-  /* Apply card style for current theme */
+  /* Card style for theme */
   if (typeof window.refreshCardStyle === 'function') {
     window.refreshCardStyle(document.body.classList.contains('light-mode'));
   }
 
   /* Analytics */
   window.zwTrack('checkout_started', {
-    item_count: window.cartItems.reduce(function(n,i){ return n + (i.quantity||1); }, 0),
-    value: sub,
-    currency: 'USD',
+    item_count: window.cartItems.reduce(function(n,i){ return n+(i.quantity||1); },0),
+    value: sub, currency: 'USD'
   });
 
-  /* Prefill if user is logged in */
-  if (typeof window.sb !== 'undefined' && window.sb) {
-    window.sb.auth.getSession().then(function(result) {
-      var session = result && result.data && result.data.session ? result.data.session : null;
-      if (session && session.user && typeof window.prefillCheckoutForUser === 'function') {
-        window.prefillCheckoutForUser(session.user);
+  /* Prefill if signed in */
+  if (window.sb) {
+    window.sb.auth.getSession().then(function(res) {
+      var sess = res&&res.data&&res.data.session ? res.data.session : null;
+      if (sess&&sess.user&&typeof window.prefillCheckoutForUser==='function') {
+        window.prefillCheckoutForUser(sess.user);
       }
     }).catch(function(){});
   }
