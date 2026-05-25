@@ -589,8 +589,7 @@ body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba
     padding: 0 !important;
   }
   #all-reviews-modal > .review-list-mbox {
-    /* Override storefront-cohesion full-height rule */
-    height: auto !important;
+    height: 92dvh !important;
     min-height: 0 !important;
     max-height: 92dvh !important;
     width: 100vw !important;
