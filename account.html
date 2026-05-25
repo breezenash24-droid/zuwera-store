@@ -1495,6 +1495,12 @@ async function saveProfile() {
   const statusEl = document.getElementById('prof-status');
   if (statusEl) statusEl.textContent = 'Saving…';
   try {
+    const newName = document.getElementById('prof-name')?.value?.trim() || '';
+    if (newName && newName !== (_session?.user?.user_metadata?.full_name || '')) {
+      const { error: nameErr } = await _sb.auth.updateUser({ data: { full_name: newName } });
+      if (nameErr) throw nameErr;
+      if (_session?.user?.user_metadata) _session.user.user_metadata.full_name = newName;
+    }
     const newAddress = {
       label: document.getElementById('prof-label')?.value?.trim(),
       name: document.getElementById('prof-addr-name')?.value?.trim(),
