@@ -1480,8 +1480,8 @@ body.light-mode .ret-history-item{border-top-color:rgba(9,9,11,.07)}
   .cart-hd{padding:1.2rem}
   footer{padding:2rem 1.2rem}
   .mbox { padding: 2rem 1.2rem 1.8rem; }
-  #payment-modal{align-items:flex-start;justify-content:center;padding:calc(.75rem + env(safe-area-inset-top,0px)) .75rem calc(1.25rem + env(safe-area-inset-bottom,0px));background:rgba(9,9,11,.92)!important;overflow-y:scroll;-webkit-overflow-scrolling:touch}
-  #payment-modal .pbox{width:100%;max-height:none;overflow-y:visible;padding:1.35rem 1rem calc(1rem + env(safe-area-inset-bottom,0px))}
+  #payment-modal{align-items:flex-start;justify-content:center;padding:calc(.75rem + env(safe-area-inset-top,0px)) .75rem 0;background:rgba(9,9,11,.92)!important;overflow:hidden}
+  #payment-modal .pbox{width:100%;max-height:calc(100dvh - .75rem - env(safe-area-inset-top,0px));overflow-y:auto;-webkit-overflow-scrolling:touch;padding:1.35rem 1rem calc(1rem + env(safe-area-inset-bottom,0px))}
   #payment-modal .pgrow{grid-template-columns:1fr!important}
   #pay-submit{position:sticky;bottom:calc(.65rem + env(safe-area-inset-bottom,0px));z-index:5;box-shadow:0 -10px 22px rgba(9,9,11,.18)}
   .star-selector { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.3rem !important; }
