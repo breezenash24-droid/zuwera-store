@@ -687,18 +687,6 @@ body.light-mode .heart-btn{
   color:rgba(9,9,11,.3) !important;
 }
 
-/* Checkout and sticky mobile rhythm. */
-#payment-modal{
-  align-items:center !important;
-  justify-content:center !important;
-  padding:clamp(1rem, 3vw, 2rem) !important;
-}
-
-#payment-modal .pbox{
-  max-height:94dvh !important;
-  margin:auto !important;
-  overflow:hidden !important;
-}
 
 @media(max-width:760px){
   .zw-saved-item-actions{
@@ -1046,30 +1034,7 @@ body.light-mode .heart-btn{
     padding:calc(1rem + env(safe-area-inset-top,0px)) 1.2rem 1rem !important;
   }
 
-  #payment-modal{
-    align-items:flex-end !important;
-    padding:0 !important;
-    background:transparent !important;
-  }
 
-  #payment-modal .pbox{
-    border-radius:0 !important;
-    padding:1.35rem 1rem calc(1rem + env(safe-area-inset-bottom,0px)) !important;
-    max-height:calc(100dvh - env(safe-area-inset-top,0px) - 3rem) !important;
-    overflow-y:auto !important;
-    -webkit-overflow-scrolling:touch !important;
-  }
-
-  #payment-modal .pbox .mclose{
-    display:none !important;
-  }
-
-  #payment-modal .pmodal-grid{
-    flex:1 !important;
-    min-height:0 !important;
-    overflow-y:auto !important;
-    overflow-x:hidden !important;
-  }
 
   #payment-modal .pmodal-left{
     max-height:none !important;
