@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="base.css?v=ace563fe">
   <link rel="stylesheet" href="nav.css?v=45571be5">
   <link rel="stylesheet" href="cart.css?v=10101f01">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=26052107">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=26052501">
   <script src="/favicon-utils.js?v=00b5644f"></script>
   <script src="/stripe-client-config.js?v=f4503bed"></script>
   <script src="/checkout-tax.js?v=d7a3117c"></script>
@@ -96,7 +96,7 @@
     .auth-brand img { display:block; width:132px; height:36px; object-fit:cover; object-position:center; opacity:.9; }
     .fgroup { margin-bottom:1rem; }
     .fgroup label { display:block; font-size:.62rem; letter-spacing:.12em; text-transform:uppercase; color:rgba(244,241,235,.35); margin-bottom:.4rem; }
-    .fgroup input { width:100%; background:rgba(244,241,235,.04); border:1px solid rgba(244,241,235,.1); color:inherit; padding:.65rem .8rem; font-family:var(--font-body); font-size:.85rem; outline:none; transition:border-color .18s; }
+    .fgroup input { width:100%; background:rgba(244,241,235,.04); border:1px solid rgba(244,241,235,.1); color:inherit; padding:.65rem .8rem; font-family:var(--font-body); font-size:1rem; outline:none; transition:border-color .18s; }
     .fgroup input:focus { border-color:rgba(244,241,235,.3); }
     .ferr { color:#e07060; font-size:.7rem; min-height:1rem; margin-bottom:.5rem; }
     .auth-submit-btn { width:100%; background:rgba(244,241,235,.9); color:#09090b; border:none; padding:.85rem; font-family:var(--font-body); font-size:.78rem; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; margin-top:.5rem; transition:opacity .18s; }
@@ -155,7 +155,7 @@
     .pgrow { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; }
     .pfield { margin-bottom:.9rem; }
     .pfield label { display:block; font-size:.62rem; letter-spacing:.12em; text-transform:uppercase; color:rgba(244,241,235,.35); margin-bottom:.35rem; }
-    .pfield input { width:100%; background:rgba(244,241,235,.04); border:1px solid rgba(244,241,235,.1); color:inherit; padding:.6rem .75rem; font-family:var(--font-body); font-size:.85rem; outline:none; transition:border-color .18s; }
+    .pfield input { width:100%; background:rgba(244,241,235,.04); border:1px solid rgba(244,241,235,.1); color:inherit; padding:.6rem .75rem; font-family:var(--font-body); font-size:1rem; outline:none; transition:border-color .18s; }
     .pfield input:focus { border-color:rgba(244,241,235,.35); }
     #stripe-card-element { background:rgba(244,241,235,.04); border:1px solid rgba(244,241,235,.1); padding:.75rem; transition:border-color .18s; }
     #stripe-card-element.StripeElement--focus { border-color:rgba(244,241,235,.35); }
@@ -242,7 +242,7 @@
     body.light-mode #success-continue { background:#09090b; color:#E8E3DC; }
 
     /* ── Toast ── */
-    #toast { position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%) translateY(10px); background:#0f0f0f; color:rgba(244,241,235,.9); padding:.5rem 1.2rem; font-size:.72rem; letter-spacing:.08em; opacity:0; transition:opacity .3s, transform .3s; pointer-events:none; z-index:9999; white-space:nowrap; }
+    #toast { position:fixed; bottom:calc(1.5rem + env(safe-area-inset-bottom, 0px)); left:50%; transform:translateX(-50%) translateY(10px); background:#0f0f0f; color:rgba(244,241,235,.9); padding:.5rem 1.2rem; font-size:.72rem; letter-spacing:.08em; opacity:0; transition:opacity .3s, transform .3s; pointer-events:none; z-index:9999; white-space:nowrap; }
     #toast.on { opacity:1; transform:translateX(-50%) translateY(0); }
     body.light-mode #toast { background:#F0EEE9; color:#09090b; }
 

@@ -386,8 +386,8 @@ body.light-mode #zw-lang-box{
 .mclose,
 .collection-review-close,
 #zw-lang-close{
-  width:34px !important;
-  height:34px !important;
+  width:44px !important;
+  height:44px !important;
   display:flex !important;
   align-items:center !important;
   justify-content:center !important;
