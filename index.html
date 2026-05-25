@@ -3007,9 +3007,8 @@ if (_sb) {
   _sb.auth.onAuthStateChange((event, session) => {
     _user = session?.user ?? null;
     updateNav();
-            if (event === 'PASSWORD_RECOVERY') {
-              openAuth('update-password');
-            }
+    if (event === 'SIGNED_IN') { closeAuth(); }
+    if (event === 'PASSWORD_RECOVERY') { openAuth('update-password'); }
     if (_user) {
       void loadFavs();
       const expectedUserId = _user.id;
@@ -3144,7 +3143,7 @@ document.getElementById('back-to-signin').addEventListener('click', e => { e.pre
 const _urlParams = new URLSearchParams(window.location.search);
 const _authAction = _urlParams.get('auth');
 if (_authAction === 'signin' || _authAction === 'signup') {
-  setTimeout(() => openAuth(_authAction), 100);
+  setTimeout(() => { if (!_user) openAuth(_authAction); }, 100);
   window.history.replaceState({}, document.title, window.location.pathname);
 }
 
