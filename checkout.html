@@ -86,15 +86,28 @@
       flex: 1;
       text-decoration: none;
     }
-    .co-logo-wrap img { display: block; height: 26px; width: auto; }
+    .co-logo-wrap img { display: block; height: 40px; width: auto; }
     body.light-mode .co-logo-wrap img { filter: invert(1); }
     .co-header-right {
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      color: var(--dim);
       min-width: 70px;
     }
+    .co-bag-icon {
+      display: flex;
+      align-items: center;
+      gap: .28rem;
+      border: 1px solid rgba(244,241,235,.28);
+      border-radius: 2px;
+      padding: .3rem .5rem;
+      color: rgba(244,241,235,.7);
+      font-family: var(--font-body);
+      font-size: .68rem;
+      letter-spacing: .04em;
+    }
+    .co-bag-icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+    body.light-mode .co-bag-icon { border-color: rgba(9,9,11,.22); color: rgba(9,9,11,.65); }
 
     /* ───────────────────────────────── Page body ── */
     .co-body {
@@ -342,7 +355,10 @@
     <img src="images/wordmark.png" alt="ZUWERA" width="108" height="30">
   </a>
   <div class="co-header-right">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <div class="co-bag-icon" aria-label="Items in bag" id="co-bag-pill">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+      <span id="co-bag-count">0</span>
+    </div>
   </div>
 </header>
 
@@ -514,13 +530,15 @@ window.zwClearPromo = function() {
     return;
   }
 
-  /* Subtitle: "N items · $XX.XX" */
+  /* Subtitle and bag pill */
   function updateSubtitle() {
     var cart = window.cartItems;
     var n = cart.reduce(function(s,i){ return s + (i.quantity||1); }, 0);
     var sub = cart.reduce(function(s,i){ return s + parseFloat(i.price||0)*(i.quantity||1); }, 0);
     var el = document.getElementById('co-checkout-sub');
     if (el) el.textContent = n + ' item' + (n!==1?'s':'') + ' · $' + sub.toFixed(2);
+    var countEl = document.getElementById('co-bag-count');
+    if (countEl) countEl.textContent = n;
   }
   updateSubtitle();
 
