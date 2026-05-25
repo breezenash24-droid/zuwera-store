@@ -1061,7 +1061,7 @@ body.light-mode .heart-btn{
   }
 
   #payment-modal .pbox .mclose{
-    display:flex !important;
+    display:none !important;
   }
 
   #payment-modal .pmodal-grid{
