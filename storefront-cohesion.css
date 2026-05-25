@@ -232,7 +232,7 @@ body.light-mode .cart-shell-footer-copy{
 }
 
 /* Modals */
-.modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review),
+.modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#all-reviews-modal),
 .collection-review-modal,
 #zw-lang-modal{
   background:none !important;
@@ -246,7 +246,21 @@ body.light-mode .cart-shell-footer-copy{
   overscroll-behavior:contain;
 }
 
-body.light-mode .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review),
+/* all-reviews overlay: dimmed backdrop on mobile, transparent on desktop */
+#all-reviews-modal{
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}
+@media(min-width:601px){
+  #all-reviews-modal{
+    background:none !important;
+    align-items:center !important;
+    justify-content:center !important;
+    padding:clamp(1rem, 3vw, 2rem) !important;
+  }
+}
+
+body.light-mode .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#all-reviews-modal),
 body.light-mode .collection-review-modal,
 body.light-mode #zw-lang-modal{
   background:none !important;
@@ -254,7 +268,7 @@ body.light-mode #zw-lang-modal{
   -webkit-backdrop-filter:none !important;
 }
 
-.modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.collection-review-box){
+.modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#all-reviews-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.collection-review-box){
   background:var(--zw-surface) !important;
   border:1px solid var(--zw-line-dark) !important;
   border-top:2px solid var(--zw-accent) !important;
@@ -273,12 +287,35 @@ body.light-mode #zw-lang-modal{
   animation:zwCenteredModalIn .22s ease;
 }
 
-body.light-mode .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.collection-review-box){
+body.light-mode .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#all-reviews-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.collection-review-box){
   background:var(--zw-paper) !important;
   border-color:var(--zw-line-light) !important;
   border-top-color:var(--zw-ink) !important;
   border-left-color:var(--zw-line-light) !important;
   color:var(--zw-ink) !important;
+}
+
+/* all-reviews box: explicit desktop styles (excluded from generic rule above, desktop only) */
+@media(min-width:601px){
+  #all-reviews-modal > .review-list-mbox{
+    background:var(--zw-surface) !important;
+    border:1px solid var(--zw-line-dark) !important;
+    border-top:2px solid var(--zw-accent) !important;
+    border-radius:18px !important;
+    box-shadow:0 28px 90px rgba(0,0,0,.28) !important;
+    min-height:0 !important;
+    height:auto !important;
+    margin:auto !important;
+    overflow-y:auto !important;
+    overscroll-behavior:contain;
+    animation:zwCenteredModalIn .22s ease;
+  }
+  body.light-mode #all-reviews-modal > .review-list-mbox{
+    background:var(--zw-paper) !important;
+    border-color:var(--zw-line-light) !important;
+    border-top-color:var(--zw-ink) !important;
+    color:var(--zw-ink) !important;
+  }
 }
 
 #zw-lang-box{
@@ -314,14 +351,16 @@ body.light-mode #zw-lang-box{
 }
 
 /* Override the variables that the high-specificity general rule reads from,
-   so it produces the right size for the all-reviews modal. */
-#all-reviews-modal{
-  --zw-panel-width: min(1020px, 99vw);
-  --zw-panel-wide-width: min(1020px, 99vw);
-}
-#all-reviews-modal > .review-list-mbox{
-  width:min(1020px, calc(100vw - 2rem)) !important;
-  max-width:min(1020px, calc(100vw - 2rem)) !important;
+   so it produces the right size for the all-reviews modal (desktop only). */
+@media(min-width:601px){
+  #all-reviews-modal{
+    --zw-panel-width: min(1020px, 99vw);
+    --zw-panel-wide-width: min(1020px, 99vw);
+  }
+  #all-reviews-modal > .review-list-mbox{
+    width:min(1020px, calc(100vw - 2rem)) !important;
+    max-width:min(1020px, calc(100vw - 2rem)) !important;
+  }
 }
 .collection-review-modal > .collection-review-box:not(.collection-product-box){
   width:min(var(--zw-panel-wide-width), calc(100vw - 2rem)) !important;
@@ -363,9 +402,11 @@ body.light-mode #zw-lang-box{
   padding:2rem 1.7rem 1.8rem !important;
 }
 
-#all-reviews-modal > .review-list-mbox{
-  padding:1.8rem 1.7rem 2rem !important;
-  max-height:min(88dvh, 64rem) !important;
+@media(min-width:601px){
+  #all-reviews-modal > .review-list-mbox{
+    padding:1.8rem 1.7rem 2rem !important;
+    max-height:min(88dvh, 64rem) !important;
+  }
 }
 
 #zw-lang-box{
