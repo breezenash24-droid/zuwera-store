@@ -1049,13 +1049,15 @@ body.light-mode .heart-btn{
   #payment-modal{
     align-items:flex-end !important;
     padding:0 !important;
+    background:rgba(9,9,11,.92) !important;
   }
 
   #payment-modal .pbox{
     border-radius:0 !important;
-    padding:.65rem 0 0 !important;
-    max-height:calc(100dvh - 56px - env(safe-area-inset-top,0px)) !important;
-    overflow:hidden !important;
+    padding:1.35rem 1rem calc(1rem + env(safe-area-inset-bottom,0px)) !important;
+    max-height:calc(100dvh - env(safe-area-inset-top,0px) - 3rem) !important;
+    overflow-y:auto !important;
+    -webkit-overflow-scrolling:touch !important;
   }
 
   #payment-modal .pbox .mclose{
@@ -1247,6 +1249,10 @@ body.light-mode .heart-btn{
   body.light-mode #mobile-menu .mobile-nav-link{
     color:rgba(9,9,11,.84) !important;
   }
+
+  /* Cart modal — dark bottom sheet */
+  #cart-modal{background:rgba(9,9,11,.88) !important;align-items:flex-end !important;padding:0 !important}
+  #cart-modal .cbox{width:100% !important;max-height:92dvh !important;border-radius:1rem 1rem 0 0 !important;margin:0 !important;border-left:none !important;border-right:none !important;border-bottom:none !important}
 }
 
 @media(max-width:760px){
