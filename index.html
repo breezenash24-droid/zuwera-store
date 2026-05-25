@@ -1367,6 +1367,8 @@ body.light-mode .ret-history-item{border-top-color:rgba(9,9,11,.07)}
 .pfield input::placeholder{color:rgba(244,241,235,.38)}
 .pfield input:focus{background:rgba(244,241,235,.11);border-color:rgba(244,241,235,.42)}
 .pgrow{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+.pgrow--addr{grid-template-columns:1fr 80px 120px}
+.sheet-handle{display:none;width:36px;height:4px;background:rgba(128,128,128,.28);border-radius:2px;margin:.65rem auto .2rem;pointer-events:none;flex-shrink:0}
 #stripe-card-element{
   background:rgba(244,241,235,.07);
   border:1px solid rgba(244,241,235,.22);
@@ -1460,9 +1462,21 @@ body.light-mode .ret-history-item{border-top-color:rgba(9,9,11,.07)}
     .hero{padding-top:0!important;min-height:0!important}
       .hero-inner{min-height:0!important}
 
-  /* Cart modal — bottom sheet with dark backdrop */
+  /* Cart modal — bottom sheet */
   #cart-modal{background:transparent!important;align-items:flex-end;padding:0!important}
   #cart-modal .cbox{width:100%;max-height:92dvh;border-radius:1rem 1rem 0 0;margin:0;border-left:none;border-right:none;border-bottom:none}
+  /* Drag handle */
+  .sheet-handle{display:block}
+  /* Cart header: title left, X button right */
+  #cart-modal-title{order:1;text-align:left;font-size:1.1rem;letter-spacing:.1em}
+  .cart-back{order:2;margin-left:auto;font-size:0;color:rgba(244,241,235,.45);padding:.25rem}
+  .cart-back svg,.cart-back-label{display:none}
+  .cart-back::after{content:'×';font-size:1.5rem;line-height:1}
+  .cart-hd-spacer{display:none!important}
+  /* Hide footer nav on mobile — nobody taps these from the cart */
+  .cart-shell-footer{display:none!important}
+  /* Sticky checkout button */
+  #checkout-btn{position:sticky;bottom:0;z-index:10;box-shadow:0 -8px 18px rgba(9,9,11,.12)}
 }
 @media(max-width:600px){
   nav#nav{padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s,top .45s ease}
@@ -1483,6 +1497,8 @@ body.light-mode .ret-history-item{border-top-color:rgba(9,9,11,.07)}
   #payment-modal{align-items:flex-start;justify-content:center;padding:calc(.75rem + env(safe-area-inset-top,0px)) .75rem 0;background:transparent!important;overflow:hidden}
   #payment-modal .pbox{width:100%;max-height:calc(100dvh - .75rem - env(safe-area-inset-top,0px));overflow-y:auto;-webkit-overflow-scrolling:touch;padding:1.35rem 1rem calc(1rem + env(safe-area-inset-bottom,0px))}
   #payment-modal .pgrow{grid-template-columns:1fr!important}
+  .pgrow--addr{grid-template-columns:1fr!important}
+  .pfield label{font-size:.72rem}
   #pay-submit{position:sticky;bottom:calc(.65rem + env(safe-area-inset-bottom,0px));z-index:5;box-shadow:0 -10px 22px rgba(9,9,11,.18)}
   .star-selector { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.3rem !important; }
   .star-selector button { font-size: 2.2rem !important; padding: 0 4px !important; }
@@ -2212,13 +2228,14 @@ body.light-mode::after{opacity:0.15}
 <!-- CART MODAL -->
 <div id="cart-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="cart-modal-title" aria-hidden="true">
   <div class="cbox" id="cart-inner">
+  <div class="sheet-handle" aria-hidden="true"></div>
   <div class="cart-hd">
     <button class="cart-back" id="cart-close">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-      Continue Shopping
+      <span class="cart-back-label">Continue Shopping</span>
     </button>
     <h2 id="cart-modal-title">Bag</h2>
-    <div style="width:150px"></div>
+    <div class="cart-hd-spacer" aria-hidden="true" style="width:150px"></div>
   </div>
   <div class="cart-body">
     <div>
@@ -2301,6 +2318,7 @@ body.light-mode::after{opacity:0.15}
 <!-- PAYMENT MODAL -->
 <div id="payment-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title" aria-hidden="true">
   <div class="pbox">
+    <div class="sheet-handle" aria-hidden="true"></div>
     <button class="mclose" id="payment-close" aria-label="Close checkout">&#215;</button>
     <h2 id="payment-modal-title">Secure Checkout</h2>
     <p class="psub">Powered by Stripe - 256-bit SSL encryption</p>
@@ -2314,7 +2332,7 @@ body.light-mode::after{opacity:0.15}
     </div>
     <div class="pfield"><label>Street Address</label><input type="text" id="pay-addr1" placeholder="123 Main St" autocomplete="street-address"></div>
     <div class="pfield"><label>Apt / Suite <span style="opacity:.4">(optional)</span></label><input type="text" id="pay-addr2" placeholder="Apt 4B" autocomplete="address-line2"></div>
-    <div class="pgrow" style="grid-template-columns:1fr 80px 120px">
+    <div class="pgrow pgrow--addr">
       <div class="pfield"><label>City</label><input type="text" id="pay-city" placeholder="New York" autocomplete="address-level2"></div>
       <div class="pfield"><label>State</label><input type="text" id="pay-state" placeholder="NY" maxlength="2" autocomplete="address-level1" style="text-transform:uppercase"></div>
       <div class="pfield"><label>ZIP</label><input type="text" id="pay-zip" placeholder="10001" maxlength="10" autocomplete="postal-code"></div>
