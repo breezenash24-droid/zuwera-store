@@ -99,26 +99,41 @@
     .co-bag-icon {
       display: flex;
       align-items: center;
-      gap: .4rem;
-      border: 1px solid rgba(244,241,235,.3);
-      border-radius: 2px;
-      padding: .42rem .75rem;
-      color: rgba(244,241,235,.8);
-      font-family: var(--font-body);
-      font-size: .82rem;
-      letter-spacing: .06em;
+      gap: .5rem;
+      border: 1px solid rgba(244,241,235,.2);
+      padding: .45rem .72rem;
+      color: rgba(244,241,235,.9);
+      text-decoration: none;
+      transition: border-color .2s;
     }
-    .co-bag-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-    body.light-mode .co-bag-icon { border-color: rgba(9,9,11,.25); color: rgba(9,9,11,.7); }
+    .co-bag-icon:hover { border-color: rgba(244,241,235,.5); }
+    .co-bag-icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; flex-shrink: 0; }
+    .co-bag-count {
+      background: var(--text);
+      color: var(--bg);
+      width: 17px; height: 17px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .6rem; font-weight: 600; font-family: var(--font-mono);
+      flex-shrink: 0;
+    }
+    body.light-mode .co-bag-icon { border-color: rgba(9,9,11,.2); color: rgba(9,9,11,.85); }
+    body.light-mode .co-bag-icon:hover { border-color: rgba(9,9,11,.5); }
 
     /* ───────────────────────────────── Page body ── */
     .co-body {
       flex: 1;
       width: 100%;
-      max-width: 560px;
+      max-width: 1160px;
       margin: 0 auto;
       padding: 2rem 1.5rem calc(env(safe-area-inset-bottom, 0px) + 2.5rem);
     }
+
+    /* ───────────────────────────────── Two-column grid ── */
+    .co-checkout-grid { display: block; }
+    .co-form-col { width: 100%; }
+    .co-summary-col { margin-bottom: 2rem; }
+    .co-sum-desktop-hd { display: none; }
 
     /* ───────────────────────────────── Page title ── */
     .co-page-title {
@@ -347,6 +362,57 @@
       .co-section { margin-bottom: 1.4rem; }
       .pgrow { grid-template-columns: 1fr !important; }
     }
+
+    /* ───────────────────────────────── Desktop two-column ── */
+    @media (min-width: 900px) {
+      .co-body { padding: 3rem 2.5rem 5rem; }
+
+      .co-checkout-grid {
+        display: grid;
+        grid-template-columns: 1fr 400px;
+        grid-template-areas: "form summary";
+        column-gap: 5.5rem;
+        align-items: start;
+      }
+      .co-form-col { grid-area: form; }
+      .co-summary-col {
+        grid-area: summary;
+        position: sticky;
+        top: 4.5rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        padding: 1.75rem 1.5rem 1.5rem;
+        margin-bottom: 0;
+      }
+
+      /* Desktop summary heading — replaces mobile toggle */
+      .co-sum-desktop-hd {
+        display: flex;
+        align-items: center;
+        gap: .8rem;
+        font-family: var(--font-head);
+        font-size: 1.1rem;
+        font-weight: 700;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        margin-bottom: 1.25rem;
+        padding-bottom: .85rem;
+        border-bottom: 1px solid var(--border);
+      }
+      /* Hide the mobile toggle, always show summary body */
+      .co-summary-toggle { display: none !important; }
+      .co-summary-body { display: block !important; margin-bottom: 0; }
+      /* Promo in right column needs top separation */
+      .co-summary-col #zw-promo-shell {
+        border-top: 1px solid var(--border);
+        padding-top: 1.1rem;
+        margin-top: .25rem;
+        margin-bottom: 0;
+      }
+      /* Page title — larger on desktop */
+      .co-checkout-h { font-size: 3rem; }
+      .co-page-title { margin-bottom: 2.5rem; text-align: left; }
+    }
   </style>
 </head>
 <body>
@@ -365,109 +431,118 @@
     <span style="display:none;font-family:var(--font-head);font-size:1.4rem;letter-spacing:.15em">ZUWERA</span>
   </a>
   <div class="co-header-right">
-    <div class="co-bag-icon" aria-label="Items in bag" id="co-bag-pill">
+    <a href="/bag.html" class="co-bag-icon" aria-label="Bag" id="co-bag-pill">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-      <span id="co-bag-count">0</span>
-    </div>
+      <span class="co-bag-count" id="co-bag-count">0</span>
+    </a>
   </div>
 </header>
 
 <!-- BODY -->
 <div class="co-body">
+  <div class="co-checkout-grid">
 
-  <!-- PAGE TITLE -->
-  <div class="co-page-title">
-    <h1 class="co-checkout-h">Checkout</h1>
-    <div class="co-checkout-sub" id="co-checkout-sub">Loading…</div>
-  </div>
+    <!-- ── FORM COLUMN ── -->
+    <div class="co-form-col">
 
-  <!-- ORDER SUMMARY (collapsible) -->
-  <button class="co-summary-toggle" id="pm-summary-toggle" aria-expanded="false" aria-controls="pm-summary-body">
-    <div class="co-sum-toggle-inner">
-      <span class="co-sum-toggle-left">
-        In Your Bag
-        <svg class="co-sum-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-      </span>
-      <span class="co-sum-toggle-right" id="pm-toggle-total">—</span>
-    </div>
-  </button>
-  <div class="co-summary-body" id="pm-summary-body">
-    <div class="pm-items" id="pm-items"></div>
-    <div class="pm-lines">
-      <div class="pm-line"><span>Subtotal</span><span id="pm-subtotal">—</span></div>
-      <div class="pm-line"><span>Shipping</span><span id="pm-shipping">—</span></div>
-      <div class="pm-line" id="zw-promo-row" style="display:none"><span>Discount</span><span id="zw-promo-discount" style="color:rgba(110,210,130,.9)">—</span></div>
-      <div class="pm-line"><span id="pm-tax-label">Tax</span><span id="pm-tax">—</span></div>
-    </div>
-    <div class="pm-total-row"><span>Total</span><span id="pm-total">—</span></div>
-  </div>
+      <!-- PAGE TITLE -->
+      <div class="co-page-title">
+        <h1 class="co-checkout-h">Checkout</h1>
+        <div class="co-checkout-sub" id="co-checkout-sub">Loading…</div>
+      </div>
 
-  <!-- WALLET BUTTONS -->
-  <div class="zw-test-mode-banner" data-stripe-test-banner>Test mode active — use Stripe test cards only.</div>
-  <div id="payment-request-btn" style="display:none" aria-hidden="true"></div>
-  <div id="wallet-methods" class="wallet-methods" aria-hidden="true"></div>
-  <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0 1.4rem;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.28)">— or pay with card —</div>
+      <!-- WALLET BUTTONS -->
+      <div class="zw-test-mode-banner" data-stripe-test-banner>Test mode active — use Stripe test cards only.</div>
+      <div id="payment-request-btn" style="display:none" aria-hidden="true"></div>
+      <div id="wallet-methods" class="wallet-methods" aria-hidden="true"></div>
+      <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0 1.4rem;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.28)">— or pay with card —</div>
 
-  <!-- CONTACT -->
-  <div class="co-section">
-    <div class="co-section-hd">
-      <span class="co-section-label">Contact</span>
-    </div>
-    <div class="pfield"><label for="pay-name">Full Name</label><input type="text" id="pay-name" placeholder="Jane Smith" autocomplete="name"></div>
-    <div class="pfield"><label for="pay-email">Email</label><input type="email" id="pay-email" placeholder="jane@example.com" autocomplete="email"></div>
-  </div>
+      <!-- CONTACT -->
+      <div class="co-section">
+        <div class="co-section-hd"><span class="co-section-label">Contact</span></div>
+        <div class="pfield"><label for="pay-name">Full Name</label><input type="text" id="pay-name" placeholder="Jane Smith" autocomplete="name"></div>
+        <div class="pfield"><label for="pay-email">Email</label><input type="email" id="pay-email" placeholder="jane@example.com" autocomplete="email"></div>
+      </div>
 
-  <!-- ADDRESS -->
-  <div class="co-section">
-    <div class="co-section-hd">
-      <span class="co-section-label">Address</span>
-    </div>
-    <div class="pfield"><label for="pay-addr1">Street Address</label><input type="text" id="pay-addr1" placeholder="123 Main St" autocomplete="street-address"></div>
-    <div class="pfield"><label for="pay-addr2">Apt / Suite <span style="opacity:.4">(optional)</span></label><input type="text" id="pay-addr2" placeholder="Apt 4B" autocomplete="address-line2"></div>
-    <div class="pgrow" style="grid-template-columns:1fr 80px 120px">
-      <div class="pfield"><label for="pay-city">City</label><input type="text" id="pay-city" placeholder="New York" autocomplete="address-level2"></div>
-      <div class="pfield"><label for="pay-state">State</label><input type="text" id="pay-state" placeholder="NY" maxlength="2" autocomplete="address-level1" style="text-transform:uppercase"></div>
-      <div class="pfield"><label for="pay-zip">ZIP</label><input type="text" id="pay-zip" placeholder="10001" maxlength="10" autocomplete="postal-code"></div>
-    </div>
-  </div>
+      <!-- ADDRESS -->
+      <div class="co-section">
+        <div class="co-section-hd"><span class="co-section-label">Address</span></div>
+        <div class="pfield"><label for="pay-addr1">Street Address</label><input type="text" id="pay-addr1" placeholder="123 Main St" autocomplete="street-address"></div>
+        <div class="pfield"><label for="pay-addr2">Apt / Suite <span style="opacity:.4">(optional)</span></label><input type="text" id="pay-addr2" placeholder="Apt 4B" autocomplete="address-line2"></div>
+        <div class="pgrow" style="grid-template-columns:1fr 80px 120px">
+          <div class="pfield"><label for="pay-city">City</label><input type="text" id="pay-city" placeholder="New York" autocomplete="address-level2"></div>
+          <div class="pfield"><label for="pay-state">State</label><input type="text" id="pay-state" placeholder="NY" maxlength="2" autocomplete="address-level1" style="text-transform:uppercase"></div>
+          <div class="pfield"><label for="pay-zip">ZIP</label><input type="text" id="pay-zip" placeholder="10001" maxlength="10" autocomplete="postal-code"></div>
+        </div>
+      </div>
 
-  <!-- SHIPPING -->
-  <div class="co-section">
-    <div class="co-section-hd">
-      <span class="co-section-label">Shipping</span>
-    </div>
-    <div id="shipping-rates-loading" style="display:none;font-size:.8rem;color:var(--sub);letter-spacing:.04em;margin-bottom:.5rem">Fetching rates…</div>
-    <div id="shipping-rates-field" style="display:none"><div id="shipping-rates-list"></div></div>
-    <div id="shipping-free-row" style="display:none;align-items:center;justify-content:space-between;font-size:.9rem">
-      <span>Standard Shipping</span>
-      <span style="color:var(--text)">Free</span>
-    </div>
-    <div id="shipping-placeholder" style="font-size:.88rem;color:var(--sub)">Free on orders $100+ — calculated at checkout</div>
-  </div>
+      <!-- SHIPPING -->
+      <div class="co-section">
+        <div class="co-section-hd"><span class="co-section-label">Shipping</span></div>
+        <div id="shipping-rates-loading" style="display:none;font-size:.8rem;color:var(--sub);letter-spacing:.04em;margin-bottom:.5rem">Fetching rates…</div>
+        <div id="shipping-rates-field" style="display:none"><div id="shipping-rates-list"></div></div>
+        <div id="shipping-free-row" style="display:none;align-items:center;justify-content:space-between;font-size:.9rem">
+          <span>Standard Shipping</span>
+          <span style="color:var(--text)">Free</span>
+        </div>
+        <div id="shipping-placeholder" style="font-size:.88rem;color:var(--sub)">Free on orders $100+ — calculated at checkout</div>
+      </div>
 
-  <!-- PROMO -->
-  <div id="zw-promo-shell" style="margin-bottom:1.75rem;border-top:1px solid var(--border);padding-top:1.4rem">
-    <label style="display:block;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:.4rem">Promo Code <span style="opacity:.5">(optional)</span></label>
-    <div class="pm-promo-row">
-      <input id="zw-promo-input" type="text" placeholder="PROMO CODE" autocomplete="off" aria-label="Promo code">
-      <button id="zw-promo-apply" type="button">Apply</button>
-    </div>
-    <div id="zw-promo-message" aria-live="polite"></div>
-  </div>
+      <!-- PAYMENT -->
+      <div class="co-section">
+        <div class="co-section-hd"><span class="co-section-label">Payment</span></div>
+        <div class="pfield"><label>Card Details</label><div id="stripe-card-element"></div></div>
+        <p id="pay-error" role="alert" aria-live="assertive"></p>
+        <button id="pay-submit" type="button">
+          <span id="pay-btn-text">Pay Now</span>
+        </button>
+        <p class="psecure"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Secured by Stripe &mdash; your card is never stored on our servers.</p>
+      </div>
 
-  <!-- PAYMENT -->
-  <div class="co-section">
-    <div class="co-section-hd">
-      <span class="co-section-label">Payment</span>
-    </div>
-    <div class="pfield"><label>Card Details</label><div id="stripe-card-element"></div></div>
-    <p id="pay-error" role="alert" aria-live="assertive"></p>
-    <button id="pay-submit" type="button">
-      <span id="pay-btn-text">Pay Now</span>
-    </button>
-    <p class="psecure"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Secured by Stripe &mdash; your card is never stored on our servers.</p>
-  </div>
+    </div><!-- /.co-form-col -->
 
+    <!-- ── SUMMARY COLUMN ── -->
+    <div class="co-summary-col">
+
+      <!-- Desktop heading (hidden on mobile) -->
+      <div class="co-sum-desktop-hd">In Your Bag</div>
+
+      <!-- Mobile collapsible toggle (hidden on desktop) -->
+      <button class="co-summary-toggle" id="pm-summary-toggle" aria-expanded="false" aria-controls="pm-summary-body">
+        <div class="co-sum-toggle-inner">
+          <span class="co-sum-toggle-left">
+            In Your Bag
+            <svg class="co-sum-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </span>
+          <span class="co-sum-toggle-right" id="pm-toggle-total">—</span>
+        </div>
+      </button>
+
+      <!-- Summary body -->
+      <div class="co-summary-body" id="pm-summary-body">
+        <div class="pm-items" id="pm-items"></div>
+        <div class="pm-lines">
+          <div class="pm-line"><span>Subtotal</span><span id="pm-subtotal">—</span></div>
+          <div class="pm-line"><span>Shipping</span><span id="pm-shipping">—</span></div>
+          <div class="pm-line" id="zw-promo-row" style="display:none"><span>Discount</span><span id="zw-promo-discount" style="color:rgba(110,210,130,.9)">—</span></div>
+          <div class="pm-line"><span id="pm-tax-label">Tax</span><span id="pm-tax">—</span></div>
+        </div>
+        <div class="pm-total-row"><span>Total</span><span id="pm-total">—</span></div>
+      </div>
+
+      <!-- Promo -->
+      <div id="zw-promo-shell" style="margin-bottom:1.75rem;border-top:1px solid var(--border);padding-top:1.4rem">
+        <label style="display:block;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:.4rem">Promo Code <span style="opacity:.5">(optional)</span></label>
+        <div class="pm-promo-row">
+          <input id="zw-promo-input" type="text" placeholder="PROMO CODE" autocomplete="off" aria-label="Promo code">
+          <button id="zw-promo-apply" type="button">Apply</button>
+        </div>
+        <div id="zw-promo-message" aria-live="polite"></div>
+      </div>
+
+    </div><!-- /.co-summary-col -->
+
+  </div><!-- /.co-checkout-grid -->
 </div><!-- /.co-body -->
 
 <!-- SUCCESS -->
