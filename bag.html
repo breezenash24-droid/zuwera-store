@@ -868,12 +868,12 @@ document.getElementById('login-btn').addEventListener('click', () => {
 document.getElementById('checkout-btn').addEventListener('click', () => {
   if (!cartItems.length) { showToast('Your bag is empty.'); return; }
   location.assign('/checkout.html');
-  // Legacy modal code below is no longer reached
+  return;
+  // Dead code — kept only so commerce-checkout.js references resolve
   _openModal('payment-modal');
   zwResetPromoUI();
   const _mcount = document.getElementById('pmob-items-count');
   if (_mcount) { const n = cartItems.length; _mcount.textContent = `${n} item${n!==1?'s':''}`; }
-  // Auto-expand order summary on mobile so item prices are always visible
   if (window.innerWidth <= 660) {
     const _sb = document.getElementById('pm-summary-body');
     const _st = document.getElementById('pm-summary-toggle');
