@@ -1049,7 +1049,7 @@ body.light-mode .heart-btn{
   #payment-modal{
     align-items:flex-end !important;
     padding:0 !important;
-    background:rgba(9,9,11,.92) !important;
+    background:transparent !important;
   }
 
   #payment-modal .pbox{
@@ -1250,8 +1250,8 @@ body.light-mode .heart-btn{
     color:rgba(9,9,11,.84) !important;
   }
 
-  /* Cart modal — dark bottom sheet */
-  #cart-modal{background:rgba(9,9,11,.88) !important;align-items:flex-end !important;padding:0 !important}
+  /* Cart modal — bottom sheet, no backdrop */
+  #cart-modal{background:transparent !important;align-items:flex-end !important;padding:0 !important}
   #cart-modal .cbox{width:100% !important;max-height:92dvh !important;border-radius:1rem 1rem 0 0 !important;margin:0 !important;border-left:none !important;border-right:none !important;border-bottom:none !important}
 }
 
