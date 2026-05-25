@@ -1467,11 +1467,12 @@ body.light-mode .ret-history-item{border-top-color:rgba(9,9,11,.07)}
   #cart-modal .cbox{width:100%;max-height:92dvh;border-radius:1rem 1rem 0 0;margin:0;border-left:none;border-right:none;border-bottom:none}
   /* Drag handle */
   .sheet-handle{display:block}
-  /* Cart header: title left, X button right */
-  #cart-modal-title{order:1;text-align:left;font-size:1.1rem;letter-spacing:.1em}
-  .cart-back{order:2;margin-left:auto;font-size:0;color:rgba(244,241,235,.45);padding:.25rem}
+  /* Cart header: title centered, × button absolutely inset from the rounded corner */
+  .cart-hd{justify-content:center;position:relative}
+  #cart-modal-title{font-size:1.05rem;letter-spacing:.1em}
+  .cart-back{position:absolute;right:.9rem;top:50%;transform:translateY(-50%);font-size:0;color:rgba(244,241,235,.45);padding:.3rem;min-width:2rem;text-align:center}
   .cart-back svg,.cart-back-label{display:none}
-  .cart-back::after{content:'×';font-size:1.5rem;line-height:1}
+  .cart-back::after{content:'×';font-size:1.45rem;line-height:1}
   .cart-hd-spacer{display:none!important}
   /* Hide footer nav on mobile — nobody taps these from the cart */
   .cart-shell-footer{display:none!important}
