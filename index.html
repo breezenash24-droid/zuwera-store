@@ -1459,6 +1459,10 @@ body.light-mode .ret-history-item{border-top-color:rgba(9,9,11,.07)}
 
     .hero{padding-top:0!important;min-height:0!important}
       .hero-inner{min-height:0!important}
+
+  /* Cart modal — bottom sheet with dark backdrop */
+  #cart-modal{background:rgba(9,9,11,.88)!important;align-items:flex-end;padding:0!important}
+  #cart-modal .cbox{width:100%;max-height:92dvh;border-radius:1rem 1rem 0 0;margin:0;border-left:none;border-right:none;border-bottom:none}
 }
 @media(max-width:600px){
   nav#nav{padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s,top .45s ease}
@@ -1476,8 +1480,8 @@ body.light-mode .ret-history-item{border-top-color:rgba(9,9,11,.07)}
   .cart-hd{padding:1.2rem}
   footer{padding:2rem 1.2rem}
   .mbox { padding: 2rem 1.2rem 1.8rem; }
-  #payment-modal{align-items:flex-start;justify-content:center;padding:calc(.75rem + env(safe-area-inset-top,0px)) .75rem calc(1.25rem + env(safe-area-inset-bottom,0px))}
-  #payment-modal .pbox{width:100%;max-height:none;padding:1.35rem 1rem calc(1rem + env(safe-area-inset-bottom,0px))}
+  #payment-modal{align-items:flex-start;justify-content:center;padding:calc(.75rem + env(safe-area-inset-top,0px)) .75rem calc(1.25rem + env(safe-area-inset-bottom,0px));background:rgba(9,9,11,.92)!important;overflow-y:scroll;-webkit-overflow-scrolling:touch}
+  #payment-modal .pbox{width:100%;max-height:none;overflow-y:visible;padding:1.35rem 1rem calc(1rem + env(safe-area-inset-bottom,0px))}
   #payment-modal .pgrow{grid-template-columns:1fr!important}
   #pay-submit{position:sticky;bottom:calc(.65rem + env(safe-area-inset-bottom,0px));z-index:5;box-shadow:0 -10px 22px rgba(9,9,11,.18)}
   .star-selector { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.3rem !important; }
