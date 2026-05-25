@@ -867,7 +867,8 @@ document.getElementById('login-btn').addEventListener('click', () => {
 /* ── Checkout button ── */
 document.getElementById('checkout-btn').addEventListener('click', () => {
   if (!cartItems.length) { showToast('Your bag is empty.'); return; }
-  document.getElementById('pay-error').textContent = '';
+  location.assign('/checkout.html');
+  // Legacy modal code below is no longer reached
   _openModal('payment-modal');
   zwResetPromoUI();
   const _mcount = document.getElementById('pmob-items-count');
