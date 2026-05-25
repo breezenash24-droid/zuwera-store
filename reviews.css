@@ -583,70 +583,60 @@ body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba
   .review-mbox-hd .mclose { position: static !important; flex-shrink: 0; }
   .review-mbox-hd { display: flex !important; align-items: flex-start !important; justify-content: space-between !important; margin-bottom: 1.25rem !important; }
 
-  /* ── All-reviews modal: proper bottom sheet with scrolling list ── */
+  /* ── All-reviews modal: true bottom sheet, single scroll container ── */
   #all-reviews-modal {
     align-items: flex-end !important;
     padding: 0 !important;
   }
   #all-reviews-modal > .review-list-mbox {
     height: 92dvh !important;
-    min-height: 0 !important;
     max-height: 92dvh !important;
     width: 100vw !important;
     max-width: none !important;
     border-radius: 20px 20px 0 0 !important;
     margin: 0 !important;
-    /* Flex column: header pinned, list scrolls */
-    display: flex !important;
-    flex-direction: column !important;
-    overflow: hidden !important;
-    padding: 2rem 1.4rem 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 2rem 1.4rem calc(2rem + env(safe-area-inset-bottom,0px)) !important;
     position: relative !important;
+    /* undo desktop flex/height overrides */
+    display: block !important;
   }
   /* Drag handle */
   #all-reviews-modal > .review-list-mbox::before {
     content: '';
-    position: absolute;
-    top: .7rem;
-    left: 50%;
-    transform: translateX(-50%);
+    display: block;
     width: 36px;
     height: 4px;
     background: rgba(244,241,235,.18);
     border-radius: 2px;
+    margin: -1rem auto 1.25rem;
   }
-  /* Close button: absolute within the non-scrolling outer box — always visible */
+  /* Close button: fixed so it never scrolls away */
   #all-reviews-modal > .review-list-mbox > .review-list-close {
-    position: absolute !important;
-    top: 1.25rem !important;
+    position: fixed !important;
+    top: calc(8dvh + 1.25rem) !important;
     right: 1.1rem !important;
-    z-index: 10 !important;
+    z-index: 600 !important;
   }
-  /* Title — allow room for the close btn */
+  /* Title — allow room for the fixed close btn */
   #all-reviews-modal .review-list-title {
     font-size: 1.6rem !important;
     margin-bottom: .85rem !important;
     padding-right: 2.8rem;
-    flex-shrink: 0;
   }
-  /* Write a review btn stays in non-scrolling header */
   #all-reviews-modal .review-list-write-btn {
-    flex-shrink: 0;
     margin-bottom: .9rem !important;
     width: 100%;
   }
-  /* Summary stats — pinned above scroll area */
   #all-reviews-modal #all-reviews-summary {
-    flex-shrink: 0;
     margin-bottom: .5rem;
   }
-  /* The reviews list — only this part scrolls */
+  /* List — no inner scroll needed, outer handles it */
   #all-reviews-modal #all-reviews-list {
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    flex: 1 !important;
-    min-height: 0 !important;
-    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom,0px)) !important;
+    overflow: visible !important;
+    padding-bottom: 0 !important;
   }
 
   .review-list-toolbar { flex-direction: column; }
