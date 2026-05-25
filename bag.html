@@ -173,19 +173,39 @@
     .zw-test-mode-banner { display:none; padding:.5rem .75rem; background:rgba(248,145,165,.08); border:1px solid rgba(248,145,165,.2); color:#F891A5; font-size:.65rem; letter-spacing:.08em; text-transform:uppercase; margin-bottom:1rem; }
     .zw-test-mode-banner.is-visible { display:block; }
 
-    /* Mobile: single continuous scroll */
+    /* Mobile checkout header */
+    .pmob-hd { display:none; align-items:center; flex-shrink:0; padding:calc(env(safe-area-inset-top,0px) + .85rem) 1.2rem .85rem; border-bottom:1px solid rgba(244,241,235,.08); background:#09090b; }
+    .pmob-back { background:none; border:none; color:rgba(244,241,235,.7); display:flex; align-items:center; gap:.4rem; cursor:pointer; font-family:var(--font-body); font-size:.56rem; letter-spacing:.12em; text-transform:uppercase; padding:.3rem; flex-shrink:0; width:60px; transition:opacity .2s; }
+    .pmob-back:hover { opacity:.6; }
+    .pmob-title-wrap { flex:1; text-align:center; }
+    .pmob-co-title { font-family:var(--font-head); font-size:1.1rem; letter-spacing:.08em; font-weight:600; }
+    .pmob-items-count { display:block; font-size:.56rem; letter-spacing:.1em; color:rgba(244,241,235,.4); text-transform:uppercase; margin-top:.1rem; }
+    body.light-mode .pmob-hd { background:#F0EEE9; border-bottom-color:rgba(9,9,11,.08); }
+    body.light-mode .pmob-back { color:rgba(9,9,11,.55); }
+    body.light-mode .pmob-items-count { color:rgba(9,9,11,.4); }
+    /* Section labels — visible on mobile only */
+    .co-sec-label { display:none; font-size:.56rem; letter-spacing:.18em; text-transform:uppercase; color:rgba(244,241,235,.32); margin:1.2rem 0 .65rem; }
+    body.light-mode .co-sec-label { color:rgba(9,9,11,.38); }
+
+    /* Mobile: full-page checkout */
     @media (max-width:660px) {
-      #payment-modal { align-items:flex-end; padding:0; }
-      /* pbox clips — pmodal-grid is the single scroll container */
-      .pbox { width:100%; max-height:calc(100dvh - 56px - env(safe-area-inset-top,0px)); border-bottom:none; border-left:none; border-right:none; overflow:hidden; }
-      .pmodal-grid { grid-template-columns:1fr; grid-template-rows:auto auto; flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; }
+      #payment-modal { align-items:stretch; justify-content:stretch; padding:0; background:#09090b; }
+      body.light-mode #payment-modal { background:#F0EEE9; }
+      .pbox { width:100%; height:100dvh; max-height:100dvh; border:none; border-radius:0; overflow:hidden; animation:none; display:flex; flex-direction:column; }
+      .pmodal-grid { grid-template-columns:1fr; flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; }
       .pmodal-left { border-right:none; border-bottom:1px solid rgba(244,241,235,.08); padding:1rem 1.2rem; max-height:none; overflow:visible; }
       body.light-mode .pmodal-left { border-bottom-color:rgba(9,9,11,.08); }
-      .pmodal-right { padding:1.4rem 1.2rem calc(1.8rem + env(safe-area-inset-bottom,0px)); overflow:visible; }
+      .pmodal-right { padding:1rem 1.2rem calc(2rem + env(safe-area-inset-bottom,0px)); overflow:visible; }
       .pm-label { display:none; }
       .pm-toggle { display:block; }
       .pm-summary-body { display:none; margin-top:.85rem; }
       .pm-summary-body.open { display:block; }
+      .pgrow { grid-template-columns:1fr!important; }
+      .mclose { display:none; }
+      .pbox h2 { display:none; }
+      .psub { display:none; }
+      .pmob-hd { display:flex; }
+      .co-sec-label { display:block; }
     }
 
     /* Light mode */
@@ -391,6 +411,18 @@
 <div id="payment-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title" aria-hidden="true">
   <div class="pbox">
     <button class="mclose" id="payment-close" aria-label="Close checkout">&#215;</button>
+    <!-- Mobile-only header bar -->
+    <div class="pmob-hd" aria-hidden="true">
+      <button class="pmob-back" onclick="window._closeModal('payment-modal')" aria-label="Back to bag">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span>Bag</span>
+      </button>
+      <div class="pmob-title-wrap">
+        <div class="pmob-co-title">Checkout</div>
+        <span class="pmob-items-count" id="pmob-items-count"></span>
+      </div>
+      <div style="width:60px"></div>
+    </div>
     <div class="pmodal-grid">
 
       <!-- LEFT: Order Summary -->
@@ -428,10 +460,12 @@
         <div id="payment-request-btn" style="display:none" aria-hidden="true"></div>
         <div id="wallet-methods" class="wallet-methods" aria-hidden="true"></div>
         <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.28)">— or pay with card —</div>
+        <div class="co-sec-label">Contact</div>
         <div class="pgrow">
           <div class="pfield"><label>Full Name</label><input type="text" id="pay-name" placeholder="Jane Smith" autocomplete="name"></div>
           <div class="pfield"><label>Email</label><input type="email" id="pay-email" placeholder="jane@example.com" autocomplete="email"></div>
         </div>
+        <div class="co-sec-label">Address</div>
         <div class="pfield"><label>Street Address</label><input type="text" id="pay-addr1" placeholder="123 Main St" autocomplete="street-address"></div>
         <div class="pfield"><label>Apt / Suite <span style="opacity:.4">(optional)</span></label><input type="text" id="pay-addr2" placeholder="Apt 4B" autocomplete="address-line2"></div>
         <div class="pgrow" style="grid-template-columns:1fr 80px 120px">
@@ -453,6 +487,7 @@
           </div>
           <div id="zw-promo-message"></div>
         </div>
+        <div class="co-sec-label">Payment</div>
         <div class="pfield"><label>Card Details</label><div id="stripe-card-element"></div></div>
         <p id="pay-error"></p>
         <button id="pay-submit"><span id="pay-btn-text">Pay Now</span></button>
@@ -835,6 +870,8 @@ document.getElementById('checkout-btn').addEventListener('click', () => {
   document.getElementById('pay-error').textContent = '';
   _openModal('payment-modal');
   zwResetPromoUI();
+  const _mcount = document.getElementById('pmob-items-count');
+  if (_mcount) { const n = cartItems.length; _mcount.textContent = `${n} item${n!==1?'s':''}`; }
   // Auto-expand order summary on mobile so item prices are always visible
   if (window.innerWidth <= 660) {
     const _sb = document.getElementById('pm-summary-body');
