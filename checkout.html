@@ -681,7 +681,10 @@ window.zwPromoUpdateSummaryTotals = function() {
   var sub = cart.reduce(function(s, i) { return s + parseFloat(i.price || 0) * (i.quantity || 1); }, 0);
   var promo = window._zwActivePromo;
   var discount = promo ? parseFloat(promo.discount || 0) : 0;
-  var total = Math.max(0, sub - discount);
+  var pf = function(id) { var e = document.getElementById(id); return parseFloat((e ? e.textContent : '').replace(/[^0-9.]/g,'')) || 0; };
+  var tax = pf('pm-tax');
+  var shipping = pf('pm-shipping');
+  var total = Math.max(0, sub - discount + tax + shipping);
   var set = function(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; };
   set('pm-subtotal', '$' + sub.toFixed(2));
   set('pm-total', '$' + total.toFixed(2));
