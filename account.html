@@ -1387,6 +1387,21 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
 }
 
 /* ── PROFILE ── */
+function renderAddressCards(addresses) {
+  return addresses.length ? addresses.map((addr, idx) => `
+    <div class="addr-card" id="addr-card-${idx}">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">
+        <strong style="font-size:.8rem">${escHtml(addr.label || 'Address ' + (idx+1))}</strong>
+        <div style="display:flex;align-items:center;gap:.5rem">
+          ${addr.isPrimary ? '<span class="zw-badge">Primary</span>' : ''}
+          <button onclick="deleteAddress(${idx})" style="background:none;border:none;color:var(--a-dim);cursor:pointer;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:4px;transition:color .15s" onmouseover="this.style.color='var(--a-error,#ef4444)'" onmouseout="this.style.color='var(--a-dim)'">Remove</button>
+        </div>
+      </div>
+      <div class="addr-meta">${[addr.name, addr.line1, addr.line2, [addr.city,addr.state,addr.zip].filter(Boolean).join(' '), addr.country].filter(Boolean).map(escHtml).join('<br>')}</div>
+    </div>
+  `).join('') : '<div class="zw-empty">No saved addresses yet. Add one below.</div>';
+}
+
 function renderProfile() {
   const loading = document.getElementById('profile-loading');
   const content = document.getElementById('profile-content');
@@ -1402,18 +1417,7 @@ function renderProfile() {
   const userName = userMeta.full_name || '';
   const userEmail = _session?.user?.email || '';
 
-  const addressesHtml = addresses.length ? addresses.map((addr, idx) => `
-    <div class="addr-card" id="addr-card-${idx}">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">
-        <strong style="font-size:.8rem">${escHtml(addr.label || 'Address ' + (idx+1))}</strong>
-        <div style="display:flex;align-items:center;gap:.5rem">
-          ${addr.isPrimary ? '<span class="zw-badge">Primary</span>' : ''}
-          <button onclick="deleteAddress(${idx})" style="background:none;border:none;color:var(--a-dim);cursor:pointer;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:4px;transition:color .15s" onmouseover="this.style.color='var(--a-error,#ef4444)'" onmouseout="this.style.color='var(--a-dim)'">Remove</button>
-        </div>
-      </div>
-      <div class="addr-meta">${[addr.name, addr.line1, addr.line2, [addr.city,addr.state,addr.zip].filter(Boolean).join(' '), addr.country].filter(Boolean).map(escHtml).join('<br>')}</div>
-    </div>
-  `).join('') : '<div class="zw-empty">No saved addresses yet. Add one below.</div>';
+  const addressesHtml = renderAddressCards(addresses);
 
   content.innerHTML = `
     <div class="zw-card" style="margin-bottom:1rem">
@@ -1516,13 +1520,19 @@ async function saveProfile() {
       ? _hubPayload.profile.savedAddresses : [];
     const addresses = hasAddress ? [...existingAddrs, newAddress] : existingAddrs;
 
-    await postHub('save_profile', {
+    const savedData = await postHub('save_profile', {
       preferredChannel: document.getElementById('prof-channel')?.value || 'email',
       notes: document.getElementById('prof-notes')?.value?.trim() || '',
       marketingConsent: document.getElementById('prof-marketing')?.checked || false,
       smsConsent: document.getElementById('prof-sms')?.checked || false,
       addresses,
     });
+
+    /* ── Update UI immediately using the server-confirmed profile ── */
+    if (savedData?.profile) {
+      _hubPayload = _hubPayload ? { ..._hubPayload, profile: savedData.profile } : { profile: savedData.profile };
+      try { localStorage.setItem('zuwera-profile', JSON.stringify(savedData.profile)); } catch(_) {}
+    }
   } catch(err) {
     if (btn) btn.disabled = false;
     if (statusEl) { statusEl.textContent = err.message || 'Could not save profile.'; statusEl.style.color = '#ef4444'; }
@@ -1532,19 +1542,18 @@ async function saveProfile() {
   if (statusEl) { statusEl.textContent = 'Saved!'; statusEl.style.color = '#22c55e'; }
   if (btn) btn.disabled = false;
 
-  /* ── Re-render (non-fatal — save already succeeded) ── */
-  try {
-    _hubPayload = null;
-    const content = document.getElementById('profile-content');
-    if (content) { delete content.dataset.loaded; }
-    _hubPayload = await fetchHub();
-    if (_hubPayload?.profile) localStorage.setItem('zuwera-profile', JSON.stringify(_hubPayload.profile));
-    renderProfile();
-    // Re-render replaced the status element — restore confirmation and scroll to the addresses
-    const newStatus = document.getElementById('prof-status');
-    if (newStatus) { newStatus.textContent = 'Saved!'; newStatus.style.color = '#22c55e'; }
-    document.getElementById('prof-addresses-list')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  } catch(_) {}
+  /* ── Targeted in-place update — no full re-render, no second API call ── */
+  const savedAddrs = Array.isArray(_hubPayload?.profile?.savedAddresses) ? _hubPayload.profile.savedAddresses : [];
+  const addrList = document.getElementById('prof-addresses-list');
+  if (addrList) {
+    addrList.innerHTML = renderAddressCards(savedAddrs);
+    addrList.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  // Clear the address input fields so the user can see the form was processed
+  ['prof-addr-name', 'prof-line1', 'prof-line2', 'prof-city', 'prof-state', 'prof-zip'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
 
   setTimeout(() => {
     const s = document.getElementById('prof-status');
