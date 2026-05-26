@@ -301,8 +301,8 @@ async function doFetchRates(zip, state) {
 }
 
 function maybeLoadRates() {
-  const zip   = _pay.zipInput.value.trim();
-  const state = _pay.stateInput.value.trim();
+  const zip   = (_pay.zipInput?.value   || '').trim();
+  const state = (_pay.stateInput?.value || '').trim();
   if (zip.length < 5 || state.length < 2) return;
 
   clearTimeout(ratesFetchTimeout);
@@ -327,7 +327,7 @@ function updateCartSummaryShipping(amount) {
   }
   if (_pay.totalEl) {
     const parse = el => parseFloat(el?.textContent?.replace(/[^0-9.]/g, '') || '0');
-    _pay.totalEl.textContent = `$${(parse(_cart.subtotalEl) + parse(_pay.taxEl) + dollarAmt).toFixed(2)}`;
+    _pay.totalEl.textContent = `$${(parse(document.getElementById('pm-subtotal')) + parse(_pay.taxEl) + dollarAmt).toFixed(2)}`;
     _pay.totalEl.classList.remove('dash');
   }
   // Keep payment modal summary in sync
@@ -441,7 +441,7 @@ _pay.btn?.addEventListener('click', async () => {
     }
 
     _closeModal('payment-modal');
-    showOrderConfirmed(paymentIntent.id, email);
+    showOrderConfirmed(paymentIntent?.id, email);
   } catch (err) {
     _pay.errEl.textContent = 'Something went wrong. Please try again.';
     console.error('Checkout error:', err);

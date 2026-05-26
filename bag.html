@@ -863,7 +863,7 @@ window.removeCartItem = function(idx) {
 /* ── Nav scroll ── */
 const _navEl = document.getElementById('nav');
 window.addEventListener('scroll', () => {
-  _navEl.classList.toggle('scrolled', window.scrollY > 50);
+  _navEl?.classList.toggle('scrolled', window.scrollY > 50);
 }, { passive: true });
 
 /* ── Account/logout buttons ── */

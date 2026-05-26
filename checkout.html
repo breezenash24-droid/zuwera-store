@@ -825,7 +825,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var r = await fetch('/api/validate-promo', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ promoCode: code, items: window.cartItems.map(function(i){ return { productId: i.productId||i.id||'', price: parseFloat(i.price)||0, quantity: parseInt(i.quantity,10)||1, collectionId: i.collectionId||i.collection||'' }; }) })
+          body: JSON.stringify({ promoCode: code, items: (Array.isArray(window.cartItems) ? window.cartItems : []).map(function(i){ return { productId: i.productId||i.id||'', price: parseFloat(i.price)||0, quantity: parseInt(i.quantity,10)||1, collectionId: i.collectionId||i.collection||'' }; }) })
         });
         var d = await r.json();
         if (d.valid) {
@@ -854,7 +854,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (shell) shell.style.display = 'none';
     }
   } else {
-    fetch('/api/commerce-config').then(function(r){ return r.json(); }).then(function(d) {
+    fetch('/api/commerce-config').then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); }).then(function(d) {
       window._commerceConfigCache = (d&&d.config)||{};
       if (window._commerceConfigCache.shippingPolicy) window._shippingPolicy = window._commerceConfigCache.shippingPolicy;
       if (window._commerceConfigCache.show_promo_code === false) {
