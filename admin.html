@@ -630,6 +630,11 @@
             color: white;
         }
 
+        .status-legacy {
+            background-color: #44403c;
+            color: #a8a29e;
+        }
+
         .action-buttons {
             display: flex;
             gap: 8px;
@@ -652,6 +657,7 @@
         .status-select.status-coming-soon { background:var(--warning); color:#fff; }
         .status-select.status-live { background:var(--success); color:#fff; }
         .status-select.status-sold-out { background:var(--error); color:#fff; }
+        .status-select.status-legacy { background:#44403c; color:#a8a29e; }
         .status-select option { background:var(--bg-secondary); color:var(--text-primary); text-transform:none; font-size:.85rem; }
 
         /* Forms */
@@ -1443,6 +1449,7 @@
                 <div class="nav-section">
                     <div class="nav-section-title">Catalogue</div>
                     <a class="nav-link" data-page="products" onclick="navigateTo('products')">👟 Products</a>
+                    <a class="nav-link" data-page="legacy" onclick="navigateTo('legacy')">📦 Legacy</a>
                     <a class="nav-link" data-page="sizecharts" onclick="navigateTo('sizecharts')">📏 Size Charts</a>
                     <a class="nav-link" data-page="reviews" onclick="navigateTo('reviews')">⭐ Reviews</a>
                 </div>
@@ -2728,6 +2735,36 @@
                         </thead>
                         <tbody id="productsTableBody">
                         </tbody>
+                    </table>
+                </div>
+
+                <!-- Legacy Products Page -->
+                <div id="legacy" class="page">
+                    <div class="products-header">
+                        <h2>Legacy Products</h2>
+                        <div style="display:flex;gap:8px;">
+                            <button class="btn btn-secondary" onclick="loadLegacy()">Refresh</button>
+                        </div>
+                    </div>
+                    <p style="color:var(--text-secondary);font-size:.88rem;margin-top:6px;margin-bottom:20px;line-height:1.6;">Archived products that are no longer sold. They are invisible to customers. Click <strong>Restore</strong> to bring one back as a Draft, or <strong>Edit</strong> to modify it before restoring.</p>
+                    <div class="search-filter">
+                        <input type="text" id="legacySearch" placeholder="Search by SKU, title, or colorway...">
+                    </div>
+                    <div id="legacyEmpty" style="display:none;padding:3rem 0;text-align:center;color:var(--text-secondary);font-size:.9rem;">No legacy products yet. Use the <strong>Archive</strong> button on any product to move it here.</div>
+                    <table class="products-table" id="legacyTable">
+                        <thead>
+                            <tr>
+                                <th>Image</th>
+                                <th>SKU</th>
+                                <th>Title</th>
+                                <th>Colorway</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Archived</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="legacyTableBody"></tbody>
                     </table>
                 </div>
 
@@ -6053,6 +6090,7 @@
                                 <option value="Coming Soon">Coming Soon</option>
                                 <option value="Live">Live</option>
                                 <option value="Sold Out">Sold Out</option>
+                                <option value="Legacy">Legacy (Archived)</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -6855,6 +6893,7 @@
             const titles = {
                 dashboard: 'Dashboard',
                 products: 'Product Inventory',
+                legacy: 'Legacy Products',
                 sizecharts: 'Size Charts',
                 reviews: 'Customer Reviews',
                 users: 'User Management',
@@ -6876,6 +6915,8 @@
                 loadDashboard();
             } else if (page === 'products') {
                 loadProducts();
+            } else if (page === 'legacy') {
+                loadLegacy();
             } else if (page === 'sizecharts') {
                 loadSizeCharts();
             } else if (page === 'reviews') {
@@ -8207,7 +8248,10 @@
 
         function getFilteredSortedProducts() {
             let list = _allProducts;
-            if (_prodStatusFilter !== 'all') {
+            // "all" never shows Legacy — those live in the Legacy section
+            if (_prodStatusFilter === 'all') {
+                list = list.filter(p => (p.status || 'Draft').toLowerCase() !== 'legacy');
+            } else {
                 list = list.filter(p => (p.status || 'Draft').toLowerCase().replace(/\s+/g, '-') === _prodStatusFilter);
             }
             if (_prodSearch) {
@@ -8299,6 +8343,7 @@
                         <div class="action-buttons">
                             <button class="btn btn-secondary btn-sm" onclick="editProduct('${productId}')">Edit</button>
                             <button class="btn btn-secondary btn-sm" onclick="duplicateProduct('${productId}')">Dupe</button>
+                            <button class="btn btn-secondary btn-sm" onclick="archiveProduct('${productId}')" style="background:rgba(68,64,60,.4);border-color:rgba(168,162,158,.3);color:#a8a29e;">Archive</button>
                             <button class="btn btn-danger btn-sm" onclick="openDeleteModal('${productId}')">Delete</button>
                         </div>
                     </td>
@@ -8337,6 +8382,117 @@
             document.getElementById('formModalTitle').textContent = 'Duplicate Product (New)';
             openProductForm();
         };
+
+        window.archiveProduct = async function(productId) {
+            if (!confirm('Archive this product? It will move to the Legacy section and be hidden from the store. You can restore it any time.')) return;
+            try {
+                const { error } = await sb.from('products').update({ status: 'Legacy' }).eq('id', productId);
+                if (error) throw error;
+                await logAdminAudit('product.archive', 'products', productId, { status: 'Legacy' });
+                const p = _allProducts.find(p => p.id === productId);
+                if (p) p.status = 'Legacy';
+                showToast('Product archived — find it in Legacy', 'success');
+                renderProducts();
+            } catch (e) {
+                showToast('Failed to archive: ' + e.message, 'error');
+            }
+        };
+
+        // ── Legacy Products ──────────────────────────────────────────────────────
+        let _allLegacyProducts = [];
+        let _legacySearch = '';
+
+        window.loadLegacy = async function() {
+            document.getElementById('legacyTableBody').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-secondary);">Loading…</td></tr>';
+            document.getElementById('legacyEmpty').style.display = 'none';
+            document.getElementById('legacyTable').style.display = '';
+            try {
+                const { data: products, error } = await sb.from('products')
+                    .select('*, product_images(*), product_sizes(stock_quantity)')
+                    .eq('status', 'Legacy')
+                    .order('updated_at', { ascending: false });
+                if (error) throw error;
+                _allLegacyProducts = products || [];
+                renderLegacyTable();
+            } catch (e) {
+                document.getElementById('legacyTableBody').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--error);">Failed to load: ' + escapeHtml(e.message) + '</td></tr>';
+            }
+        };
+
+        function renderLegacyTable() {
+            const tbody = document.getElementById('legacyTableBody');
+            const list = _legacySearch
+                ? _allLegacyProducts.filter(p =>
+                    (p.sku || '').toLowerCase().includes(_legacySearch) ||
+                    (p.title || '').toLowerCase().includes(_legacySearch) ||
+                    (p.colorway || '').toLowerCase().includes(_legacySearch)
+                  )
+                : _allLegacyProducts;
+
+            if (!list.length) {
+                document.getElementById('legacyTable').style.display = 'none';
+                document.getElementById('legacyEmpty').style.display = '';
+                return;
+            }
+            document.getElementById('legacyTable').style.display = '';
+            document.getElementById('legacyEmpty').style.display = 'none';
+            tbody.innerHTML = '';
+
+            list.forEach(product => {
+                let firstImg = product.image_url;
+                if (product.product_images && product.product_images.length > 0) {
+                    product.product_images.sort((a, b) => a.sort_order - b.sort_order);
+                    if (product.product_images[0].image_url) firstImg = product.product_images[0].image_url;
+                }
+                const productId = escapeAttr(product.id || '');
+                const safeImg = safeHttpUrl(firstImg);
+                const totalStock = (product.product_sizes || []).reduce((sum, i) => sum + (i.stock_quantity || 0), 0);
+                const updated = product.updated_at ? new Date(product.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+                const row = document.createElement('tr');
+                row.style.opacity = '0.75';
+                row.innerHTML = `
+                    <td><div class="product-image" style="${safeImg ? `background-image:url('${escapeAttr(safeImg)}');background-size:cover;background-position:center;filter:grayscale(.6);` : 'background:var(--bg-tertiary);'}"></div></td>
+                    <td><strong>${escapeHtml(product.sku || 'N/A')}</strong></td>
+                    <td>${escapeHtml(product.title || 'N/A')}</td>
+                    <td>${escapeHtml(product.colorway || '—')}</td>
+                    <td>$${(Number(product.current_price) || 0).toFixed(2)}</td>
+                    <td>${totalStock}</td>
+                    <td style="font-size:.78rem;color:var(--text-secondary);">${updated}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-secondary btn-sm" onclick="restoreProduct('${productId}')" style="background:rgba(52,211,153,.15);border-color:rgba(52,211,153,.4);color:#34d399;">Restore</button>
+                            <button class="btn btn-secondary btn-sm" onclick="editLegacyProduct('${productId}')">Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="openDeleteModal('${productId}')">Delete</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        window.restoreProduct = async function(productId, targetStatus) {
+            const status = targetStatus || 'Draft';
+            if (!confirm('Restore this product as ' + status + '? It will return to the main Products list.')) return;
+            try {
+                const { error } = await sb.from('products').update({ status }).eq('id', productId);
+                if (error) throw error;
+                await logAdminAudit('product.restore', 'products', productId, { status });
+                _allLegacyProducts = _allLegacyProducts.filter(p => p.id !== productId);
+                renderLegacyTable();
+                showToast('Product restored as ' + status, 'success');
+            } catch (e) {
+                showToast('Failed to restore: ' + e.message, 'error');
+            }
+        };
+
+        window.editLegacyProduct = function(id) {
+            editProduct(id);
+        };
+
+        document.getElementById('legacySearch').addEventListener('input', e => {
+            _legacySearch = e.target.value.toLowerCase();
+            renderLegacyTable();
+        });
 
         // Products search + filter
         document.getElementById('productSearch').addEventListener('input', (e) => {
@@ -9802,6 +9958,7 @@
                 showToast(publish ? 'Product published!' : 'Draft saved!', 'success');
                 document.getElementById('productFormModal').classList.remove('active');
                 loadProducts();
+                if (document.getElementById('legacy')?.classList.contains('active')) loadLegacy();
             } catch (error) {
                 console.error('Error saving product:', error);
                 let msg = error.message;
@@ -10028,7 +10185,7 @@
                 });
                 showToast('Product deleted successfully', 'success');
                 document.getElementById('deleteModal').classList.remove('active');
-                loadProducts();
+                if (document.getElementById('legacy')?.classList.contains('active')) { loadLegacy(); } else { loadProducts(); }
             } catch (error) {
                 showToast('Error deleting product: ' + error.message, 'error');
             }
