@@ -480,6 +480,13 @@
     .ret-item-row.selected { border-color: rgba(244,241,235,.45); }
     body.light-mode .ret-item-row.selected { border-color: rgba(9,9,11,.55); }
 
+    .ret-qty-wrap { display:none; flex-shrink:0; align-items:center; gap:.4rem; }
+    .ret-qty-wrap.visible { display:flex; }
+    .ret-qty-label { font-size:.58rem; color:rgba(244,241,235,.35); font-family:var(--fm); letter-spacing:.1em; text-transform:uppercase; }
+    body.light-mode .ret-qty-label { color:rgba(9,9,11,.4); }
+    .ret-qty-sel { background:rgba(244,241,235,.08); border:1px solid rgba(244,241,235,.2); color:#f4f1eb; font-family:var(--fb); font-size:.75rem; padding:.25rem .45rem; border-radius:3px; cursor:pointer; outline:none; }
+    body.light-mode .ret-qty-sel { background:rgba(9,9,11,.05); border-color:rgba(9,9,11,.2); color:rgba(9,9,11,.85); }
+
     .ret-item-chk {
       width: 16px; height: 16px; flex-shrink: 0; border-radius: 3px;
       border: 1.5px solid rgba(244,241,235,.3);
@@ -1334,9 +1341,9 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
               <div style="font-size:.8rem;font-weight:500;">${name}</div>
               ${meta ? `<div class="ret-item-meta" style="font-size:.68rem;margin-top:1px;">${meta}</div>` : ''}
             </div>
-            ${qty > 1 ? `<div id="ret-qty-wrap-${idx}" style="display:none;flex-shrink:0;align-items:center;gap:.4rem;" onclick="event.stopPropagation()">
-              <span style="font-size:.58rem;color:rgba(244,241,235,.3);font-family:var(--fm);letter-spacing:.1em;text-transform:uppercase;">Qty</span>
-              <select id="ret-qty-sel-${idx}" onchange="retUpdateQty(${idx},+this.value)" onclick="event.stopPropagation()" style="background:rgba(244,241,235,.06);border:1px solid rgba(244,241,235,.15);color:#f4f1eb;font-family:var(--fb);font-size:.75rem;padding:.2rem .4rem;border-radius:3px;cursor:pointer;outline:none;">${qtyOptions}</select>
+            ${qty > 1 ? `<div id="ret-qty-wrap-${idx}" class="ret-qty-wrap" onclick="event.stopPropagation()">
+              <span class="ret-qty-label">Qty</span>
+              <select id="ret-qty-sel-${idx}" class="ret-qty-sel" onchange="retUpdateQty(${idx},+this.value)" onclick="event.stopPropagation()">${qtyOptions}</select>
             </div>` : ''}
           </label>`;
         }).join('')}
@@ -1359,7 +1366,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
       chk?.classList.remove('checked');
       labelEl.classList.remove('selected');
       if (svg) svg.style.display = 'none';
-      if (qtyWrap) qtyWrap.style.display = 'none';
+      if (qtyWrap) qtyWrap.classList.remove('visible');
     } else {
       const sel = document.getElementById(`ret-qty-sel-${idx}`);
       const returnQty = sel ? +sel.value : (item.quantity || 1);
@@ -1367,7 +1374,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
       chk?.classList.add('checked');
       labelEl.classList.add('selected');
       if (svg) svg.style.display = 'block';
-      if (qtyWrap) qtyWrap.style.display = 'flex';
+      if (qtyWrap) qtyWrap.classList.add('visible');
     }
   };
 
