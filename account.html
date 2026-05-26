@@ -741,16 +741,6 @@ function escHtml(v) {
   return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function _zwToast(msg, isErr) {
-  const old = document.getElementById('_zw_toast');
-  if (old) old.remove();
-  const d = document.createElement('div');
-  d.id = '_zw_toast';
-  d.style.cssText = 'position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:99999;padding:.9rem 1.4rem;border-radius:6px;font-size:.82rem;font-family:monospace;max-width:92vw;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.5);color:#fff;background:' + (isErr ? '#dc2626' : '#16a34a');
-  d.textContent = msg;
-  document.body.appendChild(d);
-  setTimeout(() => d.remove(), 8000);
-}
 
 // Seeded with generic CSS colors as fallback; Zuwera colorways are merged in from DB at runtime
 const _COLOR_MAP = {
@@ -868,7 +858,7 @@ function switchTab(tab) {
   if (tab === 'orders') loadOrders();
   if (tab === 'saved') loadSaved();
   if (tab === 'returns') loadReturns();
-  if (tab === 'profile') renderProfile();
+  if (tab === 'profile') loadProfile();
 }
 
 document.querySelectorAll('.acct-tab').forEach(b => {
@@ -1421,6 +1411,16 @@ function renderAddressCards(addresses) {
   `).join('') : '<div class="zw-empty">No saved addresses yet. Add one below.</div>';
 }
 
+async function loadProfile() {
+  if (!_hubPayload) {
+    try {
+      _hubPayload = await fetchHub();
+      if (_hubPayload?.profile) localStorage.setItem('zuwera-profile', JSON.stringify(_hubPayload.profile));
+    } catch(_) {}
+  }
+  renderProfile();
+}
+
 function renderProfile() {
   const loading = document.getElementById('profile-loading');
   const content = document.getElementById('profile-content');
@@ -1559,7 +1559,6 @@ async function saveProfile() {
   } catch(err) {
     if (btn) btn.disabled = false;
     if (statusEl) { statusEl.textContent = err.message || 'Could not save profile.'; statusEl.style.color = '#ef4444'; }
-    _zwToast('Save error: ' + (err.message || 'unknown'), true);
     return;
   }
 
@@ -1568,7 +1567,6 @@ async function saveProfile() {
 
   /* ── Targeted in-place update — no full re-render, no second API call ── */
   const savedAddrs = Array.isArray(_hubPayload?.profile?.savedAddresses) ? _hubPayload.profile.savedAddresses : [];
-  _zwToast('Saved! ' + savedAddrs.length + ' address(es) stored.');
   const addrList = document.getElementById('prof-addresses-list');
   if (addrList) {
     addrList.innerHTML = renderAddressCards(savedAddrs);
