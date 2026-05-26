@@ -816,9 +816,10 @@ async function getSession() {
 
 /* ── HUB API ── */
 async function fetchHub() {
-  if (!_session?.access_token) return null;
+  const session = await getSession();
+  if (!session?.access_token) return null;
   const resp = await fetch('/api/customer-hub', {
-    headers: { Authorization: `Bearer ${_session.access_token}` }
+    headers: { Authorization: `Bearer ${session.access_token}` }
   });
   const data = await resp.json().catch(() => ({}));
   if (!resp.ok || !data?.success) throw new Error(data?.error || 'Could not load account.');
@@ -1492,6 +1493,8 @@ async function saveProfile() {
   if (btn) btn.disabled = true;
   const statusEl = document.getElementById('prof-status');
   if (statusEl) statusEl.textContent = 'Saving…';
+
+  /* ── Save ── */
   try {
     const newName = document.getElementById('prof-name')?.value?.trim() || '';
     if (newName && newName !== (_session?.user?.user_metadata?.full_name || '')) {
@@ -1509,7 +1512,6 @@ async function saveProfile() {
       zip: document.getElementById('prof-zip')?.value?.trim()
     };
     const hasAddress = newAddress.line1 && newAddress.city;
-    // Build addresses array: preserve existing, append new one if provided
     const existingAddrs = Array.isArray(_hubPayload?.profile?.savedAddresses)
       ? _hubPayload.profile.savedAddresses : [];
     const addresses = hasAddress ? [...existingAddrs, newAddress] : existingAddrs;
@@ -1521,22 +1523,29 @@ async function saveProfile() {
       smsConsent: document.getElementById('prof-sms')?.checked || false,
       addresses,
     });
-    if (statusEl) statusEl.textContent = 'Saved!';
-    // Reload hub payload and re-render
+  } catch(err) {
+    if (btn) btn.disabled = false;
+    if (statusEl) statusEl.textContent = err.message || 'Could not save profile.';
+    return;
+  }
+
+  if (statusEl) statusEl.textContent = 'Saved!';
+  if (btn) btn.disabled = false;
+
+  /* ── Re-render (non-fatal — save already succeeded) ── */
+  try {
     _hubPayload = null;
     const content = document.getElementById('profile-content');
     if (content) { delete content.dataset.loaded; }
     _hubPayload = await fetchHub();
     if (_hubPayload?.profile) localStorage.setItem('zuwera-profile', JSON.stringify(_hubPayload.profile));
     renderProfile();
-    setTimeout(() => {
-      const s = document.getElementById('prof-status');
-      if (s) s.textContent = '';
-    }, 2000);
-  } catch(err) {
-    if (btn) btn.disabled = false;
-    if (statusEl) statusEl.textContent = err.message || 'Could not save profile.';
-  }
+  } catch(_) {}
+
+  setTimeout(() => {
+    const s = document.getElementById('prof-status');
+    if (s && s.textContent === 'Saved!') s.textContent = '';
+  }, 2000);
 }
 
 async function deleteAddress(idx) {
