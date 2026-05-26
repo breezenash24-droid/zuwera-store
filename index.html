@@ -2561,32 +2561,19 @@ function applyAnnouncementBar(mode, msgText) {
   const spacerEl = document.getElementById('bar-spacer');
   const syncAnnouncementState = (hidden) => {
     clearTimeout(_barHideTimer);
-    const isMobNow = window.matchMedia('(max-width:900px)').matches;
     if (hidden) {
-      if (isMobNow) {
-        // Mobile: keep bar in place so its dark background covers the gap below the nav.
-        // Only fade the text content, not the bar itself.
-        barEl.style.pointerEvents = 'none';
-        barEl.querySelectorAll('span').forEach(s => { s.style.transition = 'opacity 0.35s ease'; s.style.opacity = '0'; });
-      } else {
-        barEl.style.transform = 'translateY(-100%)';
-        barEl.style.opacity = '0';
-        barEl.style.pointerEvents = 'none';
-        if (spacerEl) spacerEl.style.height = '0';
-        _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; }, 460);
-      }
+      barEl.style.transform = 'translateY(-100%)';
+      barEl.style.opacity = '0';
+      barEl.style.pointerEvents = 'none';
+      if (spacerEl) spacerEl.style.height = '0';
+      _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; }, 460);
     } else {
-      if (isMobNow) {
-        barEl.style.pointerEvents = '';
-        barEl.querySelectorAll('span').forEach(s => { s.style.transition = 'opacity 0.35s ease'; s.style.opacity = '1'; });
-      } else {
-        barEl.style.display = 'flex';
-        void barEl.offsetHeight;
-        barEl.style.transform = 'translateY(0)';
-        barEl.style.opacity = '1';
-        barEl.style.pointerEvents = '';
-        if (spacerEl) spacerEl.style.height = barEl.offsetHeight + 'px';
-      }
+      barEl.style.display = 'flex';
+      void barEl.offsetHeight;
+      barEl.style.transform = 'translateY(0)';
+      barEl.style.opacity = '1';
+      barEl.style.pointerEvents = '';
+      if (spacerEl) spacerEl.style.height = barEl.offsetHeight + 'px';
     }
     setAnnouncementBarLayout(barEl, navEl, !hidden);
   };
