@@ -1434,10 +1434,8 @@ function renderProfile() {
       <div id="prof-addresses-list" style="margin-top:.75rem">${addressesHtml}</div>
       <div style="margin-top:1rem;border-top:1px solid var(--a-border-soft);padding-top:1rem">
         <div style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--a-dim);margin-bottom:.75rem">Add New Address</div>
-        <div class="zw-grid-2">
-          <div class="zw-field"><label>Address Label</label><input id="prof-label" type="text" placeholder="Home, Studio…"></div>
-          <div class="zw-field"><label>Recipient Name</label><input id="prof-addr-name" type="text" placeholder="Jane Smith" value="${escHtml(userName)}"></div>
-        </div>
+        <div class="zw-field"><label>Recipient Name</label><input id="prof-addr-name" type="text" placeholder="Jane Smith" value="${escHtml(userName)}"></div>
+        <input id="prof-label" type="hidden" value="">
         <div class="zw-field"><label>Address Line 1</label><input id="prof-line1" type="text" placeholder="123 Main St"></div>
         <div class="zw-field"><label>Address Line 2</label><input id="prof-line2" type="text" placeholder="Apt, Suite, etc."></div>
         <div class="zw-grid-3">
@@ -1502,7 +1500,7 @@ async function saveProfile() {
       if (_session?.user?.user_metadata) _session.user.user_metadata.full_name = newName;
     }
     const newAddress = {
-      label: document.getElementById('prof-label')?.value?.trim(),
+      label: document.getElementById('prof-label')?.value?.trim() || 'Home',
       name: document.getElementById('prof-addr-name')?.value?.trim(),
       line1: document.getElementById('prof-line1')?.value?.trim(),
       line2: document.getElementById('prof-line2')?.value?.trim(),
@@ -1510,7 +1508,7 @@ async function saveProfile() {
       state: document.getElementById('prof-state')?.value?.trim().toUpperCase(),
       zip: document.getElementById('prof-zip')?.value?.trim()
     };
-    const hasAddress = newAddress.label && newAddress.line1 && newAddress.city;
+    const hasAddress = newAddress.line1 && newAddress.city;
     // Build addresses array: preserve existing, append new one if provided
     const existingAddrs = Array.isArray(_hubPayload?.profile?.savedAddresses)
       ? _hubPayload.profile.savedAddresses : [];
