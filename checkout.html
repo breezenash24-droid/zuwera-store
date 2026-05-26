@@ -131,9 +131,9 @@
     }
 
     /* ───────────────────────────────── Two-column grid ── */
-    .co-checkout-grid { display: block; }
+    .co-checkout-grid { display: flex; flex-direction: column; }
     .co-form-col { width: 100%; }
-    .co-summary-col { margin-bottom: 2rem; }
+    .co-summary-col { order: -1; margin-bottom: 2rem; }
     .co-sum-desktop-hd { display: none; }
 
     /* ───────────────────────────────── Page title ── */
@@ -378,6 +378,7 @@
       .co-form-col { grid-area: form; }
       .co-summary-col {
         grid-area: summary;
+        order: 0;
         position: sticky;
         top: 4.5rem;
         background: var(--bg);
