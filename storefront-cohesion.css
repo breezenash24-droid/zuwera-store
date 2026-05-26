@@ -1985,7 +1985,16 @@ body.light-mode .zw-mobile-socials a{
 }
 
 /* ── Canonical page footer ── */
-footer:not(.zw-mobile-menu-footer){border-top:1px solid rgba(244,241,235,.14);padding:2.5rem;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:2rem}
+footer:not(.zw-mobile-menu-footer){border-top:1px solid rgba(244,241,235,.14);padding:2rem 2.5rem 2.5rem;display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;align-items:center;gap:0 2rem}
+.footer-nl{grid-column:1/-1;display:flex;align-items:center;gap:1.2rem;padding-bottom:1.2rem;margin-bottom:1rem;border-bottom:1px solid rgba(244,241,235,.07)}
+.fnl-label{font-family:var(--fm);font-size:.55rem;letter-spacing:.16em;text-transform:uppercase;color:rgba(244,241,235,.28);white-space:nowrap;flex-shrink:0}
+.footer-nl #nl-form{display:flex;gap:0;flex:1;max-width:280px}
+.footer-nl #nl-email{flex:1;background:rgba(244,241,235,.04);border:1px solid rgba(244,241,235,.12);border-right:none;color:#f4f1eb;font-family:var(--fb);font-size:.75rem;padding:.42rem .75rem;outline:none;min-width:0}
+.footer-nl #nl-email::placeholder{color:rgba(244,241,235,.2)}
+.footer-nl #nl-email:focus{border-color:rgba(244,241,235,.28)}
+.footer-nl button{background:transparent;border:1px solid rgba(244,241,235,.16);color:rgba(244,241,235,.5);font-family:var(--fm);font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;padding:.42rem .85rem;cursor:pointer;white-space:nowrap;transition:all .2s}
+.footer-nl button:hover{border-color:rgba(244,241,235,.4);color:rgba(244,241,235,.85)}
+#nl-success{font-family:var(--fm);font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,241,235,.4)}
 .flogo{font-family:var(--fw);font-weight:900;font-style:italic;font-size:1.4rem;letter-spacing:.12em;opacity:.85}
 .flogo img{height:22px;width:auto;display:block;filter:invert(1)}
 .flinks{display:flex;gap:2rem;justify-content:center;flex-wrap:wrap}
@@ -1996,6 +2005,13 @@ footer:not(.zw-mobile-menu-footer){border-top:1px solid rgba(244,241,235,.14);pa
 .fig:hover{color:var(--paper)}
 .fcopy{font-family:var(--fm);font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.15)}
 body.light-mode footer:not(.zw-mobile-menu-footer){border-top-color:rgba(9,9,11,.12)}
+body.light-mode .footer-nl{border-bottom-color:rgba(9,9,11,.07)}
+body.light-mode .fnl-label{color:rgba(9,9,11,.28)}
+body.light-mode .footer-nl #nl-email{background:rgba(9,9,11,.04);border-color:rgba(9,9,11,.12);color:#09090b}
+body.light-mode .footer-nl #nl-email::placeholder{color:rgba(9,9,11,.2)}
+body.light-mode .footer-nl button{border-color:rgba(9,9,11,.16);color:rgba(9,9,11,.5)}
+body.light-mode .footer-nl button:hover{border-color:rgba(9,9,11,.4);color:rgba(9,9,11,.85)}
+body.light-mode #nl-success{color:rgba(9,9,11,.4)}
 body.light-mode .flogo img{filter:none}
 body.light-mode .flinks a{color:rgba(9,9,11,.25)}
 body.light-mode .flinks a:hover{color:var(--paper)}
@@ -2003,13 +2019,15 @@ body.light-mode .fig{color:rgba(9,9,11,.28)}
 body.light-mode .fig:hover{color:var(--paper)}
 body.light-mode .fcopy{color:rgba(9,9,11,.15)}
 @media(max-width:900px){
-  footer:not(.zw-mobile-menu-footer){grid-template-columns:1fr;text-align:center;gap:1.5rem}
+  footer:not(.zw-mobile-menu-footer){grid-template-columns:1fr;text-align:center;gap:0}
+  .footer-nl{flex-direction:column;align-items:center;gap:.75rem}
+  .footer-nl #nl-form{max-width:100%;width:100%}
   .fright{text-align:center}
   .flinks{justify-content:center}
   .flogo img,.flogo{margin:0 auto}
 }
 @media(max-width:600px){
-  footer:not(.zw-mobile-menu-footer){padding:2rem 1.2rem}
+  footer:not(.zw-mobile-menu-footer){padding:1.8rem 1.2rem 2rem}
 }
 
 /* ── Language trigger — brand override (beats lang.js injected styles) ── */

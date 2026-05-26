@@ -891,18 +891,15 @@
     </div>
   </section>
 
-  <!-- NEWSLETTER -->
-  <section style="border-top:1px solid rgba(244,241,235,.1);padding:3rem 2.5rem;text-align:center" id="newsletter-section">
-    <p style="font-family:var(--font-head);font-size:1.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">Stay in the loop</p>
-    <p style="font-size:.8rem;color:rgba(244,241,235,.45);letter-spacing:.06em;margin-bottom:1.4rem">New drops, restocks, and members-only access. No spam.</p>
-    <div id="nl-form" style="display:flex;gap:0;max-width:400px;margin:0 auto">
-      <input id="nl-email" type="email" placeholder="your@email.com" style="flex:1;background:rgba(244,241,235,.05);border:1px solid rgba(244,241,235,.2);border-right:none;color:#f4f1eb;font-family:var(--font-body);font-size:.88rem;padding:.78rem 1rem;outline:none;min-width:0">
-      <button onclick="zwNewsletterSubmit()" style="background:#f4f1eb;color:#09090b;border:none;padding:.78rem 1.3rem;font-family:var(--font-head);font-size:.9rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;white-space:nowrap;flex-shrink:0">Subscribe</button>
-    </div>
-    <p id="nl-success" style="display:none;font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.55);margin-top:.8rem">✓ You're on the list.</p>
-  </section>
-
   <footer>
+    <div class="footer-nl">
+      <span class="fnl-label">Stay in the loop</span>
+      <div id="nl-form">
+        <input id="nl-email" type="email" placeholder="your@email.com">
+        <button onclick="zwNewsletterSubmit()">Subscribe</button>
+      </div>
+      <span id="nl-success" style="display:none">&#10003; You're on the list.</span>
+    </div>
     <div class="flogo">
       <img src="images/wordmark-footer.png" srcset="images/wordmark-footer@2x.png 2x" alt="ZUWERA" width="175" height="34" loading="lazy" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
     </div>
