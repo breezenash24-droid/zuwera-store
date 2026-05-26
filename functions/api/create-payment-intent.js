@@ -497,6 +497,7 @@ export async function onRequestPost({ request, env }) {
       discountCents,
       shipping: shipping.shippingCents,
       actualShippingCents: shipping.actualShippingCents,
+      rateObjectId: shipping.rateObjectId || '',
       ship: {
         line1: address.line1 || '',
         line2: address.line2 || '',
