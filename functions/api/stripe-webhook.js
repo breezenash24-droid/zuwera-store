@@ -290,13 +290,15 @@ async function decrementInventory(meta, env) {
     'Content-Type': 'application/json',
   };
 
-  for (const { p: productId, s: size, q: qty } of invItems) {
+  for (const { p: productId, s: size, q: qty, c: colorName } of invItems) {
     if (!productId || !size || !qty) continue;
     try {
+      const rpcBody = { p_product_id: productId, p_size: size, p_qty: qty };
+      if (colorName) rpcBody.p_color_name = colorName;
       const rpcRes = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/decrement_stock`, {
         method:  'POST',
         headers: rpcHeaders,
-        body:    JSON.stringify({ p_product_id: productId, p_size: size, p_qty: qty }),
+        body:    JSON.stringify(rpcBody),
       });
       if (!rpcRes.ok) {
         console.warn(`decrementInventory: RPC failed for ${productId} / ${size}:`, await rpcRes.text());

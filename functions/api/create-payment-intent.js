@@ -302,10 +302,12 @@ async function fetchProductByFilter(env, filterKey, filterValue) {
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
-async function fetchSizeStockQty(env, productId, size) {
+async function fetchSizeStockQty(env, productId, size, colorName) {
   const headers = catalogHeaders(env);
   if (!headers || !productId || !size) return null;
-  const url = `${env.SUPABASE_URL}/rest/v1/product_sizes?select=stock_quantity&product_id=eq.${encodeURIComponent(productId)}&size=eq.${encodeURIComponent(size)}&limit=1`;
+  let url = `${env.SUPABASE_URL}/rest/v1/product_sizes?select=stock_quantity&product_id=eq.${encodeURIComponent(productId)}&size=eq.${encodeURIComponent(size)}`;
+  if (colorName) url += `&color_name=eq.${encodeURIComponent(colorName)}`;
+  url += '&limit=1';
   const resp = await fetch(url, { headers }).catch(() => null);
   if (!resp || !resp.ok) return null;
   const rows = await resp.json().catch(() => []);
@@ -351,7 +353,7 @@ async function resolveCatalogItems(items, env, isMember) {
     const itemQty = parseQuantity(raw?.quantity);
 
     if (itemSize) {
-      const available = await fetchSizeStockQty(env, product.id, itemSize);
+      const available = await fetchSizeStockQty(env, product.id, itemSize, String(raw?.colorName || '').trim() || null);
       if (available !== null && available < itemQty) {
         const name = product.title || product.name || 'An item';
         throw new Error(
@@ -495,6 +497,7 @@ export async function onRequestPost({ request, env }) {
       p: String(item.productId || ''),
       s: String(item.size || ''),
       q: item.quantity || 1,
+      c: String(item.colorName || ''),
     }));
 
     const idempotencyPayload = JSON.stringify({
