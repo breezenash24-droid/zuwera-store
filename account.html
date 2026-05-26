@@ -811,7 +811,15 @@ function orderTimelineHtml(order, returnRequests = []) {
 async function getSession() {
   if (!_sb?.auth?.getSession) return null;
   const r = await _sb.auth.getSession().catch(() => null);
-  return r?.data?.session || null;
+  const session = r?.data?.session;
+  if (!session) return null;
+  // Force-refresh if the access token is expired or expires within 60 s
+  const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
+  if (!expiresAt || expiresAt - Date.now() < 60000) {
+    const ref = await _sb.auth.refreshSession().catch(() => null);
+    return ref?.data?.session || session;
+  }
+  return session;
 }
 
 /* ── HUB API ── */
@@ -1409,7 +1417,11 @@ function renderProfile() {
   if (loading) loading.style.display = 'none';
   content.dataset.loaded = '1';
 
-  const profile = _hubPayload?.profile || {};
+  let profile = _hubPayload?.profile;
+  if (!profile) {
+    try { profile = JSON.parse(localStorage.getItem('zuwera-profile') || 'null'); } catch(_) {}
+  }
+  profile = profile || {};
   const addresses = Array.isArray(profile.savedAddresses) ? profile.savedAddresses : [];
 
   // Prefill from session user data
@@ -1630,7 +1642,14 @@ async function init() {
       _hubPayload = await fetchHub();
       if (_hubPayload?.profile) localStorage.setItem('zuwera-profile', JSON.stringify(_hubPayload.profile));
     } catch(e) {
-      console.warn('customer-hub load:', e.message);
+      // Retry once after a forced session refresh (covers expired-token edge cases)
+      try {
+        await _sb.auth.refreshSession().catch(() => {});
+        _hubPayload = await fetchHub();
+        if (_hubPayload?.profile) localStorage.setItem('zuwera-profile', JSON.stringify(_hubPayload.profile));
+      } catch(e2) {
+        console.warn('customer-hub load failed:', e2.message);
+      }
     }
 
     // Load the default (orders) tab
