@@ -404,13 +404,6 @@
       /* Hide the mobile toggle, always show summary body */
       .co-summary-toggle { display: none !important; }
       .co-summary-body { display: block !important; margin-bottom: 0; }
-      /* Promo in right column needs top separation */
-      .co-summary-col #zw-promo-shell {
-        border-top: 1px solid var(--border);
-        padding-top: 1.1rem;
-        margin-top: .25rem;
-        margin-bottom: 0;
-      }
       /* Page title — larger on desktop */
       .co-checkout-h { font-size: 3rem; }
       .co-page-title { margin-bottom: 2.5rem; text-align: left; }
@@ -495,6 +488,17 @@
         <div class="co-section-hd"><span class="co-section-label">Payment</span></div>
         <div class="pfield"><label>Card Details</label><div id="stripe-card-element"></div></div>
         <p id="pay-error" role="alert" aria-live="assertive"></p>
+
+        <!-- Promo code -->
+        <div id="zw-promo-shell" style="margin-bottom:.9rem;border-top:1px solid var(--border);padding-top:1rem;margin-top:.25rem">
+          <label style="display:block;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:.4rem">Promo Code <span style="opacity:.5">(optional)</span></label>
+          <div class="pm-promo-row">
+            <input id="zw-promo-input" type="text" placeholder="PROMO CODE" autocomplete="off" aria-label="Promo code">
+            <button id="zw-promo-apply" type="button">Apply</button>
+          </div>
+          <div id="zw-promo-message" aria-live="polite"></div>
+        </div>
+
         <button id="pay-submit" type="button">
           <span id="pay-btn-text">Pay Now</span>
         </button>
@@ -530,16 +534,6 @@
           <div class="pm-line"><span id="pm-tax-label">Tax</span><span id="pm-tax">—</span></div>
         </div>
         <div class="pm-total-row"><span>Total</span><span id="pm-total">—</span></div>
-      </div>
-
-      <!-- Promo -->
-      <div id="zw-promo-shell" style="margin-bottom:1.75rem;border-top:1px solid var(--border);padding-top:1.4rem">
-        <label style="display:block;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:.4rem">Promo Code <span style="opacity:.5">(optional)</span></label>
-        <div class="pm-promo-row">
-          <input id="zw-promo-input" type="text" placeholder="PROMO CODE" autocomplete="off" aria-label="Promo code">
-          <button id="zw-promo-apply" type="button">Apply</button>
-        </div>
-        <div id="zw-promo-message" aria-live="polite"></div>
       </div>
 
     </div><!-- /.co-summary-col -->
