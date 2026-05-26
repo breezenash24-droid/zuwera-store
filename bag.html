@@ -640,6 +640,13 @@ const _cart = {
   checkoutBtn: document.getElementById('checkout-btn'),
 };
 
+/* ── Color swatch helper (shared by main list and sidebar summary) ── */
+const _bagColorMap = {'black':'#1a1a1a','white':'#f5f5f0','cream':'#f5e6c8','beige':'#e8d5b7','red':'#ef4444','green':'#059669','navy':'#1e3a5f','grey':'#9ca3af','gray':'#9ca3af','pink':'#ec4899','orange':'#f97316','purple':'#a855f7','brown':'#92400e','tan':'#d4a96a'};
+function bagColorSwatch(item) {
+  const hex = item.colorHex || _bagColorMap[(item.colorName||'').toLowerCase().trim()] || '';
+  return hex ? `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${hex};border:1px solid rgba(0,0,0,.18);margin-right:3px;vertical-align:middle;flex-shrink:0;"></span>` : '';
+}
+
 /* ── Stub functions auth.js may call ── */
 window.refreshHeartButtons = window.refreshHeartButtons || function() {};
 window.refreshCartFavs     = window.refreshCartFavs     || function() {};
@@ -805,7 +812,7 @@ function renderCart() {
       ${imgSrc ? `<img src="${esc(imgSrc)}" alt="${esc(item.title)}" style="width:60px;height:75px;object-fit:cover;border:1px solid var(--cart-img-border);flex-shrink:0" data-fallback="${esc(item.image||'')}" onerror="var f=this.dataset.fallback;if(f&&this.src!==f)this.src=f">` : '<div style="width:60px;height:75px;background:var(--cart-surface);flex-shrink:0"></div>'}
       <div style="flex:1;min-width:0">
         <div style="font-family:var(--font-head);font-size:1rem;font-weight:600;letter-spacing:.04em;margin-bottom:.2rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(item.title)}</div>
-        <div style="font-family:var(--font-mono);font-size:.65rem;color:var(--cart-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem">${esc(item.colorName)} / ${esc(item.size)}</div>
+        <div style="font-family:var(--font-mono);font-size:.65rem;color:var(--cart-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem;display:flex;align-items:center">${bagColorSwatch(item)}${esc(item.colorName)} / ${esc(item.size)}</div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:.5rem">
           <button onclick="updateCartQuantity(${idx},-1)" style="background:none;border:1px solid var(--cart-btn-border);color:inherit;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;flex-shrink:0">−</button>
           <span style="font-size:.85rem;min-width:1.2rem;text-align:center">${item.quantity}</span>
@@ -883,11 +890,6 @@ document.getElementById('checkout-btn').addEventListener('click', () => {
   // fire after the panel is initialised and tax/total are set correctly.
   (function() {
     const _sub = cartItems.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0);
-    const _bagColorMap = {'black':'#1a1a1a','white':'#f5f5f0','cream':'#f5e6c8','beige':'#e8d5b7','red':'#ef4444','green':'#059669','navy':'#1e3a5f','grey':'#9ca3af','gray':'#9ca3af','pink':'#ec4899','orange':'#f97316','purple':'#a855f7','brown':'#92400e','tan':'#d4a96a'};
-    const bagColorDot = item => {
-      const hex = item.colorHex || _bagColorMap[(item.colorName||'').toLowerCase().trim()] || '';
-      return hex ? `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${hex};border:1px solid rgba(0,0,0,.18);margin-right:4px;vertical-align:middle;flex-shrink:0"></span>` : '';
-    };
     const itemsEl = document.getElementById('pm-items');
     if (itemsEl) {
       itemsEl.innerHTML = cartItems.map(item => {
@@ -897,7 +899,7 @@ document.getElementById('checkout-btn').addEventListener('click', () => {
         const imgHtml = imgSrc
           ? `<img src="${esc(imgSrc)}" alt="${esc(item.title)}" class="pm-item-img" data-fallback="${esc(item.image||'')}" onerror="var f=this.dataset.fallback;if(f&&this.src!==f)this.src=f">`
           : `<div class="pm-item-img-placeholder"></div>`;
-        const colorPart = item.colorName ? (bagColorDot(item) + esc(item.colorName)) : '';
+        const colorPart = item.colorName ? (bagColorSwatch(item) + esc(item.colorName)) : '';
         const sizePart  = item.size ? esc(item.size) : '';
         const meta = [colorPart, sizePart].filter(Boolean).join(' / ');
         const cleanTitle = esc((item.title || '').replace(/\p{Extended_Pictographic}/gu, '').replace(/\s+/g, ' ').trim());
