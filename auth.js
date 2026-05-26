@@ -409,9 +409,11 @@ if (_authEls.logoutBtn) _authEls.logoutBtn.addEventListener('click', async () =>
     await _sb.auth.signOut({ scope: 'global' }).catch(()=>{});
     localStorage.removeItem('zuwera-auth');
   }
+  localStorage.removeItem('cart');
   showToast('Signed out.');
   _currentUser = null;
   updateHeaderForAuth();
+  if (typeof loadCartCount === 'function') loadCartCount();
 });
 
 // ── Account Modal ──────────────────────────────────────────────────
@@ -477,10 +479,12 @@ if (_zwDeleteConfirmBtn) {
       // Sign out locally and go home
       await _sb.auth.signOut().catch(() => {});
       localStorage.removeItem('zuwera-auth');
+      localStorage.removeItem('cart');
       _closeModal('account-modal');
       showToast('Your account has been deleted.');
       _currentUser = null;
       updateHeaderForAuth();
+      if (typeof loadCartCount === 'function') loadCartCount();
     } catch (e) {
       if (_zwDeleteErr) _zwDeleteErr.textContent = e.message;
       _zwDeleteConfirmBtn.disabled = false;
