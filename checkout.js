@@ -346,7 +346,7 @@ function updateCartSummaryShipping(amount) {
 function refreshTaxDisplay() {
   if (!window.ZWCheckoutTax) return;
   const parse = el => parseFloat(el?.textContent?.replace(/[^0-9.]/g, '') || '0');
-  const subtotal = parse(_cart.subtotalEl);
+  const subtotal = parse(document.getElementById('pm-subtotal'));
   if (!subtotal) return;
   const state = (_pay.stateInput?.value || '').trim().toUpperCase().slice(0, 2);
   const zip   = (_pay.zipInput?.value   || '').trim();

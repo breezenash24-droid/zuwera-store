@@ -834,11 +834,18 @@ window.updateCartQuantity = function(idx, delta) {
   const cart = JSON.parse(localStorage.getItem('cart') || '[]');
   if (!cart[idx]) return;
   const item = cart[idx];
-  const stockQty = item.stockQty;
-  const maxQty = (stockQty !== null && stockQty !== undefined && stockQty > 0) ? stockQty : 99;
-  if (delta > 0 && item.quantity >= maxQty) {
-    showToast(`Only ${maxQty} in stock`);
-    return;
+  if (delta > 0) {
+    if (item.quantity >= 99) return;
+    // stockQty is per-size (all colors combined) — enforce combined limit across colorways
+    const stockQty = item.stockQty;
+    if (stockQty !== null && stockQty !== undefined && stockQty > 0) {
+      const combinedQty = cart.reduce((sum, ci) =>
+        ci.productId === item.productId && ci.size === item.size ? sum + ci.quantity : sum, 0);
+      if (combinedQty >= stockQty) {
+        showToast(`Only ${stockQty} in stock for size ${item.size}`);
+        return;
+      }
+    }
   }
   item.quantity += delta;
   if (item.quantity <= 0) cart.splice(idx, 1);

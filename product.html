@@ -3136,12 +3136,17 @@ function addToCart() {
              item.colorName === cartItem.colorName
   );
 
-  if (existingIdx > -1) {
-    const maxQty = stockQty !== null ? stockQty : 99;
-    if (cart[existingIdx].quantity >= maxQty) {
-      showToast(`Only ${maxQty} in stock`);
+  // stockQty is per-size across all colorways — enforce combined limit
+  if (stockQty !== null && stockQty > 0) {
+    const combinedQty = cart.reduce((sum, ci) =>
+      ci.productId === cartItem.productId && ci.size === cartItem.size ? sum + ci.quantity : sum, 0);
+    if (combinedQty >= stockQty) {
+      showToast(`Only ${stockQty} in stock for size ${cartItem.size}`);
       return;
     }
+  }
+
+  if (existingIdx > -1) {
     cart[existingIdx].quantity += 1;
     cart[existingIdx].stockQty = stockQty;
   } else {
