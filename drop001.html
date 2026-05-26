@@ -748,6 +748,19 @@
     body.light-mode .product-notify {
       border-bottom-color: rgba(10,10,10,0.3);
     }
+    .stock-badge-sold-out {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      background: rgba(9,9,11,.55); backdrop-filter: blur(2px);
+    }
+    .stock-badge-sold-out span {
+      background: rgba(9,9,11,.88); border: 1px solid rgba(244,241,235,.25);
+      padding: .45rem 1.1rem; font-size: .62rem; letter-spacing: .22em; text-transform: uppercase; color: rgba(244,241,235,.75);
+    }
+    .stock-badge-low {
+      display: inline-block; margin-top: .5rem;
+      font-size: .58rem; letter-spacing: .16em; text-transform: uppercase;
+      color: #e07060; border: 1px solid rgba(224,112,96,.35); padding: .18rem .55rem;
+    }
   </style>
 <link rel="stylesheet" href="storefront-cohesion.css?v=26052501">
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=7b6f9b38">
@@ -878,6 +891,17 @@
     </div>
   </section>
 
+  <!-- NEWSLETTER -->
+  <section style="border-top:1px solid rgba(244,241,235,.1);padding:3rem 2.5rem;text-align:center" id="newsletter-section">
+    <p style="font-family:var(--font-head);font-size:1.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">Stay in the loop</p>
+    <p style="font-size:.8rem;color:rgba(244,241,235,.45);letter-spacing:.06em;margin-bottom:1.4rem">New drops, restocks, and members-only access. No spam.</p>
+    <div id="nl-form" style="display:flex;gap:0;max-width:400px;margin:0 auto">
+      <input id="nl-email" type="email" placeholder="your@email.com" style="flex:1;background:rgba(244,241,235,.05);border:1px solid rgba(244,241,235,.2);border-right:none;color:#f4f1eb;font-family:var(--font-body);font-size:.88rem;padding:.78rem 1rem;outline:none;min-width:0">
+      <button onclick="zwNewsletterSubmit()" style="background:#f4f1eb;color:#09090b;border:none;padding:.78rem 1.3rem;font-family:var(--font-head);font-size:.9rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;white-space:nowrap;flex-shrink:0">Subscribe</button>
+    </div>
+    <p id="nl-success" style="display:none;font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.55);margin-top:.8rem">✓ You're on the list.</p>
+  </section>
+
   <footer>
     <div class="flogo">
       <img src="images/wordmark-footer.png" srcset="images/wordmark-footer@2x.png 2x" alt="ZUWERA" width="175" height="34" loading="lazy" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
@@ -979,7 +1003,7 @@ function updateCountdown() {
     setInterval(updateCountdown, 1000);
 
     // Notify
-    function notifyMe() {
+    async function notifyMe() {
       const requestedCategory = getRequestedCategory();
       const email = document.getElementById('notify-email').value.trim();
       if (!email || !email.includes('@')) {
@@ -991,6 +1015,13 @@ function updateCountdown() {
       document.querySelector('.notify-note').style.display = 'none';
       document.getElementById('notify-success').style.display = 'block';
       if (typeof gtag === 'function') gtag('event', 'generate_lead', { content_name: requestedCategory || 'waitlist', source: 'drop001' });
+      try {
+        await fetch(_colSB_URL + '/rest/v1/waitlist', {
+          method: 'POST',
+          headers: { 'apikey': _colSB_ANON, 'Authorization': 'Bearer ' + _colSB_ANON, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, source: 'drop001_notify' + (requestedCategory ? '_' + requestedCategory.toLowerCase().replace(/\s+/g,'-') : '') })
+        });
+      } catch(_) {}
     }
 
     function scrollToNotify(event) {
@@ -1162,13 +1193,23 @@ function updateCountdown() {
       let products;
       try {
         const headers = { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` };
-        const [productsResp, imagesResp] = await Promise.all([
+        const [productsResp, imagesResp, sizesResp] = await Promise.all([
           fetch(`${SUPABASE_URL}/rest/v1/products?select=*&order=sort_order.asc`, { headers }),
-          fetch(`${SUPABASE_URL}/rest/v1/product_images?select=*&order=sort_order.asc`, { headers })
+          fetch(`${SUPABASE_URL}/rest/v1/product_images?select=*&order=sort_order.asc`, { headers }),
+          fetch(`${SUPABASE_URL}/rest/v1/product_sizes?select=product_id,stock_quantity`, { headers })
         ]);
         if (!productsResp.ok) throw new Error(`HTTP ${productsResp.status}`);
         products = await productsResp.json();
         const imageRows = imagesResp.ok ? await imagesResp.json() : [];
+        const sizeRows = sizesResp.ok ? await sizesResp.json() : [];
+
+        // Aggregate total stock per product
+        const stockByProductId = {};
+        (Array.isArray(sizeRows) ? sizeRows : []).forEach((row) => {
+          if (!row || !row.product_id) return;
+          stockByProductId[row.product_id] = (stockByProductId[row.product_id] || 0) + (Number(row.stock_quantity) || 0);
+        });
+
         const imagesByProductId = new Map();
         (Array.isArray(imageRows) ? imageRows : []).forEach((image) => {
           if (!image || !image.product_id) return;
@@ -1178,7 +1219,8 @@ function updateCountdown() {
         });
         products = (Array.isArray(products) ? products : []).map((product) => ({
           ...product,
-          product_images: (imagesByProductId.get(product.id) || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+          product_images: (imagesByProductId.get(product.id) || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)),
+          totalStock: stockByProductId[product.id] ?? null
         }));
       } catch(e) {
         console.error('loadProducts error:', e);
@@ -1248,6 +1290,10 @@ function updateCountdown() {
                 <span>Image Coming Soon</span>
               </div>`;
           const isLive = (p.status === 'live' || p.status === 'Live');
+          const totalStock = p.totalStock;
+          const isSoldOut = isLive && totalStock !== null && totalStock <= 0;
+          const lowThreshold = Number(p.low_stock_threshold) || 10;
+          const isLowStock = isLive && !isSoldOut && totalStock !== null && totalStock > 0 && totalStock <= lowThreshold;
           const colCardId = 'cqsp-' + (p.unique_id || p.id).toString().replace(/[^a-z0-9]/gi,'');
           const priceVal = productPrice ? parseFloat(productPrice) : 0;
           const quickAddPayload = encodeURIComponent(JSON.stringify({
@@ -1277,14 +1323,18 @@ function updateCountdown() {
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                   </button>
                   ${imgHtml}
-                  <div class="product-overlay">${!isLive ? `<span class="coming-soon-badge">${badge}</span>` : ''}</div>
+                  <div class="product-overlay">
+                    ${!isLive ? `<span class="coming-soon-badge">${badge}</span>` : ''}
+                    ${isSoldOut ? `<div class="stock-badge-sold-out"><span>Sold Out</span></div>` : ''}
+                  </div>
                 </div>
                 <div class="product-info">
                   <p class="product-category">${productCategory}</p>
                   <p class="product-name">${productName}</p>
                   <p class="product-price">${productPrice ? '$' + Number(productPrice).toFixed(2) : 'Price TBA'}</p>
+                  ${isLowStock ? `<span class="stock-badge-low">Low Stock</span>` : ''}
                   ${isLive
-                    ? `<button type="button" class="product-add-btn" data-col-quick-add="${quickAddPayload}" onclick="return window.__zwCollectionQuickAddClick && window.__zwCollectionQuickAddClick(event,this)">Add to Bag</button>`
+                    ? `<button type="button" class="product-add-btn"${isSoldOut ? ' disabled style="opacity:.35;cursor:not-allowed"' : ''} data-col-quick-add="${quickAddPayload}" onclick="return window.__zwCollectionQuickAddClick && window.__zwCollectionQuickAddClick(event,this)">${isSoldOut ? 'Sold Out' : 'Add to Bag'}</button>`
                     : `<span class="product-notify" onclick="scrollToNotify(event)">Notify Me When Live →</span>`
                   }
                 </div>
@@ -1747,6 +1797,25 @@ function updateCountdown() {
     });
   }
   initCollectionReviewModal();
+
+  async function zwNewsletterSubmit() {
+    const input = document.getElementById('nl-email');
+    const email = (input ? input.value : '').trim();
+    if (!email || !email.includes('@')) { if (input) { input.style.borderColor = '#e07060'; input.focus(); } return; }
+    if (input) input.style.borderColor = '';
+    const form = document.getElementById('nl-form');
+    const success = document.getElementById('nl-success');
+    if (form) form.style.display = 'none';
+    if (success) success.style.display = 'block';
+    if (typeof gtag === 'function') gtag('event', 'generate_lead', { content_name: 'newsletter', source: 'drop001_footer' });
+    try {
+      await fetch(_colSB_URL + '/rest/v1/waitlist', {
+        method: 'POST',
+        headers: { 'apikey': _colSB_ANON, 'Authorization': 'Bearer ' + _colSB_ANON, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, source: 'newsletter_footer' })
+      });
+    } catch(_) {}
+  }
   </script>
 <script src="auth.js?v=97d46784" defer></script>
 </body>

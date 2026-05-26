@@ -1997,6 +1997,17 @@ body.light-mode::after{opacity:0.15}
   </div>
 </section>
 
+<!-- NEWSLETTER -->
+<section style="border-top:1px solid rgba(244,241,235,.1);padding:3rem 2.5rem;text-align:center" id="newsletter-section">
+  <p style="font-family:var(--fw);font-size:1.6rem;font-weight:900;font-style:italic;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem">Stay in the loop</p>
+  <p style="font-family:var(--fm);font-size:.72rem;color:rgba(244,241,235,.4);letter-spacing:.08em;margin-bottom:1.4rem">New drops, restocks &amp; members-only access. No spam, ever.</p>
+  <div id="nl-form" style="display:flex;gap:0;max-width:400px;margin:0 auto">
+    <input id="nl-email" type="email" placeholder="your@email.com" style="flex:1;background:rgba(244,241,235,.05);border:1px solid rgba(244,241,235,.2);border-right:none;color:#f4f1eb;font-family:var(--fb);font-size:.88rem;padding:.78rem 1rem;outline:none;min-width:0">
+    <button onclick="zwHomeNewsletterSubmit()" style="background:#f4f1eb;color:#09090b;border:none;padding:.78rem 1.3rem;font-family:var(--fw);font-size:.9rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;white-space:nowrap;flex-shrink:0">Subscribe</button>
+  </div>
+  <p id="nl-success" style="display:none;font-family:var(--fm);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.55);margin-top:.8rem">&#10003; You're on the list.</p>
+</section>
+
 <!-- FOOTER -->
 <footer>
   <div class="flogo">
@@ -4979,6 +4990,20 @@ async function homeNotifyMe() {
   inp.closest('.notify-row').style.display='none';
   document.querySelector('.notify-hint').style.display='none';
   document.getElementById('home-notify-success').style.display='block';
+}
+
+/* FOOTER NEWSLETTER */
+async function zwHomeNewsletterSubmit() {
+  const input = document.getElementById('nl-email');
+  const email = (input ? input.value : '').trim();
+  if (!email || !email.includes('@')) { if (input) { input.style.borderColor = '#e07060'; input.focus(); } return; }
+  if (input) input.style.borderColor = '';
+  const form = document.getElementById('nl-form');
+  const success = document.getElementById('nl-success');
+  if (form) form.style.display = 'none';
+  if (success) success.style.display = 'block';
+  if (typeof gtag === 'function') gtag('event', 'generate_lead', { content_name: 'newsletter', source: 'home_footer' });
+  if (_sb) { try { await _sb.from('waitlist').upsert({ email, source: 'newsletter_footer_home' }); } catch(_) {} }
 }
 
 /* SCROLL TO NOTIFY */

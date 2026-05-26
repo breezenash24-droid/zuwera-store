@@ -2979,6 +2979,15 @@ function renderReviews() {
   document.getElementById('reviewsHeader').textContent =
     `Reviews (${avgRating} \u00b7 ${currentProduct.reviews.length})`;
 
+  // Auto-open the Reviews accordion if it is still closed
+  const reviewsAccordionBody = content.closest('.accordion-body');
+  if (reviewsAccordionBody && !reviewsAccordionBody.style.maxHeight) {
+    const reviewsAccordionHeader = reviewsAccordionBody.previousElementSibling;
+    if (reviewsAccordionHeader && typeof toggleAccordion === 'function') {
+      toggleAccordion(reviewsAccordionHeader);
+    }
+  }
+
   // Show latest 3 reviews
   const displayReviews = currentProduct.reviews.slice(0, 3);
 
