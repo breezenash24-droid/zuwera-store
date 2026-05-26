@@ -13,6 +13,7 @@
   <link rel="preconnect" href="https://qfgnrsifcwdubkolsgsq.supabase.co">
   <link rel="preconnect" href="https://js.stripe.com">
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="/supabase.min.js?v=3277b334"></script>
   <script src="/favicon-utils.js?v=00b5644f"></script>
   <script src="/stripe-client-config.js?v=f4503bed"></script>
   <script src="/checkout-tax.js?v=d7a3117c"></script>
@@ -593,81 +594,68 @@ window._closeModal = function(id) {
   }
 };
 
-window.prefillCheckoutForUser = async function(user, accessToken, refreshToken) {
-  if (!user) return;
-  var SUPA_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
-  var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
-
-  var email = (user.email || '').trim();
-  var meta  = user.user_metadata || {};
-  var name  = (meta.full_name || meta.name || '').trim();
-  var nameEl  = document.getElementById('pay-name');
-  var emailEl = document.getElementById('pay-email');
-  if (nameEl  && !nameEl.value.trim()  && name)  nameEl.value  = name;
-  if (emailEl && !emailEl.value.trim() && email) emailEl.value = email;
-
-  var f = function(id, val) { var el = document.getElementById(id); if (el && !el.value.trim() && val) el.value = val; };
-  var fillAddr = function(addr) {
-    if (!addr) return false;
-    if (nameEl && !nameEl.value.trim() && addr.name) nameEl.value = addr.name;
-    f('pay-addr1', addr.line1);
-    f('pay-addr2', addr.line2);
-    f('pay-city',  addr.city);
-    f('pay-state', addr.state);
-    f('pay-zip',   addr.zip);
-    var zipEl = document.getElementById('pay-zip');
-    var stateEl = document.getElementById('pay-state');
-    if (zipEl)   zipEl.dispatchEvent(new Event('input', { bubbles: true }));
-    if (stateEl) stateEl.dispatchEvent(new Event('input', { bubbles: true }));
-    return !!(addr.line1 || addr.city);
-  };
-
-  /* 1. Try locally cached profile (written by account.html — no token needed) */
+window._checkoutPrefill = async function() {
   try {
-    var cached = localStorage.getItem('zuwera-profile');
-    if (cached) {
-      var profile = JSON.parse(cached);
-      var addrs = Array.isArray(profile.savedAddresses) ? profile.savedAddresses : [];
-      var addr = addrs.find(function(a){ return a.isPrimary; }) || addrs[0] || null;
-      if (fillAddr(addr)) return;
-    }
-  } catch(_) {}
+    /* Use Supabase client (now loaded) so getSession() auto-refreshes the token */
+    var _coSb = (typeof supabase !== 'undefined') ? supabase.createClient(
+      'https://qfgnrsifcwdubkolsgsq.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY',
+      { auth: { storageKey: 'zuwera-auth', persistSession: true, flowType: 'implicit' } }
+    ) : null;
+    if (!_coSb) return;
 
-  /* 2. Access token may be expired — refresh it using refresh_token */
-  if (refreshToken) {
+    var res = await _coSb.auth.getSession();
+    var session = res.data && res.data.session;
+    if (!session) return;
+
+    var user  = session.user || {};
+    var token = session.access_token || '';
+    var email = (user.email || '').trim();
+    var meta  = user.user_metadata || {};
+    var name  = (meta.full_name || meta.name || '').trim();
+
+    var nameEl  = document.getElementById('pay-name');
+    var emailEl = document.getElementById('pay-email');
+    if (nameEl  && !nameEl.value.trim() && name)  nameEl.value  = name;
+    if (emailEl && !emailEl.value.trim() && email) emailEl.value = email;
+
+    var f = function(id, val) { var el = document.getElementById(id); if (el && !el.value.trim() && val) el.value = val; };
+    var fillAddr = function(addr) {
+      if (!addr) return false;
+      if (nameEl && !nameEl.value.trim() && addr.name) nameEl.value = addr.name;
+      f('pay-addr1', addr.line1);
+      f('pay-addr2', addr.line2);
+      f('pay-city',  addr.city);
+      f('pay-state', addr.state);
+      f('pay-zip',   addr.zip);
+      var zipEl   = document.getElementById('pay-zip');
+      var stateEl = document.getElementById('pay-state');
+      if (zipEl)   zipEl.dispatchEvent(new Event('input', { bubbles: true }));
+      if (stateEl) stateEl.dispatchEvent(new Event('input', { bubbles: true }));
+      return !!(addr.line1 || addr.city);
+    };
+
+    /* Try cached profile first (written by account.html on load/save) */
     try {
-      var rr = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: SUPA_KEY },
-        body: JSON.stringify({ refresh_token: refreshToken })
-      });
-      if (rr.ok) {
-        var newSess = await rr.json();
-        if (newSess.access_token) {
-          accessToken = newSess.access_token;
-          /* Update localStorage so next page also has fresh token */
-          try {
-            var stored2 = JSON.parse(localStorage.getItem('zuwera-auth') || '{}');
-            stored2.access_token  = newSess.access_token;
-            stored2.refresh_token = newSess.refresh_token || refreshToken;
-            if (newSess.user) stored2.user = newSess.user;
-            localStorage.setItem('zuwera-auth', JSON.stringify(stored2));
-          } catch(_) {}
-        }
+      var cached = localStorage.getItem('zuwera-profile');
+      if (cached) {
+        var cp = JSON.parse(cached);
+        var ca = Array.isArray(cp.savedAddresses) ? cp.savedAddresses : [];
+        var ca0 = ca.find(function(a){ return a.isPrimary; }) || ca[0] || null;
+        if (fillAddr(ca0)) return;
       }
     } catch(_) {}
-  }
 
-  /* 3. Call live API with (possibly refreshed) token */
-  if (!accessToken) return;
-  try {
-    var r = await fetch('/api/customer-hub', { headers: { Authorization: 'Bearer ' + accessToken, Accept: 'application/json' } });
+    /* Fall back to live API with fresh token */
+    if (!token) return;
+    var r = await fetch('/api/customer-hub', { headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' } });
     var d = await r.json();
-    if (!d.success) return;
-    var addrs2 = Array.isArray(d.profile && d.profile.savedAddresses) ? d.profile.savedAddresses : [];
-    var filled = fillAddr(addrs2.find(function(a){ return a.isPrimary; }) || addrs2[0] || null);
-    /* Cache for next time */
-    if (filled && d.profile) { try { localStorage.setItem('zuwera-profile', JSON.stringify(d.profile)); } catch(_) {} }
+    if (!d || !d.success) return;
+    var addrs = Array.isArray(d.profile && d.profile.savedAddresses) ? d.profile.savedAddresses : [];
+    var addr  = addrs.find(function(a){ return a.isPrimary; }) || addrs[0] || null;
+    if (fillAddr(addr) && d.profile) {
+      try { localStorage.setItem('zuwera-profile', JSON.stringify(d.profile)); } catch(_) {}
+    }
   } catch(_) {}
 };
 
@@ -884,20 +872,8 @@ document.addEventListener('DOMContentLoaded', function() {
     value: sub, currency: 'USD'
   });
 
-  /* Prefill if signed in — read session directly from localStorage (no Supabase client needed) */
-  (function() {
-    try {
-      var raw = localStorage.getItem('zuwera-auth');
-      if (!raw) return;
-      var stored = JSON.parse(raw);
-      var user         = stored.user || null;
-      var token        = stored.access_token || '';
-      var refreshToken = stored.refresh_token || '';
-      if (user && typeof window.prefillCheckoutForUser === 'function') {
-        window.prefillCheckoutForUser(user, token, refreshToken);
-      }
-    } catch(_) {}
-  })();
+  /* Prefill if signed in */
+  if (typeof window._checkoutPrefill === 'function') window._checkoutPrefill();
 });
 </script>
 
