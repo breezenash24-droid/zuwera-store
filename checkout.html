@@ -379,8 +379,8 @@
         grid-area: summary;
         position: sticky;
         top: 4.5rem;
-        background: var(--surface);
-        border: 1px solid var(--border);
+        background: var(--bg);
+        border: 1px solid var(--border2);
         padding: 1.75rem 1.5rem 1.5rem;
         margin-bottom: 0;
       }
@@ -593,13 +593,76 @@ window._closeModal = function(id) {
   }
 };
 
+window.prefillCheckoutForUser = async function(user, accessToken) {
+  if (!user) return;
+  var email = (user.email || '').trim();
+  var meta  = user.user_metadata || {};
+  var name  = (meta.full_name || meta.name || '').trim();
+  var nameEl  = document.getElementById('pay-name');
+  var emailEl = document.getElementById('pay-email');
+  if (nameEl  && !nameEl.value.trim()  && name)  nameEl.value  = name;
+  if (emailEl && !emailEl.value.trim() && email) emailEl.value = email;
+  if (!accessToken) return;
+  try {
+    var r = await fetch('/api/customer-hub', { headers: { Authorization: accessToken, Accept: 'application/json' } });
+    var d = await r.json();
+    if (!d.success) return;
+    var addrs = Array.isArray(d.profile && d.profile.savedAddresses) ? d.profile.savedAddresses : [];
+    var addr = addrs.find(function(a){ return a.isPrimary; }) || addrs[0] || null;
+    if (!addr) return;
+    var f = function(id, val) { var el = document.getElementById(id); if (el && !el.value.trim() && val) el.value = val; };
+    if (nameEl && !nameEl.value.trim() && addr.name) nameEl.value = addr.name;
+    f('pay-addr1', addr.line1);
+    f('pay-addr2', addr.line2);
+    f('pay-city',  addr.city);
+    f('pay-state', addr.state);
+    f('pay-zip',   addr.zip);
+    var zipEl   = document.getElementById('pay-zip');
+    var stateEl = document.getElementById('pay-state');
+    if (zipEl)   zipEl.dispatchEvent(new Event('input', { bubbles: true }));
+    if (stateEl) stateEl.dispatchEvent(new Event('input', { bubbles: true }));
+  } catch(_) {}
+};
+
 window.zwResetPromoUI = function() {};
+
+window.zwApplyPromo = function(promo) {
+  window._zwActivePromo = promo;
+  var row = document.getElementById('zw-promo-row');
+  var discountEl = document.getElementById('zw-promo-discount');
+  var applyBtn = document.getElementById('zw-promo-apply');
+  var msgEl = document.getElementById('zw-promo-message');
+  if (row) row.style.display = '';
+  if (discountEl) discountEl.textContent = '-$' + promo.discount;
+  if (applyBtn) { applyBtn.textContent = 'Remove'; applyBtn.disabled = false; }
+  if (msgEl) { msgEl.textContent = promo.message || ((promo.label || 'Promo') + ' applied!'); msgEl.style.color = 'rgba(110,210,130,.9)'; }
+  if (typeof window.zwPromoUpdateSummaryTotals === 'function') window.zwPromoUpdateSummaryTotals();
+};
+
+window.zwPromoUpdateSummaryTotals = function() {
+  var cart = window.cartItems || [];
+  var sub = cart.reduce(function(s, i) { return s + parseFloat(i.price || 0) * (i.quantity || 1); }, 0);
+  var promo = window._zwActivePromo;
+  var discount = promo ? parseFloat(promo.discount || 0) : 0;
+  var total = Math.max(0, sub - discount);
+  var set = function(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; };
+  set('pm-subtotal', '$' + sub.toFixed(2));
+  set('pm-total', '$' + total.toFixed(2));
+  set('pm-toggle-total', '$' + total.toFixed(2));
+  var row = document.getElementById('zw-promo-row');
+  if (row) row.style.display = discount > 0 ? '' : 'none';
+};
+
 window.zwClearPromo = function() {
   window._zwActivePromo = null;
   var row = document.getElementById('zw-promo-row');
   if (row) row.style.display = 'none';
   var btn = document.getElementById('zw-promo-apply');
   if (btn) { btn.textContent = 'Apply'; btn.disabled = false; }
+  var input = document.getElementById('zw-promo-input');
+  if (input) input.value = '';
+  var msgEl = document.getElementById('zw-promo-message');
+  if (msgEl) { msgEl.textContent = ''; msgEl.style.color = ''; }
   if (typeof window.zwPromoUpdateSummaryTotals === 'function') window.zwPromoUpdateSummaryTotals();
 };
 
@@ -630,6 +693,12 @@ window.zwClearPromo = function() {
 
   /* Render order summary */
   function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  var _zwColorMap = {'black':'#1a1a1a','white':'#f5f5f0','cream':'#f5e6c8','beige':'#e8d5b7','red':'#ef4444','green':'#059669','navy':'#1e3a5f','grey':'#9ca3af','gray':'#9ca3af','pink':'#ec4899','orange':'#f97316','purple':'#a855f7','brown':'#92400e','tan':'#d4a96a'};
+  function zwColorDot(item) {
+    var hex = item.colorHex || _zwColorMap[(item.colorName||'').toLowerCase().trim()] || '';
+    if (!hex) return '';
+    return '<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:'+hex+';border:1px solid rgba(0,0,0,.18);margin-right:4px;vertical-align:middle;flex-shrink:0"></span>';
+  }
   function renderSummary() {
     var cart = window.cartItems;
     var itemsEl = document.getElementById('pm-items');
@@ -641,9 +710,11 @@ window.zwClearPromo = function() {
         var imgHtml = imgSrc
           ? '<img src="'+esc(imgSrc)+'" alt="'+esc(item.title||item.name||'')+'" class="pm-item-img" onerror="this.style.display=\'none\'">'
           : '<div class="pm-item-img-placeholder"></div>';
-        var meta = [item.colorName, item.size].filter(Boolean).map(esc).join(' / ');
+        var colorPart = item.colorName ? (zwColorDot(item) + esc(item.colorName)) : '';
+        var sizePart = item.size ? esc(item.size) : '';
+        var meta = [colorPart, sizePart].filter(Boolean).join(' / ');
         var cleanTitle = esc((item.title||item.name||'').replace(/\p{Extended_Pictographic}/gu,'').replace(/\s+/g,' ').trim());
-        return '<div class="pm-item">'+imgHtml+'<div class="pm-item-info"><div class="pm-item-title">'+cleanTitle+'</div>'+(meta?'<div class="pm-item-meta">'+meta+'</div>':'')+'<div class="pm-item-meta">Qty '+(item.quantity||1)+'</div></div><div class="pm-item-price">$'+price+'</div></div>';
+        return '<div class="pm-item">'+imgHtml+'<div class="pm-item-info"><div class="pm-item-title">'+cleanTitle+'</div>'+(meta?'<div class="pm-item-meta" style="display:flex;align-items:center">'+meta+'</div>':'')+'<div class="pm-item-meta">Qty '+(item.quantity||1)+'</div></div><div class="pm-item-price">$'+price+'</div></div>';
       }).join('');
     }
 
@@ -766,15 +837,19 @@ document.addEventListener('DOMContentLoaded', function() {
     value: sub, currency: 'USD'
   });
 
-  /* Prefill if signed in */
-  if (window.sb) {
-    window.sb.auth.getSession().then(function(res) {
-      var sess = res&&res.data&&res.data.session ? res.data.session : null;
-      if (sess&&sess.user&&typeof window.prefillCheckoutForUser==='function') {
-        window.prefillCheckoutForUser(sess.user);
+  /* Prefill if signed in — read session directly from localStorage (no Supabase client needed) */
+  (function() {
+    try {
+      var raw = localStorage.getItem('zuwera-auth');
+      if (!raw) return;
+      var stored = JSON.parse(raw);
+      var user  = stored.user || null;
+      var token = stored.access_token || '';
+      if (user && typeof window.prefillCheckoutForUser === 'function') {
+        window.prefillCheckoutForUser(user, token);
       }
-    }).catch(function(){});
-  }
+    } catch(_) {}
+  })();
 });
 </script>
 

@@ -883,6 +883,11 @@ document.getElementById('checkout-btn').addEventListener('click', () => {
   // fire after the panel is initialised and tax/total are set correctly.
   (function() {
     const _sub = cartItems.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0);
+    const _bagColorMap = {'black':'#1a1a1a','white':'#f5f5f0','cream':'#f5e6c8','beige':'#e8d5b7','red':'#ef4444','green':'#059669','navy':'#1e3a5f','grey':'#9ca3af','gray':'#9ca3af','pink':'#ec4899','orange':'#f97316','purple':'#a855f7','brown':'#92400e','tan':'#d4a96a'};
+    const bagColorDot = item => {
+      const hex = item.colorHex || _bagColorMap[(item.colorName||'').toLowerCase().trim()] || '';
+      return hex ? `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${hex};border:1px solid rgba(0,0,0,.18);margin-right:4px;vertical-align:middle;flex-shrink:0"></span>` : '';
+    };
     const itemsEl = document.getElementById('pm-items');
     if (itemsEl) {
       itemsEl.innerHTML = cartItems.map(item => {
@@ -892,9 +897,11 @@ document.getElementById('checkout-btn').addEventListener('click', () => {
         const imgHtml = imgSrc
           ? `<img src="${esc(imgSrc)}" alt="${esc(item.title)}" class="pm-item-img" data-fallback="${esc(item.image||'')}" onerror="var f=this.dataset.fallback;if(f&&this.src!==f)this.src=f">`
           : `<div class="pm-item-img-placeholder"></div>`;
-        const meta = [item.colorName, item.size].filter(Boolean).map(esc).join(' / ');
+        const colorPart = item.colorName ? (bagColorDot(item) + esc(item.colorName)) : '';
+        const sizePart  = item.size ? esc(item.size) : '';
+        const meta = [colorPart, sizePart].filter(Boolean).join(' / ');
         const cleanTitle = esc((item.title || '').replace(/\p{Extended_Pictographic}/gu, '').replace(/\s+/g, ' ').trim());
-        return `<div class="pm-item">${imgHtml}<div class="pm-item-info"><div class="pm-item-title">${cleanTitle}</div>${meta ? `<div class="pm-item-meta">${meta}</div>` : ''}<div class="pm-item-meta">Qty ${item.quantity}</div></div><div class="pm-item-price">$${price}</div></div>`;
+        return `<div class="pm-item">${imgHtml}<div class="pm-item-info"><div class="pm-item-title">${cleanTitle}</div>${meta ? `<div class="pm-item-meta" style="display:flex;align-items:center">${meta}</div>` : ''}<div class="pm-item-meta">Qty ${item.quantity}</div></div><div class="pm-item-price">$${price}</div></div>`;
       }).join('');
     }
     const policy = window._shippingPolicy || { enabled: true, threshold: 100 };
