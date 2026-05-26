@@ -440,7 +440,6 @@ _pay.btn?.addEventListener('click', async () => {
       return;
     }
 
-    _closeModal('payment-modal');
     showOrderConfirmed(paymentIntent?.id, email);
   } catch (err) {
     _pay.errEl.textContent = 'Something went wrong. Please try again.';
@@ -490,15 +489,15 @@ function showOrderConfirmed(paymentIntentId, email) {
     });
   }
 
-  // Clear cart
+  // Clear cart from storage and update header count
   cartItems = [];
-  _cart.itemsList.innerHTML = '';
-  _cart.emptyMsg.style.display = 'block';
-  if (_cart.cartCount) _cart.cartCount.textContent = '0';
+  localStorage.removeItem('cart');
+  const _bagCountEl = document.getElementById('co-bag-count');
+  if (_bagCountEl) _bagCountEl.textContent = '0';
 }
 
 document.getElementById('success-continue')?.addEventListener('click', () => {
-  _closeModal('payment-success');
+  window.location.href = '/';
 });
 
 // Countdown is handled by the inline script in index.html
