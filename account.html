@@ -1298,13 +1298,13 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
     </div>
   `;
 
-  // Item selection state for the new return form
-  let _retSelectedItems = [];
+  // Item selection state for the new return form — Map<idx, {...item, returnQty}>
+  let _retSelectedItems = new Map();
 
   function showItemPicker(orderId) {
     const picker = document.getElementById('ret-item-picker');
     if (!picker) return;
-    _retSelectedItems = [];
+    _retSelectedItems = new Map();
     const order = orderMap[orderId];
     let items = [];
     try { items = typeof order?.items === 'string' ? JSON.parse(order.items) : (Array.isArray(order?.items) ? order.items : []); } catch(_) {}
@@ -1316,11 +1316,15 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
       <div style="display:flex;flex-direction:column;gap:.4rem;" id="ret-item-list">
         ${items.map((item, idx) => {
           const name = escHtml((item.name || item.title || 'Item').trim());
-          const meta = itemMetaHtml(item.size, item.color || item.colorName, 1);
+          const qty = item.quantity || 1;
+          const meta = itemMetaHtml(item.size, item.color || item.colorName, qty);
           const storedImg = (item.image || item.imageUrl || item.img || '').trim();
           const validImg = storedImg && /^https?:\/\//i.test(storedImg) ? storedImg : '';
           const nameKey = (item.name || item.title || '').trim().toLowerCase();
           const img = validImg || productImgMap[nameKey] || productImgMap[item.sku] || '';
+          const qtyOptions = qty > 1
+            ? Array.from({length: qty}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join('')
+            : '';
           return `<label data-idx="${idx}" class="ret-item-row" onclick="retToggleItem(${idx},this)">
             <div class="ret-item-chk">
               <svg width="10" height="8" viewBox="0 0 10 8" fill="none" style="display:none;"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1330,6 +1334,10 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
               <div style="font-size:.8rem;font-weight:500;">${name}</div>
               ${meta ? `<div class="ret-item-meta" style="font-size:.68rem;margin-top:1px;">${meta}</div>` : ''}
             </div>
+            ${qty > 1 ? `<div id="ret-qty-wrap-${idx}" style="display:none;flex-shrink:0;align-items:center;gap:.4rem;" onclick="event.stopPropagation()">
+              <span style="font-size:.58rem;color:rgba(244,241,235,.3);font-family:var(--fm);letter-spacing:.1em;text-transform:uppercase;">Qty</span>
+              <select id="ret-qty-sel-${idx}" onchange="retUpdateQty(${idx},+this.value)" onclick="event.stopPropagation()" style="background:rgba(244,241,235,.06);border:1px solid rgba(244,241,235,.15);color:#f4f1eb;font-family:var(--fb);font-size:.75rem;padding:.2rem .4rem;border-radius:3px;cursor:pointer;outline:none;">${qtyOptions}</select>
+            </div>` : ''}
           </label>`;
         }).join('')}
       </div>`;
@@ -1345,17 +1353,28 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
     if (!item) return;
     const chk = labelEl.querySelector('.ret-item-chk');
     const svg = chk?.querySelector('svg');
-    if (_retSelectedItems.includes(item)) {
-      _retSelectedItems = _retSelectedItems.filter(i => i !== item);
+    const qtyWrap = document.getElementById(`ret-qty-wrap-${idx}`);
+    if (_retSelectedItems.has(idx)) {
+      _retSelectedItems.delete(idx);
       chk?.classList.remove('checked');
       labelEl.classList.remove('selected');
       if (svg) svg.style.display = 'none';
+      if (qtyWrap) qtyWrap.style.display = 'none';
     } else {
-      _retSelectedItems.push(item);
+      const sel = document.getElementById(`ret-qty-sel-${idx}`);
+      const returnQty = sel ? +sel.value : (item.quantity || 1);
+      _retSelectedItems.set(idx, {...item, returnQty});
       chk?.classList.add('checked');
       labelEl.classList.add('selected');
       if (svg) svg.style.display = 'block';
+      if (qtyWrap) qtyWrap.style.display = 'flex';
     }
+  };
+
+  window.retUpdateQty = function(idx, val) {
+    if (!_retSelectedItems.has(idx)) return;
+    const entry = _retSelectedItems.get(idx);
+    _retSelectedItems.set(idx, {...entry, returnQty: val});
   };
 
   const orderEl = document.getElementById('ret-order');
@@ -1370,8 +1389,8 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
     if (btn) btn.disabled = true;
     const statusEl = document.getElementById('ret-status');
     const picker = document.getElementById('ret-item-picker');
-    const allItems = picker?._items || [];
-    const returnItems = _retSelectedItems.length > 0 ? _retSelectedItems : allItems;
+    const allItems = (picker?._items || []).map(it => ({...it, returnQty: it.quantity || 1}));
+    const returnItems = _retSelectedItems.size > 0 ? Array.from(_retSelectedItems.values()) : allItems;
     if (statusEl) statusEl.textContent = 'Submitting…';
     try {
       const selOrderEl = document.getElementById('ret-order');
