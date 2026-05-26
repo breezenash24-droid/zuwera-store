@@ -635,6 +635,25 @@
             gap: 8px;
         }
 
+        .prod-filter-bar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+        .prod-filter-btn { padding:5px 13px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--text-secondary); font-size:.77rem; font-weight:600; cursor:pointer; transition:all .15s; letter-spacing:.02em; }
+        .prod-filter-btn.active { color:#fff; border-color:transparent; }
+        .prod-filter-btn[data-f="all"].active { background:#6b7280; }
+        .prod-filter-btn[data-f="draft"].active { background:#6b7280; }
+        .prod-filter-btn[data-f="live"].active { background:var(--success); }
+        .prod-filter-btn[data-f="coming-soon"].active { background:var(--warning); }
+        .prod-filter-btn[data-f="sold-out"].active { background:var(--error); }
+        .prod-sort-arrow { font-size:.65rem; margin-left:3px; opacity:.4; }
+        .prod-sort-arrow.active { opacity:1; }
+        th[data-sort] { cursor:pointer; user-select:none; }
+        th[data-sort]:hover { color:var(--accent); }
+        .status-select { appearance:none; -webkit-appearance:none; border:none; padding:5px 10px; border-radius:4px; font-size:.78rem; font-weight:600; text-transform:uppercase; letter-spacing:.5px; cursor:pointer; outline:none; }
+        .status-select.status-draft { background:#6b7280; color:#fff; }
+        .status-select.status-coming-soon { background:var(--warning); color:#fff; }
+        .status-select.status-live { background:var(--success); color:#fff; }
+        .status-select.status-sold-out { background:var(--error); color:#fff; }
+        .status-select option { background:var(--bg-secondary); color:var(--text-primary); text-transform:none; font-size:.85rem; }
+
         /* Forms */
         .form-group {
             margin-bottom: 20px;
@@ -2687,22 +2706,23 @@
                     <div class="search-filter">
                         <input type="text" id="productSearch" placeholder="Search by SKU, title, or colorway...">
                     </div>
-                    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;font-size:.8rem;">
-                      <div style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:#6366f1;display:inline-block;"></span><span style="color:var(--text-secondary);">Draft — hidden from store, work in progress</span></div>
-                      <div style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:#10b981;display:inline-block;"></span><span style="color:var(--text-secondary);">Live — visible and purchasable by customers</span></div>
-                      <div style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;display:inline-block;"></span><span style="color:var(--text-secondary);">Coming Soon — shows waitlist button</span></div>
-                      <div style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block;"></span><span style="color:var(--text-secondary);">Sold Out — no stock remaining</span></div>
+                    <div class="prod-filter-bar">
+                        <button class="prod-filter-btn active" data-f="all">All</button>
+                        <button class="prod-filter-btn" data-f="draft">Draft</button>
+                        <button class="prod-filter-btn" data-f="live">Live</button>
+                        <button class="prod-filter-btn" data-f="coming-soon">Coming Soon</button>
+                        <button class="prod-filter-btn" data-f="sold-out">Sold Out</button>
                     </div>
                     <table class="products-table">
                         <thead>
                             <tr>
                                 <th>Image</th>
-                                <th>SKU</th>
-                                <th>Title</th>
-                                <th>Colorway</th>
-                                <th>Price</th>
-                                <th>Status</th>
-                                <th>Stock</th>
+                                <th data-sort="sku">SKU <span class="prod-sort-arrow" id="sort-arr-sku">↕</span></th>
+                                <th data-sort="title">Title <span class="prod-sort-arrow" id="sort-arr-title">↕</span></th>
+                                <th data-sort="colorway">Colorway <span class="prod-sort-arrow" id="sort-arr-colorway">↕</span></th>
+                                <th data-sort="current_price">Price <span class="prod-sort-arrow" id="sort-arr-current_price">↕</span></th>
+                                <th data-sort="status">Status <span class="prod-sort-arrow" id="sort-arr-status">↕</span></th>
+                                <th data-sort="_stock">Stock <span class="prod-sort-arrow" id="sort-arr-_stock">↕</span></th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -5686,12 +5706,11 @@
             <form id="productForm">
                 <div class="tabs">
                     <button type="button" class="tab-button active" data-tab="core">Core Identity</button>
+                    <button type="button" class="tab-button" data-tab="tab-status">Status</button>
                     <button type="button" class="tab-button" data-tab="pricing">Pricing</button>
                     <button type="button" class="tab-button" data-tab="visuals">Visuals & Model</button>
-                    <button type="button" class="tab-button" data-tab="colors">Color Variants</button>
-                    <button type="button" class="tab-button" data-tab="inventory">Sizes & Inventory</button>
+                    <button type="button" class="tab-button" data-tab="colors">Variants & Stock</button>
                     <button type="button" class="tab-button" data-tab="technical">Technical</button>
-                    <button type="button" class="tab-button" data-tab="tab-status">Status</button>
                 </div>
 
                 <!-- Tab: Core Identity -->
@@ -5823,14 +5842,14 @@
                     </div>
                 </div>
 
-                <!-- Tab: Color Variants -->
+                <!-- Tab: Variants & Stock (colors + inventory merged) -->
                 <div id="colors" class="tab-content">
-                    <button type="button" class="btn btn-secondary btn-sm" id="addColorBtn" style="margin-bottom: 20px;">+ Add Color</button>
-                    <div id="colorVariantsContainer"></div>
-                </div>
-
-                <!-- Tab: Inventory -->
-                <div id="inventory" class="tab-content">
+                    <div style="margin-bottom:1.25rem;">
+                        <div style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.6rem;">Color Variants</div>
+                        <button type="button" class="btn btn-secondary btn-sm" id="addColorBtn" style="margin-bottom: 12px;">+ Add Color</button>
+                        <div id="colorVariantsContainer"></div>
+                    </div>
+                    <hr style="border:none;border-top:1px solid var(--border);margin:1.25rem 0;">
                     <div class="form-group">
                         <label class="form-label">Sizing Setup</label>
                         <div class="size-guide-panel">
@@ -5934,7 +5953,7 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Size & Stock</label>
-                        <p class="form-hint" style="margin-bottom: 12px;">Add sizes below, then set stock per color in the table. Add colors first in the <strong>Color Variants</strong> tab — the stock columns update automatically when you switch here.</p>
+                        <p class="form-hint" style="margin-bottom: 12px;">Add sizes below, then set stock per color in the matrix. Colors added above update the stock columns automatically.</p>
                         <div id="sizeGridContainer" class="size-grid" style="margin-bottom: 4px;"></div>
                         <div id="stockMatrixWrapper"></div>
                     </div>
@@ -8182,11 +8201,49 @@
 
         // Products
         let _allProducts = [];
+        let _prodStatusFilter = 'all';
+        let _prodSort = { key: null, dir: 'asc' };
+        let _prodSearch = '';
+
+        function getFilteredSortedProducts() {
+            let list = _allProducts;
+            if (_prodStatusFilter !== 'all') {
+                list = list.filter(p => (p.status || 'Draft').toLowerCase().replace(/\s+/g, '-') === _prodStatusFilter);
+            }
+            if (_prodSearch) {
+                const q = _prodSearch;
+                list = list.filter(p =>
+                    (p.sku || '').toLowerCase().includes(q) ||
+                    (p.title || '').toLowerCase().includes(q) ||
+                    (p.colorway || '').toLowerCase().includes(q)
+                );
+            }
+            if (_prodSort.key) {
+                list = [...list].sort((a, b) => {
+                    let av = _prodSort.key === '_stock'
+                        ? (a.product_sizes || []).reduce((s, i) => s + (i.stock_quantity || 0), 0)
+                        : (a[_prodSort.key] ?? '');
+                    let bv = _prodSort.key === '_stock'
+                        ? (b.product_sizes || []).reduce((s, i) => s + (i.stock_quantity || 0), 0)
+                        : (b[_prodSort.key] ?? '');
+                    if (typeof av === 'string') return _prodSort.dir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+                    return _prodSort.dir === 'asc' ? av - bv : bv - av;
+                });
+            }
+            return list;
+        }
+
+        function renderProducts() {
+            displayProductsTable(getFilteredSortedProducts());
+        }
+
         async function loadProducts() {
             try {
-                const { data: products } = await sb.from('products').select('*, product_images(*)').order('created_at', { ascending: false });
+                const { data: products } = await sb.from('products')
+                    .select('*, product_images(*), product_sizes(stock_quantity)')
+                    .order('created_at', { ascending: false });
                 _allProducts = products || [];
-                displayProductsTable(_allProducts);
+                renderProducts();
             } catch (error) {
                 console.error('Error loading products:', error);
             }
@@ -8196,6 +8253,21 @@
             const tbody = document.getElementById('productsTableBody');
             tbody.innerHTML = '';
 
+            // Update sort arrow indicators
+            document.querySelectorAll('.prod-sort-arrow').forEach(el => {
+                el.classList.remove('active');
+                el.textContent = '↕';
+            });
+            if (_prodSort.key) {
+                const arr = document.getElementById('sort-arr-' + _prodSort.key);
+                if (arr) { arr.classList.add('active'); arr.textContent = _prodSort.dir === 'asc' ? '↑' : '↓'; }
+            }
+
+            if (!products.length) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-secondary);">No products match.</td></tr>';
+                return;
+            }
+
             products.forEach(product => {
                 let firstImg = product.image_url;
                 if (product.product_images && product.product_images.length > 0) {
@@ -8204,50 +8276,94 @@
                 }
                 const productId = escapeAttr(product.id || '');
                 const safeImg = safeHttpUrl(firstImg);
-                const safeStatus = escapeHtml(product.status || 'Draft');
-                const statusClass = escapeAttr((product.status || 'draft').toLowerCase().replace(/\s+/g, '-'));
+                const status = product.status || 'Draft';
+                const statusClass = (status).toLowerCase().replace(/\s+/g, '-');
+                const totalStock = (product.product_sizes || []).reduce((sum, i) => sum + (i.stock_quantity || 0), 0);
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td><div class="product-image" style="${safeImg ? `background-image:url('${escapeAttr(safeImg)}');background-size:cover;background-position:center;` : 'background:var(--bg-tertiary);'}"></div></td>
                     <td><strong>${escapeHtml(product.sku || 'N/A')}</strong></td>
                     <td>${escapeHtml(product.title || 'N/A')}</td>
-                    <td>${escapeHtml(product.colorway || 'N/A')}</td>
+                    <td>${escapeHtml(product.colorway || '—')}</td>
                     <td>$${(Number(product.current_price) || 0).toFixed(2)}</td>
-                    <td><span class="status-badge status-${statusClass}">${safeStatus}</span></td>
-                    <td id="stock-${productId}">-</td>
+                    <td>
+                        <select class="status-select status-${statusClass}" data-pid="${productId}" data-prev="${statusClass}" onchange="updateProductStatus('${productId}', this.value, this)">
+                            <option value="Draft" ${status === 'Draft' ? 'selected' : ''}>Draft</option>
+                            <option value="Live" ${status === 'Live' ? 'selected' : ''}>Live</option>
+                            <option value="Coming Soon" ${status === 'Coming Soon' ? 'selected' : ''}>Coming Soon</option>
+                            <option value="Sold Out" ${status === 'Sold Out' ? 'selected' : ''}>Sold Out</option>
+                        </select>
+                    </td>
+                    <td>${totalStock}</td>
                     <td>
                         <div class="action-buttons">
                             <button class="btn btn-secondary btn-sm" onclick="editProduct('${productId}')">Edit</button>
+                            <button class="btn btn-secondary btn-sm" onclick="duplicateProduct('${productId}')">Dupe</button>
                             <button class="btn btn-danger btn-sm" onclick="openDeleteModal('${productId}')">Delete</button>
                         </div>
                     </td>
                 `;
                 tbody.appendChild(row);
-
-                // Load stock
-                sb
-                    .from('product_sizes')
-                    .select('stock_quantity')
-                    .eq('product_id', product.id)
-                    .then(({ data }) => {
-                        const total = data?.reduce((sum, i) => sum + (i.stock_quantity || 0), 0) || 0;
-                        const stockEl = document.getElementById(`stock-${product.id}`);
-                        if (stockEl) stockEl.textContent = total;
-                    });
             });
         }
 
-        // Products Search — filter the in-memory list instead of re-fetching
+        window.updateProductStatus = async function(productId, newStatus, selectEl) {
+            const prev = selectEl.dataset.prev || 'draft';
+            const newClass = newStatus.toLowerCase().replace(/\s+/g, '-');
+            selectEl.className = 'status-select status-' + newClass;
+            selectEl.dataset.prev = newClass;
+            try {
+                const { error } = await sb.from('products').update({ status: newStatus }).eq('id', productId);
+                if (error) throw error;
+                const p = _allProducts.find(p => p.id === productId);
+                if (p) p.status = newStatus;
+                showToast('Status → ' + newStatus, 'success');
+            } catch (e) {
+                selectEl.value = prev.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                selectEl.className = 'status-select status-' + prev;
+                showToast('Failed: ' + e.message, 'error');
+            }
+        };
+
+        window.duplicateProduct = async function(id) {
+            const { data: product } = await sb.from('products').select('*').eq('id', id).single();
+            if (!product) return;
+            currentProduct = product;
+            populateTechCheckboxes();
+            await loadProductIntoForm(product);
+            currentProduct = null;
+            document.getElementById('sku').value = product.sku + '-COPY';
+            document.getElementById('productStatus').value = 'Draft';
+            document.getElementById('formModalTitle').textContent = 'Duplicate Product (New)';
+            openProductForm();
+        };
+
+        // Products search + filter
         document.getElementById('productSearch').addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
-            const filtered = query
-                ? _allProducts.filter(p =>
-                    (p.sku || '').toLowerCase().includes(query) ||
-                    (p.title || '').toLowerCase().includes(query) ||
-                    (p.colorway || '').toLowerCase().includes(query)
-                  )
-                : _allProducts;
-            displayProductsTable(filtered);
+            _prodSearch = e.target.value.toLowerCase();
+            renderProducts();
+        });
+
+        document.querySelectorAll('.prod-filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.prod-filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                _prodStatusFilter = btn.dataset.f;
+                renderProducts();
+            });
+        });
+
+        document.querySelectorAll('th[data-sort]').forEach(th => {
+            th.addEventListener('click', () => {
+                const key = th.dataset.sort;
+                if (_prodSort.key === key) {
+                    _prodSort.dir = _prodSort.dir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    _prodSort.key = key;
+                    _prodSort.dir = 'asc';
+                }
+                renderProducts();
+            });
         });
 
         function populateTechCheckboxes() {
@@ -8307,7 +8423,7 @@
                 document.querySelectorAll('#productFormModal .tab-content').forEach(c => c.classList.remove('active'));
                 document.getElementById(tab).classList.add('active');
 
-                if (tab === 'inventory') rebuildStockMatrix();
+                if (tab === 'colors') rebuildStockMatrix();
             });
         });
 
