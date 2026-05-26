@@ -604,7 +604,7 @@ window.prefillCheckoutForUser = async function(user, accessToken) {
   if (emailEl && !emailEl.value.trim() && email) emailEl.value = email;
   if (!accessToken) return;
   try {
-    var r = await fetch('/api/customer-hub', { headers: { Authorization: accessToken, Accept: 'application/json' } });
+    var r = await fetch('/api/customer-hub', { headers: { Authorization: 'Bearer ' + accessToken, Accept: 'application/json' } });
     var d = await r.json();
     if (!d.success) return;
     var addrs = Array.isArray(d.profile && d.profile.savedAddresses) ? d.profile.savedAddresses : [];
