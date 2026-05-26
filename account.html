@@ -1492,7 +1492,7 @@ async function saveProfile() {
   if (btn?.disabled) return;
   if (btn) btn.disabled = true;
   const statusEl = document.getElementById('prof-status');
-  if (statusEl) statusEl.textContent = 'Saving…';
+  if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.style.color = ''; }
 
   /* ── Save ── */
   try {
@@ -1525,11 +1525,11 @@ async function saveProfile() {
     });
   } catch(err) {
     if (btn) btn.disabled = false;
-    if (statusEl) statusEl.textContent = err.message || 'Could not save profile.';
+    if (statusEl) { statusEl.textContent = err.message || 'Could not save profile.'; statusEl.style.color = '#ef4444'; }
     return;
   }
 
-  if (statusEl) statusEl.textContent = 'Saved!';
+  if (statusEl) { statusEl.textContent = 'Saved!'; statusEl.style.color = '#22c55e'; }
   if (btn) btn.disabled = false;
 
   /* ── Re-render (non-fatal — save already succeeded) ── */
@@ -1540,12 +1540,16 @@ async function saveProfile() {
     _hubPayload = await fetchHub();
     if (_hubPayload?.profile) localStorage.setItem('zuwera-profile', JSON.stringify(_hubPayload.profile));
     renderProfile();
+    // Re-render replaced the status element — restore confirmation and scroll to the addresses
+    const newStatus = document.getElementById('prof-status');
+    if (newStatus) { newStatus.textContent = 'Saved!'; newStatus.style.color = '#22c55e'; }
+    document.getElementById('prof-addresses-list')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   } catch(_) {}
 
   setTimeout(() => {
     const s = document.getElementById('prof-status');
-    if (s && s.textContent === 'Saved!') s.textContent = '';
-  }, 2000);
+    if (s && s.textContent === 'Saved!') { s.textContent = ''; s.style.color = ''; }
+  }, 2500);
 }
 
 async function deleteAddress(idx) {
