@@ -593,8 +593,11 @@ window._closeModal = function(id) {
   }
 };
 
-window.prefillCheckoutForUser = async function(user, accessToken) {
+window.prefillCheckoutForUser = async function(user, accessToken, refreshToken) {
   if (!user) return;
+  var SUPA_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+  var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+
   var email = (user.email || '').trim();
   var meta  = user.user_metadata || {};
   var name  = (meta.full_name || meta.name || '').trim();
@@ -616,10 +619,10 @@ window.prefillCheckoutForUser = async function(user, accessToken) {
     var stateEl = document.getElementById('pay-state');
     if (zipEl)   zipEl.dispatchEvent(new Event('input', { bubbles: true }));
     if (stateEl) stateEl.dispatchEvent(new Event('input', { bubbles: true }));
-    return true;
+    return !!(addr.line1 || addr.city);
   };
 
-  /* Try cached profile first (avoids expired-token issues on checkout) */
+  /* 1. Try locally cached profile (written by account.html — no token needed) */
   try {
     var cached = localStorage.getItem('zuwera-profile');
     if (cached) {
@@ -630,14 +633,41 @@ window.prefillCheckoutForUser = async function(user, accessToken) {
     }
   } catch(_) {}
 
-  /* Fall back to live API if no cache */
+  /* 2. Access token may be expired — refresh it using refresh_token */
+  if (refreshToken) {
+    try {
+      var rr = await fetch(SUPA_URL + '/auth/v1/token?grant_type=refresh_token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPA_KEY },
+        body: JSON.stringify({ refresh_token: refreshToken })
+      });
+      if (rr.ok) {
+        var newSess = await rr.json();
+        if (newSess.access_token) {
+          accessToken = newSess.access_token;
+          /* Update localStorage so next page also has fresh token */
+          try {
+            var stored2 = JSON.parse(localStorage.getItem('zuwera-auth') || '{}');
+            stored2.access_token  = newSess.access_token;
+            stored2.refresh_token = newSess.refresh_token || refreshToken;
+            if (newSess.user) stored2.user = newSess.user;
+            localStorage.setItem('zuwera-auth', JSON.stringify(stored2));
+          } catch(_) {}
+        }
+      }
+    } catch(_) {}
+  }
+
+  /* 3. Call live API with (possibly refreshed) token */
   if (!accessToken) return;
   try {
     var r = await fetch('/api/customer-hub', { headers: { Authorization: 'Bearer ' + accessToken, Accept: 'application/json' } });
     var d = await r.json();
     if (!d.success) return;
     var addrs2 = Array.isArray(d.profile && d.profile.savedAddresses) ? d.profile.savedAddresses : [];
-    fillAddr(addrs2.find(function(a){ return a.isPrimary; }) || addrs2[0] || null);
+    var filled = fillAddr(addrs2.find(function(a){ return a.isPrimary; }) || addrs2[0] || null);
+    /* Cache for next time */
+    if (filled && d.profile) { try { localStorage.setItem('zuwera-profile', JSON.stringify(d.profile)); } catch(_) {} }
   } catch(_) {}
 };
 
@@ -860,10 +890,11 @@ document.addEventListener('DOMContentLoaded', function() {
       var raw = localStorage.getItem('zuwera-auth');
       if (!raw) return;
       var stored = JSON.parse(raw);
-      var user  = stored.user || null;
-      var token = stored.access_token || '';
+      var user         = stored.user || null;
+      var token        = stored.access_token || '';
+      var refreshToken = stored.refresh_token || '';
       if (user && typeof window.prefillCheckoutForUser === 'function') {
-        window.prefillCheckoutForUser(user, token);
+        window.prefillCheckoutForUser(user, token, refreshToken);
       }
     } catch(_) {}
   })();
