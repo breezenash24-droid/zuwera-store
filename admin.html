@@ -2181,6 +2181,7 @@
                                     <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','item_received')" style="background:rgba(52,211,153,.15);border-color:rgba(52,211,153,.4);color:#34d399;">Item Received</button>
                                     <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','exchange_in_progress')">Exchange Started</button>
                                     <button class="btn btn-secondary btn-sm" onclick="quickMarkRefunded('${id}')" ${retCanRefund(r) ? '' : 'disabled title="Item must be received before marking refunded"'}>Refunded</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="openRestockModal('${id}')" ${r.status === 'item_received' || r.status === 'refunded' || r.status === 'completed' ? '' : 'disabled title="Restock available after item is received"'} style="background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.35);color:#34d399;">+ Restock</button>
                                     <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','completed')">Complete</button>
                                     <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','denied')">Deny</button>
                                     <button class="btn btn-secondary btn-sm" onclick="quickReturnStatus('${id}','closed')">Close</button>
@@ -2331,14 +2332,165 @@
                         try { await persistReturnUpdate(requestId, { status }); notifyReturns('Return marked ' + status.replace(/_/g, ' ') + '.', 'success'); }
                         catch (e) { notifyReturns('Could not update return: ' + e.message, 'error'); }
                     }
-                    async function quickMarkRefunded(requestId) {
+                    function quickMarkRefunded(requestId) {
                         const req = _returnsData.find(r => r.id === requestId);
                         if (!req || !retCanRefund(req)) {
                             notifyReturns('Cannot mark refunded — the item has not been received yet. Mark "Item Received" first.', 'error');
                             return;
                         }
-                        await quickReturnStatus(requestId, 'refunded');
+                        const totalStr = retMoney(req.orderTotal || 0);
+                        const modal = document.createElement('div');
+                        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+                        modal.innerHTML = `
+                          <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:12px;padding:1.5rem;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5);">
+                            <h3 style="margin:0 0 .25rem;font-size:1rem;">Issue Stripe Refund</h3>
+                            <div style="color:var(--text-secondary);font-size:.8rem;margin-bottom:1rem;">${escapeHtml(req.customerName || req.customerEmail || '')} · ${totalStr}</div>
+                            <div style="display:grid;gap:.75rem;">
+                              <div>
+                                <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Partial Amount (leave blank for full refund)</label>
+                                <input id="retrefmod-amount" type="number" min="0" step="0.01" placeholder="${req.orderTotal || ''}" style="width:100%;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;padding:.5rem .75rem;color:var(--text-primary);font-size:.85rem;box-sizing:border-box;">
+                              </div>
+                              <div>
+                                <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Reason</label>
+                                <select id="retrefmod-reason" style="width:100%;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;padding:.5rem .75rem;color:var(--text-primary);font-size:.85rem;box-sizing:border-box;">
+                                  <option value="requested_by_customer">Requested by customer</option>
+                                  <option value="duplicate">Duplicate charge</option>
+                                  <option value="fraudulent">Fraudulent</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Customer Note (optional)</label>
+                                <textarea id="retrefmod-note" rows="2" placeholder="Message to include in refund notification…" style="width:100%;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;padding:.5rem .75rem;color:var(--text-primary);font-size:.85rem;box-sizing:border-box;resize:vertical;"></textarea>
+                              </div>
+                              <div>
+                                <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Refund Auth Code</label>
+                                <input id="retrefmod-key" type="password" placeholder="Enter REFUND_SECRET" style="width:100%;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;padding:.5rem .75rem;color:var(--text-primary);font-size:.85rem;box-sizing:border-box;">
+                              </div>
+                              <div id="retrefmod-err" style="display:none;color:#ef4444;font-size:.8rem;"></div>
+                              <div style="display:flex;gap:.5rem;justify-content:flex-end;">
+                                <button id="retrefmod-cancel" style="background:transparent;border:1px solid var(--border);color:var(--text-primary);padding:.5rem 1rem;border-radius:6px;font-size:.85rem;cursor:pointer;">Cancel</button>
+                                <button id="retrefmod-submit" style="background:#ef4444;border:none;color:#fff;padding:.5rem 1.25rem;border-radius:6px;font-size:.85rem;font-weight:600;cursor:pointer;">Refund</button>
+                              </div>
+                            </div>
+                          </div>`;
+                        document.body.appendChild(modal);
+                        modal.querySelector('#retrefmod-cancel').onclick = () => modal.remove();
+                        modal.onclick = e => { if (e.target === modal) modal.remove(); };
+                        modal.querySelector('#retrefmod-submit').onclick = async function() {
+                            const btn = this;
+                            const errEl = modal.querySelector('#retrefmod-err');
+                            const amtVal = modal.querySelector('#retrefmod-amount').value.trim();
+                            const reason = modal.querySelector('#retrefmod-reason').value;
+                            const note = modal.querySelector('#retrefmod-note').value.trim();
+                            const refundKey = modal.querySelector('#retrefmod-key').value.trim();
+                            if (!refundKey) { errEl.textContent = 'Auth code is required.'; errEl.style.display = ''; return; }
+                            btn.disabled = true; btn.textContent = 'Processing…';
+                            errEl.style.display = 'none';
+                            try {
+                                const { data: { session } } = await sb.auth.getSession();
+                                const token = session?.access_token;
+                                if (!token) throw new Error('Missing admin session.');
+                                const body = { action: 'refund', orderId: req.orderId, refundKey, accessToken: token, reason };
+                                if (amtVal) body.amountCents = Math.round(parseFloat(amtVal) * 100);
+                                if (note) body.customerNote = note;
+                                const resp = await fetch('/api/admin-refund', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                                const data = await resp.json().catch(() => ({}));
+                                if (!resp.ok || !data.success) throw new Error(data.error || 'Refund failed.');
+                                await persistReturnUpdate(requestId, { status: 'refunded' });
+                                await logAdminAudit('return.stripe_refund', 'return_requests', requestId, { reason, amountCents: body.amountCents || null, stripeRefundId: data.stripeRefundId });
+                                modal.remove();
+                                notifyReturns('Refund issued successfully.', 'success');
+                                loadReturnsPage();
+                            } catch (e) {
+                                errEl.textContent = e.message;
+                                errEl.style.display = '';
+                                btn.disabled = false; btn.textContent = 'Refund';
+                            }
+                        };
                     }
+                    window.openRestockModal = function(requestId) {
+                        const req = _returnsData.find(r => r.id === requestId);
+                        if (!req) return;
+                        const items = (Array.isArray(req.returnItems) && req.returnItems.length ? req.returnItems : (req.orderItems || []));
+                        const modal = document.createElement('div');
+                        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+                        const itemRows = items.map((item, i) => {
+                            const name = escapeHtml(item.name || item.title || item.product_title || 'Item');
+                            const sku = escapeHtml(item.sku || '');
+                            const size = escapeHtml(item.size || '');
+                            const color = escapeHtml(item.color || item.colorName || '');
+                            const qty = item.quantity || item.qty || 1;
+                            const meta = [sku, size, color].filter(Boolean).join(' / ');
+                            return `<div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--border);">
+                              <input type="checkbox" id="rst-chk-${i}" checked style="width:16px;height:16px;flex-shrink:0;accent-color:#34d399;">
+                              <div style="flex:1;min-width:0;">
+                                <div style="font-weight:600;font-size:.85rem;">${name}</div>
+                                <div style="color:var(--text-secondary);font-size:.75rem;">${meta}</div>
+                              </div>
+                              <input id="rst-qty-${i}" type="number" min="1" max="${qty}" value="${qty}" style="width:56px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;padding:.35rem .5rem;color:var(--text-primary);font-size:.85rem;text-align:center;">
+                              <input type="hidden" id="rst-sku-${i}" value="${escapeAttr(item.sku || '')}">
+                              <input type="hidden" id="rst-size-${i}" value="${escapeAttr(item.size || '')}">
+                              <input type="hidden" id="rst-color-${i}" value="${escapeAttr(item.color || item.colorName || '')}">
+                            </div>`;
+                        }).join('');
+                        modal.innerHTML = `
+                          <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:12px;padding:1.5rem;max-width:460px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5);">
+                            <h3 style="margin:0 0 .2rem;font-size:1rem;">Restock Returned Items</h3>
+                            <div style="color:var(--text-secondary);font-size:.78rem;margin-bottom:1rem;">Select items and quantities to add back to inventory.</div>
+                            <div style="max-height:280px;overflow-y:auto;">${itemRows || '<p style="color:var(--text-secondary);font-size:.83rem;">No item data available.</p>'}</div>
+                            <div id="rst-err" style="display:none;color:#ef4444;font-size:.8rem;margin-top:.75rem;"></div>
+                            <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;">
+                              <button id="rst-cancel" style="background:transparent;border:1px solid var(--border);color:var(--text-primary);padding:.5rem 1rem;border-radius:6px;font-size:.85rem;cursor:pointer;">Cancel</button>
+                              <button id="rst-submit" style="background:#34d399;border:none;color:#09090b;padding:.5rem 1.25rem;border-radius:6px;font-size:.85rem;font-weight:700;cursor:pointer;">+ Restock</button>
+                            </div>
+                          </div>`;
+                        document.body.appendChild(modal);
+                        modal.querySelector('#rst-cancel').onclick = () => modal.remove();
+                        modal.onclick = e => { if (e.target === modal) modal.remove(); };
+                        modal.querySelector('#rst-submit').onclick = async function() {
+                            const btn = this;
+                            const errEl = modal.querySelector('#rst-err');
+                            btn.disabled = true; btn.textContent = 'Restocking…';
+                            errEl.style.display = 'none';
+                            try {
+                                const ops = [];
+                                for (let i = 0; i < items.length; i++) {
+                                    const chk = modal.querySelector('#rst-chk-' + i);
+                                    if (!chk?.checked) continue;
+                                    const qty = parseInt(modal.querySelector('#rst-qty-' + i)?.value || '1', 10) || 1;
+                                    const sku = modal.querySelector('#rst-sku-' + i)?.value?.trim() || '';
+                                    const size = modal.querySelector('#rst-size-' + i)?.value?.trim() || '';
+                                    const color = modal.querySelector('#rst-color-' + i)?.value?.trim() || '';
+                                    if (!sku) continue;
+                                    ops.push({ sku, size, color, qty });
+                                }
+                                if (!ops.length) { errEl.textContent = 'No items selected.'; errEl.style.display = ''; btn.disabled = false; btn.textContent = '+ Restock'; return; }
+                                for (const op of ops) {
+                                    let q = sb.from('product_sizes').select('id,stock_quantity').limit(1);
+                                    const { data: prods } = await sb.from('products').select('id').eq('sku', op.sku).limit(1);
+                                    const productId = prods?.[0]?.id;
+                                    if (!productId) { errEl.textContent = 'Product not found for SKU: ' + op.sku; errEl.style.display = ''; btn.disabled = false; btn.textContent = '+ Restock'; return; }
+                                    q = sb.from('product_sizes').select('id,stock_quantity').eq('product_id', productId);
+                                    if (op.size) q = q.eq('size', op.size);
+                                    if (op.color) q = q.eq('color_name', op.color);
+                                    const { data: sizeRows, error: fetchErr } = await q.limit(1);
+                                    if (fetchErr) throw fetchErr;
+                                    if (!sizeRows?.length) { errEl.textContent = 'Size/color row not found for ' + op.sku; errEl.style.display = ''; btn.disabled = false; btn.textContent = '+ Restock'; return; }
+                                    const row = sizeRows[0];
+                                    const newStock = (row.stock_quantity || 0) + op.qty;
+                                    const { error: updErr } = await sb.from('product_sizes').update({ stock_quantity: newStock }).eq('id', row.id);
+                                    if (updErr) throw updErr;
+                                }
+                                await logAdminAudit('return.restock', 'return_requests', requestId, { ops });
+                                modal.remove();
+                                notifyReturns('Items restocked successfully.', 'success');
+                            } catch (e) {
+                                errEl.textContent = e.message;
+                                errEl.style.display = '';
+                                btn.disabled = false; btn.textContent = '+ Restock';
+                            }
+                        };
+                    };
                     async function saveReturnDetails(requestId, buttonEl) {
                         const oldText = buttonEl?.textContent || '';
                         if (buttonEl) { buttonEl.disabled = true; buttonEl.textContent = 'Saving...'; }
@@ -2986,13 +3138,37 @@
                       }
                     }
 
+                    async function anaInlineStockSave(sizeId, td, newVal) {
+                      const num = parseInt(newVal, 10);
+                      if (isNaN(num) || num < 0) { td.textContent = td.dataset.origStock; return; }
+                      td.textContent = '…';
+                      const { error } = await sb.from('product_sizes').update({ stock_quantity: num }).eq('id', sizeId);
+                      if (error) { td.textContent = td.dataset.origStock; notifyAdmin && notifyAdmin('Stock update failed: ' + error.message, 'error'); return; }
+                      td.dataset.origStock = String(num);
+                      td.textContent = num;
+                      const p = _anaProds.find(p => (p.product_sizes||[]).some(s => s.id === sizeId));
+                      if (p) { const s = p.product_sizes.find(s => s.id === sizeId); if (s) s.stock_quantity = num; }
+                    }
+                    function anaStockCellClick(td, sizeId, currentStock) {
+                      if (td.querySelector('input')) return;
+                      td.dataset.origStock = String(currentStock);
+                      const inp = document.createElement('input');
+                      inp.type = 'number'; inp.min = '0'; inp.value = currentStock;
+                      inp.style.cssText = 'width:60px;background:var(--bg-secondary);border:1px solid var(--accent);border-radius:4px;padding:2px 6px;color:var(--text-primary);font-size:.82rem;text-align:center;';
+                      td.textContent = '';
+                      td.appendChild(inp);
+                      inp.focus(); inp.select();
+                      const commit = () => anaInlineStockSave(sizeId, td, inp.value);
+                      inp.addEventListener('blur', commit);
+                      inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } if (e.key === 'Escape') { td.textContent = currentStock; } });
+                    }
                     function anaRenderInventory() {
                       const search=(sectionEl('ana-invSearch')?.value||'').toLowerCase();
                       let rows=[];
                       _anaProds.forEach(p => {
                         const sizes=p.product_sizes||[];
-                        if(!sizes.length){ rows.push({title:p.title,sku:p.sku,size:'N/A',stock:0,thresh:p.low_stock_threshold||10,status:p.status}); }
-                        else sizes.forEach(s=>rows.push({title:p.title,sku:p.sku,size:s.size,stock:s.stock_quantity||0,thresh:p.low_stock_threshold||10,status:p.status}));
+                        if(!sizes.length){ rows.push({title:p.title,sku:p.sku,size:'N/A',stock:0,thresh:p.low_stock_threshold||10,status:p.status,sizeId:null}); }
+                        else sizes.forEach(s=>rows.push({title:p.title,sku:p.sku,size:s.size,stock:s.stock_quantity||0,thresh:p.low_stock_threshold||10,status:p.status,sizeId:s.id}));
                       });
                       if(_anaInvFilter==='low') rows=rows.filter(r=>r.stock<=r.thresh);
                       if(search) rows=rows.filter(r=>String(r.sku||'').toLowerCase().includes(search)||String(r.title||'').toLowerCase().includes(search)||String(r.size||'').toLowerCase().includes(search));
@@ -3005,10 +3181,11 @@
                       if(!rows.length){c.innerHTML='<p style="color:var(--text-secondary);padding:1.5rem 0;">No records found.</p>';return;}
                       c.innerHTML=`<table><thead><tr>
                         <th data-ana-inv-key="title">Product</th><th data-ana-inv-key="sku">SKU</th>
-                        <th data-ana-inv-key="size">Size</th><th data-ana-inv-key="stock">Stock</th>
+                        <th data-ana-inv-key="size">Size</th><th data-ana-inv-key="stock">Stock ✎</th>
                         <th data-ana-inv-key="status">Status</th></tr></thead><tbody>
-                        ${rows.map(r=>`<tr class="${r.stock<=r.thresh?'ana-low-stock':''}">
-                          <td>${r.title}</td><td>${r.sku}</td><td>${r.size}</td><td>${r.stock}</td>
+                        ${rows.map((r,i)=>`<tr class="${r.stock<=r.thresh?'ana-low-stock':''}">
+                          <td>${r.title}</td><td>${r.sku}</td><td>${r.size}</td>
+                          <td data-inv-row="${i}" style="${r.sizeId?'cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;':''}" title="${r.sizeId?'Click to edit stock':''}">${r.stock}</td>
                           <td><span class="ana-status-badge badge-${(r.status||'draft').toLowerCase().replace(/\s+/g,'-')}">${r.status}</span></td>
                         </tr>`).join('')}
                       </tbody></table>`;
@@ -3018,6 +3195,12 @@
                           _anaInvSort.dir=_anaInvSort.key===k?(_anaInvSort.dir==='asc'?'desc':'asc'):'asc';
                           _anaInvSort.key=k; anaRenderInventory();
                         });
+                      });
+                      c.querySelectorAll('[data-inv-row]').forEach(td=>{
+                        const i=parseInt(td.dataset.invRow,10);
+                        const r=rows[i];
+                        if(!r?.sizeId) return;
+                        td.addEventListener('click',()=>anaStockCellClick(td,r.sizeId,r.stock));
                       });
                     }
 
@@ -4983,18 +5166,77 @@
                       renderReceipts();
                     }
 
-                    window._recMarkRefunded = async function(orderId) {
-                      if (!confirm('Mark this order as refunded?')) return;
-                      try {
-                        const { error } = await sb.from('orders').update({ status: 'refunded' }).eq('id', orderId);
-                        if (error) throw error;
-                        await logAdminAudit('order.mark_refunded', 'orders', orderId, { status: 'refunded' });
-                        // Reload data
-                        _recLoaded = false;
-                        window.receiptsLoadData();
-                      } catch (e) {
-                        recErr('Failed to mark refunded: ' + e.message);
-                      }
+                    window._recMarkRefunded = function(orderId) {
+                      const order = _allReceipts.find(o => o.id === orderId);
+                      if (!order) return;
+                      const totalStr = fmt$(order.total || 0);
+                      const modal = document.createElement('div');
+                      modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+                      modal.innerHTML = `
+                        <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:12px;padding:1.5rem;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5);">
+                          <h3 style="margin:0 0 .25rem;font-size:1rem;">Issue Stripe Refund</h3>
+                          <div style="color:var(--text-secondary);font-size:.8rem;margin-bottom:1rem;">${escapeHtml(order.customer_name || order.email || '')} · ${totalStr}</div>
+                          <div style="display:grid;gap:.75rem;">
+                            <div>
+                              <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Partial Amount (leave blank for full refund)</label>
+                              <input id="refmod-amount" type="number" min="0" step="0.01" placeholder="${order.total || ''}" style="width:100%;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;padding:.5rem .75rem;color:var(--text-primary);font-size:.85rem;box-sizing:border-box;">
+                            </div>
+                            <div>
+                              <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Reason</label>
+                              <select id="refmod-reason" style="width:100%;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;padding:.5rem .75rem;color:var(--text-primary);font-size:.85rem;box-sizing:border-box;">
+                                <option value="requested_by_customer">Requested by customer</option>
+                                <option value="duplicate">Duplicate charge</option>
+                                <option value="fraudulent">Fraudulent</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Customer Note (optional)</label>
+                              <textarea id="refmod-note" rows="2" placeholder="Message to include in refund notification…" style="width:100%;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;padding:.5rem .75rem;color:var(--text-primary);font-size:.85rem;box-sizing:border-box;resize:vertical;"></textarea>
+                            </div>
+                            <div>
+                              <label style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:.3rem;">Refund Auth Code</label>
+                              <input id="refmod-key" type="password" placeholder="Enter REFUND_SECRET" style="width:100%;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;padding:.5rem .75rem;color:var(--text-primary);font-size:.85rem;box-sizing:border-box;">
+                            </div>
+                            <div id="refmod-err" style="display:none;color:#ef4444;font-size:.8rem;"></div>
+                            <div style="display:flex;gap:.5rem;justify-content:flex-end;">
+                              <button id="refmod-cancel" style="background:transparent;border:1px solid var(--border);color:var(--text-primary);padding:.5rem 1rem;border-radius:6px;font-size:.85rem;cursor:pointer;">Cancel</button>
+                              <button id="refmod-submit" style="background:#ef4444;border:none;color:#fff;padding:.5rem 1.25rem;border-radius:6px;font-size:.85rem;font-weight:600;cursor:pointer;">Refund</button>
+                            </div>
+                          </div>
+                        </div>`;
+                      document.body.appendChild(modal);
+                      modal.querySelector('#refmod-cancel').onclick = () => modal.remove();
+                      modal.onclick = e => { if (e.target === modal) modal.remove(); };
+                      modal.querySelector('#refmod-submit').onclick = async function() {
+                        const btn = this;
+                        const errEl = modal.querySelector('#refmod-err');
+                        const amtVal = modal.querySelector('#refmod-amount').value.trim();
+                        const reason = modal.querySelector('#refmod-reason').value;
+                        const note = modal.querySelector('#refmod-note').value.trim();
+                        const refundKey = modal.querySelector('#refmod-key').value.trim();
+                        if (!refundKey) { errEl.textContent = 'Auth code is required.'; errEl.style.display = ''; return; }
+                        btn.disabled = true; btn.textContent = 'Processing…';
+                        errEl.style.display = 'none';
+                        try {
+                          const { data: { session } } = await sb.auth.getSession();
+                          const token = session?.access_token;
+                          if (!token) throw new Error('Missing admin session.');
+                          const body = { action: 'refund', orderId, refundKey, accessToken: token, reason };
+                          if (amtVal) body.amountCents = Math.round(parseFloat(amtVal) * 100);
+                          if (note) body.customerNote = note;
+                          const resp = await fetch('/api/admin-refund', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                          const data = await resp.json().catch(() => ({}));
+                          if (!resp.ok || !data.success) throw new Error(data.error || 'Refund failed.');
+                          await logAdminAudit('order.stripe_refund', 'orders', orderId, { reason, amountCents: body.amountCents || null, stripeRefundId: data.stripeRefundId });
+                          modal.remove();
+                          _recLoaded = false;
+                          window.receiptsLoadData();
+                        } catch (e) {
+                          errEl.textContent = e.message;
+                          errEl.style.display = '';
+                          btn.disabled = false; btn.textContent = 'Refund';
+                        }
+                      };
                     };
 
                     window.receiptsLoadData = async function() {
