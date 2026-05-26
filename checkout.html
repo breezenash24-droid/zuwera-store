@@ -596,7 +596,6 @@ window._closeModal = function(id) {
 
 window._checkoutPrefill = async function() {
   try {
-    /* Use Supabase client (now loaded) so getSession() auto-refreshes the token */
     var _coSb = (typeof supabase !== 'undefined') ? supabase.createClient(
       'https://qfgnrsifcwdubkolsgsq.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY',
@@ -604,21 +603,19 @@ window._checkoutPrefill = async function() {
     ) : null;
     if (!_coSb) return;
 
+    /* Get session — force-refresh if token is expired or within 60 s of expiry */
     var res = await _coSb.auth.getSession();
     var session = res.data && res.data.session;
-    if (!session) return;
-
-    var user  = session.user || {};
-    var token = session.access_token || '';
-    var email = (user.email || '').trim();
-    var meta  = user.user_metadata || {};
-    var name  = (meta.full_name || meta.name || '').trim();
+    if (session) {
+      var exp = session.expires_at ? session.expires_at * 1000 : 0;
+      if (!exp || exp - Date.now() < 60000) {
+        var ref = await _coSb.auth.refreshSession().catch(function() { return null; });
+        if (ref && ref.data && ref.data.session) session = ref.data.session;
+      }
+    }
 
     var nameEl  = document.getElementById('pay-name');
     var emailEl = document.getElementById('pay-email');
-    if (nameEl  && !nameEl.value.trim() && name)  nameEl.value  = name;
-    if (emailEl && !emailEl.value.trim() && email) emailEl.value = email;
-
     var f = function(id, val) { var el = document.getElementById(id); if (el && !el.value.trim() && val) el.value = val; };
     var fillAddr = function(addr) {
       if (!addr) return false;
@@ -635,7 +632,17 @@ window._checkoutPrefill = async function() {
       return !!(addr.line1 || addr.city);
     };
 
-    /* Try cached profile first (written by account.html on load/save) */
+    /* Fill name/email from session metadata */
+    if (session) {
+      var user  = session.user || {};
+      var email = (user.email || '').trim();
+      var meta  = user.user_metadata || {};
+      var name  = (meta.full_name || meta.name || '').trim();
+      if (nameEl  && !nameEl.value.trim() && name)  nameEl.value  = name;
+      if (emailEl && !emailEl.value.trim() && email) emailEl.value = email;
+    }
+
+    /* Try cached profile first — works even with expired token */
     try {
       var cached = localStorage.getItem('zuwera-profile');
       if (cached) {
@@ -647,6 +654,7 @@ window._checkoutPrefill = async function() {
     } catch(_) {}
 
     /* Fall back to live API with fresh token */
+    var token = session && session.access_token;
     if (!token) return;
     var r = await fetch('/api/customer-hub', { headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' } });
     var d = await r.json();
