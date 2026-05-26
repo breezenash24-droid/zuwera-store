@@ -1430,7 +1430,7 @@ function applyAnnouncementBar(mode, msgText) {
   } else {
     barEl.style.top = '0';
   }
-  barEl.style.transition = 'transform .28s ease, opacity .2s ease';
+  barEl.style.transition = 'transform .28s ease, opacity .2s ease, top .28s ease';
   barEl.style.transform = 'translateY(0)';
   barEl.style.opacity = '1';
   barEl.style.pointerEvents = '';
@@ -1444,14 +1444,7 @@ function applyAnnouncementBar(mode, msgText) {
   }
 
   if (normalizedMode === 'off') {
-    if (isMobileViewport) {
-      barEl.style.display = 'flex';
-      barEl.style.transform = 'translateY(calc(-100% - 2px))';
-      barEl.style.opacity = '0';
-      barEl.style.pointerEvents = 'none';
-    } else {
-      barEl.style.display = 'none';
-    }
+    barEl.style.display = 'none';
     setAnnouncementBarLayout(barEl, navEl, false);
     return;
   }
@@ -1462,7 +1455,7 @@ function applyAnnouncementBar(mode, msgText) {
   if (normalizedMode !== 'scroll') return;
 
   if (isMobileViewport) {
-    barEl.style.transition = 'transform .28s ease, opacity .2s ease';
+    barEl.style.transition = 'transform .28s ease, opacity .2s ease, top .28s ease';
     let lastScrollY = window.scrollY;
     let isHidden = false;
     const scrollActivationAt = Date.now() + 450;
@@ -1471,7 +1464,6 @@ function applyAnnouncementBar(mode, msgText) {
       barEl.style.transform = hidden ? 'translateY(-100%)' : 'translateY(0)';
       barEl.style.opacity = hidden ? '0' : '1';
       barEl.style.pointerEvents = hidden ? 'none' : '';
-      setAnnouncementBarLayout(barEl, navEl, !hidden);
     };
     syncAnnouncementState(false);
     _productAnnouncementBarScrollHandler = function() {
@@ -3125,6 +3117,7 @@ function addToCart() {
     title: currentProduct.title,
     size: selectedSize,
     colorName: selectedColor?.color_name || 'Standard',
+    colorHex: selectedColor?.hex_color || '',
     regularPrice,
     memberPrice,
     price: effectivePrice,
