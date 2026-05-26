@@ -483,22 +483,21 @@
         <div id="shipping-placeholder" style="font-size:.88rem;color:var(--sub)">Free on orders $100+ — calculated at checkout</div>
       </div>
 
+      <!-- PROMO CODE -->
+      <div id="zw-promo-shell" style="margin-bottom:1.75rem;border-top:1px solid var(--border);padding-top:1.1rem">
+        <label style="display:block;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:.4rem">Promo Code <span style="opacity:.5">(optional)</span></label>
+        <div class="pm-promo-row">
+          <input id="zw-promo-input" type="text" placeholder="PROMO CODE" autocomplete="off" aria-label="Promo code">
+          <button id="zw-promo-apply" type="button">Apply</button>
+        </div>
+        <div id="zw-promo-message" aria-live="polite"></div>
+      </div>
+
       <!-- PAYMENT -->
       <div class="co-section">
         <div class="co-section-hd"><span class="co-section-label">Payment</span></div>
         <div class="pfield"><label>Card Details</label><div id="stripe-card-element"></div></div>
         <p id="pay-error" role="alert" aria-live="assertive"></p>
-
-        <!-- Promo code -->
-        <div id="zw-promo-shell" style="margin-bottom:.9rem;border-top:1px solid var(--border);padding-top:1rem;margin-top:.25rem">
-          <label style="display:block;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:.4rem">Promo Code <span style="opacity:.5">(optional)</span></label>
-          <div class="pm-promo-row">
-            <input id="zw-promo-input" type="text" placeholder="PROMO CODE" autocomplete="off" aria-label="Promo code">
-            <button id="zw-promo-apply" type="button">Apply</button>
-          </div>
-          <div id="zw-promo-message" aria-live="polite"></div>
-        </div>
-
         <button id="pay-submit" type="button">
           <span id="pay-btn-text">Pay Now</span>
         </button>
