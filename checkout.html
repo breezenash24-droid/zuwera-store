@@ -867,7 +867,7 @@ document.addEventListener('DOMContentLoaded', function() {
   /* Init wallet pay (Apple Pay / Google Pay) */
   var sub = window.cartItems.reduce(function(s,i){ return s+parseFloat(i.price||0)*(i.quantity||1); },0);
   var subtotalCents = Math.round(sub*100)||100;
-  if (typeof window.initPaymentRequest === 'function') window.initPaymentRequest(subtotalCents);
+  try { if (typeof window.initPaymentRequest === 'function') window.initPaymentRequest(subtotalCents); } catch(e) { console.warn('initPaymentRequest:', e.message); }
 
   /* Card style for theme */
   if (typeof window.refreshCardStyle === 'function') {

@@ -151,6 +151,7 @@ let selectedShippingRate = null;
 let prTaxCents = 0;
 
 function initPaymentRequest(subtotalCents) {
+  if (!stripe) return;
   // If a paymentRequest already exists (user opened checkout a second time),
   // just update the amount instead of creating a duplicate button.
   if (paymentRequest) {
