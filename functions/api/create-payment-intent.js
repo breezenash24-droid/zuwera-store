@@ -207,6 +207,13 @@ function parseQuantity(value) {
   return Math.min(parsed, 99);
 }
 
+function generateOrderNumber() {
+  const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => chars[b % 36]).join('');
+}
+
 function base64UrlEncode(value) {
   return btoa(value).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
@@ -513,6 +520,7 @@ export async function onRequestPost({ request, env }) {
     const idempotencyHash = (await sha256Base64Url(idempotencyPayload)).slice(0, 40);
     const idempotencyKey = `pi_${idempotencyHash}`;
 
+    const orderNumber = generateOrderNumber();
     const stripe = new Stripe(env.STRIPE_SECRET_KEY, { httpClient: Stripe.createFetchHttpClient() });
     const paymentIntent = await stripe.paymentIntents.create(
       {
@@ -521,6 +529,7 @@ export async function onRequestPost({ request, env }) {
         automatic_payment_methods: { enabled: true },
         receipt_email: address.email,
         metadata: {
+          order_number: orderNumber,
           customer_email: address.email,
           customer_name: address.name || '',
           user_id: verifiedUser?.id || '',
@@ -553,6 +562,7 @@ export async function onRequestPost({ request, env }) {
     return json({
       clientSecret: paymentIntent.client_secret,
       orderId: paymentIntent.id,
+      orderNumber,
       subtotal: (subtotalCents / 100).toFixed(2),
       discount: (discountCents / 100).toFixed(2),
       discountCode: normalizedPromoCode,

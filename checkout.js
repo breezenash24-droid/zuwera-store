@@ -250,7 +250,7 @@ function initPaymentRequest(subtotalCents) {
       }
 
       ev.complete('success');
-      showOrderConfirmed(finalIntent.id || piData.orderId, ev.payerEmail);
+      showOrderConfirmed(piData.orderNumber, ev.payerEmail);
     } catch (err) {
       ev.complete('fail');
       console.error('Payment request error:', err);
@@ -440,7 +440,7 @@ _pay.btn?.addEventListener('click', async () => {
       return;
     }
 
-    showOrderConfirmed(paymentIntent?.id, email);
+    showOrderConfirmed(piData.orderNumber, email);
   } catch (err) {
     _pay.errEl.textContent = 'Something went wrong. Please try again.';
     console.error('Checkout error:', err);
@@ -450,9 +450,8 @@ _pay.btn?.addEventListener('click', async () => {
 });
 
 // ===================== ORDER CONFIRMED =====================
-function showOrderConfirmed(paymentIntentId, email) {
-  const orderId = (paymentIntentId || '').slice(-8).toUpperCase();
-  document.getElementById('success-order').textContent = orderId ? `Order #${orderId}` : '';
+function showOrderConfirmed(orderNumber, email) {
+  document.getElementById('success-order').textContent = orderNumber ? `Order #${orderNumber}` : '';
   document.getElementById('success-msg').textContent =
     `Thank you for your purchase. A confirmation has been sent to ${email || 'your email'}.`;
   _openModal('payment-success');
