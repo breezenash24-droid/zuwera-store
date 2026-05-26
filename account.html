@@ -1527,6 +1527,7 @@ async function saveProfile() {
     const content = document.getElementById('profile-content');
     if (content) { delete content.dataset.loaded; }
     _hubPayload = await fetchHub();
+    if (_hubPayload?.profile) localStorage.setItem('zuwera-profile', JSON.stringify(_hubPayload.profile));
     renderProfile();
     setTimeout(() => {
       const s = document.getElementById('prof-status');
@@ -1605,6 +1606,7 @@ async function init() {
     // Load hub data eagerly (needed for returns + profile)
     try {
       _hubPayload = await fetchHub();
+      if (_hubPayload?.profile) localStorage.setItem('zuwera-profile', JSON.stringify(_hubPayload.profile));
     } catch(e) {
       console.warn('customer-hub load:', e.message);
     }

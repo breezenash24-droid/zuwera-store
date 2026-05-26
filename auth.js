@@ -410,6 +410,7 @@ if (_authEls.logoutBtn) _authEls.logoutBtn.addEventListener('click', async () =>
     localStorage.removeItem('zuwera-auth');
   }
   localStorage.removeItem('cart');
+  localStorage.removeItem('zuwera-profile');
   showToast('Signed out.');
   _currentUser = null;
   updateHeaderForAuth();
@@ -480,6 +481,7 @@ if (_zwDeleteConfirmBtn) {
       await _sb.auth.signOut().catch(() => {});
       localStorage.removeItem('zuwera-auth');
       localStorage.removeItem('cart');
+      localStorage.removeItem('zuwera-profile');
       _closeModal('account-modal');
       showToast('Your account has been deleted.');
       _currentUser = null;

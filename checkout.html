@@ -602,25 +602,42 @@ window.prefillCheckoutForUser = async function(user, accessToken) {
   var emailEl = document.getElementById('pay-email');
   if (nameEl  && !nameEl.value.trim()  && name)  nameEl.value  = name;
   if (emailEl && !emailEl.value.trim() && email) emailEl.value = email;
-  if (!accessToken) return;
-  try {
-    var r = await fetch('/api/customer-hub', { headers: { Authorization: 'Bearer ' + accessToken, Accept: 'application/json' } });
-    var d = await r.json();
-    if (!d.success) return;
-    var addrs = Array.isArray(d.profile && d.profile.savedAddresses) ? d.profile.savedAddresses : [];
-    var addr = addrs.find(function(a){ return a.isPrimary; }) || addrs[0] || null;
-    if (!addr) return;
-    var f = function(id, val) { var el = document.getElementById(id); if (el && !el.value.trim() && val) el.value = val; };
+
+  var f = function(id, val) { var el = document.getElementById(id); if (el && !el.value.trim() && val) el.value = val; };
+  var fillAddr = function(addr) {
+    if (!addr) return false;
     if (nameEl && !nameEl.value.trim() && addr.name) nameEl.value = addr.name;
     f('pay-addr1', addr.line1);
     f('pay-addr2', addr.line2);
     f('pay-city',  addr.city);
     f('pay-state', addr.state);
     f('pay-zip',   addr.zip);
-    var zipEl   = document.getElementById('pay-zip');
+    var zipEl = document.getElementById('pay-zip');
     var stateEl = document.getElementById('pay-state');
     if (zipEl)   zipEl.dispatchEvent(new Event('input', { bubbles: true }));
     if (stateEl) stateEl.dispatchEvent(new Event('input', { bubbles: true }));
+    return true;
+  };
+
+  /* Try cached profile first (avoids expired-token issues on checkout) */
+  try {
+    var cached = localStorage.getItem('zuwera-profile');
+    if (cached) {
+      var profile = JSON.parse(cached);
+      var addrs = Array.isArray(profile.savedAddresses) ? profile.savedAddresses : [];
+      var addr = addrs.find(function(a){ return a.isPrimary; }) || addrs[0] || null;
+      if (fillAddr(addr)) return;
+    }
+  } catch(_) {}
+
+  /* Fall back to live API if no cache */
+  if (!accessToken) return;
+  try {
+    var r = await fetch('/api/customer-hub', { headers: { Authorization: 'Bearer ' + accessToken, Accept: 'application/json' } });
+    var d = await r.json();
+    if (!d.success) return;
+    var addrs2 = Array.isArray(d.profile && d.profile.savedAddresses) ? d.profile.savedAddresses : [];
+    fillAddr(addrs2.find(function(a){ return a.isPrimary; }) || addrs2[0] || null);
   } catch(_) {}
 };
 
