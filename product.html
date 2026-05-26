@@ -1886,7 +1886,7 @@ function readCachedCategoryProducts() {
 
 async function fetchCategoryProducts() {
   const headers = { 'apikey': _PROD_SB_KEY, 'Authorization': `Bearer ${_PROD_SB_KEY}` };
-  const resp = await fetch(`${_PROD_SB_URL}/rest/v1/products?select=id,title,subtitle,sort_order&order=sort_order.asc`, { headers });
+  const resp = await fetch(`${_PROD_SB_URL}/rest/v1/products?select=id,title,subtitle,sort_order&status=neq.Legacy&status=neq.Draft&order=sort_order.asc`, { headers });
   if (!resp.ok) throw new Error(`Failed to load categories (${resp.status})`);
   const products = await resp.json();
   if (Array.isArray(products) && products.length) {
@@ -2127,7 +2127,7 @@ async function loadProduct() {
     const data = await resp.json();
     productData = data ? data[0] : null;
   } else if (slug) {
-    const resp = await fetch(`${_PROD_SB_URL}/rest/v1/products?select=*&order=sort_order.asc`, { headers });
+    const resp = await fetch(`${_PROD_SB_URL}/rest/v1/products?select=*&status=neq.Legacy&status=neq.Draft&order=sort_order.asc`, { headers });
     if (!resp.ok) throw new Error('Product not found');
     const data = await resp.json();
     const products = Array.isArray(data) ? data : [];
@@ -2135,7 +2135,7 @@ async function loadProduct() {
 
     if (!productData) {
       const searchSlug = slug.replace(/-/g, '*');
-      const fallbackResp = await fetch(`${_PROD_SB_URL}/rest/v1/products?select=*&title=ilike.*${encodeURIComponent(searchSlug)}*&order=sort_order.asc&limit=5`, { headers });
+      const fallbackResp = await fetch(`${_PROD_SB_URL}/rest/v1/products?select=*&status=neq.Legacy&status=neq.Draft&title=ilike.*${encodeURIComponent(searchSlug)}*&order=sort_order.asc&limit=5`, { headers });
       if (fallbackResp.ok) {
         const fallbackData = await fallbackResp.json();
         const fallbackProducts = Array.isArray(fallbackData) ? fallbackData : [];
@@ -2151,6 +2151,11 @@ async function loadProduct() {
 
   if (!productData) {
     throw new Error('Product not found');
+  }
+
+  if ((productData.status || '').toLowerCase() === 'legacy' || (productData.status || '').toLowerCase() === 'draft') {
+    window.location.replace('/404');
+    return;
   }
 
   const resolvedSlug = normalizedProductSlug(productData.slug || productData.title || productData.name);

@@ -43,7 +43,7 @@
   var SUPA='https://qfgnrsifcwdubkolsgsq.supabase.co';
   var ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
   window.__zwProductsEarlyFetch=fetch(
-    SUPA+'/rest/v1/products?select=*,product_images(*)&order=sort_order.asc',
+    SUPA+'/rest/v1/products?select=*,product_images(*)&status=neq.Legacy&status=neq.Draft&order=sort_order.asc',
     {headers:{apikey:ANON,Authorization:'Bearer '+ANON}}
   );
 })();
@@ -2917,7 +2917,7 @@ async function loadProducts() {
     const _timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 9000));
     const productsResp = await Promise.race([
       earlyFetch || fetch(
-        `${SUPABASE_URL}/rest/v1/products?select=*,product_images(*)&order=sort_order.asc`,
+        `${SUPABASE_URL}/rest/v1/products?select=*,product_images(*)&status=neq.Legacy&status=neq.Draft&order=sort_order.asc`,
         { headers }
       ),
       _timeout
@@ -2991,7 +2991,10 @@ async function loadCardReviewSummary(pid, domId) {
 }
 
 function renderProductCards(products, grid) {
-  let renderList = products;
+  let renderList = products.filter(p => {
+    const s = (p.status || '').toLowerCase();
+    return s !== 'legacy' && s !== 'draft';
+  });
   // If only 1 product, show its different images as separate cards
   if (products.length === 1 && products[0].product_images && products[0].product_images.length > 1) {
     const p = products[0];
