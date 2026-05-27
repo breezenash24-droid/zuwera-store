@@ -252,7 +252,7 @@
 }
 
 /* ── Review Summary Aggregations ── */
-.review-summary-box { display: flex; flex-wrap: wrap; gap: 2rem; background: rgba(244,241,235,0.03); padding: 1.5rem; border: 1px solid rgba(244,241,235,0.08); border-radius: 8px; margin-bottom: 1.5rem; }
+.review-summary-box { display: flex; flex-wrap: wrap; gap: 2rem; background: none; padding: 1.25rem 0; border: none; border-top: 1px solid rgba(244,241,235,0.09); border-bottom: 1px solid rgba(244,241,235,0.09); margin-bottom: 1.5rem; }
 .rs-left { text-align: center; min-width: 140px; display: flex; flex-direction: column; justify-content: center; border-right: 1px solid rgba(244,241,235,0.08); padding-right: 2rem; }
 .rs-right { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 1.2rem; }
 .rs-rating { font-size: 3.5rem; font-family: var(--font-head); color: var(--zw-accent); line-height: 1; }
@@ -485,8 +485,8 @@ body.light-mode .review-list-mbox {
 }
 /* Inline review summary on product page */
 body.light-mode .review-summary-box {
-  background: #F0EEE9;
-  border-color: rgba(9,9,11,0.08);
+  background: none;
+  border-color: rgba(9,9,11,0.1);
 }
 body.light-mode .rs-metric-bar { background: rgba(9,9,11,0.12); }
 body.light-mode .rs-left { border-right-color: rgba(9,9,11,0.08); }

@@ -694,9 +694,11 @@
   flex-wrap: wrap;
   gap: 1.8rem;
   margin-bottom: 1.5rem;
-  padding: 1.45rem;
-  background: rgba(244,241,235,0.03);
-  border: 1px solid rgba(244,241,235,0.08);
+  padding: 1.25rem 0;
+  background: none;
+  border: none;
+  border-top: 1px solid rgba(244,241,235,0.09);
+  border-bottom: 1px solid rgba(244,241,235,0.09);
 }
 
 .review-dialog--thread .review-summary-box {
@@ -1664,7 +1666,10 @@ body.light-mode .review-card-date {
 body.light-mode .review-rating-panel,
 body.light-mode .review-toggle-card,
 body.light-mode .review-advanced-panel,
-body.light-mode .review-summary-box,
+body.light-mode .review-summary-box {
+  background: none;
+  border-color: rgba(9,9,11,0.1);
+}
 body.light-mode .size-guide-frame-shell,
 body.light-mode .review-select,
 body.light-mode .translate-btn,
