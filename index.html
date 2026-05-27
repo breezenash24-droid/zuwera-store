@@ -185,6 +185,9 @@
   --mobile-nav-gap:0px;
 }
 html{scroll-behavior:smooth;font-size:16px;background:#09090b;overscroll-behavior-y:auto}
+/* Safe-area fill must sit above the noise overlay (body::after z-index:9998) */
+html::before{z-index:9999!important}
+html:has(body.light-mode)::before{background:#F0EEE9!important}
 @keyframes pageIn{from{opacity:0}to{opacity:1}}
 body{
   background:var(--ink);
