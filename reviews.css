@@ -351,7 +351,6 @@
   cursor: pointer;
 }
 .review-list-write-btn { margin-bottom: 1.5rem; }
-.review-list-toolbar { display: none !important; }
 .review-list-select {
   flex: 1;
   min-width: 0;
@@ -639,7 +638,6 @@ body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba
     padding-bottom: 0 !important;
   }
 
-  .review-list-toolbar { flex-direction: column; }
   .review-list-translate { width: 100% !important; }
 }
 

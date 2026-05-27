@@ -102,19 +102,7 @@
 }
 #account-btn:hover { opacity: 1; }
 #account-btn svg { width: 15px; height: 15px; }
-.logout-btn {
-  background: none;
-  border: none;
-  color: var(--c35);
-  font-family: var(--font-body);
-  font-size: 0.65rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: color 0.2s;
-  display: none;
-}
-.logout-btn:hover { color: var(--white); }
+
 
 /* ===================== MOBILE NAV ===================== */
 @media (max-width: 900px) {
@@ -173,10 +161,4 @@ body.light-mode #cart-btn {
 body.light-mode .cart-count {
   background: #09090b;
   color: #E8E3DC;
-}
-body.light-mode .logout-btn {
-  color: rgba(9,9,11,0.35);
-}
-body.light-mode .logout-btn:hover {
-  color: #09090b;
 }
