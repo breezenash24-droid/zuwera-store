@@ -294,7 +294,6 @@ nav#nav.scrolled{
   font-size:.58rem;font-weight:500;
 }
 #account-btn{display:none!important}
-#logout-btn{display:none!important}
 #account-btn.show{display:flex!important}
 
 .hamburger-btn { display:none; background:none; border:none; color:#f4f1eb !important; cursor:pointer; -webkit-appearance:none; appearance:none; padding:0; -webkit-tap-highlight-color: transparent; }
@@ -1838,7 +1837,6 @@ body.light-mode::after{opacity:0.15}
   <div class="nav-right">
     <button class="nbtn" id="login-btn" onclick="return window.__zwOpenAuth ? window.__zwOpenAuth('signin') : true">Login</button>
     <button class="nbtn" id="account-btn" onclick="window.location.href='/account.html'">Account</button>
-    <button class="nbtn" id="logout-btn">Sign Out</button>
     <button class="nbtn" id="cart-btn" aria-label="Bag" onclick="return window.__zwOpenCart ? window.__zwOpenCart() : true">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path>
@@ -3125,7 +3123,6 @@ if (_sb) {
 function updateNav() {
   const li = document.getElementById('login-btn');
   const ac = document.getElementById('account-btn');
-  const lo = document.getElementById('logout-btn');
   const on = !!_user;
   li.style.display = on ? 'none' : '';
   if (on) { ac.classList.add('show'); }
@@ -3356,15 +3353,6 @@ document.getElementById('update-password-submit').addEventListener('click', asyn
   showToast('Password updated. You can sign in now.');
 });
 
-document.getElementById('logout-btn').addEventListener('click', async () => {
-  if (_sb) {
-    // scope:'global' revokes the server-side refresh token so it cannot re-auth
-    await _sb.auth.signOut({ scope: 'global' }).catch(()=>{});
-    try { localStorage.removeItem('zuwera-auth'); } catch(_) {}
-  }
-  showToast('Signed out.');
-  _user = null; updateNav();
-});
 
 /* ACCOUNT — navigate to dedicated page */
 document.getElementById('account-modal-close').addEventListener('click', () => { document.getElementById('account-modal').classList.remove('open'); setPageScrollLock(false); });

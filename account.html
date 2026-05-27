@@ -566,7 +566,6 @@
     footer { margin-top: auto; }
     @media(max-width: 900px) {
       .zw-nav { padding: 1rem 1.2rem; justify-content: flex-end; }
-      #logout-btn { display: none !important; }
       .page-wrap { padding: 2rem 1.2rem 4rem; }
       .acct-tab { padding: .7rem .85rem; white-space: nowrap; }
       .acct-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -593,7 +592,6 @@
     Back
   </a>
   <div class="zw-nav-right">
-    <button class="zw-nav-btn" id="logout-btn" style="display:none">Sign Out</button>
     <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" aria-controls="mobile-menu" aria-expanded="false">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="8" x2="21" y2="8"></line><line x1="3" y1="16" x2="21" y2="16"></line></svg>
     </button>
@@ -1648,7 +1646,6 @@ async function signOut() {
 }
 
 document.getElementById('signout-btn').addEventListener('click', signOut);
-document.getElementById('logout-btn').addEventListener('click', signOut);
 
 /* ── INIT ── */
 async function init() {
@@ -1661,7 +1658,6 @@ async function init() {
 
     // Show account content
     document.getElementById('acct-content').style.display = 'block';
-    document.getElementById('logout-btn').style.display = 'block';
 
     const email = _session.user?.email || '';
     const meta = _session.user?.user_metadata || {};
