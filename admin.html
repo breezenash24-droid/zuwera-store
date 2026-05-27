@@ -6879,10 +6879,12 @@
         function navigateTo(page) {
             if (page === 'website') { setTimeout(loadWebsiteSettings, 100); setTimeout(loadFonts, 120); }
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById(page).classList.add('active');
+            const pageEl = document.getElementById(page);
+            if (!pageEl) { console.warn('navigateTo: no element for page', page); return; }
+            pageEl.classList.add('active');
 
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            document.querySelector(`[data-page="${page}"]`).classList.add('active');
+            document.querySelector(`[data-page="${page}"]`)?.classList.add('active');
 
             // sync mobile bottom nav
             document.querySelectorAll('.mob-nav-btn').forEach(b => b.classList.remove('active'));
@@ -7255,8 +7257,10 @@
             resultEl.textContent = `Sending test ${event} event…`;
 
             try {
-                const resp = await fetch(`/api/shippo-webhook?secret=${encodeURIComponent(secret)}&event=${encodeURIComponent(event)}`, {
+                // Secret sent in Authorization header (not URL) to avoid server logs / browser history exposure
+                const resp = await fetch(`/api/shippo-webhook?event=${encodeURIComponent(event)}`, {
                     method: 'GET',
+                    headers: { 'Authorization': `Bearer ${secret}` },
                 });
                 const data = await resp.json();
                 if (resp.ok && data.received) {
@@ -8282,14 +8286,19 @@
         }
 
         async function loadProducts() {
+            const tbody = document.getElementById('productsTableBody');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-secondary);">Loading…</td></tr>';
             try {
-                const { data: products } = await sb.from('products')
+                const { data: products, error } = await sb.from('products')
                     .select('*, product_images(*), product_sizes(stock_quantity)')
                     .order('created_at', { ascending: false });
+                if (error) throw error;
                 _allProducts = products || [];
                 renderProducts();
             } catch (error) {
                 console.error('Error loading products:', error);
+                showToast('Failed to load products: ' + error.message, 'error');
+                if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--error);">Failed to load products.</td></tr>';
             }
         }
 
@@ -8586,23 +8595,71 @@
 
         // Edit Product
         window.editProduct = editProduct;
-    async function editProduct(id) {
-            const { data: product } = await sb.from('products').select('*').eq('id', id).single();
-            if (!product) return;
-
-            currentProduct = product;
-            populateTechCheckboxes();
-            await loadProductIntoForm(product);
-            document.getElementById('formModalTitle').textContent = 'Edit Product';
-            openProductForm();
+        async function editProduct(id) {
+            try {
+                const { data: product, error } = await sb.from('products').select('*').eq('id', id).single();
+                if (error) throw error;
+                if (!product) { showToast('Product not found', 'error'); return; }
+                currentProduct = product;
+                populateTechCheckboxes();
+                await loadProductIntoForm(product);
+                document.getElementById('formModalTitle').textContent = 'Edit Product';
+                openProductForm();
+            } catch (e) {
+                showToast('Failed to load product: ' + e.message, 'error');
+            }
         }
 
+        let _formDirty = false;
+
         function openProductForm() {
+            _formDirty = false;
             document.getElementById('productFormModal').classList.add('active');
         }
 
         document.getElementById('closeFormBtn').addEventListener('click', () => {
+            if (_formDirty && !confirm('You have unsaved changes. Close anyway?')) return;
+            _formDirty = false;
             document.getElementById('productFormModal').classList.remove('active');
+        });
+
+        // Mark form dirty on any change inside the modal
+        document.getElementById('productForm').addEventListener('input', () => { _formDirty = true; });
+        document.getElementById('productForm').addEventListener('change', () => { _formDirty = true; });
+
+        // Global Escape key handler — closes whichever modal/overlay is open
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            // Product form modal
+            const formModal = document.getElementById('productFormModal');
+            if (formModal?.classList.contains('active')) {
+                if (_formDirty && !confirm('You have unsaved changes. Close anyway?')) return;
+                _formDirty = false;
+                formModal.classList.remove('active');
+                return;
+            }
+            // Delete modal
+            const delModal = document.getElementById('deleteModal');
+            if (delModal?.classList.contains('active')) {
+                delModal.classList.remove('active');
+                deleteProductId = null;
+                return;
+            }
+            // Edit review modal
+            const revModal = document.getElementById('editReviewModal');
+            if (revModal?.classList.contains('active')) {
+                revModal.classList.remove('active');
+                return;
+            }
+            // Size chart form modal
+            const scModal = document.getElementById('sizeChartFormModal');
+            if (scModal?.classList.contains('active')) {
+                scModal.classList.remove('active');
+                return;
+            }
+            // Mobile more drawer
+            const drawer = document.getElementById('mobile-more-drawer');
+            if (drawer?.classList.contains('open')) { closeMobileMore(); return; }
         });
 
         // Form Tabs
@@ -8751,9 +8808,9 @@
             item.className = 'color-variant-item';
             item.innerHTML = `
                 <div class="color-swatch" id="swatch-${id}" style="background-color: #000000;"></div>
-                <input type="text" class="form-input color-name-${id}" placeholder="Color name" style="flex: 1;">
-                <input type="text" class="form-input color-hex-${id}" placeholder="#000000" maxlength="7" style="flex: 1;">
-                <input type="text" class="form-input color-rgb-${id}" placeholder="0,0,0" style="flex: 1;">
+                <input type="text" class="form-input color-name-input color-name-${id}" placeholder="Color name" style="flex: 1;">
+                <input type="text" class="form-input color-hex-input color-hex-${id}" placeholder="#000000" maxlength="7" style="flex: 1;">
+                <input type="text" class="form-input color-rgb-input color-rgb-${id}" placeholder="0,0,0" style="flex: 1;">
                 <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">Delete</button>
             `;
             container.appendChild(item);
@@ -8783,9 +8840,9 @@
 
         function getColorVariantEntries() {
             return Array.from(document.querySelectorAll('.color-variant-item')).map((item) => {
-                const colorName = item.querySelector('.form-input')?.value.trim() || '';
-                const hexColor = item.querySelector('[placeholder="#000000"]')?.value.trim() || '';
-                const rgbColor = item.querySelector('[placeholder="0,0,0"]')?.value.trim() || '';
+                const colorName = item.querySelector('.color-name-input')?.value.trim() || '';
+                const hexColor = item.querySelector('.color-hex-input')?.value.trim() || '';
+                const rgbColor = item.querySelector('.color-rgb-input')?.value.trim() || '';
 
                 return {
                     color_name: colorName,
@@ -9794,16 +9851,42 @@
             const mandatoryFields = ['sku', 'title', 'subtitle', 'gender', 'materialComposition', 'msrp', 'currentPrice', 'productStatus', 'shippingWeightLb'];
             const form = document.getElementById('productForm');
 
+            // Map each mandatory field to the tab that contains it
+            const fieldTabMap = {
+                sku: 'core', title: 'core', subtitle: 'core', gender: 'core', materialComposition: 'core',
+                msrp: 'pricing', currentPrice: 'pricing',
+                productStatus: 'tab-status',
+                shippingWeightLb: 'technical',
+            };
+
             let isValid = true;
+            let firstInvalidField = null;
             mandatoryFields.forEach(field => {
                 const input = document.getElementById(field);
                 if (input && !input.value) {
                     input.classList.add('error');
+                    if (!firstInvalidField) firstInvalidField = field;
                     isValid = false;
                 } else if (input) {
                     input.classList.remove('error');
                 }
             });
+
+            // If validation failed, switch to the tab containing the first bad field and focus it
+            if (publish && !isValid && firstInvalidField) {
+                const targetTab = fieldTabMap[firstInvalidField];
+                if (targetTab) {
+                    document.querySelectorAll('#productFormModal .tab-button').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('#productFormModal .tab-content').forEach(c => c.classList.remove('active'));
+                    const btn = document.querySelector(`#productFormModal .tab-button[data-tab="${targetTab}"]`);
+                    if (btn) btn.classList.add('active');
+                    const content = document.getElementById(targetTab);
+                    if (content) content.classList.add('active');
+                }
+                document.getElementById(firstInvalidField)?.focus();
+                showToast('Please fill all mandatory fields', 'error');
+                return;
+            }
 
             const imageUrls = getProductImageUrlsFromForm();
             if (imageUrls.length === 0) {
@@ -9826,11 +9909,6 @@
                 showToast('Image warning: ' + imageValidation.warnings[0].warning, 'info');
             }
 
-            if (publish && !isValid) {
-                showToast('Please fill all mandatory fields', 'error');
-                return;
-            }
-            
             const selectedTechs = Array.from(document.querySelectorAll('.tech-checkbox:checked')).map(cb => cb.value);
             const otherTechsInput = document.getElementById('fabricTechnology').value.split(',').map(s => s.trim()).filter(s => s);
             const allTechs = [...new Set([...selectedTechs, ...otherTechsInput])].join(', ');
@@ -9915,39 +9993,34 @@
                     productId = data[0].id;
                 }
 
+                // Batch image insert (single round-trip instead of N)
                 {
                     const { error } = await sb.from('product_images').delete().eq('product_id', productId);
                     if (error) throw error;
                 }
-                for (let i = 0; i < imageUrls.length; i++) {
-                    const { error } = await sb.from('product_images').insert([{
-                        product_id: productId,
-                        image_url: imageUrls[i],
-                        sort_order: i
-                    }]);
+                if (imageUrls.length) {
+                    const { error } = await sb.from('product_images').insert(
+                        imageUrls.map((url, i) => ({ product_id: productId, image_url: url, sort_order: i }))
+                    );
                     if (error) throw error;
                 }
 
+                // Batch color variant insert
                 {
                     const { error } = await sb.from('color_variants').delete().eq('product_id', productId);
                     if (error) throw error;
                 }
-                for (let i = 0; i < colorEntries.length; i++) {
-                    const colorName = colorEntries[i].color_name;
-                    const hexColor = colorEntries[i].hex_color;
-                    const rgbColor = colorEntries[i].rgb_color;
-                    if (colorName && hexColor) {
-                        const { error } = await sb.from('color_variants').insert([{
-                            product_id: productId,
-                            color_name: colorName,
-                            hex_color: hexColor,
-                            rgb_color: rgbColor,
-                            sort_order: i
-                        }]);
-                        if (error) throw error;
-                    }
+                const validColors = colorEntries
+                    .map((c, i) => (c.color_name && c.hex_color)
+                        ? { product_id: productId, color_name: c.color_name, hex_color: c.hex_color, rgb_color: c.rgb_color, sort_order: i }
+                        : null)
+                    .filter(Boolean);
+                if (validColors.length) {
+                    const { error } = await sb.from('color_variants').insert(validColors);
+                    if (error) throw error;
                 }
 
+                // Batch size/stock insert
                 {
                     const { error } = await sb.from('product_sizes').delete().eq('product_id', productId);
                     if (error) throw error;
@@ -9958,18 +10031,28 @@
                     if (e.color_name && e.hex_color) colorHexMap[e.color_name.trim()] = e.hex_color.trim();
                 });
                 const seenKeys = new Set();
+                const uniqueSizeEntries = [];
                 for (const entry of stockEntries) {
                     const key = normalizeSizeKey(entry.size) + '|' + (entry.color_name ?? '');
                     if (seenKeys.has(key)) continue;
                     seenKeys.add(key);
-                    const { error } = await sb.from('product_sizes').insert([{
+                    uniqueSizeEntries.push({
                         product_id: productId,
                         size: entry.size,
                         color_name: entry.color_name,
                         color_hex: entry.color_name ? (colorHexMap[entry.color_name] || null) : null,
                         stock_quantity: entry.stock_quantity
-                    }]);
+                    });
+                }
+                if (uniqueSizeEntries.length) {
+                    const { error } = await sb.from('product_sizes').insert(uniqueSizeEntries);
                     if (error) throw error;
+                }
+
+                // Suggest Sold Out if all stock is zero and status is Live
+                const totalSavedStock = uniqueSizeEntries.reduce((s, e) => s + (e.stock_quantity || 0), 0);
+                if (productData.status === 'Live' && uniqueSizeEntries.length > 0 && totalSavedStock === 0) {
+                    showToast('Heads up: all sizes are at 0 stock — consider setting status to Sold Out.', 'info');
                 }
 
                 let removedStorageImages = 0;
@@ -10021,7 +10104,7 @@
             document.getElementById('pomGuideSizeInput').value = '';
             document.getElementById('pomHeadCircIn').value = '';
             document.getElementById('pomHeadCircCm').value = '';
-            document.getElementById('colorway').value = product.colorway;
+            document.getElementById('colorway').value = product.colorway || '';
             document.getElementById('materialComposition').value = product.material_composition;
             document.getElementById('msrp').value = product.msrp;
             document.getElementById('currentPrice').value = product.current_price;
@@ -10122,9 +10205,9 @@
                 colorRows.forEach((color, idx) => {
                     const items = document.querySelectorAll('.color-variant-item');
                     if (items[idx]) {
-                        items[idx].querySelector('.form-input').value = color.color_name;
-                        items[idx].querySelector('[placeholder="#000000"]').value = color.hex_color;
-                        items[idx].querySelector('[placeholder="0,0,0"]').value = color.rgb_color;
+                        items[idx].querySelector('.color-name-input').value = color.color_name;
+                        items[idx].querySelector('.color-hex-input').value = color.hex_color;
+                        items[idx].querySelector('.color-rgb-input').value = color.rgb_color;
                         items[idx].querySelector('.color-swatch').style.backgroundColor = color.hex_color;
                     }
                 });
@@ -10157,6 +10240,7 @@
         }
 
         function resetProductForm() {
+            _formDirty = false;
             document.getElementById('productForm').reset();
             document.getElementById('imagesContainer').innerHTML = '<div class="image-row"><span style="font-weight:600;min-width:60px;">Image 1</span><input type="text" class="form-input product-image-url" placeholder="Paste image URL..."><label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label><img class="image-preview" style="display:none"><button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button></div>';
             document.getElementById('colorVariantsContainer').innerHTML = '';
