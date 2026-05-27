@@ -1175,7 +1175,7 @@ function updateCountdown() {
       if (data) {
         data.forEach(row => {
           if (row.key === 'theme' && row.value) {
-            const mode = row.value.mode === 'dark' ? 'dark' : 'light';
+            const mode = row.value.mode === 'dark' ? 'dark' : row.value.mode === 'super-light' ? 'super-light' : 'light';
             if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode);
             else document.body.classList.toggle('light-mode', mode === 'light');
           }

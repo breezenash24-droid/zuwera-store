@@ -1330,7 +1330,8 @@
         });
         if (themeRes.ok) {
           const themeData = await themeRes.json();
-          const mode = themeData && themeData.length > 0 && themeData[0].value && themeData[0].value.mode === 'dark' ? 'dark' : 'light';
+          const savedMode = themeData && themeData.length > 0 && themeData[0].value && themeData[0].value.mode;
+          const mode = savedMode === 'dark' ? 'dark' : savedMode === 'super-light' ? 'super-light' : 'light';
           if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode);
           else document.body.classList.toggle('light-mode', mode === 'light');
         }

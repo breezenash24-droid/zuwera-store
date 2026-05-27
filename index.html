@@ -2639,7 +2639,7 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
         applyAnnouncementBar(mode, msgText);
         announcementApplied = true;
       } else if (row.key === 'theme') {
-        const mode = row.value && row.value.mode === 'dark' ? 'dark' : 'light';
+        const mode = row.value && row.value.mode === 'dark' ? 'dark' : row.value && row.value.mode === 'super-light' ? 'super-light' : 'light';
         if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode);
         else {
           document.body.classList.toggle('light-mode', mode === 'light');

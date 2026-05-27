@@ -1559,7 +1559,7 @@ async function loadSiteSettings() {
         const cartNote = document.querySelector('.cart-note');
         if (cartNote) cartNote.innerHTML = 'Standard 5-7 days<br>Free on orders over $' + thresh;
       } else if (row.key === 'theme') {
-        const mode = row.value && row.value.mode === 'dark' ? 'dark' : 'light';
+        const mode = row.value && row.value.mode === 'dark' ? 'dark' : row.value && row.value.mode === 'super-light' ? 'super-light' : 'light';
         if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode);
         else {
           document.body.classList.toggle('light-mode', mode === 'light');
