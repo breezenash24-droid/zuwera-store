@@ -243,6 +243,14 @@
     loadSiteSettings();
   }
 
+  window.addEventListener('pageshow', function(e) {
+    if (e.persisted) {
+      var mode = 'dark';
+      try { mode = localStorage.getItem('zw_theme_mode') || 'dark'; } catch(_) {}
+      applyThemeMode(mode);
+    }
+  });
+
   if ('serviceWorker' in navigator) {
     (function clearStaleServiceWorkers() {
       var hadController = !!navigator.serviceWorker.controller;
