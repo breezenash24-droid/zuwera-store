@@ -1111,10 +1111,14 @@ body.light-mode .heart-btn{
   :is(nav#nav,.nav,header.nav) :is(.nav-logo,.nav-logo-link),
   .zw-nav .zw-nav-logo{
     position:absolute !important;
-    top:calc(env(safe-area-inset-top,0px) + 8px) !important;
     left:50% !important;
     transform:translateX(-50%) !important;
     z-index:1;
+  }
+
+  /* Safe-area top offset only for the main full-bleed storefront nav */
+  nav#nav :is(.nav-logo,.nav-logo-link){
+    top:calc(env(safe-area-inset-top,0px) + 8px) !important;
   }
 
   :is(nav#nav,.nav,header.nav) :is(.nav-logo,.nav-logo-link) img,
