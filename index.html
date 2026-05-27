@@ -39,7 +39,6 @@
 /* Kick off the products fetch as early as possible — before CSS/JS blocks parsing —
    so it's already in-flight when loadProducts() runs later. */
 (function(){
-  if(sessionStorage.getItem('zw_home_products')) return; // cached, no need
   var SUPA='https://qfgnrsifcwdubkolsgsq.supabase.co';
   var ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
   window.__zwProductsEarlyFetch=fetch(
@@ -2886,26 +2885,18 @@ async function loadProducts() {
 
   const cached = sessionStorage.getItem('zw_home_products');
 
-  // Show skeleton placeholders while fetch is in-flight (only when no cache)
-  if (!cached) {
-    grid.innerHTML = Array(4).fill(0).map(() => `
-      <div class="pcard pcard--skeleton" aria-hidden="true" tabindex="-1">
-        <div class="pcard-img"><div class="pcard-skel-img"></div></div>
-        <div class="pcard-info">
-          <div class="pcard-skel-line" style="width:38%;height:.52rem;margin-bottom:.55rem"></div>
-          <div class="pcard-skel-line" style="width:82%;height:.9rem;margin-bottom:.45rem"></div>
-          <div class="pcard-skel-line" style="width:26%;height:.68rem;margin-top:.9rem"></div>
-        </div>
-      </div>`).join('');
-  }
-
-  if (cached) {
-    try {
-      const cachedProducts = JSON.parse(cached);
-      renderCategoryNavigation(cachedProducts);
-      renderProductCards(cachedProducts, grid);
-    } catch(e){}
-  }
+  // Always show skeleton placeholders while the fresh fetch is in-flight.
+  // Rendering stale sessionStorage data here caused a flash of old products
+  // before fresh data arrived, so we skip the optimistic cache render entirely.
+  grid.innerHTML = Array(4).fill(0).map(() => `
+    <div class="pcard pcard--skeleton" aria-hidden="true" tabindex="-1">
+      <div class="pcard-img"><div class="pcard-skel-img"></div></div>
+      <div class="pcard-info">
+        <div class="pcard-skel-line" style="width:38%;height:.52rem;margin-bottom:.55rem"></div>
+        <div class="pcard-skel-line" style="width:82%;height:.9rem;margin-bottom:.45rem"></div>
+        <div class="pcard-skel-line" style="width:26%;height:.68rem;margin-top:.9rem"></div>
+      </div>
+    </div>`).join('');
 
   // Single joined query — products + their images in one round-trip.
   // We also use window.__zwProductsEarlyFetch if the <head> script kicked it off
@@ -2926,7 +2917,7 @@ async function loadProducts() {
     if (!productsResp.ok) throw new Error(`HTTP ${productsResp.status}`);
     const products = await productsResp.json();
     if (!Array.isArray(products) || products.length === 0) {
-      if (!cached) grid.innerHTML = '<div class="pcard" style="opacity:.3;text-align:center;padding:3rem">No products yet.</div>';
+      grid.innerHTML = '<div class="pcard" style="opacity:.3;text-align:center;padding:3rem">No products yet.</div>';
       return;
     }
     // Supabase embeds product_images as a nested array; sort them by sort_order.
@@ -2939,7 +2930,7 @@ async function loadProducts() {
     renderProductCards(normalizedProducts, grid);
   } catch(e) {
     console.error('loadProducts error:', e);
-    if (!cached) grid.innerHTML = '<div class="pcard" style="opacity:.3;text-align:center;padding:3rem">Could not load products.</div>';
+    grid.innerHTML = '<div class="pcard" style="opacity:.3;text-align:center;padding:3rem">Could not load products.</div>';
   }
 }
 
