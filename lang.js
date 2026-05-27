@@ -621,6 +621,9 @@
       #zw-lang-grid::-webkit-scrollbar-track { background: transparent; }
       #zw-lang-grid::-webkit-scrollbar-thumb { background: rgba(244,241,235,0.1); border-radius: 2px; }
       body.light-mode #zw-lang-grid::-webkit-scrollbar-thumb { background: rgba(9,9,11,0.12); }
+      /* ── Super-light mode: white box instead of cream ── */
+      body.super-light-mode #zw-lang-box { background: #FFFFFF !important; }
+      body.super-light-mode #zw-lang-grid::-webkit-scrollbar-thumb { background: rgba(9,9,11,0.12); }
       @media (max-width: 600px) {
         #zw-lang-box { width: calc(100vw - 2rem) !important; max-width: calc(100vw - 2rem) !important; height: auto !important; max-height: 92dvh !important; border-radius: 18px !important; }
         #zw-lang-modal { align-items: center !important; justify-content: center !important; }
