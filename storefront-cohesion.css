@@ -306,6 +306,14 @@ body.light-mode .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):no
   color:var(--zw-ink) !important;
 }
 
+body.super-light-mode .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#all-reviews-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.collection-review-box){
+  background:#FFFFFF !important;
+  border-color:rgba(9,9,11,.1) !important;
+  border-top-color:#09090b !important;
+  border-left-color:rgba(9,9,11,.1) !important;
+  color:#09090b !important;
+}
+
 /* all-reviews box: explicit desktop styles (excluded from generic rule above, desktop only) */
 @media(min-width:601px){
   #all-reviews-modal > .review-list-mbox{
@@ -326,6 +334,12 @@ body.light-mode .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):no
     border-color:var(--zw-line-light) !important;
     border-top-color:var(--zw-ink) !important;
     color:var(--zw-ink) !important;
+  }
+  body.super-light-mode #all-reviews-modal > .review-list-mbox{
+    background:#FFFFFF !important;
+    border-color:rgba(9,9,11,.1) !important;
+    border-top-color:#09090b !important;
+    color:#09090b !important;
   }
 }
 
@@ -352,6 +366,13 @@ body.light-mode #zw-lang-box{
   border-color:var(--zw-line-light) !important;
   border-top-color:var(--zw-ink) !important;
   color:var(--zw-ink) !important;
+}
+
+body.super-light-mode #zw-lang-box{
+  background:#FFFFFF !important;
+  border-color:rgba(9,9,11,.1) !important;
+  border-top-color:#09090b !important;
+  color:#09090b !important;
 }
 
 #auth-modal > .mbox,

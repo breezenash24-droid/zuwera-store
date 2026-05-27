@@ -1636,6 +1636,12 @@ body.light-mode .review-dialog {
   box-shadow: 0 26px 70px rgba(9,9,11,0.15);
 }
 
+body.super-light-mode .review-dialog {
+  background: #FFFFFF;
+  border-color: rgba(9,9,11,0.1);
+  box-shadow: 0 26px 70px rgba(9,9,11,0.12);
+}
+
 body.light-mode .review-modal-title,
 body.light-mode .review-card-title,
 body.light-mode .review-card-author,
