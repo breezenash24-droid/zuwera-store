@@ -2782,6 +2782,7 @@
                             <option value="kids">Kids</option>
                             <option value="sports_bras">Sports Bras</option>
                             <option value="hats">Hats</option>
+                            <option value="socks">Socks</option>
                         </select>
                     </div>
                     <table class="products-table">
@@ -6162,6 +6163,7 @@
                         <option value="kids">Kids</option>
                         <option value="sports_bras">Sports Bras</option>
                         <option value="hats">Hats</option>
+                        <option value="socks">Socks</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -10310,7 +10312,8 @@
             women_tops: ['Size', 'US Size', 'Bust (in)', 'Waist (in)', 'Hips (in)'],
             kids: ['Size', 'Age', 'Height (in)', 'Chest (in)', 'Waist (in)', 'Hips (in)'],
             sports_bras: ['Size', 'Band Size', 'Cup Size'],
-            hats: ['Size', 'Head Circ (in)', 'Head Circ (cm)']
+            hats: ['Size', 'Head Circ (in)', 'Head Circ (cm)'],
+            socks: ['Size', "US Men's", "US Women's", 'US Kids', 'UK', 'EU']
         };
 
         const sizeChartDbCols = {
@@ -10318,7 +10321,8 @@
             women_tops: ['size_label', 'us_size', 'bust_in', 'waist_in', 'hips_in'],
             kids: ['size_label', 'numeric_size', 'height_in', 'chest_in', 'waist_in', 'hips_in'],
             sports_bras: ['size_label', 'band_size', 'cup_size'],
-            hats: ['size_label', 'head_circ_in', 'head_circ_cm']
+            hats: ['size_label', 'head_circ_in', 'head_circ_cm'],
+            socks: ['size_label', 'us_mens', 'us_womens', 'us_kids', 'uk', 'eu']
         };
 
         async function loadSizeCharts() {

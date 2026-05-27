@@ -972,6 +972,7 @@
       <button class="tab-btn" data-tab="kids">Kids</button>
       <button class="tab-btn" data-tab="sports_bras">Sports Bras</button>
       <button class="tab-btn" data-tab="hats">Hats</button>
+      <button class="tab-btn" data-tab="socks">Socks</button>
       <button class="tab-btn" data-tab="technologies">Fabric Tech</button>
     </div>
 
@@ -1075,6 +1076,20 @@
               </tr>
             </thead>
             <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SOCKS -->
+    <div class="tab-panel" id="tab-socks">
+      <div class="table-section">
+        <h2>Unisex Socks</h2>
+        <p style="font-size:0.75rem;letter-spacing:0.08em;text-transform:uppercase;opacity:0.55;margin-bottom:1.2rem;">Use the chart below to determine the right size for you. Scroll horizontally to see more sizes.</p>
+        <div class="table-wrap">
+          <table id="table-socks">
+            <thead><tr id="socks-header-row"></tr></thead>
+            <tbody id="socks-tbody"></tbody>
           </table>
         </div>
       </div>
@@ -1221,6 +1236,14 @@
         { size_label: 'S/M', head_circ_in: '21.25-22.5', head_circ_cm: '54-57' },
         { size_label: 'M/L', head_circ_in: '22.5-23.5', head_circ_cm: '57-60' },
         { size_label: 'L/XL', head_circ_in: '23.5-24.75', head_circ_cm: '60-63' }
+      ],
+      socks: [
+        { size_label: 'XS',  us_mens: null,       us_womens: null,        us_kids: '13C – 3Y', uk: null,          eu: '31 – 35' },
+        { size_label: 'S',   us_mens: null,       us_womens: '4 – 6',    us_kids: '3Y – 5Y',  uk: '2 – 5',       eu: '34 – 38' },
+        { size_label: 'M',   us_mens: '6 – 8',   us_womens: '6 – 10',   us_kids: '5Y – 7Y',  uk: '5 – 8',       eu: '38 – 42' },
+        { size_label: 'L',   us_mens: '8 – 12',  us_womens: '10 – 13',  us_kids: null,        uk: '8 – 11',      eu: '42 – 46' },
+        { size_label: 'XL',  us_mens: '12 – 15', us_womens: null,        us_kids: null,        uk: '11 – 14.5',   eu: '46 – 50' },
+        { size_label: '2XL', us_mens: '15 – 18', us_womens: null,        us_kids: null,        uk: '14.5 – 17',   eu: '50 – 53' }
       ]
     };
 
@@ -1350,7 +1373,8 @@
         women_tops: [],
         kids: [],
         sports_bras: [],
-        hats: []
+        hats: [],
+        socks: []
       };
 
       data.forEach(row => {
@@ -1374,6 +1398,30 @@
       renderTable('kids', sizeChartData.kids, ['size_label', 'numeric_size', 'height_in', 'chest_in', 'waist_in', 'hips_in']);
       renderSportsBrasTable();
       renderHatsTable();
+      renderSocksTable();
+    }
+
+    function renderSocksTable() {
+      const headerRow = document.getElementById('socks-header-row');
+      const tbody = document.getElementById('socks-tbody');
+      if (!headerRow || !tbody) return;
+      const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', '2XL'];
+      const sizes = [...sizeChartData.socks].sort((a, b) =>
+        sizeOrder.indexOf(a.size_label) - sizeOrder.indexOf(b.size_label)
+      );
+      headerRow.innerHTML = '<th>Size</th>' + sizes.map(s => `<th>${s.size_label}</th>`).join('');
+      const metrics = [
+        { label: 'US – Men\'s',   field: 'us_mens' },
+        { label: 'US – Women\'s', field: 'us_womens' },
+        { label: 'US – Kids',     field: 'us_kids' },
+        { label: 'UK',            field: 'uk' },
+        { label: 'EU',            field: 'eu' }
+      ];
+      tbody.innerHTML = metrics.map(m =>
+        `<tr><td style="font-weight:500;white-space:nowrap;">${m.label}</td>${
+          sizes.map(s => `<td>${s[m.field] || '—'}</td>`).join('')
+        }</tr>`
+      ).join('');
     }
 
     function renderTable(tabId, data, columns) {
