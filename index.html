@@ -981,6 +981,9 @@ body.light-mode .pcard-skel-img,body.light-mode .pcard-skel-line{background:rgba
 }
 .mclose:hover{opacity:1;background:rgba(244,241,235,.1)}
 
+/* Quick-add modal is excluded from the generic cohesion super-light selector, so override here */
+body.super-light-mode .quick-add-review-modal>.mbox{background:#FFFFFF !important;border-color:rgba(9,9,11,.1) !important;border-top-color:#09090b !important;color:#09090b !important}
+
 /* Keep the quick-add mini product page from inheriting the small auth modal shell. */
 .mbox.quick-add-review-box.quick-add-product-box{
   width:min(1080px,94vw);
