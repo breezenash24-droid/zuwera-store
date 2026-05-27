@@ -524,3 +524,28 @@
     grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
   }
 }
+
+@media (max-width: 900px){
+  :is(nav#nav,.nav,header.nav){
+    padding-top:.75rem !important;
+  }
+
+  nav#nav.scrolled{
+    padding-top:.65rem !important;
+  }
+
+  :is(nav#nav,.nav,header.nav) :is(.nav-logo,.nav-logo-link),
+  .zw-nav .zw-nav-logo{
+    top:8px !important;
+  }
+
+  .hamburger-btn,
+  #mobile-menu-btn{
+    top:6px !important;
+  }
+
+  #mobile-menu{
+    top:var(--zw-mobile-menu-offset, 56px) !important;
+    height:calc(100dvh - var(--zw-mobile-menu-offset, 56px)) !important;
+  }
+}
