@@ -188,6 +188,7 @@ html{scroll-behavior:smooth;font-size:16px;background:#09090b;overscroll-behavio
 /* Safe-area fill must sit above the noise overlay (body::after z-index:9998) */
 html::before{z-index:9999!important}
 html:has(body.light-mode)::before{background:#F0EEE9!important}
+html:has(body.super-light-mode)::before{background:#FFFFFF!important}
 @keyframes pageIn{from{opacity:0}to{opacity:1}}
 body{
   background:var(--ink);
@@ -1787,28 +1788,28 @@ body.light-mode::after{opacity:0.15}
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=7b6f9b38">
 <script src="image-utils.js?v=6eef467b" defer></script>
 <script src="mobile-menu.js?v=4c6ccedc" defer></script>
-<script>try{var _t=localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
+<script>try{var _t=localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to content</a>
 
 <script>
 // Load theme immediately to prevent flash.
-// Default: DARK (the site's primary theme). Only apply light-mode if
-// (a) localStorage says so from a previous storefront-theme.js fetch, or
-// (b) this is the first visit and storefront-theme.js will correct it.
-// This eliminates the white-flash / blank-screen on mobile.
 (function() {
   function syncThemeColor() {
+    var isSuperLight = document.body.classList.contains('super-light-mode');
     var isLight = document.body.classList.contains('light-mode');
-    var navBg = isLight ? '#F0EEE9' : '#09090b';
+    var navBg = isSuperLight ? '#FFFFFF' : isLight ? '#F0EEE9' : '#09090b';
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', navBg);
     document.documentElement.style.backgroundColor = navBg;
   }
   try {
-    if (localStorage.getItem('zw_theme_mode') === 'light') {
+    var _m = localStorage.getItem('zw_theme_mode');
+    if (_m === 'light') {
       document.body.classList.add('light-mode');
+    } else if (_m === 'super-light') {
+      document.body.classList.add('light-mode', 'super-light-mode');
     }
   } catch(_) {}
   syncThemeColor();

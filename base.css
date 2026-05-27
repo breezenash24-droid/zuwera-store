@@ -111,3 +111,9 @@ body.light-mode {
   --border-soft:  var(--c08);
   --muted:        var(--c50);
 }
+
+/* ===================== SUPER LIGHT MODE ===================== */
+body.super-light-mode {
+  --black:  #FFFFFF;
+  --ink:    #FFFFFF;
+}

@@ -462,6 +462,16 @@
   text-transform: none;
 }
 
+/* Super Light Mode Overrides */
+body.super-light-mode .review-mbox { background: #FFFFFF !important; }
+body.super-light-mode .review-list-mbox { background: #FFFFFF !important; }
+body.super-light-mode .review-summary-box { background: #FFFFFF; }
+body.super-light-mode .translate-btn { background: #FFFFFF; }
+body.super-light-mode .review-advanced-legacy { background: #FFFFFF !important; }
+body.super-light-mode .review-list-select,
+body.super-light-mode .review-list-translate,
+body.super-light-mode .review-list-close { background: #FFFFFF; }
+
 /* Light Mode Overrides */
 body.light-mode .review-mbox {
   background: #F0EEE9 !important;

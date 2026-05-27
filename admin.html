@@ -6519,7 +6519,7 @@
         let currentUser = null;
         let currentProduct = null;
         let deleteProductId = null;
-        let isDarkMode = true;
+        let themeMode = 'dark'; // 'dark' | 'light' | 'super-light'
         let sizeChartsData = [];
         let currentSizeChart = null;
         let productSizeChartCache = null;
@@ -6614,48 +6614,39 @@
         // Theme Management
         function initializeTheme() {
             const saved = localStorage.getItem('theme');
-            if (saved) {
-                isDarkMode = saved === 'dark';
-            }
+            if (saved === 'light' || saved === 'super-light' || saved === 'dark') themeMode = saved;
             applyTheme();
         }
 
-        function applyTheme(isDark) {
+        function applyTheme() {
             const body = document.body;
-            if (isDarkMode) {
-                body.classList.remove('light-mode');
-                document.getElementById('themeIcon').textContent = '🌙';
-                document.getElementById('themeLabel').textContent = 'Dark';
-                const mi = document.getElementById('mobThemeIcon'); if (mi) mi.textContent = '🌙';
-                const ml = document.getElementById('mobThemeLabel'); if (ml) ml.textContent = 'Dark mode';
-            } else {
-                body.classList.add('light-mode');
-                document.getElementById('themeIcon').textContent = '☀️';
-                document.getElementById('themeLabel').textContent = 'Light';
-                const mi = document.getElementById('mobThemeIcon'); if (mi) mi.textContent = '☀️';
-                const ml = document.getElementById('mobThemeLabel'); if (ml) ml.textContent = 'Light mode';
-            }
-            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-        
+            const icons  = { dark: '🌙', light: '☀️', 'super-light': '⬜' };
+            const labels = { dark: 'Dark', light: 'Light', 'super-light': 'Super Light' };
+            body.classList.toggle('light-mode', themeMode !== 'dark');
+            document.getElementById('themeIcon').textContent  = icons[themeMode];
+            document.getElementById('themeLabel').textContent = labels[themeMode];
+            const mi = document.getElementById('mobThemeIcon');  if (mi) mi.textContent = icons[themeMode];
+            const ml = document.getElementById('mobThemeLabel'); if (ml) ml.textContent = labels[themeMode] + ' mode';
+            localStorage.setItem('theme', themeMode);
+
             // Save theme to Supabase for main site only after auth has loaded.
             if (typeof sb !== 'undefined' && sb && currentUser?.id) {
-                sb.from('site_settings').upsert({ key: 'theme', value: { mode: isDarkMode ? 'dark' : 'light' } }, { onConflict: 'key' })
+                sb.from('site_settings').upsert({ key: 'theme', value: { mode: themeMode } }, { onConflict: 'key' })
                     .then(({ error }) => {
-                        if (!error) void logAdminAudit('settings.update', 'site_settings', 'theme', { mode: isDarkMode ? 'dark' : 'light' });
+                        if (!error) void logAdminAudit('settings.update', 'site_settings', 'theme', { mode: themeMode });
                     });
             }
-            
+
             // Sync theme to embedded analytics iframe
             const frame = document.getElementById('analyticsFrame');
             if (frame && frame.contentWindow) {
-                try {
-                    frame.contentWindow.postMessage({ type: 'zw-theme', mode: isDarkMode ? 'dark' : 'light' }, '*');
-                } catch (_) {}
+                try { frame.contentWindow.postMessage({ type: 'zw-theme', mode: themeMode }, '*'); } catch (_) {}
             }
         }
 
         document.getElementById('themeToggle').addEventListener('click', () => {
-            isDarkMode = !isDarkMode;
+            const cycle = { dark: 'light', light: 'super-light', 'super-light': 'dark' };
+            themeMode = cycle[themeMode] || 'dark';
             applyTheme();
         });
 
@@ -7911,7 +7902,7 @@
                 document.getElementById('analyticsFrame').addEventListener('load', () => {
                     try {
                         document.getElementById('analyticsFrame').contentWindow.postMessage(
-                            { type: 'zw-theme', mode: isDarkMode ? 'dark' : 'light' }, '*'
+                            { type: 'zw-theme', mode: themeMode }, '*'
                         );
                     } catch (_) {}
                 });

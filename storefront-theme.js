@@ -5,10 +5,11 @@
   var SUPABASE_ANON = window.SUPABASE_ANON || window.SUPA_ANON || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 
   function applyThemeMode(mode) {
-    var resolved = mode === 'dark' ? 'dark' : 'light';
+    var resolved = mode === 'dark' ? 'dark' : mode === 'super-light' ? 'super-light' : 'light';
     if (!document.body) return;
-    document.body.classList.toggle('light-mode', resolved === 'light');
-    var color = resolved === 'light' ? '#F0EEE9' : '#09090b';
+    document.body.classList.toggle('light-mode', resolved !== 'dark');
+    document.body.classList.toggle('super-light-mode', resolved === 'super-light');
+    var color = resolved === 'dark' ? '#09090b' : resolved === 'super-light' ? '#FFFFFF' : '#F0EEE9';
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', color);
     document.documentElement.style.backgroundColor = color;
@@ -191,7 +192,9 @@
 
   window.__zwApplyAdminTheme = applyThemeMode;
   window.__zwSyncThemeColor = function() {
-    applyThemeMode(document.body && document.body.classList.contains('light-mode') ? 'light' : 'dark');
+    var m = document.body && document.body.classList.contains('super-light-mode') ? 'super-light'
+          : document.body && document.body.classList.contains('light-mode') ? 'light' : 'dark';
+    applyThemeMode(m);
   };
 
   async function loadSiteSettings() {
@@ -215,7 +218,8 @@
 
       rows.forEach(function(row) {
         if (row.key === 'theme') {
-          var mode = row.value && row.value.mode === 'dark' ? 'dark' : 'light';
+          var mode = row.value && row.value.mode === 'dark' ? 'dark'
+                   : row.value && row.value.mode === 'super-light' ? 'super-light' : 'light';
           applyThemeMode(mode);
         }
         if (row.key === 'brand') {

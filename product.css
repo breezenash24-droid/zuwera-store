@@ -887,6 +887,7 @@ body.light-mode .cookie-consent-banner {
   border-top-color: rgba(9,9,11,.1);
   color: rgba(9,9,11,.65);
 }
+body.super-light-mode .cookie-consent-banner { background: #FFFFFF; }
 body.light-mode .cookie-consent-banner p { color: rgba(9,9,11,.65); }
 body.light-mode .cookie-accept { background: #09090b; color: #E8E3DC; border-color: #09090b; }
 body.light-mode .cookie-decline { color: rgba(9,9,11,.45); border-color: rgba(9,9,11,.2); }

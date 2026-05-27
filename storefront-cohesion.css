@@ -2,8 +2,10 @@
    Product page is the source of truth for buttons, cards, modals, and mobile rhythm. */
 html{background:#09090b;color-scheme:dark light;text-size-adjust:100%;-webkit-text-size-adjust:100%}
 html:has(body.light-mode){background:#F0EEE9;color-scheme:light}
+html:has(body.super-light-mode){background:#FFFFFF;color-scheme:light}
 html::before{content:'';position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:#09090b;z-index:650;pointer-events:none}
 html:has(body.light-mode)::before{background:#F0EEE9}
+html:has(body.super-light-mode)::before{background:#FFFFFF}
 a,button,[role="button"]{touch-action:manipulation}
 :root{
   --zw-ink:#09090b;
@@ -69,6 +71,15 @@ body.light-mode{
   --paper:var(--zw-ink);
   --black:var(--zw-page);
   --white:var(--zw-ink);
+}
+
+body.super-light-mode{
+  background:#FFFFFF;
+  --zw-page:#FFFFFF;
+  --zw-paper:#f5f5f5;
+  --zw-cream:#e8e8e8;
+  --ink:#FFFFFF;
+  --black:#FFFFFF;
 }
 
 button,
@@ -1215,6 +1226,10 @@ body.light-mode .heart-btn{
   body.light-mode #mobile-menu{
     background:#F0EEE9 !important;
     border-top-color:rgba(9,9,11,.08) !important;
+  }
+
+  body.super-light-mode #mobile-menu{
+    background:#FFFFFF !important;
   }
 
   #mobile-menu-close{

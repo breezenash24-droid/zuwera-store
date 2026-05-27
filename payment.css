@@ -186,3 +186,7 @@ body.light-mode .pay-secure-note { color: rgba(9,9,11,0.35); }
 body.light-mode #payment-success { background: #F0EEE9; }
 body.light-mode #payment-success p { color: rgba(9,9,11,0.5); }
 body.light-mode #success-continue { background: #09090b; color: #E8E3DC; }
+
+/* ===================== SUPER LIGHT MODE ===================== */
+body.super-light-mode .payment-box { background: #FFFFFF; }
+body.super-light-mode #payment-success { background: #FFFFFF; }

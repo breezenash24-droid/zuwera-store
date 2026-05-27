@@ -213,6 +213,11 @@ body.light-mode .cart-summary {
   background: #F0EEE9;
   border-color: rgba(9,9,11,0.1);
 }
+
+/* ===================== SUPER LIGHT MODE ===================== */
+body.super-light-mode #cart-modal { background: #FFFFFF; }
+body.super-light-mode .cart-page-header { background: #FFFFFF; }
+body.super-light-mode .cart-summary { background: #FFFFFF; }
 body.light-mode .cart-empty-msg { color: rgba(9,9,11,0.4); }
 body.light-mode #cart-items-list { border-top-color: rgba(9,9,11,0.1); }
 body.light-mode #cart-items-list li {
