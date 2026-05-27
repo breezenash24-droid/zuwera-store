@@ -185,8 +185,8 @@
   --mobile-nav-gap:0px;
 }
 html{scroll-behavior:smooth;font-size:16px;background:#09090b;overscroll-behavior-y:auto}
-/* Safe-area fill must sit above the noise overlay (body::after z-index:9998) */
-html::before{z-index:9999!important}
+/* Safe-area fill must stay below the fixed mobile header. */
+html::before{z-index:550!important}
 html:has(body.light-mode)::before{background:#F0EEE9!important}
 html:has(body.super-light-mode)::before{background:#FFFFFF!important}
 @keyframes pageIn{from{opacity:0}to{opacity:1}}
@@ -1787,7 +1787,7 @@ body.light-mode::after{opacity:0.15}
 
 </style>
   <link rel="stylesheet" href="reviews-vibe.css?v=764cbdc4">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=26052501">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=26052702">
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=7b6f9b38">
 <script src="image-utils.js?v=6eef467b" defer></script>
 <script src="mobile-menu.js?v=4c6ccedc" defer></script>
