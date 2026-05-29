@@ -1298,6 +1298,20 @@ body.light-mode .heart-btn{
     color:rgba(9,9,11,.84) !important;
   }
 
+  /* Light-mode nav: frosted-glass so content scrolling behind it is blurred rather than readable */
+  body.light-mode :is(nav#nav,.nav,header.nav){
+    background:rgba(240,238,233,0.96) !important;
+    -webkit-backdrop-filter:blur(12px) !important;
+    backdrop-filter:blur(12px) !important;
+    border-bottom-color:rgba(9,9,11,0.12) !important;
+  }
+  body.super-light-mode :is(nav#nav,.nav,header.nav){
+    background:rgba(255,255,255,0.96) !important;
+    -webkit-backdrop-filter:blur(12px) !important;
+    backdrop-filter:blur(12px) !important;
+    border-bottom-color:rgba(9,9,11,0.12) !important;
+  }
+
   /* Cart modal — bottom sheet, no backdrop */
   #cart-modal{background:transparent !important;align-items:flex-end !important;padding:0 !important}
   #cart-modal .cbox{width:100% !important;max-height:92dvh !important;border-radius:1rem 1rem 0 0 !important;margin:0 !important;border-left:none !important;border-right:none !important;border-bottom:none !important}
