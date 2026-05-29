@@ -1,6 +1,15 @@
 (function() {
   'use strict';
 
+  // iPhone notch bar: immediately set color from localStorage to minimize theme FOUC
+  try {
+    if (/iPhone/.test(navigator.userAgent)) {
+      var _nm = localStorage.getItem('zw_theme_mode') || 'dark';
+      document.documentElement.style.setProperty('--zw-notch-bar',
+        _nm === 'super-light' ? '#FFFFFF' : _nm === 'light' ? '#F0EEE9' : '#09090b');
+    }
+  } catch(_) {}
+
   var SUPABASE_URL = window.SUPABASE_URL || window.SUPA_URL || 'https://qfgnrsifcwdubkolsgsq.supabase.co';
   var SUPABASE_ANON = window.SUPABASE_ANON || window.SUPA_ANON || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 
@@ -13,6 +22,9 @@
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', color);
     document.documentElement.style.backgroundColor = color;
+    if (/iPhone/.test(navigator.userAgent)) {
+      document.documentElement.style.setProperty('--zw-notch-bar', color);
+    }
     try { localStorage.setItem('zw_theme_mode', resolved); } catch(_) {}
     window.dispatchEvent(new CustomEvent('zw-theme-applied', { detail: { mode: resolved } }));
   }
