@@ -9,6 +9,10 @@
 }
 
 @media (max-width: 900px){
+  html{
+    scroll-padding-top:calc(56px + env(safe-area-inset-top,0px));
+  }
+
   html,
   body{
     overflow-x:hidden;
