@@ -328,8 +328,8 @@ body.light-mode .heart-btn:hover, body.light-mode .heart-btn.active { color: var
   font-family:var(--font-body);font-size:.6rem;letter-spacing:.1em;
   color:rgba(244,241,235,.25);text-align:center;margin-top:.9rem;
 }
-.alink a {color:rgba(244,241,235,.7);text-decoration:none;border-bottom:1px solid rgba(244,241,235,.2);padding-bottom:1px;transition:color .2s,border-color .2s;cursor:pointer}
-.alink a:hover {color:#F891A5;border-color:#F891A5}
+.alink a,.alink button {color:rgba(244,241,235,.7);text-decoration:none;border:none;border-bottom:1px solid rgba(244,241,235,.2);background:none;padding:0 0 1px;font:inherit;transition:color .2s,border-color .2s;cursor:pointer}
+.alink a:hover,.alink button:hover {color:#F891A5;border-color:#F891A5}
 
 body.light-mode .mbox {background:#F0EEE9;border-color:rgba(9,9,11,.08)}
 body.super-light-mode #size-guide-modal .mbox {background:#FFFFFF !important;border-color:rgba(9,9,11,.08)}
@@ -939,31 +939,31 @@ body.super-light-mode { background: #FFFFFF !important; }
     <div class="apanel auth-panel active" id="panel-signin">
       <div class="mtitle" id="auth-modal-title">Welcome Back</div>
       <div class="msubtitle">Login to your account</div>
-      <div class="fgroup"><label>Email</label><input type="email" id="signin-email" placeholder="you@example.com" autocomplete="email"></div>
+      <div class="fgroup"><label for="signin-email">Email</label><input type="email" id="signin-email" placeholder="you@example.com" autocomplete="email"></div>
       <div class="fgroup">
-        <label>Password</label>
+        <label for="signin-password">Password</label>
         <div style="position:relative;">
           <input type="password" id="signin-password" placeholder="Password" autocomplete="current-password" style="padding-right:40px;">
-          <button type="button" onclick="togglePwd('signin-password', this)" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:rgba(244,241,235,0.4); cursor:pointer; padding:0; display:flex; align-items:center;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          <button type="button" onclick="togglePwd('signin-password', this)" aria-label="Show password" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:rgba(244,241,235,0.4); cursor:pointer; padding:0; display:flex; align-items:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
           </button>
         </div>
       </div>
       <p id="signin-error" class="ferr"></p>
       <button id="signin-submit" class="auth-submit-btn">Login</button>
-      <p class="alink"><a id="forgot-link">Forgot password?</a></p>
+      <p class="alink"><button type="button" id="forgot-link">Forgot password?</button></p>
     </div>
     <div class="apanel auth-panel" id="panel-signup">
       <div class="mtitle">Join Zuwera</div>
       <div class="msubtitle">For those who dream</div>
-      <div class="fgroup"><label>Full Name</label><input type="text" id="signup-name" placeholder="Your name" autocomplete="name"></div>
-      <div class="fgroup"><label>Email</label><input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email"></div>
+      <div class="fgroup"><label for="signup-name">Full Name</label><input type="text" id="signup-name" placeholder="Your name" autocomplete="name"></div>
+      <div class="fgroup"><label for="signup-email">Email</label><input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email"></div>
       <div class="fgroup">
-        <label>Password</label>
+        <label for="signup-password">Password</label>
         <div style="position:relative;">
           <input type="password" id="signup-password" placeholder="Min 6 characters" autocomplete="new-password" style="padding-right:40px;">
-          <button type="button" onclick="togglePwd('signup-password', this)" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:rgba(244,241,235,0.4); cursor:pointer; padding:0; display:flex; align-items:center;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          <button type="button" onclick="togglePwd('signup-password', this)" aria-label="Show password" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:rgba(244,241,235,0.4); cursor:pointer; padding:0; display:flex; align-items:center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
           </button>
         </div>
       </div>
@@ -974,11 +974,11 @@ body.super-light-mode { background: #FFFFFF !important; }
     <div class="apanel auth-panel" id="panel-forgot">
       <div class="mtitle">Reset Password</div>
       <div class="msubtitle">We'll send a link to your email</div>
-      <div class="fgroup"><label>Email</label><input type="email" id="forgot-email" placeholder="you@example.com" autocomplete="email"></div>
+      <div class="fgroup"><label for="forgot-email">Email</label><input type="email" id="forgot-email" placeholder="you@example.com" autocomplete="email"></div>
       <p id="forgot-error" class="ferr"></p>
       <p id="forgot-success" style="display:none;color:#6fcf6f;font-family:var(--font-body);font-size:.68rem;letter-spacing:.08em;margin-bottom:.6rem">&#10003; Check your email for a reset link.</p>
       <button id="forgot-submit" class="auth-submit-btn">Send Reset Link</button>
-      <p class="alink"><a id="back-to-signin">&larr; Back to Login</a></p>
+      <p class="alink"><button type="button" id="back-to-signin">&#8592; Back to Login</button></p>
     </div>
   </div>
 </div>
@@ -1045,9 +1045,9 @@ body.super-light-mode { background: #FFFFFF !important; }
       <!-- LEFT: IMAGE GALLERY -->
     <div class="gallery-section">
         <div class="gallery-main loading" id="galleryMain" style="position:relative">
-          <button id="prevImg" class="gallery-arrow left-arrow">&#10094;</button>
-          <img id="mainImage" src="" alt="Product" class="main-image" fetchpriority="high" decoding="async" width="800" height="1000" style="aspect-ratio:4/5">
-          <button id="nextImg" class="gallery-arrow right-arrow">&#10095;</button>
+          <button id="prevImg" type="button" class="gallery-arrow left-arrow" aria-label="Previous image">&#10094;</button>
+          <img id="mainImage" src="" alt="" class="main-image" fetchpriority="high" decoding="async" width="800" height="1000" style="aspect-ratio:4/5">
+          <button id="nextImg" type="button" class="gallery-arrow right-arrow" aria-label="Next image">&#10095;</button>
           <div class="low-stock-badge hidden" id="lowStockBadge">Low Stock</div>
           <button
             type="button"
@@ -1056,7 +1056,8 @@ body.super-light-mode { background: #FFFFFF !important; }
             data-product-id=""
             data-product-name=""
             data-price=""
-            aria-label="Save"
+            aria-label="Save product"
+            aria-pressed="false"
             onclick="event.stopPropagation();"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
@@ -1095,7 +1096,7 @@ body.super-light-mode { background: #FFFFFF !important; }
         <div class="size-section">
           <div class="size-header">
             <p class="section-label" id="sizeSectionLabel">Select Size</p>
-            <a href="/sizeguide.html" class="size-guide-link" id="sizeGuideLink" onclick="event.preventDefault(); window.openSizeGuideModal?.();">Size Guide</a>
+            <a href="/sizeguide.html" class="size-guide-link" id="sizeGuideLink" onclick="if(window.openSizeGuideModal){event.preventDefault();window.openSizeGuideModal();}">Size Guide</a>
           </div>
           <div class="size-grid" id="sizeGrid"></div>
           <p class="stock-info" id="stockInfo"></p>
@@ -1111,7 +1112,7 @@ body.super-light-mode { background: #FFFFFF !important; }
 
           <!-- SIZE & FIT -->
           <div class="accordion">
-            <button class="accordion-header" onclick="toggleAccordion(this)">
+            <button type="button" class="accordion-header" aria-expanded="false" onclick="toggleAccordion(this)">
               <span>Size & Fit</span>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1130,7 +1131,7 @@ body.super-light-mode { background: #FFFFFF !important; }
 
           <!-- FABRIC & MATERIALS -->
           <div class="accordion">
-            <button class="accordion-header" onclick="toggleAccordion(this)">
+            <button type="button" class="accordion-header" aria-expanded="false" onclick="toggleAccordion(this)">
               <span>Fabric & Materials</span>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1146,7 +1147,7 @@ body.super-light-mode { background: #FFFFFF !important; }
 
           <!-- SHIPPING & RETURNS -->
           <div class="accordion">
-            <button class="accordion-header" onclick="toggleAccordion(this)">
+            <button type="button" class="accordion-header" aria-expanded="false" onclick="toggleAccordion(this)">
               <span>Shipping & Returns</span>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1160,7 +1161,7 @@ body.super-light-mode { background: #FFFFFF !important; }
 
           <!-- REVIEWS -->
           <div class="accordion">
-            <button class="accordion-header" onclick="toggleAccordion(this)">
+            <button type="button" class="accordion-header" aria-expanded="false" onclick="toggleAccordion(this)">
               <span id="reviewsHeader">Reviews</span>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <path d="M5 7.5l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1924,6 +1925,8 @@ let _productFavIds = new Set();
 
 function applyHeartFill(btn, active) {
   btn.classList.toggle('active', active);
+  btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  btn.setAttribute('aria-label', active ? 'Saved — click to unsave' : 'Save product');
   btn.querySelectorAll('svg path, svg circle').forEach(el => {
     el.style.fill = active ? '#c0392b' : '';
     el.style.stroke = active ? '#c0392b' : '';
@@ -3016,11 +3019,13 @@ function toggleAccordion(header) {
   });
   document.querySelectorAll('.accordion-header').forEach(h => {
     h.classList.remove('open');
+    h.setAttribute('aria-expanded', 'false');
   });
 
   // Toggle current
   if (!isOpen) {
     header.classList.add('open');
+    header.setAttribute('aria-expanded', 'true');
     // Add a large flexible buffer so the review forms and dynamic content don't get clipped
     body.style.maxHeight = (body.scrollHeight + 3000) + 'px';
   }

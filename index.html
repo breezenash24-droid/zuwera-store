@@ -1124,8 +1124,8 @@ body.super-light-mode .quick-add-review-modal>.mbox{background:#FFFFFF !importan
   font-family:var(--fm);font-size:.6rem;letter-spacing:.1em;
   color:rgba(244,241,235,.25);text-align:center;margin-top:.9rem;
 }
-.alink a{color:rgba(244,241,235,.7);text-decoration:none;border-bottom:1px solid rgba(244,241,235,.2);padding-bottom:1px;transition:color .2s,border-color .2s;cursor:pointer}
-.alink a:hover{color:var(--gold);border-color:var(--gold)}
+.alink a,.alink button{color:rgba(244,241,235,.7);text-decoration:none;border:none;border-bottom:1px solid rgba(244,241,235,.2);background:none;padding:0 0 1px;font:inherit;transition:color .2s,border-color .2s;cursor:pointer}
+.alink a:hover,.alink button:hover{color:var(--gold);border-color:var(--gold)}
 
 /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
    CART
@@ -1825,7 +1825,7 @@ body.light-mode::after{opacity:0.15}
 <!-- ANNOUNCEMENT BAR -->
 <div id="bar" style="display:none">
   <span class="bar-sep" aria-hidden="true"></span>
-  <span id="announcementText">ALL THE DEVILS ARE HERE</span>
+  <span id="announcementText">Release 001 — Launching Sep 20, 2026</span>
   <span class="bar-sep" aria-hidden="true"></span>
 </div>
 <!-- Spacer holds bar's height in document flow; #bar is always position:fixed -->
@@ -1923,7 +1923,7 @@ body.light-mode::after{opacity:0.15}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </button>
       <button class="btn-ghost" onclick="document.getElementById('home-notify-email').scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>document.getElementById('home-notify-email').focus(),600)">
-        Get Early Access &rarr;
+        Get Early Access <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </button>
     </div>
   </div>
@@ -1999,8 +1999,8 @@ body.light-mode::after{opacity:0.15}
       <div class="notify-box">
         <p class="notify-label">Get Early Access</p>
         <div class="notify-row">
-          <input type="email" id="home-notify-email" placeholder="your@email.com">
-          <button onclick="homeNotifyMe()">Notify Me</button>
+          <input type="email" id="home-notify-email" placeholder="your@email.com" aria-label="Email address for early access">
+          <button type="button" onclick="homeNotifyMe()" aria-label="Get notified for early access">Notify Me</button>
         </div>
         <p class="notify-hint">No spam, ever. Unsubscribe anytime.</p>
         <p id="home-notify-success">&#10003; You're on the list.</p>
@@ -2026,8 +2026,8 @@ body.light-mode::after{opacity:0.15}
   <div class="footer-nl">
     <span class="fnl-label">Stay in the loop</span>
     <div id="nl-form">
-      <input id="nl-email" type="email" placeholder="your@email.com">
-      <button onclick="zwHomeNewsletterSubmit()">Subscribe</button>
+      <input id="nl-email" type="email" placeholder="your@email.com" aria-label="Email address for newsletter">
+      <button type="button" onclick="zwHomeNewsletterSubmit()" aria-label="Subscribe to newsletter">Subscribe</button>
     </div>
     <span id="nl-success" style="display:none">&#10003; You're on the list.</span>
   </div>
@@ -2151,31 +2151,31 @@ body.light-mode::after{opacity:0.15}
     <div class="apanel active" id="panel-signin">
       <div class="mtitle" id="auth-modal-title">Welcome Back</div>
       <div class="msubtitle">Login to your account</div>
-      <div class="fgroup"><label>Email</label><input type="email" id="signin-email" placeholder="you@example.com" autocomplete="email"></div>
+      <div class="fgroup"><label for="signin-email">Email</label><input type="email" id="signin-email" placeholder="you@example.com" autocomplete="email"></div>
       <div class="fgroup">
-        <label>Password</label>
+        <label for="signin-password">Password</label>
         <div style="position:relative;">
           <input type="password" id="signin-password" placeholder="Password" autocomplete="current-password" style="padding-right:40px;">
-          <button type="button" onclick="togglePwd('signin-password', this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(244,241,235,.4);cursor:pointer;padding:0;display:flex;align-items:center;" aria-label="Toggle password visibility">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          <button type="button" onclick="togglePwd('signin-password', this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(244,241,235,.4);cursor:pointer;padding:0;display:flex;align-items:center;" aria-label="Show password">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
           </button>
         </div>
       </div>
       <p id="signin-error" class="ferr"></p>
       <button id="signin-submit" class="auth-submit-btn">Login</button>
-      <p class="alink"><a id="forgot-link">Forgot password?</a></p>
+      <p class="alink"><button type="button" id="forgot-link">Forgot password?</button></p>
     </div>
     <div class="apanel" id="panel-signup">
       <div class="mtitle">Join Zuwera</div>
       <div class="msubtitle">For those who dream</div>
-      <div class="fgroup"><label>Full Name</label><input type="text" id="signup-name" placeholder="Your name" autocomplete="name"></div>
-      <div class="fgroup"><label>Email</label><input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email"></div>
+      <div class="fgroup"><label for="signup-name">Full Name</label><input type="text" id="signup-name" placeholder="Your name" autocomplete="name"></div>
+      <div class="fgroup"><label for="signup-email">Email</label><input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email"></div>
       <div class="fgroup">
-        <label>Password</label>
+        <label for="signup-password">Password</label>
         <div style="position:relative;">
           <input type="password" id="signup-password" placeholder="Min 6 characters" autocomplete="new-password" style="padding-right:40px;">
-          <button type="button" onclick="togglePwd('signup-password', this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(244,241,235,.4);cursor:pointer;padding:0;display:flex;align-items:center;" aria-label="Toggle password visibility">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          <button type="button" onclick="togglePwd('signup-password', this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(244,241,235,.4);cursor:pointer;padding:0;display:flex;align-items:center;" aria-label="Show password">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
           </button>
         </div>
       </div>
@@ -2186,21 +2186,21 @@ body.light-mode::after{opacity:0.15}
     <div class="apanel" id="panel-forgot">
       <div class="mtitle">Reset Password</div>
       <div class="msubtitle">We'll send a link to your email</div>
-      <div class="fgroup"><label>Email</label><input type="email" id="forgot-email" placeholder="you@example.com" autocomplete="email"></div>
+      <div class="fgroup"><label for="forgot-email">Email</label><input type="email" id="forgot-email" placeholder="you@example.com" autocomplete="email"></div>
       <p id="forgot-error" class="ferr"></p>
       <p id="forgot-success" style="display:none;color:#6fcf6f;font-family:var(--fm);font-size:.68rem;letter-spacing:.08em;margin-bottom:.6rem">&#10003; Check your email for a reset link.</p>
       <button id="forgot-submit" class="auth-submit-btn">Send Reset Link</button>
-      <p class="alink"><a id="back-to-signin">&larr; Back to Login</a></p>
+      <p class="alink"><button type="button" id="back-to-signin">&#8592; Back to Login</button></p>
     </div>
     <div class="apanel" id="panel-update-password">
       <div class="mtitle">New Password</div>
       <div class="msubtitle">Enter your new password below</div>
       <div class="fgroup">
-        <label>New Password</label>
+        <label for="update-password-input">New Password</label>
         <div style="position:relative;">
           <input type="password" id="update-password-input" placeholder="Min 6 characters" style="padding-right:40px;">
-          <button type="button" onclick="togglePwd('update-password-input', this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(244,241,235,.4);cursor:pointer;padding:0;display:flex;align-items:center;" aria-label="Toggle password visibility">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          <button type="button" onclick="togglePwd('update-password-input', this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(244,241,235,.4);cursor:pointer;padding:0;display:flex;align-items:center;" aria-label="Show password">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
           </button>
         </div>
       </div>
