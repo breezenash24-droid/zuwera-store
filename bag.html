@@ -1076,11 +1076,12 @@ window.__zwOpenAuth = function(tab) {
 </script>
 
 <script src="image-utils.js?v=6eef467b"></script>
-<script src="auth.js?v=97d46784"></script>
+<script src="auth.js?v=97d46784" defer></script>
 <script>
 /* ── Saved items visibility + member pricing: flip as soon as auth state is known ── */
 (function() {
-  if (!window.sb) return;
+  // Note: window.sb guard removed — prefillCheckoutForUser/applyAuthState don't
+  // need sb directly, and auth.js is now deferred so they must be defined up-front.
 
   var _bagHubData = null;
 
