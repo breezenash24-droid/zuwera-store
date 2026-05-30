@@ -1356,9 +1356,10 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 // Legacy aliases used by loadProduct/loadSiteSettings REST fetch calls
 const _PROD_SB_URL = SUPABASE_URL;
 const _PROD_SB_KEY = SUPABASE_ANON;
-// sb and _sessionPromise are null until startWithSb() runs in DOMContentLoaded
+// sb / _sessionPromise / _productFetchPromise are null until startWithSb() runs
 let sb = null;
 let _sessionPromise = null;
+let _productFetchPromise = null;
 let _productAnnouncementBarScrollHandler = null;
 
 function teardownAnnouncementBarScroll() {
@@ -2029,9 +2030,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   initializeCookieConsent();
 
   try {
-    // Await the fetch that was started immediately when the script loaded.
-    // In most cases the data is already here by the time the DOM is ready.
-    await _productFetchPromise;
+    // _productFetchPromise is set by startWithSb() which is also in DOMContentLoaded.
+    // Poll briefly so the two handlers don't race (startWithSb registers second so
+    // its fetch starts a few microtasks after this handler begins).
+    if (!_productFetchPromise) {
+      await new Promise(r => setTimeout(r, 0));
+    }
+    if (_productFetchPromise) {
+      await _productFetchPromise;
+    }
     renderProduct();
   } catch (err) {
     console.error('Product load error:', err);
