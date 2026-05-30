@@ -1337,11 +1337,38 @@
         .review-table-wrapper { padding: 16px; overflow-x: auto; }
         .review-summary-stats { display: flex; align-items: center; gap: 1rem; font-size: 0.85rem; color: var(--text-secondary); }
         .review-summary-stats .rating { color: var(--warning); }
-.image-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
-        .image-row .form-input { flex: 1; }
-        .image-row .btn-upload { padding: 8px 12px; font-size: 0.85rem; white-space: nowrap; background: var(--accent); color: #000; border: none; border-radius: 6px; cursor: pointer; font-family: 'Barlow', sans-serif; }
-        .image-row .btn-upload:hover { opacity: 0.9; }
-        .image-preview { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); }
+/* ── Media gallery (Visuals tab) ──────────────────────────────── */
+/* Legacy .image-row kept for non-product-image contexts */
+.image-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+.image-row .form-input { flex:1; }
+.image-row .btn-upload { padding:8px 12px; font-size:.85rem; white-space:nowrap; background:var(--accent); color:#000; border:none; border-radius:6px; cursor:pointer; font-family:'Barlow',sans-serif; }
+.image-row .btn-upload:hover { opacity:.9; }
+.image-preview { width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid var(--border); }
+
+/* New media-card design */
+.media-section-head { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:.85rem; flex-wrap:wrap; }
+.media-hint { font-size:.76rem; color:var(--text-secondary); margin-top:4px; line-height:1.6; max-width:480px; }
+.media-grid { display:flex; flex-direction:column; gap:10px; }
+.media-card { display:grid; grid-template-columns:90px 1fr auto; gap:12px; align-items:start; background:var(--bg-primary); border:1px solid var(--border); border-radius:8px; padding:12px; transition:border-color .15s; }
+.media-card:hover { border-color:var(--accent); }
+.media-preview-wrap { position:relative; width:90px; aspect-ratio:3/4; background:var(--bg-tertiary); border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1px solid var(--border); }
+.media-thumb { width:100%; height:100%; object-fit:cover; display:block; border-radius:5px; }
+.media-placeholder-icon { font-size:1.6rem; opacity:.25; user-select:none; }
+.media-type-badge { position:absolute; bottom:4px; left:4px; font-size:.58rem; letter-spacing:.06em; font-weight:700; padding:2px 5px; border-radius:3px; background:rgba(0,0,0,.6); color:#fff; text-transform:uppercase; pointer-events:none; }
+.media-card-body { min-width:0; display:flex; flex-direction:column; gap:8px; padding-top:2px; }
+.media-url-row { display:flex; gap:6px; align-items:center; }
+.media-url-row .form-input { min-width:0; font-size:.84rem; }
+.media-url-row .btn-upload { padding:7px 11px; font-size:.8rem; white-space:nowrap; background:var(--accent); color:#000; border:none; border-radius:6px; cursor:pointer; font-family:'Barlow',sans-serif; flex-shrink:0; }
+.media-url-row .btn-upload:hover { opacity:.85; }
+.media-meta-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.media-meta-label { font-size:.72rem; color:var(--text-secondary); white-space:nowrap; letter-spacing:.03em; }
+.media-color-select { font-size:.8rem; padding:4px 8px; border:1px solid var(--border); border-radius:5px; background:var(--bg-secondary); color:var(--text-primary); flex:1; max-width:170px; }
+.media-num { font-size:.68rem; color:var(--text-secondary); letter-spacing:.06em; font-weight:700; text-transform:uppercase; }
+.media-card-actions { display:flex; flex-direction:column; gap:4px; align-items:center; padding-top:2px; }
+.btn-reorder { background:var(--bg-secondary); border:1px solid var(--border); border-radius:4px; cursor:pointer; color:var(--text-secondary); font-size:.9rem; width:28px; height:28px; display:flex; align-items:center; justify-content:center; padding:0; transition:border-color .15s,color .15s; }
+.btn-reorder:hover { border-color:var(--accent); color:var(--accent); }
+.btn-remove-media { background:none; border:1px solid rgba(239,68,68,.3); border-radius:4px; cursor:pointer; color:#ef4444; font-size:.72rem; padding:4px 7px; white-space:nowrap; margin-top:auto; transition:background .15s; }
+.btn-remove-media:hover { background:rgba(239,68,68,.1); }
 
         /* ── Typography Section ──────────────────────────────────────────── */
         .font-role-card { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 18px; }
@@ -6052,14 +6079,21 @@
                 <!-- Tab: Visuals & Model -->
                 <div id="visuals" class="tab-content">
                     <div class="form-group">
-                        <label class="form-label">Images <span class="required">*</span></label>
-                        <div id="imagesContainer"></div>
-                        <button type="button" class="btn btn-secondary btn-sm" id="addImageBtn">+ Add Image</button>
+                        <div class="media-section-head">
+                            <div>
+                                <label class="form-label" style="margin-bottom:0">Media Gallery <span class="required">*</span></label>
+                                <p class="media-hint">The <strong>first item</strong> is shown in product listings. Use portrait images at 900×1200 px (3:4 ratio) or better. Videos should be short loops (5–15 s). Assign specific media to a color so customers see the right images when they pick that colorway — leave "All colors" for shared images.</p>
+                            </div>
+                            <button type="button" class="btn btn-secondary btn-sm" id="addImageBtn" style="flex-shrink:0">+ Add Media</button>
+                        </div>
+                        <div id="imagesContainer" class="media-grid"></div>
                     </div>
+                    <hr style="border:none;border-top:1px solid var(--border);margin:1.25rem 0 1rem">
+                    <div style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.6rem;">Model Reference</div>
                     <div class="form-grid">
                         <div class="form-group">
                             <label class="form-label">Model Height</label>
-                            <input type="text" id="modelHeight" class="form-input" placeholder="e.g., 6'0\"">
+                            <input type="text" id="modelHeight" class="form-input" placeholder="e.g., 6'0&quot;">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Model Size Worn</label>
@@ -8966,25 +9000,59 @@
         // Images Management
         document.getElementById('addImageBtn').addEventListener('click', () => {
             const container = document.getElementById('imagesContainer');
-            const count = container.children.length + 1;
-            const row = document.createElement('div');
-            row.className = 'image-row';
-            row.innerHTML = buildMediaRowHtml('Media ' + count, '', getColorOptionsForRows(), '', '');
-            container.appendChild(row);
-            // Live URL detection: auto-show video preview when user pastes a video URL
-            row.querySelector('.product-image-url').addEventListener('change', function() {
-                const url = this.value.trim();
-                const vidPrev = row.querySelector('.video-preview');
-                const imgPrev = row.querySelector('.image-preview');
-                if (isVideoUrl(url)) {
-                    if (imgPrev) imgPrev.style.display = 'none';
-                    if (vidPrev) { vidPrev.src = url; vidPrev.style.display = 'block'; }
-                } else if (url) {
-                    if (vidPrev) { vidPrev.style.display = 'none'; vidPrev.src = ''; }
-                    if (imgPrev) { imgPrev.src = url; imgPrev.style.display = 'block'; }
-                }
-            });
+            addMediaCard(container, '', '', '');
         });
+
+        function addMediaCard(container, url, colorOpts, selectedColor) {
+            const opts = colorOpts || getColorOptionsForRows();
+            const card = document.createElement('div');
+            card.className = 'media-card';
+            card.innerHTML = buildMediaRowHtml('', url, opts, selectedColor, '');
+            container.appendChild(card);
+            attachMediaCardListeners(card);
+            return card;
+        }
+
+        function attachMediaCardListeners(card) {
+            const urlInput = card.querySelector('.product-image-url');
+            if (!urlInput) return;
+            urlInput.addEventListener('change', function() {
+                updateMediaCardPreview(card, this.value.trim());
+            });
+            urlInput.addEventListener('paste', function() {
+                setTimeout(() => updateMediaCardPreview(card, this.value.trim()), 50);
+            });
+        }
+
+        function updateMediaCardPreview(card, url) {
+            const imgPrev  = card.querySelector('.image-preview');
+            const vidPrev  = card.querySelector('.video-preview');
+            const placeholder = card.querySelector('.media-placeholder-icon');
+            const badge    = card.querySelector('.media-type-badge');
+            const wrap     = card.querySelector('.media-preview-wrap');
+            const isVid    = isVideoUrl(url);
+            const safeUrl  = safeHttpUrl(url);
+
+            if (!safeUrl) {
+                if (imgPrev)  { imgPrev.style.display = 'none'; imgPrev.src = ''; }
+                if (vidPrev)  { vidPrev.style.display = 'none'; vidPrev.src = ''; }
+                if (placeholder) placeholder.style.display = '';
+                if (badge) badge.remove();
+                return;
+            }
+            if (placeholder) placeholder.style.display = 'none';
+            if (isVid) {
+                if (imgPrev)  { imgPrev.style.display = 'none'; imgPrev.src = ''; }
+                if (vidPrev)  { vidPrev.src = safeUrl; vidPrev.style.display = ''; }
+            } else {
+                if (vidPrev)  { vidPrev.style.display = 'none'; vidPrev.src = ''; }
+                if (imgPrev)  { imgPrev.src = safeUrl; imgPrev.style.display = ''; }
+            }
+            // Update type badge
+            let b = card.querySelector('.media-type-badge');
+            if (!b) { b = document.createElement('span'); b.className = 'media-type-badge'; wrap?.appendChild(b); }
+            b.textContent = isVid ? 'VIDEO' : 'IMAGE';
+        }
 
         // Color Variants
         document.getElementById('addColorBtn').addEventListener('click', (e) => {
@@ -9160,9 +9228,9 @@
             return isVideoUrl(url) ? 'video' : 'image';
         }
 
-        // Returns [{image_url, media_type, color_name}] from all image rows in the form
+        // Returns [{image_url, media_type, color_name}] from all media cards in the form
         function getProductImageEntriesFromForm() {
-            const rows = Array.from(document.querySelectorAll('#imagesContainer .image-row'));
+            const rows = Array.from(document.querySelectorAll('#imagesContainer .media-card'));
             const seen = new Set();
             return rows.map(row => {
                 const urlInput = row.querySelector('.product-image-url');
@@ -9206,16 +9274,51 @@
             const safeUrl = escapeAttr(url || '');
             const isVid = isVideoUrl(url || '');
             const hasColors = colorOpts.length > 0;
-            const imgStyle = (!isVid && url) ? 'display:block' : 'display:none';
-            const vidStyle = (isVid && url)  ? 'display:block' : 'display:none';
-            const colorHtml = `<select class="product-image-color img-color-col" style="font-size:.82rem;padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg-secondary);color:var(--text-primary);max-width:120px;${hasColors ? '' : 'display:none'}"><option value="">All colors</option>${colorOpts}</select>`;
-            return `<span style="font-weight:600;min-width:50px;">${label}</span>` +
-                `<input type="text" class="form-input product-image-url" placeholder="Paste image or video URL..." value="${safeUrl}">` +
-                `<label class="btn-upload">Upload<input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" style="display:none" onchange="handleImageUpload(this)"></label>` +
-                colorHtml +
-                `<img class="image-preview" src="${safeUrl}" style="${imgStyle};width:40px;height:40px;object-fit:cover;border-radius:4px;border:1px solid var(--border)">` +
-                `<video class="video-preview" src="${isVid ? safeUrl : ''}" muted loop playsinline preload="metadata" style="${vidStyle};width:40px;height:40px;object-fit:cover;border-radius:4px;border:1px solid var(--border)"></video>` +
-                `<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest('.image-row').remove()">Remove</button>`;
+            const typeBadge = url ? (isVid ? 'VIDEO' : 'IMAGE') : '';
+            const imgStyle   = (!isVid && url) ? '' : 'display:none';
+            const vidStyle   = (isVid && url)  ? '' : 'display:none';
+            const phStyle    = url ? 'display:none' : '';
+            const colorHtml  = hasColors
+                ? `<span class="media-meta-label">Show for:</span>
+                   <select class="product-image-color media-color-select">
+                     <option value="">All colors (default)</option>${colorOpts}
+                   </select>`
+                : `<span class="media-meta-label" style="opacity:.45">Assign colors in the Variants &amp; Stock tab first</span>`;
+
+            return `<div class="media-preview-wrap">
+                      <img  class="image-preview media-thumb" src="${safeUrl}" style="${imgStyle}" alt="">
+                      <video class="video-preview media-thumb" src="${isVid ? safeUrl : ''}" muted loop playsinline preload="metadata" style="${vidStyle}"></video>
+                      <span class="media-placeholder-icon" style="${phStyle}">🖼</span>
+                      ${typeBadge ? `<span class="media-type-badge">${typeBadge}</span>` : ''}
+                    </div>
+                    <div class="media-card-body">
+                      <div class="media-url-row">
+                        <input type="text" class="form-input product-image-url" placeholder="Paste image or video URL…" value="${safeUrl}">
+                        <label class="btn-upload">Upload<input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" style="display:none" onchange="handleImageUpload(this)"></label>
+                      </div>
+                      <div class="media-meta-row">${colorHtml}</div>
+                    </div>
+                    <div class="media-card-actions">
+                      <button type="button" class="btn-reorder" title="Move up" onclick="moveMediaCard(this.closest('.media-card'),-1)">↑</button>
+                      <button type="button" class="btn-reorder" title="Move down" onclick="moveMediaCard(this.closest('.media-card'),1)">↓</button>
+                      <button type="button" class="btn-remove-media" onclick="this.closest('.media-card').remove(); renumberMediaCards()">Remove</button>
+                    </div>`;
+        }
+
+        function moveMediaCard(card, direction) {
+            const grid = card.parentElement;
+            const cards = Array.from(grid.children);
+            const idx = cards.indexOf(card);
+            const target = direction === -1 ? cards[idx - 1] : cards[idx + 2];
+            if (target) grid.insertBefore(card, target);
+            else if (direction === 1 && idx < cards.length - 1) grid.appendChild(card);
+            renumberMediaCards();
+        }
+
+        function renumberMediaCards() {
+            document.querySelectorAll('#imagesContainer .media-card').forEach((card, i) => {
+                // No visible number label in cards — no-op but kept for future use
+            });
         }
 
         function getSupabaseProductImagePath(url) {
@@ -9488,9 +9591,19 @@
         document.addEventListener('blur', async (event) => {
             const input = event.target;
             if (!input?.classList?.contains('product-image-url') || !input.value.trim()) return;
-            const row = input.closest('.image-row');
+            const row = input.closest('.media-card') || input.closest('.image-row');
             const imgPreview = row?.querySelector('.image-preview');
             const vidPreview = row?.querySelector('.video-preview');
+            // Use the unified card preview updater if available
+            if (row?.classList.contains('media-card') && typeof updateMediaCardPreview === 'function') {
+                updateMediaCardPreview(row, url);
+                if (!isVideoUrl(url)) {
+                    const result = await validateImageUrl(url, 5000);
+                    input.classList.toggle('error', !result.ok);
+                    if (result.ok && result.warnings?.length) showToast(result.warnings[0], 'info');
+                }
+                return;
+            }
             const url = input.value.trim();
 
             if (isVideoUrl(url)) {
@@ -10102,7 +10215,7 @@
         async function handleImageUpload(fileInput) {
             const originalFile = fileInput.files[0];
             if (!originalFile) return;
-            const row = fileInput.closest('.image-row');
+            const row = fileInput.closest('.media-card') || fileInput.closest('.image-row');
             const urlInput = row.querySelector('.product-image-url');
             const imgPreview = row.querySelector('.image-preview');
             const vidPreview = row.querySelector('.video-preview');
@@ -10113,7 +10226,11 @@
                 const file = await prepareProductImageFile(originalFile);
                 const upload = await uploadProductImageToR2(file);
                 urlInput.value = upload.url;
-                if (isVideo) {
+                // Update card preview via unified helper
+                const card = row.classList.contains('media-card') ? row : null;
+                if (card && typeof updateMediaCardPreview === 'function') {
+                    updateMediaCardPreview(card, upload.url);
+                } else if (isVideo) {
                     if (imgPreview) imgPreview.style.display = 'none';
                     if (vidPreview) { vidPreview.src = upload.url; vidPreview.style.display = 'block'; }
                 } else {
@@ -10474,17 +10591,13 @@
                 .map(c => `<option value="${escapeAttr(c.color_name)}">${escapeAttr(c.color_name)}</option>`).join('');
 
             const imagesToLoad = imageRows.length > 0 ? imageRows : (product.image_url ? [{ image_url: product.image_url }] : []);
-            imagesToLoad.forEach((img, idx) => {
-                const row = document.createElement('div');
-                row.className = 'image-row';
+            imagesToLoad.forEach((img) => {
                 const assignedColorName = img.color_variant_id ? (editColorIdToName[img.color_variant_id] || '') : '';
-                row.innerHTML = buildMediaRowHtml('Media ' + (idx + 1), img.image_url || '', editColorOpts, assignedColorName, img.color_variant_id || '');
-                // Set the color dropdown value if assigned
+                const card = addMediaCard(container, img.image_url || '', editColorOpts, assignedColorName);
                 if (assignedColorName) {
-                    const sel = row.querySelector('.product-image-color');
+                    const sel = card.querySelector('.product-image-color');
                     if (sel) sel.value = assignedColorName;
                 }
-                container.appendChild(row);
             });
 
             const colorContainer = document.getElementById('colorVariantsContainer');
