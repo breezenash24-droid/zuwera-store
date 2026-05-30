@@ -1159,6 +1159,37 @@ window.__zwOpenAuth = function(tab) {
       var session = result && result.data && result.data.session ? result.data.session : null;
       applyAuthState(session ? session.user : null, session ? session.access_token : null);
     }).catch(function() {});
+
+    // Patch any cart items missing colorHex by looking up color_variants in Supabase
+    (async function patchCartColorHexes() {
+      try {
+        var cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        var missing = cart.filter(function(i) { return i.colorName && i.colorName !== 'Standard' && !i.colorHex; });
+        if (!missing.length) return;
+        var productIds = [...new Set(missing.map(function(i) { return i.productId; }).filter(Boolean))];
+        if (!productIds.length) return;
+        var { data, error } = await sb.from('color_variants')
+          .select('product_id,color_name,hex_color')
+          .in('product_id', productIds);
+        if (error || !data || !data.length) return;
+        // Build lookup: productId|colorName -> hex
+        var hexMap = {};
+        data.forEach(function(row) {
+          if (row.hex_color) hexMap[(row.product_id + '|' + (row.color_name || '').toLowerCase())] = row.hex_color;
+        });
+        var updated = false;
+        cart.forEach(function(item) {
+          if (!item.colorHex && item.colorName && item.productId) {
+            var key = item.productId + '|' + item.colorName.toLowerCase();
+            if (hexMap[key]) { item.colorHex = hexMap[key]; updated = true; }
+          }
+        });
+        if (updated) {
+          localStorage.setItem('cart', JSON.stringify(cart));
+          if (typeof renderCart === 'function') renderCart();
+        }
+      } catch (_) {}
+    })();
   });
 })();
 </script>
