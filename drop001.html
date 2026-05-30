@@ -1769,6 +1769,7 @@ function updateCountdown() {
         title: item.title,
         size: size,
         colorName: colorName,
+        colorHex: item.selectedColor ? (item.selectedColor.hex_color || '') : '',
         regularPrice: item.regularPrice,
         memberPrice: item.memberPrice,
         price: item.price,
