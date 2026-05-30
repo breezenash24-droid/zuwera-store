@@ -2794,10 +2794,13 @@ if (_sb?.auth?.getSession) {
       loadProducts();
     });
 } else {
-  updateNav();
-  refreshCartFavs();
-  renderCart();
-  loadProducts();
+  // Defer to microtask so const declarations below (cartItems, etc.) are initialised first
+  Promise.resolve().then(() => {
+    updateNav();
+    refreshCartFavs();
+    renderCart();
+    loadProducts();
+  });
 }
 
 /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ LOAD PRODUCTS FROM SUPABASE ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */
