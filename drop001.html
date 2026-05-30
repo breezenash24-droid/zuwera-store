@@ -1042,12 +1042,26 @@ function updateCountdown() {
       setTimeout(() => document.getElementById('notify-email').focus(), 600);
     }
 
-    // Load products from Supabase — runs in DOMContentLoaded so window.sb is available
-    document.addEventListener('DOMContentLoaded', async function() {
-      const sb = window.sb;
-      if (!sb) return;
+    // Load products from Supabase
+    // Uses window.sb if available (set by supabase-client.js deferred),
+    // otherwise creates a local client — ensures products always load.
+    (async function() {
       const SUPABASE_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
       const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+
+      // Wait for DOMContentLoaded if still parsing
+      if (document.readyState === 'loading') {
+        await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, { once: true }));
+      }
+
+      // Use shared client or create a local one
+      if (!window.sb && typeof supabase !== 'undefined') {
+        window.sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+          auth: { persistSession: true, storageKey: 'zuwera-auth' }
+        });
+      }
+      const sb = window.sb;
+      if (!sb) return;
       let collectionUser = null;
       let collectionFavoriteIds = new Set();
 
@@ -1359,7 +1373,7 @@ function updateCountdown() {
         }).join('');
         refreshCollectionFavoriteButtons();
       }
-    });
+    })();
   </script>
   <!-- Language selector -->
   <script src="modal-lock.js?v=72e2f101"></script>
