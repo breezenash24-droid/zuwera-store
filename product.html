@@ -2591,6 +2591,9 @@ function getImagesForColor(colorVariantId) {
   return specific.length ? [...specific, ...shared] : (shared.length ? shared : all);
 }
 
+// Touch listener guard — only attach once, not once per renderGallery() call
+let _galleryTouchSetup = false;
+
 function renderGallery() {
   const mainImage = document.getElementById('mainImage');
   const mainVideo = document.getElementById('mainVideo');
@@ -2612,15 +2615,19 @@ function renderGallery() {
   document.getElementById('prevImg').onclick = () => updateMainImage(currentImageIndex - 1);
   document.getElementById('nextImg').onclick = () => updateMainImage(currentImageIndex + 1);
 
-  // Mobile swipe
-  let touchStartX = 0;
-  const galleryMain = document.querySelector('.gallery-main');
-  galleryMain.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
-  galleryMain.addEventListener('touchend', e => {
-    const dx = e.changedTouches[0].screenX - touchStartX;
-    if (dx < -40) updateMainImage(currentImageIndex + 1);
-    if (dx > 40)  updateMainImage(currentImageIndex - 1);
-  }, {passive: true});
+  // Mobile swipe — attach ONCE. Re-registering on every renderGallery() call
+  // (e.g. every color switch) stacks listeners, causing one swipe to fire N times.
+  if (!_galleryTouchSetup) {
+    _galleryTouchSetup = true;
+    let touchStartX = 0;
+    const galleryMain = document.querySelector('.gallery-main');
+    galleryMain.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
+    galleryMain.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].screenX - touchStartX;
+      if (dx < -40) updateMainImage(currentImageIndex + 1);
+      if (dx > 40)  updateMainImage(currentImageIndex - 1);
+    }, {passive: true});
+  }
 
   currentProduct.images.forEach((item, idx) => {
     const thumb = document.createElement('div');
@@ -2722,6 +2729,13 @@ function renderColors() {
       swatch.classList.add('active');
       selectedColor = color;
       selectedColorSku = color.variant_sku;
+      // If images already loaded (colors resolved after images in the parallel fetch race),
+      // re-filter now so the first color's gallery shows immediately without needing a click.
+      if (currentProduct.allImages) {
+        currentProduct.images = getImagesForColor(color.id);
+        currentImageIndex = 0;
+        renderGallery();
+      }
     }
 
     swatch.style.backgroundColor = color.hex_color;
