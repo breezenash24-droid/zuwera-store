@@ -4329,11 +4329,17 @@ function openQuickAddReviewModal(item) {
     return;
   }
 
-  item.selectedColor = item.colors?.length === 1 ? item.colors[0] : null;
+  // Auto-select first color so the gallery filters correctly from the start
+  const _qaColors = Array.isArray(item.colors) ? item.colors : [];
+  item.selectedColor = _qaColors.length > 0 ? _qaColors[0] : null;
   if (item.selectedColor?.variant_sku) item.sku = item.selectedColor.variant_sku;
   const inStockSizes = (item.sizes || []).filter(([, stock]) => Number(stock) > 0);
   item.selectedSize = inStockSizes.length === 1 ? inStockSizes[0][0] : null;
-  item.activeImage = item.image || item.images?.[0] || '';
+  // Re-filter images for the auto-selected color whenever allImageRows is available
+  if (item.allImageRows) {
+    item.images = quickAddGetImagesForColor(item.allImageRows, item.image, item.selectedColor?.id || null);
+  }
+  item.activeImage = item.images?.[0] || item.image || '';
   _quickAddReviewItem = item;
 
   const modal = document.getElementById('quick-add-review-modal');

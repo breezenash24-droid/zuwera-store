@@ -1773,11 +1773,18 @@ function updateCountdown() {
   }
 
   function openCollectionReviewModal(item) {
-    item.selectedColor = item.colors && item.colors.length === 1 ? item.colors[0] : null;
+    // Auto-select first color when there is only one; when multiple colors exist, still
+    // pick the first so the gallery filters correctly from the start.
+    var colors = Array.isArray(item.colors) ? item.colors : [];
+    item.selectedColor = colors.length > 0 ? colors[0] : null;
     if (item.selectedColor && item.selectedColor.variant_sku) item.sku = item.selectedColor.variant_sku;
     var inStockSizes = (item.sizes || []).filter(function(entry){ return Number(entry[1]) > 0; });
     item.selectedSize = inStockSizes.length === 1 ? inStockSizes[0][0] : null;
-    item.activeImage = item.image || (item.images && item.images[0]) || '';
+    // Re-filter images for the auto-selected color whenever allImageRows is available
+    if (item.allImageRows) {
+      item.images = collectionGetImagesForColor(item.allImageRows, item.image, item.selectedColor ? item.selectedColor.id : null);
+    }
+    item.activeImage = (item.images && item.images[0]) || item.image || '';
     _collectionReviewItem = item;
 
     var modal = document.getElementById('collection-review-modal');
