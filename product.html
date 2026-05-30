@@ -1051,7 +1051,7 @@ body.super-light-mode { background: #FFFFFF !important; }
         <div class="gallery-main loading" id="galleryMain" style="position:relative">
           <button id="prevImg" type="button" class="gallery-arrow left-arrow" aria-label="Previous image">&#10094;</button>
           <img id="mainImage" src="" alt="" class="main-image" fetchpriority="high" decoding="async" width="800" height="1000" style="aspect-ratio:4/5">
-          <video id="mainVideo" class="main-image" muted loop playsinline preload="metadata" style="display:none;aspect-ratio:4/5;width:100%;height:100%;object-fit:cover" aria-hidden="true"></video>
+          <video id="mainVideo" muted loop playsinline preload="metadata" style="display:none;width:100%;height:auto;max-height:80vh;object-fit:contain;background:#000" aria-hidden="true"></video>
           <button id="nextImg" type="button" class="gallery-arrow right-arrow" aria-label="Next image">&#10095;</button>
           <div class="low-stock-badge hidden" id="lowStockBadge">Low Stock</div>
           <button
