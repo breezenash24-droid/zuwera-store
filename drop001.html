@@ -1467,7 +1467,7 @@ function updateCountdown() {
       var results = await Promise.all([
         fetch(_colSB_URL + '/rest/v1/color_variants?select=color_name,hex_color,variant_sku&product_id=eq.' + encodedId + '&order=sort_order.asc', { headers: headers }),
         fetch(_colSB_URL + '/rest/v1/product_sizes?select=size,stock_quantity&product_id=eq.' + encodedId + '&order=created_at.asc', { headers: headers }),
-        fetch(_colSB_URL + '/rest/v1/product_images?select=image_url,alt_text,sort_order&product_id=eq.' + encodedId + '&order=sort_order.asc', { headers: headers })
+        fetch(_colSB_URL + '/rest/v1/product_images?select=image_url,alt_text,sort_order,color_variant_id,media_type&product_id=eq.' + encodedId + '&order=sort_order.asc', { headers: headers })
       ]);
       var colors = results[0].ok ? await results[0].json() : [];
       var sizeRows = results[1].ok ? await results[1].json() : [];
@@ -1475,6 +1475,8 @@ function updateCountdown() {
       var images = collectionImageList(productImage, imageRows);
       var sizeEntries = collectionSizeEntries(sizeRows);
 
+      modalItem.allImageRows = Array.isArray(imageRows) ? imageRows : [];
+      var images = collectionGetImagesForColor(modalItem.allImageRows, productImage, null);
       modalItem.image = images[0] || productImage || '';
       modalItem.images = images;
       modalItem.colors = Array.isArray(colors) ? colors : [];
@@ -1543,6 +1545,27 @@ function updateCountdown() {
       .replace(/"/g, '&quot;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
+  }
+
+  function collectionIsVideo(src) {
+    return /\.(mp4|webm|mov|m4v|ogv)(\?.*)?$/i.test(src || '');
+  }
+
+  function collectionGetImagesForColor(allImageRows, primaryImage, colorVariantId) {
+    var all = Array.isArray(allImageRows) ? allImageRows : [];
+    var filtered;
+    if (!colorVariantId) {
+      filtered = all.filter(function(r) { return !r.color_variant_id; });
+      if (!filtered.length) filtered = all;
+    } else {
+      var specific = all.filter(function(r) { return r.color_variant_id === colorVariantId; });
+      var shared   = all.filter(function(r) { return !r.color_variant_id; });
+      filtered = specific.length ? specific.concat(shared) : (shared.length ? shared : all);
+    }
+    var urls = [];
+    filtered.forEach(function(r) { if (r.image_url && urls.indexOf(r.image_url) === -1) urls.push(r.image_url); });
+    if (!urls.length && primaryImage) urls.push(primaryImage);
+    return urls;
   }
 
   function collectionImageList(primaryImage, imageRows) {
@@ -1641,9 +1664,17 @@ function updateCountdown() {
     if (media) {
       var focalY = (item.imageFocalY != null ? item.imageFocalY : 0);
       var imgStyle = 'style="object-position:50% ' + focalY + '%"';
+      var mediaEl = '';
+      if (current) {
+        if (collectionIsVideo(current)) {
+          mediaEl = '<video src="' + collectionEscapeAttr(current) + '" muted loop playsinline autoplay style="width:100%;height:auto;max-height:100%;object-fit:contain;background:#000" aria-label="' + collectionEscapeAttr(item.title) + '"></video>';
+        } else {
+          mediaEl = '<img src="' + collectionEscapeAttr(current) + '" alt="' + collectionEscapeAttr(item.title) + '" ' + imgStyle + '>';
+        }
+      }
       media.innerHTML = current
         ? (hasMultipleImages ? '<button type="button" class="collection-gallery-arrow prev" data-gallery-step="-1" aria-label="Previous product image">&#10094;</button>' : '') +
-          '<img src="' + collectionEscapeAttr(current) + '" alt="' + collectionEscapeAttr(item.title) + '" ' + imgStyle + '>' +
+          mediaEl +
           (hasMultipleImages ? '<button type="button" class="collection-gallery-arrow next" data-gallery-step="1" aria-label="Next product image">&#10095;</button>' : '')
         : '<span class="collection-review-placeholder">Image Coming Soon</span>';
       media.querySelectorAll('[data-gallery-step]').forEach(function(button) {
@@ -1694,8 +1725,16 @@ function updateCountdown() {
         : '<p class="collection-empty-option">Standard colorway</p>';
       colorWrap.querySelectorAll('.collection-color').forEach(function(button) {
         button.addEventListener('click', function() {
+          var prevIndex = collectionActiveImageIndex(item, item.images);
           item.selectedColor = colors[Number(button.dataset.index)] || null;
           item.sku = (item.selectedColor && item.selectedColor.variant_sku) || item.baseSku || item.sku || '';
+          // Re-filter gallery images for this color, preserving position
+          if (item.allImageRows) {
+            item.images = collectionGetImagesForColor(item.allImageRows, item.image, item.selectedColor ? item.selectedColor.id : null);
+            var clampedIndex = Math.min(prevIndex, Math.max(item.images.length - 1, 0));
+            item.activeImage = item.images[clampedIndex] || item.images[0] || '';
+            collectionRenderGallery(item);
+          }
           collectionRenderOptions(item);
         });
       });

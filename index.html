@@ -4015,14 +4015,15 @@ async function quickAddToCart(productId, productTitle, productPrice, productSku,
     const [colorsResp, sizesResp, imagesResp] = await Promise.all([
       fetch(SUPABASE_URL + '/rest/v1/color_variants?select=color_name,hex_color,variant_sku&product_id=eq.' + encodedId + '&order=sort_order.asc', { headers }),
       fetch(SUPABASE_URL + '/rest/v1/product_sizes?select=size,stock_quantity&product_id=eq.' + encodedId + '&order=created_at.asc', { headers }),
-      fetch(SUPABASE_URL + '/rest/v1/product_images?select=image_url,alt_text,sort_order&product_id=eq.' + encodedId + '&order=sort_order.asc', { headers })
+      fetch(SUPABASE_URL + '/rest/v1/product_images?select=image_url,alt_text,sort_order,color_variant_id,media_type&product_id=eq.' + encodedId + '&order=sort_order.asc', { headers })
     ]);
 
     const colors = colorsResp.ok ? await colorsResp.json() : [];
     const sizeRows = sizesResp.ok ? await sizesResp.json() : [];
     const imageRows = imagesResp.ok ? await imagesResp.json() : [];
-    const images = quickAddImageList(productImage, imageRows);
     const sizeEntries = quickAddSizeEntries(sizeRows);
+    modalItem.allImageRows = Array.isArray(imageRows) ? imageRows : [];
+    const images = quickAddGetImagesForColor(modalItem.allImageRows, productImage, null);
 
     modalItem.image = images[0] || productImage || '';
     modalItem.images = images;
@@ -4093,6 +4094,27 @@ function quickAddEscapeAttr(value) {
     .replace(/"/g, '&quot;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
+}
+
+function quickAddIsVideo(src) {
+  return /\.(mp4|webm|mov|m4v|ogv)(\?.*)?$/i.test(src || '');
+}
+
+function quickAddGetImagesForColor(allImageRows, primaryImage, colorVariantId) {
+  const all = Array.isArray(allImageRows) ? allImageRows : [];
+  let filtered;
+  if (!colorVariantId) {
+    filtered = all.filter(r => !r.color_variant_id);
+    if (!filtered.length) filtered = all;
+  } else {
+    const specific = all.filter(r => r.color_variant_id === colorVariantId);
+    const shared   = all.filter(r => !r.color_variant_id);
+    filtered = specific.length ? [...specific, ...shared] : (shared.length ? shared : all);
+  }
+  const urls = [];
+  filtered.forEach(r => { if (r.image_url && !urls.includes(r.image_url)) urls.push(r.image_url); });
+  if (!urls.length && primaryImage) urls.push(primaryImage);
+  return urls;
 }
 
 function quickAddImageList(primaryImage, imageRows) {
@@ -4191,8 +4213,13 @@ function quickAddRenderGallery(item) {
   if (media) {
     const focalY = (item.imageFocalY != null ? item.imageFocalY : 50);
     const imgStyle = `style="object-position:50% ${focalY}%"`;
+    const mediaEl = current
+      ? (quickAddIsVideo(current)
+          ? `<video src="${quickAddEscapeAttr(current)}" muted loop playsinline autoplay style="width:100%;height:auto;max-height:100%;object-fit:contain;background:#000" aria-label="${quickAddEscapeAttr(item.title)}"></video>`
+          : `<img src="${quickAddEscapeAttr(current)}" alt="${quickAddEscapeAttr(item.title)}" ${imgStyle}>`)
+      : '';
     media.innerHTML = current
-      ? `${hasMultipleImages ? '<button type="button" class="quick-add-gallery-arrow prev" data-gallery-step="-1" aria-label="Previous product image">&#10094;</button>' : ''}<img src="${quickAddEscapeAttr(current)}" alt="${quickAddEscapeAttr(item.title)}" ${imgStyle}>${hasMultipleImages ? '<button type="button" class="quick-add-gallery-arrow next" data-gallery-step="1" aria-label="Next product image">&#10095;</button>' : ''}`
+      ? `${hasMultipleImages ? '<button type="button" class="quick-add-gallery-arrow prev" data-gallery-step="-1" aria-label="Previous product image">&#10094;</button>' : ''}${mediaEl}${hasMultipleImages ? '<button type="button" class="quick-add-gallery-arrow next" data-gallery-step="1" aria-label="Next product image">&#10095;</button>' : ''}`
       : '<span class="quick-add-review-placeholder">Image Coming Soon</span>';
     media.querySelectorAll('[data-gallery-step]').forEach(button => {
       button.addEventListener('click', (event) => {
@@ -4241,8 +4268,16 @@ function quickAddRenderOptions(item) {
       : '<p class="quick-add-empty-option">Standard colorway</p>';
     colorWrap.querySelectorAll('.quick-add-color').forEach(button => {
       button.addEventListener('click', () => {
+        const prevIndex = quickAddActiveImageIndex(item, item.images);
         item.selectedColor = colors[Number(button.dataset.index)] || null;
         item.sku = item.selectedColor?.variant_sku || item.baseSku || item.sku || '';
+        // Re-filter gallery for this color, preserving position
+        if (item.allImageRows) {
+          item.images = quickAddGetImagesForColor(item.allImageRows, item.image, item.selectedColor?.id || null);
+          const clampedIndex = Math.min(prevIndex, Math.max(item.images.length - 1, 0));
+          item.activeImage = item.images[clampedIndex] || item.images[0] || '';
+          quickAddRenderGallery(item);
+        }
         quickAddRenderOptions(item);
       });
     });
