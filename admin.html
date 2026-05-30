@@ -1654,15 +1654,59 @@
                         <div id="liveProducts" style="font-size:22px;font-weight:700;">—</div>
                         <div id="totalProducts" style="font-size:.7rem;color:var(--text-secondary);margin-top:4px;">of — total</div>
                       </div>
-                      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;">
-                        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">🖼 R2 Images</div>
-                        <div id="dash-r2-images" style="font-size:22px;font-weight:700;">—</div>
-                        <div style="font-size:.7rem;color:var(--text-secondary);margin-top:4px;">on images.zuwera.store</div>
+                    </div>
+
+                    <!-- Media Library panel -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:24px;">
+                      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+                        <div style="font-weight:700;font-size:.95rem;">📦 Media Library <span style="font-size:.72rem;font-weight:400;color:var(--text-secondary);letter-spacing:.04em;">(Cloudflare R2 · images.zuwera.store)</span></div>
+                        <div id="dash-r2-free-label" style="font-size:.72rem;color:var(--text-secondary);">10 GB free tier</div>
                       </div>
-                      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;">
-                        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">🎥 R2 Videos</div>
-                        <div id="dash-r2-videos" style="font-size:22px;font-weight:700;">—</div>
-                        <div style="font-size:.7rem;color:var(--text-secondary);margin-top:4px;">on images.zuwera.store</div>
+
+                      <!-- Summary row -->
+                      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;margin-bottom:16px;">
+                        <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:12px 14px;text-align:center;">
+                          <div style="font-size:20px;font-weight:700;" id="dash-r2-total">—</div>
+                          <div style="font-size:.68rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;">Total Files</div>
+                        </div>
+                        <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:12px 14px;text-align:center;">
+                          <div style="font-size:20px;font-weight:700;" id="dash-r2-images">—</div>
+                          <div style="font-size:.68rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;">🖼 Images</div>
+                        </div>
+                        <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:12px 14px;text-align:center;">
+                          <div style="font-size:20px;font-weight:700;" id="dash-r2-videos">—</div>
+                          <div style="font-size:.68rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;">🎥 Videos</div>
+                        </div>
+                        <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:12px 14px;text-align:center;">
+                          <div style="font-size:20px;font-weight:700;" id="dash-r2-per-color">—</div>
+                          <div style="font-size:.68rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;">Color-Specific</div>
+                        </div>
+                        <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:12px 14px;text-align:center;">
+                          <div style="font-size:20px;font-weight:700;" id="dash-r2-est-size">—</div>
+                          <div style="font-size:.68rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;">Est. Storage</div>
+                        </div>
+                        <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:12px 14px;text-align:center;">
+                          <div style="font-size:20px;font-weight:700;" id="dash-r2-no-media">—</div>
+                          <div style="font-size:.68rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;">⚠ No R2 Media</div>
+                        </div>
+                      </div>
+
+                      <!-- Storage bar -->
+                      <div style="margin-bottom:16px;">
+                        <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--text-secondary);margin-bottom:5px;">
+                          <span>Estimated R2 usage</span>
+                          <span id="dash-r2-bar-label">— of 10 GB free</span>
+                        </div>
+                        <div style="background:var(--bg-primary);border-radius:4px;height:8px;overflow:hidden;">
+                          <div id="dash-r2-bar" style="height:100%;background:var(--accent);border-radius:4px;width:0%;transition:width .6s ease;"></div>
+                        </div>
+                        <div style="font-size:.67rem;color:var(--text-secondary);margin-top:4px;">Estimate: ~300 KB/image · ~25 MB/video. Check exact usage in Cloudflare R2 dashboard.</div>
+                      </div>
+
+                      <!-- Per-product breakdown -->
+                      <div style="font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-secondary);margin-bottom:8px;">Per-Product Breakdown</div>
+                      <div id="dash-r2-table" style="overflow-x:auto;">
+                        <div style="color:var(--text-secondary);font-size:.82rem;padding:8px 0;">Loading…</div>
                       </div>
                     </div>
 
@@ -7963,19 +8007,87 @@
                 document.getElementById('liveProducts').textContent   = liveProducts;
                 document.getElementById('totalProducts').textContent  = `of ${totalProducts} total`;
 
-                // ── R2 media counts ────────────────────────────────────────────
-                sb.from('product_images')
-                  .select('media_type', { count: 'exact', head: false })
-                  .like('image_url', '%images.zuwera.store%')
-                  .then(({ data: mediaRows }) => {
+                // ── R2 Media Library (non-blocking) ───────────────────────────
+                (async () => {
+                  try {
+                    const [{ data: mediaRows }, { data: allProds }] = await Promise.all([
+                      sb.from('product_images')
+                        .select('product_id,media_type,color_variant_id')
+                        .like('image_url', '%images.zuwera.store%'),
+                      sb.from('products').select('id,title,status'),
+                    ]);
                     const rows = Array.isArray(mediaRows) ? mediaRows : [];
-                    const videos = rows.filter(r => r.media_type === 'video').length;
-                    const images = rows.length - videos;
-                    const imgEl = document.getElementById('dash-r2-images');
-                    const vidEl = document.getElementById('dash-r2-videos');
-                    if (imgEl) imgEl.textContent = images;
-                    if (vidEl) vidEl.textContent = videos;
-                  }).catch(() => {});
+                    const prods = Array.isArray(allProds) ? allProds : [];
+
+                    const totalFiles  = rows.length;
+                    const videos      = rows.filter(r => r.media_type === 'video').length;
+                    const images      = totalFiles - videos;
+                    const colorSpec   = rows.filter(r => r.color_variant_id).length;
+
+                    // Per-product breakdown
+                    const byProd = {};
+                    rows.forEach(r => {
+                      if (!r.product_id) return;
+                      if (!byProd[r.product_id]) byProd[r.product_id] = { imgs: 0, vids: 0 };
+                      r.media_type === 'video' ? byProd[r.product_id].vids++ : byProd[r.product_id].imgs++;
+                    });
+                    const prodIds = new Set(rows.map(r => r.product_id).filter(Boolean));
+                    const noMedia = prods.filter(p => !prodIds.has(p.id));
+
+                    // Estimated storage (300 KB/image, 25 MB/video)
+                    const estBytes = images * 300 * 1024 + videos * 25 * 1024 * 1024;
+                    const fmtSize = b => b < 1024*1024 ? (b/1024).toFixed(1)+' KB' : b < 1024**3 ? (b/(1024**2)).toFixed(1)+' MB' : (b/(1024**3)).toFixed(2)+' GB';
+                    const pct = Math.min((estBytes / (10 * 1024**3)) * 100, 100);
+
+                    // Update summary cards
+                    const $= id => document.getElementById(id);
+                    if ($('dash-r2-total'))     $('dash-r2-total').textContent     = totalFiles;
+                    if ($('dash-r2-images'))    $('dash-r2-images').textContent    = images;
+                    if ($('dash-r2-videos'))    $('dash-r2-videos').textContent    = videos;
+                    if ($('dash-r2-per-color')) $('dash-r2-per-color').textContent = colorSpec;
+                    if ($('dash-r2-est-size'))  $('dash-r2-est-size').textContent  = fmtSize(estBytes);
+                    if ($('dash-r2-no-media'))  $('dash-r2-no-media').textContent  = noMedia.length;
+                    if ($('dash-r2-no-media'))  $('dash-r2-no-media').style.color  = noMedia.length ? '#f59e0b' : '';
+
+                    // Storage bar
+                    if ($('dash-r2-bar'))       $('dash-r2-bar').style.width       = pct.toFixed(2) + '%';
+                    if ($('dash-r2-bar-label')) $('dash-r2-bar-label').textContent = fmtSize(estBytes) + ' of 10 GB free (~' + pct.toFixed(2) + '%)';
+                    const bar = $('dash-r2-bar');
+                    if (bar) bar.style.background = pct > 80 ? '#ef4444' : pct > 60 ? '#f59e0b' : 'var(--accent)';
+
+                    // Per-product table
+                    const tableEl = $('dash-r2-table');
+                    if (tableEl) {
+                      const prodRows = prods
+                        .map(p => ({ ...p, imgs: byProd[p.id]?.imgs || 0, vids: byProd[p.id]?.vids || 0 }))
+                        .filter(p => p.imgs + p.vids > 0)
+                        .sort((a, b) => (b.imgs + b.vids) - (a.imgs + a.vids));
+
+                      if (!prodRows.length) {
+                        tableEl.innerHTML = '<p style="color:var(--text-secondary);font-size:.82rem;">No R2 media found. Upload images via the Visuals &amp; Model tab to see them here.</p>';
+                      } else {
+                        const statusColor = s => ({ live:'#10b981', draft:'#6366f1', legacy:'#9ca3af', 'coming soon':'#f59e0b', 'sold out':'#ef4444' })[s?.toLowerCase()] || 'var(--text-secondary)';
+                        tableEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+                          <thead><tr style="color:var(--text-secondary);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);">
+                            <th style="text-align:left;padding:6px 8px;font-weight:600;">Product</th>
+                            <th style="text-align:center;padding:6px 8px;font-weight:600;">Images</th>
+                            <th style="text-align:center;padding:6px 8px;font-weight:600;">Videos</th>
+                            <th style="text-align:center;padding:6px 8px;font-weight:600;">Total</th>
+                            <th style="text-align:left;padding:6px 8px;font-weight:600;">Status</th>
+                          </tr></thead><tbody>
+                          ${prodRows.map((p,i) => `<tr style="${i%2===0?'':'background:var(--bg-primary);'}">
+                            <td style="padding:7px 8px;font-weight:500;">${p.title || p.id}</td>
+                            <td style="text-align:center;padding:7px 8px;">${p.imgs > 0 ? '🖼 '+p.imgs : '<span style="color:var(--text-secondary)">—</span>'}</td>
+                            <td style="text-align:center;padding:7px 8px;">${p.vids > 0 ? '🎥 '+p.vids : '<span style="color:var(--text-secondary)">—</span>'}</td>
+                            <td style="text-align:center;padding:7px 8px;font-weight:700;">${p.imgs+p.vids}</td>
+                            <td style="padding:7px 8px;"><span style="font-size:.7rem;font-weight:600;color:${statusColor(p.status)}">${p.status||'—'}</span></td>
+                          </tr>`).join('')}
+                          ${noMedia.length ? `<tr><td colspan="5" style="padding:10px 8px;color:#f59e0b;font-size:.78rem;">⚠ ${noMedia.length} product${noMedia.length!==1?'s':''} have no R2 media: ${noMedia.slice(0,3).map(p=>p.title).join(', ')}${noMedia.length>3?' + '+(noMedia.length-3)+' more':''}.</td></tr>` : ''}
+                        </tbody></table>`;
+                      }
+                    }
+                  } catch(_) {}
+                })();
 
                 // ── Revenue ────────────────────────────────────────────────────
                 const now = new Date();
