@@ -1654,6 +1654,16 @@
                         <div id="liveProducts" style="font-size:22px;font-weight:700;">—</div>
                         <div id="totalProducts" style="font-size:.7rem;color:var(--text-secondary);margin-top:4px;">of — total</div>
                       </div>
+                      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;">
+                        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">🖼 R2 Images</div>
+                        <div id="dash-r2-images" style="font-size:22px;font-weight:700;">—</div>
+                        <div style="font-size:.7rem;color:var(--text-secondary);margin-top:4px;">on images.zuwera.store</div>
+                      </div>
+                      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;">
+                        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">🎥 R2 Videos</div>
+                        <div id="dash-r2-videos" style="font-size:22px;font-weight:700;">—</div>
+                        <div style="font-size:.7rem;color:var(--text-secondary);margin-top:4px;">on images.zuwera.store</div>
+                      </div>
                     </div>
 
                     <!-- Main feed: recent orders + returns needing action -->
@@ -7952,6 +7962,20 @@
                 document.getElementById('dash-low-stock').textContent = lowStockProds.length;
                 document.getElementById('liveProducts').textContent   = liveProducts;
                 document.getElementById('totalProducts').textContent  = `of ${totalProducts} total`;
+
+                // ── R2 media counts ────────────────────────────────────────────
+                sb.from('product_images')
+                  .select('media_type', { count: 'exact', head: false })
+                  .like('image_url', '%images.zuwera.store%')
+                  .then(({ data: mediaRows }) => {
+                    const rows = Array.isArray(mediaRows) ? mediaRows : [];
+                    const videos = rows.filter(r => r.media_type === 'video').length;
+                    const images = rows.length - videos;
+                    const imgEl = document.getElementById('dash-r2-images');
+                    const vidEl = document.getElementById('dash-r2-videos');
+                    if (imgEl) imgEl.textContent = images;
+                    if (vidEl) vidEl.textContent = videos;
+                  }).catch(() => {});
 
                 // ── Revenue ────────────────────────────────────────────────────
                 const now = new Date();
