@@ -600,6 +600,7 @@
     Back
   </a>
   <div class="zw-nav-right">
+    <button class="zw-nav-btn" id="nav-signout-btn" onclick="signOut()" style="display:none">Sign Out</button>
     <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" aria-controls="mobile-menu" aria-expanded="false">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="8" x2="21" y2="8"></line><line x1="3" y1="16" x2="21" y2="16"></line></svg>
     </button>
@@ -1666,6 +1667,8 @@ async function init() {
 
     // Show account content
     document.getElementById('acct-content').style.display = 'block';
+    const navSO = document.getElementById('nav-signout-btn');
+    if (navSO) navSO.style.display = '';
 
     const email = _session.user?.email || '';
     const meta = _session.user?.user_metadata || {};
