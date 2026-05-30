@@ -4146,7 +4146,13 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
   }
 
   function startWithSb() {
-    // supabase-client.js (deferred) has now run — initialize sb and kick off fetches
+    // Use shared client or create a local fallback — guarantees product always loads
+    if (!window.sb && typeof supabase !== 'undefined') {
+      window.sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+        auth: { persistSession: true, storageKey: 'zuwera-auth', flowType: 'implicit' },
+        global: { headers: { 'X-Client-Info': 'zuwera-store' } }
+      });
+    }
     sb = window.sb;
     window.sb = sb;
     _sessionPromise = sb?.auth?.getSession
