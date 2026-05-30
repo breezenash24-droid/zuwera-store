@@ -315,6 +315,47 @@ body.super-light-mode .modal:not(#cart-modal):not(#mobile-menu):not(#payment-mod
   color:#09090b !important;
 }
 
+/* ── Super-light: comprehensive overrides for all cream (#F0EEE9) surfaces ── */
+/* These use !important so they beat same-specificity body.light-mode rules
+   that appear in per-page inline <style> blocks (which load after this file). */
+body.super-light-mode .mbox,
+body.super-light-mode .pbox,
+body.super-light-mode .cbox,
+body.super-light-mode .ret-inner-box,
+body.super-light-mode .review-mbox,
+body.super-light-mode .review-list-mbox,
+body.super-light-mode .size-guide-dialog{ background:#FFFFFF !important; border-color:rgba(9,9,11,.1) !important; color:#09090b !important; }
+
+body.super-light-mode .mclose{ background:rgba(9,9,11,.05) !important; border-color:rgba(9,9,11,.12) !important; color:#09090b !important; }
+
+body.super-light-mode .cart-hd{ background:rgba(255,255,255,.97) !important; border-bottom-color:rgba(9,9,11,.08) !important; }
+body.super-light-mode .csummary{ background:#FFFFFF !important; border-color:rgba(9,9,11,.1) !important; }
+
+body.super-light-mode #payment-modal,
+body.super-light-mode #payment-modal > div{ background:#FFFFFF !important; border-color:rgba(9,9,11,.1) !important; }
+body.super-light-mode #payment-modal h2{ color:#09090b !important; }
+body.super-light-mode #payment-modal label,
+body.super-light-mode #payment-modal p{ color:rgba(9,9,11,.5) !important; }
+body.super-light-mode #payment-modal input,
+body.super-light-mode #payment-modal select{ background:rgba(9,9,11,.04) !important; border-color:rgba(9,9,11,.12) !important; color:#09090b !important; }
+body.super-light-mode #payment-modal #pay-submit{ background:#09090b !important; color:#E8E3DC !important; }
+
+body.super-light-mode #payment-success{ background:#FFFFFF !important; }
+
+body.super-light-mode #cookie-banner{ background:#FFFFFF !important; border-top-color:rgba(9,9,11,.1) !important; color:rgba(9,9,11,.65) !important; }
+
+body.super-light-mode #toast{ background:#FFFFFF !important; color:#09090b !important; border-color:rgba(9,9,11,.12) !important; }
+
+body.super-light-mode .wallet-chip{ background:#FFFFFF !important; border-color:rgba(9,9,11,.12) !important; color:#09090b !important; }
+
+body.super-light-mode .collection-review-box{ background:#FFFFFF !important; border-color:rgba(9,9,11,.08) !important; }
+body.super-light-mode .collection-review-close{ background:rgba(9,9,11,.55) !important; color:#fff !important; }
+
+body.super-light-mode .ret-hd{ background:rgba(255,255,255,.96) !important; border-bottom-color:rgba(9,9,11,.07) !important; }
+body.super-light-mode .quick-size-panel{ background:#FFFFFF !important; border-top-color:rgba(9,9,11,.1) !important; }
+body.super-light-mode .quick-size-panel-header{ color:rgba(9,9,11,.5) !important; }
+body.super-light-mode .quick-size-close{ color:rgba(9,9,11,.4) !important; }
+
 /* all-reviews box: explicit desktop styles (excluded from generic rule above, desktop only) */
 @media(min-width:601px){
   #all-reviews-modal > .review-list-mbox{

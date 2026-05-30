@@ -232,6 +232,9 @@
   body.light-mode .cdb{
     border-bottom-color:rgba(9,9,11,.08);
   }
+  body.super-light-mode .cdb{
+    border-bottom-color:rgba(9,9,11,.08);
+  }
 
   .notify-box{
     width:100%;
@@ -404,6 +407,10 @@
     border-color:rgba(9,9,11,.1);
     background:rgba(9,9,11,.02);
   }
+  body.super-light-mode .countdown-block{
+    border-color:rgba(9,9,11,.1);
+    background:rgba(9,9,11,.02);
+  }
 
   .countdown-divider{
     display:none !important;
@@ -427,6 +434,10 @@
   }
 
   body.light-mode .notify-form input{
+    border-right-color:rgba(9,9,11,.2) !important;
+    border-bottom-color:rgba(9,9,11,.2) !important;
+  }
+  body.super-light-mode .notify-form input{
     border-right-color:rgba(9,9,11,.2) !important;
     border-bottom-color:rgba(9,9,11,.2) !important;
   }
