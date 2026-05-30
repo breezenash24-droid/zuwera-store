@@ -34,6 +34,8 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <script src="/favicon-utils.js?v=00b5644f" defer></script>
+  <script src="/supabase.min.js?v=3277b334" defer></script>
+  <script src="/supabase-client.js?v=1" defer></script>
 
 <script>
 /* Kick off the products fetch as early as possible — before CSS/JS blocks parsing —
@@ -2428,7 +2430,6 @@ body.light-mode::after{opacity:0.15}
      JAVASCRIPT
 ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
 <!-- Supabase must remain synchronous because the following inline script creates the client immediately. -->
-<script src="/supabase.min.js?v=3277b334"></script>
 <script>
 console.log('[ZUWERA] build: 2026-05-25-v1 | full-page checkout');
 /* TOAST */
@@ -2475,14 +2476,10 @@ window.addEventListener('scroll', () => {
   }
 })();
 
-/* SUPABASE */
+/* SUPABASE — window.sb set by supabase-client.js (deferred) before DOMContentLoaded */
 const SUPABASE_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
-window.sb = window.sb || ((typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-  auth: { persistSession: true, storageKey: 'zuwera-auth', flowType: 'implicit' },
-  global: { headers: { 'X-Client-Info': 'zuwera-store' } }
-}) : null);
-const _sb = window.sb;
+let _sb = null; // set in DOMContentLoaded once supabase-client.js has run
 let _announcementBarScrollHandler = null;
 
 function teardownAnnouncementBarScroll() {
@@ -3072,7 +3069,9 @@ function setDisabled(id, dis, label) {
   b.disabled = dis; b.textContent = dis ? label + '...' : label;
 }
 
-if (_sb) {
+// Auth listener started in DOMContentLoaded (see _initAuth below)
+function _initAuth() {
+  if (!_sb) return;
   _sb.auth.onAuthStateChange((event, session) => {
     _user = session?.user ?? null;
     updateNav();
@@ -5085,8 +5084,14 @@ function declineCookies(){try{localStorage.setItem('zw_cookie_consent','declined
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initReturnsModalClose);
+    document.addEventListener('DOMContentLoaded', function() {
+      _sb = window.sb; // supabase-client.js (deferred) has now run
+      _initAuth();
+      initReturnsModalClose();
+    });
   } else {
+    _sb = window.sb;
+    _initAuth();
     initReturnsModalClose();
   }
 })();

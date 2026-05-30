@@ -17,6 +17,8 @@
   <link rel="manifest" href="/site.webmanifest">
   <link rel="canonical" href="https://zuwera.store/returns.html">
   <script src="/favicon-utils.js?v=00b5644f" defer></script>
+  <script src="/supabase.min.js?v=3277b334" defer></script>
+  <script src="/supabase-client.js?v=1" defer></script>
   <meta name="description" content="Start a return or exchange for your Zuwera order. Free returns within 30 days.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -653,16 +655,10 @@ body.super-light-mode .policy-section { border-color: rgba(9,9,11,.14); }
   </div>
 </footer>
 
-<script src="/supabase.min.js?v=3277b334"></script>
 <script>
 // ─── Config ──────────────────────────────────────────────────────────────────
-const SUPABASE_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
-const _sb = (typeof supabase !== 'undefined')
-  ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-      auth: { persistSession: true, storageKey: 'zuwera-auth', flowType: 'implicit' }
-    })
-  : null;
+// _sb set in DOMContentLoaded once supabase-client.js (deferred) has run
+let _sb = null;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function esc(v) {
@@ -1361,7 +1357,7 @@ document.getElementById('policy-toggle').addEventListener('click', function() {
   this.setAttribute('aria-expanded', open);
 });
 
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', function() { _sb = window.sb; init(); });
 </script>
 <script src="storefront-theme.js?v=26052901" defer></script>
 <script src="lang.js?v=1329682b" defer></script>

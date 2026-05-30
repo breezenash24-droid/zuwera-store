@@ -18,6 +18,8 @@
   <link rel="stylesheet" href="cart.css?v=10101f01">
   <link rel="stylesheet" href="storefront-cohesion.css?v=26052903">
   <script src="/favicon-utils.js?v=00b5644f" defer></script>
+  <script src="/supabase.min.js?v=3277b334" defer></script>
+  <script src="/supabase-client.js?v=1" defer></script>
   <script src="/stripe-client-config.js?v=f4503bed"></script>
   <script src="/checkout-tax.js?v=d7a3117c"></script>
   <script src="https://js.stripe.com/v3/"></script>
@@ -585,15 +587,9 @@
 </div>
 
 <!-- SCRIPTS -->
-<script src="/supabase.min.js?v=3277b334"></script>
 <script>
 /* ===================== CORE SETUP ===================== */
-const SUPABASE_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
-window.sb = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-  auth: { persistSession: true, storageKey: 'zuwera-auth', flowType: 'implicit' },
-  global: { headers: { 'X-Client-Info': 'zuwera-store' } },
-}) : null;
+// window.sb set by supabase-client.js (deferred) before DOMContentLoaded fires
 /* ── Modal helpers (also provided by auth.js, but defined early for safety) ── */
 window._openModal = function(id) {
   const m = document.getElementById(id);
@@ -1151,15 +1147,18 @@ window.__zwOpenAuth = function(tab) {
     if (wasGuest !== !_bagUser) renderCart();
   }
 
-  window.sb.auth.onAuthStateChange(function(event, session) {
-    applyAuthState(session ? session.user : null, session ? session.access_token : null);
+  // Auth init runs in DOMContentLoaded so window.sb is available (supabase deferred)
+  document.addEventListener('DOMContentLoaded', function() {
+    var sb = window.sb;
+    if (!sb) return;
+    sb.auth.onAuthStateChange(function(event, session) {
+      applyAuthState(session ? session.user : null, session ? session.access_token : null);
+    });
+    sb.auth.getSession().then(function(result) {
+      var session = result && result.data && result.data.session ? result.data.session : null;
+      applyAuthState(session ? session.user : null, session ? session.access_token : null);
+    }).catch(function() {});
   });
-
-  // Also check immediately via getSession in case onAuthStateChange fires late
-  window.sb.auth.getSession().then(function(result) {
-    var session = result && result.data && result.data.session ? result.data.session : null;
-    applyAuthState(session ? session.user : null, session ? session.access_token : null);
-  }).catch(function() {});
 })();
 </script>
 <script src="checkout.js?v=a3f92e15"></script>
