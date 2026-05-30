@@ -9434,6 +9434,11 @@
                     resolve({ ok: false, url, reason: 'Use a valid http(s) image URL.' });
                     return;
                 }
+                // Video URLs are accepted without image-loading validation
+                if (isVideoUrl(safeUrl)) {
+                    resolve({ ok: true, url: safeUrl, warnings: [], isVideo: true });
+                    return;
+                }
                 const img = new Image();
                 let settled = false;
                 const finish = (result) => {
@@ -9484,15 +9489,24 @@
             const input = event.target;
             if (!input?.classList?.contains('product-image-url') || !input.value.trim()) return;
             const row = input.closest('.image-row');
-            const preview = row?.querySelector('.image-preview');
-            const result = await validateImageUrl(input.value.trim(), 5000);
+            const imgPreview = row?.querySelector('.image-preview');
+            const vidPreview = row?.querySelector('.video-preview');
+            const url = input.value.trim();
+
+            if (isVideoUrl(url)) {
+                input.classList.remove('error');
+                const safeUrl = safeHttpUrl(url);
+                if (imgPreview) imgPreview.style.display = 'none';
+                if (vidPreview && safeUrl) { vidPreview.src = safeUrl; vidPreview.style.display = 'block'; }
+                return;
+            }
+
+            const result = await validateImageUrl(url, 5000);
             input.classList.toggle('error', !result.ok);
-            if (preview && result.ok) {
-                preview.src = result.url;
-                preview.style.display = 'block';
-                if (result.warnings?.length) {
-                    showToast(result.warnings[0], 'info');
-                }
+            if (result.ok) {
+                if (vidPreview) { vidPreview.style.display = 'none'; vidPreview.src = ''; }
+                if (imgPreview) { imgPreview.src = result.url; imgPreview.style.display = 'block'; }
+                if (result.warnings?.length) showToast(result.warnings[0], 'info');
             }
         }, true);
 
