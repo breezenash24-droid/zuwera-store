@@ -438,9 +438,10 @@
     /* Color swatches */
     .qcol-row{display:flex;flex-wrap:wrap;gap:.55rem;margin-bottom:.2rem}
     .qcol-swatch{
-      width:28px;height:28px;border:2px solid rgba(244,241,235,.15);
+      width:40px;height:40px;border:2px solid rgba(244,241,235,.15);
       border-radius:2px;
       cursor:pointer;transition:all .15s;flex-shrink:0;
+      -webkit-tap-highlight-color:transparent;
     }
     .qcol-swatch:hover,.qcol-swatch.active{border-color:#f4f1eb;box-shadow:0 0 0 1px #f4f1eb}
     .qcol-name{font-size:.53rem;letter-spacing:.1em;color:rgba(244,241,235,.45);margin-top:.45rem;min-height:.8rem}
@@ -448,8 +449,10 @@
     .quick-size-row{display:flex;flex-wrap:wrap;gap:.45rem}
     .qsz-btn{
       background:transparent;border:1px solid rgba(244,241,235,.2);color:rgba(244,241,235,.85);
-      padding:.4rem .7rem;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;
-      cursor:pointer;transition:all .15s;min-width:38px;text-align:center;
+      padding:.55rem .8rem;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;
+      cursor:pointer;transition:all .15s;min-width:44px;min-height:44px;text-align:center;
+      display:inline-flex;align-items:center;justify-content:center;
+      -webkit-tap-highlight-color:transparent;
     }
     .qsz-btn:hover:not(.sold-out){background:#f4f1eb;color:#09090b;border-color:#f4f1eb}
     .qsz-btn.sold-out{opacity:.3;cursor:not-allowed;text-decoration:line-through}
@@ -772,7 +775,7 @@
       color: #e07060; border: 1px solid rgba(224,112,96,.35); padding: .18rem .55rem;
     }
   </style>
-<link rel="stylesheet" href="storefront-cohesion.css?v=26052903">
+<link rel="stylesheet" href="storefront-cohesion.css?v=26053001">
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=26052901">
   <script src="image-utils.js?v=6eef467b" defer></script>
   <script src="mobile-menu.js?v=4c6ccedc" defer></script>
@@ -1307,7 +1310,7 @@ function updateCountdown() {
           const originalImg = firstImg;
           firstImg = optimizeImage(firstImg, 600);
           const imgHtml = firstImg
-            ? `<img src="${firstImg}" alt="${productName}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="if(this.src !== '${originalImg || ''}') this.src='${originalImg || ''}';">`
+            ? `<img src="${firstImg}" alt="${productName}" loading="lazy" width="400" height="500" style="width:100%;height:100%;object-fit:cover;aspect-ratio:4/5" onerror="if(this.src !== '${originalImg || ''}') this.src='${originalImg || ''}';">`
             : `<div class="product-img-placeholder">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
                 <span>Image Coming Soon</span>

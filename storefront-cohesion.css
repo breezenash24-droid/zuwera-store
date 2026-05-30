@@ -6,7 +6,7 @@ html:has(body.super-light-mode){background:#FFFFFF;color-scheme:light}
 html::before{content:'';position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:#09090b;z-index:550;pointer-events:none}
 html:has(body.light-mode)::before{background:#F0EEE9}
 html:has(body.super-light-mode)::before{background:#FFFFFF}
-a,button,[role="button"]{touch-action:manipulation}
+a,button,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 :root{
   --zw-ink:#09090b;
   --zw-paper:#f4f1eb;

@@ -16,13 +16,25 @@
   <link rel="stylesheet" href="base.css?v=ace563fe">
   <link rel="stylesheet" href="nav.css?v=45571be5">
   <link rel="stylesheet" href="cart.css?v=10101f01">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=26052903">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=26053001">
   <script src="/favicon-utils.js?v=00b5644f" defer></script>
   <script src="/supabase.min.js?v=3277b334" defer></script>
   <script src="/supabase-client.js?v=1" defer></script>
   <script src="/stripe-client-config.js?v=f4503bed"></script>
   <script src="/checkout-tax.js?v=d7a3117c"></script>
-  <script src="https://js.stripe.com/v3/"></script>
+  <!-- Stripe loaded on first checkout click, not on initial page load -->
+  <script>
+  window._stripeLoaded = false;
+  window._ensureStripe = function() {
+    if (window._stripeLoaded) return Promise.resolve();
+    return new Promise(function(resolve) {
+      var s = document.createElement('script');
+      s.src = 'https://js.stripe.com/v3/';
+      s.onload = function() { window._stripeLoaded = true; resolve(); };
+      document.head.appendChild(s);
+    });
+  };
+  </script>
   <style>
     :root {
       --cart-border: rgba(244,241,235,.07);
@@ -467,16 +479,16 @@
         <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.28)">— or pay with card —</div>
         <div class="co-sec-label">Contact</div>
         <div class="pgrow">
-          <div class="pfield"><label>Full Name</label><input type="text" id="pay-name" placeholder="Jane Smith" autocomplete="name"></div>
-          <div class="pfield"><label>Email</label><input type="email" id="pay-email" placeholder="jane@example.com" autocomplete="email"></div>
+          <div class="pfield"><label for="pay-name">Full Name</label><input type="text" id="pay-name" placeholder="Jane Smith" autocomplete="name"></div>
+          <div class="pfield"><label for="pay-email">Email</label><input type="email" id="pay-email" inputmode="email" placeholder="jane@example.com" autocomplete="email"></div>
         </div>
         <div class="co-sec-label">Address</div>
-        <div class="pfield"><label>Street Address</label><input type="text" id="pay-addr1" placeholder="123 Main St" autocomplete="street-address"></div>
-        <div class="pfield"><label>Apt / Suite <span style="opacity:.4">(optional)</span></label><input type="text" id="pay-addr2" placeholder="Apt 4B" autocomplete="address-line2"></div>
+        <div class="pfield"><label for="pay-addr1">Street Address</label><input type="text" id="pay-addr1" placeholder="123 Main St" autocomplete="street-address"></div>
+        <div class="pfield"><label for="pay-addr2">Apt / Suite <span style="opacity:.4">(optional)</span></label><input type="text" id="pay-addr2" placeholder="Apt 4B" autocomplete="address-line2"></div>
         <div class="pgrow" style="grid-template-columns:1fr 80px 120px">
-          <div class="pfield"><label>City</label><input type="text" id="pay-city" placeholder="New York" autocomplete="address-level2"></div>
-          <div class="pfield"><label>State</label><input type="text" id="pay-state" placeholder="NY" maxlength="2" autocomplete="address-level1" style="text-transform:uppercase"></div>
-          <div class="pfield"><label>ZIP</label><input type="text" id="pay-zip" placeholder="10001" maxlength="10" autocomplete="postal-code"></div>
+          <div class="pfield"><label for="pay-city">City</label><input type="text" id="pay-city" placeholder="New York" autocomplete="address-level2"></div>
+          <div class="pfield"><label for="pay-state">State</label><input type="text" id="pay-state" placeholder="NY" maxlength="2" autocomplete="address-level1" style="text-transform:uppercase"></div>
+          <div class="pfield"><label for="pay-zip">ZIP</label><input type="tel" inputmode="numeric" id="pay-zip" placeholder="10001" maxlength="10" autocomplete="postal-code"></div>
         </div>
         <div class="pfield" id="shipping-rates-field" style="display:none"><label>Shipping Method</label><div id="shipping-rates-list"></div></div>
         <div id="shipping-rates-loading" style="display:none;font-size:.68rem;color:rgba(244,241,235,.35);margin-bottom:1rem">Fetching shipping rates…</div>
@@ -813,9 +825,9 @@ function renderCart() {
         <div style="font-family:var(--font-head);font-size:1rem;font-weight:600;letter-spacing:.04em;margin-bottom:.2rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(item.title)}</div>
         <div style="font-family:var(--font-mono);font-size:.65rem;color:var(--cart-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem;display:flex;align-items:center">${bagColorSwatch(item)}${esc(item.colorName)} / ${esc(item.size)}</div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:.5rem">
-          <button onclick="updateCartQuantity(${idx},-1)" style="background:none;border:1px solid var(--cart-btn-border);color:inherit;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;flex-shrink:0">−</button>
+          <button onclick="updateCartQuantity(${idx},-1)" style="background:none;border:1px solid var(--cart-btn-border);color:inherit;min-width:44px;min-height:44px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.1rem;flex-shrink:0;-webkit-tap-highlight-color:transparent">−</button>
           <span style="font-size:.85rem;min-width:1.2rem;text-align:center">${item.quantity}</span>
-          <button onclick="updateCartQuantity(${idx},1)"  style="background:none;border:1px solid var(--cart-btn-border);color:inherit;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;flex-shrink:0">+</button>
+          <button onclick="updateCartQuantity(${idx},1)"  style="background:none;border:1px solid var(--cart-btn-border);color:inherit;min-width:44px;min-height:44px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.1rem;flex-shrink:0;-webkit-tap-highlight-color:transparent">+</button>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.5rem;flex-shrink:0">
