@@ -747,9 +747,11 @@ body.light-mode #mobile-menu-close { color:#09090b !important; }
 .quick-back-btn:hover{color:rgba(244,241,235,.8)}
 /* Light mode overrides */
 body.light-mode .quick-size-panel{background:#f0eee9;border-top-color:rgba(9,9,11,.1)}
+body.super-light-mode .quick-size-panel{background:#FFFFFF;border-top-color:rgba(9,9,11,.1)}
 body.light-mode .quick-size-btn{color:rgba(9,9,11,.85);border-color:rgba(9,9,11,.2)}
 body.light-mode .quick-size-btn:hover:not(.sold-out){background:#09090b;color:#f4f1eb;border-color:#09090b}
 body.light-mode .quick-size-close{color:rgba(9,9,11,.4)}
+body.super-light-mode .quick-size-close{color:rgba(9,9,11,.4)}
 body.light-mode .quick-color-swatch{border-color:rgba(9,9,11,.15)}
 body.light-mode .quick-color-swatch:hover,body.light-mode .quick-color-swatch.active{border-color:#09090b;box-shadow:0 0 0 1px #09090b}
 body.light-mode .quick-color-name{color:rgba(9,9,11,.45)}
@@ -1599,12 +1601,18 @@ body.light-mode nav#nav.scrolled #cart-btn:hover{border-color:rgba(9,9,11,.5)}
 body.light-mode nav#nav .cc,
 body.light-mode nav#nav.scrolled .cc{background:var(--paper);color:var(--ink)}
 
-/* Announcement — always dark to match product page */
+/* Announcement — dark in regular light mode; white in super-light */
 body.light-mode #bar{
   background:#09090b;
   color:#f4f1eb;
   border-bottom-color:rgba(244,241,235,.1);
 }
+body.super-light-mode #bar{
+  background:#FFFFFF;
+  color:#09090b;
+  border-bottom-color:rgba(9,9,11,.1);
+}
+body.super-light-mode .bar-sep{color:rgba(9,9,11,.4)}
 
 /* Hero kicker — always light; hero bg is always a dark photo */
 body.light-mode .hero-kicker{color:rgba(244,241,235,.7)}
