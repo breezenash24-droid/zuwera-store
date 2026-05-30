@@ -953,8 +953,16 @@ body.light-mode .heart-btn{
     background:rgba(9,9,11,.28) !important;
   }
 
+  body.super-light-mode .quick-add-review-modal{
+    background:rgba(9,9,11,.12) !important;
+  }
+
   body.light-mode .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box{
     background:var(--zw-paper) !important;
+  }
+
+  body.super-light-mode .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box{
+    background:#FFFFFF !important;
   }
 
   .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box .mclose{
@@ -1226,6 +1234,11 @@ body.light-mode .heart-btn{
 
   body.light-mode .hamburger-btn,
   body.light-mode #mobile-menu-btn{
+    color:#09090b !important;
+  }
+
+  body.super-light-mode .hamburger-btn,
+  body.super-light-mode #mobile-menu-btn{
     color:#09090b !important;
   }
 
@@ -1753,6 +1766,15 @@ body.light-mode #mobile-menu .zw-mobile-menu-close{
   color:rgba(9,9,11,.48) !important;
 }
 
+body.super-light-mode .zw-mobile-menu-kicker,
+body.super-light-mode .zw-mobile-menu-year,
+body.super-light-mode .zw-mobile-socials a,
+body.super-light-mode .zw-mobile-socials button.zw-mobile-lang-trigger,
+body.super-light-mode #mobile-menu .zw-mobile-secondary-link,
+body.super-light-mode #mobile-menu .zw-mobile-menu-close{
+  color:rgba(9,9,11,.48) !important;
+}
+
 #mobile-menu .zw-mobile-menu-close{
   position:fixed !important;
   top:calc(env(safe-area-inset-top,0px) + 1rem) !important;
@@ -1778,6 +1800,12 @@ body.light-mode #mobile-menu .zw-mobile-menu-close{
   border-color:rgba(9,9,11,.14) !important;
   background:var(--zw-paper) !important;
   color:var(--zw-ink) !important;
+}
+
+body.super-light-mode #mobile-menu .zw-mobile-menu-close{
+  border-color:rgba(9,9,11,.15) !important;
+  background:#FFFFFF !important;
+  color:#09090b !important;
 }
 
 #mobile-menu .zw-mobile-menu-close::before,
@@ -1873,6 +1901,16 @@ body.light-mode #mobile-menu .zw-mobile-primary-link:last-child{
   border-bottom-color:var(--zw-line-light) !important;
 }
 
+body.super-light-mode #mobile-menu .zw-mobile-primary-link{
+  border-top-color:rgba(9,9,11,.1) !important;
+  color:#09090b !important;
+  background:linear-gradient(90deg, rgba(9,9,11,.02), transparent 55%) !important;
+}
+
+body.super-light-mode #mobile-menu .zw-mobile-primary-link:last-child{
+  border-bottom-color:rgba(9,9,11,.1) !important;
+}
+
 #mobile-menu .zw-mobile-primary-link:hover,
 #mobile-menu .zw-mobile-primary-link:focus-visible{
   color:var(--zw-accent) !important;
@@ -1889,6 +1927,11 @@ body.light-mode #mobile-menu .zw-mobile-primary-link:last-child{
 body.light-mode #mobile-menu .zw-mobile-menu-secondary{
   border-top-color:var(--zw-line-light);
   border-left-color:var(--zw-line-light);
+}
+
+body.super-light-mode #mobile-menu .zw-mobile-menu-secondary{
+  border-top-color:rgba(9,9,11,.1);
+  border-left-color:rgba(9,9,11,.1);
 }
 
 #mobile-menu .zw-mobile-secondary-link{
@@ -1908,6 +1951,13 @@ body.light-mode #mobile-menu .zw-mobile-secondary-link{
   border-right-color:var(--zw-line-light) !important;
   border-bottom-color:var(--zw-line-light) !important;
   background:rgba(9,9,11,.018) !important;
+}
+
+body.super-light-mode #mobile-menu .zw-mobile-secondary-link{
+  border-right-color:rgba(9,9,11,.1) !important;
+  border-bottom-color:rgba(9,9,11,.1) !important;
+  background:rgba(9,9,11,.015) !important;
+  color:rgba(9,9,11,.72) !important;
 }
 
 #mobile-menu .zw-mobile-secondary-link:hover,
@@ -1941,6 +1991,10 @@ body.light-mode .zw-mobile-menu-footer{
   border-top-color:rgba(9,9,11,.1);
 }
 
+body.super-light-mode .zw-mobile-menu-footer{
+  border-top-color:rgba(9,9,11,.1);
+}
+
 .zw-mobile-socials{
   display:grid;
   grid-template-columns:repeat(3, minmax(0, 1fr));
@@ -1950,6 +2004,10 @@ body.light-mode .zw-mobile-menu-footer{
 
 body.light-mode .zw-mobile-socials{
   border-color:var(--zw-line-light);
+}
+
+body.super-light-mode .zw-mobile-socials{
+  border-color:rgba(9,9,11,.1);
 }
 
 .zw-mobile-socials a{
@@ -1971,6 +2029,11 @@ body.light-mode .zw-mobile-socials{
 body.light-mode .zw-mobile-socials a{
   border-right-color:var(--zw-line-light) !important;
   background:rgba(9,9,11,.014) !important;
+}
+
+body.super-light-mode .zw-mobile-socials a{
+  border-right-color:rgba(9,9,11,.1) !important;
+  background:rgba(9,9,11,.015) !important;
 }
 
 .zw-mobile-menu-year{
