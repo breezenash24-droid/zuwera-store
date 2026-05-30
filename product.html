@@ -1051,6 +1051,7 @@ body.super-light-mode { background: #FFFFFF !important; }
         <div class="gallery-main loading" id="galleryMain" style="position:relative">
           <button id="prevImg" type="button" class="gallery-arrow left-arrow" aria-label="Previous image">&#10094;</button>
           <img id="mainImage" src="" alt="" class="main-image" fetchpriority="high" decoding="async" width="800" height="1000" style="aspect-ratio:4/5">
+          <video id="mainVideo" class="main-image" muted loop playsinline preload="metadata" style="display:none;aspect-ratio:4/5;width:100%;height:100%;object-fit:cover" aria-hidden="true"></video>
           <button id="nextImg" type="button" class="gallery-arrow right-arrow" aria-label="Next image">&#10095;</button>
           <div class="low-stock-badge hidden" id="lowStockBadge">Low Stock</div>
           <button
@@ -2183,7 +2184,9 @@ async function loadProduct() {
         seenImageUrls.add(image.image_url);
         return true;
       });
-    currentProduct.images = ensureProductImageFallback(images, currentProduct);
+    // Store all images; filter by selected color (or show shared if no color)
+    currentProduct.allImages = ensureProductImageFallback(images, currentProduct);
+    currentProduct.images = getImagesForColor(selectedColor?.id || null);
     currentImageIndex = Math.min(currentImageIndex, Math.max(currentProduct.images.length - 1, 0));
     renderGallery();
     syncProductSaveButton();
@@ -2571,77 +2574,114 @@ function renderPrice() {
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
 // RENDER GALLERY
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
+// ── Media helpers ──────────────────────────────────────────────────────────────
+function isVideoMedia(item) {
+  return item?.media_type === 'video' ||
+    /\.(mp4|webm|mov|m4v|ogv)(\?.*)?$/i.test(item?.image_url || '');
+}
+
+function getImagesForColor(colorVariantId) {
+  const all = currentProduct.allImages || currentProduct.images || [];
+  if (!colorVariantId) {
+    const shared = all.filter(m => !m.color_variant_id);
+    return shared.length ? shared : all;
+  }
+  const specific = all.filter(m => m.color_variant_id === colorVariantId);
+  const shared   = all.filter(m => !m.color_variant_id);
+  return specific.length ? [...specific, ...shared] : (shared.length ? shared : all);
+}
+
 function renderGallery() {
   const mainImage = document.getElementById('mainImage');
+  const mainVideo = document.getElementById('mainVideo');
   const thumbContainer = document.getElementById('galleryThumbnails');
   thumbContainer.innerHTML = '';
 
-  if (currentProduct.images.length === 0) {
+  if (!currentProduct.images || currentProduct.images.length === 0) {
+    mainImage.style.display = '';
+    if (mainVideo) { mainVideo.style.display = 'none'; mainVideo.src = ''; }
     mainImage.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"%3E%3Crect fill="transparent" width="400" height="500"/%3E%3C/svg%3E';
     mainImage.alt = 'No image available';
     return;
   }
 
-  currentImageIndex = 0;
-  if (!currentProduct.images || currentProduct.images.length === 0) return;
-  updateMainImage(0);
+  // Preserve index across color switches; clamp to new length
+  currentImageIndex = Math.max(0, Math.min(currentImageIndex, currentProduct.images.length - 1));
+  updateMainImage(currentImageIndex);
 
   document.getElementById('prevImg').onclick = () => updateMainImage(currentImageIndex - 1);
   document.getElementById('nextImg').onclick = () => updateMainImage(currentImageIndex + 1);
 
-  // Setup mobile swipe
+  // Mobile swipe
   let touchStartX = 0;
-  let touchEndX = 0;
   const galleryMain = document.querySelector('.gallery-main');
   galleryMain.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
   galleryMain.addEventListener('touchend', e => {
-    touchEndX = e.changedTouches[0].screenX;
-    if (touchEndX < touchStartX - 40) updateMainImage(currentImageIndex + 1);
-    if (touchEndX > touchStartX + 40) updateMainImage(currentImageIndex - 1);
+    const dx = e.changedTouches[0].screenX - touchStartX;
+    if (dx < -40) updateMainImage(currentImageIndex + 1);
+    if (dx > 40)  updateMainImage(currentImageIndex - 1);
   }, {passive: true});
 
-  // Create thumbnails
-  currentProduct.images.forEach((img, idx) => {
-    // Preload image into browser cache for instant gallery swapping
-    const preloader = new Image();
-    preloader.src = img.image_url;
-
+  currentProduct.images.forEach((item, idx) => {
     const thumb = document.createElement('div');
-    thumb.className = 'thumbnail';
-    if (idx === 0) thumb.classList.add('active');
+    thumb.className = 'thumbnail' + (idx === currentImageIndex ? ' active' : '');
 
-    const thumbImg = document.createElement('img');
-    thumbImg.src = optimizeImage(img.image_url, 200);
-    thumbImg.onerror = function() { if (this.src !== img.image_url) this.src = img.image_url; };
-    thumbImg.alt = img.alt_text || `${currentProduct.title} - View ${idx + 1}`;
-    thumbImg.loading = 'lazy';
+    if (isVideoMedia(item)) {
+      // Video thumbnail — play icon overlay
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'width:100%;height:100%;background:#09090b;display:flex;align-items:center;justify-content:center;';
+      wrap.innerHTML = '<svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="14" fill="rgba(0,0,0,.55)"/><polygon points="11,9 21,14 11,19" fill="white"/></svg>';
+      thumb.appendChild(wrap);
+    } else {
+      const thumbImg = document.createElement('img');
+      thumbImg.src = optimizeImage(item.image_url, 200);
+      thumbImg.onerror = function() { if (this.src !== item.image_url) this.src = item.image_url; };
+      thumbImg.alt = item.alt_text || `${currentProduct.title} view ${idx + 1}`;
+      thumbImg.loading = 'lazy';
+      thumb.appendChild(thumbImg);
+      // Preload into cache
+      const p = new Image(); p.src = item.image_url;
+    }
 
-    thumb.appendChild(thumbImg);
-    thumb.addEventListener('click', () => { updateMainImage(idx); });
-
+    thumb.addEventListener('click', () => updateMainImage(idx));
     thumbContainer.appendChild(thumb);
   });
 }
 
 function updateMainImage(index) {
-  if (!currentProduct.images || currentProduct.images.length === 0) return;
-  if (index < 0) index = currentProduct.images.length - 1;
-  if (index >= currentProduct.images.length) index = 0;
+  const images = currentProduct.images;
+  if (!images || !images.length) return;
+  if (index < 0) index = images.length - 1;
+  if (index >= images.length) index = 0;
   currentImageIndex = index;
 
-  const img = currentProduct.images[index];
+  const item = images[index];
   const mainImgEl = document.getElementById('mainImage');
-  mainImgEl.src = optimizeImage(img.image_url, 1200);
-  mainImgEl.onload = function() { document.getElementById('galleryMain')?.classList.remove('loading'); };
-  mainImgEl.onerror = function() {
-    document.getElementById('galleryMain')?.classList.remove('loading');
-    if (this.src !== img.image_url) this.src = img.image_url;
-  };
-  mainImgEl.alt = img.alt_text || currentProduct.title;
+  const mainVidEl = document.getElementById('mainVideo');
+  const galleryMain = document.getElementById('galleryMain');
 
-  document.querySelectorAll('.thumbnail').forEach((t, i) => {
-    t.classList.toggle('active', i === index);
-  });
+  if (isVideoMedia(item)) {
+    mainImgEl.style.display = 'none';
+    if (mainVidEl) {
+      mainVidEl.src = item.image_url;
+      mainVidEl.style.display = '';
+      mainVidEl.load();
+      mainVidEl.play().catch(() => {});
+    }
+    galleryMain?.classList.remove('loading');
+  } else {
+    if (mainVidEl) { mainVidEl.style.display = 'none'; mainVidEl.pause(); mainVidEl.src = ''; }
+    mainImgEl.style.display = '';
+    mainImgEl.src = optimizeImage(item.image_url, 1200);
+    mainImgEl.onload  = () => galleryMain?.classList.remove('loading');
+    mainImgEl.onerror = function() {
+      galleryMain?.classList.remove('loading');
+      if (this.src !== item.image_url) this.src = item.image_url;
+    };
+    mainImgEl.alt = item.alt_text || currentProduct.title;
+  }
+
+  document.querySelectorAll('.thumbnail').forEach((t, i) => t.classList.toggle('active', i === index));
 }
 
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
@@ -2695,8 +2735,13 @@ function renderColors() {
       selectedColor = color;
       selectedColorSku = color.variant_sku;
       document.getElementById('selectedColor').textContent = color.color_name;
-      selectedSize = null; // Reset size when color changes
+      selectedSize = null;
       renderSizes();
+      // Switch gallery to this color's media, preserving position
+      if (currentProduct.allImages) {
+        currentProduct.images = getImagesForColor(color.id);
+        renderGallery();
+      }
     });
 
     container.appendChild(swatch);

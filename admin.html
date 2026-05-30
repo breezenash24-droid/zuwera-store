@@ -8969,12 +8969,21 @@
             const count = container.children.length + 1;
             const row = document.createElement('div');
             row.className = 'image-row';
-            row.innerHTML = '<span style="font-weight:600;min-width:60px;">Image ' + count + '</span>' +
-                '<input type="text" class="form-input product-image-url" placeholder="Paste image URL...">' +
-                '<label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label>' +
-                '<img class="image-preview" style="display:none">' +
-                '<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button>';
+            row.innerHTML = buildMediaRowHtml('Media ' + count, '', getColorOptionsForRows(), '', '');
             container.appendChild(row);
+            // Live URL detection: auto-show video preview when user pastes a video URL
+            row.querySelector('.product-image-url').addEventListener('change', function() {
+                const url = this.value.trim();
+                const vidPrev = row.querySelector('.video-preview');
+                const imgPrev = row.querySelector('.image-preview');
+                if (isVideoUrl(url)) {
+                    if (imgPrev) imgPrev.style.display = 'none';
+                    if (vidPrev) { vidPrev.src = url; vidPrev.style.display = 'block'; }
+                } else if (url) {
+                    if (vidPrev) { vidPrev.style.display = 'none'; vidPrev.src = ''; }
+                    if (imgPrev) { imgPrev.src = url; imgPrev.style.display = 'block'; }
+                }
+            });
         });
 
         // Color Variants
@@ -9141,6 +9150,72 @@
 
         function getProductImageUrlsFromForm() {
             return uniqueImageUrls(Array.from(document.querySelectorAll('.product-image-url')).map(input => input.value));
+        }
+
+        // ── Media helpers ──────────────────────────────────────────────────────────
+        function isVideoUrl(url) {
+            return /\.(mp4|webm|mov|m4v|ogv)(\?.*)?$/i.test(url || '');
+        }
+        function detectMediaType(url) {
+            return isVideoUrl(url) ? 'video' : 'image';
+        }
+
+        // Returns [{image_url, media_type, color_name}] from all image rows in the form
+        function getProductImageEntriesFromForm() {
+            const rows = Array.from(document.querySelectorAll('#imagesContainer .image-row'));
+            const seen = new Set();
+            return rows.map(row => {
+                const urlInput = row.querySelector('.product-image-url');
+                const url = safeHttpUrl((urlInput?.value || '').trim());
+                if (!url || seen.has(url)) return null;
+                seen.add(url);
+                const colorSel = row.querySelector('.product-image-color');
+                return {
+                    image_url: url,
+                    media_type: detectMediaType(url),
+                    color_name: colorSel?.value || null
+                };
+            }).filter(Boolean);
+        }
+
+        // Build color dropdown options from current color variant form entries
+        function getColorOptionsForRows() {
+            const entries = getColorVariantEntries().filter(e => e.color_name && e.hex_color);
+            if (!entries.length) return '';
+            return entries.map(e =>
+                `<option value="${escapeAttr(e.color_name)}">${escapeAttr(e.color_name)}</option>`
+            ).join('');
+        }
+
+        // Refresh color dropdowns on all existing image rows (call when colors change)
+        function refreshImageRowColorDropdowns() {
+            const opts = getColorOptionsForRows();
+            document.querySelectorAll('#imagesContainer .product-image-color').forEach(sel => {
+                const current = sel.value;
+                sel.innerHTML = '<option value="">All colors</option>' + opts;
+                sel.value = current; // restore selection
+            });
+            // Show/hide color column header
+            const hasColors = opts.length > 0;
+            document.querySelectorAll('#imagesContainer .img-color-col').forEach(el => {
+                el.style.display = hasColors ? '' : 'none';
+            });
+        }
+
+        function buildMediaRowHtml(label, url, colorOpts, selectedColor, selectedColorId) {
+            const safeUrl = escapeAttr(url || '');
+            const isVid = isVideoUrl(url || '');
+            const hasColors = colorOpts.length > 0;
+            const imgStyle = (!isVid && url) ? 'display:block' : 'display:none';
+            const vidStyle = (isVid && url)  ? 'display:block' : 'display:none';
+            const colorHtml = `<select class="product-image-color img-color-col" style="font-size:.82rem;padding:4px 6px;border:1px solid var(--border);border-radius:4px;background:var(--bg-secondary);color:var(--text-primary);max-width:120px;${hasColors ? '' : 'display:none'}"><option value="">All colors</option>${colorOpts}</select>`;
+            return `<span style="font-weight:600;min-width:50px;">${label}</span>` +
+                `<input type="text" class="form-input product-image-url" placeholder="Paste image or video URL..." value="${safeUrl}">` +
+                `<label class="btn-upload">Upload<input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" style="display:none" onchange="handleImageUpload(this)"></label>` +
+                colorHtml +
+                `<img class="image-preview" src="${safeUrl}" style="${imgStyle};width:40px;height:40px;object-fit:cover;border-radius:4px;border:1px solid var(--border)">` +
+                `<video class="video-preview" src="${isVid ? safeUrl : ''}" muted loop playsinline preload="metadata" style="${vidStyle};width:40px;height:40px;object-fit:cover;border-radius:4px;border:1px solid var(--border)"></video>` +
+                `<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest('.image-row').remove()">Remove</button>`;
         }
 
         function getSupabaseProductImagePath(url) {
@@ -9322,7 +9397,9 @@
         }
 
         async function prepareProductImageFile(file) {
-            if (!file || !file.type?.startsWith('image/')) return file;
+            if (!file) return file;
+            if (file.type?.startsWith('video/')) return file; // Videos pass through unmodified
+            if (!file.type?.startsWith('image/')) return file;
             if (file.type === 'image/gif') return file;
 
             const image = await loadImageBitmapFromFile(file);
@@ -10013,17 +10090,29 @@
             if (!originalFile) return;
             const row = fileInput.closest('.image-row');
             const urlInput = row.querySelector('.product-image-url');
-            const preview = row.querySelector('.image-preview');
+            const imgPreview = row.querySelector('.image-preview');
+            const vidPreview = row.querySelector('.video-preview');
             const uploadBtn = row.querySelector('.btn-upload');
             uploadBtn.textContent = 'Uploading...';
             try {
+                const isVideo = originalFile.type?.startsWith('video/');
                 const file = await prepareProductImageFile(originalFile);
                 const upload = await uploadProductImageToR2(file);
                 urlInput.value = upload.url;
-                if (preview) { preview.src = upload.url; preview.style.display = 'block'; }
+                if (isVideo) {
+                    if (imgPreview) imgPreview.style.display = 'none';
+                    if (vidPreview) { vidPreview.src = upload.url; vidPreview.style.display = 'block'; }
+                } else {
+                    if (vidPreview) { vidPreview.style.display = 'none'; vidPreview.src = ''; }
+                    if (imgPreview) { imgPreview.src = upload.url; imgPreview.style.display = 'block'; }
+                }
                 uploadBtn.textContent = 'Upload';
-                const savedKb = Math.max(0, originalFile.size - file.size) / 1024;
-                showToast(savedKb > 100 ? `Image optimized and uploaded to R2 (${Math.round(savedKb)} KB saved)` : 'Image uploaded to R2 successfully', 'success');
+                if (isVideo) {
+                    showToast('Video uploaded successfully', 'success');
+                } else {
+                    const savedKb = Math.max(0, originalFile.size - file.size) / 1024;
+                    showToast(savedKb > 100 ? `Image optimized and uploaded (${Math.round(savedKb)} KB saved)` : 'Image uploaded successfully', 'success');
+                }
             } catch (err) {
                 console.error('Upload error:', err);
                 uploadBtn.textContent = 'Upload';
@@ -10177,19 +10266,7 @@
                     productId = data[0].id;
                 }
 
-                // Batch image insert (single round-trip instead of N)
-                {
-                    const { error } = await sb.from('product_images').delete().eq('product_id', productId);
-                    if (error) throw error;
-                }
-                if (imageUrls.length) {
-                    const { error } = await sb.from('product_images').insert(
-                        imageUrls.map((url, i) => ({ product_id: productId, image_url: url, sort_order: i }))
-                    );
-                    if (error) throw error;
-                }
-
-                // Batch color variant insert
+                // Batch color variant insert (before images so we can resolve color IDs)
                 {
                     const { error } = await sb.from('color_variants').delete().eq('product_id', productId);
                     if (error) throw error;
@@ -10199,8 +10276,30 @@
                         ? { product_id: productId, color_name: c.color_name, hex_color: c.hex_color, rgb_color: c.rgb_color, sort_order: i }
                         : null)
                     .filter(Boolean);
+                let colorNameToId = {};
                 if (validColors.length) {
-                    const { error } = await sb.from('color_variants').insert(validColors);
+                    const { data: savedColors, error } = await sb.from('color_variants')
+                        .insert(validColors).select('id,color_name');
+                    if (error) throw error;
+                    (savedColors || []).forEach(c => { colorNameToId[c.color_name] = c.id; });
+                }
+
+                // Batch image insert
+                {
+                    const { error } = await sb.from('product_images').delete().eq('product_id', productId);
+                    if (error) throw error;
+                }
+                const imageEntries = getProductImageEntriesFromForm();
+                if (imageEntries.length) {
+                    const { error } = await sb.from('product_images').insert(
+                        imageEntries.map((entry, i) => ({
+                            product_id: productId,
+                            image_url: entry.image_url,
+                            media_type: entry.media_type || 'image',
+                            color_variant_id: entry.color_name ? (colorNameToId[entry.color_name] || null) : null,
+                            sort_order: i
+                        }))
+                    );
                     if (error) throw error;
                 }
 
@@ -10353,29 +10452,26 @@
 
             const imageRows = Array.isArray(imagesResult?.data) ? imagesResult.data : [];
             if (imagesResult?.error) console.error('Error loading product images:', imagesResult.error);
-            if (imageRows.length > 0) {
-                imageRows.forEach((img, idx) => {
-                    const row = document.createElement('div');
-                    row.className = 'image-row';
-                    const safeUrl = escapeAttr(img.image_url || '');
-                    row.innerHTML = '<span style="font-weight:600;min-width:60px;">Image ' + (idx + 1) + '</span>' +
-                        '<input type="text" class="form-input product-image-url" placeholder="Paste image URL..." value="' + safeUrl + '">' +
-                        '<label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label>' +
-                        '<img class="image-preview" src="' + safeUrl + '" style="display:block">' +
-                        '<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button>';
-                    container.appendChild(row);
-                });
-            } else {
-                const imgUrl = escapeAttr(product.image_url || '');
+            // Build color id→name map from existing colors (loaded below)
+            const editColorRows = Array.isArray(colorsResult?.data) ? colorsResult.data : [];
+            const editColorIdToName = {};
+            editColorRows.forEach(c => { if (c.id) editColorIdToName[c.id] = c.color_name; });
+            const editColorOpts = editColorRows.filter(c => c.color_name && c.hex_color)
+                .map(c => `<option value="${escapeAttr(c.color_name)}">${escapeAttr(c.color_name)}</option>`).join('');
+
+            const imagesToLoad = imageRows.length > 0 ? imageRows : (product.image_url ? [{ image_url: product.image_url }] : []);
+            imagesToLoad.forEach((img, idx) => {
                 const row = document.createElement('div');
                 row.className = 'image-row';
-                row.innerHTML = '<span style="font-weight:600;min-width:60px;">Image 1</span>' +
-                    '<input type="text" class="form-input product-image-url" placeholder="Paste image URL..." value="' + imgUrl + '">' +
-                    '<label class="btn-upload">Upload<input type="file" accept="image/*" style="display:none" onchange="handleImageUpload(this)"></label>' +
-                    (imgUrl ? '<img class="image-preview" src="' + imgUrl + '" style="display:block">' : '<img class="image-preview" style="display:none">') +
-                    '<button type="button" class="btn btn-secondary btn-sm" onclick="this.closest(&apos;.image-row&apos;).remove()">Remove</button>';
+                const assignedColorName = img.color_variant_id ? (editColorIdToName[img.color_variant_id] || '') : '';
+                row.innerHTML = buildMediaRowHtml('Media ' + (idx + 1), img.image_url || '', editColorOpts, assignedColorName, img.color_variant_id || '');
+                // Set the color dropdown value if assigned
+                if (assignedColorName) {
+                    const sel = row.querySelector('.product-image-color');
+                    if (sel) sel.value = assignedColorName;
+                }
                 container.appendChild(row);
-            }
+            });
 
             const colorContainer = document.getElementById('colorVariantsContainer');
             colorContainer.innerHTML = '';
