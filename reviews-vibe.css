@@ -1708,6 +1708,22 @@ body.light-mode .size-guide-frame-shell .size-guide-message {
   color: rgba(9,9,11,0.68);
 }
 
+body.super-light-mode .size-guide-head {
+  background: #FFFFFF;
+  border-bottom-color: rgba(9,9,11,0.08);
+}
+body.super-light-mode .size-guide-title,
+body.super-light-mode .size-guide-close {
+  color: #09090b;
+}
+body.super-light-mode .size-guide-kicker {
+  color: rgba(9,9,11,0.58);
+}
+body.super-light-mode .size-guide-copy,
+body.super-light-mode .size-guide-frame-shell .size-guide-message {
+  color: rgba(9,9,11,0.68);
+}
+
 body.light-mode .review-modal-toolbar,
 body.light-mode .review-modal-card,
 body.light-mode .rs-left {

@@ -163,11 +163,13 @@ function updateProductStarDisplay(domId, reviews) {
   if (!avgEl || !cntEl) return;
 
   if (!reviews.length) {
-    avgEl.innerHTML = '<span style="color:rgba(244,241,235,.2)">\u2605\u2605\u2605\u2605\u2605</span>';
+    avgEl.innerHTML = '';
+    avgEl.style.display = 'none';
     cntEl.textContent = 'Be the first to review';
     return;
   }
 
+  avgEl.style.display = '';
   const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
   avgEl.innerHTML = starsHtml(avg);
   cntEl.textContent = `${reviews.length} review${reviews.length !== 1 ? 's' : ''}${REVIEW_META_SEPARATOR}${avg.toFixed(1)}`;

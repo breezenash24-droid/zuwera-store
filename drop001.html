@@ -575,10 +575,13 @@
     body.light-mode .collection-option-head{color:rgba(9,9,11,.42)}
     body.light-mode .collection-option-head strong{color:rgba(9,9,11,.86)}
     body.light-mode .collection-color,body.light-mode .collection-size{border-color:rgba(9,9,11,.12);color:rgba(9,9,11,.74)}
+    body.light-mode .collection-color span{border-color:rgba(9,9,11,.28)}
     body.light-mode .collection-color.active,body.light-mode .collection-size.active{border-color:#09090b;color:#09090b;background:rgba(9,9,11,.06)}
     body.light-mode .collection-thumb.active{border-color:#09090b;opacity:1}
     body.light-mode .collection-empty-option,body.light-mode .collection-review-message{color:rgba(9,9,11,.5)}
     body.light-mode .collection-review-actions button,body.light-mode .collection-review-actions a{border-color:rgba(9,9,11,.12);color:rgba(9,9,11,.68)}
+    body.light-mode .qcol-swatch{border-color:rgba(9,9,11,.22)}
+    body.light-mode .qcol-swatch:hover,body.light-mode .qcol-swatch.active{border-color:#09090b;box-shadow:0 0 0 1px #09090b}
     body.light-mode .collection-review-confirm{background:#09090b!important;color:#f4f1eb!important;border-color:#09090b!important}
     body.super-light-mode { background:#FFFFFF !important; --black:#FFFFFF; }
     body.super-light-mode .nav { background:#FFFFFF; border-bottom-color:rgba(10,10,10,0.08); }
@@ -1374,7 +1377,6 @@ function updateCountdown() {
           <div class="collection-thumbs" id="collection-review-thumbs" aria-label="Product images"></div>
         </div>
         <div class="collection-review-body collection-product-body">
-          <p class="collection-review-kicker">Mini Product Page</p>
           <h2 class="collection-review-title" id="collection-review-title">Product</h2>
           <div class="collection-product-meta">
             <span id="collection-review-price">$0.00</span>

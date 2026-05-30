@@ -571,13 +571,15 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
   .add-bag-flyer{display:none}
 }
 
+/* Sign-out lives only on the account page; desktop-shop-btn label changes by category */
+#logout-btn { display: none !important; }
+#desktop-shop-btn { display: none !important; }
 @media (max-width: 760px) {
-  #desktop-shop-btn { display: none; }
   #mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; }
 }
 </style>
 
-  <link rel="stylesheet" href="reviews-vibe.css?v=764cbdc4">
+  <link rel="stylesheet" href="reviews-vibe.css?v=26052901">
   <link rel="stylesheet" href="storefront-cohesion.css?v=26052903">
 <style>
 /* Nav padding — overrides nav.css after all external sheets load */
@@ -2308,6 +2310,9 @@ function classifyGuideCategory(product) {
   }
   if (/(hat|cap|beanie|visor)/.test(lower)) {
     return { categoryLabel: rawLabel, calcCategory: 'hats', tabId: 'hats' };
+  }
+  if (/sock/.test(lower)) {
+    return { categoryLabel: rawLabel, calcCategory: 'socks', tabId: 'socks' };
   }
   if (/(short|jogger|legging|tight|pant|bottom|skirt)/.test(lower)) {
     return { categoryLabel: rawLabel, calcCategory: 'bottoms', tabId: '' };
