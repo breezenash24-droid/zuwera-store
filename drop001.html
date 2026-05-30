@@ -1042,10 +1042,10 @@ function updateCountdown() {
       setTimeout(() => document.getElementById('notify-email').focus(), 600);
     }
 
-    // Load products from Supabase
-    (async function() {
-      if (!window.sb) return; // supabase-client.js (deferred) sets window.sb before DOMContentLoaded
+    // Load products from Supabase — runs in DOMContentLoaded so window.sb is available
+    document.addEventListener('DOMContentLoaded', async function() {
       const sb = window.sb;
+      if (!sb) return;
       let collectionUser = null;
       let collectionFavoriteIds = new Set();
 
@@ -1357,7 +1357,7 @@ function updateCountdown() {
         }).join('');
         refreshCollectionFavoriteButtons();
       }
-    })();
+    });
   </script>
   <!-- Language selector -->
   <script src="modal-lock.js?v=72e2f101"></script>
