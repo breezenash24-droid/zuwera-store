@@ -878,8 +878,26 @@ document.getElementById('login-btn').addEventListener('click', () => {
 });
 
 /* ── Checkout button ── */
-document.getElementById('checkout-btn').addEventListener('click', () => {
+document.getElementById('checkout-btn').addEventListener('click', async () => {
   if (!cartItems.length) { showToast('Your bag is empty.'); return; }
+  // Re-validate products are still active before navigating to checkout
+  var sb = window.sb;
+  if (sb) {
+    try {
+      var ids = [...new Set(cartItems.map(function(i){ return i.productId; }).filter(Boolean))];
+      if (ids.length) {
+        var { data: prods } = await sb.from('products').select('id,status').in('id', ids);
+        var archived = (prods || []).filter(function(p){ return p.status === 'Legacy'; }).map(function(p){ return p.id; });
+        if (archived.length) {
+          var newCart = cartItems.filter(function(i){ return !archived.includes(i.productId); });
+          localStorage.setItem('cart', JSON.stringify(newCart));
+          renderCart();
+          showToast('Some items are no longer available and have been removed. Please review your bag.');
+          return;
+        }
+      }
+    } catch(_) {}
+  }
   location.assign('/checkout.html');
   return;
   // Dead code — kept only so commerce-checkout.js references resolve
@@ -1160,6 +1178,29 @@ window.__zwOpenAuth = function(tab) {
       var session = result && result.data && result.data.session ? result.data.session : null;
       applyAuthState(session ? session.user : null, session ? session.access_token : null);
     }).catch(function() {});
+
+    // Remove any archived products from the cart
+    (async function auditCartProducts() {
+      try {
+        var cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        if (!cart.length) return;
+        var productIds = [...new Set(cart.map(function(i) { return i.productId; }).filter(Boolean))];
+        if (!productIds.length) return;
+        var { data: products, error } = await sb
+          .from('products').select('id,status,title').in('id', productIds);
+        if (error || !products) return;
+        var validIds = new Set(
+          products.filter(function(p) { return p.status !== 'Legacy'; }).map(function(p) { return p.id; })
+        );
+        var removed = cart.filter(function(i) { return !validIds.has(i.productId); });
+        if (!removed.length) return;
+        var newCart = cart.filter(function(i) { return validIds.has(i.productId); });
+        localStorage.setItem('cart', JSON.stringify(newCart));
+        renderCart();
+        var names = [...new Set(removed.map(function(i) { return i.title || 'An item'; }))];
+        showToast((names.join(', ')) + (names.length === 1 ? ' is' : ' are') + ' no longer available and ' + (removed.length === 1 ? 'has' : 'have') + ' been removed from your bag.');
+      } catch(_) {}
+    })();
 
     // Patch any cart items missing colorHex by looking up color_variants in Supabase
     (async function patchCartColorHexes() {
