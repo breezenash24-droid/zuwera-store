@@ -8012,8 +8012,7 @@
                   try {
                     const [{ data: mediaRows }, { data: allProds }] = await Promise.all([
                       sb.from('product_images')
-                        .select('product_id,media_type,color_variant_id')
-                        .like('image_url', '%images.zuwera.store%'),
+                        .select('product_id,media_type,color_variant_id,image_url'),
                       sb.from('products').select('id,title,status'),
                     ]);
                     const rows = Array.isArray(mediaRows) ? mediaRows : [];
@@ -8023,6 +8022,7 @@
                     const videos      = rows.filter(r => r.media_type === 'video').length;
                     const images      = totalFiles - videos;
                     const colorSpec   = rows.filter(r => r.color_variant_id).length;
+                    const onR2        = rows.filter(r => (r.image_url||'').includes('images.zuwera.store')).length;
 
                     // Per-product breakdown
                     const byProd = {};
@@ -8034,13 +8034,16 @@
                     const prodIds = new Set(rows.map(r => r.product_id).filter(Boolean));
                     const noMedia = prods.filter(p => !prodIds.has(p.id));
 
-                    // Estimated storage (300 KB/image, 25 MB/video)
-                    const estBytes = images * 300 * 1024 + videos * 25 * 1024 * 1024;
+                    // Estimated storage — only R2-hosted files count against your quota
+                    const r2Images = rows.filter(r => (r.image_url||'').includes('images.zuwera.store') && r.media_type !== 'video').length;
+                    const r2Videos = rows.filter(r => (r.image_url||'').includes('images.zuwera.store') && r.media_type === 'video').length;
+                    const estBytes = r2Images * 300 * 1024 + r2Videos * 25 * 1024 * 1024;
                     const fmtSize = b => b < 1024*1024 ? (b/1024).toFixed(1)+' KB' : b < 1024**3 ? (b/(1024**2)).toFixed(1)+' MB' : (b/(1024**3)).toFixed(2)+' GB';
                     const pct = Math.min((estBytes / (10 * 1024**3)) * 100, 100);
 
                     // Update summary cards
                     const $= id => document.getElementById(id);
+                    if ($('dash-r2-free-label')) $('dash-r2-free-label').textContent = onR2 + ' on R2 · ' + (totalFiles - onR2) + ' external · 10 GB free tier';
                     if ($('dash-r2-total'))     $('dash-r2-total').textContent     = totalFiles;
                     if ($('dash-r2-images'))    $('dash-r2-images').textContent    = images;
                     if ($('dash-r2-videos'))    $('dash-r2-videos').textContent    = videos;
@@ -8051,7 +8054,7 @@
 
                     // Storage bar
                     if ($('dash-r2-bar'))       $('dash-r2-bar').style.width       = pct.toFixed(2) + '%';
-                    if ($('dash-r2-bar-label')) $('dash-r2-bar-label').textContent = fmtSize(estBytes) + ' of 10 GB free (~' + pct.toFixed(2) + '%)';
+                    if ($('dash-r2-bar-label')) $('dash-r2-bar-label').textContent = onR2 > 0 ? fmtSize(estBytes) + ' est. of 10 GB free (~' + pct.toFixed(2) + '%)' : 'No files uploaded to R2 yet — 10 GB free';
                     const bar = $('dash-r2-bar');
                     if (bar) bar.style.background = pct > 80 ? '#ef4444' : pct > 60 ? '#f59e0b' : 'var(--accent)';
 
