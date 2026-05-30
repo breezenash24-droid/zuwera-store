@@ -386,6 +386,12 @@
       width: 40px; height: 40px; object-fit: cover; flex-shrink: 0;
       background: rgba(244,241,235,.07);
     }
+    .order-item-img-ph {
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--fw); font-size: .95rem; font-weight: 700;
+      color: rgba(244,241,235,.35); letter-spacing: .04em;
+    }
+    body.light-mode .order-item-img-ph { color: rgba(9,9,11,.25); background: rgba(9,9,11,.06); }
     .order-item-name { font-size: .71rem; font-weight: 500; line-height: 1.3; }
     .order-item-meta { font-size: .6rem; color: rgba(244,241,235,.4); margin-top: .1rem; font-family: var(--fm); }
     .order-item-more {
@@ -1189,7 +1195,7 @@ function retBuildItemChips(order, productImgMap = {}, productIdMap = {}) {
     const chipTag = chipHref ? `a href="${escHtml(chipHref)}"` : 'div';
     const chipClose = chipHref ? 'a' : 'div';
     return `<${chipTag} class="order-item-chip">
-      ${safeImg ? `<img src="${escHtml(safeImg)}" alt="${name}" class="order-item-img" loading="lazy">` : '<div class="order-item-img"></div>'}
+      ${safeImg ? `<img src="${escHtml(safeImg)}" alt="${name}" class="order-item-img" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="order-item-img order-item-img-ph" style="display:none">` + escHtml(name.charAt(0).toUpperCase()) + `</div>` : `<div class="order-item-img order-item-img-ph">` + escHtml(name.charAt(0).toUpperCase()) + `</div>`}
       <div><div class="order-item-name">${name}</div>${meta ? `<div class="order-item-meta">${meta}</div>` : ''}</div>
     </${chipClose}>`;
   }).join('');

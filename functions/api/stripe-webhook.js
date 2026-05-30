@@ -330,7 +330,37 @@ async function saveOrderToSupabase(pi, meta, tracking, env) {
     }
   }
 
-  const items         = (() => { try { return JSON.parse(meta.items || '[]'); } catch { return []; } })();
+  const items = (() => { try { return JSON.parse(meta.items || '[]'); } catch { return []; } })();
+
+  // Augment items with image_url so deleted products still show their image in order history.
+  // Images are not in Stripe metadata (URLs exceed the 500-char limit) so we fetch them now
+  // while the products still exist, and store them permanently in the order record.
+  const productImgSnap = {};
+  if (env.SUPABASE_URL && serviceKey) {
+    try {
+      const imgRes = await fetch(
+        env.SUPABASE_URL + '/rest/v1/products?select=id,sku,title,image_url&limit=500',
+        { headers: { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey } }
+      );
+      if (imgRes.ok) {
+        const rows = await imgRes.json().catch(() => []);
+        for (const p of rows || []) {
+          if (!p.image_url) continue;
+          if (p.id)    productImgSnap[p.id]                           = p.image_url;
+          if (p.sku)   productImgSnap[p.sku.toLowerCase()]            = p.image_url;
+          if (p.title) productImgSnap[p.title.trim().toLowerCase()]   = p.image_url;
+        }
+      }
+    } catch (_) { /* non-fatal — order still saves, just without images */ }
+  }
+  const itemsWithImages = items.map(i => ({
+    ...i,
+    image: i.image
+      || productImgSnap[i.productId] || productImgSnap[i.product_id]
+      || productImgSnap[(i.sku  || '').toLowerCase()]
+      || productImgSnap[(i.name || '').trim().toLowerCase()]
+      || '',
+  }));
 
   // Generate structured order number (e.g. ZW-MTP-00143)
   let orderNumber = null;
@@ -376,7 +406,7 @@ async function saveOrderToSupabase(pi, meta, tracking, env) {
       user_id:          meta.user_id       || null,
       email:            meta.customer_email,
       customer_name:    meta.customer_name,
-      items:            JSON.stringify(items),
+      items:            JSON.stringify(itemsWithImages),
       subtotal:         (subtotalCents / 100).toFixed(2),
       shipping:         (shippingCents  / 100).toFixed(2),
       tax:              (taxCents       / 100).toFixed(2),
