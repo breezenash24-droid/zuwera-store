@@ -1472,7 +1472,6 @@ function updateCountdown() {
       var colors = results[0].ok ? await results[0].json() : [];
       var sizeRows = results[1].ok ? await results[1].json() : [];
       var imageRows = results[2].ok ? await results[2].json() : [];
-      var images = collectionImageList(productImage, imageRows);
       var sizeEntries = collectionSizeEntries(sizeRows);
 
       modalItem.allImageRows = Array.isArray(imageRows) ? imageRows : [];
@@ -1773,13 +1772,17 @@ function updateCountdown() {
   }
 
   function openCollectionReviewModal(item) {
-    // Auto-select first color when there is only one; when multiple colors exist, still
-    // pick the first so the gallery filters correctly from the start.
     var colors = Array.isArray(item.colors) ? item.colors : [];
-    item.selectedColor = colors.length > 0 ? colors[0] : null;
+    // Preserve any selection the user already made (e.g. clicked a color/size while
+    // the async data was still loading). Only auto-select when nothing is chosen yet.
+    if (!item.selectedColor && colors.length > 0) {
+      item.selectedColor = colors[0];
+    }
     if (item.selectedColor && item.selectedColor.variant_sku) item.sku = item.selectedColor.variant_sku;
     var inStockSizes = (item.sizes || []).filter(function(entry){ return Number(entry[1]) > 0; });
-    item.selectedSize = inStockSizes.length === 1 ? inStockSizes[0][0] : null;
+    if (!item.selectedSize) {
+      item.selectedSize = inStockSizes.length === 1 ? inStockSizes[0][0] : null;
+    }
     // Re-filter images for the auto-selected color whenever allImageRows is available
     if (item.allImageRows) {
       item.images = collectionGetImagesForColor(item.allImageRows, item.image, item.selectedColor ? item.selectedColor.id : null);

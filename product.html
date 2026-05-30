@@ -1360,6 +1360,10 @@ const _PROD_SB_KEY = SUPABASE_ANON;
 // sb / _sessionPromise / _productFetchPromise are null until startWithSb() runs
 let sb = null;
 let _sessionPromise = null;
+// Deferred promise so the early DOMContentLoaded handler waits deterministically
+// for startWithSb() rather than relying on a fragile setTimeout(0) poll.
+let _sbReadyResolve;
+const _sbReady = new Promise(resolve => { _sbReadyResolve = resolve; });
 let _productFetchPromise = null;
 let _productAnnouncementBarScrollHandler = null;
 
@@ -2031,15 +2035,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   initializeCookieConsent();
 
   try {
-    // _productFetchPromise is set by startWithSb() which is also in DOMContentLoaded.
-    // Poll briefly so the two handlers don't race (startWithSb registers second so
-    // its fetch starts a few microtasks after this handler begins).
-    if (!_productFetchPromise) {
-      await new Promise(r => setTimeout(r, 0));
-    }
-    if (_productFetchPromise) {
-      await _productFetchPromise;
-    }
+    // Wait for startWithSb() to run and kick off the product fetch.
+    // _sbReady resolves the moment startWithSb sets _productFetchPromise,
+    // eliminating the previous fragile setTimeout(0) poll.
+    await _sbReady;
+    if (_productFetchPromise) await _productFetchPromise;
     renderProduct();
   } catch (err) {
     console.error('Product load error:', err);
@@ -4222,6 +4222,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
       : Promise.resolve({ data: { session: null } });
     loadSiteSettings();
     _productFetchPromise = (async () => { try { return await loadProduct(); } catch(e) { throw e; } })();
+    _sbReadyResolve(); // signal the early DOMContentLoaded handler that the fetch has started
     _sessionPromise
       .then(({ data }) => {
         currentUser = data?.session?.user || null;

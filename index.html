@@ -4329,12 +4329,13 @@ function openQuickAddReviewModal(item) {
     return;
   }
 
-  // Auto-select first color so the gallery filters correctly from the start
+  // Preserve any selection the user already made while async data was loading.
+  // Only auto-select when nothing is chosen yet.
   const _qaColors = Array.isArray(item.colors) ? item.colors : [];
-  item.selectedColor = _qaColors.length > 0 ? _qaColors[0] : null;
+  if (!item.selectedColor && _qaColors.length > 0) item.selectedColor = _qaColors[0];
   if (item.selectedColor?.variant_sku) item.sku = item.selectedColor.variant_sku;
   const inStockSizes = (item.sizes || []).filter(([, stock]) => Number(stock) > 0);
-  item.selectedSize = inStockSizes.length === 1 ? inStockSizes[0][0] : null;
+  if (!item.selectedSize) item.selectedSize = inStockSizes.length === 1 ? inStockSizes[0][0] : null;
   // Re-filter images for the auto-selected color whenever allImageRows is available
   if (item.allImageRows) {
     item.images = quickAddGetImagesForColor(item.allImageRows, item.image, item.selectedColor?.id || null);
