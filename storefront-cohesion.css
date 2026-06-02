@@ -2328,3 +2328,276 @@ body.light-mode .zw-lang-trigger:hover{
 @media(max-width:900px){
   .zw-nav-back,.nav-back,.ret-back,.cart-back{display:none !important;}
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MOBILE MENU REDESIGN — Nike-style slide-in drawer
+   Panel slides in from the right at 84% width so the page shows behind.
+   Clean compact typography replaces the previous full-screen giant text.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* Backdrop: semi-transparent, panel anchored to right edge */
+#mobile-menu.zw-mobile-menu{
+  background:rgba(0,0,0,0.52)!important;
+  align-items:stretch!important;
+  justify-content:flex-end!important;
+  padding:0!important;
+  overflow:hidden!important;
+}
+
+/* Panel: partial width, slides in from right */
+#mobile-menu.zw-mobile-menu>.zw-mobile-menu-panel{
+  position:relative!important;
+  width:84%!important;
+  max-width:360px!important;
+  min-width:0!important;
+  min-height:100dvh!important;
+  height:100dvh!important;
+  margin:0!important;
+  padding:calc(env(safe-area-inset-top,0px) + 1rem) 0 calc(env(safe-area-inset-bottom,0px) + 1.5rem)!important;
+  display:flex!important;
+  flex-direction:column!important;
+  gap:0!important;
+  background:var(--zw-ink,#09090b)!important;
+  border-left:1px solid rgba(244,241,235,.09)!important;
+  border-radius:0!important;
+  box-shadow:-16px 0 40px rgba(0,0,0,.35)!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
+  touch-action:pan-y!important;
+  isolation:isolate!important;
+}
+
+body.light-mode #mobile-menu.zw-mobile-menu>.zw-mobile-menu-panel{
+  background:#F0EEE9!important;
+  border-left-color:rgba(9,9,11,.1)!important;
+}
+body.super-light-mode #mobile-menu.zw-mobile-menu>.zw-mobile-menu-panel{
+  background:#fff!important;
+}
+
+/* Panel open animation: slide from right */
+#mobile-menu.zw-mobile-menu.open>.zw-mobile-menu-panel{
+  animation:zwDrawerIn .28s cubic-bezier(.4,0,.2,1) both!important;
+}
+@keyframes zwDrawerIn{
+  from{transform:translateX(100%)}
+  to{transform:translateX(0)}
+}
+
+/* ── Header row ── */
+.zw-mobile-menu-top{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  min-height:0!important;
+  padding:.1rem 1.25rem .9rem!important;
+  border-bottom:1px solid rgba(244,241,235,.08)!important;
+  margin-bottom:0!important;
+}
+.zw-mobile-menu-top::after{
+  display:none!important;
+}
+body.light-mode .zw-mobile-menu-top{border-bottom-color:rgba(9,9,11,.08)!important;}
+
+.zw-mobile-menu-kicker{
+  font-family:var(--zw-font-mono,'IBM Plex Mono',monospace)!important;
+  font-size:.56rem!important;
+  letter-spacing:.22em!important;
+  text-transform:uppercase!important;
+  color:rgba(244,241,235,.35)!important;
+  padding:0!important;
+  border:none!important;
+  margin:0!important;
+}
+body.light-mode .zw-mobile-menu-kicker{color:rgba(9,9,11,.35)!important;}
+
+/* Close button: visible, top-right of panel */
+#mobile-menu .zw-mobile-menu-close{
+  display:flex!important;
+  position:relative!important;
+  top:auto!important; right:auto!important;
+  width:36px!important; height:36px!important;
+  min-height:36px!important;
+  border:1px solid rgba(244,241,235,.14)!important;
+  background:transparent!important;
+  border-radius:0!important;
+  color:rgba(244,241,235,.55)!important;
+  flex-shrink:0!important;
+  z-index:2!important;
+}
+#mobile-menu .zw-mobile-menu-close::before,
+#mobile-menu .zw-mobile-menu-close::after{
+  width:16px!important;
+  height:1.5px!important;
+}
+body.light-mode #mobile-menu .zw-mobile-menu-close{
+  border-color:rgba(9,9,11,.12)!important;
+  color:rgba(9,9,11,.5)!important;
+}
+
+/* ── Nav container ── */
+.zw-mobile-menu-nav{
+  display:flex!important;
+  flex-direction:column!important;
+  align-content:flex-start!important;
+  gap:0!important;
+  flex:1!important;
+}
+
+/* Hide the visually-hidden h2 title */
+.zw-mobile-menu-title{
+  display:none!important;
+}
+
+/* ── Primary nav links ── */
+#mobile-menu .zw-mobile-menu-primary,
+#mobile-menu :is(#mobile-category-links,.mobile-nav-links){
+  display:flex!important;
+  flex-direction:column!important;
+  gap:0!important;
+  padding:.35rem 0!important;
+  border-bottom:1px solid rgba(244,241,235,.08)!important;
+  margin:0!important;
+}
+body.light-mode #mobile-menu :is(#mobile-category-links,.mobile-nav-links){
+  border-bottom-color:rgba(9,9,11,.08)!important;
+}
+
+#mobile-menu .zw-mobile-primary-link{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  min-height:52px!important;
+  padding:.7rem 1.25rem!important;
+  font-family:var(--zw-font-head,'Barlow Condensed',sans-serif)!important;
+  font-size:1.35rem!important;
+  font-weight:700!important;
+  font-style:normal!important;
+  line-height:1!important;
+  letter-spacing:.07em!important;
+  text-transform:uppercase!important;
+  color:rgba(244,241,235,.9)!important;
+  border:none!important;
+  border-top:none!important;
+  border-bottom:none!important;
+  background:none!important;
+  transition:color .14s,background .14s!important;
+}
+#mobile-menu .zw-mobile-primary-link:hover,
+#mobile-menu .zw-mobile-primary-link:focus-visible{
+  color:#fff!important;
+  background:rgba(244,241,235,.04)!important;
+}
+
+/* Chevron replacing the old arrow */
+#mobile-menu .zw-mobile-primary-link::after{
+  content:'›'!important;
+  font-family:inherit!important;
+  font-size:1.5rem!important;
+  font-style:normal!important;
+  font-weight:300!important;
+  color:rgba(244,241,235,.3)!important;
+  margin-left:auto!important;
+  flex-shrink:0!important;
+  transition:transform .15s,color .14s!important;
+}
+#mobile-menu .zw-mobile-primary-link:hover::after{
+  color:rgba(244,241,235,.6)!important;
+  transform:translateX(3px)!important;
+}
+
+body.light-mode #mobile-menu .zw-mobile-primary-link{
+  color:rgba(9,9,11,.85)!important;
+  background:none!important;
+  border-top:none!important; border-bottom:none!important;
+}
+body.light-mode #mobile-menu .zw-mobile-primary-link::after{color:rgba(9,9,11,.3)!important;}
+body.super-light-mode #mobile-menu .zw-mobile-primary-link{color:#09090b!important;}
+
+/* ── Secondary links ── */
+.zw-mobile-menu-secondary{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:0!important;
+  padding:.35rem 0!important;
+  border-bottom:1px solid rgba(244,241,235,.08)!important;
+}
+body.light-mode .zw-mobile-menu-secondary{border-bottom-color:rgba(9,9,11,.08)!important;}
+
+#mobile-menu .zw-mobile-secondary-link{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  min-height:44px!important;
+  padding:.5rem 1.25rem!important;
+  font-family:var(--zw-font-mono,'IBM Plex Mono',monospace)!important;
+  font-size:.62rem!important;
+  font-weight:400!important;
+  line-height:1.2!important;
+  letter-spacing:.18em!important;
+  text-transform:uppercase!important;
+  color:rgba(244,241,235,.45)!important;
+  background:none!important;
+  border:none!important;
+  transition:color .14s!important;
+}
+#mobile-menu .zw-mobile-secondary-link:hover{color:rgba(244,241,235,.75)!important;}
+#mobile-menu .zw-mobile-secondary-link::after{
+  content:'›'!important;
+  font-family:inherit!important;
+  font-size:.9rem!important;
+  font-weight:300!important;
+  opacity:.4!important;
+  flex-shrink:0!important;
+}
+body.light-mode #mobile-menu .zw-mobile-secondary-link{color:rgba(9,9,11,.45)!important;}
+body.light-mode #mobile-menu .zw-mobile-secondary-link:hover{color:rgba(9,9,11,.8)!important;}
+
+/* ── Footer ── */
+.zw-mobile-menu-footer{
+  margin-top:auto!important;
+  padding:1rem 1.25rem 0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:.5rem!important;
+}
+.zw-mobile-socials{
+  display:flex!important;
+  align-items:center!important;
+  gap:1rem!important;
+}
+.zw-mobile-socials a,
+.zw-mobile-socials button{
+  font-size:.55rem!important;
+  letter-spacing:.18em!important;
+  color:rgba(244,241,235,.3)!important;
+  transition:color .14s!important;
+}
+.zw-mobile-socials a:hover,
+.zw-mobile-socials button:hover{color:rgba(244,241,235,.65)!important;}
+.zw-mobile-menu-year{
+  font-size:.55rem!important;
+  letter-spacing:.14em!important;
+  color:rgba(244,241,235,.2)!important;
+}
+body.light-mode .zw-mobile-socials a,
+body.light-mode .zw-mobile-socials button,
+body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.3)!important;}
+
+/* Bag count chip in secondary nav */
+.zw-mobile-bag-count{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-width:18px!important;
+  height:18px!important;
+  padding:0 4px!important;
+  border:1px solid rgba(244,241,235,.2)!important;
+  font-size:.52rem!important;
+  color:rgba(244,241,235,.55)!important;
+  letter-spacing:.05em!important;
+  margin-left:.4rem!important;
+  border-radius:2px!important;
+}
