@@ -1,0 +1,1365 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#09090b">
+  <title>Returns &amp; Exchanges — Zuwera</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png?v=2">
+  <link rel="icon" type="image/png" sizes="64x64" href="/images/favicon-black.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="/images/favicon-black-192.png?v=2">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="canonical" href="https://zuwera.store/returns.html">
+  <script src="/favicon-utils.js?v=00b5644f" defer></script>
+  <script src="/supabase.min.js?v=3277b334" defer></script>
+  <script src="/supabase-client.js?v=1" defer></script>
+  <meta name="description" content="Start a return or exchange for your Zuwera order. Free returns within 30 days.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    button { cursor: pointer; background: none; border: none; color: inherit; font-family: inherit; }
+    a { text-decoration: none; color: inherit; }
+
+    :root {
+      --ink: #f4f1eb;
+      --paper: #09090b;
+      --bg: #09090b;
+      --font-head: 'Barlow Condensed', sans-serif;
+      --font-body: 'Barlow', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+      --fw: var(--font-head);
+      --fb: var(--font-body);
+      --fm: var(--font-mono);
+      --border: rgba(244,241,235,.18);
+      --muted: rgba(244,241,235,.55);
+      --subtle: rgba(244,241,235,.06);
+      --surface: rgba(244,241,235,.04);
+      --accent-blue: #2563eb;
+      --accent-green: #047857;
+      --accent-amber: #d97706;
+      --accent-red: #dc2626;
+      --accent-purple: #7c3aed;
+    }
+    body.light-mode {
+      --ink: #09090b;
+      --paper: #f4f1eb;
+      --bg: #F0EEE9;
+      --border: rgba(9,9,11,.14);
+      --muted: rgba(9,9,11,.55);
+      --subtle: rgba(9,9,11,.06);
+      --surface: white;
+    }
+    body.super-light-mode { --bg: #FFFFFF; }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--fb);
+      font-weight: 300;
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── NAV ── */
+    .zw-nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.75rem 2.5rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(8px);
+    }
+    .zw-nav-logo img { height: 22px; width: auto; transition: opacity .2s; filter: invert(1); }
+    body.light-mode .zw-nav-logo img { filter: none; }
+    .zw-nav-logo { font-family: var(--fw); font-size: 1.35rem; letter-spacing: .18em; opacity: .9; transition: opacity .2s; }
+    .zw-nav-logo:hover { opacity: 1; }
+    .zw-nav-back {
+      font-size: .6rem; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--muted); display: flex; align-items: center; gap: .4rem; transition: color .2s;
+    }
+    .zw-nav-back:hover { color: var(--ink); }
+    .zw-nav-right { width: 80px; }
+
+    /* ── PAGE ── */
+    .page { flex: 1; }
+    .page-inner {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 3rem 2rem 5rem;
+    }
+
+    /* ── PAGE HEADER ── */
+    .page-hd { margin-bottom: 2.5rem; }
+    .page-hd h1 {
+      font-family: var(--fw);
+      font-size: 2.8rem;
+      letter-spacing: .06em;
+      line-height: 1;
+      margin-bottom: .5rem;
+    }
+    .page-hd p { font-size: .78rem; color: var(--muted); line-height: 1.7; }
+
+    /* ── AUTH PROMPT ── */
+    .auth-prompt {
+      border: 1px solid var(--border);
+      padding: 3rem 2rem;
+      text-align: center;
+      background: var(--subtle);
+    }
+    .auth-prompt-icon { font-size: 2rem; margin-bottom: 1rem; opacity: .4; }
+    .auth-prompt h2 { font-family: var(--fw); font-size: 1.4rem; letter-spacing: .05em; margin-bottom: .6rem; }
+    .auth-prompt p { font-size: .78rem; color: var(--muted); line-height: 1.8; max-width: 340px; margin: 0 auto 1.8rem; }
+    .auth-features {
+      display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1.8rem;
+    }
+    .auth-feature {
+      font-size: .62rem; letter-spacing: .1em; text-transform: uppercase;
+      border: 1px solid var(--border); padding: .35rem .75rem; color: var(--muted);
+    }
+    .btn-primary {
+      display: inline-block;
+      background: var(--ink); color: var(--paper);
+      padding: .85rem 2.2rem;
+      font-size: .62rem; letter-spacing: .16em; text-transform: uppercase; font-weight: 600;
+      transition: opacity .2s; border: 1px solid var(--ink);
+    }
+    .btn-primary:hover { opacity: .85; }
+    .btn-ghost {
+      display: inline-block;
+      background: transparent; color: var(--ink);
+      padding: .75rem 1.8rem;
+      font-size: .62rem; letter-spacing: .14em; text-transform: uppercase;
+      border: 1px solid var(--border); transition: border-color .2s;
+    }
+    .btn-ghost:hover { border-color: var(--ink); }
+    button.btn-primary, button.btn-ghost { font-family: var(--fm); }
+    button:disabled { opacity: .35; cursor: default; }
+
+    /* ── EXISTING RETURNS ── */
+    .existing-section { margin-bottom: 3rem; }
+    .section-label {
+      font-size: .58rem; letter-spacing: .18em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 1rem; display: flex; align-items: center; gap: .6rem;
+    }
+    .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    .return-card {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      padding: 1.4rem 1.6rem;
+      margin-bottom: .75rem;
+      transition: border-color .2s;
+    }
+    .return-card-top {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 1rem; margin-bottom: .8rem;
+    }
+    .return-card-order { font-size: .72rem; font-weight: 500; color: var(--ink); }
+    .return-card-date { font-size: .65rem; color: var(--muted); margin-top: .1rem; }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: .35rem;
+      font-size: .58rem; letter-spacing: .1em; text-transform: uppercase; font-weight: 600;
+      padding: .3rem .75rem; border-radius: 2px; white-space: nowrap; flex-shrink: 0;
+    }
+    .status-pill .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+    .status-requested  { color: #92400e; background: #fef3c7; }
+    .status-approved   { color: #1e40af; background: #dbeafe; }
+    .status-label_sent { color: #065f46; background: #d1fae5; }
+    .status-denied     { color: #991b1b; background: #fee2e2; }
+    .status-exchange_in_progress { color: #5b21b6; background: #ede9fe; }
+    .status-completed  { color: #065f46; background: #d1fae5; }
+    .status-refunded   { color: #065f46; background: #d1fae5; }
+    .status-closed     { color: #374151; background: #f3f4f6; }
+
+    /* ── additional status colors ── */
+    .status-received   { color: #065f46; background: #d1fae5; }
+    .status-inspecting { color: #1e40af; background: #dbeafe; }
+    .status-store_credit_issued { color: #065f46; background: #d1fae5; }
+
+    .return-card-what {
+      font-size: .75rem; color: var(--ink);
+      display: flex; gap: .5rem; align-items: center; flex-wrap: wrap;
+    }
+    .return-resolution-tag {
+      font-size: .6rem; letter-spacing: .08em; text-transform: uppercase;
+      border: 1px solid var(--border); padding: .15rem .55rem; color: var(--muted);
+    }
+
+    /* ── Return progress tracker ── */
+    .ret-progress {
+      margin: 1rem 0 .25rem;
+      display: flex; align-items: flex-start; gap: 0;
+    }
+    .ret-step {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      position: relative;
+    }
+    .ret-step:not(:last-child)::after {
+      content: ''; position: absolute; top: 11px; left: calc(50% + 11px);
+      width: calc(100% - 22px); height: 2px;
+      background: var(--border);
+      transition: background .3s;
+    }
+    .ret-step.done:not(:last-child)::after { background: var(--ink); }
+    .ret-step-dot {
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 2px solid var(--border);
+      background: var(--bg); color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .62rem; font-weight: 700; z-index: 1; position: relative;
+      transition: all .25s;
+    }
+    .ret-step.done .ret-step-dot {
+      border-color: var(--ink); background: var(--ink); color: var(--paper);
+    }
+    .ret-step.active .ret-step-dot {
+      border-color: var(--ink); color: var(--ink); background: var(--bg);
+      box-shadow: 0 0 0 3px var(--border);
+    }
+    .ret-step-label {
+      margin-top: .4rem; font-size: .62rem; letter-spacing: .07em;
+      text-transform: uppercase; color: var(--muted); text-align: center; line-height: 1.3;
+    }
+    .ret-step.done .ret-step-label, .ret-step.active .ret-step-label { color: var(--ink); }
+
+    /* ── Label / tracking panel ── */
+    .ret-label-panel {
+      margin-top: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 4px; overflow: hidden;
+    }
+    .ret-label-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: .75rem 1rem; border-bottom: 1px solid var(--border);
+      font-size: .72rem; gap: .75rem;
+    }
+    .ret-label-row:last-child { border-bottom: none; }
+    .ret-label-key { color: var(--muted); flex-shrink: 0; }
+    .ret-label-val { font-weight: 500; text-align: right; word-break: break-all; }
+    .ret-tracking-link {
+      display: inline-flex; align-items: center; gap: .4rem;
+      font-size: .6rem; letter-spacing: .1em; text-transform: uppercase;
+      background: var(--ink); color: var(--paper);
+      padding: .6rem 1.2rem; font-weight: 600; transition: opacity .2s;
+    }
+    .ret-tracking-link:hover { opacity: .75; }
+
+    .return-card-msg {
+      margin-top: .85rem;
+      font-size: .72rem; color: var(--ink); line-height: 1.7;
+      border-left: 2px solid var(--ink); padding-left: .85rem;
+    }
+
+    .return-card-next {
+      margin-top: .85rem;
+      font-size: .7rem; color: var(--muted); line-height: 1.65;
+    }
+    .return-card-next strong { color: var(--ink); font-weight: 500; }
+
+    .return-card-actions { margin-top: 1rem; display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+    .btn-label {
+      display: inline-flex; align-items: center; gap: .5rem;
+      background: var(--ink); color: var(--paper);
+      padding: .65rem 1.3rem;
+      font-size: .6rem; letter-spacing: .13em; text-transform: uppercase; font-weight: 600;
+      transition: opacity .2s;
+    }
+    .btn-label:hover { opacity: .8; }
+    .btn-track {
+      font-size: .62rem; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--muted); border-bottom: 1px solid var(--border);
+      padding-bottom: .1rem; transition: color .2s, border-color .2s;
+    }
+    .btn-track:hover { color: var(--ink); border-color: var(--ink); }
+
+    /* ── WIZARD ── */
+    .wizard { }
+    .wizard-header { margin-bottom: 2rem; }
+    .wizard-header h2 {
+      font-family: var(--fw); font-size: 1.7rem; letter-spacing: .05em; margin-bottom: .3rem;
+    }
+    .wizard-header p { font-size: .78rem; color: var(--muted); line-height: 1.6; }
+
+    /* Step progress */
+    .step-progress {
+      display: flex; align-items: center; margin-bottom: 2.5rem;
+    }
+    .sp-item { display: flex; flex-direction: column; align-items: center; flex: 1; }
+    .sp-dot {
+      width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .62rem; letter-spacing: .04em; font-weight: 600;
+      border: 1.5px solid var(--border); color: var(--muted);
+      background: var(--bg); transition: all .25s; z-index: 1; position: relative;
+    }
+    .sp-item.active .sp-dot { border-color: var(--ink); background: var(--ink); color: var(--bg); }
+    .sp-item.done .sp-dot { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+    .sp-label { font-size: .55rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-top: .35rem; }
+    .sp-item.active .sp-label, .sp-item.done .sp-label { color: var(--ink); }
+    .sp-line { flex: 1; height: 1px; background: var(--border); margin: 0 -4px; position: relative; top: -10px; z-index: 0; }
+    .sp-line.done { background: var(--ink); }
+    @media(max-width: 480px) { .sp-label { display: none; } .sp-dot { width: 24px; height: 24px; font-size: .55rem; } }
+
+    /* Steps */
+    .step { display: none; }
+    .step.active { display: block; }
+
+    /* Step nav buttons */
+    .step-nav {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border);
+    }
+    .step-nav .step-nav-left, .step-nav .step-nav-right {
+      display: flex; gap: .75rem; align-items: center;
+    }
+
+    /* ── STEP 1: Order cards ── */
+    .order-cards { display: flex; flex-direction: column; gap: .6rem; }
+    .order-card {
+      border: 1.5px solid var(--border);
+      padding: 1.1rem 1.3rem;
+      cursor: pointer; text-align: left; width: 100%;
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      background: var(--surface); transition: border-color .2s, box-shadow .2s;
+    }
+    .order-card:hover { border-color: color-mix(in srgb, var(--ink) 30%, transparent); }
+    .order-card.selected { border-color: var(--ink); box-shadow: 0 0 0 2px var(--ink); }
+    .order-card-left { display: flex; flex-direction: column; gap: .25rem; }
+    .order-card-id { font-size: .82rem; font-weight: 500; letter-spacing: .04em; }
+    .order-card-meta { font-size: .68rem; color: var(--muted); }
+    .order-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: .25rem; flex-shrink: 0; }
+    .order-card-amount { font-size: .82rem; font-weight: 500; }
+    .order-card-status-tag {
+      font-size: .55rem; letter-spacing: .1em; text-transform: uppercase;
+      border: 1px solid var(--border); padding: .15rem .5rem; color: var(--muted);
+    }
+    .order-card-select {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 1.5px solid var(--border);
+      flex-shrink: 0; transition: all .2s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .order-card.selected .order-card-select { background: var(--ink); border-color: var(--ink); }
+    .order-card.selected .order-card-select::after { content: ''; width: 6px; height: 6px; background: var(--bg); border-radius: 50%; }
+
+    .empty-state {
+      text-align: center; padding: 3rem 1rem;
+      font-size: .78rem; color: var(--muted); line-height: 1.8;
+    }
+    .empty-state svg { margin: 0 auto .75rem; display: block; opacity: .3; }
+
+    /* ── STEP 2: Resolution cards ── */
+    .res-cards {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem;
+    }
+    @media(max-width: 560px) { .res-cards { grid-template-columns: 1fr; } }
+    .res-card {
+      border: 1.5px solid var(--border);
+      padding: 1.5rem 1.2rem;
+      cursor: pointer; text-align: center; width: 100%;
+      background: var(--surface); transition: border-color .2s, box-shadow .2s;
+      display: flex; flex-direction: column; align-items: center; gap: .5rem;
+    }
+    .res-card:hover { border-color: color-mix(in srgb, var(--ink) 30%, transparent); }
+    .res-card.selected { border-color: var(--ink); box-shadow: 0 0 0 2px var(--ink); }
+    .res-card-icon { font-size: 1.5rem; margin-bottom: .2rem; }
+    .res-card-name { font-family: var(--fw); font-size: 1.1rem; letter-spacing: .05em; }
+    .res-card-desc { font-size: .68rem; color: var(--muted); line-height: 1.6; }
+    @media(max-width: 560px) {
+      .res-card { flex-direction: row; text-align: left; padding: 1.1rem; }
+      .res-card-icon { font-size: 1.2rem; flex-shrink: 0; }
+      .res-card-name { font-size: .95rem; }
+    }
+
+    /* ── STEP 3: Reasons ── */
+    .reason-intro { font-size: .78rem; color: var(--muted); margin-bottom: 1.2rem; line-height: 1.6; }
+    .reason-chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.5rem; }
+    .reason-chip {
+      border: 1px solid var(--border);
+      padding: .5rem 1rem;
+      font-size: .72rem; font-weight: 400;
+      color: var(--muted); background: var(--surface);
+      cursor: pointer; transition: all .2s;
+    }
+    .reason-chip:hover { border-color: color-mix(in srgb, var(--ink) 35%, transparent); color: var(--ink); }
+    .reason-chip.selected { border-color: var(--ink); color: var(--ink); background: var(--ink); color: var(--paper); }
+
+    .step3-field { display: flex; flex-direction: column; gap: .4rem; margin-top: 1.2rem; }
+    .step3-field label {
+      font-size: .58rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
+    }
+    .step3-field input,
+    .step3-field textarea {
+      width: 100%; padding: .75rem .9rem;
+      border: 1px solid var(--border);
+      background: var(--surface); color: var(--ink);
+      font-family: var(--fm); font-size: .82rem;
+      outline: none; resize: vertical;
+      transition: border-color .2s;
+    }
+    .step3-field input:focus,
+    .step3-field textarea:focus { border-color: rgba(244,241,235,.5); }
+    body.light-mode .step3-field input:focus,
+    body.light-mode .step3-field textarea:focus { border-color: rgba(9,9,11,.4); }
+    .exchange-note {
+      margin-top: 1.2rem; padding: 1rem;
+      background: rgba(37,99,235,.06); border: 1px solid rgba(37,99,235,.15);
+      font-size: .72rem; color: rgba(244,241,235,.7); line-height: 1.7;
+    }
+    body.light-mode .exchange-note { color: rgba(9,9,11,.7); }
+
+    /* ── STEP 4: Review ── */
+    .review-card {
+      border: 1px solid var(--border);
+      background: var(--surface); margin-bottom: 1.5rem;
+    }
+    .review-row {
+      display: flex; padding: .85rem 1.2rem;
+      border-bottom: 1px solid var(--border); gap: 1rem;
+    }
+    .review-row:last-child { border-bottom: none; }
+    .review-label { font-size: .58rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); width: 110px; flex-shrink: 0; padding-top: .1rem; }
+    .review-value { font-size: .78rem; font-weight: 400; color: var(--ink); line-height: 1.5; }
+
+    .what-next {
+      border: 1px solid var(--border); padding: 1.4rem 1.6rem; background: var(--surface);
+      margin-bottom: 1.5rem;
+    }
+    .what-next-title { font-family: var(--fw); font-size: 1.1rem; letter-spacing: .05em; margin-bottom: 1rem; }
+    .next-steps { display: flex; flex-direction: column; gap: .8rem; }
+    .next-step-item { display: flex; align-items: flex-start; gap: .85rem; }
+    .next-step-num {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: var(--subtle); color: var(--muted);
+      font-size: .65rem; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .next-step-text { font-size: .75rem; color: color-mix(in srgb, var(--ink) 65%, transparent); line-height: 1.6; padding-top: .25rem; }
+    .next-step-text strong { color: var(--ink); font-weight: 500; }
+
+    .submit-status {
+      font-size: .72rem; color: var(--muted); margin-top: .8rem;
+    }
+    .submit-status.error { color: var(--accent-red); }
+    .submit-status.success { color: var(--accent-green); }
+
+    /* ── POLICY ACCORDION ── */
+    .policy-section {
+      border-top: 1px solid var(--border);
+      max-width: 720px; margin: 0 auto;
+      padding: 0 2rem 4rem;
+    }
+    .policy-toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.3rem 0; cursor: pointer; width: 100%;
+      font-size: .7rem; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--muted); transition: color .2s;
+    }
+    .policy-toggle:hover { color: var(--ink); }
+    .policy-toggle-icon { transition: transform .25s; }
+    .policy-toggle.open .policy-toggle-icon { transform: rotate(45deg); }
+    .policy-body { display: none; padding-bottom: 2rem; }
+    .policy-body.open { display: block; }
+    .policy-body p { font-size: .75rem; color: color-mix(in srgb, var(--ink) 75%, transparent); line-height: 1.9; margin-bottom: 1rem; }
+    .policy-body strong { color: var(--ink); font-weight: 500; }
+    .policy-body ul { padding-left: 1.2rem; }
+    .policy-body li { font-size: .75rem; color: color-mix(in srgb, var(--ink) 75%, transparent); line-height: 1.9; }
+    .policy-sub {
+      font-size: .62rem; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--muted); margin: 1.25rem 0 .5rem;
+    }
+    .policy-badges { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .policy-badge {
+      font-size: .58rem; letter-spacing: .1em; text-transform: uppercase;
+      border: 1px solid var(--border); padding: .3rem .7rem; color: var(--muted);
+    }
+
+    /* ── LOADING ── */
+    .loading-pulse {
+      display: flex; flex-direction: column; gap: .75rem; padding: 1rem 0;
+    }
+    .pulse-line {
+      height: 14px; background: var(--border); border-radius: 2px;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    .pulse-line:nth-child(2) { width: 70%; animation-delay: .2s; }
+    .pulse-line:nth-child(3) { width: 85%; animation-delay: .1s; }
+    @keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:.9} }
+
+    /* ── FOOTER ── */
+    footer { margin-top: auto; }
+
+    @media(max-width: 600px) {
+      .page-inner { padding: 2rem 1.2rem 4rem; }
+      .zw-nav { padding: calc(1rem + env(safe-area-inset-top, 0px)) 1.2rem 1rem; }
+      .page-hd h1 { font-size: 2.2rem; }
+      .review-label { width: 80px; }
+    }
+  </style>
+<link rel="stylesheet" href="storefront-cohesion.css?v=26053004">
+<style>
+/* storefront-cohesion.css inverts --ink to the page background color in light/super-light
+   mode (by design for other pages), which makes policy body text cream-on-cream = invisible.
+   These rules restore correct dark text for the policy accordion in any light theme. */
+body.light-mode .policy-toggle,
+body.super-light-mode .policy-toggle { color: rgba(9,9,11,.6); }
+body.light-mode .policy-sub,
+body.super-light-mode .policy-sub { color: rgba(9,9,11,.5); }
+body.light-mode .policy-badge,
+body.super-light-mode .policy-badge { color: rgba(9,9,11,.55); border-color: rgba(9,9,11,.18); }
+body.light-mode .policy-body p,
+body.light-mode .policy-body li,
+body.super-light-mode .policy-body p,
+body.super-light-mode .policy-body li { color: rgba(9,9,11,.72); }
+body.light-mode .policy-body strong,
+body.super-light-mode .policy-body strong { color: #09090b; }
+body.light-mode .policy-section,
+body.super-light-mode .policy-section { border-color: rgba(9,9,11,.14); }
+</style>
+<script src="mobile-menu.js?v=4c6ccedc" defer></script>
+<script>try{var _t=localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
+<script src="/posthog-init.js?v=e62ca5bb" defer></script>
+<style>body.super-light-mode{background:#FFFFFF!important;--bg:#FFFFFF}</style>
+</head>
+<body>
+<script>(function(){try{var m=localStorage.getItem('zw_theme_mode');if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
+
+<!-- NAV -->
+<nav class="zw-nav">
+  <a href="/" class="zw-nav-logo">
+    <img src="images/wordmark-nav.png" srcset="images/wordmark-nav@2x.png 2x" alt="ZUWERA" width="113" height="22" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
+  </a>
+  <a href="/" class="zw-nav-back" data-history-back>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    Back
+  </a>
+  <div class="zw-nav-right">
+    <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" aria-controls="mobile-menu" aria-expanded="false">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="8" x2="21" y2="8"></line><line x1="3" y1="16" x2="21" y2="16"></line></svg>
+    </button>
+  </div>
+</nav>
+
+<!-- MOBILE MENU MODAL -->
+<div id="mobile-menu" class="modal zw-mobile-menu" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="mobile-menu-title">
+  <div class="mbox zw-mobile-menu-panel">
+    <div class="zw-mobile-menu-top">
+      <p class="zw-mobile-menu-kicker">Zuwera Navigation</p>
+      <button id="mobile-menu-close" class="mclose zw-mobile-menu-close" onclick="return window.closeMobileMenu ? window.closeMobileMenu() : false;" aria-label="Close menu">Close</button>
+    </div>
+    <nav class="zw-mobile-menu-nav" aria-label="Mobile navigation">
+      <h2 id="mobile-menu-title" class="zw-mobile-menu-title">Menu</h2>
+      <div id="mobile-category-links" class="mobile-nav-links zw-mobile-menu-primary">
+        <a href="drop001.html?category=Jackets" class="mobile-nav-link zw-mobile-primary-link">Jackets</a>
+        <a href="drop001.html?category=T-Shirts" class="mobile-nav-link zw-mobile-primary-link">T-Shirts</a>
+        <a href="drop001.html?category=Beanies" class="mobile-nav-link zw-mobile-primary-link">Beanies</a>
+        <a href="index.html#about" class="mobile-nav-link zw-mobile-primary-link">About</a>
+      </div>
+      <div class="zw-mobile-menu-secondary">
+        <a href="account.html" class="zw-mobile-secondary-link">Account</a>
+        <a href="account.html#orders" class="zw-mobile-secondary-link">Track Order</a>
+        <a href="mailto:nasirubreeze@zuwera.store" class="zw-mobile-secondary-link">Support</a>
+        <a href="bag.html" class="zw-mobile-secondary-link zw-mobile-bag-link" aria-label="Open bag">Bag <span class="zw-mobile-bag-count">0</span></a>
+        <a href="sizeguide.html" class="zw-mobile-secondary-link">Size Guide</a>
+      </div>
+    </nav>
+    <footer class="zw-mobile-menu-footer">
+      <div class="zw-mobile-socials" aria-label="Social links">
+        <a href="https://instagram.com/Zuw.era" target="_blank" rel="noopener">Instagram</a>
+        <a href="mailto:nasirubreeze@zuwera.store">Email</a>
+        <a href="#" onclick="event.preventDefault(); window.closeMobileMenu?.(); setTimeout(() => window.zwLang?.open?.(), 0);">Language</a>
+      </div>
+      <p class="zw-mobile-menu-year">Zuwera &middot; 2026</p>
+    </footer>
+  </div>
+</div>
+
+<!-- MAIN PAGE CONTENT -->
+<main class="page">
+  <div class="page-inner">
+    <div class="page-hd">
+      <h1>Returns &amp; Exchanges</h1>
+      <p>Free returns within 30 days of delivery. We'll handle the shipping label.</p>
+    </div>
+
+    <!-- Content injected by JS below -->
+    <div id="page-root">
+      <div class="loading-pulse">
+        <div class="pulse-line"></div>
+        <div class="pulse-line"></div>
+        <div class="pulse-line"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- POLICY ACCORDION -->
+<section class="policy-section">
+  <button class="policy-toggle" id="policy-toggle" aria-expanded="false">
+    Return Policy
+    <svg class="policy-toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+  <div class="policy-body" id="policy-body">
+    <div class="policy-badges">
+      <span class="policy-badge">30-day returns</span>
+      <span class="policy-badge">Free return shipping</span>
+      <span class="policy-badge">All items eligible</span>
+    </div>
+    <p>We want you to love what you wear. If you're not satisfied with your Zuwera purchase, you may return eligible items within <strong>30 days of delivery</strong> for a full refund, exchange, or store credit. Items must be unworn, unwashed, and in their original condition with all tags attached.</p>
+    <div class="policy-sub">How it works</div>
+    <p>Submit your request using the form above. We'll review it within 1–2 business days and email you a prepaid return shipping label. Pack your item securely and drop it off at any USPS location. Refunds are processed within 5–7 business days of receiving your return and are issued to your original payment method.</p>
+    <div class="policy-sub">Non-returnable items</div>
+    <ul>
+      <li>Items marked Final Sale at time of purchase</li>
+      <li>Items that have been worn, washed, or altered</li>
+      <li>Items without original tags or packaging</li>
+      <li>Gift cards</li>
+    </ul>
+    <div class="policy-sub">Exchanges</div>
+    <p>Select "Exchange" when submitting your return. Once we receive your item, we'll process your exchange and ship the new item. You can also place a new order immediately to secure your preferred size or style.</p>
+    <div class="policy-sub">Questions?</div>
+    <p>Email us at <a href="mailto:nasirubreeze@zuwera.store" style="color:inherit;text-decoration:underline">nasirubreeze@zuwera.store</a> and we'll get back to you within one business day.</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="flogo">
+    <img src="images/wordmark-footer.png" srcset="images/wordmark-footer@2x.png 2x" alt="ZUWERA" width="175" height="34" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+    <span style="display:none">ZUWERA</span>
+  </div>
+  <nav class="flinks">
+    <a href="/drop001.html">Release 001</a>
+    <a href="/sizeguide.html">Size Guide</a>
+    <a href="/policies.html">Policies</a>
+    <a href="/returns.html" aria-current="page">Returns</a>
+    <a href="/account.html">Account</a>
+    <a href="mailto:nasirubreeze@zuwera.store">Contact</a>
+  </nav>
+  <div class="fright">
+    <a href="https://instagram.com/Zuw.era" target="_blank" rel="noopener" class="fig">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+      @Zuw.era
+    </a>
+    <p class="fcopy">&copy; 2026 Zuwera. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+// ─── Config ──────────────────────────────────────────────────────────────────
+// _sb set in DOMContentLoaded once supabase-client.js (deferred) has run
+let _sb = null;
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function esc(v) {
+  return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmtDate(d) {
+  if (!d) return '';
+  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function fmtAmt(cents) {
+  if (!cents) return '';
+  return '$' + (cents / 100).toFixed(2);
+}
+function orderShortId(id) {
+  return '#' + String(id || '').slice(-8).toUpperCase();
+}
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+async function getSession() {
+  if (!_sb?.auth?.getSession) return null;
+  const r = await _sb.auth.getSession().catch(() => null);
+  return r?.data?.session || null;
+}
+
+// ─── API ──────────────────────────────────────────────────────────────────────
+async function fetchHubData(session) {
+  const resp = await fetch('/api/customer-hub', {
+    headers: { Authorization: `Bearer ${session.access_token}` }
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || !data?.success) throw new Error(data?.error || 'Could not load your account data.');
+  return data;
+}
+
+async function submitReturn(session, payload) {
+  const resp = await fetch('/api/customer-hub', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+    body: JSON.stringify({ action: 'submit_return', ...payload })
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || !data?.success) throw new Error(data?.error || 'Could not submit your request.');
+  return data;
+}
+
+// ─── Status labels ─────────────────────────────────────────────────────────
+const STATUS_INFO = {
+  requested:            { label: 'Under Review',          cls: 'status-requested',            step: 0, next: '<strong>We\'re reviewing your request</strong> and will respond within 1–2 business days. You\'ll get an email update soon.' },
+  approved:             { label: 'Approved',              cls: 'status-approved',             step: 1, next: '<strong>Your return is approved!</strong> We\'re generating your prepaid shipping label — check your email shortly.' },
+  label_sent:           { label: 'Label Ready',           cls: 'status-label_sent',           step: 1, next: '<strong>Action needed:</strong> Download your prepaid label, print it, attach it to your package, and drop it off at any carrier location. No postage needed.' },
+  received:             { label: 'Item Received',         cls: 'status-received',             step: 2, next: '<strong>We got your package!</strong> Our team is processing your return. You\'ll hear back within 3–5 business days.' },
+  inspecting:           { label: 'Being Inspected',       cls: 'status-inspecting',           step: 2, next: '<strong>Almost there.</strong> Your item is being inspected. We\'ll update you once the inspection is complete.' },
+  exchange_in_progress: { label: 'Exchange in Progress',  cls: 'status-exchange_in_progress', step: 3, next: '<strong>Your replacement is on its way.</strong> We\'ll send a shipping confirmation with tracking as soon as it ships.' },
+  refunded:             { label: 'Refunded',              cls: 'status-refunded',             step: 4, next: '<strong>Your refund has been issued.</strong> It may take 3–7 business days to appear on your statement depending on your bank.' },
+  store_credit_issued:  { label: 'Credit Applied',        cls: 'status-store_credit_issued',  step: 4, next: '<strong>Your store credit has been applied.</strong> It\'s available to use on any future Zuwera order.' },
+  completed:            { label: 'Complete',              cls: 'status-completed',            step: 4, next: 'Your return has been fully processed. Thank you for shopping with Zuwera.' },
+  denied:               { label: 'Not Approved',          cls: 'status-denied',               step: -1, next: 'We weren\'t able to approve this request. If you have questions, please reply to the email we sent or <a href="mailto:orders@zuwera.store" style="color:inherit;text-decoration:underline">contact us</a>.' },
+  closed:               { label: 'Closed',                cls: 'status-closed',               step: -1, next: 'This return request has been closed. <a href="mailto:orders@zuwera.store" style="color:inherit;text-decoration:underline">Contact us</a> if you have questions.' },
+};
+
+const RESOLUTION_LABELS = {
+  return: 'Refund',
+  exchange: 'Exchange',
+  store_credit: 'Store Credit',
+};
+
+// ─── Progress tracker helpers ─────────────────────────────────────────────────
+function buildProgressSteps(resolution, currentStep) {
+  // Steps depend on what the customer is getting back
+  const isExchange = resolution === 'exchange';
+  const isCredit   = resolution === 'store_credit';
+  const steps = [
+    { n: 0, label: 'Request\nSubmitted' },
+    { n: 1, label: 'Approved &\nLabel Sent' },
+    { n: 2, label: 'Item\nReceived' },
+    { n: 3, label: isExchange ? 'Exchange\nShipped' : isCredit ? 'Credit\nApplied' : 'Refund\nProcessed' },
+  ];
+  return steps.map((s, i) => {
+    const done   = currentStep > s.n;
+    const active = currentStep === s.n;
+    const cls    = done ? 'done' : active ? 'active' : '';
+    const icon   = done
+      ? `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`
+      : String(s.n + 1);
+    return `<div class="ret-step ${cls}">
+      <div class="ret-step-dot">${icon}</div>
+      <div class="ret-step-label">${s.label.replace('\n', '<br>')}</div>
+    </div>` + (i < steps.length - 1 ? '' : '');
+  }).join('');
+}
+
+function buildLabelPanel(r) {
+  if (!r.labelUrl && !r.trackingNumber) return '';
+  const carrierLine = [r.carrier, r.service].filter(Boolean).join(' — ');
+  const safeLabelUrl = r.labelUrl && /^https?:\/\//i.test(r.labelUrl) ? r.labelUrl : null;
+  return `<div class="ret-label-panel">
+    ${safeLabelUrl ? `<div class="ret-label-row">
+      <span class="ret-label-key">Return Label</span>
+      <a href="${esc(safeLabelUrl)}" target="_blank" rel="noopener" class="btn-label" style="padding:.5rem 1rem;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download PDF
+      </a>
+    </div>` : ''}
+    ${r.trackingNumber ? `<div class="ret-label-row">
+      <span class="ret-label-key">Tracking #</span>
+      <span class="ret-label-val" style="font-family:var(--fm);">${esc(r.trackingNumber)}</span>
+    </div>` : ''}
+    ${carrierLine ? `<div class="ret-label-row">
+      <span class="ret-label-key">Carrier</span>
+      <span class="ret-label-val">${esc(carrierLine)}</span>
+    </div>` : ''}
+    ${r.trackingUrl ? `<div class="ret-label-row" style="justify-content:center;">
+      <a href="${esc(r.trackingUrl)}" target="_blank" rel="noopener" class="ret-tracking-link">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 8 16 12 12 16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Track Your Return
+      </a>
+    </div>` : ''}
+  </div>`;
+}
+
+// ─── Render existing returns ──────────────────────────────────────────────────
+function renderExistingReturns(returns) {
+  if (!returns.length) return '';
+  const cards = returns.map(r => {
+    const info       = STATUS_INFO[r.status] || STATUS_INFO.requested;
+    const resLabel   = RESOLUTION_LABELS[r.resolution] || r.resolution || 'Return';
+    const label      = r.orderLabel || orderShortId(r.orderId);
+    const isTerminal = r.status === 'denied' || r.status === 'closed';
+    const currentStep = isTerminal ? -1 : (info.step ?? 0);
+    const progressHtml = isTerminal ? '' : `
+      <div class="ret-progress">${buildProgressSteps(r.resolution, currentStep)}</div>`;
+    const labelPanel   = buildLabelPanel(r);
+    const adminMsg     = r.customerMessage
+      ? `<div class="return-card-msg">
+           <div style="font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem;">Message from Zuwera</div>
+           ${esc(r.customerMessage)}
+         </div>`
+      : '';
+    const detailLines = [
+      r.reason ? `<span>${esc(r.reason)}</span>` : '',
+      r.notes  ? `<span style="color:var(--muted);">${esc(r.notes)}</span>` : '',
+    ].filter(Boolean).join(' · ');
+
+    return `
+      <div class="return-card">
+        <!-- Header row -->
+        <div class="return-card-top">
+          <div>
+            <div class="return-card-order">${esc(label)}</div>
+            <div class="return-card-date">Submitted ${fmtDate(r.createdAt)}</div>
+          </div>
+          <div class="status-pill ${info.cls}">
+            <span class="dot"></span>${info.label}
+          </div>
+        </div>
+
+        <!-- Resolution + reason -->
+        <div class="return-card-what" style="margin-top:.55rem;">
+          <span class="return-resolution-tag">${esc(resLabel)}</span>
+          ${detailLines}
+        </div>
+
+        <!-- Progress tracker (hidden for denied/closed) -->
+        ${progressHtml}
+
+        <!-- Label / tracking panel -->
+        ${labelPanel}
+
+        <!-- Admin message to customer -->
+        ${adminMsg}
+
+        <!-- What's next guidance -->
+        <div class="return-card-next">${info.next}</div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="existing-section">
+      <div class="section-label">Your return requests</div>
+      ${cards}
+    </div>`;
+}
+
+// ─── Wizard state ─────────────────────────────────────────────────────────────
+const REASONS = [
+  "Doesn't fit right",
+  "Wrong size ordered",
+  "Not as described or pictured",
+  "Arrived damaged or defective",
+  "Changed my mind",
+  "Ordered by mistake",
+  "Prefer a different style or color",
+  "Other",
+];
+
+let _orders = [];
+
+const state = {
+  step: 1,
+  selectedOrderId: null,
+  selectedOrderLabel: null,
+  selectedOrderDate: null,
+  selectedOrderAmount: null,
+  selectedOrderItems: [],
+  selectedItems: [],
+  selectedResolution: null,
+  selectedReason: null,
+  exchangeSize: '',
+  otherNotes: '',
+  extraNotes: '',
+  submitting: false,
+};
+
+function updateStepProgress() {
+  const items = document.querySelectorAll('.sp-item');
+  const lines = document.querySelectorAll('.sp-line');
+  items.forEach((el, i) => {
+    el.classList.remove('active','done');
+    if (i + 1 === state.step) el.classList.add('active');
+    else if (i + 1 < state.step) el.classList.add('done');
+  });
+  lines.forEach((el, i) => {
+    el.classList.toggle('done', i + 1 < state.step);
+  });
+}
+
+function showStep(n) {
+  state.step = n;
+  document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+  const s = document.querySelector(`.step[data-step="${n}"]`);
+  if (s) s.classList.add('active');
+  updateStepProgress();
+  updateNextBtn();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateNextBtn() {
+  const btn = document.querySelector(`.step[data-step="${state.step}"] .wiz-next`);
+  if (!btn) return;
+  let enabled = false;
+  if (state.step === 1) enabled = !!state.selectedOrderId;
+  if (state.step === 2) enabled = state.selectedItems.length > 0;
+  if (state.step === 3) enabled = !!state.selectedResolution;
+  if (state.step === 4) {
+    const reasonOk = !!(state.selectedReason && (state.selectedReason !== 'Other' || state.otherNotes.trim()));
+    const exchangeOk = state.selectedResolution !== 'exchange' || !!state.exchangeSize.trim();
+    enabled = reasonOk && exchangeOk;
+  }
+  btn.disabled = !enabled;
+}
+
+function buildStep5Review() {
+  const resolutionLabel = { return: 'Refund to original payment', exchange: 'Exchange for new item', store_credit: 'Store credit' }[state.selectedResolution] || state.selectedResolution;
+  const nextSteps = {
+    return: [
+      'We\'ll review your request and confirm within 1–2 business days',
+      'You\'ll receive a <strong>prepaid shipping label</strong> by email',
+      'Pack your item securely and drop it off at any USPS location',
+      'Your refund will be processed within <strong>5–7 days</strong> of receiving your return',
+    ],
+    exchange: [
+      'We\'ll review your request and confirm within 1–2 business days',
+      'You\'ll receive a <strong>prepaid shipping label</strong> by email',
+      'Pack your item and drop it off at any USPS location',
+      'We\'ll process your <strong>exchange</strong> and ship your new item',
+    ],
+    store_credit: [
+      'We\'ll review your request and confirm within 1–2 business days',
+      'You\'ll receive a <strong>prepaid shipping label</strong> by email',
+      'Pack your item and drop it off at any USPS location',
+      '<strong>Store credit</strong> will be added to your account within 5–7 days of receipt',
+    ],
+  }[state.selectedResolution] || [];
+
+  const exchangeSizeRow = (state.selectedResolution === 'exchange' && state.exchangeSize)
+    ? `<div class="review-row"><div class="review-label">Exchange for</div><div class="review-value">${esc(state.exchangeSize)}</div></div>`
+    : '';
+  const combinedNotes = [state.otherNotes, state.extraNotes].filter(s => s && s.trim()).map(s => s.trim()).join(' — ');
+  const notesRow = combinedNotes
+    ? `<div class="review-row"><div class="review-label">Notes</div><div class="review-value">${esc(combinedNotes)}</div></div>`
+    : '';
+
+  const itemsRow = state.selectedItems.length
+    ? `<div class="review-row"><div class="review-label">Items</div><div class="review-value">${state.selectedItems.map(i => {
+        const meta = [i.size, i.color || i.colorName].filter(Boolean).join(' · ');
+        return esc((i.name || i.title || 'Item') + (meta ? ' — ' + meta : ''));
+      }).join('<br>')}</div></div>`
+    : '';
+
+  document.querySelector('.step[data-step="5"]').innerHTML = `
+    <div style="margin-bottom:1.5rem">
+      <h3 style="font-family:var(--fw);font-size:1.1rem;letter-spacing:.05em;margin-bottom:.3rem">Review your request</h3>
+      <p style="font-size:.75rem;color:var(--muted)">Everything look right? We'll get back to you within 1–2 business days.</p>
+    </div>
+
+    <div class="review-card">
+      <div class="review-row">
+        <div class="review-label">Order</div>
+        <div class="review-value">${esc(state.selectedOrderLabel)} &nbsp;·&nbsp; ${esc(state.selectedOrderDate)}${state.selectedOrderAmount ? ' &nbsp;·&nbsp; ' + esc(state.selectedOrderAmount) : ''}</div>
+      </div>
+      ${itemsRow}
+      <div class="review-row">
+        <div class="review-label">Request type</div>
+        <div class="review-value">${esc(resolutionLabel)}</div>
+      </div>
+      <div class="review-row">
+        <div class="review-label">Reason</div>
+        <div class="review-value">${esc(state.selectedReason)}</div>
+      </div>
+      ${exchangeSizeRow}
+      ${notesRow}
+    </div>
+
+    <div class="what-next">
+      <div class="what-next-title">What happens next</div>
+      <div class="next-steps">
+        ${nextSteps.map((t,i) => `
+          <div class="next-step-item">
+            <div class="next-step-num">${i+1}</div>
+            <div class="next-step-text">${t}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="step-nav">
+      <div class="step-nav-left">
+        <button class="btn-ghost" onclick="showStep(4)">Back</button>
+      </div>
+      <div class="step-nav-right" style="flex-direction:column;align-items:flex-end;gap:.4rem">
+        <button class="btn-primary" id="submit-btn" onclick="handleSubmit()">Submit Request</button>
+        <div class="submit-status" id="submit-status"></div>
+      </div>
+    </div>
+  `;
+}
+
+// ─── Submit ───────────────────────────────────────────────────────────────────
+async function handleSubmit() {
+  if (state.submitting) return;
+  state.submitting = true;
+  const btn = document.getElementById('submit-btn');
+  const statusEl = document.getElementById('submit-status');
+  if (btn) btn.disabled = true;
+  if (statusEl) { statusEl.textContent = 'Submitting…'; statusEl.className = 'submit-status'; }
+
+  const reason = state.selectedReason === 'Other' && state.otherNotes.trim()
+    ? state.otherNotes.trim()
+    : state.selectedReason + (state.extraNotes.trim() ? ' — ' + state.extraNotes.trim() : '');
+
+  const exchangeNote = (state.selectedResolution === 'exchange' && state.exchangeSize)
+    ? '\nExchange for: ' + state.exchangeSize
+    : '';
+
+  try {
+    const session = await getSession();
+    if (!session) throw new Error('Please sign in again.');
+    await submitReturn(session, {
+      orderId: state.selectedOrderId,
+      orderLabel: state.selectedOrderLabel,
+      resolution: state.selectedResolution,
+      reason: reason + exchangeNote,
+      notes: '',
+      returnItems: state.selectedItems,
+    });
+    window.removeEventListener('beforeunload', _warnBeforeUnload);
+    if (statusEl) { statusEl.textContent = '✓ Request submitted!'; statusEl.className = 'submit-status success'; }
+    setTimeout(() => location.reload(), 3000);
+  } catch(e) {
+    state.submitting = false;
+    if (btn) btn.disabled = false;
+    if (statusEl) { statusEl.textContent = e.message || 'Something went wrong. Please try again.'; statusEl.className = 'submit-status error'; }
+  }
+}
+window.handleSubmit = handleSubmit;
+window.showStep = showStep;
+
+// ─── Beforeunload guard ───────────────────────────────────────────────────────
+function _wizardHasData() {
+  return !!(state.selectedOrderId || state.selectedResolution || state.selectedReason ||
+    state.exchangeSize || state.otherNotes.trim() || state.extraNotes.trim());
+}
+function _warnBeforeUnload(e) {
+  if (_wizardHasData()) { e.preventDefault(); e.returnValue = ''; }
+}
+window.addEventListener('beforeunload', _warnBeforeUnload);
+
+// ─── Render wizard ────────────────────────────────────────────────────────────
+function renderWizard(orders) {
+  _orders = orders;
+  const orderCards = orders.length
+    ? orders.map(o => {
+        const id = String(o.id || '');
+        const label = orderShortId(id);
+        const date = fmtDate(o.created_at);
+        const amount = fmtAmt(o.amount_total);
+        const status = o.fulfillment_status || o.status || '';
+        const statusTag = status ? `<span class="order-card-status-tag">${esc(status)}</span>` : '';
+        return `
+          <button class="order-card" data-id="${esc(id)}" data-label="${esc(label)}" data-date="${esc(date)}" data-amount="${esc(amount)}" onclick="selectOrder(this)">
+            <div style="display:flex;align-items:center;gap:.9rem;flex:1;min-width:0">
+              <div class="order-card-select"></div>
+              <div class="order-card-left">
+                <div class="order-card-id">${esc(label)}</div>
+                <div class="order-card-meta">${esc(date)}</div>
+              </div>
+            </div>
+            <div class="order-card-right">
+              ${amount ? `<div class="order-card-amount">${esc(amount)}</div>` : ''}
+              ${statusTag}
+            </div>
+          </button>`;
+      }).join('')
+    : `<div class="empty-state">
+         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+         <p>No orders found.<br>Once you've placed an order, you can start a return here.</p>
+       </div>`;
+
+  return `
+    <div class="wizard">
+      <div class="wizard-header">
+        <h2>Start a Return or Exchange</h2>
+        <p>We'll walk you through it — takes less than 2 minutes.</p>
+      </div>
+
+      <!-- Step progress -->
+      <div class="step-progress">
+        <div class="sp-item active" data-step="1">
+          <div class="sp-dot">1</div>
+          <div class="sp-label">Order</div>
+        </div>
+        <div class="sp-line"></div>
+        <div class="sp-item" data-step="2">
+          <div class="sp-dot">2</div>
+          <div class="sp-label">Items</div>
+        </div>
+        <div class="sp-line"></div>
+        <div class="sp-item" data-step="3">
+          <div class="sp-dot">3</div>
+          <div class="sp-label">Request type</div>
+        </div>
+        <div class="sp-line"></div>
+        <div class="sp-item" data-step="4">
+          <div class="sp-dot">4</div>
+          <div class="sp-label">Reason</div>
+        </div>
+        <div class="sp-line"></div>
+        <div class="sp-item" data-step="5">
+          <div class="sp-dot">5</div>
+          <div class="sp-label">Confirm</div>
+        </div>
+      </div>
+
+      <!-- Step 1: Select order -->
+      <div class="step active" data-step="1">
+        <p style="font-size:.78rem;color:var(--muted);margin-bottom:1.2rem">Which order would you like to return or exchange?</p>
+        <div class="order-cards">${orderCards}</div>
+        <div class="step-nav">
+          <div class="step-nav-left"></div>
+          <div class="step-nav-right">
+            <button class="btn-primary wiz-next" disabled onclick="goNext()">Continue</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Select items -->
+      <div class="step" data-step="2">
+        <p style="font-size:.78rem;color:var(--muted);margin-bottom:1.2rem">Which items would you like to return or exchange? Select one or more.</p>
+        <div id="item-picker" style="display:flex;flex-direction:column;gap:.6rem;"></div>
+        <div class="step-nav">
+          <div class="step-nav-left">
+            <button class="btn-ghost" onclick="showStep(1)">Back</button>
+          </div>
+          <div class="step-nav-right">
+            <button class="btn-primary wiz-next" disabled onclick="goNext()">Continue</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Resolution -->
+      <div class="step" data-step="3">
+        <p style="font-size:.78rem;color:var(--muted);margin-bottom:1.2rem">What would you like us to do?</p>
+        <div class="res-cards">
+          <button class="res-card" data-value="return" onclick="selectResolution(this)">
+            <div class="res-card-icon">💳</div>
+            <div class="res-card-name">Refund</div>
+            <div class="res-card-desc">Money back to your original payment method</div>
+          </button>
+          <button class="res-card" data-value="exchange" onclick="selectResolution(this)">
+            <div class="res-card-icon">🔄</div>
+            <div class="res-card-name">Exchange</div>
+            <div class="res-card-desc">Swap for a different size, color, or style</div>
+          </button>
+          <button class="res-card" data-value="store_credit" onclick="selectResolution(this)">
+            <div class="res-card-icon">⭐</div>
+            <div class="res-card-name">Store Credit</div>
+            <div class="res-card-desc">Credit towards your next Zuwera order</div>
+          </button>
+        </div>
+        <div class="step-nav">
+          <div class="step-nav-left">
+            <button class="btn-ghost" onclick="showStep(2)">Back</button>
+          </div>
+          <div class="step-nav-right">
+            <button class="btn-primary wiz-next" disabled onclick="goNext()">Continue</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4: Reason -->
+      <div class="step" data-step="4">
+        <p class="reason-intro" id="reason-intro">Why are you returning this item? Pick the option that best describes it.</p>
+        <div class="reason-chips">
+          ${REASONS.map(r => `<button class="reason-chip" onclick="selectReason(this)">${esc(r)}</button>`).join('')}
+        </div>
+        <div class="step3-field" id="other-notes-field" style="display:none">
+          <label>Tell us more</label>
+          <textarea id="other-notes" rows="3" maxlength="600" placeholder="Describe your reason…" oninput="state.otherNotes=this.value;updateNextBtn()"></textarea>
+        </div>
+        <div class="step3-field" style="display:block">
+          <label>Additional notes (optional)</label>
+          <textarea id="extra-notes" rows="2" maxlength="600" placeholder="Anything else we should know…" oninput="state.extraNotes=this.value"></textarea>
+        </div>
+        <div class="step3-field" id="exchange-size-field" style="display:none">
+          <label>What size or item would you like instead? <span style="color:var(--accent-red)">*</span></label>
+          <input type="text" id="exchange-size" placeholder="e.g. Medium, or Black size M" oninput="state.exchangeSize=this.value;updateNextBtn()">
+        </div>
+        <div class="step-nav">
+          <div class="step-nav-left">
+            <button class="btn-ghost" onclick="showStep(3)">Back</button>
+          </div>
+          <div class="step-nav-right">
+            <button class="btn-primary wiz-next" disabled onclick="goNext()">Review Request</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 5: Review + Submit (content built dynamically) -->
+      <div class="step" data-step="5"></div>
+    </div>`;
+}
+
+// ─── Step interaction handlers ────────────────────────────────────────────────
+window.selectOrder = function(el) {
+  document.querySelectorAll('.order-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  state.selectedOrderId     = el.dataset.id;
+  state.selectedOrderLabel  = el.dataset.label;
+  state.selectedOrderDate   = el.dataset.date;
+  state.selectedOrderAmount = el.dataset.amount;
+
+  // Parse items from the selected order and populate the item picker
+  const order = _orders.find(o => String(o.id) === state.selectedOrderId);
+  let items = [];
+  try { items = typeof order?.items === 'string' ? JSON.parse(order.items) : (Array.isArray(order?.items) ? order.items : []); } catch(_) {}
+  state.selectedOrderItems = items;
+  state.selectedItems = [];
+
+  const picker = document.getElementById('item-picker');
+  if (picker) {
+    if (!items.length) {
+      picker.innerHTML = '<p style="font-size:.78rem;color:var(--muted)">No item details found for this order.</p>';
+    } else {
+      picker.innerHTML = items.map((item, idx) => {
+        const name = esc((item.name || item.title || 'Item').trim());
+        const meta = [item.size, item.color || item.colorName].filter(Boolean).map(esc).join(' · ');
+        const price = parseFloat(item.amount || item.price || item.unit_price || 0);
+        const priceStr = price > 0 ? fmtAmt(price > 500 ? price / 100 : price) : '';
+        return `<label style="display:flex;align-items:center;gap:.9rem;padding:.85rem 1rem;border:1px solid var(--border-color);border-radius:8px;cursor:pointer;transition:border-color .15s;" onclick="toggleItemPick(${idx},this)">
+          <div style="width:18px;height:18px;border:1.5px solid var(--muted);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;" class="item-check-box">
+            <svg width="11" height="9" viewBox="0 0 11 9" fill="none" style="display:none"><path d="M1 4.5L4 7.5L10 1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:.82rem;font-weight:500;">${name}</div>
+            ${meta ? `<div style="font-size:.72rem;color:var(--muted);margin-top:2px;">${meta}</div>` : ''}
+          </div>
+          ${priceStr ? `<div style="font-size:.8rem;color:var(--muted);flex-shrink:0;">${priceStr}</div>` : ''}
+        </label>`;
+      }).join('');
+    }
+  }
+
+  updateNextBtn();
+};
+
+window.toggleItemPick = function(idx, labelEl) {
+  const item = state.selectedOrderItems[idx];
+  if (!item) return;
+  const already = state.selectedItems.findIndex((_, i) => state.selectedItems[i] === item);
+  const checkBox = labelEl.querySelector('.item-check-box');
+  const checkMark = checkBox?.querySelector('svg');
+  if (state.selectedItems.includes(item)) {
+    state.selectedItems = state.selectedItems.filter(i => i !== item);
+    if (checkBox) checkBox.style.borderColor = 'var(--muted)';
+    if (checkBox) checkBox.style.background = 'transparent';
+    if (checkMark) checkMark.style.display = 'none';
+    labelEl.style.borderColor = 'var(--border-color)';
+  } else {
+    state.selectedItems.push(item);
+    if (checkBox) checkBox.style.borderColor = 'currentColor';
+    if (checkBox) checkBox.style.background = 'currentColor';
+    if (checkMark) { checkMark.style.display = 'block'; checkMark.style.stroke = 'var(--bg)'; }
+    labelEl.style.borderColor = 'currentColor';
+  }
+  updateNextBtn();
+};
+
+window.selectResolution = function(el) {
+  document.querySelectorAll('.res-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  state.selectedResolution = el.dataset.value;
+  // Show/hide exchange size field on step 3
+  const ef = document.getElementById('exchange-size-field');
+  if (ef) ef.style.display = state.selectedResolution === 'exchange' ? 'flex' : 'none';
+  // Update reason intro text
+  const intro = document.getElementById('reason-intro');
+  if (intro) {
+    intro.textContent = state.selectedResolution === 'exchange'
+      ? 'Why are you exchanging this item?'
+      : 'Why are you returning this item? Pick the option that best describes it.';
+  }
+  updateNextBtn();
+};
+
+window.selectReason = function(el) {
+  document.querySelectorAll('.reason-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  state.selectedReason = el.textContent.trim();
+  // Toggle "other" notes field
+  const isOther = state.selectedReason === 'Other';
+  const otherField = document.getElementById('other-notes-field');
+  const extraField = document.querySelector('.step3-field:not(#other-notes-field):not(#exchange-size-field)');
+  if (otherField) otherField.style.display = isOther ? 'flex' : 'none';
+  if (extraField) extraField.style.display = isOther ? 'none' : 'flex';
+  if (isOther) { state.otherNotes = ''; document.getElementById('other-notes').value = ''; }
+  updateNextBtn();
+};
+
+window.goNext = function() {
+  if (state.step === 4) {
+    buildStep5Review();
+  }
+  showStep(state.step + 1);
+};
+
+// ─── Render auth prompt ───────────────────────────────────────────────────────
+function renderAuthPrompt() {
+  return `
+    <div class="auth-prompt">
+      <div class="auth-prompt-icon">↩</div>
+      <h2>Sign in to continue</h2>
+      <p>View your orders and start a return or exchange — all in one place.</p>
+      <div class="auth-features">
+        <span class="auth-feature">Free return shipping</span>
+        <span class="auth-feature">Prepaid labels by email</span>
+        <span class="auth-feature">Track your requests</span>
+      </div>
+      <a href="/?auth=signin&next=/returns.html" class="btn-primary">Sign In</a>
+    </div>`;
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+async function init() {
+  const root = document.getElementById('page-root');
+
+  try {
+    const session = await getSession();
+    if (!session) {
+      root.innerHTML = renderAuthPrompt();
+      return;
+    }
+
+    const data = await fetchHubData(session);
+    const orders  = Array.isArray(data.orders)  ? data.orders  : [];
+    const returns = Array.isArray(data.returns) ? data.returns : [];
+
+    const existingHtml = renderExistingReturns(returns);
+    const wizardHtml   = renderWizard(orders);
+
+    root.innerHTML = existingHtml + (orders.length
+      ? `<div class="section-label" style="margin-bottom:1.5rem">New request</div>` + wizardHtml
+      : wizardHtml);
+
+  } catch(e) {
+    root.innerHTML = `<div class="empty-state" style="text-align:left;padding:1rem 0">
+      <p style="font-size:.78rem;color:var(--accent-red)">${esc(e.message || 'Could not load your account. Please try again.')}</p>
+      <button class="btn-ghost" style="margin-top:1rem" onclick="location.reload()">Try again</button>
+    </div>`;
+  }
+}
+
+// ─── Policy accordion ─────────────────────────────────────────────────────────
+document.getElementById('policy-toggle').addEventListener('click', function() {
+  const body = document.getElementById('policy-body');
+  const open = body.classList.toggle('open');
+  this.classList.toggle('open', open);
+  this.setAttribute('aria-expanded', open);
+});
+
+document.addEventListener('DOMContentLoaded', function() { _sb = window.sb; init(); });
+</script>
+<script src="storefront-theme.js?v=26052901" defer></script>
+<script src="lang.js?v=1329682b" defer></script>
+</body>
+</html>

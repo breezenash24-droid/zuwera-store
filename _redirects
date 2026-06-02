@@ -1,6 +1,4 @@
-# Route /api/* to Netlify functions — keeps the URL scheme consistent across
-# Netlify, Vercel, and Cloudflare Pages (all platforms serve functions at /api/).
-/api/*  /.netlify/functions/:splat  200
-
-# All other unmatched routes → 404 (also defined in netlify.toml; Netlify
-# deduplicates, so this is only used by platforms that read _redirects directly).
+# Product URLs are handled by the Pages Function at functions/product/[slug].js
+# Static pages (sizeguide, policies, drop001, etc.) are served by CF Pages pretty URL feature.
+/mobile.html /index.html 301
+/m-bag.html /bag.html 301

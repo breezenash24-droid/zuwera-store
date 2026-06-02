@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zuwera — Full Site Diagnostics</title>
+  <meta name="robots" content="noindex, nofollow">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #09090b; color: #e4e4e7; min-height: 100vh; padding: 24px 16px 60px; }
+    h1 { font-size: 22px; font-weight: 700; color: #fafafa; margin-bottom: 4px; }
+    .subtitle { font-size: 13px; color: #71717a; margin-bottom: 24px; }
+    .btn { background: #fafafa; color: #09090b; border: none; padding: 10px 22px; border-radius: 7px; cursor: pointer; font-size: 14px; font-weight: 600; margin-right: 10px; margin-bottom: 20px; }
+    .btn:hover { background: #d4d4d8; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-ghost { background: transparent; color: #a1a1aa; border: 1px solid #27272a; }
+    .btn-ghost:hover { background: #18181b; color: #fafafa; }
+    #summary { background: #18181b; border: 1px solid #27272a; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; display: none; }
+    #summary h2 { font-size: 14px; font-weight: 600; color: #a1a1aa; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .06em; }
+    .score-row { display: flex; gap: 20px; flex-wrap: wrap; }
+    .score-item { text-align: center; }
+    .score-num { font-size: 28px; font-weight: 700; }
+    .score-label { font-size: 11px; color: #71717a; margin-top: 2px; }
+    .green { color: #4ade80; } .red { color: #f87171; } .yellow { color: #fbbf24; } .blue { color: #60a5fa; }
+    .section { background: #18181b; border: 1px solid #27272a; border-radius: 10px; margin-bottom: 14px; overflow: hidden; }
+    .section-head { padding: 12px 16px; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+    .section-head:hover { background: #1f1f23; }
+    .section-title { font-size: 13px; font-weight: 600; color: #a1a1aa; text-transform: uppercase; letter-spacing: .06em; flex: 1; }
+    .section-badge { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
+    .badge-pass { background: #14532d; color: #4ade80; }
+    .badge-fail { background: #450a0a; color: #f87171; }
+    .badge-warn { background: #451a03; color: #fbbf24; }
+    .badge-pending { background: #1c1917; color: #78716c; }
+    .section-body { border-top: 1px solid #27272a; }
+    .check { display: flex; align-items: flex-start; gap: 12px; padding: 10px 16px; border-bottom: 1px solid #1c1c1f; }
+    .check:last-child { border-bottom: none; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+    .dot-pass { background: #4ade80; }
+    .dot-fail { background: #f87171; }
+    .dot-warn { background: #fbbf24; }
+    .dot-info { background: #60a5fa; }
+    .dot-pending { background: #52525b; animation: blink 1.2s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+    .check-label { flex: 1; }
+    .check-name { font-size: 14px; color: #fafafa; font-weight: 500; line-height: 1.4; }
+    .check-detail { font-size: 12px; color: #71717a; font-family: 'SF Mono', 'Fira Code', monospace; margin-top: 3px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; }
+    .check-detail.err { color: #f87171; }
+    .chevron { color: #52525b; font-size: 12px; transition: transform .2s; }
+    .section.collapsed .section-body { display: none; }
+    .section.collapsed .chevron { transform: rotate(-90deg); }
+    #progress { font-size: 13px; color: #71717a; margin-bottom: 16px; min-height: 20px; }
+  </style>
+  <style>
+    #diag-auth-overlay { position:fixed; inset:0; background:#09090b; z-index:9999; display:flex; align-items:center; justify-content:center; }
+    #diag-auth-box { background:#18181b; border:1px solid #27272a; border-radius:12px; padding:2rem; width:min(360px,92vw); text-align:center; }
+    #diag-auth-box h2 { font-size:18px; font-weight:700; color:#fafafa; margin-bottom:8px; }
+    #diag-auth-box p { font-size:13px; color:#71717a; margin-bottom:20px; }
+    #diag-auth-email, #diag-auth-password { width:100%; background:#09090b; border:1px solid #27272a; color:#fafafa; border-radius:7px; padding:10px 14px; font-size:14px; margin-bottom:10px; box-sizing:border-box; }
+    #diag-auth-submit { width:100%; background:#fafafa; color:#09090b; border:none; padding:11px; border-radius:7px; cursor:pointer; font-size:14px; font-weight:600; }
+    #diag-auth-submit:disabled { opacity:0.5; cursor:not-allowed; }
+    #diag-auth-error { color:#f87171; font-size:13px; margin-top:10px; min-height:18px; }
+  </style>
+</head>
+<body>
+  <div id="diag-auth-overlay">
+    <div id="diag-auth-box">
+      <h2>Admin Access Required</h2>
+      <p>Sign in with your Zuwera admin account to access diagnostics.</p>
+      <input type="email" id="diag-auth-email" placeholder="Email" autocomplete="email">
+      <input type="password" id="diag-auth-password" placeholder="Password" autocomplete="current-password">
+      <button id="diag-auth-submit" onclick="diagSignIn()">Sign In</button>
+      <div id="diag-auth-error"></div>
+    </div>
+  </div>
+  <script src="/supabase.min.js?v=3277b334"></script>
+  <script>
+  (function() {
+    const _sbDiag = window.supabase.createClient(
+      'https://qfgnrsifcwdubkolsgsq.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY'
+    );
+    window._sbDiag = _sbDiag;
+    _sbDiag.auth.getSession().then(({ data: { session } }) => {
+      if (session) document.getElementById('diag-auth-overlay').style.display = 'none';
+    }).catch(() => {});
+    window.diagSignIn = async function() {
+      const btn = document.getElementById('diag-auth-submit');
+      const errEl = document.getElementById('diag-auth-error');
+      const email = document.getElementById('diag-auth-email').value.trim();
+      const password = document.getElementById('diag-auth-password').value;
+      errEl.textContent = '';
+      btn.disabled = true;
+      try {
+        const { error } = await _sbDiag.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        document.getElementById('diag-auth-overlay').style.display = 'none';
+      } catch(e) {
+        errEl.textContent = e.message || 'Sign-in failed.';
+      } finally {
+        btn.disabled = false;
+      }
+    };
+    document.getElementById('diag-auth-password').addEventListener('keydown', e => {
+      if (e.key === 'Enter') window.diagSignIn();
+    });
+  })();
+  </script>
+  <h1>Zuwera — Site Diagnostics</h1>
+  <p class="subtitle">Run from <strong>zuwera.store/diagnostic.html</strong> for accurate results (same-origin checks require the live domain)</p>
+
+  <div>
+    <button class="btn" id="runBtn" onclick="runAll()">Run All Checks</button>
+    <button class="btn btn-ghost" onclick="copyReport()">Copy Report</button>
+  </div>
+
+  <p id="progress">Press "Run All Checks" to start.</p>
+
+  <div id="summary"></div>
+  <div id="results"></div>
+
+<script>
+const SUPABASE_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+
+const STATIC_ASSETS = [
+  '/supabase.min.js?v=2',
+  '/sw.js',
+  '/stripe-client-config.js',
+  '/manifest.json',
+  '/site.webmanifest',
+  '/storefront-cohesion.css?v=19',
+  '/auth.js',
+  '/posthog-init.js',
+];
+
+const API_ENDPOINTS = [
+  { url: '/api/detect-state', method: 'GET',  label: '/api/detect-state' },
+  { url: '/api/stripe-config', method: 'GET', label: '/api/stripe-config' },
+  { url: '/api/verify-turnstile', method: 'POST', body: JSON.stringify({ token: '__test__' }), label: '/api/verify-turnstile (POST)' },
+];
+
+const SUPABASE_TABLES = [
+  { table: 'products',      select: 'id,name',     label: 'products table' },
+  { table: 'site_settings', select: 'key,value',   label: 'site_settings table' },
+  { table: 'reviews',       select: 'id,rating',   label: 'reviews table' },
+  { table: 'waitlist',      select: 'id',          label: 'waitlist table' },
+];
+
+const EXTERNAL_RESOURCES = [
+  { url: 'https://js.stripe.com/v3/', label: 'Stripe JS (js.stripe.com)' },
+  { url: 'https://challenges.cloudflare.com/turnstile/v0/api.js', label: 'Cloudflare Turnstile script' },
+  { url: 'https://app.posthog.com/static/array.js', label: 'PostHog analytics' },
+];
+
+const IMPORTANT_HEADERS = [
+  { path: '/sw.js',         header: 'cache-control', want: 'no-cache',   wantNot: 'immutable', label: 'sw.js cache-control' },
+  { path: '/',              header: 'cache-control', want: null,          wantNot: null,        label: 'Index cache-control' },
+  { path: '/sw.js',         header: 'content-type',  want: 'javascript', wantNot: null,        label: 'sw.js content-type' },
+  { path: '/',              header: 'x-frame-options', want: null,        wantNot: null,        label: 'X-Frame-Options on /' },
+  { path: '/',              header: 'cf-ray',          want: null,        wantNot: null,        label: 'Cloudflare CDN active (cf-ray)' },
+];
+
+let allResults = [];
+let totalPass = 0, totalFail = 0, totalWarn = 0;
+
+function $(id) { return document.getElementById(id); }
+
+function setProgress(msg) { $('progress').textContent = msg; }
+
+function createSection(id, title) {
+  const sec = document.createElement('div');
+  sec.className = 'section';
+  sec.id = 'sec-' + id;
+  sec.innerHTML = `
+    <div class="section-head" onclick="toggleSection('${id}')">
+      <span class="chevron">▼</span>
+      <span class="section-title">${title}</span>
+      <span class="section-badge badge-pending" id="badge-${id}">—</span>
+    </div>
+    <div class="section-body" id="body-${id}"></div>`;
+  $('results').appendChild(sec);
+  return sec;
+}
+
+function toggleSection(id) {
+  document.getElementById('sec-' + id).classList.toggle('collapsed');
+}
+
+function addCheck(sectionId, { name, status, detail }) {
+  const body = $('body-' + sectionId);
+  const dotClass = { pass: 'dot-pass', fail: 'dot-fail', warn: 'dot-warn', info: 'dot-info', pending: 'dot-pending' }[status] || 'dot-pending';
+  const row = document.createElement('div');
+  row.className = 'check';
+  row.innerHTML = `
+    <div class="dot ${dotClass}"></div>
+    <div class="check-label">
+      <div class="check-name">${name}</div>
+      ${detail ? `<div class="check-detail ${status === 'fail' ? 'err' : ''}">${escHtml(detail)}</div>` : ''}
+    </div>`;
+  body.appendChild(row);
+
+  allResults.push({ section: sectionId, name, status, detail });
+  if (status === 'pass') totalPass++;
+  else if (status === 'fail') totalFail++;
+  else if (status === 'warn') totalWarn++;
+}
+
+function updateBadge(sectionId) {
+  const badge = $('badge-' + sectionId);
+  const checks = allResults.filter(r => r.section === sectionId);
+  const fails = checks.filter(r => r.status === 'fail').length;
+  const warns = checks.filter(r => r.status === 'warn').length;
+  const passes = checks.filter(r => r.status === 'pass').length;
+  if (fails > 0) { badge.textContent = `${fails} issue${fails > 1 ? 's' : ''}`; badge.className = 'section-badge badge-fail'; }
+  else if (warns > 0) { badge.textContent = `${warns} warning${warns > 1 ? 's' : ''}`; badge.className = 'section-badge badge-warn'; }
+  else { badge.textContent = `${passes} ok`; badge.className = 'section-badge badge-pass'; }
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function fetchWithTimeout(url, opts = {}, ms = 8000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const res = await fetch(url, { ...opts, signal: ctrl.signal });
+    clearTimeout(timer);
+    return res;
+  } catch (e) {
+    clearTimeout(timer);
+    throw e;
+  }
+}
+
+/* ── 1. Service Worker ─────────────────────────────────── */
+async function checkServiceWorker() {
+  createSection('sw', '1. Service Worker');
+  if (!('serviceWorker' in navigator)) {
+    addCheck('sw', { name: 'Service Worker API', status: 'fail', detail: 'navigator.serviceWorker not available in this browser.' });
+    updateBadge('sw'); return;
+  }
+  addCheck('sw', { name: 'Service Worker API', status: 'pass', detail: 'Supported in this browser.' });
+
+  let reg;
+  try {
+    reg = await navigator.serviceWorker.getRegistration('/');
+  } catch(e) {
+    addCheck('sw', { name: 'Get SW registration', status: 'fail', detail: String(e) });
+    updateBadge('sw'); return;
+  }
+
+  if (!reg) {
+    addCheck('sw', { name: 'SW registered for /', status: 'warn', detail: 'No service worker registered for scope /. This page may not be cached.' });
+    updateBadge('sw'); return;
+  }
+  addCheck('sw', { name: 'SW registered for /', status: 'pass', detail: `Scope: ${reg.scope}` });
+
+  const sw = reg.active || reg.installing || reg.waiting;
+  if (!sw) {
+    addCheck('sw', { name: 'SW worker state', status: 'warn', detail: 'Registration exists but no worker active/installing/waiting.' });
+  } else {
+    const stateOk = sw.state === 'activated';
+    addCheck('sw', { name: 'SW worker state', status: stateOk ? 'pass' : 'warn', detail: `state=${sw.state}  scriptURL=${sw.scriptURL}` });
+  }
+
+  if (reg.waiting) {
+    addCheck('sw', { name: 'SW waiting (stuck update)', status: 'warn', detail: 'A new service worker is waiting to activate. This means the old SW is still controlling pages — old cached files may be served. A hard refresh (Ctrl+Shift+R) or closing all tabs fixes this.' });
+  }
+
+  if (reg.installing) {
+    addCheck('sw', { name: 'SW installing', status: 'info', detail: 'A service worker is currently installing. This is normal on first visit.' });
+  }
+
+  try {
+    const keys = await caches.keys();
+    if (keys.length === 0) {
+      addCheck('sw', { name: 'SW cache entries', status: 'warn', detail: 'No caches found. Service worker may not have run yet.' });
+    } else {
+      let totalEntries = 0;
+      const detail = [];
+      for (const key of keys) {
+        const cache = await caches.open(key);
+        const reqs = await cache.keys();
+        totalEntries += reqs.length;
+        detail.push(`${key}: ${reqs.length} entries`);
+      }
+      addCheck('sw', { name: 'SW cache entries', status: 'pass', detail: detail.join('\n') });
+
+      // Check if sw.js itself is cached (it should NOT be for easy updates)
+      for (const key of keys) {
+        const cache = await caches.open(key);
+        const swCached = await cache.match('/sw.js');
+        if (swCached) {
+          addCheck('sw', { name: 'sw.js in cache (bad)', status: 'warn', detail: 'sw.js is inside the SW cache. Service workers should never cache themselves — this can prevent updates from shipping.' });
+        }
+      }
+    }
+  } catch(e) {
+    addCheck('sw', { name: 'SW cache access', status: 'fail', detail: String(e) });
+  }
+
+  // Version check via fetch
+  try {
+    const r = await fetchWithTimeout('/sw.js?nocache=' + Date.now(), { cache: 'no-store' }, 6000);
+    const txt = await r.text();
+    const m = txt.match(/CACHE_NAME\s*=\s*['"]([^'"]+)['"]/);
+    if (m) {
+      addCheck('sw', { name: 'sw.js cache version', status: 'info', detail: `CACHE_NAME = "${m[1]}" — bump this whenever you change sw.js logic to force a cache refresh.` });
+    }
+    const cc = r.headers.get('cache-control') || '(none)';
+    const isImmutable = cc.includes('immutable');
+    addCheck('sw', {
+      name: 'sw.js Cache-Control header',
+      status: isImmutable ? 'fail' : (cc.includes('no-cache') || cc.includes('no-store') ? 'pass' : 'warn'),
+      detail: `Cache-Control: ${cc}${isImmutable ? '\n⚠️  CRITICAL: "immutable" means browsers NEVER re-fetch sw.js — site updates will never reach users.' : ''}`
+    });
+  } catch(e) {
+    addCheck('sw', { name: 'sw.js fetch test', status: 'fail', detail: String(e) });
+  }
+
+  updateBadge('sw');
+}
+
+/* ── 2. Supabase ───────────────────────────────────────── */
+async function checkSupabase() {
+  createSection('sb', '2. Supabase / Database');
+  const h = { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` };
+
+  // Basic connectivity
+  try {
+    const r = await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/`, { headers: h }, 8000);
+    addCheck('sb', { name: 'Supabase API reachable', status: r.ok || r.status === 400 ? 'pass' : 'fail', detail: `HTTP ${r.status} ${r.statusText}` });
+  } catch(e) {
+    addCheck('sb', { name: 'Supabase API reachable', status: 'fail', detail: `Network error: ${e.message}` });
+  }
+
+  // Table queries
+  for (const { table, select, label } of SUPABASE_TABLES) {
+    try {
+      const start = Date.now();
+      const r = await fetchWithTimeout(
+        `${SUPABASE_URL}/rest/v1/${table}?select=${select}&limit=3`,
+        { headers: h }, 10000
+      );
+      const ms = Date.now() - start;
+      const data = await r.json();
+      if (r.ok) {
+        addCheck('sb', {
+          name: `Query: ${label}`,
+          status: ms > 5000 ? 'warn' : 'pass',
+          detail: `${ms}ms — returned ${Array.isArray(data) ? data.length : '?'} rows${ms > 5000 ? '\n⚠️  Slow query. Page will freeze for this long.' : ''}`
+        });
+      } else {
+        addCheck('sb', { name: `Query: ${label}`, status: 'fail', detail: `HTTP ${r.status}: ${JSON.stringify(data).slice(0, 200)}` });
+      }
+    } catch(e) {
+      addCheck('sb', { name: `Query: ${label}`, status: 'fail', detail: `Timeout or network error: ${e.message}` });
+    }
+  }
+
+  // Auth session state from localStorage
+  try {
+    let sessionFound = false;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+        const raw = localStorage.getItem(key);
+        const tok = JSON.parse(raw);
+        const expires = tok?.expires_at ? new Date(tok.expires_at * 1000) : null;
+        const isExpired = expires && expires < new Date();
+        addCheck('sb', {
+          name: 'Auth session in localStorage',
+          status: isExpired ? 'warn' : 'pass',
+          detail: `Key: ${key}\nExpires: ${expires ? expires.toISOString() : 'unknown'}${isExpired ? '\n⚠️  Session token is EXPIRED — user will appear logged out.' : ''}`
+        });
+        sessionFound = true;
+      }
+    }
+    if (!sessionFound) {
+      addCheck('sb', { name: 'Auth session in localStorage', status: 'info', detail: 'No Supabase auth session found. User is not logged in (or never logged in on this browser).' });
+    }
+  } catch(e) {
+    addCheck('sb', { name: 'Auth session check', status: 'warn', detail: `Could not read localStorage: ${e.message}` });
+  }
+
+  // Row Level Security — try anonymous product read
+  try {
+    const r = await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/products?select=id&limit=1`, { headers: h }, 8000);
+    const ok = r.ok || r.status === 200;
+    addCheck('sb', { name: 'RLS: anon can read products', status: ok ? 'pass' : 'fail', detail: `HTTP ${r.status} — ${ok ? 'Products readable without login (expected for public store).' : 'Products NOT readable anonymously — RLS may be blocking the storefront.'}` });
+  } catch(e) {
+    addCheck('sb', { name: 'RLS: anon can read products', status: 'fail', detail: String(e) });
+  }
+
+  updateBadge('sb');
+}
+
+/* ── 3. API Endpoints ──────────────────────────────────── */
+async function checkAPIs() {
+  createSection('api', '3. Cloudflare Functions / API Endpoints');
+  for (const ep of API_ENDPOINTS) {
+    try {
+      const opts = { method: ep.method, cache: 'no-store' };
+      if (ep.body) { opts.body = ep.body; opts.headers = { 'Content-Type': 'application/json' }; }
+      const start = Date.now();
+      const r = await fetchWithTimeout(ep.url, opts, 8000);
+      const ms = Date.now() - start;
+      const text = await r.text().catch(() => '');
+      // 200-299 = pass; 400/422 = warn (exists, bad input); 404/500 = fail
+      const status = r.ok ? 'pass' : (r.status >= 400 && r.status < 500 ? 'warn' : 'fail');
+      addCheck('api', { name: ep.label, status, detail: `HTTP ${r.status} in ${ms}ms\n${text.slice(0, 200)}` });
+    } catch(e) {
+      addCheck('api', { name: ep.label, status: 'fail', detail: `Network error / timeout: ${e.message}` });
+    }
+  }
+  updateBadge('api');
+}
+
+/* ── 4. Static Asset Headers ───────────────────────────── */
+async function checkAssetHeaders() {
+  createSection('assets', '4. Static Asset Availability & Cache Headers');
+  for (const path of STATIC_ASSETS) {
+    try {
+      const r = await fetchWithTimeout(path + '?_diag=' + Date.now(), { method: 'HEAD', cache: 'no-store' }, 6000);
+      if (!r.ok && r.status !== 0) {
+        addCheck('assets', { name: path, status: r.status === 404 ? 'warn' : 'fail', detail: `HTTP ${r.status} — ${r.status === 404 ? 'File not found on server.' : 'Server error.'}` });
+        continue;
+      }
+      const cc = r.headers.get('cache-control') || '(none)';
+      const ct = r.headers.get('content-type') || '(none)';
+      let assetStatus = 'pass';
+      let note = '';
+      if (path === '/sw.js' && cc.includes('immutable')) {
+        assetStatus = 'fail';
+        note = '\n⚠️  CRITICAL: sw.js served with "immutable" — browsers will NEVER re-fetch it.';
+      } else if (path === '/sw.js' && !cc.match(/no-cache|no-store/)) {
+        assetStatus = 'warn';
+        note = '\n⚠️  sw.js should use Cache-Control: no-cache, no-store, must-revalidate';
+      }
+      addCheck('assets', { name: path, status: assetStatus, detail: `Cache-Control: ${cc}\nContent-Type: ${ct}${note}` });
+    } catch(e) {
+      addCheck('assets', { name: path, status: 'fail', detail: `Failed to fetch: ${e.message}` });
+    }
+  }
+  updateBadge('assets');
+}
+
+/* ── 5. HTTP Response Headers ──────────────────────────── */
+async function checkHeaders() {
+  createSection('headers', '5. HTTP Response Headers');
+  const paths = ['/', '/sw.js', '/supabase.min.js?v=2', '/storefront-cohesion.css?v=19'];
+  for (const path of paths) {
+    try {
+      const r = await fetchWithTimeout(path + '?_diag=' + Date.now(), { method: 'HEAD', cache: 'no-store' }, 6000);
+      const interesting = ['cache-control','x-frame-options','content-security-policy','cf-ray','cf-cache-status','x-content-type-options','referrer-policy'];
+      const found = interesting.map(h => `${h}: ${r.headers.get(h) || '(not set)'}`).join('\n');
+      addCheck('headers', { name: `Headers: ${path}`, status: 'info', detail: found });
+    } catch(e) {
+      addCheck('headers', { name: `Headers: ${path}`, status: 'fail', detail: String(e) });
+    }
+  }
+  updateBadge('headers');
+}
+
+/* ── 6. Cloudflare Turnstile ───────────────────────────── */
+async function checkTurnstile() {
+  createSection('ts', '6. Cloudflare Turnstile (Bot Protection)');
+
+  // Check if turnstile script loads
+  const TS_SCRIPT = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+  try {
+    const r = await fetchWithTimeout(TS_SCRIPT, { method: 'HEAD', mode: 'no-cors' }, 5000);
+    addCheck('ts', { name: 'Turnstile script reachable', status: 'info', detail: 'Script CDN is reachable (no-cors, can\'t see status code).' });
+  } catch(e) {
+    addCheck('ts', { name: 'Turnstile script reachable', status: 'fail', detail: `Cannot reach Turnstile CDN: ${e.message}` });
+  }
+
+  // Check if turnstile is actually loaded on the main page
+  addCheck('ts', {
+    name: 'Turnstile loaded in this page',
+    status: typeof window.turnstile !== 'undefined' ? 'warn' : 'info',
+    detail: typeof window.turnstile !== 'undefined'
+      ? '⚠️  window.turnstile is defined on this diagnostic page — unexpected.'
+      : 'window.turnstile not loaded here (expected — Turnstile only loads on the main page).'
+  });
+
+  // Check the /api/verify-turnstile endpoint exists
+  try {
+    const r = await fetchWithTimeout('/api/verify-turnstile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: 'DIAGNOSTIC_TEST' }),
+      cache: 'no-store'
+    }, 6000);
+    const text = await r.text().catch(() => '');
+    // 400 = endpoint exists but rejected bad token (expected); 404 = doesn't exist
+    if (r.status === 404) {
+      addCheck('ts', { name: '/api/verify-turnstile endpoint', status: 'warn', detail: '404 — This Cloudflare Function does not exist. If Turnstile is still active in code, all form submissions will silently fail.' });
+    } else {
+      addCheck('ts', { name: '/api/verify-turnstile endpoint', status: 'pass', detail: `HTTP ${r.status} — Endpoint exists. Response: ${text.slice(0, 100)}` });
+    }
+  } catch(e) {
+    addCheck('ts', { name: '/api/verify-turnstile endpoint', status: 'fail', detail: String(e) });
+  }
+
+  // Warning about Turnstile being in the code but deleted from Cloudflare dashboard
+  addCheck('ts', {
+    name: 'Public Turnstile disabled',
+    status: 'info',
+    detail: 'Public storefront auth skips Turnstile unless the SDK is explicitly loaded. Admin still has its own Turnstile flow.'
+  });
+
+  updateBadge('ts');
+}
+
+/* ── 7. External Resources ─────────────────────────────── */
+async function checkExternal() {
+  createSection('ext', '7. External Third-Party Resources');
+  for (const { url, label } of EXTERNAL_RESOURCES) {
+    try {
+      const start = Date.now();
+      const r = await fetchWithTimeout(url, { method: 'HEAD', mode: 'no-cors' }, 8000);
+      const ms = Date.now() - start;
+      addCheck('ext', { name: label, status: 'pass', detail: `Reachable in ${ms}ms (no-cors HEAD)` });
+    } catch(e) {
+      addCheck('ext', { name: label, status: 'fail', detail: `Cannot reach: ${e.message}` });
+    }
+  }
+  updateBadge('ext');
+}
+
+/* ── 8. LocalStorage / Session State ───────────────────── */
+async function checkStorage() {
+  createSection('storage', '8. Browser Storage State');
+
+  // Cart
+  try {
+    const cart = localStorage.getItem('zuwera_cart') || localStorage.getItem('cart');
+    addCheck('storage', { name: 'Cart in localStorage', status: 'info', detail: cart ? `Found: ${cart.slice(0, 150)}` : 'No cart data.' });
+  } catch(e) {}
+
+  // Cookies
+  const cookies = document.cookie;
+  if (cookies) {
+    addCheck('storage', { name: 'Cookies present', status: 'info', detail: cookies.replace(/;/g, '\n').slice(0, 400) });
+  } else {
+    addCheck('storage', { name: 'Cookies present', status: 'info', detail: 'No cookies set on this page.' });
+  }
+
+  // localStorage size
+  try {
+    let total = 0;
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      const v = localStorage.getItem(k) || '';
+      total += k.length + v.length;
+      keys.push(`${k} (${v.length} chars)`);
+    }
+    addCheck('storage', { name: 'localStorage entries', status: 'info', detail: `${keys.length} keys, ~${(total/1024).toFixed(1)} KB total\n${keys.join('\n')}` });
+  } catch(e) {
+    addCheck('storage', { name: 'localStorage access', status: 'fail', detail: String(e) });
+  }
+
+  // IndexedDB (Supabase uses this for some auth state)
+  try {
+    if ('indexedDB' in window) {
+      addCheck('storage', { name: 'IndexedDB available', status: 'pass', detail: 'IndexedDB is available. Supabase may store auth here.' });
+    }
+  } catch(e) {}
+
+  updateBadge('storage');
+}
+
+/* ── 9. JavaScript Environment ─────────────────────────── */
+async function checkJSEnv() {
+  createSection('js', '9. JavaScript / Browser Environment');
+
+  // Fetch API
+  addCheck('js', { name: 'Fetch API', status: typeof fetch !== 'undefined' ? 'pass' : 'fail', detail: typeof fetch !== 'undefined' ? 'Available.' : 'Missing — page will fail on this browser.' });
+
+  // Promises / async
+  addCheck('js', { name: 'Promise / async-await', status: typeof Promise !== 'undefined' ? 'pass' : 'fail', detail: typeof Promise !== 'undefined' ? 'Available.' : 'Missing — site requires modern JS.' });
+
+  // Web Crypto
+  addCheck('js', { name: 'Web Crypto API', status: typeof crypto !== 'undefined' && typeof crypto.subtle !== 'undefined' ? 'pass' : 'warn', detail: typeof crypto !== 'undefined' && typeof crypto.subtle !== 'undefined' ? 'Available (used by Supabase auth).' : 'crypto.subtle unavailable — Supabase auth may fail.' });
+
+  // Same-origin check
+  const isOnSite = location.hostname.includes('zuwera');
+  addCheck('js', {
+    name: 'Running on zuwera.store domain',
+    status: isOnSite ? 'pass' : 'warn',
+    detail: isOnSite
+      ? `Current origin: ${location.origin} — service worker, storage, and cookie checks are accurate.`
+      : `Current origin: ${location.origin}\n⚠️  For accurate service worker, cookie, and CORS checks, open this page at https://zuwera.store/diagnostic.html`
+  });
+
+  // Check if Supabase library is loaded on THIS page
+  addCheck('js', {
+    name: 'Supabase JS library',
+    status: typeof window.supabase !== 'undefined' ? 'pass' : 'info',
+    detail: typeof window.supabase !== 'undefined' ? 'window.supabase loaded.' : 'Not loaded on this diagnostic page (expected — it\'s only in index.html).'
+  });
+
+  // User agent
+  addCheck('js', { name: 'Browser / User Agent', status: 'info', detail: navigator.userAgent });
+
+  // Online status
+  addCheck('js', { name: 'Navigator online status', status: navigator.onLine ? 'pass' : 'fail', detail: navigator.onLine ? 'Online.' : 'Browser reports OFFLINE — all network requests will fail.' });
+
+  // Permissions
+  try {
+    const notif = await navigator.permissions.query({ name: 'notifications' });
+    addCheck('js', { name: 'Notification permission', status: 'info', detail: notif.state });
+  } catch(e) {}
+
+  updateBadge('js');
+}
+
+/* ── 10. Stripe ─────────────────────────────────────────── */
+async function checkStripe() {
+  createSection('stripe', '10. Stripe Payments');
+
+  try {
+    const r = await fetchWithTimeout('/stripe-client-config.js?v=1', { cache: 'no-store' }, 6000);
+    if (r.ok) {
+      const txt = await r.text();
+      const hasKey = txt.includes('pk_live_') || txt.includes('pk_test_');
+      addCheck('stripe', { name: 'stripe-client-config.js', status: hasKey ? 'pass' : 'warn', detail: `HTTP ${r.status} — ${hasKey ? 'Contains Stripe publishable key.' : 'File loaded but no pk_ key found.'}` });
+    } else {
+      addCheck('stripe', { name: 'stripe-client-config.js', status: 'fail', detail: `HTTP ${r.status} — File missing or inaccessible.` });
+    }
+  } catch(e) {
+    addCheck('stripe', { name: 'stripe-client-config.js', status: 'fail', detail: String(e) });
+  }
+
+  // Stripe JS CDN
+  try {
+    const r = await fetchWithTimeout('https://js.stripe.com/v3/', { method: 'HEAD', mode: 'no-cors' }, 6000);
+    addCheck('stripe', { name: 'Stripe JS CDN reachable', status: 'pass', detail: 'js.stripe.com reachable.' });
+  } catch(e) {
+    addCheck('stripe', { name: 'Stripe JS CDN reachable', status: 'fail', detail: `Cannot reach js.stripe.com: ${e.message}` });
+  }
+
+  // /api/create-payment-intent existence check (method not allowed = exists)
+  try {
+    const r = await fetchWithTimeout('/api/create-payment-intent', { method: 'GET', cache: 'no-store' }, 6000);
+    addCheck('stripe', { name: '/api/create-payment-intent', status: r.status === 404 ? 'fail' : 'pass', detail: `HTTP ${r.status} — ${r.status === 404 ? 'Function missing.' : 'Endpoint exists.'}` });
+  } catch(e) {
+    addCheck('stripe', { name: '/api/create-payment-intent', status: 'fail', detail: String(e) });
+  }
+
+  updateBadge('stripe');
+}
+
+/* ── Summary ───────────────────────────────────────────── */
+function showSummary() {
+  const el = $('summary');
+  el.style.display = 'block';
+  const criticalFails = allResults.filter(r => r.status === 'fail');
+  const warnings = allResults.filter(r => r.status === 'warn');
+  el.innerHTML = `
+    <h2>Summary</h2>
+    <div class="score-row">
+      <div class="score-item"><div class="score-num green">${totalPass}</div><div class="score-label">Passed</div></div>
+      <div class="score-item"><div class="score-num red">${totalFail}</div><div class="score-label">Failed</div></div>
+      <div class="score-item"><div class="score-num yellow">${totalWarn}</div><div class="score-label">Warnings</div></div>
+      <div class="score-item"><div class="score-num blue">${allResults.length}</div><div class="score-label">Total checks</div></div>
+    </div>
+    ${criticalFails.length > 0 ? `<p style="margin-top:14px;font-size:13px;color:#f87171;font-weight:600;">⚠ Critical issues (${criticalFails.length}):</p><ul style="margin:6px 0 0 20px;font-size:13px;color:#f87171">${criticalFails.map(f=>`<li>${f.name}</li>`).join('')}</ul>` : ''}
+    ${warnings.length > 0 ? `<p style="margin-top:12px;font-size:13px;color:#fbbf24;font-weight:600;">Warnings (${warnings.length}):</p><ul style="margin:6px 0 0 20px;font-size:13px;color:#fbbf24">${warnings.map(w=>`<li>${w.name}</li>`).join('')}</ul>` : ''}
+    ${totalFail === 0 && totalWarn === 0 ? '<p style="margin-top:12px;font-size:14px;color:#4ade80;font-weight:600;">✓ All checks passed!</p>' : ''}
+  `;
+}
+
+function copyReport() {
+  if (allResults.length === 0) { alert('Run checks first.'); return; }
+  const lines = [`Zuwera Diagnostics — ${new Date().toISOString()}`, `Origin: ${location.origin}`, `UA: ${navigator.userAgent}`, '', `PASS: ${totalPass}  FAIL: ${totalFail}  WARN: ${totalWarn}`, ''];
+  let lastSection = '';
+  for (const r of allResults) {
+    if (r.section !== lastSection) { lines.push('', `=== ${r.section.toUpperCase()} ===`); lastSection = r.section; }
+    lines.push(`[${r.status.toUpperCase()}] ${r.name}${r.detail ? '\n        ' + r.detail.replace(/\n/g, '\n        ') : ''}`);
+  }
+  navigator.clipboard.writeText(lines.join('\n')).then(() => alert('Report copied to clipboard.')).catch(() => alert('Copy failed — select the page text manually.'));
+}
+
+async function runAll() {
+  allResults = [];
+  totalPass = 0; totalFail = 0; totalWarn = 0;
+  $('results').innerHTML = '';
+  $('summary').style.display = 'none';
+  $('runBtn').disabled = true;
+  setProgress('Running diagnostics…');
+
+  const steps = [
+    ['Service Worker…',          checkServiceWorker],
+    ['Supabase / Database…',     checkSupabase],
+    ['API Endpoints…',           checkAPIs],
+    ['Static Asset Headers…',    checkAssetHeaders],
+    ['HTTP Response Headers…',   checkHeaders],
+    ['Cloudflare Turnstile…',    checkTurnstile],
+    ['External Resources…',      checkExternal],
+    ['Browser Storage…',         checkStorage],
+    ['JS Environment…',          checkJSEnv],
+    ['Stripe…',                  checkStripe],
+  ];
+
+  for (let i = 0; i < steps.length; i++) {
+    setProgress(`(${i+1}/${steps.length}) Checking ${steps[i][0]}`);
+    await steps[i][1]();
+  }
+
+  setProgress('Done.');
+  showSummary();
+  $('runBtn').disabled = false;
+}
+</script>
+</body>
+</html>

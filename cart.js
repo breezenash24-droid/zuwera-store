@@ -2,18 +2,25 @@
 // Declared globally — consumed by cart.js, checkout.js, and auth.js
 
 function _openModal(id) {
-  document.getElementById(id).classList.add('open');
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('open');
+  el.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
 }
 
 function _closeModal(id) {
-  document.getElementById(id).classList.remove('open');
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('open');
+  el.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
 }
 
 // ===================== TOAST =====================
 function showToast(msg) {
   const t = document.getElementById('toast');
+  if (!t) return;
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2500);
@@ -23,6 +30,7 @@ function showToast(msg) {
 (function () {
   const bar      = document.getElementById('announcement-bar');
   const closeBtn = document.getElementById('announcement-close');
+  if (!bar || !closeBtn) return;
   if (sessionStorage.getItem('bar-closed')) {
     bar.style.display = 'none';
   } else {
@@ -53,24 +61,25 @@ const _cart = {
 };
 
 // ===================== CART MODAL =====================
-_cart.cartBtn.addEventListener('click',  () => _openModal('cart-modal'));
-_cart.closeBtn.addEventListener('click', () => _closeModal('cart-modal'));
+_cart.cartBtn?.addEventListener('click',  () => _openModal('cart-modal'));
+_cart.closeBtn?.addEventListener('click', () => _closeModal('cart-modal'));
 
 // Favorites links in cart → open auth modal
-_cart.favJoinLink.addEventListener('click', () => {
+_cart.favJoinLink?.addEventListener('click', () => {
   _closeModal('cart-modal');
   openAuthModal('signup');
 });
-_cart.favSigninLink.addEventListener('click', () => {
+_cart.favSigninLink?.addEventListener('click', () => {
   _closeModal('cart-modal');
   openAuthModal('signin');
 });
 
 // ===================== CHECKOUT BUTTON =====================
-_cart.checkoutBtn.addEventListener('click', () => {
+_cart.checkoutBtn?.addEventListener('click', () => {
   _closeModal('cart-modal');
   _openModal('payment-modal');
-  document.getElementById('pay-error').textContent = '';
+  const _payErr = document.getElementById('pay-error');
+  if (_payErr) _payErr.textContent = '';
 
   const subtotalText  = _cart.subtotalEl?.textContent?.replace(/[^0-9.]/g, '') || '0';
   const subtotalCents = Math.round(parseFloat(subtotalText) * 100) || 100;

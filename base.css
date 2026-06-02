@@ -3,41 +3,64 @@
 
 :root {
   /* ── Palette ── */
-  --black:  #0a0a0a;
-  --white:  #f5f5f0;
-  --accent: #e8e0d0;
+  --black:  #09090b;
+  --white:  #f4f1eb;
+  --ink:    #09090b;
+  --paper:  #f4f1eb;
+  --surface-light: #F0EEE9;
+  --accent: #F891A5;
 
   /* ── Fonts ── */
-  --font-head: 'Bebas Neue', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
+  --font-display: 'Barlow Condensed', sans-serif;  /* hero / large display text */
+  --font-head:    'Barlow Condensed', sans-serif;  /* section headings */
+  --font-body:    'Barlow', sans-serif;             /* body copy, UI prose */
+  --font-mono:    'IBM Plex Mono', monospace;       /* labels, tags, data */
+  --fw: var(--font-head);
+  --fb: var(--font-body);
+  --fm: var(--font-mono);
+
+  /* ── Type scale ── */
+  --text-hero:    clamp(3.5rem, 8vw, 6rem);
+  --text-display: clamp(2rem, 4vw, 3rem);
+  --text-title:   1.4rem;
+  --text-body:    0.92rem;
+  --text-small:   0.78rem;
+  --text-label:   0.6rem;
+  --text-micro:   0.55rem;
+
+  /* ── Letter spacing ── */
+  --ls-display: 0.06em;
+  --ls-heading: 0.08em;
+  --ls-label:   0.14em;
+  --ls-wide:    0.22em;
 
   /* ── Transitions ── */
   --trans: opacity 0.2s;
 
   /* ── Alpha colours (replaces dozens of repeated rgba() literals) ── */
-  --c06:  rgba(245,245,240,0.06);
-  --c07:  rgba(245,245,240,0.07);
-  --c08:  rgba(245,245,240,0.08);
-  --c10:  rgba(245,245,240,0.10);
-  --c12:  rgba(245,245,240,0.12);
-  --c14:  rgba(245,245,240,0.14);
-  --c15:  rgba(245,245,240,0.15);
-  --c20:  rgba(245,245,240,0.20);
-  --c30:  rgba(245,245,240,0.30);
-  --c35:  rgba(245,245,240,0.35);
-  --c40:  rgba(245,245,240,0.40);
-  --c45:  rgba(245,245,240,0.45);
-  --c50:  rgba(245,245,240,0.50);
-  --c55:  rgba(245,245,240,0.55);
-  --c65:  rgba(245,245,240,0.65);
-  --c70:  rgba(245,245,240,0.70);
-  --c80:  rgba(245,245,240,0.80);
+  --c06:  rgba(244,241,235,0.06);
+  --c07:  rgba(244,241,235,0.07);
+  --c08:  rgba(244,241,235,0.08);
+  --c10:  rgba(244,241,235,0.10);
+  --c12:  rgba(244,241,235,0.12);
+  --c14:  rgba(244,241,235,0.14);
+  --c15:  rgba(244,241,235,0.15);
+  --c20:  rgba(244,241,235,0.20);
+  --c30:  rgba(244,241,235,0.30);
+  --c35:  rgba(244,241,235,0.35);
+  --c40:  rgba(244,241,235,0.40);
+  --c45:  rgba(244,241,235,0.45);
+  --c50:  rgba(244,241,235,0.50);
+  --c55:  rgba(244,241,235,0.55);
+  --c65:  rgba(244,241,235,0.65);
+  --c70:  rgba(244,241,235,0.70);
+  --c80:  rgba(244,241,235,0.80);
 
   /* ── Semantic aliases ── */
   --border:       var(--c10);
   --border-soft:  var(--c08);
   --muted:        var(--c50);
-  --err:          #e07060;
+  --err:          #ef4444;
 }
 
 body {
@@ -45,14 +68,26 @@ body {
   color: var(--white);
   font-family: var(--font-body);
   font-weight: 300;
-  overflow-x: hidden;
+  overflow-x: clip;
+}
+
+/* Prevent scrolling behind any open modal */
+html:has(.modal.open),
+body:has(.modal.open) {
+  overflow: hidden;
+}
+
+/* Contain overscroll within modals */
+.modal.open {
+  overscroll-behavior: contain;
 }
 
 /* ===================== LIGHT MODE ===================== */
 body.light-mode {
-  --black:  #f5f5f0;
-  --white:  #0a0a0a;
-  --accent: #2a2520;
+  --black:  #F0EEE9;
+  --white:  #09090b;
+  --ink:    #F0EEE9;
+  --paper:  #09090b;
 
   --c06:  rgba(10,10,10,0.06);
   --c07:  rgba(10,10,10,0.07);
@@ -75,4 +110,10 @@ body.light-mode {
   --border:       var(--c10);
   --border-soft:  var(--c08);
   --muted:        var(--c50);
+}
+
+/* ===================== SUPER LIGHT MODE ===================== */
+body.super-light-mode {
+  --black:  #FFFFFF;
+  --ink:    #FFFFFF;
 }

@@ -5,9 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
   <title>Zuwera Analytics Dashboard</title>
+  <link rel="icon" type="image/png" href="/images/favicon-black.png?v=1">
+  <script src="/favicon-utils.js?v=00b5644f"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+  
+  
   <style>
     :root {
       --black: #09090b;
@@ -20,6 +24,15 @@
       --warning: #facc15;
       --error: #ef4444;
       --info: #3b82f6;
+      /* Card gradient tokens — override in light mode below */
+      --card-bg-start: #1a0f18;
+      --card-bg-end: #120a14;
+      --card-border-clr: rgba(243, 143, 169, 0.35);
+      --glass-bg-start: rgba(30, 20, 25, 0.88);
+      --glass-bg-end: rgba(18, 12, 20, 0.92);
+      --glass-border-clr: rgba(243, 143, 169, 0.4);
+      --table-bg-start: #1a0f18;
+      --table-bg-end: #120a14;
     }
 
     * {
@@ -29,18 +42,115 @@
     }
 
     body {
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Barlow', sans-serif;
       background-color: var(--black);
       color: var(--white);
       line-height: 1.6;
     }
 
+    .mono-metric { font-family: 'JetBrains Mono', monospace; letter-spacing: 0.02em; }
+
+    .precision-grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .span-3 { grid-column: span 3; }
+    .span-4 { grid-column: span 4; }
+    .span-6 { grid-column: span 6; }
+    .span-8 { grid-column: span 8; }
+    .span-12 { grid-column: span 12; }
+
+    .glass-card {
+      background: linear-gradient(135deg, var(--glass-bg-start) 0%, var(--glass-bg-end) 100%);
+      border: 1px solid var(--glass-border-clr);
+      border-radius: 12px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 1rem;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+    }
+
+    .qos-gauge-track {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.1);
+      overflow: hidden;
+      margin-top: 0.6rem;
+    }
+
+    .qos-gauge-fill {
+      height: 100%;
+      border-radius: inherit;
+      transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+      background: linear-gradient(90deg, #c961a0 0%, #F891A5 50%, #ffc8d6 100%);
+      box-shadow: 0 0 8px rgba(248, 145, 165, 0.6);
+    }
+
+    .hype-map-row {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 0.45rem 0;
+      font-size: 0.9rem;
+    }
+
+    .diag-box {
+      border: 1px solid rgba(243, 143, 169, 0.35);
+      background: rgba(243, 143, 169, 0.08);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .diag-title { font-weight: 700; margin-bottom: 0.35rem; }
+    .diag-item { font-size: 0.87rem; color: var(--text-secondary); margin-top: 0.15rem; }
+    .command-center-placeholder {
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 0.55rem;
+      padding: 1rem 1.1rem;
+      border-radius: 12px;
+      border: 1px solid rgba(243, 143, 169, 0.28);
+      background:
+        radial-gradient(circle at top left, rgba(243, 143, 169, 0.18), transparent 46%),
+        linear-gradient(135deg, rgba(255,255,255,0.03), rgba(243, 143, 169, 0.08));
+      color: var(--text-primary);
+    }
+    .command-center-placeholder strong {
+      font-size: 0.96rem;
+      letter-spacing: 0.02em;
+    }
+    .command-center-placeholder .placeholder-meta {
+      color: var(--text-secondary);
+      font-size: 0.84rem;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1080px) {
+      .span-3, .span-4, .span-6, .span-8 { grid-column: span 12; }
+    }
+
     body.light-mode {
-      --black: #ffffff;
+      --black: #F0EEE9;
       --white: #09090b;
-      --dark-bg: #f9f9f9;
+      --dark-bg: #fdfdfc;
       --card-border: #e0e0e0;
       --text-secondary: #666666;
+      /* Light mode card tokens */
+      --card-bg-start: #fff5f7;
+      --card-bg-end: #feeef3;
+      --card-border-clr: rgba(200, 80, 120, 0.28);
+      --glass-bg-start: rgba(255, 245, 248, 0.96);
+      --glass-bg-end: rgba(255, 235, 243, 0.98);
+      --glass-border-clr: rgba(200, 80, 120, 0.35);
+      --table-bg-start: #fff8fa;
+      --table-bg-end: #fef2f5;
     }
 
     /* Navigation */
@@ -57,11 +167,17 @@
     }
 
     .nav-brand {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.5rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      color: var(--accent);
+      width: 108px;
+      height: 30px;
+      overflow: hidden;
+      flex: 0 0 auto;
+    }
+    .nav-brand img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
     }
 
     .nav-links {
@@ -106,14 +222,14 @@
     }
 
     h1 {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family: 'Barlow Condensed', sans-serif;
       font-size: 2.5rem;
       margin-bottom: 2rem;
       letter-spacing: 0.05em;
     }
 
     h2 {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family: 'Barlow Condensed', sans-serif;
       font-size: 1.5rem;
       margin-bottom: 1.5rem;
       letter-spacing: 0.05em;
@@ -128,15 +244,29 @@
     }
 
     .card {
-      background-color: var(--dark-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
+      background: linear-gradient(135deg, var(--card-bg-start) 0%, var(--card-bg-end) 100%);
+      border: 1px solid var(--card-border-clr);
+      border-radius: 12px;
       padding: 1.5rem;
       transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0.7;
     }
 
     .card:hover {
       border-color: var(--accent);
+      box-shadow: 0 4px 32px rgba(248,145,165,0.12);
+      transform: translateY(-1px);
     }
 
     .card-label {
@@ -161,11 +291,12 @@
 
     /* Charts */
     .chart-section {
-      background-color: var(--dark-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
+      background: linear-gradient(135deg, var(--card-bg-start) 0%, var(--card-bg-end) 100%);
+      border: 1px solid var(--card-border-clr);
+      border-radius: 12px;
       padding: 2rem;
       margin-bottom: 2rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
     }
 
     .chart-container {
@@ -231,12 +362,13 @@
 
     /* Tables */
     .table-section {
-      background-color: var(--dark-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
+      background: linear-gradient(135deg, var(--table-bg-start) 0%, var(--table-bg-end) 100%);
+      border: 1px solid var(--card-border-clr);
+      border-radius: 12px;
       padding: 2rem;
       margin-bottom: 2rem;
       overflow-x: auto;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
     }
 
     .table-controls {
@@ -246,6 +378,22 @@
       margin-bottom: 1.5rem;
       flex-wrap: wrap;
       gap: 1rem;
+    }
+
+    .search-input {
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      border: 1px solid var(--card-border);
+      background-color: var(--dark-bg);
+      color: var(--white);
+      font-family: 'Barlow', sans-serif;
+      font-size: 0.9rem;
+      min-width: 250px;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--accent);
     }
 
     .filter-group {
@@ -345,9 +493,9 @@
     }
 
     .badge-draft { background-color: rgba(99, 102, 241, 0.2); color: #6366f1; }
-    .badge-coming { background-color: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    .badge-coming-soon { background-color: rgba(245, 158, 11, 0.2); color: #f59e0b; }
     .badge-live { background-color: rgba(16, 185, 129, 0.2); color: #10b981; }
-    .badge-sold { background-color: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .badge-sold-out { background-color: rgba(239, 68, 68, 0.2); color: #ef4444; }
 
     /* Loading and error states */
     .loading {
@@ -540,17 +688,22 @@
         gap: 1rem;
       }
     }
+
+    /* Embedded Mode */
+    body.embedded nav { display: none !important; }
+    body.embedded .container { padding: 0 !important; }
+    body.embedded h1 { display: none !important; }
   </style>
 </head>
 <body>
 
   <!-- Navigation -->
   <nav>
-    <div class="nav-brand">ZUWERA</div>
+    <div class="nav-brand"><img src="images/wordmark.png" alt="ZUWERA"></div>
     <div class="nav-links">
-      <a href="index.html" id="backLink" style="display: none;">← Back to Admin</a>
+      <a href="admin.html" id="backLink" style="display: none;">← Back to Admin</a>
       <button class="theme-toggle" id="themeToggle">🌙 Dark</button>
-      <button class="nav-links" id="signOutBtn">Sign Out</button>
+      <button id="signOutBtn" style="background:none;border:none;color:var(--white);cursor:pointer;font-size:0.95rem;">Sign Out</button>
     </div>
   </nav>
 
@@ -564,7 +717,8 @@
         <div class="auth-card">
           <h2>Admin Access Required</h2>
           <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Please sign in to access the analytics dashboard.</p>
-          <button class="sign-in-btn" id="signInBtn">Sign In with Supabase</button>
+          <div id="authDiagnostics" class="diag-box" style="display:none;text-align:left;"></div>
+          <button class="sign-in-btn" id="signInBtn">Go to Admin Login</button>
         </div>
       </div>
     </div>
@@ -573,8 +727,145 @@
     <div id="dashboardContainer" style="display: none;">
       <!-- Error Message -->
       <div id="errorContainer"></div>
+      <div id="diagnosticsBox" class="diag-box" style="display:none;"></div>
 
-      <!-- Overview Cards -->
+      <h2 style="margin-bottom: 1.5rem;">Sales Overview</h2>
+      <div class="overview-grid" id="salesOverviewGrid">
+        <div class="card">
+          <div class="card-label">Total Revenue</div>
+          <div class="card-value" id="totalRevenue">$0.00</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Total Orders</div>
+          <div class="card-value" id="totalOrders">0</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Avg Order Value</div>
+          <div class="card-value" id="avgOrderValue">$0.00</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Favorites Saved</div>
+          <div class="card-value" id="totalFavorites">0</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Waitlist Entries</div>
+          <div class="card-value" id="totalWaitlist">0</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Tax Collected</div>
+          <div class="card-value" id="totalTaxCollected">—</div>
+          <div class="card-subtitle">see Tax Liability section below</div>
+        </div>
+      </div>
+
+      <div class="chart-section">
+        <h2>Revenue Timeline</h2>
+        <div class="chart-container">
+          <div class="bar-chart" id="revenueChart"></div>
+        </div>
+      </div>
+
+      <h2 style="margin-top: 2rem; margin-bottom: 1rem;">Technical Command Center</h2>
+      <div class="precision-grid">
+        <div id="edgeMetricsNotice" class="diag-box span-12" style="display:none;"></div>
+        <div class="glass-card span-3">
+          <div class="card-label">QoS - Cache Hit Ratio</div>
+          <div class="card-value mono-metric" id="qosCacheRatio">--%</div>
+          <div class="qos-gauge-track"><div class="qos-gauge-fill" id="qosCacheGauge" style="width:0%"></div></div>
+        </div>
+        <div class="glass-card span-3">
+          <div class="card-label">QoS - Edge Response (p50)</div>
+          <div class="card-value mono-metric" id="qosEdgeResponse">-- ms</div>
+          <div class="qos-gauge-track"><div class="qos-gauge-fill" id="qosEdgeGauge" style="width:0%"></div></div>
+        </div>
+        <div class="glass-card span-3">
+          <div class="card-label">Sell-out Momentum</div>
+          <div class="card-value mono-metric" id="selloutMomentum">--</div>
+          <div class="card-subtitle">(Orders 24h / Remaining Units) * 100</div>
+        </div>
+        <div class="glass-card span-3">
+          <div class="card-label">Packaging Precision Rate</div>
+          <div class="card-value mono-metric" id="packagingPrecision">--%</div>
+          <div class="card-subtitle">3D unboxing interactions to conversion</div>
+        </div>
+
+        <div class="glass-card span-6">
+          <h3 style="margin-bottom:0.5rem;">Bot & Security Intelligence</h3>
+          <div id="botIntelligenceChart" style="height:220px;"></div>
+          <div style="color:var(--text-secondary);font-size:0.86rem;">Verified bot vs unverified traffic from Cloudflare Bot Management.</div>
+        </div>
+
+        <div class="glass-card span-6">
+          <h3 style="margin-bottom:0.5rem;">Launch Day Simulator (September 20)</h3>
+          <label style="display:block;font-size:0.84rem;color:var(--text-secondary);">Hype Multiplier</label>
+          <input id="hypeMultiplierInput" type="number" step="0.1" min="0.1" value="1.0" class="search-input" style="max-width:260px;margin:0.4rem 0 0.75rem;">
+          <div class="stat-row"><span class="stat-label">Projected Requests / min</span><span class="stat-value mono-metric" id="simProjectedLoad">--</span></div>
+          <div class="stat-row"><span class="stat-label">Projected Stock Depletion / hr</span><span class="stat-value mono-metric" id="simDepletionRate">--</span></div>
+          <div class="stat-row"><span class="stat-label">Estimated Sell-out Time</span><span class="stat-value mono-metric" id="simSelloutEta">--</span></div>
+        </div>
+
+        <div class="glass-card span-8">
+          <h3 style="margin-bottom:0.5rem;">Syncopated Sales Area</h3>
+          <div id="syncopatedSalesChart" style="height:260px;"></div>
+        </div>
+
+        <div class="glass-card span-4">
+          <h3 style="margin-bottom:0.5rem;">Hype Heatmap (Top Locations)</h3>
+          <div id="hypeHeatmap"></div>
+        </div>
+
+        <div class="glass-card span-6">
+          <h3 style="margin-bottom:0.5rem;">Zero-Latency Monitor - Web Vitals by Device</h3>
+          <div id="deviceVitalsTable"></div>
+        </div>
+
+        <div class="glass-card span-6">
+          <h3 style="margin-bottom:0.5rem;">COGS & Net Margin Real-time Feed</h3>
+          <div class="stat-row"><span class="stat-label">Alibaba Manufacturing Cost ($)</span><span><input id="cogsInput" type="number" value="0" placeholder="0" class="search-input" style="width:140px"></span></div>
+          <div class="stat-row"><span class="stat-label">Forceget Shipping Estimates ($)</span><span><input id="shippingInput" type="number" value="0" placeholder="0" class="search-input" style="width:140px"></span></div>
+          <div class="stat-row"><span class="stat-label">Net Profit (Real-time)</span><span class="stat-value mono-metric" id="netProfitFeed">--</span></div>
+        </div>
+      </div>
+
+      <!-- Recent Orders -->
+      <div class="table-section">
+        <h2>Recent Orders</h2>
+        <div id="ordersTableContainer" class="loading">
+          <div class="spinner"></div>
+          <span>Loading orders...</span>
+        </div>
+      </div>
+
+      <!-- Tax Compliance Report -->
+      <div class="table-section" id="taxReportSection">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem;">
+          <h2 style="margin:0;">Tax Liability by State</h2>
+          <span style="font-size:0.82rem;color:var(--text-secondary);">Calculated from charged amounts — no external API needed</span>
+        </div>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.25rem;">
+          <div class="glass-card" style="flex:1;min-width:160px;padding:0.9rem 1.1rem;">
+            <div class="card-label">States with Nexus</div>
+            <div class="card-value mono-metric" id="taxStateCount" style="font-size:1.6rem;">—</div>
+          </div>
+          <div class="glass-card" style="flex:1;min-width:160px;padding:0.9rem 1.1rem;">
+            <div class="card-label">Total Tax Collected</div>
+            <div class="card-value mono-metric" id="taxTotalCollected" style="font-size:1.6rem;">—</div>
+          </div>
+          <div class="glass-card" style="flex:1;min-width:160px;padding:0.9rem 1.1rem;">
+            <div class="card-label">Effective Tax Rate</div>
+            <div class="card-value mono-metric" id="taxEffectiveRate" style="font-size:1.6rem;">—</div>
+          </div>
+        </div>
+        <div id="taxTableContainer">
+          <div class="loading"><div class="spinner"></div><span>Loading tax data...</span></div>
+        </div>
+        <p style="margin-top:1rem;font-size:0.8rem;color:var(--text-secondary);line-height:1.5;">
+          This report reflects sales tax <em>collected</em> at checkout. Use it as input for state filings (TaxJar, Avalara, or direct state portals).
+          If a state shows $0 tax, orders there may have been placed before tax collection was enabled.
+        </p>
+      </div>
+
+      <h2 style="margin-top: 2.5rem; margin-bottom: 1.5rem;">Inventory & Catalog</h2>
       <div class="overview-grid">
         <div class="card">
           <div class="card-label">Total Products</div>
@@ -625,6 +916,7 @@
         <div>
           <h2>Inventory Report</h2>
           <div class="table-controls">
+            <input type="text" id="inventorySearch" placeholder="Search SKU, title, or size..." class="search-input">
             <div class="filter-group">
               <button class="filter-btn active" data-filter="all">All Products</button>
               <button class="filter-btn" data-filter="low">Low Stock Only</button>
@@ -673,6 +965,7 @@
         <div>
           <h2>Product Catalog Summary</h2>
           <div class="table-controls">
+            <input type="text" id="catalogSearch" placeholder="Search SKU, title, or colorway..." class="search-input">
             <button class="export-btn" id="exportBtn">📥 Export to CSV</button>
           </div>
         </div>
@@ -704,20 +997,46 @@
 
         <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Top Rated Products</h3>
         <div class="top-products" id="topProductsContainer"></div>
+
+        <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Top Favorite Products</h3>
+        <div class="top-products" id="topFavoritesContainer"></div>
       </div>
     </div>
   </div>
 
   <!-- Supabase Client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.0/dist/module.js"></script>
+  <script src="/supabase.min.js?v=3277b334"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+  <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
 
   <script>
+    if (typeof window.supabase === 'undefined') {
+      document.body.innerHTML = '<div style="padding:40px;text-align:center;color:#ef4444;font-family:sans-serif;"><h3>Failed to load Supabase SDK.</h3><p>Please check your internet connection or disable adblockers (e.g., uBlock Origin) which may block the CDN.</p></div>';
+      throw new Error('Supabase SDK not loaded');
+    }
+
     // Supabase configuration
     const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 
     // Initialize Supabase
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const isEmbeddedAnalytics = window.location.search.includes('embed=true') || window.location.hash.includes('embed=true');
+    const adminSessionStorage = {
+      getItem: (key) => sessionStorage.getItem(key),
+      setItem: (key, value) => sessionStorage.setItem(key, value),
+      removeItem: (key) => sessionStorage.removeItem(key)
+    };
+
+    const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        storageKey: isEmbeddedAnalytics ? 'zuwera-admin-auth-session-v1' : 'zuwera-auth',
+        storage: isEmbeddedAnalytics ? adminSessionStorage : undefined,
+        detectSessionInUrl: false
+      }
+    });
 
     // DOM Elements
     const authContainer = document.getElementById('authContainer');
@@ -731,6 +1050,10 @@
     // State
     let currentUser = null;
     let allProducts = [];
+    let allOrders = [];
+    let edgeMetrics = null;
+    const chartRoots = {};
+    const diagnosticsState = new Map();
     let catalogSortConfig = { key: 'title', direction: 'asc' };
     let inventorySortConfig = { key: 'stock', direction: 'asc' };
     let currentInventoryFilter = 'all';
@@ -754,33 +1077,66 @@
       themeToggle.textContent = isLight ? '☀️ Light' : '🌙 Dark';
     });
 
-    // Authentication
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        showAuthContainer();
-        return false;
-      }
+    // Authentication — retries so the iframe can wait for admin.html's session to land in localStorage
+    const checkAuth = async (attempt = 0) => {
+      try {
+        const { data, error } = await sbClient.auth.getSession();
+        if (error) throw error;
 
-      currentUser = session.user;
+        const session = data?.session;
+        if (!session) {
+          setDiagnosticIssue('AUTH_NO_SESSION', 'No active admin session found in this tab.', 'Sign in again from admin.html if needed.');
+          if (attempt < 4) {
+            await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+            return checkAuth(attempt + 1);
+          }
+          showAuthContainer();
+          return false;
+        }
 
-      // Check if user is admin
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', currentUser.id)
-        .single();
+        currentUser = session.user;
+        clearDiagnosticIssue('AUTH_NO_SESSION');
 
-      if (error || !profile || profile.role !== 'admin') {
-        showError('Unauthorized: Admin access required.');
-        signOutBtn.click();
-        return false;
-      }
+        const isLocal = window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.startsWith('192.168.') || window.location.hostname.startsWith('10.');
+        const isOwner = currentUser.email.toLowerCase() === 'breezenash24@gmail.com' || currentUser.email.toLowerCase() === 'nasirubreeze@zuwera.store';
+
+        if (!isLocal && !isOwner) {
+            const verifyResp = await fetch('/api/admin-access', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ accessToken: session.access_token })
+            });
+
+            const verifyPayload = await verifyResp.json().catch(() => ({ success: false, error: 'Invalid admin verification response.' }));
+            if (!verifyResp.ok || !verifyPayload.success) {
+              setDiagnosticIssue('AUTH_NOT_ADMIN', 'Authenticated user is missing admin role.', currentUser?.email || 'unknown user');
+              throw new Error(verifyPayload.error || 'Your account does not have Admin privileges.');
+            }
+        }
+
+      clearDiagnosticIssue('AUTH_NOT_ADMIN');
+      clearDiagnosticIssue('AUTH_ERROR');
 
       showDashboard();
       backLink.style.display = 'inline-block';
       return true;
-    };
+
+    } catch (e) {
+      setDiagnosticIssue('AUTH_ERROR', 'Auth check failed.', e?.message || 'Unknown auth error');
+        // Remove existing error message so they don't stack infinitely
+        const existingErr = document.getElementById('auth-error-msg');
+        if (existingErr) existingErr.remove();
+
+      showAuthContainer();
+      const msg = document.createElement('div');
+        msg.id = 'auth-error-msg';
+      msg.style = 'color: var(--error); margin-top: 15px; font-weight: bold; background: rgba(239,68,68,0.1); padding: 10px; border-radius: 4px; border: 1px solid var(--error);';
+      msg.innerHTML = 'Access Denied: ' + (e.message || 'Unknown error');
+      document.querySelector('.auth-card').appendChild(msg);
+      await sbClient.auth.signOut();
+      return false;
+    }
+  };
 
     const showAuthContainer = () => {
       authContainer.style.display = 'block';
@@ -792,22 +1148,75 @@
       dashboardContainer.style.display = 'block';
       loadDashboardData();
     };
+    
+    const showError = (msg) => {
+      const host = document.getElementById('errorContainer');
+      if (!host) return;
+      const err = document.createElement('div');
+      err.className = 'error';
+      err.textContent = msg;
+      host.appendChild(err);
+    };
 
-    const showError = (message) => {
-      errorContainer.innerHTML = `<div class="error">${message}</div>`;
+    const renderDiagnostics = () => {
+      const box = document.getElementById('diagnosticsBox');
+      const authBox = document.getElementById('authDiagnostics');
+      if (!box) return;
+
+      if (diagnosticsState.size === 0) {
+        box.style.display = 'none';
+        box.innerHTML = '';
+        if (authBox) {
+          authBox.style.display = 'none';
+          authBox.innerHTML = '';
+        }
+        return;
+      }
+
+      box.style.display = 'block';
+      const rows = Array.from(diagnosticsState.values()).map((item) => {
+        const meta = item.meta ? ` — ${item.meta}` : '';
+        return `<div class="diag-item">• <strong>${item.code}</strong>: ${item.message}${meta}</div>`;
+      }).join('');
+      box.innerHTML = `<div class="diag-title">Diagnostics: issues detected</div>${rows}`;
+      if (authBox) {
+        authBox.style.display = 'block';
+        authBox.innerHTML = `<div class="diag-title">Diagnostics: issues detected</div>${rows}`;
+      }
+    };
+
+    const setDiagnosticIssue = (code, message, meta = '') => {
+      diagnosticsState.set(code, { code, message, meta });
+      renderDiagnostics();
+    };
+
+    const clearDiagnosticIssue = (code) => {
+      diagnosticsState.delete(code);
+      renderDiagnostics();
+    };
+
+    const runDashboardStep = async (code, message, handler) => {
+      try {
+        const result = await handler();
+        clearDiagnosticIssue(code);
+        return result;
+      } catch (error) {
+        setDiagnosticIssue(code, message, error?.message || 'Unknown error');
+        console.warn(`${code}:`, error);
+        return null;
+      }
     };
 
     signInBtn.addEventListener('click', async () => {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-      });
-      if (error) {
-        showError('Sign-in failed: ' + error.message);
+      if (window.location.search.includes('embed=true') || window.location.hash.includes('embed=true')) {
+        window.top.location.href = 'admin.html';
+      } else {
+        window.location.href = 'admin.html';
       }
     });
 
     signOutBtn.addEventListener('click', async () => {
-      await supabase.auth.signOut();
+      await sbClient.auth.signOut();
       currentUser = null;
       showAuthContainer();
     });
@@ -815,34 +1224,56 @@
     // Data Loading
     const loadDashboardData = async () => {
       try {
+        clearDiagnosticIssue('DASHBOARD_LOAD');
+        await runDashboardStep('PRODUCTS_LOAD', 'Product catalog failed to load.', loadProducts);
         await Promise.all([
-          loadProducts(),
-          loadInventory(),
-          loadReviews(),
+          runDashboardStep('INVENTORY_LOAD', 'Inventory tables failed to load.', loadInventory),
+          runDashboardStep('REVIEWS_LOAD', 'Review data failed to load.', loadReviews),
+          runDashboardStep('ORDERS_LOAD', 'Recent orders could not be loaded.', loadOrders),
+          runDashboardStep('ENGAGEMENT_LOAD', 'Engagement data failed to load.', loadEngagement)
         ]);
 
-        updateOverviewCards();
-        updateStatusChart();
-        updateGenderChart();
-        updatePriceAnalysis();
-        updateReviewsSummary();
+        await runDashboardStep('OVERVIEW_RENDER', 'Overview metrics failed to render.', async () => {
+          updateOverviewCards();
+          updateStatusChart();
+          updateGenderChart();
+          updatePriceAnalysis();
+        });
+        await runDashboardStep('REVIEWS_RENDER', 'Review summary failed to render.', updateReviewsSummary);
+        await runDashboardStep('ORDERS_RENDER', 'Recent orders failed to render.', async () => {
+          updateOrderAnalytics();
+          updateRevenueChart();
+          renderOrdersTable();
+          renderTaxComplianceReport();
+        });
+        await runDashboardStep('COMMAND_CENTER_RENDER', 'Technical Command Center failed to render.', updateCommandCenter);
       } catch (error) {
+        setDiagnosticIssue('DASHBOARD_LOAD', 'Dashboard data failed to load.', error?.message || 'Unknown error');
         showError('Failed to load dashboard data: ' + error.message);
+        renderOrdersTable();
       }
     };
 
     const loadProducts = async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          *,
-          product_colors (id, color),
-          product_images (id),
-          product_inventory (id, size, stock, low_stock_threshold)
-        `);
+      try {
+        // Fetch products and related data independently to bypass any PostgREST relationship caching issues
+        const { data: products, error } = await sbClient.from('products').select('*');
+        if (error) throw error;
+        
+        const { data: sizes } = await sbClient.from('product_sizes').select('*');
+        const { data: colors } = await sbClient.from('color_variants').select('*');
+        const { data: images } = await sbClient.from('product_images').select('*');
 
-      if (error) throw error;
-      allProducts = data || [];
+        allProducts = (products || []).map(p => ({
+          ...p,
+          product_sizes: (sizes || []).filter(s => s.product_id === p.id),
+          color_variants: (colors || []).filter(c => c.product_id === p.id),
+          product_images: (images || []).filter(i => i.product_id === p.id)
+        }));
+      } catch (err) {
+        showError('Failed to load products: ' + err.message);
+        allProducts = [];
+      }
     };
 
     const loadInventory = async () => {
@@ -854,6 +1285,322 @@
       // Reviews are loaded as needed for summary
     };
 
+    const loadOrders = async () => {
+      try {
+        const { data, error } = await sbClient.from('orders').select('*');
+        if (error) throw error;
+        allOrders = data || [];
+        clearDiagnosticIssue('ORDERS_LOAD');
+      } catch (err) {
+        allOrders = [];
+        setDiagnosticIssue('ORDERS_LOAD', 'Recent orders could not be loaded.', err?.message || 'Unknown orders error');
+        console.warn("Could not load orders:", err);
+      }
+    };
+
+    const loadEngagement = async () => {
+      try {
+        const { data: favs } = await sbClient.from('favorites').select('*');
+        const { data: waitlist } = await sbClient.from('waitlist').select('*');
+        
+        const totalFavoritesEl = document.getElementById('totalFavorites');
+        const totalWaitlistEl = document.getElementById('totalWaitlist');
+        if (totalFavoritesEl) totalFavoritesEl.textContent = favs ? favs.length : 0;
+        if (totalWaitlistEl) totalWaitlistEl.textContent = waitlist ? waitlist.length : 0;
+
+        const favCounts = {};
+        (favs || []).forEach(f => {
+            favCounts[f.product_name] = (favCounts[f.product_name] || 0) + 1;
+        });
+
+        const topFavs = Object.entries(favCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+        const favContainer = document.getElementById('topFavoritesContainer');
+        if (favContainer) {
+          if (topFavs.length === 0) {
+              favContainer.innerHTML = '<p style="color:var(--text-secondary); padding: 1rem 0;">No favorites saved yet.</p>';
+          } else {
+              favContainer.innerHTML = topFavs.map(f => `
+                  <div class="product-card">
+                      <div class="product-title">${f[0] || 'Unknown Product'}</div>
+                      <div style="color: var(--text-secondary); font-size: 0.85rem;">${f[1]} Saves</div>
+                  </div>
+              `).join('');
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load engagement data:', err);
+      }
+    };
+
+    const calculateSelloutMomentum = (ordersInLast24h, remainingUnits) => {
+      if (!remainingUnits || remainingUnits <= 0) return 0;
+      return Number(((ordersInLast24h / remainingUnits) * 100).toFixed(2));
+    };
+
+    const launchDaySimulator = ({ hypeMultiplier, baselineRequestsPerMinute, remainingUnits, last24hOrders }) => {
+      const safeHype = Math.max(0.1, Number(hypeMultiplier || 1));
+      const projectedLoad = Math.round((baselineRequestsPerMinute || 120) * safeHype);
+      const depletionPerHour = Number((((last24hOrders || 0) / 24) * safeHype).toFixed(2));
+      const hoursToSellout = depletionPerHour > 0 ? Number((remainingUnits / depletionPerHour).toFixed(1)) : null;
+      return { projectedLoad, depletionPerHour, hoursToSellout };
+    };
+
+    const calculateNetProfit = (revenue, forcegetShipping, alibabaCost) => Number((revenue - forcegetShipping - alibabaCost).toFixed(2));
+    const getOrdersLast24h = () => (allOrders || []).filter(o => new Date(o.created_at || 0).getTime() >= (Date.now() - 86400000)).length;
+    const getRemainingUnits = () => (allProducts || []).reduce((acc, p) => acc + (p.product_sizes || []).reduce((s, r) => s + (Number(r.stock_quantity) || 0), 0), 0) || 100;
+    const getRevenue = () => (allOrders || []).reduce((sum, o) => sum + ((Number(o.amount_total || o.total || 0) || 0) / 100), 0);
+
+    const renderGauge = (id, value, max = 100) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const pct = Math.max(0, Math.min(100, (Number(value || 0) / max) * 100));
+      el.style.width = pct + '%';
+    };
+
+    const renderCommandCenterPlaceholder = (mount, heading, message, meta = '') => {
+      if (!mount) return;
+      mount.innerHTML = `
+        <div class="command-center-placeholder">
+          <strong>${heading}</strong>
+          <div>${message}</div>
+          ${meta ? `<div class="placeholder-meta">${meta}</div>` : ''}
+        </div>
+      `;
+    };
+
+    const renderBotChart = (bots = null) => {
+      const mount = document.getElementById('botIntelligenceChart');
+      if (!mount) return;
+      if (!window.React || !window.Recharts) {
+        renderCommandCenterPlaceholder(
+          mount,
+          'Bot chart unavailable',
+          'The chart library did not load for this session.',
+          'The rest of the dashboard can still render while the page finishes loading dependencies.'
+        );
+        return;
+      }
+      if (!bots) {
+        renderCommandCenterPlaceholder(
+          mount,
+          'EDGE_ANALYTICS fallback active',
+          'Live Cloudflare bot telemetry is unavailable right now.',
+          'This panel will switch back to verified vs unverified traffic automatically once the Cloudflare analytics endpoint starts responding again.'
+        );
+        return;
+      }
+      const R = window.Recharts;
+      const data = [
+        { name: 'Verified Bot', value: Number(bots.verified || 0), fill: '#F38FA9' },
+        { name: 'Unverified', value: Number(bots.unverified || 0), fill: '#050505' }
+      ];
+      const chart = React.createElement(R.ResponsiveContainer, { width: '100%', height: 200 },
+        React.createElement(R.PieChart, null,
+          React.createElement(R.Pie, { data, dataKey: 'value', nameKey: 'name', outerRadius: 72, innerRadius: 35 },
+            data.map((entry, i) => React.createElement(R.Cell, { key: i, fill: entry.fill }))
+          ),
+          React.createElement(R.Tooltip, null),
+          React.createElement(R.Legend, null)
+        )
+      );
+      if (!chartRoots.bot) chartRoots.bot = ReactDOM.createRoot(mount);
+      chartRoots.bot.render(chart);
+    };
+
+    const renderSyncopatedAreaChart = (series = []) => {
+      const mount = document.getElementById('syncopatedSalesChart');
+      if (!mount) return;
+      if (!window.React || !window.Recharts) {
+        renderCommandCenterPlaceholder(
+          mount,
+          'Sales trend unavailable',
+          'The chart library did not load for this session.',
+          'Refresh the page to retry the visual trend renderer.'
+        );
+        return;
+      }
+      const R = window.Recharts;
+      const data = (series || []).slice(-180).map((d, idx) => ({ x: idx + 1, sales: Number(d.sales || 0) }));
+      if (!data.length) {
+        renderCommandCenterPlaceholder(
+          mount,
+          'No trend data yet',
+          'Sales trend data has not accumulated yet for this store view.',
+          'Once orders or edge traffic are available, this chart will populate automatically.'
+        );
+        return;
+      }
+      const chart = React.createElement(R.ResponsiveContainer, { width: '100%', height: 250 },
+        React.createElement(R.AreaChart, { data },
+          React.createElement('defs', null,
+            React.createElement('linearGradient', { id: 'salesGradient', x1: '0', y1: '0', x2: '0', y2: '1' },
+              React.createElement('stop', { offset: '0%', stopColor: '#F38FA9', stopOpacity: 0.95 }),
+              React.createElement('stop', { offset: '100%', stopColor: '#050505', stopOpacity: 0.3 })
+            )
+          ),
+          React.createElement(R.CartesianGrid, { stroke: 'rgba(255,255,255,0.08)', strokeDasharray: '3 3' }),
+          React.createElement(R.XAxis, { dataKey: 'x', tick: { fill: '#a0a0a0', fontSize: 11 } }),
+          React.createElement(R.YAxis, { tick: { fill: '#a0a0a0', fontSize: 11 } }),
+          React.createElement(R.Tooltip, null),
+          React.createElement(R.Area, { type: 'monotone', dataKey: 'sales', stroke: '#F38FA9', fill: 'url(#salesGradient)' })
+        )
+      );
+      if (!chartRoots.sync) chartRoots.sync = ReactDOM.createRoot(mount);
+      chartRoots.sync.render(chart);
+    };
+
+    const renderTopLocations = (rows = []) => {
+      const el = document.getElementById('hypeHeatmap');
+      if (!el) return;
+      if (!rows.length) {
+        renderCommandCenterPlaceholder(
+          el,
+          'Location heatmap waiting on Cloudflare',
+          'Top-location analytics are temporarily offline.',
+          'Your store order data does not include geo breakdowns, so this card depends on the Cloudflare edge feed.'
+        );
+        return;
+      }
+      el.innerHTML = rows.map((r) => `
+        <div class="hype-map-row">
+          <span>${r.location}</span>
+          <span class="mono-metric">${Number(r.requests || 0).toLocaleString()}</span>
+        </div>
+      `).join('');
+    };
+
+    const renderDeviceVitals = (rows = []) => {
+      const el = document.getElementById('deviceVitalsTable');
+      if (!el) return;
+      if (!rows.length) {
+        renderCommandCenterPlaceholder(
+          el,
+          'Device vitals waiting on edge telemetry',
+          'Web-vitals by device are unavailable while Cloudflare analytics is offline.',
+          'This card will resume showing median device performance once the EDGE_ANALYTICS feed recovers.'
+        );
+        return;
+      }
+      el.innerHTML = rows.map((r) => `
+        <div class="stat-row"><span class="stat-label">${r.device}</span><span class="stat-value mono-metric">${Number(r.medianLCP || 0).toFixed(1)} ms</span></div>
+      `).join('');
+    };
+
+    const setCommandCenterNotice = (message = '') => {
+      const el = document.getElementById('edgeMetricsNotice');
+      if (!el) return;
+      if (!message) {
+        el.style.display = 'none';
+        el.innerHTML = '';
+        return;
+      }
+      el.style.display = 'block';
+      el.innerHTML = `<div class="diag-title">Technical Command Center</div><div class="diag-item">&bull; <strong>EDGE_ANALYTICS</strong>: ${message}</div>`;
+    };
+
+    const buildFallbackSalesSeries = () => {
+      const byDay = new Map();
+      const sourceOrders = Array.isArray(allOrders) ? allOrders : [];
+      sourceOrders.forEach((order) => {
+        const rawDate = order?.created_at;
+        if (!rawDate) return;
+        const date = new Date(rawDate);
+        if (Number.isNaN(date.getTime())) return;
+        const key = date.toISOString().slice(0, 10);
+        const amount = Number(order?.total || order?.total_amount || order?.amount_total || 0) || 0;
+        byDay.set(key, (byDay.get(key) || 0) + amount);
+      });
+      return [...byDay.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .slice(-30)
+        .map(([day, sales]) => ({ t: day, sales }));
+    };
+
+    const fetchEdgeMetrics = async () => {
+      try {
+        const res = await fetch('/api/cloudflare-analytics');
+        const raw = await res.text();
+        let payload = {};
+        try {
+          payload = raw ? JSON.parse(raw) : {};
+        } catch (_) {
+          payload = {};
+        }
+        if (!res.ok || !payload.success) throw new Error(payload.error || 'Cloudflare analytics unavailable');
+        edgeMetrics = payload.metrics;
+        clearDiagnosticIssue('EDGE_ANALYTICS');
+        return true;
+      } catch (err) {
+        edgeMetrics = null;
+        setDiagnosticIssue('EDGE_ANALYTICS', 'Cloudflare analytics endpoint unavailable.', err?.message || 'Check /api/cloudflare-analytics env vars');
+        console.warn('Cloudflare analytics unavailable:', err.message);
+        return false;
+      }
+    };
+
+    const updateCommandCenter = async () => {
+      const hasEdgeMetrics = edgeMetrics ? true : await fetchEdgeMetrics();
+      const orders24h = getOrdersLast24h();
+      const remainingUnits = getRemainingUnits();
+      const momentum = calculateSelloutMomentum(orders24h, remainingUnits);
+      const packagingInteractions = Number(edgeMetrics?.pageViews || 0);
+      const packagingRate = packagingInteractions > 0 ? Number(((orders24h / packagingInteractions) * 100).toFixed(2)) : null;
+      const cacheRatio = Number(edgeMetrics?.cacheHitRatio || 0);
+      const edgeMs = Number(edgeMetrics?.edgeResponseTime || 0);
+
+      const safeText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+      safeText('selloutMomentum', momentum.toFixed(2));
+      safeText('packagingPrecision', packagingRate === null ? 'Fallback mode' : packagingRate.toFixed(2) + '%');
+      safeText('qosCacheRatio', hasEdgeMetrics ? cacheRatio.toFixed(2) + '%' : 'Edge offline');
+      const edgeMsDisplay = hasEdgeMetrics ? (edgeMs > 0 ? edgeMs.toFixed(1) + ' ms' : 'N/A') : 'Edge offline';
+      safeText('qosEdgeResponse', edgeMsDisplay);
+
+      renderGauge('qosCacheGauge', hasEdgeMetrics ? cacheRatio : 0, 100);
+      renderGauge('qosEdgeGauge', hasEdgeMetrics && edgeMs > 0 ? Math.max(0, 1000 - edgeMs) : 0, 1000);
+      renderBotChart(hasEdgeMetrics ? (edgeMetrics?.bots || { verified: 0, unverified: 0 }) : null);
+      renderSyncopatedAreaChart((edgeMetrics?.series && edgeMetrics.series.length) ? edgeMetrics.series : buildFallbackSalesSeries());
+      renderTopLocations(hasEdgeMetrics ? (edgeMetrics?.topLocations || []) : []);
+      renderDeviceVitals(hasEdgeMetrics ? (edgeMetrics?.deviceVitals || []) : []);
+      setCommandCenterNotice(hasEdgeMetrics
+        ? ''
+        : 'Cloudflare analytics endpoint unavailable. Cloudflare analytics unavailable. Showing local sales-based fallback data where possible.'
+      );
+
+      const hypeInput = document.getElementById('hypeMultiplierInput');
+      const runSim = () => {
+        const sim = launchDaySimulator({
+          hypeMultiplier: Number(hypeInput?.value || 1),
+          baselineRequestsPerMinute: Math.max(120, Math.round((edgeMetrics?.pageViews || 1200) / 1440)),
+          remainingUnits,
+          last24hOrders: orders24h
+        });
+        safeText('simProjectedLoad', sim.projectedLoad.toLocaleString());
+        safeText('simDepletionRate', `${sim.depletionPerHour.toFixed(2)} units/hr`);
+        safeText('simSelloutEta', sim.hoursToSellout ? `${sim.hoursToSellout} hrs` : 'N/A');
+      };
+      if (hypeInput && !hypeInput.dataset.bound) {
+        hypeInput.dataset.bound = '1';
+        hypeInput.addEventListener('input', runSim);
+      }
+      runSim();
+
+      const cogsInput = document.getElementById('cogsInput');
+      const shippingInput = document.getElementById('shippingInput');
+      const refreshProfit = () => {
+        const net = calculateNetProfit(getRevenue(), Number(shippingInput?.value || 0), Number(cogsInput?.value || 0));
+        safeText('netProfitFeed', `$${net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+      };
+      if (cogsInput && !cogsInput.dataset.bound) {
+        cogsInput.dataset.bound = '1';
+        cogsInput.addEventListener('input', refreshProfit);
+      }
+      if (shippingInput && !shippingInput.dataset.bound) {
+        shippingInput.dataset.bound = '1';
+        shippingInput.addEventListener('input', refreshProfit);
+      }
+      refreshProfit();
+    };
+
     // Overview Cards
     const updateOverviewCards = async () => {
       // Total Products
@@ -861,14 +1608,14 @@
       document.getElementById('totalProducts').textContent = totalProducts;
 
       // Live Products
-      const liveProducts = allProducts.filter(p => p.status === 'live').length;
+      const liveProducts = allProducts.filter(p => (p.status || '').toLowerCase() === 'live').length;
       document.getElementById('liveProducts').textContent = liveProducts;
 
       // Total Inventory
       let totalInventory = 0;
       allProducts.forEach(p => {
-        p.product_inventory?.forEach(inv => {
-          totalInventory += inv.stock || 0;
+        p.product_sizes?.forEach(inv => {
+          totalInventory += inv.stock_quantity || 0;
         });
       });
       document.getElementById('totalInventory').textContent = totalInventory.toLocaleString();
@@ -876,25 +1623,214 @@
       // Low Stock Alerts
       let lowStockCount = 0;
       allProducts.forEach(p => {
-        p.product_inventory?.forEach(inv => {
-          if (inv.stock <= (inv.low_stock_threshold || 10)) {
-            lowStockCount++;
-          }
-        });
+        if (!p.product_sizes || p.product_sizes.length === 0) {
+          lowStockCount++;
+        } else {
+          p.product_sizes.forEach(inv => {
+            if (inv.stock_quantity <= (p.low_stock_threshold || 10)) {
+              lowStockCount++;
+            }
+          });
+        }
       });
       document.getElementById('lowStockAlerts').textContent = lowStockCount;
 
       // Average Price
       const validPrices = allProducts.filter(p => p.current_price).map(p => p.current_price);
-      const avgPrice = validPrices.length > 0 ? validPrices.reduce((a, b) => a + b) / validPrices.length : 0;
+      const avgPrice = validPrices.length > 0 ? validPrices.reduce((a, b) => Number(a) + Number(b), 0) / validPrices.length : 0;
       document.getElementById('avgPrice').textContent = `$${avgPrice.toFixed(2)}`;
 
       // Color Variants
       let totalColors = 0;
       allProducts.forEach(p => {
-        totalColors += p.product_colors?.length || 0;
+        totalColors += p.color_variants?.length || 0;
       });
       document.getElementById('colorVariants').textContent = totalColors;
+    };
+
+    const updateOrderAnalytics = () => {
+      const totalOrders = allOrders.length;
+      const totalRevenue = allOrders.reduce((sum, order) => {
+        const amount = Number(order.total) || Number(order.total_amount) || 0;
+        return sum + amount;
+      }, 0);
+
+      const aov = totalOrders > 0 ? (totalRevenue / totalOrders) : 0;
+
+      document.getElementById('totalOrders').textContent = totalOrders;
+      document.getElementById('totalRevenue').textContent = `$${totalRevenue.toFixed(2)}`;
+      document.getElementById('avgOrderValue').textContent = `$${aov.toFixed(2)}`;
+    };
+
+    const renderOrdersTable = () => {
+      const container = document.getElementById('ordersTableContainer');
+      if (!container) return;
+      if (allOrders.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No orders yet. Once customers start buying, their orders will appear here.</p>';
+        return;
+      }
+
+      let html = `
+        <table>
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Date</th>
+              <th>Customer</th>
+              <th>Total</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      const sortedOrders = [...allOrders].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 10);
+
+      sortedOrders.forEach(order => {
+        const amount = Number(order.total) || Number(order.total_amount) || 0;
+        const email = order.email || 'Guest User';
+        const date = new Date(order.created_at).toLocaleDateString();
+        const shortId = (order.id || '').substring(0, 8).toUpperCase();
+        
+        html += `
+          <tr>
+            <td style="font-family: monospace;">#${shortId}</td>
+            <td>${date}</td>
+            <td>${email}</td>
+            <td>$${amount.toFixed(2)}</td>
+            <td><span class="status-badge badge-live">${order.status || 'Confirmed'}</span></td>
+          </tr>
+        `;
+      });
+      html += `</tbody></table>`;
+      container.innerHTML = html;
+    };
+
+    const renderTaxComplianceReport = () => {
+      const container = document.getElementById('taxTableContainer');
+      const stateCountEl = document.getElementById('taxStateCount');
+      const totalCollectedEl = document.getElementById('taxTotalCollected');
+      const effectiveRateEl = document.getElementById('taxEffectiveRate');
+      const summaryCardEl = document.getElementById('totalTaxCollected');
+
+      // Group orders by state (unknown state → '—')
+      const byState = {};
+      const byMonth = {};
+      let grandTaxTotal = 0;
+      let grandSubtotal = 0;
+      let ordersWithTax = 0;
+
+      (allOrders || []).forEach(order => {
+        const state = (order.ship_state || '').trim().toUpperCase() || '—';
+        const tax = parseFloat(order.tax) || 0;
+        const subtotal = parseFloat(order.subtotal) || 0;
+        grandTaxTotal += tax;
+        grandSubtotal += subtotal;
+        if (tax > 0) ordersWithTax++;
+
+        // by state
+        if (!byState[state]) byState[state] = { orders: 0, subtotal: 0, tax: 0 };
+        byState[state].orders++;
+        byState[state].subtotal += subtotal;
+        byState[state].tax += tax;
+
+        // by month (YYYY-MM)
+        const d = new Date(order.created_at || 0);
+        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const monthLabel = d.toLocaleString('default', { month: 'short', year: '2-digit' });
+        if (!byMonth[monthKey]) byMonth[monthKey] = { label: monthLabel, tax: 0, subtotal: 0, orders: 0 };
+        byMonth[monthKey].tax += tax;
+        byMonth[monthKey].subtotal += subtotal;
+        byMonth[monthKey].orders++;
+      });
+
+      const statesWithTax = Object.keys(byState).filter(s => byState[s].tax > 0 && s !== '—');
+      const effectiveRate = grandSubtotal > 0 ? ((grandTaxTotal / grandSubtotal) * 100).toFixed(2) : '0.00';
+
+      if (summaryCardEl) summaryCardEl.textContent = `$${grandTaxTotal.toFixed(2)}`;
+      if (stateCountEl) stateCountEl.textContent = statesWithTax.length || (grandTaxTotal > 0 ? '—' : '0');
+      if (totalCollectedEl) totalCollectedEl.textContent = `$${grandTaxTotal.toFixed(2)}`;
+      if (effectiveRateEl) effectiveRateEl.textContent = `${effectiveRate}%`;
+
+      if (!container) return;
+
+      if (allOrders.length === 0) {
+        container.innerHTML = `<div class="diag-box"><div class="diag-title">No orders yet</div><div class="diag-item">Tax data will appear here once customers start buying.</div></div>`;
+        return;
+      }
+
+      // ── Month-by-month bar chart ──
+      const monthKeys = Object.keys(byMonth).sort();
+      const maxMonthTax = Math.max(...monthKeys.map(k => byMonth[k].tax), 0.01);
+      const monthBars = monthKeys.map(k => {
+        const m = byMonth[k];
+        const pct = ((m.tax / maxMonthTax) * 100).toFixed(1);
+        const hasTax = m.tax > 0;
+        return `
+          <div class="bar-item" style="min-width:52px;">
+            <div class="bar-value" style="font-size:0.72rem;">$${m.tax.toFixed(0)}</div>
+            <div class="bar-wrapper">
+              <div class="bar ${hasTax ? 'bar-live' : 'bar-draft'}" style="height:${pct}%"></div>
+            </div>
+            <div class="bar-label" style="font-size:0.7rem;">${m.label}</div>
+          </div>`;
+      }).join('');
+
+      // ── State breakdown table ──
+      const stateNote = Object.keys(byState).includes('—')
+        ? `<p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:0.75rem;">Orders marked <strong>—</strong> have no state on record (placed before address storage was enabled).</p>`
+        : '';
+
+      const rows = Object.entries(byState)
+        .sort((a, b) => b[1].tax - a[1].tax)
+        .map(([state, d]) => {
+          const rate = d.subtotal > 0 ? ((d.tax / d.subtotal) * 100).toFixed(2) : '0.00';
+          const taxDisplay = d.tax > 0
+            ? `<span style="color:var(--success);font-weight:600;">$${d.tax.toFixed(2)}</span>`
+            : `<span style="color:var(--text-secondary);">$0.00</span>`;
+          const stateDisplay = state === '—'
+            ? `<span style="color:var(--text-secondary);">— (no state)</span>`
+            : `<span style="font-family:monospace;font-weight:700;">${state}</span>`;
+          return `<tr>
+            <td>${stateDisplay}</td>
+            <td>${d.orders}</td>
+            <td>$${d.subtotal.toFixed(2)}</td>
+            <td>${taxDisplay}</td>
+            <td style="color:var(--text-secondary);">${rate}%</td>
+          </tr>`;
+        }).join('');
+
+      container.innerHTML = `
+        ${monthKeys.length > 0 ? `
+        <div style="margin-bottom:1.5rem;">
+          <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.6rem;color:var(--text-secondary);letter-spacing:0.04em;text-transform:uppercase;">Tax Collected by Month</div>
+          <div class="chart-container" style="height:160px;">
+            <div class="bar-chart" style="align-items:flex-end;">${monthBars}</div>
+          </div>
+        </div>` : ''}
+        <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.6rem;color:var(--text-secondary);letter-spacing:0.04em;text-transform:uppercase;">By State</div>
+        ${stateNote}
+        <table>
+          <thead>
+            <tr>
+              <th>State</th>
+              <th>Orders</th>
+              <th>Taxable Revenue</th>
+              <th>Tax Collected</th>
+              <th>Effective Rate</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+          <tfoot>
+            <tr style="border-top:2px solid var(--card-border);font-weight:700;">
+              <td>All States</td>
+              <td>${allOrders.length} (${ordersWithTax} taxed)</td>
+              <td>$${grandSubtotal.toFixed(2)}</td>
+              <td style="color:var(--success);">$${grandTaxTotal.toFixed(2)}</td>
+              <td style="color:var(--text-secondary);">${effectiveRate}%</td>
+            </tr>
+          </tfoot>
+        </table>`;
     };
 
     // Status Chart
@@ -907,11 +1843,17 @@
       };
 
       allProducts.forEach(p => {
-        statuses[p.status] = (statuses[p.status] || 0) + 1;
+        const statusKey = p.status ? p.status.toLowerCase().replace(/\s/g, '_') : 'draft';
+        if (statuses.hasOwnProperty(statusKey)) statuses[statusKey]++;
       });
 
       const chartContainer = document.getElementById('statusChart');
       chartContainer.innerHTML = '';
+
+      if (allProducts.length === 0) {
+        chartContainer.innerHTML = '<p style="color: var(--text-secondary); width: 100%; text-align: center; margin-top: 2rem;">No data available.</p>';
+        return;
+      }
 
       const statusLabels = {
         draft: 'Draft',
@@ -955,13 +1897,19 @@
       };
 
       allProducts.forEach(p => {
-        if (p.gender && genders.hasOwnProperty(p.gender)) {
-          genders[p.gender]++;
+        const genderKey = p.gender ? p.gender.toLowerCase() : null;
+        if (genderKey && genders.hasOwnProperty(genderKey)) {
+          genders[genderKey]++;
         }
       });
 
       const chartContainer = document.getElementById('genderChart');
       chartContainer.innerHTML = '';
+
+      if (allProducts.length === 0) {
+        chartContainer.innerHTML = '<p style="color: var(--text-secondary); width: 100%; text-align: center; margin-top: 2rem;">No data available.</p>';
+        return;
+      }
 
       const genderLabels = {
         men: 'Men',
@@ -995,23 +1943,71 @@
       });
     };
 
+    // Revenue Timeline Chart
+    const updateRevenueChart = () => {
+      const chartContainer = document.getElementById('revenueChart');
+      if (!chartContainer) return;
+      if (allOrders.length === 0) {
+        chartContainer.innerHTML = '<p style="color: var(--text-secondary); width: 100%; text-align: center; margin-top: 2rem;">No sales data available yet.</p>';
+        return;
+      }
+
+      const salesByDate = {};
+      allOrders.forEach(o => {
+        const d = new Date(o.created_at).toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' });
+        const amt = Number(o.total) || Number(o.total_amount) || 0;
+        salesByDate[d] = (salesByDate[d] || 0) + amt;
+      });
+
+      const sortedDates = Object.keys(salesByDate).sort((a, b) => new Date(a) - new Date(b)).slice(-7);
+      const maxValue = Math.max(...sortedDates.map(d => salesByDate[d]), 1);
+
+      chartContainer.innerHTML = '';
+      sortedDates.forEach(date => {
+        const total = salesByDate[date];
+        const percentage = (total / maxValue) * 100;
+
+        const item = document.createElement('div');
+        item.className = 'bar-item';
+        item.innerHTML = `
+          <div class="bar" style="height: ${percentage}%; background-color: var(--accent);">
+            <div class="bar-value">$${Math.round(total)}</div>
+          </div>
+          <div class="bar-label" style="font-size:0.75rem">${date}</div>
+        `;
+        chartContainer.appendChild(item);
+      });
+    };
+
     // Inventory Table
     const renderInventoryTable = async () => {
       const container = document.getElementById('inventoryTableContainer');
+      const searchTerm = (document.getElementById('inventorySearch')?.value || '').toLowerCase();
 
       // Flatten inventory data
       let inventoryData = [];
       allProducts.forEach(product => {
-        (product.product_inventory || []).forEach(inv => {
+        if (!product.product_sizes || product.product_sizes.length === 0) {
           inventoryData.push({
             productTitle: product.title,
             sku: product.sku,
-            size: inv.size,
-            stock: inv.stock || 0,
-            threshold: inv.low_stock_threshold || 10,
+            size: 'N/A',
+            stock: 0,
+            threshold: product.low_stock_threshold || 10,
             status: product.status
           });
-        });
+        } else {
+          product.product_sizes.forEach(inv => {
+            inventoryData.push({
+              productTitle: product.title,
+              sku: product.sku,
+              size: inv.size,
+              stock: inv.stock_quantity || 0,
+              threshold: product.low_stock_threshold || 10,
+              status: product.status
+            });
+          });
+        }
       });
 
       // Filter data
@@ -1019,19 +2015,48 @@
         inventoryData = inventoryData.filter(item => item.stock <= item.threshold);
       }
 
-      // Sort by stock ascending
-      inventoryData.sort((a, b) => a.stock - b.stock);
+      // Apply Search Filter
+      if (searchTerm) {
+        inventoryData = inventoryData.filter(item => 
+          String(item.sku || '').toLowerCase().includes(searchTerm) ||
+          String(item.productTitle || '').toLowerCase().includes(searchTerm) ||
+          String(item.size || '').toLowerCase().includes(searchTerm)
+        );
+      }
+
+      // Sort
+      inventoryData.sort((a, b) => {
+        const aVal = a[inventorySortConfig.key];
+        const bVal = b[inventorySortConfig.key];
+
+        if (typeof aVal === 'string' || typeof bVal === 'string') {
+          const strA = String(aVal || '');
+          const strB = String(bVal || '');
+          return inventorySortConfig.direction === 'asc'
+            ? strA.localeCompare(strB)
+            : strB.localeCompare(strA);
+        }
+
+        return inventorySortConfig.direction === 'asc'
+          ? aVal - bVal
+          : bVal - aVal;
+      });
+
+      if (inventoryData.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No inventory records found.</p>';
+        return;
+      }
 
       // Render table
       let html = `
         <table>
           <thead>
             <tr>
-              <th>Product Title</th>
-              <th>SKU</th>
-              <th>Size</th>
-              <th>Stock</th>
-              <th>Status</th>
+              <th class="sortable" data-key="productTitle">Product Title</th>
+              <th class="sortable" data-key="sku">SKU</th>
+              <th class="sortable" data-key="size">Size</th>
+              <th class="sortable" data-key="stock">Stock</th>
+              <th class="sortable" data-key="status">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -1040,7 +2065,7 @@
       inventoryData.forEach(item => {
         const isLowStock = item.stock <= item.threshold;
         const rowClass = isLowStock ? 'low-stock' : '';
-        const statusClass = `badge-${item.status}`;
+        const statusClass = `badge-${(item.status || 'draft').toLowerCase().replace(/\s+/g, '-')}`;
 
         html += `
           <tr class="${rowClass}">
@@ -1065,11 +2090,26 @@
           renderInventoryTable();
         });
       });
+
+      // Attach sort listeners
+      container.querySelectorAll('[data-key]').forEach(th => {
+        th.addEventListener('click', () => {
+          const key = th.dataset.key;
+          if (inventorySortConfig.key === key) {
+            inventorySortConfig.direction = inventorySortConfig.direction === 'asc' ? 'desc' : 'asc';
+          } else {
+            inventorySortConfig.key = key;
+            inventorySortConfig.direction = 'asc';
+          }
+          renderInventoryTable();
+        });
+      });
     };
 
     // Catalog Table
     const renderCatalogTable = async () => {
       const container = document.getElementById('catalogTableContainer');
+      const searchTerm = (document.getElementById('catalogSearch')?.value || '').toLowerCase();
 
       // Prepare catalog data
       let catalogData = allProducts.map(p => ({
@@ -1078,29 +2118,45 @@
         title: p.title,
         gender: p.gender || 'N/A',
         colorway: p.colorway || 'N/A',
-        msrp: p.msrp || 0,
-        currentPrice: p.current_price || 0,
+        msrp: Number(p.msrp) || 0,
+        currentPrice: Number(p.current_price) || 0,
         status: p.status,
-        totalStock: (p.product_inventory || []).reduce((sum, inv) => sum + (inv.stock || 0), 0),
-        colorCount: p.product_colors?.length || 0,
+        totalStock: (p.product_sizes || []).reduce((sum, inv) => sum + (inv.stock_quantity || 0), 0),
+        colorCount: p.color_variants?.length || 0,
         imageCount: p.product_images?.length || 0
       }));
+
+      // Apply Search Filter
+      if (searchTerm) {
+        catalogData = catalogData.filter(item => 
+          String(item.sku || '').toLowerCase().includes(searchTerm) ||
+          String(item.title || '').toLowerCase().includes(searchTerm) ||
+          String(item.colorway || '').toLowerCase().includes(searchTerm)
+        );
+      }
 
       // Sort
       catalogData.sort((a, b) => {
         const aVal = a[catalogSortConfig.key];
         const bVal = b[catalogSortConfig.key];
 
-        if (typeof aVal === 'string') {
+        if (typeof aVal === 'string' || typeof bVal === 'string') {
+          const strA = String(aVal || '');
+          const strB = String(bVal || '');
           return catalogSortConfig.direction === 'asc'
-            ? aVal.localeCompare(bVal)
-            : bVal.localeCompare(aVal);
+            ? strA.localeCompare(strB)
+            : strB.localeCompare(strA);
         }
 
         return catalogSortConfig.direction === 'asc'
           ? aVal - bVal
           : bVal - aVal;
       });
+
+      if (catalogData.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No products found in the catalog.</p>';
+        return;
+      }
 
       // Render table
       let html = `
@@ -1123,7 +2179,7 @@
       `;
 
       catalogData.forEach(item => {
-        const statusClass = `badge-${item.status}`;
+        const statusClass = `badge-${(item.status || 'draft').toLowerCase().replace(/\s+/g, '-')}`;
         html += `
           <tr>
             <td>${item.sku}</td>
@@ -1160,27 +2216,30 @@
 
     // Price Analysis
     const updatePriceAnalysis = () => {
-      const prices = allProducts.filter(p => p.msrp && p.current_price && p.member_price);
+      const withMSRP = allProducts.filter(p => Number(p.msrp) > 0);
+      const withCurrent = allProducts.filter(p => Number(p.current_price) > 0);
+      const withMember = allProducts.filter(p => Number(p.member_price) > 0);
 
-      const avgMSRP = prices.length > 0
-        ? prices.reduce((sum, p) => sum + p.msrp, 0) / prices.length
+      const avgMSRP = withMSRP.length > 0
+        ? withMSRP.reduce((sum, p) => sum + Number(p.msrp), 0) / withMSRP.length
         : 0;
 
-      const avgCurrentPrice = prices.length > 0
-        ? prices.reduce((sum, p) => sum + p.current_price, 0) / prices.length
+      const avgCurrentPrice = withCurrent.length > 0
+        ? withCurrent.reduce((sum, p) => sum + Number(p.current_price), 0) / withCurrent.length
         : 0;
 
-      const avgMemberPrice = prices.length > 0
-        ? prices.reduce((sum, p) => sum + p.member_price, 0) / prices.length
+      const avgMemberPrice = withMember.length > 0
+        ? withMember.reduce((sum, p) => sum + Number(p.member_price), 0) / withMember.length
         : 0;
 
-      const productsOnSale = allProducts.filter(p => p.current_price < p.msrp).length;
+      const productsOnSale = allProducts.filter(p => Number(p.current_price) < Number(p.msrp)).length;
       const salePercentage = allProducts.length > 0
         ? ((productsOnSale / allProducts.length) * 100).toFixed(1)
         : 0;
 
-      const avgDiscount = prices.length > 0
-        ? prices.reduce((sum, p) => sum + ((p.msrp - p.current_price) / p.msrp * 100), 0) / prices.length
+      const saleProducts = allProducts.filter(p => Number(p.msrp) > Number(p.current_price) && Number(p.current_price) > 0);
+      const avgDiscount = saleProducts.length > 0
+        ? saleProducts.reduce((sum, p) => sum + ((Number(p.msrp) - Number(p.current_price)) / (Number(p.msrp) || 1) * 100), 0) / saleProducts.length
         : 0;
 
       document.getElementById('avgMSRP').textContent = `$${avgMSRP.toFixed(2)}`;
@@ -1197,7 +2256,6 @@
         const { data: reviews, error } = await supabase
           .from('reviews')
           .select('rating, product_id');
-
         if (error) throw error;
 
         const reviewsByProduct = {};
@@ -1212,13 +2270,15 @@
         });
 
         const avgRating = ratings.length > 0
-          ? (ratings.reduce((a, b) => a + b) / ratings.length).toFixed(2)
+          ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(2)
           : 0;
 
         const noReviewsCount = allProducts.filter(p => !reviewsByProduct[p.id]).length;
 
         document.getElementById('avgRating').textContent = `${avgRating} ⭐`;
         document.getElementById('totalReviews').textContent = reviews?.length || 0;
+        const trb = document.getElementById('totalReviewsBig');
+        if (trb) trb.textContent = reviews?.length || 0;
         document.getElementById('noReviewsCount').textContent = noReviewsCount;
 
         // Top rated products
@@ -1226,28 +2286,44 @@
           .filter(p => reviewsByProduct[p.id])
           .map(p => {
             const productReviews = reviewsByProduct[p.id];
-            const avgRating = productReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / productReviews.length;
-            return { ...p, avgRating, reviewCount: productReviews.length };
+            const productAvgRating = productReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / productReviews.length;
+            return { ...p, avgRating: productAvgRating, reviewCount: productReviews.length };
           })
           .sort((a, b) => b.avgRating - a.avgRating)
           .slice(0, 5);
 
         const topProductsContainer = document.getElementById('topProductsContainer');
-        topProductsContainer.innerHTML = topProducts.map(p => `
-          <div class="product-card">
-            <div class="product-title">${p.title}</div>
-            <div class="product-rating">
-              <span class="stars">${'⭐'.repeat(Math.round(p.avgRating))}</span>
-              <span>${p.avgRating.toFixed(1)}</span>
+        if (topProducts.length === 0) {
+          topProductsContainer.innerHTML = '<p style="color:var(--text-secondary); padding: 1rem 0;">No reviews available yet.</p>';
+        } else {
+          topProductsContainer.innerHTML = topProducts.map(p => `
+            <div class="product-card">
+              <div class="product-title">${p.title}</div>
+              <div class="product-rating">
+                <span class="stars">${'⭐'.repeat(Math.round(p.avgRating))}</span>
+                <span>${p.avgRating.toFixed(1)}</span>
+              </div>
+              <div style="color: var(--text-secondary); font-size: 0.85rem;">${p.reviewCount} reviews</div>
             </div>
-            <div style="color: var(--text-secondary); font-size: 0.85rem;">${p.reviewCount} reviews</div>
-          </div>
-        `).join('');
+          `).join('');
+        }
 
       } catch (error) {
         console.error('Error loading reviews:', error);
+        document.getElementById('avgRating').textContent = `0 ⭐`;
+        document.getElementById('totalReviews').textContent = `0`;
+        document.getElementById('noReviewsCount').textContent = allProducts.length;
+        document.getElementById('topProductsContainer').innerHTML = '<p style="color:var(--text-secondary)">No reviews data available.</p>';
       }
     };
+
+    // Search Filter for Inventory Table
+    const invSearch = document.getElementById('inventorySearch');
+    if (invSearch) invSearch.addEventListener('input', renderInventoryTable);
+
+    // Search Filter for Catalog Table
+    const catSearch = document.getElementById('catalogSearch');
+    if (catSearch) catSearch.addEventListener('input', renderCatalogTable);
 
     // Export to CSV
     document.getElementById('exportBtn').addEventListener('click', () => {
@@ -1256,11 +2332,11 @@
         title: p.title,
         gender: p.gender || 'N/A',
         colorway: p.colorway || 'N/A',
-        msrp: p.msrp || 0,
-        currentPrice: p.current_price || 0,
+        msrp: Number(p.msrp) || 0,
+        currentPrice: Number(p.current_price) || 0,
         status: p.status,
-        totalStock: (p.product_inventory || []).reduce((sum, inv) => sum + (inv.stock || 0), 0),
-        colorCount: p.product_colors?.length || 0,
+        totalStock: (p.product_sizes || []).reduce((sum, inv) => sum + (inv.stock_quantity || 0), 0),
+        colorCount: p.color_variants?.length || 0,
         imageCount: p.product_images?.length || 0
       }));
 
@@ -1292,17 +2368,54 @@
       URL.revokeObjectURL(url);
     });
 
+    // Check if embedded
+    if (isEmbeddedAnalytics) {
+      document.body.classList.add('embedded');
+    }
+
     // Initialize
     initTheme();
     checkAuth();
+    
+    // Fetch Brand Assets
+    sbClient.from('site_settings').select('value').eq('key', 'brand').single().then(({data}) => {
+      if (data && data.value) {
+        let b = data.value;
+        try { if (typeof b === 'string') b = JSON.parse(b); } catch(e){}
+        if (b && b.favicon) {
+          let link = document.querySelector('link[rel="icon"]');
+          if (!link) {
+            link = document.createElement('link');
+            link.rel = 'icon';
+            document.head.appendChild(link);
+          }
+          window.__zwApplyFavicon ? window.__zwApplyFavicon(b.favicon) : (link.href = b.favicon);
+        }
+      }
+    });
 
     // Listen for auth changes
-    supabase.auth.onAuthStateChanged((event, session) => {
-      if (event === 'SIGNED_OUT') {
+    sbClient.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        checkAuth();
+      } else if (event === 'SIGNED_OUT') {
         currentUser = null;
         showAuthContainer();
       }
     });
+
+    // Parent admin page can request a data refresh without full iframe reload.
+    window.addEventListener('message', (event) => {
+      const { type, mode } = event?.data || {};
+      if (type === 'zw-theme') {
+        if (mode === 'light') document.body.classList.add('light-mode');
+        else document.body.classList.remove('light-mode');
+        return;
+      }
+      if (type !== 'zw-analytics-refresh') return;
+      if (dashboardContainer.style.display === 'block') {
+        loadDashboardData();
+      }
+    });
   </script>
-</body>
 </html>

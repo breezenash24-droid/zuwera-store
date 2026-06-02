@@ -24,22 +24,22 @@ CREATE POLICY "Products are viewable by everyone"
   ON public.products FOR SELECT
   USING (true);
 
--- 4. Only authenticated users can insert/update/delete (for admin page)
-CREATE POLICY "Authenticated users can insert products"
+-- 4. Only exact owner emails can insert/update/delete (for admin page)
+CREATE POLICY "Owner admins can insert products"
   ON public.products FOR INSERT
   TO authenticated
-  WITH CHECK (true);
+  WITH CHECK (lower(coalesce(auth.jwt() ->> 'email', '')) IN ('breezenash24@gmail.com', 'nasirubreeze@zuwera.store'));
 
-CREATE POLICY "Authenticated users can update products"
+CREATE POLICY "Owner admins can update products"
   ON public.products FOR UPDATE
   TO authenticated
-  USING (true)
-  WITH CHECK (true);
+  USING (lower(coalesce(auth.jwt() ->> 'email', '')) IN ('breezenash24@gmail.com', 'nasirubreeze@zuwera.store'))
+  WITH CHECK (lower(coalesce(auth.jwt() ->> 'email', '')) IN ('breezenash24@gmail.com', 'nasirubreeze@zuwera.store'));
 
-CREATE POLICY "Authenticated users can delete products"
+CREATE POLICY "Owner admins can delete products"
   ON public.products FOR DELETE
   TO authenticated
-  USING (true);
+  USING (lower(coalesce(auth.jwt() ->> 'email', '')) IN ('breezenash24@gmail.com', 'nasirubreeze@zuwera.store'));
 
 -- 5. Seed with existing 3 jackets
 INSERT INTO public.products (id, name, category, price, drop_number, status, sort_order)

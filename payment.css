@@ -1,10 +1,11 @@
 /* ===================== PAYMENT MODAL ===================== */
 #payment-modal {
-  background: rgba(10,10,10,0.92);
-  backdrop-filter: blur(12px);
+  background: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 .payment-box {
-  background: #141414;
+  background: #0f0f0f;
   border: 1px solid var(--border);
   padding: 2.5rem;
   width: min(560px, 96vw);
@@ -36,7 +37,7 @@
 }
 .pay-field input {
   width: 100%;
-  background: rgba(245,245,240,0.04);
+  background: rgba(244,241,235,0.04);
   border: 1px solid var(--c14);
   color: var(--white);
   padding: 0.75rem 0.9rem;
@@ -49,7 +50,7 @@
 .pay-field input:focus { border-color: var(--c45); }
 .pay-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
 #stripe-card-element {
-  background: rgba(245,245,240,0.04);
+  background: rgba(244,241,235,0.04);
   border: 1px solid var(--c14);
   padding: 0.82rem 0.9rem;
   border-radius: 2px;
@@ -75,10 +76,10 @@
   cursor: pointer;
   transition: border-color 0.18s, background 0.18s;
   border-radius: 2px;
-  background: rgba(245,245,240,0.02);
+  background: rgba(244,241,235,0.02);
 }
-.rate-option:hover    { border-color: var(--c30); background: rgba(245,245,240,0.04); }
-.rate-option.selected { border-color: var(--c55); background: rgba(245,245,240,0.06); }
+.rate-option:hover    { border-color: var(--c30); background: rgba(244,241,235,0.04); }
+.rate-option.selected { border-color: var(--c55); background: rgba(244,241,235,0.06); }
 .rate-name  { font-size: 0.85rem; font-weight: 500; grid-column: 1; grid-row: 1; }
 .rate-meta  { font-size: 0.7rem;  color: var(--c40); grid-column: 1; grid-row: 2; }
 .rate-price { font-size: 0.9rem;  font-weight: 500;  grid-column: 2; grid-row: 1 / 3; justify-self: end; }
@@ -146,3 +147,46 @@
   transition: var(--trans);
 }
 #success-continue:hover { opacity: 0.85; }
+
+/* ===================== LIGHT MODE ===================== */
+body.light-mode #payment-modal {
+  background: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+body.light-mode .payment-box {
+  background: #F0EEE9;
+  border-color: rgba(9,9,11,0.1);
+  color: #09090b;
+}
+body.light-mode .payment-box h2 { color: #09090b; }
+body.light-mode .payment-box .pay-subtitle { color: rgba(9,9,11,0.4); }
+body.light-mode .pay-field label { color: rgba(9,9,11,0.45); }
+body.light-mode .pay-field input {
+  background: rgba(9,9,11,0.04);
+  border-color: rgba(9,9,11,0.12);
+  color: #09090b;
+}
+body.light-mode .pay-field input:focus { border-color: rgba(9,9,11,0.45); }
+body.light-mode #stripe-card-element {
+  background: rgba(9,9,11,0.04);
+  border-color: rgba(9,9,11,0.12);
+}
+body.light-mode #stripe-card-element.StripeElement--focus { border-color: rgba(9,9,11,0.45); }
+body.light-mode .rate-option {
+  background: rgba(9,9,11,0.02);
+  border-color: rgba(9,9,11,0.1);
+}
+body.light-mode .rate-option:hover { background: rgba(9,9,11,0.04); border-color: rgba(9,9,11,0.2); }
+body.light-mode .rate-option.selected { background: rgba(9,9,11,0.06); border-color: rgba(9,9,11,0.35); }
+body.light-mode .rate-meta { color: rgba(9,9,11,0.4); }
+body.light-mode #pay-submit { background: #09090b; color: #E8E3DC; }
+body.light-mode #pay-submit:hover { opacity: 0.85; }
+body.light-mode .pay-secure-note { color: rgba(9,9,11,0.35); }
+body.light-mode #payment-success { background: #F0EEE9; }
+body.light-mode #payment-success p { color: rgba(9,9,11,0.5); }
+body.light-mode #success-continue { background: #09090b; color: #E8E3DC; }
+
+/* ===================== SUPER LIGHT MODE ===================== */
+body.super-light-mode .payment-box { background: #FFFFFF; }
+body.super-light-mode #payment-success { background: #FFFFFF; }

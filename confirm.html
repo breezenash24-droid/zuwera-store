@@ -1,0 +1,416 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Confirm Email — ZUWERA</title>
+<meta name="color-scheme" content="dark">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" type="image/png" href="/images/favicon-black.png?v=1">
+<script src="/favicon-utils.js?v=00b5644f" defer></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black: #09090b;
+    --white: #f4f1eb;
+    --pink:  #F891A5;
+    --font-head: 'Barlow Condensed', sans-serif;
+    --font-body: 'Barlow', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --fw: var(--font-head);
+    --fb: var(--font-body);
+    --fm: var(--font-mono);
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--black);
+    color: var(--white);
+    font-family: var(--fb);
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  /* ── Logo ── */
+  .logo-link {
+    position: fixed;
+    top: 1.8rem;
+    left: 2.5rem;
+    text-decoration: none;
+    display: block;
+    width: 108px;
+    height: 30px;
+    overflow: hidden;
+  }
+  .logo-link img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+  .logo-link:hover { opacity: .7; }
+
+  /* ── Card ── */
+  .card {
+    width: min(440px, 100%);
+    background: #0f0f0f;
+    border: 1px solid rgba(244,241,235,.08);
+    border-top: 2px solid var(--pink);
+    padding: 3rem 2.6rem 2.6rem;
+    animation: fadeIn .3s ease;
+  }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+  .brand {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1.4rem;
+    border-bottom: 1px solid rgba(244,241,235,.06);
+  }
+  .brand img {
+    display: block;
+    width: 132px;
+    height: 36px;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  /* ── States ── */
+  #state-loading, #state-success, #state-error, #state-reset { display: none; }
+  #state-loading.active, #state-success.active, #state-error.active, #state-reset.active { display: block; }
+
+  .state-icon {
+    font-size: 2.8rem;
+    margin-bottom: 1rem;
+    display: block;
+  }
+
+  .state-title {
+    font-family: var(--fw);
+    font-style: italic;
+    font-size: 1.8rem;
+    letter-spacing: .04em;
+    margin-bottom: .5rem;
+  }
+
+  .state-sub {
+    font-size: .72rem;
+    letter-spacing: .1em;
+    color: rgba(244,241,235,.4);
+    text-transform: uppercase;
+    margin-bottom: 1.8rem;
+    line-height: 1.7;
+  }
+
+  /* ── Spinner ── */
+  .spinner {
+    width: 36px; height: 36px;
+    border: 2px solid rgba(244,241,235,.12);
+    border-top-color: var(--pink);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+    margin: 0 auto 1.4rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    display: inline-block;
+    width: 100%;
+    padding: .9rem;
+    background: var(--white);
+    color: var(--black);
+    border: none;
+    font-family: var(--fm);
+    font-style: normal;
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background .2s, color .2s, transform .15s;
+    margin-top: .5rem;
+  }
+  .btn-primary:hover { background: #E8E3DC; color: var(--black); transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+
+  .btn-ghost {
+    display: inline-block;
+    width: 100%;
+    padding: .9rem;
+    background: transparent;
+    color: rgba(244,241,235,.5);
+    border: 1px solid rgba(244,241,235,.15);
+    font-family: var(--fm);
+    font-style: normal;
+    font-size: .72rem;
+    font-weight: 400;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-decoration: none;
+    transition: border-color .2s, color .2s, background .2s;
+    margin-top: .75rem;
+  }
+  .btn-ghost:hover { border-color: var(--white); color: var(--white); }
+
+  /* ── Password form ── */
+  .fgroup { margin-bottom: 1rem; text-align: left; }
+  .fgroup label {
+    display: block;
+    font-size: .65rem;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: rgba(244,241,235,.38);
+    margin-bottom: .4rem;
+  }
+  .fgroup input {
+    width: 100%;
+    background: rgba(244,241,235,.03);
+    border: 1px solid rgba(244,241,235,.1);
+    color: var(--white);
+    padding: .82rem 1rem;
+    font-family: var(--fb);
+    font-size: .9rem;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .fgroup input::placeholder { color: rgba(244,241,235,.18); }
+  .fgroup input:focus { border-color: var(--pink); box-shadow: 0 0 0 3px rgba(248,145,165,.08); }
+  .ferr {
+    display: none;
+    color: #f4f1eb;
+    background: rgba(220, 38, 38, 0.15);
+    border: 1px solid rgba(220, 38, 38, 0.4);
+    font-size: .8rem;
+    padding: .7rem 1rem;
+    margin-top: .5rem;
+    margin-bottom: .25rem;
+    letter-spacing: .03em;
+    text-align: left;
+    line-height: 1.5;
+  }
+
+  /* LIGHT MODE */
+  body.light-mode {
+    background: #f4f1eb;
+    color: #09090b;
+    --black: #F0EEE9;
+    --white: #09090b;
+    --pink: #09090b;
+  }
+  body.super-light-mode { background: #FFFFFF; --black: #FFFFFF; }
+  body.super-light-mode .card { background: #FFFFFF; }
+  body.light-mode .logo-link img,
+  body.light-mode .brand img { filter: invert(1); }
+  body.light-mode .logo-link:hover { opacity: .55; }
+  body.light-mode .card {
+    background: #F0EEE9;
+    border-color: rgba(9,9,11,.08);
+    border-top-color: #09090b;
+  }
+  body.light-mode .brand { color: #09090b; border-bottom-color: rgba(9,9,11,.06); }
+  body.light-mode .state-sub { color: rgba(9,9,11,.4); }
+  body.light-mode .spinner { border-color: rgba(9,9,11,.1); border-top-color: #09090b; }
+  body.light-mode .btn-primary { background: #09090b; color: #E8E3DC; }
+  body.light-mode .btn-primary:hover { background: #1a1a1a; }
+  body.light-mode .btn-ghost { color: rgba(9,9,11,.4); border-color: rgba(9,9,11,.15); }
+  body.light-mode .btn-ghost:hover { border-color: #09090b; color: #09090b; }
+  body.light-mode .fgroup label { color: rgba(9,9,11,.38); }
+  body.light-mode .fgroup input { background: rgba(9,9,11,.03); border-color: rgba(9,9,11,.1); color: #09090b; }
+  body.light-mode .fgroup input::placeholder { color: rgba(9,9,11,.18); }
+  body.light-mode .fgroup input:focus { border-color: #09090b; box-shadow: 0 0 0 3px rgba(9,9,11,.06); }
+</style>
+<script>try{var _t=localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
+</head>
+<body>
+<script>(function(){try{var m=localStorage.getItem('zw_theme_mode');if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
+
+<a href="/" class="logo-link" aria-label="Back to Zuwera home">
+  <img src="images/wordmark.png" alt="ZUWERA">
+</a>
+
+<div class="card">
+  <div class="brand"><img src="images/wordmark.png" alt="ZUWERA"></div>
+
+  <!-- Loading -->
+  <div id="state-loading" class="active">
+    <div class="spinner"></div>
+    <p class="state-sub">Confirming your email…</p>
+  </div>
+
+  <!-- Success -->
+  <div id="state-success">
+    <span class="state-icon">✓</span>
+    <h1 class="state-title">Email Confirmed</h1>
+    <p class="state-sub">Your account is verified and ready.<br>Welcome to Zuwera.</p>
+    <a href="/" class="btn-primary">Shop the Collection</a>
+    <a href="drop001.html" class="btn-ghost">Browse Drop 001</a>
+  </div>
+
+  <!-- Error -->
+  <div id="state-error">
+    <span class="state-icon" style="color:#e74c3c;">✕</span>
+    <h1 class="state-title">Link Expired</h1>
+    <p class="state-sub" id="error-message">This confirmation link has expired or is invalid.<br>Request a new one below.</p>
+    <a href="/" class="btn-primary">Back to Zuwera</a>
+  </div>
+
+  <!-- Password Reset -->
+  <div id="state-reset">
+    <span class="state-icon">🔑</span>
+    <h1 class="state-title">Set New Password</h1>
+    <p class="state-sub">Choose a strong password for your account.</p>
+    <div class="fgroup">
+      <label>New Password</label>
+      <input type="password" id="new-password" placeholder="Min 6 characters" autocomplete="new-password">
+    </div>
+    <div class="fgroup">
+      <label>Confirm Password</label>
+      <input type="password" id="confirm-password" placeholder="Repeat password" autocomplete="new-password">
+    </div>
+    <p class="ferr" id="reset-error"></p>
+    <button id="reset-btn" class="btn-primary">Update Password</button>
+  </div>
+</div>
+
+<script src="/supabase.min.js?v=3277b334"></script>
+<script>
+(function() {
+  const _CFM_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+  const _CFM_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+
+  const cfmSb = window.supabase.createClient(_CFM_URL, _CFM_KEY, {
+    auth: { persistSession: true, storageKey: 'zuwera-auth', flowType: 'implicit' }
+  });
+
+  function show(id) {
+    ['state-loading','state-success','state-error','state-reset'].forEach(s => {
+      document.getElementById(s).classList.toggle('active', s === id);
+    });
+  }
+
+  // Parse URL hash/params for token info
+  const hash   = window.location.hash.substring(1);
+  const params = new URLSearchParams(hash || window.location.search.substring(1));
+  const type   = params.get('type');
+  const error  = params.get('error_description') || params.get('error');
+  const tokenHash = new URLSearchParams(window.location.search).get('token_hash');
+
+  // Handle explicit errors in the URL
+  if (error) {
+    document.getElementById('error-message').textContent = decodeURIComponent(error);
+    show('state-error');
+    return;
+  }
+
+  // PKCE flow: token_hash in query string
+  if (tokenHash) {
+    cfmSb.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: type || 'email'
+    }).then(({ error: verifyErr }) => {
+      if (verifyErr) {
+        document.getElementById('error-message').textContent = verifyErr.message;
+        show('state-error');
+      } else if (type === 'recovery') {
+        show('state-reset');
+      } else {
+        show('state-success');
+      }
+    });
+    return;
+  }
+
+  // Implicit flow: access_token in hash
+  if (params.get('access_token')) {
+    if (type === 'recovery') {
+      // Password reset — show the new password form
+      show('state-reset');
+    } else {
+      // Email signup confirmation
+      show('state-success');
+    }
+    return;
+  }
+
+  // Nothing in URL — maybe user landed here directly
+  cfmSb.auth.getSession().then(({ data: { session } }) => {
+    if (session) {
+      show('state-success');
+    } else {
+      document.getElementById('error-message').textContent =
+        'No confirmation token found. Please check your email for the link, or request a new one.';
+      show('state-error');
+    }
+  });
+
+  // ── Password reset handler ──
+  document.getElementById('reset-btn').addEventListener('click', async () => {
+    const pass1  = document.getElementById('new-password').value;
+    const pass2  = document.getElementById('confirm-password').value;
+    const errEl  = document.getElementById('reset-error');
+    const btn    = document.getElementById('reset-btn');
+    errEl.textContent = '';
+    errEl.style.display = 'none';
+
+    if (pass1.length < 6) {
+      errEl.textContent = 'Password must be at least 6 characters.';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (pass1 !== pass2) {
+      errEl.textContent = 'Passwords do not match.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Updating…';
+
+    const { error: updateErr } = await cfmSb.auth.updateUser({ password: pass1 });
+    if (updateErr) {
+      errEl.textContent = updateErr.message;
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Update Password';
+      return;
+    }
+
+    // Success — show confirmation and redirect to admin
+    show('state-reset');
+    document.getElementById('reset-btn').style.display = 'none';
+    document.querySelectorAll('#state-reset .fgroup').forEach(el => el.style.display = 'none');
+    document.querySelector('#state-reset .state-icon').textContent = '✓';
+    document.querySelector('#state-reset .state-title').textContent = 'Password Updated';
+    document.querySelector('#state-reset .state-sub').textContent = 'Your password has been changed successfully.';
+    errEl.style.display = 'none';
+
+    // Show redirect notice and go to admin
+    const notice = document.createElement('p');
+    notice.style.cssText = 'color:rgba(244,241,235,.5);font-size:.75rem;letter-spacing:.08em;margin-top:1rem;';
+    notice.textContent = 'Redirecting to admin…';
+    document.getElementById('state-reset').appendChild(notice);
+    setTimeout(() => { window.location.href = '/admin.html'; }, 2000);
+  });
+
+})();
+</script>
+<script src="storefront-theme.js?v=26052901" defer></script>
+</body>
+</html>

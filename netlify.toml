@@ -4,6 +4,27 @@
   functions = "netlify/functions"
 
 # ── Redirects ─────────────────────────────────────────────────────
+# Route /api/* calls to Netlify functions (must come before the catch-all)
+[[redirects]]
+  from = "/api/shippo-rates"
+  to = "/.netlify/functions/shippo-rates"
+  status = 200
+
+[[redirects]]
+  from = "/api/create-payment-intent"
+  to = "/.netlify/functions/create-payment-intent"
+  status = 200
+
+[[redirects]]
+  from = "/api/stripe-webhook"
+  to = "/.netlify/functions/stripe-webhook"
+  status = 200
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
 [[redirects]]
   from = "/*"
   to = "/404.html"
@@ -18,7 +39,12 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    X-Frame-Options = "DENY"
+    X-Frame-Options = "SAMEORIGIN"
+
+[[headers]]
+  for = "/sizeguide.html"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "payment=(*)"
@@ -78,4 +104,5 @@
 [[headers]]
   for = "/.well-known/apple-developer-merchantid-domain-association"
   [headers.values]
-    Content-Type = "text/plain"
+    Content-Type = "application/octet-stream"
+    Cache-Control = "no-cache"

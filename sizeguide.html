@@ -1,27 +1,43 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="zuwera-deployment" content="2026-04-19-mobile-menu-v3">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#000000">
-  <title>Size & Fit Guide — Zuwera</title>
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#09090b">
+  <title>Size &amp; Fit Guide - Zuwera</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png?v=2">
+  <link rel="icon" type="image/png" sizes="64x64" href="/images/favicon-black.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="/images/favicon-black-192.png?v=2">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="canonical" href="https://zuwera.store/sizeguide.html">
+  <script src="/favicon-utils.js?v=00b5644f" defer></script>
   <meta name="description" content="Interactive size guide for Zuwera apparel. Find your perfect fit with our calculator and detailed measurements.">
   <meta name="robots" content="index, follow">
-  <meta property="og:title" content="Size & Fit Guide — Zuwera">
+  <meta property="og:title" content="Size &amp; Fit Guide - Zuwera">
   <meta property="og:description" content="Find your perfect fit with our interactive size calculator and detailed measurements.">
+  <meta property="og:image" content="https://zuwera.store/images/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   <meta property="og:url" content="https://zuwera.store/sizeguide.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Zuwera">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Size & Fit Guide — Zuwera">
+  <meta name="twitter:title" content="Size &amp; Fit Guide - Zuwera">
   <meta name="twitter:description" content="Find your perfect fit with our interactive size calculator.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/png" href="data:image/png;base64,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">
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DCVWDZ8ZBC"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=26053004">
+  <script src="mobile-menu.js?v=4c6ccedc" defer></script>
+  <script src="storefront-theme.js?v=26052901" defer></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-DCVWDZ8ZBC"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -29,15 +45,29 @@
       --bg: #09090b;
       --text: #f4f1eb;
       --accent: #F891A5;
+      --font-head: 'Barlow Condensed', sans-serif;
+      --font-body: 'Barlow', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+      --fw: var(--font-head);
+      --fb: var(--font-body);
+      --fm: var(--font-mono);
       --muted: rgba(244, 241, 235, 0.6);
       --border: rgba(244, 241, 235, 0.15);
       --hover: rgba(244, 241, 235, 0.08);
     }
+    body.light-mode {
+      --bg: #F0EEE9;
+      --text: #09090b;
+      --muted: rgba(9, 9, 11, 0.6);
+      --border: rgba(9, 9, 11, 0.15);
+      --hover: rgba(9, 9, 11, 0.06);
+    }
+    body.super-light-mode { --bg: #FFFFFF; background: #FFFFFF !important; }
 
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'DM Sans', sans-serif;
+      font-family:var(--font-body);
       font-weight: 300;
       overflow-x: hidden;
     }
@@ -50,32 +80,36 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 1.2rem 2.5rem;
-      background: #000;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 0.75rem 2.5rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
     }
     .nav-logo-link {
       display: flex; align-items: center;
       text-decoration: none; cursor: pointer;
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.6rem;
-      letter-spacing: 0.12em;
-      color: var(--text);
     }
     .nav-logo-img {
-      height: 32px;
+      height: 22px;
       width: auto;
+      transition: filter .35s;
+      filter: invert(1);
     }
+    body.light-mode .nav-logo-img { filter: none; }
     .nav-back {
       background: none; border: none;
       color: var(--text);
-      font-family: 'DM Sans', sans-serif;
+      font-family:var(--font-body);
       font-size: 0.8rem; font-weight: 500;
       letter-spacing: 0.12em; text-transform: uppercase;
       cursor: pointer; opacity: 0.55;
       transition: opacity 0.2s; text-decoration: none;
     }
     .nav-back:hover { opacity: 1; }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
 
     /* ────── PAGE ────── */
     .page-wrap {
@@ -84,7 +118,7 @@
       padding: 8rem 2.5rem 4rem;
     }
     .page-title {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family:var(--font-head);
       font-size: clamp(3.5rem, 8vw, 6rem);
       letter-spacing: 0.06em;
       line-height: 0.95;
@@ -98,6 +132,52 @@
       margin-bottom: 2.5rem;
     }
 
+    body.embed-mode .nav,
+    body.embed-mode footer,
+    body.embed-mode .cookie-consent {
+      display: none !important;
+    }
+
+    body.embed-mode .page-wrap {
+      max-width: 1120px;
+      padding: 1.4rem 1.4rem 2rem;
+    }
+
+    body.embed-mode .page-title,
+    body.embed-mode .page-subtitle {
+      display: none;
+    }
+
+    .focused-guide-note {
+      display: none;
+      border: 1px solid var(--border);
+      background: rgba(244, 241, 235, 0.03);
+      padding: 1rem 1.1rem;
+      margin-bottom: 1rem;
+    }
+    .focused-guide-note span {
+      display: block;
+      font-size: 0.72rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+    .focused-guide-note strong {
+      display: block;
+      font-family:var(--font-head);
+      font-size: 1.5rem;
+      letter-spacing: 0.08em;
+      color: var(--text);
+      line-height: 1;
+    }
+    body.embed-mode.embed-focused .focused-guide-note {
+      display: block;
+    }
+    body.embed-mode.embed-focused .tabs-nav.tabs-nav--hidden {
+      display: none;
+    }
+
     /* ────── CALCULATOR SECTION ────── */
     .calculator {
       background: rgba(244, 241, 235, 0.02);
@@ -107,7 +187,7 @@
       border-radius: 0;
     }
     .calc-title {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family:var(--font-head);
       font-size: 1.3rem;
       letter-spacing: 0.1em;
       margin-bottom: 1.8rem;
@@ -136,7 +216,7 @@
       border: 1px solid var(--border);
       color: var(--text);
       padding: 0.75rem 1rem;
-      font-family: 'DM Sans', sans-serif;
+      font-family:var(--font-body);
       font-size: 0.85rem;
       letter-spacing: 0.04em;
       border-radius: 0;
@@ -194,7 +274,7 @@
       color: var(--bg);
       border: none;
       padding: 0.8rem 2rem;
-      font-family: 'DM Sans', sans-serif;
+      font-family:var(--font-body);
       font-size: 0.7rem;
       letter-spacing: 0.18em;
       text-transform: uppercase;
@@ -225,7 +305,7 @@
     @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
     .calc-result-title {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family:var(--font-head);
       font-size: 1.2rem;
       letter-spacing: 0.1em;
       margin-bottom: 0.8rem;
@@ -251,7 +331,7 @@
       border: none;
       color: var(--muted);
       padding: 1rem 1.5rem;
-      font-family: 'DM Sans', sans-serif;
+      font-family:var(--font-body);
       font-size: 0.85rem;
       letter-spacing: 0.1em;
       text-transform: uppercase;
@@ -292,7 +372,7 @@
       animation: fadeIn 0.3s ease;
     }
     .highlight-title {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family:var(--font-head);
       font-size: 1.15rem;
       letter-spacing: 0.1em;
       margin-bottom: 1rem;
@@ -308,6 +388,7 @@
       background: var(--bg);
       border: 1px solid rgba(248, 145, 165, 0.2);
       border-radius: 2px;
+  text-align: center;
     }
     .highlight-label {
       font-size: 0.7rem;
@@ -324,7 +405,7 @@
 
     /* ────── TABLES ────── */
     .table-section h2 {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family:var(--font-head);
       font-size: 1.3rem;
       letter-spacing: 0.1em;
       margin-bottom: 1.2rem;
@@ -389,13 +470,27 @@
       color: var(--text);
       font-weight: 500;
     }
+/* Center all size chart table content for consistency */
+.table-wrap th,
+.table-wrap td {
+  text-align: center !important;
+  padding-left: 1rem !important;
+  min-width: auto !important;
+  white-space: normal;
+  line-height: 1.6;
+}
+#calcBandSize, #calcCupSize {
+  text-align: center;
+  text-align-last: center;
+  padding-left: 2.5rem; /* Balances the 2.5rem right-padding from the arrow icon */
+}
 
     /* ────── HOW TO MEASURE ────── */
     .how-to-measure {
       margin: 3rem 0;
     }
     .how-to-measure h2 {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family:var(--font-head);
       font-size: 1.3rem;
       letter-spacing: 0.1em;
       margin-bottom: 1.5rem;
@@ -413,7 +508,7 @@
       padding: 1.5rem;
     }
     .measure-letter {
-      font-family: 'Bebas Neue', sans-serif;
+      font-family:var(--font-head);
       font-size: 2rem;
       letter-spacing: 0.05em;
       color: rgba(244, 241, 235, 0.15);
@@ -455,6 +550,46 @@
       margin-bottom: 0;
     }
 
+    /* ────── FABRIC TECH ────── */
+    .tech-card {
+      background: rgba(244, 241, 235, 0.02);
+      border: 1px solid var(--border);
+      padding: 1.5rem;
+      border-radius: 2px;
+    }
+    .tech-card h3 {
+      font-family:var(--font-head);
+      color: var(--accent);
+      font-size: 1.4rem;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.2rem;
+    }
+    .tech-level {
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+      display: block;
+    }
+    .tech-detail {
+      font-size: 0.85rem;
+      line-height: 1.6;
+      margin-bottom: 0.5rem;
+    }
+    .tech-detail strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+    .tech-desc {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
     /* ────── LOADING ────── */
     .loading {
       display: inline-block;
@@ -463,35 +598,7 @@
       font-style: italic;
     }
 
-    /* ────── FOOTER ────── */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 2rem 2.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-top: 4rem;
-    }
-    footer p {
-      font-size: 0.75rem;
-      letter-spacing: 0.1em;
-      color: rgba(244, 241, 235, 0.3);
-      text-transform: uppercase;
-    }
-    footer a {
-      font-size: 0.75rem;
-      letter-spacing: 0.1em;
-      color: rgba(244, 241, 235, 0.3);
-      text-transform: uppercase;
-      text-decoration: none;
-      transition: opacity 0.2s;
-    }
-    footer a:hover {
-      opacity: 0.8;
-      color: var(--text);
-    }
+    footer{margin-top:4rem}
 
     /* ────── COOKIE CONSENT ────── */
     .cookie-consent {
@@ -531,7 +638,7 @@
       border: 1px solid var(--border);
       color: var(--text);
       padding: 0.5rem 1.2rem;
-      font-family: 'DM Sans', sans-serif;
+      font-family:var(--font-body);
       font-size: 0.75rem;
       letter-spacing: 0.1em;
       text-transform: uppercase;
@@ -546,7 +653,7 @@
     }
     .cookie-btn.accept {
       background: var(--accent);
-      color: #000;
+      color: #09090b;
       border-color: var(--accent);
     }
     .cookie-btn.accept:hover {
@@ -556,6 +663,7 @@
     /* ────── RESPONSIVE ────── */
     @media (max-width: 768px) {
       .nav { padding: 1rem 1.2rem; padding-top: calc(1rem + env(safe-area-inset-top)); }
+      .nav-actions .nav-back { display: none; }
       .page-wrap { padding: 5.5rem 1.2rem 3rem; }
       .page-title { font-size: clamp(2rem, 10vw, 3.5rem); }
       .calculator { padding: 1.5rem; }
@@ -582,30 +690,181 @@
       .cookie-buttons { flex-direction: column; width: 100%; }
       .cookie-btn { flex: 1; }
     }
+
+    @media (max-width: 760px) {
+      body.embed-mode .page-wrap {
+        padding: 1.1rem 1.1rem 1.7rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body.embed-mode .page-wrap {
+        padding: 1rem 0.9rem 1.4rem;
+      }
+    }
+
+    .tech-guide-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+    @media (max-width: 768px) {
+      .tech-guide-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ────── LIGHT MODE ────── */
+    body.light-mode {
+      --bg: #F0EEE9;
+      --text: #09090b;
+      --muted: rgba(9, 9, 11, 0.6);
+      --border: rgba(9, 9, 11, 0.15);
+      --hover: rgba(9, 9, 11, 0.08);
+    }
+    body.light-mode .nav { background: #F0EEE9; border-bottom-color: rgba(9,9,11,0.08); }
+    body.super-light-mode .nav { background: #FFFFFF; }
+    body.super-light-mode .calc-select option { background: #FFFFFF; color: #09090b; }
+    body.light-mode .flogo img { filter: none; }
+    body.light-mode .calculator { background: rgba(9,9,11,0.02); }
+    body.light-mode .focused-guide-note { background: rgba(9, 9, 11, 0.03); }
+    body.light-mode .calc-input, body.light-mode .calc-select {
+      background-color: rgba(9,9,11,0.04);
+      color: #09090b;
+    }
+    body.light-mode .calc-select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2309090b' stroke-width='1.5' fill='none' opacity='0.4'/%3E%3C/svg%3E");
+    }
+    body.light-mode .calc-select option { background: #F0EEE9; color: #09090b; }
+    body.light-mode .calc-input:focus, body.light-mode .calc-select:focus {
+      background: rgba(9,9,11,0.06);
+      border-color: rgba(9,9,11,0.4);
+    }
+    body.light-mode thead tr { background: rgba(9,9,11,0.04); }
+    body.light-mode tbody tr { border-bottom-color: rgba(9,9,11,0.04); }
+    body.light-mode tbody tr:hover { background: rgba(9,9,11,0.04); }
+    body.light-mode tbody td { color: rgba(9,9,11,0.65); }
+    body.light-mode .measure-letter { color: rgba(9,9,11,0.15); }
+    body.light-mode .sizing-notes { background: rgba(9,9,11,0.03); }
+    body.light-mode .tech-card { background: rgba(9,9,11,0.02); }
+    body.light-mode .cookie-consent { background: rgba(232,227,220,0.95); }
+    /* Replace pink accent with black in light mode */
+    body.light-mode { --accent: #09090b; }
+    body.light-mode .tab-btn.active {
+      color: #09090b;
+      border-bottom-color: #09090b;
+    }
+    body.light-mode .tab-btn:hover { color: #09090b; }
+    body.light-mode .calc-result {
+      background: rgba(9,9,11,0.04);
+      border-color: rgba(9,9,11,0.15);
+    }
+    body.light-mode .calc-result-title { color: #09090b; }
+    body.light-mode .highlight-card {
+      background: rgba(9,9,11,0.04);
+      border-color: rgba(9,9,11,0.15);
+    }
+    body.light-mode .highlight-title { color: #09090b; }
+    body.light-mode .nav-back { color: #09090b; opacity: 0.55; }
+    body.light-mode .nav-back:hover { opacity: 1; }
+    body.light-mode .page-title { color: #09090b; }
+    body.light-mode .page-subtitle { color: rgba(9,9,11,0.5); }
+    body.light-mode .calc-toggle-btn { border-color: rgba(9,9,11,0.15); color: rgba(9,9,11,0.5); }
+    body.light-mode .calc-toggle-btn:hover:not(.active) { border-color: #09090b; color: #09090b; }
+    body.light-mode .calc-toggle-btn.active { background: #09090b; border-color: #09090b; color: #E8E3DC; }
+    body.light-mode .calc-button { background: #09090b; color: #E8E3DC; }
+    body.light-mode .tabs-nav { border-bottom-color: rgba(9,9,11,0.1); }
   </style>
+<script>try{var _t=localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
+<script src="/posthog-init.js?v=e62ca5bb" defer></script>
+<style>body.super-light-mode{--bg:#FFFFFF;}</style>
 </head>
 <body>
+<script>(function(){try{var m=localStorage.getItem('zw_theme_mode');if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
+
+  <script>
+    // Load a neutral theme immediately; admin settings become the source of truth once fetched.
+    (function() {
+      function applyThemeMode(mode) {
+        var resolved = mode === 'dark' ? 'dark' : mode === 'super-light' ? 'super-light' : 'light';
+        document.body.classList.toggle('light-mode', resolved !== 'dark');
+        document.body.classList.toggle('super-light-mode', resolved === 'super-light');
+        var color = resolved === 'dark' ? '#09090b' : resolved === 'super-light' ? '#FFFFFF' : '#F0EEE9';
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', color);
+        document.documentElement.style.backgroundColor = color;
+      }
+      if (window.__ZW_SIZEGUIDE_EMBED__ === true) {
+        document.body.classList.add('embed-mode');
+      }
+      try { applyThemeMode(localStorage.getItem('zw_theme_mode') || 'dark'); } catch(_) { applyThemeMode('dark'); }
+      window.__zwApplyAdminTheme = applyThemeMode;
+      window.__zwSyncThemeColor = function() {
+        var m = document.body.classList.contains('super-light-mode') ? 'super-light'
+              : document.body.classList.contains('light-mode') ? 'light' : 'dark';
+        applyThemeMode(m);
+      };
+    })();
+  </script>
 
   <!-- NAV -->
   <header class="nav">
-    <a href="index.html" class="nav-logo-link" aria-label="Back to Zuwera home">
-      <img src="images/logo.png" alt="Zuwera" class="nav-logo-img">
+    <a href="/" class="nav-logo-link" aria-label="Back to Zuwera home">
+      <img src="images/wordmark-nav.png" srcset="images/wordmark-nav@2x.png 2x" alt="ZUWERA" class="nav-logo-img" width="113" height="22" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
     </a>
-    <a href="index.html" class="nav-back">← Back</a>
+    <div class="nav-actions">
+      <a href="/" class="nav-back" data-history-back>&#8592; Back</a>
+      <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" aria-controls="mobile-menu" aria-expanded="false">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="8" x2="21" y2="8"></line><line x1="3" y1="16" x2="21" y2="16"></line></svg>
+      </button>
+    </div>
   </header>
+
+  <div id="mobile-menu" class="modal zw-mobile-menu" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="mobile-menu-title">
+    <div class="mbox zw-mobile-menu-panel">
+      <div class="zw-mobile-menu-top">
+        <p class="zw-mobile-menu-kicker">Zuwera Navigation</p>
+        <button id="mobile-menu-close" class="mclose zw-mobile-menu-close" aria-label="Close menu" onclick="return window.closeMobileMenu ? window.closeMobileMenu() : false;">Close</button>
+      </div>
+      <nav class="zw-mobile-menu-nav" aria-label="Mobile navigation">
+        <h2 id="mobile-menu-title" class="zw-mobile-menu-title">Menu</h2>
+        <div id="mobile-category-links" class="mobile-nav-links zw-mobile-menu-primary">
+          <a href="drop001.html?category=Jackets" class="mobile-nav-link zw-mobile-primary-link">Jackets</a>
+          <a href="drop001.html?category=T-Shirts" class="mobile-nav-link zw-mobile-primary-link">T-Shirts</a>
+          <a href="drop001.html?category=Beanies" class="mobile-nav-link zw-mobile-primary-link">Beanies</a>
+          <a href="index.html#about" class="mobile-nav-link zw-mobile-primary-link">About</a>
+        </div>
+        <div class="zw-mobile-menu-secondary">
+          <a href="account.html" class="zw-mobile-secondary-link">Account</a>
+          <a href="account.html#orders" class="zw-mobile-secondary-link">Track Order</a>
+          <a href="mailto:nasirubreeze@zuwera.store" class="zw-mobile-secondary-link">Support</a>
+          <a href="bag.html" class="zw-mobile-secondary-link zw-mobile-bag-link" aria-label="Open bag">Bag <span class="zw-mobile-bag-count">0</span></a>
+          <a href="sizeguide.html" class="zw-mobile-secondary-link">Size Guide</a>
+        </div>
+      </nav>
+      <footer class="zw-mobile-menu-footer">
+        <div class="zw-mobile-socials" aria-label="Social links">
+          <a href="https://instagram.com/Zuw.era" target="_blank" rel="noopener">Instagram</a>
+          <a href="mailto:nasirubreeze@zuwera.store">Email</a>
+          <a href="#" onclick="event.preventDefault(); window.closeMobileMenu?.(); setTimeout(() => window.zwLang?.open?.(), 0);">Language</a>
+        </div>
+        <p class="zw-mobile-menu-year">Zuwera &middot; 2026</p>
+      </footer>
+    </div>
+  </div>
 
   <!-- MAIN CONTENT -->
   <main class="page-wrap">
 
     <h1 class="page-title">Size &<br>Fit Guide</h1>
     <p class="page-subtitle">Find your perfect fit</p>
+    <div id="focused-guide-note" class="focused-guide-note" hidden></div>
 
     <!-- CALCULATOR -->
     <section class="calculator">
       <h2 class="calc-title">Find My Size</h2>
 
       <div class="calc-grid">
-        <div class="calc-field">
+        <div class="calc-field" id="calcGenderField">
           <label class="calc-label">Gender</label>
           <select id="calcGender" class="calc-select">
             <option value="">Select Gender</option>
@@ -615,7 +874,7 @@
           </select>
         </div>
 
-        <div class="calc-field">
+        <div class="calc-field" id="calcCategoryField">
           <label class="calc-label">Category</label>
           <select id="calcCategory" class="calc-select">
             <option value="">Select Category</option>
@@ -713,6 +972,8 @@
       <button class="tab-btn" data-tab="kids">Kids</button>
       <button class="tab-btn" data-tab="sports_bras">Sports Bras</button>
       <button class="tab-btn" data-tab="hats">Hats</button>
+      <button class="tab-btn" data-tab="socks">Socks</button>
+      <button class="tab-btn" data-tab="technologies">Fabric Tech</button>
     </div>
 
     <!-- MEN'S APPAREL -->
@@ -820,6 +1081,30 @@
       </div>
     </div>
 
+    <!-- SOCKS -->
+    <div class="tab-panel" id="tab-socks">
+      <div class="table-section">
+        <h2>Unisex Socks</h2>
+        <p style="font-size:0.75rem;letter-spacing:0.08em;text-transform:uppercase;opacity:0.55;margin-bottom:1.2rem;">Use the chart below to determine the right size for you. Scroll horizontally to see more sizes.</p>
+        <div class="table-wrap">
+          <table id="table-socks">
+            <thead><tr id="socks-header-row"></tr></thead>
+            <tbody id="socks-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- FABRIC TECHNOLOGIES -->
+    <div class="tab-panel" id="tab-technologies">
+      <div class="table-section">
+        <h2>Fabric Technologies</h2>
+        <div id="techGuideContainer" class="tech-guide-grid">
+          <div class="loading">Loading technologies...</div>
+        </div>
+      </div>
+    </div>
+
     <!-- HOW TO MEASURE -->
     <section class="how-to-measure">
       <h2>How to Measure</h2>
@@ -863,10 +1148,24 @@
 
   <!-- FOOTER -->
   <footer>
-    <a href="index.html">← Back to Zuwera</a>
-    <p>© 2026 Zuwera. All rights reserved.</p>
-    <a href="policies.html">Policies</a>
-    <a href="mailto:nasirubreeze@zuwera.store">Contact</a>
+    <div class="flogo">
+      <img src="images/wordmark-footer.png" srcset="images/wordmark-footer@2x.png 2x" alt="ZUWERA" width="175" height="34" loading="lazy" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
+    </div>
+    <nav class="flinks">
+      <a href="/drop001.html">Release 001</a>
+      <a href="/sizeguide.html" aria-current="page">Size Guide</a>
+      <a href="/policies.html">Policies</a>
+      <a href="/returns.html">Returns</a>
+      <a href="/account.html">Account</a>
+      <a href="mailto:nasirubreeze@zuwera.store">Contact</a>
+    </nav>
+    <div class="fright">
+      <a href="https://instagram.com/Zuw.era" target="_blank" rel="noopener" class="fig">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+        @Zuw.era
+      </a>
+      <p class="fcopy">&copy; 2026 Zuwera. All rights reserved.</p>
+    </div>
   </footer>
 
   <!-- COOKIE CONSENT -->
@@ -933,10 +1232,18 @@
         { size_label: 'XL', band_size: '40', cup_size: 'E' }
       ],
       hats: [
+        { size_label: 'One Size', head_circ_in: '21.25-24', head_circ_cm: '54-61' },
         { size_label: 'S/M', head_circ_in: '21.25-22.5', head_circ_cm: '54-57' },
         { size_label: 'M/L', head_circ_in: '22.5-23.5', head_circ_cm: '57-60' },
-        { size_label: 'L/XL', head_circ_in: '23.5-24.75', head_circ_cm: '60-63' },
-        { size_label: 'One Size', head_circ_in: '21.25-24', head_circ_cm: '54-61' }
+        { size_label: 'L/XL', head_circ_in: '23.5-24.75', head_circ_cm: '60-63' }
+      ],
+      socks: [
+        { size_label: 'XS',  us_mens: null,       us_womens: null,        us_kids: '13C – 3Y', uk: null,          eu: '31 – 35' },
+        { size_label: 'S',   us_mens: null,       us_womens: '4 – 6',    us_kids: '3Y – 5Y',  uk: '2 – 5',       eu: '34 – 38' },
+        { size_label: 'M',   us_mens: '6 – 8',   us_womens: '6 – 10',   us_kids: '5Y – 7Y',  uk: '5 – 8',       eu: '38 – 42' },
+        { size_label: 'L',   us_mens: '8 – 12',  us_womens: '10 – 13',  us_kids: null,        uk: '8 – 11',      eu: '42 – 46' },
+        { size_label: 'XL',  us_mens: '12 – 15', us_womens: null,        us_kids: null,        uk: '11 – 14.5',   eu: '46 – 50' },
+        { size_label: '2XL', us_mens: '15 – 18', us_womens: null,        us_kids: null,        uk: '14.5 – 17',   eu: '50 – 53' }
       ]
     };
 
@@ -944,6 +1251,19 @@
     let sizeChartData = { ...fallbackData };
     let recommendedSize = null;
     let currentTab = 'mens';
+    
+    // Default fallback technologies just in case Supabase errors out
+    const fallbackTechDict = {
+      "Aero-PRO™": { focus: "Sweat evaporation and breathability.", level: "Standard Performance.", opt: "Light to moderate sweat output.", best: "Daily physical activity, gym sessions, and steady-state training.", desc: "High-wicking capillary fibers designed to pull moisture away from the skin for consistent dryness and comfort." },
+      "Aero-ULTRA™": { focus: "Sweat evaporation and breathability.", level: "Pinnacle Performance.", opt: "Heavy to extreme sweat output.", best: "High-intensity racing, elite competition, and maximum exertion.", desc: "A near-zero moisture retention weave with accelerated evaporation tech to keep the garment featherweight during peak output." },
+      "Hydro-PRO™": { focus: "Rain, mist, and liquid deflection.", level: "Variable Protection.", opt: "Light rain, mist, and road spray.", best: "Unpredictable weather, morning runs, and outdoor commuting.", desc: "A durable water-repellent (DWR) shield that causes liquid to bead off the surface while maintaining fabric softness." },
+      "Hydro-ULTRA™": { focus: "Rain, mist, and liquid deflection.", level: "Absolute Protection.", opt: "Heavy downpours and high-velocity exposure.", best: "Storm conditions, extreme trail hiking, and all-day outdoor exposure.", desc: "100% waterproof, seam-sealed membrane technology that blocks external water while allowing internal vapor to escape." },
+      "Thermo-PRO™": { focus: "Heat retention and cold-weather insulation.", level: "Active Insulation.", opt: "Cool to cold temperatures (40°F – 60°F).", best: "Layering, outdoor winter training, and warm-ups.", desc: "Breathable thermal micro-fibers that trap body heat during movement without causing overheating." },
+      "Thermo-ULTRA™": { focus: "Heat retention and cold-weather insulation.", level: "Extreme Insulation.", opt: "Sub-zero and freezing temperatures (Below 32°F).", best: "Static warmth, winter expeditions, and extreme cold-weather protection.", desc: "High-density heat-lock technology designed to maintain core temperature in the harshest environments." },
+      "Storm-PRO™": { focus: "Wind-blocking and heavy elemental resistance.", level: "Wind Resistance.", opt: "Moderate wind and transitional weather.", best: "Cycling, running in gusty conditions, and everyday outerwear.", desc: "High-density weave engineered to deflect wind chill while remaining flexible and quiet." },
+      "Storm-ULTRA™": { focus: "Wind-blocking and heavy elemental resistance.", level: "Total Element Block.", opt: "Gale-force winds and brutal mountain conditions.", best: "Summiting, heavy winter storms, and high-altitude performance.", desc: "An impenetrable technical barrier that creates a zero-permeability micro-climate for the athlete." }
+    };
+    let siteTechs = null;
 
     // ────── COOKIE CONSENT ──────
     function initCookieConsent() {
@@ -951,18 +1271,18 @@
       const cookieAccept = document.getElementById('cookieAccept');
       const cookieDecline = document.getElementById('cookieDecline');
 
-      const consentGiven = localStorage.getItem('cookieConsent');
+      const consentGiven = localStorage.getItem('zw_cookie_consent');
       if (!consentGiven) {
         cookieConsent.classList.add('visible');
       }
 
       cookieAccept.addEventListener('click', () => {
-        localStorage.setItem('cookieConsent', 'true');
+        localStorage.setItem('zw_cookie_consent', 'accepted');
         cookieConsent.classList.remove('visible');
       });
 
       cookieDecline.addEventListener('click', () => {
-        localStorage.setItem('cookieConsent', 'false');
+        localStorage.setItem('zw_cookie_consent', 'declined');
         cookieConsent.classList.remove('visible');
       });
     }
@@ -989,6 +1309,63 @@
       }
 
       renderAllTables();
+      updateHighlightCard();
+      updatePlaceholdersFromSize();
+    }
+    
+    async function fetchSiteSettings() {
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?key=eq.technologies`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.length > 0 && data[0].value) {
+            siteTechs = typeof data[0].value === 'string' ? JSON.parse(data[0].value) : data[0].value;
+          }
+        }
+        
+        const themeRes = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?key=eq.theme`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+        });
+        if (themeRes.ok) {
+          const themeData = await themeRes.json();
+          const savedMode = themeData && themeData.length > 0 && themeData[0].value && themeData[0].value.mode;
+          const mode = savedMode === 'dark' ? 'dark' : savedMode === 'super-light' ? 'super-light' : 'light';
+          if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode);
+          else document.body.classList.toggle('light-mode', mode === 'light');
+        }
+        
+        const brandRes = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?key=eq.brand`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+        });
+        if (brandRes.ok) {
+          const brandData = await brandRes.json();
+          if (brandData && brandData.length > 0 && brandData[0].value && brandData[0].value.favicon) {
+            const link = document.querySelector('link[rel="icon"]');
+            if (link) { window.__zwApplyFavicon ? window.__zwApplyFavicon(brandData[0].value.favicon) : (link.href = brandData[0].value.favicon); }
+          }
+        }
+      } catch (error) { console.log('Failed to fetch site settings', error); }
+      
+      const container = document.getElementById('techGuideContainer');
+      if (!container) return;
+      container.innerHTML = '';
+      const techData = (siteTechs && Object.keys(siteTechs).length > 0) ? siteTechs : fallbackTechDict;
+      Object.keys(techData).forEach(key => {
+        const info = techData[key];
+        const card = document.createElement('div');
+        card.className = 'tech-card';
+        card.innerHTML = `
+          <h3>${key}</h3>
+          <span class="tech-level">${info.level || 'Performance Tech'}</span>
+          <div class="tech-detail"><strong>Focus:</strong> ${info.focus || 'N/A'}</div>
+          <div class="tech-detail"><strong>Optimization:</strong> ${info.opt || 'N/A'}</div>
+          <div class="tech-detail"><strong>Best For:</strong> ${info.best || 'N/A'}</div>
+          <div class="tech-desc">${info.desc || ''}</div>
+        `;
+        container.appendChild(card);
+      });
     }
 
     function processSizeChartData(data) {
@@ -997,7 +1374,8 @@
         women_tops: [],
         kids: [],
         sports_bras: [],
-        hats: []
+        hats: [],
+        socks: []
       };
 
       data.forEach(row => {
@@ -1008,6 +1386,7 @@
 
       Object.keys(categorized).forEach(cat => {
         if (categorized[cat].length > 0) {
+          categorized[cat].sort((left, right) => compareGuideSizeLabels(left.size_label, right.size_label));
           sizeChartData[cat] = categorized[cat];
         }
       });
@@ -1020,6 +1399,30 @@
       renderTable('kids', sizeChartData.kids, ['size_label', 'numeric_size', 'height_in', 'chest_in', 'waist_in', 'hips_in']);
       renderSportsBrasTable();
       renderHatsTable();
+      renderSocksTable();
+    }
+
+    function renderSocksTable() {
+      const headerRow = document.getElementById('socks-header-row');
+      const tbody = document.getElementById('socks-tbody');
+      if (!headerRow || !tbody) return;
+      const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', '2XL'];
+      const sizes = [...sizeChartData.socks].sort((a, b) =>
+        sizeOrder.indexOf(a.size_label) - sizeOrder.indexOf(b.size_label)
+      );
+      headerRow.innerHTML = '<th>Size</th>' + sizes.map(s => `<th>${s.size_label}</th>`).join('');
+      const metrics = [
+        { label: 'US – Men\'s',   field: 'us_mens' },
+        { label: 'US – Women\'s', field: 'us_womens' },
+        { label: 'US – Kids',     field: 'us_kids' },
+        { label: 'UK',            field: 'uk' },
+        { label: 'EU',            field: 'eu' }
+      ];
+      tbody.innerHTML = metrics.map(m =>
+        `<tr><td style="font-weight:500;white-space:nowrap;">${m.label}</td>${
+          sizes.map(s => `<td>${s[m.field] || '—'}</td>`).join('')
+        }</tr>`
+      ).join('');
     }
 
     function renderTable(tabId, data, columns) {
@@ -1029,7 +1432,7 @@
 
       data.forEach(row => {
         const tr = document.createElement('tr');
-        if (recommendedSize && row.size_label === recommendedSize && currentTab === getTabIdFromName(tabId)) {
+        if (recommendedSize && sizeLabelsMatch(row.size_label, recommendedSize) && currentTab === getTabIdFromName(tabId)) {
           tr.classList.add('highlighted');
         }
 
@@ -1058,7 +1461,7 @@
 
       Object.keys(grouped).forEach(size => {
         const tr = document.createElement('tr');
-        if (recommendedSize && size === recommendedSize && currentTab === 'sports_bras') {
+        if (recommendedSize && sizeLabelsMatch(size, recommendedSize) && currentTab === 'sports_bras') {
           tr.classList.add('highlighted');
         }
         tr.innerHTML = `<td>${size}</td><td>${grouped[size].join(', ')}</td>`;
@@ -1073,7 +1476,7 @@
 
       sizeChartData.hats.forEach(row => {
         const tr = document.createElement('tr');
-        if (recommendedSize && row.size_label === recommendedSize && currentTab === 'hats') {
+        if (recommendedSize && sizeLabelsMatch(row.size_label, recommendedSize) && currentTab === 'hats') {
           tr.classList.add('highlighted');
         }
         tr.innerHTML = `<td>${row.size_label}</td><td>${row.head_circ_in}</td><td>${row.head_circ_cm}</td>`;
@@ -1103,8 +1506,30 @@
     }
 
     function updateCalculatorFields() {
-      const gender = document.getElementById('calcGender').value;
-      const category = document.getElementById('calcCategory').value;
+      const genderSelect = document.getElementById('calcGender');
+      const categorySelect = document.getElementById('calcCategory');
+      
+      let gender = genderSelect.value;
+      let category = categorySelect.value;
+
+      // If gender is Men, and category is Sports Bras, reset category
+      if (gender === 'men' && category === 'sports_bras') {
+        categorySelect.value = '';
+        category = '';
+      }
+
+      // Disable/Hide Sports Bras option for Men
+      Array.from(categorySelect.options).forEach(opt => {
+        if (opt.value === 'sports_bras') {
+          if (gender === 'men') {
+            opt.style.display = 'none';
+            opt.disabled = true;
+          } else {
+            opt.style.display = '';
+            opt.disabled = false;
+          }
+        }
+      });
 
       // Hide all fields
       document.getElementById('heightField').style.display = 'none';
@@ -1217,6 +1642,7 @@
 
         // Show highlight card for current tab
         updateHighlightCard();
+        updatePlaceholdersFromSize();
       } else {
         resultText.textContent = 'Could not determine size. Please check your measurements.';
         result.classList.add('visible');
@@ -1224,53 +1650,82 @@
     }
 
     function findMenSize(chest, waist) {
-      for (let row of sizeChartData.men_tops) {
-        const [chestMin, chestMax] = row.chest_in.split('-').map(parseFloat);
-        const [waistMin, waistMax] = row.waist_in.split('-').map(parseFloat);
-
-        if (chest >= chestMin && chest <= chestMax && waist >= waistMin && waist <= waistMax) {
-          return row.size_label;
-        }
+      let chestIdx = -1, waistIdx = -1;
+      let cChest = Infinity, cWaist = Infinity;
+      
+      sizeChartData.men_tops.forEach((row, idx) => {
+        const chestVals = row.chest_in.split('-').map(parseFloat);
+        const waistVals = row.waist_in.split('-').map(parseFloat);
+        
+        if (chest >= chestVals[0] && chest <= (chestVals[1] || chestVals[0])) chestIdx = idx;
+        if (waist >= waistVals[0] && waist <= (waistVals[1] || waistVals[0])) waistIdx = idx;
+        
+        const cC = (chestVals[0] + (chestVals[1] || chestVals[0])) / 2;
+        const wC = (waistVals[0] + (waistVals[1] || waistVals[0])) / 2;
+        
+        if (Math.abs(chest - cC) < cChest) { cChest = Math.abs(chest - cC); if (chestIdx === -1) chestIdx = idx; }
+        if (Math.abs(waist - wC) < cWaist) { cWaist = Math.abs(waist - wC); if (waistIdx === -1) waistIdx = idx; }
+      });
+      
+      const recommendedIdx = Math.max(chestIdx, waistIdx);
+      if (recommendedIdx >= 0 && recommendedIdx < sizeChartData.men_tops.length) {
+        return sizeChartData.men_tops[recommendedIdx].size_label;
       }
       return null;
     }
 
     function findWomenSize(bust, waist, hips) {
-      for (let row of sizeChartData.women_tops) {
-        const [bustMin, bustMax] = row.bust_in.split('-').map(parseFloat);
-        const [waistMin, waistMax] = row.waist_in.split('-').map(parseFloat);
-        const [hipsMin, hipsMax] = row.hips_in.split('-').map(parseFloat);
-
-        if (bust >= bustMin && bust <= bustMax && waist >= waistMin && waist <= waistMax && hips >= hipsMin && hips <= hipsMax) {
-          return row.size_label;
-        }
+      let bustIdx = -1, waistIdx = -1, hipsIdx = -1;
+      let cBust = Infinity, cWaist = Infinity, cHips = Infinity;
+      
+      sizeChartData.women_tops.forEach((row, idx) => {
+        const bustVals = row.bust_in.split('-').map(parseFloat);
+        const waistVals = row.waist_in.split('-').map(parseFloat);
+        const hipsVals = row.hips_in.split('-').map(parseFloat);
+        
+        if (bust >= bustVals[0] && bust <= (bustVals[1] || bustVals[0])) bustIdx = idx;
+        if (waist >= waistVals[0] && waist <= (waistVals[1] || waistVals[0])) waistIdx = idx;
+        if (hips >= hipsVals[0] && hips <= (hipsVals[1] || hipsVals[0])) hipsIdx = idx;
+        
+        const bC = (bustVals[0] + (bustVals[1] || bustVals[0])) / 2;
+        const wC = (waistVals[0] + (waistVals[1] || waistVals[0])) / 2;
+        const hC = (hipsVals[0] + (hipsVals[1] || hipsVals[0])) / 2;
+        
+        if (Math.abs(bust - bC) < cBust) { cBust = Math.abs(bust - bC); if (bustIdx === -1) bustIdx = idx; }
+        if (Math.abs(waist - wC) < cWaist) { cWaist = Math.abs(waist - wC); if (waistIdx === -1) waistIdx = idx; }
+        if (Math.abs(hips - hC) < cHips) { cHips = Math.abs(hips - hC); if (hipsIdx === -1) hipsIdx = idx; }
+      });
+      
+      const recommendedIdx = Math.max(bustIdx, waistIdx, hipsIdx);
+      if (recommendedIdx >= 0 && recommendedIdx < sizeChartData.women_tops.length) {
+        return sizeChartData.women_tops[recommendedIdx].size_label;
       }
       return null;
     }
 
     function findClosestKidsSize(age, height) {
-      let closest = null;
-      let closestDiff = Infinity;
-
-      for (let row of sizeChartData.kids) {
-        const [ageMin, ageMax] = row.numeric_size.split('-').map(parseFloat);
-        const [heightMin, heightMax] = row.height_in.split('-').map(parseFloat);
-
-        if (age >= ageMin && age <= ageMax && height >= heightMin && height <= heightMax) {
-          return row.size_label;
-        }
-
-        // Find closest if exact match not found
-        const ageCenter = (ageMin + ageMax) / 2;
-        const heightCenter = (heightMin + heightMax) / 2;
-        const diff = Math.abs(age - ageCenter) + Math.abs(height - heightCenter);
-        if (diff < closestDiff) {
-          closestDiff = diff;
-          closest = row.size_label;
-        }
+      let ageIdx = -1, heightIdx = -1;
+      let cAge = Infinity, cHeight = Infinity;
+      
+      sizeChartData.kids.forEach((row, idx) => {
+        const ageVals = row.numeric_size.split('-').map(parseFloat);
+        const heightVals = row.height_in.split('-').map(parseFloat);
+        
+        if (age >= ageVals[0] && age <= (ageVals[1] || ageVals[0])) ageIdx = idx;
+        if (height >= heightVals[0] && height <= (heightVals[1] || heightVals[0])) heightIdx = idx;
+        
+        const aC = (ageVals[0] + (ageVals[1] || ageVals[0])) / 2;
+        const hC = (heightVals[0] + (heightVals[1] || heightVals[0])) / 2;
+        
+        if (Math.abs(age - aC) < cAge) { cAge = Math.abs(age - aC); if (ageIdx === -1) ageIdx = idx; }
+        if (Math.abs(height - hC) < cHeight) { cHeight = Math.abs(height - hC); if (heightIdx === -1) heightIdx = idx; }
+      });
+      
+      const recommendedIdx = Math.max(ageIdx, heightIdx);
+      if (recommendedIdx >= 0 && recommendedIdx < sizeChartData.kids.length) {
+        return sizeChartData.kids[recommendedIdx].size_label;
       }
-
-      return closest;
+      return null;
     }
 
     function findSportsBraSize(band, cup) {
@@ -1287,13 +1742,18 @@
     }
 
     function findHatSize(headCirc) {
+      let closest = null;
+      let minDiff = Infinity;
       for (let row of sizeChartData.hats) {
-        const [min, max] = row.head_circ_in.split('-').map(parseFloat);
-        if (headCirc >= min && headCirc <= max) {
-          return row.size_label;
+        const vals = row.head_circ_in.split('-').map(parseFloat);
+        if (headCirc >= vals[0] && headCirc <= (vals[1] || vals[0])) return row.size_label;
+        const center = (vals[0] + (vals[1] || vals[0])) / 2;
+        if (Math.abs(headCirc - center) < minDiff) {
+            minDiff = Math.abs(headCirc - center);
+            closest = row.size_label;
         }
       }
-      return null;
+      return closest;
     }
 
     function getTabIdFromGender(gender) {
@@ -1318,8 +1778,9 @@
           if (sizeData) {
             let html = `<div class="highlight-title">Recommended: Size ${window.recommendedSize}</div><div class="highlight-grid">`;
 
+            const HIDDEN_KEYS = new Set(['id', 'category', 'size_label', 'created_at', 'updated_at', 'product_id']);
             Object.keys(sizeData).forEach(key => {
-              if (key !== 'category' && key !== 'size_label' && sizeData[key]) {
+              if (!HIDDEN_KEYS.has(key) && sizeData[key]) {
                 const label = formatLabel(key);
                 html += `<div class="highlight-item"><div class="highlight-label">${label}</div><div class="highlight-value">${sizeData[key]}</div></div>`;
               }
@@ -1329,6 +1790,27 @@
             card.innerHTML = html;
             card.classList.add('visible');
           }
+        }
+      }
+    }
+
+    function updatePlaceholdersFromSize() {
+      // Set defaults first
+      document.getElementById('calcChest').placeholder = 'e.g., 40';
+      document.getElementById('calcWaist').placeholder = 'e.g., 34';
+      document.getElementById('calcHips').placeholder = 'e.g., 40';
+      document.getElementById('calcHeight').placeholder = 'e.g., 70';
+      document.getElementById('calcHeadCirc').placeholder = 'e.g., 22';
+      
+      if (window.recommendedSize && window.currentTab) {
+        const data = getDataForTab(window.currentTab);
+        const sizeData = data.find(row => row.size_label.toUpperCase() === window.recommendedSize.toUpperCase());
+        if (sizeData) {
+          if (sizeData.chest_in) document.getElementById('calcChest').placeholder = `Size ${window.recommendedSize}: ${sizeData.chest_in}`;
+          if (sizeData.waist_in) document.getElementById('calcWaist').placeholder = `Size ${window.recommendedSize}: ${sizeData.waist_in}`;
+          if (sizeData.hips_in) document.getElementById('calcHips').placeholder = `Size ${window.recommendedSize}: ${sizeData.hips_in}`;
+          if (sizeData.height_in) document.getElementById('calcHeight').placeholder = `Size ${window.recommendedSize}: ${sizeData.height_in}`;
+          if (sizeData.head_circ_in) document.getElementById('calcHeadCirc').placeholder = `Size ${window.recommendedSize}: ${sizeData.head_circ_in}`;
         }
       }
     }
@@ -1375,20 +1857,292 @@
           document.getElementById(`tab-${tabId}`).classList.add('active');
 
           updateHighlightCard();
+          updatePlaceholdersFromSize();
         });
       });
     }
 
+    function getGuideParams() {
+      const injected = window.__ZW_SIZEGUIDE_PARAMS__;
+      if (injected && typeof injected === 'object') {
+        const params = new URLSearchParams();
+        Object.entries(injected).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && String(value).trim() !== '') {
+            params.set(key, String(value));
+          }
+        });
+        return params;
+      }
+      return new URLSearchParams(window.location.search);
+    }
+
+    function isEmbedMode() {
+      return window.__ZW_SIZEGUIDE_EMBED__ === true;
+    }
+
+    function normalizeGuideValue(value) {
+      return typeof value === 'string' ? value.trim() : '';
+    }
+
+    function singularizeGuideLabel(value) {
+      const label = normalizeGuideValue(value);
+      if (!label) return '';
+      if (/^kids$/i.test(label)) return 'Kids';
+      if (/^sports bras$/i.test(label)) return 'Sports Bra';
+      if (/ies$/i.test(label)) return label.replace(/ies$/i, 'y');
+      if (/s$/i.test(label) && !/(ss|us)$/i.test(label)) return label.replace(/s$/i, '');
+      return label;
+    }
+
+    function compareGuideSizeLabels(left, right) {
+      const canonicalize = canonicalizeGuideSizeLabel;
+      const getRank = (value) => {
+        const token = canonicalize(value);
+        if (!token) return null;
+        if (token === 'one size' || token === 'one-size' || token === 'onesize') return 0;
+
+        const exactRanks = {
+          '5xs': 5,
+          '4xs': 10,
+          '3xs': 15,
+          '2xs': 20,
+          'xs': 30,
+          'xs/s': 35,
+          's': 40,
+          's/m': 45,
+          'm': 50,
+          'm/l': 55,
+          'l': 60,
+          'l/xl': 65,
+          'xl': 70,
+          '2xl': 80,
+          '3xl': 90,
+          '4xl': 100,
+          '5xl': 110
+        };
+
+        if (exactRanks[token] != null) return exactRanks[token];
+
+        const extraSmallMatch = token.match(/^(\d+)xs$/);
+        if (extraSmallMatch) {
+          const count = parseInt(extraSmallMatch[1], 10);
+          if (!Number.isNaN(count)) return Math.max(1, 30 - (count - 1) * 5);
+        }
+
+        const extraLargeMatch = token.match(/^(\d+)xl$/);
+        if (extraLargeMatch) {
+          const count = parseInt(extraLargeMatch[1], 10);
+          if (!Number.isNaN(count)) return 70 + count * 10;
+        }
+
+        return null;
+      };
+
+      const leftRank = getRank(left);
+      const rightRank = getRank(right);
+
+      if (leftRank !== null || rightRank !== null) {
+        if (leftRank === null) return 1;
+        if (rightRank === null) return -1;
+        return leftRank - rightRank;
+      }
+
+      return String(left || '').localeCompare(String(right || ''), undefined, { numeric: true, sensitivity: 'base' });
+    }
+
+    function canonicalizeGuideSizeLabel(value) {
+      const normalized = normalizeGuideValue(value)
+        .toLowerCase()
+        .replace(/[()]/g, ' ')
+        .replace(/\bfits\s+most\b/g, ' ')
+        .replace(/\s*\/\s*/g, '/')
+        .replace(/\s*-\s*/g, '-')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const oneSizeNormalized = /^one(?:\s|-)?size$/.test(normalized) ? 'one size' : normalized;
+      const compact = oneSizeNormalized.replace(/\s+/g, '');
+      const aliases = {
+        xxxxs: '4xs',
+        xxxs: '3xs',
+        xxs: '2xs',
+        xxxxl: '4xl',
+        xxxl: '3xl',
+        xxl: '2xl'
+      };
+      return aliases[compact] || compact || oneSizeNormalized;
+    }
+
+    function sizeLabelsMatch(left, right) {
+      return canonicalizeGuideSizeLabel(left) === canonicalizeGuideSizeLabel(right);
+    }
+
+    function resolveGuideSizeLabel(sizeValue, tabId) {
+      const normalized = normalizeGuideValue(sizeValue);
+      if (!normalized) return '';
+      const sourceRows = Array.isArray(getDataForTab(tabId)) ? getDataForTab(tabId) : [];
+      const matchedRow = sourceRows.find(row => sizeLabelsMatch(row.size_label, normalized));
+      return matchedRow?.size_label || normalized;
+    }
+
+    function classifyGuideContext(params) {
+      const rawGender = normalizeGuideValue(params.get('gender')).toLowerCase();
+      const rawCategory = normalizeGuideValue(params.get('category'));
+      const rawGuide = normalizeGuideValue(params.get('guide')).toLowerCase();
+      const rawTab = normalizeGuideValue(params.get('tab')).toLowerCase();
+      const focused = params.get('focused') === 'true';
+
+      let gender = '';
+      if (/(kid|kids|youth|boys|girls|children)/.test(rawGender)) gender = 'kids';
+      else if (/(women|woman|female|ladies)/.test(rawGender)) gender = 'women';
+      else if (/(men|man|male)/.test(rawGender)) gender = 'men';
+
+      const categoryLower = rawCategory.toLowerCase();
+      let calcCategory = rawGuide;
+      if (!calcCategory) {
+        if (/(sports?\s*bra|bra\b)/.test(categoryLower)) calcCategory = 'sports_bras';
+        else if (/(hat|cap|beanie|visor)/.test(categoryLower)) calcCategory = 'hats';
+        else if (/(short|jogger|legging|tight|pant|bottom|skirt)/.test(categoryLower)) calcCategory = 'bottoms';
+        else if (categoryLower) calcCategory = 'tops';
+      }
+
+      let tabId = rawTab;
+      if (!tabId) {
+        if (calcCategory === 'sports_bras') tabId = 'sports_bras';
+        else if (calcCategory === 'hats') tabId = 'hats';
+        else if (gender === 'women') tabId = 'womens';
+        else if (gender === 'kids') tabId = 'kids';
+        else tabId = 'mens';
+      }
+
+      let label = rawCategory;
+      if (!label) {
+        if (calcCategory === 'sports_bras') label = 'Sports Bra';
+        else if (calcCategory === 'hats') label = 'Hat';
+        else if (calcCategory === 'bottoms') label = 'Bottom';
+        else if (tabId === 'kids') label = 'Kids';
+        else label = 'Apparel';
+      }
+
+      return {
+        focused,
+        gender,
+        calcCategory,
+        tabId,
+        label: singularizeGuideLabel(label),
+        hasExplicitGender: Boolean(gender)
+      };
+    }
+
+    function getFocusedGuideHeading(context) {
+      const label = normalizeGuideValue(context?.label);
+      if (!label || label.toLowerCase() === 'apparel') {
+        if (context?.tabId === 'womens') return "Women's Apparel Size Guide";
+        if (context?.tabId === 'kids') return 'Kids Size Guide';
+        if (context?.tabId === 'sports_bras') return 'Sports Bra Size Guide';
+        if (context?.tabId === 'hats') return 'Hat Size Guide';
+        return "Men's Apparel Size Guide";
+      }
+
+      if (context?.tabId === 'womens') return `Women's ${label} Size Guide`;
+      if (context?.tabId === 'kids') return `Kids ${label} Size Guide`;
+      if (context?.tabId === 'sports_bras' || context?.tabId === 'hats') return `${label} Size Guide`;
+      if (context?.tabId === 'mens' && context?.hasExplicitGender) return `Men's ${label} Size Guide`;
+      return `${label} Size Guide`;
+    }
+
+    function applyFocusedGuideMode(context) {
+      if (!isEmbedMode() || !context.focused) return;
+
+      document.body.classList.add('embed-focused');
+
+      const note = document.getElementById('focused-guide-note');
+      const tabsNav = document.querySelector('.tabs-nav');
+      const calcTitle = document.querySelector('.calc-title');
+      const genderField = document.getElementById('calcGenderField');
+      const categoryField = document.getElementById('calcCategoryField');
+      const targetPanel = document.getElementById(`tab-${context.tabId}`);
+      const heading = targetPanel?.querySelector('.table-section h2');
+      const focusedHeading = getFocusedGuideHeading(context);
+      const lockSingleTab = context.hasExplicitGender || ['kids', 'sports_bras', 'hats'].includes(context.tabId);
+
+      if (note) {
+        note.hidden = false;
+        note.innerHTML = '<span></span><strong></strong>';
+        const noteLabel = note.querySelector('span');
+        const noteHeading = note.querySelector('strong');
+        if (noteLabel) noteLabel.textContent = 'Focused on';
+        if (noteHeading) noteHeading.textContent = focusedHeading;
+      }
+
+      if (tabsNav) {
+        tabsNav.classList.toggle('tabs-nav--hidden', lockSingleTab);
+      }
+
+      if (calcTitle && context.label && context.label.toLowerCase() !== 'apparel') {
+        calcTitle.textContent = `Find Your ${context.label} Size`;
+      }
+
+      if (genderField && (context.hasExplicitGender || ['kids', 'sports_bras', 'hats'].includes(context.tabId))) {
+        genderField.hidden = true;
+      }
+
+      if (categoryField && context.calcCategory) {
+        categoryField.hidden = true;
+      }
+
+      if (heading) {
+        heading.textContent = focusedHeading;
+      }
+    }
+
+    function applyUrlParams() {
+      const params = getGuideParams();
+      const genderParam = params.get('gender');
+      const categoryParam = params.get('category');
+      const sizeParam = params.get('size');
+      const context = classifyGuideContext(params);
+
+      if (!genderParam && !categoryParam && !sizeParam) return;
+
+      if (sizeParam) {
+        window.recommendedSize = resolveGuideSizeLabel(sizeParam, context.tabId);
+        window.currentTab = context.tabId;
+      }
+
+      const targetTab = document.querySelector(`.tab-btn[data-tab="${context.tabId}"]`);
+      if (targetTab) targetTab.click();
+
+      const calcGender = document.getElementById('calcGender');
+      const calcCategory = document.getElementById('calcCategory');
+
+      if (calcGender && context.gender && ['men', 'women', 'kids'].includes(context.gender)) {
+        calcGender.value = context.gender;
+      }
+
+      if (calcCategory && context.calcCategory) {
+        calcCategory.value = context.calcCategory;
+        if (context.calcCategory === 'sports_bras' && calcGender) calcGender.value = 'women';
+      }
+
+      applyFocusedGuideMode(context);
+      if (typeof updateCalculatorFields === 'function') updateCalculatorFields();
+    }
+
     // ────── INIT ──────
     function init() {
-      initCookieConsent();
+      if (!isEmbedMode()) initCookieConsent();
       fetchSizeCharts();
+      fetchSiteSettings();
       setupCalculator();
       setupTabs();
+      applyUrlParams();
     }
 
     document.addEventListener('DOMContentLoaded', init);
   </script>
 
+  <!-- Language selector -->
+  <script src="modal-lock.js?v=72e2f101"></script>
+<script src="lang.js?v=1329682b" defer></script>
 </body>
 </html>

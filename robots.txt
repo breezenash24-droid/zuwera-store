@@ -1,11 +1,12 @@
 User-agent: *
 Allow: /
-
-# Block internal / functional routes
-Disallow: /.netlify/
-Disallow: /api/
 Disallow: /admin.html
+Disallow: /admin
+Disallow: /diagnostic.html
+Disallow: /diagnostic
 Disallow: /analytics.html
-Disallow: /sw.js
+Disallow: /analytics
+Disallow: /account.html
+Disallow: /account
 
 Sitemap: https://zuwera.store/sitemap.xml

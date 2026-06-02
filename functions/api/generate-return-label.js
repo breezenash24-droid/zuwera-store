@@ -1,0 +1,467 @@
+/**
+ * Cloudflare Pages Function: POST /api/generate-return-label
+ *
+ * Admin-protected. Given an approved return request:
+ *   1. Fetches the original order (for the customer's shipping address)
+ *   2. Creates a Shippo shipment (customer → store, i.e. a return)
+ *   3. Purchases the cheapest available rate
+ *   4. Emails the prepaid label PDF to the customer
+ *   5. Updates the commerce_returns site_setting with the label URL + tracking
+ *
+ * Body: { accessToken, returnId, orderId }
+ */
+
+import { fetchSiteSettings, resolveSetting } from './_settings.js';
+import { cors, json, verifyAdmin, getCommerceBundle, setSetting } from './_commerce.js';
+
+async function fetchOrder(orderId, env) {
+  const url = (env.SUPABASE_URL || '').trim();
+  const sk  = (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '').trim();
+  // If Supabase isn't configured or orderId is missing, return null and let
+  // mergeOrderFallbacks pull address data from the return request instead.
+  if (!url || !sk || !orderId) return null;
+  try {
+    const resp = await fetch(
+      `${url}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}&select=*&limit=1`,
+      { headers: { apikey: sk, Authorization: `Bearer ${sk}` } }
+    );
+    if (!resp.ok) {
+      console.warn('[return-label] Could not fetch order from Supabase:', resp.status);
+      return null;
+    }
+    const rows = await resp.json();
+    // Return null (not throw) when order isn't in Supabase — common in test mode
+    // when the Stripe webhook hasn't been configured to save orders.
+    return rows?.[0] || null;
+  } catch (e) {
+    console.warn('[return-label] fetchOrder error (non-fatal):', e.message);
+    return null;
+  }
+}
+
+
+function mergeOrderFallbacks(order, returnRequest) {
+  // order may be null (e.g. test mode with no Supabase order record).
+  // All address data is also stored directly on the return request when submitted.
+  const o       = order || {};
+  const address = returnRequest?.shippingAddress || {};
+  return {
+    ...o,
+    customer_name:  o.customer_name  || returnRequest?.customerName  || returnRequest?.userName  || address.name   || 'Customer',
+    email:          o.email          || o.customer_email || returnRequest?.customerEmail || returnRequest?.userEmail || returnRequest?.email || '',
+    customer_email: o.customer_email || o.email          || returnRequest?.customerEmail || returnRequest?.userEmail || returnRequest?.email || '',
+    ship_line1:  o.ship_line1  || address.line1    || '',
+    ship_line2:  o.ship_line2  || address.line2    || '',
+    ship_city:   o.ship_city   || address.city     || '',
+    ship_state:  o.ship_state  || address.state    || '',
+    ship_zip:    o.ship_zip    || address.zip      || '',
+    ship_country:o.ship_country|| address.country  || 'US',
+  };
+}
+
+function getReturnAddressSetting(key, env, cache, fallback = '') {
+  return String(resolveSetting(key, env, cache) || fallback || '').trim();
+}
+
+function requireAddress(address, label) {
+  const missing = [];
+  if (!address.name) missing.push('name');
+  if (!address.street1) missing.push('street address');
+  if (!address.city) missing.push('city');
+  if (!address.state) missing.push('state');
+  if (!address.zip) missing.push('ZIP');
+  if (!address.country) missing.push('country');
+  if (missing.length) {
+    throw new Error(`${label} is missing ${missing.join(', ')}. Add the missing address details before sending a return label.`);
+  }
+}
+
+function shippoMessages(shipment) {
+  const messages = [
+    ...(Array.isArray(shipment?.messages) ? shipment.messages : []),
+    ...(Array.isArray(shipment?.object_messages) ? shipment.object_messages : []),
+  ];
+  return messages
+    .map((m) => m?.text || m?.message || m?.code || '')
+    .filter(Boolean)
+    .join('; ');
+}
+
+async function createShippoLabel(order, env, cache) {
+  const shippoKey = resolveSetting('SHIPPO_API_KEY', env, cache);
+  if (!shippoKey) throw new Error('SHIPPO_API_KEY not configured');
+
+  // FROM = customer (they're shipping it back), TO = store
+  const addressFrom = {
+    name:    order.customer_name || 'Customer',
+    street1: order.ship_line1   || '',
+    street2: order.ship_line2   || '',
+    city:    order.ship_city    || '',
+    state:   order.ship_state   || '',
+    zip:     order.ship_zip     || '',
+    country: order.ship_country || 'US',
+    email:   order.email        || order.customer_email || '',
+    phone:   order.ship_phone   || order.phone          || getReturnAddressSetting('SHIPPO_FROM_PHONE', env, cache, ''),
+  };
+
+  const addressTo = {
+    name:    getReturnAddressSetting('SHIPPO_FROM_NAME', env, cache, 'Zuwera Returns'),
+    street1: getReturnAddressSetting('SHIPPO_FROM_STREET1', env, cache),
+    street2: getReturnAddressSetting('SHIPPO_FROM_STREET2', env, cache),
+    city:    getReturnAddressSetting('SHIPPO_FROM_CITY', env, cache),
+    state:   getReturnAddressSetting('SHIPPO_FROM_STATE', env, cache),
+    zip:     getReturnAddressSetting('SHIPPO_FROM_ZIP', env, cache),
+    country: getReturnAddressSetting('SHIPPO_FROM_COUNTRY', env, cache, 'US'),
+    email:   getReturnAddressSetting('SHIPPO_FROM_EMAIL', env, cache, 'orders@zuwera.store'),
+    phone:   getReturnAddressSetting('SHIPPO_FROM_PHONE', env, cache),
+  };
+
+  requireAddress(addressFrom, 'Customer return address');
+  requireAddress(addressTo, 'Zuwera return address');
+
+  // Standard parcel for returns (clothing — light package)
+  const parcel = {
+    length: '12', width: '10', height: '3',
+    distance_unit: 'in',
+    weight: '1.5', mass_unit: 'lb',
+  };
+
+  // 1. Create shipment
+  const shipResp = await fetch('https://api.goshippo.com/shipments/', {
+    method: 'POST',
+    headers: { Authorization: `ShippoToken ${shippoKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ address_from: addressFrom, address_to: addressTo, parcels: [parcel], async: false }),
+  });
+  if (!shipResp.ok) {
+    const detail = await shipResp.text().catch(() => shipResp.status);
+    throw new Error(`Shippo shipment error: ${detail}`);
+  }
+  const shipment = await shipResp.json();
+
+  // 2. Pick cheapest rate — prefer USPS, then any carrier
+  const rates = (shipment.rates || []).sort((a, b) => {
+    const aUsps = /usps/i.test(a.provider) ? 0 : 1;
+    const bUsps = /usps/i.test(b.provider) ? 0 : 1;
+    if (aUsps !== bUsps) return aUsps - bUsps;
+    return parseFloat(a.amount) - parseFloat(b.amount);
+  });
+  if (!rates.length) {
+    const details = shippoMessages(shipment);
+    throw new Error(details
+      ? `No shipping rates available from Shippo: ${details}`
+      : 'No shipping rates available from Shippo. Confirm the customer shipping address and the Zuwera Shippo return address are complete.');
+  }
+  const chosenRate = rates[0];
+
+  // 3. Purchase label
+  const txResp = await fetch('https://api.goshippo.com/transactions/', {
+    method: 'POST',
+    headers: { Authorization: `ShippoToken ${shippoKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ rate: chosenRate.object_id, label_file_type: 'PDF', async: false }),
+  });
+  if (!txResp.ok) {
+    const detail = await txResp.text().catch(() => txResp.status);
+    throw new Error(`Shippo transaction error: ${detail}`);
+  }
+  const tx = await txResp.json();
+
+  if (tx.status !== 'SUCCESS') {
+    const msg = tx.messages?.map(m => m.text).join('; ') || tx.status;
+    throw new Error(`Label purchase failed: ${msg}`);
+  }
+
+  return {
+    labelUrl:       tx.label_url,
+    trackingNumber: tx.tracking_number,
+    trackingUrl:    tx.tracking_url_provider,
+    carrier:        chosenRate.provider,
+    service:        chosenRate.servicelevel?.name || '',
+    amount:         chosenRate.amount,
+    currency:       chosenRate.currency,
+  };
+}
+
+async function sendLabelEmail(order, label, returnRequest, env, cache) {
+  const resendKey  = resolveSetting('RESEND_API_KEY',  env, cache);
+  const brevoKey   = resolveSetting('BREVO_API_KEY',   env, cache);
+  const fromEmail  = resolveSetting('EMAIL_FROM',      env, cache) || 'orders@zuwera.store';
+  const logoUrl    = resolveSetting('BRAND_LOGO_URL',  env, cache) || 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
+  const toEmail    = (order.email || order.customer_email || '').trim();
+  const toName     = order.customer_name || 'Customer';
+  if (!toEmail) return;
+
+  const orderLabel = '#' + String(order.id || '').slice(-8).toUpperCase();
+  const resolution = returnRequest?.resolution || 'return';
+  const resolutionLabel = resolution === 'exchange' ? 'exchange'
+    : resolution === 'store_credit' ? 'store credit' : 'refund';
+  const storeName = getReturnAddressSetting('SHIPPO_FROM_NAME', env, cache, 'Zuwera');
+  const storeStreet1 = getReturnAddressSetting('SHIPPO_FROM_STREET1', env, cache);
+  const storeCity = getReturnAddressSetting('SHIPPO_FROM_CITY', env, cache);
+  const storeState = getReturnAddressSetting('SHIPPO_FROM_STATE', env, cache);
+  const storeZip = getReturnAddressSetting('SHIPPO_FROM_ZIP', env, cache);
+  const storeCountry = getReturnAddressSetting('SHIPPO_FROM_COUNTRY', env, cache, 'US');
+  const storeAddress = [
+    storeName,
+    storeStreet1,
+    storeCity && storeState
+      ? `${storeCity}, ${storeState} ${storeZip || ''}`
+      : '',
+    storeCountry,
+  ].filter(Boolean).join('\n');
+
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f1eb;font-family:'Helvetica Neue',Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f1eb;padding:40px 0">
+  <tr><td align="center">
+    <table width="100%" style="max-width:560px;background:#09090b;border-collapse:collapse">
+      <tr><td style="background:#09090b;padding:24px 36px;text-align:left">
+        <img src="${logoUrl}" alt="Zuwera" height="36" style="height:36px;width:auto;display:block;border:0"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+        <span style="display:none;font-family:Georgia,serif;font-size:1.5rem;letter-spacing:.12em;color:#f4f1eb;font-weight:normal">ZUWERA</span>
+      </td></tr>
+      <tr><td style="padding:36px 36px 12px;background:#09090b">
+        <p style="margin:0 0 6px;font-family:Georgia,serif;font-size:22px;letter-spacing:.06em;color:#f4f1eb">Your Return Label Is Ready</p>
+        <p style="margin:0;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,235,.35)">Order ${orderLabel}</p>
+      </td></tr>
+      <tr><td style="padding:20px 36px 28px;background:#09090b;font-size:14px;line-height:1.75;color:rgba(244,241,235,.7)">
+        <p style="margin:0 0 18px">Hi ${toName.split(' ')[0]},</p>
+        <p style="margin:0 0 18px">Your return request has been approved. We've generated a prepaid shipping label for you — just print it, attach it to your package, and drop it off at any ${label.carrier} location.</p>
+        <table width="100%" style="border:1px solid rgba(244,241,235,.1);margin-bottom:24px">
+          <tr><td style="padding:16px 20px">
+            <p style="margin:0 0 4px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.35)">Carrier</p>
+            <p style="margin:0;font-size:14px;color:#f4f1eb">${label.carrier} — ${label.service}</p>
+          </td></tr>
+          <tr><td style="padding:4px 20px 16px">
+            <p style="margin:0 0 4px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.35)">Tracking</p>
+            <p style="margin:0;font-size:14px;color:#f4f1eb">${label.trackingNumber}</p>
+          </td></tr>
+          <tr><td style="padding:4px 20px 16px">
+            <p style="margin:0 0 4px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.35)">Return To</p>
+            <p style="margin:0;font-size:13px;color:rgba(244,241,235,.65);white-space:pre-line">${storeAddress}</p>
+          </td></tr>
+        </table>
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px">
+          <tr><td align="center">
+            <a href="${label.labelUrl}" style="display:inline-block;background:#f4f1eb;color:#09090b;padding:14px 36px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;text-decoration:none;font-weight:700">Download Label (PDF)</a>
+          </td></tr>
+        </table>
+        ${label.trackingUrl ? `<p style="margin:0 0 18px">You can <a href="${label.trackingUrl}" style="color:rgba(244,241,235,.6)">track your return</a> once it's been picked up.</p>` : ''}
+        <p style="margin:0 0 18px">Once we receive your return, we'll process your ${resolutionLabel} within 3–5 business days. We'll send you a confirmation email when it's done.</p>
+        <p style="margin:0 0 4px">Thanks,</p>
+        <p style="margin:0">The Zuwera Team</p>
+      </td></tr>
+      <tr><td style="padding:20px 36px;background:#0a0a0c;border-top:1px solid rgba(244,241,235,.07);font-size:10px;letter-spacing:.1em;color:rgba(244,241,235,.2);text-transform:uppercase;text-align:center">
+        &copy; ${new Date().getFullYear()} Zuwera &middot; <a href="https://zuwera.store" style="color:rgba(244,241,235,.2);text-decoration:none">zuwera.store</a>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>`;
+
+  const subject = `Your return label for ${orderLabel}`;
+
+  // Try Resend first
+  if (resendKey) {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: `Zuwera <${fromEmail}>`, to: [toEmail], reply_to: 'orders@zuwera.store', subject, html }),
+    });
+    if (r.ok) return;
+  }
+  // Brevo fallback
+  if (brevoKey) {
+    await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'api-key': brevoKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sender: { name: 'Zuwera', email: fromEmail },
+        to: [{ email: toEmail, name: toName }],
+        replyTo: { email: 'orders@zuwera.store' },
+        subject, htmlContent: html,
+      }),
+    });
+  }
+}
+
+async function updateReturnRequest(returnId, labelData, env, existingValue = null) {
+  const existing = existingValue || (await getCommerceBundle(env)).returnsState;
+  const requests = Array.isArray(existing.requests) ? existing.requests : [];
+
+  const updated = requests.map(r => r.id === returnId ? {
+    ...r,
+    status:         'label_sent',
+    labelUrl:       labelData.labelUrl,
+    trackingNumber: labelData.trackingNumber,
+    trackingUrl:    labelData.trackingUrl,
+    carrier:        labelData.carrier,
+    service:        labelData.service,
+    labelAmount:    labelData.amount,
+    labelCurrency:  labelData.currency,
+    labelSentAt:    new Date().toISOString(),
+    lastLabelError: '',
+    labelErrorAt:   '',
+  } : r);
+
+  await setSetting(env, 'commerce_returns', { ...existing, requests: updated });
+}
+
+async function updateReturnRequestFailure(returnId, errorMessage, env, existingValue = null) {
+  if (!returnId) return null;
+  const existing = existingValue || (await getCommerceBundle(env)).returnsState;
+  const requests = Array.isArray(existing.requests) ? existing.requests : [];
+  const at = new Date().toISOString();
+  let updatedRequest = null;
+  const updated = requests.map((r) => {
+    if (r.id !== returnId) return r;
+    updatedRequest = {
+      ...r,
+      lastLabelError: String(errorMessage || 'Could not generate return label').slice(0, 1000),
+      labelErrorAt: at,
+      updatedAt: at,
+    };
+    return updatedRequest;
+  });
+
+  await setSetting(env, 'commerce_returns', { ...existing, requests: updated });
+  return updatedRequest;
+}
+
+function labelRecovery(errorMessage = '') {
+  const msg = String(errorMessage).toLowerCase();
+  if (msg.includes('no shipping rates')) {
+    return [
+      'Check that the customer address and Zuwera return address are complete.',
+      'If Shippo still has no rate, create the label manually in Shippo and paste the label/tracking into the admin detail panel.',
+    ];
+  }
+  if (msg.includes('missing')) {
+    return ['Fill in the missing address/config fields, then retry the label.'];
+  }
+  if (msg.includes('shippo_api_key')) {
+    return ['Add or fix SHIPPO_API_KEY in Cloudflare or Admin API settings.'];
+  }
+  return ['Retry after checking Shippo/API settings, or save a manual label in the admin detail panel.'];
+}
+
+export async function onRequestOptions({ env }) {
+  return new Response(null, { status: 204, headers: cors(env) });
+}
+
+export async function onRequestPost({ request, env }) {
+  let returnId = '';
+  let returnsState = null;
+  try {
+    const body = await request.json().catch(() => ({}));
+    const authHeader = request.headers.get('Authorization') || '';
+    const accessToken = String(body.accessToken || authHeader.replace(/^Bearer\s+/i, '') || '').trim();
+    returnId = String(body.returnId || '').trim();
+
+    if (!accessToken) return json({ ok: false, error: 'Missing access token' }, 401);
+    if (!returnId) return json({ ok: false, error: 'Missing returnId' }, 400);
+
+    const admin = await verifyAdmin(env, accessToken);
+    if (!admin) return json({ ok: false, error: 'Not authorized' }, 403);
+
+    const bundle = await getCommerceBundle(env);
+    returnsState = bundle.returnsState;
+    const returnRequest = (returnsState.requests || []).find(r => r.id === returnId);
+    if (!returnRequest) return json({ ok: false, error: 'Return request not found' }, 404);
+
+    const orderId = String(body.orderId || returnRequest.orderId || '').trim();
+    // orderId is optional when the return request already has a shippingAddress —
+    // mergeOrderFallbacks will use the address from the return request directly.
+    const hasAddressFallback = !!(returnRequest.shippingAddress?.line1);
+    if (!orderId && !hasAddressFallback) {
+      return json({ ok: false, error: 'Return request is missing an order ID and has no saved shipping address. Cannot generate a label.' }, 400);
+    }
+
+    const allowedStatuses = new Set(['approved', 'label_sent']);
+    if (!allowedStatuses.has(String(returnRequest.status || '').trim())) {
+      return json({ ok: false, error: 'Approve the return request before generating a label.' }, 409);
+    }
+
+    if (returnRequest.labelUrl && String(body.force || '').toLowerCase() !== 'true') {
+      return json({
+        ok: true,
+        alreadyGenerated: true,
+        labelUrl: returnRequest.labelUrl,
+        trackingNumber: returnRequest.trackingNumber,
+        trackingUrl: returnRequest.trackingUrl,
+        carrier: returnRequest.carrier,
+        service: returnRequest.service,
+      });
+    }
+
+    // Pre-fetch Supabase key overrides (Resend, Brevo, Shippo, branding)
+    const cache = await fetchSiteSettings(
+      [
+        'SHIPPO_API_KEY',
+        'SHIPPO_FROM_NAME',
+        'SHIPPO_FROM_STREET1',
+        'SHIPPO_FROM_STREET2',
+        'SHIPPO_FROM_CITY',
+        'SHIPPO_FROM_STATE',
+        'SHIPPO_FROM_ZIP',
+        'SHIPPO_FROM_COUNTRY',
+        'SHIPPO_FROM_EMAIL',
+        'SHIPPO_FROM_PHONE',
+        'RESEND_API_KEY',
+        'BREVO_API_KEY',
+        'EMAIL_FROM',
+        'BRAND_LOGO_URL',
+      ],
+      env
+    );
+
+    const order = mergeOrderFallbacks(await fetchOrder(orderId, env), returnRequest);
+    const manualLabel = body.manualLabel && typeof body.manualLabel === 'object' ? body.manualLabel : null;
+    if (manualLabel && !String(manualLabel.labelUrl || '').trim() && !String(manualLabel.trackingNumber || '').trim()) {
+      throw new Error('Manual label requires a label PDF URL or tracking number.');
+    }
+    const label = manualLabel && (manualLabel.labelUrl || manualLabel.trackingNumber)
+      ? {
+          labelUrl: String(manualLabel.labelUrl || '').trim(),
+          trackingNumber: String(manualLabel.trackingNumber || '').trim(),
+          trackingUrl: String(manualLabel.trackingUrl || '').trim(),
+          carrier: String(manualLabel.carrier || 'Manual').trim(),
+          service: String(manualLabel.service || '').trim(),
+          amount: '',
+          currency: '',
+        }
+      : await createShippoLabel(order, env, cache);
+
+    // Fire email and DB update in parallel
+    await Promise.allSettled([
+      sendLabelEmail(order, label, returnRequest, env, cache),
+      updateReturnRequest(returnId, label, env, returnsState),
+    ]);
+
+    console.log(`[return-label] Label generated for return ${returnId}, order ${orderId}`);
+    return json({
+      ok: true,
+      manual: !!manualLabel,
+      labelUrl:       label.labelUrl,
+      trackingNumber: label.trackingNumber,
+      trackingUrl:    label.trackingUrl,
+      carrier:        label.carrier,
+      service:        label.service,
+    });
+  } catch (e) {
+    const message = e.message || 'Unknown error';
+    console.error('[return-label] Error:', message);
+    let updatedRequest = null;
+    try {
+      updatedRequest = await updateReturnRequestFailure(returnId, message, env, returnsState || null);
+    } catch (updateError) {
+      console.error('[return-label] Could not save label failure:', updateError.message);
+    }
+    return json({
+      ok: false,
+      error: 'Label generation failed. Please try again or contact support.',
+      recovery: labelRecovery(message),
+      request: updatedRequest,
+    }, 500);
+  }
+}

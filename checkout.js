@@ -1,20 +1,109 @@
-// ===================== STRIPE SETUP =====================
-// 🔑 Replace with your live publishable key from Stripe Dashboard
-const stripe = Stripe('pk_live_51T8ct20oFp4PJGitDcNMSLu9jQMFajtwqib8dTX4WhubBon2Pso2VgkHhTHcbuKNUi9ljfwMX8Bx2uhEp1Fp2VfY00LFKvLEy4');
-const elements = stripe.elements();
-const cardElement = elements.create('card', {
-  style: {
+let stripe, elements, cardElement;
+let stripeInitPromise;
+
+function getStripeCardTheme() {
+  const isLight = document.body.classList.contains('light-mode');
+  return {
+    text: isLight ? '#09090b' : '#f5f5f0',
+    placeholder: isLight ? 'rgba(9,9,11,0.58)' : 'rgba(245,245,240,0.38)',
+    invalid: '#c0392b',
+  };
+}
+
+function getStripeCardStyle() {
+  const theme = getStripeCardTheme();
+  return {
     base: {
-      color: '#f5f5f0',
+      color: theme.text,
+      iconColor: theme.text,
       fontFamily: '"DM Sans", sans-serif',
       fontSmoothing: 'antialiased',
-      fontSize: '15px',
-      '::placeholder': { color: 'rgba(245,245,240,0.3)' }
+      fontSize: '16px',
+      fontWeight: '500',
+      '::placeholder': { color: theme.placeholder },
     },
-    invalid: { color: '#e07060', iconColor: '#e07060' }
+    invalid: { color: theme.invalid, iconColor: theme.invalid },
+  };
+}
+
+function refreshStripeCardTheme() {
+  if (cardElement?.update) {
+    cardElement.update({ style: getStripeCardStyle() });
   }
+}
+
+async function getCheckoutPublishableKey() {
+  if (window.zwGetStripePublishableKey) return window.zwGetStripePublishableKey();
+  const resp = await fetch('/api/stripe-config', { headers: { Accept: 'application/json' } });
+  const data = await resp.json();
+  if (!resp.ok || !data?.publishableKey) throw new Error(data?.error || 'Unable to load Stripe configuration.');
+  return data.publishableKey;
+}
+
+function cardStyleForMode(light) {
+  return {
+    base: {
+      color: light ? '#09090b' : '#f5f5f0',
+      iconColor: light ? '#09090b' : '#f5f5f0',
+      fontFamily: '"DM Sans", sans-serif',
+      fontSmoothing: 'antialiased',
+      fontSize: '16px',
+      fontWeight: '500',
+      '::placeholder': { color: light ? 'rgba(9,9,11,0.58)' : 'rgba(245,245,240,0.38)' },
+    },
+    invalid: { color: '#c0392b', iconColor: '#c0392b' },
+  };
+}
+
+function isLightMode() {
+  if (document.body.classList.contains('light-mode')) return true;
+  // storefront-theme.js stores the resolved mode here
+  try { return localStorage.getItem('zw_theme_mode') === 'light'; } catch (_) { return false; }
+}
+
+function mountCard(light) {
+  // Destroy any existing card element first — cardElement.update() does not
+  // reliably re-render base.color after creation (Stripe limitation).
+  if (cardElement) {
+    try { cardElement.destroy(); } catch (_) {}
+    cardElement = null;
+  }
+  const container = document.getElementById('stripe-card-element');
+  if (container) container.innerHTML = '';
+  const useLightColors = (light !== undefined) ? Boolean(light) : isLightMode();
+  cardElement = elements.create('card', { style: cardStyleForMode(useLightColors) });
+  cardElement.mount('#stripe-card-element');
+}
+
+// Called from the checkout button with the explicit current mode —
+// no async detection, no race condition.
+window.refreshCardStyle = function(light) {
+  if (elements) mountCard(light);
+};
+
+async function initStripe() {
+  if (stripe) return stripe;
+  if (stripeInitPromise) return stripeInitPromise;
+  stripeInitPromise = (async () => {
+    if (typeof Stripe === 'undefined') throw new Error('Stripe.js is not loaded.');
+    const publishableKey = await getCheckoutPublishableKey();
+    stripe = Stripe(publishableKey);
+    elements = stripe.elements();
+    mountCard();
+    return stripe;
+  })().catch((error) => {
+    stripeInitPromise = null;
+    throw error;
+  });
+  return stripeInitPromise;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  void initStripe().catch((error) => console.error('Stripe init failed:', error));
+  refreshStripeCardTheme();
 });
-cardElement.mount('#stripe-card-element');
+
+window.addEventListener('zw-theme-applied', refreshStripeCardTheme);
 
 // ===================== HELPERS =====================
 
@@ -26,6 +115,16 @@ async function postJSON(url, body) {
     body: JSON.stringify(body),
   });
   return resp.json();
+}
+
+async function getCheckoutAuthPayload() {
+  const sb = window.sb || window._sb || null;
+  if (!sb?.auth?.getSession) return { accessToken: '' };
+  const result = await sb.auth.getSession().catch(() => null);
+  const session = result?.data?.session || null;
+  return {
+    accessToken: session?.access_token || '',
+  };
 }
 
 // ── Cache payment DOM refs once ───────────────────────────────────
@@ -49,8 +148,10 @@ const _pay = {
 let paymentRequest    = null;
 let prButtonEl        = null;
 let selectedShippingRate = null;
+let prTaxCents = 0;
 
 function initPaymentRequest(subtotalCents) {
+  if (!stripe) return;
   // If a paymentRequest already exists (user opened checkout a second time),
   // just update the amount instead of creating a duplicate button.
   if (paymentRequest) {
@@ -74,6 +175,8 @@ function initPaymentRequest(subtotalCents) {
     const addr = ev.shippingAddress;
     try {
       const data = await postJSON('/api/shippo-rates', {
+        items: cartItems,
+        totalWeightLb: cartItems.reduce((s, i) => s + ((parseFloat(i.weightLb) || 0.5) * (i.quantity || 1)), 0),
         address: {
           name: '',
           line1: addr.addressLine?.[0] || '',
@@ -81,34 +184,34 @@ function initPaymentRequest(subtotalCents) {
           zip: addr.postalCode, country: addr.country,
         },
       });
-      if (!data.rates?.length) { ev.updateWith({ status: 'invalid_shipping_address' }); return; }
-      const shippingOptions = data.rates.slice(0, 4).map(r => ({
-        id: r.objectId,
-        label: `${r.provider} ${r.servicelevel}`,
-        detail: r.days ? `Est. ${r.days} business days` : '',
-        amount: Math.round(parseFloat(r.amount) * 100),
-      }));
-      selectedShippingRate = data.rates[0];
+      // Silently store the cheapest rate for fulfillment — customer pays $0 shipping.
+      if (data.rates?.length) selectedShippingRate = data.rates[0];
+      prTaxCents = window.ZWCheckoutTax ? window.ZWCheckoutTax.taxCents(subtotalCents, addr.region || '', addr.postalCode || '') : 0;
       ev.updateWith({
-        status: 'success', shippingOptions,
-        total: { label: 'Zuwera', amount: subtotalCents + shippingOptions[0].amount },
+        status: 'success',
+        shippingOptions: [{ id: 'free', label: 'Free Shipping', detail: 'Standard delivery', amount: 0 }],
+        total: { label: 'Zuwera', amount: subtotalCents + prTaxCents },
       });
     } catch { ev.updateWith({ status: 'fail' }); }
   });
 
   paymentRequest.on('shippingoptionchange', (ev) => {
+    // Shipping is always free — total never includes a shipping cost.
     ev.updateWith({
       status: 'success',
-      total: { label: 'Zuwera', amount: subtotalCents + ev.shippingOption.amount },
+      total: { label: 'Zuwera', amount: subtotalCents + prTaxCents },
     });
   });
 
   paymentRequest.on('paymentmethod', async (ev) => {
     try {
       const addr = ev.shippingAddress || {};
+      const auth = await getCheckoutAuthPayload();
       const piData = await postJSON('/api/create-payment-intent', {
         items: cartItems,
         shippingRate: selectedShippingRate,
+        promoCode: window.zwGetActivePromoCode?.() || '',
+        accessToken: auth.accessToken,
         address: {
           name: ev.payerName || '', email: ev.payerEmail || '',
           line1: addr.addressLine?.[0] || '', line2: addr.addressLine?.[1] || '',
@@ -117,16 +220,37 @@ function initPaymentRequest(subtotalCents) {
         },
       });
       if (piData.error) { ev.complete('fail'); return; }
-      const { error } = await stripe.confirmCardPayment(
-        piData.clientSecret, { payment_method: ev.paymentMethod.id }, { handleActions: false }
+      const initialResult = await stripe.confirmCardPayment(
+        piData.clientSecret,
+        { payment_method: ev.paymentMethod.id },
+        { handleActions: false }
       );
-      if (error) {
+      if (initialResult.error) {
         ev.complete('fail');
-        _pay.errEl.textContent = error.message;
-      } else {
-        ev.complete('success');
-        showOrderConfirmed(piData.orderId, ev.payerEmail);
+        _pay.errEl.textContent = initialResult.error.message;
+        return;
       }
+
+      let finalIntent = initialResult.paymentIntent;
+      if (finalIntent?.status === 'requires_action') {
+        const actionResult = await stripe.confirmCardPayment(piData.clientSecret);
+        if (actionResult.error) {
+          ev.complete('fail');
+          _pay.errEl.textContent = actionResult.error.message;
+          return;
+        }
+        finalIntent = actionResult.paymentIntent;
+      }
+
+      const successStatuses = ['succeeded', 'processing', 'requires_capture'];
+      if (!finalIntent || !successStatuses.includes(finalIntent.status)) {
+        ev.complete('fail');
+        _pay.errEl.textContent = `Payment is ${finalIntent?.status || 'incomplete'}. Please try again.`;
+        return;
+      }
+
+      ev.complete('success');
+      showOrderConfirmed(piData.orderNumber, ev.payerEmail);
     } catch (err) {
       ev.complete('fail');
       console.error('Payment request error:', err);
@@ -143,90 +267,123 @@ function initPaymentRequest(subtotalCents) {
       _pay.prBtn.style.display  = 'block';
       _pay.divider.style.display = 'block';
     }
-  });
+  }).catch(err => console.warn('Apple/Google Pay unavailable:', err));
 }
 
 // ===================== LIVE SHIPPING RATES =====================
 let ratesFetchTimeout = null;
+let ratesFetchPromise = null;
+
+async function doFetchRates(zip, state) {
+  const totalWeightLb = cartItems.reduce((s, i) => s + ((parseFloat(i.weightLb) || 0.5) * (i.quantity || 1)), 0);
+  const data = await postJSON('/api/shippo-rates', {
+    items: cartItems,
+    totalWeightLb,
+    address: {
+      name:  document.getElementById('pay-name').value.trim(),
+      line1: document.getElementById('pay-addr1').value.trim(),
+      city:  document.getElementById('pay-city').value.trim(),
+      state, zip, country: 'US',
+    },
+  });
+  const subtotal = cartItems.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0);
+  const policy   = window._shippingPolicy || { enabled: true, threshold: 100, standardRate: 8 };
+  const qualifiesFree = policy.enabled && subtotal >= policy.threshold;
+
+  if (data.rates?.length) {
+    selectedShippingRate = data.rates[0];
+    updateCartSummaryShipping(qualifiesFree ? 0 : parseFloat(data.rates[0].amount));
+  } else {
+    if (data.error) console.error('Shippo rates error:', data.error);
+    // Show standard fallback rate so the customer knows what they'll pay
+    if (!qualifiesFree) updateCartSummaryShipping(policy.standardRate || 8);
+  }
+}
 
 function maybeLoadRates() {
-  const zip   = _pay.zipInput.value.trim();
-  const state = _pay.stateInput.value.trim();
+  const zip   = (_pay.zipInput?.value   || '').trim();
+  const state = (_pay.stateInput?.value || '').trim();
   if (zip.length < 5 || state.length < 2) return;
 
   clearTimeout(ratesFetchTimeout);
-  ratesFetchTimeout = setTimeout(async () => {
+  ratesFetchTimeout = setTimeout(() => {
     _pay.ratesField.style.display   = 'none';
     _pay.ratesLoading.style.display = 'block';
-    try {
-      const data = await postJSON('/api/shippo-rates', {
-        address: {
-          name:  document.getElementById('pay-name').value.trim(),
-          line1: document.getElementById('pay-addr1').value.trim(),
-          city:  document.getElementById('pay-city').value.trim(),
-          state, zip, country: 'US',
-        },
-      });
-      _pay.ratesLoading.style.display = 'none';
-      if (!data.rates?.length) return;
-
-      _pay.ratesList.innerHTML = '';
-      data.rates.slice(0, 5).forEach((rate, i) => {
-        const id    = `rate-${i}`;
-        const label = document.createElement('label');
-        label.className = 'rate-option' + (i === 0 ? ' selected' : '');
-        label.htmlFor = id;
-        label.innerHTML = `
-          <input type="radio" name="shipping-rate" id="${id}" value="${i}"
-            ${i === 0 ? 'checked' : ''} style="display:none;">
-          <span class="rate-name">${rate.provider} ${rate.servicelevel}</span>
-          <span class="rate-meta">${rate.days ? rate.days + ' business days' : ''}</span>
-          <span class="rate-price">$${parseFloat(rate.amount).toFixed(2)}</span>
-        `;
-        label.addEventListener('click', () => {
-          document.querySelectorAll('.rate-option').forEach(el => el.classList.remove('selected'));
-          label.classList.add('selected');
-          selectedShippingRate = rate;
-          updateCartSummaryShipping(rate.amount);
-        });
-        _pay.ratesList.appendChild(label);
-      });
-      selectedShippingRate = data.rates[0];
-      updateCartSummaryShipping(data.rates[0].amount);
-      _pay.ratesField.style.display = 'block';
-    } catch (err) {
-      _pay.ratesLoading.style.display = 'none';
+    ratesFetchPromise = doFetchRates(zip, state).catch(err => {
       console.error('Rate fetch error:', err);
-    }
+    }).finally(() => {
+      _pay.ratesLoading.style.display = 'none';
+      ratesFetchPromise = null;
+    });
   }, 600);
 }
 
 function updateCartSummaryShipping(amount) {
-  const parse = el => parseFloat(el?.textContent?.replace(/[^0-9.]/g, '') || '0');
+  const dollarAmt = Number(amount) || 0;
+  const shippingText = dollarAmt > 0 ? `$${dollarAmt.toFixed(2)}` : 'Free';
   if (_pay.shippingEl) {
-    _pay.shippingEl.textContent = `$${parseFloat(amount).toFixed(2)}`;
+    _pay.shippingEl.textContent = shippingText;
     _pay.shippingEl.classList.remove('dash');
   }
   if (_pay.totalEl) {
-    _pay.totalEl.textContent = `$${(parse(_cart.subtotalEl) + parseFloat(amount) + parse(_pay.taxEl)).toFixed(2)}`;
+    const parse = el => parseFloat(el?.textContent?.replace(/[^0-9.]/g, '') || '0');
+    _pay.totalEl.textContent = `$${(parse(document.getElementById('pm-subtotal')) + parse(_pay.taxEl) + dollarAmt).toFixed(2)}`;
     _pay.totalEl.classList.remove('dash');
+  }
+  // Keep payment modal summary in sync
+  const pmShipping = document.getElementById('pm-shipping');
+  const pmTotal    = document.getElementById('pm-total');
+  const pmToggle   = document.getElementById('pm-toggle-total');
+  if (pmShipping) pmShipping.textContent = shippingText;
+  if (pmTotal || pmToggle) {
+    const parse = el => parseFloat(el?.textContent?.replace(/[^0-9.]/g, '') || '0');
+    const tot = `$${(parse(document.getElementById('pm-subtotal')) + parse(document.getElementById('pm-tax')) + dollarAmt).toFixed(2)}`;
+    if (pmTotal)  pmTotal.textContent  = tot;
+    if (pmToggle) pmToggle.textContent = tot;
   }
 }
 
-_pay.zipInput.addEventListener('input', maybeLoadRates);
-_pay.stateInput.addEventListener('input', maybeLoadRates);
+function refreshTaxDisplay() {
+  if (!window.ZWCheckoutTax) return;
+  const parse = el => parseFloat(el?.textContent?.replace(/[^0-9.]/g, '') || '0');
+  const subtotal = parse(document.getElementById('pm-subtotal'));
+  if (!subtotal) return;
+  const state = (_pay.stateInput?.value || '').trim().toUpperCase().slice(0, 2);
+  const zip   = (_pay.zipInput?.value   || '').trim();
+  const tax = window.ZWCheckoutTax.taxDollars(subtotal, state, zip);
+  const total = subtotal + tax;
+
+  // Update cart sidebar elements (kept in sync even though hidden behind modal)
+  if (_pay.taxEl) _pay.taxEl.textContent = tax > 0 ? `$${tax.toFixed(2)}` : (state ? '$0.00' : '—');
+  if (_pay.totalEl) _pay.totalEl.textContent = `$${total.toFixed(2)}`;
+
+  // Update payment modal order summary panel
+  const pmTax        = document.getElementById('pm-tax');
+  const pmTaxLbl     = document.getElementById('pm-tax-label');
+  const pmTotal      = document.getElementById('pm-total');
+  const pmToggleTot  = document.getElementById('pm-toggle-total');
+  const pmSubtotal   = document.getElementById('pm-subtotal');
+  if (pmSubtotal)   pmSubtotal.textContent   = `$${subtotal.toFixed(2)}`;
+  if (pmTax)        pmTax.textContent        = tax > 0 ? `$${tax.toFixed(2)}` : (state ? '$0.00' : '—');
+  if (pmTaxLbl)     pmTaxLbl.textContent     = state && tax > 0 ? `Tax (${state})` : 'Tax';
+  if (pmTotal)      pmTotal.textContent      = `$${total.toFixed(2)}`;
+  if (pmToggleTot)  pmToggleTot.textContent  = `$${total.toFixed(2)}`;
+}
+
+_pay.zipInput?.addEventListener('input', () => { maybeLoadRates(); if ((_pay.zipInput?.value || '').length >= 5) refreshTaxDisplay(); });
+_pay.stateInput?.addEventListener('input', () => { maybeLoadRates(); refreshTaxDisplay(); });
 
 // ===================== PAYMENT MODAL CLOSE =====================
-document.getElementById('payment-close').addEventListener('click', () => {
+document.getElementById('payment-close')?.addEventListener('click', () => {
   _closeModal('payment-modal');
-  _pay.errEl.textContent = '';
+  if (_pay.errEl) _pay.errEl.textContent = '';
 });
-document.getElementById('payment-modal').addEventListener('click', e => {
+document.getElementById('payment-modal')?.addEventListener('click', e => {
   if (e.target === e.currentTarget) _closeModal('payment-modal');
 });
 
 // ===================== PAY SUBMIT (CARD) =====================
-_pay.btn.addEventListener('click', async () => {
+_pay.btn?.addEventListener('click', async () => {
   const get   = id => document.getElementById(id).value.trim();
   const name  = get('pay-name');
   const email = get('pay-email');
@@ -239,14 +396,28 @@ _pay.btn.addEventListener('click', async () => {
   _pay.errEl.textContent = '';
   if (!name || !email)                   { _pay.errEl.textContent = 'Please enter your name and email.'; return; }
   if (!addr1 || !city || !state || !zip) { _pay.errEl.textContent = 'Please enter your full shipping address.'; return; }
-  if (!selectedShippingRate)             { _pay.errEl.textContent = 'Please enter your ZIP code to load shipping options.'; return; }
 
   _pay.btn.disabled = true;
   _pay.btnTxt.textContent = 'Processing…';
 
   try {
+    // If the debounced rate fetch hasn't fired or finished yet, resolve it now
+    // before creating the payment intent so the correct Shippo rate is used.
+    if (!selectedShippingRate && zip.length >= 5 && state.length >= 2) {
+      clearTimeout(ratesFetchTimeout);
+      if (ratesFetchPromise) {
+        await ratesFetchPromise;
+      } else {
+        try { await doFetchRates(zip, state); } catch (_) {}
+      }
+    }
+
+    const auth = await getCheckoutAuthPayload();
     const piData = await postJSON('/api/create-payment-intent', {
-      items: cartItems, shippingRate: selectedShippingRate,
+      items: cartItems,
+      shippingRate: selectedShippingRate,
+      promoCode: window.zwGetActivePromoCode?.() || '',
+      accessToken: auth.accessToken,
       address: { name, email, line1: addr1, line2: addr2, city, state, zip, country: 'US' },
     });
     if (piData.error) {
@@ -262,14 +433,14 @@ _pay.btn.addEventListener('click', async () => {
       shipping: { name, address: { line1: addr1, line2: addr2, city, state, postal_code: zip, country: 'US' } },
     });
     if (error) {
+      console.error('Stripe confirmCardPayment error:', error);
       _pay.errEl.textContent = error.message;
       _pay.btn.disabled = false;
       _pay.btnTxt.textContent = 'Pay Now';
       return;
     }
 
-    _closeModal('payment-modal');
-    showOrderConfirmed(paymentIntent.id, email);
+    showOrderConfirmed(piData.orderNumber, email);
   } catch (err) {
     _pay.errEl.textContent = 'Something went wrong. Please try again.';
     console.error('Checkout error:', err);
@@ -279,22 +450,53 @@ _pay.btn.addEventListener('click', async () => {
 });
 
 // ===================== ORDER CONFIRMED =====================
-function showOrderConfirmed(paymentIntentId, email) {
-  const orderId = (paymentIntentId || '').slice(-8).toUpperCase();
-  document.getElementById('success-order').textContent = orderId ? `Order #${orderId}` : '';
+function showOrderConfirmed(orderNumber, email) {
+  document.getElementById('success-order').textContent = orderNumber ? `Order #${orderNumber}` : '';
   document.getElementById('success-msg').textContent =
     `Thank you for your purchase. A confirmation has been sent to ${email || 'your email'}.`;
   _openModal('payment-success');
 
-  // Clear cart
+  const _purchaseTotal = cartItems.reduce((s, i) => s + (parseFloat(i.price) * i.quantity), 0);
+
+  if (typeof gtag === 'function') {
+    gtag('event', 'purchase', {
+      transaction_id: paymentIntentId,
+      value: _purchaseTotal,
+      currency: 'USD',
+      items: cartItems.map(item => ({
+        item_id: item.productId,
+        item_name: item.title,
+        price: item.price,
+        quantity: item.quantity
+      }))
+    });
+  }
+
+  if (typeof zwTrack === 'function') {
+    zwTrack('purchase_completed', {
+      order_id:   paymentIntentId,
+      value:      _purchaseTotal,
+      currency:   'USD',
+      item_count: cartItems.reduce((n, i) => n + i.quantity, 0),
+      items:      cartItems.map(i => ({
+        product_id:   i.productId,
+        product_name: i.title,
+        price:        i.price,
+        quantity:     i.quantity,
+        size:         i.size  || '',
+      })),
+    });
+  }
+
+  // Clear cart from storage and update header count
   cartItems = [];
-  _cart.itemsList.innerHTML = '';
-  _cart.emptyMsg.style.display = 'block';
-  if (_cart.cartCount) _cart.cartCount.textContent = '0';
+  localStorage.removeItem('cart');
+  const _bagCountEl = document.getElementById('co-bag-count');
+  if (_bagCountEl) _bagCountEl.textContent = '0';
 }
 
-document.getElementById('success-continue').addEventListener('click', () => {
-  _closeModal('payment-success');
+document.getElementById('success-continue')?.addEventListener('click', () => {
+  window.location.href = '/';
 });
 
 // Countdown is handled by the inline script in index.html

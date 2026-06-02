@@ -1,0 +1,1718 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#09090b">
+  <title>My Account — Zuwera</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png?v=2">
+  <link rel="icon" type="image/png" sizes="64x64" href="/images/favicon-black.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="/images/favicon-black-192.png?v=2">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="canonical" href="https://zuwera.store/account.html">
+  <script src="/favicon-utils.js?v=00b5644f" defer></script>
+  <script src="/supabase.min.js?v=3277b334" defer></script>
+  <script src="/supabase-client.js?v=1" defer></script>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="Manage your Zuwera account, orders, and saved items.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    button { cursor: pointer; background: none; border: none; color: inherit; }
+    a { text-decoration: none; color: inherit; }
+
+    :root {
+      --ink: #09090b;
+      --paper: #f4f1eb;
+      --font-head: 'Barlow Condensed', sans-serif;
+      --font-body: 'Barlow', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+      --fw: var(--font-head);
+      --fb: var(--font-body);
+      --fm: var(--font-mono);
+      --a-border: rgba(244,241,235,.08);
+      --a-border-soft: rgba(244,241,235,.06);
+      --a-border-mid: rgba(244,241,235,.15);
+      --a-muted: rgba(244,241,235,.4);
+      --a-dim: rgba(244,241,235,.3);
+      --a-faint: rgba(244,241,235,.25);
+      --a-surface: rgba(244,241,235,.02);
+      --a-surface-med: rgba(244,241,235,.04);
+      --a-input-border: rgba(244,241,235,.12);
+      --a-input-focus: rgba(244,241,235,.35);
+    }
+
+    body {
+      background: var(--ink);
+      color: var(--paper);
+      font-family: var(--fb);
+      font-weight: 300;
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    body.light-mode {
+      background: #F0EEE9; color: var(--ink);
+      --a-border: rgba(9,9,11,.1);
+      --a-border-soft: rgba(9,9,11,.07);
+      --a-border-mid: rgba(9,9,11,.14);
+      --a-muted: rgba(9,9,11,.45);
+      --a-dim: rgba(9,9,11,.35);
+      --a-faint: rgba(9,9,11,.25);
+      --a-surface: rgba(9,9,11,.02);
+      --a-surface-med: rgba(9,9,11,.04);
+      --a-input-border: rgba(9,9,11,.12);
+      --a-input-focus: rgba(9,9,11,.35);
+    }
+
+    /* ── NAV ── */
+    .zw-nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.75rem 2.5rem;
+      background: var(--ink);
+      border-bottom: 1px solid rgba(244,241,235,.07);
+      backdrop-filter: blur(8px);
+    }
+    body.light-mode .zw-nav { background: #F0EEE9; border-bottom-color: rgba(9,9,11,.07); }
+    body.super-light-mode .zw-nav { background: #FFFFFF; }
+    .zw-nav-logo { font-family: var(--fw); font-size: 1.35rem; letter-spacing: .18em; opacity: .85; transition: opacity .2s; }
+    .zw-nav-logo:hover { opacity: 1; }
+    .zw-nav-logo img { height: 22px; width: auto; transition: filter .35s; filter: invert(1); }
+    body.light-mode .zw-nav-logo img { filter: none; }
+    .zw-nav-back {
+      font-family: var(--fm); font-size: .6rem; letter-spacing: .14em; text-transform: uppercase;
+      color: rgba(244,241,235,.4); display: flex; align-items: center; gap: .4rem; transition: color .2s;
+    }
+    .zw-nav-back:hover { color: var(--paper); }
+    body.light-mode .zw-nav-back { color: rgba(9,9,11,.4); }
+    body.light-mode .zw-nav-back:hover { color: #09090b; }
+    .zw-nav-right { display: flex; align-items: center; gap: 1rem; }
+    .zw-nav-btn {
+      font-family: var(--fm); font-size: .58rem; letter-spacing: .12em; text-transform: uppercase;
+      color: rgba(244,241,235,.35); transition: color .2s; padding: .3rem .5rem;
+    }
+    .zw-nav-btn:hover { color: var(--paper); }
+    body.light-mode .zw-nav-btn { color: rgba(9,9,11,.35); }
+    body.light-mode .zw-nav-btn:hover { color: #09090b; }
+
+    /* ── PAGE LAYOUT ── */
+    .page-wrap {
+      flex: 1; max-width: 860px; margin: 0 auto; width: 100%; padding: 3rem 2.5rem 5rem;
+    }
+    .page-hd { margin-bottom: 2rem; }
+    .page-hd h1 {
+      font-family: var(--fw); font-weight: 900; font-style: italic;
+      font-size: 2.8rem; letter-spacing: .06em; margin-bottom: .3rem;
+    }
+    .page-hd-meta {
+      font-family: var(--fm); font-size: .72rem;
+      color: rgba(244,241,235,.35); letter-spacing: .04em;
+    }
+    body.light-mode .page-hd-meta { color: rgba(9,9,11,.4); }
+
+    /* ── TABS ── */
+    .acct-tabs {
+      display: flex; gap: 0; border-bottom: 1px solid rgba(244,241,235,.1); margin-bottom: 2rem; flex-wrap: wrap;
+    }
+    body.light-mode .acct-tabs { border-bottom-color: rgba(9,9,11,.1); }
+    .acct-tab {
+      font-family: var(--fm); font-size: .6rem; letter-spacing: .14em; text-transform: uppercase;
+      padding: .85rem 1.5rem; color: rgba(244,241,235,.35); border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s, background .15s; margin-bottom: -1px;
+      position: relative;
+    }
+    .acct-tab:hover { color: rgba(244,241,235,.75); background: rgba(244,241,235,.025); }
+    .acct-tab.active { color: var(--paper); border-bottom-color: var(--paper); }
+    body.light-mode .acct-tab { color: rgba(9,9,11,.35); }
+    body.light-mode .acct-tab:hover { color: rgba(9,9,11,.65); background: rgba(9,9,11,.025); }
+    body.light-mode .acct-tab.active { color: #09090b; border-bottom-color: #09090b; }
+
+    /* ── PANELS ── */
+    .acct-panel { display: none; }
+    .acct-panel.active { display: block; }
+
+    /* ── SHARED CARD / FIELD STYLES ── */
+    .zw-card {
+      border: 1px solid rgba(244,241,235,.08); padding: 1.6rem;
+      background: rgba(244,241,235,.02); margin-bottom: 1rem;
+    }
+    body.light-mode .zw-card { border-color: rgba(9,9,11,.1); background: rgba(9,9,11,.02); }
+    .zw-card-title {
+      font-family: var(--fw); font-weight: 700; font-style: italic;
+      font-size: 1.1rem; letter-spacing: .05em; margin-bottom: .5rem;
+    }
+    .zw-card-meta {
+      font-size: .75rem; color: rgba(244,241,235,.4); line-height: 1.7; font-family: var(--fm);
+    }
+    body.light-mode .zw-card-meta { color: rgba(9,9,11,.45); }
+    .zw-field { display: flex; flex-direction: column; gap: .3rem; margin-bottom: .75rem; }
+    .zw-field label {
+      font-size: .56rem; letter-spacing: .15em; text-transform: uppercase; color: rgba(244,241,235,.3);
+    }
+    body.light-mode .zw-field label { color: rgba(9,9,11,.4); }
+    .zw-field input, .zw-field select, .zw-field textarea {
+      width: 100%; background: rgba(244,241,235,.04); border: 1px solid rgba(244,241,235,.12);
+      color: var(--paper); padding: .7rem .85rem; font-family: var(--fm); font-size: .85rem;
+      outline: none; transition: border-color .2s; resize: vertical;
+    }
+    .zw-field input:focus, .zw-field select:focus, .zw-field textarea:focus { border-color: rgba(244,241,235,.35); }
+    body.light-mode .zw-field input:focus,
+    body.light-mode .zw-field select:focus,
+    body.light-mode .zw-field textarea:focus { border-color: rgba(9,9,11,.4); }
+    body.light-mode .zw-field input,
+    body.light-mode .zw-field select,
+    body.light-mode .zw-field textarea {
+      background: rgba(9,9,11,.04); border-color: rgba(9,9,11,.12); color: #09090b;
+    }
+    .zw-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    .zw-grid-3 { display: grid; grid-template-columns: 1fr 60px 100px; gap: .75rem; }
+    .zw-check-row {
+      display: flex; align-items: center; gap: .55rem; margin-bottom: .6rem;
+      font-size: .82rem; cursor: pointer;
+    }
+    .zw-check-row input { width: auto; accent-color: var(--paper); }
+    body.light-mode .zw-check-row input { accent-color: #09090b; }
+    .zw-actions { display: flex; align-items: center; gap: .75rem; margin-top: .75rem; flex-wrap: wrap; }
+    .zw-btn {
+      border: 1px solid rgba(244,241,235,.18); background: transparent; color: rgba(244,241,235,.65);
+      padding: .75rem 1.4rem; font-family: var(--fm); font-size: .6rem; letter-spacing: .12em;
+      text-transform: uppercase; transition: all .2s;
+    }
+    .zw-btn:hover { border-color: var(--paper); color: var(--paper); }
+    .zw-btn.primary { background: var(--paper); color: var(--ink); border-color: var(--paper); font-weight: 600; }
+    .zw-btn.primary:hover { background: #e2dfd9; border-color: #e2dfd9; }
+    .zw-btn:disabled { opacity: .35; cursor: default; }
+    body.light-mode .zw-btn { border-color: rgba(9,9,11,.18); color: rgba(9,9,11,.6); }
+    body.light-mode .zw-btn:hover { border-color: #09090b; color: #09090b; }
+    body.light-mode .zw-btn.primary { background: #09090b; color: #f4f1eb; border-color: #09090b; }
+    body.light-mode .zw-btn.primary:hover { background: #1a1a1a; border-color: #1a1a1a; }
+    .zw-status { font-size: .68rem; color: rgba(244,241,235,.4); font-family: var(--fm); }
+    body.light-mode .zw-status { color: rgba(9,9,11,.4); }
+    .zw-badge {
+      display: inline-flex; align-items: center; font-size: .6rem; letter-spacing: .06em;
+      text-transform: uppercase; padding: .2rem .6rem; border: 1px solid rgba(244,241,235,.15); color: rgba(244,241,235,.55);
+    }
+    body.light-mode .zw-badge { border-color: rgba(9,9,11,.15); color: rgba(9,9,11,.5); }
+    .zw-empty {
+      font-size: .72rem; color: rgba(244,241,235,.3); font-family: var(--fm); padding: 1rem 0;
+    }
+    body.light-mode .zw-empty { color: rgba(9,9,11,.35); }
+    .zw-loading { font-family: var(--fm); font-size: .72rem; color: rgba(244,241,235,.3); padding: 1.5rem 0; }
+    body.light-mode .zw-loading { color: rgba(9,9,11,.3); }
+
+    /* ── ORDERS ── */
+    .order-card {
+      border: 1px solid var(--a-border); background: var(--a-surface);
+      padding: 1.2rem 1.35rem; margin-bottom: .65rem;
+      font-family: var(--fm); font-size: .72rem;
+    }
+    body.light-mode .order-card { border-color: rgba(9,9,11,.1); background: rgba(9,9,11,.018); }
+    .order-card-head {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: .65rem;
+    }
+    .order-card-head-right { display: flex; flex-direction: column; align-items: flex-end; gap: .3rem; flex-shrink: 0; }
+    .order-total { font-size: .8rem; letter-spacing: .03em; }
+    .order-id { font-family: var(--fw); font-style: italic; font-size: 1rem; letter-spacing: .04em; }
+    .order-meta { color: rgba(244,241,235,.38); margin-top: .15rem; font-size: .65rem; letter-spacing: .04em; }
+    body.light-mode .order-meta { color: rgba(9,9,11,.4); }
+    .order-status {
+      display: inline-block; font-size: .52rem; letter-spacing: .1em; text-transform: uppercase;
+      border: 1px solid rgba(244,241,235,.15); padding: .2rem .55rem; color: rgba(244,241,235,.6);
+    }
+    body.light-mode .order-status { border-color: rgba(9,9,11,.15); color: rgba(9,9,11,.55); }
+    .order-status.status-shipped { border-color: rgba(100,160,255,.3); color: rgba(100,160,255,.9); }
+    .order-status.status-delivered { border-color: rgba(80,200,110,.3); color: rgba(80,200,110,.9); }
+    .order-status.status-packing { border-color: rgba(255,185,60,.3); color: rgba(255,185,60,.9); }
+    .order-status.status-cancelled { border-color: rgba(255,90,90,.3); color: rgba(255,90,90,.9); }
+    body.light-mode .order-status.status-shipped { border-color: rgba(30,90,210,.3); color: rgba(30,90,210,.85); }
+    body.light-mode .order-status.status-delivered { border-color: rgba(20,140,60,.3); color: rgba(20,140,60,.85); }
+    body.light-mode .order-status.status-packing { border-color: rgba(190,120,0,.3); color: rgba(190,120,0,.85); }
+    body.light-mode .order-status.status-cancelled { border-color: rgba(190,30,30,.3); color: rgba(190,30,30,.85); }
+    .track-btn {
+      display: inline-block; margin-top: .6rem;
+      font-family: var(--fm); font-size: .58rem; letter-spacing: .1em; text-transform: uppercase;
+      color: rgba(244,241,235,.45); border-bottom: 1px solid rgba(244,241,235,.15); padding-bottom: .1rem;
+      transition: color .2s, border-color .2s;
+    }
+    .track-btn:hover { color: var(--paper); border-color: rgba(244,241,235,.5); }
+    body.light-mode .track-btn { color: rgba(9,9,11,.4); border-color: rgba(9,9,11,.18); }
+    body.light-mode .track-btn:hover { color: #09090b; border-color: rgba(9,9,11,.5); }
+    .order-timeline {
+      display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .45rem;
+      margin-top: .75rem; padding-top: .75rem; border-top: 1px solid rgba(244,241,235,.06);
+    }
+    body.light-mode .order-timeline { border-top-color: rgba(9,9,11,.07); }
+    .order-step {
+      position: relative; min-width: 0; color: rgba(244,241,235,.26); font-size: .56rem;
+      letter-spacing: .08em; text-transform: uppercase; line-height: 1.45;
+    }
+    .order-step::before {
+      content: ""; display: block; width: 8px; height: 8px; border-radius: 50%;
+      border: 1px solid rgba(244,241,235,.18); margin-bottom: .35rem; background: transparent;
+    }
+    .order-step.done { color: rgba(244,241,235,.7); }
+    .order-step.done::before { background: var(--paper); border-color: var(--paper); }
+    .order-step.current { color: var(--paper); }
+    .order-step.current::before { box-shadow: 0 0 0 4px rgba(244,241,235,.08); }
+    body.light-mode .order-step { color: rgba(9,9,11,.28); }
+    body.light-mode .order-step::before { border-color: rgba(9,9,11,.18); }
+    body.light-mode .order-step.done { color: rgba(9,9,11,.68); }
+    body.light-mode .order-step.done::before { background: #09090b; border-color: #09090b; }
+    body.light-mode .order-step.current { color: #09090b; }
+    body.light-mode .order-step.current::before { box-shadow: 0 0 0 4px rgba(9,9,11,.08); }
+    @media (max-width: 640px) {
+      .order-timeline { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem .5rem; }
+    }
+
+    /* ── ORDER DETAIL ROWS ── */
+    .ord-item-list { display: flex; flex-direction: column; margin: .65rem 0 0; border-top: 1px solid rgba(244,241,235,.06); }
+    body.light-mode .ord-item-list { border-top-color: rgba(9,9,11,.07); }
+    .ord-item-row {
+      display: grid; grid-template-columns: 56px 1fr auto;
+      align-items: center; gap: .75rem;
+      padding: .6rem 0; border-bottom: 1px solid rgba(244,241,235,.06);
+      color: inherit; text-decoration: none;
+    }
+    body.light-mode .ord-item-row { border-bottom-color: rgba(9,9,11,.07); }
+    a.ord-item-row { cursor: pointer; }
+    a.ord-item-row:hover .ord-item-name { text-decoration: underline; text-underline-offset: 2px; }
+    .ord-item-img {
+      width: 56px; height: 56px; object-fit: cover;
+      flex-shrink: 0; display: block; background: rgba(244,241,235,.07);
+    }
+    body.light-mode .ord-item-img { background: rgba(9,9,11,.07); }
+    .ord-item-info { min-width: 0; }
+    .ord-item-name { font-size: .76rem; font-weight: 500; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ord-item-attrs { font-size: .62rem; color: rgba(244,241,235,.4); margin-top: .2rem; font-family: var(--fm); }
+    body.light-mode .ord-item-attrs { color: rgba(9,9,11,.45); }
+    .ord-item-price { font-size: .72rem; letter-spacing: .02em; flex-shrink: 0; }
+    .ord-item-more { font-size: .62rem; color: rgba(244,241,235,.3); font-family: var(--fm); padding: .45rem 0; }
+    body.light-mode .ord-item-more { color: rgba(9,9,11,.35); }
+
+    /* ── ORDER TRACKING ROW ── */
+    .order-track-row { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .65rem; align-items: center; }
+    .order-track-btn {
+      display: inline-block; border: 1px solid rgba(244,241,235,.2); color: rgba(244,241,235,.7);
+      padding: .4rem .9rem; font-size: .56rem; letter-spacing: .1em; text-transform: uppercase;
+      font-family: var(--fm); transition: all .18s; text-decoration: none;
+    }
+    .order-track-btn:hover { border-color: var(--paper); color: var(--paper); }
+    body.light-mode .order-track-btn { border-color: rgba(9,9,11,.2); color: rgba(9,9,11,.65); }
+    body.light-mode .order-track-btn:hover { border-color: #09090b; color: #09090b; }
+    .order-track-num { font-size: .65rem; color: rgba(244,241,235,.45); font-family: var(--fm); letter-spacing: .04em; }
+    body.light-mode .order-track-num { color: rgba(9,9,11,.5); }
+
+    /* ── ORDER NEXT STEPS ── */
+    .order-next {
+      margin-top: .75rem; padding: .65rem .8rem;
+      background: rgba(244,241,235,.025); border-left: 2px solid rgba(244,241,235,.12);
+      font-size: .7rem; line-height: 1.65; color: rgba(244,241,235,.55);
+    }
+    body.light-mode .order-next { background: rgba(9,9,11,.025); border-left-color: rgba(9,9,11,.15); color: rgba(9,9,11,.55); }
+    .order-next strong {
+      color: rgba(244,241,235,.8); display: block; margin-bottom: .25rem;
+      font-size: .6rem; letter-spacing: .08em; text-transform: uppercase;
+    }
+    body.light-mode .order-next strong { color: rgba(9,9,11,.75); }
+
+    /* ── ORDER FOOTER ── */
+    .order-footer {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      margin-top: .85rem; padding-top: .75rem; border-top: 1px solid rgba(244,241,235,.06);
+      gap: 1rem; flex-wrap: wrap;
+    }
+    body.light-mode .order-footer { border-top-color: rgba(9,9,11,.07); }
+    .order-addr-label {
+      font-size: .52rem; letter-spacing: .1em; text-transform: uppercase;
+      color: rgba(244,241,235,.28); margin-bottom: .25rem; font-family: var(--fm);
+    }
+    body.light-mode .order-addr-label { color: rgba(9,9,11,.35); }
+    .order-addr { font-size: .68rem; color: rgba(244,241,235,.45); line-height: 1.65; font-family: var(--fm); }
+    body.light-mode .order-addr { color: rgba(9,9,11,.5); }
+    .order-return-link {
+      background: none; border: none; border-bottom: 1px solid rgba(244,241,235,.12);
+      font-family: var(--fm); font-size: .56rem; letter-spacing: .1em; text-transform: uppercase;
+      color: rgba(244,241,235,.4); padding: 0 0 .1rem; cursor: pointer;
+      transition: color .2s, border-color .2s; white-space: nowrap;
+    }
+    .order-return-link:hover { color: var(--paper); border-bottom-color: rgba(244,241,235,.4); }
+    body.light-mode .order-return-link { color: rgba(9,9,11,.4); border-bottom-color: rgba(9,9,11,.18); }
+    body.light-mode .order-return-link:hover { color: #09090b; border-bottom-color: rgba(9,9,11,.5); }
+
+    /* ── TAB COUNT BADGE ── */
+    .tab-count {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 16px; height: 16px; padding: 0 .3rem; border-radius: 8px;
+      background: rgba(244,241,235,.1); font-size: .52rem;
+      font-family: var(--fm); letter-spacing: 0; margin-left: .3rem;
+    }
+    .acct-tab.active .tab-count { background: rgba(244,241,235,.22); }
+    body.light-mode .tab-count { background: rgba(9,9,11,.08); }
+    body.light-mode .acct-tab.active .tab-count { background: rgba(9,9,11,.18); }
+
+    /* ── EMPTY STATE ── */
+    .empty-state { padding: 2.5rem 1rem; text-align: center; }
+    .empty-state-dash { font-family: var(--fw); font-size: 2rem; color: rgba(244,241,235,.12); line-height: 1; margin-bottom: .75rem; }
+    body.light-mode .empty-state-dash { color: rgba(9,9,11,.1); }
+    .empty-state-title { font-family: var(--fw); font-size: 1.1rem; letter-spacing: .06em; margin-bottom: .4rem; }
+    .empty-state-desc { font-size: .75rem; color: var(--a-muted); line-height: 1.7; max-width: 300px; margin: 0 auto .9rem; }
+    .empty-state-link {
+      display: inline-block; font-family: var(--fm); font-size: .58rem; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--a-dim); border-bottom: 1px solid var(--a-border-mid); padding-bottom: .15rem;
+      transition: color .2s, border-color .2s;
+    }
+    .empty-state-link:hover { color: var(--paper); border-color: rgba(244,241,235,.4); }
+    body.light-mode .empty-state-link:hover { color: #09090b; border-color: rgba(9,9,11,.4); }
+
+    /* ── ORDER ITEMS ── */
+    .order-items-row { display: flex; flex-wrap: wrap; gap: .4rem; margin: .6rem 0 .35rem; }
+    .order-item-chip {
+      display: flex; align-items: center; gap: .5rem;
+      background: rgba(244,241,235,.03); border: 1px solid rgba(244,241,235,.07);
+      padding: .35rem .55rem; max-width: 240px;
+      color: inherit; text-decoration: none;
+    }
+    a.order-item-chip { cursor: pointer; }
+    a.order-item-chip:hover .order-item-name { text-decoration: underline; text-underline-offset: 2px; }
+    .order-item-img {
+      width: 40px; height: 40px; object-fit: cover; flex-shrink: 0;
+      background: rgba(244,241,235,.07);
+    }
+    .order-item-img-ph {
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--fw); font-size: .95rem; font-weight: 700;
+      color: rgba(244,241,235,.35); letter-spacing: .04em;
+    }
+    body.light-mode .order-item-img-ph { color: rgba(9,9,11,.25); background: rgba(9,9,11,.06); }
+    .order-item-name { font-size: .71rem; font-weight: 500; line-height: 1.3; }
+    .order-item-meta { font-size: .6rem; color: rgba(244,241,235,.4); margin-top: .1rem; font-family: var(--fm); }
+    .order-item-more {
+      display: flex; align-items: center;
+      font-size: .6rem; color: rgba(244,241,235,.3); font-family: var(--fm);
+      padding: .35rem .55rem;
+    }
+    body.light-mode .order-item-chip { background: rgba(9,9,11,.025); border-color: rgba(9,9,11,.09); }
+    body.light-mode .order-item-img { background: rgba(9,9,11,.07); }
+    body.light-mode .order-item-meta { color: rgba(9,9,11,.45); }
+    body.light-mode .order-item-more { color: rgba(9,9,11,.35); }
+
+    /* ── FAVS ── */
+    .fav-card {
+      display: grid; grid-template-columns: 80px 1fr auto;
+      align-items: center; gap: 1rem; cursor: pointer;
+      padding: .85rem 0; border-bottom: 1px solid rgba(244,241,235,.06);
+      font-family: var(--fm);
+    }
+    body.light-mode .fav-card { border-bottom-color: rgba(9,9,11,.07); }
+    .fav-card-img-wrap { display: block; flex-shrink: 0; }
+    .fav-card-img {
+      width: 80px; height: 80px; object-fit: cover; display: block;
+      background: rgba(244,241,235,.06);
+    }
+    .fav-card-img-placeholder { background: rgba(244,241,235,.06); }
+    body.light-mode .fav-card-img { background: rgba(9,9,11,.06); }
+    body.light-mode .fav-card-img-placeholder { background: rgba(9,9,11,.06); }
+    .fav-card-body { min-width: 0; }
+    .fav-card-name {
+      display: block; font-size: .82rem; font-weight: 500; line-height: 1.35;
+      color: inherit; text-decoration: none; letter-spacing: .01em;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .fav-card-name:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .fav-card-price { font-size: .7rem; color: rgba(244,241,235,.45); margin-top: .3rem; font-family: var(--fm); }
+    body.light-mode .fav-card-price { color: rgba(9,9,11,.5); }
+    .fav-card-actions { display: flex; flex-direction: column; align-items: flex-end; gap: .5rem; flex-shrink: 0; }
+    .fav-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .7rem 0; border-bottom: 1px solid rgba(244,241,235,.06); font-family: var(--fm); font-size: .75rem;
+    }
+    body.light-mode .fav-row { border-bottom-color: rgba(9,9,11,.07); }
+    .fav-row:last-child { border-bottom: none; }
+    .fav-rm { font-size: .6rem; color: rgba(244,241,235,.25); transition: color .2s; }
+    .fav-rm:hover { color: rgba(244,241,235,.7); }
+    body.light-mode .fav-rm { color: rgba(9,9,11,.25); }
+    body.light-mode .fav-rm:hover { color: rgba(9,9,11,.7); }
+
+    /* ── ADDRESS CARD ── */
+    .addr-card {
+      border: 1px solid rgba(244,241,235,.08); padding: 1rem; margin-bottom: .6rem;
+    }
+    body.light-mode .addr-card { border-color: rgba(9,9,11,.1); }
+    .addr-meta { font-size: .72rem; color: rgba(244,241,235,.5); line-height: 1.6; margin-top: .3rem; }
+    body.light-mode .addr-meta { color: rgba(9,9,11,.5); }
+
+    /* ── LOGOUT BAR ── */
+    .logout-bar {
+      padding: 1.5rem 0 0; margin-top: 1rem; border-top: 1px solid rgba(244,241,235,.06);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    body.light-mode .logout-bar { border-top-color: rgba(9,9,11,.06); }
+    .logout-bar p { font-size: .72rem; color: rgba(244,241,235,.3); font-family: var(--fm); }
+    body.light-mode .logout-bar p { color: rgba(9,9,11,.3); }
+
+    /* ── AUTH WALL ── */
+    .auth-wall {
+      border: 1px solid rgba(244,241,235,.08); padding: 3rem 2rem; text-align: center; margin: 2rem 0;
+    }
+    body.light-mode .auth-wall { border-color: rgba(9,9,11,.1); }
+    .auth-wall h2 { font-family: var(--fw); font-size: 1.8rem; font-style: normal; letter-spacing: .06em; margin-bottom: .75rem; }
+    .auth-wall p { font-size: .8rem; color: rgba(244,241,235,.45); line-height: 1.8; margin-bottom: 1.5rem; }
+    body.light-mode .auth-wall p { color: rgba(9,9,11,.45); }
+    .auth-wall-btn {
+      display: inline-block; font-family: var(--fm); font-size: .6rem; letter-spacing: .14em; text-transform: uppercase;
+      background: var(--ink); border: 1px solid var(--ink); padding: .85rem 1.8rem; color: var(--paper); transition: all .2s;
+    }
+    .auth-wall-btn:hover { background: #1a1a1a; border-color: #1a1a1a; }
+    body.light-mode .auth-wall-btn { background: #09090b; border-color: #09090b; color: #f4f1eb; }
+    body.light-mode .auth-wall-btn:hover { background: #1a1a1a; border-color: #1a1a1a; }
+
+    /* ── RETURNS TAB ── */
+    .ret-form-stack { display: flex; flex-direction: column; gap: .9rem; }
+
+    .ret-item-row {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .65rem .8rem; cursor: pointer; transition: border-color .15s;
+      border: 1px solid rgba(244,241,235,.1); border-radius: 7px;
+      background: rgba(244,241,235,.02);
+    }
+    body.light-mode .ret-item-row { border-color: rgba(9,9,11,.1); background: rgba(9,9,11,.02); }
+    .ret-item-row.selected { border-color: rgba(244,241,235,.45); }
+    body.light-mode .ret-item-row.selected { border-color: rgba(9,9,11,.55); }
+
+    .ret-qty-wrap { display:none; flex-shrink:0; align-items:center; gap:.4rem; }
+    .ret-qty-wrap.visible { display:flex; }
+    .ret-qty-label { font-size:.58rem; color:rgba(244,241,235,.35); font-family:var(--fm); letter-spacing:.1em; text-transform:uppercase; }
+    body.light-mode .ret-qty-label { color:rgba(9,9,11,.4); }
+    .ret-qty-sel { background:rgba(244,241,235,.08); border:1px solid rgba(244,241,235,.2); color:#f4f1eb; font-family:var(--fb); font-size:.75rem; padding:.25rem .45rem; border-radius:3px; cursor:pointer; outline:none; }
+    body.light-mode .ret-qty-sel { background:rgba(9,9,11,.05); border-color:rgba(9,9,11,.2); color:rgba(9,9,11,.85); }
+
+    .ret-item-chk {
+      width: 16px; height: 16px; flex-shrink: 0; border-radius: 3px;
+      border: 1.5px solid rgba(244,241,235,.3);
+      display: flex; align-items: center; justify-content: center; transition: all .12s;
+    }
+    body.light-mode .ret-item-chk { border-color: rgba(9,9,11,.3); }
+    .ret-item-chk.checked { background: rgba(244,241,235,.9); border-color: rgba(244,241,235,.9); }
+    body.light-mode .ret-item-chk.checked { background: #09090b; border-color: #09090b; }
+    .ret-item-meta { color: rgba(244,241,235,.45); }
+    body.light-mode .ret-item-meta { color: rgba(9,9,11,.5); }
+
+    .ret-order-preview {
+      display: none; flex-wrap: wrap; gap: .4rem;
+      padding: .75rem; margin-top: .5rem;
+      background: rgba(244,241,235,.025); border: 1px solid rgba(244,241,235,.06);
+    }
+    body.light-mode .ret-order-preview { background: rgba(9,9,11,.02); border-color: rgba(9,9,11,.07); }
+    .ret-order-preview.visible { display: flex; }
+    .ret-preview-label {
+      width: 100%; font-size: .52rem; letter-spacing: .12em; text-transform: uppercase;
+      color: rgba(244,241,235,.28); margin-bottom: .3rem; font-family: var(--fm);
+    }
+    body.light-mode .ret-preview-label { color: rgba(9,9,11,.35); }
+
+    .ret-card {
+      border: 1px solid var(--a-border); background: var(--a-surface);
+      padding: 1.2rem 1.35rem; margin-bottom: .65rem; font-family: var(--fm);
+    }
+    body.light-mode .ret-card { border-color: rgba(9,9,11,.1); background: rgba(9,9,11,.018); }
+    .ret-card-head {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 1rem; margin-bottom: .6rem;
+    }
+    .ret-card-head-right { display: flex; flex-direction: column; align-items: flex-end; gap: .3rem; flex-shrink: 0; }
+    .ret-id { font-family: var(--fw); font-style: italic; font-size: 1rem; letter-spacing: .04em; }
+    .ret-meta { color: rgba(244,241,235,.38); margin-top: .15rem; font-size: .65rem; letter-spacing: .04em; }
+    body.light-mode .ret-meta { color: rgba(9,9,11,.4); }
+
+    .ret-status {
+      display: inline-block; font-size: .52rem; letter-spacing: .1em; text-transform: uppercase;
+      border: 1px solid rgba(244,241,235,.15); padding: .2rem .55rem; color: rgba(244,241,235,.6);
+    }
+    body.light-mode .ret-status { border-color: rgba(9,9,11,.15); color: rgba(9,9,11,.55); }
+    .ret-status.ret-s-requested  { border-color: rgba(255,185,60,.35);  color: rgba(255,185,60,.9); }
+    .ret-status.ret-s-approved   { border-color: rgba(100,160,255,.35); color: rgba(100,160,255,.9); }
+    .ret-status.ret-s-label_sent { border-color: rgba(248,145,165,.4);  color: rgba(248,145,165,1); }
+    .ret-status.ret-s-completed  { border-color: rgba(80,200,110,.35);  color: rgba(80,200,110,.9); }
+    .ret-status.ret-s-denied     { border-color: rgba(255,90,90,.35);   color: rgba(255,90,90,.9); }
+    body.light-mode .ret-status.ret-s-requested  { border-color: rgba(190,120,0,.3);  color: rgba(190,120,0,.85); }
+    body.light-mode .ret-status.ret-s-approved   { border-color: rgba(30,90,210,.3);  color: rgba(30,90,210,.85); }
+    body.light-mode .ret-status.ret-s-label_sent { border-color: rgba(200,60,90,.3);  color: rgba(200,60,90,.9); }
+    body.light-mode .ret-status.ret-s-completed  { border-color: rgba(20,140,60,.3);  color: rgba(20,140,60,.85); }
+    body.light-mode .ret-status.ret-s-denied     { border-color: rgba(190,30,30,.3);  color: rgba(190,30,30,.85); }
+
+    .ret-next {
+      margin-top: .75rem; padding: .65rem .8rem;
+      background: rgba(244,241,235,.025); border-left: 2px solid rgba(244,241,235,.12);
+      font-size: .7rem; line-height: 1.65; color: rgba(244,241,235,.55);
+    }
+    body.light-mode .ret-next { background: rgba(9,9,11,.025); border-left-color: rgba(9,9,11,.15); color: rgba(9,9,11,.55); }
+    .ret-next strong { color: rgba(244,241,235,.8); display: block; margin-bottom: .25rem; font-size: .6rem; letter-spacing: .08em; text-transform: uppercase; }
+    body.light-mode .ret-next strong { color: rgba(9,9,11,.75); }
+
+    .ret-tracking-row { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .6rem; align-items: center; }
+    .ret-track-btn {
+      display: inline-block; border: 1px solid rgba(244,241,235,.2); color: rgba(244,241,235,.7);
+      padding: .4rem .9rem; font-size: .56rem; letter-spacing: .1em; text-transform: uppercase;
+      font-family: var(--fm); transition: all .18s; text-decoration: none;
+    }
+    .ret-track-btn:hover { border-color: var(--paper); color: var(--paper); }
+    body.light-mode .ret-track-btn { border-color: rgba(9,9,11,.2); color: rgba(9,9,11,.65); }
+    body.light-mode .ret-track-btn:hover { border-color: #09090b; color: #09090b; }
+    .ret-track-num { font-size: .65rem; color: rgba(244,241,235,.45); font-family: var(--fm); letter-spacing: .04em; }
+    body.light-mode .ret-track-num { color: rgba(9,9,11,.5); }
+
+    /* ── FOOTER ── */
+    footer { margin-top: auto; }
+    @media(max-width: 900px) {
+      .zw-nav { padding: 1rem 1.2rem; justify-content: flex-end; }
+      .page-wrap { padding: 2rem 1.2rem 4rem; }
+      .acct-tab { padding: .7rem .85rem; white-space: nowrap; }
+      .acct-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .acct-tabs::-webkit-scrollbar { display: none; }
+      .zw-grid-2 { grid-template-columns: 1fr; }
+      .zw-grid-3 { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+<link rel="stylesheet" href="storefront-cohesion.css?v=26053004">
+<script src="mobile-menu.js?v=4c6ccedc" defer></script>
+<script>try{var _t=localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
+<script src="/posthog-init.js?v=e62ca5bb" defer></script>
+<style>body.super-light-mode{background:#FFFFFF!important}</style>
+</head>
+<body>
+<script>(function(){try{var m=localStorage.getItem('zw_theme_mode');if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
+
+<!-- NAV -->
+<nav class="zw-nav">
+  <a href="/" class="zw-nav-logo">
+    <img src="images/wordmark-nav.png" srcset="images/wordmark-nav@2x.png 2x" alt="ZUWERA" width="113" height="22" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
+  </a>
+  <a href="/" class="zw-nav-back" data-history-back>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    Back
+  </a>
+  <div class="zw-nav-right">
+    <button class="zw-nav-btn" id="nav-signout-btn" onclick="signOut()" style="display:none">Sign Out</button>
+    <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" aria-controls="mobile-menu" aria-expanded="false">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="8" x2="21" y2="8"></line><line x1="3" y1="16" x2="21" y2="16"></line></svg>
+    </button>
+  </div>
+</nav>
+
+<!-- MOBILE MENU MODAL -->
+<div id="mobile-menu" class="modal zw-mobile-menu" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="mobile-menu-title">
+  <div class="mbox zw-mobile-menu-panel">
+    <div class="zw-mobile-menu-top">
+      <p class="zw-mobile-menu-kicker">Zuwera Navigation</p>
+      <button id="mobile-menu-close" class="mclose zw-mobile-menu-close" onclick="return window.closeMobileMenu ? window.closeMobileMenu() : false;" aria-label="Close menu">Close</button>
+    </div>
+    <nav class="zw-mobile-menu-nav" aria-label="Mobile navigation">
+      <h2 id="mobile-menu-title" class="zw-mobile-menu-title">Menu</h2>
+      <div id="mobile-category-links" class="mobile-nav-links zw-mobile-menu-primary">
+        <a href="drop001.html?category=Jackets" class="mobile-nav-link zw-mobile-primary-link">Jackets</a>
+        <a href="drop001.html?category=T-Shirts" class="mobile-nav-link zw-mobile-primary-link">T-Shirts</a>
+        <a href="drop001.html?category=Beanies" class="mobile-nav-link zw-mobile-primary-link">Beanies</a>
+        <a href="index.html#about" class="mobile-nav-link zw-mobile-primary-link">About</a>
+      </div>
+      <div class="zw-mobile-menu-secondary">
+        <a href="account.html" class="zw-mobile-secondary-link">Account</a>
+        <a href="account.html#orders" class="zw-mobile-secondary-link">Track Order</a>
+        <a href="mailto:nasirubreeze@zuwera.store" class="zw-mobile-secondary-link">Support</a>
+        <a href="bag.html" class="zw-mobile-secondary-link zw-mobile-bag-link" aria-label="Open bag">Bag <span class="zw-mobile-bag-count">0</span></a>
+        <a href="sizeguide.html" class="zw-mobile-secondary-link">Size Guide</a>
+      </div>
+    </nav>
+    <footer class="zw-mobile-menu-footer">
+      <div class="zw-mobile-socials" aria-label="Social links">
+        <a href="https://instagram.com/Zuw.era" target="_blank" rel="noopener">Instagram</a>
+        <a href="mailto:nasirubreeze@zuwera.store">Email</a>
+        <a href="#" onclick="event.preventDefault(); window.closeMobileMenu?.(); setTimeout(() => window.zwLang?.open?.(), 0);">Language</a>
+      </div>
+      <p class="zw-mobile-menu-year">Zuwera &middot; 2026</p>
+    </footer>
+  </div>
+</div>
+
+<!-- PAGE CONTENT -->
+<main class="page-wrap">
+
+  <!-- AUTH WALL (shown before session loads) -->
+  <div id="auth-wall" style="display:none">
+    <div class="auth-wall">
+      <h2>My Account</h2>
+      <p>Sign in to view your orders, saved items, and manage your profile.</p>
+      <a href="/?auth=signin" class="auth-wall-btn">Sign In</a>
+    </div>
+  </div>
+
+  <!-- ACCOUNT CONTENT (shown when signed in) -->
+  <div id="acct-content" style="display:none">
+    <div class="page-hd">
+      <h1>My Account</h1>
+      <p class="page-hd-meta" id="acct-email-display"></p>
+    </div>
+
+    <!-- TABS -->
+    <div class="acct-tabs" id="acct-tabs">
+      <button class="acct-tab active" data-tab="orders">Orders</button>
+      <button class="acct-tab" data-tab="saved">Saved Items</button>
+      <button class="acct-tab" data-tab="returns">Returns</button>
+      <button class="acct-tab" data-tab="profile">Profile</button>
+    </div>
+
+    <!-- ORDERS -->
+    <div class="acct-panel active" id="panel-orders">
+      <div class="zw-loading" id="orders-loading" role="status" aria-live="polite">Loading your orders…</div>
+      <div id="orders-empty" style="display:none">
+        <div class="empty-state">
+          <div class="empty-state-dash">—</div>
+          <div class="empty-state-title">No Orders Yet</div>
+          <div class="empty-state-desc">When you place your first order it'll appear here with real-time tracking.</div>
+          <a href="/drop001.html" class="empty-state-link">Browse Release 001 →</a>
+        </div>
+      </div>
+      <div id="orders-list"></div>
+    </div>
+
+    <!-- SAVED ITEMS -->
+    <div class="acct-panel" id="panel-saved">
+      <div class="zw-loading" id="saved-loading" role="status" aria-live="polite">Loading saved items…</div>
+      <div id="saved-empty" style="display:none">
+        <div class="empty-state">
+          <div class="empty-state-dash">—</div>
+          <div class="empty-state-title">Nothing Saved Yet</div>
+          <div class="empty-state-desc">Tap the heart on any product to save it here for later.</div>
+          <a href="/drop001.html" class="empty-state-link">Browse Release 001 →</a>
+        </div>
+      </div>
+      <div id="saved-list"></div>
+    </div>
+
+    <!-- RETURNS -->
+    <div class="acct-panel" id="panel-returns">
+      <div class="zw-loading" id="returns-loading" role="status" aria-live="polite">Loading returns portal…</div>
+      <div id="returns-content"></div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="acct-panel" id="panel-profile">
+      <div class="zw-loading" id="profile-loading" role="status" aria-live="polite">Loading your profile…</div>
+      <div id="profile-content"></div>
+    </div>
+
+    <!-- LOGOUT BAR -->
+    <div class="logout-bar">
+      <p id="acct-signed-in-as"></p>
+      <button class="zw-btn" id="signout-btn">Sign Out</button>
+    </div>
+  </div>
+
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <div class="flogo">
+    <img src="images/wordmark-footer.png" srcset="images/wordmark-footer@2x.png 2x" alt="ZUWERA" width="175" height="34" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+    <span style="display:none">ZUWERA</span>
+  </div>
+  <nav class="flinks">
+    <a href="/drop001.html">Release 001</a>
+    <a href="/sizeguide.html">Size Guide</a>
+    <a href="/policies.html">Policies</a>
+    <a href="/returns.html">Returns</a>
+    <a href="/account.html" aria-current="page">Account</a>
+    <a href="mailto:nasirubreeze@zuwera.store">Contact</a>
+  </nav>
+  <div class="fright">
+    <a href="https://instagram.com/Zuw.era" target="_blank" rel="noopener" class="fig">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+      @Zuw.era
+    </a>
+    <p class="fcopy">&copy; 2026 Zuwera. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+// _sb is null until DOMContentLoaded, when supabase-client.js (deferred) has run
+let _sb = null;
+
+let _session = null;
+let _hubPayload = null;
+
+function escHtml(v) {
+  return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+
+// Seeded with generic CSS colors as fallback; Zuwera colorways are merged in from DB at runtime
+const _COLOR_MAP = {
+  'black':  '#1a1a1a',
+  'white':  '#f5f5f0',
+  'red':    '#ef4444',
+  'green':  '#059669',
+  'navy':   '#1e3a5f',
+  'grey':   '#9ca3af',
+  'gray':   '#9ca3af',
+  'pink':   '#ec4899',
+  'orange': '#f97316',
+  'purple': '#a855f7',
+  'brown':  '#92400e',
+  'tan':    '#d4a96a',
+  'cream':  '#f5e6c8',
+  'beige':  '#e8d5b7',
+};
+function colorSwatch(name) {
+  if (!name) return '';
+  const hex = _COLOR_MAP[name.toLowerCase().trim()];
+  if (!hex) return '';
+  return `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${hex};border:1px solid rgba(0,0,0,.18);margin-right:3px;vertical-align:middle;flex-shrink:0;"></span>`;
+}
+function itemMetaHtml(size, colorName, qty) {
+  const parts = [];
+  if (size) parts.push(escHtml(size));
+  if (colorName) parts.push(colorSwatch(colorName) + escHtml(colorName));
+  if (qty > 1) parts.push(`Qty ${qty}`);
+  return parts.join(' · ');
+}
+
+function orderNextSteps(order) {
+  const fulfillment = String(order?.commerce?.fulfillmentStatus || order?.fulfillment_status || '').toLowerCase();
+  const status = String(order?.status || '').toLowerCase();
+  const s = fulfillment || status;
+  const hasTracking = Boolean(order?.commerce?.trackingNumber || order?.tracking_number);
+  if (/cancel/.test(s)) return { title: 'Cancelled', body: 'This order has been cancelled. Any charge will be refunded within 5–10 business days.' };
+  if (/delivered|completed/.test(s) || order?.delivered_at || order?.commerce?.deliveredAt) return { title: 'Delivered', body: 'Your order was delivered. We hope you love it. If anything isn\'t right, hit <em>Start a Return</em> below.' };
+  if (hasTracking || /shipped|fulfil/.test(s)) return { title: 'On Its Way', body: 'Your order has shipped. Use the tracking link below to follow it in real time.' };
+  if (/pack|process/.test(s)) return { title: 'Being Packed', body: 'Your order is being packed and will ship very soon. A tracking number will be emailed to you when it leaves our hands.' };
+  return { title: 'Order Received', body: 'We\'ve received your order and are getting it ready. You\'ll get a shipping confirmation email when it\'s on its way.' };
+}
+
+function orderTimelineHtml(order, returnRequests = []) {
+  const fulfillment = String(order?.commerce?.fulfillmentStatus || order?.fulfillment_status || '').toLowerCase();
+  const status = String(order?.status || '').toLowerCase();
+  const payment = String(order?.payment_status || order?.paymentStatus || order?.commerce?.paymentStatus || '').toLowerCase();
+  const hasTracking = Boolean(order?.commerce?.trackingNumber || order?.tracking_number || order?.commerce?.trackingUrl || order?.tracking_url);
+  const hasReturn = returnRequests.some(r => String(r.orderId || r.order_id || '') === String(order?.id || ''));
+  const paid = ['paid','succeeded','processing','confirmed','fulfilled'].some(s => payment.includes(s) || status.includes(s)) || Boolean(order?.payment_intent_id || order?.stripe_payment_intent_id);
+  const packed = ['packed','fulfilled','shipped','delivered','completed'].some(s => fulfillment.includes(s) || status.includes(s));
+  const shipped = hasTracking || ['shipped','fulfilled','delivered','completed'].some(s => fulfillment.includes(s) || status.includes(s));
+  const delivered = ['delivered','completed'].some(s => fulfillment.includes(s) || status.includes(s)) || Boolean(order?.delivered_at || order?.commerce?.deliveredAt);
+  const states = [
+    { key: 'placed', label: 'Placed', done: true },
+    { key: 'paid', label: 'Paid', done: paid },
+    { key: 'packed', label: 'Packed', done: packed },
+    { key: 'shipped', label: 'Shipped', done: shipped },
+    { key: 'delivered', label: 'Delivered', done: delivered },
+    { key: 'return', label: 'Return Requested', done: hasReturn },
+  ];
+  let firstOpen = states.findIndex(step => !step.done);
+  if (firstOpen < 0) firstOpen = states.length - 1;
+  return `<div class="order-timeline">${states.map((step, idx) => `<div class="order-step${step.done ? ' done' : ''}${idx === firstOpen ? ' current' : ''}">${escHtml(step.label)}</div>`).join('')}</div>`;
+}
+
+/* ── SESSION ── */
+async function getSession() {
+  if (!_sb?.auth?.getSession) return null;
+  const r = await _sb.auth.getSession().catch(() => null);
+  const session = r?.data?.session;
+  if (!session) return null;
+  // Force-refresh if the access token is expired or expires within 60 s
+  const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
+  if (!expiresAt || expiresAt - Date.now() < 60000) {
+    const ref = await _sb.auth.refreshSession().catch(() => null);
+    return ref?.data?.session || session;
+  }
+  return session;
+}
+
+/* ── HUB API ── */
+async function fetchHub() {
+  const session = await getSession();
+  if (!session?.access_token) return null;
+  const resp = await fetch('/api/customer-hub', {
+    headers: { Authorization: `Bearer ${session.access_token}` }
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || !data?.success) throw new Error(data?.error || 'Could not load account.');
+  return data;
+}
+
+async function postHub(action, payload) {
+  const session = await getSession();
+  if (!session?.access_token) throw new Error('Please sign in again.');
+  const resp = await fetch('/api/customer-hub', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+    body: JSON.stringify({ action, ...payload })
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || !data?.success) throw new Error(data?.error || 'Update failed.');
+  return data;
+}
+
+/* ── TABS ── */
+function switchTab(tab) {
+  document.querySelectorAll('.acct-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.acct-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + tab)?.classList.add('active');
+
+  // Lazy-load tab data
+  if (tab === 'orders') loadOrders();
+  if (tab === 'saved') loadSaved();
+  if (tab === 'returns') loadReturns();
+  if (tab === 'profile') loadProfile();
+}
+
+document.querySelectorAll('.acct-tab').forEach(b => {
+  b.addEventListener('click', () => switchTab(b.dataset.tab));
+});
+
+/* ── ORDERS ── */
+async function fetchProductImageMap() {
+  if (!_sb) return { imgs: {}, ids: {} };
+  try {
+    const [{ data: products }, { data: sizes }] = await Promise.all([
+      _sb.from('products').select('id, sku, title, image_url'),
+      _sb.from('product_sizes').select('color_name, color_hex').not('color_hex', 'is', null),
+    ]);
+    const imgs = {}, ids = {};
+    for (const p of products || []) {
+      const key = p.title ? p.title.trim().toLowerCase() : null;
+      if (p.id)  { ids[p.id]  = p.id; if (p.image_url) imgs[p.id]  = p.image_url; }
+      if (p.sku) { ids[p.sku] = p.id; if (p.image_url) imgs[p.sku] = p.image_url; }
+      if (key)   { ids[key]   = p.id; if (p.image_url) imgs[key]   = p.image_url; }
+    }
+    const colors = {};
+    for (const s of sizes || []) {
+      if (s.color_name && s.color_hex) colors[s.color_name.trim().toLowerCase()] = s.color_hex.trim();
+    }
+    return { imgs, ids, colors };
+  } catch(_) { return { imgs: {}, ids: {}, colors: {} }; }
+}
+
+function buildTrackingUrl(carrier, trackingNumber) {
+  if (!trackingNumber) return '';
+  const tn = String(trackingNumber).trim();
+  const c  = String(carrier || '').toLowerCase();
+  if (/usps/.test(c) || /^(94|93|92|91|90|420)\d/.test(tn))
+    return `https://tools.usps.com/go/TrackConfirmAction?qtc_tLabels1=${encodeURIComponent(tn)}`;
+  if (/fedex/.test(c) || /^\d{12}$|^\d{15}$|^\d{22}$/.test(tn))
+    return `https://www.fedex.com/fedextrack/?trknbr=${encodeURIComponent(tn)}`;
+  if (/ups/.test(c) || /^1Z/i.test(tn))
+    return `https://www.ups.com/track?tracknum=${encodeURIComponent(tn)}`;
+  if (/dhl/.test(c))
+    return `https://www.dhl.com/us-en/home/tracking.html?tracking-id=${encodeURIComponent(tn)}`;
+  return `https://t.17track.net/en#nums=${encodeURIComponent(tn)}`;
+}
+
+async function loadOrders() {
+  const loading = document.getElementById('orders-loading');
+  const empty = document.getElementById('orders-empty');
+  const list = document.getElementById('orders-list');
+  if (!list || list.dataset.loaded) return;
+  list.dataset.loaded = '1';
+  if (loading) loading.style.display = 'block';
+  try {
+    if (!_session) {
+      if (loading) loading.style.display = 'none';
+      if (empty) empty.style.display = 'block';
+      return;
+    }
+    if (!_hubPayload) _hubPayload = await fetchHub();
+    const data = _hubPayload?.orders || [];
+    const returnRequests = Array.isArray(_hubPayload?.returns) ? _hubPayload.returns : [];
+    if (loading) loading.style.display = 'none';
+    if (!data.length) { if (empty) empty.style.display = 'block'; return; }
+
+    const { imgs: productImgMap, ids: productIdMap, colors: colorMap } = await fetchProductImageMap();
+    if (colorMap) Object.assign(_COLOR_MAP, colorMap);
+
+    const ordersTab = document.querySelector('.acct-tab[data-tab="orders"]');
+    if (ordersTab) ordersTab.innerHTML = `Orders <span class="tab-count">${data.length}</span>`;
+    list.innerHTML = data.map(o => {
+      const fulfillment = o.commerce?.fulfillmentStatus || o.fulfillment_status || '';
+      const displayStatus = o.status || 'confirmed';
+      const statusLabel = fulfillment && fulfillment !== 'unfulfilled'
+        ? fulfillment.replace(/_/g,' ')
+        : displayStatus.replace(/_/g,' ');
+      const orderTotal = o.total || o.total_amount;
+      const statusStr = (fulfillment || displayStatus).toLowerCase();
+      const statusColorClass = /delivered|completed/.test(statusStr) ? ' status-delivered'
+        : /shipped|fulfil/.test(statusStr) ? ' status-shipped'
+        : /pack|process/.test(statusStr) ? ' status-packing'
+        : /cancel|refund|return/.test(statusStr) ? ' status-cancelled'
+        : '';
+
+      // Items — full detail rows
+      let itemsHtml = '';
+      let itemCount = 0;
+      try {
+        const items = typeof o.items === 'string' ? JSON.parse(o.items) : (Array.isArray(o.items) ? o.items : []);
+        itemCount = items.length;
+        if (items.length) {
+          const shown = items.slice(0, 4);
+          const rows = shown.map(i => {
+            const storedImg = (i.image || i.imageUrl || i.img || '').trim();
+            const validStored = storedImg && /^https?:\/\//i.test(storedImg) ? storedImg : '';
+            const rawPid = i.productId || i.product_id || '';
+            const itemName = (i.name || i.title || '').replace(/\p{Extended_Pictographic}/gu, '').trim();
+            const nameKey = itemName.toLowerCase();
+            const resolvedId = productIdMap[nameKey] || productIdMap[rawPid] || productIdMap[i.sku] || '';
+            const safeImg = validStored || productImgMap[nameKey] || productImgMap[rawPid] || productImgMap[i.sku] || '';
+            const name = escHtml(itemName);
+            const attrs = itemMetaHtml(i.size, i.colorName || i.color, i.quantity || 1);
+            const rawItemPrice = parseFloat(i.price || i.unit_price || i.amount || 0);
+            const itemPrice = rawItemPrice > 0 ? `$${(rawItemPrice > 500 ? rawItemPrice / 100 : rawItemPrice).toFixed(2)}` : '';
+            const itemHref = resolvedId ? `/product.html?id=${encodeURIComponent(resolvedId)}` : '';
+            const rowTag = itemHref ? `a href="${escHtml(itemHref)}"` : 'div';
+            const rowClose = itemHref ? 'a' : 'div';
+            return `<${rowTag} class="ord-item-row">
+              ${safeImg ? `<img src="${escHtml(safeImg)}" alt="${name}" class="ord-item-img" loading="lazy">` : '<div class="ord-item-img"></div>'}
+              <div class="ord-item-info">
+                <div class="ord-item-name">${name}</div>
+                ${attrs ? `<div class="ord-item-attrs">${attrs}</div>` : ''}
+              </div>
+              ${itemPrice ? `<div class="ord-item-price">${itemPrice}</div>` : ''}
+            </${rowClose}>`;
+          }).join('');
+          const extra = items.length > 4 ? `<div class="ord-item-more">+ ${items.length - 4} more item${items.length - 4 > 1 ? 's' : ''}</div>` : '';
+          itemsHtml = `<div class="ord-item-list">${rows}${extra}</div>`;
+        }
+      } catch(_) {}
+
+      // Tracking row
+      const tracking = o.tracking_number || o.commerce?.trackingNumber || '';
+      const carrier  = o.shipping_provider || o.commerce?.carrier || '';
+      const trackingUrl = o.tracking_url || o.commerce?.trackingUrl || '';
+      const safeTrackUrl = (trackingUrl && /^https?:\/\//i.test(trackingUrl) ? trackingUrl : '')
+        || buildTrackingUrl(carrier, tracking);
+      const trackRow = (tracking || safeTrackUrl) ? `
+        <div class="order-track-row">
+          ${tracking ? `<span class="order-track-num">${escHtml(carrier ? carrier + ' · ' + tracking : tracking)}</span>` : ''}
+          ${safeTrackUrl ? `<a href="${escHtml(safeTrackUrl)}" target="_blank" rel="noopener" class="order-track-btn">Track Shipment →</a>` : ''}
+        </div>` : '';
+
+      // Next steps
+      const next = orderNextSteps(o);
+      const nextHtml = `<div class="order-next"><strong>${escHtml(next.title)}</strong>${next.body}</div>`;
+
+      // Shipping address (DB columns: ship_line1, ship_line2, ship_city, ship_state, ship_zip)
+      const shipName   = escHtml(o.customer_name || o.ship_name || '');
+      const shipStreet = escHtml(o.ship_line1 || o.ship_address || '');
+      const shipApt    = escHtml(o.ship_line2 || '');
+      const shipCity   = escHtml([o.ship_city, o.ship_state, o.ship_zip].filter(Boolean).join(', '));
+      const addrLines  = [shipName, shipStreet, shipApt, shipCity].filter(Boolean);
+      const addrHtml = addrLines.length > 1 ? `
+        <div>
+          <div class="order-addr-label">Shipped to</div>
+          <div class="order-addr">${addrLines.join('<br>')}</div>
+        </div>` : '';
+
+      // Return action
+      const hasReturn = returnRequests.some(r => String(r.orderId || r.order_id || '') === String(o.id || ''));
+      const returnAction = hasReturn
+        ? `<span class="order-track-num">Return requested</span>`
+        : `<button class="order-return-link" onclick="switchTab('returns')">Start a Return →</button>`;
+      const footer = `<div class="order-footer">${addrHtml}<div style="padding-bottom:.05rem">${returnAction}</div></div>`;
+
+      return `
+        <div class="order-card">
+          <div class="order-card-head">
+            <div>
+              <div class="order-id">Order #${escHtml(String(o.id||'').slice(-8).toUpperCase())}</div>
+              <div class="order-meta">${new Date(o.created_at).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})}${itemCount ? ` · ${itemCount} item${itemCount !== 1 ? 's' : ''}` : ''}</div>
+            </div>
+            <div class="order-card-head-right">
+              <span class="order-status${statusColorClass}">${escHtml(statusLabel)}</span>
+              ${orderTotal ? `<div class="order-total">$${parseFloat(orderTotal).toFixed(2)}</div>` : ''}
+            </div>
+          </div>
+          ${itemsHtml}
+          ${orderTimelineHtml(o, returnRequests)}
+          ${trackRow}
+          ${nextHtml}
+          ${footer}
+        </div>`;
+    }).join('');
+  } catch(err) {
+    if (loading) loading.textContent = 'Could not load orders.';
+  }
+}
+
+/* ── SAVED ITEMS ── */
+async function loadSaved() {
+  const loading = document.getElementById('saved-loading');
+  const empty = document.getElementById('saved-empty');
+  const list = document.getElementById('saved-list');
+  if (!list || list.dataset.loaded) return;
+  if (loading) loading.style.display = 'block';
+  try {
+    if (!_sb || !_session) {
+      if (loading) loading.style.display = 'none';
+      if (empty) empty.style.display = 'block';
+      return;
+    }
+    const { data } = await _sb.from('favorites')
+      .select('product_id,product_name,price,product_image')
+      .eq('user_id', _session.user.id)
+      .order('created_at', { ascending: false });
+    if (loading) loading.style.display = 'none';
+    if (!data?.length) { if (empty) empty.style.display = 'block'; return; }
+    list.dataset.loaded = '1';
+    const savedTab = document.querySelector('.acct-tab[data-tab="saved"]');
+    if (savedTab) savedTab.innerHTML = `Saved Items <span class="tab-count">${data.length}</span>`;
+    list.innerHTML = data.map(f => {
+      const name = escHtml((f.product_name || 'Product').replace(/\p{Extended_Pictographic}/gu, '').trim());
+      const rawPrice = parseFloat(f.price);
+      const price = !isNaN(rawPrice) && rawPrice > 0
+        ? (rawPrice > 500 ? (rawPrice / 100).toFixed(2) : rawPrice.toFixed(2))
+        : null;
+      const img = f.product_image && /^https?:\/\//i.test(f.product_image) ? f.product_image : '';
+      const pid = escHtml(f.product_id || '');
+      const href = f.product_id ? `/product.html?id=${pid}` : '#';
+      return `
+        <div class="fav-card" id="fav-${pid}" onclick="if(!event.target.closest('.fav-rm,.fav-card-actions'))window.location.href='${href}'"  role="link" tabindex="0">
+          <a href="${href}" class="fav-card-img-wrap" aria-label="${name}">
+            ${img
+              ? `<img src="${escHtml(img)}" alt="${name}" class="fav-card-img" loading="lazy">`
+              : `<div class="fav-card-img fav-card-img-placeholder"></div>`}
+          </a>
+          <div class="fav-card-body">
+            <a href="${href}" class="fav-card-name">${name}</a>
+            ${price ? `<div class="fav-card-price">$${price}</div>` : ''}
+          </div>
+          <div class="fav-card-actions">
+            <a href="${href}" class="zw-btn" style="font-size:.52rem;padding:.5rem 1rem;">View →</a>
+            <button class="fav-rm" onclick="removeFav('${pid}')" title="Remove from saved">&#215;</button>
+          </div>
+        </div>`;
+    }).join('');
+  } catch(err) {
+    if (loading) loading.textContent = 'Could not load saved items.';
+  }
+}
+
+async function removeFav(productId) {
+  if (!_sb || !_session) return;
+  try {
+    await _sb.from('favorites').delete().eq('user_id', _session.user.id).eq('product_id', productId);
+    const el = document.getElementById('fav-' + productId);
+    if (el) el.remove();
+    const list = document.getElementById('saved-list');
+    if (list && !list.children.length) {
+      const empty = document.getElementById('saved-empty');
+      if (empty) empty.style.display = 'block';
+    }
+  } catch(err) {
+    console.error('removeFav:', err);
+  }
+}
+
+/* ── RETURNS ── */
+async function loadReturns() {
+  const loading = document.getElementById('returns-loading');
+  const content = document.getElementById('returns-content');
+  if (!content || content.dataset.loaded) { if (loading) loading.style.display = 'none'; return; }
+  content.dataset.loaded = '1';
+  try {
+    if (!_hubPayload) _hubPayload = await fetchHub();
+    if (loading) loading.style.display = 'none';
+
+    const { imgs: productImgMap, ids: productIdMap, colors: colorMap } = await fetchProductImageMap();
+    if (colorMap) Object.assign(_COLOR_MAP, colorMap);
+
+    renderReturnsContent(_hubPayload, productImgMap, productIdMap);
+  } catch(err) {
+    if (loading) loading.textContent = err.message || 'Could not load returns.';
+  }
+}
+
+function retStatusClass(s) {
+  const k = String(s || '').toLowerCase().replace(/\s+/g,'_');
+  if (/request/.test(k)) return 'ret-s-requested';
+  if (/approv/.test(k)) return 'ret-s-approved';
+  if (/label/.test(k)) return 'ret-s-label_sent';
+  if (/complet|close|done/.test(k)) return 'ret-s-completed';
+  if (/deny|denied|reject/.test(k)) return 'ret-s-denied';
+  return '';
+}
+
+function retStatusLabel(s) {
+  const k = String(s || '').toLowerCase();
+  if (/request/.test(k)) return 'Under Review';
+  if (/approv/.test(k)) return 'Approved';
+  if (/label/.test(k)) return 'Label Sent';
+  if (/complet/.test(k)) return 'Completed';
+  if (/close/.test(k)) return 'Closed';
+  if (/deny|denied|reject/.test(k)) return 'Denied';
+  return s || 'Requested';
+}
+
+function retResolutionLabel(r) {
+  if (r === 'exchange') return 'Exchange';
+  if (r === 'store_credit') return 'Store Credit';
+  return 'Refund';
+}
+
+function retNextSteps(r, userEmail) {
+  const s = String(r.status || '').toLowerCase();
+  const email = r.customerEmail || userEmail || 'your email';
+  if (/request/.test(s)) return { title: 'Under Review', body: 'We\'ve received your request and will respond within 1–3 business days.' };
+  if (/approv/.test(s)) return { title: 'Approved', body: 'Your return is approved. We\'re preparing your prepaid shipping label — you\'ll receive an email shortly.' };
+  if (/label/.test(s)) return { title: 'Label Ready', body: `Your prepaid return label was sent to <strong style="font-style:normal">${escHtml(email)}</strong>. Print it, attach it to your package, and drop off at any ${escHtml(r.carrier || 'carrier')} location.` };
+  if (/complet/.test(s)) return { title: 'Complete', body: 'Your return has been received and processed. Thank you.' };
+  if (/deny|denied|reject/.test(s)) return { title: 'Not Approved', body: 'Unfortunately this return request wasn\'t approved. Contact us if you have questions.' };
+  return null;
+}
+
+function retBuildItemChips(order, productImgMap = {}, productIdMap = {}) {
+  if (!order) return '';
+  let items = [];
+  try { items = JSON.parse(order.items || '[]'); } catch(_) {}
+  if (!items.length) return '';
+  const chips = items.slice(0, 4).map(i => {
+    const stored = i.image || i.imageUrl || i.img || '';
+    const validStored = stored && /^https?:\/\//i.test(stored) ? stored : '';
+    const rawPid = i.productId || i.product_id || '';
+    const itemName = (i.name || i.title || '').replace(/\p{Extended_Pictographic}/gu, '').trim();
+    const nameKey = itemName.toLowerCase();
+    const resolvedId = productIdMap[rawPid] || productIdMap[i.sku] || productIdMap[nameKey] || '';
+    const safeImg = validStored || productImgMap[rawPid] || productImgMap[i.sku] || productImgMap[nameKey] || '';
+    const name = escHtml(itemName);
+    const meta = itemMetaHtml(i.size, i.colorName || i.color, 1);
+    const chipHref = resolvedId ? `/product.html?id=${encodeURIComponent(resolvedId)}` : '';
+    const chipTag = chipHref ? `a href="${escHtml(chipHref)}"` : 'div';
+    const chipClose = chipHref ? 'a' : 'div';
+    return `<${chipTag} class="order-item-chip">
+      ${safeImg ? `<img src="${escHtml(safeImg)}" alt="${name}" class="order-item-img" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="order-item-img order-item-img-ph" style="display:none">` + escHtml(name.charAt(0).toUpperCase()) + `</div>` : `<div class="order-item-img order-item-img-ph">` + escHtml(name.charAt(0).toUpperCase()) + `</div>`}
+      <div><div class="order-item-name">${name}</div>${meta ? `<div class="order-item-meta">${meta}</div>` : ''}</div>
+    </${chipClose}>`;
+  }).join('');
+  const extra = items.length > 4 ? `<div class="order-item-more">+${items.length - 4} more</div>` : '';
+  return `<div class="order-items-row">${chips}${extra}</div>`;
+}
+
+function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
+  const content = document.getElementById('returns-content');
+  if (!content) return;
+  const orders = Array.isArray(payload?.orders) ? payload.orders : [];
+  const requests = Array.isArray(payload?.returns) ? payload.returns : [];
+  const userEmail = _session?.user?.email || '';
+
+  // Build lookup: orderId → order
+  const orderMap = {};
+  orders.forEach(o => { if (o.id) orderMap[String(o.id)] = o; });
+
+  const options = orders.map(o => {
+    const id = String(o.id || '');
+    const dt = new Date(o.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    let itemCount = 0;
+    try { itemCount = JSON.parse(o.items || '[]').length; } catch(_) {}
+    const label = `#${id.slice(-8).toUpperCase()} — ${dt}${itemCount ? ` · ${itemCount} item${itemCount !== 1 ? 's' : ''}` : ''}`;
+    return `<option value="${escHtml(id)}">${escHtml(label)}</option>`;
+  }).join('');
+
+  const historyHtml = requests.length ? requests.slice().sort((a, b) =>
+    new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+  ).map(r => {
+    const statusCls = retStatusClass(r.status);
+    const statusLbl = retStatusLabel(r.status);
+    const resLbl = retResolutionLabel(r.resolution);
+    const dt = new Date(r.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const order = orderMap[String(r.orderId || '')];
+    const retItemsForChips = (Array.isArray(r.returnItems) && r.returnItems.length) ? { ...order, items: JSON.stringify(r.returnItems) } : order;
+    const itemChips = retBuildItemChips(retItemsForChips, productImgMap, productIdMap);
+    const next = retNextSteps(r, userEmail);
+
+    const safeLabel = r.labelUrl && /^https?:\/\//i.test(r.labelUrl) ? r.labelUrl : '';
+    const safeTrack = (r.trackingUrl && /^https?:\/\//i.test(r.trackingUrl) ? r.trackingUrl : '')
+      || buildTrackingUrl(r.carrier, r.trackingNumber);
+
+    const trackingRow = (r.trackingNumber || safeLabel || safeTrack) ? `
+      <div class="ret-tracking-row">
+        ${r.trackingNumber ? `<span class="ret-track-num">${escHtml(r.carrier || '')} ${escHtml(r.trackingNumber)}</span>` : ''}
+        ${safeLabel ? `<a href="${escHtml(safeLabel)}" target="_blank" rel="noopener" class="ret-track-btn">Download Label →</a>` : ''}
+        ${safeTrack ? `<a href="${escHtml(safeTrack)}" target="_blank" rel="noopener" class="ret-track-btn">Track Return →</a>` : ''}
+      </div>` : '';
+
+    const nextHtml = next ? `
+      <div class="ret-next">
+        <strong>${escHtml(next.title)}</strong>
+        ${next.body}
+      </div>` : '';
+
+    return `
+      <div class="ret-card">
+        <div class="ret-card-head">
+          <div>
+            <div class="ret-id">${escHtml(r.orderLabel || '#' + String(r.orderId || '').slice(-8).toUpperCase())}</div>
+            <div class="ret-meta">${escHtml(resLbl)} · ${escHtml(r.reason || '')} · ${escHtml(dt)}</div>
+          </div>
+          <div class="ret-card-head-right">
+            <span class="ret-status ${statusCls}">${escHtml(statusLbl)}</span>
+          </div>
+        </div>
+        ${itemChips}
+        ${trackingRow}
+        ${nextHtml}
+      </div>`;
+  }).join('') : '<div class="zw-empty">No return or exchange requests yet.</div>';
+
+  content.innerHTML = `
+    <div class="ret-form-stack">
+      <div class="zw-card">
+        <div class="zw-card-title">Start a Return or Exchange</div>
+        <div class="zw-card-meta">Submit a request — your team will review and process within 1–3 business days.</div>
+      </div>
+      <div class="zw-card">
+        <div class="zw-field">
+          <label>Order</label>
+          <select id="ret-order">${options || '<option value="">No eligible orders found</option>'}</select>
+        </div>
+        <div id="ret-item-picker" style="display:none;margin-top:.75rem;"></div>
+        <div class="zw-grid-2" style="margin-top:.75rem">
+          <div class="zw-field">
+            <label>Resolution</label>
+            <select id="ret-resolution">
+              <option value="return">Return for refund</option>
+              <option value="exchange">Exchange</option>
+              <option value="store_credit">Store credit</option>
+            </select>
+          </div>
+          <div class="zw-field">
+            <label>Reason</label>
+            <input id="ret-reason" type="text" placeholder="Wrong size, damaged item…">
+          </div>
+        </div>
+        <div class="zw-field">
+          <label>Notes (optional)</label>
+          <textarea id="ret-notes" rows="2" placeholder="Anything the team should know"></textarea>
+        </div>
+        <div class="zw-actions">
+          <button id="ret-submit" class="zw-btn primary" ${orders.length ? '' : 'disabled'}>Submit Request</button>
+          <span id="ret-status" class="zw-status"></span>
+        </div>
+      </div>
+      ${requests.length ? `<div class="zw-card">
+        <div class="zw-card-title">Request History</div>
+        <div style="margin-top:.75rem">${historyHtml}</div>
+      </div>` : `<div class="zw-card"><div class="zw-empty" style="padding:.25rem 0">No return or exchange requests yet.</div></div>`}
+    </div>
+  `;
+
+  // Item selection state for the new return form — Map<idx, {...item, returnQty}>
+  let _retSelectedItems = new Map();
+
+  function showItemPicker(orderId) {
+    const picker = document.getElementById('ret-item-picker');
+    if (!picker) return;
+    _retSelectedItems = new Map();
+    const order = orderMap[orderId];
+    let items = [];
+    try { items = typeof order?.items === 'string' ? JSON.parse(order.items) : (Array.isArray(order?.items) ? order.items : []); } catch(_) {}
+    if (!items.length) { picker.style.display = 'none'; picker.innerHTML = ''; return; }
+
+    picker.style.display = 'block';
+    picker.innerHTML = `
+      <div style="font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.35);margin-bottom:.5rem;font-family:var(--fm);">Items in this order — select which to return</div>
+      <div style="display:flex;flex-direction:column;gap:.4rem;" id="ret-item-list">
+        ${items.map((item, idx) => {
+          const name = escHtml((item.name || item.title || 'Item').trim());
+          const qty = item.quantity || 1;
+          const meta = itemMetaHtml(item.size, item.color || item.colorName, qty);
+          const storedImg = (item.image || item.imageUrl || item.img || '').trim();
+          const validImg = storedImg && /^https?:\/\//i.test(storedImg) ? storedImg : '';
+          const nameKey = (item.name || item.title || '').trim().toLowerCase();
+          const img = validImg || productImgMap[nameKey] || productImgMap[item.sku] || '';
+          const qtyOptions = qty > 1
+            ? Array.from({length: qty}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join('')
+            : '';
+          return `<label data-idx="${idx}" class="ret-item-row" onclick="retToggleItem(${idx},this)">
+            <div class="ret-item-chk">
+              <svg width="10" height="8" viewBox="0 0 10 8" fill="none" style="display:none;"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            ${img ? `<img src="${escHtml(img)}" alt="${name}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0;">` : ''}
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:.8rem;font-weight:500;">${name}</div>
+              ${meta ? `<div class="ret-item-meta" style="font-size:.68rem;margin-top:1px;">${meta}</div>` : ''}
+            </div>
+            ${qty > 1 ? `<div id="ret-qty-wrap-${idx}" class="ret-qty-wrap" onclick="event.stopPropagation()">
+              <span class="ret-qty-label">Qty</span>
+              <select id="ret-qty-sel-${idx}" class="ret-qty-sel" onchange="retUpdateQty(${idx},+this.value)" onclick="event.stopPropagation()">${qtyOptions}</select>
+            </div>` : ''}
+          </label>`;
+        }).join('')}
+      </div>`;
+
+    // store items array on picker for submit access
+    picker._items = items;
+  }
+
+  window.retToggleItem = function(idx, labelEl) {
+    const picker = document.getElementById('ret-item-picker');
+    const items = picker?._items || [];
+    const item = items[idx];
+    if (!item) return;
+    const chk = labelEl.querySelector('.ret-item-chk');
+    const svg = chk?.querySelector('svg');
+    const qtyWrap = document.getElementById(`ret-qty-wrap-${idx}`);
+    if (_retSelectedItems.has(idx)) {
+      _retSelectedItems.delete(idx);
+      chk?.classList.remove('checked');
+      labelEl.classList.remove('selected');
+      if (svg) svg.style.display = 'none';
+      if (qtyWrap) qtyWrap.classList.remove('visible');
+    } else {
+      const sel = document.getElementById(`ret-qty-sel-${idx}`);
+      const returnQty = sel ? +sel.value : (item.quantity || 1);
+      _retSelectedItems.set(idx, {...item, returnQty});
+      chk?.classList.add('checked');
+      labelEl.classList.add('selected');
+      if (svg) svg.style.display = 'block';
+      if (qtyWrap) qtyWrap.classList.add('visible');
+    }
+  };
+
+  window.retUpdateQty = function(idx, val) {
+    if (!_retSelectedItems.has(idx)) return;
+    const entry = _retSelectedItems.get(idx);
+    _retSelectedItems.set(idx, {...entry, returnQty: val});
+  };
+
+  const orderEl = document.getElementById('ret-order');
+  if (orderEl) {
+    showItemPicker(orderEl.value);
+    orderEl.addEventListener('change', () => showItemPicker(orderEl.value));
+  }
+
+  document.getElementById('ret-submit')?.addEventListener('click', async () => {
+    const btn = document.getElementById('ret-submit');
+    if (btn?.disabled) return;
+    if (btn) btn.disabled = true;
+    const statusEl = document.getElementById('ret-status');
+    const picker = document.getElementById('ret-item-picker');
+    const allItems = (picker?._items || []).map(it => ({...it, returnQty: it.quantity || 1}));
+    const returnItems = _retSelectedItems.size > 0 ? Array.from(_retSelectedItems.values()) : allItems;
+    if (statusEl) statusEl.textContent = 'Submitting…';
+    try {
+      const selOrderEl = document.getElementById('ret-order');
+      await postHub('submit_return', {
+        orderId: selOrderEl?.value || '',
+        orderLabel: selOrderEl?.selectedOptions?.[0]?.textContent || '',
+        resolution: document.getElementById('ret-resolution')?.value || 'return',
+        reason: document.getElementById('ret-reason')?.value || '',
+        notes: document.getElementById('ret-notes')?.value || '',
+        returnItems,
+      });
+      if (statusEl) statusEl.textContent = 'Request submitted!';
+      _hubPayload = null;
+      const c = document.getElementById('returns-content');
+      if (c) { delete c.dataset.loaded; }
+      setTimeout(() => loadReturns(), 1000);
+    } catch(err) {
+      if (btn) btn.disabled = false;
+      if (statusEl) statusEl.textContent = err.message || 'Could not submit.';
+    }
+  });
+}
+
+/* ── PROFILE ── */
+function renderAddressCards(addresses) {
+  return addresses.length ? addresses.map((addr, idx) => `
+    <div class="addr-card" id="addr-card-${idx}">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">
+        <strong style="font-size:.8rem">${escHtml(addr.label || 'Address ' + (idx+1))}</strong>
+        <div style="display:flex;align-items:center;gap:.5rem">
+          ${addr.isPrimary ? '<span class="zw-badge">Primary</span>' : ''}
+          <button onclick="deleteAddress(${idx})" style="background:none;border:none;color:var(--a-dim);cursor:pointer;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:4px;transition:color .15s" onmouseover="this.style.color='var(--a-error,#ef4444)'" onmouseout="this.style.color='var(--a-dim)'">Remove</button>
+        </div>
+      </div>
+      <div class="addr-meta">${[addr.name, addr.line1, addr.line2, [addr.city,addr.state,addr.zip].filter(Boolean).join(' '), addr.country].filter(Boolean).map(escHtml).join('<br>')}</div>
+    </div>
+  `).join('') : '<div class="zw-empty">No saved addresses yet. Add one below.</div>';
+}
+
+async function loadProfile() {
+  if (!_hubPayload) {
+    try {
+      _hubPayload = await fetchHub();
+      if (_hubPayload?.profile) localStorage.setItem('zuwera-profile', JSON.stringify(_hubPayload.profile));
+    } catch(_) {}
+  }
+  renderProfile();
+}
+
+function renderProfile() {
+  const loading = document.getElementById('profile-loading');
+  const content = document.getElementById('profile-content');
+  if (!content || content.dataset.loaded) { if (loading) loading.style.display = 'none'; return; }
+  if (loading) loading.style.display = 'none';
+  content.dataset.loaded = '1';
+
+  let profile = _hubPayload?.profile;
+  if (!profile) {
+    try { profile = JSON.parse(localStorage.getItem('zuwera-profile') || 'null'); } catch(_) {}
+  }
+  profile = profile || {};
+  const addresses = Array.isArray(profile.savedAddresses) ? profile.savedAddresses : [];
+
+  // Prefill from session user data
+  const userMeta = _session?.user?.user_metadata || {};
+  const userName = userMeta.full_name || '';
+  const userEmail = _session?.user?.email || '';
+
+  const addressesHtml = renderAddressCards(addresses);
+
+  content.innerHTML = `
+    <div class="zw-card" style="margin-bottom:1rem">
+      <div class="zw-card-title">Account Info</div>
+      <div class="zw-grid-2" style="margin-top:.75rem">
+        <div class="zw-field">
+          <label for="prof-name">Full Name</label>
+          <input id="prof-name" type="text" value="${escHtml(userName)}" placeholder="Your name">
+        </div>
+        <div class="zw-field">
+          <label for="prof-email">Email</label>
+          <input id="prof-email" type="email" value="${escHtml(userEmail)}" placeholder="you@example.com" readonly style="opacity:.5;cursor:default">
+        </div>
+      </div>
+    </div>
+
+    <div class="zw-card" style="margin-bottom:1rem">
+      <div class="zw-card-title">Saved Addresses</div>
+      <div id="prof-addresses-list" style="margin-top:.75rem">${addressesHtml}</div>
+      <div style="margin-top:1rem;border-top:1px solid var(--a-border-soft);padding-top:1rem">
+        <div style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--a-dim);margin-bottom:.75rem">Add New Address</div>
+        <div class="zw-field"><label>Recipient Name</label><input id="prof-addr-name" type="text" placeholder="Jane Smith" value="${escHtml(userName)}"></div>
+        <input id="prof-label" type="hidden" value="">
+        <div class="zw-field"><label>Address Line 1</label><input id="prof-line1" type="text" placeholder="123 Main St"></div>
+        <div class="zw-field"><label>Address Line 2</label><input id="prof-line2" type="text" placeholder="Apt, Suite, etc."></div>
+        <div class="zw-grid-3">
+          <div class="zw-field"><label>City</label><input id="prof-city" type="text" placeholder="New York"></div>
+          <div class="zw-field"><label>State</label><input id="prof-state" type="text" maxlength="2" placeholder="NY" style="text-transform:uppercase"></div>
+          <div class="zw-field"><label>ZIP</label><input id="prof-zip" type="text" placeholder="10001"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="zw-card" style="margin-bottom:1rem">
+      <div class="zw-card-title">Preferences</div>
+      <div class="zw-grid-2" style="margin-top:.75rem">
+        <div class="zw-field">
+          <label>Preferred Channel</label>
+          <select id="prof-channel">
+            <option value="email" ${profile.preferredChannel === 'email' ? 'selected' : ''}>Email</option>
+            <option value="sms" ${profile.preferredChannel === 'sms' ? 'selected' : ''}>SMS</option>
+            <option value="both" ${profile.preferredChannel === 'both' ? 'selected' : ''}>Both</option>
+          </select>
+        </div>
+        <input id="prof-notes" type="hidden" value="${escHtml(profile.notes || '')}">
+      </div>
+      <label class="zw-check-row">
+        <input id="prof-marketing" type="checkbox" ${profile.marketingConsent ? 'checked' : ''}>
+        Email marketing consent
+      </label>
+      <label class="zw-check-row">
+        <input id="prof-sms" type="checkbox" ${profile.smsConsent ? 'checked' : ''}>
+        SMS marketing consent
+      </label>
+    </div>
+
+    <div class="zw-actions">
+      <button id="prof-save" class="zw-btn primary">Save Profile</button>
+      <span id="prof-status" class="zw-status"></span>
+    </div>
+
+    <div class="zw-card" style="margin-top:1.5rem;border-color:rgba(239,68,68,.25)">
+      <div class="zw-card-title" style="color:var(--a-error,#ef4444)">Delete My Data</div>
+      <p style="font-size:.78rem;color:var(--a-dim);margin:.5rem 0 1rem">This permanently removes all your saved addresses, preferences, and profile data from our system. Your order history and account login are not affected.</p>
+      <button id="prof-delete-data" class="zw-btn" style="background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.3)">Delete All Saved Data</button>
+      <span id="prof-delete-status" class="zw-status"></span>
+    </div>
+  `;
+
+  document.getElementById('prof-save')?.addEventListener('click', saveProfile);
+  document.getElementById('prof-delete-data')?.addEventListener('click', deleteAllProfileData);
+}
+
+async function saveProfile() {
+  const btn = document.getElementById('prof-save');
+  if (btn?.disabled) return;
+  if (btn) btn.disabled = true;
+  const statusEl = document.getElementById('prof-status');
+  if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.style.color = ''; }
+
+  /* ── Save ── */
+  try {
+    const newName = document.getElementById('prof-name')?.value?.trim() || '';
+    if (newName && newName !== (_session?.user?.user_metadata?.full_name || '')) {
+      const { error: nameErr } = await _sb.auth.updateUser({ data: { full_name: newName } });
+      if (nameErr) throw nameErr;
+      if (_session?.user?.user_metadata) _session.user.user_metadata.full_name = newName;
+    }
+    const newAddress = {
+      label: document.getElementById('prof-label')?.value?.trim() || 'Home',
+      name: document.getElementById('prof-addr-name')?.value?.trim(),
+      line1: document.getElementById('prof-line1')?.value?.trim(),
+      line2: document.getElementById('prof-line2')?.value?.trim(),
+      city: document.getElementById('prof-city')?.value?.trim(),
+      state: document.getElementById('prof-state')?.value?.trim().toUpperCase(),
+      zip: document.getElementById('prof-zip')?.value?.trim()
+    };
+    const hasAddress = newAddress.line1 && newAddress.city;
+    const existingAddrs = Array.isArray(_hubPayload?.profile?.savedAddresses)
+      ? _hubPayload.profile.savedAddresses : [];
+    const addresses = hasAddress ? [...existingAddrs, newAddress] : existingAddrs;
+
+    const savedData = await postHub('save_profile', {
+      preferredChannel: document.getElementById('prof-channel')?.value || 'email',
+      notes: document.getElementById('prof-notes')?.value?.trim() || '',
+      marketingConsent: document.getElementById('prof-marketing')?.checked || false,
+      smsConsent: document.getElementById('prof-sms')?.checked || false,
+      addresses,
+    });
+
+    /* ── Update UI immediately using the server-confirmed profile ── */
+    if (savedData?.profile) {
+      _hubPayload = _hubPayload ? { ..._hubPayload, profile: savedData.profile } : { profile: savedData.profile };
+      try { localStorage.setItem('zuwera-profile', JSON.stringify(savedData.profile)); } catch(_) {}
+    }
+  } catch(err) {
+    if (btn) btn.disabled = false;
+    if (statusEl) { statusEl.textContent = err.message || 'Could not save profile.'; statusEl.style.color = '#ef4444'; }
+    return;
+  }
+
+  if (statusEl) { statusEl.textContent = 'Saved!'; statusEl.style.color = '#22c55e'; }
+  if (btn) btn.disabled = false;
+
+  /* ── Targeted in-place update — no full re-render, no second API call ── */
+  const savedAddrs = Array.isArray(_hubPayload?.profile?.savedAddresses) ? _hubPayload.profile.savedAddresses : [];
+  const addrList = document.getElementById('prof-addresses-list');
+  if (addrList) {
+    addrList.innerHTML = renderAddressCards(savedAddrs);
+    addrList.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  // Clear the address input fields so the user can see the form was processed
+  ['prof-addr-name', 'prof-line1', 'prof-line2', 'prof-city', 'prof-state', 'prof-zip'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+
+  setTimeout(() => {
+    const s = document.getElementById('prof-status');
+    if (s && s.textContent === 'Saved!') { s.textContent = ''; s.style.color = ''; }
+  }, 2500);
+}
+
+async function deleteAddress(idx) {
+  if (!confirm('Remove this address?')) return;
+  try {
+    await postHub('delete_address', { index: idx });
+    _hubPayload = null;
+    const content = document.getElementById('profile-content');
+    if (content) delete content.dataset.loaded;
+    _hubPayload = await fetchHub();
+    renderProfile();
+  } catch(err) {
+    alert(err.message || 'Could not remove address.');
+  }
+}
+
+async function deleteAllProfileData() {
+  if (!confirm('Permanently delete all your saved addresses and preferences? This cannot be undone.')) return;
+  const statusEl = document.getElementById('prof-delete-status');
+  if (statusEl) statusEl.textContent = 'Deleting…';
+  try {
+    await postHub('delete_profile_data', {});
+    _hubPayload = null;
+    const content = document.getElementById('profile-content');
+    if (content) delete content.dataset.loaded;
+    _hubPayload = await fetchHub();
+    renderProfile();
+    if (statusEl) statusEl.textContent = 'All profile data deleted.';
+  } catch(err) {
+    if (statusEl) statusEl.textContent = err.message || 'Could not delete data.';
+  }
+}
+
+/* ── SIGN OUT ── */
+async function signOut() {
+  if (_sb) await _sb.auth.signOut().catch(() => {});
+  window.location.href = '/';
+}
+
+document.getElementById('signout-btn').addEventListener('click', signOut);
+
+/* ── INIT ── */
+async function init() {
+  try {
+    _session = await getSession();
+    if (!_session) {
+      document.getElementById('auth-wall').style.display = 'block';
+      return;
+    }
+
+    // Show account content
+    document.getElementById('acct-content').style.display = 'block';
+    const navSO = document.getElementById('nav-signout-btn');
+    if (navSO) navSO.style.display = '';
+
+    const email = _session.user?.email || '';
+    const meta = _session.user?.user_metadata || {};
+    const name = meta.full_name || '';
+    const firstName = name ? name.split(' ')[0] : '';
+    const h1 = document.querySelector('.page-hd h1');
+    if (h1) h1.textContent = firstName ? `Hey, ${firstName}.` : 'My Account';
+    const emailEl = document.getElementById('acct-email-display');
+    if (emailEl) emailEl.textContent = name ? `${name} · ${email}` : email;
+    const signedInEl = document.getElementById('acct-signed-in-as');
+    if (signedInEl) signedInEl.textContent = `Signed in as ${email}`;
+
+    // Load hub data eagerly (needed for returns + profile)
+    try {
+      _hubPayload = await fetchHub();
+      if (_hubPayload?.profile) localStorage.setItem('zuwera-profile', JSON.stringify(_hubPayload.profile));
+    } catch(e) {
+      // Retry once after a forced session refresh (covers expired-token edge cases)
+      try {
+        await _sb.auth.refreshSession().catch(() => {});
+        _hubPayload = await fetchHub();
+        if (_hubPayload?.profile) localStorage.setItem('zuwera-profile', JSON.stringify(_hubPayload.profile));
+      } catch(e2) {
+        console.warn('customer-hub load failed:', e2.message);
+      }
+    }
+
+    // Load the default (orders) tab
+    loadOrders();
+
+    // Check URL param or hash for tab
+    const urlTab = new URLSearchParams(window.location.search).get('tab')
+      || window.location.hash.slice(1);
+    if (urlTab && ['orders','saved','returns','profile'].includes(urlTab)) {
+      switchTab(urlTab);
+    }
+
+  } catch(err) {
+    document.getElementById('auth-wall').style.display = 'block';
+    console.error('Account init:', err);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() { _sb = window.sb; init(); });
+</script>
+<script src="storefront-theme.js?v=26052901" defer></script>
+<script src="lang.js?v=1329682b" defer></script>
+</body>
+</html>

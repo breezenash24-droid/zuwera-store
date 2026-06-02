@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Environment / secrets — NEVER commit
+.env
+.env.local
+.env.production
+.dev.vars
+
+# Apple Pay certificates — contain private keys, NEVER commit
+apple-pay-certs/
+*.key
+*.pem
+*.p12
+*.cer
+*.csr
+
+# Cloudflare build output
+.wrangler/
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
