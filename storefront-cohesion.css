@@ -2522,128 +2522,136 @@ body.super-light-mode #mobile-menu .zw-mobile-primary-link{color:#09090b!importa
   display:flex!important;
   flex-direction:column!important;
   gap:0!important;
-  padding:.35rem 0!important;
-  border-bottom:1px solid rgba(244,241,235,.08)!important;
+  padding:.25rem 0!important;
+  background:transparent!important;
+  border-top:1px solid rgba(244,241,235,.07)!important;
+  border-bottom:1px solid rgba(244,241,235,.07)!important;
+  margin:0!important;
 }
-body.light-mode .zw-mobile-menu-secondary{border-bottom-color:rgba(9,9,11,.08)!important;}
+body.light-mode .zw-mobile-menu-secondary{
+  background:transparent!important;
+  border-top-color:rgba(9,9,11,.07)!important;
+  border-bottom-color:rgba(9,9,11,.07)!important;
+}
 
 #mobile-menu .zw-mobile-secondary-link{
   display:flex!important;
   align-items:center!important;
   justify-content:space-between!important;
-  min-height:44px!important;
-  padding:.5rem 1.25rem!important;
+  min-height:42px!important;
+  padding:.45rem 1.25rem!important;
   font-family:var(--zw-font-mono,'IBM Plex Mono',monospace)!important;
-  font-size:.62rem!important;
+  font-size:.58rem!important;
   font-weight:400!important;
   line-height:1.2!important;
-  letter-spacing:.18em!important;
+  letter-spacing:.16em!important;
   text-transform:uppercase!important;
-  color:rgba(244,241,235,.45)!important;
-  background:none!important;
+  color:rgba(244,241,235,.38)!important;
+  background:transparent!important;
   border:none!important;
-  transition:color .14s!important;
+  transition:color .14s,background .14s!important;
 }
-#mobile-menu .zw-mobile-secondary-link:hover{color:rgba(244,241,235,.75)!important;}
+#mobile-menu .zw-mobile-secondary-link:hover{
+  color:rgba(244,241,235,.7)!important;
+  background:rgba(244,241,235,.03)!important;
+}
+#mobile-menu .zw-mobile-secondary-link:active{color:rgba(244,241,235,.7)!important;}
 #mobile-menu .zw-mobile-secondary-link::after{
   content:'›'!important;
-  font-family:inherit!important;
-  font-size:.9rem!important;
+  font-size:.85rem!important;
   font-weight:300!important;
-  opacity:.4!important;
+  opacity:.28!important;
   flex-shrink:0!important;
 }
-body.light-mode #mobile-menu .zw-mobile-secondary-link{color:rgba(9,9,11,.45)!important;}
-body.light-mode #mobile-menu .zw-mobile-secondary-link:hover{color:rgba(9,9,11,.8)!important;}
+body.light-mode #mobile-menu .zw-mobile-secondary-link{
+  color:rgba(9,9,11,.38)!important;
+  background:transparent!important;
+}
+body.light-mode #mobile-menu .zw-mobile-secondary-link:hover{
+  color:rgba(9,9,11,.72)!important;
+  background:rgba(9,9,11,.03)!important;
+}
 
-/* ── Footer ── */
-.zw-mobile-menu-footer{
-  margin-top:auto!important;
-  padding:1rem 1.25rem 0!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:space-between!important;
-  gap:.5rem!important;
-}
-.zw-mobile-socials{
-  display:flex!important;
-  align-items:center!important;
-  gap:1rem!important;
-}
-.zw-mobile-socials a,
-.zw-mobile-socials button{
-  font-size:.55rem!important;
-  letter-spacing:.18em!important;
-  color:rgba(244,241,235,.3)!important;
-  transition:color .14s!important;
-}
-.zw-mobile-socials a:hover,
-.zw-mobile-socials button:hover{color:rgba(244,241,235,.65)!important;}
-.zw-mobile-menu-year{
-  font-size:.55rem!important;
-  letter-spacing:.14em!important;
-  color:rgba(244,241,235,.2)!important;
-}
-body.light-mode .zw-mobile-socials a,
-body.light-mode .zw-mobile-socials button,
-body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.3)!important;}
-
-/* Bag count chip in secondary nav */
+/* Bag count chip */
 .zw-mobile-bag-count{
   display:inline-flex!important;
   align-items:center!important;
   justify-content:center!important;
-  min-width:18px!important;
-  height:18px!important;
-  padding:0 4px!important;
-  border:1px solid rgba(244,241,235,.2)!important;
-  font-size:.52rem!important;
-  color:rgba(244,241,235,.55)!important;
-  letter-spacing:.05em!important;
-  margin-left:.4rem!important;
+  min-width:16px!important;
+  height:16px!important;
+  padding:0 3px!important;
+  border:1px solid rgba(244,241,235,.18)!important;
+  font-size:.5rem!important;
+  color:rgba(244,241,235,.4)!important;
+  letter-spacing:.04em!important;
+  margin-left:.35rem!important;
   border-radius:2px!important;
 }
+body.light-mode .zw-mobile-bag-count{
+  border-color:rgba(9,9,11,.18)!important;
+  color:rgba(9,9,11,.4)!important;
+}
 
-/* Social icon-buttons in footer */
+/* ── Footer: stacks vertically — socials row then year ── */
+.zw-mobile-menu-footer{
+  margin-top:auto!important;
+  padding:.85rem 1.25rem .1rem!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+  gap:.5rem!important;
+}
+
+.zw-mobile-socials{
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  flex-wrap:nowrap!important;
+  gap:0!important;
+  width:100%!important;
+}
+
+/* Social icon-button: minimal no-border link */
 .zw-social-btn{
   display:inline-flex!important;
   align-items:center!important;
-  gap:.4rem!important;
-  padding:.45rem .75rem!important;
-  border:1px solid rgba(244,241,235,.12)!important;
-  background:rgba(244,241,235,.04)!important;
+  gap:.32rem!important;
+  padding:0!important;
+  margin-right:1.1rem!important;
+  background:none!important;
+  border:none!important;
   font-family:var(--zw-font-mono,'IBM Plex Mono',monospace)!important;
   font-size:.56rem!important;
-  letter-spacing:.15em!important;
+  letter-spacing:.14em!important;
   text-transform:uppercase!important;
-  color:rgba(244,241,235,.5)!important;
+  color:rgba(244,241,235,.36)!important;
   cursor:pointer!important;
-  transition:color .14s,border-color .14s,background .14s!important;
   white-space:nowrap!important;
   flex-shrink:0!important;
   text-decoration:none!important;
-  background:none!important;
-  border:none!important;
+  transition:color .14s!important;
+  -webkit-tap-highlight-color:transparent!important;
+  -webkit-touch-callout:none!important;
+  user-select:none!important;
 }
-.zw-social-btn:hover,.zw-social-btn:focus-visible{
-  color:rgba(244,241,235,.88)!important;
-}
-.zw-social-btn svg{
-  flex-shrink:0!important;
-  opacity:.6!important;
-  transition:opacity .14s!important;
-}
-.zw-social-btn:hover svg{opacity:1!important;}
-body.light-mode .zw-social-btn{color:rgba(9,9,11,.45)!important;}
-body.light-mode .zw-social-btn:hover{color:rgba(9,9,11,.85)!important;}
-.zw-mobile-socials{
-  display:flex!important;
-  align-items:center!important;
-  gap:.25rem!important;
-  flex-wrap:wrap!important;
-}
+.zw-social-btn:last-child{margin-right:0!important;}
+.zw-social-btn:hover,.zw-social-btn:focus-visible{color:rgba(244,241,235,.8)!important;}
+.zw-social-btn svg{flex-shrink:0!important;opacity:.5!important;transition:opacity .14s!important;}
+.zw-social-btn:hover svg{opacity:.85!important;}
+body.light-mode .zw-social-btn{color:rgba(9,9,11,.36)!important;}
+body.light-mode .zw-social-btn:hover{color:rgba(9,9,11,.75)!important;}
 
-/* Prevent iOS long-press from popping context menu or shifting the page behind */
+.zw-mobile-menu-year{
+  font-family:var(--zw-font-mono,'IBM Plex Mono',monospace)!important;
+  font-size:.5rem!important;
+  letter-spacing:.13em!important;
+  text-transform:uppercase!important;
+  color:rgba(244,241,235,.15)!important;
+  margin:0!important;
+}
+body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.18)!important;}
+
+/* iOS interaction: no long-press menu, no text selection */
 #mobile-menu .zw-mobile-primary-link,
 #mobile-menu .zw-mobile-secondary-link,
 #mobile-menu .zw-mobile-socials a,
@@ -2655,12 +2663,7 @@ body.light-mode .zw-social-btn:hover{color:rgba(9,9,11,.85)!important;}
   user-select:none!important;
   touch-action:manipulation!important;
 }
-
-/* :active state matches :hover so the press feel is consistent */
 #mobile-menu .zw-mobile-primary-link:active{
   color:#fff!important;
   background:rgba(244,241,235,.06)!important;
-}
-#mobile-menu .zw-mobile-secondary-link:active{
-  color:rgba(244,241,235,.75)!important;
 }
