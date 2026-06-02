@@ -606,24 +606,18 @@ async function saveToSupa(pub) {
     if (!session) { showErr('No session — sign in via /admin.html first'); return; }
 
     const token = session.access_token;
-    const valueObj = { sections, updated_at: new Date().toISOString(), published: pub };
 
-    // Use direct REST API with auth token — bypasses any client-side auth state issues
-    const res = await fetch(`${SUPA_URL}/rest/v1/site_settings`, {
+    // Use Netlify function with service role key — bypasses RLS completely
+    const res = await fetch('/api/save-page-builder', {
       method: 'POST',
-      headers: {
-        'apikey': SUPA_ANON,
-        'Authorization': 'Bearer ' + token,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates,return=minimal'
-      },
-      body: JSON.stringify({ key: 'page_builder', value: valueObj })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken: token, sections, published: pub })
     });
 
     if (!res.ok) {
       const errText = await res.text();
       let errMsg = errText;
-      try { const j = JSON.parse(errText); errMsg = j.message || j.hint || j.details || errText; } catch(_) {}
+      try { const j = JSON.parse(errText); errMsg = j.error || j.message || errText; } catch(_) {}
       showErr('HTTP ' + res.status + ': ' + errMsg);
       return;
     }
