@@ -2619,24 +2619,21 @@ function showToast(msg) {
   window.__ZW_BUILDER_PREVIEW__ = true;
 
   // Apply any config that was already in localStorage when page loaded
-  let _lastTs = 0;
+  let _lastRaw = null;
   function checkBuilderCfg() {
     try {
       const raw = localStorage.getItem('_zw_builder_cfg');
-      if (!raw) return;
-      const cfg = JSON.parse(raw);
-      if (cfg._ts && cfg._ts > _lastTs) {
-        _lastTs = cfg._ts;
-        applyBuilderConfig(cfg);
-      }
+      if (!raw || raw === _lastRaw) return;
+      _lastRaw = raw;
+      applyBuilderConfig(JSON.parse(raw));
     } catch(e) {}
   }
 
-  // Apply immediately on load
+  // Apply on load in case config already written
   checkBuilderCfg();
 
-  // Poll every 400ms for changes — instant feel, no messaging needed
-  setInterval(checkBuilderCfg, 400);
+  // Poll every 300ms — fast enough to feel instant
+  setInterval(checkBuilderCfg, 300);
 
   // Also keep postMessage as fallback
   window.addEventListener('message', e => {

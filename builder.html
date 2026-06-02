@@ -376,7 +376,11 @@ function openEditor(s) {
   const applyBtn = document.createElement('button');
   applyBtn.className = 'apply-btn';
   applyBtn.textContent = '▶ Apply to Preview';
-  applyBtn.addEventListener('click', () => { syncForm(s); sendCfg(); toast('Applied to preview'); });
+  applyBtn.addEventListener('click', () => {
+    syncForm(s);  // update s.settings from form
+    sendCfg();    // write to localStorage (syncForm no longer does this)
+    toast('Sent to preview');
+  });
   body.appendChild(applyBtn);
 }
 
@@ -413,7 +417,8 @@ function syncForm(s) {
   });
   const nm = document.querySelector('[data-f="label"]');
   if (nm) s.label = nm.value;
-  dirty = true; sendCfg();
+  dirty = true;
+  // NOTE: does NOT call sendCfg here — Apply button handles preview updates
 }
 
 // Image field — clean approach, no complex inline handlers
@@ -624,15 +629,13 @@ function setTheme(t) {
 }
 
 function sendCfg() {
-  // Write config to localStorage — the preview iframe polls this every 400ms
-  // This is the most reliable cross-window sync for same-origin pages
   try {
-    localStorage.setItem('_zw_builder_cfg', JSON.stringify({
-      sections, theme: pvTheme, _ts: Date.now()
-    }));
+    // Use a unique key each write so iframe always detects the change
+    const payload = JSON.stringify({ sections, theme: pvTheme, _v: Date.now() + '-' + Math.random() });
+    localStorage.setItem('_zw_builder_cfg', payload);
     status('Preview updated ✓');
   } catch(e) {
-    showErr('Could not write to localStorage: ' + e.message);
+    showErr('localStorage write failed: ' + e.message);
   }
 }
 
