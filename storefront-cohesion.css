@@ -1175,12 +1175,8 @@ body.light-mode .heart-btn{
   :is(nav#nav,.nav,header.nav){
     min-height:56px !important;
     z-index:600 !important;
-    -webkit-backface-visibility:hidden;
-    backface-visibility:hidden;
     background:#09090b !important;
-    -webkit-transform: translate3d(0,0,0) !important;
-    transform: translate3d(0,0,0) !important;
-    transition: background .35s, border-color .35s, top .45s ease !important; /* disable padding transition to avoid repaint lag */
+    transition: background .35s, border-color .35s !important;
   }
 
   /* Securely shield the safe area under the status bar using an absolute pseudo-element */
@@ -1192,8 +1188,6 @@ body.light-mode .heart-btn{
     background:#09090b !important; /* solid opaque dark safe-area block */
     z-index:-1;
     display:block !important;
-    -webkit-transform: translate3d(0,0,0) !important;
-    transform: translate3d(0,0,0) !important;
   }
 
   body.light-mode :is(nav#nav,.nav,header.nav)::before{
