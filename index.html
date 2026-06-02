@@ -2490,25 +2490,37 @@ function showToast(msg) {
           if (h1 && s.heading) h1.innerHTML = s.heading.replace(/\n/g,'<br>');
           if (sub && s.subtext) sub.textContent = s.subtext;
           if (kicker && s.kicker) kicker.textContent = s.kicker;
-          if (ctaPrimary && s.cta_primary_text) {
+          
+          const primaryText = s.cta1_text || s.cta_primary_text;
+          const primaryUrl = s.cta1_url || s.cta_primary_url;
+          if (ctaPrimary && primaryText) {
             const svg = ctaPrimary.querySelector('svg');
-            ctaPrimary.textContent = s.cta_primary_text;
+            ctaPrimary.textContent = primaryText;
             if (svg) ctaPrimary.appendChild(svg);
           }
-          if (ctaPrimary && s.cta_primary_url) ctaPrimary.onclick = () => { if(s.cta_primary_url.startsWith('#')) document.getElementById(s.cta_primary_url.slice(1))?.scrollIntoView({behavior:'smooth'}); else location.href=s.cta_primary_url; };
-          if (ctaSecondary) ctaSecondary.style.display = s.cta_secondary_visible ? '' : 'none';
-          if (ctaSecondary && s.cta_secondary_text) ctaSecondary.textContent = s.cta_secondary_text;
+          if (ctaPrimary && primaryUrl) ctaPrimary.onclick = () => { if(primaryUrl.startsWith('#')) document.getElementById(primaryUrl.slice(1))?.scrollIntoView({behavior:'smooth'}); else location.href=primaryUrl; };
+          
+          const secondaryVisible = s.cta2_on !== undefined ? s.cta2_on : s.cta_secondary_visible;
+          const secondaryText = s.cta2_text || s.cta_secondary_text;
+          const secondaryUrl = s.cta2_url || s.cta_secondary_url;
+          if (ctaSecondary) ctaSecondary.style.display = secondaryVisible ? '' : 'none';
+          if (ctaSecondary && secondaryText) ctaSecondary.textContent = secondaryText;
+          if (ctaSecondary && secondaryUrl) ctaSecondary.onclick = () => { if(secondaryUrl.startsWith('#')) document.getElementById(secondaryUrl.slice(1))?.scrollIntoView({behavior:'smooth'}); else location.href=secondaryUrl; };
+          
           // Image CTA overlay
           let imgCta = el.querySelector('.hero-img-cta');
-          if (s.image_cta_visible) {
+          const imgCtaVisible = s.img_btn_on !== undefined ? s.img_btn_on : s.image_cta_visible;
+          const imgCtaText = s.img_btn_text || s.image_cta_text;
+          const imgCtaUrl = s.img_btn_url || s.image_cta_url;
+          if (imgCtaVisible) {
             if (!imgCta) {
               imgCta = document.createElement('a');
               imgCta.className = 'hero-img-cta';
               imgCta.style.cssText = 'position:absolute;bottom:30%;left:50%;transform:translateX(-50%);z-index:10;padding:.65rem 1.8rem;background:rgba(255,255,255,.92);color:#09090b;font-family:var(--fm);font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;text-decoration:none;backdrop-filter:blur(8px);transition:opacity .2s';
               el.querySelector('.hero-img-wrap')?.appendChild(imgCta);
             }
-            imgCta.textContent = s.image_cta_text || 'Shop Now';
-            imgCta.href = s.image_cta_url || '/drop001.html';
+            imgCta.textContent = imgCtaText || 'Shop Now';
+            imgCta.href = imgCtaUrl || '/drop001.html';
             imgCta.style.display = '';
           } else if (imgCta) imgCta.style.display = 'none';
           // Background image
@@ -2538,7 +2550,13 @@ function showToast(msg) {
           }
           const statNs = el.querySelectorAll('.stat-n');
           const statLs = el.querySelectorAll('.stat-l');
-          [[s.stat1_value,s.stat1_label],[s.stat2_value,s.stat2_label],[s.stat3_value,s.stat3_label]].forEach(([v,l],i)=>{
+          const s1v = s.s1v || s.stat1_value;
+          const s1l = s.s1l || s.stat1_label;
+          const s2v = s.s2v || s.stat2_value;
+          const s2l = s.s2l || s.stat2_label;
+          const s3v = s.s3v || s.stat3_value;
+          const s3l = s.s3l || s.stat3_label;
+          [[s1v,s1l],[s2v,s2l],[s3v,s3l]].forEach(([v,l],i)=>{
             if (statNs[i] && v) statNs[i].textContent = v;
             if (statLs[i] && l) statLs[i].textContent = l;
           });
@@ -2556,7 +2574,8 @@ function showToast(msg) {
             title.innerHTML = (lines[0]||'Release') + '<br>' + (span ? `<span>${lines[1]||'001'}</span>` : (lines[1]||'001'));
           }
           if (notifyLbl && s.notify_label) notifyLbl.textContent = s.notify_label;
-          if (notifyBox) notifyBox.style.display = s.show_notify ? '' : 'none';
+          const showNotify = s.notify_on !== undefined ? s.notify_on : s.show_notify;
+          if (notifyBox) notifyBox.style.display = showNotify ? '' : 'none';
           break;
         }
         case 'products': {
@@ -2584,10 +2603,12 @@ function showToast(msg) {
           const img = el.querySelector('[data-builder-img]');
           const btn = el.querySelector('[data-builder-btn]');
           if (img) { img.src = s.image||''; img.alt = s.alt||''; }
-          if (btn) { btn.textContent = s.btn_text||''; btn.href = s.btn_url||'#'; btn.style.display = s.btn_visible?'':'none'; }
+          const btnVisible = s.btn_on !== undefined ? s.btn_on : s.btn_visible;
+          if (btn) { btn.textContent = s.btn_text||''; btn.href = s.btn_url||'#'; btn.style.display = btnVisible?'':'none'; }
           break;
         }
-        case 'custom': {
+        case 'custom':
+        case 'html': {
           el.innerHTML = s.html||'';
           break;
         }
