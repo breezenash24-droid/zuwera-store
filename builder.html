@@ -217,19 +217,7 @@ function getSb() {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) { showLoginGate(); return; }
 
-    // Verify admin role via the same endpoint admin.html uses
-    const resp = await fetch('/api/admin-access', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accessToken: session.access_token })
-    });
-    const payload = await resp.json().catch(() => ({}));
-    if (!resp.ok || !payload.success) {
-      showLoginGate('Your account does not have admin access.');
-      return;
-    }
-
-    // Authenticated — show the builder
+    // Valid session = authenticated — show the builder
     document.querySelector('.topbar').style.display = '';
     document.querySelector('.layout').style.display = '';
   } catch(e) {
