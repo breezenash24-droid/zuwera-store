@@ -1180,6 +1180,17 @@ body.light-mode .heart-btn{
     background:#09090b !important;
   }
 
+  /* Securely shield the safe area under the status bar using an absolute pseudo-element */
+  :is(nav#nav,.nav,header.nav)::before{
+    content:'';
+    position:absolute;
+    top:0;left:0;right:0;
+    height:env(safe-area-inset-top,0px);
+    background:inherit;
+    z-index:-1;
+    display:block !important;
+  }
+
   :is(nav#nav,.nav,header.nav) :is(.nav-logo,.nav-logo-link),
   .zw-nav .zw-nav-logo{
     position:absolute !important;

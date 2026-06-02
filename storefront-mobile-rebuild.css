@@ -54,6 +54,18 @@
     background:#FFFFFF !important;
   }
 
+  /* Securely shield the safe area under the status bar using an absolute pseudo-element */
+  nav#nav::before,
+  .nav::before{
+    content:'';
+    position:absolute;
+    top:0;left:0;right:0;
+    height:env(safe-area-inset-top,0px);
+    background:inherit;
+    z-index:-1;
+    display:block !important;
+  }
+
   .nav-center{
     display:none !important;
   }
