@@ -2682,7 +2682,8 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.18)!important;}
   .modal:not(#mobile-menu):not(#cart-modal):not(#payment-modal) > :is(.mbox,.review-mbox,.review-list-mbox,.collection-review-box,.review-dialog){
     min-height:0 !important;
     height:auto !important;
-    max-height:92dvh !important;
+    /* max-height matches overlay padding-top so modal never goes behind nav */
+    max-height:calc(100dvh - 1.6rem - 36px - env(safe-area-inset-top,0px) - .5rem) !important;
     border-radius:1.25rem 1.25rem 0 0 !important;
     border-top:none !important;
     border-left:none !important;
@@ -2706,11 +2707,12 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.18)!important;}
     flex-direction:column !important;
   }
 
-  /* Align modals to bottom of screen */
+  /* Align modals to bottom, padded so they start BELOW the fixed nav */
   .modal:not(#mobile-menu):not(#cart-modal):not(#payment-modal){
     align-items:flex-end !important;
     justify-content:center !important;
-    padding:0 !important;
+    /* padding-top = nav height formula, so modal can never extend behind nav */
+    padding:calc(1.6rem + 36px + env(safe-area-inset-top,0px)) 0 0 !important;
   }
 
   /* ── Close button: sticky inside the scrollable modal, always visible ── */
