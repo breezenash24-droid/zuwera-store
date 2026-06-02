@@ -1178,6 +1178,9 @@ body.light-mode .heart-btn{
     -webkit-backface-visibility:hidden;
     backface-visibility:hidden;
     background:#09090b !important;
+    -webkit-transform: translate3d(0,0,0) !important;
+    transform: translate3d(0,0,0) !important;
+    transition: background .35s, border-color .35s, top .45s ease !important; /* disable padding transition to avoid repaint lag */
   }
 
   /* Securely shield the safe area under the status bar using an absolute pseudo-element */
@@ -1186,9 +1189,19 @@ body.light-mode .heart-btn{
     position:absolute;
     top:0;left:0;right:0;
     height:env(safe-area-inset-top,0px);
-    background:inherit;
+    background:#09090b !important; /* solid opaque dark safe-area block */
     z-index:-1;
     display:block !important;
+    -webkit-transform: translate3d(0,0,0) !important;
+    transform: translate3d(0,0,0) !important;
+  }
+
+  body.light-mode :is(nav#nav,.nav,header.nav)::before{
+    background:#F0EEE9 !important; /* solid opaque light safe-area block */
+  }
+
+  body.super-light-mode :is(nav#nav,.nav,header.nav)::before{
+    background:#FFFFFF !important; /* solid opaque super-light safe-area block */
   }
 
   :is(nav#nav,.nav,header.nav) :is(.nav-logo,.nav-logo-link),
