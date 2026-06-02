@@ -1749,7 +1749,20 @@ body.light-mode::after{opacity:0.15}
 <script src="image-utils.js?v=6eef467b" defer></script>
 <script src="mobile-menu.js?v=4c6ccedc" defer></script>
 <script>try{var _t=localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
-<style>body.super-light-mode{background:#FFFFFF!important}body.super-light-mode #mobile-menu{background:#FFFFFF!important}</style>
+<style>
+/* ── SITE HEADER REBUILD ── */
+/* Single fixed wrapper: bar stacks above nav, no JS positioning ever needed */
+#site-header{position:fixed!important;top:0!important;left:0!important;right:0!important;z-index:600!important;display:block!important}
+/* Bar and nav are in-flow inside the fixed wrapper — override external position:fixed */
+#bar{position:static!important;top:auto!important;left:auto!important;right:auto!important;width:auto!important}
+nav#nav{position:static!important;top:auto!important;left:auto!important;right:auto!important}
+/* Light-mode header background */
+body.light-mode #site-header,body.light-mode nav#nav{background:#F0EEE9!important}
+body.super-light-mode #site-header,body.super-light-mode nav#nav{background:#FFFFFF!important}
+/* Super-light-mode misc */
+body.super-light-mode{background:#FFFFFF!important}
+body.super-light-mode #mobile-menu{background:#FFFFFF!important}
+</style>
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to content</a>
@@ -1779,42 +1792,42 @@ body.light-mode::after{opacity:0.15}
 </script>
 
 <div id="toast"></div>
-<!-- ANNOUNCEMENT BAR -->
-<div id="bar" style="display:none">
-  <span class="bar-sep" aria-hidden="true"></span>
-  <span id="announcementText">Release 001 — Launching Sep 20, 2026</span>
-  <span class="bar-sep" aria-hidden="true"></span>
-</div>
-<!-- Spacer holds bar's height in document flow; #bar is always position:fixed -->
-<div id="bar-spacer" style="height:0;flex-shrink:0;pointer-events:none" aria-hidden="true"></div>
-
-<!-- NAV -->
-<nav id="nav">
-  <a href="/" class="nav-logo">
-    <img src="images/logo-192.png" srcset="images/logo-192.png 192w, images/logo.png 2000w" sizes="60px" width="60" height="60" alt="ZUWERA" decoding="async" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-    <span style="display:none">ZUWERA</span>
-  </a>
-  <div class="nav-center" id="nav-category-links">
-    <a href="drop001.html?category=Jackets" class="nav-link">Jackets</a>
-    <a href="drop001.html?category=T-Shirts" class="nav-link">T-Shirts</a>
-    <a href="drop001.html?category=Beanies" class="nav-link">Beanies</a>
+<!-- SITE HEADER: single fixed wrapper — bar + nav stack naturally, no JS positioning needed -->
+<header id="site-header">
+  <div id="bar" style="display:none">
+    <span class="bar-sep" aria-hidden="true"></span>
+    <span id="announcementText">Release 001 — Launching Sep 20, 2026</span>
+    <span class="bar-sep" aria-hidden="true"></span>
   </div>
-  <div class="nav-right">
-    <button class="nbtn" id="login-btn" onclick="return window.__zwOpenAuth ? window.__zwOpenAuth('signin') : true">Login</button>
-    <button class="nbtn" id="account-btn" onclick="window.location.href='/account.html'">Account</button>
-    <button class="nbtn" id="cart-btn" aria-label="Bag" onclick="return window.__zwOpenCart ? window.__zwOpenCart() : true">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path>
-        <line x1="3" y1="6" x2="21" y2="6"></line>
-        <path d="M16 10a4 4 0 01-8 0"></path>
-      </svg>
-      <span class="cc">0</span>
-    </button>
+  <nav id="nav">
+    <a href="/" class="nav-logo">
+      <img src="images/logo-192.png" srcset="images/logo-192.png 192w, images/logo.png 2000w" sizes="60px" width="60" height="60" alt="ZUWERA" decoding="async" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+      <span style="display:none">ZUWERA</span>
+    </a>
+    <div class="nav-center" id="nav-category-links">
+      <a href="drop001.html?category=Jackets" class="nav-link">Jackets</a>
+      <a href="drop001.html?category=T-Shirts" class="nav-link">T-Shirts</a>
+      <a href="drop001.html?category=Beanies" class="nav-link">Beanies</a>
+    </div>
+    <div class="nav-right">
+      <button class="nbtn" id="login-btn" onclick="return window.__zwOpenAuth ? window.__zwOpenAuth('signin') : true">Login</button>
+      <button class="nbtn" id="account-btn" onclick="window.location.href='/account.html'">Account</button>
+      <button class="nbtn" id="cart-btn" aria-label="Bag" onclick="return window.__zwOpenCart ? window.__zwOpenCart() : true">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <path d="M16 10a4 4 0 01-8 0"></path>
+        </svg>
+        <span class="cc">0</span>
+      </button>
       <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" aria-controls="mobile-menu" aria-expanded="false">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
       </button>
-  </div>
-</nav>
+    </div>
+  </nav>
+</header>
+<!-- Spacer reserves header height in document flow for desktop layout -->
+<div id="bar-spacer" style="height:0;pointer-events:none" aria-hidden="true"></div>
 
 
 <!-- MOBILE MENU MODAL -->
@@ -2409,22 +2422,20 @@ window.addEventListener('scroll', () => {
   }
 }, { passive: true });
 
-/* BAR — position bar below nav on mobile, below bar on desktop */
+/* HEADER HEIGHT — update spacer so page content clears the fixed header */
 (function() {
-  const bar = document.getElementById('bar');
-  function positionBar() {
-    if (!bar) return;
-    if (window.matchMedia('(max-width: 900px)').matches) {
-      bar.style.top = nav.offsetHeight + 'px';
-    }
-    // Desktop top is handled by setAnnouncementBarLayout
+  function updateHeaderHeight() {
+    const hdr = document.getElementById('site-header');
+    if (!hdr) return;
+    const h = hdr.offsetHeight;
+    const spacer = document.getElementById('bar-spacer');
+    if (spacer) spacer.style.height = h + 'px';
+    document.documentElement.style.setProperty('--header-height', h + 'px');
   }
-  // Run once after fonts/layout settle, then only on window resize
-  requestAnimationFrame(function() {
-    requestAnimationFrame(positionBar);
-  });
-  window.addEventListener('resize', positionBar, { passive: true });
-  window.__zwPositionBar = positionBar;
+  window.__zwUpdateHeaderHeight = updateHeaderHeight;
+  // Run once after layout is ready, then only on window resize
+  requestAnimationFrame(function() { requestAnimationFrame(updateHeaderHeight); });
+  window.addEventListener('resize', updateHeaderHeight, { passive: true });
 })();
 
 /* SUPABASE — window.sb set by supabase-client.js (deferred) before DOMContentLoaded */
@@ -2441,19 +2452,10 @@ function teardownAnnouncementBarScroll() {
 }
 
 function setAnnouncementBarLayout(barEl, navEl, isVisible) {
-  if (!navEl) return;
-  const spacerEl = document.getElementById('bar-spacer');
-  const isMob = window.matchMedia('(max-width: 900px)').matches;
-  if (isMob) {
-    // Mobile: nav stays at top:0 (CSS enforces this), bar below nav via positionBar
-    if (spacerEl) spacerEl.style.height = '0';
-    if (window.__zwPositionBar) window.__zwPositionBar();
-  } else {
-    // Desktop: bar at top:0, nav pushed below, spacer holds bar height in flow
-    const barH = (barEl && isVisible) ? barEl.offsetHeight : 0;
-    navEl.style.top = barH + 'px';
-    if (spacerEl) spacerEl.style.height = isVisible ? barH + 'px' : '0';
-  }
+  // Bar and nav are inside #site-header (position:fixed wrapper).
+  // No top/position manipulation needed — CSS handles everything.
+  // Just update the spacer so content below knows the header height.
+  if (window.__zwUpdateHeaderHeight) window.__zwUpdateHeaderHeight();
 }
 
 function applyAnnouncementBar(mode, msgText) {
@@ -2464,10 +2466,6 @@ function applyAnnouncementBar(mode, msgText) {
   const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
 
   teardownAnnouncementBarScroll();
-  if (!isMobileViewport) {
-    // Desktop: bar fixed at top:0, nav pushed below by setAnnouncementBarLayout
-    barEl.style.top = '0';
-  }
   barEl.style.transition = 'transform .28s ease, opacity .2s ease';
   barEl.style.transform = 'translateY(0)';
   barEl.style.opacity = '1';
@@ -2514,7 +2512,7 @@ function applyAnnouncementBar(mode, msgText) {
       barEl.style.opacity = '0';
       barEl.style.pointerEvents = 'none';
       if (spacerEl) spacerEl.style.height = '0';
-      _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; }, 460);
+      _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; if (window.__zwUpdateHeaderHeight) window.__zwUpdateHeaderHeight(); }, 460);
     } else {
       barEl.style.display = 'flex';
       void barEl.offsetHeight;
