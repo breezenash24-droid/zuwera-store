@@ -2611,35 +2611,39 @@ body.light-mode .zw-mobile-bag-count{
   width:100%!important;
 }
 
-/* Social icon-button: minimal no-border link */
+/* Social icon-only buttons */
 .zw-social-btn{
   display:inline-flex!important;
   align-items:center!important;
-  gap:.32rem!important;
+  justify-content:center!important;
   padding:0!important;
-  margin-right:1.1rem!important;
+  margin-right:1.35rem!important;
   background:none!important;
   border:none!important;
-  font-family:var(--zw-font-mono,'IBM Plex Mono',monospace)!important;
-  font-size:.56rem!important;
-  letter-spacing:.14em!important;
-  text-transform:uppercase!important;
-  color:rgba(244,241,235,.36)!important;
+  font-size:0!important;          /* hides any stray text, keeps SVG */
+  color:rgba(244,241,235,.38)!important;
   cursor:pointer!important;
-  white-space:nowrap!important;
   flex-shrink:0!important;
   text-decoration:none!important;
   transition:color .14s!important;
   -webkit-tap-highlight-color:transparent!important;
   -webkit-touch-callout:none!important;
   user-select:none!important;
+  touch-action:manipulation!important;
 }
 .zw-social-btn:last-child{margin-right:0!important;}
-.zw-social-btn:hover,.zw-social-btn:focus-visible{color:rgba(244,241,235,.8)!important;}
-.zw-social-btn svg{flex-shrink:0!important;opacity:.5!important;transition:opacity .14s!important;}
+.zw-social-btn:hover,.zw-social-btn:focus-visible{color:rgba(244,241,235,.85)!important;}
+.zw-social-btn svg{
+  width:18px!important;
+  height:18px!important;
+  flex-shrink:0!important;
+  stroke:currentColor!important;
+  opacity:1!important;
+  transition:opacity .14s!important;
+}
 .zw-social-btn:hover svg{opacity:.85!important;}
-body.light-mode .zw-social-btn{color:rgba(9,9,11,.36)!important;}
-body.light-mode .zw-social-btn:hover{color:rgba(9,9,11,.75)!important;}
+body.light-mode .zw-social-btn{color:rgba(9,9,11,.38)!important;}
+body.light-mode .zw-social-btn:hover{color:rgba(9,9,11,.78)!important;}
 
 .zw-mobile-menu-year{
   font-family:var(--zw-font-mono,'IBM Plex Mono',monospace)!important;
