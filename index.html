@@ -1786,7 +1786,7 @@ body.light-mode::after{opacity:0.15}
   <span class="bar-sep" aria-hidden="true"></span>
 </div>
 <!-- Spacer holds bar's height in document flow; #bar is always position:fixed -->
-<div id="bar-spacer" style="height:0;transition:height .45s ease;flex-shrink:0;pointer-events:none" aria-hidden="true"></div>
+<div id="bar-spacer" style="height:0;flex-shrink:0;pointer-events:none" aria-hidden="true"></div>
 
 <!-- NAV -->
 <nav id="nav">
@@ -2509,6 +2509,7 @@ function applyAnnouncementBar(mode, msgText) {
   setAnnouncementBarLayout(barEl, navEl, true);
 
   if (normalizedMode !== 'scroll') return;
+  if (isMobileViewport) return; // Mobile: bar stays fixed below nav, no scroll animation
 
   barEl.style.transition = 'transform 0.45s ease, opacity 0.45s ease';
   let lastScrollY = window.scrollY;
