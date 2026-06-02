@@ -380,6 +380,97 @@ function syncForm(s) {
   dirty = true; sendCfg();
 }
 
+// Image field with URL input + live thumbnail preview
+function imgField(key, lbl, val='') {
+  const uid = key + '_img_' + Math.random().toString(36).slice(2,7);
+  const hasVal = val && val.trim() && !val.includes('data:');
+  return `<div class="field">
+    <label>${lbl}</label>
+    ${hasVal ? `<img id="prev_${uid}" src="${he(val)}" style="width:100%;height:80px;object-fit:cover;border:1px solid var(--border);border-radius:2px;margin-bottom:.4rem;display:block" onerror="this.style.display='none'">` :
+               `<div id="prev_${uid}" style="display:none;width:100%;height:80px;object-fit:cover;border:1px solid var(--border);border-radius:2px;margin-bottom:.4rem;background:var(--surface2)"></div>`}
+    <input type="url" data-f="${key}" value="${he(val)}" placeholder="https://... or /images/hero.jpg"
+      style="width:100%"
+      oninput="(function(el){var p=document.getElementById('prev_${uid}');if(el.value){p.tagName==='IMG'?p.src=el.value:(p.outerHTML='<img id=\\'prev_${uid}\\' src=\\''+el.value+'\\' style=\\'width:100%;height:80px;object-fit:cover;border:1px solid var(--border);border-radius:2px;margin-bottom:.4rem;display:block\\' onerror=\\'this.style.display=\\"none\\"\\'>');p.style.display='';}})(this)">
+    <div style="display:flex;gap:.4rem;margin-top:.35rem;flex-wrap:wrap">
+      <button type="button" onclick="pickBuiltinImg('${key}')" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-family:\'IBM Plex Mono\',monospace;font-size:.54rem;letter-spacing:.1em;text-transform:uppercase;padding:.3rem .65rem;cursor:pointer;border-radius:2px;transition:.14s" onmouseover="this.style.borderColor='rgba(255,255,255,.25)'" onmouseout="this.style.borderColor='var(--border)'">📁 Site Images</button>
+      <button type="button" onclick="uploadImg('${key}')" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-family:\'IBM Plex Mono\',monospace;font-size:.54rem;letter-spacing:.1em;text-transform:uppercase;padding:.3rem .65rem;cursor:pointer;border-radius:2px;transition:.14s" onmouseover="this.style.borderColor='rgba(255,255,255,.25)'" onmouseout="this.style.borderColor='var(--border)'">⬆ Upload</button>
+    </div>
+  </div>`;
+}
+
+// Known site images picker
+const SITE_IMAGES = [
+  {label:'Hero (main)',   src:'/images/hero.jpg'},
+  {label:'Hero Mobile',  src:'/images/hero-mobile.jpg'},
+  {label:'OG Image',     src:'/images/og-image.jpg'},
+];
+let _imgPickerKey = null;
+
+function pickBuiltinImg(fieldKey) {
+  _imgPickerKey = fieldKey;
+  let modal = document.getElementById('imgPickerModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'imgPickerModal';
+    modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(3px)';
+    modal.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);width:min(480px,90vw);border-radius:5px;overflow:hidden">
+      <div style="padding:.75rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:.72rem;font-weight:600;letter-spacing:.04em">Pick Image</span>
+        <button onclick="document.getElementById('imgPickerModal').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;line-height:1">×</button>
+      </div>
+      <div style="padding:.85rem;display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem">
+        ${SITE_IMAGES.map(img=>`<div style="cursor:pointer;border:1px solid var(--border);border-radius:3px;overflow:hidden" onclick="applyImg('${img.src}')" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <img src="${img.src}" style="width:100%;height:64px;object-fit:cover;display:block" onerror="this.parentElement.style.display='none'">
+          <div style="padding:.3rem .4rem;font-family:\'IBM Plex Mono\',monospace;font-size:.5rem;letter-spacing:.08em;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${img.label}</div>
+        </div>`).join('')}
+      </div>
+      <div style="padding:.6rem 1rem;border-top:1px solid var(--border)">
+        <input id="imgPickerCustom" type="url" placeholder="Or paste any image URL…" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:#f4f1eb;font-family:\'Barlow\',sans-serif;font-size:.72rem;padding:.4rem .55rem;outline:none;border-radius:2px">
+        <button onclick="applyImg(document.getElementById('imgPickerCustom').value)" style="margin-top:.4rem;width:100%;background:#f4f1eb;color:#0f0f11;border:none;font-family:\'IBM Plex Mono\',monospace;font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;padding:.4rem;cursor:pointer;border-radius:2px;font-weight:600">Use This URL</button>
+      </div>
+    </div>`;
+    document.body.appendChild(modal);
+  }
+  modal.style.display = 'flex';
+}
+
+function applyImg(src) {
+  if (!src || !_imgPickerKey) return;
+  document.getElementById('imgPickerModal').style.display = 'none';
+  // Update the input field
+  const inp = document.querySelector(`[data-f="${_imgPickerKey}"]`);
+  if (inp) { inp.value = src; inp.dispatchEvent(new Event('input',{bubbles:true})); }
+}
+
+function uploadImg(fieldKey) {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = async function() {
+    const file = input.files[0];
+    if (!file) return;
+    status('Uploading…');
+    try {
+      const sb = getSb();
+      const ext = file.name.split('.').pop();
+      const path = 'builder/' + Date.now() + '.' + ext;
+      const { data, error } = await sb.storage.from('images').upload(path, file, {upsert:true});
+      if (error) throw error;
+      const { data: { publicUrl } } = sb.storage.from('images').getPublicUrl(path);
+      applyImg(publicUrl);
+      status('Image uploaded');
+      toast('Image uploaded','ok');
+    } catch(e) {
+      // Fall back: use object URL (preview only, won't persist)
+      const url = URL.createObjectURL(file);
+      const inp = document.querySelector(`[data-f="${fieldKey}"]`);
+      if (inp) { inp.value = url; inp.dispatchEvent(new Event('input',{bubbles:true})); }
+      status('Note: local preview only — add to Supabase Storage for persistence');
+      toast('Upload failed — using local preview','err');
+    }
+  };
+  input.click();
+}
+
 function f(key, lbl, val='', type='text', hint='') {
   return `<div class="field"><label>${lbl}</label><input type="${type}" data-f="${key}" value="${he(val)}" placeholder="${hint}"></div>`;
 }
@@ -398,7 +489,7 @@ function buildForm(s) {
   let h = '';
   switch(s.type) {
     case 'hero':
-      h = f('image','Background Image URL', g.image,'text','https:// or leave blank') +
+      h = imgField('image', 'Hero Background Image', g.image) +
           fdiv() + fhd('Text') +
           ta('kicker','Kicker Text', g.kicker) +
           ta('heading','Heading (↵ = line break)', g.heading) +
@@ -440,7 +531,7 @@ function buildForm(s) {
           fdiv() + f('cta_text','Button Text (optional)',g.cta_text) + f('cta_url','Button URL',g.cta_url);
       break;
     case 'img_cta':
-      h = f('image','Image URL',g.image,'text','https://...') + f('alt','Alt Text',g.alt) + fdiv() +
+      h = imgField('image','Section Image', g.image) + f('alt','Alt Text',g.alt) + fdiv() +
           tog2('btn_on','Show Button', g.btn_on) + f('btn_text','Button Text',g.btn_text) + f('btn_url','Button URL',g.btn_url);
       break;
     case 'html':
@@ -518,19 +609,39 @@ async function saveToSupa(pub) {
   try {
     const sb = getSb();
     if (!sb) { toast('No DB connection','err'); return; }
-    const { error } = await sb.from('site_settings').upsert({
-      key:'page_builder',
-      value:{sections, updated_at:new Date().toISOString(), published:pub},
-      updated_at:new Date().toISOString()
-    },{onConflict:'key'});
-    if (error) throw error;
+
+    // Ensure we have a valid auth session before writing
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      toast('Session expired — please sign in again','err');
+      status('Not authenticated');
+      return;
+    }
+
+    const payload = {
+      key: 'page_builder',
+      value: { sections, updated_at: new Date().toISOString(), published: pub }
+    };
+
+    // Try upsert; fall back to separate select+insert/update if upsert RLS blocks it
+    const { error } = await sb.from('site_settings')
+      .upsert(payload, { onConflict: 'key' });
+
+    if (error) {
+      // Log full error for debugging
+      console.error('Save error:', error);
+      toast('Save failed: ' + (error.message || error.code || JSON.stringify(error)), 'err');
+      status('Save failed — see console');
+      return;
+    }
+
     dirty = false;
     status(pub ? 'Published ✓' : 'Draft saved');
     toast(pub ? 'Published! Changes are live.' : 'Draft saved', 'ok');
   } catch(e) {
-    console.error(e);
-    toast('Save failed','err');
-    status('Save failed');
+    console.error('Save exception:', e);
+    toast('Save error: ' + (e.message || String(e)), 'err');
+    status('Error — see console');
   }
 }
 
