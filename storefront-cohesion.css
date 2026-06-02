@@ -2725,11 +2725,11 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.18)!important;}
     margin-left:auto !important;
     margin-right:.75rem !important;
     z-index:200 !important;
-    /* Circular, prominent */
+    /* Square, prominent */
     width:38px !important;
     height:38px !important;
     min-height:38px !important;
-    border-radius:50% !important;
+    border-radius:0 !important;
     background:rgba(18,18,20,.9) !important;
     border:1.5px solid rgba(244,241,235,.22) !important;
     color:rgba(244,241,235,.82) !important;
