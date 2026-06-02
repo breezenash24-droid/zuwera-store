@@ -250,14 +250,6 @@ nav#nav.scrolled{
   border-color:rgba(244,241,235,.07);
   padding:0.3rem 2.5rem;
 }
-@media(max-width:900px){
-  /* Keep safe-area inset when scrolled so nav height doesn't shrink on iPhone,
-     which would leave a gap between the nav and the announcement bar below it. */
-  nav#nav.scrolled{
-    padding:calc(0.8rem + env(safe-area-inset-top,0px)) 1.2rem 0.9rem;
-  }
-  /* Mobile: bar positioned below nav by JS (navEl.offsetHeight), no CSS override needed */
-}
 .nav-logo{
   font-family:var(--fw);font-weight:900;font-style:italic;
   font-size:1.6rem;letter-spacing:.12em;
@@ -1498,63 +1490,24 @@ body.light-mode .ret-history-item{border-top-color:rgba(9,9,11,.07)}
    RESPONSIVE
 ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */
 @media(max-width:900px){
-  .hero{min-height:0!important;grid-template-rows:auto auto!important}
-  .hero-inner{min-height:0!important;padding-top:calc(5.5rem + env(safe-area-inset-top,0px))!important}
   .hero-img-wrap::after{background:linear-gradient(to bottom,rgba(9,9,11,1) 0,rgba(9,9,11,1) calc(5.5rem + env(safe-area-inset-top,0px)),transparent calc(5.5rem + env(safe-area-inset-top,0px) + 2rem),transparent 50%,rgba(9,9,11,.85) 100%),radial-gradient(ellipse 60% 60% at 50% 50%,transparent 0%,rgba(9,9,11,.5) 100%)}
-  .section-about{grid-template-columns:1fr!important;gap:2rem!important;padding:env(safe-area-inset-top,0px) 1.5rem 2rem!important}
-  .drop-inner{grid-template-columns:1fr!important;gap:2rem!important;padding:calc(2rem + env(safe-area-inset-top,0px)) 1.5rem 4rem!important}
-  .drop-bg-num{display:none}
-  .pgrid{grid-template-columns:repeat(2,1fr)}
-  footer{grid-template-columns:1fr;text-align:center;gap:0}
-  .footer-nl{flex-direction:column;align-items:center;gap:.75rem}
-  .footer-nl #nl-form{max-width:100%;width:100%}
-  .fright{text-align:center}.flinks{justify-content:center}
-  .flogo img,.flogo{margin:0 auto}
 }
 @media(max-width:900px){
-  .cart-body{grid-template-columns:1fr;padding:2rem 1.2rem}
-  .csummary{margin-left:0;margin-top:2rem;position:static}
-  .pgrow{grid-template-columns:1fr}
-    .nav-center { display: none; }
-    .hamburger-btn { display: flex; align-items: center; justify-content: center; }
-  /* Mobile: nav position:fixed top:0; bar fixed below nav via JS */
-  nav#nav{z-index:240;padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s,top .45s ease}
-
-    .hero{padding-top:0!important;min-height:0!important}
-      .hero-inner{min-height:0!important}
-
   /* Cart modal — bottom sheet */
   #cart-modal{background:transparent!important;align-items:flex-end;padding:0!important}
   #cart-modal .cbox{width:100%;max-height:92dvh;border-radius:1rem 1rem 0 0;margin:0;border-left:none;border-right:none;border-bottom:none}
-  /* Drag handle */
   .sheet-handle{display:block}
-  /* Cart header: title centered, × button absolutely inset from the rounded corner */
   .cart-hd{justify-content:center}
   #cart-modal-title{font-size:1.05rem;letter-spacing:.1em}
   .cart-back{position:absolute;right:.9rem;top:50%;transform:translateY(-50%);font-size:0;color:rgba(244,241,235,.45);padding:.3rem;min-width:2rem;text-align:center}
   .cart-back svg,.cart-back-label{display:none}
   .cart-back::after{content:'×';font-size:1.45rem;line-height:1}
   .cart-hd-spacer{display:none!important}
-  /* Hide footer nav on mobile — nobody taps these from the cart */
   .cart-shell-footer{display:none!important}
-  /* Sticky checkout button */
   #checkout-btn{position:sticky;bottom:0;z-index:10;box-shadow:0 -8px 18px rgba(9,9,11,.12)}
 }
 @media(max-width:600px){
-  nav#nav{padding:calc(.8rem + env(safe-area-inset-top,0px)) 1.2rem .9rem;transition:background .35s,border-color .35s,padding .35s,top .45s ease}
-
-  .hero-inner{padding:2rem 1.2rem 1.5rem}
-  .hero-bottom{padding:1rem 1.2rem 2rem}
-  .pgrid, .pgrid.two-items{
-    display:flex; overflow-x:auto; scroll-snap-type:x mandatory;
-    gap:1rem; padding-bottom:1rem;
-    scrollbar-width:none; -ms-overflow-style:none;
-  }
-  .pgrid::-webkit-scrollbar { display:none; }
-  .pgrid .pcard { flex:0 0 85%; scroll-snap-align:start; }
-  .pcard-add-btn{display:none}
   .cart-hd{padding:1.2rem}
-  footer{padding:1.8rem 1.2rem 2rem}
   .mbox { padding: 2rem 1.2rem 1.8rem; }
   #checkout-page .pgrow{grid-template-columns:1fr!important}
   .pgrow--addr{grid-template-columns:1fr!important}
@@ -1796,7 +1749,7 @@ body.light-mode::after{opacity:0.15}
 <script src="image-utils.js?v=6eef467b" defer></script>
 <script src="mobile-menu.js?v=4c6ccedc" defer></script>
 <script>try{var _t=localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
-<style>body.super-light-mode{background:#FFFFFF!important}body.super-light-mode #mobile-menu{background:#FFFFFF!important}@media(max-width:900px){.section-about{padding-top:calc(56px + env(safe-area-inset-top,0px))!important}}</style>
+<style>body.super-light-mode{background:#FFFFFF!important}body.super-light-mode #mobile-menu{background:#FFFFFF!important}</style>
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to content</a>
