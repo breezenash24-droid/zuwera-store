@@ -1418,15 +1418,28 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('on'), 2600);
 }
 
-/* NAV SCROLL */
+/* NAV SCROLL & ANNOUNCEMENT BAR SYNC */
 const nav = document.getElementById('nav');
-window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 50), { passive: true });
+const bar = document.getElementById('bar');
+
+function updateNavPosition() {
+  if (bar) {
+    const scrollY = Math.max(0, window.scrollY);
+    nav.style.top = Math.max(0, bar.offsetHeight - scrollY) + 'px';
+  } else {
+    nav.style.top = '0px';
+  }
+}
+
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('scrolled', window.scrollY > 50);
+  updateNavPosition();
+}, { passive: true });
 
 /* BAR — always visible */
 (function() {
-  const bar = document.getElementById('bar');
-  nav.style.top = bar.offsetHeight + 'px';
-  window.addEventListener('resize', () => { nav.style.top = bar.offsetHeight + 'px'; });
+  updateNavPosition();
+  window.addEventListener('resize', updateNavPosition);
 })();
 
 /* SUPABASE */
