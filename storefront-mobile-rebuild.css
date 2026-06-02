@@ -20,11 +20,38 @@
 
   nav#nav,
   .nav{
+    position: fixed !important;
+    top: 0 !important;
     padding:calc(.75rem + env(safe-area-inset-top,0px)) var(--zw-mobile-gutter) .85rem !important;
+    background:#09090b !important; /* Force solid opaque dark background */
+    z-index:600 !important;
+  }
+
+  body.light-mode nav#nav,
+  body.light-mode .nav{
+    background:#F0EEE9 !important; /* Force solid opaque light background */
+  }
+
+  body.super-light-mode nav#nav,
+  body.super-light-mode .nav{
+    background:#FFFFFF !important; /* Force solid opaque super-light background */
   }
 
   nav#nav.scrolled{
+    position: fixed !important;
+    top: 0 !important;
     padding:calc(.65rem + env(safe-area-inset-top,0px)) var(--zw-mobile-gutter) .78rem !important;
+    background:#09090b !important;
+  }
+
+  body.light-mode nav#nav.scrolled,
+  body.light-mode .nav.scrolled{
+    background:#F0EEE9 !important;
+  }
+
+  body.super-light-mode nav#nav.scrolled,
+  body.super-light-mode .nav.scrolled{
+    background:#FFFFFF !important;
   }
 
   .nav-center{

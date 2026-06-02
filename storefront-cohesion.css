@@ -1177,6 +1177,7 @@ body.light-mode .heart-btn{
     z-index:600 !important;
     -webkit-backface-visibility:hidden;
     backface-visibility:hidden;
+    background:#09090b !important;
   }
 
   :is(nav#nav,.nav,header.nav) :is(.nav-logo,.nav-logo-link),
@@ -1352,17 +1353,13 @@ body.light-mode .heart-btn{
     color:rgba(9,9,11,.84) !important;
   }
 
-  /* Light-mode nav: frosted-glass so content scrolling behind it is blurred rather than readable */
+  /* Light-mode nav: solid opaque background to block scrolled content bleeding */
   body.light-mode :is(nav#nav,.nav,header.nav){
-    background:rgba(240,238,233,0.96) !important;
-    -webkit-backdrop-filter:blur(12px) !important;
-    backdrop-filter:blur(12px) !important;
+    background:#F0EEE9 !important;
     border-bottom-color:rgba(9,9,11,0.12) !important;
   }
   body.super-light-mode :is(nav#nav,.nav,header.nav){
-    background:rgba(255,255,255,0.96) !important;
-    -webkit-backdrop-filter:blur(12px) !important;
-    backdrop-filter:blur(12px) !important;
+    background:#FFFFFF !important;
     border-bottom-color:rgba(9,9,11,0.12) !important;
   }
 
