@@ -42,6 +42,14 @@
             --border-color: #e5e5e5;
         }
 
+        body.super-light-mode {
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #FFFFFF;
+            --bg-tertiary: #f5f5f5;
+            --border: #e8e8e8;
+            --border-color: #e8e8e8;
+        }
+
         body.light-mode select,
         body.light-mode input[type="text"],
         body.light-mode input[type="email"],
@@ -6902,6 +6910,7 @@
             const icons  = { dark: '🌙', light: '☀️', 'super-light': '⬜' };
             const labels = { dark: 'Dark', light: 'Light', 'super-light': 'Super Light' };
             body.classList.toggle('light-mode', themeMode !== 'dark');
+            body.classList.toggle('super-light-mode', themeMode === 'super-light');
             document.getElementById('themeIcon').textContent  = icons[themeMode];
             document.getElementById('themeLabel').textContent = labels[themeMode];
             const mi = document.getElementById('mobThemeIcon');  if (mi) mi.textContent = icons[themeMode];
