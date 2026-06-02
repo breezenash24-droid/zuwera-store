@@ -2595,25 +2595,37 @@ function showToast(msg) {
     });
   }
 
-  // Expose directly on window so builder can call without postMessage
   window.__ZW_BUILDER_PREVIEW__ = true;
-  window.__zwApplyBuilderConfig = applyBuilderConfig;
 
-  let _lastBuilderCfg = null;
+  // Apply any config that was already in localStorage when page loaded
+  let _lastTs = 0;
+  function checkBuilderCfg() {
+    try {
+      const raw = localStorage.getItem('_zw_builder_cfg');
+      if (!raw) return;
+      const cfg = JSON.parse(raw);
+      if (cfg._ts && cfg._ts > _lastTs) {
+        _lastTs = cfg._ts;
+        applyBuilderConfig(cfg);
+      }
+    } catch(e) {}
+  }
 
+  // Apply immediately on load
+  checkBuilderCfg();
+
+  // Poll every 400ms for changes — instant feel, no messaging needed
+  setInterval(checkBuilderCfg, 400);
+
+  // Also keep postMessage as fallback
   window.addEventListener('message', e => {
     if (e.data && e.data.type === 'ZW_BUILDER_CONFIG') {
-      _lastBuilderCfg = e.data;
       applyBuilderConfig(e.data);
-      // Confirm back to builder
-      try { window.parent.postMessage({ type:'ZW_BUILDER_APPLIED' }, '*'); } catch(_) {}
     }
   });
 
-  // Re-apply after Supabase overwrites
-  window.__zwReapplyBuilder = function() {
-    if (_lastBuilderCfg) applyBuilderConfig(_lastBuilderCfg);
-  };
+  // Re-apply after Supabase overwrites DOM
+  window.__zwReapplyBuilder = function() { checkBuilderCfg(); };
 })();
 
 /* NAV SCROLL */

@@ -624,42 +624,17 @@ function setTheme(t) {
 }
 
 function sendCfg() {
-  const cfg = { sections, theme: pvTheme };
-  const frame = document.getElementById('pvIframe');
-  if (!frame) return;
-
-  // Primary: direct same-origin function call — instant, no messaging delays
+  // Write config to localStorage — the preview iframe polls this every 400ms
+  // This is the most reliable cross-window sync for same-origin pages
   try {
-    const fn = frame.contentWindow && frame.contentWindow.__zwApplyBuilderConfig;
-    if (typeof fn === 'function') {
-      fn(cfg);
-      return;
-    }
-  } catch(e) {}
-
-  // Fallback: postMessage
-  try {
-    frame.contentWindow.postMessage({ type: 'ZW_BUILDER_CONFIG', ...cfg }, '*');
-  } catch(e) {
-    showErr('Preview call failed: ' + e.message);
-  }
-
-  // Retry after Supabase may have overwritten changes
-  clearTimeout(sendCfg._t);
-  sendCfg._t = setTimeout(() => {
-    try {
-      const fn2 = frame.contentWindow && frame.contentWindow.__zwApplyBuilderConfig;
-      if (typeof fn2 === 'function') fn2(cfg);
-    } catch(e) {}
-  }, 1800);
-}
-
-// Listen for confirmation from iframe
-window.addEventListener('message', e => {
-  if (e.data && e.data.type === 'ZW_BUILDER_APPLIED') {
+    localStorage.setItem('_zw_builder_cfg', JSON.stringify({
+      sections, theme: pvTheme, _ts: Date.now()
+    }));
     status('Preview updated ✓');
+  } catch(e) {
+    showErr('Could not write to localStorage: ' + e.message);
   }
-});
+}
 
 // ── SAVE / PUBLISH ────────────────────────────────────────────────────────
 async function saveDraft() {
