@@ -2405,30 +2405,22 @@ window.addEventListener('scroll', () => {
   if (s !== _navScrolled) { _navScrolled = s; nav.classList.toggle('scrolled', s); }
 }, { passive: true });
 
-/* BAR — syncNavOffset keeps bar/nav positions aligned on load and resize */
+/* BAR — position bar below nav on mobile, below bar on desktop */
 (function() {
   const bar = document.getElementById('bar');
-  const syncNavOffset = () => {
-    const isMob = window.matchMedia('(max-width: 900px)').matches;
-    if (isMob) {
-      // Mobile: nav at top:0, bar fixed directly below nav
-      nav.style.top = '0px';
-      document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
-      if (bar) bar.style.top = nav.offsetHeight + 'px';
-    } else {
-      // Desktop: nav pushed below bar when bar visible
-      const isHidden = bar.style.display === 'none' || bar.style.opacity === '0' || bar.style.pointerEvents === 'none';
-      const nextTop = isHidden ? 0 : bar.offsetHeight;
-      nav.style.top = nextTop + 'px';
-      document.documentElement.style.setProperty('--mobile-nav-gap', nextTop + 'px');
+  function positionBar() {
+    if (!bar) return;
+    if (window.matchMedia('(max-width: 900px)').matches) {
+      bar.style.top = nav.offsetHeight + 'px';
     }
-  };
-  syncNavOffset();
-  window.addEventListener('resize', syncNavOffset);
-  // Keep bar flush with nav bottom whenever nav height changes (fonts, scrolled class, etc.)
-  if (typeof ResizeObserver !== 'undefined') {
-    new ResizeObserver(syncNavOffset).observe(nav);
+    // Desktop top is handled by setAnnouncementBarLayout
   }
+  // Run once after fonts/layout settle, then only on window resize
+  requestAnimationFrame(function() {
+    requestAnimationFrame(positionBar);
+  });
+  window.addEventListener('resize', positionBar, { passive: true });
+  window.__zwPositionBar = positionBar;
 })();
 
 /* SUPABASE — window.sb set by supabase-client.js (deferred) before DOMContentLoaded */
@@ -2449,16 +2441,13 @@ function setAnnouncementBarLayout(barEl, navEl, isVisible) {
   const spacerEl = document.getElementById('bar-spacer');
   const isMob = window.matchMedia('(max-width: 900px)').matches;
   if (isMob) {
-    // Mobile: nav at top:0, bar fixed directly below nav
-    navEl.style.top = '0px';
-    document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
-    if (barEl && isVisible) barEl.style.top = navEl.offsetHeight + 'px';
+    // Mobile: nav stays at top:0 (CSS enforces this), bar below nav via positionBar
     if (spacerEl) spacerEl.style.height = '0';
+    if (window.__zwPositionBar) window.__zwPositionBar();
   } else {
-    // Desktop: bar always fixed at top:0; nav pushed below; spacer holds bar height in flow
+    // Desktop: bar at top:0, nav pushed below, spacer holds bar height in flow
     const barH = (barEl && isVisible) ? barEl.offsetHeight : 0;
     navEl.style.top = barH + 'px';
-    document.documentElement.style.setProperty('--mobile-nav-gap', barH + 'px');
     if (spacerEl) spacerEl.style.height = isVisible ? barH + 'px' : '0';
   }
 }
@@ -2471,11 +2460,8 @@ function applyAnnouncementBar(mode, msgText) {
   const isMobileViewport = window.matchMedia('(max-width: 900px)').matches;
 
   teardownAnnouncementBarScroll();
-  if (isMobileViewport) {
-    // Mobile: bar fixed directly below nav
-    barEl.style.top = (navEl ? navEl.offsetHeight : 0) + 'px';
-  } else {
-    // Desktop: fixed at top:0, nav pushed below by setAnnouncementBarLayout
+  if (!isMobileViewport) {
+    // Desktop: bar fixed at top:0, nav pushed below by setAnnouncementBarLayout
     barEl.style.top = '0';
   }
   barEl.style.transition = 'transform .28s ease, opacity .2s ease';
