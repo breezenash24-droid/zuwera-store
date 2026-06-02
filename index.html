@@ -2593,11 +2593,21 @@ function showToast(msg) {
     });
   }
 
+  // Mark page as builder preview so loadSiteSettings skips its DOM updates
+  window.__ZW_BUILDER_PREVIEW__ = true;
+  let _lastBuilderCfg = null;
+
   window.addEventListener('message', e => {
     if (e.data && e.data.type === 'ZW_BUILDER_CONFIG') {
+      _lastBuilderCfg = e.data;
       applyBuilderConfig(e.data);
     }
   });
+
+  // Re-apply builder config whenever Supabase may have just overwritten it
+  window.__zwReapplyBuilder = function() {
+    if (_lastBuilderCfg) applyBuilderConfig(_lastBuilderCfg);
+  };
 })();
 
 /* NAV SCROLL */
@@ -2755,13 +2765,16 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
         applyAnnouncementBar(mode, msgText);
         announcementApplied = true;
       } else if (row.key === 'theme') {
-        const mode = row.value && row.value.mode === 'dark' ? 'dark' : row.value && row.value.mode === 'super-light' ? 'super-light' : 'light';
-        if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode);
-        else {
-          document.body.classList.toggle('light-mode', mode === 'light');
-          if (window.__zwSyncThemeColor) window.__zwSyncThemeColor();
+        if (!window.__ZW_BUILDER_PREVIEW__) {
+          const mode = row.value && row.value.mode === 'dark' ? 'dark' : row.value && row.value.mode === 'super-light' ? 'super-light' : 'light';
+          if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode);
+          else {
+            document.body.classList.toggle('light-mode', mode === 'light');
+            if (window.__zwSyncThemeColor) window.__zwSyncThemeColor();
+          }
         }
       } else if (row.key === 'hero') {
+        if (window.__ZW_BUILDER_PREVIEW__) { /* builder controls hero content */ } else
         const h = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
         if (h.kicker) {
             const el = document.querySelector('.hero-kicker');
@@ -2822,9 +2835,12 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
       }
     });
     if (!announcementApplied) applyAnnouncementBar('on', '');
+    // If in builder preview, re-apply builder config now that Supabase is done
+    if (window.__zwReapplyBuilder) window.__zwReapplyBuilder();
   } catch (e) {
     console.log('Settings load skipped:', e);
     applyAnnouncementBar('on', '');
+    if (window.__zwReapplyBuilder) window.__zwReapplyBuilder();
   }
 })();
 

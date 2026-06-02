@@ -624,11 +624,14 @@ function setTheme(t) {
 }
 
 function sendCfg() {
-  try {
-    document.getElementById('pvIframe').contentWindow.postMessage({
-      type:'ZW_BUILDER_CONFIG', sections, theme:pvTheme
-    },'*');
-  } catch(e){}
+  const msg = { type:'ZW_BUILDER_CONFIG', sections, theme:pvTheme };
+  const frame = document.getElementById('pvIframe');
+  try { frame.contentWindow.postMessage(msg,'*'); } catch(e){}
+  // Send again after 1.5s in case Supabase loadSiteSettings overwrote the DOM
+  clearTimeout(sendCfg._t);
+  sendCfg._t = setTimeout(() => {
+    try { frame.contentWindow.postMessage(msg,'*'); } catch(e){}
+  }, 1500);
 }
 
 // ── SAVE / PUBLISH ────────────────────────────────────────────────────────
