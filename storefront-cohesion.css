@@ -356,6 +356,27 @@ body.super-light-mode .quick-size-panel{ background:#FFFFFF !important; border-t
 body.super-light-mode .quick-size-panel-header{ color:rgba(9,9,11,.5) !important; }
 body.super-light-mode .quick-size-close{ color:rgba(9,9,11,.4) !important; }
 
+body.super-light-mode #bar{
+  background:#FFFFFF !important;
+  color:#09090b !important;
+  border-bottom-color:rgba(9,9,11,.1) !important;
+}
+
+body.super-light-mode :is(.pcard-img,.product-img){
+  background:#f5f5f5 !important;
+}
+
+body.super-light-mode .quick-add-review-modal > .mbox.quick-add-review-box.quick-add-product-box :is(.quick-add-review-media, .quick-add-product-gallery){
+  background:#f5f5f5 !important;
+}
+
+body.super-light-mode #mobile-menu.zw-mobile-menu,
+body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel{
+  background:#FFFFFF !important;
+  color:#09090b !important;
+}
+
+
 /* all-reviews box: explicit desktop styles (excluded from generic rule above, desktop only) */
 @media(min-width:601px){
   #all-reviews-modal > .review-list-mbox{

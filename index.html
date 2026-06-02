@@ -1764,6 +1764,10 @@ body.light-mode::after{opacity:0.15}
     -webkit-transform:translate3d(0,0,0)!important;
   }
 
+  body:has(nav#nav.scrolled) #bar{
+    top:calc(.75rem + env(safe-area-inset-top,0px) + 36px + .62rem)!important;
+  }
+
   /* scroll-padding-top: corrected to actual nav height so anchor jumps (#about etc.)
      clear the fixed header instead of disappearing behind it */
   html{
