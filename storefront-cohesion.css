@@ -2335,16 +2335,16 @@ body.light-mode .zw-lang-trigger:hover{
    Clean compact typography replaces the previous full-screen giant text.
    ───────────────────────────────────────────────────────────────────────── */
 
-/* Backdrop: semi-transparent, panel anchored to right edge */
+/* Backdrop: semi-transparent, panel anchored to LEFT edge (matches hamburger position) */
 #mobile-menu.zw-mobile-menu{
   background:rgba(0,0,0,0.52)!important;
   align-items:stretch!important;
-  justify-content:flex-end!important;
+  justify-content:flex-start!important;
   padding:0!important;
   overflow:hidden!important;
 }
 
-/* Panel: partial width, slides in from right */
+/* Panel: partial width, slides in from LEFT */
 #mobile-menu.zw-mobile-menu>.zw-mobile-menu-panel{
   position:relative!important;
   width:84%!important;
@@ -2358,31 +2358,33 @@ body.light-mode .zw-lang-trigger:hover{
   flex-direction:column!important;
   gap:0!important;
   background:var(--zw-ink,#09090b)!important;
-  border-left:1px solid rgba(244,241,235,.09)!important;
+  border-right:1px solid rgba(244,241,235,.09)!important;
+  border-left:none!important;
   border-radius:0!important;
-  box-shadow:-16px 0 40px rgba(0,0,0,.35)!important;
+  box-shadow:16px 0 40px rgba(0,0,0,.35)!important;
   overflow-y:auto!important;
   overflow-x:hidden!important;
   overscroll-behavior:contain!important;
   touch-action:pan-y!important;
   isolation:isolate!important;
+  will-change:transform!important;
 }
 
 body.light-mode #mobile-menu.zw-mobile-menu>.zw-mobile-menu-panel{
   background:#F0EEE9!important;
-  border-left-color:rgba(9,9,11,.1)!important;
+  border-right-color:rgba(9,9,11,.1)!important;
 }
 body.super-light-mode #mobile-menu.zw-mobile-menu>.zw-mobile-menu-panel{
   background:#fff!important;
 }
 
-/* Panel open animation: slide from right */
+/* Panel open animation: smoother slide from LEFT */
 #mobile-menu.zw-mobile-menu.open>.zw-mobile-menu-panel{
-  animation:zwDrawerIn .28s cubic-bezier(.4,0,.2,1) both!important;
+  animation:zwDrawerIn .32s cubic-bezier(0.25,0.46,0.45,0.94) both!important;
 }
 @keyframes zwDrawerIn{
-  from{transform:translateX(100%)}
-  to{transform:translateX(0)}
+  from{transform:translateX(-100%);opacity:.85}
+  to{transform:translateX(0);opacity:1}
 }
 
 /* ── Header row ── */
@@ -2600,6 +2602,45 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.3)!important;}
   letter-spacing:.05em!important;
   margin-left:.4rem!important;
   border-radius:2px!important;
+}
+
+/* Social icon-buttons in footer */
+.zw-social-btn{
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:.4rem!important;
+  padding:.45rem .75rem!important;
+  border:1px solid rgba(244,241,235,.12)!important;
+  background:rgba(244,241,235,.04)!important;
+  font-family:var(--zw-font-mono,'IBM Plex Mono',monospace)!important;
+  font-size:.56rem!important;
+  letter-spacing:.15em!important;
+  text-transform:uppercase!important;
+  color:rgba(244,241,235,.5)!important;
+  cursor:pointer!important;
+  transition:color .14s,border-color .14s,background .14s!important;
+  white-space:nowrap!important;
+  flex-shrink:0!important;
+  text-decoration:none!important;
+  background:none!important;
+  border:none!important;
+}
+.zw-social-btn:hover,.zw-social-btn:focus-visible{
+  color:rgba(244,241,235,.88)!important;
+}
+.zw-social-btn svg{
+  flex-shrink:0!important;
+  opacity:.6!important;
+  transition:opacity .14s!important;
+}
+.zw-social-btn:hover svg{opacity:1!important;}
+body.light-mode .zw-social-btn{color:rgba(9,9,11,.45)!important;}
+body.light-mode .zw-social-btn:hover{color:rgba(9,9,11,.85)!important;}
+.zw-mobile-socials{
+  display:flex!important;
+  align-items:center!important;
+  gap:.25rem!important;
+  flex-wrap:wrap!important;
 }
 
 /* Prevent iOS long-press from popping context menu or shifting the page behind */
