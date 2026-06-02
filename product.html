@@ -227,22 +227,29 @@ body.light-mode #bar {
     padding: 0;
   }
   #size-guide-modal .mbox {
+    position: relative;
     width: 100vw;
     max-width: 100vw;
     border-radius: 16px 16px 0 0;
-    padding: .65rem .9rem 1.5rem;
+    /* top padding just enough to clear the absolute close button */
+    padding: 2.8rem .9rem 1.5rem;
   }
-  /* Compact header on mobile — description wastes precious space */
-  #size-guide-modal .size-guide-head {
-    padding-bottom: .35rem;
+  /* Close button: absolute (not sticky) so it overlays the header
+     and doesn't consume its own row in the flex column */
+  #size-guide-modal .mclose {
+    position: absolute !important;
+    top: .6rem !important;
+    right: .75rem !important;
+    margin: 0 !important;
   }
+  /* Compact header */
   #size-guide-modal .size-guide-kicker {
     font-size: .55rem;
     margin-bottom: .15rem;
   }
   #size-guide-modal .size-guide-title {
     font-size: 1.05rem;
-    margin-bottom: 0;
+    margin-bottom: .25rem;
   }
   #size-guide-modal .size-guide-copy {
     display: none;
