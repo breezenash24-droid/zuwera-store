@@ -1750,9 +1750,14 @@ body.light-mode::after{opacity:0.15}
 <script src="mobile-menu.js?v=4c6ccedc" defer></script>
 <script>try{var _t=localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
 <style>
-/* Mobile: bar positioned below nav via CSS variable --nav-h set once at font-load */
+/* Mobile: bar positioned below nav using pure CSS — same formula as nav's own padding.
+   Nav height = padding-top(.75rem + safe-area) + content(36px cart-btn) + padding-bottom(.85rem)
+   This is font-independent: works identically regardless of Google Fonts loading or not. */
 @media(max-width:900px){
-  #bar{top:var(--nav-h,60px)!important;transform:translate3d(0,0,0)!important}
+  #bar{
+    top:calc(1.6rem + 36px + env(safe-area-inset-top,0px))!important;
+    transform:translate3d(0,0,0)!important;
+  }
 }
 body.super-light-mode{background:#FFFFFF!important}
 body.super-light-mode #mobile-menu{background:#FFFFFF!important}
@@ -2416,21 +2421,7 @@ window.addEventListener('scroll', () => {
   }
 }, { passive: true });
 
-/* NAV HEIGHT — set --nav-h once after fonts load, used by CSS to position bar on mobile */
-(function() {
-  function measureNav() {
-    var h = nav.offsetHeight;
-    document.documentElement.style.setProperty('--nav-h', h + 'px');
-  }
-  // document.fonts.ready fires after all web fonts are loaded and applied —
-  // the most reliable moment to measure nav height (safe-area + font metrics settled)
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(measureNav);
-  } else {
-    window.addEventListener('load', measureNav);
-  }
-  window.addEventListener('resize', measureNav, { passive: true });
-})();
+/* Bar position on mobile is handled purely by CSS — no JS measurement needed. */
 
 /* SUPABASE — window.sb set by supabase-client.js (deferred) before DOMContentLoaded */
 const SUPABASE_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
