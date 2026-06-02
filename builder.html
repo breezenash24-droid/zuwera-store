@@ -624,15 +624,42 @@ function setTheme(t) {
 }
 
 function sendCfg() {
-  const msg = { type:'ZW_BUILDER_CONFIG', sections, theme:pvTheme };
+  const cfg = { sections, theme: pvTheme };
   const frame = document.getElementById('pvIframe');
-  try { frame.contentWindow.postMessage(msg,'*'); } catch(e){}
-  // Send again after 1.5s in case Supabase loadSiteSettings overwrote the DOM
+  if (!frame) return;
+
+  // Primary: direct same-origin function call — instant, no messaging delays
+  try {
+    const fn = frame.contentWindow && frame.contentWindow.__zwApplyBuilderConfig;
+    if (typeof fn === 'function') {
+      fn(cfg);
+      return;
+    }
+  } catch(e) {}
+
+  // Fallback: postMessage
+  try {
+    frame.contentWindow.postMessage({ type: 'ZW_BUILDER_CONFIG', ...cfg }, '*');
+  } catch(e) {
+    showErr('Preview call failed: ' + e.message);
+  }
+
+  // Retry after Supabase may have overwritten changes
   clearTimeout(sendCfg._t);
   sendCfg._t = setTimeout(() => {
-    try { frame.contentWindow.postMessage(msg,'*'); } catch(e){}
-  }, 1500);
+    try {
+      const fn2 = frame.contentWindow && frame.contentWindow.__zwApplyBuilderConfig;
+      if (typeof fn2 === 'function') fn2(cfg);
+    } catch(e) {}
+  }, 1800);
 }
+
+// Listen for confirmation from iframe
+window.addEventListener('message', e => {
+  if (e.data && e.data.type === 'ZW_BUILDER_APPLIED') {
+    status('Preview updated ✓');
+  }
+});
 
 // ── SAVE / PUBLISH ────────────────────────────────────────────────────────
 async function saveDraft() {

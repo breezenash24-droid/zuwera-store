@@ -2443,8 +2443,10 @@ function showToast(msg) {
    When opened inside /builder.html, receives postMessage with section
    config and applies it live without a Supabase round-trip.         */
 (function() {
-  const isBuilderPreview = window.location !== window.parent.location ||
-    new URLSearchParams(window.location.search).get('builder') === '1';
+  // URL param is the most reliable check — doesn't depend on iframe context
+  const isBuilderPreview =
+    new URLSearchParams(window.location.search).get('builder') === '1' ||
+    (function(){ try{ return window.self !== window.top; }catch(_){ return false; } }());
   if (!isBuilderPreview) return;
 
   function applyBuilderConfig(cfg) {
@@ -2593,18 +2595,22 @@ function showToast(msg) {
     });
   }
 
-  // Mark page as builder preview so loadSiteSettings skips its DOM updates
+  // Expose directly on window so builder can call without postMessage
   window.__ZW_BUILDER_PREVIEW__ = true;
+  window.__zwApplyBuilderConfig = applyBuilderConfig;
+
   let _lastBuilderCfg = null;
 
   window.addEventListener('message', e => {
     if (e.data && e.data.type === 'ZW_BUILDER_CONFIG') {
       _lastBuilderCfg = e.data;
       applyBuilderConfig(e.data);
+      // Confirm back to builder
+      try { window.parent.postMessage({ type:'ZW_BUILDER_APPLIED' }, '*'); } catch(_) {}
     }
   });
 
-  // Re-apply builder config whenever Supabase may have just overwritten it
+  // Re-apply after Supabase overwrites
   window.__zwReapplyBuilder = function() {
     if (_lastBuilderCfg) applyBuilderConfig(_lastBuilderCfg);
   };
