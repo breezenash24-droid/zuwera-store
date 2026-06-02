@@ -15,7 +15,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="base.css?v=ace563fe">
   <link rel="stylesheet" href="nav.css?v=45571be5">
-  <link rel="stylesheet" href="cart.css?v=10101f01">
+  <link rel="stylesheet" href="cart.css?v=26060301">
   <link rel="stylesheet" href="storefront-cohesion.css?v=26060209">
   <script src="/favicon-utils.js?v=00b5644f" defer></script>
   <script src="/supabase.min.js?v=3277b334" defer></script>
@@ -357,12 +357,9 @@
       </p>
       <ul id="cart-items-list" style="list-style:none;padding:0;margin:0"></ul>
 
-      <!-- Saved Items -->
-      <div class="cart-favorites">
-        <h2>Saved Items</h2>
-        <p id="fav-logged-out-msg" class="favorites-msg">
-          <a id="fav-signin-link" href="#" onclick="event.preventDefault();window._openModal&&window._openModal('auth-modal')">Sign in</a> to view your saved items.
-        </p>
+      <!-- Saved Items — hidden until JS shows it with real content -->
+      <div class="cart-favorites" id="cart-favorites-section">
+        <h2>Saved</h2>
         <div id="fav-logged-in-area" style="display:none">
           <p id="cart-favs-empty" class="cart-empty-msg" style="display:none">No saved items yet.</p>
           <ul id="cart-favs-list" style="list-style:none;padding:0;margin:0"></ul>
@@ -809,22 +806,24 @@ function renderCart() {
 
   list.innerHTML = cart.map((item, idx) => {
     const imgSrc = typeof window.optimizeImage === 'function'
-      ? window.optimizeImage(item.image, 150) : (item.image || '');
+      ? window.optimizeImage(item.image, 200) : (item.image || '');
     const price  = (parseFloat(item.price) * item.quantity).toFixed(2);
-    return `<li style="display:flex;gap:1rem;align-items:flex-start;padding:1.2rem 0;border-bottom:1px solid var(--cart-border)">
-      ${imgSrc ? `<img src="${esc(imgSrc)}" alt="${esc(item.title)}" style="width:60px;height:75px;object-fit:cover;border:1px solid var(--cart-img-border);flex-shrink:0" data-fallback="${esc(item.image||'')}" onerror="var f=this.dataset.fallback;if(f&&this.src!==f)this.src=f">` : '<div style="width:60px;height:75px;background:var(--cart-surface);flex-shrink:0"></div>'}
-      <div style="flex:1;min-width:0">
-        <div style="font-family:var(--font-head);font-size:1rem;font-weight:600;letter-spacing:.04em;margin-bottom:.2rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(item.title)}</div>
-        <div style="font-family:var(--font-mono);font-size:.65rem;color:var(--cart-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem;display:flex;align-items:center">${bagColorSwatch(item)}${esc(item.colorName)} / ${esc(item.size)}</div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:.5rem">
-          <button onclick="updateCartQuantity(${idx},-1)" style="background:none;border:1px solid var(--cart-btn-border);color:inherit;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;flex-shrink:0;-webkit-tap-highlight-color:transparent">−</button>
-          <span style="font-size:.85rem;min-width:1.2rem;text-align:center">${item.quantity}</span>
-          <button onclick="updateCartQuantity(${idx},1)"  style="background:none;border:1px solid var(--cart-btn-border);color:inherit;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;flex-shrink:0;-webkit-tap-highlight-color:transparent">+</button>
+    return `<li style="display:flex;gap:1.1rem;align-items:flex-start;padding:1.35rem 0;border-bottom:1px solid var(--cart-border)">
+      ${imgSrc ? `<img src="${esc(imgSrc)}" alt="${esc(item.title)}" style="width:80px;height:100px;object-fit:cover;border:1px solid var(--cart-img-border);flex-shrink:0" data-fallback="${esc(item.image||'')}" onerror="var f=this.dataset.fallback;if(f&&this.src!==f)this.src=f">` : '<div style="width:80px;height:100px;background:var(--cart-surface);flex-shrink:0"></div>'}
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:space-between;height:100px">
+        <div>
+          <div style="font-family:var(--font-head);font-size:1.05rem;font-weight:700;letter-spacing:.03em;line-height:1.15;margin-bottom:.3rem">${esc(item.title)}</div>
+          <div style="font-family:var(--font-mono);font-size:.58rem;color:var(--cart-muted);text-transform:uppercase;letter-spacing:.1em;display:flex;align-items:center">${bagColorSwatch(item)}${esc(item.colorName)} / ${esc(item.size)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.55rem">
+          <button onclick="updateCartQuantity(${idx},-1)" style="background:none;border:1px solid var(--cart-btn-border);color:inherit;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;flex-shrink:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation">−</button>
+          <span style="font-size:.85rem;min-width:1.4rem;text-align:center;font-variant-numeric:tabular-nums">${item.quantity}</span>
+          <button onclick="updateCartQuantity(${idx},1)"  style="background:none;border:1px solid var(--cart-btn-border);color:inherit;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;flex-shrink:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation">+</button>
         </div>
       </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.5rem;flex-shrink:0">
-        <span style="font-size:.9rem">$${price}</span>
-        <button onclick="removeCartItem(${idx})" style="background:none;border:none;color:var(--cart-dim);cursor:pointer;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;padding:0">Remove</button>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;height:100px;flex-shrink:0">
+        <span style="font-family:var(--font-head);font-size:1.05rem;font-weight:700;letter-spacing:.02em">$${price}</span>
+        <button onclick="removeCartItem(${idx})" style="background:none;border:none;color:var(--cart-dim);cursor:pointer;font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;padding:0;-webkit-tap-highlight-color:transparent">Remove</button>
       </div>
     </li>`;
   }).join('');
@@ -1156,16 +1155,16 @@ window.__zwOpenAuth = function(tab) {
   function applyAuthState(user, accessToken) {
     var wasGuest = !_bagUser;
     _bagUser = user || null;
-    var loggedOut = document.getElementById('fav-logged-out-msg');
     var loggedIn  = document.getElementById('fav-logged-in-area');
+    var section   = document.getElementById('cart-favorites-section');
     if (user) {
-      if (loggedOut) loggedOut.style.display = 'none';
-      if (loggedIn)  loggedIn.style.display  = 'block';
+      if (loggedIn) loggedIn.style.display = 'block';
+      if (section)  section.classList.add('is-visible');
       fetchBagHub(accessToken);
       window.prefillCheckoutForUser(user);
     } else {
-      if (loggedOut) loggedOut.style.display = 'block';
-      if (loggedIn)  loggedIn.style.display  = 'none';
+      if (loggedIn) loggedIn.style.display = 'none';
+      if (section)  section.classList.remove('is-visible');
     }
     // Re-render cart so member prices are applied/removed immediately
     if (wasGuest !== !_bagUser) renderCart();

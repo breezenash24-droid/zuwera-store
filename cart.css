@@ -265,3 +265,82 @@ body.light-mode .zw-saved-item-btn--primary:hover { background: #1a1a1a; }
     min-width: 9rem;
   }
 }
+
+/* ─── BAG PAGE REDESIGN ──────────────────────────────────────────────────── */
+
+/* Title: brand italic condensed */
+.cart-page-header h1 {
+  font-family: var(--font-head);
+  font-size: clamp(2rem, 6vw, 2.8rem);
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* Tighter header padding */
+.cart-page-header {
+  padding: 1rem 1.8rem;
+}
+@media (max-width: 760px) {
+  .cart-page-header {
+    padding: 0.75rem 1.2rem;
+  }
+}
+
+/* Hide section headers — page title is enough context */
+.cart-bag-section > h2,
+.cart-summary > h2 {
+  display: none;
+}
+
+/* Hide saved items entirely — only shows when JS populates it */
+.cart-favorites {
+  display: none;
+}
+.cart-favorites.is-visible {
+  display: block;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+/* Tighter summary box */
+.cart-summary {
+  padding: 1.4rem;
+  border-radius: 0;
+}
+
+/* Price in summary — more visible */
+.summary-row {
+  padding: 0.55rem 0;
+}
+.summary-value {
+  opacity: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Checkout button — sticky on mobile so it's always reachable */
+@media (max-width: 760px) {
+  #checkout-btn {
+    position: sticky;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 0rem);
+    z-index: 10;
+    box-shadow: 0 -8px 24px rgba(0,0,0,.2);
+    margin-top: 1.4rem;
+  }
+  body.light-mode #checkout-btn {
+    box-shadow: 0 -8px 24px rgba(9,9,11,.1);
+  }
+}
+
+/* Item image — taller for better product recognition */
+#cart-items-list li > img {
+  width: 80px !important;
+  height: 100px !important;
+}
+#cart-items-list li > div:first-child[style*="width:60px"] {
+  width: 80px !important;
+  height: 100px !important;
+}
