@@ -612,42 +612,56 @@ async function publish() {
 async function saveToSupa(pub) {
   try {
     const sb = getSb();
-    if (!sb) { toast('No DB connection','err'); return; }
+    if (!sb) { showErr('No Supabase client'); return; }
 
-    // Ensure we have a valid auth session before writing
     const { data: { session } } = await sb.auth.getSession();
-    if (!session) {
-      toast('Session expired — please sign in again','err');
-      status('Not authenticated');
-      return;
-    }
+    if (!session) { showErr('No session — sign in via /admin.html first'); return; }
 
-    const payload = {
-      key: 'page_builder',
-      value: { sections, updated_at: new Date().toISOString(), published: pub }
-    };
+    const token = session.access_token;
+    const valueObj = { sections, updated_at: new Date().toISOString(), published: pub };
 
-    // Try upsert; fall back to separate select+insert/update if upsert RLS blocks it
-    const { error } = await sb.from('site_settings')
-      .upsert(payload, { onConflict: 'key' });
+    // Use direct REST API with auth token — bypasses any client-side auth state issues
+    const res = await fetch(`${SUPA_URL}/rest/v1/site_settings`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPA_ANON,
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates,return=minimal'
+      },
+      body: JSON.stringify({ key: 'page_builder', value: valueObj })
+    });
 
-    if (error) {
-      // Log full error for debugging
-      console.error('Save error:', error);
-      toast('Save failed: ' + (error.message || error.code || JSON.stringify(error)), 'err');
-      status('Save failed — see console');
+    if (!res.ok) {
+      const errText = await res.text();
+      let errMsg = errText;
+      try { const j = JSON.parse(errText); errMsg = j.message || j.hint || j.details || errText; } catch(_) {}
+      showErr('HTTP ' + res.status + ': ' + errMsg);
       return;
     }
 
     dirty = false;
-    lastSaved = JSON.parse(JSON.stringify(sections)); // update revert snapshot
+    lastSaved = JSON.parse(JSON.stringify(sections));
     status(pub ? 'Published ✓' : 'Draft saved');
     toast(pub ? 'Published! Changes are live.' : 'Draft saved', 'ok');
   } catch(e) {
-    console.error('Save exception:', e);
-    toast('Save error: ' + (e.message || String(e)), 'err');
-    status('Error — see console');
+    showErr(e.message || String(e));
   }
+}
+
+function showErr(msg) {
+  console.error('Builder save error:', msg);
+  status('Save failed');
+  // Show full error in a visible overlay so it's easy to read and report
+  let el = document.getElementById('errOverlay');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'errOverlay';
+    el.style.cssText = 'position:fixed;bottom:1rem;right:1rem;max-width:380px;background:#1a0a0a;border:1px solid #e07060;color:#f4b8a0;font-family:\'IBM Plex Mono\',monospace;font-size:.6rem;line-height:1.6;padding:.75rem 1rem;z-index:9000;border-radius:3px';
+    el.innerHTML = '<div style="display:flex;justify-content:space-between;margin-bottom:.4rem"><b>Save Error</b><button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:inherit;cursor:pointer;font-size:.9rem;line-height:1">×</button></div><div id="errMsg"></div>';
+    document.body.appendChild(el);
+  }
+  document.getElementById('errMsg').textContent = msg;
 }
 
 function revertChanges() {
