@@ -2671,3 +2671,82 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.18)!important;}
   color:#fff!important;
   background:rgba(244,241,235,.06)!important;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MODAL REDESIGN — Nike-style bottom sheet + always-visible close button
+   Overrides the full-screen (100dvh) mobile modal rules above.
+   ───────────────────────────────────────────────────────────────────────── */
+@media(max-width:760px){
+
+  /* All standard modals: bottom sheet with rounded top corners */
+  .modal:not(#mobile-menu):not(#cart-modal):not(#payment-modal) > :is(.mbox,.review-mbox,.review-list-mbox,.collection-review-box,.review-dialog){
+    min-height:0 !important;
+    height:auto !important;
+    max-height:92dvh !important;
+    border-radius:1.25rem 1.25rem 0 0 !important;
+    border-top:none !important;
+    border-left:none !important;
+    border-right:none !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+    display:flex !important;
+    flex-direction:column !important;
+    box-shadow:0 -8px 40px rgba(0,0,0,.28) !important;
+  }
+
+  /* Quick-add product modal: also bottom sheet */
+  .quick-add-review-modal > .mbox.quick-add-product-box{
+    min-height:0 !important;
+    height:auto !important;
+    max-height:92dvh !important;
+    border-radius:1.25rem 1.25rem 0 0 !important;
+    border-top:none !important;
+    overflow-y:auto !important;
+    display:flex !important;
+    flex-direction:column !important;
+  }
+
+  /* Align modals to bottom of screen */
+  .modal:not(#mobile-menu):not(#cart-modal):not(#payment-modal){
+    align-items:flex-end !important;
+    justify-content:center !important;
+    padding:0 !important;
+  }
+
+  /* ── Close button: sticky inside the scrollable modal, always visible ── */
+  /* position:sticky + align-self:flex-end keeps it at top-right
+     of the flex-column modal as you scroll down */
+  .mclose,
+  .collection-review-close{
+    position:sticky !important;
+    top:.75rem !important;
+    align-self:flex-end !important;
+    flex-shrink:0 !important;
+    margin-left:auto !important;
+    margin-right:.75rem !important;
+    z-index:200 !important;
+    /* Circular, prominent */
+    width:38px !important;
+    height:38px !important;
+    min-height:38px !important;
+    border-radius:50% !important;
+    background:rgba(18,18,20,.9) !important;
+    border:1.5px solid rgba(244,241,235,.22) !important;
+    color:rgba(244,241,235,.82) !important;
+    box-shadow:0 2px 12px rgba(0,0,0,.28) !important;
+  }
+
+  body.light-mode .mclose,
+  body.light-mode .collection-review-close{
+    background:rgba(248,247,245,.95) !important;
+    border-color:rgba(9,9,11,.14) !important;
+    color:rgba(9,9,11,.65) !important;
+    box-shadow:0 2px 12px rgba(9,9,11,.1) !important;
+  }
+
+  /* X lines: slightly shorter to fit the 38px circle */
+  .mclose::before,.mclose::after,
+  .collection-review-close::before,.collection-review-close::after{
+    width:14px !important;
+  }
+}
