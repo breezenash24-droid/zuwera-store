@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Page Builder — Zuwera</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Barlow:wght@300;400;500;600&family=Barlow+Condensed:ital,wght@0,700;1,900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f11;--surface:#18181c;--surface2:#222228;--border:rgba(255,255,255,.07);
+  --text:#f4f1eb;--muted:rgba(244,241,235,.45);--accent:#F891A5;
+  --success:#6fcf6f;--danger:#e07060;
+  --font:'Barlow',sans-serif;--mono:'IBM Plex Mono',monospace;--head:'Barlow Condensed',sans-serif;
+  --sidebar-w:260px;--editor-w:320px;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;display:flex;flex-direction:column}
+
+/* ── TOP BAR ─────────────────────────────────────────────────────────── */
+.topbar{
+  display:flex;align-items:center;gap:.75rem;
+  padding:.55rem 1.1rem;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  flex-shrink:0;z-index:20;
+  height:48px;
+}
+.topbar-logo{font-family:var(--head);font-style:italic;font-weight:900;font-size:1.2rem;letter-spacing:.08em;color:var(--text);text-decoration:none;margin-right:.25rem}
+.topbar-sep{width:1px;height:20px;background:var(--border);margin:0 .25rem}
+.topbar-title{font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);flex:1}
+.preview-toggle{display:flex;gap:2px;background:var(--surface2);padding:2px;border-radius:4px}
+.preview-toggle button{background:none;border:none;color:var(--muted);font-family:var(--mono);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;padding:.28rem .65rem;cursor:pointer;border-radius:2px;transition:.15s}
+.preview-toggle button.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.theme-toggle{display:flex;gap:2px;background:var(--surface2);padding:2px;border-radius:4px}
+.theme-toggle button{background:none;border:none;color:var(--muted);font-size:.62rem;padding:.28rem .55rem;cursor:pointer;border-radius:2px;transition:.15s}
+.theme-toggle button.active{background:var(--surface);color:var(--text)}
+.topbar-status{font-family:var(--mono);font-size:.58rem;letter-spacing:.1em;color:var(--muted);min-width:80px;text-align:right}
+.btn{border:none;cursor:pointer;font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;padding:.45rem 1rem;transition:.15s}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-ghost:hover{border-color:rgba(255,255,255,.25);color:var(--text)}
+.btn-primary{background:var(--text);color:#09090b;font-weight:600}
+.btn-primary:hover{opacity:.88}
+.btn-danger{background:var(--danger);color:#fff}
+
+/* ── MAIN LAYOUT ─────────────────────────────────────────────────────── */
+.builder-layout{display:flex;flex:1;overflow:hidden}
+
+/* ── SIDEBAR ─────────────────────────────────────────────────────────── */
+.sidebar{
+  width:var(--sidebar-w);flex-shrink:0;
+  background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.sidebar-hd{
+  padding:.65rem .9rem .55rem;
+  border-bottom:1px solid var(--border);
+  font-family:var(--mono);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.section-list{flex:1;overflow-y:auto;padding:.4rem}
+.section-item{
+  display:flex;align-items:center;gap:.5rem;
+  padding:.5rem .6rem;border-radius:4px;
+  cursor:pointer;transition:background .12s;
+  border:1px solid transparent;margin-bottom:2px;
+  user-select:none;
+}
+.section-item:hover{background:var(--surface2)}
+.section-item.active{background:var(--surface2);border-color:var(--accent)}
+.section-item.drag-over{border-color:var(--accent);background:rgba(248,145,165,.08)}
+.section-item .drag-handle{color:var(--muted);cursor:grab;font-size:.75rem;opacity:.5}
+.section-item .drag-handle:active{cursor:grabbing}
+.section-item .section-icon{font-size:.85rem;flex-shrink:0;width:20px;text-align:center}
+.section-item .section-name{flex:1;font-size:.72rem;font-weight:500;letter-spacing:.02em;truncate:ellipsis;overflow:hidden;white-space:nowrap}
+.section-item .section-type{font-family:var(--mono);font-size:.5rem;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+.vis-btn{background:none;border:none;cursor:pointer;padding:2px;opacity:.5;transition:.12s;font-size:.8rem;color:var(--text)}
+.vis-btn:hover{opacity:1}
+.vis-btn.hidden{opacity:.25}
+.sidebar-footer{padding:.65rem .9rem;border-top:1px solid var(--border);flex-shrink:0}
+.add-section-btn{width:100%;background:transparent;border:1px dashed rgba(255,255,255,.15);color:var(--muted);font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;padding:.55rem;cursor:pointer;border-radius:3px;transition:.15s}
+.add-section-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── EDITOR PANEL ────────────────────────────────────────────────────── */
+.editor-panel{
+  width:var(--editor-w);flex-shrink:0;
+  background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+  transition:width .2s ease;
+}
+.editor-panel.collapsed{width:0;border-right:none}
+.editor-hd{
+  padding:.65rem .9rem .55rem;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:.5rem;flex-shrink:0;
+}
+.editor-hd-title{font-size:.75rem;font-weight:600;letter-spacing:.04em;flex:1}
+.editor-hd-type{font-family:var(--mono);font-size:.52rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.editor-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:0;line-height:1;transition:.12s}
+.editor-close:hover{color:var(--text)}
+.editor-body{flex:1;overflow-y:auto;padding:.8rem .9rem;display:flex;flex-direction:column;gap:.85rem}
+.field{display:flex;flex-direction:column;gap:.3rem}
+.field label{font-family:var(--mono);font-size:.56rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.field input,.field textarea,.field select{
+  background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  font-family:var(--font);font-size:.78rem;padding:.45rem .6rem;
+  outline:none;transition:border-color .15s;border-radius:2px;width:100%;
+}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:rgba(255,255,255,.3)}
+.field textarea{resize:vertical;min-height:68px;line-height:1.55}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.toggle-field{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.toggle-field label{font-family:var(--mono);font-size:.56rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.toggle{position:relative;width:34px;height:18px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;inset:0;background:var(--surface2);border:1px solid var(--border);border-radius:9px;cursor:pointer;transition:.15s}
+.toggle-slider::before{content:'';position:absolute;width:12px;height:12px;left:2px;top:2px;background:var(--muted);border-radius:50%;transition:.15s}
+.toggle input:checked + .toggle-slider{background:var(--accent);border-color:var(--accent)}
+.toggle input:checked + .toggle-slider::before{transform:translateX(16px);background:#fff}
+.section-divider{height:1px;background:var(--border);margin:.2rem 0}
+.section-label-field{font-family:var(--mono);font-size:.54rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:.2rem;margin-top:.4rem}
+.field-hint{font-size:.62rem;color:var(--muted);line-height:1.5}
+.stat-group{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;background:var(--surface2);padding:.65rem;border-radius:3px;border:1px solid var(--border)}
+.stat-group .stat-label{grid-column:1/-1;font-family:var(--mono);font-size:.52rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:.25rem}
+.color-row{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.2rem}
+.color-opt{width:28px;height:28px;border:2px solid transparent;border-radius:3px;cursor:pointer;transition:.12s}
+.color-opt.active{border-color:var(--text)}
+.img-upload-area{
+  border:1px dashed rgba(255,255,255,.15);padding:1rem;text-align:center;
+  border-radius:3px;cursor:pointer;transition:.15s;background:var(--surface2);
+}
+.img-upload-area:hover{border-color:rgba(255,255,255,.3)}
+.img-upload-area .img-preview{width:100%;height:80px;object-fit:cover;border-radius:2px;margin-bottom:.5rem;display:none}
+.img-upload-area p{font-family:var(--mono);font-size:.58rem;letter-spacing:.1em;color:var(--muted)}
+.img-upload-area input[type=file]{display:none}
+
+/* ── PREVIEW AREA ────────────────────────────────────────────────────── */
+.preview-area{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#000;position:relative}
+.preview-bar{
+  padding:.4rem .9rem;background:var(--surface);border-bottom:1px solid var(--border);
+  font-family:var(--mono);font-size:.56rem;letter-spacing:.12em;color:var(--muted);
+  display:flex;align-items:center;gap:.6rem;flex-shrink:0;
+}
+.preview-url{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:.6rem;padding:.22rem .6rem;border-radius:2px;max-width:320px}
+.preview-wrap{flex:1;overflow:hidden;display:flex;align-items:flex-start;justify-content:center;padding:1rem;background:linear-gradient(135deg,#111 25%,transparent 25%) -20px 0, linear-gradient(225deg,#111 25%,transparent 25%) -20px 0,linear-gradient(315deg,#111 25%,transparent 25%),linear-gradient(45deg,#111 25%,transparent 25%);background-size:40px 40px;background-color:#0a0a0a}
+.preview-frame-container{
+  background:#fff;overflow:hidden;position:relative;flex-shrink:0;
+  box-shadow:0 8px 40px rgba(0,0,0,.6);
+  transition:width .3s ease,height .3s ease;
+}
+.preview-frame-container.desktop{width:100%;max-width:1200px;height:calc(100vh - 48px - 42px - 2rem);border-radius:4px}
+.preview-frame-container.mobile{width:390px;height:calc(100vh - 48px - 42px - 2rem);max-height:844px;border-radius:12px;overflow:hidden}
+.preview-frame-container iframe{width:100%;height:100%;border:none;display:block}
+/* Mobile notch */
+.preview-frame-container.mobile::before{
+  content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:120px;height:28px;background:#fff;border-radius:0 0 20px 20px;
+  z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.2);
+}
+
+/* ── SECTION LIBRARY MODAL ───────────────────────────────────────────── */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;
+  align-items:center;justify-content:center;backdrop-filter:blur(4px);
+}
+.modal-overlay.open{display:flex}
+.modal-box{
+  background:var(--surface);border:1px solid var(--border);width:min(640px,92vw);
+  max-height:80vh;overflow-y:auto;border-radius:6px;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+.modal-hd{padding:.9rem 1.1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-hd h2{font-size:.85rem;font-weight:600;letter-spacing:.06em}
+.modal-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.3rem;line-height:1;padding:0}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:1rem;display:grid;grid-template-columns:repeat(3,1fr);gap:.65rem}
+.section-card{
+  background:var(--surface2);border:1px solid var(--border);padding:1rem .8rem;
+  border-radius:4px;cursor:pointer;transition:.15s;text-align:center;
+}
+.section-card:hover{border-color:var(--accent);background:rgba(248,145,165,.06)}
+.section-card .sc-icon{font-size:1.5rem;margin-bottom:.5rem}
+.section-card .sc-name{font-size:.72rem;font-weight:600;letter-spacing:.04em;margin-bottom:.2rem}
+.section-card .sc-desc{font-size:.62rem;color:var(--muted);line-height:1.5}
+
+/* ── TOAST ───────────────────────────────────────────────────────────── */
+#toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(8px);background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.45rem 1.1rem;font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;opacity:0;transition:.2s;pointer-events:none;z-index:200;border-radius:3px}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.success{border-color:var(--success);color:var(--success)}
+#toast.error{border-color:var(--danger);color:var(--danger)}
+
+/* ── LOADING ──────────────────────────────────────────────────────────── */
+.loading-overlay{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1rem}
+.loading-overlay.hidden{display:none}
+.spinner{width:32px;height:32px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-overlay p{font-family:var(--mono);font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+
+/* ── RESPONSIVE ───────────────────────────────────────────────────────── */
+@media(max-width:900px){
+  .editor-panel{display:none}
+  .preview-wrap{padding:.5rem}
+  .preview-frame-container.desktop{border-radius:0;height:calc(100vh - 48px - 42px - 1rem)}
+}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <p>Loading builder…</p>
+</div>
+
+<!-- TOP BAR -->
+<header class="topbar">
+  <a href="/admin.html" class="topbar-logo" title="Back to Admin">Z</a>
+  <div class="topbar-sep"></div>
+  <span class="topbar-title">Page Builder</span>
+  <div class="preview-toggle" id="previewToggle">
+    <button class="active" data-mode="desktop" onclick="setPreviewMode('desktop')">🖥 Desktop</button>
+    <button data-mode="mobile" onclick="setPreviewMode('mobile')">📱 Mobile</button>
+  </div>
+  <div class="theme-toggle" id="themeToggle">
+    <button class="active" data-theme="dark" onclick="setPreviewTheme('dark')" title="Dark mode preview">🌙</button>
+    <button data-theme="light" onclick="setPreviewTheme('light')" title="Light mode preview">☀️</button>
+  </div>
+  <span class="topbar-status" id="statusText">—</span>
+  <div class="topbar-sep"></div>
+  <button class="btn btn-ghost" onclick="saveDraft()">Save Draft</button>
+  <button class="btn btn-primary" onclick="publishPage()">Publish</button>
+</header>
+
+<!-- MAIN -->
+<div class="builder-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-hd">
+      <span>Sections</span>
+      <span id="sectionCount" style="color:var(--muted)">0</span>
+    </div>
+    <div class="section-list" id="sectionList"></div>
+    <div class="sidebar-footer">
+      <button class="add-section-btn" onclick="openLibrary()">+ Add Section</button>
+    </div>
+  </aside>
+
+  <!-- EDITOR PANEL -->
+  <div class="editor-panel collapsed" id="editorPanel">
+    <div class="editor-hd">
+      <div>
+        <div class="editor-hd-type" id="editorType">—</div>
+        <div class="editor-hd-title" id="editorTitle">Section Settings</div>
+      </div>
+      <button class="editor-close" onclick="closeEditor()" title="Close">×</button>
+    </div>
+    <div class="editor-body" id="editorBody"></div>
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="preview-area">
+    <div class="preview-bar">
+      <span>Live Preview</span>
+      <input class="preview-url" id="previewUrl" value="zuwera.store" readonly>
+      <span id="previewDims" style="margin-left:auto">—</span>
+    </div>
+    <div class="preview-wrap" id="previewWrap">
+      <div class="preview-frame-container desktop" id="previewContainer">
+        <iframe id="previewFrame" src="/index.html?builder=1" title="Page preview" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION LIBRARY MODAL -->
+<div class="modal-overlay" id="libraryModal">
+  <div class="modal-box">
+    <div class="modal-hd">
+      <h2>Add Section</h2>
+      <button class="modal-close" onclick="closeLibrary()">×</button>
+    </div>
+    <div class="modal-body" id="libraryGrid"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="/supabase.min.js?v=3277b334"></script>
+<script src="/supabase-client.js?v=1" defer></script>
+<script>
+const SUPABASE_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+let sb;
+
+// ── DEFAULT CONFIG ────────────────────────────────────────────────────
+const DEFAULT_SECTIONS = [
+  {id:'hero',type:'hero',label:'Hero',visible:true,order:0,settings:{
+    kicker:'Release 001 — Sept 20, 2026',
+    heading:'For Those\nWho Dream.',
+    subtext:'Bold athletic sportswear built for the relentless. Those who move with purpose.',
+    cta_primary_text:'Explore Release 001',cta_primary_url:'#drop001',
+    cta_secondary_visible:true,cta_secondary_text:'Get Early Access',cta_secondary_url:'#notify',
+    image_cta_visible:false,image_cta_text:'Shop Now',image_cta_url:'/drop001.html',
+    image:''
+  }},
+  {id:'marquee',type:'marquee',label:'Marquee Ticker',visible:true,order:1,settings:{
+    items:'ZUWERA, RELEASE 001, FOR THOSE WHO DREAM, SEP 20 2026, ATHLETIC SPORTSWEAR'
+  }},
+  {id:'about',type:'about',label:'About',visible:true,order:2,settings:{
+    label:'About Zuwera',heading:'Built For\nMovement.',
+    body:'Bold, athletic, and designed for those who dream big. Zuwera is sportswear built for the relentless — those who push past limits and never stop.\n\nRelease 001 is the beginning. A collection of jackets crafted for those who move with purpose and style.',
+    stat1_value:'001',stat1_label:'First Release',
+    stat2_value:'2026',stat2_label:'Launching',
+    stat3_value:'3',stat3_label:'Styles'
+  }},
+  {id:'release',type:'release',label:'Release Drop',visible:true,order:3,settings:{
+    eyebrow:'Zuwera Release 001',title:'Release\n001',
+    show_notify:true,notify_label:'Get Early Access',
+    launch_date:'2026-09-20'
+  }},
+  {id:'products',type:'products',label:'Products Grid',visible:true,order:4,settings:{
+    title:'Release 001',subtitle:'Releasing 09 / 20 / 2026'
+  }}
+];
+
+// ── SECTION TYPE DEFINITIONS ──────────────────────────────────────────
+const SECTION_TYPES = {
+  hero:{icon:'🎯',desc:'Full-screen hero with heading, image & CTAs'},
+  marquee:{icon:'📜',desc:'Scrolling ticker strip'},
+  about:{icon:'ℹ️',desc:'Brand story with stats'},
+  release:{icon:'🚀',desc:'Drop countdown & notify form'},
+  products:{icon:'👕',desc:'Product grid from collection'},
+  spacer:{icon:'↕️',desc:'Empty spacing block'},
+  text:{icon:'✍️',desc:'Custom text & heading block'},
+  image_cta:{icon:'🖼️',desc:'Image with overlaid button'},
+  custom:{icon:'</>', desc:'Raw HTML block (advanced)'}
+};
+
+let state = {sections:[],selectedId:null,previewMode:'desktop',previewTheme:'dark',dirty:false};
+let _toastTimer;
+
+// ── INIT ──────────────────────────────────────────────────────────────
+window.addEventListener('load', async () => {
+  try {
+    const { createClient } = window.supabase;
+    sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+    await loadConfig();
+  } catch(e) {
+    console.error(e);
+    // Fall back to defaults
+    state.sections = JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
+    renderSidebar();
+  }
+  document.getElementById('loadingOverlay').classList.add('hidden');
+  renderSidebar();
+  updateStatus('Last published: —');
+  // Preview iframe ready listener
+  document.getElementById('previewFrame').addEventListener('load', () => {
+    sendToPreview();
+  });
+});
+
+async function loadConfig() {
+  const { data, error } = await sb.from('site_settings').select('*').eq('key','page_builder').single();
+  if (error || !data) {
+    state.sections = JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
+    return;
+  }
+  const cfg = data.value;
+  state.sections = cfg.sections || JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
+  if (cfg.updated_at) updateStatus('Saved ' + new Date(cfg.updated_at).toLocaleString());
+}
+
+// ── SIDEBAR RENDER ────────────────────────────────────────────────────
+function renderSidebar() {
+  const sorted = [...state.sections].sort((a,b) => (a.order||0)-(b.order||0));
+  const list = document.getElementById('sectionList');
+  list.innerHTML = '';
+  sorted.forEach(sec => {
+    const def = SECTION_TYPES[sec.type] || {icon:'📦',desc:''};
+    const item = document.createElement('div');
+    item.className = 'section-item' + (state.selectedId === sec.id ? ' active' : '');
+    item.dataset.id = sec.id;
+    item.draggable = true;
+    item.innerHTML = `
+      <span class="drag-handle" title="Drag to reorder">⠿</span>
+      <span class="section-icon">${def.icon}</span>
+      <div style="flex:1;min-width:0">
+        <div class="section-name">${sec.label}</div>
+        <div class="section-type">${sec.type}</div>
+      </div>
+      <button class="vis-btn ${sec.visible?'':'hidden'}" onclick="toggleVisibility('${sec.id}',event)" title="${sec.visible?'Hide':'Show'} section">
+        ${sec.visible ? '👁' : '🙈'}
+      </button>
+    `;
+    item.addEventListener('click', (e) => {
+      if (e.target.closest('.vis-btn')) return;
+      selectSection(sec.id);
+    });
+    // Drag events
+    item.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', sec.id);
+      item.style.opacity = '.4';
+    });
+    item.addEventListener('dragend', () => { item.style.opacity = ''; });
+    item.addEventListener('dragover', e => { e.preventDefault(); item.classList.add('drag-over'); });
+    item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
+    item.addEventListener('drop', e => {
+      e.preventDefault();
+      item.classList.remove('drag-over');
+      const fromId = e.dataTransfer.getData('text/plain');
+      if (fromId === sec.id) return;
+      reorderSections(fromId, sec.id);
+    });
+    list.appendChild(item);
+  });
+  document.getElementById('sectionCount').textContent = state.sections.length;
+}
+
+function reorderSections(fromId, toId) {
+  const sorted = [...state.sections].sort((a,b)=>(a.order||0)-(b.order||0));
+  const fi = sorted.findIndex(s=>s.id===fromId);
+  const ti = sorted.findIndex(s=>s.id===toId);
+  if (fi<0||ti<0) return;
+  const [moved] = sorted.splice(fi,1);
+  sorted.splice(ti,0,moved);
+  sorted.forEach((s,i)=>{ const sec = state.sections.find(x=>x.id===s.id); if(sec) sec.order=i; });
+  markDirty();
+  renderSidebar();
+  sendToPreview();
+}
+
+function toggleVisibility(id, e) {
+  e.stopPropagation();
+  const sec = state.sections.find(s=>s.id===id);
+  if (!sec) return;
+  sec.visible = !sec.visible;
+  markDirty();
+  renderSidebar();
+  sendToPreview();
+  if (state.selectedId === id) openEditorPanel(sec);
+}
+
+// ── EDITOR PANEL ──────────────────────────────────────────────────────
+function selectSection(id) {
+  state.selectedId = id;
+  const sec = state.sections.find(s=>s.id===id);
+  if (!sec) return;
+  renderSidebar();
+  openEditorPanel(sec);
+}
+
+function openEditorPanel(sec) {
+  const panel = document.getElementById('editorPanel');
+  panel.classList.remove('collapsed');
+  document.getElementById('editorType').textContent = sec.type;
+  document.getElementById('editorTitle').textContent = sec.label;
+  document.getElementById('editorBody').innerHTML = buildEditorForm(sec);
+  // Attach change listeners
+  panel.querySelectorAll('input,textarea,select').forEach(el => {
+    el.addEventListener('input', () => applyEditorChanges(sec));
+    el.addEventListener('change', () => applyEditorChanges(sec));
+  });
+}
+
+function closeEditor() {
+  state.selectedId = null;
+  document.getElementById('editorPanel').classList.add('collapsed');
+  renderSidebar();
+}
+
+function applyEditorChanges(sec) {
+  const form = document.getElementById('editorBody');
+  form.querySelectorAll('[data-field]').forEach(el => {
+    const field = el.dataset.field;
+    if (el.type === 'checkbox') {
+      sec.settings[field] = el.checked;
+    } else {
+      sec.settings[field] = el.value;
+    }
+  });
+  // Also update the label if name field exists
+  const nameEl = form.querySelector('[data-field="label"]');
+  if (nameEl) sec.label = nameEl.value;
+  markDirty();
+  sendToPreview();
+}
+
+function buildEditorForm(sec) {
+  const s = sec.settings || {};
+  const field = (key, label, type='text', hint='') => `
+    <div class="field">
+      <label>${label}</label>
+      <input type="${type}" data-field="${key}" value="${esc(s[key]||'')}" placeholder="${hint}">
+    </div>`;
+  const textarea = (key, label, hint='') => `
+    <div class="field">
+      <label>${label}</label>
+      <textarea data-field="${key}" placeholder="${hint}">${esc(s[key]||'')}</textarea>
+    </div>`;
+  const toggle = (key, label) => `
+    <div class="toggle-field">
+      <label>${label}</label>
+      <label class="toggle"><input type="checkbox" data-field="${key}" ${s[key]?'checked':''}><span class="toggle-slider"></span></label>
+    </div>`;
+  const heading = (text) => `<div class="section-label-field">${text}</div>`;
+
+  switch(sec.type) {
+    case 'hero': return `
+      ${heading('Hero Image')}
+      ${field('image','Image URL (leave blank for default)','text','https://...')}
+      ${heading('Headline')}
+      ${textarea('kicker','Kicker (small text above)','Release 001 — Sept 20, 2026')}
+      ${textarea('heading','Main Heading','For Those\nWho Dream.')}
+      ${textarea('subtext','Subtext','Bold athletic sportswear...')}
+      <div class="section-divider"></div>
+      ${heading('Primary CTA Button')}
+      ${field('cta_primary_text','Button Text','text','Explore Release 001')}
+      ${field('cta_primary_url','Button Link (URL or #anchor)','text','#drop001')}
+      <div class="section-divider"></div>
+      ${heading('Secondary CTA Button')}
+      ${toggle('cta_secondary_visible','Show Secondary Button')}
+      ${field('cta_secondary_text','Button Text','text','Get Early Access')}
+      ${field('cta_secondary_url','Button Link','text','#notify')}
+      <div class="section-divider"></div>
+      ${heading('Image Overlay Button (click on image)')}
+      ${toggle('image_cta_visible','Show Image Button')}
+      ${field('image_cta_text','Button Text','text','Shop Now')}
+      ${field('image_cta_url','Button Link','text','/drop001.html')}
+    `;
+    case 'marquee': return `
+      ${heading('Ticker Items')}
+      <div class="field">
+        <label>Items (comma-separated)</label>
+        <textarea data-field="items" placeholder="ZUWERA, RELEASE 001, FOR THOSE WHO DREAM">${esc(s.items||'')}</textarea>
+        <span class="field-hint">Separate items with commas. Each will appear with a separator ✦ between them.</span>
+      </div>
+    `;
+    case 'about': return `
+      ${field('label','Section Label','text','About Zuwera')}
+      ${textarea('heading','Heading (use \\n for line break)','Built For\nMovement.')}
+      ${textarea('body','Body Text (use \\n\\n for new paragraph)')}
+      <div class="section-divider"></div>
+      ${heading('Stats')}
+      <div class="stat-group">
+        <div class="stat-label">Stat 1</div>
+        ${field('stat1_value','Number','text','001')}
+        ${field('stat1_label','Label','text','First Release')}
+      </div>
+      <div class="stat-group">
+        <div class="stat-label">Stat 2</div>
+        ${field('stat2_value','Number','text','2026')}
+        ${field('stat2_label','Label','text','Launching')}
+      </div>
+      <div class="stat-group">
+        <div class="stat-label">Stat 3</div>
+        ${field('stat3_value','Number','text','3')}
+        ${field('stat3_label','Label','text','Styles')}
+      </div>
+    `;
+    case 'release': return `
+      ${field('eyebrow','Eyebrow Label','text','Zuwera Release 001')}
+      ${textarea('title','Title (use \\n for line break)','Release\n001')}
+      ${field('launch_date','Launch Date','date')}
+      <div class="section-divider"></div>
+      ${toggle('show_notify','Show Notify Form')}
+      ${field('notify_label','Form Label','text','Get Early Access')}
+    `;
+    case 'products': return `
+      ${field('title','Section Title','text','Release 001')}
+      ${field('subtitle','Subtitle','text','Releasing 09 / 20 / 2026')}
+    `;
+    case 'spacer': return `
+      <div class="field">
+        <label>Height</label>
+        <select data-field="height">
+          <option value="sm" ${s.height==='sm'?'selected':''}>Small (2rem)</option>
+          <option value="md" ${s.height==='md'||!s.height?'selected':''}>Medium (4rem)</option>
+          <option value="lg" ${s.height==='lg'?'selected':''}>Large (8rem)</option>
+        </select>
+      </div>
+    `;
+    case 'text': return `
+      ${field('heading','Heading (optional)','text','')}
+      ${field('heading_size','Heading Size','text','2rem')}
+      ${textarea('body','Body Text')}
+      <div class="section-divider"></div>
+      ${field('cta_text','Button Text (optional)','text','')}
+      ${field('cta_url','Button Link','text','')}
+      ${field('align','Alignment','text','left')}
+    `;
+    case 'image_cta': return `
+      ${field('image','Image URL','text','https://...')}
+      ${field('alt','Image Alt Text','text','')}
+      <div class="section-divider"></div>
+      ${heading('Overlay Button')}
+      ${toggle('btn_visible','Show Button')}
+      ${field('btn_text','Button Text','text','Shop Now')}
+      ${field('btn_url','Button Link','text','/drop001.html')}
+      ${field('btn_position','Button Position','text','center')}
+    `;
+    case 'custom': return `
+      <div class="field">
+        <label>HTML</label>
+        <textarea data-field="html" style="min-height:200px;font-family:var(--mono);font-size:.7rem" placeholder="<div>Custom HTML...</div>">${esc(s.html||'')}</textarea>
+        <span class="field-hint" style="color:var(--danger)">⚠ Raw HTML. Use carefully.</span>
+      </div>
+    `;
+    default: return '<p style="padding:1rem;color:var(--muted);font-size:.72rem">No settings for this section type.</p>';
+  }
+}
+
+function esc(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── SECTION LIBRARY ───────────────────────────────────────────────────
+function openLibrary() {
+  const grid = document.getElementById('libraryGrid');
+  grid.innerHTML = Object.entries(SECTION_TYPES).map(([type,def]) => `
+    <div class="section-card" onclick="addSection('${type}')">
+      <div class="sc-icon">${def.icon}</div>
+      <div class="sc-name">${type.replace('_',' ')}</div>
+      <div class="sc-desc">${def.desc}</div>
+    </div>
+  `).join('');
+  document.getElementById('libraryModal').classList.add('open');
+}
+function closeLibrary() {
+  document.getElementById('libraryModal').classList.remove('open');
+}
+function addSection(type) {
+  closeLibrary();
+  const id = type + '-' + Date.now();
+  const def = SECTION_TYPES[type];
+  const maxOrder = Math.max(...state.sections.map(s=>s.order||0), -1);
+  const defaults = {
+    spacer:{height:'md'},
+    text:{heading:'',body:'Add your text here.',cta_text:'',cta_url:'',align:'left'},
+    image_cta:{image:'',alt:'',btn_visible:true,btn_text:'Shop Now',btn_url:'/drop001.html',btn_position:'center'},
+    custom:{html:'<div style="padding:2rem;text-align:center">Custom section</div>'}
+  };
+  state.sections.push({
+    id, type, label: type.replace('_',' ').replace(/\b\w/g,c=>c.toUpperCase()),
+    visible:true, order:maxOrder+1,
+    settings: defaults[type] || {}
+  });
+  markDirty();
+  renderSidebar();
+  selectSection(id);
+  sendToPreview();
+  toast('Section added');
+}
+
+function removeSection(id) {
+  if (!confirm('Remove this section?')) return;
+  state.sections = state.sections.filter(s=>s.id!==id);
+  if (state.selectedId === id) closeEditor();
+  markDirty();
+  renderSidebar();
+  sendToPreview();
+  toast('Section removed');
+}
+
+// ── PREVIEW ───────────────────────────────────────────────────────────
+function setPreviewMode(mode) {
+  state.previewMode = mode;
+  document.querySelectorAll('#previewToggle button').forEach(b => b.classList.toggle('active', b.dataset.mode===mode));
+  const c = document.getElementById('previewContainer');
+  c.classList.toggle('desktop', mode==='desktop');
+  c.classList.toggle('mobile', mode==='mobile');
+  const dims = mode==='mobile' ? '390 × 844' : '1200px wide';
+  document.getElementById('previewDims').textContent = dims;
+}
+
+function setPreviewTheme(theme) {
+  state.previewTheme = theme;
+  document.querySelectorAll('#themeToggle button').forEach(b => b.classList.toggle('active', b.dataset.theme===theme));
+  sendToPreview();
+}
+
+function sendToPreview() {
+  const frame = document.getElementById('previewFrame');
+  try {
+    frame.contentWindow.postMessage({
+      type: 'ZW_BUILDER_CONFIG',
+      sections: state.sections,
+      theme: state.previewTheme
+    }, '*');
+  } catch(e) {}
+}
+
+// ── SAVE / PUBLISH ────────────────────────────────────────────────────
+async function saveDraft() {
+  updateStatus('Saving…');
+  try {
+    const { error } = await sb.from('site_settings').upsert({
+      key:'page_builder',
+      value:{ sections:state.sections, updated_at:new Date().toISOString(), published:false },
+      updated_at:new Date().toISOString()
+    },{onConflict:'key'});
+    if (error) throw error;
+    state.dirty = false;
+    updateStatus('Draft saved');
+    toast('Draft saved', 'success');
+  } catch(e) {
+    console.error(e);
+    toast('Save failed', 'error');
+    updateStatus('Save failed');
+  }
+}
+
+async function publishPage() {
+  updateStatus('Publishing…');
+  try {
+    const { error } = await sb.from('site_settings').upsert({
+      key:'page_builder',
+      value:{ sections:state.sections, updated_at:new Date().toISOString(), published:true },
+      updated_at:new Date().toISOString()
+    },{onConflict:'key'});
+    if (error) throw error;
+    state.dirty = false;
+    updateStatus('Published ✓');
+    toast('Published! Changes are live.', 'success');
+  } catch(e) {
+    console.error(e);
+    toast('Publish failed', 'error');
+    updateStatus('Publish failed');
+  }
+}
+
+function markDirty() {
+  state.dirty = true;
+  updateStatus('Unsaved changes');
+}
+function updateStatus(msg) {
+  document.getElementById('statusText').textContent = msg;
+}
+
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'on' + (type ? ' '+type : '');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>el.className='', 2800);
+}
+
+// Warn on exit if dirty
+window.addEventListener('beforeunload', e => {
+  if (state.dirty) { e.preventDefault(); e.returnValue = ''; }
+});
+
+// Init preview dims
+setPreviewMode('desktop');
+</script>
+</body>
+</html>

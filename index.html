@@ -2439,6 +2439,167 @@ function showToast(msg) {
   _toastTimer = setTimeout(() => t.classList.remove('on'), 2600);
 }
 
+/* ── PAGE BUILDER PREVIEW LISTENER ───────────────────────────────────
+   When opened inside /builder.html, receives postMessage with section
+   config and applies it live without a Supabase round-trip.         */
+(function() {
+  const isBuilderPreview = window.location !== window.parent.location ||
+    new URLSearchParams(window.location.search).get('builder') === '1';
+  if (!isBuilderPreview) return;
+
+  function applyBuilderConfig(cfg) {
+    if (!cfg || !cfg.sections) return;
+
+    // Apply theme
+    if (cfg.theme === 'light') {
+      document.body.classList.add('light-mode');
+      document.body.classList.remove('super-light-mode');
+    } else if (cfg.theme === 'super-light') {
+      document.body.classList.add('light-mode','super-light-mode');
+    } else {
+      document.body.classList.remove('light-mode','super-light-mode');
+    }
+
+    const sorted = [...cfg.sections].sort((a,b)=>(a.order||0)-(b.order||0));
+
+    // Section visibility & order on the DOM
+    const sectionMap = {
+      hero:    document.querySelector('.hero'),
+      marquee: document.querySelector('.marquee'),
+      about:   document.querySelector('.section-about'),
+      release: document.querySelector('.drop-wrap'),
+      products:document.querySelector('.products-section')
+    };
+
+    sorted.forEach((sec, idx) => {
+      const el = sectionMap[sec.type] || document.getElementById(sec.id);
+      if (!el) return;
+      el.style.display = sec.visible ? '' : 'none';
+      el.style.order = idx; // requires parent to be flex; CSS handles it
+
+      const s = sec.settings || {};
+      switch(sec.type) {
+        case 'hero': {
+          const h1 = el.querySelector('.hero-h1');
+          const sub = el.querySelector('.hero-sub');
+          const kicker = el.querySelector('.hero-kicker');
+          const ctaPrimary = el.querySelector('.hero-cta-row .btn-outline');
+          const ctaSecondary = el.querySelector('.hero-cta-row .btn-ghost');
+          if (h1 && s.heading) h1.innerHTML = s.heading.replace(/\n/g,'<br>');
+          if (sub && s.subtext) sub.textContent = s.subtext;
+          if (kicker && s.kicker) kicker.textContent = s.kicker;
+          if (ctaPrimary && s.cta_primary_text) {
+            const svg = ctaPrimary.querySelector('svg');
+            ctaPrimary.textContent = s.cta_primary_text;
+            if (svg) ctaPrimary.appendChild(svg);
+          }
+          if (ctaPrimary && s.cta_primary_url) ctaPrimary.onclick = () => { if(s.cta_primary_url.startsWith('#')) document.getElementById(s.cta_primary_url.slice(1))?.scrollIntoView({behavior:'smooth'}); else location.href=s.cta_primary_url; };
+          if (ctaSecondary) ctaSecondary.style.display = s.cta_secondary_visible ? '' : 'none';
+          if (ctaSecondary && s.cta_secondary_text) ctaSecondary.textContent = s.cta_secondary_text;
+          // Image CTA overlay
+          let imgCta = el.querySelector('.hero-img-cta');
+          if (s.image_cta_visible) {
+            if (!imgCta) {
+              imgCta = document.createElement('a');
+              imgCta.className = 'hero-img-cta';
+              imgCta.style.cssText = 'position:absolute;bottom:30%;left:50%;transform:translateX(-50%);z-index:10;padding:.65rem 1.8rem;background:rgba(255,255,255,.92);color:#09090b;font-family:var(--fm);font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;text-decoration:none;backdrop-filter:blur(8px);transition:opacity .2s';
+              el.querySelector('.hero-img-wrap')?.appendChild(imgCta);
+            }
+            imgCta.textContent = s.image_cta_text || 'Shop Now';
+            imgCta.href = s.image_cta_url || '/drop001.html';
+            imgCta.style.display = '';
+          } else if (imgCta) imgCta.style.display = 'none';
+          // Background image
+          if (s.image) {
+            const img = el.querySelector('#hero-image');
+            if (img) img.src = s.image;
+          }
+          break;
+        }
+        case 'marquee': {
+          const track = el.querySelector('.marquee-track');
+          if (track && s.items) {
+            const items = s.items.split(',').map(i=>i.trim()).filter(Boolean);
+            track.innerHTML = (items.concat(items)).map(i=>`<span class="marquee-item">${i}</span><span class="marquee-item accent">&#10022;</span>`).join('');
+          }
+          break;
+        }
+        case 'about': {
+          const lbl = el.querySelector('.about-label');
+          const h2 = el.querySelector('.about-h2');
+          const ps = el.querySelectorAll('.about-body p');
+          if (lbl && s.label) lbl.textContent = s.label;
+          if (h2 && s.heading) h2.innerHTML = s.heading.replace(/\n/g,'<br>');
+          if (s.body && ps.length > 0) {
+            const paras = s.body.split(/\n\n+/);
+            ps.forEach((p,i) => { p.textContent = paras[i] || ''; p.style.display = paras[i] ? '' : 'none'; });
+          }
+          const statNs = el.querySelectorAll('.stat-n');
+          const statLs = el.querySelectorAll('.stat-l');
+          [[s.stat1_value,s.stat1_label],[s.stat2_value,s.stat2_label],[s.stat3_value,s.stat3_label]].forEach(([v,l],i)=>{
+            if (statNs[i] && v) statNs[i].textContent = v;
+            if (statLs[i] && l) statLs[i].textContent = l;
+          });
+          break;
+        }
+        case 'release': {
+          const eyebrow = el.querySelector('.drop-eyebrow');
+          const title = el.querySelector('.drop-title');
+          const notifyLbl = el.querySelector('.notify-label');
+          const notifyBox = el.querySelector('.notify-box');
+          if (eyebrow && s.eyebrow) eyebrow.textContent = s.eyebrow;
+          if (title && s.title) {
+            const span = title.querySelector('span');
+            const lines = s.title.split('\n');
+            title.innerHTML = (lines[0]||'Release') + '<br>' + (span ? `<span>${lines[1]||'001'}</span>` : (lines[1]||'001'));
+          }
+          if (notifyLbl && s.notify_label) notifyLbl.textContent = s.notify_label;
+          if (notifyBox) notifyBox.style.display = s.show_notify ? '' : 'none';
+          break;
+        }
+        case 'products': {
+          const secHead = el.closest('.drop-wrap')?.querySelector('.sec-head h2') || el.querySelector('.sec-head h2');
+          const secSub = el.closest('.drop-wrap')?.querySelector('.sec-head span') || el.querySelector('.sec-head span');
+          if (secHead && s.title) secHead.textContent = s.title;
+          if (secSub && s.subtitle) secSub.textContent = s.subtitle;
+          break;
+        }
+        case 'spacer': {
+          const h = {sm:'2rem',md:'4rem',lg:'8rem'}[s.height]||'4rem';
+          el.style.height = h;
+          break;
+        }
+        case 'text': {
+          const h = el.querySelector('[data-builder-heading]');
+          const b = el.querySelector('[data-builder-body]');
+          const cta = el.querySelector('[data-builder-cta]');
+          if (h) { h.textContent = s.heading||''; h.style.display = s.heading?'':'none'; }
+          if (b) b.textContent = s.body||'';
+          if (cta) { cta.textContent = s.cta_text||''; cta.href = s.cta_url||'#'; cta.style.display = s.cta_text?'':'none'; }
+          break;
+        }
+        case 'image_cta': {
+          const img = el.querySelector('[data-builder-img]');
+          const btn = el.querySelector('[data-builder-btn]');
+          if (img) { img.src = s.image||''; img.alt = s.alt||''; }
+          if (btn) { btn.textContent = s.btn_text||''; btn.href = s.btn_url||'#'; btn.style.display = s.btn_visible?'':'none'; }
+          break;
+        }
+        case 'custom': {
+          el.innerHTML = s.html||'';
+          break;
+        }
+      }
+    });
+  }
+
+  window.addEventListener('message', e => {
+    if (e.data && e.data.type === 'ZW_BUILDER_CONFIG') {
+      applyBuilderConfig(e.data);
+    }
+  });
+})();
+
 /* NAV SCROLL */
 const nav = document.getElementById('nav');
 let _navScrolled = false;
