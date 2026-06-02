@@ -8,6 +8,7 @@
   <meta name="color-scheme" content="dark">
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" type="image/png" href="/images/favicon-black.png?v=1" id="site-favicon">
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" as="style">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://qfgnrsifcwdubkolsgsq.supabase.co">
@@ -903,58 +904,8 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
   }
   location.assign('/checkout.html');
   return;
-  // Dead code — kept only so commerce-checkout.js references resolve
-  _openModal('payment-modal');
-  zwResetPromoUI();
-  const _mcount = document.getElementById('pmob-items-count');
-  if (_mcount) { const n = cartItems.length; _mcount.textContent = `${n} item${n!==1?'s':''}`; }
-  if (window.innerWidth <= 660) {
-    const _sb = document.getElementById('pm-summary-body');
-    const _st = document.getElementById('pm-summary-toggle');
-    if (_sb) { _sb.classList.add('open'); _st?.setAttribute('aria-expanded', 'true'); }
-  }
-  // Populate order summary panel first, then prefill — so prefill's input events
-  // fire after the panel is initialised and tax/total are set correctly.
-  (function() {
-    const _sub = cartItems.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0);
-    const itemsEl = document.getElementById('pm-items');
-    if (itemsEl) {
-      itemsEl.innerHTML = cartItems.map(item => {
-        const imgSrc = typeof window.optimizeImage === 'function'
-          ? window.optimizeImage(item.image, 160) : (item.image || '');
-        const price = (parseFloat(item.price) * item.quantity).toFixed(2);
-        const imgHtml = imgSrc
-          ? `<img src="${esc(imgSrc)}" alt="${esc(item.title)}" class="pm-item-img" data-fallback="${esc(item.image||'')}" onerror="var f=this.dataset.fallback;if(f&&this.src!==f)this.src=f">`
-          : `<div class="pm-item-img-placeholder"></div>`;
-        const colorPart = item.colorName ? (bagColorSwatch(item) + esc(item.colorName)) : '';
-        const sizePart  = item.size ? esc(item.size) : '';
-        const meta = [colorPart, sizePart].filter(Boolean).join(' / ');
-        const cleanTitle = esc((item.title || '').replace(/\p{Extended_Pictographic}/gu, '').replace(/\s+/g, ' ').trim());
-        return `<div class="pm-item">${imgHtml}<div class="pm-item-info"><div class="pm-item-title">${cleanTitle}</div>${meta ? `<div class="pm-item-meta" style="display:flex;align-items:center">${meta}</div>` : ''}<div class="pm-item-meta">Qty ${item.quantity}</div></div><div class="pm-item-price">$${price}</div></div>`;
-      }).join('');
-    }
-    const policy = window._shippingPolicy || { enabled: true, threshold: 100 };
-    const shippingText = policy.enabled && _sub >= policy.threshold ? 'Free' : '—';
-    const elMap = { 'pm-subtotal': `$${_sub.toFixed(2)}`, 'pm-tax': '—', 'pm-total': `$${_sub.toFixed(2)}`, 'pm-toggle-total': `$${_sub.toFixed(2)}`, 'pm-shipping': shippingText, 'pm-tax-label': 'Tax' };
-    Object.entries(elMap).forEach(([id, val]) => { const el = document.getElementById(id); if (el) el.textContent = val; });
-  })();
-  // Prefill checkout fields after panel init so the input events that calculate
-  // tax and trigger shipping rate fetch run last and are not overwritten.
-  if (_bagUser && typeof window.prefillCheckoutForUser === 'function') window.prefillCheckoutForUser(_bagUser);
-  // Pass the mode explicitly — don't let checkout.js guess asynchronously
-  if (typeof window.refreshCardStyle === 'function')
-    window.refreshCardStyle(document.body.classList.contains('light-mode'));
-  // Analytics
-  zwTrack('checkout_started', {
-    item_count: cartItems.reduce((n, i) => n + i.quantity, 0),
-    value:      cartItems.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0),
-    currency:   'USD',
-  });
-  const subtotalCents = Math.round(
-    cartItems.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0) * 100
-  ) || 100;
-  if (typeof initPaymentRequest === 'function') initPaymentRequest(subtotalCents);
 });
+
 
 /* ── Init on DOMContentLoaded ── */
 document.addEventListener('DOMContentLoaded', function() {
