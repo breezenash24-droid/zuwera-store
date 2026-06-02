@@ -203,6 +203,52 @@ function getSb() {
   return null;
 }
 
+// ── AUTH GATE — verify admin session before showing anything ──────────────
+(async function authCheck() {
+  // Hide the entire builder until auth is confirmed
+  document.querySelector('.topbar').style.display  = 'none';
+  document.querySelector('.layout').style.display  = 'none';
+
+  const sb = getSb();
+  if (!sb) { showLoginGate('Could not connect to auth service.'); return; }
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { showLoginGate(); return; }
+
+    // Verify admin role via the same endpoint admin.html uses
+    const resp = await fetch('/api/admin-access', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken: session.access_token })
+    });
+    const payload = await resp.json().catch(() => ({}));
+    if (!resp.ok || !payload.success) {
+      showLoginGate('Your account does not have admin access.');
+      return;
+    }
+
+    // Authenticated — show the builder
+    document.querySelector('.topbar').style.display = '';
+    document.querySelector('.layout').style.display = '';
+  } catch(e) {
+    showLoginGate('Authentication error. Please sign in via the admin panel.');
+  }
+})();
+
+function showLoginGate(msg) {
+  const gate = document.createElement('div');
+  gate.style.cssText = 'position:fixed;inset:0;background:#0f0f11;display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:1.2rem;padding:2rem';
+  gate.innerHTML = `
+    <div style="font-family:\'Barlow Condensed\',sans-serif;font-style:italic;font-weight:900;font-size:2rem;letter-spacing:.08em;color:#f4f1eb">ZUWERA</div>
+    <div style="font-family:\'IBM Plex Mono\',monospace;font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;color:rgba(244,241,235,.4)">Page Builder — Admin Only</div>
+    ${msg ? `<div style="font-family:\'IBM Plex Mono\',monospace;font-size:.62rem;color:#e07060;letter-spacing:.08em;text-align:center;max-width:320px">${msg}</div>` : ''}
+    <a href="/admin.html" style="margin-top:.5rem;background:#f4f1eb;color:#0f0f11;font-family:\'IBM Plex Mono\',monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;padding:.6rem 1.4rem;text-decoration:none;font-weight:600">Sign In via Admin →</a>
+    <div style="font-family:\'IBM Plex Mono\',monospace;font-size:.56rem;color:rgba(244,241,235,.22);letter-spacing:.1em;text-align:center">Sign in to the admin panel first, then return here.</div>
+  `;
+  document.body.appendChild(gate);
+}
+
 // ── STATE ─────────────────────────────────────────────────────────────────
 const DEFAULT = [
   {id:'hero',     type:'hero',    label:'Hero',         visible:true, order:0, settings:{kicker:'Release 001 — Sept 20, 2026', heading:'For Those\nWho Dream.', subtext:'Bold athletic sportswear built for the relentless. Those who move with purpose.', cta1_text:'Explore Release 001', cta1_url:'#drop001', cta2_on:true, cta2_text:'Get Early Access', cta2_url:'#notify', img_btn_on:false, img_btn_text:'Shop Now', img_btn_url:'/drop001.html', image:''}},
