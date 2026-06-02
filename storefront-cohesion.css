@@ -2601,3 +2601,25 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.3)!important;}
   margin-left:.4rem!important;
   border-radius:2px!important;
 }
+
+/* Prevent iOS long-press from popping context menu or shifting the page behind */
+#mobile-menu .zw-mobile-primary-link,
+#mobile-menu .zw-mobile-secondary-link,
+#mobile-menu .zw-mobile-socials a,
+#mobile-menu .zw-mobile-socials button,
+#mobile-menu .zw-mobile-menu-close{
+  -webkit-tap-highlight-color:transparent!important;
+  -webkit-touch-callout:none!important;
+  -webkit-user-select:none!important;
+  user-select:none!important;
+  touch-action:manipulation!important;
+}
+
+/* :active state matches :hover so the press feel is consistent */
+#mobile-menu .zw-mobile-primary-link:active{
+  color:#fff!important;
+  background:rgba(244,241,235,.06)!important;
+}
+#mobile-menu .zw-mobile-secondary-link:active{
+  color:rgba(244,241,235,.75)!important;
+}
