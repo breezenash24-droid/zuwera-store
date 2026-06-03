@@ -445,8 +445,11 @@ function renderSidebar(container){
     const d=document.createElement('div');
     d.className='sec-item'+(selId===s.id?' sel':'')+(s.visible?'':' hidden-sec');
     d.dataset.id=s.id;d.draggable=true;
-    d.innerHTML=`<span class="drag-h">⠿</span><span class="sec-ico">${t.icon}</span><div style="flex:1;min-width:0"><div class="sec-nm">${s.label}</div><div class="sec-tp">${s.type}</div></div><div class="sec-acts"><button class="sec-act" title="Duplicate" onclick="dupSec('${s.id}',event)">⎘</button><button class="sec-act danger" title="Delete" onclick="removeSec('${s.id}',event)">✕</button></div><button class="vis-btn" title="Toggle visibility" onclick="toggleVis('${s.id}',event)">${s.visible?'👁':'🙈'}</button>`;
-    d.addEventListener('click',e=>{if(!e.target.closest('.sec-acts')&&!e.target.closest('.vis-btn')){selectSec(s.id);scrollPreviewTo(s.id);}});
+    d.innerHTML=`<span class="drag-h">⠿</span><span class="sec-ico">${t.icon}</span><div style="flex:1;min-width:0"><div class="sec-nm">${s.label}</div><div class="sec-tp">${s.type}</div></div><div class="sec-acts"><button class="sec-act" data-action="dup" title="Duplicate">⎘</button><button class="sec-act danger" data-action="del" title="Delete">✕</button></div><button class="vis-btn" data-action="vis" title="Toggle">${s.visible?'👁':'🙈'}</button>`;
+    d.querySelector('[data-action="dup"]')?.addEventListener('click',e=>{e.stopPropagation();dupSec(s.id);});
+    d.querySelector('[data-action="del"]')?.addEventListener('click',e=>{e.stopPropagation();removeSec(s.id);});
+    d.querySelector('[data-action="vis"]')?.addEventListener('click',e=>{e.stopPropagation();toggleVis(s.id);});
+    d.addEventListener('click',e=>{if(!e.target.closest('.sec-acts')&&!e.target.closest('[data-action]')){selectSec(s.id);scrollPreviewTo(s.id);}});
     d.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',s.id);d.style.opacity='.4';});
     d.addEventListener('dragend',()=>d.style.opacity='');
     d.addEventListener('dragover',e=>{e.preventDefault();d.classList.add('drag-over');});
@@ -456,10 +459,10 @@ function renderSidebar(container){
   });
 }
 
-function toggleVis(id,e){e.stopPropagation();pushUndo();const s=sections.find(x=>x.id===id);if(s){s.visible=!s.visible;markDirty();renderLP();schedSend();if(selId===id)openEditor(s);}}
+function toggleVis(id){pushUndo();const s=sections.find(x=>x.id===id);if(s){s.visible=!s.visible;markDirty();renderLP();schedSend();if(selId===id)openEditor(s);}}
 function reorder(fromId,toId){if(fromId===toId)return;pushUndo();const sorted=[...sections].sort((a,b)=>(a.order||0)-(b.order||0));const fi=sorted.findIndex(x=>x.id===fromId),ti=sorted.findIndex(x=>x.id===toId);if(fi<0||ti<0)return;const[m]=sorted.splice(fi,1);sorted.splice(ti,0,m);sorted.forEach((x,i)=>{const sec=sections.find(y=>y.id===x.id);if(sec)sec.order=i;});markDirty();renderLP();schedSend();}
-function dupSec(id,e){e.stopPropagation();pushUndo();const src=sections.find(s=>s.id===id);if(!src)return;const maxOrd=Math.max(...sections.map(s=>s.order||0),-1);const dup={...clone(src),id:src.type+'-'+Date.now(),order:maxOrd+1,label:src.label+' (Copy)'};sections.push(dup);markDirty();renderLP();selectSec(dup.id);schedSend();toast('Duplicated');}
-function removeSec(id,e){e.stopPropagation();if(!confirm('Remove section?'))return;pushUndo();sections=sections.filter(s=>s.id!==id);if(selId===id)closeEd();markDirty();renderLP();schedSend();}
+function dupSec(id){pushUndo();const src=sections.find(s=>s.id===id);if(!src)return;const maxOrd=Math.max(...sections.map(s=>s.order||0),-1);const dup={...clone(src),id:src.type+'-'+Date.now(),order:maxOrd+1,label:src.label+' (Copy)'};sections.push(dup);markDirty();renderLP();selectSec(dup.id);schedSend();toast('Duplicated');}
+function removeSec(id){if(!confirm('Remove section?'))return;pushUndo();sections=sections.filter(s=>s.id!==id);if(selId===id)closeEd();markDirty();renderLP();schedSend();}
 
 // ── THEME TAB ─────────────────────────────────────────────────────────────
 function renderThemeTab(container){
@@ -671,7 +674,7 @@ function buildForm(s){
     case 'html': h+=`<div class="field"><label>HTML</label><textarea data-f="html" style="min-height:120px;font-size:.6rem;font-family:'IBM Plex Mono',monospace" placeholder="<div>...</div>">${he(g.html)}</textarea><span class="fhint" style="color:#e07060">⚠ Raw HTML — use carefully.</span></div>`;break;
     default: h+='<div style="padding:.4rem;color:var(--mu);font-size:.65rem">No settings available.</div>';
   }
-  h+=`${fdiv()}<button class="apply-btn" onclick="manualApply()">▶ Apply to Preview</button><button class="del-sec" onclick="removeSec('${s.id}',{stopPropagation:()=>{}})">🗑 Remove Section</button>`;
+  h+=`${fdiv()}<button class="apply-btn" onclick="manualApply()">▶ Apply to Preview</button><button class="del-sec" onclick="removeSec('${s.id}')">🗑 Remove Section</button>`;
   return h;
 }
 
