@@ -2810,9 +2810,9 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
           }
         }
       } else if (row.key === 'hero') {
-        if (window.__ZW_BUILDER_PREVIEW__) { /* builder controls hero content */ } else
-        const h = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
-        if (h.kicker) {
+        if (!window.__ZW_BUILDER_PREVIEW__) {
+          const h = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+          if (h.kicker) {
             const el = document.querySelector('.hero-kicker');
             if (el) el.textContent = h.kicker;
           }
@@ -2842,6 +2842,7 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
             const preload = document.getElementById('hero-preload');
             if (preload) preload.href = h.image;
           }
+        }
       } else if (row.key === 'brand') {
         let b = row.value;
         try { if (typeof b === 'string') b = JSON.parse(b); } catch(e){}
