@@ -236,6 +236,12 @@
           var isHomepage = window.location.pathname === '/' || window.location.pathname.endsWith('/index.html') || window.location.pathname.endsWith('/');
           if (isHomepage || window.__ZW_BUILDER_PREVIEW__) return;
 
+          // If the user already has an explicit localStorage preference, respect it.
+          // Only apply the Supabase global theme when no local preference is stored.
+          var localPref = null;
+          try { localPref = localStorage.getItem('zw_theme_mode'); } catch(_) {}
+          if (localPref) { applyThemeMode(localPref); return; }
+
           var mode = row.value && row.value.mode === 'dark' ? 'dark'
                    : row.value && row.value.mode === 'super-light' ? 'super-light' : 'light';
           applyThemeMode(mode);

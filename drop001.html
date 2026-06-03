@@ -211,6 +211,17 @@
     }
     .notify-form input:focus { border-color: rgba(244,241,235,0.5); }
     .notify-form input::placeholder { color: rgba(244,241,235,0.3); }
+    body.light-mode .notify-form input,
+    body.super-light-mode .notify-form input {
+      background: rgba(9,9,11,0.04);
+      border: 1px solid rgba(9,9,11,0.2);
+      border-right: none;
+      color: var(--white);
+    }
+    body.light-mode .notify-form input:focus,
+    body.super-light-mode .notify-form input:focus { border-color: rgba(9,9,11,0.45); }
+    body.light-mode .notify-form input::placeholder,
+    body.super-light-mode .notify-form input::placeholder { color: rgba(9,9,11,0.35); }
     .notify-form button {
       background: var(--white);
       color: var(--black);
