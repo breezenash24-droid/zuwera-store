@@ -7,36 +7,21 @@ export async function onRequestGet({ env }) {
       return new Response(JSON.stringify({ error: 'No service key found in env' }), { status: 500 });
     }
 
-    const value = {
-      sections: [
-        { id: 'hero', type: 'hero', label: 'Hero', visible: true, order: 0, settings: {} }
-      ],
-      updated_at: new Date().toISOString(),
-      published: true,
-    };
-
-    const rows = [
-      { key: 'page_builder', value },
-      { key: 'page_builder_published', value }
-    ];
-
-    const saveRes = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?on_conflict=key`, {
-      method: 'POST',
+    // Perform SELECT using service role key (bypasses RLS)
+    const selectRes = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?select=*`, {
+      method: 'GET',
       headers: {
         apikey:           serviceKey,
         Authorization:    'Bearer ' + serviceKey,
-        'Content-Type':   'application/json',
-        Prefer:           'resolution=merge-duplicates,return=representation', // return representation to see what was written
-      },
-      body: JSON.stringify(rows),
+      }
     });
 
-    const status = saveRes.status;
-    const bodyText = await saveRes.text();
+    const status = selectRes.status;
+    const data = await selectRes.json();
 
     return new Response(JSON.stringify({
       status,
-      body: bodyText
+      rows: data
     }), {
       headers: { 'Content-Type': 'application/json' }
     });
