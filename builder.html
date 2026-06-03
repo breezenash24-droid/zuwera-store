@@ -347,17 +347,32 @@ function getSb(){
     const sb=getSb();
     if(!sb){showLockScreen();return;}
 
-    // getSession() can return null on first load even if a session exists in localStorage
-    // because the Supabase client initialises auth asynchronously.
-    // Retry up to 3 times with a short delay before giving up.
-    let session=null;
-    for(let attempt=0;attempt<3;attempt++){
-      const{data}=await sb.auth.getSession();
-      if(data?.session){session=data.session;break;}
-      if(attempt<2)await new Promise(r=>setTimeout(r,600));
+    // Strategy 1: check the token admin.html writes to localStorage on click
+    let accessToken=null;
+    try{
+      const tok=localStorage.getItem('zw_builder_token');
+      const exp=parseInt(localStorage.getItem('zw_builder_token_exp')||'0',10);
+      if(tok&&(exp===0||exp*1000>Date.now())){accessToken=tok;}
+    }catch(_){}
+
+    // Strategy 2: fall back to Supabase getSession (works when session IS persisted)
+    if(!accessToken){
+      let session=null;
+      for(let attempt=0;attempt<3;attempt++){
+        const{data}=await sb.auth.getSession();
+        if(data?.session){session=data.session;break;}
+        if(attempt<2)await new Promise(r=>setTimeout(r,400));
+      }
+      if(session)accessToken=session.access_token;
     }
 
-    if(!session){showLockScreen();return;}
+    if(!accessToken){showLockScreen();return;}
+
+    // Verify the token is still valid
+    try{
+      const r=await fetch(`${SUPA_URL}/auth/v1/user`,{headers:{apikey:SUPA_ANON,Authorization:'Bearer '+accessToken}});
+      if(!r.ok)throw new Error('invalid');
+    }catch(_){showLockScreen();return;}
     document.querySelector('.layout').style.display='';
     document.querySelector('.topbar').style.display='';
   }catch(e){
