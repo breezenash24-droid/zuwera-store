@@ -1753,7 +1753,7 @@ body.light-mode::after{opacity:0.15}
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=26053001">
 <script src="image-utils.js?v=6eef467b" defer></script>
 <script src="mobile-menu.js?v=4c6ccedc" defer></script>
-<script>try{var _t=localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
+<script>try{var _t=localStorage.getItem('zw_homepage_theme_mode')||localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
 <style>
 /* ── MOBILE HEADER: DEFINITIVE FIXES ──────────────────────────────────────
    Nav height = .75rem(padding-top) + safe-area + 36px(cart-btn) + .85rem(padding-bottom)
@@ -1816,7 +1816,7 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
     document.documentElement.style.backgroundColor = navBg;
   }
   try {
-    var _m = localStorage.getItem('zw_theme_mode');
+    var _m = localStorage.getItem('zw_homepage_theme_mode') || localStorage.getItem('zw_theme_mode');
     if (_m === 'light') {
       document.body.classList.add('light-mode');
     } else if (_m === 'super-light') {
@@ -2879,104 +2879,129 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
       return;
     }
     const data = await resp.json();
-    let announcementApplied = false;
+    
+    // Store settings in a local object to process sequentially
+    const settings = {};
     data.forEach(row => {
-      if (row.key === 'announcement_bar') {
-        let v = row.value;
-        try {
-          if (typeof v === 'string') v = JSON.parse(v);
-        } catch(e) {}
-        
-        let mode = 'on';
-        let msgText = '';
-        if (typeof v === 'object' && v !== null) {
-          mode = v.mode || (v.enabled === false ? 'off' : 'on');
-          msgText = Object.prototype.hasOwnProperty.call(v, 'main') ? (v.main ?? '') : '';
-        } else {
-          msgText = v;
-        }
-
-        applyAnnouncementBar(mode, msgText);
-        announcementApplied = true;
-      } else if (row.key === 'theme') {
-        if (!window.__ZW_BUILDER_PREVIEW__) {
-          const mode = row.value && row.value.mode === 'dark' ? 'dark' : row.value && row.value.mode === 'super-light' ? 'super-light' : 'light';
-          if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode);
-          else {
-            document.body.classList.toggle('light-mode', mode === 'light');
-            if (window.__zwSyncThemeColor) window.__zwSyncThemeColor();
-          }
-        }
-      } else if (row.key === 'hero') {
-        if (!window.__ZW_BUILDER_PREVIEW__) {
-          const h = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
-          if (h.kicker) {
-            const el = document.querySelector('.hero-kicker');
-            if (el) el.textContent = h.kicker;
-          }
-          if (h.heading) {
-            const el = document.querySelector('.hero-h1');
-            if (el) el.textContent = h.heading;
-          }
-          if (h.subtext) {
-            const el = document.querySelector('.hero-sub');
-            if (el) el.textContent = h.subtext;
-          }
-          if (h.cta_text) {
-            const el = document.querySelector('.hero-cta-row .btn-outline');
-            if (el) {
-              const svg = el.querySelector('svg');
-              el.textContent = h.cta_text;
-              if (svg) el.appendChild(svg);
-            }
-          }
-          if (h.image) {
-            const el = document.getElementById('hero-image');
-            if (el) el.src = h.image;
-            const mobileSource = document.getElementById('hero-mobile-source');
-            if (mobileSource) mobileSource.srcset = h.image;
-            window.__ZW_HERO_IMAGE = h.image;
-            try { localStorage.setItem('zw-hero-image', h.image); } catch (e) {}
-            const preload = document.getElementById('hero-preload');
-            if (preload) preload.href = h.image;
-          }
-        }
-      } else if (row.key === 'brand') {
-        let b = row.value;
-        try { if (typeof b === 'string') b = JSON.parse(b); } catch(e){}
-        if (b && b.favicon) {
-          let link = document.querySelector('link[rel="icon"]');
-          if (!link) {
-            link = document.createElement('link');
-            link.rel = 'icon';
-            document.head.appendChild(link);
-          }
-            window.__zwApplyFavicon ? window.__zwApplyFavicon(b.favicon) : (link.href = b.favicon);
-        }
-        try { localStorage.setItem('zw-brand', JSON.stringify(b || {})); } catch (e) {}
-        if (b.admin_res_bg) document.documentElement.style.setProperty('--admin-res-bg', b.admin_res_bg);
-        if (b.admin_res_text) document.documentElement.style.setProperty('--admin-res-text', b.admin_res_text);
-      } else if (row.key === 'page_builder_published') {
-        if (!window.__ZW_BUILDER_PREVIEW__) {
-          const val = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
-          if (val && val.sections) {
-            window.__zwApplyBuilderConfig(val);
-          }
-        }
-      } else if (row.key === 'shipping_policy') {
-        const v = row.value || {};
-        window._shippingPolicy = {
-          enabled:      v.free_shipping_enabled !== false,
-          threshold:    parseFloat(v.free_threshold)  || 100,
-          standardRate: parseFloat(v.standard_rate)   || 8,
-        };
-        // Re-render cart with real policy now that settings have loaded
-        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-        const sub  = cart.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0);
-        if (sub > 0) updateCartSummary(sub);
-      }
+      settings[row.key] = row.value;
     });
+
+    // 1. brand
+    if (settings.brand !== undefined) {
+      let b = settings.brand;
+      try { if (typeof b === 'string') b = JSON.parse(b); } catch(e){}
+      if (b && b.favicon) {
+        let link = document.querySelector('link[rel="icon"]');
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = 'icon';
+          document.head.appendChild(link);
+        }
+        window.__zwApplyFavicon ? window.__zwApplyFavicon(b.favicon) : (link.href = b.favicon);
+      }
+      try { localStorage.setItem('zw-brand', JSON.stringify(b || {})); } catch (e) {}
+      if (b && b.admin_res_bg) document.documentElement.style.setProperty('--admin-res-bg', b.admin_res_bg);
+      if (b && b.admin_res_text) document.documentElement.style.setProperty('--admin-res-text', b.admin_res_text);
+    }
+
+    // 2. page_builder_published
+    if (!window.__ZW_BUILDER_PREVIEW__ && settings.page_builder_published !== undefined) {
+      const val = typeof settings.page_builder_published === 'string' ? JSON.parse(settings.page_builder_published) : settings.page_builder_published;
+      if (val && val.sections) {
+        window.__zwApplyBuilderConfig(val);
+        window.__zwPageBuilderActive = true;
+        const themeMode = val.theme === 'light' ? 'light' : val.theme === 'super-light' ? 'super-light' : 'dark';
+        try { localStorage.setItem('zw_homepage_theme_mode', themeMode); } catch(e) {}
+      }
+    }
+
+    // 3. theme
+    if (settings.theme !== undefined) {
+      if (!window.__ZW_BUILDER_PREVIEW__ && !window.__zwPageBuilderActive) {
+        const mode = settings.theme && settings.theme.mode === 'dark' ? 'dark' : settings.theme && settings.theme.mode === 'super-light' ? 'super-light' : 'light';
+        if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode);
+        else {
+          document.body.classList.toggle('light-mode', mode === 'light' || mode === 'super-light');
+          document.body.classList.toggle('super-light-mode', mode === 'super-light');
+          if (window.__zwSyncThemeColor) window.__zwSyncThemeColor();
+        }
+        try { localStorage.removeItem('zw_homepage_theme_mode'); } catch(e) {}
+      }
+    }
+
+    // 4. hero
+    if (settings.hero !== undefined) {
+      if (!window.__ZW_BUILDER_PREVIEW__ && !window.__zwPageBuilderActive) {
+        const h = typeof settings.hero === 'string' ? JSON.parse(settings.hero) : settings.hero;
+        if (h.kicker) {
+          const el = document.querySelector('.hero-kicker');
+          if (el) el.textContent = h.kicker;
+        }
+        if (h.heading) {
+          const el = document.querySelector('.hero-h1');
+          if (el) el.textContent = h.heading;
+        }
+        if (h.subtext) {
+          const el = document.querySelector('.hero-sub');
+          if (el) el.textContent = h.subtext;
+        }
+        if (h.cta_text) {
+          const el = document.querySelector('.hero-cta-row .btn-outline');
+          if (el) {
+            const svg = el.querySelector('svg');
+            el.textContent = h.cta_text;
+            if (svg) el.appendChild(svg);
+          }
+        }
+        if (h.image) {
+          const el = document.getElementById('hero-image');
+          if (el) el.src = h.image;
+          const mobileSource = document.getElementById('hero-mobile-source');
+          if (mobileSource) mobileSource.srcset = h.image;
+          window.__ZW_HERO_IMAGE = h.image;
+          try { localStorage.setItem('zw-hero-image', h.image); } catch (e) {}
+          const preload = document.getElementById('hero-preload');
+          if (preload) preload.href = h.image;
+        }
+      }
+    }
+
+    // 5. announcement_bar
+    let announcementApplied = false;
+    if (settings.announcement_bar !== undefined) {
+      let v = settings.announcement_bar;
+      try {
+        if (typeof v === 'string') v = JSON.parse(v);
+      } catch(e) {}
+      
+      let mode = 'on';
+      let msgText = '';
+      if (typeof v === 'object' && v !== null) {
+        mode = v.mode || (v.enabled === false ? 'off' : 'on');
+        msgText = Object.prototype.hasOwnProperty.call(v, 'main') ? (v.main ?? '') : '';
+      } else {
+        msgText = v;
+      }
+
+      applyAnnouncementBar(mode, msgText);
+      announcementApplied = true;
+    }
     if (!announcementApplied) applyAnnouncementBar('on', '');
+
+    // 6. shipping_policy
+    if (settings.shipping_policy !== undefined) {
+      const v = settings.shipping_policy || {};
+      window._shippingPolicy = {
+        enabled:      v.free_shipping_enabled !== false,
+        threshold:    parseFloat(v.free_threshold)  || 100,
+        standardRate: parseFloat(v.standard_rate)   || 8,
+      };
+      // Re-render cart with real policy now that settings have loaded
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const sub  = cart.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0);
+      if (sub > 0) updateCartSummary(sub);
+    }
+
     // If in builder preview, re-apply builder config now that Supabase is done
     if (window.__zwReapplyBuilder) window.__zwReapplyBuilder();
   } catch (e) {

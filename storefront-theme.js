@@ -25,7 +25,10 @@
     if (/iPhone/.test(navigator.userAgent)) {
       document.documentElement.style.setProperty('--zw-notch-bar', color);
     }
-    try { localStorage.setItem('zw_theme_mode', resolved); } catch(_) {}
+    try {
+      var key = (window.__zwPageBuilderActive || window.__ZW_BUILDER_PREVIEW__) ? 'zw_homepage_theme_mode' : 'zw_theme_mode';
+      localStorage.setItem(key, resolved);
+    } catch(_) {}
     window.dispatchEvent(new CustomEvent('zw-theme-applied', { detail: { mode: resolved } }));
   }
 
@@ -230,6 +233,9 @@
 
       rows.forEach(function(row) {
         if (row.key === 'theme') {
+          var isHomepage = window.location.pathname === '/' || window.location.pathname.endsWith('/index.html') || window.location.pathname.endsWith('/');
+          if (isHomepage || window.__ZW_BUILDER_PREVIEW__) return;
+
           var mode = row.value && row.value.mode === 'dark' ? 'dark'
                    : row.value && row.value.mode === 'super-light' ? 'super-light' : 'light';
           applyThemeMode(mode);
@@ -258,7 +264,11 @@
   window.addEventListener('pageshow', function(e) {
     if (e.persisted) {
       var mode = 'dark';
-      try { mode = localStorage.getItem('zw_theme_mode') || 'dark'; } catch(_) {}
+      try {
+        var isHomepage = window.location.pathname === '/' || window.location.pathname.endsWith('/index.html') || window.location.pathname.endsWith('/');
+        var key = isHomepage ? 'zw_homepage_theme_mode' : 'zw_theme_mode';
+        mode = localStorage.getItem(key) || localStorage.getItem('zw_theme_mode') || 'dark';
+      } catch(_) {}
       applyThemeMode(mode);
     }
   });
