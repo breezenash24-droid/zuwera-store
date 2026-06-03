@@ -864,7 +864,6 @@ function dotCls(c){const d=document.getElementById('sdot');if(d)d.className='dot
 function status(msg){const el=document.getElementById('tstatus');if(el)el.innerHTML=`<span class="dot" id="sdot"></span>${msg}`;}
 function showKb(){document.getElementById('kbOverlay').classList.add('open');}
 
-let _tt;
 function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='on'+(type?' '+type:'');clearTimeout(_tt);_tt=setTimeout(()=>el.className='',2500);}
 function showErr(msg){document.getElementById('errMsg').textContent=msg;document.getElementById('errBox').classList.add('on');}
 
