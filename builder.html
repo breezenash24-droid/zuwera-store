@@ -829,7 +829,7 @@ async function saveDraft(auto=false){
 
 async function publishPage(){
   status('Publishing…');dotCls('y');
-  const ok=await saveToSupa('page_builder',{sections},true);
+  const ok=await saveToSupa('page_builder',{sections,theme:pvTheme},true);
   if(ok){lastSaved=clone(sections);dirty=false;status('Published ✓');dotCls('g');toast('Published! Changes are live.','ok');
     // save snapshot on publish
     versionHistory.push({ts:new Date().toISOString(),label:'Published',sections:clone(sections)});

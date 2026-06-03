@@ -3568,6 +3568,13 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
     if (!window.__ZW_BUILDER_PREVIEW__ && settings.page_builder_published !== undefined) {
       const val = typeof settings.page_builder_published === 'string' ? JSON.parse(settings.page_builder_published) : settings.page_builder_published;
       if (val && val.sections) {
+        // If theme wasn't saved in the published record (pre-fix), fall back to builder_theme.default_mode
+        if (!val.theme && settings.builder_theme) {
+          try {
+            const bt = typeof settings.builder_theme === 'string' ? JSON.parse(settings.builder_theme) : settings.builder_theme;
+            if (bt && bt.default_mode) val.theme = bt.default_mode;
+          } catch(_) {}
+        }
         window.__zwApplyBuilderConfig(val);
         window.__zwPageBuilderActive = true;
         const themeMode = val.theme === 'light' ? 'light' : val.theme === 'super-light' ? 'super-light' : 'dark';
@@ -4038,8 +4045,6 @@ function renderProductCards(products, grid) {
     });
   });
 }
-
-        loadProducts();
 
 
 function setDisabled(id, dis, label) {
