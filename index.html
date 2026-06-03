@@ -2452,18 +2452,6 @@ function showToast(msg) {
     if (stylesInjected) return;
     const style = document.createElement('style');
     style.textContent = `
-      body.builder-preview {
-        display: flex !important;
-        flex-direction: column !important;
-      }
-      body.builder-preview nav#nav {
-        position: sticky !important;
-        order: -10000 !important;
-      }
-      body.builder-preview #bar {
-        position: sticky !important;
-        order: -9999 !important;
-      }
       body.builder-preview .products-section {
         background: var(--ink);
       }
@@ -2487,9 +2475,12 @@ function showToast(msg) {
       document.body.classList.remove('light-mode','super-light-mode');
     }
 
-    document.body.classList.add('builder-preview');
+    if (window.__ZW_BUILDER_PREVIEW__) {
+      document.body.classList.add('builder-preview');
+    } else {
+      document.body.classList.remove('builder-preview');
+    }
     const footer = document.querySelector('footer');
-    if (footer) footer.style.order = 99999;
 
     // Un-nest products-section from drop-wrap so they can be reordered independently
     const dropWrap = document.querySelector('.drop-wrap');
@@ -2548,17 +2539,18 @@ function showToast(msg) {
           } else if (sec.type === 'custom' || sec.type === 'html') {
             el.className = 'builder-custom-section';
           }
-          if (footer) {
-            document.body.insertBefore(el, footer);
-          } else {
-            document.body.appendChild(el);
-          }
         }
       }
 
       if (!el) return;
       el.style.display = sec.visible ? '' : 'none';
-      el.style.order = idx;
+
+      // Physically move the element in the DOM to enforce the correct order
+      if (footer) {
+        document.body.insertBefore(el, footer);
+      } else {
+        document.body.appendChild(el);
+      }
 
       const s = sec.settings || {};
       switch(sec.type) {
@@ -2605,11 +2597,14 @@ function showToast(msg) {
             imgCta.style.display = '';
           } else if (imgCta) imgCta.style.display = 'none';
           // Background image
-          if (s.image !== undefined) {
-            const img = el.querySelector('#hero-image');
+          const img = el.querySelector('#hero-image');
+          const mobileSource = el.querySelector('#hero-mobile-source');
+          if (s.image) {
             if (img) img.src = s.image;
-            const mobileSource = el.querySelector('#hero-mobile-source');
             if (mobileSource) mobileSource.srcset = s.image;
+          } else {
+            if (img) img.src = 'images/hero.jpg';
+            if (mobileSource) mobileSource.srcset = 'images/hero-mobile.jpg';
           }
           break;
         }
