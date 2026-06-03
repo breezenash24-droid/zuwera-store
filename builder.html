@@ -151,8 +151,9 @@ body{display:flex;flex-direction:column}
     <button data-m="mob" onclick="setPvMode('mob')">📱 Mobile</button>
   </div>
   <div class="tog" id="thTog">
-    <button class="on" data-t="dark" onclick="setTheme('dark')">🌙</button>
-    <button data-t="light" onclick="setTheme('light')">☀️</button>
+    <button class="on" data-t="dark" onclick="setTheme('dark')">🌙 Dark</button>
+    <button data-t="light" onclick="setTheme('light')">☀️ Light</button>
+    <button data-t="super-light" onclick="setTheme('super-light')">❄️ Super Light</button>
   </div>
   <div class="tsep"></div>
   <button class="tbtn tbtn-ghost" onclick="undo()" title="Undo (Ctrl+Z)">↩ Undo</button>
@@ -316,6 +317,9 @@ let _tt, _autosaveT, _previewT;
       const{data}=await sb.from('site_settings').select('*').eq('key','page_builder').single();
       if(data?.value?.sections){
         sections=data.value.sections.map(s=>({...s,settings:{...SECT_DEFAULTS[s.type],...(s.settings||{})}}));
+        if(data.value.theme){
+          pvTheme=data.value.theme;
+        }
         lastSaved=clone(sections);
         status('Last saved '+new Date(data.value.updated_at||Date.now()).toLocaleDateString());
       }else throw new Error('no config');
@@ -326,6 +330,7 @@ let _tt, _autosaveT, _previewT;
     status('Ready (defaults)');
   }
   renderSidebar();
+  setTheme(pvTheme);
   setPvMode('desk');
   document.getElementById('pvIframe').addEventListener('load',()=>sendCfg());
   // Auto-save every 60s if dirty
@@ -767,7 +772,7 @@ async function saveToSupa(pub){
     const sb=getSb();if(!sb){showErr('No DB');return false;}
     const{data:{session}}=await sb.auth.getSession();
     if(!session){showErr('Session expired');return false;}
-    const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:session.access_token,sections,published:pub})});
+    const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:session.access_token,sections,theme:pvTheme,published:pub})});
     if(!res.ok){const j=await res.json().catch(()=>({}));showErr((j.error||'Save failed'));return false;}
     dirty=false;lastSaved=clone(sections);
     status(pub?'Published ✓':'Draft saved');

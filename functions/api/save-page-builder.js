@@ -31,7 +31,7 @@ export async function onRequestOptions() {
 
 export async function onRequestPost({ request, env }) {
   try {
-    const { accessToken, sections, published } = await request.json();
+    const { accessToken, sections, theme, published } = await request.json();
 
     if (!accessToken) return cors({ error: 'No access token provided' }, 401);
     if (!sections)    return cors({ error: 'No sections data' }, 400);
@@ -52,6 +52,7 @@ export async function onRequestPost({ request, env }) {
     // Write using service role (bypasses RLS)
     const value = {
       sections,
+      theme,
       updated_at: new Date().toISOString(),
       published: !!published,
     };

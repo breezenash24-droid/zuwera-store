@@ -14,7 +14,7 @@ exports.handler = async (event) => {
   if (event.httpMethod !== 'POST')    return err(405, 'Method not allowed');
 
   try {
-    const { accessToken, sections, published } = JSON.parse(event.body);
+    const { accessToken, sections, theme, published } = JSON.parse(event.body);
 
     if (!accessToken) return err(401, 'No access token provided');
     if (!sections)    return err(400, 'No sections data');
@@ -35,6 +35,7 @@ exports.handler = async (event) => {
     // Write using service role (bypasses RLS)
     const value = {
       sections,
+      theme,
       updated_at: new Date().toISOString(),
       published: !!published,
     };
