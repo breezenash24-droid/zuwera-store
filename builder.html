@@ -318,9 +318,6 @@ body{display:flex;flex-direction:column}
 'use strict';
 const SUPA_URL='https://qfgnrsifcwdubkolsgsq.supabase.co';
 const SUPA_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
-// Must use the SAME storageKey as admin.html so the session is found.
-// admin.html uses 'zuwera-admin-auth-session-v1'; supabase-client.js uses
-// 'zuwera-auth' — different keys mean getSession() always returns null.
 let _adminSb=null;
 function getSb(){
   if(_adminSb)return _adminSb;
@@ -329,6 +326,25 @@ function getSb(){
     auth:{persistSession:true,storageKey:'zuwera-admin-auth-session-v1',flowType:'implicit'}
   });
   return _adminSb;
+}
+
+// Single source of truth for the access token.
+// Priority: 1) token written by admin.html on click  2) live getSession()
+async function getAccessToken(){
+  try{
+    const tok=localStorage.getItem('zw_builder_token');
+    const exp=parseInt(localStorage.getItem('zw_builder_token_exp')||'0',10);
+    if(tok&&(exp===0||exp*1000>Date.now()))return tok;
+  }catch(_){}
+  // Fall back to Supabase client
+  try{
+    const sb=getSb();
+    if(sb){
+      const{data}=await sb.auth.getSession();
+      if(data?.session?.access_token)return data.session.access_token;
+    }
+  }catch(_){}
+  return null;
 }
 
 // ── AUTH ──────────────────────────────────────────────────────────────────
@@ -547,8 +563,8 @@ function renderThemeTab(container){
 
 async function saveTheme(){
   try{
-    const sb=getSb();const{data:{session}}=await sb.auth.getSession();
-    const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:session.access_token,key:'builder_theme',value:themeSettings})});
+    const token=await getAccessToken();if(!token)throw new Error('Session expired');
+    const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:token,key:'builder_theme',value:themeSettings})});
     if(!res.ok)throw new Error(await res.text());
     toast('Theme saved','ok');sendCfg();
   }catch(e){showErr(e.message);}
@@ -576,8 +592,8 @@ function removeNavLink(i){navSettings.links.splice(i,1);renderLP();}
 
 async function saveNav(){
   try{
-    const sb=getSb();const{data:{session}}=await sb.auth.getSession();
-    const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:session.access_token,key:'builder_nav',value:navSettings})});
+    const token=await getAccessToken();if(!token)throw new Error('Session expired');
+    const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:token,key:'builder_nav',value:navSettings})});
     if(!res.ok)throw new Error(await res.text());
     toast('Navigation saved','ok');sendCfg();
   }catch(e){showErr(e.message);}
@@ -605,8 +621,8 @@ async function saveSnapshot(label){
   versionHistory.push({ts:new Date().toISOString(),label:label||'Snapshot',sections:clone(sections)});
   if(versionHistory.length>15)versionHistory.shift();
   try{
-    const sb=getSb();const{data:{session}}=await sb.auth.getSession();
-    await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:session.access_token,key:'builder_history',value:{versions:versionHistory}})});
+    const token=await getAccessToken();if(!token)throw new Error('Session expired');
+    await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:token,key:'builder_history',value:{versions:versionHistory}})});
     toast('Snapshot saved','ok');renderLP();
   }catch(e){showErr(e.message);}
 }
@@ -642,7 +658,7 @@ async function saveTemplate(){
 }
 function applyTemplate(i){if(!confirm('Apply this template? Current sections will be replaced.'))return;pushUndo();sections=clone(templates[i].sections);markDirty();renderLP();sendCfg();}
 async function deleteTemplate(i){templates.splice(i,1);await persistTemplates();renderLP();}
-async function persistTemplates(){try{const sb=getSb();const{data:{session}}=await sb.auth.getSession();await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:session.access_token,key:'builder_templates',value:{list:templates}})});}catch(e){showErr(e.message);}}
+async function persistTemplates(){try{const token=await getAccessToken();if(!token)throw new Error('Session expired');await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:token,key:'builder_templates',value:{list:templates}})});}catch(e){showErr(e.message);}}
 
 // ── EDITOR ────────────────────────────────────────────────────────────────
 function selectSec(id){selId=id;const s=sections.find(x=>x.id===id);if(s)openEditor(s);}
@@ -876,8 +892,8 @@ async function publishPage(){
     // save snapshot on publish
     versionHistory.push({ts:new Date().toISOString(),label:'Published',sections:clone(sections)});
     if(versionHistory.length>15)versionHistory.shift();
-    const sb=getSb();const{data:{session}}=await sb.auth.getSession().catch(()=>({data:{}}));
-    if(session)await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:session.access_token,key:'builder_history',value:{versions:versionHistory}})}).catch(()=>{});
+    const token=await getAccessToken();
+    if(token)await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:token,key:'builder_history',value:{versions:versionHistory}})}).catch(()=>{});
   }else{dotCls('r');}
   setTimeout(()=>dotCls(''),3000);
 }
@@ -885,8 +901,8 @@ async function publishPage(){
 async function saveToSupa(key,extra,pub){
   try{
     const sb=getSb();if(!sb)throw new Error('No DB');
-    const{data:{session}}=await sb.auth.getSession();if(!session)throw new Error('Session expired');
-    const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:session.access_token,key,...extra,published:pub})});
+    const token=await getAccessToken();if(!token)throw new Error('Session expired — re-open builder from admin.');
+    const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:token,key,...extra,published:pub})});
     if(!res.ok){const j=await res.json().catch(()=>({}));throw new Error(j.error||'HTTP '+res.status);}
     dirty=false;return true;
   }catch(e){showErr(e.message);return false;}
