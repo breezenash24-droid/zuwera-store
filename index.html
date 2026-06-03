@@ -2475,6 +2475,19 @@ function showToast(msg) {
       document.body.classList.remove('light-mode','super-light-mode');
     }
 
+    // Apply builder theme settings (bar bg/color, accent, etc.)
+    if (cfg.themeSettings) {
+      const bar = document.getElementById('bar');
+      if (bar) {
+        if (cfg.themeSettings.bar_bg) bar.style.setProperty('background', cfg.themeSettings.bar_bg, 'important');
+        if (cfg.themeSettings.bar_text_color) bar.style.setProperty('color', cfg.themeSettings.bar_text_color, 'important');
+      }
+      if (cfg.themeSettings.accent_color) {
+        document.documentElement.style.setProperty('--gold', cfg.themeSettings.accent_color);
+        document.documentElement.style.setProperty('--zw-accent', cfg.themeSettings.accent_color);
+      }
+    }
+
     if (window.__ZW_BUILDER_PREVIEW__) {
       document.body.classList.add('builder-preview');
     } else {
@@ -2996,6 +3009,22 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
       announcementApplied = true;
     }
     if (!announcementApplied) applyAnnouncementBar('on', '');
+
+    // Apply builder_theme overrides to bar bg/color (saved from Page Builder theme tab)
+    if (settings.builder_theme) {
+      try {
+        const bt = typeof settings.builder_theme === 'string' ? JSON.parse(settings.builder_theme) : settings.builder_theme;
+        const bar = document.getElementById('bar');
+        if (bar) {
+          if (bt.bar_bg) bar.style.setProperty('background', bt.bar_bg, 'important');
+          if (bt.bar_text_color) bar.style.setProperty('color', bt.bar_text_color, 'important');
+        }
+        if (bt.accent_color) {
+          document.documentElement.style.setProperty('--gold', bt.accent_color);
+          document.documentElement.style.setProperty('--zw-accent', bt.accent_color);
+        }
+      } catch(_) {}
+    }
 
     // 6. shipping_policy
     if (settings.shipping_policy !== undefined) {
