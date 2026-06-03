@@ -2736,6 +2736,10 @@ function showToast(msg) {
     window.addEventListener('message', e => {
       if (e.data && e.data.type === 'ZW_BUILDER_CONFIG') {
         applyBuilderConfig(e.data);
+      } else if (e.data && e.data.type === 'ZW_SCROLL_TO_SECTION') {
+        const sm={hero:document.querySelector('.hero'),marquee:document.querySelector('.marquee'),about:document.querySelector('.section-about'),release:document.querySelector('.drop-wrap'),products:document.querySelector('.products-section')};
+        const el=sm[e.data.sectionId]||document.getElementById(e.data.sectionId);
+        if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
       }
     });
 
