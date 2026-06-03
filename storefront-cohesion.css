@@ -78,9 +78,12 @@ body.super-light-mode{
   --zw-page:#FFFFFF;
   --zw-paper:#f5f5f5;
   --zw-cream:#e8e8e8;
-  --ink:#FFFFFF;
-  --black:#FFFFFF;
   --bg:#FFFFFF;
+  /* --ink and --black must stay dark so text is visible on white */
+  --ink:#09090b;
+  --black:#09090b;
+  --paper:#f4f1eb;
+  --white:#f4f1eb;
 }
 
 button,

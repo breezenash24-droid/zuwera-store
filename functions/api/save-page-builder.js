@@ -51,9 +51,12 @@ export async function onRequestPost({ request, env }) {
     const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || env.SUPABASE_SERVICE_ROLE;
     if (!serviceKey) return cors({ error: 'Server not configured — add SUPABASE_SERVICE_ROLE_KEY env var' }, 500);
 
-    // Build value from body (strip meta fields)
-    const { accessToken: _a, key: _k, published: _p, ...rest } = body;
-    const value = { ...rest, updated_at: new Date().toISOString(), published: !!published };
+    // Build value from body (strip meta fields).
+    // If the body has an explicit 'value' key (used by theme/nav/history/templates saves)
+    // use that as the payload so the data isn't double-nested under {value:{...}}.
+    const { accessToken: _a, key: _k, published: _p, value: explicitValue, ...rest } = body;
+    const payload = explicitValue !== undefined ? explicitValue : rest;
+    const value = { ...payload, updated_at: new Date().toISOString(), published: !!published };
 
     // Build rows to upsert
     const rows = [{ key, value }];

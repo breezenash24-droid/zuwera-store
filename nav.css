@@ -164,10 +164,37 @@ body.light-mode .cart-count {
 }
 
 /* ===================== SUPER LIGHT MODE ===================== */
+/* Announcement bar stays dark in super-light (matches light-mode intent) */
+body.super-light-mode .announcement-bar {
+  background: #09090b;
+  color: #F0EEE9;
+  border-bottom-color: rgba(244,241,235,0.1);
+}
+body.super-light-mode .announcement-close {
+  color: #F0EEE9;
+}
 body.super-light-mode .nav {
   background: #FFFFFF;
+  border-bottom-color: rgba(9,9,11,0.08);
   box-shadow: 0 1px 12px rgba(9,9,11,0.08);
 }
+body.super-light-mode .logo {
+  filter: invert(1);
+}
+body.super-light-mode .nav-right button,
+body.super-light-mode #account-btn {
+  color: #09090b;
+}
+body.super-light-mode .nav-right button:hover,
+body.super-light-mode #account-btn:hover {
+  opacity: 0.65;
+  color: #09090b;
+}
+body.super-light-mode #cart-btn {
+  border-color: rgba(9,9,11,0.2) !important;
+  color: #09090b;
+}
 body.super-light-mode .cart-count {
+  background: #09090b;
   color: #FFFFFF;
 }
