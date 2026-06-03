@@ -79,11 +79,13 @@ body.super-light-mode{
   --zw-paper:#f5f5f5;
   --zw-cream:#e8e8e8;
   --bg:#FFFFFF;
-  /* --ink and --black must stay dark so text is visible on white */
-  --ink:#09090b;
-  --black:#09090b;
-  --paper:#f4f1eb;
-  --white:#f4f1eb;
+  /* --ink / --black are BACKGROUND variables — keep them light so sections
+     like .drop-wrap, nav, body that use background:var(--ink) stay white.
+     Text color is handled via --paper / --white which are already dark. */
+  --ink:#FFFFFF;
+  --black:#FFFFFF;
+  --paper:#09090b;
+  --white:#09090b;
 }
 
 button,
@@ -2754,4 +2756,16 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.18)!important;}
   .collection-review-close::before,.collection-review-close::after{
     width:14px !important;
   }
+}
+
+/* ── Desktop light/super-light explicit overrides ── */
+/* nav#nav uses background:var(--ink); in dark mode that's dark.
+   In light/super-light we override explicitly so it's never black. */
+body.light-mode nav#nav,
+body.light-mode .zw-nav{
+  background:var(--zw-page,#F0EEE9) !important;
+}
+body.super-light-mode nav#nav,
+body.super-light-mode .zw-nav{
+  background:#FFFFFF !important;
 }
