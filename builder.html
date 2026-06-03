@@ -788,7 +788,6 @@ function clone(x){return JSON.parse(JSON.stringify(x));}
 function markDirty(){dirty=true;status('Unsaved changes');}
 function status(msg){document.getElementById('tstatus').innerHTML=`<span class="autosave-dot" id="autosaveDot"></span>${msg}`;}
 
-let _tt;
 function toast(msg,type=''){
   const el=document.getElementById('toast');
   el.textContent=msg;el.className='on'+(type?' '+type:'');
