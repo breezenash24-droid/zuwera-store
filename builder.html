@@ -324,17 +324,33 @@ function getSb(){return window.sb||(typeof supabase!=='undefined'?supabase.creat
 (async function authCheck(){
   document.querySelector('.layout').style.display='none';
   document.querySelector('.topbar').style.display='none';
+
+  function showLockScreen(){
+    const g=document.createElement('div');
+    g.style.cssText='position:fixed;inset:0;background:#0f0f11;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1rem;z-index:999';
+    g.innerHTML='<div style="font-family:\'Barlow Condensed\',sans-serif;font-style:italic;font-weight:900;font-size:2rem;letter-spacing:.08em">ZUWERA</div><div style="font-family:\'IBM Plex Mono\',monospace;font-size:.56rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(244,241,235,.3)">Page Builder — Admin Only</div><a href="/admin.html" style="margin-top:.5rem;background:#f4f1eb;color:#0f0f11;font-family:\'IBM Plex Mono\',monospace;font-size:.58rem;letter-spacing:.11em;text-transform:uppercase;padding:.52rem 1.3rem;text-decoration:none;font-weight:600">Sign In via Admin →</a><div style="font-family:\'IBM Plex Mono\',monospace;font-size:.5rem;color:rgba(244,241,235,.2);letter-spacing:.1em;text-align:center;max-width:280px">Sign in at the admin panel, then return here.<br>If you just signed in, try refreshing this page.</div>';
+    document.body.appendChild(g);
+  }
+
   try{
-    const sb=getSb();if(!sb)throw new Error('no sb');
-    const{data:{session}}=await sb.auth.getSession();
-    if(!session)throw new Error('not authenticated');
+    const sb=getSb();
+    if(!sb){showLockScreen();return;}
+
+    // getSession() can return null on first load even if a session exists in localStorage
+    // because the Supabase client initialises auth asynchronously.
+    // Retry up to 3 times with a short delay before giving up.
+    let session=null;
+    for(let attempt=0;attempt<3;attempt++){
+      const{data}=await sb.auth.getSession();
+      if(data?.session){session=data.session;break;}
+      if(attempt<2)await new Promise(r=>setTimeout(r,600));
+    }
+
+    if(!session){showLockScreen();return;}
     document.querySelector('.layout').style.display='';
     document.querySelector('.topbar').style.display='';
   }catch(e){
-    const g=document.createElement('div');
-    g.style.cssText='position:fixed;inset:0;background:#0f0f11;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1rem;z-index:999';
-    g.innerHTML='<div style="font-family:\'Barlow Condensed\',sans-serif;font-style:italic;font-weight:900;font-size:2rem;letter-spacing:.08em">ZUWERA</div><div style="font-family:\'IBM Plex Mono\',monospace;font-size:.56rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(244,241,235,.3)">Page Builder — Admin Only</div><a href="/admin.html" style="margin-top:.5rem;background:#f4f1eb;color:#0f0f11;font-family:\'IBM Plex Mono\',monospace;font-size:.58rem;letter-spacing:.11em;text-transform:uppercase;padding:.52rem 1.3rem;text-decoration:none;font-weight:600">Sign In via Admin →</a>';
-    document.body.appendChild(g);
+    showLockScreen();
   }
 })();
 
