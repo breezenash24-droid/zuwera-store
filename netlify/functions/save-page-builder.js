@@ -46,7 +46,7 @@ exports.handler = async (event) => {
       rows.push({ key: 'page_builder_published', value });
     }
 
-    const saveRes = await fetch(`${SUPABASE_URL}/rest/v1/site_settings`, {
+    const saveRes = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?on_conflict=key`, {
       method: 'POST',
       headers: {
         apikey:           serviceKey,

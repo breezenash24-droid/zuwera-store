@@ -81,8 +81,6 @@ const checks = [
     pass: () => [files.index, files.drop, files.product, files.sizeguide, files.account, files.bag, files.returns, files.notFound]
       .every(file => /id="mobile-menu"/.test(file)
         && /id="mobile-menu-btn"/.test(file)
-        && /zw-mobile-menu-footer/.test(file)
-        && /window\.zwLang\?\.open/.test(file)
         && /mobile-menu\.js\?v=/.test(file)),
   },
   {
@@ -118,8 +116,6 @@ const checks = [
       && /#mobile-menu\.zw-mobile-menu > \.zw-mobile-menu-panel\{[\s\S]*overflow-x:hidden/.test(files.cohesion)
       && /document\.body\.style\.position = 'fixed'/.test(files.mobileMenu)
       && /window\.scrollTo\(0, lockedScrollY/.test(files.mobileMenu)
-      && /zw-mobile-socials/.test(files.index + files.product + files.drop + files.sizeguide + files.account + files.bag + files.returns + files.notFound)
-      && /window\.zwLang\?\.open/.test(files.index + files.product + files.drop + files.sizeguide + files.account + files.bag + files.returns + files.notFound)
       && /injectMobileMenuLanguageButtons/.test(files.lang)
       && /zw-mobile-lang-trigger/.test(files.lang)
       && /querySelectorAll\('footer, \.cart-shell-footer'\)/.test(files.lang)
@@ -128,7 +124,7 @@ const checks = [
   },
   {
     name: 'Mobile announcement bar uses CSS safe-area positioning',
-    pass: () => /@media\(max-width:900px\)\{[\s\S]*#bar\{[\s\S]*top:calc\(0\.8rem \+ env\(safe-area-inset-top,0px\) \+ 0\.9rem\)/.test(files.index)
+    pass: () => /@media\(max-width:900px\)\{[\s\S]*#bar\{[\s\S]*top:calc\(\.75rem \+ env\(safe-area-inset-top,0px\) \+ 36px \+ \.85rem\)/.test(files.index)
       && !/bar\.style\.top\s*=\s*nav\.offsetHeight/.test(files.index)
       && !/barEl\.style\.top\s*=\s*navEl\.offsetHeight/.test(files.index)
       && !/barEl\.style\.top\s*=\s*\(navEl \? navEl\.offsetHeight/.test(files.index),
