@@ -2929,12 +2929,16 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
     if (!window.__ZW_BUILDER_PREVIEW__ && settings.page_builder_published !== undefined) {
       const val = typeof settings.page_builder_published === 'string' ? JSON.parse(settings.page_builder_published) : settings.page_builder_published;
       if (val && val.sections && val.sections.some(s => s.visible !== false)) {
-        // Fall back to builder_theme.default_mode if theme wasn't saved in older publishes
-        if (!val.theme && settings.builder_theme) {
+        // Merge builder_theme into themeSettings for bar colors etc. if not in published data
+        if (!val.themeSettings && settings.builder_theme) {
           try {
-            const bt = typeof settings.builder_theme === 'string' ? JSON.parse(settings.builder_theme) : settings.builder_theme;
-            if (bt && bt.default_mode) val.theme = bt.default_mode;
+            val.themeSettings = typeof settings.builder_theme === 'string' ? JSON.parse(settings.builder_theme) : settings.builder_theme;
           } catch(_) {}
+        }
+        // Fall back to themeSettings.default_mode if theme wasn't saved in older publishes
+        if (!val.theme) {
+          const bt = val.themeSettings;
+          if (bt && bt.default_mode) val.theme = bt.default_mode;
         }
         window.__zwApplyBuilderConfig(val);
         window.__zwPageBuilderActive = true;
@@ -3016,8 +3020,9 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
     }
     if (!announcementApplied) applyAnnouncementBar('on', '');
 
-    // Apply builder_theme overrides to bar bg/color (saved from Page Builder theme tab)
-    if (settings.builder_theme) {
+    // Apply builder_theme overrides to bar bg/color — only when builder is NOT active
+    // (when active, themeSettings are already merged into the published config above)
+    if (!window.__zwPageBuilderActive && settings.builder_theme) {
       try {
         const bt = typeof settings.builder_theme === 'string' ? JSON.parse(settings.builder_theme) : settings.builder_theme;
         const bar = document.getElementById('bar');
