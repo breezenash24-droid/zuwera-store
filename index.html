@@ -2742,6 +2742,7 @@ function showToast(msg) {
     window.addEventListener('storage', e => {
       if (e.key === '_zw_builder_cfg') {
         try {
+          _lastRaw = e.newValue; // keep in sync so checkBuilderCfg doesn't re-apply redundantly
           applyBuilderConfig(JSON.parse(e.newValue));
         } catch(err) {}
       }
@@ -2754,8 +2755,13 @@ function showToast(msg) {
       }
     });
 
-    // Re-apply after Supabase overwrites DOM
-    window.__zwReapplyBuilder = function() { checkBuilderCfg(); };
+    // Re-apply after Supabase finishes loading (bar was hidden when first apply ran, now it's visible)
+    window.__zwReapplyBuilder = function() {
+      try {
+        const raw = localStorage.getItem('_zw_builder_cfg');
+        if (raw) { _lastRaw = raw; applyBuilderConfig(JSON.parse(raw)); }
+      } catch(e) {}
+    };
   }
 })();
 

@@ -555,10 +555,12 @@ function renderThemeTab(container){
     <div class="field"><label>Additional CSS (applied site-wide)</label><textarea id="custom_css" rows="6" style="font-family:'IBM Plex Mono',monospace;font-size:.6rem" placeholder="/* your CSS */">${he(g.custom_css||'')}</textarea></div>
     <button onclick="saveTheme()" class="apply-btn" style="margin-top:.3rem">💾 Save Theme Settings</button>
   </div>`;
-  // wire events
-  container.querySelectorAll('input,select,textarea').forEach(el=>el.addEventListener('change',()=>{
-    const k=el.dataset.k||el.id;if(k)themeSettings[k]=el.type==='checkbox'?el.checked:el.value;
-  }));
+  // wire events — update themeSettings and auto-preview on every change/input
+  container.querySelectorAll('input,select,textarea').forEach(el=>{
+    const sync=()=>{const k=el.dataset.k||el.id;if(k)themeSettings[k]=el.type==='checkbox'?el.checked:el.value;schedSend();};
+    el.addEventListener('change',sync);
+    el.addEventListener('input',sync);
+  });
 }
 
 async function saveTheme(){
@@ -710,7 +712,7 @@ const tog2=(k,l,checked)=>`<div class="tog2"><label>${l}</label><label class="sw
 const fdiv=()=>'<div class="fdiv"></div>';
 const fhd=t=>`<div class="fl" style="margin-top:.1rem">${t}</div>`;
 const colorF=(k,l,v='')=>`<div class="field"><label>${l}</label><div style="display:flex;gap:.35rem;align-items:center"><input type="color" data-f="${k}" value="${v||'#09090b'}"><input type="text" data-f="${k}_txt" value="${he(v)}" placeholder="#hex" style="flex:1" oninput="const ci=document.querySelector('[data-f=\\'${k}\\']');if(ci&&this.value.match(/^#[0-9a-f]{6}$/i))ci.value=this.value"></div></div>`;
-const colorF2=(k,l,v='')=>`<div class="field"><label>${l}</label><div style="display:flex;gap:.35rem;align-items:center"><input type="color" data-k="${k}" value="${v||'#09090b'}"><input type="text" value="${he(v)}" placeholder="#hex" style="flex:1"></div></div>`;
+const colorF2=(k,l,v='')=>`<div class="field"><label>${l}</label><div style="display:flex;gap:.35rem;align-items:center"><input type="color" data-k="${k}" value="${v||'#09090b'}" oninput="this.nextElementSibling.value=this.value"><input type="text" data-k="${k}" value="${he(v)}" placeholder="#hex" style="flex:1" oninput="if(/^#[0-9a-f]{6}$/i.test(this.value.trim()))this.previousElementSibling.value=this.value.trim()"></div></div>`;
 const rangeF=(k,l,v,min,max,unit='')=>`<div class="field"><label>${l}</label><div class="range-row"><input type="range" data-f="${k}" data-unit="${unit}" min="${min}" max="${max}" value="${v}" style="flex:1"><span class="range-val" data-range-disp="${k}">${v}${unit}</span></div></div>`;
 const padF=g=>`<div class="fdiv"></div>${fhd('Section Padding')}<div class="pad-grid">${rangeF('pad_top','Top Padding',g.pad_top||0,0,200,'px')}${rangeF('pad_bot','Bottom Padding',g.pad_bot||0,0,200,'px')}</div>`;
 const bgF=(k,g)=>`${colorF(k,'Section Background Color',g[k]||'')} <div class="fhint">Leave blank for default site background</div>`;
