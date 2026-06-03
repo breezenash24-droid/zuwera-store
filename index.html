@@ -3170,15 +3170,31 @@ function renderCategoryNavigation(products) {
   if (mobile) mobile.innerHTML = mobilePrimaryHtml;
 }
 
+// Deduplication guard — if loadProducts() is called concurrently (e.g. from
+// auth init and applyBuilderConfig at the same time) only one fetch runs.
+// The early-fetch response body can only be read once, so concurrent calls
+// hitting it simultaneously caused "body stream already read" errors.
+let _loadProductsInFlight = null;
+
 async function loadProducts() {
+  if (_loadProductsInFlight) {
+    // A fetch is already in progress — wait for it to finish, then re-render.
+    await _loadProductsInFlight.catch(() => {});
+    return;
+  }
+  _loadProductsInFlight = _doLoadProducts();
+  try {
+    await _loadProductsInFlight;
+  } finally {
+    _loadProductsInFlight = null;
+  }
+}
+
+async function _doLoadProducts() {
   const grid = document.getElementById('products-grid');
   if (!grid) return;
 
-  const cached = sessionStorage.getItem('zw_home_products');
-
-  // Always show skeleton placeholders while the fresh fetch is in-flight.
-  // Rendering stale sessionStorage data here caused a flash of old products
-  // before fresh data arrived, so we skip the optimistic cache render entirely.
+  // Show skeleton placeholders while fetching.
   grid.innerHTML = Array(4).fill(0).map(() => `
     <div class="pcard pcard--skeleton" aria-hidden="true" tabindex="-1">
       <div class="pcard-img"><div class="pcard-skel-img"></div></div>
@@ -3189,13 +3205,12 @@ async function loadProducts() {
       </div>
     </div>`).join('');
 
-  // Single joined query — products + their images in one round-trip.
-  // We also use window.__zwProductsEarlyFetch if the <head> script kicked it off
-  // early, saving the latency between HTML parse and this script running.
-  // A 9-second timeout prevents a hanging Supabase fetch from leaving skeleton loaders forever.
   try {
     const headers = { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` };
+    // Consume the early-fetch response exactly once, then clear it immediately
+    // so any concurrent/subsequent call does a fresh fetch instead.
     const earlyFetch = window.__zwProductsEarlyFetch;
+    window.__zwProductsEarlyFetch = null;
     const _timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 9000));
     const productsResp = await Promise.race([
       earlyFetch || fetch(
@@ -3204,14 +3219,12 @@ async function loadProducts() {
       ),
       _timeout
     ]);
-    window.__zwProductsEarlyFetch = null; // don't reuse a consumed response
     if (!productsResp.ok) throw new Error(`HTTP ${productsResp.status}`);
     const products = await productsResp.json();
     if (!Array.isArray(products) || products.length === 0) {
       grid.innerHTML = '<div class="pcard" style="opacity:.3;text-align:center;padding:3rem">No products yet.</div>';
       return;
     }
-    // Supabase embeds product_images as a nested array; sort them by sort_order.
     const normalizedProducts = products.map((product) => ({
       ...product,
       product_images: (product.product_images || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)),
