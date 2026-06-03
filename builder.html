@@ -134,6 +134,7 @@ body{display:flex;flex-direction:column}
   <div class="tog" id="thTog">
     <button class="on" data-t="dark" onclick="setTheme('dark')" title="Dark">🌙</button>
     <button data-t="light" onclick="setTheme('light')" title="Light">☀️</button>
+    <button data-t="super-light" onclick="setTheme('super-light')" title="Super Light">⚡</button>
   </div>
 
   <span id="tstatus">Loading…</span>
@@ -360,8 +361,8 @@ function openEditor(s) {
 
   // Sync all inputs to section settings + update preview on change
   body.querySelectorAll('input,textarea,select').forEach(el => {
-    el.addEventListener('input',  () => { syncForm(s); updateImgPreview(el); });
-    el.addEventListener('change', () => { syncForm(s); updateImgPreview(el); });
+    el.addEventListener('input',  () => { syncForm(s); updateImgPreview(el); sendCfg(); });
+    el.addEventListener('change', () => { syncForm(s); updateImgPreview(el); sendCfg(); });
   });
 
   // Wire image picker/upload buttons

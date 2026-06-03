@@ -2443,14 +2443,39 @@ function showToast(msg) {
    When opened inside /builder.html, receives postMessage with section
    config and applies it live without a Supabase round-trip.         */
 (function() {
-  // URL param is the most reliable check — doesn't depend on iframe context
-  const isBuilderPreview =
-    new URLSearchParams(window.location.search).get('builder') === '1' ||
-    (function(){ try{ return window.self !== window.top; }catch(_){ return false; } }());
-  if (!isBuilderPreview) return;
+  // Expose applyBuilderConfig globally so it can be called by loadSiteSettings
+  window.__zwApplyBuilderConfig = applyBuilderConfig;
+
+  // Inject preview-only styles dynamically when needed
+  let stylesInjected = false;
+  function injectBuilderStyles() {
+    if (stylesInjected) return;
+    const style = document.createElement('style');
+    style.textContent = `
+      body.builder-preview {
+        display: flex !important;
+        flex-direction: column !important;
+      }
+      body.builder-preview nav#nav {
+        position: sticky !important;
+        order: -10000 !important;
+      }
+      body.builder-preview #bar {
+        position: sticky !important;
+        order: -9999 !important;
+      }
+      body.builder-preview .products-section {
+        background: var(--ink);
+      }
+    `;
+    document.head.appendChild(style);
+    stylesInjected = true;
+  }
 
   function applyBuilderConfig(cfg) {
     if (!cfg || !cfg.sections) return;
+
+    injectBuilderStyles();
 
     // Apply theme
     if (cfg.theme === 'light') {
@@ -2460,6 +2485,17 @@ function showToast(msg) {
       document.body.classList.add('light-mode','super-light-mode');
     } else {
       document.body.classList.remove('light-mode','super-light-mode');
+    }
+
+    document.body.classList.add('builder-preview');
+    const footer = document.querySelector('footer');
+    if (footer) footer.style.order = 99999;
+
+    // Un-nest products-section from drop-wrap so they can be reordered independently
+    const dropWrap = document.querySelector('.drop-wrap');
+    const productsSec = document.querySelector('.products-section');
+    if (dropWrap && productsSec && dropWrap.contains(productsSec)) {
+      dropWrap.parentNode.insertBefore(productsSec, dropWrap.nextSibling);
     }
 
     const sorted = [...cfg.sections].sort((a,b)=>(a.order||0)-(b.order||0));
@@ -2473,11 +2509,56 @@ function showToast(msg) {
       products:document.querySelector('.products-section')
     };
 
+    // Hide all default sections first
+    Object.values(sectionMap).forEach(el => {
+      if (el) el.style.display = 'none';
+    });
+    // Hide all previously added dynamic builder sections
+    document.querySelectorAll('.builder-spacer, .builder-text-section, .builder-image-cta-section, .builder-custom-section').forEach(el => {
+      el.style.display = 'none';
+    });
+
     sorted.forEach((sec, idx) => {
-      const el = sectionMap[sec.type] || document.getElementById(sec.id);
+      let el = sectionMap[sec.type] || document.getElementById(sec.id);
+      
+      if (!el) {
+        // Dynamically instantiate builder sections if they don't exist
+        if (['spacer', 'text', 'img_cta', 'image_cta', 'custom', 'html'].includes(sec.type)) {
+          el = document.createElement('div');
+          el.id = sec.id;
+          if (sec.type === 'spacer') {
+            el.className = 'builder-spacer';
+          } else if (sec.type === 'text') {
+            el.className = 'builder-text-section';
+            el.style.cssText = 'padding:6rem 2.5rem;max-width:800px;margin:0 auto;text-align:center';
+            el.innerHTML = `
+              <h2 data-builder-heading style="font-family:var(--fw);font-size:2.2rem;text-transform:uppercase;margin-bottom:1.5rem;letter-spacing:.08em;font-weight:900;font-style:italic"></h2>
+              <p data-builder-body style="font-family:var(--fb);font-size:1.05rem;color:inherit;opacity:.75;line-height:1.75;margin-bottom:2rem;white-space:pre-line"></p>
+              <a data-builder-cta class="btn-outline" style="display:inline-block;padding:.65rem 1.6rem;border:1px solid currentColor;font-family:var(--fm);font-size:.65rem;letter-spacing:.14em;text-transform:uppercase;transition:all .2s"></a>
+            `;
+          } else if (sec.type === 'img_cta' || sec.type === 'image_cta') {
+            el.className = 'builder-image-cta-section';
+            el.style.cssText = 'position:relative;width:100%;min-height:420px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#09090b';
+            el.innerHTML = `
+              <img data-builder-img src="" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;opacity:.35">
+              <div style="position:relative;z-index:2;text-align:center;padding:2rem">
+                <a data-builder-btn class="btn-outline" style="display:inline-block;padding:.8rem 2rem;border:1px solid currentColor;font-family:var(--fm);font-size:.65rem;letter-spacing:.14em;text-transform:uppercase;background:rgba(9,9,11,.65);backdrop-filter:blur(8px);transition:all .2s"></a>
+              </div>
+            `;
+          } else if (sec.type === 'custom' || sec.type === 'html') {
+            el.className = 'builder-custom-section';
+          }
+          if (footer) {
+            document.body.insertBefore(el, footer);
+          } else {
+            document.body.appendChild(el);
+          }
+        }
+      }
+
       if (!el) return;
       el.style.display = sec.visible ? '' : 'none';
-      el.style.order = idx; // requires parent to be flex; CSS handles it
+      el.style.order = idx;
 
       const s = sec.settings || {};
       switch(sec.type) {
@@ -2487,13 +2568,13 @@ function showToast(msg) {
           const kicker = el.querySelector('.hero-kicker');
           const ctaPrimary = el.querySelector('.hero-cta-row .btn-outline');
           const ctaSecondary = el.querySelector('.hero-cta-row .btn-ghost');
-          if (h1 && s.heading) h1.innerHTML = s.heading.replace(/\n/g,'<br>');
-          if (sub && s.subtext) sub.textContent = s.subtext;
-          if (kicker && s.kicker) kicker.textContent = s.kicker;
+          if (h1 && s.heading !== undefined) h1.innerHTML = (s.heading || '').replace(/\n/g,'<br>');
+          if (sub && s.subtext !== undefined) sub.textContent = s.subtext || '';
+          if (kicker && s.kicker !== undefined) kicker.textContent = s.kicker || '';
           
           const primaryText = s.cta1_text || s.cta_primary_text;
           const primaryUrl = s.cta1_url || s.cta_primary_url;
-          if (ctaPrimary && primaryText) {
+          if (ctaPrimary && primaryText !== undefined) {
             const svg = ctaPrimary.querySelector('svg');
             ctaPrimary.textContent = primaryText;
             if (svg) ctaPrimary.appendChild(svg);
@@ -2504,7 +2585,7 @@ function showToast(msg) {
           const secondaryText = s.cta2_text || s.cta_secondary_text;
           const secondaryUrl = s.cta2_url || s.cta_secondary_url;
           if (ctaSecondary) ctaSecondary.style.display = secondaryVisible ? '' : 'none';
-          if (ctaSecondary && secondaryText) ctaSecondary.textContent = secondaryText;
+          if (ctaSecondary && secondaryText !== undefined) ctaSecondary.textContent = secondaryText;
           if (ctaSecondary && secondaryUrl) ctaSecondary.onclick = () => { if(secondaryUrl.startsWith('#')) document.getElementById(secondaryUrl.slice(1))?.scrollIntoView({behavior:'smooth'}); else location.href=secondaryUrl; };
           
           // Image CTA overlay
@@ -2524,16 +2605,18 @@ function showToast(msg) {
             imgCta.style.display = '';
           } else if (imgCta) imgCta.style.display = 'none';
           // Background image
-          if (s.image) {
+          if (s.image !== undefined) {
             const img = el.querySelector('#hero-image');
             if (img) img.src = s.image;
+            const mobileSource = el.querySelector('#hero-mobile-source');
+            if (mobileSource) mobileSource.srcset = s.image;
           }
           break;
         }
         case 'marquee': {
           const track = el.querySelector('.marquee-track');
-          if (track && s.items) {
-            const items = s.items.split(',').map(i=>i.trim()).filter(Boolean);
+          if (track && s.items !== undefined) {
+            const items = (s.items || '').split(',').map(i=>i.trim()).filter(Boolean);
             track.innerHTML = (items.concat(items)).map(i=>`<span class="marquee-item">${i}</span><span class="marquee-item accent">&#10022;</span>`).join('');
           }
           break;
@@ -2542,23 +2625,23 @@ function showToast(msg) {
           const lbl = el.querySelector('.about-label');
           const h2 = el.querySelector('.about-h2');
           const ps = el.querySelectorAll('.about-body p');
-          if (lbl && s.label) lbl.textContent = s.label;
-          if (h2 && s.heading) h2.innerHTML = s.heading.replace(/\n/g,'<br>');
-          if (s.body && ps.length > 0) {
-            const paras = s.body.split(/\n\n+/);
+          if (lbl && s.label !== undefined) lbl.textContent = s.label;
+          if (h2 && s.heading !== undefined) h2.innerHTML = (s.heading || '').replace(/\n/g,'<br>');
+          if (s.body !== undefined && ps.length > 0) {
+            const paras = (s.body || '').split(/\n\n+/);
             ps.forEach((p,i) => { p.textContent = paras[i] || ''; p.style.display = paras[i] ? '' : 'none'; });
           }
           const statNs = el.querySelectorAll('.stat-n');
           const statLs = el.querySelectorAll('.stat-l');
-          const s1v = s.s1v || s.stat1_value;
-          const s1l = s.s1l || s.stat1_label;
-          const s2v = s.s2v || s.stat2_value;
-          const s2l = s.s2l || s.stat2_label;
-          const s3v = s.s3v || s.stat3_value;
-          const s3l = s.s3l || s.stat3_label;
+          const s1v = s.s1v !== undefined ? s.s1v : s.stat1_value;
+          const s1l = s.s1l !== undefined ? s.s1l : s.stat1_label;
+          const s2v = s.s2v !== undefined ? s.s2v : s.stat2_value;
+          const s2l = s.s2l !== undefined ? s.s2l : s.stat2_label;
+          const s3v = s.s3v !== undefined ? s.s3v : s.stat3_value;
+          const s3l = s.s3l !== undefined ? s.s3l : s.stat3_label;
           [[s1v,s1l],[s2v,s2l],[s3v,s3l]].forEach(([v,l],i)=>{
-            if (statNs[i] && v) statNs[i].textContent = v;
-            if (statLs[i] && l) statLs[i].textContent = l;
+            if (statNs[i] && v !== undefined) statNs[i].textContent = v;
+            if (statLs[i] && l !== undefined) statLs[i].textContent = l;
           });
           break;
         }
@@ -2567,22 +2650,25 @@ function showToast(msg) {
           const title = el.querySelector('.drop-title');
           const notifyLbl = el.querySelector('.notify-label');
           const notifyBox = el.querySelector('.notify-box');
-          if (eyebrow && s.eyebrow) eyebrow.textContent = s.eyebrow;
-          if (title && s.title) {
+          if (eyebrow && s.eyebrow !== undefined) eyebrow.textContent = s.eyebrow;
+          if (title && s.title !== undefined) {
             const span = title.querySelector('span');
-            const lines = s.title.split('\n');
+            const lines = (s.title || '').split('\n');
             title.innerHTML = (lines[0]||'Release') + '<br>' + (span ? `<span>${lines[1]||'001'}</span>` : (lines[1]||'001'));
           }
-          if (notifyLbl && s.notify_label) notifyLbl.textContent = s.notify_label;
+          if (notifyLbl && s.notify_label !== undefined) notifyLbl.textContent = s.notify_label;
           const showNotify = s.notify_on !== undefined ? s.notify_on : s.show_notify;
           if (notifyBox) notifyBox.style.display = showNotify ? '' : 'none';
+          if (s.launch_date) {
+            window.__zwDropDate = new Date(s.launch_date + 'T00:00:00');
+          }
           break;
         }
         case 'products': {
           const secHead = el.closest('.drop-wrap')?.querySelector('.sec-head h2') || el.querySelector('.sec-head h2');
           const secSub = el.closest('.drop-wrap')?.querySelector('.sec-head span') || el.querySelector('.sec-head span');
-          if (secHead && s.title) secHead.textContent = s.title;
-          if (secSub && s.subtitle) secSub.textContent = s.subtitle;
+          if (secHead && s.title !== undefined) secHead.textContent = s.title;
+          if (secSub && s.subtitle !== undefined) secSub.textContent = s.subtitle;
           break;
         }
         case 'spacer': {
@@ -2594,56 +2680,73 @@ function showToast(msg) {
           const h = el.querySelector('[data-builder-heading]');
           const b = el.querySelector('[data-builder-body]');
           const cta = el.querySelector('[data-builder-cta]');
-          if (h) { h.textContent = s.heading||''; h.style.display = s.heading?'':'none'; }
-          if (b) b.textContent = s.body||'';
-          if (cta) { cta.textContent = s.cta_text||''; cta.href = s.cta_url||'#'; cta.style.display = s.cta_text?'':'none'; }
+          if (h && s.heading !== undefined) { h.textContent = s.heading||''; h.style.display = s.heading?'':'none'; }
+          if (b && s.body !== undefined) b.textContent = s.body||'';
+          if (cta && s.cta_text !== undefined) { cta.textContent = s.cta_text||''; cta.href = s.cta_url||'#'; cta.style.display = s.cta_text?'':'none'; }
           break;
         }
-        case 'image_cta': {
+        case 'image_cta':
+        case 'img_cta': {
           const img = el.querySelector('[data-builder-img]');
           const btn = el.querySelector('[data-builder-btn]');
-          if (img) { img.src = s.image||''; img.alt = s.alt||''; }
+          if (img && s.image !== undefined) { img.src = s.image||''; img.alt = s.alt||''; }
           const btnVisible = s.btn_on !== undefined ? s.btn_on : s.btn_visible;
-          if (btn) { btn.textContent = s.btn_text||''; btn.href = s.btn_url||'#'; btn.style.display = btnVisible?'':'none'; }
+          if (btn && s.btn_text !== undefined) { btn.textContent = s.btn_text||''; btn.href = s.btn_url||'#'; btn.style.display = btnVisible?'':'none'; }
           break;
         }
         case 'custom':
         case 'html': {
-          el.innerHTML = s.html||'';
+          if (s.html !== undefined) el.innerHTML = s.html||'';
           break;
         }
       }
     });
   }
 
-  window.__ZW_BUILDER_PREVIEW__ = true;
+  // URL param is the most reliable check — doesn't depend on iframe context
+  const isBuilderPreview =
+    new URLSearchParams(window.location.search).get('builder') === '1' ||
+    (function(){ try{ return window.self !== window.top; }catch(_){ return false; } }());
 
-  // Apply any config that was already in localStorage when page loaded
-  let _lastRaw = null;
-  function checkBuilderCfg() {
-    try {
-      const raw = localStorage.getItem('_zw_builder_cfg');
-      if (!raw || raw === _lastRaw) return;
-      _lastRaw = raw;
-      applyBuilderConfig(JSON.parse(raw));
-    } catch(e) {}
-  }
+  if (isBuilderPreview) {
+    window.__ZW_BUILDER_PREVIEW__ = true;
 
-  // Apply on load in case config already written
-  checkBuilderCfg();
-
-  // Poll every 300ms — fast enough to feel instant
-  setInterval(checkBuilderCfg, 300);
-
-  // Also keep postMessage as fallback
-  window.addEventListener('message', e => {
-    if (e.data && e.data.type === 'ZW_BUILDER_CONFIG') {
-      applyBuilderConfig(e.data);
+    // Apply any config that was already in localStorage when page loaded
+    let _lastRaw = null;
+    function checkBuilderCfg() {
+      try {
+        const raw = localStorage.getItem('_zw_builder_cfg');
+        if (!raw || raw === _lastRaw) return;
+        _lastRaw = raw;
+        applyBuilderConfig(JSON.parse(raw));
+      } catch(e) {}
     }
-  });
 
-  // Re-apply after Supabase overwrites DOM
-  window.__zwReapplyBuilder = function() { checkBuilderCfg(); };
+    // Apply on load in case config already written
+    checkBuilderCfg();
+
+    // Poll every 300ms as fallback
+    setInterval(checkBuilderCfg, 300);
+
+    // Instant storage event listener (handles cross-document updates instantly)
+    window.addEventListener('storage', e => {
+      if (e.key === '_zw_builder_cfg') {
+        try {
+          applyBuilderConfig(JSON.parse(e.newValue));
+        } catch(err) {}
+      }
+    });
+
+    // Also keep postMessage as fallback
+    window.addEventListener('message', e => {
+      if (e.data && e.data.type === 'ZW_BUILDER_CONFIG') {
+        applyBuilderConfig(e.data);
+      }
+    });
+
+    // Re-apply after Supabase overwrites DOM
+    window.__zwReapplyBuilder = function() { checkBuilderCfg(); };
+  }
 })();
 
 /* NAV SCROLL */
@@ -2858,6 +2961,13 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
         try { localStorage.setItem('zw-brand', JSON.stringify(b || {})); } catch (e) {}
         if (b.admin_res_bg) document.documentElement.style.setProperty('--admin-res-bg', b.admin_res_bg);
         if (b.admin_res_text) document.documentElement.style.setProperty('--admin-res-text', b.admin_res_text);
+      } else if (row.key === 'page_builder_published') {
+        if (!window.__ZW_BUILDER_PREVIEW__) {
+          const val = typeof row.value === 'string' ? JSON.parse(row.value) : row.value;
+          if (val && val.sections) {
+            window.__zwApplyBuilderConfig(val);
+          }
+        }
       } else if (row.key === 'shipping_policy') {
         const v = row.value || {};
         window._shippingPolicy = {
@@ -5157,7 +5267,7 @@ const els = {
 };
 // Only update + animate when the displayed value actually changes,
 // so the flip fires on the seconds every second, and on minutes/hours/days
-// only when they roll over ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â not on every tick.
+// only when they roll over - not on every tick.
 function setUnit(el, n) {
   if (!el) return;
   const val = String(Math.floor(n)).padStart(2, '0');
@@ -5168,8 +5278,15 @@ function setUnit(el, n) {
   el.classList.add('flip');
 }
 function tick() {
-  const diff = dropDate - new Date();
-  if (diff <= 0) { clearInterval(cdI); return; }
+  const targetDate = window.__zwDropDate || dropDate;
+  const diff = targetDate - new Date();
+  if (diff <= 0) {
+    setUnit(els.d, 0);
+    setUnit(els.h, 0);
+    setUnit(els.m, 0);
+    setUnit(els.s, 0);
+    return;
+  }
   setUnit(els.d, diff / 864e5);
   setUnit(els.h, (diff % 864e5) / 36e5);
   setUnit(els.m, (diff % 36e5) / 6e4);

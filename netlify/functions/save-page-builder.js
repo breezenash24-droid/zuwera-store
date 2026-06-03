@@ -1,40 +1,23 @@
 /**
- * /api/save-page-builder — Cloudflare Pages Function
+ * /api/save-page-builder — Netlify Function
  * Saves page builder config to site_settings using the service role key
  * so RLS is bypassed. Validates the caller's Supabase session first.
  */
 
+const { ok, err, preflight } = require('./_shared');
+
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
 
-function cors(body, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
-}
+exports.handler = async (event) => {
+  if (event.httpMethod === 'OPTIONS') return preflight();
+  if (event.httpMethod !== 'POST')    return err(405, 'Method not allowed');
 
-export async function onRequestOptions() {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
-}
-
-export async function onRequestPost({ request, env }) {
   try {
-    const { accessToken, sections, published } = await request.json();
+    const { accessToken, sections, published } = JSON.parse(event.body);
 
-    if (!accessToken) return cors({ error: 'No access token provided' }, 401);
-    if (!sections)    return cors({ error: 'No sections data' }, 400);
+    if (!accessToken) return err(401, 'No access token provided');
+    if (!sections)    return err(400, 'No sections data');
 
     // Verify the session is valid
     const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
@@ -43,11 +26,11 @@ export async function onRequestPost({ request, env }) {
         Authorization: 'Bearer ' + accessToken,
       },
     });
-    if (!userRes.ok) return cors({ error: 'Invalid or expired session' }, 401);
+    if (!userRes.ok) return err(401, 'Invalid or expired session');
 
     // Get service role key from environment
-    const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || env.SUPABASE_SERVICE_ROLE;
-    if (!serviceKey) return cors({ error: 'Server not configured — add SUPABASE_SERVICE_ROLE_KEY to Cloudflare environment variables' }, 500);
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE;
+    if (!serviceKey) return err(500, 'Server not configured — add SUPABASE_SERVICE_ROLE_KEY to environment variables');
 
     // Write using service role (bypasses RLS)
     const value = {
@@ -76,12 +59,12 @@ export async function onRequestPost({ request, env }) {
 
     if (!saveRes.ok) {
       const errText = await saveRes.text();
-      return cors({ error: errText }, saveRes.status);
+      return err(saveRes.status, errText);
     }
 
-    return cors({ success: true });
+    return ok({ success: true });
 
   } catch (e) {
-    return cors({ error: e.message || String(e) }, 500);
+    return err(500, e.message || String(e));
   }
-}
+};

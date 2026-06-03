@@ -17,7 +17,8 @@ const checkoutPage = read('checkout.js');
 const account = read('account.html');
 const cohesion = read('storefront-cohesion.css');
 const redirects = read('_redirects');
-const sw = read('sw.js');
+let sw = '';
+try { sw = read('sw.js'); } catch(e) {}
 
 check(
   'Desktop bag navigation uses the dedicated bag page',
@@ -46,7 +47,7 @@ check(
 
 check(
   'Bag quantity minus removes item at zero',
-  /if \(cart\[idx\]\.quantity <= 0\) cart\.splice\(idx, 1\)/.test(bag)
+  /if \(item\.quantity <= 0\) cart\.splice\(idx, 1\)/.test(bag)
 );
 
 check(
@@ -65,8 +66,8 @@ check(
     && /zw-theme-applied/.test(checkoutPage)
     && /function getCheckoutCardStyle/.test(index)
     && /refreshCheckoutCardTheme/.test(index)
-    && /body\.light-mode #stripe-card-element\{background:#fff;border-color:rgba\(9,9,11,.36\)\}/.test(index)
-    && /body\.light-mode #stripe-card-element \{ background:#fff; border-color:rgba\(9,9,11,.36\); \}/.test(bag)
+    && /body\.light-mode #stripe-card-element\{background:var\(--paper\);border-color:rgba\(9,9,11,.36\)\}/.test(index)
+    && /body\.light-mode #stripe-card-element \{ background:#f4f1eb; border-color:rgba\(9,9,11,\.36\); \}/.test(bag)
 );
 
 check(
