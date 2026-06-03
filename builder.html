@@ -388,27 +388,39 @@ let _imgKey=null,_tt,_sendT,_autosaveT;
 
 // ── INIT ──────────────────────────────────────────────────────────────────
 (async function init(){
+  // Show the footer immediately so "Add Section" is always visible
+  document.getElementById('lpFooter').style.display='';
+
+  // Timeout helper — if Supabase hangs, fall back to defaults after 5s
+  const withTimeout=(promise,ms)=>Promise.race([promise,new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms))]);
+
   try{
     const sb=getSb();
     if(sb){
-      const[pd,th,nv,hist,tmpl]=await Promise.all([
-        sb.from('site_settings').select('*').eq('key','page_builder').single(),
-        sb.from('site_settings').select('*').eq('key','builder_theme').single(),
-        sb.from('site_settings').select('*').eq('key','builder_nav').single(),
-        sb.from('site_settings').select('*').eq('key','builder_history').single(),
-        sb.from('site_settings').select('*').eq('key','builder_templates').single(),
-      ]);
-      if(pd.data?.value?.sections){sections=pd.data.value.sections.map(s=>({...s,settings:{...SECT_DEFS[s.type],...(s.settings||{})}}));}
+      // Load all builder settings with a 5s timeout per query group
+      const[pd,th,nv,hist,tmpl]=await withTimeout(Promise.all([
+        sb.from('site_settings').select('value').eq('key','page_builder').maybeSingle(),
+        sb.from('site_settings').select('value').eq('key','builder_theme').maybeSingle(),
+        sb.from('site_settings').select('value').eq('key','builder_nav').maybeSingle(),
+        sb.from('site_settings').select('value').eq('key','builder_history').maybeSingle(),
+        sb.from('site_settings').select('value').eq('key','builder_templates').maybeSingle(),
+      ]), 5000);
+      if(pd?.data?.value?.sections){sections=pd.data.value.sections.map(s=>({...s,settings:{...SECT_DEFS[s.type],...(s.settings||{})}}));}
       else sections=clone(DEFAULT_SECTIONS);
-      if(th.data?.value)themeSettings=th.data.value;
-      if(nv.data?.value)navSettings=nv.data.value;
-      if(hist.data?.value?.versions)versionHistory=hist.data.value.versions;
-      if(tmpl.data?.value?.list)templates=tmpl.data.value.list;
+      if(th?.data?.value)themeSettings=th.data.value;
+      if(nv?.data?.value)navSettings=nv.data.value;
+      if(hist?.data?.value?.versions)versionHistory=hist.data.value.versions;
+      if(tmpl?.data?.value?.list)templates=tmpl.data.value.list;
       status('Loaded · '+new Date().toLocaleTimeString());
-    }else throw 0;
-  }catch(e){sections=clone(DEFAULT_SECTIONS);status('Ready (defaults)');}
+    }else throw new Error('no client');
+  }catch(e){
+    // Network error or timeout — still load defaults so the builder is usable
+    if(!sections.length)sections=clone(DEFAULT_SECTIONS);
+    status(e.message==='timeout'?'Loaded (offline — DB timeout)':'Ready (defaults)');
+    console.warn('Builder init fallback:',e.message);
+  }
   lastSaved=clone(sections);
-  renderLP();
+  renderLP();  // always called — sections will show even if DB was unavailable
   setPvMode('desk');
   document.getElementById('pvIframe').addEventListener('load',sendCfg);
   setInterval(()=>{if(dirty)saveDraft(true);},60000);
@@ -419,9 +431,10 @@ let _imgKey=null,_tt,_sendT,_autosaveT;
 function lpTab(name){
   curTab=name;
   document.querySelectorAll('.lp-tab').forEach(t=>t.classList.toggle('on',t.id==='tab-'+name));
+  // Footer (Add Section) only shows on sections tab
   document.getElementById('lpFooter').style.display=name==='sections'?'':'none';
-  renderLP();
   if(name!=='sections')closeEd();
+  renderLP();
 }
 
 function renderLP(){
