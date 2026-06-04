@@ -1221,7 +1221,8 @@ function updateCountdown() {
       const requestedCategory = getRequestedCategory();
       updateCollectionMeta(requestedCategory);
 
-      const cached = sessionStorage.getItem('zw_collection_products');
+      let cached = null;
+      try { cached = sessionStorage.getItem('zw_collection_products'); } catch(_) {}
       if (cached) {
         try { renderProducts(JSON.parse(cached)); } catch(e){}
       }
@@ -1269,7 +1270,7 @@ function updateCountdown() {
         return;
       }
 
-      sessionStorage.setItem('zw_collection_products', JSON.stringify(products));
+      try { sessionStorage.setItem('zw_collection_products', JSON.stringify(products)); } catch(_) {}
       renderProducts(products);
 
       function renderProducts(productsList) {
@@ -1619,19 +1620,22 @@ function updateCountdown() {
   }
 
   function collectionCommitReviewedItem(cartItem) {
-    var cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    var cart;
+    try {
+      cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    } catch(_) { cart = []; }
     var existIdx = cart.findIndex(function(i){ return i.productId === cartItem.productId && i.size === cartItem.size && i.colorName === cartItem.colorName; });
     if (existIdx > -1) {
       cart[existIdx].quantity += 1;
     } else {
       cart.push(cartItem);
     }
-    localStorage.setItem('cart', JSON.stringify(cart));
-    var countEl = document.querySelector('.cart-count');
-    if (countEl) {
-      var total = cart.reduce(function(s,i){ return s + i.quantity; }, 0);
-      countEl.textContent = total;
-    }
+    try { localStorage.setItem('cart', JSON.stringify(cart)); } catch(_) {}
+    var total = cart.reduce(function(s,i){ return s + i.quantity; }, 0);
+    // Update all cart count indicators on the page
+    document.querySelectorAll('.cart-count, .zw-mobile-bag-count').forEach(function(el) {
+      el.textContent = total;
+    });
     showToast('Added to bag');
   }
 
