@@ -130,7 +130,7 @@
     page.innerHTML = `
       <div class="products-header">
         <div>
-          <h2>Commerce Hub</h2>
+          <h2>Commerce</h2>
           <p style="color:var(--text-secondary);font-size:14px;margin-top:4px;">Discount engine, returns portal, order workflow, CRM, integrations, shipping automation, conversion analytics, and inventory depth.</p>
         </div>
         <div style="display:flex;gap:10px;">
@@ -1594,7 +1594,7 @@
         $('commerce')?.classList.add('active');
         document.querySelectorAll('.nav-link').forEach((node) => node.classList.remove('active'));
         document.querySelector('[data-page="commerce"]')?.classList.add('active');
-        $('pageTitle').textContent = 'Coupons / Promos';
+        $('pageTitle').textContent = 'Commerce';
         loadCommerceData().catch((error) => {
           $('commerceStatus').textContent = error?.message || 'Could not load commerce hub.';
         });
