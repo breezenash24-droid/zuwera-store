@@ -211,6 +211,7 @@ body{display:flex;flex-direction:column}
   <button class="tbtn tbtn-ghost" onclick="exportCfg()" title="Export JSON">⬇ Export</button>
   <button class="tbtn tbtn-ghost" onclick="importCfg()" title="Import JSON">⬆ Import</button>
   <button class="tbtn tbtn-ghost" onclick="window.open('/','_blank')" title="View live site">🌐 Live</button>
+  <button class="tbtn tbtn-ghost" onclick="showQrModal()" title="Preview on mobile device">📱 Device Preview</button>
   <button class="tbtn tbtn-ghost" onclick="revertChanges()">↺ Revert</button>
   <button class="tbtn tbtn-ghost" onclick="saveDraft()">💾 Draft</button>
   <button class="tbtn tbtn-solid" onclick="publishPage()">🚀 Publish</button>
@@ -228,6 +229,7 @@ body{display:flex;flex-direction:column}
     <button class="lp-tab on" onclick="lpTab('sections')" id="tab-sections">Sections</button>
     <button class="lp-tab" onclick="lpTab('theme')"    id="tab-theme">Theme</button>
     <button class="lp-tab" onclick="lpTab('nav')"      id="tab-nav">Nav</button>
+    <button class="lp-tab" onclick="lpTab('seo')"      id="tab-seo">SEO</button>
     <button class="lp-tab" onclick="lpTab('history')"  id="tab-history">History</button>
     <button class="lp-tab" onclick="lpTab('templates')" id="tab-templates">Templates</button>
   </div>
@@ -306,6 +308,28 @@ body{display:flex;flex-direction:column}
       <div><span class="kb-key">D</span></div><div class="kb-desc">Toggle preview theme</div>
     </div>
     <button onclick="document.getElementById('kbOverlay').classList.remove('open')" style="margin-top:1rem;width:100%;background:transparent;border:1px solid var(--bd);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.54rem;letter-spacing:.1em;text-transform:uppercase;padding:.38rem;cursor:pointer;border-radius:2px;transition:.12s" onmouseover="this.style.borderColor='rgba(255,255,255,.22)'" onmouseout="this.style.borderColor='var(--bd)'">Close</button>
+  </div>
+</div>
+
+<!-- DEVICE PREVIEW QR MODAL -->
+<div class="mover" id="qrModal" onclick="if(event.target===this)closeQrModal()">
+  <div class="mbox" style="width:min(320px,90vw);text-align:center">
+    <div class="mbox-hd">
+      <div>
+        <h3>Device Preview</h3>
+        <p>Scan to view draft live on your phone</p>
+      </div>
+      <button class="mx" onclick="closeQrModal()">×</button>
+    </div>
+    <div style="padding:1.2rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.8rem;background:var(--sf)">
+      <div style="background:white;padding:10px;border-radius:6px;display:inline-block">
+        <canvas id="qrCanvas" style="display:block"></canvas>
+      </div>
+      <div style="font-size:.58rem;color:var(--mu);line-height:1.45;word-break:break-all">
+        Your phone must be on the same local Wi-Fi network.<br>
+        <a id="qrUrlLink" href="#" target="_blank" style="color:var(--ac);text-decoration:underline;margin-top:.4rem;display:inline-block"></a>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -440,7 +464,7 @@ const SECT_DEFS={
 const DEFAULT_SECTIONS=['hero','marquee','about','release','products'].map((t,i)=>({id:t,type:t,label:t.charAt(0).toUpperCase()+t.slice(1).replace('_',' '),visible:true,order:i,settings:{...SECT_DEFS[t]}}));
 
 // ── STATE ─────────────────────────────────────────────────────────────────
-let sections=[],themeSettings={},navSettings={links:[]},lastSaved=null;
+let sections=[],themeSettings={},navSettings={links:[]},seoSettings={},lastSaved=null;
 let undoStack=[],redoStack=[],versionHistory=[],templates=[];
 let selId=null,pvMode='desk',pvTheme='dark',dirty=false,curTab='sections';
 let _imgKey=null,_tt,_sendT,_autosaveT;
@@ -488,6 +512,9 @@ let _imgKey=null,_tt,_sendT,_autosaveT;
       } else if(nv?.data?.value){
         navSettings=nv.data.value;
       }
+      if(activeData?.seoSettings){
+        seoSettings=activeData.seoSettings;
+      }
       if(hist?.data?.value?.versions)versionHistory=hist.data.value.versions;
       if(tmpl?.data?.value?.list)templates=tmpl.data.value.list;
       status('Loaded · '+new Date().toLocaleTimeString());
@@ -521,6 +548,7 @@ function renderLP(){
   if(curTab==='sections'){renderSidebar(el);}
   else if(curTab==='theme'){renderThemeTab(el);}
   else if(curTab==='nav'){renderNavTab(el);}
+  else if(curTab==='seo'){renderSeoTab(el);}
   else if(curTab==='history'){renderHistoryTab(el);}
   else if(curTab==='templates'){renderTemplatesTab(el);}
 }
@@ -618,6 +646,48 @@ async function saveNav(){
     const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:token,key:'builder_nav',value:navSettings})});
     if(!res.ok)throw new Error(await res.text());
     toast('Navigation saved','ok');sendCfg();
+  }catch(e){showErr(e.message);}
+}
+
+// ── SEO TAB ───────────────────────────────────────────────────────────────
+function renderSeoTab(container){
+  const g=seoSettings;
+  const prevImg = g.image ? `<img data-preview="image" src="${he(g.image)}" style="width:100%;height:70px;object-fit:cover;border:1px solid var(--bd);border-radius:2px;margin-bottom:.25rem;display:block">` : `<div data-preview="image" style="display:none"></div>`;
+  
+  container.innerHTML=`<div class="tab-pane">
+    <div class="tab-hd">SEO & Metadata</div>
+    <div class="fhint" style="margin-bottom:.5rem">Configure page headers for search engine visibility.</div>
+    <div class="field"><label>Document Title (&lt;title&gt;)</label><input data-k="title" id="seo_title" value="${he(g.title||'')}"></div>
+    <div class="field"><label>Meta Description</label><textarea data-k="description" id="seo_description" rows="4" style="font-family:inherit;font-size:.68rem" placeholder="A brief description of your page...">${he(g.description||'')}</textarea></div>
+    <div class="field"><label>Social Share (Open Graph) Image</label>
+      ${prevImg}
+      <input type="text" data-k="image" id="seo_image" value="${he(g.image||'')}" placeholder="URL to social sharing image...">
+      <div style="display:flex;gap:.3rem;margin-top:.25rem">
+        <button type="button" class="img-btn" data-pick="image">📁 Browse</button>
+      </div>
+    </div>
+    <button onclick="saveSeo()" class="apply-btn" style="margin-top:.5rem">💾 Save SEO Settings</button>
+  </div>`;
+
+  // wire events — update seoSettings and auto-preview on every change/input
+  container.querySelectorAll('input,textarea').forEach(el=>{
+    const sync=()=>{const k=el.dataset.k;if(k)seoSettings[k]=el.value;schedSend();};
+    el.addEventListener('change',sync);
+    el.addEventListener('input',sync);
+  });
+  
+  // Wire image browser button
+  container.querySelectorAll('.img-btn[data-pick]').forEach(b=>b.addEventListener('click',()=>openMedia(b.dataset.pick)));
+}
+
+async function saveSeo(){
+  try{
+    const token=await getAccessToken();if(!token)throw new Error('Session expired');
+    const ok=await saveToSupa('page_builder',{sections,theme:pvTheme,themeSettings,navSettings,seoSettings},false);
+    if(ok){
+      toast('SEO settings saved','ok');
+      sendCfg();
+    }
   }catch(e){showErr(e.message);}
 }
 
@@ -802,8 +872,8 @@ async function openMedia(fieldKey){
 function applyMedia(src){
   if(!src||!_imgKey)return;
   document.getElementById('mediaModal').classList.remove('open');
-  const inp=document.querySelector(`[data-f="${_imgKey}"]`);
-  if(inp){inp.value=src;inp.dispatchEvent(new Event('input',{bubbles:true}));}
+  const inp=document.querySelector(`[data-f="${_imgKey}"]`) || document.querySelector(`[data-k="${_imgKey}"]`);
+  if(inp){inp.value=src;inp.dispatchEvent(new Event('change',{bubbles:true}));inp.dispatchEvent(new Event('input',{bubbles:true}));}
   const prev=document.querySelector(`[data-preview="${_imgKey}"]`);
   if(prev){if(prev.tagName==='IMG'){prev.src=src;prev.style.display='block';}else{const img=document.createElement('img');img.dataset.preview=_imgKey;img.src=src;img.style.cssText='width:100%;height:70px;object-fit:cover;border:1px solid var(--bd);border-radius:2px;margin-bottom:.25rem;display:block';prev.replaceWith(img);}}
 }
@@ -856,7 +926,7 @@ function setTheme(t){pvTheme=t;document.querySelectorAll('#thTog button').forEac
 let _sendT2;
 function schedSend(){clearTimeout(_sendT2);_sendT2=setTimeout(sendCfg,350);}
 function sendCfg(){
-  try{localStorage.setItem('_zw_builder_cfg',JSON.stringify({sections,theme:pvTheme,themeSettings,navSettings,_v:Date.now()+'-'+Math.random()}));}
+  try{localStorage.setItem('_zw_builder_cfg',JSON.stringify({sections,theme:pvTheme,themeSettings,navSettings,seoSettings,_v:Date.now()+'-'+Math.random()}));}
   catch(e){showErr('localStorage: '+e.message);}
 }
 
@@ -871,7 +941,7 @@ function redo(){if(!redoStack.length){toast('Nothing to redo');return;}undoStack
 
 // ── EXPORT / IMPORT ───────────────────────────────────────────────────────
 function exportCfg(){
-  const blob=new Blob([JSON.stringify({sections,themeSettings,navSettings},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({sections,themeSettings,navSettings,seoSettings},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='zuwera-page-config-'+new Date().toISOString().slice(0,10)+'.json';a.click();
   toast('Exported');
 }
@@ -889,6 +959,7 @@ function importCfg(){
         sections=cfg.sections.map(s=>({...s,settings:{...SECT_DEFS[s.type],...(s.settings||{})}}));
         if(cfg.themeSettings)themeSettings=cfg.themeSettings;
         if(cfg.navSettings)navSettings=cfg.navSettings;
+        if(cfg.seoSettings)seoSettings=cfg.seoSettings;
         markDirty();renderLP();sendCfg();
         toast('Imported','ok');
       }catch(ex){showErr('Import failed: '+ex.message);}
@@ -901,7 +972,7 @@ function importCfg(){
 async function saveDraft(auto=false){
   if(auto&&!dirty)return;
   status('Saving…');dotCls('y');
-  const ok=await saveToSupa('page_builder',{sections,theme:pvTheme,themeSettings,navSettings},false);
+  const ok=await saveToSupa('page_builder',{sections,theme:pvTheme,themeSettings,navSettings,seoSettings},false);
   if(ok){lastSaved=clone(sections);status('Saved · '+new Date().toLocaleTimeString());dotCls('g');if(!auto)toast('Draft saved','ok');}
   else{dotCls('r');if(!auto)toast('Save failed','err');}
   setTimeout(()=>dotCls(''),3000);
@@ -909,7 +980,7 @@ async function saveDraft(auto=false){
 
 async function publishPage(){
   status('Publishing…');dotCls('y');
-  const ok=await saveToSupa('page_builder',{sections,theme:pvTheme,themeSettings,navSettings},true);
+  const ok=await saveToSupa('page_builder',{sections,theme:pvTheme,themeSettings,navSettings,seoSettings},true);
   if(ok){lastSaved=clone(sections);dirty=false;status('Published ✓');dotCls('g');toast('Published! Changes are live.','ok');
     // save snapshot on publish
     versionHistory.push({ts:new Date().toISOString(),label:'Published',sections:clone(sections)});
@@ -944,6 +1015,43 @@ function markDirty(){dirty=true;status('Unsaved changes');dotCls('y');document.t
 function dotCls(c){const d=document.getElementById('sdot');if(d)d.className='dot'+(c?' '+c:'');}
 function status(msg){const el=document.getElementById('tstatus');if(el)el.innerHTML=`<span class="dot" id="sdot"></span>${msg}`;}
 function showKb(){document.getElementById('kbOverlay').classList.add('open');}
+
+function showQrModal(){
+  const modal=document.getElementById('qrModal');
+  const canvas=document.getElementById('qrCanvas');
+  const link=document.getElementById('qrUrlLink');
+  
+  // Expose local preview url. Use local IP if accessible or current host.
+  const previewUrl=window.location.origin+'/?builder=1';
+  link.textContent=previewUrl;
+  link.href=previewUrl;
+  
+  modal.classList.add('open');
+  
+  const generateQr=()=>{
+    new QRious({
+      element:canvas,
+      value:previewUrl,
+      size:180,
+      background:'#ffffff',
+      foreground:'#0f0f11',
+      level:'H'
+    });
+  };
+
+  if(typeof QRious==='undefined'){
+    const script=document.createElement('script');
+    script.src='https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js';
+    script.onload=generateQr;
+    document.head.appendChild(script);
+  }else{
+    generateQr();
+  }
+}
+
+function closeQrModal(){
+  document.getElementById('qrModal').classList.remove('open');
+}
 
 function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='on'+(type?' '+type:'');clearTimeout(_tt);_tt=setTimeout(()=>el.className='',2500);}
 function showErr(msg){document.getElementById('errMsg').textContent=msg;document.getElementById('errBox').classList.add('on');}

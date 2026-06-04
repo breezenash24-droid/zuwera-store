@@ -2465,6 +2465,31 @@ function showToast(msg) {
 
     injectBuilderStyles();
 
+    // Apply SEO & Metadata dynamically
+    if (cfg.seoSettings) {
+      if (cfg.seoSettings.title) {
+        document.title = cfg.seoSettings.title;
+        const ogTitle = document.querySelector('meta[property="og:title"]');
+        if (ogTitle) ogTitle.content = cfg.seoSettings.title;
+        const twTitle = document.querySelector('meta[name="twitter:title"]');
+        if (twTitle) twTitle.content = cfg.seoSettings.title;
+      }
+      if (cfg.seoSettings.description) {
+        const metaDesc = document.querySelector('meta[name="description"]');
+        if (metaDesc) metaDesc.content = cfg.seoSettings.description;
+        const ogDesc = document.querySelector('meta[property="og:description"]');
+        if (ogDesc) ogDesc.content = cfg.seoSettings.description;
+        const twDesc = document.querySelector('meta[name="twitter:description"]');
+        if (twDesc) twDesc.content = cfg.seoSettings.description;
+      }
+      if (cfg.seoSettings.image) {
+        const ogImage = document.querySelector('meta[property="og:image"]');
+        if (ogImage) ogImage.content = cfg.seoSettings.image;
+        const twImage = document.querySelector('meta[name="twitter:image"]');
+        if (twImage) twImage.content = cfg.seoSettings.image;
+      }
+    }
+
     // Apply theme
     if (cfg.theme === 'light') {
       document.body.classList.add('light-mode');
@@ -2975,8 +3000,17 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
       if (b && b.admin_res_text) document.documentElement.style.setProperty('--admin-res-text', b.admin_res_text);
     }
 
-    // 2. page_builder_published
-    if (!window.__ZW_BUILDER_PREVIEW__ && settings.page_builder_published !== undefined) {
+    // 2. page_builder_published (or draft page_builder if previewing)
+    const isPreview = new URLSearchParams(window.location.search).get('builder') === '1';
+    if (isPreview) {
+      if (settings.page_builder !== undefined) {
+        const val = typeof settings.page_builder === 'string' ? JSON.parse(settings.page_builder) : settings.page_builder;
+        if (val && val.sections) {
+          window.__zwApplyBuilderConfig(val);
+          window.__zwPageBuilderActive = true;
+        }
+      }
+    } else if (settings.page_builder_published !== undefined) {
       const val = typeof settings.page_builder_published === 'string' ? JSON.parse(settings.page_builder_published) : settings.page_builder_published;
       if (val && val.sections && val.sections.some(s => s.visible !== false)) {
         // Merge builder_theme into themeSettings for bar colors etc. if not in published data

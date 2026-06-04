@@ -393,7 +393,27 @@ async function getPromotionForCode(env, code) {
   const normalized = normalizePromoCode(code);
   if (!normalized) return null;
   const config = sanitizeCommerceConfig(await getSetting(env, 'commerce_config', {}));
-  return config.promotions.find((promotion) => normalizePromoCode(promotion.code) === normalized) || null;
+  const promotion = config.promotions.find((promotion) => normalizePromoCode(promotion.code) === normalized) || null;
+  if (!promotion) return null;
+
+  // Validate active status
+  if (promotion.active === false) return null;
+
+  // Validate expiration date
+  if (promotion.expirationDate) {
+    const now = new Date();
+    const expiry = new Date(promotion.expirationDate + 'T23:59:59');
+    if (now > expiry) return null;
+  }
+
+  // Validate usage limit
+  if (promotion.maxUsage !== undefined && promotion.maxUsage !== null && promotion.maxUsage !== '') {
+    const max = parseInt(promotion.maxUsage, 10);
+    const used = parseInt(promotion.usageCount || 0, 10);
+    if (!isNaN(max) && used >= max) return null;
+  }
+
+  return promotion;
 }
 
 function getExpectedParcelWeight(catalogItems) {

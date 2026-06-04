@@ -47,8 +47,24 @@ export async function onRequestPost({ request, env }) {
       (p) => normalizePromoCode(p.code) === normalized
     );
 
-    if (!promotion) {
-      return json({ valid: false, message: 'Code not found or expired.' }, 200, headers);
+    if (!promotion || promotion.active === false) {
+      return json({ valid: false, message: 'Code not found or is inactive.' }, 200, headers);
+    }
+
+    if (promotion.expirationDate) {
+      const now = new Date();
+      const expiry = new Date(promotion.expirationDate + 'T23:59:59');
+      if (now > expiry) {
+        return json({ valid: false, message: 'This promo code has expired.' }, 200, headers);
+      }
+    }
+
+    if (promotion.maxUsage !== undefined && promotion.maxUsage !== null && promotion.maxUsage !== '') {
+      const max = parseInt(promotion.maxUsage, 10);
+      const used = parseInt(promotion.usageCount || 0, 10);
+      if (!isNaN(max) && used >= max) {
+        return json({ valid: false, message: 'This promo code has reached its usage limit.' }, 200, headers);
+      }
     }
 
     // Build client items array; prices are in dollars from localStorage

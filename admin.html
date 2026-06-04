@@ -1484,6 +1484,7 @@
                 <div class="nav-section">
                     <div class="nav-section-title">Catalogue</div>
                     <a class="nav-link" data-page="products" onclick="navigateTo('products')">👟 Products</a>
+                    <a class="nav-link" data-page="commerce" onclick="navigateTo('commerce')">🏷️ Coupons</a>
                     <a class="nav-link" data-page="legacy" onclick="navigateTo('legacy')">📦 Legacy</a>
                     <a class="nav-link" data-page="sizecharts" onclick="navigateTo('sizecharts')">📏 Size Charts</a>
                     <a class="nav-link" data-page="reviews" onclick="navigateTo('reviews')">⭐ Reviews</a>
@@ -1562,6 +1563,9 @@
                 </button>
                 <button class="mob-drawer-item" onclick="navigateTo('reviews');closeMobileMore()">
                     <span class="mob-drawer-item-icon">⭐</span>Reviews
+                </button>
+                <button class="mob-drawer-item" onclick="navigateTo('commerce');closeMobileMore()">
+                    <span class="mob-drawer-item-icon">🏷️</span>Coupons
                 </button>
                 <button class="mob-drawer-item" onclick="navigateTo('shipping');closeMobileMore()">
                     <span class="mob-drawer-item-icon">🚚</span>Shipping
@@ -6601,6 +6605,11 @@
         }
 
         async function runAdminTurnstile(action) {
+            if (isLocalAdminHost()) {
+                console.log('[Admin Turnstile] Local host bypass activated.');
+                await action(null);
+                return;
+            }
             await waitForAdminTurnstile();
             if (!window.turnstile || adminTsWidgetId === null) {
                 console.warn('[Admin Turnstile] Security check unavailable, continuing without captcha token.');

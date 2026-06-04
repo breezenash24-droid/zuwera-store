@@ -586,6 +586,20 @@
               </div>
               <div class="commerce-input-grid" style="margin-top:10px;">
                 <div>
+                  <label>Expiration Date</label>
+                  <input class="form-input" data-field="expirationDate" type="date" value="${promo.expirationDate || ''}">
+                </div>
+                <div>
+                  <label>Max Usage Limit</label>
+                  <input class="form-input" data-field="maxUsage" type="number" placeholder="No limit" value="${promo.maxUsage !== undefined && promo.maxUsage !== null ? promo.maxUsage : ''}">
+                </div>
+                <div>
+                  <label>Usage Count <span style="font-weight:400;opacity:.55;font-size:.8em">(Read-only)</span></label>
+                  <input class="form-input" data-field="usageCount" type="number" readonly value="${promo.usageCount || 0}">
+                </div>
+              </div>
+              <div class="commerce-input-grid" style="margin-top:10px;">
+                <div>
                   <label>Target Product IDs <span style="font-weight:400;opacity:.55;font-size:.8em">(comma-separated — blank = all products)</span></label>
                   <input class="form-input" data-field="targetProductIds" value="${escapeHtml((Array.isArray(promo.targetProductIds) ? promo.targetProductIds : []).join(', '))}" placeholder="uuid1, uuid2, …">
                 </div>
@@ -1205,16 +1219,22 @@
   }
 
   function readPromotionsFromDom() {
-    return [...document.querySelectorAll('#commercePromoList .commerce-promo-item')].map((node) => ({
-      code: node.querySelector('[data-field="code"]')?.value || '',
-      label: node.querySelector('[data-field="label"]')?.value || '',
-      type: node.querySelector('[data-field="type"]')?.value || 'percent',
-      value: Number(node.querySelector('[data-field="value"]')?.value || 0),
-      minSubtotal: Number(node.querySelector('[data-field="minSubtotal"]')?.value || 0),
-      description: node.querySelector('[data-field="description"]')?.value || '',
-      active: node.querySelector('[data-field="active"]')?.value !== 'false',
-      targetProductIds: String(node.querySelector('[data-field="targetProductIds"]')?.value || '').split(',').map((s) => s.trim()).filter(Boolean),
-      targetCollectionIds: String(node.querySelector('[data-field="targetCollectionIds"]')?.value || '').split(',').map((s) => s.trim()).filter(Boolean),
+    return [...document.querySelectorAll('#commercePromoList .commerce-promo-item')].map((node) => {
+      const maxUsageVal = node.querySelector('[data-field="maxUsage"]')?.value;
+      return {
+        code: node.querySelector('[data-field="code"]')?.value || '',
+        label: node.querySelector('[data-field="label"]')?.value || '',
+        type: node.querySelector('[data-field="type"]')?.value || 'percent',
+        value: Number(node.querySelector('[data-field="value"]')?.value || 0),
+        minSubtotal: Number(node.querySelector('[data-field="minSubtotal"]')?.value || 0),
+        description: node.querySelector('[data-field="description"]')?.value || '',
+        active: node.querySelector('[data-field="active"]')?.value !== 'false',
+        expirationDate: node.querySelector('[data-field="expirationDate"]')?.value || '',
+        maxUsage: maxUsageVal !== undefined && maxUsageVal !== null && maxUsageVal !== '' ? Number(maxUsageVal) : null,
+        usageCount: Number(node.querySelector('[data-field="usageCount"]')?.value || 0),
+        targetProductIds: String(node.querySelector('[data-field="targetProductIds"]')?.value || '').split(',').map((s) => s.trim()).filter(Boolean),
+        targetCollectionIds: String(node.querySelector('[data-field="targetCollectionIds"]')?.value || '').split(',').map((s) => s.trim()).filter(Boolean),
+      };
     })).filter((promo) => promo.code.trim());
   }
 
@@ -1355,7 +1375,8 @@
     });
 
     $('commerceAddPromoBtn')?.addEventListener('click', () => {
-      state.config.promotions = [...(state.config.promotions || []), { code: '', label: '', type: 'percent', value: 10, minSubtotal: 0, description: '', active: true }];
+      if ($('commercePromoList')) state.config.promotions = readPromotionsFromDom();
+      state.config.promotions = [...(state.config.promotions || []), { code: '', label: '', type: 'percent', value: 10, minSubtotal: 0, description: '', active: true, expirationDate: '', maxUsage: null, usageCount: 0 }];
       renderCommerce();
     });
 
@@ -1371,6 +1392,7 @@
 
     document.querySelectorAll('[data-remove-promo]').forEach((button) => {
       button.addEventListener('click', () => {
+        if ($('commercePromoList')) state.config.promotions = readPromotionsFromDom();
         const index = Number(button.dataset.removePromo);
         state.config.promotions.splice(index, 1);
         renderCommerce();
@@ -1567,11 +1589,12 @@
     if (typeof originalNavigateTo !== 'function' || originalNavigateTo.__commerceWrapped) return;
     window.navigateTo = function (page) {
       if (page === 'commerce') {
+        state.activeTab = 'promotions';
         document.querySelectorAll('.page').forEach((node) => node.classList.remove('active'));
         $('commerce')?.classList.add('active');
         document.querySelectorAll('.nav-link').forEach((node) => node.classList.remove('active'));
         document.querySelector('[data-page="commerce"]')?.classList.add('active');
-        $('pageTitle').textContent = 'Commerce Hub';
+        $('pageTitle').textContent = 'Coupons / Promos';
         loadCommerceData().catch((error) => {
           $('commerceStatus').textContent = error?.message || 'Could not load commerce hub.';
         });

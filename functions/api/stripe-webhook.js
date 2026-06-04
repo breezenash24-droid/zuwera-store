@@ -167,7 +167,7 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
 
   await saveOrderToSupabase(pi, meta, tracking, env);
 
-  const [stripeUpdateResult, emailResult, invResult] = await Promise.allSettled([
+  const [stripeUpdateResult, emailResult, invResult, promoResult] = await Promise.allSettled([
     tracking.number
       ? stripe.paymentIntents.update(pi.id, {
           metadata: {
@@ -182,11 +182,15 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
 
     // Decrement product_sizes stock_quantity for each purchased item
     decrementInventory(meta, env),
+
+    // Increment promotion usage count
+    incrementPromoUsage(meta.discount_code, env),
   ]);
 
   if (stripeUpdateResult.status === 'rejected') console.error('Stripe metadata update failed:', stripeUpdateResult.reason);
   if (emailResult.status     === 'rejected') console.error('Email failed:',                   emailResult.reason);
   if (invResult.status       === 'rejected') console.error('Inventory decrement failed:',     invResult.reason);
+  if (promoResult.status     === 'rejected') console.error('Promo usage increment failed:',   promoResult.reason);
 }
 
 // ─── Create shipping label ─────────────────────────────────────────────────────
@@ -308,6 +312,61 @@ async function decrementInventory(meta, env) {
     } catch (e) {
       console.warn(`decrementInventory error for ${productId} / ${size}:`, e.message);
     }
+  }
+}
+
+// ─── Increment promo code usage count ──────────────────────────────────────────
+async function incrementPromoUsage(code, env) {
+  const serviceKey = getSupabaseServiceKey(env);
+  if (!env.SUPABASE_URL || !serviceKey || !code) return;
+  const normalized = code.trim().toLowerCase();
+
+  try {
+    const res = await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?key=eq.commerce_config&select=value&limit=1`, {
+      headers: {
+        apikey: serviceKey,
+        Authorization: 'Bearer ' + serviceKey,
+      }
+    });
+    if (!res.ok) {
+      console.warn('incrementPromoUsage: failed to fetch commerce_config:', await res.text());
+      return;
+    }
+    const rows = await res.json().catch(() => []);
+    if (!rows.length) return;
+
+    const config = rows[0]?.value || {};
+    if (!Array.isArray(config.promotions)) return;
+
+    let updated = false;
+    config.promotions = config.promotions.map(promo => {
+      if (promo.code && promo.code.trim().toLowerCase() === normalized) {
+        promo.usageCount = (parseInt(promo.usageCount || 0, 10) || 0) + 1;
+        updated = true;
+      }
+      return promo;
+    });
+
+    if (!updated) return;
+
+    const saveRes = await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?key=eq.commerce_config`, {
+      method: 'POST',
+      headers: {
+        apikey: serviceKey,
+        Authorization: 'Bearer ' + serviceKey,
+        'Content-Type': 'application/json',
+        Prefer: 'resolution=merge-duplicates,return=minimal'
+      },
+      body: JSON.stringify([{ key: 'commerce_config', value: config }])
+    });
+
+    if (!saveRes.ok) {
+      console.warn('incrementPromoUsage: failed to save commerce_config:', await saveRes.text());
+    } else {
+      console.log(`Promo code usage incremented: ${code}`);
+    }
+  } catch (e) {
+    console.warn('incrementPromoUsage error:', e.message);
   }
 }
 
