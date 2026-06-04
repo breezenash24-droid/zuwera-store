@@ -1235,7 +1235,7 @@
         targetProductIds: String(node.querySelector('[data-field="targetProductIds"]')?.value || '').split(',').map((s) => s.trim()).filter(Boolean),
         targetCollectionIds: String(node.querySelector('[data-field="targetCollectionIds"]')?.value || '').split(',').map((s) => s.trim()).filter(Boolean),
       };
-    })).filter((promo) => promo.code.trim());
+    }).filter((promo) => promo.code.trim());
   }
 
   function slugifyLocation(value, fallback) {
