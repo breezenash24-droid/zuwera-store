@@ -772,6 +772,13 @@
     body.light-mode .product-notify {
       border-bottom-color: rgba(10,10,10,0.3);
     }
+    /* Quick-view gallery video thumb — adapt to mode */
+    body.light-mode .collection-thumb [style*="background:#09090b"] {
+      background: rgba(9,9,11,.08) !important;
+    }
+    body.light-mode .qsz-btn { background: rgba(9,9,11,.05); border-color: rgba(9,9,11,.15); color: #09090b; }
+    body.light-mode .qsz-btn:hover:not(.sold-out) { background: #09090b; color: #f4f1eb; border-color: #09090b; }
+    body.light-mode .qsz-btn.sold-out { opacity: .35; }
     .stock-badge-sold-out {
       position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
       background: rgba(9,9,11,.55); backdrop-filter: blur(2px);

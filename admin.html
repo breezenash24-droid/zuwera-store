@@ -75,6 +75,45 @@
             background-color: #dbd9d4;
         }
 
+        /* Error boxes — work in both dark and light mode */
+        .zw-admin-err {
+            background: rgba(239,68,68,.1);
+            border: 1px solid rgba(239,68,68,.35);
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            color: #ef4444;
+            font-size: 13px;
+        }
+        body.light-mode .zw-admin-err { background: rgba(239,68,68,.07); color: #c0392b; }
+
+        /* Dashboard stat chips — softer in light mode */
+        body.light-mode .dash-stat-yellow { color: #b45309 !important; }
+        body.light-mode .dash-stat-blue   { color: #0369a1 !important; }
+        body.light-mode .dash-stat-green  { color: #15803d !important; }
+        body.light-mode .dash-stat-red    { color: #dc2626 !important; }
+        body.light-mode .dash-stat-orange { color: #c2410c !important; }
+
+        /* Return status action links / chips */
+        body.light-mode [style*="color:#38bdf8"] { color: #0369a1 !important; }
+        body.light-mode [style*="color:#34d399"] { color: #15803d !important; }
+        body.light-mode [style*="color:#f97316"] { color: #c2410c !important; }
+        body.light-mode [style*="color:#fbbf24"] { color: #b45309 !important; }
+        body.light-mode [style*="color:#f59e0b"] { color: #b45309 !important; }
+        body.light-mode [style*="color:#f87171"] { color: #dc2626 !important; }
+
+        /* Return action buttons in light mode */
+        body.light-mode [style*="background:rgba(56,189,248"] {
+            background: rgba(3,105,161,.1) !important;
+            border-color: rgba(3,105,161,.35) !important;
+            color: #0369a1 !important;
+        }
+        body.light-mode [style*="background:rgba(52,211,153"] {
+            background: rgba(21,128,61,.1) !important;
+            border-color: rgba(21,128,61,.35) !important;
+            color: #15803d !important;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -1491,7 +1530,7 @@
                 </div>
                 <div class="nav-section">
                     <div class="nav-section-title">Storefront</div>
-                    <a href="/builder.html" target="_blank" style="display:flex;align-items:center;gap:.55rem;padding:.45rem .75rem;border-radius:4px;color:var(--text-secondary);font-size:.82rem;text-decoration:none;transition:background .14s,color .14s;cursor:pointer" onmouseover="this.style.background='var(--bg-primary)';this.style.color='var(--text-primary)'" onmouseout="this.style.background='';this.style.color='var(--text-secondary)'" onclick="(async function(){try{const s=await sb.auth.getSession();const sess=s&&s.data&&s.data.session;if(sess){localStorage.setItem('zw_builder_token',sess.access_token);localStorage.setItem('zw_builder_token_exp',String(sess.expires_at||0));}}catch(_){}})()">🏗️ Page Builder ↗</a>
+                    <a class="nav-link" href="/builder.html" target="_blank" onclick="(async function(){try{const s=await sb.auth.getSession();const sess=s&&s.data&&s.data.session;if(sess){localStorage.setItem('zw_builder_token',sess.access_token);localStorage.setItem('zw_builder_token_exp',String(sess.expires_at||0));}}catch(_){}})()">🏗️ Page Builder ↗</a>
                 </div>
                 <div class="nav-section">
                     <div class="nav-section-title">Operations</div>
@@ -1642,27 +1681,27 @@
                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:24px;">
                       <div onclick="navigateTo('receipts')" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;cursor:pointer;transition:border-color .18s;" onmouseover="this.style.borderColor='#fbbf24'" onmouseout="this.style.borderColor=''">
                         <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Unshipped Orders</div>
-                        <div id="dash-unshipped" style="font-size:22px;font-weight:700;color:#fbbf24;">—</div>
+                        <div id="dash-unshipped" class="dash-stat-yellow" style="font-size:22px;font-weight:700;color:#fbbf24;">—</div>
                         <div style="font-size:.7rem;color:var(--text-secondary);margin-top:4px;">Paid, no tracking yet</div>
                       </div>
                       <div onclick="navigateTo('returns')" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;cursor:pointer;transition:border-color .18s;" onmouseover="this.style.borderColor='#f59e0b'" onmouseout="this.style.borderColor=''">
                         <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Open Returns</div>
-                        <div id="dash-returns-open" style="font-size:22px;font-weight:700;color:#f59e0b;">—</div>
+                        <div id="dash-returns-open" class="dash-stat-orange" style="font-size:22px;font-weight:700;color:#f59e0b;">—</div>
                         <div style="font-size:.7rem;color:var(--text-secondary);margin-top:4px;">Requested or approved</div>
                       </div>
                       <div onclick="navigateTo('returns')" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;cursor:pointer;transition:border-color .18s;" onmouseover="this.style.borderColor='#38bdf8'" onmouseout="this.style.borderColor=''">
                         <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">In Transit</div>
-                        <div id="dash-returns-transit" style="font-size:22px;font-weight:700;color:#38bdf8;">—</div>
+                        <div id="dash-returns-transit" class="dash-stat-blue" style="font-size:22px;font-weight:700;color:#38bdf8;">—</div>
                         <div style="font-size:.7rem;color:var(--text-secondary);margin-top:4px;">Label sent, awaiting item</div>
                       </div>
                       <div onclick="navigateTo('returns')" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;cursor:pointer;transition:border-color .18s;" onmouseover="this.style.borderColor='#34d399'" onmouseout="this.style.borderColor=''">
                         <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Ready to Refund</div>
-                        <div id="dash-returns-ready" style="font-size:22px;font-weight:700;color:#34d399;">—</div>
+                        <div id="dash-returns-ready" class="dash-stat-green" style="font-size:22px;font-weight:700;color:#34d399;">—</div>
                         <div style="font-size:.7rem;color:var(--text-secondary);margin-top:4px;">Item received, refund pending</div>
                       </div>
                       <div onclick="navigateTo('products')" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;cursor:pointer;transition:border-color .18s;" onmouseover="this.style.borderColor='#ef4444'" onmouseout="this.style.borderColor=''">
                         <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Low Stock</div>
-                        <div id="dash-low-stock" style="font-size:22px;font-weight:700;color:#ef4444;">—</div>
+                        <div id="dash-low-stock" class="dash-stat-red" style="font-size:22px;font-weight:700;color:#ef4444;">—</div>
                         <div style="font-size:.7rem;color:var(--text-secondary);margin-top:4px;">Below threshold</div>
                       </div>
                       <div onclick="navigateTo('products')" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;cursor:pointer;transition:border-color .18s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor=''">
@@ -3640,7 +3679,7 @@
                     <p style="color:var(--text-secondary);font-size:.88rem;margin-top:6px;margin-bottom:20px;line-height:1.6;">A live snapshot of your store's revenue. All figures are pulled directly from your orders. No manual entry needed.</p>
                   </div>
 
-                  <div id="fin-error" style="display:none;background:#2a1a1a;border:1px solid #ef4444;border-radius:8px;padding:14px 18px;margin-bottom:20px;color:#ef4444;font-size:13px;"></div>
+                  <div id="fin-error" class="zw-admin-err" style="display:none;"></div>
 
                   <!-- KPI cards — row 1 -->
                   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:16px;">
@@ -4121,7 +4160,7 @@
                     </div>
                   </div>
 
-                  <div id="tax-error" style="display:none;background:#2a1a1a;border:1px solid #ef4444;border-radius:8px;padding:14px 18px;margin-bottom:20px;color:#ef4444;font-size:13px;"></div>
+                  <div id="tax-error" class="zw-admin-err" style="display:none;"></div>
 
                   <!-- KPI cards -->
                   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:16px;margin-bottom:24px;">
@@ -4981,7 +5020,7 @@
                     <p style="color:var(--text-secondary);font-size:.88rem;margin-top:6px;margin-bottom:20px;line-height:1.6;">A breakdown of what you've spent on shipping across all orders. Useful for understanding your fulfilment costs over time.</p>
                   </div>
 
-                  <div id="ship-error" style="display:none;background:#2a1a1a;border:1px solid #ef4444;border-radius:8px;padding:14px 18px;margin-bottom:20px;color:#ef4444;font-size:13px;"></div>
+                  <div id="ship-error" class="zw-admin-err" style="display:none;"></div>
 
                   <!-- Aggregate KPI cards -->
                   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px;">
@@ -5063,15 +5102,15 @@
                       </div>
                       <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
                         <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Labels Sent</p>
-                        <p id="ret-ship-labels" style="font-size:24px;font-weight:700;color:#38bdf8;">—</p>
+                        <p id="ret-ship-labels" class="dash-stat-blue" style="font-size:24px;font-weight:700;color:#38bdf8;">—</p>
                       </div>
                       <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
                         <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">In Transit</p>
-                        <p id="ret-ship-transit" style="font-size:24px;font-weight:700;color:#f59e0b;">—</p>
+                        <p id="ret-ship-transit" class="dash-stat-orange" style="font-size:24px;font-weight:700;color:#f59e0b;">—</p>
                       </div>
                       <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
                         <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Items Received</p>
-                        <p id="ret-ship-received" style="font-size:24px;font-weight:700;color:#34d399;">—</p>
+                        <p id="ret-ship-received" class="dash-stat-green" style="font-size:24px;font-weight:700;color:#34d399;">—</p>
                       </div>
                     </div>
 
@@ -5311,7 +5350,7 @@
                     <p style="color:var(--text-secondary);font-size:.88rem;margin-top:6px;margin-bottom:20px;line-height:1.6;">Every order placed on your store appears here. Use the search bar to find a specific customer. Click an order to view details and add a tracking number.</p>
                   </div>
 
-                  <div id="rec-error" style="display:none;background:#2a1a1a;border:1px solid #ef4444;border-radius:8px;padding:14px 18px;margin-bottom:20px;color:#ef4444;font-size:13px;"></div>
+                  <div id="rec-error" class="zw-admin-err" style="display:none;"></div>
 
                   <div style="background:rgba(248,145,165,.07);border:1px solid rgba(248,145,165,.2);border-radius:8px;padding:14px 18px;margin-bottom:16px;font-size:.85rem;color:var(--text-secondary);line-height:1.6;">
                     <strong>Tip:</strong> When you ship an order, search for the customer below, open their order, and paste in the tracking number. They'll receive an email with the link automatically.
