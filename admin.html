@@ -3138,19 +3138,86 @@
 
                   <div id="ana-wrap">
                     <div id="ana-error-container"></div>
-                    <button id="ana-refresh-btn" onclick="anaLoadData()">↺ Refresh Data</button>
+
+                    <!-- Controls row -->
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;margin-bottom:1.5rem;">
+                      <div class="ana-filter-group" id="ana-period-btns">
+                        <button class="ana-filter-btn" data-period="7d">7 Days</button>
+                        <button class="ana-filter-btn" data-period="30d">30 Days</button>
+                        <button class="ana-filter-btn" data-period="90d">90 Days</button>
+                        <button class="ana-filter-btn active" data-period="all">All Time</button>
+                      </div>
+                      <button id="ana-refresh-btn" onclick="anaLoadData()">↺ Refresh</button>
+                    </div>
 
                     <!-- Sales Overview -->
                     <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:1.5rem;letter-spacing:.06em;margin-bottom:1.2rem;">Sales Overview</h2>
                     <div class="ana-overview-grid">
-                      <div class="ana-card"><div class="ana-card-label">Total Revenue</div><div class="ana-card-value" id="ana-totalRevenue">—</div></div>
-                      <div class="ana-card"><div class="ana-card-label">Total Orders</div><div class="ana-card-value" id="ana-totalOrders">—</div></div>
-                      <div class="ana-card"><div class="ana-card-label">Avg Order Value</div><div class="ana-card-value" id="ana-avgOrderValue">—</div></div>
+                      <div class="ana-card">
+                        <div class="ana-card-label">Revenue</div>
+                        <div class="ana-card-value" id="ana-totalRevenue">—</div>
+                        <div class="ana-card-sub" id="ana-rev-mom" style="font-size:.78rem;margin-top:.3rem;"></div>
+                      </div>
+                      <div class="ana-card">
+                        <div class="ana-card-label">Orders</div>
+                        <div class="ana-card-value" id="ana-totalOrders">—</div>
+                        <div class="ana-card-sub" id="ana-ord-mom" style="font-size:.78rem;margin-top:.3rem;"></div>
+                      </div>
+                      <div class="ana-card">
+                        <div class="ana-card-label">Avg Order Value</div>
+                        <div class="ana-card-value" id="ana-avgOrderValue">—</div>
+                        <div class="ana-card-sub" id="ana-aov-mom" style="font-size:.78rem;margin-top:.3rem;"></div>
+                      </div>
+                      <div class="ana-card">
+                        <div class="ana-card-label">Repeat Rate</div>
+                        <div class="ana-card-value" id="ana-repeatRate">—</div>
+                        <div class="ana-card-sub">customers who ordered 2+</div>
+                      </div>
+                      <div class="ana-card">
+                        <div class="ana-card-label">Return Rate</div>
+                        <div class="ana-card-value" id="ana-returnRate">—</div>
+                        <div class="ana-card-sub">of orders returned</div>
+                      </div>
+                      <div class="ana-card">
+                        <div class="ana-card-label">New Customers</div>
+                        <div class="ana-card-value" id="ana-newCustomers">—</div>
+                        <div class="ana-card-sub" id="ana-cust-mom" style="font-size:.78rem;margin-top:.3rem;"></div>
+                      </div>
+                    </div>
+
+                    <!-- Order Status Breakdown -->
+                    <div class="ana-section">
+                      <h2>Order Status Breakdown</h2>
+                      <div id="ana-statusBreakdown" class="ana-loading">Loading…</div>
+                    </div>
+
+                    <!-- Revenue by Product -->
+                    <div class="ana-section">
+                      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                        <h2 style="margin-bottom:0">Revenue by Product</h2>
+                        <button class="ana-export-btn" onclick="anaExportRevByProduct()">↓ CSV</button>
+                      </div>
+                      <div id="ana-revByProduct" class="ana-loading">Loading…</div>
+                    </div>
+
+                    <!-- Customer Metrics -->
+                    <div class="ana-section">
+                      <h2>Top Customers</h2>
+                      <div id="ana-topCustomers" class="ana-loading">Loading…</div>
+                    </div>
+
+                    <!-- Geographic Distribution -->
+                    <div class="ana-section">
+                      <h2>Orders by State</h2>
+                      <div id="ana-geoTable" class="ana-loading">Loading…</div>
                     </div>
 
                     <!-- Recent Orders -->
                     <div class="ana-section">
-                      <h2>Recent Orders</h2>
+                      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                        <h2 style="margin-bottom:0">Recent Orders</h2>
+                        <button class="ana-export-btn" onclick="anaExportOrders()">↓ CSV</button>
+                      </div>
                       <div id="ana-ordersTable" class="ana-loading">Loading orders…</div>
                     </div>
 
@@ -3255,11 +3322,47 @@
                   <script>
                   (function(){
                     // State
-                    let _anaProds = [], _anaOrders = [];
+                    let _anaProds = [], _anaOrders = [], _anaReturns = [];
+                    let _anaPeriod = 'all';
                     let _anaCatSort = { key:'title', dir:'asc' };
                     let _anaInvSort = { key:'stock', dir:'asc' };
                     let _anaInvFilter = 'all';
                     let _anaLoaded = false;
+
+                    // ── Period filter ──
+                    function filteredOrders() {
+                      if (_anaPeriod === 'all') return _anaOrders;
+                      const days = parseInt(_anaPeriod);
+                      const cutoff = new Date(Date.now() - days * 864e5);
+                      return _anaOrders.filter(o => new Date(o.created_at) >= cutoff);
+                    }
+                    function prevPeriodOrders() {
+                      if (_anaPeriod === 'all') return [];
+                      const days = parseInt(_anaPeriod);
+                      const now = Date.now();
+                      const start = new Date(now - days * 2 * 864e5);
+                      const end   = new Date(now - days * 864e5);
+                      return _anaOrders.filter(o => { const d = new Date(o.created_at); return d >= start && d < end; });
+                    }
+                    function momArrow(cur, prev) {
+                      if (!prev) return '';
+                      const pct = ((cur - prev) / prev * 100).toFixed(1);
+                      const up = cur >= prev;
+                      return `<span style="color:${up?'#10b981':'#ef4444'}">${up?'▲':'▼'} ${Math.abs(pct)}% vs prev period</span>`;
+                    }
+                    function orderTotal(o) { return Number(o.total) || Number(o.total_amount) || 0; }
+                    function parseItems(o) {
+                      try { if (Array.isArray(o.items)) return o.items; return JSON.parse(o.items) || []; } catch(_) { return []; }
+                    }
+
+                    // Period button wiring
+                    document.getElementById('ana-period-btns').addEventListener('click', e => {
+                      const btn = e.target.closest('[data-period]');
+                      if (!btn) return;
+                      _anaPeriod = btn.dataset.period;
+                      document.querySelectorAll('#ana-period-btns .ana-filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+                      if (_anaLoaded) anaRefreshViews();
+                    });
 
                     function anaErr(msg) {
                       const d = document.createElement('div');
@@ -3300,8 +3403,12 @@
                     }
 
                     async function anaLoadOrders() {
-                      const { data, error } = await sb.from('orders').select('*');
-                      if (!error) _anaOrders = data || [];
+                      const [ordRes, retRes] = await Promise.all([
+                        sb.from('orders').select('*'),
+                        sb.from('returns').select('order_id,status').catch(() => ({data:[]}))
+                      ]);
+                      if (!ordRes.error) _anaOrders = ordRes.data || [];
+                      _anaReturns = retRes.data || [];
                     }
 
                     async function anaLoadEngagement() {
@@ -3344,27 +3451,195 @@
                     }
 
                     function anaUpdateOrders() {
-                      const tot = _anaOrders.length;
-                      const rev = _anaOrders.reduce((s,o) => s + (Number(o.total)||Number(o.total_amount)||0), 0);
+                      const orders = filteredOrders();
+                      const prev   = prevPeriodOrders();
+                      const tot = orders.length;
+                      const rev = orders.reduce((s,o) => s + orderTotal(o), 0);
                       const aov = tot ? rev/tot : 0;
+                      const prevRev = prev.reduce((s,o) => s + orderTotal(o), 0);
+                      const prevTot = prev.length;
+                      const prevAov = prevTot ? prevRev/prevTot : 0;
+
+                      // Unique customers
+                      const emailSet = new Set(orders.map(o => (o.email||'').toLowerCase()).filter(Boolean));
+                      const prevEmailSet = new Set(prev.map(o => (o.email||'').toLowerCase()).filter(Boolean));
+
+                      // Repeat rate: customers with 2+ orders (all-time)
+                      const custCounts = {};
+                      _anaOrders.forEach(o => { const e=(o.email||'').toLowerCase(); if(e) custCounts[e]=(custCounts[e]||0)+1; });
+                      const repeats = Object.values(custCounts).filter(n=>n>=2).length;
+                      const total_custs = Object.keys(custCounts).length;
+                      const repeatRate = total_custs ? (repeats/total_custs*100).toFixed(1)+'%' : '—';
+
+                      // Return rate
+                      const retOrderIds = new Set((_anaReturns||[]).map(r=>r.order_id));
+                      const returnedInPeriod = orders.filter(o => retOrderIds.has(o.id)).length;
+                      const returnRate = tot ? (returnedInPeriod/tot*100).toFixed(1)+'%' : '—';
+
                       sectionEl('ana-totalOrders').textContent = tot;
                       sectionEl('ana-totalRevenue').textContent = `$${rev.toFixed(2)}`;
                       sectionEl('ana-avgOrderValue').textContent = `$${aov.toFixed(2)}`;
+                      sectionEl('ana-repeatRate').textContent = repeatRate;
+                      sectionEl('ana-returnRate').textContent = returnRate;
+                      sectionEl('ana-newCustomers').textContent = emailSet.size;
+                      if (_anaPeriod !== 'all') {
+                        sectionEl('ana-rev-mom').innerHTML = momArrow(rev, prevRev);
+                        sectionEl('ana-ord-mom').innerHTML = momArrow(tot, prevTot);
+                        sectionEl('ana-aov-mom').innerHTML = momArrow(aov, prevAov);
+                        sectionEl('ana-cust-mom').innerHTML = momArrow(emailSet.size, prevEmailSet.size);
+                      } else {
+                        ['ana-rev-mom','ana-ord-mom','ana-aov-mom','ana-cust-mom'].forEach(id => sectionEl(id).innerHTML = '');
+                      }
 
+                      // Order status breakdown
+                      const statusMap = {};
+                      orders.forEach(o => { const s = o.status||'confirmed'; statusMap[s]=(statusMap[s]||0)+1; });
+                      const statusColors = {paid:'#10b981',confirmed:'#10b981',shipped:'#3b82f6',delivered:'#6366f1',refunded:'#ef4444',cancelled:'#9ca3af',pending:'#f59e0b'};
+                      const statusEl = sectionEl('ana-statusBreakdown');
+                      if (!tot) { statusEl.innerHTML = '<p style="color:var(--text-secondary)">No orders in this period.</p>'; }
+                      else {
+                        const total = Object.values(statusMap).reduce((a,b)=>a+b,0);
+                        statusEl.innerHTML = `<div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1rem;">
+                          ${Object.entries(statusMap).sort((a,b)=>b[1]-a[1]).map(([s,n])=>{
+                            const col = statusColors[s.toLowerCase()] || '#6b7280';
+                            const pct = (n/total*100).toFixed(1);
+                            return `<div style="background:var(--bg-tertiary,#1a1a1e);border-radius:8px;padding:.9rem 1.2rem;min-width:120px;">
+                              <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-secondary);margin-bottom:.4rem;">${s}</div>
+                              <div style="font-size:1.6rem;font-weight:700;color:${col};">${n}</div>
+                              <div style="font-size:.75rem;color:var(--text-secondary);">${pct}%</div>
+                            </div>`;
+                          }).join('')}
+                        </div>
+                        <div style="display:flex;height:10px;border-radius:6px;overflow:hidden;gap:2px;">
+                          ${Object.entries(statusMap).sort((a,b)=>b[1]-a[1]).map(([s,n])=>{
+                            const col = statusColors[s.toLowerCase()] || '#6b7280';
+                            return `<div style="flex:${n};background:${col};min-width:4px;" title="${s}: ${n}"></div>`;
+                          }).join('')}
+                        </div>`;
+                      }
+
+                      // Revenue by product
+                      const prodRev = {};
+                      orders.forEach(o => {
+                        parseItems(o).forEach(item => {
+                          const key = item.name || item.title || item.product_id || 'Unknown';
+                          const rev = (Number(item.price||item.amount||0)) * (Number(item.quantity||item.qty||1));
+                          if (!prodRev[key]) prodRev[key] = { name:key, units:0, revenue:0, orders:0 };
+                          prodRev[key].units  += Number(item.quantity||item.qty||1);
+                          prodRev[key].revenue += rev;
+                          prodRev[key].orders++;
+                        });
+                      });
+                      const prodList = Object.values(prodRev).sort((a,b)=>b.revenue-a.revenue);
+                      const maxProdRev = prodList[0]?.revenue || 1;
+                      const revEl = sectionEl('ana-revByProduct');
+                      if (!prodList.length) { revEl.innerHTML = '<p style="color:var(--text-secondary)">No order data yet.</p>'; }
+                      else {
+                        revEl.innerHTML = `<table><thead><tr><th>Product</th><th>Revenue</th><th>Units</th><th>Orders</th><th style="width:160px"></th></tr></thead><tbody>
+                          ${prodList.map(p => `<tr>
+                            <td style="font-weight:600">${p.name}</td>
+                            <td style="color:var(--accent)">$${p.revenue.toFixed(2)}</td>
+                            <td>${p.units}</td>
+                            <td>${p.orders}</td>
+                            <td><div style="height:6px;background:var(--bg-tertiary,#1a1a1e);border-radius:3px;"><div style="height:100%;width:${(p.revenue/maxProdRev*100).toFixed(1)}%;background:var(--accent);border-radius:3px;"></div></div></td>
+                          </tr>`).join('')}
+                        </tbody></table>`;
+                      }
+
+                      // Top customers
+                      const custMap = {};
+                      orders.forEach(o => {
+                        const key = (o.email||'').toLowerCase() || o.id;
+                        const name = o.customer_name || o.email || 'Guest';
+                        if (!custMap[key]) custMap[key] = { name, email:o.email||'', orders:0, revenue:0 };
+                        custMap[key].orders++;
+                        custMap[key].revenue += orderTotal(o);
+                      });
+                      const custList = Object.values(custMap).sort((a,b)=>b.revenue-a.revenue).slice(0,10);
+                      const custEl = sectionEl('ana-topCustomers');
+                      if (!custList.length) { custEl.innerHTML = '<p style="color:var(--text-secondary)">No customers yet.</p>'; }
+                      else {
+                        custEl.innerHTML = `<table><thead><tr><th>Customer</th><th>Email</th><th>Orders</th><th>Total Spend</th><th>Repeat?</th></tr></thead><tbody>
+                          ${custList.map(c => `<tr>
+                            <td style="font-weight:600">${c.name}</td>
+                            <td style="color:var(--text-secondary);font-size:.85rem;">${c.email}</td>
+                            <td>${c.orders}</td>
+                            <td style="color:var(--accent)">$${c.revenue.toFixed(2)}</td>
+                            <td>${c.orders>=2?'<span style="color:#10b981;font-size:.75rem;font-weight:700;">YES</span>':'<span style="color:var(--text-secondary);font-size:.75rem;">—</span>'}</td>
+                          </tr>`).join('')}
+                        </tbody></table>`;
+                      }
+
+                      // Geographic distribution
+                      const stateMap = {};
+                      orders.forEach(o => {
+                        const state = o.shipping_state || o.state || (o.shipping_address && (typeof o.shipping_address === 'object' ? o.shipping_address.state : null)) || '';
+                        if (state && state.length <= 3) stateMap[state.toUpperCase()] = (stateMap[state.toUpperCase()]||0) + 1;
+                      });
+                      const stateList = Object.entries(stateMap).sort((a,b)=>b[1]-a[1]);
+                      const maxState = stateList[0]?.[1] || 1;
+                      const geoEl = sectionEl('ana-geoTable');
+                      if (!stateList.length) { geoEl.innerHTML = '<p style="color:var(--text-secondary)">No state data in orders yet.</p>'; }
+                      else {
+                        geoEl.innerHTML = `<table><thead><tr><th>State</th><th>Orders</th><th style="width:200px"></th></tr></thead><tbody>
+                          ${stateList.slice(0,15).map(([st,n]) => `<tr>
+                            <td style="font-weight:600">${st}</td>
+                            <td>${n}</td>
+                            <td><div style="height:6px;background:var(--bg-tertiary,#1a1a1e);border-radius:3px;"><div style="height:100%;width:${(n/maxState*100).toFixed(1)}%;background:var(--accent);border-radius:3px;"></div></div></td>
+                          </tr>`).join('')}
+                        </tbody></table>`;
+                      }
+
+                      // Recent orders table
                       const c = sectionEl('ana-ordersTable');
-                      if (!tot) { c.innerHTML = '<p style="color:var(--text-secondary);padding:1.5rem 0;">No orders yet.</p>'; return; }
-                      const rows = [..._anaOrders].sort((a,b) => new Date(b.created_at)-new Date(a.created_at)).slice(0,10)
+                      if (!tot) { c.innerHTML = '<p style="color:var(--text-secondary);padding:1.5rem 0;">No orders in this period.</p>'; return; }
+                      const statusBadgeClass = s => { const k=(s||'').toLowerCase(); return k==='shipped'?'badge-coming-soon':k==='refunded'||k==='cancelled'?'badge-sold-out':k==='delivered'?'badge-draft':'badge-live'; };
+                      const rows = [...orders].sort((a,b) => new Date(b.created_at)-new Date(a.created_at)).slice(0,20)
                         .map(o => {
-                          const amt = Number(o.total)||Number(o.total_amount)||0;
+                          const amt = orderTotal(o);
                           return `<tr>
-                            <td style="font-family:monospace">#${(o.id||'').substring(0,8).toUpperCase()}</td>
+                            <td style="font-family:monospace;font-size:.82rem">#${(o.id||'').substring(0,8).toUpperCase()}</td>
                             <td>${new Date(o.created_at).toLocaleDateString()}</td>
                             <td>${o.email||'Guest'}</td>
                             <td>$${amt.toFixed(2)}</td>
-                            <td><span class="ana-status-badge badge-live">${o.status||'Confirmed'}</span></td>
+                            <td><span class="ana-status-badge ${statusBadgeClass(o.status)}">${o.status||'Confirmed'}</span></td>
                           </tr>`;
                         }).join('');
                       c.innerHTML = `<table><thead><tr><th>Order ID</th><th>Date</th><th>Customer</th><th>Total</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
+                    }
+
+                    // CSV export helpers
+                    function anaExportCSV(filename, headers, rows) {
+                      const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+                      const a = document.createElement('a');
+                      a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+                      a.download = filename; a.click();
+                    }
+                    window.anaExportOrders = function() {
+                      const orders = filteredOrders();
+                      anaExportCSV(`orders_${_anaPeriod}_${new Date().toISOString().slice(0,10)}.csv`,
+                        ['Order ID','Date','Email','Customer','Total','Status'],
+                        orders.map(o => [(o.id||'').substring(0,8).toUpperCase(), new Date(o.created_at).toLocaleDateString(), o.email||'', o.customer_name||'', orderTotal(o).toFixed(2), o.status||'confirmed']));
+                    };
+                    window.anaExportRevByProduct = function() {
+                      const orders = filteredOrders();
+                      const prodRev = {};
+                      orders.forEach(o => parseItems(o).forEach(item => {
+                        const key = item.name || item.title || 'Unknown';
+                        if (!prodRev[key]) prodRev[key] = { units:0, revenue:0 };
+                        prodRev[key].units += Number(item.quantity||1);
+                        prodRev[key].revenue += Number(item.price||0) * Number(item.quantity||1);
+                      }));
+                      anaExportCSV(`revenue_by_product_${new Date().toISOString().slice(0,10)}.csv`,
+                        ['Product','Units Sold','Revenue'],
+                        Object.entries(prodRev).sort((a,b)=>b[1].revenue-a[1].revenue).map(([name,d]) => [name, d.units, d.revenue.toFixed(2)]));
+                    };
+
+                    // Re-run all period-dependent views without refetching
+                    function anaRefreshViews() {
+                      anaUpdateOrders();
+                      anaUpdateCharts();
+                      anaUpdateInvStats();
                     }
 
                     function anaUpdateCharts() {
@@ -3388,15 +3663,17 @@
                         {key:'kids',label:'Kids',val:genders.kids}
                       ], { men:'bar-men', women:'bar-women', unisex:'bar-unisex', kids:'bar-kids' });
 
-                      // Revenue timeline
+                      // Revenue timeline (respects period)
                       const rc = sectionEl('ana-revenueChart');
-                      if (!_anaOrders.length) { rc.innerHTML = '<p style="color:var(--text-secondary);padding:2rem;">No sales data yet.</p>'; return; }
+                      const periodOrders = filteredOrders();
+                      if (!periodOrders.length) { rc.innerHTML = '<p style="color:var(--text-secondary);padding:2rem;">No sales data yet.</p>'; return; }
                       const byDate = {};
-                      _anaOrders.forEach(o => {
+                      periodOrders.forEach(o => {
                         const d = new Date(o.created_at).toLocaleDateString(undefined,{month:'numeric',day:'numeric'});
-                        byDate[d] = (byDate[d]||0) + (Number(o.total)||Number(o.total_amount)||0);
+                        byDate[d] = (byDate[d]||0) + orderTotal(o);
                       });
-                      const dates = Object.keys(byDate).sort((a,b)=>new Date(a)-new Date(b)).slice(-7);
+                      const maxBars = _anaPeriod==='7d'?7:_anaPeriod==='30d'?14:_anaPeriod==='90d'?18:20;
+                      const dates = Object.keys(byDate).sort((a,b)=>new Date(a)-new Date(b)).slice(-maxBars);
                       const maxRev = Math.max(...dates.map(d=>byDate[d]),1);
                       rc.innerHTML = '';
                       dates.forEach(d => {
@@ -3737,7 +4014,7 @@
                         await anaLoadProds();
                         await Promise.all([anaLoadOrders(), anaLoadEngagement()]);
                         anaUpdateCards(); anaUpdateOrders(); anaUpdateCharts();
-                        anaUpdatePrices(); anaRenderInventory(); anaRenderCatalog();
+                        anaUpdatePrices(); anaUpdateInvStats(); anaRenderInventory(); anaRenderCatalog();
                         await anaUpdateReviews();
                         _anaLoaded=true;
                       } catch(e) { anaErr('Failed to load analytics: '+e.message); }
