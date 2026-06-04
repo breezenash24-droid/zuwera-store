@@ -457,17 +457,37 @@ let _imgKey=null,_tt,_sendT,_autosaveT;
     const sb=getSb();
     if(sb){
       // Load all builder settings with a 5s timeout per query group
-      const[pd,th,nv,hist,tmpl]=await withTimeout(Promise.all([
+      const[pd,th,nv,hist,tmpl,pub]=await withTimeout(Promise.all([
         sb.from('site_settings').select('value').eq('key','page_builder').maybeSingle(),
         sb.from('site_settings').select('value').eq('key','builder_theme').maybeSingle(),
         sb.from('site_settings').select('value').eq('key','builder_nav').maybeSingle(),
         sb.from('site_settings').select('value').eq('key','builder_history').maybeSingle(),
         sb.from('site_settings').select('value').eq('key','builder_templates').maybeSingle(),
+        sb.from('site_settings').select('value').eq('key','page_builder_published').maybeSingle(),
       ]), 5000);
-      if(pd?.data?.value?.sections){sections=pd.data.value.sections.map(s=>({...s,settings:{...SECT_DEFS[s.type],...(s.settings||{})}}));}
-      else sections=clone(DEFAULT_SECTIONS);
-      if(th?.data?.value)themeSettings=th.data.value;
-      if(nv?.data?.value)navSettings=nv.data.value;
+      const activeData = pd?.data?.value || pub?.data?.value;
+      if(activeData?.sections){
+        sections=activeData.sections.map(s=>({...s,settings:{...SECT_DEFS[s.type],...(s.settings||{})}}));
+      } else {
+        sections=clone(DEFAULT_SECTIONS);
+      }
+      if(activeData?.theme){
+        setTheme(activeData.theme);
+      } else if(th?.data?.value?.default_mode){
+        setTheme(th.data.value.default_mode);
+      } else {
+        setTheme('dark');
+      }
+      if(activeData?.themeSettings){
+        themeSettings=activeData.themeSettings;
+      } else if(th?.data?.value){
+        themeSettings=th.data.value;
+      }
+      if(activeData?.navSettings){
+        navSettings=activeData.navSettings;
+      } else if(nv?.data?.value){
+        navSettings=nv.data.value;
+      }
       if(hist?.data?.value?.versions)versionHistory=hist.data.value.versions;
       if(tmpl?.data?.value?.list)templates=tmpl.data.value.list;
       status('Loaded · '+new Date().toLocaleTimeString());
@@ -881,7 +901,7 @@ function importCfg(){
 async function saveDraft(auto=false){
   if(auto&&!dirty)return;
   status('Saving…');dotCls('y');
-  const ok=await saveToSupa('page_builder',{sections},false);
+  const ok=await saveToSupa('page_builder',{sections,theme:pvTheme,themeSettings,navSettings},false);
   if(ok){lastSaved=clone(sections);status('Saved · '+new Date().toLocaleTimeString());dotCls('g');if(!auto)toast('Draft saved','ok');}
   else{dotCls('r');if(!auto)toast('Save failed','err');}
   setTimeout(()=>dotCls(''),3000);

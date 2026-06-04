@@ -2475,6 +2475,24 @@ function showToast(msg) {
       document.body.classList.remove('light-mode','super-light-mode');
     }
 
+    // Apply navigation settings
+    if (cfg.navSettings) {
+      const logoImg = document.querySelector('.nav-logo img');
+      if (logoImg && cfg.navSettings.logo_url) {
+        logoImg.src = cfg.navSettings.logo_url;
+        logoImg.srcset = cfg.navSettings.logo_url;
+      }
+      if (Array.isArray(cfg.navSettings.links) && cfg.navSettings.links.length > 0) {
+        window.__zwCustomNavApplied = true;
+        const desktop = document.getElementById('nav-category-links');
+        const mobile = document.getElementById('mobile-category-links');
+        const desktopHtml = cfg.navSettings.links.map(l => `<a href="${l.url || '#'}" class="nav-link">${l.text || ''}</a>`).join('');
+        const mobileHtml = cfg.navSettings.links.map(l => `<a href="${l.url || '#'}" class="mobile-nav-link zw-mobile-primary-link">${l.text || ''}</a>`).join('');
+        if (desktop) desktop.innerHTML = desktopHtml;
+        if (mobile) mobile.innerHTML = mobileHtml;
+      }
+    }
+
     // Apply builder theme settings (bar bg/color, accent, etc.)
     if (cfg.themeSettings) {
       const bar = document.getElementById('bar');
@@ -2485,6 +2503,23 @@ function showToast(msg) {
       if (cfg.themeSettings.accent_color) {
         document.documentElement.style.setProperty('--gold', cfg.themeSettings.accent_color);
         document.documentElement.style.setProperty('--zw-accent', cfg.themeSettings.accent_color);
+      }
+      if (cfg.themeSettings.button_radius) {
+        const radiusMap = { sharp: '0px', soft: '4px', pill: '999px' };
+        const radius = radiusMap[cfg.themeSettings.button_radius] || '0px';
+        document.documentElement.style.setProperty('--zw-radius-control', radius);
+      }
+      // Apply custom CSS
+      let customCssEl = document.getElementById('zw-custom-css');
+      if (cfg.themeSettings.custom_css) {
+        if (!customCssEl) {
+          customCssEl = document.createElement('style');
+          customCssEl.id = 'zw-custom-css';
+          document.head.appendChild(customCssEl);
+        }
+        customCssEl.textContent = cfg.themeSettings.custom_css;
+      } else if (customCssEl) {
+        customCssEl.remove();
       }
     }
 
@@ -2641,12 +2676,13 @@ function showToast(msg) {
           }
           const statNs = el.querySelectorAll('.stat-n');
           const statLs = el.querySelectorAll('.stat-l');
-          const s1v = s.s1v !== undefined ? s.s1v : s.stat1_value;
-          const s1l = s.s1l !== undefined ? s.s1l : s.stat1_label;
-          const s2v = s.s2v !== undefined ? s.s2v : s.stat2_value;
-          const s2l = s.s2l !== undefined ? s.s2l : s.stat2_label;
-          const s3v = s.s3v !== undefined ? s.s3v : s.stat3_value;
-          const s3l = s.s3l !== undefined ? s.s3l : s.stat3_label;
+          const stats = Array.isArray(s.stats) ? s.stats : [];
+          const s1v = s.s1v !== undefined ? s.s1v : (stats[0]?.value ?? s.stat1_value);
+          const s1l = s.s1l !== undefined ? s.s1l : (stats[0]?.label ?? s.stat1_label);
+          const s2v = s.s2v !== undefined ? s.s2v : (stats[1]?.value ?? s.stat2_value);
+          const s2l = s.s2l !== undefined ? s.s2l : (stats[1]?.label ?? s.stat2_label);
+          const s3v = s.s3v !== undefined ? s.s3v : (stats[2]?.value ?? s.stat3_value);
+          const s3l = s.s3l !== undefined ? s.s3l : (stats[2]?.label ?? s.stat3_label);
           [[s1v,s1l],[s2v,s2l],[s3v,s3l]].forEach(([v,l],i)=>{
             if (statNs[i] && v !== undefined) statNs[i].textContent = v;
             if (statLs[i] && l !== undefined) statLs[i].textContent = l;
@@ -2752,6 +2788,20 @@ function showToast(msg) {
     window.addEventListener('message', e => {
       if (e.data && e.data.type === 'ZW_BUILDER_CONFIG') {
         applyBuilderConfig(e.data);
+      }
+      if (e.data && e.data.type === 'ZW_SCROLL_TO_SECTION') {
+        const secId = e.data.sectionId;
+        const sectionMap = {
+          hero:    document.querySelector('.hero'),
+          marquee: document.querySelector('.marquee'),
+          about:   document.querySelector('.section-about'),
+          release: document.querySelector('.drop-wrap'),
+          products:document.querySelector('.products-section')
+        };
+        const el = sectionMap[secId] || document.getElementById(secId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
       }
     });
 
@@ -3198,6 +3248,7 @@ function collectCategoryLabels(products) {
 }
 
 function renderCategoryNavigation(products) {
+  if (window.__zwCustomNavApplied) return;
   const labels = collectCategoryLabels(products);
   const desktop = document.getElementById('nav-category-links');
   const mobile = document.getElementById('mobile-category-links');
@@ -3428,8 +3479,6 @@ function renderProductCards(products, grid) {
     });
   });
 }
-
-        loadProducts();
 
 
 function setDisabled(id, dis, label) {
