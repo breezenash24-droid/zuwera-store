@@ -190,34 +190,98 @@
         }
 
         .nav-section {
-            margin-bottom: 30px;
+            margin-bottom: 6px;
         }
 
         .nav-section-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             font-size: 0.75rem;
             text-transform: uppercase;
             color: var(--text-secondary);
-            margin-bottom: 12px;
+            margin-bottom: 4px;
             letter-spacing: 1px;
             font-weight: 700;
+            cursor: pointer;
+            padding: 6px 4px;
+            border-radius: 4px;
+            user-select: none;
+            transition: color .15s;
         }
+        .nav-section-title:hover { color: var(--text-primary); }
+        .nav-section-title .nav-chevron { font-size: .65rem; transition: transform .2s; opacity: .5; }
+        .nav-section.collapsed .nav-chevron { transform: rotate(-90deg); }
+        .nav-section-links { overflow: hidden; transition: max-height .25s ease; max-height: 400px; padding-bottom: 16px; }
+        .nav-section.collapsed .nav-section-links { max-height: 0; padding-bottom: 0; }
 
         .nav-link {
             display: block;
-            padding: 12px 16px;
-            margin-bottom: 8px;
+            padding: 10px 16px;
+            margin-bottom: 4px;
             color: var(--text-primary);
             text-decoration: none;
             border-radius: 6px;
-            transition: all 0.3s;
+            transition: all 0.2s;
             cursor: pointer;
             border-left: 3px solid transparent;
+            font-size: .88rem;
         }
 
         .nav-link:hover, .nav-link.active {
             background-color: var(--bg-primary);
             border-left-color: var(--accent);
         }
+
+        /* Ctrl+K search palette */
+        #zw-search-overlay {
+            display: none; position: fixed; inset: 0; z-index: 9999;
+            background: rgba(0,0,0,.55); backdrop-filter: blur(4px);
+            align-items: flex-start; justify-content: center; padding-top: 80px;
+        }
+        #zw-search-overlay.open { display: flex; }
+        #zw-search-box {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: 12px; width: 100%; max-width: 560px;
+            box-shadow: 0 24px 60px rgba(0,0,0,.45); overflow: hidden;
+        }
+        #zw-search-input {
+            width: 100%; background: none; border: none; outline: none;
+            padding: 18px 20px; font-size: 1rem; color: var(--text-primary);
+            font-family: 'Barlow', sans-serif; border-bottom: 1px solid var(--border);
+        }
+        #zw-search-input::placeholder { color: var(--text-secondary); }
+        #zw-search-results { max-height: 380px; overflow-y: auto; }
+        .zw-sr-section { padding: 8px 12px 4px; font-size: .7rem; text-transform: uppercase;
+            letter-spacing: .08em; color: var(--text-secondary); font-weight: 700; }
+        .zw-sr-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 11px 20px; cursor: pointer; transition: background .12s;
+            border-left: 3px solid transparent;
+        }
+        .zw-sr-item:hover, .zw-sr-item.zw-sr-active {
+            background: var(--bg-primary); border-left-color: var(--accent);
+        }
+        .zw-sr-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+        .zw-sr-main { font-size: .88rem; color: var(--text-primary); }
+        .zw-sr-sub { font-size: .75rem; color: var(--text-secondary); }
+        .zw-sr-empty { padding: 28px 20px; color: var(--text-secondary); font-size: .88rem; text-align: center; }
+        .zw-sr-shortcut { padding: 10px 16px; border-top: 1px solid var(--border);
+            font-size: .7rem; color: var(--text-secondary); display: flex; gap: 16px; }
+        .zw-sr-shortcut kbd { background: var(--bg-primary); border: 1px solid var(--border);
+            border-radius: 4px; padding: 1px 6px; font-size: .7rem; }
+
+        /* Modal close button */
+        .modal-content { position: relative; }
+        .modal-close-btn {
+            position: absolute; top: 14px; right: 14px;
+            background: var(--bg-primary); border: 1px solid var(--border);
+            border-radius: 6px; width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; color: var(--text-secondary); font-size: 1rem;
+            transition: background .15s, color .15s; line-height: 1;
+        }
+        .modal-close-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
 
         .sidebar-bottom {
             border-top: 1px solid var(--border);
@@ -1512,39 +1576,49 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-logo">ZW</div>
-            <nav class="sidebar-nav">
-                <div class="nav-section">
-                    <div class="nav-section-title">Overview</div>
-                    <a class="nav-link active" data-page="dashboard" onclick="navigateTo('dashboard')">📊 Dashboard</a>
-                    <a class="nav-link" data-page="analytics" onclick="navigateTo('analytics')">📈 Analytics</a>
-                    <a class="nav-link" data-page="finance" onclick="navigateTo('finance')">💰 Finance</a>
-                    <a class="nav-link" data-page="tax" onclick="navigateTo('tax')">🧾 Tax</a>
+            <nav class="sidebar-nav" id="sidebarNav">
+                <div class="nav-section" data-group="overview">
+                    <div class="nav-section-title" onclick="toggleNavGroup('overview')">Overview <span class="nav-chevron">▾</span></div>
+                    <div class="nav-section-links">
+                        <a class="nav-link active" data-page="dashboard" onclick="navigateTo('dashboard')">📊 Dashboard</a>
+                        <a class="nav-link" data-page="analytics" onclick="navigateTo('analytics')">📈 Analytics</a>
+                        <a class="nav-link" data-page="finance" onclick="navigateTo('finance')">💰 Finance</a>
+                        <a class="nav-link" data-page="tax" onclick="navigateTo('tax')">🧾 Tax</a>
+                    </div>
                 </div>
-                <div class="nav-section">
-                    <div class="nav-section-title">Catalogue</div>
-                    <a class="nav-link" data-page="products" onclick="navigateTo('products')">👟 Products</a>
-                    <a class="nav-link" data-page="commerce" onclick="navigateTo('commerce')">🏷️ Coupons</a>
-                    <a class="nav-link" data-page="legacy" onclick="navigateTo('legacy')">📦 Legacy</a>
-                    <a class="nav-link" data-page="sizecharts" onclick="navigateTo('sizecharts')">📏 Size Charts</a>
-                    <a class="nav-link" data-page="reviews" onclick="navigateTo('reviews')">⭐ Reviews</a>
+                <div class="nav-section" data-group="catalogue">
+                    <div class="nav-section-title" onclick="toggleNavGroup('catalogue')">Catalogue <span class="nav-chevron">▾</span></div>
+                    <div class="nav-section-links">
+                        <a class="nav-link" data-page="products" onclick="navigateTo('products')">👟 Products</a>
+                        <a class="nav-link" data-page="commerce" onclick="navigateTo('commerce')">🏷️ Coupons</a>
+                        <a class="nav-link" data-page="legacy" onclick="navigateTo('legacy')">📦 Legacy</a>
+                        <a class="nav-link" data-page="sizecharts" onclick="navigateTo('sizecharts')">📏 Size Charts</a>
+                        <a class="nav-link" data-page="reviews" onclick="navigateTo('reviews')">⭐ Reviews</a>
+                    </div>
                 </div>
-                <div class="nav-section">
-                    <div class="nav-section-title">Storefront</div>
-                    <a class="nav-link" href="/builder.html" target="_blank" onclick="(async function(){try{const s=await sb.auth.getSession();const sess=s&&s.data&&s.data.session;if(sess){localStorage.setItem('zw_builder_token',sess.access_token);localStorage.setItem('zw_builder_token_exp',String(sess.expires_at||0));}}catch(_){}})()">🏗️ Page Builder ↗</a>
+                <div class="nav-section" data-group="operations">
+                    <div class="nav-section-title" onclick="toggleNavGroup('operations')">Operations <span class="nav-chevron">▾</span></div>
+                    <div class="nav-section-links">
+                        <a class="nav-link" data-page="receipts" onclick="navigateTo('receipts')">🧾 Receipts</a>
+                        <a class="nav-link" data-page="shipping" onclick="navigateTo('shipping')">🚚 Shipping</a>
+                        <a class="nav-link" data-page="returns" onclick="navigateTo('returns')">↩ Returns</a>
+                        <a class="nav-link" data-page="users" onclick="navigateTo('users')">👥 Users</a>
+                    </div>
                 </div>
-                <div class="nav-section">
-                    <div class="nav-section-title">Operations</div>
-                    <a class="nav-link" data-page="receipts" onclick="navigateTo('receipts')">🧾 Receipts</a>
-                    <a class="nav-link" data-page="shipping" onclick="navigateTo('shipping')">🚚 Shipping</a>
-                    <a class="nav-link" data-page="returns" onclick="navigateTo('returns')">↩ Returns</a>
-                    <a class="nav-link" data-page="users" onclick="navigateTo('users')">👥 Users</a>
+                <div class="nav-section collapsed" data-group="storefront">
+                    <div class="nav-section-title" onclick="toggleNavGroup('storefront')">Storefront <span class="nav-chevron">▾</span></div>
+                    <div class="nav-section-links">
+                        <a class="nav-link" href="/builder.html" target="_blank" onclick="(async function(){try{const s=await sb.auth.getSession();const sess=s&&s.data&&s.data.session;if(sess){localStorage.setItem('zw_builder_token',sess.access_token);localStorage.setItem('zw_builder_token_exp',String(sess.expires_at||0));}}catch(_){}})()">🏗️ Page Builder ↗</a>
+                    </div>
                 </div>
-                <div class="nav-section">
-                    <div class="nav-section-title">Configuration</div>
-                    <a class="nav-link" data-page="settings" onclick="navigateTo('settings')">⚙️ Settings</a>
-                    <a class="nav-link" data-page="website" onclick="navigateTo('website')">🎨 Appearance</a>
-                    <a class="nav-link" data-page="apis" onclick="navigateTo('apis')">🔑 APIs</a>
-                    <a class="nav-link" data-page="audit" onclick="navigateTo('audit')">📋 Audit Log</a>
+                <div class="nav-section collapsed" data-group="configuration">
+                    <div class="nav-section-title" onclick="toggleNavGroup('configuration')">Configuration <span class="nav-chevron">▾</span></div>
+                    <div class="nav-section-links">
+                        <a class="nav-link" data-page="settings" onclick="navigateTo('settings')">⚙️ Settings</a>
+                        <a class="nav-link" data-page="website" onclick="navigateTo('website')">🎨 Appearance</a>
+                        <a class="nav-link" data-page="apis" onclick="navigateTo('apis')">🔑 APIs</a>
+                        <a class="nav-link" data-page="audit" onclick="navigateTo('audit')">📋 Audit Log</a>
+                    </div>
                 </div>
             </nav>
             <div class="sidebar-bottom">
@@ -1641,6 +1715,9 @@
         <div class="main-content">
             <header class="header">
                 <h1 class="header-title" id="pageTitle">Dashboard</h1>
+                <button onclick="openSearch()" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:7px 14px;color:var(--text-secondary);font-size:.8rem;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:inherit;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor=''">
+                    🔍 Search <kbd style="background:var(--bg-primary);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:.7rem;">Ctrl K</kbd>
+                </button>
             </header>
             <div class="content-area">
                 <!-- Dashboard Page -->
@@ -6062,8 +6139,18 @@
     </div>
 
     <!-- Product Form Modal -->
+    <!-- Ctrl+K Global Search -->
+    <div id="zw-search-overlay" onclick="if(event.target===this)closeSearch()">
+        <div id="zw-search-box">
+            <input id="zw-search-input" type="search" placeholder="Search products, orders, users…" autocomplete="off" oninput="zwSearchQuery(this.value)" onkeydown="zwSearchKey(event)">
+            <div id="zw-search-results"></div>
+            <div class="zw-sr-shortcut"><span><kbd>↑↓</kbd> navigate</span><span><kbd>↵</kbd> open</span><span><kbd>Esc</kbd> close</span></div>
+        </div>
+    </div>
+
     <div id="productFormModal" class="modal">
         <div class="modal-content">
+            <button class="modal-close-btn" onclick="document.getElementById('productFormModal').classList.remove('active')" title="Close">✕</button>
             <div class="modal-header" id="formModalTitle">Add Product</div>
             <form id="productForm">
                 <div class="tabs">
@@ -6455,6 +6542,7 @@
     <!-- Edit Review Modal -->
     <div id="editReviewModal" class="modal">
         <div class="modal-content">
+            <button class="modal-close-btn" onclick="document.getElementById('editReviewModal').classList.remove('active')" title="Close">✕</button>
             <div class="modal-header">Moderate & Reply to Review</div>
             <form id="editReviewForm">
                 <input type="hidden" id="editReviewId">
@@ -6485,6 +6573,7 @@
     <!-- Size Chart Form Modal -->
     <div id="sizeChartFormModal" class="modal">
         <div class="modal-content">
+            <button class="modal-close-btn" id="closeSizeChartXBtn" title="Close">✕</button>
             <div class="modal-header" id="sizeChartFormTitle">Add Size Chart Entry</div>
             <form id="sizeChartForm">
                 <div class="form-group">
@@ -6514,6 +6603,7 @@
     <!-- Delete Confirmation Modal -->
     <div id="deleteModal" class="modal">
         <div class="modal-content" style="max-width: 400px;">
+            <button class="modal-close-btn" id="cancelDeleteXBtn" title="Close">✕</button>
             <div class="modal-header">Confirm Delete</div>
             <p style="margin-bottom: 30px; color: var(--text-secondary);">Are you sure you want to delete this product? This action cannot be undone.</p>
             <div class="modal-actions">
@@ -7213,6 +7303,7 @@
             const pageEl = document.getElementById(page);
             if (!pageEl) { console.warn('navigateTo: no element for page', page); return; }
             pageEl.classList.add('active');
+            openNavGroupForPage(page);
 
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
             document.querySelector(`[data-page="${page}"]`)?.classList.add('active');
@@ -7275,6 +7366,107 @@
                 loadAuditLog();
             }
         }
+
+        // ─── Collapsible nav groups ──────────────────────────────────────────────
+        const NAV_GROUP_PAGES = {
+            overview:      ['dashboard','analytics','finance','tax'],
+            catalogue:     ['products','commerce','legacy','sizecharts','reviews'],
+            operations:    ['receipts','shipping','returns','users'],
+            storefront:    [],
+            configuration: ['settings','website','apis','audit'],
+        };
+        function toggleNavGroup(group) {
+            const el = document.querySelector(`[data-group="${group}"]`);
+            if (!el) return;
+            el.classList.toggle('collapsed');
+            try { const s = JSON.parse(localStorage.getItem('zw_nav_groups') || '{}'); s[group] = el.classList.contains('collapsed'); localStorage.setItem('zw_nav_groups', JSON.stringify(s)); } catch(_) {}
+        }
+        function openNavGroupForPage(page) {
+            Object.entries(NAV_GROUP_PAGES).forEach(([group, pages]) => {
+                if (!pages.includes(page)) return;
+                const el = document.querySelector(`[data-group="${group}"]`);
+                if (el) el.classList.remove('collapsed');
+            });
+        }
+        (function restoreNavGroups() {
+            try {
+                const s = JSON.parse(localStorage.getItem('zw_nav_groups') || '{}');
+                Object.entries(s).forEach(([group, collapsed]) => {
+                    const el = document.querySelector(`[data-group="${group}"]`);
+                    if (el) el.classList.toggle('collapsed', collapsed);
+                });
+            } catch(_) {}
+        })();
+
+        // ─── Ctrl+K Global Search ────────────────────────────────────────────────
+        let _zwSearchIdx = [], _zwSearchSel = -1;
+        function openSearch() {
+            const ov = document.getElementById('zw-search-overlay');
+            const inp = document.getElementById('zw-search-input');
+            ov.classList.add('open');
+            inp.value = '';
+            zwSearchQuery('');
+            setTimeout(() => inp.focus(), 50);
+        }
+        function closeSearch() {
+            document.getElementById('zw-search-overlay').classList.remove('open');
+        }
+        function zwBuildIndex() {
+            _zwSearchIdx = [
+                // Nav pages
+                {icon:'📊',main:'Dashboard',sub:'Overview',action:()=>navigateTo('dashboard')},
+                {icon:'📈',main:'Analytics',sub:'Overview',action:()=>navigateTo('analytics')},
+                {icon:'💰',main:'Finance',sub:'Overview',action:()=>navigateTo('finance')},
+                {icon:'🧾',main:'Tax',sub:'Overview',action:()=>navigateTo('tax')},
+                {icon:'👟',main:'Products',sub:'Catalogue',action:()=>navigateTo('products')},
+                {icon:'🏷️',main:'Coupons / Promos',sub:'Catalogue',action:()=>navigateTo('commerce')},
+                {icon:'📦',main:'Legacy Products',sub:'Catalogue',action:()=>navigateTo('legacy')},
+                {icon:'📏',main:'Size Charts',sub:'Catalogue',action:()=>navigateTo('sizecharts')},
+                {icon:'⭐',main:'Reviews',sub:'Catalogue',action:()=>navigateTo('reviews')},
+                {icon:'🧾',main:'Receipts / Orders',sub:'Operations',action:()=>navigateTo('receipts')},
+                {icon:'🚚',main:'Shipping',sub:'Operations',action:()=>navigateTo('shipping')},
+                {icon:'↩',main:'Returns',sub:'Operations',action:()=>navigateTo('returns')},
+                {icon:'👥',main:'Users',sub:'Operations',action:()=>navigateTo('users')},
+                {icon:'⚙️',main:'Settings',sub:'Configuration',action:()=>navigateTo('settings')},
+                {icon:'🎨',main:'Appearance',sub:'Configuration',action:()=>navigateTo('website')},
+                {icon:'🔑',main:'API Keys',sub:'Configuration',action:()=>navigateTo('apis')},
+                {icon:'📋',main:'Audit Log',sub:'Configuration',action:()=>navigateTo('audit')},
+                {icon:'🏗️',main:'Page Builder',sub:'Storefront ↗',action:()=>window.open('/builder.html','_blank')},
+            ];
+            // Add live products from DOM
+            document.querySelectorAll('#productsTable tbody tr[data-id]').forEach(row => {
+                const title = row.querySelector('td:nth-child(2)')?.textContent?.trim();
+                const sku = row.querySelector('td:nth-child(3)')?.textContent?.trim();
+                if (title) _zwSearchIdx.push({icon:'👟',main:title,sub:`Product · ${sku||''}`,action:()=>{ navigateTo('products'); setTimeout(()=>{ const b=document.querySelector(`[data-id="${row.dataset.id}"] .btn-secondary`);if(b)b.click(); },400); }});
+            });
+        }
+        function zwSearchQuery(q) {
+            zwBuildIndex();
+            const res = document.getElementById('zw-search-results');
+            _zwSearchSel = -1;
+            if (!q.trim()) {
+                res.innerHTML = '<div class="zw-sr-section">Quick Nav</div>' + _zwSearchIdx.slice(0,8).map((item,i)=>`<div class="zw-sr-item" data-idx="${i}"><span class="zw-sr-icon">${item.icon}</span><div><div class="zw-sr-main">${item.main}</div><div class="zw-sr-sub">${item.sub}</div></div></div>`).join('');
+            } else {
+                const lq = q.toLowerCase();
+                const hits = _zwSearchIdx.filter(item => item.main.toLowerCase().includes(lq) || item.sub.toLowerCase().includes(lq));
+                if (!hits.length) { res.innerHTML = '<div class="zw-sr-empty">No results for "' + q + '"</div>'; return; }
+                res.innerHTML = hits.slice(0,12).map((item,i)=>`<div class="zw-sr-item" data-idx="${i}"><span class="zw-sr-icon">${item.icon}</span><div><div class="zw-sr-main">${item.main}</div><div class="zw-sr-sub">${item.sub}</div></div></div>`).join('');
+            }
+            res.querySelectorAll('.zw-sr-item').forEach(el => {
+                el.addEventListener('click', () => { _zwSearchIdx[el.dataset.idx]?.action?.(); closeSearch(); });
+            });
+        }
+        function zwSearchKey(e) {
+            const items = document.querySelectorAll('.zw-sr-item');
+            if (e.key === 'ArrowDown') { e.preventDefault(); _zwSearchSel = Math.min(_zwSearchSel+1, items.length-1); items.forEach((el,i)=>el.classList.toggle('zw-sr-active',i===_zwSearchSel)); items[_zwSearchSel]?.scrollIntoView({block:'nearest'}); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); _zwSearchSel = Math.max(_zwSearchSel-1, 0); items.forEach((el,i)=>el.classList.toggle('zw-sr-active',i===_zwSearchSel)); items[_zwSearchSel]?.scrollIntoView({block:'nearest'}); }
+            else if (e.key === 'Enter') { e.preventDefault(); const active = document.querySelector('.zw-sr-active'); if (active) { _zwSearchIdx[active.dataset.idx]?.action?.(); closeSearch(); } else if (items[0]) { _zwSearchIdx[items[0].dataset.idx]?.action?.(); closeSearch(); } }
+            else if (e.key === 'Escape') closeSearch();
+        }
+        document.addEventListener('keydown', e => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openSearch(); }
+            if (e.key === 'Escape' && document.getElementById('zw-search-overlay').classList.contains('open')) closeSearch();
+        });
 
         // ─── Mobile more drawer ─────────────────────────────────────────────────
         function openMobileMore() {
@@ -10979,6 +11171,8 @@
         });
 
         document.getElementById('closeSizeChartFormBtn').addEventListener('click', () => document.getElementById('sizeChartFormModal').classList.remove('active'));
+        document.getElementById('closeSizeChartXBtn').addEventListener('click', () => document.getElementById('sizeChartFormModal').classList.remove('active'));
+        document.getElementById('cancelDeleteXBtn').addEventListener('click', () => document.getElementById('deleteModal').classList.remove('active'));
         document.getElementById('scCategory').addEventListener('change', updateSizeChartFormFields);
 
         function updateSizeChartFormFields() {
@@ -11902,7 +12096,8 @@
     <script src="commerce-admin.js?v=a3f038a9"></script>
 <!-- API Key Editor Modal -->
 <div id="api-key-modal">
-    <div class="api-key-modal-box">
+    <div class="api-key-modal-box" style="position:relative;">
+        <button class="modal-close-btn" onclick="closeKeyModal()" title="Close" style="top:12px;right:12px;">✕</button>
         <div class="api-key-modal-title" id="akm-title">Edit API Keys</div>
         <div class="api-key-modal-sub">Changes take effect immediately on the next request — no redeployment needed. Leave a field blank to keep the current value.</div>
         <div id="akm-fields"></div>
