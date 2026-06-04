@@ -1491,7 +1491,7 @@
                 </div>
                 <div class="nav-section">
                     <div class="nav-section-title">Storefront</div>
-                    <a href="/builder.html" target="_blank" style="display:flex;align-items:center;gap:.55rem;padding:.45rem .75rem;border-radius:4px;color:rgba(244,241,235,.65);font-size:.82rem;text-decoration:none;transition:background .14s,color .14s;cursor:pointer" onmouseover="this.style.background='rgba(244,241,235,.07)';this.style.color='#f4f1eb'" onmouseout="this.style.background='';this.style.color='rgba(244,241,235,.65)'" onclick="(async function(){try{const s=await sb.auth.getSession();const sess=s&&s.data&&s.data.session;if(sess){localStorage.setItem('zw_builder_token',sess.access_token);localStorage.setItem('zw_builder_token_exp',String(sess.expires_at||0));}}catch(_){}})()">🏗️ Page Builder ↗</a>
+                    <a href="/builder.html" target="_blank" style="display:flex;align-items:center;gap:.55rem;padding:.45rem .75rem;border-radius:4px;color:var(--text-secondary);font-size:.82rem;text-decoration:none;transition:background .14s,color .14s;cursor:pointer" onmouseover="this.style.background='var(--bg-primary)';this.style.color='var(--text-primary)'" onmouseout="this.style.background='';this.style.color='var(--text-secondary)'" onclick="(async function(){try{const s=await sb.auth.getSession();const sess=s&&s.data&&s.data.session;if(sess){localStorage.setItem('zw_builder_token',sess.access_token);localStorage.setItem('zw_builder_token_exp',String(sess.expires_at||0));}}catch(_){}})()">🏗️ Page Builder ↗</a>
                 </div>
                 <div class="nav-section">
                     <div class="nav-section-title">Operations</div>
