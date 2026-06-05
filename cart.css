@@ -157,14 +157,13 @@
 /* ===================== CART SUMMARY ===================== */
 .cart-summary {
   background: rgba(244, 241, 235, 0.02);
-  border: none;
-  border-top: 2px solid var(--zw-line-dark);
-  padding: 2rem 0 2rem;
+  border: 1px solid rgba(244,241,235,.18);
+  padding: 1.75rem 1.5rem 1.5rem;
   margin-left: 0;
   transition: background var(--zw-motion-base), border-color var(--zw-motion-base);
 }
-body.light-mode .cart-summary { border-top-color: var(--zw-line-light); background: transparent; }
-body.super-light-mode .cart-summary { border-top-color: rgba(9,9,11,0.12); background: transparent; }
+body.light-mode .cart-summary { border-color: rgba(9,9,11,.14); background: transparent; }
+body.super-light-mode .cart-summary { border-color: rgba(9,9,11,.1); background: #fafafa; }
 @media (max-width: 760px) {
   .cart-summary { margin-left: 0; margin-top: 2rem; }
 }
@@ -272,13 +271,13 @@ body.light-mode .zw-saved-item-btn--primary:hover { background: #1a1a1a; }
 
 /* ─── BAG PAGE REDESIGN ──────────────────────────────────────────────────── */
 
-/* Title: brand italic condensed */
+/* Title: match checkout heading style */
 .cart-page-header h1 {
   font-family: var(--zw-font-head);
-  font-size: clamp(1.8rem, 5vw, 2.4rem);
-  font-style: italic;
-  font-weight: 900;
-  letter-spacing: 0.02em;
+  font-size: clamp(1.8rem, 5vw, 2.6rem);
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   line-height: 1;
 }
@@ -318,9 +317,9 @@ body.light-mode .cart-favorites.is-visible {
   border-top-color: var(--zw-line-light);
 }
 
-/* Tighter summary box overrides */
+/* Summary box — override any inherited padding/radius */
 .cart-summary {
-  padding: 1.6rem;
+  padding: 1.75rem 1.5rem 1.5rem;
   border-radius: 0;
 }
 
@@ -387,22 +386,23 @@ body.super-light-mode .cart-item-img-wrap { background: #f2f2f2; }
 
 .cart-item-title {
   font-family: var(--zw-font-head);
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
-  line-height: 1.15;
-  margin-bottom: 0.25rem;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  margin-bottom: 0.3rem;
   text-transform: uppercase;
 }
 
 .cart-item-meta {
   font-family: var(--zw-font-mono);
-  font-size: 0.58rem;
+  font-size: 0.65rem;
   color: var(--zw-muted-dark);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.07em;
   display: flex;
   align-items: center;
+  gap: 0.25rem;
 }
 body.light-mode .cart-item-meta {
   color: var(--zw-muted-light);
