@@ -307,12 +307,19 @@ function maybeLoadRates() {
 
   clearTimeout(ratesFetchTimeout);
   ratesFetchTimeout = setTimeout(() => {
-    _pay.ratesField.style.display   = 'none';
-    _pay.ratesLoading.style.display = 'block';
+    if (_pay.ratesField)   _pay.ratesField.style.display   = 'none';
+    if (_pay.ratesLoading) _pay.ratesLoading.style.display = 'block';
     ratesFetchPromise = doFetchRates(zip, state).catch(err => {
       console.error('Rate fetch error:', err);
+      // Show fallback rate so user isn't stuck with no shipping option
+      const fallback = (window._shippingPolicy?.standardRate) || 8;
+      updateCartSummaryShipping(fallback);
+      if (_pay.ratesField) {
+        _pay.ratesField.style.display = 'block';
+        _pay.ratesField.innerHTML = `<p style="font-size:.78rem;color:rgba(244,241,235,.5);margin:.4rem 0">Standard shipping: $${fallback.toFixed(2)}</p>`;
+      }
     }).finally(() => {
-      _pay.ratesLoading.style.display = 'none';
+      if (_pay.ratesLoading) _pay.ratesLoading.style.display = 'none';
       ratesFetchPromise = null;
     });
   }, 600);
@@ -384,18 +391,18 @@ document.getElementById('payment-modal')?.addEventListener('click', e => {
 
 // ===================== PAY SUBMIT (CARD) =====================
 _pay.btn?.addEventListener('click', async () => {
-  const get   = id => document.getElementById(id).value.trim();
+  const get   = id => (document.getElementById(id)?.value || '').trim();
   const name  = get('pay-name');
   const email = get('pay-email');
   const addr1 = get('pay-addr1');
   const addr2 = get('pay-addr2');
   const city  = get('pay-city');
-  const state = _pay.stateInput.value.trim();
-  const zip   = _pay.zipInput.value.trim();
+  const state = (_pay.stateInput?.value || '').trim();
+  const zip   = (_pay.zipInput?.value   || '').trim();
 
-  _pay.errEl.textContent = '';
-  if (!name || !email)                   { _pay.errEl.textContent = 'Please enter your name and email.'; return; }
-  if (!addr1 || !city || !state || !zip) { _pay.errEl.textContent = 'Please enter your full shipping address.'; return; }
+  if (_pay.errEl) _pay.errEl.textContent = '';
+  if (!name || !email)                   { if (_pay.errEl) _pay.errEl.textContent = 'Please enter your name and email.'; return; }
+  if (!addr1 || !city || !state || !zip) { if (_pay.errEl) _pay.errEl.textContent = 'Please enter your full shipping address.'; return; }
 
   _pay.btn.disabled = true;
   _pay.btnTxt.textContent = 'Processing…';
