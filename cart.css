@@ -157,11 +157,14 @@
 /* ===================== CART SUMMARY ===================== */
 .cart-summary {
   background: rgba(244, 241, 235, 0.02);
-  border: 1px solid var(--zw-line-dark);
-  padding: 2rem;
+  border: none;
+  border-top: 2px solid var(--zw-line-dark);
+  padding: 2rem 0 2rem;
   margin-left: 0;
   transition: background var(--zw-motion-base), border-color var(--zw-motion-base);
 }
+body.light-mode .cart-summary { border-top-color: var(--zw-line-light); background: transparent; }
+body.super-light-mode .cart-summary { border-top-color: rgba(9,9,11,0.12); background: transparent; }
 @media (max-width: 760px) {
   .cart-summary { margin-left: 0; margin-top: 2rem; }
 }
@@ -335,26 +338,21 @@ body.light-mode .summary-row {
   font-variant-numeric: tabular-nums;
 }
 
-/* ─── Premium Product Card Styles ─── */
+/* ─── Product Card Styles ─── */
 .cart-item-card {
   display: flex;
   gap: 1.2rem;
   align-items: center;
-  padding: 1.2rem;
-  margin-bottom: 1rem;
-  border: 1px solid var(--zw-line-dark);
-  background: rgba(244, 241, 235, 0.02);
-  transition: border-color var(--zw-motion-base), background var(--zw-motion-base);
+  padding: 1.4rem 0;
+  margin-bottom: 0;
+  border: none;
+  border-bottom: 1px solid var(--zw-line-dark);
+  background: transparent;
+  transition: border-color var(--zw-motion-base);
 }
-body.light-mode .cart-item-card {
-  border-color: var(--zw-line-light);
-  background: rgba(9, 9, 11, 0.015);
-}
-body.super-light-mode .cart-item-card {
-  border-color: rgba(9, 9, 11, 0.08);
-  background: #FFFFFF;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.015);
-}
+.cart-item-card:last-child { border-bottom: none; }
+body.light-mode .cart-item-card { border-bottom-color: var(--zw-line-light); }
+body.super-light-mode .cart-item-card { border-bottom-color: rgba(9,9,11,0.08); }
 
 .cart-item-img-wrap {
   width: 90px;
@@ -362,17 +360,11 @@ body.super-light-mode .cart-item-card {
   flex-shrink: 0;
   overflow: hidden;
   position: relative;
-  border: 1px solid var(--zw-line-dark);
-  background: rgba(244, 241, 235, 0.03);
+  border: none;
+  background: rgba(244, 241, 235, 0.06);
 }
-body.light-mode .cart-item-img-wrap {
-  border-color: var(--zw-line-light);
-  background: rgba(9, 9, 11, 0.03);
-}
-body.super-light-mode .cart-item-img-wrap {
-  border-color: rgba(9, 9, 11, 0.08);
-  background: #f5f5f5;
-}
+body.light-mode .cart-item-img-wrap { background: rgba(9,9,11,0.04); }
+body.super-light-mode .cart-item-img-wrap { background: #f2f2f2; }
 
 .cart-item-img-wrap img {
   width: 100%;
