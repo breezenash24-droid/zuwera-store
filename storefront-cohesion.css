@@ -46,6 +46,8 @@ a,button,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:t
   --gold:var(--zw-accent);
   --pink:var(--zw-accent);
   --red:var(--zw-danger);
+  --dim:rgba(244,241,235,0.45);
+  --line:rgba(244,241,235,0.1);
   --zw-radius-control:0;
   --zw-radius-tight:2px;
   --zw-radius-soft:4px;
@@ -71,6 +73,8 @@ body.light-mode{
   --paper:var(--zw-ink);
   --black:var(--zw-page);
   --white:var(--zw-ink);
+  --dim:rgba(9,9,11,0.45);
+  --line:rgba(9,9,11,0.1);
 }
 
 body.super-light-mode{
@@ -86,6 +90,8 @@ body.super-light-mode{
   --black:#FFFFFF;
   --paper:#09090b;
   --white:#09090b;
+  --dim:rgba(9,9,11,0.45);
+  --line:rgba(9,9,11,0.1);
 }
 
 button,

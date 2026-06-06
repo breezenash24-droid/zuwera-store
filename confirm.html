@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -403,7 +403,7 @@
 
     // Show redirect notice and go to admin
     const notice = document.createElement('p');
-    notice.style.cssText = 'color:rgba(244,241,235,.5);font-size:.75rem;letter-spacing:.08em;margin-top:1rem;';
+    notice.style.cssText = 'color:var(--white);opacity:.5;font-size:.75rem;letter-spacing:.08em;margin-top:1rem;';
     notice.textContent = 'Redirecting to admin…';
     document.getElementById('state-reset').appendChild(notice);
     setTimeout(() => { window.location.href = '/admin.html'; }, 2000);

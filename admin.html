@@ -24,6 +24,14 @@
             --warning: #f59e0b;
             --error: #ef4444;
             --info: #3b82f6;
+            --success-bg: rgba(16, 185, 129, 0.1);
+            --warning-bg: rgba(245, 158, 11, 0.1);
+            --error-bg: rgba(239, 68, 68, 0.1);
+            --info-bg: rgba(59, 130, 246, 0.1);
+            --success-border: rgba(16, 185, 129, 0.35);
+            --warning-border: rgba(245, 158, 11, 0.35);
+            --error-border: rgba(239, 68, 68, 0.35);
+            --info-border: rgba(59, 130, 246, 0.35);
             /* Aliases for consistency */
             --surface: var(--bg-secondary);
             --text-muted: var(--text-secondary);
@@ -40,6 +48,18 @@
             --text-secondary: #666;
             --border: #e5e5e5;
             --border-color: #e5e5e5;
+            --success: #15803d;
+            --warning: #d97706;
+            --error: #dc2626;
+            --info: #1d4ed8;
+            --success-bg: rgba(21, 128, 61, 0.08);
+            --warning-bg: rgba(217, 119, 6, 0.08);
+            --error-bg: rgba(220, 38, 38, 0.08);
+            --info-bg: rgba(29, 78, 216, 0.08);
+            --success-border: rgba(21, 128, 61, 0.3);
+            --warning-border: rgba(217, 119, 6, 0.3);
+            --error-border: rgba(220, 38, 38, 0.3);
+            --info-border: rgba(29, 78, 216, 0.3);
         }
 
         body.super-light-mode {
@@ -77,15 +97,21 @@
 
         /* Error boxes — work in both dark and light mode */
         .zw-admin-err {
-            background: rgba(239,68,68,.1);
-            border: 1px solid rgba(239,68,68,.35);
+            background: var(--error-bg);
+            border: 1px solid var(--error-border);
             border-radius: 8px;
             padding: 14px 18px;
             margin-bottom: 20px;
-            color: #ef4444;
+            color: var(--error);
             font-size: 13px;
         }
-        body.light-mode .zw-admin-err { background: rgba(239,68,68,.07); color: #c0392b; }
+
+        /* Inline style overrides for light mode */
+        body.light-mode [style*="color:#ef4444"] { color: var(--error) !important; }
+        body.light-mode [style*="color:#10b981"] { color: var(--success) !important; }
+        body.light-mode [style*="background:#ef4444"] { background: var(--error) !important; }
+        body.light-mode [style*="background:#10b981"] { background: var(--success) !important; }
+        body.light-mode [style*="background:#f59e0b"] { background: var(--warning) !important; }
 
         /* Dashboard stat chips — softer in light mode */
         body.light-mode .dash-stat-yellow { color: #b45309 !important; }
@@ -1608,7 +1634,7 @@
                 <div class="nav-section collapsed" data-group="storefront">
                     <div class="nav-section-title" onclick="toggleNavGroup('storefront')">Storefront <span class="nav-chevron">▾</span></div>
                     <div class="nav-section-links">
-                        <a class="nav-link" href="/builder.html" target="_blank" onclick="(async function(){try{const s=await sb.auth.getSession();const sess=s&&s.data&&s.data.session;if(sess){localStorage.setItem('zw_builder_token',sess.access_token);localStorage.setItem('zw_builder_token_exp',String(sess.expires_at||0));}}catch(_){}})()">🏗️ Page Builder ↗</a>
+                        <a class="nav-link" href="/builder.html" target="_blank" style="display: flex; align-items: center; gap: .55rem;" onclick="(async function(){try{const s=await sb.auth.getSession();const sess=s&&s.data&&s.data.session;if(sess){localStorage.setItem('zw_builder_token',sess.access_token);localStorage.setItem('zw_builder_token_exp',String(sess.expires_at||0));}}catch(_){}})()">🏗️ Page Builder ↗</a>
                     </div>
                 </div>
                 <div class="nav-section collapsed" data-group="configuration">
