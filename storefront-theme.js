@@ -212,53 +212,61 @@
     applyThemeMode(m);
   };
 
+  function applySettingsRows(rows) {
+    rows.forEach(function(row) {
+      if (row.key === 'theme') {
+        var isHomepage = window.location.pathname === '/' || window.location.pathname.endsWith('/index.html') || window.location.pathname.endsWith('/');
+        if (isHomepage || window.__ZW_BUILDER_PREVIEW__) return;
+        var localPref = null;
+        try { localPref = localStorage.getItem('zw_theme_mode'); } catch(_) {}
+        if (localPref) { applyThemeMode(localPref); return; }
+        var mode = row.value && row.value.mode === 'dark' ? 'dark'
+                 : row.value && row.value.mode === 'super-light' ? 'super-light' : 'light';
+        applyThemeMode(mode);
+      }
+      if (row.key === 'brand') {
+        var faviconUrl = row.value && row.value.favicon;
+        if (faviconUrl && window.__zwApplyFavicon) window.__zwApplyFavicon(faviconUrl);
+      }
+      if (row.key === 'fonts') {
+        applyStorefrontFonts(row.value);
+      }
+    });
+  }
+
+  // Expose so index.html's loadSiteSettings can feed rows directly (avoids duplicate fetch)
+  window.__zwApplyThemeRows = applySettingsRows;
+
   async function loadSiteSettings() {
-    try {
-      var controller = new AbortController();
-      var timeoutId = setTimeout(function() { controller.abort(); }, 5000);
-      var response = await fetch(
-        SUPABASE_URL + '/rest/v1/site_settings?key=in.(theme,brand,fonts)&select=key,value',
-        {
-          cache: 'no-store',
-          signal: controller.signal,
-          headers: {
-            apikey: SUPABASE_ANON,
-            Authorization: 'Bearer ' + SUPABASE_ANON
+    // Skip fetch on pages that handle their own settings (e.g. index.html)
+    if (window.__zwSkipThemeFetch) return;
+    // Deduplicate: if another instance of this function is already in-flight, reuse its promise
+    if (window.__zwThemePromise) { try { await window.__zwThemePromise; } catch(_) {} return; }
+
+    window.__zwThemePromise = (async function() {
+      try {
+        var controller = new AbortController();
+        var timeoutId = setTimeout(function() { controller.abort(); }, 5000);
+        var response = await fetch(
+          SUPABASE_URL + '/rest/v1/site_settings?key=in.(theme,brand,fonts)&select=key,value',
+          {
+            cache: 'no-store',
+            signal: controller.signal,
+            headers: { apikey: SUPABASE_ANON, Authorization: 'Bearer ' + SUPABASE_ANON }
           }
-        }
-      );
-      clearTimeout(timeoutId);
-      if (!response.ok) return;
-      var rows = await response.json();
+        );
+        clearTimeout(timeoutId);
+        if (!response.ok) return;
+        var rows = await response.json();
+        applySettingsRows(rows);
+      } catch (_) {
+        if (window.__zwSyncThemeColor) window.__zwSyncThemeColor();
+      } finally {
+        window.__zwThemePromise = null;
+      }
+    })();
 
-      rows.forEach(function(row) {
-        if (row.key === 'theme') {
-          var isHomepage = window.location.pathname === '/' || window.location.pathname.endsWith('/index.html') || window.location.pathname.endsWith('/');
-          if (isHomepage || window.__ZW_BUILDER_PREVIEW__) return;
-
-          // If the user already has an explicit localStorage preference, respect it.
-          // Only apply the Supabase global theme when no local preference is stored.
-          var localPref = null;
-          try { localPref = localStorage.getItem('zw_theme_mode'); } catch(_) {}
-          if (localPref) { applyThemeMode(localPref); return; }
-
-          var mode = row.value && row.value.mode === 'dark' ? 'dark'
-                   : row.value && row.value.mode === 'super-light' ? 'super-light' : 'light';
-          applyThemeMode(mode);
-        }
-        if (row.key === 'brand') {
-          var faviconUrl = row.value && row.value.favicon;
-          if (faviconUrl && window.__zwApplyFavicon) {
-            window.__zwApplyFavicon(faviconUrl);
-          }
-        }
-        if (row.key === 'fonts') {
-          applyStorefrontFonts(row.value);
-        }
-      });
-    } catch (_) {
-      if (window.__zwSyncThemeColor) window.__zwSyncThemeColor();
-    }
+    try { await window.__zwThemePromise; } catch(_) {}
   }
 
   if (document.readyState === 'loading') {
