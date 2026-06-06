@@ -32,7 +32,8 @@
 <link rel="preconnect" href="https://qfgnrsifcwdubkolsgsq.supabase.co">
 <link rel="preconnect" href="https://js.stripe.com">
 
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap"></noscript>
 
 <!-- Stylesheets -->
 <link rel="stylesheet" href="base.css">
@@ -2290,6 +2291,35 @@ function renderProduct() {
   _setMeta('meta[property="og:image"]',       _pImg);
   const _canon = document.querySelector('link[rel="canonical"]');
   if (_canon) _canon.setAttribute('href', _pUrl);
+
+  // Inject Product JSON-LD structured data for Google Shopping / rich results
+  const _price = currentProduct.current_price || currentProduct.msrp || '';
+  const _avail = (currentProduct.status || '').toLowerCase() === 'live'
+    ? 'https://schema.org/PreOrder'
+    : (currentProduct.status || '').toLowerCase() === 'sold out'
+      ? 'https://schema.org/SoldOut'
+      : 'https://schema.org/PreOrder';
+  const _ldEl = document.getElementById('product-ld-json') || document.createElement('script');
+  _ldEl.id = 'product-ld-json';
+  _ldEl.type = 'application/ld+json';
+  _ldEl.textContent = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: currentProduct.title || '',
+    description: currentProduct.description || '',
+    image: _pImg,
+    url: _pUrl,
+    brand: { '@type': 'Brand', name: 'ZUWERA' },
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: 'USD',
+      price: _price,
+      availability: _avail,
+      url: _pUrl,
+      seller: { '@type': 'Organization', name: 'ZUWERA' }
+    }
+  });
+  if (!_ldEl.parentNode) document.head.appendChild(_ldEl);
 
   // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Price ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
   renderPrice();
