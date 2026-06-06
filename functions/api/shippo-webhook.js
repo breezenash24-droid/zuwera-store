@@ -25,6 +25,7 @@
  */
 
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
+import { loopsFallback } from './_email.js';
 
 const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
 
@@ -91,7 +92,7 @@ async function markOrderStatus(orderId, fulfillmentStatus, env) {
 
 // ─── Email sending (Resend → Brevo fallback) ───────────────────────────────────
 
-async function sendEmail({ to, toName, subject, html, fromEmail, resendKey, brevoKey }) {
+async function sendEmail({ to, toName, subject, html, fromEmail, resendKey, brevoKey, env, cache }) {
   const resendResp = await fetch('https://api.resend.com/emails', {
     method:  'POST',
     headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
@@ -123,7 +124,10 @@ async function sendEmail({ to, toName, subject, html, fromEmail, resendKey, brev
   });
   if (!brevoResp.ok) {
     const brevoErr = brevoResp.status + ': ' + await brevoResp.text().catch(() => '');
-    throw new Error('Both providers failed. Resend: ' + resendErr + ' | Brevo: ' + brevoErr);
+    // Third-tier Loops fallback before giving up
+    const loops = await loopsFallback({ env, cache, to, subject, html });
+    if (loops.ok) return 'loops';
+    throw new Error('All providers failed. Resend: ' + resendErr + ' | Brevo: ' + brevoErr + (loops.skipped ? '' : ' | Loops: ' + (loops.error || 'failed')));
   }
   console.log('Email sent via Brevo to', to);
   return 'brevo';
@@ -320,7 +324,8 @@ export async function onRequestPost({ request, env }) {
   const sig     = request.headers.get('X-Shippo-Signature') || '';
   const cache   = await fetchSiteSettings(
     ['RESEND_API_KEY', 'BREVO_API_KEY', 'SHIPPO_WEBHOOK_SECRET', 'EMAIL_FROM', 'BRAND_LOGO_URL',
-     'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_FROM_NUMBER'], env
+     'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_FROM_NUMBER',
+     'LOOPS_API_KEY', 'LOOPS_TRANSACTIONAL_ID'], env
   );
 
   const webhookSecret = resolveSetting('SHIPPO_WEBHOOK_SECRET', env, cache);
@@ -393,7 +398,7 @@ export async function onRequestPost({ request, env }) {
 
     const [emailR, smsR] = await Promise.allSettled([
       customerEmail && resendKey
-        ? sendEmail({ to: customerEmail, toName: customerName, subject, html, fromEmail, resendKey, brevoKey })
+        ? sendEmail({ to: customerEmail, toName: customerName, subject, html, fromEmail, resendKey, brevoKey, env, cache })
         : Promise.resolve('skipped — no email or key'),
 
       smsConsent && smsPhone
@@ -420,7 +425,7 @@ export async function onRequestPost({ request, env }) {
 
     const [emailR, smsR] = await Promise.allSettled([
       customerEmail && resendKey
-        ? sendEmail({ to: customerEmail, toName: customerName, subject, html, fromEmail, resendKey, brevoKey })
+        ? sendEmail({ to: customerEmail, toName: customerName, subject, html, fromEmail, resendKey, brevoKey, env, cache })
         : Promise.resolve('skipped'),
 
       smsConsent && smsPhone

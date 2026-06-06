@@ -1926,7 +1926,7 @@
                     <!-- Email failover status bar -->
                     <div id="email-failover-bar" style="display:none;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.3);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:.85rem;align-items:center;gap:10px;">
                         <span style="font-size:1.1rem;">✉️</span>
-                        <span><strong>Email failover active:</strong> Resend → Brevo. If Resend hits its daily limit or errors, Brevo will automatically handle the send.</span>
+                        <span><strong>Email failover active:</strong> Resend → Brevo → Loops. If Resend hits its limit or errors, Brevo takes over; if both are down, Loops sends a last-resort confirmation (requires <code style="background:var(--border);padding:1px 5px;border-radius:4px;">LOOPS_TRANSACTIONAL_ID</code> set in APIs).</span>
                     </div>
 
                     <div id="apis-loading" style="color:var(--text-secondary);padding:24px 0;text-align:center;">Checking all services…</div>

@@ -21,6 +21,7 @@
 
 import Stripe from 'stripe';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
+import { loopsFallback } from './_email.js';
 
 // Fallback service-level token map if rate object ID is unavailable
 const SERVICE_TOKEN_MAP = {
@@ -146,7 +147,8 @@ async function logWebhookEvent(env, fields) {
 async function handleSuccessfulPayment(pi, meta, env, stripe) {
   // Pre-fetch email keys + branding from Supabase api_key_overrides (admin overrides take priority)
   const emailKeyCache = await fetchSiteSettings(
-    ['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL'], env
+    ['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL',
+     'LOOPS_API_KEY', 'LOOPS_TRANSACTIONAL_ID'], env
   );
 
   // Step 1: Purchase the shipping label → gets tracking number
@@ -741,7 +743,14 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
 
   if (!brevoResp.ok) {
     const brevoError = brevoResp.status + ': ' + await brevoResp.text().catch(() => '');
-    throw new Error('Both email providers failed. Resend: ' + resendError + ' | Brevo: ' + brevoError);
+    // ── Third tier: Resend AND Brevo both down — last-resort Loops fallback ──
+    const loops = await loopsFallback({
+      env, cache: emailKeyCache, to: toEmail, subject: `Order Confirmed – #${orderId}`, html,
+      text: `Your Zuwera order #${orderId} is confirmed and being prepared.\n\nView your order: https://zuwera.store/confirm.html?order=${orderId}\n\nQuestions? orders@zuwera.store`,
+      dataVariables: { orderId, orderUrl: `https://zuwera.store/confirm.html?order=${orderId}` },
+    });
+    if (loops.ok) return { provider: 'loops', resendError, brevoError };
+    throw new Error('All email providers failed. Resend: ' + resendError + ' | Brevo: ' + brevoError + (loops.skipped ? ' | Loops: not configured' : ' | ' + (loops.error || 'Loops failed')));
   }
 
   console.log('Email sent via Brevo fallback to', toEmail, '(Resend was unavailable)');

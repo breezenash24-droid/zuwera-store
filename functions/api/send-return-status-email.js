@@ -12,6 +12,7 @@
 
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { cors, json, verifyAdmin, getCommerceBundle } from './_commerce.js';
+import { loopsFallback } from './_email.js';
 
 const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
 
@@ -222,7 +223,7 @@ function buildEmail({ r, status, resolution, fromFirstName, logoUrl }) {
 </body></html>`;
 }
 
-async function sendEmail({ to, toName, subject, html, fromEmail, resendKey, brevoKey }) {
+async function sendEmail({ to, toName, subject, html, fromEmail, resendKey, brevoKey, env, cache }) {
   if (resendKey) {
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -244,8 +245,14 @@ async function sendEmail({ to, toName, subject, html, fromEmail, resendKey, brev
       }),
     });
     if (r.ok) return { provider: 'brevo' };
-    throw new Error('Brevo send failed: ' + r.status);
+    // Brevo failed — third-tier Loops fallback before giving up
+    const loops = await loopsFallback({ env, cache, to, subject, html });
+    if (loops.ok) return { provider: 'loops' };
+    throw new Error('Brevo send failed: ' + r.status + (loops.skipped ? '' : ' | Loops: ' + (loops.error || 'failed')));
   }
+  // No Brevo key configured — still attempt Loops as a last resort
+  const loops = await loopsFallback({ env, cache, to, subject, html });
+  if (loops.ok) return { provider: 'loops' };
   throw new Error('No email provider configured (RESEND_API_KEY or BREVO_API_KEY required).');
 }
 
@@ -275,7 +282,8 @@ export async function onRequestPost({ request, env }) {
     if (!toEmail) return json({ ok: false, error: 'No customer email found on this return request. Make sure the return was submitted by a signed-in customer.' }, 400, cors(env));
 
     const cache = await fetchSiteSettings(
-      ['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL'], env
+      ['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL',
+       'LOOPS_API_KEY', 'LOOPS_TRANSACTIONAL_ID'], env
     );
     const resendKey = resolveSetting('RESEND_API_KEY', env, cache);
     const brevoKey  = resolveSetting('BREVO_API_KEY',  env, cache);
@@ -293,7 +301,7 @@ export async function onRequestPost({ request, env }) {
     const html    = buildEmail({ r, status, resolution, fromFirstName, logoUrl });
     const subject = `${statusHeadline(status, resolution)} — ${r.orderLabel || 'Your Zuwera Return'}`;
 
-    const result = await sendEmail({ to: toEmail, toName, subject, html, fromEmail, resendKey, brevoKey });
+    const result = await sendEmail({ to: toEmail, toName, subject, html, fromEmail, resendKey, brevoKey, env, cache });
 
     return json({
       ok:       true,

@@ -34,8 +34,9 @@ const ALLOWED_KEYS = new Set([
   // Email branding
   'EMAIL_FROM',
   'BRAND_LOGO_URL',
-  // Loops (marketing email)
+  // Loops (marketing email + transactional fallback)
   'LOOPS_API_KEY',
+  'LOOPS_TRANSACTIONAL_ID',
   // Twilio (SMS)
   'TWILIO_ACCOUNT_SID',
   'TWILIO_AUTH_TOKEN',
