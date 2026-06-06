@@ -1932,8 +1932,25 @@
                     <div id="apis-loading" style="color:var(--text-secondary);padding:24px 0;text-align:center;">Checking all services…</div>
                     <div id="api-grid" class="api-grid" style="display:none;"></div>
 
-                    <!-- Setup guide -->
+                    <!-- Product Feed (Google Merchant / Meta Shopping) -->
                     <div style="margin-top:28px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                        <div style="font-weight:700;margin-bottom:10px;">🛍️ Product Feed — Google &amp; Instagram Shopping</div>
+                        <div style="font-size:.85rem;color:var(--text-secondary);line-height:1.7;margin-bottom:14px;">
+                            A live feed of every non-draft product is generated automatically from your catalog. Submit this URL once to start showing your products in Google Shopping and Instagram/Facebook tagging — it stays in sync as you add or change products.
+                        </div>
+                        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+                            <code id="feed-url" style="flex:1;min-width:240px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:9px 12px;font-size:.82rem;overflow:auto;white-space:nowrap;">https://zuwera.store/api/product-feed</code>
+                            <button class="btn btn-secondary" onclick="navigator.clipboard.writeText('https://zuwera.store/api/product-feed').then(()=>{this.textContent='Copied ✓';setTimeout(()=>this.textContent='Copy URL',1600);})">Copy URL</button>
+                            <a class="btn btn-secondary" href="/api/product-feed" target="_blank" style="text-decoration:none;">Preview</a>
+                        </div>
+                        <div style="font-size:.82rem;color:var(--text-secondary);line-height:1.7;">
+                            <strong>Google Merchant Center:</strong> Products → Feeds → + → Scheduled fetch → paste URL, set daily.<br>
+                            <strong>Meta Commerce Manager:</strong> Catalog → Data sources → Data feed → Scheduled feed → paste URL.
+                        </div>
+                    </div>
+
+                    <!-- Setup guide -->
+                    <div style="margin-top:20px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
                         <div style="font-weight:700;margin-bottom:10px;">📋 Adding a Brevo backup email key</div>
                         <div style="font-size:.85rem;color:var(--text-secondary);line-height:1.7;">
                             1. Sign up free at <a href="https://brevo.com" target="_blank" style="color:var(--accent);">brevo.com</a> (300 emails/day free, no credit card)<br>
