@@ -2650,6 +2650,13 @@
                             const note = modal.querySelector('#retrefmod-note').value.trim();
                             const refundKey = modal.querySelector('#retrefmod-key').value.trim();
                             if (!refundKey) { errEl.textContent = 'Auth code is required.'; errEl.style.display = ''; return; }
+                            // Validate partial-refund amount: must be > 0 and not exceed the order total
+                            if (amtVal) {
+                                const amtNum = parseFloat(amtVal);
+                                const orderMax = Number(req.orderTotal) || 0;
+                                if (isNaN(amtNum) || amtNum <= 0) { errEl.textContent = 'Refund amount must be greater than $0.'; errEl.style.display = ''; return; }
+                                if (orderMax > 0 && amtNum > orderMax + 0.001) { errEl.textContent = 'Refund amount cannot exceed the order total of ' + retMoney(orderMax) + '.'; errEl.style.display = ''; return; }
+                            }
                             btn.disabled = true; btn.textContent = 'Processing…';
                             errEl.style.display = 'none';
                             try {

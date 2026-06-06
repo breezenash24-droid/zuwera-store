@@ -1238,6 +1238,19 @@
     }).filter((promo) => promo.code.trim());
   }
 
+  // Returns an error string if any promo is invalid, or null if all are valid.
+  function validatePromotions(promos) {
+    for (const p of promos) {
+      const code = (p.code || '').trim();
+      if (p.value < 0) return `Promo "${code}" has a negative discount value.`;
+      if (p.type === 'percent' && p.value > 100) return `Promo "${code}" is a percent discount over 100%.`;
+      if ((p.type === 'percent' || p.type === 'fixed') && p.value === 0) return `Promo "${code}" has no discount value.`;
+      if (p.minSubtotal < 0) return `Promo "${code}" has a negative minimum subtotal.`;
+      if (p.maxUsage !== null && p.maxUsage < 0) return `Promo "${code}" has a negative usage limit.`;
+    }
+    return null;
+  }
+
   function slugifyLocation(value, fallback) {
     const cleaned = String(value || '')
       .trim()
@@ -1383,6 +1396,16 @@
     $('commerceSavePromosBtn')?.addEventListener('click', async () => {
       const btn = $('commerceSavePromosBtn');
       const orig = btn.textContent;
+      // Sync from DOM and validate before saving
+      if ($('commercePromoList')) state.config.promotions = readPromotionsFromDom();
+      const promoErr = validatePromotions(state.config.promotions || []);
+      if (promoErr) {
+        const status = $('commerceStatus');
+        if (status) status.textContent = promoErr;
+        btn.textContent = 'Fix errors first';
+        setTimeout(() => { btn.textContent = orig; }, 2600);
+        return;
+      }
       btn.disabled = true;
       btn.textContent = 'Saving…';
       const ok = await saveSettings('Promotions saved.');
