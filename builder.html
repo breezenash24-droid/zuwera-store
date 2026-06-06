@@ -436,10 +436,16 @@ const TYPES={
   gallery:{icon:'🖼️',cat:'marketing',desc:'Image grid / lookbook'},
   video:{icon:'▶️',cat:'marketing',desc:'Video embed (YouTube/Vimeo)'},
   countdown:{icon:'⏱️',cat:'marketing',desc:'Standalone countdown timer'},
+  numbers:{icon:'🔢',cat:'marketing',desc:'Impact stats / social proof numbers'},
+  press:{icon:'📰',cat:'marketing',desc:'Press & media mention strip'},
+  faq:{icon:'❓',cat:'marketing',desc:'FAQ accordion'},
+  email_capture:{icon:'✉️',cat:'marketing',desc:'Dedicated email / waitlist signup'},
+  logos:{icon:'🏷️',cat:'marketing',desc:'Partner or press logo strip'},
   spacer:{icon:'↕️',cat:'layout',desc:'Empty vertical space'},
   text:{icon:'✍️',cat:'layout',desc:'Heading + body + optional CTA'},
   img_cta:{icon:'🖼',cat:'layout',desc:'Image with overlay button'},
   html:{icon:'</>',cat:'layout',desc:'Raw HTML block (advanced)'},
+  richtext:{icon:'📄',cat:'layout',desc:'Long-form rich text block'},
 };
 
 const SECT_DEFS={
@@ -456,10 +462,16 @@ const SECT_DEFS={
   gallery:{heading:'',images:[{src:'',alt:'',link:''}],columns:3,aspect:'square',pad_top:0,pad_bot:0},
   video:{url:'',autoplay:false,muted:true,controls:true,caption:'',pad_top:0,pad_bot:0},
   countdown:{heading:'Launching In',launch_date:'2026-09-20T00:00:00',show_labels:true,align:'center',pad_top:0,pad_bot:0},
+  numbers:{heading:'By The Numbers',items:[{value:'001',label:'First Drop'},{value:'Sept 20',label:'Launch Date'},{value:'3',label:'Styles'}],pad_top:0,pad_bot:0},
+  press:{heading:'As Seen In',items:[{name:'GQ'},{name:'Complex'},{name:'Highsnobiety'},{name:'Sole Collector'}],pad_top:0,pad_bot:0},
+  faq:{heading:'Questions, Answered',items:[{q:'When does Release 001 drop?',a:'September 20, 2026.'},{q:'What sizes are available?',a:'XS through 3XL.'},{q:'Do you ship internationally?',a:'Yes — worldwide.'}],pad_top:0,pad_bot:0},
+  email_capture:{heading:'Be First To Know',subtext:'Join the waitlist for exclusive early access.',placeholder:'your@email.com',btn_text:'Join Waitlist',bg_color:'',pad_top:0,pad_bot:0},
+  logos:{heading:'',items:[{name:'Nike'},{name:'Adidas'},{name:'Puma'}],pad_top:0,pad_bot:0},
   spacer:{height:'md'},
   text:{heading:'',heading_size:'2rem',body:'',cta_text:'',cta_url:'',align:'left',pad_top:0,pad_bot:0},
   img_cta:{image:'',alt:'',btn_on:true,btn_text:'Shop Now',btn_url:'/drop001.html',btn_position:'center',pad_top:0,pad_bot:0},
   html:{html:'',pad_top:0,pad_bot:0},
+  richtext:{content:'Write your content here...',align:'left',pad_top:0,pad_bot:0},
 };
 
 const DEFAULT_SECTIONS=['hero','marquee','about','release','products'].map((t,i)=>({id:t,type:t,label:t.charAt(0).toUpperCase()+t.slice(1).replace('_',' '),visible:true,order:i,settings:{...SECT_DEFS[t]}}));
@@ -593,6 +605,21 @@ function renderThemeTab(container){
     ${colorF2('accent_color','Accent Color',g.accent_color||'#F891A5')}
     ${sel2('button_radius','Button Radius',g.button_radius||'sharp',[['sharp','Sharp (0px)'],['soft','Soft (4px)'],['pill','Pill (999px)']])}
     ${sel2('default_mode','Default Page Mode',g.default_mode||'dark',[['dark','Dark'],['light','Light'],['super-light','Super Light']])}
+    <div class="fdiv"></div>
+    <div class="tab-hd" style="margin-top:.2rem">Brand Colors</div>
+    ${colorF2('primary_color','Primary / Text Color',g.primary_color||'#f4f1eb')}
+    ${colorF2('page_bg','Page Background',g.page_bg||'#09090b')}
+    ${colorF2('surface_color','Card / Section Background',g.surface_color||'#111113')}
+    <div class="fdiv"></div>
+    <div class="tab-hd" style="margin-top:.2rem">Typography</div>
+    ${sel2('heading_font','Heading Font',g.heading_font||'barlow-condensed',[['barlow-condensed','Barlow Condensed (default)'],['oswald','Oswald — Bold & Geometric'],['bebas-neue','Bebas Neue — All-Caps Display'],['anton','Anton — Heavy Impact'],['league-gothic','League Gothic — Condensed'],['michroma','Michroma — Technical']])}
+    ${sel2('body_font','Body Font',g.body_font||'barlow',[['barlow','Barlow (default)'],['inter','Inter — Clean & Modern'],['dm-sans','DM Sans — Geometric'],['outfit','Outfit — Rounded'],['manrope','Manrope — Contemporary']])}
+    ${sel2('heading_weight','Heading Weight',g.heading_weight||'900',[['700','Bold'],['800','Extra Bold'],['900','Black (default)']])}
+    ${sel2('heading_style','Heading Style',g.heading_style||'italic',[['italic','Italic (default)'],['normal','Upright']])}
+    <div class="fdiv"></div>
+    <div class="tab-hd" style="margin-top:.2rem">Layout</div>
+    ${sel2('content_width','Content Max Width',g.content_width||'1100',[['900','Narrow (900px)'],['1100','Standard (1100px)'],['1200','Wide (1200px)'],['1400','Full Width (1400px)']])}
+    ${sel2('section_spacing','Section Spacing',g.section_spacing||'md',[['sm','Compact'],['md','Standard (default)'],['lg','Spacious'],['xl','Extra Spacious']])}
     <div class="fdiv"></div>
     <div class="tab-hd" style="margin-top:.2rem">Announcement Bar</div>
     ${f2('bar_text','Bar Text',g.bar_text||'')}
@@ -837,8 +864,26 @@ function buildForm(s){
     case 'text': h+=f('heading','Heading (optional)',g.heading)+f('heading_size','Heading Size',g.heading_size||'2rem')+ta('body','Body',g.body)+sel('align','Alignment',g.align||'left',[['left','Left'],['center','Center'],['right','Right']])+fdiv()+f('cta_text','Button Text (optional)',g.cta_text)+f('cta_url','Button URL',g.cta_url)+padF(g);break;
     case 'img_cta': h+=imgField('image','Image',g.image)+f('alt','Alt Text',g.alt)+fdiv()+tog2('btn_on','Show Button',g.btn_on)+f('btn_text','Button Text',g.btn_text)+f('btn_url','Button URL',g.btn_url)+sel('btn_position','Button Position',g.btn_position||'center',[['center','Center'],['bottom-left','Bottom Left'],['bottom-right','Bottom Right'],['top-right','Top Right']])+padF(g);break;
     case 'html': h+=`<div class="field"><label>HTML</label><textarea data-f="html" style="min-height:120px;font-size:.6rem;font-family:'IBM Plex Mono',monospace" placeholder="<div>...</div>">${he(g.html)}</textarea><span class="fhint" style="color:#e07060">⚠ Raw HTML — use carefully.</span></div>`;break;
+    case 'numbers': h+=f('heading','Section Heading',g.heading)+fdiv()+arrField('items','Stat',g.items||[],[['value','Value / Number','text'],['label','Label','text']])+padF(g);break;
+    case 'press': h+=f('heading','Label (e.g. "As Seen In")',g.heading)+fdiv()+arrField('items','Publication',g.items||[],[['name','Publication Name','text']])+padF(g);break;
+    case 'faq': h+=f('heading','Section Heading',g.heading)+fdiv()+arrField('items','FAQ Item',g.items||[],[['q','Question','text'],['a','Answer','textarea']])+padF(g);break;
+    case 'email_capture': h+=f('heading','Heading',g.heading)+f('subtext','Subtext',g.subtext)+f('placeholder','Input Placeholder',g.placeholder)+f('btn_text','Button Text',g.btn_text)+colorF('bg_color','Background Color',g.bg_color||'')+padF(g);break;
+    case 'logos': h+=f('heading','Label (optional)',g.heading)+fdiv()+arrField('items','Logo',g.items||[],[['name','Brand Name','text'],['src','Logo Image URL (optional)','text'],['alt','Alt Text','text']])+padF(g);break;
+    case 'richtext': h+=`<div class="field"><label>Content</label><textarea data-f="content" style="min-height:140px;line-height:1.6" placeholder="Write your content here...">${he(g.content)}</textarea></div>`+sel('align','Text Alignment',g.align||'left',[['left','Left'],['center','Center'],['right','Right']])+padF(g);break;
     default: h+='<div style="padding:.4rem;color:var(--mu);font-size:.65rem">No settings available.</div>';
   }
+  // ── Universal Section Style controls (appended to every section editor)
+  h+=`<div class="fdiv"></div>
+<div class="tab-hd" style="margin-top:.2rem;font-size:.55rem;">Section Style</div>
+${colorF('sec_bg','Background',g.sec_bg||'')}
+<div class="fhint" style="margin-top:-.3rem">Leave blank for default background</div>
+<div class="frow">
+  <div class="field"><label>Top Padding (px)</label><input type="number" data-f="pad_top" value="${g.pad_top||''}" placeholder="0" min="0"></div>
+  <div class="field"><label>Bottom Padding (px)</label><input type="number" data-f="pad_bot" value="${g.pad_bot||''}" placeholder="0" min="0"></div>
+</div>
+<div class="tog2"><label>Hide on Mobile</label><label class="switch"><input type="checkbox" data-f="hide_mobile" ${g.hide_mobile?'checked':''}><span class="sw-sl"></span></label></div>
+<div class="tog2"><label>Hide on Desktop</label><label class="switch"><input type="checkbox" data-f="hide_desktop" ${g.hide_desktop?'checked':''}><span class="sw-sl"></span></label></div>
+<div class="field"><label>Anchor ID (for #links)</label><input data-f="anchor_id" value="${he(g.anchor_id||'')}" placeholder="e.g. about"></div>`;
   h+=`${fdiv()}<button class="apply-btn" onclick="manualApply()">▶ Apply to Preview</button><button class="del-sec" onclick="removeSec('${s.id}')">🗑 Remove Section</button>`;
   return h;
 }
@@ -919,8 +964,24 @@ function addSec(type){
 function setPvMode(m){
   pvMode=m;
   document.querySelectorAll('#pvTog button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
-  document.getElementById('pvFrame').className='pv-frame '+m;
-  document.getElementById('pvDims').textContent={desk:'1280px wide',tab:'768px (tablet)',mob:'390px (iPhone)'}[m]||m;
+  const frame=document.getElementById('pvFrame');
+  const iframe=document.getElementById('pvIframe');
+  frame.className='pv-frame '+m;
+  // Apply device-frame visual styles
+  if(m==='mob'){
+    frame.style.cssText='border:8px solid #333;border-radius:40px;overflow:hidden;width:390px;margin:0 auto;box-shadow:0 0 0 2px #555,0 8px 40px rgba(0,0,0,.7)';
+    iframe.style.width='390px';
+    iframe.style.height='calc(100vh - 46px - 36px - 1.5rem - 16px)';
+  }else if(m==='tab'){
+    frame.style.cssText='border:4px solid #333;border-radius:16px;overflow:hidden;width:768px;margin:0 auto;box-shadow:0 8px 40px rgba(0,0,0,.7)';
+    iframe.style.width='768px';
+    iframe.style.height='calc(100vh - 46px - 36px - 1.5rem - 8px)';
+  }else{
+    frame.style.cssText='';
+    iframe.style.width='100%';
+    iframe.style.height='100%';
+  }
+  document.getElementById('pvDims').textContent={desk:'1280px — Desktop',tab:'768px — Tablet',mob:'390px — Mobile'}[m]||m;
 }
 function setTheme(t){pvTheme=t;document.querySelectorAll('#thTog button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));schedSend();}
 

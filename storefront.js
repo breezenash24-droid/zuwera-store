@@ -149,6 +149,85 @@ function showToast(msg) {
         const radius = radiusMap[cfg.themeSettings.button_radius] || '0px';
         document.documentElement.style.setProperty('--zw-radius-control', radius);
       }
+      // Brand colors
+      if (cfg.themeSettings.primary_color) {
+        document.documentElement.style.setProperty('--paper', cfg.themeSettings.primary_color);
+        document.documentElement.style.setProperty('--white', cfg.themeSettings.primary_color);
+      }
+      if (cfg.themeSettings.page_bg) {
+        document.documentElement.style.setProperty('--ink', cfg.themeSettings.page_bg);
+        document.documentElement.style.setProperty('--black', cfg.themeSettings.page_bg);
+        document.documentElement.style.setProperty('--bg', cfg.themeSettings.page_bg);
+        document.body.style.setProperty('background', cfg.themeSettings.page_bg);
+      }
+      if (cfg.themeSettings.surface_color) {
+        document.documentElement.style.setProperty('--zw-paper', cfg.themeSettings.surface_color);
+      }
+      // Font stacks & dynamic Google Fonts loading
+      const _FONT_STACKS = {
+        'barlow-condensed':"'Barlow Condensed',sans-serif",
+        'oswald':"'Oswald',sans-serif",
+        'bebas-neue':"'Bebas Neue',sans-serif",
+        'anton':"'Anton',sans-serif",
+        'league-gothic':"'League Gothic',sans-serif",
+        'michroma':"'Michroma',sans-serif",
+        'barlow':"'Barlow',sans-serif",
+        'inter':"'Inter',sans-serif",
+        'dm-sans':"'DM Sans',sans-serif",
+        'outfit':"'Outfit',sans-serif",
+        'manrope':"'Manrope',sans-serif",
+      };
+      const _FONT_URLS = {
+        'oswald':'https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&display=swap',
+        'bebas-neue':'https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap',
+        'anton':'https://fonts.googleapis.com/css2?family=Anton&display=swap',
+        'league-gothic':'https://fonts.googleapis.com/css2?family=League+Gothic&display=swap',
+        'michroma':'https://fonts.googleapis.com/css2?family=Michroma&display=swap',
+        'inter':'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap',
+        'dm-sans':'https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap',
+        'outfit':'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
+        'manrope':'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap',
+      };
+      function _loadBuilderFont(key) {
+        if (!key || !_FONT_URLS[key]) return;
+        const id = 'gf-' + key;
+        if (document.getElementById(id)) return;
+        const l = document.createElement('link');
+        l.id = id; l.rel = 'preload'; l.as = 'style';
+        l.href = _FONT_URLS[key];
+        l.onload = function(){ this.onload = null; this.rel = 'stylesheet'; };
+        document.head.appendChild(l);
+      }
+      if (cfg.themeSettings.heading_font) {
+        const stack = _FONT_STACKS[cfg.themeSettings.heading_font];
+        if (stack) {
+          document.documentElement.style.setProperty('--fw', stack);
+          document.documentElement.style.setProperty('--font-head', stack);
+        }
+        _loadBuilderFont(cfg.themeSettings.heading_font);
+      }
+      if (cfg.themeSettings.body_font) {
+        const stack = _FONT_STACKS[cfg.themeSettings.body_font];
+        if (stack) {
+          document.documentElement.style.setProperty('--fb', stack);
+          document.documentElement.style.setProperty('--font-body', stack);
+        }
+        _loadBuilderFont(cfg.themeSettings.body_font);
+      }
+      if (cfg.themeSettings.heading_weight) {
+        document.documentElement.style.setProperty('--zw-fw-head', cfg.themeSettings.heading_weight);
+      }
+      if (cfg.themeSettings.heading_style) {
+        document.querySelectorAll('.hero-h1, .about-h2').forEach(el => el.style.fontStyle = cfg.themeSettings.heading_style);
+      }
+      if (cfg.themeSettings.content_width) {
+        document.documentElement.style.setProperty('--zw-max-w', cfg.themeSettings.content_width + 'px');
+      }
+      // Section spacing
+      const _SPACING = { sm:'3rem', md:'5rem', lg:'7rem', xl:'10rem' };
+      if (cfg.themeSettings.section_spacing && _SPACING[cfg.themeSettings.section_spacing]) {
+        document.documentElement.style.setProperty('--zw-sec-pad', _SPACING[cfg.themeSettings.section_spacing]);
+      }
       // Apply custom CSS
       let customCssEl = document.getElementById('zw-custom-css');
       if (cfg.themeSettings.custom_css) {
@@ -202,7 +281,9 @@ function showToast(msg) {
       
       if (!el) {
         // Dynamically instantiate builder sections if they don't exist
-        if (['spacer', 'text', 'img_cta', 'image_cta', 'custom', 'html'].includes(sec.type)) {
+        if (['spacer', 'text', 'img_cta', 'image_cta', 'custom', 'html',
+             'numbers', 'press', 'faq', 'email_capture', 'logos', 'richtext',
+             'split', 'cta', 'features', 'testimonials', 'banner', 'gallery', 'video', 'countdown'].includes(sec.type)) {
           el = document.createElement('div');
           el.id = sec.id;
           if (sec.type === 'spacer') {
@@ -226,6 +307,9 @@ function showToast(msg) {
             `;
           } else if (sec.type === 'custom' || sec.type === 'html') {
             el.className = 'builder-custom-section';
+          } else if (['numbers','press','faq','email_capture','logos','richtext',
+                      'split','cta','features','testimonials','banner','gallery','video','countdown'].includes(sec.type)) {
+            el.className = 'builder-' + sec.type.replace(/_/g,'-') + '-section';
           }
         }
       }
@@ -241,6 +325,30 @@ function showToast(msg) {
       }
 
       const s = sec.settings || {};
+
+      // Per-section style overrides
+      if (s.sec_bg) el.style.background = s.sec_bg;
+      if (s.pad_top) el.style.paddingTop = s.pad_top + 'px';
+      if (s.pad_bot) el.style.paddingBottom = s.pad_bot + 'px';
+      if (s.anchor_id) el.id = s.anchor_id;
+      if (s.hide_mobile) {
+        let mobileHideStyle = document.getElementById('zw-builder-mobile-hide-' + el.id);
+        if (!mobileHideStyle) {
+          mobileHideStyle = document.createElement('style');
+          mobileHideStyle.id = 'zw-builder-mobile-hide-' + (s.anchor_id || sec.id);
+          document.head.appendChild(mobileHideStyle);
+        }
+        mobileHideStyle.textContent = `@media(max-width:900px){#${s.anchor_id || sec.id}{display:none!important;}}`;
+      }
+      if (s.hide_desktop) {
+        let desktopHideStyle = document.getElementById('zw-builder-desktop-hide-' + el.id);
+        if (!desktopHideStyle) {
+          desktopHideStyle = document.createElement('style');
+          desktopHideStyle.id = 'zw-builder-desktop-hide-' + (s.anchor_id || sec.id);
+          document.head.appendChild(desktopHideStyle);
+        }
+        desktopHideStyle.textContent = `@media(min-width:901px){#${s.anchor_id || sec.id}{display:none!important;}}`;
+      }
       switch(sec.type) {
         case 'hero': {
           const h1 = el.querySelector('.hero-h1');
@@ -383,6 +491,196 @@ function showToast(msg) {
         case 'custom':
         case 'html': {
           if (s.html !== undefined) el.innerHTML = s.html||'';
+          break;
+        }
+        case 'numbers': {
+          el.className = 'builder-numbers-section';
+          el.style.cssText = 'padding:5rem 2.5rem;text-align:center';
+          if (s.sec_bg) el.style.background = s.sec_bg;
+          const nitems = (s.items||[]);
+          el.innerHTML = `${s.heading?`<h2 data-builder-heading style="font-family:var(--fw);font-size:clamp(1.4rem,4vw,1.8rem);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2.5rem;font-weight:700;font-style:italic">${s.heading}</h2>`:''}
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:2rem;max-width:900px;margin:0 auto">
+            ${nitems.map(it=>`<div><div style="font-family:var(--fw);font-size:clamp(2.5rem,8vw,4rem);font-weight:900;font-style:italic;line-height:1;color:var(--gold)">${it.value||''}</div><div style="font-family:var(--fm,var(--fb));font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;opacity:.55;margin-top:.5rem">${it.label||''}</div></div>`).join('')}
+            </div>`;
+          break;
+        }
+        case 'press': {
+          el.className = 'builder-press-section';
+          el.style.cssText = 'padding:3.5rem 2.5rem;text-align:center;border-top:1px solid rgba(244,241,235,.08);border-bottom:1px solid rgba(244,241,235,.08)';
+          if (s.sec_bg) el.style.background = s.sec_bg;
+          const pritems = (s.items||[]);
+          el.innerHTML = `${s.heading?`<div style="font-family:var(--fm,var(--fb));font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;opacity:.4;margin-bottom:1.5rem">${s.heading}</div>`:''}
+            <div style="display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:2rem 3rem">
+            ${pritems.map(it=>`<span style="font-family:var(--fw);font-size:1.4rem;font-weight:700;font-style:italic;letter-spacing:.08em;text-transform:uppercase;opacity:.5">${it.name||''}</span>`).join('')}
+            </div>`;
+          break;
+        }
+        case 'faq': {
+          el.className = 'builder-faq-section';
+          el.style.cssText = 'padding:5rem 2.5rem';
+          if (s.sec_bg) el.style.background = s.sec_bg;
+          const faqWrap = document.createElement('div');
+          faqWrap.style.cssText = 'max-width:800px;margin:0 auto';
+          const faqitems = (s.items||[]);
+          faqWrap.innerHTML = `${s.heading?`<h2 data-builder-heading style="font-family:var(--fw);font-size:clamp(1.6rem,5vw,2.4rem);letter-spacing:.08em;text-transform:uppercase;font-weight:900;font-style:italic;margin-bottom:2rem">${s.heading}</h2>`:''}
+            <div style="border-top:1px solid rgba(244,241,235,.12)">
+            ${faqitems.map(it=>`<details style="border-bottom:1px solid rgba(244,241,235,.12)"><summary style="padding:1.1rem 0;cursor:pointer;font-family:var(--fw);font-size:1rem;letter-spacing:.04em;list-style:none;display:flex;justify-content:space-between;align-items:center">${it.q||''}<span style="font-size:.8rem;opacity:.4;flex-shrink:0;margin-left:.5rem">+</span></summary><div style="padding:0 0 1.2rem;opacity:.65;line-height:1.7;font-size:.9rem">${it.a||''}</div></details>`).join('')}
+            </div>`;
+          el.innerHTML = '';
+          el.appendChild(faqWrap);
+          break;
+        }
+        case 'email_capture': {
+          el.className = 'builder-email-capture-section';
+          el.style.cssText = `padding:6rem 2.5rem;text-align:center;background:${s.bg_color||s.sec_bg||'transparent'}`;
+          el.innerHTML = `<div style="max-width:520px;margin:0 auto">
+            ${s.heading?`<h2 data-builder-heading style="font-family:var(--fw);font-size:clamp(1.8rem,5vw,2.6rem);letter-spacing:.1em;text-transform:uppercase;font-weight:900;font-style:italic;margin-bottom:.75rem">${s.heading}</h2>`:''}
+            ${s.subtext?`<p style="opacity:.6;margin-bottom:1.8rem;line-height:1.6;font-size:.95rem">${s.subtext}</p>`:''}
+            <div style="display:flex;gap:.5rem;max-width:400px;margin:0 auto">
+              <input type="email" placeholder="${s.placeholder||'your@email.com'}" style="flex:1;background:rgba(244,241,235,.06);border:1px solid rgba(244,241,235,.15);color:inherit;padding:.75rem 1rem;font-family:var(--fb);font-size:.9rem;outline:none">
+              <button style="background:var(--paper,#f4f1eb);color:var(--ink,#09090b);border:none;padding:.75rem 1.4rem;font-family:var(--fw);font-size:.8rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;white-space:nowrap">${s.btn_text||'Join'}</button>
+            </div>
+            </div>`;
+          break;
+        }
+        case 'logos': {
+          el.className = 'builder-logos-section';
+          el.style.cssText = 'padding:2.5rem 2.5rem;text-align:center';
+          if (s.sec_bg) el.style.background = s.sec_bg;
+          const logositems = (s.items||[]);
+          el.innerHTML = `${s.heading?`<div style="font-family:var(--fm,var(--fb));font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;opacity:.35;margin-bottom:1.2rem">${s.heading}</div>`:''}
+            <div style="display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:1.5rem 2.5rem">
+            ${logositems.map(it=>it.src?`<img src="${it.src}" alt="${it.alt||it.name||''}" style="height:28px;width:auto;opacity:.45;filter:brightness(0) invert(1)">`:it.name?`<span style="font-family:var(--fw);font-size:1.1rem;font-weight:700;font-style:italic;letter-spacing:.06em;text-transform:uppercase;opacity:.35">${it.name}</span>`:''  ).join('')}
+            </div>`;
+          break;
+        }
+        case 'richtext': {
+          el.className = 'builder-richtext-section';
+          el.style.cssText = `padding:4rem 2.5rem;max-width:760px;margin:0 auto;text-align:${s.align||'left'}`;
+          if (s.sec_bg) el.style.background = s.sec_bg;
+          el.innerHTML = `<div data-builder-body style="line-height:1.85;font-size:1rem;opacity:.85;white-space:pre-line">${s.content||''}</div>`;
+          break;
+        }
+        case 'split': {
+          el.className = 'builder-split-section';
+          const imgSide = s.image_side||'left';
+          el.style.cssText = `display:flex;flex-wrap:wrap;align-items:center;min-height:${s.image_height||500}px;background:${s.bg_color||s.sec_bg||'transparent'}`;
+          if (s.sec_bg && !s.bg_color) el.style.background = s.sec_bg;
+          const imgPart = s.image?`<div style="flex:1 1 400px;min-height:${s.image_height||500}px;background:url(${s.image}) center/cover no-repeat"></div>`:'';
+          const txtPart = `<div style="flex:1 1 400px;padding:4rem 3rem">${s.label?`<div style="font-family:var(--fm,var(--fb));font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;opacity:.5;margin-bottom:1rem">${s.label}</div>`:''}<h2 style="font-family:var(--fw);font-size:clamp(1.8rem,4vw,2.8rem);font-weight:900;font-style:italic;letter-spacing:.06em;text-transform:uppercase;line-height:1.05;margin-bottom:1.2rem">${s.heading||''}</h2><p style="opacity:.65;line-height:1.75;font-size:.95rem;margin-bottom:1.8rem">${s.body||''}</p>${s.cta_text?`<a href="${s.cta_url||'#'}" style="display:inline-block;border:1px solid currentColor;padding:.65rem 1.6rem;font-family:var(--fm,var(--fb));font-size:.65rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;color:inherit">${s.cta_text}</a>`:''}</div>`;
+          el.innerHTML = imgSide==='left' ? (imgPart+txtPart) : (txtPart+imgPart);
+          break;
+        }
+        case 'cta': {
+          el.className = 'builder-cta-section';
+          const ctaAlign = s.align||'center';
+          el.style.cssText = `padding:6rem 2.5rem;text-align:${ctaAlign};background:${s.bg_color||s.sec_bg||'transparent'};color:${s.text_color||'inherit'}`;
+          el.innerHTML = `<div style="max-width:700px;margin:0 auto">
+            ${s.heading?`<h2 style="font-family:var(--fw);font-size:clamp(2rem,6vw,3.2rem);font-weight:900;font-style:italic;letter-spacing:.08em;text-transform:uppercase;line-height:1.05;margin-bottom:1rem">${s.heading}</h2>`:''}
+            ${s.subtext?`<p style="opacity:.65;line-height:1.7;margin-bottom:2rem;font-size:1rem">${s.subtext}</p>`:''}
+            ${s.btn_text?`<a href="${s.btn_url||'#'}" style="display:inline-block;background:${s.btn_style==='solid'?'currentColor':'transparent'};color:${s.btn_style==='solid'?(s.bg_color||'#09090b'):'currentColor'};border:1px solid currentColor;padding:.75rem 2rem;font-family:var(--fm,var(--fb));font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;text-decoration:none">${s.btn_text}</a>`:''}
+          </div>`;
+          break;
+        }
+        case 'features': {
+          el.className = 'builder-features-section';
+          el.style.cssText = 'padding:5rem 2.5rem;text-align:center';
+          if (s.sec_bg) el.style.background = s.sec_bg;
+          const fitems = (s.items||[]);
+          el.innerHTML = `${s.heading?`<h2 style="font-family:var(--fw);font-size:clamp(1.6rem,4vw,2.4rem);letter-spacing:.08em;text-transform:uppercase;font-weight:900;font-style:italic;margin-bottom:3rem">${s.heading}</h2>`:''}
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:2rem;max-width:1000px;margin:0 auto">
+            ${fitems.map(it=>`<div style="padding:1.5rem"><div style="font-size:2rem;margin-bottom:1rem">${it.icon||''}</div><div style="font-family:var(--fw);font-size:1rem;font-weight:700;font-style:italic;letter-spacing:.06em;text-transform:uppercase;margin-bottom:.6rem">${it.title||''}</div><div style="opacity:.6;font-size:.88rem;line-height:1.6">${it.desc||''}</div></div>`).join('')}
+            </div>`;
+          break;
+        }
+        case 'testimonials': {
+          el.className = 'builder-testimonials-section';
+          el.style.cssText = 'padding:5rem 2.5rem;text-align:center';
+          if (s.sec_bg) el.style.background = s.sec_bg;
+          const titems = (s.items||[]);
+          el.innerHTML = `${s.heading?`<h2 style="font-family:var(--fw);font-size:clamp(1.6rem,4vw,2.4rem);letter-spacing:.08em;text-transform:uppercase;font-weight:900;font-style:italic;margin-bottom:3rem">${s.heading}</h2>`:''}
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:2rem;max-width:1000px;margin:0 auto">
+            ${titems.map(it=>`<div style="background:rgba(244,241,235,.04);border:1px solid rgba(244,241,235,.08);padding:2rem;text-align:left"><div style="color:var(--gold);margin-bottom:1rem;font-size:1.1rem">${'★'.repeat(Math.min(5,Math.max(1,parseInt(it.rating)||5)))}</div><p style="line-height:1.7;margin-bottom:1.2rem;opacity:.8;font-size:.95rem">"${it.quote||''}"</p><div style="font-family:var(--fw);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;opacity:.5">${it.author||''}</div></div>`).join('')}
+            </div>`;
+          break;
+        }
+        case 'banner': {
+          el.className = 'builder-banner-section';
+          el.style.cssText = `padding:1.5rem 2.5rem;text-align:center;background:${s.bg_color||s.sec_bg||'#09090b'};color:${s.text_color||'#f4f1eb'}`;
+          el.innerHTML = `<span style="font-family:var(--fm,var(--fb));font-size:.8rem;letter-spacing:.12em;text-transform:uppercase">${s.text||''}</span>${s.link_text?` <a href="${s.link_url||'#'}" style="color:inherit;margin-left:.75rem;text-decoration:underline;font-family:var(--fm,var(--fb));font-size:.8rem;letter-spacing:.12em;text-transform:uppercase">${s.link_text}</a>`:''}`;
+          break;
+        }
+        case 'gallery': {
+          el.className = 'builder-gallery-section';
+          el.style.cssText = 'padding:3rem 2.5rem';
+          if (s.sec_bg) el.style.background = s.sec_bg;
+          const cols = parseInt(s.columns)||3;
+          const aspectMap = {square:'1/1',portrait:'3/4',wide:'16/9'};
+          const aspect = aspectMap[s.aspect]||'1/1';
+          const gimgs = (s.images||[]).filter(i=>i.src);
+          el.innerHTML = `${s.heading?`<h2 style="font-family:var(--fw);font-size:clamp(1.4rem,4vw,2rem);letter-spacing:.08em;text-transform:uppercase;font-weight:900;font-style:italic;margin-bottom:2rem;text-align:center">${s.heading}</h2>`:''}
+            <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:.5rem">
+            ${gimgs.map(img=>`${img.link?`<a href="${img.link}"`:'<div'} style="aspect-ratio:${aspect};overflow:hidden;display:block"><img src="${img.src}" alt="${img.alt||''}" style="width:100%;height:100%;object-fit:cover">${img.link?'</a>':'</div>'}`).join('')}
+            </div>`;
+          break;
+        }
+        case 'video': {
+          el.className = 'builder-video-section';
+          el.style.cssText = 'padding:3rem 2.5rem;max-width:900px;margin:0 auto';
+          if (s.sec_bg) el.style.background = s.sec_bg;
+          let videoSrc = '';
+          const url = s.url||'';
+          const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
+          const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+          if (ytMatch) {
+            const params = new URLSearchParams({rel:'0'});
+            if (s.autoplay) params.set('autoplay','1');
+            if (s.muted) params.set('mute','1');
+            if (!s.controls) params.set('controls','0');
+            videoSrc = `https://www.youtube.com/embed/${ytMatch[1]}?${params}`;
+          } else if (vimeoMatch) {
+            videoSrc = `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+          }
+          el.innerHTML = videoSrc
+            ? `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden"><iframe src="${videoSrc}" style="position:absolute;inset:0;width:100%;height:100%;border:none" allowfullscreen allow="autoplay"></iframe></div>${s.caption?`<p style="text-align:center;opacity:.45;font-size:.8rem;margin-top:1rem">${s.caption}</p>`:''}`
+            : `<div style="background:rgba(244,241,235,.05);border:1px dashed rgba(244,241,235,.15);padding:4rem;text-align:center;opacity:.4;font-size:.8rem">Paste a YouTube or Vimeo URL in the editor</div>`;
+          break;
+        }
+        case 'countdown': {
+          el.className = 'builder-countdown-section';
+          el.style.cssText = `padding:5rem 2.5rem;text-align:${s.align||'center'}`;
+          if (s.sec_bg) el.style.background = s.sec_bg;
+          const cdId = 'builder-cd-' + sec.id;
+          el.innerHTML = `${s.heading?`<h2 style="font-family:var(--fw);font-size:clamp(1.4rem,4vw,2rem);letter-spacing:.1em;text-transform:uppercase;font-weight:700;font-style:italic;margin-bottom:2rem">${s.heading}</h2>`:''}
+            <div id="${cdId}" style="display:flex;gap:2.5rem;justify-content:${s.align==='left'?'flex-start':'center'};flex-wrap:wrap">
+              <div><div class="cd-n" style="font-family:var(--fw);font-size:clamp(3rem,10vw,5rem);font-weight:900;font-style:italic;line-height:1;color:var(--gold)">--</div>${s.show_labels!==false?`<div style="font-family:var(--fm,var(--fb));font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;opacity:.4;margin-top:.4rem">Days</div>`:''}</div>
+              <div><div class="cd-n" style="font-family:var(--fw);font-size:clamp(3rem,10vw,5rem);font-weight:900;font-style:italic;line-height:1;color:var(--gold)">--</div>${s.show_labels!==false?`<div style="font-family:var(--fm,var(--fb));font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;opacity:.4;margin-top:.4rem">Hours</div>`:''}</div>
+              <div><div class="cd-n" style="font-family:var(--fw);font-size:clamp(3rem,10vw,5rem);font-weight:900;font-style:italic;line-height:1;color:var(--gold)">--</div>${s.show_labels!==false?`<div style="font-family:var(--fm,var(--fb));font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;opacity:.4;margin-top:.4rem">Minutes</div>`:''}</div>
+              <div><div class="cd-n" style="font-family:var(--fw);font-size:clamp(3rem,10vw,5rem);font-weight:900;font-style:italic;line-height:1;color:var(--gold)">--</div>${s.show_labels!==false?`<div style="font-family:var(--fm,var(--fb));font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;opacity:.4;margin-top:.4rem">Seconds</div>`:''}</div>
+            </div>`;
+          // Start countdown ticker
+          (function startCd() {
+            const target = s.launch_date ? new Date(s.launch_date) : null;
+            if (!target) return;
+            const cdEl = document.getElementById(cdId);
+            if (!cdEl) return;
+            const nums = cdEl.querySelectorAll('.cd-n');
+            function tick() {
+              const diff = target - Date.now();
+              if (diff <= 0) { nums.forEach(n=>n.textContent='00'); return; }
+              const d = Math.floor(diff/864e5);
+              const h = Math.floor((diff%864e5)/36e5);
+              const m = Math.floor((diff%36e5)/6e4);
+              const sc = Math.floor((diff%6e4)/1e3);
+              const pad = n=>String(n).padStart(2,'0');
+              if (nums[0]) nums[0].textContent=pad(d);
+              if (nums[1]) nums[1].textContent=pad(h);
+              if (nums[2]) nums[2].textContent=pad(m);
+              if (nums[3]) nums[3].textContent=pad(sc);
+            }
+            tick();
+            setInterval(tick, 1000);
+          })();
           break;
         }
       }
