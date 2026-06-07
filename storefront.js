@@ -804,7 +804,7 @@ function applyAnnouncementBar(mode, msgText) {
   barEl.style.opacity = '1';
   barEl.style.pointerEvents = '';
   barEl.style.transform = '';
-  if (navEl) navEl.style.transform = ''; // clean state on every (re)apply
+  if (navEl) navEl.style.transform = ''; // safety: clear any stale nav transform from earlier versions
 
   const textEl = document.getElementById('announcementText');
   const fallbackText = (barEl.dataset.defaultText || (textEl ? textEl.textContent : '') || '').trim();
@@ -834,27 +834,18 @@ function applyAnnouncementBar(mode, msgText) {
   if (normalizedMode !== 'scroll') return;
 
   if (isMobileViewport) {
-    // Mobile: hide BOTH the header (nav) and the bar on scroll-down, reveal on
-    // scroll-up — the standard mobile pattern. The bar sits below the nav, so
-    // it must travel the nav height + its own height to clear the viewport.
-    const navH = navEl ? navEl.offsetHeight : 0;
-    if (navEl) navEl.style.transition = 'transform .35s ease';
-    barEl.style.transition = 'transform .35s ease, opacity .35s ease';
+    // Mobile: fade ONLY the announcement bar on scroll-down — the nav stays
+    // fixed (translating it left a see-through gap above the header). The bar's
+    // transform is locked by CSS (anti-flicker), so hide via opacity. The bar
+    // only hides once scrolled, where page content already fills the strip
+    // beneath the nav, so there is no gap.
+    barEl.style.transition = 'opacity .3s ease';
     let lastY = window.scrollY;
     let hidden = false;
     const activateAt = Date.now() + 450;
     const setHidden = (h) => {
-      if (h) {
-        if (navEl) navEl.style.transform = 'translateY(-100%)';
-        barEl.style.transform = 'translateY(-' + (navH + barEl.offsetHeight + 4) + 'px)';
-        barEl.style.opacity = '0';
-        barEl.style.pointerEvents = 'none';
-      } else {
-        if (navEl) navEl.style.transform = 'translateY(0)';
-        barEl.style.transform = 'translateY(0)';
-        barEl.style.opacity = '1';
-        barEl.style.pointerEvents = '';
-      }
+      barEl.style.opacity = h ? '0' : '1';
+      barEl.style.pointerEvents = h ? 'none' : '';
     };
     _announcementBarScrollHandler = function() {
       const y = window.scrollY;

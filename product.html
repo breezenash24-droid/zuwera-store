@@ -1474,7 +1474,6 @@ function applyAnnouncementBar(mode, msgText) {
   barEl.style.transform = 'translateY(0)';
   barEl.style.opacity = '1';
   barEl.style.pointerEvents = '';
-  if (navEl) navEl.style.transform = ''; // clean state on every (re)apply
 
   const textEl = document.getElementById('announcementText');
   const fallbackText = (barEl.dataset.defaultText || (textEl ? textEl.textContent : '') || '').trim();
@@ -1496,25 +1495,14 @@ function applyAnnouncementBar(mode, msgText) {
   if (normalizedMode !== 'scroll') return;
 
   if (isMobileViewport) {
-    barEl.style.transition = 'transform .28s ease, opacity .2s ease, top .28s ease';
-    const navH = navEl ? navEl.offsetHeight : 0;
-    if (navEl) navEl.style.transition = 'transform .3s ease';
+    // Mobile: fade ONLY the bar on scroll-down; the nav stays fixed.
+    barEl.style.transition = 'opacity .25s ease';
     let lastScrollY = window.scrollY;
     let isHidden = false;
     const scrollActivationAt = Date.now() + 450;
     const syncAnnouncementState = (hidden) => {
-      barEl.style.display = 'flex';
-      if (hidden) {
-        if (navEl) navEl.style.transform = 'translateY(-100%)';
-        barEl.style.transform = 'translateY(-' + (navH + barEl.offsetHeight + 4) + 'px)';
-        barEl.style.opacity = '0';
-        barEl.style.pointerEvents = 'none';
-      } else {
-        if (navEl) navEl.style.transform = 'translateY(0)';
-        barEl.style.transform = 'translateY(0)';
-        barEl.style.opacity = '1';
-        barEl.style.pointerEvents = '';
-      }
+      barEl.style.opacity = hidden ? '0' : '1';
+      barEl.style.pointerEvents = hidden ? 'none' : '';
     };
     syncAnnouncementState(false);
     _productAnnouncementBarScrollHandler = function() {
