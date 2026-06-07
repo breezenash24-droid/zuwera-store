@@ -803,6 +803,8 @@ function applyAnnouncementBar(mode, msgText) {
   teardownAnnouncementBarScroll();
   barEl.style.opacity = '1';
   barEl.style.pointerEvents = '';
+  barEl.style.transform = '';
+  if (navEl) navEl.style.transform = ''; // clean state on every (re)apply
 
   const textEl = document.getElementById('announcementText');
   const fallbackText = (barEl.dataset.defaultText || (textEl ? textEl.textContent : '') || '').trim();
@@ -830,7 +832,42 @@ function applyAnnouncementBar(mode, msgText) {
   setAnnouncementBarLayout(barEl, navEl, true);
 
   if (normalizedMode !== 'scroll') return;
-  if (isMobileViewport) return; // Mobile: bar stays fixed below nav, no scroll animation
+
+  if (isMobileViewport) {
+    // Mobile: hide BOTH the header (nav) and the bar on scroll-down, reveal on
+    // scroll-up — the standard mobile pattern. The bar sits below the nav, so
+    // it must travel the nav height + its own height to clear the viewport.
+    const navH = navEl ? navEl.offsetHeight : 0;
+    if (navEl) navEl.style.transition = 'transform .35s ease';
+    barEl.style.transition = 'transform .35s ease, opacity .35s ease';
+    let lastY = window.scrollY;
+    let hidden = false;
+    const activateAt = Date.now() + 450;
+    const setHidden = (h) => {
+      if (h) {
+        if (navEl) navEl.style.transform = 'translateY(-100%)';
+        barEl.style.transform = 'translateY(-' + (navH + barEl.offsetHeight + 4) + 'px)';
+        barEl.style.opacity = '0';
+        barEl.style.pointerEvents = 'none';
+      } else {
+        if (navEl) navEl.style.transform = 'translateY(0)';
+        barEl.style.transform = 'translateY(0)';
+        barEl.style.opacity = '1';
+        barEl.style.pointerEvents = '';
+      }
+    };
+    _announcementBarScrollHandler = function() {
+      const y = window.scrollY;
+      if (document.body.dataset.scrollLocked || window.__zwScrollLocking || window.__zwScrollRestoring) { lastY = y; return; }
+      if (Date.now() < activateAt) { lastY = y; return; }
+      const down = y > lastY + 6, up = y < lastY - 6;
+      if (y <= 16 || up) { if (hidden) { hidden = false; setHidden(false); } }
+      else if (y > 80 && down) { if (!hidden) { hidden = true; setHidden(true); } }
+      lastY = y;
+    };
+    window.addEventListener('scroll', _announcementBarScrollHandler, { passive: true });
+    return;
+  }
 
   barEl.style.transition = 'transform 0.45s ease, opacity 0.45s ease';
   let lastScrollY = window.scrollY;
