@@ -829,7 +829,12 @@ const sel2=(k,l,v,opts)=>`<div class="field"><label>${l}</label><select data-k="
 const tog2=(k,l,checked)=>`<div class="tog2"><label>${l}</label><label class="switch"><input type="checkbox" data-f="${k}" ${checked?'checked':''}><span class="sw-sl"></span></label></div>`;
 const fdiv=()=>'<div class="fdiv"></div>';
 const fhd=t=>`<div class="fl" style="margin-top:.1rem">${t}</div>`;
-const colorF=(k,l,v='')=>`<div class="field"><label>${l}</label><div style="display:flex;gap:.35rem;align-items:center"><input type="color" data-f="${k}" value="${v||'#09090b'}"><input type="text" data-f="${k}_txt" value="${he(v)}" placeholder="#hex" style="flex:1" oninput="const ci=document.querySelector('[data-f=\\'${k}\\']');if(ci&&this.value.match(/^#[0-9a-f]{6}$/i))ci.value=this.value"></div></div>`;
+/* Color field with a live hex input. Both the swatch and the text box share
+   data-f="${k}" so either one writes the value back to the section setting
+   (syncForm reads the last [data-f], i.e. the hex box). Picking the swatch
+   fills the hex; typing a valid #rrggbb updates the swatch. Clearing the hex
+   box clears the setting (reverts the section to its mode background). */
+const colorF=(k,l,v='')=>`<div class="field"><label>${l}</label><div style="display:flex;gap:.35rem;align-items:center"><input type="color" data-f="${k}" value="${v||'#09090b'}" oninput="this.nextElementSibling.value=this.value"><input type="text" data-f="${k}" value="${he(v)}" placeholder="#hex or blank" style="flex:1" oninput="const x=this.value.trim();if(/^#[0-9a-f]{6}$/i.test(x))this.previousElementSibling.value=x"></div></div>`;
 const colorF2=(k,l,v='')=>`<div class="field"><label>${l}</label><div style="display:flex;gap:.35rem;align-items:center"><input type="color" data-k="${k}" value="${v||'#09090b'}" oninput="this.nextElementSibling.value=this.value"><input type="text" data-k="${k}" value="${he(v)}" placeholder="#hex" style="flex:1" oninput="if(/^#[0-9a-f]{6}$/i.test(this.value.trim()))this.previousElementSibling.value=this.value.trim()"></div></div>`;
 const rangeF=(k,l,v,min,max,unit='')=>`<div class="field"><label>${l}</label><div class="range-row"><input type="range" data-f="${k}" data-unit="${unit}" min="${min}" max="${max}" value="${v}" style="flex:1"><span class="range-val" data-range-disp="${k}">${v}${unit}</span></div></div>`;
 const padF=g=>`<div class="fdiv"></div>${fhd('Section Padding')}<div class="pad-grid">${rangeF('pad_top','Top Padding',g.pad_top||0,0,200,'px')}${rangeF('pad_bot','Bottom Padding',g.pad_bot||0,0,200,'px')}</div>`;
