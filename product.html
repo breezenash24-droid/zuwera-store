@@ -211,9 +211,12 @@ body.light-mode #bar {
   flex-direction: column;
 }
 .size-guide-body {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden; /* no second scrollbar here */
+  /* Take the iframe's full (JS-set) height instead of flex-shrinking to fit.
+     flex:1 + overflow:hidden clipped tall content and stopped the .mbox from
+     ever overflowing — so the modal couldn't scroll. flex:0 0 auto lets the
+     body grow to the iframe height, pushing .mbox past max-height → it scrolls. */
+  flex: 0 0 auto;
+  overflow: visible; /* still no internal scrollbar; .mbox is the scroll container */
 }
 .size-guide-frame-shell {
   overflow: hidden; /* prevent iframe from adding its own scrollbar */
