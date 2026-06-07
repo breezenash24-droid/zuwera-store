@@ -974,11 +974,13 @@ function setPvMode(m){
   frame.className='pv-frame '+m;
   // Apply device-frame visual styles
   if(m==='mob'){
-    frame.style.cssText='border:8px solid #333;border-radius:40px;overflow:hidden;width:390px;margin:0 auto;box-shadow:0 0 0 2px #555,0 8px 40px rgba(0,0,0,.7)';
+    // Modest corner radius so preview content (e.g. modal close buttons) in the
+    // top corners isn't clipped by overflow:hidden, while still looking device-like.
+    frame.style.cssText='border:8px solid #333;border-radius:22px;overflow:hidden;width:390px;margin:0 auto;box-shadow:0 0 0 2px #555,0 8px 40px rgba(0,0,0,.7)';
     iframe.style.width='390px';
     iframe.style.height='calc(100vh - 46px - 36px - 1.5rem - 16px)';
   }else if(m==='tab'){
-    frame.style.cssText='border:4px solid #333;border-radius:16px;overflow:hidden;width:768px;margin:0 auto;box-shadow:0 8px 40px rgba(0,0,0,.7)';
+    frame.style.cssText='border:4px solid #333;border-radius:10px;overflow:hidden;width:768px;margin:0 auto;box-shadow:0 8px 40px rgba(0,0,0,.7)';
     iframe.style.width='768px';
     iframe.style.height='calc(100vh - 46px - 36px - 1.5rem - 8px)';
   }else{

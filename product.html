@@ -228,6 +228,12 @@ body.light-mode #bar {
   width: 100%;
   overflow: hidden;
 }
+/* Close button: always above the iframe and visible. Without z-index the
+   iframe (a later sibling) can paint over the absolutely-positioned button. */
+#size-guide-modal .mclose {
+  z-index: 12;
+  opacity: 1;
+}
 @media (max-width: 900px) {
   #size-guide-modal {
     align-items: flex-end;
@@ -242,12 +248,14 @@ body.light-mode #bar {
     padding: 2.8rem .9rem 1.5rem;
   }
   /* Close button: absolute (not sticky) so it overlays the header
-     and doesn't consume its own row in the flex column */
+     and doesn't consume its own row in the flex column. Inset enough to
+     clear rounded device corners (real tablets/phones + builder preview frame). */
   #size-guide-modal .mclose {
     position: absolute !important;
-    top: .6rem !important;
-    right: .75rem !important;
+    top: .9rem !important;
+    right: 1rem !important;
     margin: 0 !important;
+    z-index: 12 !important;
   }
   /* Compact header — flush into the iframe content */
   #size-guide-modal .size-guide-head {
