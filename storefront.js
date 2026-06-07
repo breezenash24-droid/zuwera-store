@@ -326,8 +326,12 @@ function showToast(msg) {
 
       const s = sec.settings || {};
 
-      // Per-section style overrides
-      if (s.sec_bg) el.style.background = s.sec_bg;
+      // Per-section style overrides.
+      // Use !important so a chosen section background reliably beats the
+      // light/super-light mode rules (e.g. .drop-wrap { background:var(--ink) }),
+      // which otherwise win over a plain inline style for built-in sections.
+      if (s.sec_bg) el.style.setProperty('background', s.sec_bg, 'important');
+      else el.style.removeProperty('background'); // clear when unset so mode bg returns
       if (s.pad_top) el.style.paddingTop = s.pad_top + 'px';
       if (s.pad_bot) el.style.paddingBottom = s.pad_bot + 'px';
       if (s.anchor_id) el.id = s.anchor_id;

@@ -1537,6 +1537,16 @@ body.light-mode{
   background:var(--ink);
   color:var(--paper);
 }
+/* SUPER-LIGHT MODE — reset --ink to pure white. Without this, the
+   body.light-mode --ink:#F0EEE9 above (which also applies in super-light
+   since the body keeps the light-mode class) bleeds cream into sections
+   like .drop-wrap that use background:var(--ink). */
+body.super-light-mode{
+  --ink:#FFFFFF;
+  --warm:#f5f5f5;
+  --line:rgba(9,9,11,0.08);
+  background:#FFFFFF;
+}
 /* Fix hardcoded dark elements */
 body.light-mode #cookie-banner{background:#F0EEE9 !important;border-top-color:rgba(9,9,11,.12) !important;color:rgba(9,9,11,.65) !important;}
 body.light-mode #cookie-banner button:last-child{color:rgba(9,9,11,.45) !important;border-color:rgba(9,9,11,.15) !important;}

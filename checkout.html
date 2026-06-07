@@ -226,6 +226,9 @@
 
     .pm-lines { border-top: 1px solid var(--border); padding-top: .85rem; margin-top: .2rem; display: flex; flex-direction: column; gap: .4rem; margin-bottom: .9rem; }
     .pm-line { display: flex; justify-content: space-between; font-size: .9rem; color: var(--sub); font-variant-numeric: tabular-nums; }
+    /* Line-item labels — small muted mono uppercase to match the bag page summary */
+    .pm-line > span:first-child { font-family: var(--font-mono); font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; opacity: .7; }
+    .pm-line > span:last-child { font-family: var(--font-mono); }
     .pm-total-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 1rem; font-weight: 600; border-top: 1px solid var(--border2); padding-top: .7rem; color: var(--text); font-variant-numeric: tabular-nums; margin-bottom: 1.6rem; }
     /* "TOTAL" label — match the bag page's brand display treatment (italic condensed) */
     .pm-total-row > span:first-child { font-family: var(--font-head); font-style: italic; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: 1.15rem; }
