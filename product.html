@@ -1581,8 +1581,11 @@ async function loadSiteSettings() {
     }
     const data = await resp.json();
     let announcementApplied = false;
+    let builderTheme = null;
     data.forEach(row => {
-      if (row.key === 'announcement_bar') {
+      if (row.key === 'builder_theme') {
+        try { builderTheme = typeof row.value === 'string' ? JSON.parse(row.value) : row.value; } catch(e) {}
+      } else if (row.key === 'announcement_bar') {
         let v = row.value;
         try {
           if (typeof v === 'string') v = JSON.parse(v);
@@ -1642,6 +1645,20 @@ async function loadSiteSettings() {
       }
     });
     if (!announcementApplied) applyAnnouncementBar('on', '');
+
+    // Apply Page Builder theme bar colors (bar_bg / bar_text_color / accent) to #bar.
+    // Mirrors index.html so the announcement bar color is consistent across pages.
+    if (builderTheme) {
+      const bar = document.getElementById('bar');
+      if (bar) {
+        if (builderTheme.bar_bg) bar.style.setProperty('background', builderTheme.bar_bg, 'important');
+        if (builderTheme.bar_text_color) bar.style.setProperty('color', builderTheme.bar_text_color, 'important');
+      }
+      if (builderTheme.accent_color) {
+        document.documentElement.style.setProperty('--gold', builderTheme.accent_color);
+        document.documentElement.style.setProperty('--zw-accent', builderTheme.accent_color);
+      }
+    }
   } catch (e) {
     console.log('Settings load skipped:', e);
     applyAnnouncementBar('on', '');
