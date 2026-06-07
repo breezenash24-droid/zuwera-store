@@ -1360,6 +1360,7 @@
     // Tab navigation
     document.querySelectorAll('.cz-tab').forEach((btn) => {
       btn.addEventListener('click', () => {
+        syncActiveTabToState(); // preserve current tab's edits before its DOM is replaced
         state.activeTab = btn.dataset.tab;
         renderCommerce();
       });
@@ -1369,17 +1370,21 @@
     document.querySelectorAll('[data-tab]').forEach((btn) => {
       if (btn.classList.contains('cz-tab')) return;
       btn.addEventListener('click', () => {
+        syncActiveTabToState();
         state.activeTab = btn.dataset.tab;
         renderCommerce();
       });
     });
 
-    // Order search
+    // Order search — re-render filters the list, then restore focus + caret
+    // so typing isn't interrupted (renderCommerce rebuilds the search input).
     const searchEl = $('czOrderSearch');
     if (searchEl) {
       searchEl.addEventListener('input', () => {
         state.orderSearch = searchEl.value;
         renderCommerce();
+        const s = $('czOrderSearch');
+        if (s) { s.focus(); const n = s.value.length; try { s.setSelectionRange(n, n); } catch (_) {} }
       });
     }
 
@@ -1550,8 +1555,12 @@
     });
   }
 
-  async function saveSettings(message) {
-    $('commerceStatus').textContent = 'Saving commerce settings...';
+  // Read whatever editable fields are currently in the DOM into state.
+  // Only writes fields whose elements exist, so it is safe to call from any
+  // tab — it never overwrites another tab's saved values with empty strings.
+  // Call this BEFORE switching tabs (the old tab's DOM is about to be
+  // destroyed) and before saving, so no edits are lost.
+  function syncActiveTabToState() {
     if ($('commercePromoList')) state.config.promotions = readPromotionsFromDom();
     const showPromoEl = $('commerceShowPromoCode');
     if (showPromoEl) state.config.show_promo_code = showPromoEl.checked;
@@ -1559,36 +1568,30 @@
     if ($('commerceInventoryVariantTable') || $('commerceInventoryLocations')) {
       state.inventory = readInventoryFromDom();
     }
-    state.config.integrations = {
-      ...(state.config.integrations || {}),
-      emailProvider: $('commerce-email-provider')?.value || '',
-      reviewsProvider: $('commerce-reviews-provider')?.value || '',
-      accountingProvider: $('commerce-accounting-provider')?.value || '',
-    };
-    state.config.subscriptions = {
-      ...(state.config.subscriptions || {}),
-      provider: $('commerce-subscriptions-provider')?.value || '',
-    };
-    state.config.affiliates = {
-      ...(state.config.affiliates || {}),
-      provider: $('commerce-affiliates-provider')?.value || '',
-    };
-    state.config.merchandising = {
-      ...(state.config.merchandising || {}),
-      provider: $('commerce-merch-provider')?.value || '',
-    };
-    state.config.shippingAutomation = {
-      ...(state.config.shippingAutomation || {}),
-      liveRates: $('commerce-live-rates')?.value !== 'false',
-      labelGeneration: $('commerce-labels')?.value === 'true',
-      trackingUpdates: $('commerce-tracking-updates')?.value !== 'false',
-      splitShipments: $('commerce-split-shipments')?.value === 'true',
-    };
-    state.config.customerExperience = {
-      ...(state.config.customerExperience || {}),
-      savedAddresses: $('commerce-saved-addresses')?.value !== 'false',
-      marketingConsent: $('commerce-marketing-consent')?.value !== 'false',
-    };
+    const setIf = (id, obj, key, fn) => { const el = $(id); if (el) obj[key] = fn ? fn(el.value) : el.value; };
+    const ig = state.config.integrations  || (state.config.integrations  = {});
+    setIf('commerce-email-provider',        ig, 'emailProvider');
+    setIf('commerce-reviews-provider',      ig, 'reviewsProvider');
+    setIf('commerce-accounting-provider',   ig, 'accountingProvider');
+    const sub = state.config.subscriptions || (state.config.subscriptions = {});
+    setIf('commerce-subscriptions-provider', sub, 'provider');
+    const aff = state.config.affiliates    || (state.config.affiliates    = {});
+    setIf('commerce-affiliates-provider',   aff, 'provider');
+    const mer = state.config.merchandising || (state.config.merchandising = {});
+    setIf('commerce-merch-provider',        mer, 'provider');
+    const sa = state.config.shippingAutomation || (state.config.shippingAutomation = {});
+    setIf('commerce-live-rates',       sa, 'liveRates',       v => v !== 'false');
+    setIf('commerce-labels',           sa, 'labelGeneration', v => v === 'true');
+    setIf('commerce-tracking-updates', sa, 'trackingUpdates', v => v !== 'false');
+    setIf('commerce-split-shipments',  sa, 'splitShipments',  v => v === 'true');
+    const cx = state.config.customerExperience || (state.config.customerExperience = {});
+    setIf('commerce-saved-addresses',  cx, 'savedAddresses',  v => v !== 'false');
+    setIf('commerce-marketing-consent',cx, 'marketingConsent',v => v !== 'false');
+  }
+
+  async function saveSettings(message) {
+    const statusEl = $('commerceStatus'); if (statusEl) statusEl.textContent = 'Saving commerce settings...';
+    syncActiveTabToState();
     state.config.updatedAt = new Date().toISOString();
 
     const payload = [
