@@ -26,6 +26,10 @@
     background:#09090b !important; /* Force solid opaque dark background */
     z-index:600 !important;
     transition: background .35s, border-color .35s !important; /* disable padding transition to avoid repaint lag */
+    /* Promote to its own compositing layer so iOS Safari doesn't reveal page
+       content behind the fixed nav during momentum scroll. */
+    transform:translateZ(0);
+    -webkit-transform:translateZ(0);
   }
 
   body.light-mode nav#nav,
