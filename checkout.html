@@ -226,7 +226,10 @@
 
     .pm-lines { border-top: 1px solid var(--border); padding-top: .85rem; margin-top: .2rem; display: flex; flex-direction: column; gap: .4rem; margin-bottom: .9rem; }
     .pm-line { display: flex; justify-content: space-between; font-size: .9rem; color: var(--sub); font-variant-numeric: tabular-nums; }
-    .pm-total-row { display: flex; justify-content: space-between; font-size: 1rem; font-weight: 600; border-top: 1px solid var(--border2); padding-top: .7rem; color: var(--text); font-variant-numeric: tabular-nums; margin-bottom: 1.6rem; }
+    .pm-total-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 1rem; font-weight: 600; border-top: 1px solid var(--border2); padding-top: .7rem; color: var(--text); font-variant-numeric: tabular-nums; margin-bottom: 1.6rem; }
+    /* "TOTAL" label — match the bag page's brand display treatment (italic condensed) */
+    .pm-total-row > span:first-child { font-family: var(--font-head); font-style: italic; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: 1.15rem; }
+    .pm-total-row > span:last-child { font-variant-numeric: tabular-nums; }
 
     /* ───────────────────────────────── Form fields ── */
     .pgrow { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; }
