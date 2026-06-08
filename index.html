@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, viewport-fit=cover">
 <meta name="zuwera-deployment" content="2026-05-14-v2-supabase-timeout">
 <title>ZUWERA - For Those Who Dream</title>
 <meta name="description" content="Bold athletic sportswear. Release 001 launching September 20, 2026.">
@@ -1817,11 +1817,11 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
 </style>
 </head>
 <body>
-<!-- iOS safe-area (notch/status-bar) cover: a real, opaque, max-z-index element
-     set inline so it is correct from first paint. Bulletproof vs html::before
-     pseudo-element + :has() quirks on iOS Safari. -->
-<div id="zw-notch-cover" style="position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);z-index:2147483646;pointer-events:none;background:#09090b;transform:translateZ(0);-webkit-transform:translateZ(0);will-change:transform"></div>
-<script>try{var _nm=localStorage.getItem('zw_homepage_theme_mode')||localStorage.getItem('zw_theme_mode');document.getElementById('zw-notch-cover').style.background=_nm==='light'?'#F0EEE9':_nm==='super-light'?'#FFFFFF':'#09090b';}catch(_){}</script>
+<!-- iOS safe-area (notch/status-bar) cover: a real, opaque, GPU-composited,
+     max-z-index BLACK bar. Composited so it stays pinned during momentum scroll
+     (no content flashing through); solid black so nothing can bleed through it.
+     Needs viewport-fit=cover for env(safe-area-inset-top) to be non-zero. -->
+<div id="zw-notch-cover" style="position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);z-index:2147483646;pointer-events:none;background:#09090b;transform:translateZ(0);-webkit-transform:translateZ(0);will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden"></div>
 <a class="skip-link" href="#main-content">Skip to content</a>
 
 
