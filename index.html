@@ -1773,7 +1773,7 @@ body.light-mode::after{opacity:0.15}
 <style>
 /* ── MOBILE HEADER: DEFINITIVE FIXES ──────────────────────────────────────
    Nav height = (safe-area + 2px)(padding-top) + 36px(cart-btn) + .5rem(padding-bottom)
-              = calc(max(env(safe-area-inset-top,0px) - 40px,22px) + 32px)
+              = calc(max(env(safe-area-inset-top,0px) - 48px,14px) + 40px)
    Bar sits directly below nav. Formula mirrors the nav's own CSS exactly.
    All values are CSS-only — no JS, no font measurements, no ResizeObserver.
    ────────────────────────────────────────────────────────────────────────── */
@@ -1782,7 +1782,7 @@ body.light-mode::after{opacity:0.15}
      Nav no longer reflows on scroll, so the scrolled bar top is identical. */
   #bar,
   body:has(nav#nav.scrolled) #bar{
-    top:calc(max(env(safe-area-inset-top,0px) - 40px,22px) + 32px)!important;
+    top:calc(max(env(safe-area-inset-top,0px) - 48px,14px) + 40px)!important;
     transform:translate3d(0,0,0)!important;
     -webkit-transform:translate3d(0,0,0)!important;
   }
@@ -1790,7 +1790,7 @@ body.light-mode::after{opacity:0.15}
   /* scroll-padding-top: corrected to actual nav height so anchor jumps (#about etc.)
      clear the fixed header instead of disappearing behind it */
   html{
-    scroll-padding-top:calc(max(env(safe-area-inset-top,0px) - 40px,22px) + 32px)!important;
+    scroll-padding-top:calc(max(env(safe-area-inset-top,0px) - 48px,14px) + 40px)!important;
   }
 
   /* Hero inner: padding clears the fixed nav+bar height */
@@ -1819,7 +1819,7 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
 <!-- iOS safe-area cover: composited opaque layer that doesn't lag during momentum
      scroll (the nav itself does, which is what bleeds). Themed to match the nav so
      it's seamless, sized to the status-bar strip only — adds no header height. -->
-<div id="zw-notch-cover" style="position:fixed;top:0;left:0;right:0;height:max(env(safe-area-inset-top,0px) - 40px,22px);z-index:2147483647;pointer-events:none;background:#FFFFFF;transform:translateZ(0);-webkit-transform:translateZ(0);will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden"></div>
+<div id="zw-notch-cover" style="position:fixed;top:0;left:0;right:0;height:max(env(safe-area-inset-top,0px) - 48px,14px);z-index:2147483647;pointer-events:none;background:#FFFFFF;transform:translateZ(0);-webkit-transform:translateZ(0);will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden"></div>
 <script>try{var _nm=localStorage.getItem('zw_homepage_theme_mode')||localStorage.getItem('zw_theme_mode');document.getElementById('zw-notch-cover').style.background=_nm==='light'?'#F0EEE9':_nm==='super-light'?'#FFFFFF':'#09090b';}catch(_){}</script>
 <a class="skip-link" href="#main-content">Skip to content</a>
 

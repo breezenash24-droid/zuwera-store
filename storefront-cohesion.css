@@ -1251,7 +1251,7 @@ body.light-mode .heart-btn{
 
   :is(nav#nav,.nav,header.nav) :is(.nav-logo,.nav-logo-link) img,
   :is(nav#nav,.nav,header.nav) .nav-logo-img{
-    height:30px !important;   /* logo bigger than the action icons (it's the brand mark) */
+    height:38px !important;
     width:auto !important;
   }
 
