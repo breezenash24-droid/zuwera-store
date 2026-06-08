@@ -1205,7 +1205,10 @@ body.light-mode .heart-btn{
 
 @media (max-width:900px){
   :is(nav#nav,.nav,header.nav){
-    min-height:56px !important;
+    /* 0, not 56px: the old 56px floor was taller than the now-thin icon row, so
+       the nav box overhung and clipped the announcement bar below it. Let the
+       content drive the height. */
+    min-height:0 !important;
     z-index:600 !important;
     background:#09090b !important;
     transition: background .35s, border-color .35s !important;
@@ -1248,7 +1251,7 @@ body.light-mode .heart-btn{
 
   :is(nav#nav,.nav,header.nav) :is(.nav-logo,.nav-logo-link) img,
   :is(nav#nav,.nav,header.nav) .nav-logo-img{
-    height:20px !important;
+    height:30px !important;   /* logo bigger than the action icons (it's the brand mark) */
     width:auto !important;
   }
 
