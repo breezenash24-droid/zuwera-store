@@ -1230,21 +1230,20 @@ body.light-mode .heart-btn{
     background:#FFFFFF !important; /* solid opaque super-light safe-area block */
   }
 
+  /* Mobile nav layout (sitewide): logo on the LEFT, all actions on the RIGHT —
+     like Nike/Apple. The logo is a normal flex item (not absolutely centered),
+     so it clears the side of the status bar, never sits under the Dynamic
+     Island, and the header stays thin. */
   :is(nav#nav,.nav,header.nav) :is(.nav-logo,.nav-logo-link),
   .zw-nav .zw-nav-logo{
-    position:absolute !important;
-    left:50% !important;
-    transform:translateX(-50%) !important;
+    position:static !important;
+    left:auto !important;
+    transform:none !important;
     z-index:1;
-  }
-
-  /* Safe-area top offset only for the main full-bleed storefront nav.
-     max(env,50px): iOS Safari reports env(safe-area-inset-top)=0 on some
-     Dynamic Island devices, which dropped the centered logo to top:8px —
-     hidden under the status-bar cover. The 50px floor keeps the centered
-     logo below the cover and clear of the Dynamic Island. */
-  nav#nav :is(.nav-logo,.nav-logo-link){
-    top:calc(max(env(safe-area-inset-top,0px) - 12px,32px) + 2px) !important;
+    display:flex !important;
+    align-items:center !important;
+    margin:0 !important;
+    flex:0 0 auto !important;
   }
 
   :is(nav#nav,.nav,header.nav) :is(.nav-logo,.nav-logo-link) img,
@@ -1253,21 +1252,22 @@ body.light-mode .heart-btn{
     width:auto !important;
   }
 
+  /* Actions group hugs the right (auto width) so the logo can sit on the left
+     and space-between separates them. */
   :is(nav#nav,.nav,header.nav) :is(.nav-right,.nav-actions){
-    width:100%;
-    margin-left:0 !important;
+    width:auto !important;
+    margin-left:auto !important;
     justify-content:flex-end !important;
   }
 
   .hamburger-btn,
   #mobile-menu-btn{
-    position:absolute !important;
-    /* Align the 44px hamburger's center with the nav-right buttons, which sit at
-       padding-top max(env,50px)+2px. Offsetting up by 6px center-aligns the two
-       and keeps the icon clear of the status-bar cover. Using the same max(env,50px)
-       floor as everything else fixes the env=0 case where it used to float to 6px. */
-    top:calc(max(env(safe-area-inset-top,0px) - 12px,32px) - 6px) !important;
-    left:var(--zw-mobile-gutter,1rem) !important;
+    /* In-flow now (was absolute-left): the hamburger joins the right-hand
+       actions group. position:relative keeps its ::before/::after icon bars
+       anchored inside the button. */
+    position:relative !important;
+    top:auto !important;
+    left:auto !important;
     z-index:3 !important;
     display:flex !important;
     flex-direction:column;
