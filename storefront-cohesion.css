@@ -1253,9 +1253,17 @@ body.light-mode .heart-btn{
     flex:0 0 auto !important;
   }
 
-  :is(nav#nav,.nav,header.nav) :is(.nav-logo,.nav-logo-link) img,
-  :is(nav#nav,.nav,header.nav) .nav-logo-img{
+  /* Square ICON mark (pages with <a class="nav-logo"><img logo-192>): 38px. */
+  :is(nav#nav,.nav,header.nav) .nav-logo img{
     height:38px !important;
+    width:auto !important;
+  }
+  /* Wide WORDMARK image (~113x22, pages with .nav-logo-link/.nav-logo-img):
+     keep it near its native height so the wide aspect ratio doesn't blow it
+     across the header. 38px made it ~195px wide ("too loud"). */
+  :is(nav#nav,.nav,header.nav) .nav-logo-link img,
+  :is(nav#nav,.nav,header.nav) .nav-logo-img{
+    height:20px !important;
     width:auto !important;
   }
 
