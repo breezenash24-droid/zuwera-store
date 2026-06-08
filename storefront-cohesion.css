@@ -1310,7 +1310,11 @@ body.light-mode .heart-btn{
     height:30px !important;
     min-width:30px !important;
     padding:0 !important;
-    display:flex !important;
+    /* NOT !important on display: auth.js toggles login vs account via
+       style.display, and #account-btn is display:none until logged in. Forcing
+       display here showed BOTH. inline-flex only centers the icon when the
+       existing logic actually reveals the button. */
+    display:inline-flex;
     align-items:center !important;
     justify-content:center !important;
   }
