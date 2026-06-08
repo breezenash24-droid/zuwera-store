@@ -8,8 +8,10 @@
     var isSuperLight = document.body.classList.contains('super-light-mode');
     var isLight = document.body.classList.contains('light-mode');
     var navBg = isSuperLight ? '#FFFFFF' : isLight ? '#F0EEE9' : '#09090b';
+    // Keep the iOS status bar (theme-color) solid BLACK regardless of theme, so
+    // the OS-painted status-bar strip can never flash page content during scroll.
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', navBg);
+    if (meta) meta.setAttribute('content', '#09090b');
     document.documentElement.style.backgroundColor = navBg;
   }
   try {
