@@ -1697,7 +1697,7 @@ body.light-mode .heart-btn{
   content:'' !important;
   position:absolute !important;
   left:50% !important;
-  width:22px !important;
+  width:18px !important;
   height:1.5px !important;
   background:currentColor !important;
   box-shadow:none !important;
@@ -1705,15 +1705,18 @@ body.light-mode .heart-btn{
   transition:top .22s ease, transform .28s ease, opacity .18s ease !important;
 }
 
+/* Bars centered RELATIVE to the button (50% ± 3px) so they stay aligned with the
+   other nav icons regardless of the button's height — the old fixed 17px/25px
+   were tuned for the 44px button and sat too low after it shrank to 26px. */
 .hamburger-btn::before,
 #mobile-menu-btn::before{
-  top:17px !important;
+  top:calc(50% - 3px) !important;
   transform:translateX(-50%) !important;
 }
 
 .hamburger-btn::after,
 #mobile-menu-btn::after{
-  top:25px !important;
+  top:calc(50% + 3px) !important;
   opacity:1 !important;
   transform:translateX(-50%) !important;
 }
@@ -2394,16 +2397,21 @@ body.light-mode .zw-lang-trigger:hover{
    Clean compact typography replaces the previous full-screen giant text.
    ───────────────────────────────────────────────────────────────────────── */
 
-/* Backdrop: semi-transparent, panel anchored to LEFT edge (matches hamburger position) */
+/* Backdrop: semi-transparent, panel anchored to RIGHT edge (matches the
+   hamburger, which now lives on the right side of the nav). Full height so it
+   covers the status-bar strip too — no clipped top. */
 #mobile-menu.zw-mobile-menu{
+  top:0!important;
+  bottom:0!important;
+  height:100dvh!important;
   background:rgba(0,0,0,0.52)!important;
   align-items:stretch!important;
-  justify-content:flex-start!important;
+  justify-content:flex-end!important;
   padding:0!important;
   overflow:hidden!important;
 }
 
-/* Panel: partial width, slides in from LEFT */
+/* Panel: partial width, slides in from the RIGHT */
 #mobile-menu.zw-mobile-menu>.zw-mobile-menu-panel{
   position:relative!important;
   width:84%!important;
@@ -2412,15 +2420,17 @@ body.light-mode .zw-lang-trigger:hover{
   min-height:100dvh!important;
   height:100dvh!important;
   margin:0!important;
-  padding:calc(env(safe-area-inset-top,0px) + 1rem) 0 calc(env(safe-area-inset-bottom,0px) + 1.5rem)!important;
+  /* max(env,44px): clears the status bar even when iOS reports env=0, so the
+     ZUWERA NAVIGATION header + close button aren't clipped at the top. */
+  padding:calc(max(env(safe-area-inset-top,0px),44px) + 1rem) 0 calc(env(safe-area-inset-bottom,0px) + 1.5rem)!important;
   display:flex!important;
   flex-direction:column!important;
   gap:0!important;
   background:var(--zw-ink,#09090b)!important;
-  border-right:1px solid rgba(244,241,235,.09)!important;
-  border-left:none!important;
+  border-left:1px solid rgba(244,241,235,.09)!important;
+  border-right:none!important;
   border-radius:0!important;
-  box-shadow:16px 0 40px rgba(0,0,0,.35)!important;
+  box-shadow:-16px 0 40px rgba(0,0,0,.35)!important;
   overflow-y:auto!important;
   overflow-x:hidden!important;
   overscroll-behavior:contain!important;
@@ -2431,18 +2441,18 @@ body.light-mode .zw-lang-trigger:hover{
 
 body.light-mode #mobile-menu.zw-mobile-menu>.zw-mobile-menu-panel{
   background:#F0EEE9!important;
-  border-right-color:rgba(9,9,11,.1)!important;
+  border-left-color:rgba(9,9,11,.1)!important;
 }
 body.super-light-mode #mobile-menu.zw-mobile-menu>.zw-mobile-menu-panel{
   background:#fff!important;
 }
 
-/* Panel open animation: smoother slide from LEFT */
+/* Panel open animation: smoother slide from the RIGHT */
 #mobile-menu.zw-mobile-menu.open>.zw-mobile-menu-panel{
   animation:zwDrawerIn .32s cubic-bezier(0.25,0.46,0.45,0.94) both!important;
 }
 @keyframes zwDrawerIn{
-  from{transform:translateX(-100%);opacity:.85}
+  from{transform:translateX(100%);opacity:.85}
   to{transform:translateX(0);opacity:1}
 }
 
