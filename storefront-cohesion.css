@@ -1878,6 +1878,18 @@ body.zw-mobile-menu-open{
   touch-action:none !important;
 }
 
+/* iOS Safari composites backdrop-filter into its own layer that renders ABOVE
+   fixed overlays (a WebKit bug), so any page element using it (e.g. the drop
+   page's gallery arrows) bleeds through the open menu's backdrop — that "weird
+   thing in the 20% space". The menu uses a solid background, so strip ALL
+   backdrop-filter while the menu is open. Makes the menu behave identically on
+   every page. */
+body.zw-mobile-menu-open *,
+html.zw-mobile-menu-open *{
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}
+
 body.light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel{
   background:var(--zw-paper) !important;
   border-left-color:rgba(9,9,11,.08) !important;
