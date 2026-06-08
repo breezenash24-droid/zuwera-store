@@ -22,11 +22,7 @@
   .nav{
     position: fixed !important;
     top: 0 !important;
-    /* max(env,44px): iOS Safari sometimes reports env(safe-area-inset-top)=0 even
-       with a notch/Dynamic Island, which collapsed the header into the status bar.
-       The 44px floor pushes nav content below the black status-bar cover in that
-       case; on devices where env works (>=44), env is used unchanged. */
-    padding:calc(.75rem + max(env(safe-area-inset-top,0px),44px)) var(--zw-mobile-gutter) .85rem !important;
+    padding:calc(.75rem + env(safe-area-inset-top,0px)) var(--zw-mobile-gutter) .85rem !important;
     background:#09090b !important; /* Force solid opaque dark background */
     z-index:600 !important;
     transition: background .35s, border-color .35s !important; /* disable padding transition to avoid repaint lag */
