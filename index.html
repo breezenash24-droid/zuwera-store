@@ -1772,26 +1772,26 @@ body.light-mode::after{opacity:0.15}
 <style>
 /* ── MOBILE HEADER: DEFINITIVE FIXES ──────────────────────────────────────
    Nav height = .75rem(padding-top) + safe-area + 36px(cart-btn) + .85rem(padding-bottom)
-              = calc(.75rem + env(safe-area-inset-top,0px) + 36px + .85rem)
+              = calc(.75rem + max(env(safe-area-inset-top,0px),44px) + 36px + .85rem)
    Bar sits directly below nav. Formula mirrors the nav's own CSS exactly.
    All values are CSS-only — no JS, no font measurements, no ResizeObserver.
    ────────────────────────────────────────────────────────────────────────── */
 @media(max-width:900px){
   /* Bar: flush below nav, GPU-composited to prevent iOS Safari repaint flicker */
   #bar{
-    top:calc(.75rem + env(safe-area-inset-top,0px) + 36px + .85rem)!important;
+    top:calc(.75rem + max(env(safe-area-inset-top,0px),44px) + 36px + .85rem)!important;
     transform:translate3d(0,0,0)!important;
     -webkit-transform:translate3d(0,0,0)!important;
   }
 
   body:has(nav#nav.scrolled) #bar{
-    top:calc(.75rem + env(safe-area-inset-top,0px) + 36px + .62rem)!important;
+    top:calc(.75rem + max(env(safe-area-inset-top,0px),44px) + 36px + .62rem)!important;
   }
 
   /* scroll-padding-top: corrected to actual nav height so anchor jumps (#about etc.)
      clear the fixed header instead of disappearing behind it */
   html{
-    scroll-padding-top:calc(.75rem + env(safe-area-inset-top,0px) + 36px + .85rem)!important;
+    scroll-padding-top:calc(.75rem + max(env(safe-area-inset-top,0px),44px) + 36px + .85rem)!important;
   }
 
   /* Hero inner: padding clears the fixed nav+bar height */
@@ -1821,7 +1821,7 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
      max-z-index BLACK bar. Composited so it stays pinned during momentum scroll
      (no content flashing through); solid black so nothing can bleed through it.
      Needs viewport-fit=cover for env(safe-area-inset-top) to be non-zero. -->
-<div id="zw-notch-cover" style="position:fixed;top:0;left:0;right:0;height:max(env(safe-area-inset-top,0px),44px);z-index:2147483647;pointer-events:none;background:#000;transform:translateZ(0);-webkit-transform:translateZ(0);will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden"></div>
+<div id="zw-notch-cover" style="position:fixed;top:0;left:0;right:0;height:max(env(safe-area-inset-top,0px),44px);z-index:2147483647;pointer-events:none;background:#09090b;transform:translateZ(0);-webkit-transform:translateZ(0);will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden"></div>
 <a class="skip-link" href="#main-content">Skip to content</a>
 
 
