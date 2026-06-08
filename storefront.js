@@ -916,7 +916,7 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
       _settingsTimeout
     ]);
     if (!resp.ok) {
-      applyAnnouncementBar('on', '');
+      applyAnnouncementBar('scroll', '');
       return;
     }
     const data = await resp.json();
@@ -1035,10 +1035,10 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
         if (typeof v === 'string') v = JSON.parse(v);
       } catch(e) {}
       
-      let mode = 'on';
+      let mode = 'scroll';
       let msgText = '';
       if (typeof v === 'object' && v !== null) {
-        mode = v.mode || (v.enabled === false ? 'off' : 'on');
+        mode = v.mode || (v.enabled === false ? 'off' : 'scroll');
         msgText = Object.prototype.hasOwnProperty.call(v, 'main') ? (v.main ?? '') : '';
       } else {
         msgText = v;
@@ -1047,7 +1047,7 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
       applyAnnouncementBar(mode, msgText);
       announcementApplied = true;
     }
-    if (!announcementApplied) applyAnnouncementBar('on', '');
+    if (!announcementApplied) applyAnnouncementBar('scroll', '');
 
     // Apply builder_theme overrides to bar bg/color â€” only when builder is NOT active
     // (when active, themeSettings are already merged into the published config above)
@@ -1089,7 +1089,7 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
     if (window.__zwReapplyBuilder) window.__zwReapplyBuilder();
   } catch (e) {
     console.log('Settings load skipped:', e);
-    applyAnnouncementBar('on', '');
+    applyAnnouncementBar('scroll', '');
     if (window.__zwReapplyBuilder) window.__zwReapplyBuilder();
   }
 })();
