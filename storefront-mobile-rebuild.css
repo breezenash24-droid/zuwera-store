@@ -26,13 +26,6 @@
     background:#09090b !important; /* Force solid opaque dark background */
     z-index:600 !important;
     transition: background .35s, border-color .35s !important; /* disable padding transition to avoid repaint lag */
-    /* GPU-composite the fixed header so iOS Safari keeps it in sync during
-       momentum scroll instead of flashing page content through the top.
-       The nav is fully opaque, so compositing renders solid (no haze). */
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
   }
 
   body.light-mode nav#nav,
