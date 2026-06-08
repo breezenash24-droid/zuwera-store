@@ -1253,17 +1253,18 @@ body.light-mode .heart-btn{
     flex:0 0 auto !important;
   }
 
-  /* Square ICON mark (pages with <a class="nav-logo"><img logo-192>): 38px. */
-  :is(nav#nav,.nav,header.nav) .nav-logo img{
+  /* All nav logo images default to 38px (the square icon mark). */
+  :is(nav#nav,.nav,header.nav) :is(.nav-logo,.nav-logo-link) img,
+  :is(nav#nav,.nav,header.nav) .nav-logo-img{
     height:38px !important;
     width:auto !important;
   }
-  /* Wide WORDMARK image (~113x22, pages with .nav-logo-link/.nav-logo-img):
-     keep it near its native height so the wide aspect ratio doesn't blow it
-     across the header. 38px made it ~195px wide ("too loud"). */
-  :is(nav#nav,.nav,header.nav) .nav-logo-link img,
-  :is(nav#nav,.nav,header.nav) .nav-logo-img{
-    height:20px !important;
+  /* The WIDE wordmark image is matched by its SRC (not class) — some pages put
+     the square icon inside .nav-logo-img too, so keying off class shrank those
+     icons. Matching wordmark-*.png only ever hits the wordmark. ~113x22 native,
+     so a small height keeps it from blowing across the header. */
+  :is(nav#nav,.nav,header.nav) img[src*="wordmark"]{
+    height:24px !important;
     width:auto !important;
   }
 
