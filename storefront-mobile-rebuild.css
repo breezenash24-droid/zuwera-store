@@ -102,9 +102,11 @@
     gap:.45rem !important;
   }
 
-  .nav-logo img,
-  .nav-logo-link img{
-    height:28px !important;
+  /* Logo removed on mobile — the centered absolute logo was the source of the
+     status-bar/cover conflicts. Desktop keeps its logo (this is mobile-only). */
+  nav#nav .nav-logo,
+  nav#nav .nav-logo-link{
+    display:none !important;
   }
 
   .flinks,
