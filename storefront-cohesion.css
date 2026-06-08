@@ -1262,7 +1262,11 @@ body.light-mode .heart-btn{
   .hamburger-btn,
   #mobile-menu-btn{
     position:absolute !important;
-    top:calc(env(safe-area-inset-top,0px) + 6px) !important;
+    /* Align the 44px hamburger's center with the nav-right buttons, which sit at
+       padding-top max(env,50px)+2px. Offsetting up by 6px center-aligns the two
+       and keeps the icon clear of the status-bar cover. Using the same max(env,50px)
+       floor as everything else fixes the env=0 case where it used to float to 6px. */
+    top:calc(max(env(safe-area-inset-top,0px),50px) - 6px) !important;
     left:var(--zw-mobile-gutter,1rem) !important;
     z-index:3 !important;
     display:flex !important;

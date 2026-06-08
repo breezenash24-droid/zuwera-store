@@ -1818,7 +1818,7 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
 <!-- iOS safe-area (notch/status-bar) cover: opaque, GPU-composited, max-z-index.
      Colored to MATCH the page theme (white in super-light) so it blends with the
      nav. max(env,44px) guards against iOS reporting env=0 (Dynamic Island). -->
-<div id="zw-notch-cover" style="position:fixed;top:0;left:0;right:0;height:max(env(safe-area-inset-top,0px),50px);z-index:590;pointer-events:none;background:#FFFFFF;transform:translateZ(0);-webkit-transform:translateZ(0);will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden"></div>
+<div id="zw-notch-cover" style="position:fixed;top:0;left:0;right:0;height:max(env(safe-area-inset-top,0px),50px);z-index:2147483647;pointer-events:none;background:#FFFFFF;transform:translateZ(0);-webkit-transform:translateZ(0);will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden"></div>
 <script>try{var _nm=localStorage.getItem('zw_homepage_theme_mode')||localStorage.getItem('zw_theme_mode');document.getElementById('zw-notch-cover').style.background=_nm==='light'?'#F0EEE9':_nm==='super-light'?'#FFFFFF':'#09090b';}catch(_){}</script>
 <a class="skip-link" href="#main-content">Skip to content</a>
 
