@@ -1209,6 +1209,10 @@ body.light-mode .heart-btn{
        the nav box overhung and clipped the announcement bar below it. Let the
        content drive the height. */
     min-height:0 !important;
+    /* Standardized clearance/height for EVERY page (this lives in cohesion, which
+       all pages load). Matches storefront-mobile-rebuild.css exactly, so the
+       header is the same size whether or not a page also loads mobile-rebuild. */
+    padding:max(env(safe-area-inset-top,0px) - 48px,14px) var(--zw-mobile-gutter,1.1rem) 0 !important;
     z-index:600 !important;
     background:#09090b !important;
     transition: background .35s, border-color .35s !important;
@@ -1320,6 +1324,17 @@ body.light-mode .heart-btn{
     display:inline-flex;
     align-items:center !important;
     justify-content:center !important;
+    /* Full-strength icon color, standardized across ALL pages. index.html dims
+       its inline .nbtn to 55%; nav.css (bag/product) uses full var(--white).
+       The user prefers the fuller bag look, so force full strength everywhere
+       (the ::before icon below inherits this via currentColor). */
+    color:#f4f1eb !important;
+  }
+  body.light-mode nav#nav :is(#login-btn,#account-btn),
+  body.light-mode .nav :is(#login-btn,#account-btn),
+  body.super-light-mode nav#nav :is(#login-btn,#account-btn),
+  body.super-light-mode .nav :is(#login-btn,#account-btn){
+    color:#09090b !important;
   }
   nav#nav :is(#login-btn,#account-btn)::before,
   .nav :is(#login-btn,#account-btn)::before{
