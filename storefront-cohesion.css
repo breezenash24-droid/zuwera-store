@@ -1238,14 +1238,18 @@ body.light-mode .heart-btn{
     z-index:1;
   }
 
-  /* Safe-area top offset only for the main full-bleed storefront nav */
+  /* Safe-area top offset only for the main full-bleed storefront nav.
+     max(env,50px): iOS Safari reports env(safe-area-inset-top)=0 on some
+     Dynamic Island devices, which dropped the centered logo to top:8px —
+     hidden under the status-bar cover. The 50px floor keeps the centered
+     logo below the cover and clear of the Dynamic Island. */
   nav#nav :is(.nav-logo,.nav-logo-link){
-    top:calc(env(safe-area-inset-top,0px) + 8px) !important;
+    top:calc(max(env(safe-area-inset-top,0px),50px) + 2px) !important;
   }
 
   :is(nav#nav,.nav,header.nav) :is(.nav-logo,.nav-logo-link) img,
   :is(nav#nav,.nav,header.nav) .nav-logo-img{
-    height:36px !important;
+    height:28px !important;
     width:auto !important;
   }
 
