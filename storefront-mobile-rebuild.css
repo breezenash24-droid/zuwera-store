@@ -10,7 +10,7 @@
 
 @media (max-width: 900px){
   html{
-    scroll-padding-top:calc(max(env(safe-area-inset-top,0px) - 26px,28px) + 36px);
+    scroll-padding-top:calc(max(env(safe-area-inset-top,0px) - 32px,26px) + 31px);
   }
 
   html,
@@ -26,7 +26,7 @@
        Dynamic Island devices. The 50px floor clears the status bar / island
        without the old extra .75rem buffer that bloated the header; on devices
        where env works (>=50), env is used unchanged. */
-    padding:max(env(safe-area-inset-top,0px) - 26px,28px) var(--zw-mobile-gutter) .2rem !important;
+    padding:max(env(safe-area-inset-top,0px) - 32px,26px) var(--zw-mobile-gutter) .2rem !important;
     background:#09090b !important; /* Force solid opaque dark background */
     z-index:600 !important;
     transition: background .35s, border-color .35s !important; /* disable padding transition to avoid repaint lag */
@@ -53,7 +53,7 @@
     position: fixed !important;
     top: 0 !important;
     /* Same height as the unscrolled nav so the header doesn't reflow on scroll. */
-    padding:max(env(safe-area-inset-top,0px) - 26px,28px) var(--zw-mobile-gutter) .2rem !important;
+    padding:max(env(safe-area-inset-top,0px) - 32px,26px) var(--zw-mobile-gutter) .2rem !important;
     background:#09090b !important;
   }
 

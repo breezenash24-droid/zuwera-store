@@ -1248,7 +1248,7 @@ body.light-mode .heart-btn{
 
   :is(nav#nav,.nav,header.nav) :is(.nav-logo,.nav-logo-link) img,
   :is(nav#nav,.nav,header.nav) .nav-logo-img{
-    height:28px !important;
+    height:24px !important;
     width:auto !important;
   }
 
@@ -1274,10 +1274,10 @@ body.light-mode .heart-btn{
     align-items:center !important;
     justify-content:center !important;
     gap:0 !important;
-    width:30px !important;
-    height:30px !important;
-    min-width:30px !important;
-    min-height:30px !important;
+    width:26px !important;
+    height:26px !important;
+    min-width:26px !important;
+    min-height:26px !important;
     padding:0 !important;
     background:none !important;
     border:0 !important;
@@ -1292,7 +1292,7 @@ body.light-mode .heart-btn{
      instead of text (Nike/Apple style). Keeps the nav row short. */
   nav#nav #cart-btn,
   .nav #cart-btn{
-    min-height:30px !important;
+    min-height:26px !important;
     min-width:0 !important;
     padding:.3rem .5rem !important;
     gap:.35rem !important;
@@ -1306,9 +1306,9 @@ body.light-mode .heart-btn{
   .nav :is(#login-btn,#account-btn){
     font-size:0 !important;            /* hide the text */
     letter-spacing:0 !important;
-    width:30px !important;
-    height:30px !important;
-    min-width:30px !important;
+    width:26px !important;
+    height:26px !important;
+    min-width:26px !important;
     padding:0 !important;
     /* NOT !important on display: auth.js toggles login vs account via
        style.display, and #account-btn is display:none until logged in. Forcing
