@@ -10,7 +10,7 @@
 
 @media (max-width: 900px){
   html{
-    scroll-padding-top:calc(max(env(safe-area-inset-top,0px) - 12px,32px) + 35px);
+    scroll-padding-top:calc(max(env(safe-area-inset-top,0px) - 12px,32px) + 42px);
   }
 
   html,

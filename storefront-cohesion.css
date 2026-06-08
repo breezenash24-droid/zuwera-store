@@ -1274,10 +1274,10 @@ body.light-mode .heart-btn{
     align-items:center !important;
     justify-content:center !important;
     gap:0 !important;
-    width:44px !important;
-    height:44px !important;
-    min-width:44px !important;
-    min-height:44px !important;
+    width:34px !important;
+    height:34px !important;
+    min-width:34px !important;
+    min-height:34px !important;
     padding:0 !important;
     background:none !important;
     border:0 !important;
@@ -1286,6 +1286,42 @@ body.light-mode .heart-btn{
     -webkit-appearance:none;
     appearance:none;
     -webkit-tap-highlight-color:transparent;
+  }
+
+  /* Smaller bag (cart) button on mobile + Account/Login shown as a person icon
+     instead of text (Nike/Apple style). Keeps the nav row short. */
+  nav#nav #cart-btn,
+  .nav #cart-btn{
+    min-height:30px !important;
+    min-width:0 !important;
+    padding:.3rem .5rem !important;
+    gap:.35rem !important;
+  }
+  nav#nav #cart-btn svg,
+  .nav #cart-btn svg{
+    width:15px !important;
+    height:15px !important;
+  }
+  nav#nav :is(#login-btn,#account-btn),
+  .nav :is(#login-btn,#account-btn){
+    font-size:0 !important;            /* hide the text */
+    letter-spacing:0 !important;
+    width:32px !important;
+    height:32px !important;
+    min-width:32px !important;
+    padding:0 !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+  }
+  nav#nav :is(#login-btn,#account-btn)::before,
+  .nav :is(#login-btn,#account-btn)::before{
+    content:'' !important;
+    width:20px;
+    height:20px;
+    background:currentColor;
+    -webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6" fill="black"/><path d="M5 20c0-3.9 3.1-6.4 7-6.4s7 2.5 7 6.4" fill="black"/></svg>') center/contain no-repeat;
+    mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6" fill="black"/><path d="M5 20c0-3.9 3.1-6.4 7-6.4s7 2.5 7 6.4" fill="black"/></svg>') center/contain no-repeat;
   }
 
   .hamburger-btn svg,
