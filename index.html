@@ -1821,7 +1821,7 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
      max-z-index BLACK bar. Composited so it stays pinned during momentum scroll
      (no content flashing through); solid black so nothing can bleed through it.
      Needs viewport-fit=cover for env(safe-area-inset-top) to be non-zero. -->
-<div id="zw-notch-cover" style="position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);z-index:2147483646;pointer-events:none;background:#09090b;transform:translateZ(0);-webkit-transform:translateZ(0);will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden"></div>
+<div id="zw-notch-cover" style="position:fixed;top:0;left:0;right:0;height:max(env(safe-area-inset-top,0px),44px);z-index:2147483647;pointer-events:none;background:#000;transform:translateZ(0);-webkit-transform:translateZ(0);will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden"></div>
 <a class="skip-link" href="#main-content">Skip to content</a>
 
 
