@@ -217,9 +217,11 @@
       if (row.key === 'theme') {
         var isHomepage = window.location.pathname === '/' || window.location.pathname.endsWith('/index.html') || window.location.pathname.endsWith('/');
         if (isHomepage || window.__ZW_BUILDER_PREVIEW__) return;
-        var localPref = null;
-        try { localPref = localStorage.getItem('zw_theme_mode'); } catch(_) {}
-        if (localPref) { applyThemeMode(localPref); return; }
+        // site_settings.theme (the admin appearance toggle) is authoritative for
+        // the storefront. Apply the server value directly so theme changes reach
+        // returning visitors — previously a cached zw_theme_mode shadowed the
+        // server value and permanently pinned whatever theme was seen first.
+        // applyThemeMode rewrites zw_theme_mode to match, keeping reloads FOUC-free.
         var mode = row.value && row.value.mode === 'dark' ? 'dark'
                  : row.value && row.value.mode === 'super-light' ? 'super-light' : 'light';
         applyThemeMode(mode);
