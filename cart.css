@@ -519,9 +519,16 @@ body.light-mode .cart-item-remove:hover {
 
 /* ── Mobile Responsive Layout ── */
 @media (max-width: 760px) {
+  /* Continue Shopping back button removed on mobile — it doesn't fit. */
+  .cart-back-btn { display: none !important; }
+  /* Header no longer sticky on mobile — the sticky "Your Bag" looked off when
+     scrolling (it pinned under the fixed nav). It scrolls with the page now. */
+  .cart-page-header { position: static !important; }
+
   .cart-page-body {
     grid-template-columns: 1fr;
-    padding: 2rem 1.2rem calc(6.5rem + env(safe-area-inset-bottom, 0px));
+    /* No fixed checkout bar anymore, so no need to reserve ~6.5rem at the bottom. */
+    padding: 2rem 1.2rem calc(2.5rem + env(safe-area-inset-bottom, 0px));
   }
   .cart-summary {
     margin-left: 0;
@@ -538,29 +545,19 @@ body.light-mode .cart-item-remove:hover {
     border-bottom-color: var(--zw-line-light);
   }
   
-  /* Sticky Checkout Bar */
+  /* Checkout button: normal in-flow button at the bottom of the summary.
+     (Was position:fixed with a big box-shadow — that lagged badly on iOS scroll
+     because the shadow repainted every frame.) Uses the standard #checkout-btn
+     look, so no bar background/border/shadow here. */
   .cart-summary #checkout-btn {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    margin: 0;
+    position: static;
     width: 100%;
-    padding: 1.2rem 1.5rem calc(1.2rem + env(safe-area-inset-bottom, 0px));
-    background: var(--zw-ink);
-    border-top: 1px solid var(--zw-line-dark);
-    z-index: 100;
-    box-shadow: 0 -8px 30px rgba(0,0,0,0.3);
+    margin-top: 1.4rem;
+    padding: 1rem;
+    box-shadow: none;
+    border-top: none;
     border-radius: 0;
-  }
-  body.light-mode .cart-summary #checkout-btn {
-    background: var(--zw-page);
-    border-top-color: var(--zw-line-light);
-    box-shadow: 0 -8px 30px rgba(0,0,0,0.05);
-  }
-  body.super-light-mode .cart-summary #checkout-btn {
-    background: #FFFFFF;
-    border-top-color: rgba(9,9,11,0.08);
+    z-index: auto;
   }
   
   .cart-item-card {
