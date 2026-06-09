@@ -1156,12 +1156,12 @@ body.light-mode .heart-btn{
   }
 
   .heart-btn{
-    width:36px !important;
-    height:36px !important;
+    width:28px !important;
+    height:28px !important;
   }
   .heart-btn svg{
-    width:18px !important;
-    height:18px !important;
+    width:15px !important;
+    height:15px !important;
   }
 
   :is(.pgrid,.products-grid,.products-grid.two-items){
