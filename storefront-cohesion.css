@@ -2895,8 +2895,10 @@ body.super-light-mode .zw-nav{
    FOOTER — accordion on mobile (<details>, no JS), open columns on desktop.
    Theme-matched: inherits the page bg; text/borders flip per light/dark mode.
    ════════════════════════════════════════════════════════════════════════ */
-.zw-footer{
-  display:block;
+footer.zw-footer{
+  display:block !important;
+  grid-template-columns:none !important;
+  grid-template-rows:none !important;
   border-top:1px solid rgba(244,241,235,.12);
   padding:2.4rem clamp(1.15rem,5vw,3rem) 2rem;
   color:rgba(244,241,235,.6);

@@ -585,7 +585,7 @@
       .zw-grid-3 { grid-template-columns: 1fr 1fr; }
     }
   </style>
-<link rel="stylesheet" href="storefront-cohesion.css?v=26060703">
+<link rel="stylesheet" href="storefront-cohesion.css?v=26060901">
 <script src="mobile-menu.js?v=251b10fb" defer></script>
 <script>try{var _t=localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
 <script src="/posthog-init.js?v=e62ca5bb" defer></script>
@@ -714,25 +714,45 @@
 </main>
 
 <!-- FOOTER -->
-<footer>
-  <div class="flogo">
-    <img src="images/wordmark-footer.png" srcset="images/wordmark-footer@2x.png 2x" alt="ZUWERA" width="175" height="34" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-    <span style="display:none">ZUWERA</span>
+<footer class="zw-footer">
+  <div class="zwf-cols">
+    <details class="zwf-col">
+      <summary class="zwf-col-head">Shop<svg class="zwf-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+      <div class="zwf-col-links">
+        <a href="/drop001.html">Release 001</a>
+        <a href="/sizeguide.html">Size Guide</a>
+      </div>
+    </details>
+    <details class="zwf-col">
+      <summary class="zwf-col-head">Help<svg class="zwf-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+      <div class="zwf-col-links">
+        <a href="/returns.html">Returns</a>
+        <a href="/policies.html">Policies</a>
+        <a href="mailto:nasirubreeze@zuwera.store">Contact</a>
+      </div>
+    </details>
+    <details class="zwf-col">
+      <summary class="zwf-col-head">Account<svg class="zwf-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+      <div class="zwf-col-links">
+        <a href="/account.html">Account</a>
+      </div>
+    </details>
   </div>
-  <nav class="flinks">
-    <a href="/drop001.html">Release 001</a>
-    <a href="/sizeguide.html">Size Guide</a>
-    <a href="/policies.html">Policies</a>
-    <a href="/returns.html">Returns</a>
-    <a href="/account.html" aria-current="page">Account</a>
-    <a href="mailto:nasirubreeze@zuwera.store">Contact</a>
-  </nav>
-  <div class="fright">
-    <a href="https://instagram.com/Zuw.era" target="_blank" rel="noopener" class="fig">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
-      @Zuw.era
-    </a>
-    <p class="fcopy">&copy; 2026 Zuwera. All rights reserved.</p>
+  <div class="zwf-bottom">
+    <div class="zwf-bottom-left">
+      <div class="zwf-logo">
+        <img src="images/wordmark-footer.png" srcset="images/wordmark-footer@2x.png 2x" alt="ZUWERA" width="175" height="34" loading="lazy" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
+      </div>
+      <p class="zwf-copy">&copy; 2026 Zuwera. All rights reserved.</p>
+    </div>
+    <div class="zwf-bottom-right">
+      <div class="zwf-social">
+        <a href="https://instagram.com/Zuw.era" target="_blank" rel="noopener" aria-label="Instagram on Zuwera">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+        </a>
+      </div>
+      <div class="zw-footer-right"></div>
+    </div>
   </div>
 </footer>
 
