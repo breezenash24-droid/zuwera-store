@@ -982,9 +982,14 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
       }
     }
 
-    // 3. theme
-    if (settings.theme !== undefined) {
-      if (!window.__ZW_BUILDER_PREVIEW__ && !window.__zwPageBuilderActive) {
+    // 3. theme — site_settings.theme (the admin appearance toggle) is the source
+    // of truth for the homepage theme and OVERRIDES any theme baked into the
+    // published page-builder config. Previously this was skipped whenever a
+    // page-builder layout was published (__zwPageBuilderActive), which locked the
+    // homepage to the layout's saved theme and made the admin Dark/Light toggle
+    // appear to do nothing. Still skipped in the live builder preview, where the
+    // builder's own theme buttons drive the preview.
+    if (settings.theme !== undefined && !window.__ZW_BUILDER_PREVIEW__) {
         const mode = settings.theme && settings.theme.mode === 'dark' ? 'dark' : settings.theme && settings.theme.mode === 'super-light' ? 'super-light' : 'light';
         if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode);
         else {
@@ -992,8 +997,12 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
           document.body.classList.toggle('super-light-mode', mode === 'super-light');
           if (window.__zwSyncThemeColor) window.__zwSyncThemeColor();
         }
-        try { localStorage.removeItem('zw_homepage_theme_mode'); } catch(e) {}
-      }
+        // When a page-builder layout drives the homepage, applyThemeMode persists
+        // the chosen mode under zw_homepage_theme_mode for FOUC-free reloads; only
+        // clear that key when the homepage is NOT page-builder-driven.
+        if (!window.__zwPageBuilderActive) {
+          try { localStorage.removeItem('zw_homepage_theme_mode'); } catch(e) {}
+        }
     }
 
     // 4. hero
