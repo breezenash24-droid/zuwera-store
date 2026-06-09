@@ -692,3 +692,23 @@
   };
 
 })();
+
+/* ── Footer accordion ─────────────────────────────────────────────────────
+   Open the <details> link columns on desktop (so links are visible/clickable)
+   and keep them collapsed on mobile (tap to expand). Newer Chrome hides a closed
+   <details> via content-visibility, which CSS display:flex can't force open — so
+   we toggle the native `open` state by viewport instead. */
+(function () {
+  if (typeof window === 'undefined' || !window.matchMedia) return;
+  var mq = window.matchMedia('(min-width: 768px)');
+  function sync() {
+    document.querySelectorAll('.zwf-col').forEach(function (d) { d.open = mq.matches; });
+  }
+  function init() {
+    sync();
+    if (mq.addEventListener) mq.addEventListener('change', sync);
+    else if (mq.addListener) mq.addListener(sync);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
