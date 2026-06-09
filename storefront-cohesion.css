@@ -1275,7 +1275,13 @@ body.light-mode .heart-btn{
 
   /* Actions group hugs the right (auto width) so the logo can sit on the left
      and space-between separates them. */
-  :is(nav#nav,.nav,header.nav) :is(.nav-right,.nav-actions){
+  /* Includes .zw-nav-right — the wordmark pages (returns/account/policies/etc.)
+     use the .zw-nav system, where .zw-nav-right is a fixed 80px box that left-
+     floated the hamburger off the right edge. Force it to hug the right and
+     center its contents like every other page. */
+  :is(nav#nav,.nav,header.nav) :is(.nav-right,.nav-actions),
+  .zw-nav .zw-nav-right,
+  .zw-nav .zw-nav-actions{
     width:auto !important;
     margin-left:auto !important;
     display:flex !important;
