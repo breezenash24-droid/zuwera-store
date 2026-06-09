@@ -244,17 +244,17 @@ body.light-mode #bar {
     width: 100vw;
     max-width: 100vw;
     border-radius: 16px 16px 0 0;
-    /* top padding just enough to clear the absolute close button */
-    padding: 2.8rem .9rem 1.5rem;
+    padding: .6rem .9rem 1.5rem;
   }
-  /* Close button: absolute (not sticky) so it overlays the header
-     and doesn't consume its own row in the flex column. Inset enough to
-     clear rounded device corners (real tablets/phones + builder preview frame). */
+  /* Close button: STICKY so it always follows the scroll (was absolute and
+     scrolled away with the content). It's the first flex child, right-aligned,
+     and pinned to the top of the scroll container. */
   #size-guide-modal .mclose {
-    position: absolute !important;
-    top: .9rem !important;
-    right: 1rem !important;
-    margin: 0 !important;
+    position: sticky !important;
+    top: .6rem !important;
+    align-self: flex-end !important;
+    right: auto !important;
+    margin: 0 .2rem .2rem auto !important;
     z-index: 12 !important;
   }
   /* Compact header — flush into the iframe content */
@@ -3773,6 +3773,37 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     }
     document.getElementById('size-guide-modal').classList.remove('open');
     document.body.style.overflow = '';
+  });
+
+  /* Swipe-down-to-close for scrollable modals. If the user drags down >80px while
+     the panel is already scrolled to the very top, dismiss it by triggering the
+     existing close button (so all teardown logic runs). */
+  function zwAttachSwipeClose(scrollEl, closeBtn){
+    if(!scrollEl || !closeBtn) return;
+    let startY = 0, tracking = false;
+    scrollEl.addEventListener('touchstart', e => {
+      if(e.touches.length !== 1){ tracking = false; return; }
+      startY = e.touches[0].clientY;
+      tracking = scrollEl.scrollTop <= 0;
+    }, {passive:true});
+    scrollEl.addEventListener('touchmove', () => {
+      if(tracking && scrollEl.scrollTop > 0) tracking = false;
+    }, {passive:true});
+    scrollEl.addEventListener('touchend', e => {
+      if(!tracking) return; tracking = false;
+      const dy = e.changedTouches[0].clientY - startY;
+      if(dy > 80 && scrollEl.scrollTop <= 0) closeBtn.click();
+    }, {passive:true});
+  }
+  [
+    ['size-guide-modal', '.mbox', 'size-guide-close'],
+    ['all-reviews-modal', '.review-list-mbox', 'all-reviews-close'],
+    ['size-fit-modal', '.review-modal-card, .review-mbox, .mbox', 'size-fit-close'],
+    ['review-modal', '.review-mbox, .mbox', 'review-modal-close'],
+  ].forEach(([modalId, scrollSel, closeId]) => {
+    const modal = document.getElementById(modalId);
+    if(!modal) return;
+    zwAttachSwipeClose(modal.querySelector(scrollSel) || modal.firstElementChild, document.getElementById(closeId));
   });
   document.getElementById('size-guide-modal')?.addEventListener('click', e => {
     if (e.target === e.currentTarget) {
