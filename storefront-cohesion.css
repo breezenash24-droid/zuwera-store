@@ -1836,27 +1836,28 @@ body.super-light-mode #mobile-menu.zw-mobile-menu{
   color:#09090b !important;
 }
 
-#mobile-menu.zw-mobile-menu::before{
+/* Decorative texture is confined to the PANEL (right drawer) so it doesn't tint
+   the left backdrop. The old pink linear-gradient (rgba(248,145,165)) bled into
+   the 20% backdrop as a reddish hue — removed. */
+#mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel::before{
   content:'';
   position:absolute;
   inset:0;
   pointer-events:none;
+  z-index:0;
   background:
-    linear-gradient(90deg, rgba(248,145,165,.12), transparent 32%),
     repeating-linear-gradient(0deg, transparent 0 19px, rgba(244,241,235,.025) 20px);
   opacity:.55;
 }
 
-body.light-mode #mobile-menu.zw-mobile-menu::before{
+body.light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel::before{
   background:
-    linear-gradient(90deg, rgba(248,145,165,.16), transparent 34%),
     repeating-linear-gradient(0deg, transparent 0 19px, rgba(9,9,11,.035) 20px);
   opacity:.8;
 }
 
-body.super-light-mode #mobile-menu.zw-mobile-menu::before{
+body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel::before{
   background:
-    linear-gradient(90deg, rgba(248,145,165,.12), transparent 34%),
     repeating-linear-gradient(0deg, transparent 0 19px, rgba(9,9,11,.02) 20px);
   opacity:.75;
 }
