@@ -1213,6 +1213,11 @@ body.light-mode .heart-btn{
        all pages load). Matches storefront-mobile-rebuild.css exactly, so the
        header is the same size whether or not a page also loads mobile-rebuild. */
     padding:max(env(safe-area-inset-top,0px) - 48px,14px) var(--zw-mobile-gutter,1.1rem) 0 !important;
+    /* Flex row, vertically centered: logo on the left, actions on the right, both
+       on the same centerline so the header reads symmetrically. */
+    display:flex !important;
+    align-items:center !important;
+    justify-content:space-between !important;
     z-index:600 !important;
     background:#09090b !important;
     transition: background .35s, border-color .35s !important;
@@ -1273,7 +1278,10 @@ body.light-mode .heart-btn{
   :is(nav#nav,.nav,header.nav) :is(.nav-right,.nav-actions){
     width:auto !important;
     margin-left:auto !important;
+    display:flex !important;
+    align-items:center !important;      /* vertically center every action icon */
     justify-content:flex-end !important;
+    gap:.55rem !important;              /* even spacing between the action icons */
   }
 
   .hamburger-btn,

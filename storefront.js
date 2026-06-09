@@ -851,9 +851,15 @@ function applyAnnouncementBar(mode, msgText) {
       const y = window.scrollY;
       if (document.body.dataset.scrollLocked || window.__zwScrollLocking || window.__zwScrollRestoring) { lastY = y; return; }
       if (Date.now() < activateAt) { lastY = y; return; }
-      const down = y > lastY + 6, up = y < lastY - 6;
-      if (y <= 16 || up) { if (hidden) { hidden = false; setHidden(false); } }
-      else if (y > 80 && down) { if (!hidden) { hidden = true; setHidden(true); } }
+      const down = y > lastY + 6;
+      // Dismiss-once: the bar hides on the first scroll-down past 80px and then
+      // STAYS hidden — it does NOT reappear on scroll-up (the reappear was
+      // distracting). Detach the listener once dismissed.
+      if (!hidden && y > 80 && down) {
+        hidden = true;
+        setHidden(true);
+        teardownAnnouncementBarScroll();
+      }
       lastY = y;
     };
     window.addEventListener('scroll', _announcementBarScrollHandler, { passive: true });
