@@ -306,6 +306,59 @@
     });
   }
 
+  // ── Password reset handler ──
+  // Registered up-front (before the early returns below) so the button always
+  // has a handler. The recovery flow shows state-reset and returns early, so a
+  // handler defined after that point would never be attached.
+  document.getElementById('reset-btn').addEventListener('click', async () => {
+    const pass1  = document.getElementById('new-password').value;
+    const pass2  = document.getElementById('confirm-password').value;
+    const errEl  = document.getElementById('reset-error');
+    const btn    = document.getElementById('reset-btn');
+    errEl.textContent = '';
+    errEl.style.display = 'none';
+
+    if (pass1.length < 6) {
+      errEl.textContent = 'Password must be at least 6 characters.';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (pass1 !== pass2) {
+      errEl.textContent = 'Passwords do not match.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Updating…';
+
+    const { error: updateErr } = await cfmSb.auth.updateUser({ password: pass1 });
+    if (updateErr) {
+      errEl.textContent = updateErr.message;
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Update Password';
+      return;
+    }
+
+    // Success — transform the card into a clear confirmation state
+    show('state-reset');
+    document.getElementById('reset-btn').style.display = 'none';
+    document.querySelectorAll('#state-reset .fgroup').forEach(el => el.style.display = 'none');
+    document.querySelector('#state-reset .state-icon').textContent = '✓';
+    document.querySelector('#state-reset .state-icon').style.color = '#2e9e5b';
+    document.querySelector('#state-reset .state-title').textContent = 'Password Updated';
+    document.querySelector('#state-reset .state-sub').textContent = 'Your password has been changed successfully.';
+    errEl.style.display = 'none';
+
+    // Show redirect notice and go to admin
+    const notice = document.createElement('p');
+    notice.style.cssText = 'color:var(--white);opacity:.55;font-size:.75rem;letter-spacing:.08em;margin-top:1rem;';
+    notice.textContent = 'Redirecting to admin…';
+    document.getElementById('state-reset').appendChild(notice);
+    setTimeout(() => { window.location.href = '/admin.html'; }, 2200);
+  });
+
   // Parse URL hash/params for token info
   const hash   = window.location.hash.substring(1);
   const params = new URLSearchParams(hash || window.location.search.substring(1));
@@ -359,55 +412,6 @@
         'No confirmation token found. Please check your email for the link, or request a new one.';
       show('state-error');
     }
-  });
-
-  // ── Password reset handler ──
-  document.getElementById('reset-btn').addEventListener('click', async () => {
-    const pass1  = document.getElementById('new-password').value;
-    const pass2  = document.getElementById('confirm-password').value;
-    const errEl  = document.getElementById('reset-error');
-    const btn    = document.getElementById('reset-btn');
-    errEl.textContent = '';
-    errEl.style.display = 'none';
-
-    if (pass1.length < 6) {
-      errEl.textContent = 'Password must be at least 6 characters.';
-      errEl.style.display = 'block';
-      return;
-    }
-    if (pass1 !== pass2) {
-      errEl.textContent = 'Passwords do not match.';
-      errEl.style.display = 'block';
-      return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = 'Updating…';
-
-    const { error: updateErr } = await cfmSb.auth.updateUser({ password: pass1 });
-    if (updateErr) {
-      errEl.textContent = updateErr.message;
-      errEl.style.display = 'block';
-      btn.disabled = false;
-      btn.textContent = 'Update Password';
-      return;
-    }
-
-    // Success — show confirmation and redirect to admin
-    show('state-reset');
-    document.getElementById('reset-btn').style.display = 'none';
-    document.querySelectorAll('#state-reset .fgroup').forEach(el => el.style.display = 'none');
-    document.querySelector('#state-reset .state-icon').textContent = '✓';
-    document.querySelector('#state-reset .state-title').textContent = 'Password Updated';
-    document.querySelector('#state-reset .state-sub').textContent = 'Your password has been changed successfully.';
-    errEl.style.display = 'none';
-
-    // Show redirect notice and go to admin
-    const notice = document.createElement('p');
-    notice.style.cssText = 'color:var(--white);opacity:.5;font-size:.75rem;letter-spacing:.08em;margin-top:1rem;';
-    notice.textContent = 'Redirecting to admin…';
-    document.getElementById('state-reset').appendChild(notice);
-    setTimeout(() => { window.location.href = '/admin.html'; }, 2000);
   });
 
 })();
