@@ -46,6 +46,8 @@ const files = [
   'product.css',
   'product.html',
   'products.js',
+  'quick-add-modal.css',
+  'quick-add-modal.js',
   'reviews-vibe.css',
   'reviews.css',
   'reviews.js',

@@ -836,14 +836,22 @@ window.addFavoriteToCart = async function(productId, payload, btn) {
   const title = payloadData?.title || favorite.product_name || 'Saved Item';
   const href = payloadData?.href || favoriteHref(normalizedProductId, title);
 
-  // Saved items frequently have several sizes and/or colorways. Silently
-  // adding a guessed "One Size" (the old behaviour) put the wrong variant in
-  // the bag. Instead, fetch the product's real sizes + color variants and:
-  //   • if there's a genuine choice (multiple sizes, or any real colorways),
-  //     send the shopper to the product page — the full picker with images,
-  //     colors, and sizes — so they pick the correct variant;
-  //   • only add straight to the bag when the product is genuinely a single
-  //     size with no color choice.
+  // Preferred path: open the same Quick-Add product modal used on the homepage
+  // / collection pages (images + colorways + sizes), so the shopper picks the
+  // correct variant in place. quick-add-modal.js exposes window.quickAddToCart
+  // on pages that load it (e.g. the bag page).
+  if (typeof window.quickAddToCart === 'function') {
+    const price = favoriteNumericPrice(payloadData?.price ?? payloadData?.regularPrice ?? favorite.price);
+    const image = payloadData?.image || favorite.product_image || '';
+    window.quickAddToCart(normalizedProductId, title, price, payloadData?.sku || '', image, 0.5, btn instanceof Element ? btn : null);
+    return;
+  }
+
+  // Fallback (no modal available): fetch the product's real sizes + color
+  // variants. If there's a genuine choice (multiple sizes, or any real
+  // colorways), send the shopper to the product page — the full picker — so
+  // they pick the correct variant; only add straight to the bag when the
+  // product is genuinely a single size with no color choice.
   if (btn && btn.classList) btn.classList.add('disabled');
   let sizeRows = [];
   let colorRows = [];
