@@ -59,7 +59,7 @@
   <link rel="dns-prefetch" href="https://www.googletagmanager.com">
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap"></noscript>
-  <link rel="stylesheet" href="storefront-cohesion.css?v=26060902">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=26061002">
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=26060901">
 <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DCVWDZ8ZBC"></script>
@@ -622,11 +622,15 @@
     body.light-mode .qcol-swatch{border-color:rgba(9,9,11,.22)}
     body.light-mode .qcol-swatch:hover,body.light-mode .qcol-swatch.active{border-color:#09090b;box-shadow:0 0 0 1px #09090b}
     body.light-mode .collection-review-confirm{background:#09090b!important;color:#f4f1eb!important;border-color:#09090b!important}
-    body.super-light-mode { background:#FFFFFF !important; --black:#FFFFFF; }
+    body.super-light-mode { background:#FFFFFF !important; --black:#FFFFFF; --white:#09090b; --muted:rgba(9,9,11,.5); }
     body.super-light-mode .nav { background:#FFFFFF; border-bottom-color:rgba(10,10,10,0.08); }
     body.super-light-mode .nav-logo-link img { filter:invert(1); }
     body.super-light-mode .collection-review-box{background:#FFFFFF;border-color:rgba(9,9,11,.08)}
     body.super-light-mode .collection-product-gallery{background:rgba(9,9,11,.015)}
+    body.super-light-mode .product-add-btn{background:#09090b !important;color:#f4f1eb !important;border-color:#09090b !important}
+    body.super-light-mode .product-add-btn:hover{background:#1a1a1a !important}
+    body.super-light-mode .heart-btn{background:rgba(244,241,235,.9) !important;border-color:rgba(9,9,11,.15) !important;color:rgba(9,9,11,.4) !important}
+    body.super-light-mode .qsp-close{color:#09090b !important}
     @media(max-width:760px){
       .collection-review-modal{align-items:stretch;justify-content:flex-end;padding:0}
       .collection-review-box.collection-product-box{
