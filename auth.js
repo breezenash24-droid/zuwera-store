@@ -826,50 +826,82 @@ async function renderFavoriteCollection(listEl, favorites, options) {
   listEl.innerHTML = detailPairs.map(({ favorite, detail }) => favoriteCardHtml(favorite, detail, options)).join('');
 }
 
-window.addFavoriteToCart = async function(productId, payload) {
+window.addFavoriteToCart = async function(productId, payload, btn) {
   const payloadData = parseFavoriteCartPayload(payload);
   const normalizedProductId = String(productId || payloadData?.productId || '');
-  const dedupeKey = `saved:${normalizedProductId}:${String(payload || '')}`;
+  if (!normalizedProductId) return;
+  const dedupeKey = `saved:${normalizedProductId}`;
   if (shouldSkipFavoriteAdd(dedupeKey)) return;
   const favorite = _userFavorites.find((item) => String(item.product_id || '') === normalizedProductId) || { product_id: normalizedProductId };
-  try {
-    const detail = payloadData ? {
-      id: payloadData.productId || normalizedProductId,
-      title: payloadData.title || favorite.product_name || 'Saved Item',
-      image: payloadData.image || favorite.product_image || '',
-      colorName: payloadData.colorName || 'Standard',
-      hasExplicitColorVariant: payloadData.hasExplicitColorVariant === true,
-      sku: payloadData.sku || '',
-      current_price: favoriteNumericPrice(payloadData.regularPrice),
-      member_price: favoriteNumericPrice(payloadData.memberPrice),
-      sizes: [{ size: payloadData.size || 'One Size', stock_quantity: 1 }],
-      href: payloadData.href || favoriteHref(normalizedProductId, favorite.product_name || 'product')
-    } : (await getFavoriteProductDetail(normalizedProductId, favorite) || buildFavoriteFallbackDetail(normalizedProductId, favorite));
-    if (!detail?.id) {
-      window.location.href = `/product.html?id=${encodeURIComponent(normalizedProductId)}`;
-      return;
-    }
+  const title = payloadData?.title || favorite.product_name || 'Saved Item';
+  const href = payloadData?.href || favoriteHref(normalizedProductId, title);
 
-    const size = payloadData?.size || pickFavoriteSize(detail.sizes) || 'One Size';
-    const regularPrice = favoriteNumericPrice(payloadData?.regularPrice ?? detail.current_price ?? favorite.price);
-    const memberPrice = favoriteNumericPrice(payloadData?.memberPrice ?? detail.member_price);
-    const effectivePrice = favoriteNumericPrice(payloadData?.price ?? favoriteEffectivePrice(detail, favorite.price));
+  // Saved items frequently have several sizes and/or colorways. Silently
+  // adding a guessed "One Size" (the old behaviour) put the wrong variant in
+  // the bag. Instead, fetch the product's real sizes + color variants and:
+  //   • if there's a genuine choice (multiple sizes, or any real colorways),
+  //     send the shopper to the product page — the full picker with images,
+  //     colors, and sizes — so they pick the correct variant;
+  //   • only add straight to the bag when the product is genuinely a single
+  //     size with no color choice.
+  if (btn && btn.classList) btn.classList.add('disabled');
+  let sizeRows = [];
+  let colorRows = [];
+  let fetchFailed = false;
+  try {
+    const headers = { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` };
+    const encodedId = encodeURIComponent(normalizedProductId);
+    const [sizesResp, colorsResp] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/product_sizes?select=size,stock_quantity&product_id=eq.${encodedId}`, { headers }),
+      fetch(`${SUPABASE_URL}/rest/v1/color_variants?select=id&product_id=eq.${encodedId}`, { headers })
+    ]);
+    sizeRows = sizesResp.ok ? await sizesResp.json() : [];
+    colorRows = colorsResp.ok ? await colorsResp.json() : [];
+  } catch (_) {
+    fetchFailed = true;
+  } finally {
+    if (btn && btn.classList) btn.classList.remove('disabled');
+  }
+
+  const realSizes = (Array.isArray(sizeRows) ? sizeRows : [])
+    .filter((row) => row && row.size && String(row.size).trim().toLowerCase() !== 'one size');
+  const colorCount = Array.isArray(colorRows) ? colorRows.length : 0;
+  const needsChoice = realSizes.length > 1 || colorCount > 1;
+
+  // If we couldn't read the variants, or there's a real choice to make, defer
+  // to the product page rather than risk the wrong variant.
+  if (fetchFailed || needsChoice) {
+    window.location.href = href;
+    return;
+  }
+
+  try {
+    const size = realSizes.length === 1 ? realSizes[0].size : 'One Size';
+    const regularPrice = favoriteNumericPrice(payloadData?.regularPrice ?? favorite.price);
+    const memberPrice = favoriteNumericPrice(payloadData?.memberPrice);
+    const effectivePrice = favoriteNumericPrice(payloadData?.price) || regularPrice;
+    const colorName = payloadData?.colorName || 'Standard';
+    const image = payloadData?.image || favorite.product_image || '';
     const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const existing = cart.find((item) => favoriteLineMatchesCartItem(item, detail, size, payloadData));
+    const existing = cart.find((item) =>
+      String(item.productId || '') === normalizedProductId &&
+      String(item.size || '') === String(size) &&
+      String(item.colorName || '') === String(colorName)
+    );
 
     if (existing) {
       existing.quantity += 1;
     } else {
       cart.push({
-        productId: detail.id,
-        sku: payloadData?.sku || detail.sku,
-        title: detail.title,
+        productId: normalizedProductId,
+        sku: payloadData?.sku || '',
+        title,
         size,
-        colorName: payloadData?.colorName || detail.colorName || 'Standard',
+        colorName,
         regularPrice,
         memberPrice,
         price: effectivePrice || regularPrice,
-        image: payloadData?.image || detail.image,
+        image,
         quantity: 1
       });
     }
@@ -879,10 +911,11 @@ window.addFavoriteToCart = async function(productId, payload) {
     if (typeof window.renderProductCartItems === 'function') window.renderProductCartItems();
     if (typeof renderCart === 'function') renderCart();
     if (typeof openCart === 'function') openCart();
-    showToast(`Added ${detail.title}${size ? ` (${size})` : ''} to bag.`);
+    showToast(`Added ${title}${size && size !== 'One Size' ? ` (${size})` : ''} to bag.`);
   } catch (error) {
     console.error('addFavoriteToCart failed:', error);
-    showToast('Could not add this saved item right now.');
+    // Last-resort fallback: let the shopper finish on the product page.
+    window.location.href = href;
   }
 };
 
@@ -1000,7 +1033,7 @@ document.addEventListener('click', e => {
   const addFavoriteBtn = e.target.closest('[data-favorite-add]');
   if (addFavoriteBtn) {
     e.preventDefault();
-    void window.addFavoriteToCart(addFavoriteBtn.dataset.favoriteAdd || '', addFavoriteBtn.dataset.favoritePayload || '');
+    void window.addFavoriteToCart(addFavoriteBtn.dataset.favoriteAdd || '', addFavoriteBtn.dataset.favoritePayload || '', addFavoriteBtn);
     return;
   }
 
