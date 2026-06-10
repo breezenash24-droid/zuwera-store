@@ -6,24 +6,22 @@
 <script>
 /* THEME FLASH PREVENTION — runs synchronously before any CSS loads.
    Sets the correct background directly on <html> as an inline style so it
-   beats the html{background:#09090b} rule in storefront-cohesion.css.
-   Also sets --zw-ink/--zw-page so body{background:var(--zw-ink)} resolves
-   to the right color without waiting for body.light-mode to be added by JS. */
+   beats the html{background:#09090b} rule in storefront-cohesion.css, and
+   injects a tiny <style> forcing body{background} to match so there's no
+   dark flash before body.light-mode/super-light-mode is added by JS.
+   (Deliberately does NOT touch --zw-ink/--zw-page/--ink — those vars are
+   reused as foreground colors elsewhere, e.g. .pcard-add-btn, and
+   overriding them globally made buttons/text invisible.) */
 (function(){try{
   var m=localStorage.getItem('zw_homepage_theme_mode')||localStorage.getItem('zw_theme_mode');
   var h=document.documentElement;
-  if(m==='super-light'){
-    h.style.background='#FFFFFF';
+  if(m==='super-light'||m==='light'){
+    var bg=m==='super-light'?'#FFFFFF':'#F0EEE9';
+    h.style.background=bg;
     h.style.colorScheme='light';
-    h.style.setProperty('--zw-ink','#FFFFFF');
-    h.style.setProperty('--zw-page','#FFFFFF');
-    h.style.setProperty('--ink','#FFFFFF');
-  }else if(m==='light'){
-    h.style.background='#F0EEE9';
-    h.style.colorScheme='light';
-    h.style.setProperty('--zw-ink','#F0EEE9');
-    h.style.setProperty('--zw-page','#F0EEE9');
-    h.style.setProperty('--ink','#F0EEE9');
+    var st=document.createElement('style');
+    st.textContent='body{background:'+bg+'!important}html::before{background:'+bg+'!important}';
+    document.head.appendChild(st);
   }
   /* Restore cached fonts early to avoid FOUT */
   var f=localStorage.getItem('zw_fonts');

@@ -9,12 +9,12 @@
 (function(){try{
   var m=localStorage.getItem('zw_theme_mode');
   var h=document.documentElement;
-  if(m==='super-light'){
-    h.style.background='#FFFFFF';h.style.colorScheme='light';
-    h.style.setProperty('--zw-ink','#FFFFFF');h.style.setProperty('--zw-page','#FFFFFF');h.style.setProperty('--ink','#FFFFFF');
-  }else if(m==='light'){
-    h.style.background='#F0EEE9';h.style.colorScheme='light';
-    h.style.setProperty('--zw-ink','#F0EEE9');h.style.setProperty('--zw-page','#F0EEE9');h.style.setProperty('--ink','#F0EEE9');
+  if(m==='super-light'||m==='light'){
+    var bg=m==='super-light'?'#FFFFFF':'#F0EEE9';
+    h.style.background=bg;h.style.colorScheme='light';
+    var st=document.createElement('style');
+    st.textContent='body{background:'+bg+'!important}html::before{background:'+bg+'!important}';
+    document.head.appendChild(st);
   }
   var f=localStorage.getItem('zw_fonts');
   if(f){f=JSON.parse(f);
