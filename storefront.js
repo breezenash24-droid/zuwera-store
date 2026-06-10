@@ -1116,6 +1116,26 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
 
 let _user = null, _favs = [];
 
+// Pre-read the Supabase session from localStorage so the first renderCart()
+// (and any member-priced product render) uses the correct member/guest pricing
+// with no flash before the async getSession() below resolves. getSession()
+// silently refreshes an expired access token when a refresh_token exists, so a
+// session counts as logged-in if it has a user AND (a live access token OR a
+// refresh_token). This is the same guard the bag page uses.
+try {
+  for (let _i = 0; _i < localStorage.length; _i++) {
+    const _k = localStorage.key(_i);
+    if (!_k || !/^sb-[a-z0-9-]+-auth-token$/.test(_k)) continue;
+    const _raw = JSON.parse(localStorage.getItem(_k) || 'null');
+    const _sess = _raw && _raw.currentSession ? _raw.currentSession : _raw;
+    if (_sess && _sess.user) {
+      const _live = Number(_sess.expires_at || 0) * 1000 > Date.now();
+      if (_live || _sess.refresh_token) _user = _sess.user;
+    }
+    break;
+  }
+} catch (_) {}
+
 function isSignedInMember() {
   return !!_user;
 }

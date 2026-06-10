@@ -835,6 +835,16 @@ function renderCart() {
   const raw  = JSON.parse(localStorage.getItem('cart') || '[]');
   const cart = normalizeCartPricing(raw);
   cartItems  = cart;
+  // Persist the member/guest-correct price so the checkout page (which trusts
+  // the stored `price` and does not recompute) shows the same number — and so
+  // the value is already correct on the next refresh. regularPrice/memberPrice
+  // are preserved, so logging out re-derives the regular price on the next
+  // render. Only write when something actually changed to avoid churn.
+  try {
+    if (cart.length && JSON.stringify(cart) !== JSON.stringify(raw)) {
+      localStorage.setItem('cart', JSON.stringify(cart));
+    }
+  } catch (_) {}
   const list     = _cart.itemsList;
   const emptyMsg = _cart.emptyMsg;
   const ccEl     = _cart.cartCount;
@@ -967,16 +977,22 @@ document.addEventListener('DOMContentLoaded', function() {
   // Pre-read the Supabase session from localStorage so the first renderCart()
   // uses the correct member/guest pricing with no flash on refresh.
   // Supabase stores sessions under keys matching sb-<ref>-auth-token.
+  // We must predict what sb.auth.getSession() will return: it silently
+  // refreshes an expired access token when a refresh_token is present, so a
+  // session is "logged in" if it has a user AND (a live access token OR a
+  // refresh_token). Guessing "guest" for a refreshable session is exactly
+  // what made prices flash (member discount → regular) after load.
   try {
     for (var _i = 0; _i < localStorage.length; _i++) {
       var _k = localStorage.key(_i);
-      if (_k && /^sb-[a-z0-9-]+-auth-token$/.test(_k)) {
-        var _sess = JSON.parse(localStorage.getItem(_k) || 'null');
-        if (_sess && _sess.user && Number(_sess.expires_at || 0) * 1000 > Date.now()) {
-          _bagUser = _sess.user;
-        }
-        break;
+      if (!_k || !/^sb-[a-z0-9-]+-auth-token$/.test(_k)) continue;
+      var _raw = JSON.parse(localStorage.getItem(_k) || 'null');
+      var _sess = _raw && _raw.currentSession ? _raw.currentSession : _raw; // handle wrapped + flat formats
+      if (_sess && _sess.user) {
+        var _live = Number(_sess.expires_at || 0) * 1000 > Date.now();
+        if (_live || _sess.refresh_token) _bagUser = _sess.user;
       }
+      break;
     }
   } catch (_) {}
 
