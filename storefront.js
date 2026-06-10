@@ -1123,16 +1123,26 @@ let _user = null, _favs = [];
 // session counts as logged-in if it has a user AND (a live access token OR a
 // refresh_token). This is the same guard the bag page uses.
 try {
+  // Supabase v2 stores the session under sb-<ref>-auth-token, chunked into
+  // .0/.1/... when large. Reassemble both forms before parsing.
+  let _base = null; const _chunks = {};
   for (let _i = 0; _i < localStorage.length; _i++) {
     const _k = localStorage.key(_i);
-    if (!_k || !/^sb-[a-z0-9-]+-auth-token$/.test(_k)) continue;
-    const _raw = JSON.parse(localStorage.getItem(_k) || 'null');
+    if (!_k) continue;
+    const _mm = _k.match(/^sb-[a-z0-9-]+-auth-token(?:\.(\d+))?$/);
+    if (!_mm) continue;
+    if (_mm[1] === undefined) _base = localStorage.getItem(_k);
+    else _chunks[_mm[1]] = localStorage.getItem(_k);
+  }
+  const _order = Object.keys(_chunks).map(Number).sort((a, b) => a - b);
+  const _rawStr = _order.length ? _order.map((n) => _chunks[n]).join('') : _base;
+  if (_rawStr) {
+    const _raw = JSON.parse(_rawStr);
     const _sess = _raw && _raw.currentSession ? _raw.currentSession : _raw;
     if (_sess && _sess.user) {
       const _live = Number(_sess.expires_at || 0) * 1000 > Date.now();
       if (_live || _sess.refresh_token) _user = _sess.user;
     }
-    break;
   }
 } catch (_) {}
 

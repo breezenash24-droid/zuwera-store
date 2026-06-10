@@ -32,8 +32,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://qfgnrsifcwdubkolsgsq.supabase.co">
   <link rel="preconnect" href="https://js.stripe.com">
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap"></noscript>
+  <!-- Render-blocking on purpose: woff2 files are cached immutable, so on a
+       refresh the heading font is ready on first paint and never swaps from a
+       fallback. The preconnect + preload above keep the cold-cache cost small. -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
   <link rel="stylesheet" href="base.css?v=58cca135">
   <link rel="stylesheet" href="nav.css?v=e1e6dc8e">
   <link rel="stylesheet" href="cart.css?v=6b9b7135">
@@ -983,16 +985,27 @@ document.addEventListener('DOMContentLoaded', function() {
   // refresh_token). Guessing "guest" for a refreshable session is exactly
   // what made prices flash (member discount → regular) after load.
   try {
+    // Supabase v2 stores the session under sb-<ref>-auth-token, and chunks it
+    // into .0/.1/... when it's large. Reassemble both forms before parsing,
+    // otherwise a chunked session reads as "guest" and the price flashes.
+    var _base = null, _chunks = {};
     for (var _i = 0; _i < localStorage.length; _i++) {
       var _k = localStorage.key(_i);
-      if (!_k || !/^sb-[a-z0-9-]+-auth-token$/.test(_k)) continue;
-      var _raw = JSON.parse(localStorage.getItem(_k) || 'null');
-      var _sess = _raw && _raw.currentSession ? _raw.currentSession : _raw; // handle wrapped + flat formats
+      if (!_k) continue;
+      var _mm = _k.match(/^sb-[a-z0-9-]+-auth-token(?:\.(\d+))?$/);
+      if (!_mm) continue;
+      if (_mm[1] === undefined) _base = localStorage.getItem(_k);
+      else _chunks[_mm[1]] = localStorage.getItem(_k);
+    }
+    var _order = Object.keys(_chunks).map(Number).sort(function(a, b){ return a - b; });
+    var _rawStr = _order.length ? _order.map(function(n){ return _chunks[n]; }).join('') : _base;
+    if (_rawStr) {
+      var _raw = JSON.parse(_rawStr);
+      var _sess = _raw && _raw.currentSession ? _raw.currentSession : _raw; // wrapped + flat
       if (_sess && _sess.user) {
         var _live = Number(_sess.expires_at || 0) * 1000 > Date.now();
         if (_live || _sess.refresh_token) _bagUser = _sess.user;
       }
-      break;
     }
   } catch (_) {}
 

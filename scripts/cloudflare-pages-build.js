@@ -19,6 +19,7 @@ const files = [
   'cart.css',
   'cart.js',
   'checkout-tax.js',
+  'checkout.html',
   'checkout.js',
   'CNAME',
   'commerce-admin.js',

@@ -21,6 +21,7 @@ const htmlFiles = [
   'admin.html',
   'analytics.html',
   'bag.html',
+  'checkout.html',
   'confirm.html',
   'drop001.html',
   'index.html',
