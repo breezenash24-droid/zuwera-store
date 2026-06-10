@@ -349,7 +349,8 @@ body.super-light-mode .zw-fav-size-picker{background:#FFFFFF!important;border-co
       <div id="mobile-category-links" class="mobile-nav-links zw-mobile-menu-primary">
         <a href="drop001.html?category=Jackets" class="mobile-nav-link zw-mobile-primary-link">Jackets</a>
         <a href="drop001.html?category=T-Shirts" class="mobile-nav-link zw-mobile-primary-link">T-Shirts</a>
-        <a href="drop001.html?category=Beanies" class="mobile-nav-link zw-mobile-primary-link">Beanies</a>
+        <a href="drop001.html?category=Sweatpants" class="mobile-nav-link zw-mobile-primary-link">Sweatpants</a>
+        <a href="drop001.html?category=Socks" class="mobile-nav-link zw-mobile-primary-link">Socks</a>
         <a href="index.html#about" class="mobile-nav-link zw-mobile-primary-link">About</a>
       </div>
       <div class="zw-mobile-menu-secondary">
@@ -845,9 +846,13 @@ function renderCart() {
   if (!cart.length) {
     if (list) { list.innerHTML = ''; list.style.display = 'none'; }
     if (emptyMsg) emptyMsg.style.display = 'block';
+    const summaryEl = document.querySelector('.cart-summary');
+    if (summaryEl) summaryEl.style.display = 'none';
     updateCartSummary(0);
     return;
   }
+  const summaryEl = document.querySelector('.cart-summary');
+  if (summaryEl) summaryEl.style.display = '';
 
   if (list) list.style.display = '';
   if (emptyMsg) emptyMsg.style.display = 'none';
