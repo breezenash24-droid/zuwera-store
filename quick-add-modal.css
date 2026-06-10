@@ -14,10 +14,11 @@
 .quick-add-review-media img{width:100%;height:100%;object-fit:cover;object-position:center center;display:block}
 .quick-add-review-placeholder{font-family:var(--fm);font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,235,.28)}
 .quick-add-gallery-arrow{
-  position:absolute;top:50%;transform:translateY(-50%);
-  width:42px;height:42px;display:flex;align-items:center;justify-content:center;
-  background:rgba(9,9,11,.62);border:1px solid rgba(244,241,235,.16);color:#fff;
-  font-size:1rem;cursor:pointer;z-index:5;transition:background .2s,border-color .2s
+  position:absolute;top:50%;transform:translateY(-50%);z-index:8;
+  width:40px;height:40px;border-radius:50%;border:1px solid rgba(244,241,235,.16);
+  background:rgba(9,9,11,.58);color:#fff;display:flex;align-items:center;justify-content:center;
+  font-size:1.2rem;line-height:1;cursor:pointer;backdrop-filter:blur(10px);
+  transition:background .2s ease,border-color .2s ease,opacity .2s ease;
 }
 .quick-add-gallery-arrow:hover{background:rgba(9,9,11,.82);border-color:rgba(244,241,235,.28)}
 .quick-add-gallery-arrow.prev{left:.85rem}
