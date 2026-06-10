@@ -39,14 +39,20 @@
   <script src="/supabase-client.js?v=1" defer></script>
 
 <script>
-/* Kick off the products fetch as early as possible — before CSS/JS blocks parsing —
-   so it's already in-flight when loadProducts() runs later. */
+/* Kick off data fetches as early as possible — before CSS/JS blocks parsing —
+   so both are already in-flight when storefront.js runs later. */
 (function(){
   var SUPA='https://qfgnrsifcwdubkolsgsq.supabase.co';
   var ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+  var h={headers:{apikey:ANON,Authorization:'Bearer '+ANON},cache:'no-store'};
   window.__zwProductsEarlyFetch=fetch(
     SUPA+'/rest/v1/products?select=*,product_images(*)&status=neq.Legacy&status=neq.Draft&order=sort_order.asc',
     {headers:{apikey:ANON,Authorization:'Bearer '+ANON}}
+  );
+  /* site_settings early fetch — builder config, theme, brand all arrive before
+     storefront.js even begins executing, eliminating the settings-apply flash. */
+  window.__zwSettingsEarlyFetch=fetch(
+    SUPA+'/rest/v1/site_settings?select=*',h
   );
 })();
 </script>
@@ -155,6 +161,7 @@
   <noscript><link rel="stylesheet" href="reviews.css?v=b44984eb"></noscript>
   <link rel="stylesheet" href="storefront-cohesion.css?v=26060902">
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=26060901">
+<script src="storefront.js?v=26060903" defer></script>
 <script src="/stripe-client-config.js?v=f4503bed" defer></script>
 <script src="/checkout-tax.js?v=d7a3117c" defer></script>
 
@@ -1862,7 +1869,8 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
   <div class="nav-center" id="nav-category-links">
     <a href="drop001.html?category=Jackets" class="nav-link">Jackets</a>
     <a href="drop001.html?category=T-Shirts" class="nav-link">T-Shirts</a>
-    <a href="drop001.html?category=Beanies" class="nav-link">Beanies</a>
+    <a href="drop001.html?category=Sweatpants" class="nav-link">Sweatpants</a>
+    <a href="drop001.html?category=Socks" class="nav-link">Socks</a>
   </div>
   <div class="nav-right">
     <button class="nbtn" id="login-btn" onclick="return window.__zwOpenAuth ? window.__zwOpenAuth('signin') : true">Login</button>
@@ -1894,7 +1902,8 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
       <div id="mobile-category-links" class="mobile-nav-links zw-mobile-menu-primary">
         <a href="drop001.html?category=Jackets" class="mobile-nav-link zw-mobile-primary-link">Jackets</a>
         <a href="drop001.html?category=T-Shirts" class="mobile-nav-link zw-mobile-primary-link">T-Shirts</a>
-        <a href="drop001.html?category=Beanies" class="mobile-nav-link zw-mobile-primary-link">Beanies</a>
+        <a href="drop001.html?category=Sweatpants" class="mobile-nav-link zw-mobile-primary-link">Sweatpants</a>
+        <a href="drop001.html?category=Socks" class="mobile-nav-link zw-mobile-primary-link">Socks</a>
         <a href="index.html#about" class="mobile-nav-link zw-mobile-primary-link">About</a>
       </div>
       <div class="zw-mobile-menu-secondary">
@@ -1928,9 +1937,9 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
     </script>
   </div>
   <div class="hero-inner">
-    <p class="hero-kicker">Release 001 - Sept 20, 2026</p>
+    <p class="hero-kicker">Release 001 — Sept 20, 2026</p>
     <h1 class="hero-h1">For Those<br><em>Who Dream.</em></h1>
-    <p class="hero-sub">Bold athletic sportswear built for the relentless. Those who move with purpose.</p>
+    <p class="hero-sub">Bold athletic sportswear built for the relentless.</p>
     <div class="hero-cta-row">
       <button class="btn-outline" onclick="document.getElementById('drop001').scrollIntoView({behavior:'smooth'})">
         Explore Release 001
@@ -2446,7 +2455,6 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
 <!-- Supabase must remain synchronous because the following inline script creates the client immediately. -->
 
 <!-- Language selector -->
-<script src="storefront.js?v=26060903" defer></script>
 <script src="modal-lock.js?v=72e2f101" defer></script>
 <script>window.__zwSkipThemeFetch=true;</script>
 <script src="storefront-theme.js?v=26060904" defer></script>

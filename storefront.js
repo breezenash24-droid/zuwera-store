@@ -914,8 +914,13 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
 (async function loadSiteSettings() {
   try {
     const _settingsTimeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000));
+    // Reuse the early fetch kicked off in the inline script at the top of the
+    // page (before CSS/JS blocked parsing). If it's already resolved the await
+    // returns instantly; if it's still in-flight we just wait for it — either
+    // way we avoid issuing a duplicate network request.
+    const earlyFetch = window.__zwSettingsEarlyFetch || null;
     const resp = await Promise.race([
-      fetch(`${SUPABASE_URL}/rest/v1/site_settings?select=*`, {
+      earlyFetch || fetch(`${SUPABASE_URL}/rest/v1/site_settings?select=*`, {
         cache: 'no-store',
         headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` }
       }),
