@@ -21,7 +21,45 @@
     if(f.urls)f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});
     if(f.css){var s=document.createElement('style');s.textContent=f.css;document.head.appendChild(s);}
   }
+}catch(_){}
+/* AUTH PRE-READ — decode the Supabase session synchronously (before first paint)
+   so the nav (Login vs account name) and member pricing are correct on the very
+   first frame instead of flashing after the async getSession() resolves.
+   Handles every storage shape supabase-js uses: raw JSON, the modern
+   "base64-"-prefixed value, the chunked .0/.1 form, and the {currentSession}
+   wrapper. window.__zwSessionUser is consumed by the cart pricing pre-read. */
+try{
+  var _b=null,_ck={},_i2;
+  for(_i2=0;_i2<localStorage.length;_i2++){
+    var _kk=localStorage.key(_i2);if(!_kk)continue;
+    var _m=_kk.match(/^sb-[a-z0-9-]+-auth-token(?:\.(\d+))?$/);if(!_m)continue;
+    if(_m[1]===undefined)_b=localStorage.getItem(_kk);else _ck[_m[1]]=localStorage.getItem(_kk);
+  }
+  var _ord=Object.keys(_ck).map(Number).sort(function(a,b){return a-b;});
+  var _str=_ord.length?_ord.map(function(n){return _ck[n];}).join(''):_b;
+  if(_str){
+    if(_str.indexOf('base64-')===0){
+      var _bb=_str.slice(7).replace(/-/g,'+').replace(/_/g,'/');
+      var _bin=atob(_bb);var _by=Uint8Array.from(_bin,function(c){return c.charCodeAt(0);});
+      _str=new TextDecoder().decode(_by);
+    }
+    var _raw=JSON.parse(_str);var _se=_raw&&_raw.currentSession?_raw.currentSession:_raw;
+    if(_se&&_se.user){
+      var _liv=Number(_se.expires_at||0)*1000>Date.now();
+      if(_liv||_se.refresh_token){
+        window.__zwSessionUser=_se.user;
+        h.classList.add('zw-authed');
+      }
+    }
+  }
 }catch(_){}})()</script>
+<style>
+/* Pre-paint nav auth state — keeps Login/account-name from flashing on refresh.
+   auth.js sets inline styles to finalize (and fill in the name); these only set
+   the initial frame so it already matches. */
+html.zw-authed #login-btn{display:none!important}
+html.zw-authed #account-btn{display:inline-flex!important}
+</style>
   <title>Your Bag — Zuwera</title>
   <meta name="description" content="Review your bag and checkout securely.">
   <meta name="color-scheme" content="dark">
@@ -339,6 +377,17 @@ body.super-light-mode .zw-fav-size-picker{background:#FFFFFF!important;border-co
     </button>
   </div>
 </nav>
+<script>
+/* Fill the account button with the signed-in name synchronously (the nav has
+   just been parsed) so it doesn't flash "Account" then the name. The .zw-authed
+   CSS above already handled the Login↔Account visibility before paint. */
+(function(){try{
+  var u=window.__zwSessionUser;if(!u)return;
+  var a=document.getElementById('account-btn');if(!a)return;
+  var n=(u.user_metadata&&(u.user_metadata.full_name||u.user_metadata.name))||(u.email||'').split('@')[0]||'Account';
+  a.textContent=String(n).split(' ')[0];
+}catch(_){}})()
+</script>
 
 <!-- MOBILE MENU MODAL -->
 <div id="mobile-menu" class="modal zw-mobile-menu" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="mobile-menu-title">
@@ -984,30 +1033,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // session is "logged in" if it has a user AND (a live access token OR a
   // refresh_token). Guessing "guest" for a refreshable session is exactly
   // what made prices flash (member discount → regular) after load.
-  try {
-    // Supabase v2 stores the session under sb-<ref>-auth-token, and chunks it
-    // into .0/.1/... when it's large. Reassemble both forms before parsing,
-    // otherwise a chunked session reads as "guest" and the price flashes.
-    var _base = null, _chunks = {};
-    for (var _i = 0; _i < localStorage.length; _i++) {
-      var _k = localStorage.key(_i);
-      if (!_k) continue;
-      var _mm = _k.match(/^sb-[a-z0-9-]+-auth-token(?:\.(\d+))?$/);
-      if (!_mm) continue;
-      if (_mm[1] === undefined) _base = localStorage.getItem(_k);
-      else _chunks[_mm[1]] = localStorage.getItem(_k);
-    }
-    var _order = Object.keys(_chunks).map(Number).sort(function(a, b){ return a - b; });
-    var _rawStr = _order.length ? _order.map(function(n){ return _chunks[n]; }).join('') : _base;
-    if (_rawStr) {
-      var _raw = JSON.parse(_rawStr);
-      var _sess = _raw && _raw.currentSession ? _raw.currentSession : _raw; // wrapped + flat
-      if (_sess && _sess.user) {
-        var _live = Number(_sess.expires_at || 0) * 1000 > Date.now();
-        if (_live || _sess.refresh_token) _bagUser = _sess.user;
-      }
-    }
-  } catch (_) {}
+  // Reuse the session the head script already decoded (handles raw/base64/
+  // chunked/wrapped formats) so the first render uses correct member pricing.
+  if (window.__zwSessionUser) _bagUser = window.__zwSessionUser;
 
   renderCart();
 

@@ -1123,8 +1123,10 @@ let _user = null, _favs = [];
 // session counts as logged-in if it has a user AND (a live access token OR a
 // refresh_token). This is the same guard the bag page uses.
 try {
-  // Supabase v2 stores the session under sb-<ref>-auth-token, chunked into
-  // .0/.1/... when large. Reassemble both forms before parsing.
+  // Supabase stores the session under sb-<ref>-auth-token in one of several
+  // shapes: raw JSON, a modern "base64-"-prefixed value, or chunked .0/.1/...
+  // keys, optionally wrapped in {currentSession}. Reassemble + decode all of
+  // them, otherwise the session reads as "guest" and member prices flash in.
   let _base = null; const _chunks = {};
   for (let _i = 0; _i < localStorage.length; _i++) {
     const _k = localStorage.key(_i);
@@ -1135,8 +1137,13 @@ try {
     else _chunks[_mm[1]] = localStorage.getItem(_k);
   }
   const _order = Object.keys(_chunks).map(Number).sort((a, b) => a - b);
-  const _rawStr = _order.length ? _order.map((n) => _chunks[n]).join('') : _base;
+  let _rawStr = _order.length ? _order.map((n) => _chunks[n]).join('') : _base;
   if (_rawStr) {
+    if (_rawStr.indexOf('base64-') === 0) {
+      const _bb = _rawStr.slice(7).replace(/-/g, '+').replace(/_/g, '/');
+      const _bin = atob(_bb);
+      _rawStr = new TextDecoder().decode(Uint8Array.from(_bin, (c) => c.charCodeAt(0)));
+    }
     const _raw = JSON.parse(_rawStr);
     const _sess = _raw && _raw.currentSession ? _raw.currentSession : _raw;
     if (_sess && _sess.user) {
