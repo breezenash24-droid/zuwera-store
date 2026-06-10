@@ -56,6 +56,8 @@ const files = [
   'storefront-cohesion.css',
   'storefront-mobile-rebuild.css',
   'storefront-theme.js',
+  'storefront.js',
+  'supabase-client.js',
   'stripe-client-config.js',
   'supabase.min.js',
   'sw.js',
