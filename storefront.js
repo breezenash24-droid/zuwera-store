@@ -1888,6 +1888,7 @@ function buildHomeFavoriteDetail(product, extra, favorite) {
     current_price: parseHomeFavoritePrice(product?.current_price ?? product?.price ?? favorite?.price),
     member_price: parseHomeFavoritePrice(product?.member_price),
     colorName: colors[0]?.color_name || product?.colorway || 'Standard',
+    colors,
     sizes
   };
   detail.href = productHref({ id: detail.id, sku: detail.sku, title: detail.title });
@@ -2054,76 +2055,13 @@ window.addHomeFavoriteToCart = async function(productId, btn) {
   if (shouldSkipHomeFavoriteAdd(`home-saved:${normalizedProductId}`)) return;
   const favorite = _favs.find((item) => String(item.product_id || '') === normalizedProductId) || { product_id: normalizedProductId };
   try {
-    const detail = await getHomeFavoriteDetail(normalizedProductId, favorite) || buildHomeFavoriteFallbackDetail(normalizedProductId, favorite);
-    if (!detail?.id) {
-      window.location.href = productHref({ id: normalizedProductId, title: favorite.product_name || 'product' });
-      return;
-    }
-
-    // Build the usable size list (label + stock)
-    const sizeRows = (Array.isArray(detail.sizes) ? detail.sizes : [])
-      .map(r => ({ label: r?.size || r?.size_label || '', stock: Number(r?.stock_quantity ?? r?.stock ?? 0) }))
-      .filter(r => r.label);
-    const realSizes = sizeRows.filter(r => {
-      const l = r.label.toLowerCase();
-      return l !== 'one size' && l !== 'onesize' && l !== 'os';
-    });
-
-    // Only one meaningful size (or truly one-size product) — add directly
-    if (realSizes.length <= 1) {
-      const size = sizeRows[0]?.label || 'One Size';
-      _addHomeFavoriteWithSize(detail, size, favorite);
-      return;
-    }
-
-    // Multiple sizes — show a compact inline size picker anchored to the button
-    const sourceBtn = btn instanceof Element ? btn : document.querySelector(`[data-home-favorite-add="${CSS.escape(normalizedProductId)}"]`);
-    if (!sourceBtn) {
-      // Fallback: can't find button, redirect to product page
-      window.location.href = productHref({ id: normalizedProductId, title: favorite.product_name || 'product' });
-      return;
-    }
-
-    // Remove any existing picker
-    document.querySelectorAll('.zw-fav-size-picker').forEach(el => el.remove());
-
-    const inStock = sizeRows.filter(r => r.stock > 0);
-    const picker = document.createElement('div');
-    picker.className = 'zw-fav-size-picker';
-    picker.setAttribute('role', 'dialog');
-    picker.setAttribute('aria-label', 'Select a size');
-    picker.style.cssText = 'position:absolute;z-index:9999;background:var(--zw-surface,#1a1a1e);border:1px solid rgba(244,241,235,.14);padding:.65rem .75rem;display:flex;flex-direction:column;gap:.5rem;min-width:140px;box-shadow:0 8px 24px rgba(0,0,0,.5);';
-    picker.innerHTML = `<div style="font-family:var(--fm);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,235,.45);margin-bottom:.1rem;">Select Size</div>` +
-      sizeRows.map(r => {
-        const oos = r.stock === 0;
-        return `<button type="button" data-size="${escapeHomeFavoriteHtml(r.label)}" style="font-family:var(--fm);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;padding:.4rem .6rem;border:1px solid rgba(244,241,235,${oos?'.12':'.22'});background:transparent;color:${oos?'rgba(244,241,235,.28)':'rgba(244,241,235,.85)'};cursor:${oos?'not-allowed':'pointer'};text-align:left;" ${oos?'disabled':''}>` +
-          `${escapeHomeFavoriteHtml(r.label)}${oos?' <span style="font-size:.58rem;opacity:.45">Out of stock</span>':''}</button>`;
-      }).join('');
-
-    // Position below the button
-    sourceBtn.style.position = 'relative';
-    sourceBtn.after(picker);
-    const rect = sourceBtn.getBoundingClientRect();
-    picker.style.top  = (sourceBtn.offsetHeight + 4) + 'px';
-    picker.style.left = '0';
-
-    // Close on outside click
-    const closeOnOutside = (e) => {
-      if (!picker.contains(e.target) && e.target !== sourceBtn) {
-        picker.remove();
-        document.removeEventListener('click', closeOnOutside, true);
-      }
-    };
-    setTimeout(() => document.addEventListener('click', closeOnOutside, true), 0);
-
-    picker.querySelectorAll('button[data-size]').forEach(sBtn => {
-      sBtn.addEventListener('click', () => {
-        picker.remove();
-        document.removeEventListener('click', closeOnOutside, true);
-        _addHomeFavoriteWithSize(detail, sBtn.dataset.size, favorite);
-      });
-    });
-
+    // Open the same quick-add modal used by the homepage product grid and
+    // collection page. It handles size + color selection, so the user gets
+    // the full picker rather than a stripped-down inline one.
+    const price = parseHomeFavoritePrice(favorite.price) || 0;
+    const image = favorite.product_image || '';
+    const title = favorite.product_name || 'Product';
+    quickAddToCart(normalizedProductId, title, price, '', image, 0.5, btn instanceof Element ? btn : null);
   } catch (error) {
     console.error('addHomeFavoriteToCart failed:', error);
     showToast('Could not add this saved item right now.');
