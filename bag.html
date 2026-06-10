@@ -3,6 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<script>
+/* THEME FLASH PREVENTION — runs before any CSS loads */
+(function(){try{
+  var m=localStorage.getItem('zw_theme_mode');
+  var h=document.documentElement;
+  if(m==='super-light'){
+    h.style.background='#FFFFFF';h.style.colorScheme='light';
+    h.style.setProperty('--zw-ink','#FFFFFF');h.style.setProperty('--zw-page','#FFFFFF');h.style.setProperty('--ink','#FFFFFF');
+  }else if(m==='light'){
+    h.style.background='#F0EEE9';h.style.colorScheme='light';
+    h.style.setProperty('--zw-ink','#F0EEE9');h.style.setProperty('--zw-page','#F0EEE9');h.style.setProperty('--ink','#F0EEE9');
+  }
+  var f=localStorage.getItem('zw_fonts');
+  if(f){f=JSON.parse(f);
+    if(f.vars)Object.keys(f.vars).forEach(function(k){h.style.setProperty(k,f.vars[k])});
+    if(f.urls)f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});
+    if(f.css){var s=document.createElement('style');s.textContent=f.css;document.head.appendChild(s);}
+  }
+}catch(_){}})()</script>
   <title>Your Bag — Zuwera</title>
   <meta name="description" content="Review your bag and checkout securely.">
   <meta name="color-scheme" content="dark">
