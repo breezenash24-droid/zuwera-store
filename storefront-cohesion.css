@@ -1,5 +1,16 @@
 /* Storefront cohesion layer.
-   Product page is the source of truth for buttons, cards, modals, and mobile rhythm. */
+   Product page is the source of truth for buttons, cards, modals, and mobile rhythm.
+
+   ── BREAKPOINT TOKENS — the only sanctioned widths for new @media rules ──
+     480px  small phones        (max-width:480px)
+     600px  phones              (max-width:600px / min-width:601px)
+     760px  page rhythm         (max-width:760px / min-width:761px)
+     900px  COMPACT ↔ DESKTOP   (max-width:900px / min-width:901px)
+   900 is the primary boundary: nav/hamburger, product grid scroller, bottom-
+   sheet modals, and the JS checks (quickAdd bypass, grid Add-to-Bag) all flip
+   here. Never pair max-width:N with min-width:N (both match at exactly N) —
+   use N and N+1. Fold legacy one-off widths (560/640/660/700/768/800) into the
+   nearest token whenever you touch the code that uses them. */
 html{background:#09090b;color-scheme:dark light;text-size-adjust:100%;-webkit-text-size-adjust:100%}
 html:has(body.light-mode){background:#F0EEE9;color-scheme:light}
 html:has(body.super-light-mode){background:#FFFFFF;color-scheme:light}
@@ -274,7 +285,7 @@ body.light-mode .cart-shell-footer-copy{
   backdrop-filter:none !important;
   -webkit-backdrop-filter:none !important;
 }
-@media(min-width:601px){
+@media(min-width:901px){
   #all-reviews-modal{
     background:none !important;
     align-items:center !important;
@@ -410,7 +421,7 @@ body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel{
 
 
 /* all-reviews box: explicit desktop styles (excluded from generic rule above, desktop only) */
-@media(min-width:601px){
+@media(min-width:901px){
   #all-reviews-modal > .review-list-mbox{
     background:var(--zw-surface) !important;
     border:1px solid var(--zw-line-dark) !important;
@@ -479,7 +490,7 @@ body.super-light-mode #zw-lang-box{
 
 /* Override the variables that the high-specificity general rule reads from,
    so it produces the right size for the all-reviews modal (desktop only). */
-@media(min-width:601px){
+@media(min-width:901px){
   #all-reviews-modal{
     --zw-panel-width: min(1020px, 99vw);
     --zw-panel-wide-width: min(1020px, 99vw);
@@ -533,7 +544,7 @@ body.super-light-mode #zw-lang-box{
    rule above caps it at ~544px (the auth-modal width), which squeezes the
    star row, textarea, and fit toggles. Widen it and restore breathing room;
    the ≤760px bottom-sheet treatment is untouched. */
-@media(min-width:761px){
+@media(min-width:901px){
   /* The general modal-box rule above (triple :not(#id) specificity) sets
      width from var(--zw-panel-width) !important and cannot be out-ranked by
      #review-modal > .review-mbox. Override the VARIABLE on the modal instead —
@@ -566,7 +577,7 @@ body.super-light-mode #zw-lang-box{
   }
 }
 
-@media(min-width:601px){
+@media(min-width:901px){
   #all-reviews-modal > .review-list-mbox{
     padding:1.8rem 1.7rem 2rem !important;
     max-height:min(88dvh, 64rem) !important;
@@ -893,7 +904,7 @@ body.light-mode .heart-btn{
 }
 
 
-@media(max-width:760px){
+@media(max-width:900px){
   .zw-saved-item-actions{
     gap:.45rem;
   }
@@ -2861,7 +2872,7 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.18)!important;}
    MODAL REDESIGN — Nike-style bottom sheet + always-visible close button
    Overrides the full-screen (100dvh) mobile modal rules above.
    ───────────────────────────────────────────────────────────────────────── */
-@media(max-width:760px){
+@media(max-width:900px){
 
   /* All standard modals: bottom sheet with rounded top corners */
   .modal:not(#mobile-menu):not(#cart-modal):not(#payment-modal) > :is(.mbox,.review-mbox,.review-list-mbox,.collection-review-box,.review-dialog){

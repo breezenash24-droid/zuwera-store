@@ -556,7 +556,7 @@ body.light-mode .write-review-btn:hover { border-color: rgba(9,9,11,.45); color:
 /* View All Reviews button — stronger border for visibility */
 body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba(9,9,11,.28); color: #09090b; }
 
-@media(max-width: 600px) {
+@media(max-width: 900px) {
   .review-summary-box { flex-direction: column; gap: 1.5rem; padding: 1.2rem; }
   .rs-left { border-right: none; border-bottom: 1px solid rgba(244,241,235,0.08); padding-right: 0; padding-bottom: 1.5rem; }
 

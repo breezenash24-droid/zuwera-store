@@ -127,7 +127,7 @@ body.super-light-mode .quick-add-review-modal>.mbox{background:#FFFFFF !importan
   font-size:clamp(2.2rem,4vw,3.4rem);
 }
 
-@media(max-width:760px){
+@media(max-width:900px){
   .mbox.quick-add-review-box.quick-add-product-box{
     width:min(94vw,520px);
     max-height:90dvh;
