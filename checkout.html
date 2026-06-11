@@ -767,6 +767,8 @@ window.zwClearPromo = function() {
   function zwColorDot(item) {
     var hex = item.colorHex || _zwColorMap[(item.colorName||'').toLowerCase().trim()] || '';
     if (!hex) return '';
+    // Older cart items may carry a bare hex ("FFFFFF") — invalid as a CSS color.
+    if (/^[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(hex)) hex = '#' + hex;
     return '<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:'+hex+';border:1px solid rgba(0,0,0,.18);margin-right:4px;vertical-align:middle;flex-shrink:0"></span>';
   }
   function renderSummary() {

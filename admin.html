@@ -9820,8 +9820,13 @@
         function getColorVariantEntries() {
             return Array.from(document.querySelectorAll('.color-variant-item')).map((item) => {
                 const colorName = item.querySelector('.color-name-input')?.value.trim() || '';
-                const hexColor = item.querySelector('.color-hex-input')?.value.trim() || '';
+                let hexColor = item.querySelector('.color-hex-input')?.value.trim() || '';
                 const rgbColor = item.querySelector('.color-rgb-input')?.value.trim() || '';
+
+                // Normalize a bare hex ("FFFFFF" / "fff") to "#FFFFFF" — without
+                // the # the storefront swatches render background:FFFFFF, which
+                // is invalid CSS and paints as transparent.
+                if (/^[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(hexColor)) hexColor = '#' + hexColor;
 
                 return {
                     color_name: colorName,
