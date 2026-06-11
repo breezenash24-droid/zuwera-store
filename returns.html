@@ -22,6 +22,27 @@
     if(f.css){var s=document.createElement('style');s.textContent=f.css;document.head.appendChild(s);}
   }
 }catch(_){}})()</script>
+<script>
+/* AUTH PRE-READ — synchronous session decode (same as account/bag) so the
+   signed-out auth prompt can render before first paint instead of flashing
+   the loading skeleton. init() remains the authority. */
+(function(){try{
+  var _b=null,_ck={},_i;
+  for(_i=0;_i<localStorage.length;_i++){
+    var _k=localStorage.key(_i);if(!_k)continue;
+    var _m=_k.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:.(d+))?$/);if(!_m)continue;
+    if(_m[1]===undefined)_b=localStorage.getItem(_k);else _ck[_m[1]]=localStorage.getItem(_k);
+  }
+  var _ord=Object.keys(_ck).map(Number).sort(function(a,b){return a-b;});
+  var _str=_ord.length?_ord.map(function(n){return _ck[n];}).join(""):_b;
+  if(_str&&_str.indexOf("base64-")===0){
+    var _bb=_str.slice(7).replace(/-/g,"+").replace(/_/g,"/");
+    _str=new TextDecoder().decode(Uint8Array.from(atob(_bb),function(c){return c.charCodeAt(0);}));
+  }
+  var _raw=_str?JSON.parse(_str):null;
+  var _se=_raw&&_raw.currentSession?_raw.currentSession:_raw;
+  if(_se&&_se.user&&(Number(_se.expires_at||0)*1000>Date.now()||_se.refresh_token))window.__zwSessionUser=_se.user;
+}catch(_){}})()</script>
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -615,6 +636,27 @@ body.super-light-mode .policy-section { border-color: rgba(9,9,11,.14); }
         <div class="pulse-line"></div>
       </div>
     </div>
+    <script>
+    /* Signed-out visitors get the auth prompt before first paint instead of a
+       skeleton that flips after the async session check. Keep this markup in
+       sync with renderAuthPrompt() below (init re-renders the same thing). */
+    (function(){try{
+      if(window.__zwSessionUser)return;
+      var r=document.getElementById('page-root');
+      if(!r)return;
+      r.innerHTML='<div class="auth-prompt">'+
+        '<div class="auth-prompt-icon">↩</div>'+
+        '<h2>Sign in to continue</h2>'+
+        '<p>View your orders and start a return or exchange — all in one place.</p>'+
+        '<div class="auth-features">'+
+          '<span class="auth-feature">Free return shipping</span>'+
+          '<span class="auth-feature">Prepaid labels by email</span>'+
+          '<span class="auth-feature">Track your requests</span>'+
+        '</div>'+
+        '<a href="/?auth=signin&next=/returns.html" class="btn-primary">Sign In</a>'+
+      '</div>';
+    }catch(_){}})()
+    </script>
   </div>
 </main>
 
@@ -1365,7 +1407,16 @@ async function init() {
       return;
     }
 
-    const data = await fetchHubData(session);
+    // One refresh-and-retry covers expired-token edge cases (parity with the
+    // account page's hub loader).
+    let data;
+    try {
+      data = await fetchHubData(session);
+    } catch (e1) {
+      await _sb.auth.refreshSession().catch(() => {});
+      const s2 = await getSession();
+      data = await fetchHubData(s2 || session);
+    }
     const orders  = Array.isArray(data.orders)  ? data.orders  : [];
     const returns = Array.isArray(data.returns) ? data.returns : [];
 
