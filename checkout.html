@@ -695,6 +695,8 @@ window.zwResetPromoUI = function() {};
 
 window.zwApplyPromo = function(promo) {
   window._zwActivePromo = promo;
+  // Keep the bag↔checkout handoff in sync (and survive a checkout refresh).
+  try { if (promo && promo.code) sessionStorage.setItem('zw_promo_code', promo.code); } catch(_) {}
   var row = document.getElementById('zw-promo-row');
   var discountEl = document.getElementById('zw-promo-discount');
   var applyBtn = document.getElementById('zw-promo-apply');
@@ -725,6 +727,7 @@ window.zwPromoUpdateSummaryTotals = function() {
 
 window.zwClearPromo = function() {
   window._zwActivePromo = null;
+  try { sessionStorage.removeItem('zw_promo_code'); } catch(_) {}
   var row = document.getElementById('zw-promo-row');
   if (row) row.style.display = 'none';
   var btn = document.getElementById('zw-promo-apply');
@@ -874,6 +877,17 @@ document.addEventListener('DOMContentLoaded', function() {
       if (window._zwActivePromo) window.zwClearPromo(true);
     });
   }
+
+  /* Hydrate the promo applied on the bag page: re-validate through the same
+     Apply path (server-side checks still run), so the discount the shopper
+     saw on the bag doesn't silently vanish at checkout. */
+  try {
+    var carriedPromo = sessionStorage.getItem('zw_promo_code');
+    if (carriedPromo && !window._zwActivePromo && promoInput && promoBtn) {
+      promoInput.value = carriedPromo;
+      promoBtn.click();
+    }
+  } catch(_) {}
 
   /* Commerce config (shipping policy, promo visibility) */
   if (window._commerceConfigCache) {

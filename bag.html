@@ -781,6 +781,7 @@ function zwPromoUpdateSummaryTotals() {
 
 function zwClearPromo(clearInput) {
   _zwActivePromo = null;
+  try { sessionStorage.removeItem('zw_promo_code'); } catch(_) {}
   var msgEl    = document.getElementById('zw-promo-message');
   var rowEl    = document.getElementById('zw-promo-row');
   var applyBtn = document.getElementById('zw-promo-apply');
@@ -794,6 +795,9 @@ function zwClearPromo(clearInput) {
 
 function zwApplyPromo(promo) {
   _zwActivePromo = promo;
+  // Persist so checkout.html can auto-revalidate and reapply the same code —
+  // previously the discount silently vanished between bag and checkout.
+  try { if (promo && promo.code) sessionStorage.setItem('zw_promo_code', promo.code); } catch(_) {}
   var rowEl      = document.getElementById('zw-promo-row');
   var discountEl = document.getElementById('zw-promo-discount');
   var applyBtn   = document.getElementById('zw-promo-apply');
@@ -1139,6 +1143,7 @@ document.addEventListener('DOMContentLoaded', function() {
     _promoInputEl.addEventListener('input', function() {
       if (_zwActivePromo) {
         _zwActivePromo = null;
+        try { sessionStorage.removeItem('zw_promo_code'); } catch(_) {}
         var rowEl = document.getElementById('zw-promo-row');
         if (rowEl) rowEl.style.display = 'none';
         if (_promoApplyBtn) { _promoApplyBtn.textContent = 'Apply'; _promoApplyBtn.disabled = false; }
@@ -1155,6 +1160,16 @@ document.addEventListener('DOMContentLoaded', function() {
       if (shell) shell.style.display = 'none';
     }
   })();
+
+  // Rehydrate a previously applied promo (survives refresh and the trip back
+  // from checkout). Re-validates through the same Apply path.
+  try {
+    var _carried = sessionStorage.getItem('zw_promo_code');
+    if (_carried && !_zwActivePromo && _promoInputEl && _promoApplyBtn) {
+      _promoInputEl.value = _carried;
+      _promoApplyBtn.click();
+    }
+  } catch(_) {}
 });
 
 /* ── window.__zwOpenAuth (set after auth.js loads) ── */
