@@ -622,13 +622,10 @@ body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba
     border-radius: 2px;
     margin: -1rem auto 1.25rem;
   }
-  /* Close button: fixed so it never scrolls away */
-  #all-reviews-modal > .review-list-mbox > .review-list-close {
-    position: fixed !important;
-    top: calc(8dvh + 1.25rem) !important;
-    right: 1.1rem !important;
-    z-index: 600 !important;
-  }
+  /* Close button: no override — storefront-cohesion.css's bottom-sheet rule
+     (.mclose: position:sticky inside the sheet, top-right) applies, same as
+     every other modal. The old position:fixed pinned it at 8dvh, which left it
+     floating in mid-air once the sheet became height:auto. */
   /* Title — allow room for the fixed close btn */
   #all-reviews-modal .review-list-title {
     font-size: 1.6rem !important;
