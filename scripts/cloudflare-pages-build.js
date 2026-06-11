@@ -35,7 +35,6 @@ const files = [
   'image-utils.js',
   'index.html',
   'lang.js',
-  'layout.css',
   'm-bag.html',
   'manifest.json',
   'mobile.html',

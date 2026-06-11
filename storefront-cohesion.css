@@ -10,7 +10,17 @@
    sheet modals, and the JS checks (quickAdd bypass, grid Add-to-Bag) all flip
    here. Never pair max-width:N with min-width:N (both match at exactly N) —
    use N and N+1. Fold legacy one-off widths (560/640/660/700/768/800) into the
-   nearest token whenever you touch the code that uses them. */
+   nearest token whenever you touch the code that uses them.
+
+   ── MOTION TOKENS — use these for new animations/transitions ──
+     --zw-motion-fast   .15s  hovers, button presses
+     --zw-motion-base   .2s   modal open/close, reveals, state changes
+     --zw-motion-panel  .25s  drawers, side panels
+     --zw-motion-slow   .35s  large/hero movements
+   Don't invent new durations or cubic-beziers; legacy hardcoded values
+   (.4s/.46s/.6s/.72s + assorted beziers) should migrate to tokens whenever
+   the code that uses them is touched. Every animation needs a
+   prefers-reduced-motion: reduce escape hatch. */
 html{background:#09090b;color-scheme:dark light;text-size-adjust:100%;-webkit-text-size-adjust:100%}
 html:has(body.light-mode){background:#F0EEE9;color-scheme:light}
 html:has(body.super-light-mode){background:#FFFFFF;color-scheme:light}
@@ -300,6 +310,45 @@ body.light-mode #zw-lang-modal{
   background:none !important;
   backdrop-filter:none !important;
   -webkit-backdrop-filter:none !important;
+}
+
+/* ── SYMMETRIC MODAL MOTION ─────────────────────────────────────────────
+   Sheets/dialogs previously animated in but snapped shut. Closed modals now
+   stay display:flex and gate on visibility/opacity instead of display, so
+   removing .open transitions OUT (fade + slight slide-down on the box) with
+   zero changes to any close handler — and re-adding .open transitions IN the
+   same way, replacing the per-page entrance keyframes (which now run once,
+   invisibly, at load and never again).
+   Bespoke-motion modals are excluded: cart drawer, mobile menu, payment,
+   language panel. This also gives injected modals (quick-add on account.html)
+   a guaranteed hidden default even when the page has no .modal base CSS. */
+.modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal){
+  display:flex !important;
+  visibility:hidden;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity var(--zw-motion-base) ease,
+             visibility 0s linear var(--zw-motion-base);
+}
+.modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal).open{
+  visibility:visible;
+  opacity:1;
+  pointer-events:auto;
+  transition:opacity var(--zw-motion-base) ease;
+}
+.modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.review-dialog){
+  transition:transform var(--zw-motion-base) cubic-bezier(.32,.72,.34,1),
+             opacity var(--zw-motion-base) ease;
+}
+.modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal):not(.open) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.review-dialog){
+  opacity:0;
+  transform:translateY(14px);
+}
+@media (prefers-reduced-motion: reduce){
+  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal),
+  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.review-dialog){
+    transition:none !important;
+  }
 }
 
 .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#all-reviews-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.collection-review-box){
