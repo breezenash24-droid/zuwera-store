@@ -365,6 +365,9 @@ function openReviewForm(pid, pname) {
   if (document.querySelector('input[name="reviewRecommend"][value="yes"]')) document.querySelector('input[name="reviewRecommend"][value="yes"]').checked = true;
 
   setStarSelection(0);
+  syncReviewCharCount();
+  const errReset = document.getElementById('review-error');
+  if (errReset) errReset.style.color = '';
 
   const reviewModal = document.getElementById('review-modal');
   reviewModal.classList.add('open');
@@ -373,6 +376,37 @@ function openReviewForm(pid, pname) {
   reviewModal.style.setProperty('backdrop-filter', 'none', 'important');
   reviewModal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
   document.body.style.overflow = 'hidden';
+  window.requestAnimationFrame(() => {
+    try { document.querySelector('#star-selector button')?.focus({ preventScroll: true }); } catch (_) {}
+  });
+
+  // If this signed-in shopper already reviewed this product, switch the form to
+  // edit mode (prefilled, "Update Review") instead of letting them create a
+  // duplicate. Async — only takes over if the form is still untouched and the
+  // modal is still on the same product when the lookup returns.
+  (async () => {
+    try {
+      if (!window.sb) return;
+      const { data } = await window.sb.auth.getSession();
+      const uid = data?.session?.user?.id;
+      if (!uid) return;
+      const reviews = await loadReviews(pid);
+      const mine = (reviews || []).find(r => r.user_id === uid);
+      if (!mine) return;
+      const bodyEl = document.getElementById('review-body-input');
+      const modal = document.getElementById('review-modal');
+      if (_reviewProductId !== pid || _reviewIdToEdit || _reviewRating !== 0) return;
+      if (bodyEl && bodyEl.value.trim()) return;
+      if (!modal || !modal.classList.contains('open')) return;
+      openEditReviewForm(mine.id, mine.rating, pid);
+      syncReviewCharCount();
+      const errEl = document.getElementById('review-error');
+      if (errEl) {
+        errEl.textContent = "You've already reviewed this piece — you're editing your existing review.";
+        errEl.style.color = 'var(--gold, #F891A5)';
+      }
+    } catch (_) {}
+  })();
 }
 
 function openEditReviewForm(id, rating, pid) {
@@ -411,12 +445,14 @@ function openEditReviewForm(id, rating, pid) {
   }
 
   document.getElementById('review-error').textContent = '';
+  document.getElementById('review-error').style.color = '';
   const btn = document.getElementById('review-submit-btn');
   if (btn) {
     btn.disabled = false;
     btn.textContent = 'Update Review';
   }
   setStarSelection(rating);
+  syncReviewCharCount();
   const editModal = document.getElementById('review-modal');
   editModal.classList.add('open');
   editModal.setAttribute('aria-hidden', 'false');
@@ -427,11 +463,52 @@ function openEditReviewForm(id, rating, pid) {
 }
 
 // -- Star selector interaction ----------------------------------------
+const STAR_RATING_LABELS = { 1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'Great', 5: 'Excellent' };
+
+// Inject the rating-feedback label and the character counter once. Done from
+// JS so index.html and product.html stay in sync without duplicate markup.
+(function enhanceReviewForm() {
+  const sel = document.getElementById('star-selector');
+  if (sel && !document.getElementById('star-rating-label')) {
+    const lbl = document.createElement('p');
+    lbl.id = 'star-rating-label';
+    lbl.setAttribute('aria-live', 'polite');
+    lbl.style.cssText = 'font-family:var(--fm,var(--font-mono,monospace));font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;text-align:center;min-height:1.1em;margin:.3rem 0 .7rem;opacity:.6;';
+    sel.insertAdjacentElement('afterend', lbl);
+  }
+  const ta = document.getElementById('review-body-input');
+  if (ta && !document.getElementById('review-char-count')) {
+    const c = document.createElement('p');
+    c.id = 'review-char-count';
+    c.style.cssText = 'font-family:var(--fm,var(--font-mono,monospace));font-size:.6rem;letter-spacing:.08em;text-align:right;margin:.3rem 0 .5rem;opacity:.45;';
+    c.textContent = '0 / 1000';
+    ta.insertAdjacentElement('afterend', c);
+    ta.addEventListener('input', () => { c.textContent = ta.value.length + ' / 1000'; });
+  }
+})();
+
+function syncReviewCharCount() {
+  const ta = document.getElementById('review-body-input');
+  const c = document.getElementById('review-char-count');
+  if (ta && c) c.textContent = ta.value.length + ' / 1000';
+}
+
+function updateStarRatingLabel(val) {
+  const lbl = document.getElementById('star-rating-label');
+  if (lbl) lbl.textContent = STAR_RATING_LABELS[val] || '';
+}
+
 function setStarSelection(val) {
   _reviewRating = val;
   document.querySelectorAll('#star-selector button').forEach(btn => {
     btn.classList.toggle('lit', Number(btn.dataset.v) <= val);
   });
+  updateStarRatingLabel(val);
+  // Picking a rating resolves the "select a star rating" error.
+  if (val > 0) {
+    const errEl = document.getElementById('review-error');
+    if (errEl && /star rating/i.test(errEl.textContent)) { errEl.textContent = ''; }
+  }
 }
 
 document.querySelectorAll('#star-selector button').forEach(btn => {
@@ -441,9 +518,11 @@ document.querySelectorAll('#star-selector button').forEach(btn => {
     document.querySelectorAll('#star-selector button').forEach(b => {
       b.classList.toggle('hover', Number(b.dataset.v) <= v);
     });
+    updateStarRatingLabel(v);
   });
   btn.addEventListener('mouseleave', () => {
     document.querySelectorAll('#star-selector button').forEach(b => b.classList.remove('hover'));
+    updateStarRatingLabel(_reviewRating);
   });
 });
 
@@ -458,6 +537,7 @@ async function submitReview() {
   const comfort = isAdvancedChecked ? document.getElementById('reviewComfort')?.value : null;
   const recommend = isAdvancedChecked ? document.querySelector('input[name="reviewRecommend"]:checked')?.value : null;
   errEl.textContent = '';
+  errEl.style.color = '';
 
   if (!_reviewRating)        { errEl.textContent = 'Please select a star rating.'; return; }
   if (!_reviewProductId)     { errEl.textContent = 'No product selected.'; return; }
@@ -467,7 +547,19 @@ async function submitReview() {
      const { data } = await window.sb.auth.getSession();
      user = data?.session?.user || null;
   }
-  if (!user) { errEl.textContent = 'Please sign in to leave a review.'; return; }
+  if (!user) {
+    // Actionable, not a dead end: offer Sign In right here. The review modal
+    // (and the draft) stays open underneath the auth modal, so after signing
+    // in the shopper just hits Submit again.
+    errEl.innerHTML = 'Please sign in to post your review — your draft will be kept. ' +
+      '<button type="button" id="review-signin-btn" style="background:none;border:none;color:inherit;text-decoration:underline;cursor:pointer;font:inherit;padding:0;">Sign In</button>';
+    document.getElementById('review-signin-btn')?.addEventListener('click', () => {
+      const open = window.openAuthModal || window.openAuth || window.__zwOpenAuth;
+      if (typeof open === 'function') open('signin');
+      else window.location.href = '/account.html';
+    });
+    return;
+  }
 
   btn.disabled    = true;
   btn.textContent = 'Submitting...';
