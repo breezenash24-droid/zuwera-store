@@ -853,7 +853,9 @@ body.light-mode .quick-back-btn:hover{color:rgba(9,9,11,.7)}
 .quick-add-review-actions .quick-add-review-confirm:hover{background:var(--paper-hover);border-color:var(--paper-hover)}
 .quick-add-review-actions .quick-add-review-confirm:active{background:var(--paper-active);border-color:var(--paper-active);transform:scale(.97)}
 .quick-add-review-actions .quick-add-review-confirm:disabled{opacity:.45;cursor:not-allowed}
-body.light-mode .quick-add-review-media{background:var(--paper)}
+/* Explicit cream, NOT var(--paper): cohesion inverts --paper to a dark text
+   token in light themes, which painted black letterbox bars beside photos. */
+body.light-mode .quick-add-review-media{background:#f4f1eb}
 body.light-mode .quick-add-review-placeholder{color:rgba(9,9,11,.28)}
 body.light-mode .quick-add-gallery-arrow{background:rgba(9,9,11,.55);border-color:rgba(255,255,255,.2);color:#fff}
 body.light-mode .quick-add-review-detail{border-color:rgba(9,9,11,.09)}
