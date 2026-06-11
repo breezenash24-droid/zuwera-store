@@ -194,7 +194,7 @@
 <!-- Quick-add modal module MUST load before storefront.js: the grid wiring in
      storefront.js calls window.quickAddToCart, which this module provides. -->
 <script src="quick-add-modal.js?v=789d4305" defer></script>
-<script src="storefront.js?v=766d2ef8" defer></script>
+<script src="storefront.js?v=4553da9a" defer></script>
 <script src="/stripe-client-config.js?v=c262166e" defer></script>
 <script src="/checkout-tax.js?v=b12c4e5f" defer></script>
 
@@ -963,27 +963,20 @@ body.light-mode .pcard-skel-img,body.light-mode .pcard-skel-line{background:rgba
 @keyframes ccPop{0%{transform:scale(1)}40%{transform:scale(1.6)}70%{transform:scale(.92)}100%{transform:scale(1)}}
 .cc{transform-origin:center}  /* keep display:flex from the original .cc rule */
 .cc.pop{animation:ccPop .4s cubic-bezier(.36,.07,.19,.97)}
-@keyframes bagTargetPop{0%{transform:scale(1)}38%{transform:scale(1.12)}68%{transform:scale(.96)}100%{transform:scale(1)}}
+@keyframes bagTargetPop{0%{transform:scale(1)}38%{transform:scale(1.14)}68%{transform:scale(.97)}100%{transform:scale(1)}}
 #cart-btn.bag-target-pop{animation:bagTargetPop .46s cubic-bezier(.36,.07,.19,.97)}
-.add-bag-flyer{
-  position:fixed;
-  z-index:9999;
-  width:72px;
-  height:90px;
-  object-fit:cover;
-  border:1px solid rgba(244,241,235,.2);
-  border-radius:3px;
-  background:var(--ink);
-  box-shadow:0 16px 42px rgba(0,0,0,.32);
+/* Radiating ring acknowledgment on add-to-bag (replaces the flying-image clone) */
+#cart-btn{position:relative}
+@keyframes bagPing{0%{transform:scale(.6);opacity:.55}100%{transform:scale(1.85);opacity:0}}
+.bag-ping{
+  position:absolute;inset:-3px;
+  border:1.5px solid currentColor;border-radius:inherit;
   pointer-events:none;
-  transform:translate3d(0,0,0) scale(1);
-  transform-origin:center;
-  transition:transform .72s cubic-bezier(.18,.84,.28,1), opacity .72s ease;
-  will-change:transform,opacity;
+  animation:bagPing .6s cubic-bezier(.22,.74,.36,1) forwards;
 }
 @media (prefers-reduced-motion: reduce){
   #cart-btn.bag-target-pop,.cc.pop{animation:none}
-  .add-bag-flyer{display:none}
+  .bag-ping{display:none}
 }
 
 /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬

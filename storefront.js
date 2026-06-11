@@ -2162,43 +2162,20 @@ function pulseBagTarget() {
 }
 
 function animateAddToBag(sourceEl, imageSrc) {
+  // Add-to-bag acknowledgment: a springy pop + radiating ring on the bag
+  // button and a count-badge pop. (The old flying-image clone read as cheap;
+  // the signature is kept so all call sites/params stay valid.)
   const target = document.getElementById('cart-btn');
-  const source = sourceEl && typeof sourceEl.getBoundingClientRect === 'function' ? sourceEl : null;
-  if (!target || !source || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (!target || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     pulseBagTarget();
     return;
   }
-  const sourceRect = source.getBoundingClientRect();
-  const targetRect = target.getBoundingClientRect();
-  if (!sourceRect.width || !sourceRect.height || !targetRect.width || !targetRect.height) {
-    pulseBagTarget();
-    return;
-  }
-
-  const size = Math.min(92, Math.max(54, Math.min(sourceRect.width, sourceRect.height) * .36));
-  const startX = sourceRect.left + sourceRect.width / 2;
-  const startY = sourceRect.top + sourceRect.height / 2;
-  const endX = targetRect.left + targetRect.width / 2;
-  const endY = targetRect.top + targetRect.height / 2;
-  const flyer = imageSrc ? document.createElement('img') : document.createElement('div');
-  flyer.className = 'add-bag-flyer';
-  if (imageSrc) {
-    flyer.src = imageSrc;
-    flyer.alt = '';
-  }
-  flyer.style.width = `${size}px`;
-  flyer.style.height = `${Math.round(size * 1.24)}px`;
-  flyer.style.left = `${startX - size / 2}px`;
-  flyer.style.top = `${startY - (size * 1.24) / 2}px`;
-  document.body.appendChild(flyer);
-  requestAnimationFrame(() => {
-    flyer.style.transform = `translate3d(${endX - startX}px, ${endY - startY}px, 0) scale(.18) rotate(8deg)`;
-    flyer.style.opacity = '0';
-  });
-  window.setTimeout(() => {
-    flyer.remove();
-    pulseBagTarget();
-  }, 760);
+  const ring = document.createElement('span');
+  ring.className = 'bag-ping';
+  ring.setAttribute('aria-hidden', 'true');
+  target.appendChild(ring);
+  window.setTimeout(() => ring.remove(), 650);
+  pulseBagTarget();
 }
 
 let _cartFavRenderVer = 0;

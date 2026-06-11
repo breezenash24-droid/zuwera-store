@@ -643,27 +643,20 @@ body.light-mode .nav #cart-btn.desktop-bag-btn {
 body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
   border-color: rgba(9,9,11,.5);
 }
-@keyframes bagTargetPop{0%{transform:scale(1)}38%{transform:scale(1.12)}68%{transform:scale(.96)}100%{transform:scale(1)}}
+@keyframes bagTargetPop{0%{transform:scale(1)}38%{transform:scale(1.14)}68%{transform:scale(.97)}100%{transform:scale(1)}}
 #cart-btn.desktop-bag-btn.bag-target-pop{animation:bagTargetPop .46s cubic-bezier(.36,.07,.19,.97)}
-.add-bag-flyer{
-  position:fixed;
-  z-index:9999;
-  width:72px;
-  height:90px;
-  object-fit:cover;
-  border:1px solid rgba(244,241,235,.2);
-  border-radius:3px;
-  background:#09090b;
-  box-shadow:0 16px 42px rgba(0,0,0,.32);
+/* Radiating ring acknowledgment on add-to-bag (replaces the flying-image clone) */
+#cart-btn{position:relative}
+@keyframes bagPing{0%{transform:scale(.6);opacity:.55}100%{transform:scale(1.85);opacity:0}}
+.bag-ping{
+  position:absolute;inset:-3px;
+  border:1.5px solid currentColor;border-radius:inherit;
   pointer-events:none;
-  transform:translate3d(0,0,0) scale(1);
-  transform-origin:center;
-  transition:transform .72s cubic-bezier(.18,.84,.28,1), opacity .72s ease;
-  will-change:transform,opacity;
+  animation:bagPing .6s cubic-bezier(.22,.74,.36,1) forwards;
 }
 @media (prefers-reduced-motion: reduce){
   #cart-btn.desktop-bag-btn.bag-target-pop{animation:none}
-  .add-bag-flyer{display:none}
+  .bag-ping{display:none}
 }
 
 /* Sign-out lives only on the account page; desktop-shop-btn label changes by category */
@@ -3244,42 +3237,20 @@ function pulseBagTarget() {
 }
 
 function animateAddToBag(sourceEl, imageSrc) {
+  // Add-to-bag acknowledgment: a springy pop + radiating ring on the bag
+  // button. (The old flying-image clone read as cheap; the signature is kept
+  // so all call sites stay valid.)
   const target = document.getElementById('cart-btn');
-  const source = sourceEl && typeof sourceEl.getBoundingClientRect === 'function' ? sourceEl : null;
-  if (!target || !source || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (!target || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     pulseBagTarget();
     return;
   }
-  const sourceRect = source.getBoundingClientRect();
-  const targetRect = target.getBoundingClientRect();
-  if (!sourceRect.width || !sourceRect.height || !targetRect.width || !targetRect.height) {
-    pulseBagTarget();
-    return;
-  }
-  const size = Math.min(92, Math.max(54, Math.min(sourceRect.width, sourceRect.height) * .36));
-  const startX = sourceRect.left + sourceRect.width / 2;
-  const startY = sourceRect.top + sourceRect.height / 2;
-  const endX = targetRect.left + targetRect.width / 2;
-  const endY = targetRect.top + targetRect.height / 2;
-  const flyer = imageSrc ? document.createElement('img') : document.createElement('div');
-  flyer.className = 'add-bag-flyer';
-  if (imageSrc) {
-    flyer.src = imageSrc;
-    flyer.alt = '';
-  }
-  flyer.style.width = `${size}px`;
-  flyer.style.height = `${Math.round(size * 1.24)}px`;
-  flyer.style.left = `${startX - size / 2}px`;
-  flyer.style.top = `${startY - (size * 1.24) / 2}px`;
-  document.body.appendChild(flyer);
-  requestAnimationFrame(() => {
-    flyer.style.transform = `translate3d(${endX - startX}px, ${endY - startY}px, 0) scale(.18) rotate(8deg)`;
-    flyer.style.opacity = '0';
-  });
-  window.setTimeout(() => {
-    flyer.remove();
-    pulseBagTarget();
-  }, 760);
+  const ring = document.createElement('span');
+  ring.className = 'bag-ping';
+  ring.setAttribute('aria-hidden', 'true');
+  target.appendChild(ring);
+  window.setTimeout(() => ring.remove(), 650);
+  pulseBagTarget();
 }
 
 function addToCart() {
