@@ -841,7 +841,7 @@ const padF=g=>`<div class="fdiv"></div>${fhd('Section Padding')}<div class="pad-
 const bgF=(k,g)=>`${colorF(k,'Section Background Color',g[k]||'')} <div class="fhint">Leave blank for default site background</div>`;
 const imgField=(key,lbl,val='')=>{
   const prev=val?`<img data-preview="${key}" src="${he(val)}" style="width:100%;height:70px;object-fit:cover;border:1px solid var(--bd);border-radius:2px;margin-bottom:.25rem;display:block">`:`<div data-preview="${key}" style="display:none"></div>`;
-  return `<div class="field"><label>${lbl}</label>${prev}<input type="text" data-f="${key}" value="${he(val)}" placeholder="/images/hero.jpg or https://..."><div style="display:flex;gap:.3rem;margin-top:.25rem"><button type="button" class="img-btn" data-pick="${key}">📁 Browse</button></div></div>`;
+  return `<div class="field"><label>${lbl}</label>${prev}<input type="text" data-f="${key}" value="${he(val)}" placeholder="/images/hero.jpg?v=2 or https://..."><div style="display:flex;gap:.3rem;margin-top:.25rem"><button type="button" class="img-btn" data-pick="${key}">📁 Browse</button></div></div>`;
 };
 const arrField=(key,itemLbl,items,fieldDefs)=>`<div class="flist" data-arr="${key}">${items.map((item,i)=>`<div data-arr-item style="background:var(--bg);border:1px solid var(--bd);border-radius:2px;padding:.38rem .48rem;margin-bottom:.25rem"><div class="flist-item-hd"><span class="flist-item-lbl">${itemLbl} ${i+1}</span><button class="flist-rm" onclick="removeArrItem(this,'${key}')">✕</button></div>${fieldDefs.map(([k,l,type])=>`<div class="field" style="margin-top:.28rem"><label>${l}</label><${type==='textarea'?`textarea data-f="${k}"`:(`input type="${type}" data-f="${k}"`)} ${type==='textarea'?'':'value="'+he(item[k]||'')+'"'}>${type==='textarea'?he(item[k]||''):''}${type==='textarea'?'</textarea>':'>'}</div>`).join('')}</div>`).join('')}</div><button class="add-item-btn" onclick="addArrItem('${key}')">+ Add ${itemLbl}</button>`;
 
@@ -896,7 +896,7 @@ ${colorF('sec_bg','Background',g.sec_bg||'')}
 function manualApply(){const s=sections.find(x=>x.id===selId);if(s){syncForm(s);sendCfg();toast('Applied to preview');}}
 
 // ── MEDIA LIBRARY ─────────────────────────────────────────────────────────
-const SITE_IMGS=[{label:'Hero',src:'/images/hero.jpg'},{label:'Hero Mobile',src:'/images/hero-mobile.jpg'},{label:'OG Image',src:'/images/og-image.jpg'},{label:'Logo',src:'/images/logo.png'},{label:'Wordmark',src:'/images/wordmark.png'}];
+const SITE_IMGS=[{label:'Hero',src:'/images/hero.jpg?v=2'},{label:'Hero Mobile',src:'/images/hero-mobile.jpg'},{label:'OG Image',src:'/images/og-image.jpg'},{label:'Logo',src:'/images/logo.png?v=2'},{label:'Wordmark',src:'/images/wordmark.png'}];
 
 async function openMedia(fieldKey){
   _imgKey=fieldKey;

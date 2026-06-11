@@ -62,7 +62,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/images/favicon-black-192.png?v=2">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
-  <script src="/favicon-utils.js?v=73c37981" defer></script>
+  <script src="/favicon-utils.js?v=a1a2eb2c" defer></script>
   <script src="/supabase.min.js?v=3277b334" defer></script>
   <script src="/supabase-client.js?v=b28896db" defer></script>
 
@@ -95,7 +95,7 @@
       "@id": "https://zuwera.store/#brand",
       "name": "ZUWERA",
       "url": "https://zuwera.store",
-      "logo": "https://zuwera.store/images/logo.png",
+      "logo": "https://zuwera.store/images/logo.png?v=2",
       "description": "Bold athletic sportswear.",
       "sameAs": ["https://instagram.com/Zuw.era"]
     },
@@ -157,7 +157,7 @@
 <script>
 (function() {
   var isMobileHero = window.matchMedia && window.matchMedia('(max-width: 760px)').matches;
-  var heroSrc = isMobileHero ? 'images/hero-mobile.jpg' : 'images/hero.jpg';
+  var heroSrc = isMobileHero ? 'images/hero-mobile.jpg' : 'images/hero.jpg?v=2';
   try {
     var savedHero = localStorage.getItem('zw-hero-image');
     if (savedHero) heroSrc = savedHero;
@@ -194,7 +194,7 @@
 <!-- Quick-add modal module MUST load before storefront.js: the grid wiring in
      storefront.js calls window.quickAddToCart, which this module provides. -->
 <script src="quick-add-modal.js?v=789d4305" defer></script>
-<script src="storefront.js?v=41d2558d" defer></script>
+<script src="storefront.js?v=686c15f7" defer></script>
 <script src="/stripe-client-config.js?v=c262166e" defer></script>
 <script src="/checkout-tax.js?v=b12c4e5f" defer></script>
 
@@ -1896,7 +1896,7 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
 <!-- NAV -->
 <nav id="nav">
   <a href="/" class="nav-logo">
-    <img src="images/logo-192.png" srcset="images/logo-192.png 192w, images/logo.png 2000w" sizes="60px" width="60" height="60" alt="ZUWERA" decoding="async" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+    <img src="images/logo-192.png" srcset="images/logo-192.png 192w, images/logo.png?v=2 2000w" sizes="60px" width="60" height="60" alt="ZUWERA" decoding="async" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
     <span style="display:none">ZUWERA</span>
   </a>
   <div class="nav-center" id="nav-category-links">
@@ -1956,7 +1956,7 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
   <div class="hero-img-wrap">
     <picture>
       <source id="hero-mobile-source" media="(max-width: 760px)" srcset="images/hero-mobile.jpg">
-      <img id="hero-image" src="images/hero.jpg" width="4288" height="2848" alt="" role="presentation" fetchpriority="high" decoding="async">
+      <img id="hero-image" src="images/hero.jpg?v=2" width="4288" height="2848" alt="" role="presentation" fetchpriority="high" decoding="async">
     </picture>
     <script>
     (function() {

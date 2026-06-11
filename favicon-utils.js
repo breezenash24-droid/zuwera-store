@@ -16,7 +16,7 @@
 
     const normalizedPath = path.replace(/^\/+/, '').toLowerCase();
     if (
-      normalizedPath === 'images/logo.png' ||
+      normalizedPath === 'images/logo.png?v=2' ||
       normalizedPath === 'logo.png' ||
       normalizedPath === 'favicon.ico'
     ) {

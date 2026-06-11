@@ -403,7 +403,7 @@ function showToast(msg) {
             if (img) img.src = s.image;
             if (mobileSource) mobileSource.srcset = s.image;
           } else {
-            if (img) img.src = 'images/hero.jpg';
+            if (img) img.src = 'images/hero.jpg?v=2';
             if (mobileSource) mobileSource.srcset = 'images/hero-mobile.jpg';
           }
           break;
