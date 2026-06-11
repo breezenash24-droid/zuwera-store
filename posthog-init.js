@@ -9,6 +9,16 @@
 (function () {
   'use strict';
 
+  // Skip analytics inside iframes (size-guide modal embed, admin preview):
+  // the parent page already tracked the view, so iframe loads would double-
+  // count pageviews. Keep zwTrack callable as a no-op so callers never break.
+  try {
+    if (window.self !== window.top) {
+      window.zwTrack = function () {};
+      return;
+    }
+  } catch (_) {}
+
   var KEY  = 'phc_mCL2GmGPncq5Twg7vK6FesuQHQZVTojTxHTpc4Bwp9yT';
   var HOST = 'https://us.i.posthog.com';
 
