@@ -3065,6 +3065,26 @@
                     <div id="reviewsContainer">
                         <p style="text-align:center;color:var(--text-secondary);">Loading reviews...</p>
                     </div>
+
+                    <!-- Banned words manager — backs the zw_banned_words table; the
+                         database trigger rejects any review containing these words. -->
+                    <div style="margin-top:34px;border-top:1px solid var(--border);padding-top:22px;">
+                        <h3 style="font-size:1.05rem;margin-bottom:6px;">🚫 Banned Words</h3>
+                        <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:14px;line-height:1.6;">
+                            Reviews containing any of these words are rejected automatically before they're saved.
+                            Matching is case-insensitive and whole-word only ("class" is never flagged by "ass").
+                        </p>
+                        <div style="display:flex;gap:8px;margin-bottom:14px;max-width:420px;">
+                            <input type="text" id="banned-word-input" placeholder="Add a word…" autocomplete="off"
+                                   style="flex:1;padding:8px 10px;background:var(--bg-secondary,rgba(255,255,255,.04));border:1px solid var(--border);border-radius:6px;color:inherit;font-size:.85rem;"
+                                   onkeydown="if(event.key==='Enter'){event.preventDefault();addBannedWord();}">
+                            <button type="button" onclick="addBannedWord()"
+                                    style="padding:8px 16px;border:1px solid var(--border);border-radius:6px;background:var(--accent,#F891A5);color:#09090b;font-weight:600;font-size:.82rem;cursor:pointer;">Add</button>
+                        </div>
+                        <div id="banned-words-list" style="display:flex;flex-wrap:wrap;gap:8px;">
+                            <span style="color:var(--text-secondary);font-size:.82rem;">Loading…</span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Users Page -->
@@ -8924,7 +8944,61 @@
         document.getElementById('auditLoadMoreBtn')?.addEventListener('click', () => loadAuditLog(true));
 
         // Reviews
+        /* ── Banned words (zw_banned_words) — backs the review profanity trigger ── */
+        async function loadBannedWords() {
+            const list = document.getElementById('banned-words-list');
+            if (!list) return;
+            try {
+                const { data, error } = await sb.from('zw_banned_words').select('word').order('word');
+                if (error) throw error;
+                if (!data || !data.length) {
+                    list.innerHTML = '<span style="color:var(--text-secondary);font-size:.82rem;">No banned words yet.</span>';
+                    return;
+                }
+                list.innerHTML = data.map(r =>
+                    `<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px 4px 10px;border:1px solid var(--border);border-radius:999px;font-size:.8rem;background:var(--bg-secondary,rgba(255,255,255,.04));">
+                        ${escapeHtml(r.word)}
+                        <button type="button" onclick="removeBannedWord('${escapeAttr(r.word)}')" aria-label="Remove ${escapeAttr(r.word)}"
+                                style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:.9rem;line-height:1;padding:0 2px;">&times;</button>
+                    </span>`
+                ).join('');
+            } catch (e) {
+                list.innerHTML = '<span style="color:var(--text-secondary);font-size:.82rem;">Could not load banned words.</span>';
+            }
+        }
+
+        async function addBannedWord() {
+            const input = document.getElementById('banned-word-input');
+            const word = (input?.value || '').trim().toLowerCase();
+            if (!word) return;
+            if (!/^[a-z][a-z-]*$/.test(word)) {
+                showToast('Words can only contain letters (and hyphens).', 'error');
+                return;
+            }
+            try {
+                const { error } = await sb.from('zw_banned_words').upsert({ word });
+                if (error) throw error;
+                input.value = '';
+                showToast(`"${word}" added to banned words.`);
+                loadBannedWords();
+            } catch (e) {
+                showToast('Could not add word: ' + (e.message || e), 'error');
+            }
+        }
+
+        async function removeBannedWord(word) {
+            try {
+                const { error } = await sb.from('zw_banned_words').delete().eq('word', word);
+                if (error) throw error;
+                showToast(`"${word}" removed.`);
+                loadBannedWords();
+            } catch (e) {
+                showToast('Could not remove word: ' + (e.message || e), 'error');
+            }
+        }
+
         async function loadAdminReviews() {
+            loadBannedWords();
             try {
                 const container = document.getElementById('reviewsContainer');
                 container.innerHTML = '<p style="text-align:center;color:var(--text-secondary);">Loading reviews...</p>';
