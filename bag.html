@@ -25,6 +25,8 @@
 /* AUTH PRE-READ — decode the Supabase session synchronously (before first paint)
    so the nav (Login vs account name) and member pricing are correct on the very
    first frame instead of flashing after the async getSession() resolves.
+   IMPORTANT: our supabase client is created with storageKey:'zuwera-auth'
+   (see supabase-client.js), NOT the default sb-<ref>-auth-token — match both.
    Handles every storage shape supabase-js uses: raw JSON, the modern
    "base64-"-prefixed value, the chunked .0/.1 form, and the {currentSession}
    wrapper. window.__zwSessionUser is consumed by the cart pricing pre-read. */
@@ -32,7 +34,7 @@ try{
   var _b=null,_ck={},_i2;
   for(_i2=0;_i2<localStorage.length;_i2++){
     var _kk=localStorage.key(_i2);if(!_kk)continue;
-    var _m=_kk.match(/^sb-[a-z0-9-]+-auth-token(?:\.(\d+))?$/);if(!_m)continue;
+    var _m=_kk.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:\.(\d+))?$/);if(!_m)continue;
     if(_m[1]===undefined)_b=localStorage.getItem(_kk);else _ck[_m[1]]=localStorage.getItem(_kk);
   }
   var _ord=Object.keys(_ck).map(Number).sort(function(a,b){return a-b;});

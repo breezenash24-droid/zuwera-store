@@ -1123,15 +1123,17 @@ let _user = null, _favs = [];
 // session counts as logged-in if it has a user AND (a live access token OR a
 // refresh_token). This is the same guard the bag page uses.
 try {
-  // Supabase stores the session under sb-<ref>-auth-token in one of several
-  // shapes: raw JSON, a modern "base64-"-prefixed value, or chunked .0/.1/...
-  // keys, optionally wrapped in {currentSession}. Reassemble + decode all of
-  // them, otherwise the session reads as "guest" and member prices flash in.
+  // Our supabase client is created with storageKey:'zuwera-auth' (see
+  // supabase-client.js), NOT the default sb-<ref>-auth-token — match both.
+  // The value comes in several shapes: raw JSON, a modern "base64-"-prefixed
+  // value, or chunked .0/.1/... keys, optionally wrapped in {currentSession}.
+  // Reassemble + decode all of them, otherwise the session reads as "guest"
+  // and member prices flash in.
   let _base = null; const _chunks = {};
   for (let _i = 0; _i < localStorage.length; _i++) {
     const _k = localStorage.key(_i);
     if (!_k) continue;
-    const _mm = _k.match(/^sb-[a-z0-9-]+-auth-token(?:\.(\d+))?$/);
+    const _mm = _k.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:\.(\d+))?$/);
     if (!_mm) continue;
     if (_mm[1] === undefined) _base = localStorage.getItem(_k);
     else _chunks[_mm[1]] = localStorage.getItem(_k);
