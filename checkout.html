@@ -693,6 +693,20 @@ window._checkoutPrefill = async function() {
 
 window.zwResetPromoUI = function() {};
 
+/* Push the (post-discount) subtotal into the Apple Pay / Google Pay sheet so
+   its displayed amount matches the summary. The charge itself is computed
+   server-side either way; this is display parity. */
+window.zwSyncWalletTotal = function() {
+  try {
+    if (typeof window.initPaymentRequest !== 'function') return;
+    var cart = window.cartItems || [];
+    var sub = cart.reduce(function(s, i) { return s + parseFloat(i.price || 0) * (i.quantity || 1); }, 0);
+    var discount = window._zwActivePromo ? (parseFloat(window._zwActivePromo.discount) || 0) : 0;
+    var cents = Math.max(50, Math.round((sub - discount) * 100)); // Stripe minimum
+    window.initPaymentRequest(cents);
+  } catch(_) {}
+};
+
 window.zwApplyPromo = function(promo) {
   window._zwActivePromo = promo;
   // Keep the bag↔checkout handoff in sync (and survive a checkout refresh).
@@ -706,6 +720,7 @@ window.zwApplyPromo = function(promo) {
   if (applyBtn) { applyBtn.textContent = 'Remove'; applyBtn.disabled = false; }
   if (msgEl) { msgEl.textContent = promo.message || ((promo.label || 'Promo') + ' applied!'); msgEl.style.color = 'rgba(110,210,130,.9)'; }
   if (typeof window.zwPromoUpdateSummaryTotals === 'function') window.zwPromoUpdateSummaryTotals();
+  window.zwSyncWalletTotal();
 };
 
 window.zwPromoUpdateSummaryTotals = function() {
@@ -737,6 +752,7 @@ window.zwClearPromo = function() {
   var msgEl = document.getElementById('zw-promo-message');
   if (msgEl) { msgEl.textContent = ''; msgEl.style.color = ''; }
   if (typeof window.zwPromoUpdateSummaryTotals === 'function') window.zwPromoUpdateSummaryTotals();
+  window.zwSyncWalletTotal();
 };
 
 /* ── Read cart ── */
@@ -810,7 +826,7 @@ window.zwClearPromo = function() {
 </script>
 
 <script src="image-utils.js?v=6eef467b"></script>
-<script src="checkout.js?v=c6788660" defer></script>
+<script src="checkout.js?v=7657def7" defer></script>
 <script src="commerce-checkout.js?v=f884ded3" defer></script>
 
 <script>

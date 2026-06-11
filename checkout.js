@@ -99,7 +99,14 @@ async function initStripe() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  void initStripe().catch((error) => console.error('Stripe init failed:', error));
+  initStripe()
+    .then(() => {
+      // The inline wallet init runs before Stripe is ready and no-ops; sync
+      // here once stripe exists so the Apple Pay / Google Pay button actually
+      // initializes — with the current promo-discounted total.
+      if (typeof window.zwSyncWalletTotal === 'function') window.zwSyncWalletTotal();
+    })
+    .catch((error) => console.error('Stripe init failed:', error));
   refreshStripeCardTheme();
 });
 
@@ -149,11 +156,17 @@ let paymentRequest    = null;
 let prButtonEl        = null;
 let selectedShippingRate = null;
 let prTaxCents = 0;
+// Current sheet subtotal (after any promo discount). The shipping/tax event
+// handlers read this instead of closing over initPaymentRequest's argument,
+// so promo changes after init are reflected when the sheet recalculates.
+let prSubtotalCents = 0;
 
 function initPaymentRequest(subtotalCents) {
   if (!stripe) return;
-  // If a paymentRequest already exists (user opened checkout a second time),
-  // just update the amount instead of creating a duplicate button.
+  prSubtotalCents = subtotalCents;
+  // If a paymentRequest already exists (user opened checkout a second time,
+  // or a promo was applied/removed), update the amount instead of creating a
+  // duplicate button.
   if (paymentRequest) {
     paymentRequest.update({
       total: { label: 'Zuwera', amount: subtotalCents, pending: true },
@@ -186,11 +199,11 @@ function initPaymentRequest(subtotalCents) {
       });
       // Silently store the cheapest rate for fulfillment — customer pays $0 shipping.
       if (data.rates?.length) selectedShippingRate = data.rates[0];
-      prTaxCents = window.ZWCheckoutTax ? window.ZWCheckoutTax.taxCents(subtotalCents, addr.region || '', addr.postalCode || '') : 0;
+      prTaxCents = window.ZWCheckoutTax ? window.ZWCheckoutTax.taxCents(prSubtotalCents, addr.region || '', addr.postalCode || '') : 0;
       ev.updateWith({
         status: 'success',
         shippingOptions: [{ id: 'free', label: 'Free Shipping', detail: 'Standard delivery', amount: 0 }],
-        total: { label: 'Zuwera', amount: subtotalCents + prTaxCents },
+        total: { label: 'Zuwera', amount: prSubtotalCents + prTaxCents },
       });
     } catch { ev.updateWith({ status: 'fail' }); }
   });
@@ -199,7 +212,7 @@ function initPaymentRequest(subtotalCents) {
     // Shipping is always free — total never includes a shipping cost.
     ev.updateWith({
       status: 'success',
-      total: { label: 'Zuwera', amount: subtotalCents + prTaxCents },
+      total: { label: 'Zuwera', amount: prSubtotalCents + prTaxCents },
     });
   });
 
