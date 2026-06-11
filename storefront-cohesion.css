@@ -534,9 +534,14 @@ body.super-light-mode #zw-lang-box{
    star row, textarea, and fit toggles. Widen it and restore breathing room;
    the ≤760px bottom-sheet treatment is untouched. */
 @media(min-width:761px){
+  /* The general modal-box rule above (triple :not(#id) specificity) sets
+     width from var(--zw-panel-width) !important and cannot be out-ranked by
+     #review-modal > .review-mbox. Override the VARIABLE on the modal instead —
+     the same pattern the all-reviews modal uses. */
+  #review-modal{
+    --zw-panel-width: min(920px, calc(100vw - 3rem));
+  }
   #review-modal > .review-mbox{
-    width:min(920px, calc(100vw - 3rem)) !important;
-    max-width:min(920px, calc(100vw - 3rem)) !important;
     padding:2.8rem 3.2rem 2.6rem !important;
   }
   #review-modal .review-body-field{
