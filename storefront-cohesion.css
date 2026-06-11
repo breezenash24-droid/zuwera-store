@@ -2991,3 +2991,14 @@ html.in-iframe :is(nav#nav,.nav,header.nav,#mobile-menu,#mobile-menu-btn,footer,
 body.embed-mode :is(nav#nav,.nav,header.nav,#mobile-menu,#mobile-menu-btn,footer,.zw-footer,#cookie-banner,.cookie-consent){
   display:none !important;
 }
+
+/* In embedded contexts the page chrome (fixed nav) is hidden, so the mobile
+   .page-wrap rule above — calc(6.4rem + safe-area) !important top padding that
+   exists purely to clear that nav — just leaves a void at the top of the
+   size-guide modal. Match sizeguide.html's intended embed padding. */
+@media(max-width:760px){
+  html.in-iframe .page-wrap,
+  body.embed-mode .page-wrap{
+    padding:0 .9rem 1.5rem !important;
+  }
+}
