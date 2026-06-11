@@ -8,10 +8,39 @@
     <title>Zuwera Admin Panel</title>
     <link rel="icon" type="image/png" href="/images/favicon-black.png?v=1">
     <script src="/favicon-utils.js?v=a1a2eb2c"></script>
+    <script>
+    /* GATE PRE-READ — if an admin session exists in localStorage, mark the
+       document so the login form doesn't flash before the async server-side
+       admin check completes. Display-only: the panel itself is never revealed
+       without /api/admin-access confirming the role. */
+    (function(){try{
+      var raw=localStorage.getItem('zuwera-admin-auth-session-v1');
+      if(raw&&raw.indexOf('base64-')===0){
+        var b=raw.slice(7).replace(/-/g,'+').replace(/_/g,'/');
+        raw=new TextDecoder().decode(Uint8Array.from(atob(b),function(c){return c.charCodeAt(0);}));
+      }
+      var s=raw?JSON.parse(raw):null;
+      s=s&&s.currentSession?s.currentSession:s;
+      if(s&&s.user&&(Number(s.expires_at||0)*1000>Date.now()||s.refresh_token)){
+        document.documentElement.classList.add('zw-admin-pending');
+      }
+    }catch(_){}})()
+    </script>
+    <style>
+    /* While verifying a known session, show a quiet checking state instead of
+       flashing the login form. Cleared by showAuthGate/showAdminPanel/etc. */
+    html.zw-admin-pending #authForm{display:none !important}
+    html.zw-admin-pending #authGate::after{
+      content:'Verifying access…';
+      font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.18em;
+      text-transform:uppercase;opacity:.5;
+    }
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap"></noscript>
+    <!-- Render-blocking on purpose (matches the storefront): cached woff2 means
+         no font swap on every admin visit after the first. -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
     <style>
         :root {
             --bg-primary: #09090b;
@@ -7160,6 +7189,7 @@
         }
 
         function _showMFAPanel(panelId) {
+            document.documentElement.classList.remove('zw-admin-pending');
             document.getElementById('authForm').style.display = 'none';
             document.getElementById('accessDenied').style.display = 'none';
             document.getElementById('mfaChallenge').style.display = 'none';
@@ -7499,6 +7529,7 @@
         }
 
         function showAuthGate() {
+            document.documentElement.classList.remove('zw-admin-pending');
             document.getElementById('authGate').style.display = 'flex';
             document.getElementById('authForm').style.display = 'block';
             document.getElementById('accessDenied').style.display = 'none';
@@ -7518,6 +7549,7 @@
         }
 
         async function showAdminPanel() {
+            document.documentElement.classList.remove('zw-admin-pending');
             document.getElementById('authGate').style.display = 'none';
             document.getElementById('adminPanel').style.display = 'flex';
             await fetchGlobalTechs();
@@ -7536,6 +7568,7 @@
         }
 
         function showAccessDenied(errorMsg = null) {
+            document.documentElement.classList.remove('zw-admin-pending');
             document.getElementById('authGate').style.display = 'flex';
             document.getElementById('authForm').style.display = 'none';
             document.getElementById('accessDenied').style.display = 'block';
