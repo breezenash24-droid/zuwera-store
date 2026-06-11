@@ -2149,32 +2149,23 @@ async function loadFavs() {
 function pulseBagTarget() {
   const target = document.getElementById('cart-btn');
   if (!target) return;
-  target.classList.remove('bag-target-pop');
+  target.classList.remove('bag-dip');
   void target.offsetWidth;
-  target.classList.add('bag-target-pop');
+  target.classList.add('bag-dip');
   const count = target.querySelector('.cc');
   if (count) {
     count.classList.remove('pop');
     void count.offsetWidth;
     count.classList.add('pop');
   }
-  window.setTimeout(() => target.classList.remove('bag-target-pop'), 520);
+  window.setTimeout(() => target.classList.remove('bag-dip'), 460);
 }
 
 function animateAddToBag(sourceEl, imageSrc) {
-  // Add-to-bag acknowledgment: a springy pop + radiating ring on the bag
-  // button and a count-badge pop. (The old flying-image clone read as cheap;
-  // the signature is kept so all call sites/params stay valid.)
-  const target = document.getElementById('cart-btn');
-  if (!target || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    pulseBagTarget();
-    return;
-  }
-  const ring = document.createElement('span');
-  ring.className = 'bag-ping';
-  ring.setAttribute('aria-hidden', 'true');
-  target.appendChild(ring);
-  window.setTimeout(() => ring.remove(), 650);
+  // Add-to-bag acknowledgment: the bag icon "drop-in dip" (it dips and
+  // squashes as if the item landed in it) plus the count-badge pop. The
+  // (sourceEl, imageSrc) signature is kept so all call sites stay valid;
+  // prefers-reduced-motion is honored in CSS.
   pulseBagTarget();
 }
 
