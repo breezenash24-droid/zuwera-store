@@ -1882,6 +1882,26 @@ function updateCountdown() {
     var modal = document.getElementById('collection-review-modal');
     if (!modal) return;
     document.getElementById('collection-review-close')?.addEventListener('click', closeCollectionReviewModal);
+    // Swipe-down-to-close (mirrors product.html): drag down >80px while the
+    // sheet is scrolled to the top dismisses it via the close handler.
+    (function() {
+      var scrollEl = modal.querySelector('.collection-review-box');
+      if (!scrollEl) return;
+      var startY = 0, tracking = false;
+      scrollEl.addEventListener('touchstart', function(e) {
+        if (e.touches.length !== 1) { tracking = false; return; }
+        startY = e.touches[0].clientY;
+        tracking = scrollEl.scrollTop <= 0;
+      }, { passive: true });
+      scrollEl.addEventListener('touchmove', function() {
+        if (tracking && scrollEl.scrollTop > 0) tracking = false;
+      }, { passive: true });
+      scrollEl.addEventListener('touchend', function(e) {
+        if (!tracking) return; tracking = false;
+        var dy = e.changedTouches[0].clientY - startY;
+        if (dy > 80 && scrollEl.scrollTop <= 0) closeCollectionReviewModal();
+      }, { passive: true });
+    })();
     document.getElementById('collection-review-cancel')?.addEventListener('click', closeCollectionReviewModal);
     document.getElementById('collection-review-confirm')?.addEventListener('click', function() {
       if (!_collectionReviewItem) return;

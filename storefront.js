@@ -2879,6 +2879,38 @@ window.quickAddConfirmItem = function(productId, productTitle, productPrice, pro
 
 initQuickAddReviewModal();
 
+/* Swipe-down-to-close for the bottom-sheet modals (mirrors product.html).
+   If the user drags down >80px while the sheet is scrolled to the very top,
+   dismiss it by clicking the existing close button so all teardown runs. */
+function zwAttachSwipeClose(scrollEl, closeBtn) {
+  if (!scrollEl || !closeBtn) return;
+  let startY = 0, tracking = false;
+  scrollEl.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) { tracking = false; return; }
+    startY = e.touches[0].clientY;
+    tracking = scrollEl.scrollTop <= 0;
+  }, { passive: true });
+  scrollEl.addEventListener('touchmove', () => {
+    if (tracking && scrollEl.scrollTop > 0) tracking = false;
+  }, { passive: true });
+  scrollEl.addEventListener('touchend', e => {
+    if (!tracking) return; tracking = false;
+    const dy = e.changedTouches[0].clientY - startY;
+    if (dy > 80 && scrollEl.scrollTop <= 0) closeBtn.click();
+  }, { passive: true });
+}
+[
+  ['all-reviews-modal', '.review-list-mbox', 'all-reviews-close'],
+  ['review-modal', '.review-mbox', 'review-modal-close'],
+  ['auth-modal', '.mbox', 'auth-modal-close'],
+  ['account-modal', '.mbox', 'account-modal-close'],
+  ['quick-add-review-modal', '.mbox', 'quick-add-review-close'],
+].forEach(([modalId, scrollSel, closeId]) => {
+  const modal = document.getElementById(modalId);
+  if (!modal) return;
+  zwAttachSwipeClose(modal.querySelector(scrollSel) || modal.firstElementChild, document.getElementById(closeId));
+});
+
 /* STRIPE ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â lazy-loaded on first checkout click */
 let stripe = null, elements = null, card = null;
 let _stripeReady = false, _stripeLoading = false;
