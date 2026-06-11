@@ -11,9 +11,24 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://zuwera.store/product.html</loc>
+    <loc>https://zuwera.store/product/vogue?id=a68238d0-746e-4821-a6e0-ee765732c3ea</loc>
     <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://zuwera.store/product/aero-pro?id=185c7f10-d692-40f2-8a4c-a4825b1d5a2d</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://zuwera.store/product/classic?id=1976f50b-9f3e-4244-a25d-6bf64c478d97</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://zuwera.store/product/clasic?id=9e950037-24d7-4489-8962-4555d4a56979</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://zuwera.store/sizeguide.html</loc>

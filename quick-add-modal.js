@@ -1,16 +1,16 @@
 // quick-add-modal.js
-// Standalone, self-contained Quick-Add product modal for pages that do NOT load
-// storefront.js (e.g. bag.html, where saved items need a size/color picker).
-//
-// This MIRRORS the quick-add modal subsystem in storefront.js (the homepage
-// version). It is intentionally duplicated rather than shared so loading it on
-// the bag page carries ZERO risk to the working homepage bundle. If you change
-// the modal behaviour in storefront.js, mirror the change here.
+// The Quick-Add product modal — SINGLE SOURCE OF TRUTH, shared by:
+//   • index.html  (loaded before storefront.js; the grid wiring there calls
+//     window.quickAddToCart — the old in-file copy was removed)
+//   • bag.html    (saved-items "Add to Bag")
+// Injects its own markup when the page doesn't carry #quick-add-review-modal
+// statically (index.html does; bag.html doesn't).
 //
 // Exposes: window.quickAddToCart(productId, title, price, sku, image, weightLb, btn)
 //          window.openQuickAddReviewModal(item)
-// Depends (all optional, guarded): window.renderCart, window.showToast,
-//          window.ZWModalScrollLock, window.gtag.
+// Depends (all optional, guarded): window.renderCart, window.loadCartCount,
+//          window.showToast, window.animateAddToBag, window.ZWModalScrollLock,
+//          window.gtag.
 (function () {
   'use strict';
 
@@ -24,7 +24,8 @@
   function refreshCart() { if (typeof window.renderCart === 'function') window.renderCart(); }
 
   function qaSlug(name) {
-    return String(name || 'product').toLowerCase().trim()
+    // Matches storefront.js productSlug: the brand prefix is dropped from URLs.
+    return String(name || 'product').replace(/^zuwera\s+/i, '').toLowerCase().trim()
       .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'product';
   }
   function qaProductHref(item) {
@@ -81,8 +82,9 @@
     if (!btn) return;
     btn.classList.toggle('loading', Boolean(loading));
     btn.classList.toggle('disabled', Boolean(loading));
-    if (loading) { btn.dataset.qaLabel = btn.textContent; btn.textContent = '...'; }
-    else { btn.textContent = btn.dataset.qaLabel || QUICK_ADD_BUTTON_LABEL; }
+    // Preserve markup (homepage pcard buttons wrap the label in a span).
+    if (loading) { btn.dataset.qaHtml = btn.innerHTML; btn.innerHTML = '...'; }
+    else { btn.innerHTML = btn.dataset.qaHtml || QUICK_ADD_BUTTON_LABEL; }
   }
 
   function quickAddMoney(value) {
@@ -164,6 +166,9 @@
     if (typeof window.loadCartCount === 'function') window.loadCartCount();
     if (typeof window.gtag === 'function') {
       window.gtag('event', 'add_to_cart', { currency: 'USD', value: cartItem.price, items: [{ item_id: cartItem.productId, item_name: cartItem.title, price: cartItem.price, quantity: 1 }] });
+    }
+    if (typeof window.animateAddToBag === 'function') {
+      window.animateAddToBag(document.querySelector('#quick-add-review-media img') || document.getElementById('quick-add-review-confirm'), cartItem.image);
     }
     toast('Added to bag');
     window.setTimeout(closeQuickAddReviewModal, 160);
@@ -327,6 +332,8 @@
   }
 
   async function quickAddToCart(productId, productTitle, productPrice, productSku, productImage, productWeightLb, btn) {
+    // Close any open inline quick-size panels (homepage product grid).
+    document.querySelectorAll('.quick-size-panel.open').forEach(function (p) { p.classList.remove('open'); });
     setQuickAddButtonLoading(btn, true);
 
     var modalItem = {
