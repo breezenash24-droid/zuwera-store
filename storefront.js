@@ -1669,6 +1669,11 @@ document.getElementById('back-to-signin').addEventListener('click', e => { e.pre
 
 const _urlParams = new URLSearchParams(window.location.search);
 const _authAction = _urlParams.get('auth');
+// Optional same-site path to return to after signing in (used by the account
+// page's auth wall: /?auth=signin&next=%2Faccount.html). Sanitized: must be a
+// site-relative path ("/x", not "//host" or an absolute URL).
+const _authNextRaw = _urlParams.get('next') || '';
+const _authNext = /^\/(?!\/)/.test(_authNextRaw) ? _authNextRaw : '';
 if (_authAction === 'signin' || _authAction === 'signup') {
   setTimeout(() => { if (!_user) openAuth(_authAction); }, 100);
   window.history.replaceState({}, document.title, window.location.pathname);
@@ -1706,6 +1711,7 @@ document.getElementById('signin-submit').addEventListener('click', async () => {
     setDisabled('signin-submit', false, 'Login');
     closeAuth();
     showToast('Welcome back!');
+    if (_authNext) { window.location.href = _authNext; return; }
   };
   await runSignIn(null);
 });
