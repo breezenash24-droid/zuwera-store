@@ -2980,3 +2980,14 @@ body.light-mode .zwf-logo img, body.super-light-mode .zwf-logo img{ filter:none;
   .zwf-bottom{ flex-direction:row; align-items:center; justify-content:space-between; gap:2rem; }
   .zwf-bottom-left{ flex-direction:row; align-items:center; gap:1.6rem; }
 }
+
+/* ── Embedded contexts (e.g. sizeguide.html inside the product-page size-guide
+   modal iframe): never show page chrome. The mobile nav rule above uses
+   :is(nav#nav,.nav,header.nav) which carries ID-level specificity (1,0,1) from
+   the nav#nav argument, so it beats the page-local html.in-iframe /
+   body.embed-mode display:none rules even though all are !important. These
+   selectors prepend the context class, giving (1,1,x), which wins. ── */
+html.in-iframe :is(nav#nav,.nav,header.nav,#mobile-menu,#mobile-menu-btn,footer,.zw-footer,#cookie-banner,.cookie-consent),
+body.embed-mode :is(nav#nav,.nav,header.nav,#mobile-menu,#mobile-menu-btn,footer,.zw-footer,#cookie-banner,.cookie-consent){
+  display:none !important;
+}
