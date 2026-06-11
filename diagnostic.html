@@ -123,12 +123,12 @@ const SUPABASE_URL  = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 
 const STATIC_ASSETS = [
-  '/supabase.min.js?v=2',
+  '/supabase.min.js?v=3277b334',
   '/sw.js',
   '/stripe-client-config.js',
   '/manifest.json',
   '/site.webmanifest',
-  '/storefront-cohesion.css?v=26060703',
+  '/storefront-cohesion.css?v=5bde4109',
   '/auth.js',
   '/posthog-init.js',
 ];
@@ -449,7 +449,7 @@ async function checkAssetHeaders() {
 /* ── 5. HTTP Response Headers ──────────────────────────── */
 async function checkHeaders() {
   createSection('headers', '5. HTTP Response Headers');
-  const paths = ['/', '/sw.js', '/supabase.min.js?v=2', '/storefront-cohesion.css?v=26060703'];
+  const paths = ['/', '/sw.js', '/supabase.min.js?v=3277b334', '/storefront-cohesion.css?v=5bde4109'];
   for (const path of paths) {
     try {
       const r = await fetchWithTimeout(path + '?_diag=' + Date.now(), { method: 'HEAD', cache: 'no-store' }, 6000);
@@ -623,7 +623,7 @@ async function checkStripe() {
   createSection('stripe', '10. Stripe Payments');
 
   try {
-    const r = await fetchWithTimeout('/stripe-client-config.js?v=1', { cache: 'no-store' }, 6000);
+    const r = await fetchWithTimeout('/stripe-client-config.js?v=c262166e', { cache: 'no-store' }, 6000);
     if (r.ok) {
       const txt = await r.text();
       const hasKey = txt.includes('pk_live_') || txt.includes('pk_test_');

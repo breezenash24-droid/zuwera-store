@@ -8,5 +8,7 @@ Disallow: /analytics.html
 Disallow: /analytics
 Disallow: /account.html
 Disallow: /account
+Disallow: /builder.html
+Disallow: /builder
 
 Sitemap: https://zuwera.store/sitemap.xml

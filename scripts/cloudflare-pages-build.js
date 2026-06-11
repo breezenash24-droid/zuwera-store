@@ -16,6 +16,7 @@ const files = [
   'auth.js',
   'bag.html',
   'base.css',
+  'builder.html',
   'cart.css',
   'cart.js',
   'checkout-tax.js',
@@ -29,6 +30,7 @@ const files = [
   'diagnostic.html',
   'drop001.html',
   'favicon-utils.js',
+  'favicon.ico',
   'hero.mp4',
   'image-utils.js',
   'index.html',
@@ -54,6 +56,7 @@ const files = [
   'reviews.js',
   'returns.html',
   'robots.txt',
+  'site.webmanifest',
   'sitemap.xml',
   'sizeguide.html',
   'storefront-cohesion.css',
@@ -63,7 +66,6 @@ const files = [
   'supabase-client.js',
   'stripe-client-config.js',
   'supabase.min.js',
-  'sw.js',
 ];
 
 const directories = [
