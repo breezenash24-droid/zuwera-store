@@ -19,7 +19,7 @@ function escHtml(v) {
 async function fetchProductSeo(id, env) {
   const base = ((env && (env.SUPABASE_URL || env.SUPABASE_PROJECT_URL)) || SUPABASE_URL).trim();
   const url = `${base}/rest/v1/products?id=eq.${encodeURIComponent(id)}`
-    + `&select=id,title,description,current_price,status,sku,product_images(image_url,sort_order)`
+    + `&select=id,title,subtitle,category,current_price,status,sku,image_url,product_images(image_url,sort_order)`
     + `&limit=1`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 2500);
@@ -41,12 +41,15 @@ async function fetchProductSeo(id, env) {
 function injectSeo(html, product, pageUrl) {
   const title = (product.title || '').trim();
   if (!title) return html;
-  const desc = (product.description || `${title} — bold athletic sportswear from ZUWERA.`)
+  const descBits = [product.subtitle, product.category && `${product.category} from ZUWERA's Release 001`]
+    .filter(Boolean).join('. ');
+  const desc = (descBits || `${title} — bold athletic sportswear from ZUWERA.`)
     .replace(/\s+/g, ' ').trim().slice(0, 300);
   const images = Array.isArray(product.product_images)
     ? [...product.product_images].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
     : [];
-  const image = (images[0] && images[0].image_url) || 'https://zuwera.store/images/og-image.jpg';
+  const image = (images[0] && images[0].image_url) || product.image_url
+    || 'https://zuwera.store/images/og-image.jpg';
   const canonical = `https://zuwera.store${pageUrl.pathname}${product.id ? `?id=${product.id}` : ''}`;
   const price = parseFloat(product.current_price);
   const status = String(product.status || '').toLowerCase();
