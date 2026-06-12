@@ -319,10 +319,12 @@ body.light-mode #zw-lang-modal{
    zero changes to any close handler — and re-adding .open transitions IN the
    same way, replacing the per-page entrance keyframes (which now run once,
    invisibly, at load and never again).
-   Bespoke-motion modals are excluded: cart drawer, mobile menu, payment,
-   language panel. This also gives injected modals (quick-add on account.html)
-   a guaranteed hidden default even when the page has no .modal base CSS. */
-.modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal){
+   Bespoke-motion modals are excluded: mobile menu, payment, language panel.
+   The cart modal is included — its mobile bottom-sheet gets a full
+   translateY(100%) slide via the override below. This also gives injected
+   modals (quick-add on account.html) a guaranteed hidden default even when
+   the page has no .modal base CSS. */
+.modal:not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal){
   display:flex !important;
   visibility:hidden;
   opacity:0;
@@ -330,23 +332,42 @@ body.light-mode #zw-lang-modal{
   transition:opacity var(--zw-motion-base) ease,
              visibility 0s linear var(--zw-motion-base);
 }
-.modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal).open{
+.modal:not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal).open{
   visibility:visible;
   opacity:1;
   pointer-events:auto;
   transition:opacity var(--zw-motion-base) ease;
 }
-.modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.review-dialog){
+.modal:not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.review-dialog,.cbox){
   transition:transform var(--zw-motion-base) cubic-bezier(.32,.72,.34,1),
              opacity var(--zw-motion-base) ease;
 }
-.modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal):not(.open) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.review-dialog){
+.modal:not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal):not(.open) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.review-dialog,.cbox){
   opacity:0;
   transform:translateY(14px);
 }
+/* Cart bottom sheet (≤900): a full slide instead of the 14px nudge, on the
+   slightly longer panel token — the visibility delay must match so the sheet
+   finishes sliding before it's hidden. */
+@media(max-width:900px){
+  #cart-modal{
+    transition:opacity var(--zw-motion-panel) ease,
+               visibility 0s linear var(--zw-motion-panel);
+  }
+  #cart-modal.open{
+    transition:opacity var(--zw-motion-panel) ease;
+  }
+  #cart-modal > .cbox{
+    transition:transform var(--zw-motion-panel) cubic-bezier(.32,.72,.34,1),
+               opacity var(--zw-motion-panel) ease;
+  }
+  #cart-modal:not(.open) > .cbox{
+    transform:translateY(100%);
+  }
+}
 @media (prefers-reduced-motion: reduce){
-  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal),
-  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.review-dialog){
+  .modal:not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal),
+  .modal:not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.review-dialog,.cbox){
     transition:none !important;
   }
 }
