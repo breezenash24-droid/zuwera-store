@@ -108,7 +108,7 @@
     },
     {
       "@type": "ItemList",
-      "name": "Release 001 - Jackets",
+      "name": "Release 001",
       "description": "Zuwera's debut release, launching September 20 2026.",
       "url": "https://zuwera.store/#drop001",
       "itemListElement": [
@@ -116,10 +116,11 @@
           "@type": "ListItem", "position": 1,
           "item": {
             "@type": "Product",
-            "name": "Zuwera Jacket 001",
+            "name": "Zuwera Vogue",
+            "url": "https://zuwera.store/product/vogue?id=a68238d0-746e-4821-a6e0-ee765732c3ea",
             "brand": { "@id": "https://zuwera.store/#brand" },
-            "offers": { "@type": "Offer", "availability": "https://schema.org/PreOrder",
-              "availabilityStarts": "2026-09-20", "priceCurrency": "USD",
+            "offers": { "@type": "Offer", "price": "90.00", "priceCurrency": "USD",
+              "availability": "https://schema.org/PreOrder", "availabilityStarts": "2026-09-20",
               "seller": { "@id": "https://zuwera.store/#brand" } }
           }
         },
@@ -127,10 +128,11 @@
           "@type": "ListItem", "position": 2,
           "item": {
             "@type": "Product",
-            "name": "Zuwera Jacket 002",
+            "name": "Zuwera Aero Pro",
+            "url": "https://zuwera.store/product/aero-pro?id=185c7f10-d692-40f2-8a4c-a4825b1d5a2d",
             "brand": { "@id": "https://zuwera.store/#brand" },
-            "offers": { "@type": "Offer", "availability": "https://schema.org/PreOrder",
-              "availabilityStarts": "2026-09-20", "priceCurrency": "USD",
+            "offers": { "@type": "Offer", "price": "35.00", "priceCurrency": "USD",
+              "availability": "https://schema.org/PreOrder", "availabilityStarts": "2026-09-20",
               "seller": { "@id": "https://zuwera.store/#brand" } }
           }
         },
@@ -138,10 +140,23 @@
           "@type": "ListItem", "position": 3,
           "item": {
             "@type": "Product",
-            "name": "Zuwera Jacket 003",
+            "name": "Zuwera Classic",
+            "url": "https://zuwera.store/product/classic?id=1976f50b-9f3e-4244-a25d-6bf64c478d97",
             "brand": { "@id": "https://zuwera.store/#brand" },
-            "offers": { "@type": "Offer", "availability": "https://schema.org/PreOrder",
-              "availabilityStarts": "2026-09-20", "priceCurrency": "USD",
+            "offers": { "@type": "Offer", "price": "32.00", "priceCurrency": "USD",
+              "availability": "https://schema.org/PreOrder", "availabilityStarts": "2026-09-20",
+              "seller": { "@id": "https://zuwera.store/#brand" } }
+          }
+        },
+        {
+          "@type": "ListItem", "position": 4,
+          "item": {
+            "@type": "Product",
+            "name": "Zuwera Clasic",
+            "url": "https://zuwera.store/product/clasic?id=9e950037-24d7-4489-8962-4555d4a56979",
+            "brand": { "@id": "https://zuwera.store/#brand" },
+            "offers": { "@type": "Offer", "price": "15.00", "priceCurrency": "USD",
+              "availability": "https://schema.org/PreOrder", "availabilityStarts": "2026-09-20",
               "seller": { "@id": "https://zuwera.store/#brand" } }
           }
         }
@@ -194,7 +209,7 @@
 <!-- Quick-add modal module MUST load before storefront.js: the grid wiring in
      storefront.js calls window.quickAddToCart, which this module provides. -->
 <script src="quick-add-modal.js?v=789d4305" defer></script>
-<script src="storefront.js?v=2b9fc1c8" defer></script>
+<script src="storefront.js?v=3acfa500" defer></script>
 <script src="/stripe-client-config.js?v=c262166e" defer></script>
 <script src="/checkout-tax.js?v=b12c4e5f" defer></script>
 
@@ -486,6 +501,7 @@ body.light-mode #mobile-menu-close { color:#09090b !important; }
 .marquee-item.accent{color:var(--gold);opacity:.6;font-size:0;line-height:1}
 .marquee-item.accent::before{content:'\2726';font-size:.82rem}
 @keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){.marquee-track{animation:none}}
 
 /* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
    SECTION: ABOUT

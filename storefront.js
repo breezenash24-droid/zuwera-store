@@ -1368,7 +1368,14 @@ async function _doLoadProducts() {
     renderProductCards(normalizedProducts, grid);
   } catch(e) {
     console.error('loadProducts error:', e);
-    grid.innerHTML = '<div class="pcard" style="opacity:.3;text-align:center;padding:3rem">Could not load products.</div>';
+    // Actionable, not a dead end: offer a retry. The early fetch is cleared
+    // first so the retry issues a fresh request instead of re-awaiting the
+    // same rejected promise.
+    grid.innerHTML = '<div class="pcard" style="opacity:.6;text-align:center;padding:3rem">' +
+      '<p style="margin-bottom:1rem">Could not load products.</p>' +
+      '<button type="button" class="btn-outline" style="cursor:pointer" ' +
+      'onclick="window.__zwProductsEarlyFetch=null;this.disabled=true;this.textContent=\'Retrying…\';loadProducts()">Retry</button>' +
+      '</div>';
   }
 }
 
