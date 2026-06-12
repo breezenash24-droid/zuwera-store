@@ -41,9 +41,11 @@ async function fetchProductSeo(id, env) {
 function injectSeo(html, product, pageUrl) {
   const title = (product.title || '').trim();
   if (!title) return html;
-  const descBits = [product.subtitle, product.category && `${product.category} from ZUWERA's Release 001`]
-    .filter(Boolean).join('. ');
-  const desc = (descBits || `${title} — bold athletic sportswear from ZUWERA.`)
+  // subtitle holds the human category ("Jackets"); products.category is an
+  // internal code (e.g. "MOT") — never surface it.
+  const desc = (product.subtitle
+      ? `${title} — ${product.subtitle}. Bold athletic sportswear from ZUWERA's Release 001.`
+      : `${title} — bold athletic sportswear from ZUWERA.`)
     .replace(/\s+/g, ' ').trim().slice(0, 300);
   const images = Array.isArray(product.product_images)
     ? [...product.product_images].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
