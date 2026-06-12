@@ -1645,7 +1645,7 @@ function closeAuth() {
   _authReturnModalId = null;
   if (shouldReturnToCart) {
     renderCart();
-    document.getElementById('cart-modal').classList.add('open');
+    document.getElementById('cart-modal')?.classList.add('open');
     setPageScrollLock(true);
     return;
   }
@@ -2178,6 +2178,9 @@ function animateAddToBag(sourceEl, imageSrc) {
 
 let _cartFavRenderVer = 0;
 async function refreshCartFavs() {
+  // The cart drawer (and its saved-items list) no longer exists on this page;
+  // bag.html/auth.js own that UI now.
+  if (!document.getElementById('cart-favs-list')) return;
   const myVer = ++_cartFavRenderVer;
   const out = document.getElementById('fav-logged-out-msg');
   const inn = document.getElementById('fav-logged-in-area');
@@ -2262,40 +2265,11 @@ async function removeFav(pid, el, options = {}) {
 let cartItems = [];
 
 function renderCart() {
+  // The cart drawer was removed from this page (the bag button navigates to
+  // /bag.html). This keeps cartItems fresh and the nav badge count in sync —
+  // which is all the homepage needs.
   const cart = normalizeCartPricing(JSON.parse(localStorage.getItem('cart')) || []);
   cartItems = cart;
-  const list = document.getElementById('cart-items-list');
-  const emptyMsg = document.getElementById('cart-empty-msg');
-  if (cart.length === 0) {
-    list.innerHTML = '';
-    list.style.display = 'none';
-    emptyMsg.style.display = 'block';
-    updateCartSummary(0);
-    const countEl = document.querySelector('.cc');
-    if (countEl) countEl.textContent = '0';
-    refreshCartFavs();
-    return;
-  }
-  list.style.display = '';
-  emptyMsg.style.display = 'none';
-  list.innerHTML = cart.map((item, idx) => `
-    <li style="display:flex;gap:1rem;align-items:flex-start">
-      <img src="${typeof window.optimizeImage === 'function' ? window.optimizeImage(item.image, 150) : escapeHomeFavoriteHtml(item.image)}" alt="${escapeHomeFavoriteHtml(item.title)}" loading="lazy" style="width:60px;height:75px;object-fit:cover;border:1px solid rgba(244,241,235,.08)" data-fallback="${escapeHomeFavoriteHtml(item.image)}" onerror="var f=this.dataset.fallback;if(f&&this.src!==f)this.src=f;">
-      <div style="flex:1">
-        <div style="font-family:var(--fw);font-style:italic;font-weight:700;font-size:1.1rem">${escapeHomeFavoriteHtml(item.title)}</div>
-        <div style="font-family:var(--fm);font-size:.65rem;color:rgba(244,241,235,.4);margin-top:.2rem;text-transform:uppercase">${escapeHomeFavoriteHtml(item.colorName)} / ${escapeHomeFavoriteHtml(item.size)}</div>
-        <div style="font-size:.85rem;margin-top:.4rem;display:flex;align-items:center;gap:8px">
-          <button aria-label="Decrease quantity" onclick="updateCartQuantity(${idx}, -1)" style="background:none;border:1px solid rgba(244,241,235,.3);color:inherit;width:20px;height:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:2px;font-size:.9rem;line-height:1">-</button>
-          <span>${item.quantity}</span>
-          <button aria-label="Increase quantity" onclick="updateCartQuantity(${idx}, 1)" style="background:none;border:1px solid rgba(244,241,235,.3);color:inherit;width:20px;height:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:2px;font-size:.9rem;line-height:1">+</button>
-        </div>
-        <div style="font-size:.85rem;margin-top:.4rem">$${(parseFloat(item.price) * item.quantity).toFixed(2)}</div>
-      </div>
-      <button aria-label="Remove item from cart" onclick="removeCartItem(${idx})" style="background:none;border:none;color:rgba(244,241,235,.3);cursor:pointer;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase">Remove</button>
-    </li>
-  `).join('');
-  const subtotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
-  updateCartSummary(subtotal);
   const ccEl = document.querySelector('.cc');
   if (ccEl) {
     const newCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -2308,54 +2282,7 @@ function renderCart() {
       ccEl.addEventListener('animationend', () => ccEl.classList.remove('pop'), { once: true });
     }
   }
-  refreshCartFavs();
 }
-
-function updateCartSummary(subtotal) {
-  const policy        = window._shippingPolicy || { enabled: true, threshold: 100, standardRate: 8 };
-  const qualifiesFree = policy.enabled && subtotal >= policy.threshold;
-
-  // Update the ship-note below the "Shipping" label
-  const shipNote = document.querySelector('.ship-note');
-  if (shipNote) {
-    if (!policy.enabled) {
-      shipNote.textContent = 'Calculated at checkout';
-    } else if (subtotal > 0 && qualifiesFree) {
-      shipNote.textContent = 'Your order qualifies for free shipping!';
-    } else if (subtotal > 0) {
-      // Not yet qualifying â€” move "Calculated at checkout" to the note so the
-      // right-hand value stays as a clean dash rather than long wrapping text.
-      shipNote.textContent = 'Calculated at checkout';
-    } else {
-      shipNote.textContent = `Free on orders $${policy.threshold}+`;
-    }
-  }
-
-  document.getElementById('summary-subtotal').textContent = subtotal > 0 ? '$' + subtotal.toFixed(2) : '-';
-
-  if (subtotal === 0) {
-    document.getElementById('summary-shipping').textContent = '-';
-    document.getElementById('summary-tax').textContent      = '-';
-    document.getElementById('summary-total').textContent    = '-';
-    return;
-  }
-
-  const tax = window.ZWCheckoutTax?.taxDollars(subtotal, getCheckoutTaxStateCode()) || 0;
-  document.getElementById('summary-tax').textContent = '$' + tax.toFixed(2);
-
-  if (qualifiesFree) {
-    document.getElementById('summary-shipping').textContent = 'Free';
-    document.getElementById('summary-total').textContent    = '$' + (subtotal + tax).toFixed(2);
-  } else {
-    // Right-side value stays a clean dash; the note line already says
-    // "Calculated at checkout" so the row doesn't look overcrowded.
-    document.getElementById('summary-shipping').textContent = 'â€”';
-    document.getElementById('summary-total').textContent    = '$' + (subtotal + tax).toFixed(2);
-  }
-}
-
-window.updateCartQuantity = function(idx, delta) { let cart = JSON.parse(localStorage.getItem('cart')) || []; if (cart[idx]) { cart[idx].quantity += delta; if (cart[idx].quantity <= 0) cart.splice(idx, 1); localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); } };
-window.removeCartItem = function(idx) { let cart = JSON.parse(localStorage.getItem('cart')) || []; cart.splice(idx, 1); localStorage.setItem('cart', JSON.stringify(cart)); renderCart(); };
 
 function clearStorefrontOverlayState() {
   document.querySelectorAll('.modal.open').forEach(modal => {
@@ -2378,12 +2305,6 @@ window.__zwOpenCart = function() {
 window.__zwCloseCart = function() { history.back(); return false; };
 
 document.getElementById('cart-btn').addEventListener('click', (e) => { e.preventDefault(); window.__zwOpenCart(); });
-document.getElementById('fav-signin-link').addEventListener('click', () => openAuth('signin'));
-document.getElementById('checkout-btn').addEventListener('click', () => {
-  if (!cartItems.length) return;
-  const sub = Math.round(parseFloat((document.getElementById('summary-subtotal')?.textContent||'0').replace(/[^0-9.]/g,''))*100);
-  openPaymentModal(sub || 100);
-});
 window.addEventListener('DOMContentLoaded', renderCart);
 
 // â”€â”€â”€ Quick Add to Bag â€” two-step: Colorway â†’ Size â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -3032,7 +2953,7 @@ function showConfirmed(piId, email) {
   setPageScrollLock(true);
   cartItems=[];
   localStorage.removeItem('cart');
-  document.getElementById('cart-items-list').innerHTML='';
+  const _cil = document.getElementById('cart-items-list'); if (_cil) _cil.innerHTML='';
   document.getElementById('cart-empty-msg').style.display='block';
   document.querySelector('.cc').textContent='0';
 }

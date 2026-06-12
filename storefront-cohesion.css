@@ -320,8 +320,8 @@ body.light-mode #zw-lang-modal{
    same way, replacing the per-page entrance keyframes (which now run once,
    invisibly, at load and never again).
    Bespoke-motion modals are excluded: mobile menu, payment, language panel.
-   The cart modal is included — its mobile bottom-sheet gets a full
-   translateY(100%) slide via the override below. This also gives injected
+   (The legacy cart drawer was removed from index.html entirely; the bag
+   button navigates to /bag.html.) This also gives injected
    modals (quick-add on account.html) a guaranteed hidden default even when
    the page has no .modal base CSS. */
 .modal:not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal){
@@ -345,25 +345,6 @@ body.light-mode #zw-lang-modal{
 .modal:not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal):not(.open) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.review-dialog,.cbox){
   opacity:0;
   transform:translateY(14px);
-}
-/* Cart bottom sheet (≤900): a full slide instead of the 14px nudge, on the
-   slightly longer panel token — the visibility delay must match so the sheet
-   finishes sliding before it's hidden. */
-@media(max-width:900px){
-  #cart-modal{
-    transition:opacity var(--zw-motion-panel) ease,
-               visibility 0s linear var(--zw-motion-panel);
-  }
-  #cart-modal.open{
-    transition:opacity var(--zw-motion-panel) ease;
-  }
-  #cart-modal > .cbox{
-    transition:transform var(--zw-motion-panel) cubic-bezier(.32,.72,.34,1),
-               opacity var(--zw-motion-panel) ease;
-  }
-  #cart-modal:not(.open) > .cbox{
-    transform:translateY(100%);
-  }
 }
 @media (prefers-reduced-motion: reduce){
   .modal:not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal),
@@ -420,7 +401,6 @@ body.super-light-mode .size-guide-dialog{ background:#FFFFFF !important; border-
 
 body.super-light-mode .mclose{ background:rgba(9,9,11,.08) !important; border-color:rgba(9,9,11,.2) !important; color:#09090b !important; }
 
-body.super-light-mode .cart-hd{ background:rgba(255,255,255,.97) !important; border-bottom-color:rgba(9,9,11,.08) !important; }
 body.super-light-mode .csummary{ background:#FFFFFF !important; border-color:rgba(9,9,11,.1) !important; }
 
 body.super-light-mode #payment-modal,
@@ -1328,10 +1308,6 @@ body.light-mode .heart-btn{
     padding:1rem !important;
   }
 
-  .cart-hd{
-    padding:calc(1rem + env(safe-area-inset-top,0px)) 1.2rem 1rem !important;
-  }
-
 
 
   #payment-modal .pmodal-left{
@@ -1645,9 +1621,6 @@ body.light-mode .heart-btn{
     border-bottom-color:rgba(9,9,11,0.12) !important;
   }
 
-  /* Cart modal — bottom sheet, no backdrop */
-  #cart-modal{background:transparent !important;align-items:flex-end !important;padding:0 !important}
-  #cart-modal .cbox{width:100% !important;max-height:92dvh !important;border-radius:1rem 1rem 0 0 !important;margin:0 !important;border-left:none !important;border-right:none !important;border-bottom:none !important}
 }
 
 @media(max-width:760px){
