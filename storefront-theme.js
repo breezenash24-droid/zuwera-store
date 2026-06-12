@@ -233,8 +233,27 @@
       if (row.key === 'fonts') {
         applyStorefrontFonts(row.value);
       }
+      if (row.key === 'early_access') {
+        window.__zwEarlyAccess = row.value || null;
+      }
     });
   }
+
+  // Early-access gate: when the admin enables it (Settings → Early Access),
+  // only signed-in members can add to bag until the window ends. Checked at
+  // add-to-bag time by product.html and quick-add-modal.js.
+  window.zwEarlyAccessBlocked = function() {
+    var ea = window.__zwEarlyAccess;
+    if (!ea || !ea.enabled) return false;
+    if (ea.ends_at && Date.now() > new Date(ea.ends_at).getTime()) return false;
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && /^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)/.test(k) && localStorage.getItem(k)) return false; // signed in
+      }
+    } catch (_) {}
+    return true;
+  };
 
   // Expose so index.html's loadSiteSettings can feed rows directly (avoids duplicate fetch)
   window.__zwApplyThemeRows = applySettingsRows;

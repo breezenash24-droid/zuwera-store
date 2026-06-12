@@ -2971,6 +2971,11 @@
                         <button class="btn btn-primary" id="addProductBtn">+ Add Product</button>
                     </div>
                     <p style="color:var(--text-secondary);font-size:.88rem;margin-top:6px;margin-bottom:20px;line-height:1.6;">All your products live here. Click <strong>+ Add Product</strong> to create a new one. Set its status to <strong>Live</strong> when it's ready for customers to buy. <strong>Draft</strong> = hidden from store. <strong>Coming Soon</strong> = shows a waitlist button.</p>
+                    <!-- Back-in-stock demand (from sold-out size notify signups) -->
+                    <div id="restock-demand" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px 20px;margin-bottom:20px;">
+                        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;letter-spacing:.08em;margin-bottom:10px;">📬 Restock Demand</div>
+                        <div id="restock-demand-list" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+                    </div>
                     <div class="search-filter">
                         <input type="text" id="productSearch" placeholder="Search by SKU, title, or colorway...">
                     </div>
@@ -6079,6 +6084,22 @@
                     <div class="page-header" style="margin-bottom:24px;">
                         <h2>Site Settings</h2>
                         <p style="color:var(--text-secondary);font-size:.88rem;margin-top:6px;margin-bottom:20px;line-height:1.6;">Control how your store behaves — your banner message, shipping rules, return policy, legal pages, FAQs, and more. Hit the <strong>Save</strong> button in each section after making changes.</p>
+                    </div>
+
+                    <!-- Early Access -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
+                        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:8px;">🔐 Early Access</div>
+                        <p style="color:var(--text-secondary);font-size:.82rem;margin-bottom:16px;line-height:1.6;">When enabled, only signed-in members can add items to their bag — guests are prompted to sign in. Use this to give your waitlist a members-only shopping window at launch.</p>
+                        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:.88rem;margin-bottom:14px;">
+                            <input type="checkbox" id="earlyAccessEnabled" style="accent-color:var(--accent);cursor:pointer;width:16px;height:16px;">
+                            <span>Members-only Add to Bag</span>
+                        </label>
+                        <div style="margin-bottom:16px;">
+                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:8px;">Ends at (optional — gate lifts automatically)</label>
+                            <input type="datetime-local" id="earlyAccessEndsAt" class="form-input" style="max-width:280px;">
+                        </div>
+                        <button class="btn btn-primary" onclick="saveEarlyAccess()">Save Early Access</button>
+                        <span id="earlyAccessStatus" style="margin-left:10px;font-size:.8rem;color:var(--text-secondary);"></span>
                     </div>
 
                     <!-- Announcement Bar -->
@@ -9276,7 +9297,35 @@
             displayProductsTable(getFilteredSortedProducts());
         }
 
+        /* Back-in-stock demand summary — grouped counts per product/size. */
+        async function loadRestockDemand() {
+            try {
+                const { data, error } = await sb.from('restock_requests')
+                    .select('product_id, size, color_name, products(title)')
+                    .is('notified_at', null);
+                const box = document.getElementById('restock-demand');
+                const list = document.getElementById('restock-demand-list');
+                if (!box || !list) return;
+                if (error || !data || !data.length) { box.style.display = 'none'; return; }
+                const groups = {};
+                data.forEach(r => {
+                    const key = `${r.products?.title || r.product_id} · ${r.size}${r.color_name ? ' · ' + r.color_name : ''}`;
+                    groups[key] = (groups[key] || 0) + 1;
+                });
+                list.innerHTML = Object.entries(groups)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([label, n]) =>
+                        `<span style="display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border:1px solid var(--border);border-radius:999px;font-size:.8rem;">
+                            ${escapeHtml(label)}
+                            <strong style="background:var(--accent);color:#fff;border-radius:99px;font-size:.7rem;padding:1px 8px;">${n}</strong>
+                        </span>`
+                    ).join('');
+                box.style.display = '';
+            } catch (_) {}
+        }
+
         async function loadProducts() {
+            loadRestockDemand();
             const tbody = document.getElementById('productsTableBody');
             if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-secondary);">Loading…</td></tr>';
             try {
@@ -11639,13 +11688,36 @@
         // ══════════════════════════════════════════════════════════════════
     // SETTINGS - Load & Save
     // ══════════════════════════════════════════════════════════════════
+    async function saveEarlyAccess() {
+        const status = document.getElementById('earlyAccessStatus');
+        const enabled = document.getElementById('earlyAccessEnabled')?.checked === true;
+        const endsRaw = document.getElementById('earlyAccessEndsAt')?.value || '';
+        const ends_at = endsRaw ? new Date(endsRaw).toISOString() : null;
+        try {
+            const { error } = await sb.from('site_settings').upsert(
+                { key: 'early_access', value: { enabled, ends_at } },
+                { onConflict: 'key' }
+            );
+            if (error) throw error;
+            if (status) { status.textContent = enabled ? '✓ Saved — members-only is ON' : '✓ Saved — gate is off'; setTimeout(() => status.textContent = '', 4000); }
+        } catch (e) {
+            if (status) status.textContent = 'Save failed: ' + (e.message || e);
+        }
+    }
+
     async function loadSettings() {
         const { data } = await sb.from('site_settings').select('*');
         let hasTechs = false;
         let hasLegal = false, hasFaq = false;
         if (!data) return;
         data.forEach(row => {
-            if (row.key === 'announcement_bar') {
+            if (row.key === 'early_access') {
+                const v = row.value || {};
+                const en = document.getElementById('earlyAccessEnabled');
+                const ends = document.getElementById('earlyAccessEndsAt');
+                if (en) en.checked = v.enabled === true;
+                if (ends) ends.value = v.ends_at ? new Date(v.ends_at).toISOString().slice(0, 16) : '';
+            } else if (row.key === 'announcement_bar') {
                 let v = row.value;
                 try { if (typeof v === 'string') v = JSON.parse(v); } catch(e) {}
                 if (typeof v === 'object' && v !== null) {

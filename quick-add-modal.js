@@ -332,6 +332,13 @@
   }
 
   async function quickAddToCart(productId, productTitle, productPrice, productSku, productImage, productWeightLb, btn) {
+    // Early-access gate: admin-enabled members-only window (see storefront-theme.js).
+    if (typeof window.zwEarlyAccessBlocked === 'function' && window.zwEarlyAccessBlocked()) {
+      toast('Early access is for members — sign in to shop first.');
+      var openAuthFn = window.openAuthModal || window.openAuth || window.__zwOpenAuth;
+      if (typeof openAuthFn === 'function') openAuthFn('signin');
+      return;
+    }
     // Close any open inline quick-size panels (homepage product grid).
     document.querySelectorAll('.quick-size-panel.open').forEach(function (p) { p.classList.remove('open'); });
     setQuickAddButtonLoading(btn, true);

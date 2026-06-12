@@ -1185,6 +1185,17 @@ body.super-light-mode { background: #FFFFFF !important; }
             <a href="/sizeguide.html" class="size-guide-link" id="sizeGuideLink" onclick="if(window.openSizeGuideModal){event.preventDefault();window.openSizeGuideModal();}">Size Guide</a>
           </div>
           <div class="size-grid" id="sizeGrid"></div>
+          <!-- Back-in-stock capture — shown when a sold-out size is tapped -->
+          <div id="restock-panel" style="display:none;margin-top:.9rem;padding:.95rem 1rem;border:1px solid rgba(248,145,165,.3);background:rgba(248,145,165,.05)">
+            <p id="restock-label" style="font-family:var(--fm);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.6rem;opacity:.85"></p>
+            <div style="display:flex;gap:.5rem">
+              <input type="email" id="restock-email" placeholder="you@example.com" autocomplete="email"
+                     style="flex:1;min-width:0;background:rgba(244,241,235,.04);border:1px solid rgba(244,241,235,.18);color:inherit;padding:.6rem .75rem;font-family:var(--fb);font-size:max(16px,.85rem);outline:none">
+              <button type="button" id="restock-submit" onclick="submitRestockRequest()"
+                      style="background:var(--white,#f4f1eb);color:var(--black,#09090b);border:none;padding:.6rem 1rem;font-family:var(--fm);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;font-weight:600;cursor:pointer;white-space:nowrap">Notify Me</button>
+            </div>
+            <p id="restock-msg" style="font-family:var(--fm);font-size:.62rem;margin-top:.5rem;min-height:.9rem;letter-spacing:.04em"></p>
+          </div>
           <p class="stock-info" id="stockInfo"></p>
         </div>
 
@@ -1263,6 +1274,12 @@ body.super-light-mode { background: #FFFFFF !important; }
 
       </div>
     </div>
+
+    <!-- RELATED PRODUCTS — "More from Release 001", populated by JS -->
+    <section id="related-products" style="display:none;max-width:1240px;margin:0 auto;padding:3rem clamp(1.15rem,5vw,3rem) 1rem">
+      <p class="section-label" style="margin-bottom:1.4rem">More From Release 001</p>
+      <div class="pgrid" id="related-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem"></div>
+    </section>
 
   </div>
 
@@ -2399,6 +2416,9 @@ function renderProduct() {
   // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Inventory & Sizes ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
   renderSizes();
 
+  // Related products
+  void loadRelatedProducts();
+
   // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Accordions ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
   renderAccordions();
 
@@ -2943,11 +2963,19 @@ function renderSizes() {
     btn.dataset.size = size;
 
     if (hasInventory && stock === 0) {
+      // Sold out: stays clickable so it can open the back-in-stock capture
+      // instead of being a dead end. .disabled keeps the struck-through look;
+      // aria reflects the real affordance.
       btn.classList.add('disabled');
-      btn.disabled = true;
+      btn.setAttribute('aria-label', `${size} — sold out. Get notified when it's back.`);
     }
 
     btn.addEventListener('click', () => {
+      if (hasInventory && stock === 0) {
+        openRestockPanel(size);
+        return;
+      }
+      hideRestockPanel();
       document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('selected'));
       btn.classList.add('selected');
       selectedSize = size;
@@ -3246,7 +3274,116 @@ function animateAddToBag(sourceEl, imageSrc) {
   pulseBagTarget();
 }
 
+/* ── Related products ("More From Release 001") ─────────────────── */
+async function loadRelatedProducts() {
+  try {
+    if (!window.sb || !currentProduct?.id) return;
+    const { data } = await window.sb
+      .from('products')
+      .select('id,title,current_price,product_images(image_url,sort_order)')
+      .eq('status', 'Live')
+      .neq('id', currentProduct.id)
+      .limit(3);
+    const grid = document.getElementById('related-grid');
+    const section = document.getElementById('related-products');
+    if (!grid || !section || !data?.length) return;
+    const esc = v => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const slugOf = t => String(t||'').replace(/^zuwera\s+/i,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'product';
+    grid.innerHTML = data.map(p => {
+      const imgs = (p.product_images || []).slice().sort((a,b)=>(a.sort_order??0)-(b.sort_order??0));
+      const img = imgs[0]?.image_url || '';
+      const href = `/product/${slugOf(p.title)}?id=${p.id}`;
+      const price = parseFloat(p.current_price);
+      return `<a href="${esc(href)}" class="pcard" style="display:block;text-decoration:none;color:inherit;border:1px solid rgba(244,241,235,.08)">
+        <div class="pcard-img" style="aspect-ratio:4/5;overflow:hidden;background:rgba(244,241,235,.03)">
+          ${img ? `<img src="${esc(typeof window.optimizeImage==='function'?window.optimizeImage(img,520):img)}" alt="${esc(p.title)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block">` : ''}
+        </div>
+        <div class="pcard-info" style="padding:1rem 1.1rem">
+          <p class="pcard-name" style="margin:0 0 .25rem">${esc(p.title)}</p>
+          ${!Number.isNaN(price) && price > 0 ? `<p class="pcard-price" style="margin:0">$${price.toFixed(2)}</p>` : ''}
+        </div>
+      </a>`;
+    }).join('');
+    section.style.display = '';
+  } catch (_) { /* related products are decorative — never break the page */ }
+}
+
+/* ── Back-in-stock notify ────────────────────────────────────────── */
+let _restockSize = null;
+
+function openRestockPanel(size) {
+  _restockSize = size;
+  const panel = document.getElementById('restock-panel');
+  const label = document.getElementById('restock-label');
+  const msg = document.getElementById('restock-msg');
+  const emailEl = document.getElementById('restock-email');
+  if (!panel) return;
+  if (label) label.textContent = `Size ${size} is sold out — get notified when it's back`;
+  if (msg) { msg.textContent = ''; msg.style.color = ''; }
+  // Prefill from the signed-in session when available.
+  if (emailEl && !emailEl.value.trim()) {
+    try {
+      const u = window.__zwSessionUser;
+      if (u?.email) emailEl.value = u.email;
+      else if (window.sb) window.sb.auth.getSession().then(r => {
+        const e = r?.data?.session?.user?.email;
+        if (e && emailEl && !emailEl.value.trim()) emailEl.value = e;
+      }).catch(() => {});
+    } catch (_) {}
+  }
+  panel.style.display = 'block';
+  document.getElementById('restock-email')?.focus({ preventScroll: true });
+}
+
+function hideRestockPanel() {
+  const panel = document.getElementById('restock-panel');
+  if (panel) panel.style.display = 'none';
+  _restockSize = null;
+}
+
+window.submitRestockRequest = async function() {
+  const emailEl = document.getElementById('restock-email');
+  const msg = document.getElementById('restock-msg');
+  const btn = document.getElementById('restock-submit');
+  const email = (emailEl?.value || '').trim();
+  if (!_restockSize || !currentProduct?.id) return;
+  if (!email || !email.includes('@')) {
+    if (msg) { msg.textContent = 'Enter a valid email.'; msg.style.color = 'var(--red,#dc2626)'; }
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  try {
+    const { error } = await window.sb.from('restock_requests').insert({
+      product_id: currentProduct.id,
+      size: _restockSize,
+      color_name: (typeof selectedColor !== 'undefined' && selectedColor?.color_name) || null,
+      email,
+    });
+    if (error) {
+      // Unique violation = already registered; everything else surfaces.
+      if (String(error.code) === '23505') {
+        if (msg) { msg.textContent = "You're already on the list for this size."; msg.style.color = ''; }
+      } else {
+        throw error;
+      }
+    } else {
+      if (msg) { msg.textContent = `✓ We'll email you when ${_restockSize} is back.`; msg.style.color = 'rgba(110,210,130,.9)'; }
+    }
+    if (btn) { btn.textContent = 'Notify Me'; btn.disabled = false; }
+  } catch (e) {
+    if (msg) { msg.textContent = e?.message || 'Could not save that — try again.'; msg.style.color = 'var(--red,#dc2626)'; }
+    if (btn) { btn.textContent = 'Notify Me'; btn.disabled = false; }
+  }
+};
+
 function addToCart() {
+  // Early-access gate: when enabled by the admin and within the window,
+  // only signed-in members can add to bag.
+  if (typeof window.zwEarlyAccessBlocked === 'function' && window.zwEarlyAccessBlocked()) {
+    if (typeof showToast === 'function') showToast('Early access is for members — sign in to shop first.');
+    if (typeof openAuthModal === 'function') openAuthModal('signin');
+    return;
+  }
   if (!selectedSize) {
     alert('Please select a size');
     return;
@@ -4310,7 +4447,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 
 <!-- Language selector -->
 <script src="modal-lock.js?v=5a7125d6"></script>
-<script src="storefront-theme.js?v=ece44217" defer></script>
+<script src="storefront-theme.js?v=5762e141" defer></script>
 <script src="lang.js?v=d36ceb1a" defer></script>
 <script src="reviews.js?v=0b230962" charset="utf-8"></script>
 
