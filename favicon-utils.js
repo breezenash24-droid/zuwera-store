@@ -1,5 +1,5 @@
 (function () {
-  const FALLBACK_FAVICON = '/images/favicon-black.png?v=1';
+  const FALLBACK_FAVICON = '/images/favicon-32.png?v=3';
 
   function normalizeFaviconUrl(url) {
     if (!url) return FALLBACK_FAVICON;
@@ -27,16 +27,21 @@
   }
 
   function applyFavicon(url) {
-    let link = document.querySelector('link[rel="icon"]');
-    if (!link) {
-      link = document.createElement('link');
+    const links = document.querySelectorAll('link[rel="icon"]');
+    const href = normalizeFaviconUrl(url);
+    if (!links.length) {
+      const link = document.createElement('link');
       link.rel = 'icon';
+      link.type = 'image/png';
+      link.href = href;
       document.head.appendChild(link);
+      return href;
     }
-
-    link.type = 'image/png';
-    link.href = normalizeFaviconUrl(url);
-    return link.href;
+    links.forEach((link) => {
+      link.type = 'image/png';
+      link.href = href;
+    });
+    return href;
   }
 
   window.__zwFaviconUrl = normalizeFaviconUrl;
