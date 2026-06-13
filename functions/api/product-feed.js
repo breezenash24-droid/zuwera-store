@@ -2,16 +2,16 @@
  * /api/product-feed — Cloudflare Pages Function
  *
  * Outputs a Google Shopping (RSS 2.0 + Google namespace) product feed built
- * live from the Supabase `products` table. The same format is accepted by:
- *   - Google Merchant Center  (submit this URL as a scheduled fetch feed)
- *   - Meta Commerce Manager    (Instagram/Facebook Shopping catalog feed)
+ * live from Supabase. The same format is accepted by:
+ *   - Meta Commerce Manager  (Instagram/Facebook catalog → Data feed → scheduled)
+ *   - Google Merchant Center  (Products → Feeds → Scheduled fetch)
  *
- * No external account is needed to serve the feed — you simply paste
- *   https://zuwera.store/api/product-feed
- * into Google Merchant Center → Products → Feeds → "Scheduled fetch".
+ * One <item> per VARIANT (product × color × size), grouped with g:item_group_id
+ * so Meta/Google treat them as one product with selectable size/color and
+ * per-variant availability — the correct shape for apparel.
  *
- * Reads SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY)
- * from the environment, same as the other admin functions.
+ * Reads SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY).
+ * Paste https://zuwera.store/api/product-feed as a scheduled feed.
  */
 
 const SITE = 'https://zuwera.store';
@@ -25,15 +25,11 @@ function xmlEscape(s) {
     .replace(/'/g, '&apos;');
 }
 
-// Map the store's product.status to a Google availability value.
-function availabilityFor(status) {
-  const s = String(status || '').toLowerCase();
-  if (s === 'sold out') return 'out_of_stock';
-  if (s === 'coming soon') return 'preorder';
-  return 'in_stock'; // 'live' and anything else default to in stock
+// Underscore forms are accepted by BOTH Meta and Google.
+function availabilityForStock(qty) {
+  return Number(qty) > 0 ? 'in_stock' : 'out_of_stock';
 }
 
-// Map gender column to Google's accepted values.
 function genderFor(g) {
   const v = String(g || '').toLowerCase();
   if (v === 'men' || v === 'male') return 'male';
@@ -41,63 +37,156 @@ function genderFor(g) {
   return 'unisex';
 }
 
+// subtitle holds the human category ("Jackets"); products.category is an
+// internal code ("MOT") — map subtitle to a real taxonomy node.
+function googleCategoryFor(subtitle) {
+  const s = String(subtitle || '').toLowerCase();
+  if (s.includes('jacket') || s.includes('outerwear') || s.includes('coat'))
+    return 'Apparel & Accessories > Clothing > Outerwear > Coats & Jackets';
+  if (s.includes('shirt') || s.includes('tee') || s.includes('top'))
+    return 'Apparel & Accessories > Clothing > Shirts & Tops';
+  if (s.includes('sweatpant') || s.includes('pant') || s.includes('trouser') || s.includes('jogger'))
+    return 'Apparel & Accessories > Clothing > Pants';
+  if (s.includes('sock'))
+    return 'Apparel & Accessories > Clothing > Underwear & Socks > Socks';
+  if (s.includes('short'))
+    return 'Apparel & Accessories > Clothing > Shorts';
+  return 'Apparel & Accessories > Clothing';
+}
+
+function productSlug(title) {
+  return String(title || 'product')
+    .replace(/^zuwera\s+/i, '').toLowerCase().trim()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'product';
+}
+
 function productUrl(p) {
-  return `${SITE}/product.html?id=${encodeURIComponent(p.id || '')}`;
+  // Canonical pretty URL (matches the sitemap / product SEO function).
+  return `${SITE}/product/${productSlug(p.title)}?id=${encodeURIComponent(p.id || '')}`;
 }
 
-function bestImage(p) {
-  if (Array.isArray(p.product_images) && p.product_images.length) {
-    const sorted = [...p.product_images].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-    const first = sorted.find(i => i.image_url) || sorted[0];
-    if (first && first.image_url) return first.image_url;
+function cleanId(...parts) {
+  return parts.filter(Boolean).join('-').replace(/[^A-Za-z0-9._-]+/g, '-').slice(0, 90);
+}
+
+function describe(p, title) {
+  const sub = String(p.subtitle || '').trim();
+  const bits = [sub
+    ? `${title} — ${sub} from ZUWERA's Release 001.`
+    : `${title} — bold athletic sportswear from ZUWERA.`];
+  if (p.material_composition) bits.push(String(p.material_composition).trim());
+  if (p.fabric_technology) bits.push(String(p.fabric_technology).trim());
+  return bits.join(' ').replace(/\s+/g, ' ').trim().slice(0, 4900);
+}
+
+// Resolve the best image for a given colour: prefer images tagged with that
+// colour variant, else a colour-agnostic image, else the product fallback.
+function imagePickerFor(p) {
+  const imgs = (Array.isArray(p.product_images) ? [...p.product_images] : [])
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  const idByColor = {};
+  (Array.isArray(p.color_variants) ? p.color_variants : []).forEach(cv => {
+    if (cv && cv.color_name) idByColor[String(cv.color_name).toLowerCase()] = cv.id;
+  });
+  const shared = imgs.find(i => i.image_url && !i.color_variant_id) || imgs.find(i => i.image_url);
+  const fallback = (shared && shared.image_url) || p.image_url || '';
+  return function (colorName) {
+    if (colorName) {
+      const cid = idByColor[String(colorName).toLowerCase()];
+      if (cid) {
+        const m = imgs.find(i => i.color_variant_id === cid && i.image_url);
+        if (m) return m.image_url;
+      }
+    }
+    return fallback;
+  };
+}
+
+function variantXml(p, variant, opts) {
+  const { color, size, stock } = variant;
+  const title = String(p.title || 'Zuwera Product').trim();
+  const baseId = p.sku || p.id;
+  const image = opts.imageFor(color);
+  if (!image) return ''; // image_link is required
+
+  const price = (Number(p.current_price) || Number(p.msrp) || 0).toFixed(2);
+  const avail = opts.preLaunch ? 'preorder' : availabilityForStock(stock);
+
+  let x = '  <item>\n';
+  x += `    <g:id>${xmlEscape(cleanId(baseId, color, size))}</g:id>\n`;
+  x += `    <g:item_group_id>${xmlEscape(p.id || baseId)}</g:item_group_id>\n`;
+  x += `    <g:title>${xmlEscape(color ? `${title} — ${color}` : title)}</g:title>\n`;
+  x += `    <g:description>${xmlEscape(opts.description)}</g:description>\n`;
+  x += `    <g:link>${xmlEscape(opts.link)}</g:link>\n`;
+  x += `    <g:image_link>${xmlEscape(image)}</g:image_link>\n`;
+  x += `    <g:availability>${avail}</g:availability>\n`;
+  x += `    <g:price>${price} USD</g:price>\n`;
+  x += `    <g:brand>ZUWERA</g:brand>\n`;
+  x += `    <g:condition>new</g:condition>\n`;
+  if (color) x += `    <g:color>${xmlEscape(color)}</g:color>\n`;
+  if (size)  x += `    <g:size>${xmlEscape(size)}</g:size>\n`;
+  x += `    <g:gender>${genderFor(p.gender)}</g:gender>\n`;
+  x += `    <g:age_group>adult</g:age_group>\n`;
+  x += `    <g:google_product_category>${xmlEscape(opts.gpc)}</g:google_product_category>\n`;
+  // Own brand, no manufacturer barcode → declare no GTIN to suppress identifier
+  // warnings on both platforms; MPN carries the SKU for reference.
+  if (p.sku) x += `    <g:mpn>${xmlEscape(p.sku)}</g:mpn>\n`;
+  x += `    <g:identifier_exists>no</g:identifier_exists>\n`;
+  x += '  </item>\n';
+  return x;
+}
+
+function productItems(p, preLaunch) {
+  const title = String(p.title || 'Zuwera Product').trim();
+  const opts = {
+    preLaunch,
+    description: describe(p, title),
+    link: productUrl(p),
+    gpc: googleCategoryFor(p.subtitle),
+    imageFor: imagePickerFor(p),
+  };
+
+  // Collapse product_sizes into unique (color, size) variants, summing stock.
+  const rows = Array.isArray(p.product_sizes) ? p.product_sizes : [];
+  if (!rows.length) {
+    // No size data — emit a single base item so the product still lists.
+    return variantXml(p, { color: '', size: '', stock: 1 }, opts);
   }
-  return p.image_url || '';
-}
-
-function extraImages(p, primary) {
-  if (!Array.isArray(p.product_images)) return [];
-  return [...p.product_images]
-    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-    .map(i => i.image_url)
-    .filter(u => u && u !== primary)
-    .slice(0, 10); // Google allows up to 10 additional images
-}
-
-function itemXml(p) {
-  const id      = p.sku || p.id;
-  const title   = p.title || p.name || 'Zuwera Product';
-  const desc    = p.description || `${title} — Zuwera athletic sportswear.`;
-  const link    = productUrl(p);
-  const image   = bestImage(p);
-  if (!image) return ''; // Google requires an image_link; skip imageless products
-
-  const current = Number(p.current_price) || 0;
-  const msrp    = Number(p.msrp) || 0;
-  const onSale  = msrp > 0 && current > 0 && current < msrp;
-  const listPrice = (onSale ? msrp : (current || msrp)).toFixed(2);
-  const avail   = availabilityFor(p.status);
-
-  let item = '  <item>\n';
-  item += `    <g:id>${xmlEscape(id)}</g:id>\n`;
-  item += `    <g:title>${xmlEscape(title)}</g:title>\n`;
-  item += `    <g:description>${xmlEscape(desc)}</g:description>\n`;
-  item += `    <g:link>${xmlEscape(link)}</g:link>\n`;
-  item += `    <g:image_link>${xmlEscape(image)}</g:image_link>\n`;
-  for (const extra of extraImages(p, image)) {
-    item += `    <g:additional_image_link>${xmlEscape(extra)}</g:additional_image_link>\n`;
+  const byKey = new Map();
+  for (const r of rows) {
+    const size = String(r.size || '').trim();
+    if (!size) continue;
+    const color = String(r.color_name || '').trim();
+    const key = `${color.toLowerCase()}|${size.toLowerCase()}`;
+    const prev = byKey.get(key);
+    const stock = Number(r.stock_quantity) || 0;
+    if (prev) prev.stock += stock;
+    else byKey.set(key, { color, size, stock });
   }
-  item += `    <g:availability>${avail}</g:availability>\n`;
-  item += `    <g:price>${listPrice} USD</g:price>\n`;
-  if (onSale) item += `    <g:sale_price>${current.toFixed(2)} USD</g:sale_price>\n`;
-  item += `    <g:brand>Zuwera</g:brand>\n`;
-  item += `    <g:condition>new</g:condition>\n`;
-  item += `    <g:gender>${genderFor(p.gender)}</g:gender>\n`;
-  item += `    <g:age_group>adult</g:age_group>\n`;
-  item += `    <g:google_product_category>Apparel &amp; Accessories &gt; Clothing</g:google_product_category>\n`;
-  item += `    <g:identifier_exists>${p.sku ? 'yes' : 'no'}</g:identifier_exists>\n`;
-  if (p.sku) item += `    <g:mpn>${xmlEscape(p.sku)}</g:mpn>\n`;
-  item += '  </item>\n';
-  return item;
+  let out = '';
+  for (const v of byKey.values()) out += variantXml(p, v, opts);
+  return out;
+}
+
+// Pull the published launch date from the page builder so the whole catalog
+// reports `preorder` until the drop goes live (Meta Commerce policy).
+async function fetchLaunchTs(url, sk) {
+  try {
+    const r = await fetch(
+      `${url}/rest/v1/site_settings?key=eq.page_builder_published&select=value&limit=1`,
+      { headers: { apikey: sk, Authorization: `Bearer ${sk}` } }
+    );
+    if (!r.ok) return null;
+    const rows = await r.json();
+    const sections = rows && rows[0] && rows[0].value && rows[0].value.sections;
+    if (!Array.isArray(sections)) return null;
+    const rel = sections.find(s => s && s.type === 'release');
+    const d = rel && rel.settings && rel.settings.launch_date;
+    const ts = d ? Date.parse(d) : NaN;
+    return Number.isNaN(ts) ? null : ts;
+  } catch (_) {
+    return null;
+  }
 }
 
 export async function onRequestGet({ env }) {
@@ -106,7 +195,7 @@ export async function onRequestGet({ env }) {
 
   const headers = {
     'Content-Type': 'application/xml; charset=utf-8',
-    'Cache-Control': 'public, max-age=1800', // 30 min — feeds don't need to be real-time
+    'Cache-Control': 'public, max-age=1800',
     'Access-Control-Allow-Origin': '*',
   };
 
@@ -118,24 +207,31 @@ export async function onRequestGet({ env }) {
   }
 
   let products = [];
+  let launchTs = null;
   try {
-    // Pull live-ish products with their images in one nested select.
-    const resp = await fetch(
-      `${url}/rest/v1/products?select=*,product_images(image_url,sort_order)&status=neq.Legacy&status=neq.Draft&order=sort_order.asc`,
-      { headers: { apikey: sk, Authorization: `Bearer ${sk}` } }
-    );
+    const [resp, lts] = await Promise.all([
+      fetch(
+        `${url}/rest/v1/products?select=id,sku,title,subtitle,category,gender,current_price,msrp,status,image_url,material_composition,fabric_technology,product_images(image_url,sort_order,color_variant_id),product_sizes(size,color_name,stock_quantity),color_variants(id,color_name)&status=neq.Legacy&status=neq.Draft&order=sort_order.asc`,
+        { headers: { apikey: sk, Authorization: `Bearer ${sk}` } }
+      ),
+      fetchLaunchTs(url, sk),
+    ]);
     if (resp.ok) products = await resp.json();
-  } catch (_) { /* fall through to empty feed */ }
+    launchTs = lts;
+  } catch (_) { /* empty feed */ }
 
-  const items = products.map(itemXml).join('');
+  const preLaunch = launchTs != null && Date.now() < launchTs;
+  const items = products.map(p => productItems(p, preLaunch)).join('');
+  const variantCount = (items.match(/<item>/g) || []).length;
 
   const xml =
 `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
 <channel>
-  <title>Zuwera — Product Feed</title>
+  <title>ZUWERA — Product Feed</title>
   <link>${SITE}</link>
-  <description>Zuwera athletic sportswear product catalog.</description>
+  <description>ZUWERA athletic sportswear product catalog.</description>
+  <!-- ${products.length} products, ${variantCount} variants${preLaunch ? ', pre-launch (preorder)' : ''} -->
 ${items}</channel>
 </rss>`;
 
