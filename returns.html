@@ -1363,8 +1363,10 @@ window.selectOrder = function(el) {
       picker.innerHTML = items.map((item, idx) => {
         const name = esc((item.name || item.title || 'Item').trim());
         const meta = [item.size, item.color || item.colorName].filter(Boolean).map(esc).join(' · ');
-        const price = parseFloat(item.amount || item.price || item.unit_price || 0);
-        const priceStr = price > 0 ? fmtAmt(price > 500 ? price / 100 : price) : '';
+        // Order items store `amount` in cents (fmtAmt divides by 100). Fall back
+        // to price/unit_price (dollars) → cents only if amount is absent.
+        const amtCents = parseFloat(item.amount || 0) || Math.round(parseFloat(item.price || item.unit_price || 0) * 100);
+        const priceStr = amtCents > 0 ? fmtAmt(amtCents) : '';
         const rawImg = item.image || item.product_image || item.image_url || lookupItemImage(item);
         const img = rawImg ? (typeof window.optimizeImage === 'function' ? window.optimizeImage(rawImg, 140) : rawImg) : '';
         const imgHtml = img
