@@ -39,6 +39,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
   <script src="/supabase.min.js?v=3277b334" defer></script>
   <script src="/favicon-utils.js?v=687e90ea" defer></script>
+  <script src="/meta-pixel.js?v=f9725888" defer></script>
   <script src="/stripe-client-config.js?v=c262166e" defer></script>
   <script src="/checkout-tax.js?v=b12c4e5f" defer></script>
   <script src="https://js.stripe.com/v3/" defer></script>
@@ -828,7 +829,7 @@ window.zwClearPromo = function() {
 </script>
 
 <script src="image-utils.js?v=6eef467b"></script>
-<script src="checkout.js?v=7657def7" defer></script>
+<script src="checkout.js?v=d2aae167" defer></script>
 <script src="commerce-checkout.js?v=f884ded3" defer></script>
 
 <script>
@@ -940,6 +941,7 @@ document.addEventListener('DOMContentLoaded', function() {
     item_count: window.cartItems.reduce(function(n,i){ return n+(i.quantity||1); },0),
     value: sub, currency: 'USD'
   });
+  if (window.zwPixel) window.zwPixel.initiateCheckout(window.cartItems, sub);
 
   /* Prefill if signed in */
   if (typeof window._checkoutPrefill === 'function') window._checkoutPrefill();

@@ -353,6 +353,7 @@ on('signup-submit', 'click', async () => {
       }
       setBtn('signup-submit', false, 'Create Account');
       if (typeof gtag === 'function') gtag('event', 'sign_up', { method: 'Email' });
+      if (window.zwPixel) zwPixel.completeRegistration('Email');
 
       if (!data?.session) {
         if (suc) suc.style.display = 'block';

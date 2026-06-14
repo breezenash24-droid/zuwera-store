@@ -1748,6 +1748,7 @@ document.getElementById('signup-submit').addEventListener('click', async () => {
         return;
       }
       if (typeof gtag === 'function') gtag('event', 'sign_up', { method: 'Email' });
+      if (window.zwPixel) zwPixel.completeRegistration('Email');
       setDisabled('signup-submit', false, 'Create Account');
       if (!data?.session) {
         if (suc) suc.style.display = 'block';
@@ -3008,6 +3009,7 @@ async function homeNotifyMe() {
 
   if(_sb){ try{ await _sb.from('waitlist').upsert({ email, source:'drop001_home' }); } catch{} }
   if (typeof gtag === 'function') gtag('event', 'generate_lead', { content_name: 'waitlist', source: 'home' });
+  if (window.zwPixel) zwPixel.lead('waitlist');
   inp.closest('.notify-row').style.display='none';
   document.querySelector('.notify-hint').style.display='none';
   document.getElementById('home-notify-success').style.display='block';
@@ -3024,6 +3026,7 @@ async function zwHomeNewsletterSubmit() {
   if (form) form.style.display = 'none';
   if (success) success.style.display = 'block';
   if (typeof gtag === 'function') gtag('event', 'generate_lead', { content_name: 'newsletter', source: 'home_footer' });
+  if (window.zwPixel) zwPixel.lead('newsletter');
   if (_sb) { try { await _sb.from('waitlist').upsert({ email, source: 'newsletter_footer_home' }); } catch(_) {} }
 }
 

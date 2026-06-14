@@ -35,6 +35,7 @@
   <link rel="manifest" href="/site.webmanifest">
   <link rel="canonical" href="https://zuwera.store/drop001.html">
   <script src="/favicon-utils.js?v=687e90ea" defer></script>
+  <script src="/meta-pixel.js?v=f9725888" defer></script>
   <script src="/supabase.min.js?v=3277b334" defer></script>
   <script src="/supabase-client.js?v=b28896db" defer></script>
   <meta name="description" content="Shop Zuwera Release 001 — jackets, t-shirts, sweatpants and socks. Bold athletic sportswear launching September 20, 2026. Sign up for early access.">
@@ -1080,6 +1081,7 @@ function updateCountdown() {
       document.querySelector('.notify-note').style.display = 'none';
       document.getElementById('notify-success').style.display = 'block';
       if (typeof gtag === 'function') gtag('event', 'generate_lead', { content_name: requestedCategory || 'waitlist', source: 'drop001' });
+      if (window.zwPixel) zwPixel.lead(requestedCategory || 'waitlist');
       try {
         await fetch(_colSB_URL + '/rest/v1/waitlist', {
           method: 'POST',
@@ -1961,6 +1963,7 @@ function updateCountdown() {
     if (form) form.style.display = 'none';
     if (success) success.style.display = 'block';
     if (typeof gtag === 'function') gtag('event', 'generate_lead', { content_name: 'newsletter', source: 'drop001_footer' });
+    if (window.zwPixel) zwPixel.lead('newsletter');
     try {
       await fetch(_colSB_URL + '/rest/v1/waitlist', {
         method: 'POST',
@@ -1970,6 +1973,6 @@ function updateCountdown() {
     } catch(_) {}
   }
   </script>
-<script src="auth.js?v=8c226c81" defer></script>
+<script src="auth.js?v=7be42027" defer></script>
 </body>
 </html>

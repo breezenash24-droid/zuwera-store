@@ -37,6 +37,7 @@ const files = [
   'lang.js',
   'm-bag.html',
   'manifest.json',
+  'meta-pixel.js',
   'mobile.html',
   'mobile-checkout.html',
   'mobile-menu.js',

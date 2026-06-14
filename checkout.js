@@ -508,6 +508,8 @@ function showOrderConfirmed(orderNumber, email) {
     });
   }
 
+  if (window.zwPixel) window.zwPixel.purchase(cartItems, _purchaseTotal, paymentIntentId);
+
   // Clear cart from storage and update header count
   cartItems = [];
   localStorage.removeItem('cart');

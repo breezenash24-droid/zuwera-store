@@ -167,6 +167,7 @@
     if (typeof window.gtag === 'function') {
       window.gtag('event', 'add_to_cart', { currency: 'USD', value: cartItem.price, items: [{ item_id: cartItem.productId, item_name: cartItem.title, price: cartItem.price, quantity: 1 }] });
     }
+    if (window.zwPixel) window.zwPixel.addToCart(cartItem);
     if (typeof window.animateAddToBag === 'function') {
       window.animateAddToBag(document.querySelector('#quick-add-review-media img') || document.getElementById('quick-add-review-confirm'), cartItem.image);
     }
