@@ -162,15 +162,38 @@
       margin: 0 auto;
       padding: 9rem 2.5rem 6rem;
     }
-    /* Desktop: hero title spans the top, then a sticky tab sidebar + content
-       fill the width (was one narrow 820px column stranded in empty margins). */
+    /* Desktop: hero spans the top, then a sticky rail (section nav + help card)
+       beside the content — the page reads like a help centre instead of one
+       narrow column stranded in empty margins. */
     .policy-layout {
       display: grid;
-      grid-template-columns: 210px 1fr;
+      grid-template-columns: 248px 1fr;
       gap: 4rem;
       align-items: start;
     }
+    .policy-rail { position: sticky; top: 6.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
     .policy-content { min-width: 0; max-width: 760px; }
+
+    /* Help card pinned in the rail */
+    .rail-help {
+      border: 1px solid var(--border); background: rgba(244,241,235,0.02);
+      padding: 1.2rem 1.25rem; display: flex; flex-direction: column; gap: .4rem;
+    }
+    body.light-mode .rail-help { background: rgba(9,9,11,0.02); }
+    .rail-help-title { font-family: var(--font-head); font-size: 1.05rem; letter-spacing: .04em; }
+    .rail-help-desc { font-size: .72rem; color: var(--muted); line-height: 1.6; margin-bottom: .35rem; }
+    .rail-help-btn {
+      align-self: flex-start; font-family: var(--font-body); font-size: .68rem;
+      letter-spacing: .12em; text-transform: uppercase; text-decoration: none;
+      border: 1px solid var(--white); color: var(--white);
+      padding: .55rem .9rem; transition: background .2s, color .2s;
+    }
+    .rail-help-btn:hover { background: var(--white); color: var(--black); }
+    body.light-mode .rail-help-btn { border-color: #09090b; color: #09090b; }
+    body.light-mode .rail-help-btn:hover { background: #09090b; color: #f4f1eb; }
+
+    /* FAQ answers two-up so they fill the content width */
+    #faq-container { display: grid; grid-template-columns: 1fr 1fr; gap: 0 2.5rem; align-items: start; }
 
     /* HERO TITLE */
     .page-title {
@@ -188,13 +211,11 @@
       margin-bottom: 4rem;
     }
 
-    /* TAB NAV — vertical sticky sidebar on desktop */
+    /* TAB NAV — vertical list inside the sticky rail on desktop */
     .tab-nav {
       display: flex;
       flex-direction: column;
       gap: .15rem;
-      position: sticky;
-      top: 6.5rem;
     }
     .tab-btn {
       background: none;
@@ -356,7 +377,10 @@
        horizontal scrolling tabs, full-width content. */
     @media (max-width: 900px) {
       .policy-layout { display: block; }
+      .policy-rail { position: static; display: block; }
+      .rail-help { display: none; } /* footer carries the contact link on mobile */
       .policy-content { max-width: none; }
+      #faq-container { grid-template-columns: 1fr; }
       .tab-nav {
         flex-direction: row;
         position: static;
@@ -503,14 +527,21 @@
 
     <div class="policy-layout">
 
-    <!-- TABS (sticky sidebar on desktop, horizontal scroll on mobile) -->
-    <nav class="tab-nav" aria-label="Policy sections">
-      <button class="tab-btn active" data-tab="shipping">Shipping</button>
-      <button class="tab-btn" data-tab="returns">Returns</button>
-      <button class="tab-btn" data-tab="privacy">Privacy</button>
-      <button class="tab-btn" data-tab="terms">Terms</button>
-      <button class="tab-btn" data-tab="faq">FAQ</button>
-    </nav>
+    <!-- Sticky rail: section nav + help card (horizontal nav on mobile) -->
+    <aside class="policy-rail">
+      <nav class="tab-nav" aria-label="Policy sections">
+        <button class="tab-btn active" data-tab="shipping">Shipping</button>
+        <button class="tab-btn" data-tab="returns">Returns</button>
+        <button class="tab-btn" data-tab="privacy">Privacy</button>
+        <button class="tab-btn" data-tab="terms">Terms</button>
+        <button class="tab-btn" data-tab="faq">FAQ</button>
+      </nav>
+      <div class="rail-help">
+        <p class="rail-help-title">Still have questions?</p>
+        <p class="rail-help-desc">Our team replies within 24 hours.</p>
+        <a class="rail-help-btn" href="mailto:nasirubreeze@zuwera.store">Email Us →</a>
+      </div>
+    </aside>
 
     <div class="policy-content">
 
@@ -719,13 +750,6 @@
         </div>
 
       </div>
-    </div>
-
-    <!-- CONTACT CTA -->
-    <div class="contact-cta">
-      <h3>Still Have Questions?</h3>
-      <p>Our team is here to help. Reach out and we'll get back to you within 24 hours.</p>
-      <a href="mailto:nasirubreeze@zuwera.store">Email Us</a>
     </div>
 
     </div><!-- /.policy-content -->

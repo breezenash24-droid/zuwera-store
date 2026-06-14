@@ -137,9 +137,27 @@
     /* ── PAGE ── */
     .page { flex: 1; }
     .page-inner {
-      max-width: 880px;
+      max-width: 1040px;
       margin: 0 auto;
       padding: 3rem 2rem 5rem;
+    }
+
+    /* Desktop: two-pane wizard — sticky vertical step rail beside the active
+       step, so the flow fills the width like a real returns portal instead of
+       a narrow centred column. Mobile keeps the horizontal stepper below. */
+    @media (min-width: 901px) {
+      .wizard { display: grid; grid-template-columns: 230px 1fr; gap: 3.5rem; align-items: start; }
+      .wizard-header { grid-column: 1 / -1; margin-bottom: .5rem; }
+      .step-progress {
+        flex-direction: column; align-items: stretch; gap: 0; margin-bottom: 0;
+        position: sticky; top: 6rem;
+        padding: 1.4rem 1.3rem; border: 1px solid var(--border);
+        background: var(--surface); border-radius: 3px;
+      }
+      .sp-item { flex-direction: row; align-items: center; justify-content: flex-start; gap: .8rem; flex: none; }
+      .sp-label { margin-top: 0; font-size: .62rem; }
+      .sp-line { flex: none; width: 1px; height: 16px; margin: 3px 0 3px 13.5px; top: 0; }
+      .wizard-steps { grid-column: 2; min-width: 0; }
     }
 
     /* ── PAGE HEADER ── */
@@ -1190,6 +1208,8 @@ function renderWizard(orders) {
         </div>
       </div>
 
+      <div class="wizard-steps">
+
       <!-- Step 1: Select order -->
       <div class="step active" data-step="1">
         <p style="font-size:.78rem;color:var(--muted);margin-bottom:1.2rem">Which order would you like to return or exchange?</p>
@@ -1276,6 +1296,8 @@ function renderWizard(orders) {
 
       <!-- Step 5: Review + Submit (content built dynamically) -->
       <div class="step" data-step="5"></div>
+
+      </div><!-- /.wizard-steps -->
     </div>`;
 }
 
