@@ -67,7 +67,7 @@
 <!-- Stylesheets -->
 <link rel="stylesheet" href="base.css">
 <link rel="stylesheet" href="nav.css?v=e1e6dc8e">
-<link rel="stylesheet" href="product.css?v=15ba158a">
+<link rel="stylesheet" href="product.css?v=4d0cef33">
 <link rel="stylesheet" href="cart.css?v=6b9b7135">
 <link rel="stylesheet" href="reviews.css?v=cf5b3ca4">
 <link rel="stylesheet" href="reviews-vibe.css?v=1064544c">
@@ -1499,19 +1499,26 @@ function teardownAnnouncementBarScroll() {
 function setAnnouncementBarLayout(barEl, navEl, isVisible) {
   if (!navEl) return;
   const spacerEl = document.getElementById('bar-spacer');
+  const pageEl = document.querySelector('.product-page');
   const isMob = window.matchMedia('(max-width: 900px)').matches;
   if (isMob) {
     // Mobile: nav stays at top, bar fixed below nav, no spacer needed
     navEl.style.top = '0px';
     document.documentElement.style.setProperty('--mobile-nav-gap', '0px');
+    const barH = (barEl && isVisible) ? barEl.offsetHeight : 0;
     if (barEl && isVisible) barEl.style.top = navEl.offsetHeight + 'px';
     if (spacerEl) spacerEl.style.height = '0';
+    // The CSS padding-top (140px, sized for the desktop bar+nav) is far too tall
+    // for mobile and left a white gap above the product. Clear exactly the fixed
+    // nav + bar instead.
+    if (pageEl) pageEl.style.paddingTop = (navEl.offsetHeight + barH) + 'px';
   } else {
     // Desktop: bar always fixed at top:0; nav pushed below; spacer holds bar height in flow
     const barH = (barEl && isVisible) ? barEl.offsetHeight : 0;
     navEl.style.top = barH + 'px';
     document.documentElement.style.setProperty('--mobile-nav-gap', barH + 'px');
     if (spacerEl) spacerEl.style.height = isVisible ? barH + 'px' : '0';
+    if (pageEl) pageEl.style.paddingTop = ''; // restore the CSS value
   }
 }
 

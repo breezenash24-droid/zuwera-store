@@ -82,7 +82,10 @@
 
 .gallery-main {
   position: relative;
-  aspect-ratio: 3/4;
+  /* Match the real product photos (800×1000 = 4/5). When this was 3/4 the
+     image sat shorter than the box, leaving a gap at the top and stranding the
+     Low Stock badge + heart over empty space. */
+  aspect-ratio: 4/5;
   background: #0f0f0f;
   border: none;
   display: flex;
@@ -113,6 +116,12 @@
   object-position: center;
   display: block;
 }
+
+/* The Size & Fit modal often has little content ("no ratings yet"), so the
+   shared transparent modal overlay left a small card floating over the visible
+   page on mobile. Give just this one a dim backdrop so it reads as a modal. */
+#size-fit-modal { background: rgba(9,9,11,.6) !important; }
+body.light-mode #size-fit-modal { background: rgba(9,9,11,.4) !important; }
 
 .low-stock-badge {
   position: absolute;
