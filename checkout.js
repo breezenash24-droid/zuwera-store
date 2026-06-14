@@ -479,6 +479,11 @@ function showOrderConfirmed(orderNumber, email) {
   const _purchaseTotal = cartItems.reduce((s, i) => s + (parseFloat(i.price) * i.quantity), 0);
 
   if (typeof gtag === 'function') {
+    // Enhanced Conversions: hand the Google tag the customer email (unhashed —
+    // the tag SHA-256 hashes it client-side before sending). Lifts Google Ads
+    // match rates, the equivalent of Meta's CAPI advanced matching. Inert until
+    // Enhanced Conversions is switched on in the Google Ads conversion settings.
+    if (email) gtag('set', 'user_data', { email: email });
     gtag('event', 'purchase', {
       transaction_id: paymentIntentId,
       value: _purchaseTotal,
