@@ -1,21 +1,20 @@
 /*
- * meta-pixel.js — Meta (Facebook) Pixel base + ZUWERA e-commerce events.
+ * meta-pixel.js — Meta (Facebook) Pixel base + ZUWERA e-commerce events,
+ * with a first-party server relay so ad blockers can't drop everything.
  *
- * Loaded (deferred) in the <head> of every customer-facing page. Fires PageView
- * on load and exposes window.zwPixel.* helpers that the existing analytics call
- * sites invoke right alongside gtag / zwTrack (PostHog). Every helper no-ops
- * safely when the pixel is blocked (ad blockers), so callers never throw.
+ * Loaded (deferred) in the <head> of every customer-facing page. Exposes
+ * window.zwPixel.* helpers that the existing analytics call sites invoke right
+ * alongside gtag / zwTrack (PostHog).
  *
- * Pixel ID lives ONLY here — one source of truth for all pages.
+ * DUAL DELIVERY — every event is sent two ways with one shared event_id:
+ *   1. the browser pixel  → fbq('track', …, { eventID })  (blocked by ad blockers)
+ *   2. a first-party POST  → /api/c → Conversions API server-side (survives blockers)
+ * Meta de-duplicates the two copies by event_id, so non-blocked users count once
+ * and blocked users are still recovered through the relay + server-side Purchase
+ * (see functions/api/stripe-webhook.js). Pixel ID lives only here.
  *
- * CATALOG MATCHING — content_ids below line up with the product feed
- * (functions/api/product-feed.js), whose item_group_id is the product UUID.
- * Every product and cart line carries that UUID as `productId` (or `id`), so all
- * events report group-level ids with content_type 'product_group'. That gives a
- * clean catalog match for every event and sidesteps variant-id ambiguity
- * (variant_sku vs product sku, plus 'One Size'/'Standard' fallbacks that never
- * appear in the feed). Meta then retargets at the product-group level — the
- * right granularity for apparel, where the ad lets the shopper pick size/colour.
+ * CATALOG MATCHING — content_ids use the product UUID (= the feed's
+ * item_group_id) with content_type 'product_group'; see functions/api/product-feed.js.
  */
 (function () {
   'use strict';
@@ -31,17 +30,62 @@
   }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
 
   fbq('init', '1695269795093400');
-  fbq('track', 'PageView');
 
-  /* ---- helpers ---- */
+  /* ---- relay / dedup plumbing ---- */
+
+  var RELAY_URL = '/api/c';
+
+  function uuid() {
+    try { if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (_) {}
+    return 'e-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+  }
+  function readCookie(name) {
+    var m = document.cookie.match('(?:^|; )' + name + '=([^;]*)');
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+  // Rebuild _fbc from the fbclid URL param when Facebook's script is blocked and
+  // never set the cookie — preserves click attribution for ad traffic.
+  function fbcValue() {
+    var fbc = readCookie('_fbc');
+    if (fbc) return fbc;
+    try {
+      var id = new URLSearchParams(location.search).get('fbclid');
+      return id ? ('fb.1.' + Date.now() + '.' + id) : '';
+    } catch (_) { return ''; }
+  }
+  function relay(eventName, eventId, customData) {
+    try {
+      var body = JSON.stringify({
+        event_name: eventName,
+        event_id: eventId,
+        event_source_url: location.href,
+        custom_data: customData || {},
+        fbp: readCookie('_fbp'),
+        fbc: fbcValue()
+      });
+      // keepalive: the POST still completes if the user navigates immediately.
+      fetch(RELAY_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: body,
+        keepalive: true,
+        credentials: 'omit'
+      }).catch(function () {});
+    } catch (_) {}
+  }
+  // Fire to BOTH the browser pixel and the relay under one event_id.
+  function track(eventName, params, eventId) {
+    eventId = eventId || uuid();
+    try { if (window.fbq) fbq('track', eventName, params || {}, { eventID: eventId }); } catch (_) {}
+    relay(eventName, eventId, params || {});
+    return eventId;
+  }
+
+  /* ---- value helpers ---- */
 
   function num(v) { var x = parseFloat(v); return isFinite(x) ? x : 0; }
   function qty(it) { return Number(it && it.quantity) || 1; }
-
-  // Feed item_group_id === product UUID; product/cart objects carry it as
-  // productId (or id). Group-level ids match the catalog with no ambiguity.
   function groupId(it) { return String((it && (it.productId || it.id || it.sku)) || ''); }
-
   function contents(items) {
     return (items || []).map(function (i) {
       return { id: groupId(i), quantity: qty(i), item_price: num(i.price) };
@@ -58,11 +102,14 @@
     return (items || []).reduce(function (n, i) { return n + qty(i); }, 0);
   }
 
+  /* PageView — on every load, both paths, shared id. */
+  track('PageView', {});
+
   window.zwPixel = {
     /* Product detail page. */
     viewContent: function (p) {
-      if (!window.fbq || !p) return;
-      fbq('track', 'ViewContent', {
+      if (!p) return;
+      track('ViewContent', {
         content_type: 'product_group',
         content_ids: [groupId(p)],
         content_name: p.title || p.product_name || '',
@@ -73,9 +120,9 @@
 
     /* A single cart line was added. */
     addToCart: function (item) {
-      if (!window.fbq || !item) return;
+      if (!item) return;
       var id = groupId(item);
-      fbq('track', 'AddToCart', {
+      track('AddToCart', {
         content_type: 'product_group',
         content_ids: [id],
         contents: [{ id: id, quantity: qty(item), item_price: num(item.price) }],
@@ -87,8 +134,7 @@
 
     /* Checkout opened with the current cart. */
     initiateCheckout: function (items, total) {
-      if (!window.fbq) return;
-      fbq('track', 'InitiateCheckout', {
+      track('InitiateCheckout', {
         content_type: 'product_group',
         content_ids: ids(items),
         contents: contents(items),
@@ -98,10 +144,10 @@
       });
     },
 
-    /* Order confirmed. Fire once per order. */
+    /* Order confirmed. Deterministic event_id (purchase_<orderId>) dedups with
+       the server-side Purchase fired from the Stripe webhook. */
     purchase: function (items, total, orderId) {
-      if (!window.fbq) return;
-      var params = {
+      var data = {
         content_type: 'product_group',
         content_ids: ids(items),
         contents: contents(items),
@@ -109,20 +155,18 @@
         value: num(total),
         currency: 'USD'
       };
-      if (orderId) params.order_id = String(orderId);
-      fbq('track', 'Purchase', params);
+      if (orderId) data.order_id = String(orderId);
+      track('Purchase', data, orderId ? ('purchase_' + orderId) : undefined);
     },
 
     /* Waitlist / newsletter opt-ins. */
     lead: function (name) {
-      if (!window.fbq) return;
-      fbq('track', 'Lead', { content_name: name || '' });
+      track('Lead', { content_name: name || '' });
     },
 
     /* Account created. */
     completeRegistration: function (method) {
-      if (!window.fbq) return;
-      fbq('track', 'CompleteRegistration', { content_name: method || 'Email', status: true });
+      track('CompleteRegistration', { content_name: method || 'Email', status: true });
     }
   };
 })();

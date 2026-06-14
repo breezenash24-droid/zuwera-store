@@ -22,6 +22,7 @@
 import Stripe from 'stripe';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { loopsFallback } from './_email.js';
+import { buildUserData, sendCapiEvents } from './_capi.js';
 
 // Fallback service-level token map if rate object ID is unavailable
 const SERVICE_TOKEN_MAP = {
@@ -169,7 +170,7 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
 
   await saveOrderToSupabase(pi, meta, tracking, env);
 
-  const [stripeUpdateResult, emailResult, invResult, promoResult] = await Promise.allSettled([
+  const [stripeUpdateResult, emailResult, invResult, promoResult, capiResult] = await Promise.allSettled([
     tracking.number
       ? stripe.paymentIntents.update(pi.id, {
           metadata: {
@@ -187,12 +188,72 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
 
     // Increment promotion usage count
     incrementPromoUsage(meta.discount_code, env),
+
+    // Mirror the browser Purchase pixel server-side (survives ad blockers;
+    // deduped against the browser event by event_id = purchase_<pi.id>).
+    sendPurchaseEvent(pi, meta, env),
   ]);
 
   if (stripeUpdateResult.status === 'rejected') console.error('Stripe metadata update failed:', stripeUpdateResult.reason);
   if (emailResult.status     === 'rejected') console.error('Email failed:',                   emailResult.reason);
   if (invResult.status       === 'rejected') console.error('Inventory decrement failed:',     invResult.reason);
   if (promoResult.status     === 'rejected') console.error('Promo usage increment failed:',   promoResult.reason);
+  if (capiResult.status      === 'rejected') console.error('CAPI Purchase failed:',           capiResult.reason);
+}
+
+// ─── Meta Conversions API: server-side Purchase ────────────────────────────────
+// Fires Purchase straight to Meta from the server, so it lands even when the
+// shopper's browser blocked the pixel. event_id matches the browser Purchase
+// (purchase_<pi.id>) so Meta keeps a single de-duplicated event. No-op until
+// META_CAPI_TOKEN is set. Never throws (sendCapiEvents swallows failures).
+
+async function sendPurchaseEvent(pi, meta, env) {
+  if (!env.META_CAPI_TOKEN) return;
+
+  const nameParts = String(meta.customer_name || '').trim().split(/\s+/).filter(Boolean);
+  const firstName = nameParts.shift() || '';
+  const lastName  = nameParts.join(' ');
+
+  // content_ids / contents from the compact inv metadata ({p,s,q,c}[]).
+  let inv = [];
+  try { inv = JSON.parse(meta.inv || '[]'); } catch (_) {}
+  const contentIds = [...new Set((inv || []).map((x) => x && x.p).filter(Boolean))];
+  const contents   = (inv || []).filter((x) => x && x.p).map((x) => ({ id: x.p, quantity: Number(x.q) || 1 }));
+  const numItems   = (inv || []).reduce((n, x) => n + (Number(x && x.q) || 0), 0);
+
+  // Match the browser Purchase value (merchandise subtotal); fall back to the
+  // charged amount for older intents that predate the subtotal metadata.
+  const subtotalCents = parseInt(meta.subtotal_amount_cents || '', 10);
+  const valueDollars  = Number.isFinite(subtotalCents) && subtotalCents > 0
+    ? subtotalCents / 100
+    : (pi.amount || 0) / 100;
+
+  const user_data = await buildUserData({
+    email:   meta.customer_email,
+    firstName, lastName,
+    city:    meta.ship_city,
+    state:   meta.ship_state,
+    zip:     meta.ship_zip,
+    country: meta.ship_country || 'US',
+  });
+
+  const custom_data = {
+    currency: (pi.currency || 'usd').toUpperCase(),
+    value:    Number(valueDollars.toFixed(2)),
+  };
+  if (contentIds.length) { custom_data.content_type = 'product_group'; custom_data.content_ids = contentIds; }
+  if (contents.length)   custom_data.contents = contents;
+  if (numItems > 0)      custom_data.num_items = numItems;
+
+  await sendCapiEvents(env, [{
+    event_name:       'Purchase',
+    event_time:       Math.floor(Date.now() / 1000),
+    event_id:         'purchase_' + pi.id,
+    action_source:    'website',
+    event_source_url: 'https://zuwera.store/checkout',
+    user_data,
+    custom_data,
+  }]);
 }
 
 // ─── Create shipping label ─────────────────────────────────────────────────────
