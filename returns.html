@@ -969,6 +969,40 @@ const state = {
   submitting: false,
 };
 
+// Order items only store {sku, name, amount, quantity} — no image. Preload a
+// small sku/title → image map (catalog is tiny) so the item picker can show
+// product thumbnails.
+let _prodImgMap = null;
+let _prodImgPromise = null;
+function ensureProductImages() {
+  if (_prodImgPromise) return _prodImgPromise;
+  _prodImgPromise = (async () => {
+    const map = {};
+    try {
+      if (!_sb) return map;
+      const { data } = await _sb.from('products')
+        .select('sku,title,image_url,product_images(image_url,sort_order)');
+      (data || []).forEach(p => {
+        const imgs = (p.product_images || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+        const img = (imgs.find(i => i.image_url) || {}).image_url || p.image_url || '';
+        if (!img) return;
+        if (p.sku) map[String(p.sku).toLowerCase()] = img;
+        if (p.title) map[String(p.title).trim().toLowerCase()] = img;
+      });
+    } catch (_) {}
+    _prodImgMap = map;
+    return map;
+  })();
+  return _prodImgPromise;
+}
+function lookupItemImage(item) {
+  if (!_prodImgMap) return '';
+  const bySku = item.sku && _prodImgMap[String(item.sku).toLowerCase()];
+  if (bySku) return bySku;
+  const name = (item.name || item.title || '').trim().toLowerCase();
+  return (name && _prodImgMap[name]) || '';
+}
+
 function updateStepProgress() {
   const items = document.querySelectorAll('.sp-item');
   const lines = document.querySelectorAll('.sp-line');
@@ -989,7 +1023,11 @@ function showStep(n) {
   if (s) s.classList.add('active');
   updateStepProgress();
   updateNextBtn();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Re-orient at the top of the wizard (not the whole page) so the shopper
+  // keeps their place and sees the step advance — jumping to page top made
+  // people lose the flow.
+  const anchor = document.querySelector('.wizard-header') || document.querySelector('.wizard');
+  if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function updateNextBtn() {
@@ -1327,10 +1365,16 @@ window.selectOrder = function(el) {
         const meta = [item.size, item.color || item.colorName].filter(Boolean).map(esc).join(' · ');
         const price = parseFloat(item.amount || item.price || item.unit_price || 0);
         const priceStr = price > 0 ? fmtAmt(price > 500 ? price / 100 : price) : '';
-        return `<label style="display:flex;align-items:center;gap:.9rem;padding:.85rem 1rem;border:1px solid var(--border-color);border-radius:8px;cursor:pointer;transition:border-color .15s;" onclick="toggleItemPick(${idx},this)">
+        const rawImg = item.image || item.product_image || item.image_url || lookupItemImage(item);
+        const img = rawImg ? (typeof window.optimizeImage === 'function' ? window.optimizeImage(rawImg, 140) : rawImg) : '';
+        const imgHtml = img
+          ? `<img class="item-thumb" src="${esc(img)}" alt="" loading="lazy" style="width:52px;height:64px;object-fit:cover;flex-shrink:0;border:1px solid var(--border)" data-fallback="${esc(rawImg)}" onerror="var f=this.dataset.fallback;if(f&&this.src!==f)this.src=f">`
+          : `<div class="item-thumb item-thumb-empty" data-sku="${esc(item.sku || '')}" data-name="${esc((item.name || item.title || ''))}" style="width:52px;height:64px;flex-shrink:0;background:var(--surface);border:1px solid var(--border)"></div>`;
+        return `<label style="display:flex;align-items:center;gap:.9rem;padding:.7rem 1rem;border:1px solid var(--border-color);border-radius:8px;cursor:pointer;transition:border-color .15s;" onclick="toggleItemPick(${idx},this)">
           <div style="width:18px;height:18px;border:1.5px solid var(--muted);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;" class="item-check-box">
             <svg width="11" height="9" viewBox="0 0 11 9" fill="none" style="display:none"><path d="M1 4.5L4 7.5L10 1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
+          ${imgHtml}
           <div style="flex:1;min-width:0;">
             <div style="font-size:.82rem;font-weight:500;">${name}</div>
             ${meta ? `<div style="font-size:.72rem;color:var(--muted);margin-top:2px;">${meta}</div>` : ''}
@@ -1338,6 +1382,21 @@ window.selectOrder = function(el) {
           ${priceStr ? `<div style="font-size:.8rem;color:var(--muted);flex-shrink:0;">${priceStr}</div>` : ''}
         </label>`;
       }).join('');
+      // If the image map arrives after this render, swap the placeholders.
+      ensureProductImages().then(() => {
+        picker.querySelectorAll('.item-thumb-empty').forEach(box => {
+          const url = _prodImgMap && (
+            (box.dataset.sku && _prodImgMap[box.dataset.sku.toLowerCase()]) ||
+            (box.dataset.name && _prodImgMap[box.dataset.name.trim().toLowerCase()])
+          );
+          if (!url) return;
+          const src = typeof window.optimizeImage === 'function' ? window.optimizeImage(url, 140) : url;
+          const im = document.createElement('img');
+          im.className = 'item-thumb'; im.src = src; im.alt = ''; im.loading = 'lazy';
+          im.style.cssText = 'width:52px;height:64px;object-fit:cover;flex-shrink:0;border:1px solid var(--border)';
+          box.replaceWith(im);
+        });
+      });
     }
   }
 
@@ -1423,6 +1482,7 @@ function renderAuthPrompt() {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 async function init() {
   const root = document.getElementById('page-root');
+  ensureProductImages(); // preload product thumbnails for the item picker
 
   try {
     const session = await getSession();
