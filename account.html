@@ -153,37 +153,47 @@
     body.light-mode .zw-nav-btn { color: rgba(9,9,11,.35); }
     body.light-mode .zw-nav-btn:hover { color: #09090b; }
 
-    /* ── PAGE LAYOUT ── */
+    /* ── PAGE LAYOUT — two-pane dashboard: sticky identity+nav rail beside a
+          wide content column (was an 860px single column adrift in margins) ── */
     .page-wrap {
-      flex: 1; max-width: 860px; margin: 0 auto; width: 100%; padding: 3rem 2.5rem 5rem;
+      flex: 1; max-width: 1200px; margin: 0 auto; width: 100%; padding: 3rem 2.5rem 5rem;
     }
-    .page-hd { margin-bottom: 2rem; }
+    .acct-layout { display: grid; grid-template-columns: 260px 1fr; gap: 3.5rem; align-items: start; }
+    .acct-rail { position: sticky; top: 5.5rem; display: flex; flex-direction: column; gap: 1.3rem; }
+    .acct-main { min-width: 0; }
+
+    .acct-id-card {
+      border: 1px solid rgba(244,241,235,.1); background: rgba(244,241,235,.02);
+      padding: 1.3rem 1.35rem;
+    }
+    body.light-mode .acct-id-card { border-color: rgba(9,9,11,.1); background: rgba(9,9,11,.015); }
+    .page-hd { margin: 0; }
+    .acct-id-card .page-hd h1 { font-size: 1.5rem; }
     .page-hd h1 {
       font-family: var(--fw); font-weight: 900; font-style: italic;
-      font-size: 2.8rem; letter-spacing: .06em; margin-bottom: .3rem;
+      font-size: 2.8rem; letter-spacing: .06em; margin-bottom: .3rem; line-height: 1.05;
     }
     .page-hd-meta {
-      font-family: var(--fm); font-size: .72rem;
-      color: rgba(244,241,235,.35); letter-spacing: .04em;
+      font-family: var(--fm); font-size: .68rem; word-break: break-word;
+      color: rgba(244,241,235,.4); letter-spacing: .04em;
     }
-    body.light-mode .page-hd-meta { color: rgba(9,9,11,.4); }
+    body.light-mode .page-hd-meta { color: rgba(9,9,11,.45); }
 
-    /* ── TABS ── */
+    /* ── TABS — vertical nav in the rail ── */
     .acct-tabs {
-      display: flex; gap: 0; border-bottom: 1px solid rgba(244,241,235,.1); margin-bottom: 2rem; flex-wrap: wrap;
+      display: flex; flex-direction: column; gap: .1rem;
     }
-    body.light-mode .acct-tabs { border-bottom-color: rgba(9,9,11,.1); }
     .acct-tab {
-      font-family: var(--fm); font-size: .6rem; letter-spacing: .14em; text-transform: uppercase;
-      padding: .85rem 1.5rem; color: rgba(244,241,235,.35); border-bottom: 2px solid transparent;
-      transition: color .15s, border-color .15s, background .15s; margin-bottom: -1px;
-      position: relative;
+      font-family: var(--fm); font-size: .62rem; letter-spacing: .14em; text-transform: uppercase;
+      text-align: left; padding: .8rem .95rem; color: rgba(244,241,235,.4);
+      border-left: 2px solid transparent;
+      transition: color .15s, border-color .15s, background .15s;
     }
-    .acct-tab:hover { color: rgba(244,241,235,.75); background: rgba(244,241,235,.025); }
-    .acct-tab.active { color: var(--paper); border-bottom-color: var(--paper); }
-    body.light-mode .acct-tab { color: rgba(9,9,11,.35); }
-    body.light-mode .acct-tab:hover { color: rgba(9,9,11,.65); background: rgba(9,9,11,.025); }
-    body.light-mode .acct-tab.active { color: #09090b; border-bottom-color: #09090b; }
+    .acct-tab:hover { color: rgba(244,241,235,.8); background: rgba(244,241,235,.03); }
+    .acct-tab.active { color: var(--paper); border-left-color: var(--paper); background: rgba(244,241,235,.04); }
+    body.light-mode .acct-tab { color: rgba(9,9,11,.4); }
+    body.light-mode .acct-tab:hover { color: rgba(9,9,11,.7); background: rgba(9,9,11,.03); }
+    body.light-mode .acct-tab.active { color: #09090b; border-left-color: #09090b; background: rgba(9,9,11,.04); }
 
     /* ── PANELS ── */
     .acct-panel { display: none; }
@@ -456,7 +466,7 @@
 
     /* ── FAVS — product-card grid (uses the panel width instead of one
            thin full-width strip per item) ── */
-    #saved-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
+    #saved-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 1.1rem; }
     .fav-card {
       display: flex; flex-direction: column;
       border: 1px solid rgba(244,241,235,.1); background: rgba(244,241,235,.02);
@@ -501,13 +511,15 @@
     body.light-mode .addr-meta { color: rgba(9,9,11,.5); }
 
     /* ── LOGOUT BAR ── */
+    /* In the rail: stacked, with a subtle top divider */
     .logout-bar {
-      padding: 1.5rem 0 0; margin-top: 1rem; border-top: 1px solid rgba(244,241,235,.06);
-      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.2rem .25rem 0; margin-top: .2rem; border-top: 1px solid rgba(244,241,235,.08);
+      display: flex; flex-direction: column; align-items: flex-start; gap: .7rem;
     }
-    body.light-mode .logout-bar { border-top-color: rgba(9,9,11,.06); }
-    .logout-bar p { font-size: .72rem; color: rgba(244,241,235,.3); font-family: var(--fm); }
-    body.light-mode .logout-bar p { color: rgba(9,9,11,.3); }
+    body.light-mode .logout-bar { border-top-color: rgba(9,9,11,.08); }
+    .logout-bar p { font-size: .66rem; color: rgba(244,241,235,.35); font-family: var(--fm); word-break: break-word; }
+    body.light-mode .logout-bar p { color: rgba(9,9,11,.35); }
+    .logout-bar .zw-btn { width: 100%; text-align: center; justify-content: center; }
 
     /* ── AUTH WALL ── */
     .auth-wall {
@@ -625,9 +637,26 @@
     @media(max-width: 900px) {
       .zw-nav { padding: 1rem 1.2rem; justify-content: flex-end; }
       .page-wrap { padding: 2rem 1.2rem 4rem; }
-      .acct-tab { padding: .7rem .85rem; white-space: nowrap; }
-      .acct-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      /* Collapse the two-pane: identity card on top, tabs as a horizontal
+         scroll strip, content below, sign-out moves to the end. */
+      .acct-layout { display: block; }
+      .acct-rail { position: static; display: block; margin-bottom: 1.8rem; }
+      .acct-id-card { margin-bottom: 1.4rem; }
+      .acct-id-card .page-hd h1 { font-size: 2.2rem; }
+      .acct-tabs {
+        flex-direction: row; flex-wrap: nowrap; overflow-x: auto; gap: 0;
+        -webkit-overflow-scrolling: touch;
+        border-bottom: 1px solid rgba(244,241,235,.1);
+      }
+      body.light-mode .acct-tabs { border-bottom-color: rgba(9,9,11,.1); }
       .acct-tabs::-webkit-scrollbar { display: none; }
+      .acct-tab {
+        white-space: nowrap; border-left: none; border-bottom: 2px solid transparent;
+        margin-bottom: -1px; padding: .8rem 1.3rem .8rem 0; margin-right: 1.4rem;
+      }
+      .acct-tab.active { background: none; border-left-color: transparent; border-bottom-color: var(--paper); }
+      body.light-mode .acct-tab.active { background: none; border-bottom-color: #09090b; }
+      .logout-bar { display: none; } /* nav Sign Out + footer cover this on mobile */
       .zw-grid-2 { grid-template-columns: 1fr; }
       .zw-grid-3 { grid-template-columns: 1fr 1fr; }
       #saved-list { grid-template-columns: repeat(2, 1fr); gap: .8rem; }
@@ -708,10 +737,16 @@
 
   <!-- ACCOUNT CONTENT (shown when signed in) -->
   <div id="acct-content" style="display:none">
-    <div class="page-hd">
-      <h1>My Account</h1>
-      <p class="page-hd-meta" id="acct-email-display"></p>
-    </div>
+    <div class="acct-layout">
+
+    <!-- Sticky rail: identity + vertical nav + sign out -->
+    <aside class="acct-rail">
+      <div class="acct-id-card">
+        <div class="page-hd">
+          <h1>My Account</h1>
+          <p class="page-hd-meta" id="acct-email-display"></p>
+        </div>
+      </div>
     <script>
     /* Greeting prefill from the pre-paint session — avoids the "My Account" →
        "Hey, Name." swap once init() resolves. init() re-sets these anyway. */
@@ -727,13 +762,21 @@
     }catch(_){}})()
     </script>
 
-    <!-- TABS -->
-    <div class="acct-tabs" id="acct-tabs">
+    <!-- TABS (vertical nav inside the rail; horizontal scroll on mobile) -->
+    <nav class="acct-tabs" id="acct-tabs">
       <button class="acct-tab active" data-tab="orders">Orders</button>
       <button class="acct-tab" data-tab="saved">Saved Items</button>
       <button class="acct-tab" data-tab="returns">Returns</button>
       <button class="acct-tab" data-tab="profile">Profile</button>
-    </div>
+    </nav>
+
+      <div class="logout-bar">
+        <p id="acct-signed-in-as"></p>
+        <button class="zw-btn" id="signout-btn">Sign Out</button>
+      </div>
+    </aside>
+
+    <div class="acct-main">
 
     <!-- ORDERS -->
     <div class="acct-panel active" id="panel-orders">
@@ -775,11 +818,8 @@
       <div id="profile-content"></div>
     </div>
 
-    <!-- LOGOUT BAR -->
-    <div class="logout-bar">
-      <p id="acct-signed-in-as"></p>
-      <button class="zw-btn" id="signout-btn">Sign Out</button>
-    </div>
+    </div><!-- /.acct-main -->
+    </div><!-- /.acct-layout -->
   </div>
 
 </main>
