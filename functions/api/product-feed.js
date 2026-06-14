@@ -120,6 +120,11 @@ function variantXml(p, variant, opts) {
   x += `    <g:link>${xmlEscape(opts.link)}</g:link>\n`;
   x += `    <g:image_link>${xmlEscape(image)}</g:image_link>\n`;
   x += `    <g:availability>${avail}</g:availability>\n`;
+  // preorder/backorder require an availability_date or the catalog shows
+  // availability as "Missing" and the variant can't be used in ads.
+  if (avail === 'preorder' && opts.availabilityDate) {
+    x += `    <g:availability_date>${opts.availabilityDate}</g:availability_date>\n`;
+  }
   x += `    <g:price>${price} USD</g:price>\n`;
   x += `    <g:brand>ZUWERA</g:brand>\n`;
   x += `    <g:condition>new</g:condition>\n`;
@@ -136,10 +141,11 @@ function variantXml(p, variant, opts) {
   return x;
 }
 
-function productItems(p, preLaunch) {
+function productItems(p, preLaunch, availabilityDate) {
   const title = String(p.title || 'Zuwera Product').trim();
   const opts = {
     preLaunch,
+    availabilityDate,
     description: describe(p, title),
     link: productUrl(p),
     gpc: googleCategoryFor(p.subtitle),
@@ -221,7 +227,11 @@ export async function onRequestGet({ env }) {
   } catch (_) { /* empty feed */ }
 
   const preLaunch = launchTs != null && Date.now() < launchTs;
-  const items = products.map(p => productItems(p, preLaunch)).join('');
+  // preorder availability requires a date; use the published launch date (ISO 8601).
+  const availabilityDate = preLaunch
+    ? new Date(launchTs).toISOString().replace(/\.\d{3}Z$/, '+00:00')
+    : null;
+  const items = products.map(p => productItems(p, preLaunch, availabilityDate)).join('');
   const variantCount = (items.match(/<item>/g) || []).length;
 
   const xml =
