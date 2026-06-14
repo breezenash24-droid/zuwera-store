@@ -1695,6 +1695,7 @@
             { id:'settings',   icon:'⚙️', label:'Settings',    title:'Settings',            group:'configuration' },
             { id:'website',    icon:'🎨', label:'Appearance',  title:'Appearance',          group:'configuration' },
             { id:'apis',       icon:'🔑', label:'APIs',        title:'API Status',          group:'configuration', searchLabel:'API Keys' },
+            { id:'meta',       icon:'📣', label:'Meta / Ads',  title:'Meta (Facebook) Setup', group:'configuration', searchLabel:'Meta / Facebook / Pixel / Conversions API' },
             { id:'audit',      icon:'📋', label:'Audit Log',   title:'Audit Log',           group:'configuration' },
         ];
         const ADMIN_NAV_GROUPS = [
@@ -1956,6 +1957,86 @@
                             2. Go to <strong>SMTP & API → API Keys → Create API Key</strong><br>
                             3. Copy the key and add it to Cloudflare Pages → Settings → Variables & Secrets as <code style="background:var(--border);padding:1px 6px;border-radius:4px;">BREVO_API_KEY</code><br>
                             4. Redeploy — Zuwera will automatically fall back to Brevo if Resend is unavailable
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Meta (Facebook & Instagram) Setup -->
+                <div id="meta" class="page">
+                    <div class="products-header">
+                        <div>
+                            <h2>📣 Meta (Facebook &amp; Instagram)</h2>
+                            <p style="color:var(--text-secondary);font-size:.85rem;margin-top:6px;max-width:700px;">Everything connecting your store to Meta ads &amp; shopping, in one place. Each piece is explained in plain language — a green dot means it's working. This page auto-checks when you open it.</p>
+                            <div id="meta-last-updated" style="font-size:.78rem;color:var(--text-secondary);margin-top:6px;"></div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="loadMetaStatus()">↻ Refresh</button>
+                    </div>
+
+                    <!-- Status cards -->
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;margin-bottom:24px;">
+
+                        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px;">
+                            <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;">
+                                <span id="meta-pixel-dot" style="width:9px;height:9px;border-radius:50%;background:#9ca3af;flex-shrink:0;"></span>
+                                <strong>Meta Pixel</strong>
+                            </div>
+                            <div style="font-size:.82rem;color:var(--text-secondary);line-height:1.6;">Records what shoppers do on your site so Meta can measure your ads and build audiences.</div>
+                            <div id="meta-pixel-status" style="margin-top:10px;font-size:.83rem;line-height:1.6;">Checking…</div>
+                        </div>
+
+                        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px;">
+                            <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;">
+                                <span id="meta-capi-dot" style="width:9px;height:9px;border-radius:50%;background:#9ca3af;flex-shrink:0;"></span>
+                                <strong>Conversions API <span style="font-weight:400;color:var(--text-secondary);">(server-side)</span></strong>
+                            </div>
+                            <div style="font-size:.82rem;color:var(--text-secondary);line-height:1.6;">Sends the same events from your server, so they still count even when a shopper's browser blocks tracking (ad blockers).</div>
+                            <div id="meta-capi-status" style="margin-top:10px;font-size:.83rem;line-height:1.6;">Checking…</div>
+                        </div>
+
+                        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px;">
+                            <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;">
+                                <span id="meta-feed-dot" style="width:9px;height:9px;border-radius:50%;background:#9ca3af;flex-shrink:0;"></span>
+                                <strong>Product Catalog Feed</strong>
+                            </div>
+                            <div style="font-size:.82rem;color:var(--text-secondary);line-height:1.6;">A live list of your products sent to Meta for shopping tags &amp; catalog ads. Updates itself as you change products.</div>
+                            <div id="meta-feed-status" style="margin-top:10px;font-size:.83rem;line-height:1.6;">Checking…</div>
+                            <a href="/api/product-feed" target="_blank" style="display:inline-block;margin-top:8px;font-size:.8rem;color:var(--accent);text-decoration:none;">View live feed ↗</a>
+                        </div>
+
+                        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px;">
+                            <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;">
+                                <span id="meta-domain-dot" style="width:9px;height:9px;border-radius:50%;background:#9ca3af;flex-shrink:0;"></span>
+                                <strong>Domain Verification</strong>
+                            </div>
+                            <div style="font-size:.82rem;color:var(--text-secondary);line-height:1.6;">Proves to Meta that you own zuwera.store — required for accurate iOS conversion tracking.</div>
+                            <div id="meta-domain-status" style="margin-top:10px;font-size:.83rem;line-height:1.6;">Checking…</div>
+                        </div>
+
+                    </div>
+
+                    <!-- What gets tracked -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px;">
+                        <div style="font-weight:700;margin-bottom:12px;">📊 What gets tracked</div>
+                        <div style="font-size:.84rem;color:var(--text-secondary);line-height:1.6;margin-bottom:14px;">Every shopper action is sent to Meta automatically — from the browser <em>and</em> your server, so nothing is lost to ad blockers:</div>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:9px 20px;font-size:.84rem;line-height:1.5;">
+                            <div><strong>Page View</strong> <span style="color:var(--text-secondary);">— opens any page</span></div>
+                            <div><strong>View Content</strong> <span style="color:var(--text-secondary);">— opens a product</span></div>
+                            <div><strong>Add to Cart</strong> <span style="color:var(--text-secondary);">— adds an item to the bag</span></div>
+                            <div><strong>Initiate Checkout</strong> <span style="color:var(--text-secondary);">— starts checkout</span></div>
+                            <div><strong>Purchase</strong> <span style="color:var(--text-secondary);">— completes an order (counted 3 ways for accuracy)</span></div>
+                            <div><strong>Lead</strong> <span style="color:var(--text-secondary);">— joins the waitlist / newsletter</span></div>
+                            <div><strong>Complete Registration</strong> <span style="color:var(--text-secondary);">— creates an account</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Quick links -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                        <div style="font-weight:700;margin-bottom:12px;">🔗 Open in Meta</div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <a class="btn btn-secondary" href="https://business.facebook.com/events_manager" target="_blank" style="text-decoration:none;">Events Manager ↗</a>
+                            <a class="btn btn-secondary" href="https://business.facebook.com/commerce" target="_blank" style="text-decoration:none;">Catalog (Commerce Manager) ↗</a>
+                            <a class="btn btn-secondary" href="https://business.facebook.com/settings/owned-domains" target="_blank" style="text-decoration:none;">Domains ↗</a>
+                            <a class="btn btn-secondary" href="https://adsmanager.facebook.com" target="_blank" style="text-decoration:none;">Ads Manager ↗</a>
                         </div>
                     </div>
                 </div>
@@ -7728,6 +7809,8 @@
                 if (typeof loadReturnAddressCard === 'function') loadReturnAddressCard();
             } else if (page === 'apis') {
                 loadApiStatus();
+            } else if (page === 'meta') {
+                loadMetaStatus();
             } else if (page === 'audit') {
                 loadAuditLog();
             }
@@ -7912,6 +7995,62 @@
         // Cached masked key map populated when the page loads
         let _maskedKeys = {};
         let _currentKeyService = null;
+
+        // ─── Meta (Facebook) integration status ──────────────────────────────────
+        async function loadMetaStatus() {
+            const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+            const dot = (id, c)    => { const el = document.getElementById(id); if (el) el.style.background = c; };
+            const GREEN = '#4ade80', AMBER = '#fbbf24', RED = '#f87171';
+
+            // Pixel + CAPI: the server reports whether the token is set — never the value.
+            let s = {};
+            try { s = await (await fetch('/api/meta-status', { cache: 'no-store' })).json(); } catch (_) {}
+            const pixelId = s.pixel_id || '1695269795093400';
+            set('meta-pixel-status', `<strong style="color:#4ade80;">Live.</strong> Pixel ID <code style="background:var(--border);padding:1px 5px;border-radius:4px;">${pixelId}</code> — installed on every storefront page.`);
+            dot('meta-pixel-dot', GREEN);
+
+            if (s.capi_configured) {
+                dot('meta-capi-dot', s.test_mode ? AMBER : GREEN);
+                set('meta-capi-status', `<strong style="color:#4ade80;">Connected.</strong> Server-side events are sending.` +
+                    (s.test_mode ? `<br><strong style="color:#fbbf24;">Test mode is ON</strong> — remove the <code>META_CAPI_TEST_CODE</code> secret in Cloudflare so real events count.` : ''));
+            } else {
+                dot('meta-capi-dot', AMBER);
+                set('meta-capi-status', `<strong style="color:#fbbf24;">Not connected.</strong> Add a <code>META_CAPI_TOKEN</code> secret in Cloudflare → Settings → Variables &amp; Secrets, then redeploy. (Your browser pixel still works without it.)`);
+            }
+
+            // Catalog feed — read the live feed and pull its product/variant count.
+            try {
+                const txt = await (await fetch('/api/product-feed', { cache: 'no-store' })).text();
+                const m = txt.match(/<!--\s*(\d+)\s+products?,\s*(\d+)\s+variants?([^>]*)-->/i);
+                if (m) {
+                    const pre = /preorder/i.test(m[3] || '');
+                    set('meta-feed-status', `<strong style="color:#4ade80;">Live.</strong> ${m[1]} products, ${m[2]} variants${pre ? ' (preorder)' : ''}. Refreshes hourly.`);
+                } else {
+                    set('meta-feed-status', `<strong style="color:#4ade80;">Live.</strong> Feed is responding.`);
+                }
+                dot('meta-feed-dot', GREEN);
+            } catch (_) {
+                set('meta-feed-status', `<strong style="color:#f87171;">Unreachable.</strong> The feed didn't respond.`);
+                dot('meta-feed-dot', RED);
+            }
+
+            // Domain verification — confirm the tag is in the live homepage.
+            try {
+                const home = await (await fetch('/', { cache: 'no-store' })).text();
+                if (/facebook-domain-verification/.test(home)) {
+                    set('meta-domain-status', `<strong style="color:#4ade80;">Verified.</strong> The verification tag is in your homepage.`);
+                    dot('meta-domain-dot', GREEN);
+                } else {
+                    set('meta-domain-status', `<strong style="color:#fbbf24;">Tag not found</strong> in the homepage &lt;head&gt;.`);
+                    dot('meta-domain-dot', AMBER);
+                }
+            } catch (_) {
+                set('meta-domain-status', `Couldn't check the homepage right now.`);
+            }
+
+            const u = document.getElementById('meta-last-updated');
+            if (u) u.textContent = 'Last checked ' + new Date().toLocaleTimeString();
+        }
 
         async function loadApiStatus() {
             const loadingEl  = document.getElementById('apis-loading');
