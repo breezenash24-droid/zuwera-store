@@ -6644,12 +6644,14 @@
             <div class="modal-header" id="formModalTitle">Add Product</div>
             <form id="productForm">
                 <div class="tabs">
+                    <!-- Ordered as a natural create flow: identify → price → define
+                         variants → add photos of them → specs → publish last. -->
                     <button type="button" class="tab-button active" data-tab="core">Core Identity</button>
-                    <button type="button" class="tab-button" data-tab="tab-status">Status</button>
                     <button type="button" class="tab-button" data-tab="pricing">Pricing</button>
-                    <button type="button" class="tab-button" data-tab="visuals">Visuals & Model</button>
                     <button type="button" class="tab-button" data-tab="colors">Variants & Stock</button>
+                    <button type="button" class="tab-button" data-tab="visuals">Visuals & Model</button>
                     <button type="button" class="tab-button" data-tab="technical">Technical</button>
+                    <button type="button" class="tab-button" data-tab="tab-status">Status</button>
                 </div>
 
                 <!-- Tab: Core Identity -->
