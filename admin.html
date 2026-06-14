@@ -7804,9 +7804,12 @@
         function setupEventListeners() {
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.addEventListener('click', (e) => {
+                    // Links without a data-page are real anchors (e.g. Page Builder,
+                    // an href/target=_blank external link) — let them navigate
+                    // normally instead of hijacking the click into the SPA router.
+                    if (!link.dataset.page) return;
                     e.preventDefault();
-                    const page = link.dataset.page;
-                    navigateTo(page);
+                    navigateTo(link.dataset.page);
                 });
             });
         }
