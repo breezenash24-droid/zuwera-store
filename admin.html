@@ -1684,23 +1684,24 @@
             { id:'finance',    icon:'💰', label:'Finance',     title:'Finance',             group:'overview',      mobile:'Finance' },
             { id:'tax',        icon:'🧾', label:'Tax',         title:'Tax',                 group:'overview' },
             { id:'products',   icon:'👟', label:'Products',    title:'Product Inventory',   group:'catalogue',     mobile:'Products' },
-            { id:'commerce',   icon:'🏷️', label:'Coupons',     title:'Coupons',             group:'catalogue',     searchLabel:'Commerce / Coupons' },
+            { id:'commerce',   icon:'🏷️', label:'Coupons',     title:'Coupons',             group:'marketing',     searchLabel:'Commerce / Coupons / Promotions' },
             { id:'legacy',     icon:'📦', label:'Legacy',      title:'Legacy Products',     group:'catalogue',     searchLabel:'Legacy Products' },
             { id:'sizecharts', icon:'📏', label:'Size Charts', title:'Size Charts',         group:'catalogue' },
             { id:'reviews',    icon:'⭐', label:'Reviews',     title:'Customer Reviews',    group:'catalogue' },
             { id:'receipts',   icon:'🧾', label:'Receipts',    title:'Receipts',            group:'operations',    mobile:'Orders', searchLabel:'Receipts / Orders' },
-            { id:'shipping',   icon:'🚚', label:'Shipping',    title:'Shipping',            group:'operations' },
+            { id:'shipping',   icon:'🚚', label:'Shipping',    title:'Shipping',            group:'overview' },
             { id:'returns',    icon:'↩',  label:'Returns',     title:'Returns & Exchanges', group:'operations' },
             { id:'users',      icon:'👥', label:'Users',       title:'User Management',     group:'operations' },
             { id:'settings',   icon:'⚙️', label:'Settings',    title:'Settings',            group:'configuration' },
-            { id:'website',    icon:'🎨', label:'Appearance',  title:'Appearance',          group:'configuration' },
+            { id:'website',    icon:'🎨', label:'Appearance',  title:'Appearance',          group:'storefront' },
             { id:'apis',       icon:'🔑', label:'APIs',        title:'API Status',          group:'configuration', searchLabel:'API Keys' },
-            { id:'meta',       icon:'📣', label:'Ads & Tracking', title:'Ads & Tracking', group:'configuration', searchLabel:'Meta / Facebook / Pixel / Conversions API / Google Ads / Analytics / GA4 / Merchant Center' },
+            { id:'meta',       icon:'📣', label:'Ads & Tracking', title:'Ads & Tracking', group:'marketing', searchLabel:'Meta / Facebook / Pixel / Conversions API / Google Ads / Analytics / GA4 / Merchant Center' },
             { id:'audit',      icon:'📋', label:'Audit Log',   title:'Audit Log',           group:'configuration' },
         ];
         const ADMIN_NAV_GROUPS = [
             { id:'overview',      label:'Overview' },
             { id:'catalogue',     label:'Catalogue' },
+            { id:'marketing',     label:'Marketing' },
             { id:'operations',    label:'Operations' },
             { id:'storefront',    label:'Storefront',    collapsed:true },
             { id:'configuration', label:'Configuration', collapsed:true },
@@ -1710,11 +1711,14 @@
             /* Sidebar */
             const nav = document.getElementById('sidebarNav');
             nav.innerHTML = ADMIN_NAV_GROUPS.map(g => {
+                const pageLinks = ADMIN_PAGES.filter(p => p.group === g.id).map(p =>
+                    `<a class="nav-link${p.id==='dashboard'?' active':''}" href="#" data-page="${p.id}" onclick="navigateTo('${p.id}')">${p.icon} ${esc(p.label)}</a>`
+                  ).join('');
+                // Storefront leads with the external Page Builder link, then its
+                // in-app pages (e.g. Appearance); every other group is just its pages.
                 const links = g.id === 'storefront'
-                    ? `<a class="nav-link" href="/builder.html" target="_blank" style="display:flex;align-items:center;gap:.55rem;" onclick="(async function(){try{const s=await sb.auth.getSession();const sess=s&&s.data&&s.data.session;if(sess){localStorage.setItem('zw_builder_token',sess.access_token);localStorage.setItem('zw_builder_token_exp',String(sess.expires_at||0));}}catch(_){}})()">🏗️ Page Builder ↗</a>`
-                    : ADMIN_PAGES.filter(p => p.group === g.id).map(p =>
-                        `<a class="nav-link${p.id==='dashboard'?' active':''}" href="#" data-page="${p.id}" onclick="navigateTo('${p.id}')">${p.icon} ${esc(p.label)}</a>`
-                      ).join('');
+                    ? `<a class="nav-link" href="/builder.html" target="_blank" style="display:flex;align-items:center;gap:.55rem;" onclick="(async function(){try{const s=await sb.auth.getSession();const sess=s&&s.data&&s.data.session;if(sess){localStorage.setItem('zw_builder_token',sess.access_token);localStorage.setItem('zw_builder_token_exp',String(sess.expires_at||0));}}catch(_){}})()">🏗️ Page Builder ↗</a>` + pageLinks
+                    : pageLinks;
                 return `<div class="nav-section${g.collapsed?' collapsed':''}" data-group="${g.id}">
                     <div class="nav-section-title" onclick="toggleNavGroup('${g.id}')">${esc(g.label)} <span class="nav-chevron">▾</span></div>
                     <div class="nav-section-links">${links}</div>
