@@ -31,6 +31,7 @@ const files = [
   'drop001.html',
   'favicon-utils.js',
   'favicon.ico',
+  'google-tag.js',
   'hero.mp4',
   'image-utils.js',
   'index.html',
