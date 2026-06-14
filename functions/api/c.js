@@ -33,6 +33,15 @@ export function onRequestOptions() {
   return new Response(null, { status: 204, headers: CORS });
 }
 
+// Visiting the URL in a browser is a GET — answer with a small "alive" payload
+// so it doesn't look broken. Real events arrive via POST.
+export function onRequestGet() {
+  return new Response(JSON.stringify({ ok: true, endpoint: 'capi-relay', accepts: 'POST' }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json', ...CORS },
+  });
+}
+
 export async function onRequestPost({ request, env }) {
   let payload;
   try { payload = await request.json(); } catch { payload = null; }
