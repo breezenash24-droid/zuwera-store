@@ -326,6 +326,12 @@ body.light-mode #zw-lang-modal{
    the page has no .modal base CSS. */
 .modal:not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal){
   display:flex !important;
+  /* position:fixed is REQUIRED here, not assumed from a page-local .modal base.
+     Without it, a page with no .modal CSS (e.g. account.html) renders the
+     display:flex modal in normal flow, leaving a tall blank block after the
+     footer. Fixed + inset:0 keeps every closed modal out of the layout. */
+  position:fixed;
+  inset:0;
   visibility:hidden;
   opacity:0;
   pointer-events:none;
