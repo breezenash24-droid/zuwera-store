@@ -137,7 +137,7 @@
     /* ── PAGE ── */
     .page { flex: 1; }
     .page-inner {
-      max-width: 720px;
+      max-width: 880px;
       margin: 0 auto;
       padding: 3rem 2rem 5rem;
     }
@@ -367,8 +367,9 @@
       display: flex; gap: .75rem; align-items: center;
     }
 
-    /* ── STEP 1: Order cards ── */
-    .order-cards { display: flex; flex-direction: column; gap: .6rem; }
+    /* ── STEP 1: Order cards — grid so a long order history fills the width
+           instead of stacking as one tall narrow column ── */
+    .order-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: .7rem; }
     .order-card {
       border: 1.5px solid var(--border);
       padding: 1.1rem 1.3rem;
