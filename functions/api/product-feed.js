@@ -158,16 +158,35 @@ function productItems(p, preLaunch, availabilityDate) {
     // No size data — emit a single base item so the product still lists.
     return variantXml(p, { color: '', size: '', stock: 1 }, opts);
   }
+  // Colours defined for this product (independent of per-size colour tagging).
+  const productColors = (Array.isArray(p.color_variants) ? p.color_variants : [])
+    .map(c => String((c && c.color_name) || '').trim())
+    .filter(Boolean);
+  // Some products tag a colour on every size row (Vogue, Aero Pro); others keep
+  // sizing colour-agnostic and only list colours in color_variants. For the
+  // latter, fan each size out across every colour so the catalogue exposes
+  // colour as a real variant dimension — matching how the storefront sells them.
+  const rowsHaveColor = rows.some(r => String((r && r.color_name) || '').trim());
+
   const byKey = new Map();
+  const addVariant = (color, size, stock) => {
+    const key = `${color.toLowerCase()}|${size.toLowerCase()}`;
+    const prev = byKey.get(key);
+    if (prev) prev.stock += stock;
+    else byKey.set(key, { color, size, stock });
+  };
   for (const r of rows) {
     const size = String(r.size || '').trim();
     if (!size) continue;
-    const color = String(r.color_name || '').trim();
-    const key = `${color.toLowerCase()}|${size.toLowerCase()}`;
-    const prev = byKey.get(key);
     const stock = Number(r.stock_quantity) || 0;
-    if (prev) prev.stock += stock;
-    else byKey.set(key, { color, size, stock });
+    const rowColor = String(r.color_name || '').trim();
+    if (rowColor) {
+      addVariant(rowColor, size, stock);
+    } else if (productColors.length && !rowsHaveColor) {
+      for (const c of productColors) addVariant(c, size, stock);
+    } else {
+      addVariant('', size, stock);
+    }
   }
   let out = '';
   for (const v of byKey.values()) out += variantXml(p, v, opts);
