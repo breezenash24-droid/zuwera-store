@@ -2244,9 +2244,6 @@
                         const a = r.shippingAddress || {};
                         return !a.line1 || !a.city || !a.state || !a.zip || !a.country;
                     }
-                    function retLabelMissing(r) {
-                        return !r.labelUrl && !['denied', 'completed', 'refunded', 'closed'].includes(r.status || '');
-                    }
                     function retLabelError(r) {
                         return String(r.lastLabelError || r.labelError || '').trim();
                     }
@@ -2721,13 +2718,6 @@
                         return req;
                     }
 
-                    window.updateReturnStatus = async function(requestId, newStatus, selectEl) {
-                        const req = _returnsData.find(r => r.id === requestId);
-                        if (!req) return;
-                        const oldStatus = req.status;
-                        try { await persistReturnUpdate(requestId, { status: newStatus }); notifyReturns('Return status updated.', 'success'); }
-                        catch(e) { if (selectEl) selectEl.value = oldStatus; notifyReturns('Could not update status: ' + e.message, 'error'); }
-                    };
                     async function quickReturnStatus(requestId, status) {
                         if (status === 'denied' && !confirm('Mark this return as denied? The customer will be notified.')) return;
                         if (status === 'refunded') {
@@ -10237,16 +10227,6 @@
 
         function sectionEl(id) { return document.getElementById(id); }
 
-        function escapeJsString(value) {
-            return String(value ?? '')
-                .replace(/\\/g, '\\\\')
-                .replace(/'/g, "\\'")
-                .replace(/\r/g, '\\r')
-                .replace(/\n/g, '\\n')
-                .replace(/</g, '\\x3C')
-                .replace(/>/g, '\\x3E')
-                .replace(/&/g, '\\x26');
-        }
 
         function safeHttpUrl(value) {
             const raw = String(value || '').trim();
@@ -10303,20 +10283,6 @@
         }
 
         // Refresh color dropdowns on all existing image rows (call when colors change)
-        function refreshImageRowColorDropdowns() {
-            const opts = getColorOptionsForRows();
-            document.querySelectorAll('#imagesContainer .product-image-color').forEach(sel => {
-                const current = sel.value;
-                sel.innerHTML = '<option value="">All colors</option>' + opts;
-                sel.value = current; // restore selection
-            });
-            // Show/hide color column header
-            const hasColors = opts.length > 0;
-            document.querySelectorAll('#imagesContainer .img-color-col').forEach(el => {
-                el.style.display = hasColors ? '' : 'none';
-            });
-        }
-
         function buildMediaRowHtml(label, url, colorOpts, selectedColor, selectedColorId) {
             const safeUrl = escapeAttr(url || '');
             const isVid = isVideoUrl(url || '');
@@ -10669,11 +10635,6 @@
                 if (result.warnings?.length) showToast(result.warnings[0], 'info');
             }
         }, true);
-
-        function isOneSizeLabel(value) {
-            const normalized = normalizeSizeKey(value).replace(/\s+fits\s+most/g, '');
-            return normalized === 'one size' || normalized === 'one-size' || normalized === 'onesize';
-        }
 
         function canonicalizeSizeToken(value) {
             const normalized = normalizeSizeKey(value).replace(/\s+fits\s+most/g, '');
