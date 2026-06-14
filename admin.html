@@ -1695,7 +1695,7 @@
             { id:'settings',   icon:'⚙️', label:'Settings',    title:'Settings',            group:'configuration' },
             { id:'website',    icon:'🎨', label:'Appearance',  title:'Appearance',          group:'configuration' },
             { id:'apis',       icon:'🔑', label:'APIs',        title:'API Status',          group:'configuration', searchLabel:'API Keys' },
-            { id:'meta',       icon:'📣', label:'Meta / Ads',  title:'Meta (Facebook) Setup', group:'configuration', searchLabel:'Meta / Facebook / Pixel / Conversions API' },
+            { id:'meta',       icon:'📣', label:'Ads & Tracking', title:'Ads & Tracking', group:'configuration', searchLabel:'Meta / Facebook / Pixel / Conversions API / Google Ads / Analytics / GA4 / Merchant Center' },
             { id:'audit',      icon:'📋', label:'Audit Log',   title:'Audit Log',           group:'configuration' },
         ];
         const ADMIN_NAV_GROUPS = [
@@ -1965,14 +1965,15 @@
                 <div id="meta" class="page">
                     <div class="products-header">
                         <div>
-                            <h2>📣 Meta (Facebook &amp; Instagram)</h2>
-                            <p style="color:var(--text-secondary);font-size:.85rem;margin-top:6px;max-width:700px;">Everything connecting your store to Meta ads &amp; shopping, in one place. Each piece is explained in plain language — a green dot means it's working. This page auto-checks when you open it.</p>
+                            <h2>📣 Ads &amp; Tracking</h2>
+                            <p style="color:var(--text-secondary);font-size:.85rem;margin-top:6px;max-width:720px;">Everything connecting your store to <strong>Meta</strong> and <strong>Google</strong> ads &amp; shopping, in one place. Each piece is explained in plain language — a green dot means it's working. This page auto-checks when you open it.</p>
                             <div id="meta-last-updated" style="font-size:.78rem;color:var(--text-secondary);margin-top:6px;"></div>
                         </div>
                         <button class="btn btn-secondary" onclick="loadMetaStatus()">↻ Refresh</button>
                     </div>
 
-                    <!-- Status cards -->
+                    <div style="font-weight:700;font-size:1rem;margin:0 0 12px;">📘 Meta <span style="font-weight:400;color:var(--text-secondary);font-size:.82rem;">— Facebook &amp; Instagram</span></div>
+                    <!-- Meta status cards -->
                     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;margin-bottom:24px;">
 
                         <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px;">
@@ -2014,10 +2015,43 @@
 
                     </div>
 
+                    <div style="font-weight:700;font-size:1rem;margin:0 0 12px;">🔵 Google <span style="font-weight:400;color:var(--text-secondary);font-size:.82rem;">— Ads, Analytics &amp; Shopping</span></div>
+                    <!-- Google status cards -->
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;margin-bottom:24px;">
+
+                        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px;">
+                            <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;">
+                                <span id="meta-gads-dot" style="width:9px;height:9px;border-radius:50%;background:#9ca3af;flex-shrink:0;"></span>
+                                <strong>Google Ads</strong>
+                            </div>
+                            <div style="font-size:.82rem;color:var(--text-secondary);line-height:1.6;">Counts purchases as conversions so Google optimizes your ads toward sales.</div>
+                            <div id="meta-gads-status" style="margin-top:10px;font-size:.83rem;line-height:1.6;">Checking…</div>
+                        </div>
+
+                        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px;">
+                            <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;">
+                                <span id="meta-ga4-dot" style="width:9px;height:9px;border-radius:50%;background:#9ca3af;flex-shrink:0;"></span>
+                                <strong>Google Analytics <span style="font-weight:400;color:var(--text-secondary);">(GA4)</span></strong>
+                            </div>
+                            <div style="font-size:.82rem;color:var(--text-secondary);line-height:1.6;">Measures your traffic and shopper behavior across the site.</div>
+                            <div id="meta-ga4-status" style="margin-top:10px;font-size:.83rem;line-height:1.6;">Checking…</div>
+                        </div>
+
+                        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px;">
+                            <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;">
+                                <span style="width:9px;height:9px;border-radius:50%;background:#9ca3af;flex-shrink:0;"></span>
+                                <strong>Google Shopping <span style="font-weight:400;color:var(--text-secondary);">(Merchant Center)</span></strong>
+                            </div>
+                            <div style="font-size:.82rem;color:var(--text-secondary);line-height:1.6;">Your product feed is already Google-ready — the same one Meta uses. Connect it in Merchant Center to run Shopping ads.</div>
+                            <div style="margin-top:10px;font-size:.83rem;line-height:1.6;color:var(--text-secondary);">Ready to connect &middot; <a href="/api/product-feed" target="_blank" style="color:var(--accent);text-decoration:none;">View feed ↗</a></div>
+                        </div>
+
+                    </div>
+
                     <!-- What gets tracked -->
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px;">
                         <div style="font-weight:700;margin-bottom:12px;">📊 What gets tracked</div>
-                        <div style="font-size:.84rem;color:var(--text-secondary);line-height:1.6;margin-bottom:14px;">Every shopper action is sent to Meta automatically — from the browser <em>and</em> your server, so nothing is lost to ad blockers:</div>
+                        <div style="font-size:.84rem;color:var(--text-secondary);line-height:1.6;margin-bottom:14px;">Every shopper action is sent to <strong>both Meta and Google</strong> automatically — from the browser <em>and</em> your server, so nothing is lost to ad blockers:</div>
                         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:9px 20px;font-size:.84rem;line-height:1.5;">
                             <div><strong>Page View</strong> <span style="color:var(--text-secondary);">— opens any page</span></div>
                             <div><strong>View Content</strong> <span style="color:var(--text-secondary);">— opens a product</span></div>
@@ -2031,12 +2065,19 @@
 
                     <!-- Quick links -->
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                        <div style="font-weight:700;margin-bottom:12px;">🔗 Open in Meta</div>
-                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <div style="font-weight:700;margin-bottom:12px;">🔗 Quick links</div>
+                        <div style="font-size:.74rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;">Meta</div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
                             <a class="btn btn-secondary" href="https://business.facebook.com/events_manager" target="_blank" style="text-decoration:none;">Events Manager ↗</a>
                             <a class="btn btn-secondary" href="https://business.facebook.com/commerce" target="_blank" style="text-decoration:none;">Catalog (Commerce Manager) ↗</a>
                             <a class="btn btn-secondary" href="https://business.facebook.com/settings/owned-domains" target="_blank" style="text-decoration:none;">Domains ↗</a>
                             <a class="btn btn-secondary" href="https://adsmanager.facebook.com" target="_blank" style="text-decoration:none;">Ads Manager ↗</a>
+                        </div>
+                        <div style="font-size:.74rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;">Google</div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <a class="btn btn-secondary" href="https://ads.google.com" target="_blank" style="text-decoration:none;">Google Ads ↗</a>
+                            <a class="btn btn-secondary" href="https://analytics.google.com" target="_blank" style="text-decoration:none;">Analytics (GA4) ↗</a>
+                            <a class="btn btn-secondary" href="https://merchants.google.com" target="_blank" style="text-decoration:none;">Merchant Center ↗</a>
                         </div>
                     </div>
                 </div>
@@ -8046,6 +8087,29 @@
                 }
             } catch (_) {
                 set('meta-domain-status', `Couldn't check the homepage right now.`);
+            }
+
+            // Google tag — confirm both the Ads and GA4 IDs are deployed.
+            try {
+                const gt = await (await fetch('/google-tag.js', { cache: 'no-store' })).text();
+                const adsId = (gt.match(/AW-\d+/) || [''])[0];
+                const ga4Id = (gt.match(/G-[A-Z0-9]+/) || [''])[0];
+                if (adsId) {
+                    dot('meta-gads-dot', GREEN);
+                    set('meta-gads-status', `<strong style="color:#4ade80;">Live.</strong> Conversion ID <code style="background:var(--border);padding:1px 5px;border-radius:4px;">${adsId}</code> — Purchase fires at checkout.<br><span style="color:var(--text-secondary);">Enhanced Conversions code is in — switch it on in Google Ads → Conversions → Settings to boost matching.</span>`);
+                } else {
+                    dot('meta-gads-dot', AMBER);
+                    set('meta-gads-status', `<strong style="color:#fbbf24;">Not detected</strong> in the site tag.`);
+                }
+                if (ga4Id) {
+                    dot('meta-ga4-dot', GREEN);
+                    set('meta-ga4-status', `<strong style="color:#4ade80;">Installed.</strong> Measurement ID <code style="background:var(--border);padding:1px 5px;border-radius:4px;">${ga4Id}</code>.`);
+                } else {
+                    dot('meta-ga4-dot', AMBER);
+                    set('meta-ga4-status', `<strong style="color:#fbbf24;">Not detected.</strong>`);
+                }
+            } catch (_) {
+                set('meta-gads-status', `Couldn't check the Google tag right now.`);
             }
 
             const u = document.getElementById('meta-last-updated');
