@@ -1559,7 +1559,7 @@ function applyAnnouncementBar(mode, msgText) {
   barEl.style.display = 'flex';
   setAnnouncementBarLayout(barEl, navEl, true);
 
-  if (normalizedMode !== 'scroll') return;
+  if (normalizedMode !== 'scroll' && normalizedMode !== 'scrolloff') return;
 
   if (isMobileViewport) {
     // Mobile: fade ONLY the bar on scroll-down; the nav stays fixed.
@@ -1582,7 +1582,7 @@ function applyAnnouncementBar(mode, msgText) {
       const scrollingDown = currentY > lastScrollY + 6;
       const scrollingUp = currentY < lastScrollY - 6;
 
-      if (currentY <= 16 || scrollingUp) {
+      if (normalizedMode !== 'scrolloff' && (currentY <= 16 || scrollingUp)) {
         if (isHidden) {
           isHidden = false;
           syncAnnouncementState(false);
@@ -1591,6 +1591,7 @@ function applyAnnouncementBar(mode, msgText) {
         if (!isHidden) {
           isHidden = true;
           syncAnnouncementState(true);
+          if (normalizedMode === 'scrolloff') teardownAnnouncementBarScroll();
         }
       }
 
@@ -1623,7 +1624,7 @@ function applyAnnouncementBar(mode, msgText) {
     const scrollingDown = currentY > lastScrollY + 6;
     const scrollingUp = currentY < lastScrollY - 6;
 
-    if (currentY <= 16 || scrollingUp) {
+    if (normalizedMode !== 'scrolloff' && (currentY <= 16 || scrollingUp)) {
       if (isHidden) {
         isHidden = false;
         syncAnnouncementState(false);
@@ -1632,6 +1633,7 @@ function applyAnnouncementBar(mode, msgText) {
       if (!isHidden) {
         isHidden = true;
         syncAnnouncementState(true);
+        if (normalizedMode === 'scrolloff') teardownAnnouncementBarScroll();
       }
     }
 

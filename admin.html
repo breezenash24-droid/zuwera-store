@@ -6242,7 +6242,11 @@
                                 </label>
                                 <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);">
                                     <input type="radio" name="announcementBarMode" id="settAnnouncementModeScroll" value="scroll" style="accent-color:var(--accent);cursor:pointer;">
-                                    <span><strong>On until scroll</strong> — Hides when user scrolls down</span>
+                                    <span><strong>On until scroll</strong> — Hides when scrolling down, returns when scrolling back up</span>
+                                </label>
+                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);">
+                                    <input type="radio" name="announcementBarMode" id="settAnnouncementModeScrollOff" value="scrolloff" style="accent-color:var(--accent);cursor:pointer;">
+                                    <span><strong>On, then dismiss</strong> — Hides for good on first scroll; comes back only when the page is reopened</span>
                                 </label>
                                 <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);">
                                     <input type="radio" name="announcementBarMode" id="settAnnouncementModeOff" value="off" style="accent-color:var(--accent);cursor:pointer;">

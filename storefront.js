@@ -831,7 +831,7 @@ function applyAnnouncementBar(mode, msgText) {
   barEl.style.display = 'flex';
   setAnnouncementBarLayout(barEl, navEl, true);
 
-  if (normalizedMode !== 'scroll') return;
+  if (normalizedMode !== 'scroll' && normalizedMode !== 'scrolloff') return;
 
   if (isMobileViewport) {
     // Mobile: fade ONLY the announcement bar on scroll-down — the nav stays
@@ -897,10 +897,15 @@ function applyAnnouncementBar(mode, msgText) {
     if (Date.now() < scrollActivationAt) { lastScrollY = currentY; return; }
     const scrollingDown = currentY > lastScrollY + 6;
     const scrollingUp = currentY < lastScrollY - 6;
-    if (currentY <= 16 || scrollingUp) {
+    // 'scroll' reappears at the top / on scroll-up; 'scrolloff' hides once and
+    // detaches, so it stays gone until the page is reopened.
+    if (normalizedMode !== 'scrolloff' && (currentY <= 16 || scrollingUp)) {
       if (isHidden) { isHidden = false; syncAnnouncementState(false); }
     } else if (currentY > 80 && scrollingDown) {
-      if (!isHidden) { isHidden = true; syncAnnouncementState(true); }
+      if (!isHidden) {
+        isHidden = true; syncAnnouncementState(true);
+        if (normalizedMode === 'scrolloff') teardownAnnouncementBarScroll();
+      }
     }
     lastScrollY = currentY;
   };
