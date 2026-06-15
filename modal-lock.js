@@ -20,6 +20,15 @@
     const style = window.getComputedStyle(el);
     if (style.display === 'none' || style.visibility === 'hidden') return false;
 
+    // A closing modal fades out via CSS. storefront-cohesion.css hides modals
+    // with `visibility:hidden` on a TRANSITION DELAY (visibility 0s linear
+    // <dur>), so right after `.open` is removed `visibility` still computes to
+    // `visible` for the whole fade — and the eventual flip to hidden is a
+    // transition, not a DOM mutation, so the observer never re-checks and the
+    // page stays scroll-locked. `pointer-events` flips to `none` immediately
+    // when `.open` is removed, so treat a non-interactive overlay as closed.
+    if (style.pointerEvents === 'none') return false;
+
     const rect = el.getBoundingClientRect();
     return rect.width > 0 && rect.height > 0;
   }
