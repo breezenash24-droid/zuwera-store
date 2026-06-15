@@ -785,6 +785,9 @@ function setAnnouncementBarLayout(barEl, navEl, isVisible) {
   // Desktop: nav pushed below bar via nav.style.top; spacer holds bar height in flow
   const spacerEl = document.getElementById('bar-spacer');
   if (window.matchMedia('(max-width:900px)').matches) {
+    // Bar sits below the nav via CSS on mobile; clear any desktop nav offset
+    // (e.g. left behind after a resize across the breakpoint) and drop the spacer.
+    if (navEl) navEl.style.top = '';
     if (spacerEl) spacerEl.style.height = '0';
   } else {
     const barH = (barEl && isVisible) ? barEl.offsetHeight : 0;
@@ -834,33 +837,36 @@ function applyAnnouncementBar(mode, msgText) {
   if (normalizedMode !== 'scroll' && normalizedMode !== 'scrolloff') return;
 
   if (isMobileViewport) {
-    // Mobile: fade ONLY the announcement bar on scroll-down — the nav stays
-    // fixed (translating it left a see-through gap above the header). The bar's
-    // transform is locked by CSS (anti-flicker), so hide via opacity. The bar
-    // only hides once scrolled, where page content already fills the strip
-    // beneath the nav, so there is no gap.
+    // Mobile: the bar's transform is CSS-locked (anti-flicker), so animate
+    // OPACITY instead of a slide. 'scroll' hides on scroll-down and reappears at
+    // the top / on scroll-up; 'scrolloff' hides once on the first scroll-down and
+    // stays gone (the handler detaches) until the page is reopened. Mirrors the
+    // desktop path and the product page so all four modes behave consistently.
     barEl.style.transition = 'opacity .3s ease';
-    let lastY = window.scrollY;
-    let hidden = false;
-    const activateAt = Date.now() + 450;
-    const setHidden = (h) => {
-      barEl.style.opacity = h ? '0' : '1';
-      barEl.style.pointerEvents = h ? 'none' : '';
+    let lastScrollY = window.scrollY;
+    let isHidden = false;
+    const scrollActivationAt = Date.now() + 450;
+    const syncAnnouncementState = (hidden) => {
+      barEl.style.opacity = hidden ? '0' : '1';
+      barEl.style.pointerEvents = hidden ? 'none' : '';
     };
+    syncAnnouncementState(false);
     _announcementBarScrollHandler = function() {
-      const y = window.scrollY;
-      if (document.body.dataset.scrollLocked || window.__zwScrollLocking || window.__zwScrollRestoring) { lastY = y; return; }
-      if (Date.now() < activateAt) { lastY = y; return; }
-      const down = y > lastY + 6;
-      // Dismiss-once: the bar hides on the first scroll-down past 80px and then
-      // STAYS hidden — it does NOT reappear on scroll-up (the reappear was
-      // distracting). Detach the listener once dismissed.
-      if (!hidden && y > 80 && down) {
-        hidden = true;
-        setHidden(true);
-        teardownAnnouncementBarScroll();
+      const currentY = window.scrollY;
+      if (document.body.dataset.scrollLocked || window.__zwScrollLocking || window.__zwScrollRestoring) { lastScrollY = currentY; return; }
+      if (Date.now() < scrollActivationAt) { lastScrollY = currentY; return; }
+      const scrollingDown = currentY > lastScrollY + 6;
+      const scrollingUp = currentY < lastScrollY - 6;
+      // 'scroll' reappears at the top / on scroll-up; 'scrolloff' stays gone.
+      if (normalizedMode !== 'scrolloff' && (currentY <= 16 || scrollingUp)) {
+        if (isHidden) { isHidden = false; syncAnnouncementState(false); }
+      } else if (currentY > 80 && scrollingDown) {
+        if (!isHidden) {
+          isHidden = true; syncAnnouncementState(true);
+          if (normalizedMode === 'scrolloff') teardownAnnouncementBarScroll();
+        }
       }
-      lastY = y;
+      lastScrollY = currentY;
     };
     window.addEventListener('scroll', _announcementBarScrollHandler, { passive: true });
     return;
