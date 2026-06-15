@@ -918,6 +918,12 @@
            Declarations are identical to the inline versions they replaced. */
         .zw-card { background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:20px; }
         .zw-eyebrow { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-secondary); margin-bottom:8px; }
+        .zw-th { text-align:left; padding:10px 12px; color:var(--text-secondary); font-weight:500; }
+        .zw-th-r { text-align:right; padding:10px 12px; color:var(--text-secondary); font-weight:500; }
+        .zw-stat-value { font-size:24px; font-weight:700; }
+        .zw-page-intro { color:var(--text-secondary); font-size:.88rem; margin-top:6px; margin-bottom:20px; line-height:1.6; }
+        .zw-divider { border-bottom:1px solid var(--border); }
+        .zw-divider-2 { border-bottom:2px solid var(--border); }
         [data-policy-html-mode="true"] .policy-visual-editor { display: none; }
         [data-policy-html-mode="true"] .policy-html-textarea { display: block !important; border-radius: 0 0 6px 6px; }
         [data-policy-html-mode="false"] .policy-html-textarea { display: none !important; }
@@ -3101,7 +3107,7 @@
                         <h2>Product Inventory</h2>
                         <button class="btn btn-primary" id="addProductBtn">+ Add Product</button>
                     </div>
-                    <p style="color:var(--text-secondary);font-size:.88rem;margin-top:6px;margin-bottom:20px;line-height:1.6;">All your products live here. Click <strong>+ Add Product</strong> to create a new one. Set its status to <strong>Live</strong> when it's ready for customers to buy. <strong>Draft</strong> = hidden from store. <strong>Coming Soon</strong> = shows a waitlist button.</p>
+                    <p class="zw-page-intro">All your products live here. Click <strong>+ Add Product</strong> to create a new one. Set its status to <strong>Live</strong> when it's ready for customers to buy. <strong>Draft</strong> = hidden from store. <strong>Coming Soon</strong> = shows a waitlist button.</p>
                     <!-- Back-in-stock demand (from sold-out size notify signups) -->
                     <div id="restock-demand" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px 20px;margin-bottom:20px;">
                         <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;letter-spacing:.08em;margin-bottom:10px;">📬 Restock Demand</div>
@@ -3143,7 +3149,7 @@
                             <button class="btn btn-secondary" onclick="loadLegacy()">Refresh</button>
                         </div>
                     </div>
-                    <p style="color:var(--text-secondary);font-size:.88rem;margin-top:6px;margin-bottom:20px;line-height:1.6;">Archived products that are no longer sold. They are invisible to customers. Click <strong>Restore</strong> to bring one back as a Draft, or <strong>Edit</strong> to modify it before restoring.</p>
+                    <p class="zw-page-intro">Archived products that are no longer sold. They are invisible to customers. Click <strong>Restore</strong> to bring one back as a Draft, or <strong>Edit</strong> to modify it before restoring.</p>
                     <div class="search-filter">
                         <input type="text" id="legacySearch" placeholder="Search by SKU, title, or colorway...">
                     </div>
@@ -3171,7 +3177,7 @@
                         <h2>Size Charts</h2>
                         <button class="btn btn-primary" id="addSizeChartBtn">+ Add Size</button>
                     </div>
-                    <p style="color:var(--text-secondary);font-size:.88rem;margin-top:6px;margin-bottom:20px;line-height:1.6;">Create sizing guides for your products. Customers can view these when choosing their size at checkout. Add a chart per garment type (e.g. tops, bottoms).</p>
+                    <p class="zw-page-intro">Create sizing guides for your products. Customers can view these when choosing their size at checkout. Add a chart per garment type (e.g. tops, bottoms).</p>
                     <div class="search-filter">
                         <select id="sizeChartCategoryFilter" class="form-select" style="width: 250px;">
                             <option value="men_tops">Men's Tops</option>
@@ -3194,7 +3200,7 @@
                     <div class="products-header">
                         <h2>Customer Reviews</h2>
                     </div>
-                    <p style="color:var(--text-secondary);font-size:.88rem;margin-top:6px;margin-bottom:20px;line-height:1.6;">Customer reviews submitted through your site appear here. You can approve or remove them before they show on product pages.</p>
+                    <p class="zw-page-intro">Customer reviews submitted through your site appear here. You can approve or remove them before they show on product pages.</p>
                     <div id="reviewsContainer">
                         <p style="text-align:center;color:var(--text-secondary);">Loading reviews...</p>
                     </div>
@@ -3225,7 +3231,7 @@
                     <div class="products-header">
                         <h2>User Management</h2>
                     </div>
-                    <p style="color:var(--text-secondary);font-size:.88rem;margin-top:6px;margin-bottom:20px;line-height:1.6;"><strong>Customers</strong> are people who have created an account on your store. <strong>Admins</strong> are people with access to this admin panel. Never share admin access with anyone you don't fully trust.</p>
+                    <p class="zw-page-intro"><strong>Customers</strong> are people who have created an account on your store. <strong>Admins</strong> are people with access to this admin panel. Never share admin access with anyone you don't fully trust.</p>
                     <div class="tabs" id="usersTabs" style="margin-bottom: 20px;">
                         <button type="button" class="tab-button active" data-tab="users-customers">Customers</button>
                         <button type="button" class="tab-button" data-tab="users-admins">Admins</button>
@@ -4234,7 +4240,7 @@
                 <div id="finance" class="page">
                   <div class="page-header" style="margin-bottom:24px;">
                     <h2>Finance</h2>
-                    <p style="color:var(--text-secondary);font-size:.88rem;margin-top:6px;margin-bottom:20px;line-height:1.6;">A live snapshot of your store's revenue. All figures are pulled directly from your orders. No manual entry needed.</p>
+                    <p class="zw-page-intro">A live snapshot of your store's revenue. All figures are pulled directly from your orders. No manual entry needed.</p>
                   </div>
 
                   <div id="fin-error" class="zw-admin-err" style="display:none;"></div>
@@ -4247,15 +4253,15 @@
                     </div>
                     <div class="zw-card">
                       <p class="zw-eyebrow">Total Orders</p>
-                      <p id="fin-total-orders" style="font-size:24px;font-weight:700;">—</p>
+                      <p id="fin-total-orders" class="zw-stat-value">—</p>
                     </div>
                     <div class="zw-card">
                       <p class="zw-eyebrow">Avg Order Value</p>
-                      <p id="fin-aov" style="font-size:24px;font-weight:700;">—</p>
+                      <p id="fin-aov" class="zw-stat-value">—</p>
                     </div>
                     <div class="zw-card">
                       <p class="zw-eyebrow">Units Sold</p>
-                      <p id="fin-units" style="font-size:24px;font-weight:700;">—</p>
+                      <p id="fin-units" class="zw-stat-value">—</p>
                     </div>
                   </div>
 
@@ -4311,12 +4317,12 @@
                     <div style="overflow-x:auto;">
                       <table style="width:100%;border-collapse:collapse;font-size:13px;">
                         <thead>
-                          <tr style="border-bottom:2px solid var(--border);">
-                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Product</th>
-                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Units</th>
-                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Revenue</th>
-                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Avg Unit Price</th>
-                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">% of Total</th>
+                          <tr class="zw-divider-2">
+                            <th class="zw-th">Product</th>
+                            <th class="zw-th-r">Units</th>
+                            <th class="zw-th-r">Revenue</th>
+                            <th class="zw-th-r">Avg Unit Price</th>
+                            <th class="zw-th-r">% of Total</th>
                           </tr>
                         </thead>
                         <tbody id="fin-product-tbody">
@@ -4342,7 +4348,7 @@
                       <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:16px;">Category Breakdown</p>
                       <table style="width:100%;border-collapse:collapse;font-size:13px;">
                         <thead>
-                          <tr style="border-bottom:2px solid var(--border);">
+                          <tr class="zw-divider-2">
                             <th style="text-align:left;padding:8px 0;color:var(--text-secondary);font-weight:500;">Category</th>
                             <th style="text-align:right;padding:8px 0;color:var(--text-secondary);font-weight:500;">Units</th>
                             <th style="text-align:right;padding:8px 0;color:var(--text-secondary);font-weight:500;">Revenue</th>
@@ -4360,7 +4366,7 @@
                     <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:16px;">Monthly Breakdown (last 12 months)</p>
                     <table style="width:100%;border-collapse:collapse;font-size:13px;">
                       <thead>
-                        <tr style="border-bottom:1px solid var(--border);">
+                        <tr class="zw-divider">
                           <th style="text-align:left;padding:8px 0;color:var(--text-secondary);font-weight:500;">Month</th>
                           <th style="text-align:right;padding:8px 0;color:var(--text-secondary);font-weight:500;">Orders</th>
                           <th style="text-align:right;padding:8px 0;color:var(--text-secondary);font-weight:500;">Revenue</th>
@@ -4565,7 +4571,7 @@
                             const [y, mo] = m.split('-');
                             const label = new Date(parseInt(y), parseInt(mo)-1, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
                             const monthAov = d.orders > 0 ? fmt$(d.revenue / d.orders) : '—';
-                            return `<tr style="border-bottom:1px solid var(--border);">
+                            return `<tr class="zw-divider">
                               <td style="padding:10px 0;">${label}</td>
                               <td style="padding:10px 0;text-align:right;">${d.orders}</td>
                               <td style="padding:10px 0;text-align:right;color:var(--accent);font-weight:600;">${fmt$(d.revenue)}</td>
@@ -4585,7 +4591,7 @@
                             const pct = totalRev > 0 ? ((d.revenue/totalRev)*100).toFixed(1) : '0.0';
                             const avgUnit = d.units > 0 ? d.revenue/d.units : 0;
                             const cat = titleToCategory[name.trim().toLowerCase()] || '—';
-                            return `<tr style="border-bottom:1px solid var(--border);">
+                            return `<tr class="zw-divider">
                               <td style="padding:12px;">${name}<span style="margin-left:8px;font-size:11px;color:var(--text-secondary);">${cat}</span></td>
                               <td style="padding:12px;text-align:right;">${d.units}</td>
                               <td style="padding:12px;text-align:right;color:var(--accent);font-weight:600;">${fmt$(d.revenue)}</td>
@@ -4659,7 +4665,7 @@
                           ctbody.innerHTML = '<tr class="empty-row"><td colspan="3">No category data</td></tr>';
                         } else {
                           ctbody.innerHTML = cats.map(([cat, d], i) => `
-                            <tr style="border-bottom:1px solid var(--border);">
+                            <tr class="zw-divider">
                               <td style="padding:10px 0;">
                                 <div style="display:flex;align-items:center;gap:8px;">
                                   <div style="width:10px;height:10px;border-radius:50%;background:${CAT_COLORS[i % CAT_COLORS.length]};flex-shrink:0;"></div>
@@ -4728,23 +4734,23 @@
                     </div>
                     <div class="zw-card">
                       <p class="zw-eyebrow">This Month</p>
-                      <p id="tax-kpi-month" style="font-size:24px;font-weight:700;">—</p>
+                      <p id="tax-kpi-month" class="zw-stat-value">—</p>
                     </div>
                     <div class="zw-card">
                       <p class="zw-eyebrow">Last Month</p>
-                      <p id="tax-kpi-last" style="font-size:24px;font-weight:700;">—</p>
+                      <p id="tax-kpi-last" class="zw-stat-value">—</p>
                     </div>
                     <div class="zw-card">
                       <p class="zw-eyebrow">Taxable Orders</p>
-                      <p id="tax-kpi-orders" style="font-size:24px;font-weight:700;">—</p>
+                      <p id="tax-kpi-orders" class="zw-stat-value">—</p>
                     </div>
                     <div class="zw-card">
                       <p class="zw-eyebrow">Avg Effective Rate</p>
-                      <p id="tax-kpi-rate" style="font-size:24px;font-weight:700;">—</p>
+                      <p id="tax-kpi-rate" class="zw-stat-value">—</p>
                     </div>
                     <div class="zw-card">
                       <p class="zw-eyebrow">States Collecting</p>
-                      <p id="tax-kpi-states" style="font-size:24px;font-weight:700;">—</p>
+                      <p id="tax-kpi-states" class="zw-stat-value">—</p>
                     </div>
                   </div>
 
@@ -4758,13 +4764,13 @@
                     <div style="overflow-x:auto;">
                       <table style="width:100%;border-collapse:collapse;font-size:13px;">
                         <thead>
-                          <tr style="border-bottom:2px solid var(--border);">
-                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">State</th>
-                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Orders (YTD)</th>
-                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Revenue (YTD)</th>
-                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Revenue vs $100k</th>
-                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Orders vs 200</th>
-                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Status</th>
+                          <tr class="zw-divider-2">
+                            <th class="zw-th">State</th>
+                            <th class="zw-th-r">Orders (YTD)</th>
+                            <th class="zw-th-r">Revenue (YTD)</th>
+                            <th class="zw-th">Revenue vs $100k</th>
+                            <th class="zw-th">Orders vs 200</th>
+                            <th class="zw-th">Status</th>
                           </tr>
                         </thead>
                         <tbody id="tax-nexus-tbody">
@@ -4780,12 +4786,12 @@
                     <div style="overflow-x:auto;">
                       <table style="width:100%;border-collapse:collapse;font-size:13px;">
                         <thead>
-                          <tr style="border-bottom:2px solid var(--border);">
-                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">State</th>
-                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Orders</th>
-                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Taxable Revenue</th>
-                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Tax Collected</th>
-                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Effective Rate</th>
+                          <tr class="zw-divider-2">
+                            <th class="zw-th">State</th>
+                            <th class="zw-th-r">Orders</th>
+                            <th class="zw-th-r">Taxable Revenue</th>
+                            <th class="zw-th-r">Tax Collected</th>
+                            <th class="zw-th-r">Effective Rate</th>
                           </tr>
                         </thead>
                         <tbody id="tax-state-tbody">
@@ -4802,13 +4808,13 @@
                     <div style="overflow-x:auto;">
                       <table style="width:100%;border-collapse:collapse;font-size:13px;">
                         <thead>
-                          <tr style="border-bottom:2px solid var(--border);">
-                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">County</th>
-                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">ZIP Prefix</th>
-                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Orders</th>
-                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Taxable Revenue</th>
-                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Tax Collected</th>
-                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Configured Rate</th>
+                          <tr class="zw-divider-2">
+                            <th class="zw-th">County</th>
+                            <th class="zw-th">ZIP Prefix</th>
+                            <th class="zw-th-r">Orders</th>
+                            <th class="zw-th-r">Taxable Revenue</th>
+                            <th class="zw-th-r">Tax Collected</th>
+                            <th class="zw-th-r">Configured Rate</th>
                           </tr>
                         </thead>
                         <tbody id="tax-oh-tbody">
@@ -4839,7 +4845,7 @@
                       <p style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;">Quarterly filers (annual liability ≤ $1,200) file UST-1 by the <b style="color:var(--text-primary);">23rd</b> of the month after each quarter. File at <b style="color:var(--text-primary);">tax.ohio.gov</b>.</p>
                       <table style="width:100%;border-collapse:collapse;font-size:13px;" id="tax-calendar-table">
                         <thead>
-                          <tr style="border-bottom:1px solid var(--border);">
+                          <tr class="zw-divider">
                             <th style="text-align:left;padding:8px 0;color:var(--text-secondary);font-weight:500;">Quarter</th>
                             <th style="text-align:left;padding:8px 0;color:var(--text-secondary);font-weight:500;">Period</th>
                             <th style="text-align:left;padding:8px 0;color:var(--text-secondary);font-weight:500;">Due Date</th>
@@ -5005,7 +5011,7 @@
                         else if (daysLeft <= 14)   { status = `Due in ${daysLeft} days`; color = '#f59e0b'; }
                         else if (daysLeft <= 45)   { status = `${daysLeft} days away`; color = '#34d399'; }
                         else                       { status = 'Upcoming'; color = 'var(--text-secondary)'; }
-                        return `<tr style="border-bottom:1px solid var(--border);">
+                        return `<tr class="zw-divider">
                           <td style="padding:10px 0;font-weight:600;">${q.q}</td>
                           <td style="padding:10px 0;color:var(--text-secondary);">${q.period}</td>
                           <td style="padding:10px 0;">${fmtDate(q.due)}</td>
@@ -5078,7 +5084,7 @@
                       if (tab === 'OH') {
                         const rows = Object.entries(OH_COUNTY).sort((a,b)=>a[0].localeCompare(b[0])).map(([county,rate]) => {
                           const zip3s = Object.entries(OH_ZIP3).filter(([,c])=>c===county).map(([z])=>z).join(', ');
-                          return `<tr style="border-bottom:1px solid var(--border);">
+                          return `<tr class="zw-divider">
                             <td style="padding:8px 12px;">${county}</td>
                             <td style="padding:8px 12px;color:var(--text-secondary);font-size:12px;">${zip3s||'—'}</td>
                             <td style="padding:8px 12px;text-align:right;font-weight:600;">${fmtPct(rate)}</td>
@@ -5086,7 +5092,7 @@
                           </tr>`;
                         }).join('');
                         el.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">
-                          <thead><tr style="border-bottom:2px solid var(--border);">
+                          <thead><tr class="zw-divider-2">
                             <th style="text-align:left;padding:8px 12px;color:var(--text-secondary);font-weight:500;">County</th>
                             <th style="text-align:left;padding:8px 12px;color:var(--text-secondary);font-weight:500;">ZIP Prefixes</th>
                             <th style="text-align:right;padding:8px 12px;color:var(--text-secondary);font-weight:500;">Combined Rate</th>
@@ -5110,13 +5116,13 @@
 
                       } else if (tab === 'IL') {
                         const rows = Object.entries(IL_ZIP3).sort((a,b)=>a[0].localeCompare(b[0])).map(([zip3,rate]) =>
-                          `<tr style="border-bottom:1px solid var(--border);">
+                          `<tr class="zw-divider">
                             <td style="padding:8px 12px;">${zip3}xx</td>
                             <td style="padding:8px 12px;text-align:right;font-weight:600;">${fmtPct(rate)}</td>
                           </tr>`
                         ).join('');
                         el.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">
-                          <thead><tr style="border-bottom:2px solid var(--border);">
+                          <thead><tr class="zw-divider-2">
                             <th style="text-align:left;padding:8px 12px;color:var(--text-secondary);font-weight:500;">ZIP Prefix</th>
                             <th style="text-align:right;padding:8px 12px;color:var(--text-secondary);font-weight:500;">Rate</th>
                           </tr></thead><tbody>${rows}</tbody></table></div>
@@ -5126,14 +5132,14 @@
                         const rows = Object.entries(STATE_RATES).sort((a,b)=>a[0].localeCompare(b[0])).map(([s,r]) => {
                           const note = FLAT[s] ? ' (flat)' : s==='OH'?' (county-level)':s==='IL'?' (ZIP-level)':'';
                           const noTax = r === 0;
-                          return `<tr style="border-bottom:1px solid var(--border);">
+                          return `<tr class="zw-divider">
                             <td style="padding:8px 12px;">${STATE_NAMES[s]||s} (${s})</td>
                             <td style="padding:8px 12px;text-align:right;font-weight:600;color:${noTax?'var(--text-secondary)':'inherit'}">${noTax ? 'No tax' : fmtPct(r)}</td>
                             <td style="padding:8px 12px;color:var(--text-secondary);font-size:12px;">${note}</td>
                           </tr>`;
                         }).join('');
                         el.innerHTML = `<div style="overflow-x:auto;max-height:400px;overflow-y:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">
-                          <thead style="position:sticky;top:0;background:var(--bg-secondary);"><tr style="border-bottom:2px solid var(--border);">
+                          <thead style="position:sticky;top:0;background:var(--bg-secondary);"><tr class="zw-divider-2">
                             <th style="text-align:left;padding:8px 12px;color:var(--text-secondary);font-weight:500;">State</th>
                             <th style="text-align:right;padding:8px 12px;color:var(--text-secondary);font-weight:500;">Base Rate</th>
                             <th style="text-align:left;padding:8px 12px;color:var(--text-secondary);font-weight:500;">Notes</th>
@@ -5242,7 +5248,7 @@
 
                             const bar = (pct, color) => `<div style="background:var(--bg-primary);border-radius:4px;height:6px;width:100%;min-width:80px;margin-top:4px;"><div style="background:${color};height:6px;border-radius:4px;width:${Math.round(pct*100)}%;"></div></div><div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">${Math.round(pct*100)}% of limit</div>`;
 
-                            return `<tr style="border-bottom:1px solid var(--border);">
+                            return `<tr class="zw-divider">
                               <td style="padding:10px 12px;font-weight:600;">${s} <span style="font-weight:400;color:var(--text-secondary);font-size:12px;">${STATE_NAMES[s]||''}</span></td>
                               <td style="padding:10px 12px;text-align:right;">${d.orders.toLocaleString()}</td>
                               <td style="padding:10px 12px;text-align:right;">${fmt$(d.revenue)}</td>
@@ -5290,7 +5296,7 @@
                           });
                           const ohTb = document.getElementById('tax-oh-tbody');
                           ohTb.innerHTML = Object.entries(byCounty).sort((a,b)=>b[1].tax-a[1].tax).map(([county, d]) =>
-                            `<tr style="border-bottom:1px solid var(--border);">
+                            `<tr class="zw-divider">
                               <td style="padding:10px 12px;font-weight:600;">${county}</td>
                               <td style="padding:10px 12px;color:var(--text-secondary);font-size:12px;">${[...d.zip3s].join(', ')}xx</td>
                               <td style="padding:10px 12px;text-align:right;">${d.orders.toLocaleString()}</td>
@@ -5385,7 +5391,7 @@
                         const rows = Object.entries(STATE_RATES).sort((a,b)=>a[0].localeCompare(b[0])).map(([s,r]) => {
                           const skip = FLAT[s]!==undefined||s==='OH'||s==='IL';
                           const cur = _reEdited.stateRates?.[s] ?? r;
-                          return `<tr style="border-bottom:1px solid var(--border);">
+                          return `<tr class="zw-divider">
                             <td style="padding:8px 12px;font-size:13px;">${STATE_NAMES[s]||s} <span style="color:var(--text-secondary);font-size:11px;">(${s})</span></td>
                             <td style="padding:8px 12px;text-align:right;">${skip
                               ? `<span style="font-size:13px;color:var(--text-secondary);">${fmtPct(r)}</span>`
@@ -5401,7 +5407,7 @@
                         el.innerHTML = `<div style="overflow-x:auto;max-height:480px;overflow-y:auto;">
                           <table style="width:100%;border-collapse:collapse;">
                             <thead style="position:sticky;top:0;background:var(--bg-secondary);">
-                              <tr style="border-bottom:2px solid var(--border);">
+                              <tr class="zw-divider-2">
                                 <th style="text-align:left;${thStyle}">State</th>
                                 <th style="text-align:right;${thStyle}">Rate (%)</th>
                                 <th style="text-align:right;${thStyle}">Default</th>
@@ -5418,7 +5424,7 @@
                         const rows = Object.entries(OH_COUNTY).sort((a,b)=>a[0].localeCompare(b[0])).map(([county,r]) => {
                           const zip3s = Object.entries(OH_ZIP3).filter(([,c])=>c===county).map(([z])=>z).join(', ');
                           const cur = _reEdited.ohCountyRates?.[county] ?? r;
-                          return `<tr style="border-bottom:1px solid var(--border);">
+                          return `<tr class="zw-divider">
                             <td style="padding:8px 12px;font-size:13px;">${county}</td>
                             <td style="padding:8px 12px;font-size:12px;color:var(--text-secondary);">${zip3s||'—'}xx</td>
                             <td style="padding:8px 12px;text-align:right;">
@@ -5434,7 +5440,7 @@
                         el.innerHTML = `<div style="overflow-x:auto;max-height:480px;overflow-y:auto;">
                           <table style="width:100%;border-collapse:collapse;">
                             <thead style="position:sticky;top:0;background:var(--bg-secondary);">
-                              <tr style="border-bottom:2px solid var(--border);">
+                              <tr class="zw-divider-2">
                                 <th style="text-align:left;${thStyle}">County</th>
                                 <th style="text-align:left;${thStyle}">ZIP Prefixes</th>
                                 <th style="text-align:right;${thStyle}">Rate (%)</th>
@@ -5450,7 +5456,7 @@
                       } else if (tab === 'il') {
                         const rows = Object.entries(IL_ZIP3).sort((a,b)=>a[0].localeCompare(b[0])).map(([zip3,r]) => {
                           const cur = _reEdited.ilZip3Rates?.[zip3] ?? r;
-                          return `<tr style="border-bottom:1px solid var(--border);">
+                          return `<tr class="zw-divider">
                             <td style="padding:8px 12px;font-size:13px;">${zip3}xx</td>
                             <td style="padding:8px 12px;text-align:right;">
                               <input type="number" step="0.01" min="0" max="20" value="${(cur*100).toFixed(4)}"
@@ -5465,7 +5471,7 @@
                         el.innerHTML = `<div style="overflow-x:auto;max-height:400px;overflow-y:auto;">
                           <table style="width:100%;border-collapse:collapse;">
                             <thead style="position:sticky;top:0;background:var(--bg-secondary);">
-                              <tr style="border-bottom:2px solid var(--border);">
+                              <tr class="zw-divider-2">
                                 <th style="text-align:left;${thStyle}">ZIP Prefix</th>
                                 <th style="text-align:right;${thStyle}">Rate (%)</th>
                                 <th style="${thStyle}">Default</th>
@@ -5480,7 +5486,7 @@
                       } else if (tab === 'flat') {
                         const rows = Object.entries(FLAT).map(([s,r]) => {
                           const cur = _reEdited.flatRates?.[s] ?? r;
-                          return `<tr style="border-bottom:1px solid var(--border);">
+                          return `<tr class="zw-divider">
                             <td style="padding:12px;font-size:13px;">${STATE_NAMES[s]||s} <span style="color:var(--text-secondary);font-size:11px;">(${s})</span></td>
                             <td style="padding:12px;text-align:right;">
                               <input type="number" step="0.01" min="0" max="20" value="${(cur*100).toFixed(4)}"
@@ -5494,7 +5500,7 @@
                         }).join('');
                         el.innerHTML = `<table style="width:100%;border-collapse:collapse;">
                           <thead>
-                            <tr style="border-bottom:2px solid var(--border);">
+                            <tr class="zw-divider-2">
                               <th style="text-align:left;${thStyle}">State</th>
                               <th style="text-align:right;${thStyle}">Rate (%)</th>
                               <th style="${thStyle}">Default</th>
@@ -5575,7 +5581,7 @@
                 <div id="shipping" class="page">
                   <div class="page-header" style="margin-bottom:24px;">
                     <h2>Shipping</h2>
-                    <p style="color:var(--text-secondary);font-size:.88rem;margin-top:6px;margin-bottom:20px;line-height:1.6;">A breakdown of what you've spent on shipping across all orders. Useful for understanding your fulfilment costs over time.</p>
+                    <p class="zw-page-intro">A breakdown of what you've spent on shipping across all orders. Useful for understanding your fulfilment costs over time.</p>
                   </div>
 
                   <div id="ship-error" class="zw-admin-err" style="display:none;"></div>
@@ -5588,15 +5594,15 @@
                     </div>
                     <div class="zw-card">
                       <p class="zw-eyebrow">Orders with Shipping</p>
-                      <p id="ship-count" style="font-size:24px;font-weight:700;">—</p>
+                      <p id="ship-count" class="zw-stat-value">—</p>
                     </div>
                     <div class="zw-card">
                       <p class="zw-eyebrow">Avg Shipping / Order</p>
-                      <p id="ship-avg" style="font-size:24px;font-weight:700;">—</p>
+                      <p id="ship-avg" class="zw-stat-value">—</p>
                     </div>
                     <div class="zw-card">
                       <p class="zw-eyebrow">Free Shipping Orders</p>
-                      <p id="ship-free" style="font-size:24px;font-weight:700;">—</p>
+                      <p id="ship-free" class="zw-stat-value">—</p>
                     </div>
                   </div>
 
@@ -5606,11 +5612,11 @@
                     <div style="overflow-x:auto;">
                       <table style="width:100%;border-collapse:collapse;font-size:13px;">
                         <thead>
-                          <tr style="border-bottom:2px solid var(--border);">
-                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Service</th>
-                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Orders</th>
-                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Total Collected</th>
-                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Avg per Order</th>
+                          <tr class="zw-divider-2">
+                            <th class="zw-th">Service</th>
+                            <th class="zw-th-r">Orders</th>
+                            <th class="zw-th-r">Total Collected</th>
+                            <th class="zw-th-r">Avg per Order</th>
                           </tr>
                         </thead>
                         <tbody id="ship-carrier-tbody">
@@ -5629,13 +5635,13 @@
                     <div style="overflow-x:auto;">
                       <table style="width:100%;border-collapse:collapse;font-size:13px;">
                         <thead>
-                          <tr style="border-bottom:2px solid var(--border);">
-                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Date</th>
-                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Customer</th>
-                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Carrier / Service</th>
-                            <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Tracking #</th>
-                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Shipping</th>
-                            <th style="text-align:right;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Order Total</th>
+                          <tr class="zw-divider-2">
+                            <th class="zw-th">Date</th>
+                            <th class="zw-th">Customer</th>
+                            <th class="zw-th">Carrier / Service</th>
+                            <th class="zw-th">Tracking #</th>
+                            <th class="zw-th-r">Shipping</th>
+                            <th class="zw-th-r">Order Total</th>
                           </tr>
                         </thead>
                         <tbody id="ship-orders-tbody">
@@ -5656,7 +5662,7 @@
                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;margin-bottom:24px;">
                       <div class="zw-card">
                         <p class="zw-eyebrow">Total Returns</p>
-                        <p id="ret-ship-total" style="font-size:24px;font-weight:700;">—</p>
+                        <p id="ret-ship-total" class="zw-stat-value">—</p>
                       </div>
                       <div class="zw-card">
                         <p class="zw-eyebrow">Labels Sent</p>
@@ -5680,13 +5686,13 @@
                       <div style="overflow-x:auto;">
                         <table style="width:100%;border-collapse:collapse;font-size:13px;">
                           <thead>
-                            <tr style="border-bottom:2px solid var(--border);">
-                              <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Date</th>
-                              <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Customer</th>
-                              <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Order</th>
-                              <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Reason</th>
-                              <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Carrier / Tracking</th>
-                              <th style="text-align:left;padding:10px 12px;color:var(--text-secondary);font-weight:500;">Status</th>
+                            <tr class="zw-divider-2">
+                              <th class="zw-th">Date</th>
+                              <th class="zw-th">Customer</th>
+                              <th class="zw-th">Order</th>
+                              <th class="zw-th">Reason</th>
+                              <th class="zw-th">Carrier / Tracking</th>
+                              <th class="zw-th">Status</th>
                             </tr>
                           </thead>
                           <tbody id="ret-ship-tbody">
@@ -5728,7 +5734,7 @@
                                 ? `<a href="${escapeAttr(safeTrackingUrl)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:none;">${trackingNumber}</a>`
                                 : trackingNumber)
                             : '—';
-                          return `<tr style="border-bottom:1px solid var(--border);">
+                          return `<tr class="zw-divider">
                             <td style="padding:12px;">${fmtDate(o.created_at)}</td>
                             <td style="padding:12px;">${escapeHtml(o.customer_name || o.email || '—')}</td>
                             <td style="padding:12px;color:var(--text-secondary);">${carrier}</td>
@@ -5803,7 +5809,7 @@
                           ctbody.innerHTML = '<tr class="empty-row"><td colspan="4">No data</td></tr>';
                         } else {
                           ctbody.innerHTML = carriers.map(([name, d]) => `
-                            <tr style="border-bottom:1px solid var(--border);">
+                            <tr class="zw-divider">
                               <td style="padding:12px;">${escapeHtml(name)}</td>
                               <td style="padding:12px;text-align:right;">${d.count}</td>
                               <td style="padding:12px;text-align:right;color:var(--accent);font-weight:600;">${fmt$(d.total)}</td>
@@ -5855,7 +5861,7 @@
                               : escapeHtml(r.trackingNumber))
                           : '—';
                         const carrier = escapeHtml([r.carrier, r.service].filter(Boolean).join(' — ') || (r.trackingNumber ? '' : '—'));
-                        return `<tr style="border-bottom:1px solid var(--border);">
+                        return `<tr class="zw-divider">
                           <td style="padding:12px;white-space:nowrap;color:var(--text-secondary);font-size:.82rem;">${fmtDate(r.createdAt)}</td>
                           <td style="padding:12px;"><div style="font-weight:600;">${escapeHtml(r.customerName || '—')}</div><div style="color:var(--text-secondary);font-size:.75rem;">${escapeHtml(r.customerEmail || '')}</div></td>
                           <td style="padding:12px;font-family:monospace;font-size:.82rem;">${escapeHtml(r.orderLabel || '—')}<div style="font-family:inherit;color:var(--text-secondary);font-size:.72rem;">${r.orderTotal != null ? fmt$(r.orderTotal) : ''}</div></td>
@@ -5905,7 +5911,7 @@
                 <div id="receipts" class="page">
                   <div class="page-header" style="margin-bottom:24px;">
                     <h2>Receipts</h2>
-                    <p style="color:var(--text-secondary);font-size:.88rem;margin-top:6px;margin-bottom:20px;line-height:1.6;">Every order placed on your store appears here. Use the search bar to find a specific customer. Click an order to view details and add a tracking number.</p>
+                    <p class="zw-page-intro">Every order placed on your store appears here. Use the search bar to find a specific customer. Click an order to view details and add a tracking number.</p>
                   </div>
 
                   <div id="rec-error" class="zw-admin-err" style="display:none;"></div>
@@ -5929,7 +5935,7 @@
                   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px;">
                     <div class="zw-card">
                       <p class="zw-eyebrow">Total Orders</p>
-                      <p id="rec-total-orders" style="font-size:24px;font-weight:700;">—</p>
+                      <p id="rec-total-orders" class="zw-stat-value">—</p>
                     </div>
                     <div class="zw-card">
                       <p class="zw-eyebrow">Total Revenue</p>
@@ -5937,7 +5943,7 @@
                     </div>
                     <div class="zw-card">
                       <p class="zw-eyebrow">Average Order Value</p>
-                      <p id="rec-avg-order" style="font-size:24px;font-weight:700;">—</p>
+                      <p id="rec-avg-order" class="zw-stat-value">—</p>
                     </div>
                   </div>
 
@@ -6214,7 +6220,7 @@
                 <div id="settings" class="page">
                     <div class="page-header" style="margin-bottom:24px;">
                         <h2>Site Settings</h2>
-                        <p style="color:var(--text-secondary);font-size:.88rem;margin-top:6px;margin-bottom:20px;line-height:1.6;">Control how your store behaves — your banner message, shipping rules, return policy, legal pages, FAQs, and more. Hit the <strong>Save</strong> button in each section after making changes.</p>
+                        <p class="zw-page-intro">Control how your store behaves — your banner message, shipping rules, return policy, legal pages, FAQs, and more. Hit the <strong>Save</strong> button in each section after making changes.</p>
                     </div>
 
                     <!-- Early Access -->
@@ -8986,7 +8992,7 @@
             el.innerHTML = `
               ${unshipped > 0 ? `<div style="padding:10px 16px;background:rgba(251,191,36,.08);border-bottom:1px solid rgba(251,191,36,.2);font-size:.8rem;color:#fbbf24;display:flex;align-items:center;gap:8px;"><span>⚠️</span> <strong>${unshipped} order${unshipped>1?'s':''}</strong> paid but not yet shipped — <button onclick="navigateTo('shipping')" style="background:none;border:none;color:#fbbf24;cursor:pointer;font-size:.8rem;text-decoration:underline;padding:0;">go to shipping</button></div>` : ''}
               <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
-                <thead><tr style="border-bottom:1px solid var(--border);">
+                <thead><tr class="zw-divider">
                   <th style="padding:10px 16px;text-align:left;font-weight:600;color:var(--text-secondary);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;">Order</th>
                   <th style="padding:10px 16px;text-align:left;font-weight:600;color:var(--text-secondary);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;">Customer</th>
                   <th style="padding:10px 16px;text-align:right;font-weight:600;color:var(--text-secondary);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;">Total</th>
@@ -9044,7 +9050,7 @@
                 sizesByProd[s.product_id].push(s);
             }
             el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:.82rem;">
-              <thead><tr style="border-bottom:2px solid var(--border);">
+              <thead><tr class="zw-divider-2">
                 <th style="padding:10px 16px;text-align:left;color:var(--text-secondary);font-weight:500;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;">Product</th>
                 <th style="padding:10px 16px;text-align:left;color:var(--text-secondary);font-weight:500;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;">SKU</th>
                 <th style="padding:10px 16px;text-align:right;color:var(--text-secondary);font-weight:500;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;">Total Stock</th>
