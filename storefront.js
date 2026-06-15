@@ -1099,10 +1099,13 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
         threshold:    parseFloat(v.free_threshold)  || 100,
         standardRate: parseFloat(v.standard_rate)   || 8,
       };
-      // Re-render cart with real policy now that settings have loaded
+      // Re-render cart with real policy now that settings have loaded.
+      // (Was updateCartSummary() — which never existed, so this threw and the
+      // catch below re-applied the announcement bar as hardcoded 'scroll',
+      // clobbering the saved mode. The cart renderer is renderCart().)
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
       const sub  = cart.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0);
-      if (sub > 0) updateCartSummary(sub);
+      if (sub > 0) renderCart();
     }
 
     // 7. fonts â€” apply via storefront-theme.js helper (avoids duplicate Supabase fetch)
