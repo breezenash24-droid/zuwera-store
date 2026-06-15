@@ -913,6 +913,11 @@
         .policy-fmt-color::-webkit-color-swatch-wrapper { padding: 0; }
         .policy-fmt-color::-webkit-color-swatch { border: none; border-radius: 2px; }
         .policy-fmt-color::-moz-color-swatch { border: none; border-radius: 2px; }
+
+        /* Shared admin components — consolidated from repeated inline styles.
+           Declarations are identical to the inline versions they replaced. */
+        .zw-card { background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:20px; }
+        .zw-eyebrow { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-secondary); margin-bottom:8px; }
         [data-policy-html-mode="true"] .policy-visual-editor { display: none; }
         [data-policy-html-mode="true"] .policy-html-textarea { display: block !important; border-radius: 0 0 6px 6px; }
         [data-policy-html-mode="false"] .policy-html-textarea { display: none !important; }
@@ -1776,19 +1781,19 @@
                     <!-- Revenue / order KPIs -->
                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:14px;">
                       <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;">
-                        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Today's Revenue</div>
+                        <div class="zw-eyebrow">Today's Revenue</div>
                         <div id="dash-rev-today" style="font-size:22px;font-weight:700;color:var(--accent);">—</div>
                       </div>
                       <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;">
-                        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">This Month</div>
+                        <div class="zw-eyebrow">This Month</div>
                         <div id="dash-rev-month" style="font-size:22px;font-weight:700;color:var(--accent);">—</div>
                       </div>
                       <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;">
-                        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Total Revenue</div>
+                        <div class="zw-eyebrow">Total Revenue</div>
                         <div id="dash-rev-total" style="font-size:22px;font-weight:700;color:var(--accent);">—</div>
                       </div>
                       <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;">
-                        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Orders (All Time)</div>
+                        <div class="zw-eyebrow">Orders (All Time)</div>
                         <div id="dash-orders-total" style="font-size:22px;font-weight:700;">—</div>
                       </div>
                     </div>
@@ -1796,32 +1801,32 @@
                     <!-- Needs-attention KPIs -->
                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:24px;">
                       <div onclick="navigateTo('receipts')" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;cursor:pointer;transition:border-color .18s;" onmouseover="this.style.borderColor='#fbbf24'" onmouseout="this.style.borderColor=''">
-                        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Unshipped Orders</div>
+                        <div class="zw-eyebrow">Unshipped Orders</div>
                         <div id="dash-unshipped" class="dash-stat-yellow" style="font-size:22px;font-weight:700;color:#fbbf24;">—</div>
                         <div style="font-size:.7rem;color:var(--text-secondary);margin-top:4px;">Paid, no tracking yet</div>
                       </div>
                       <div onclick="navigateTo('returns')" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;cursor:pointer;transition:border-color .18s;" onmouseover="this.style.borderColor='#f59e0b'" onmouseout="this.style.borderColor=''">
-                        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Open Returns</div>
+                        <div class="zw-eyebrow">Open Returns</div>
                         <div id="dash-returns-open" class="dash-stat-orange" style="font-size:22px;font-weight:700;color:#f59e0b;">—</div>
                         <div style="font-size:.7rem;color:var(--text-secondary);margin-top:4px;">Requested or approved</div>
                       </div>
                       <div onclick="navigateTo('returns')" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;cursor:pointer;transition:border-color .18s;" onmouseover="this.style.borderColor='#38bdf8'" onmouseout="this.style.borderColor=''">
-                        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">In Transit</div>
+                        <div class="zw-eyebrow">In Transit</div>
                         <div id="dash-returns-transit" class="dash-stat-blue" style="font-size:22px;font-weight:700;color:#38bdf8;">—</div>
                         <div style="font-size:.7rem;color:var(--text-secondary);margin-top:4px;">Label sent, awaiting item</div>
                       </div>
                       <div onclick="navigateTo('returns')" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;cursor:pointer;transition:border-color .18s;" onmouseover="this.style.borderColor='#34d399'" onmouseout="this.style.borderColor=''">
-                        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Ready to Refund</div>
+                        <div class="zw-eyebrow">Ready to Refund</div>
                         <div id="dash-returns-ready" class="dash-stat-green" style="font-size:22px;font-weight:700;color:#34d399;">—</div>
                         <div style="font-size:.7rem;color:var(--text-secondary);margin-top:4px;">Item received, refund pending</div>
                       </div>
                       <div onclick="navigateTo('products')" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;cursor:pointer;transition:border-color .18s;" onmouseover="this.style.borderColor='#ef4444'" onmouseout="this.style.borderColor=''">
-                        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Low Stock</div>
+                        <div class="zw-eyebrow">Low Stock</div>
                         <div id="dash-low-stock" class="dash-stat-red" style="font-size:22px;font-weight:700;color:#ef4444;">—</div>
                         <div style="font-size:.7rem;color:var(--text-secondary);margin-top:4px;">Below threshold</div>
                       </div>
                       <div onclick="navigateTo('products')" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;cursor:pointer;transition:border-color .18s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor=''">
-                        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Live Products</div>
+                        <div class="zw-eyebrow">Live Products</div>
                         <div id="liveProducts" style="font-size:22px;font-weight:700;">—</div>
                         <div id="totalProducts" style="font-size:.7rem;color:var(--text-secondary);margin-top:4px;">of — total</div>
                       </div>
@@ -2076,7 +2081,7 @@
                     </div>
 
                     <!-- Quick links -->
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                    <div class="zw-card">
                         <div style="font-weight:700;margin-bottom:12px;">🔗 Quick links</div>
                         <div style="font-size:.74rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;">Meta</div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
@@ -4236,49 +4241,49 @@
 
                   <!-- KPI cards — row 1 -->
                   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:16px;">
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Total Revenue</p>
+                    <div class="zw-card">
+                      <p class="zw-eyebrow">Total Revenue</p>
                       <p id="fin-total-rev" style="font-size:24px;font-weight:700;color:var(--accent);">—</p>
                     </div>
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Total Orders</p>
+                    <div class="zw-card">
+                      <p class="zw-eyebrow">Total Orders</p>
                       <p id="fin-total-orders" style="font-size:24px;font-weight:700;">—</p>
                     </div>
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Avg Order Value</p>
+                    <div class="zw-card">
+                      <p class="zw-eyebrow">Avg Order Value</p>
                       <p id="fin-aov" style="font-size:24px;font-weight:700;">—</p>
                     </div>
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Units Sold</p>
+                    <div class="zw-card">
+                      <p class="zw-eyebrow">Units Sold</p>
                       <p id="fin-units" style="font-size:24px;font-weight:700;">—</p>
                     </div>
                   </div>
 
                   <!-- KPI cards — row 2 -->
                   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px;">
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                    <div class="zw-card">
                       <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:6px;">This Month</p>
                       <p id="fin-this-month" style="font-size:22px;font-weight:700;color:var(--accent);">—</p>
                       <p id="fin-mom-badge" style="font-size:11px;margin-top:4px;color:var(--text-secondary);"></p>
                     </div>
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                    <div class="zw-card">
                       <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:6px;">Last Month</p>
                       <p id="fin-last-month" style="font-size:22px;font-weight:700;">—</p>
                     </div>
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                    <div class="zw-card">
                       <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:6px;">Tax Collected</p>
                       <p id="fin-tax-total" style="font-size:22px;font-weight:700;">—</p>
                     </div>
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                    <div class="zw-card">
                       <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:6px;">Shipping Absorbed</p>
                       <p id="fin-shipping-absorbed" style="font-size:22px;font-weight:700;">—</p>
                       <p style="font-size:11px;margin-top:4px;color:var(--text-secondary);">cost you covered</p>
                     </div>
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                    <div class="zw-card">
                       <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:6px;">Refund Rate</p>
                       <p id="fin-refund-rate" style="font-size:22px;font-weight:700;">—</p>
                     </div>
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
+                    <div class="zw-card">
                       <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:6px;">Avg Items / Order</p>
                       <p id="fin-avg-items" style="font-size:22px;font-weight:700;">—</p>
                     </div>
@@ -4717,28 +4722,28 @@
 
                   <!-- KPI cards -->
                   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:16px;margin-bottom:24px;">
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Total Tax Collected</p>
+                    <div class="zw-card">
+                      <p class="zw-eyebrow">Total Tax Collected</p>
                       <p id="tax-kpi-total" style="font-size:24px;font-weight:700;color:var(--accent);">—</p>
                     </div>
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">This Month</p>
+                    <div class="zw-card">
+                      <p class="zw-eyebrow">This Month</p>
                       <p id="tax-kpi-month" style="font-size:24px;font-weight:700;">—</p>
                     </div>
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Last Month</p>
+                    <div class="zw-card">
+                      <p class="zw-eyebrow">Last Month</p>
                       <p id="tax-kpi-last" style="font-size:24px;font-weight:700;">—</p>
                     </div>
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Taxable Orders</p>
+                    <div class="zw-card">
+                      <p class="zw-eyebrow">Taxable Orders</p>
                       <p id="tax-kpi-orders" style="font-size:24px;font-weight:700;">—</p>
                     </div>
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Avg Effective Rate</p>
+                    <div class="zw-card">
+                      <p class="zw-eyebrow">Avg Effective Rate</p>
                       <p id="tax-kpi-rate" style="font-size:24px;font-weight:700;">—</p>
                     </div>
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">States Collecting</p>
+                    <div class="zw-card">
+                      <p class="zw-eyebrow">States Collecting</p>
                       <p id="tax-kpi-states" style="font-size:24px;font-weight:700;">—</p>
                     </div>
                   </div>
@@ -5577,20 +5582,20 @@
 
                   <!-- Aggregate KPI cards -->
                   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px;">
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Total Shipping Collected</p>
+                    <div class="zw-card">
+                      <p class="zw-eyebrow">Total Shipping Collected</p>
                       <p id="ship-total" style="font-size:24px;font-weight:700;color:var(--accent);">—</p>
                     </div>
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Orders with Shipping</p>
+                    <div class="zw-card">
+                      <p class="zw-eyebrow">Orders with Shipping</p>
                       <p id="ship-count" style="font-size:24px;font-weight:700;">—</p>
                     </div>
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Avg Shipping / Order</p>
+                    <div class="zw-card">
+                      <p class="zw-eyebrow">Avg Shipping / Order</p>
                       <p id="ship-avg" style="font-size:24px;font-weight:700;">—</p>
                     </div>
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Free Shipping Orders</p>
+                    <div class="zw-card">
+                      <p class="zw-eyebrow">Free Shipping Orders</p>
                       <p id="ship-free" style="font-size:24px;font-weight:700;">—</p>
                     </div>
                   </div>
@@ -5649,20 +5654,20 @@
                     </div>
 
                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;margin-bottom:24px;">
-                      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                        <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Total Returns</p>
+                      <div class="zw-card">
+                        <p class="zw-eyebrow">Total Returns</p>
                         <p id="ret-ship-total" style="font-size:24px;font-weight:700;">—</p>
                       </div>
-                      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                        <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Labels Sent</p>
+                      <div class="zw-card">
+                        <p class="zw-eyebrow">Labels Sent</p>
                         <p id="ret-ship-labels" class="dash-stat-blue" style="font-size:24px;font-weight:700;color:#38bdf8;">—</p>
                       </div>
-                      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                        <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">In Transit</p>
+                      <div class="zw-card">
+                        <p class="zw-eyebrow">In Transit</p>
                         <p id="ret-ship-transit" class="dash-stat-orange" style="font-size:24px;font-weight:700;color:#f59e0b;">—</p>
                       </div>
-                      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                        <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Items Received</p>
+                      <div class="zw-card">
+                        <p class="zw-eyebrow">Items Received</p>
                         <p id="ret-ship-received" class="dash-stat-green" style="font-size:24px;font-weight:700;color:#34d399;">—</p>
                       </div>
                     </div>
@@ -5922,16 +5927,16 @@
 
                   <!-- Summary Stats -->
                   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px;">
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Total Orders</p>
+                    <div class="zw-card">
+                      <p class="zw-eyebrow">Total Orders</p>
                       <p id="rec-total-orders" style="font-size:24px;font-weight:700;">—</p>
                     </div>
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Total Revenue</p>
+                    <div class="zw-card">
+                      <p class="zw-eyebrow">Total Revenue</p>
                       <p id="rec-total-revenue" style="font-size:24px;font-weight:700;color:var(--accent);">—</p>
                     </div>
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:20px;">
-                      <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Average Order Value</p>
+                    <div class="zw-card">
+                      <p class="zw-eyebrow">Average Order Value</p>
                       <p id="rec-avg-order" style="font-size:24px;font-weight:700;">—</p>
                     </div>
                   </div>
@@ -6016,7 +6021,7 @@
 
                             <!-- Customer Info -->
                             <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);">
-                              <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Customer</p>
+                              <p class="zw-eyebrow">Customer</p>
                               <p style="font-weight:500;margin-bottom:2px;">${escapeHtml(order.customer_name || 'N/A')}</p>
                               <p style="font-size:12px;color:var(--text-secondary);">${escapeHtml(order.email || 'N/A')}</p>
                             </div>
@@ -6049,7 +6054,7 @@
 
                             <!-- Shipping Address -->
                             <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);">
-                              <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Shipping Address</p>
+                              <p class="zw-eyebrow">Shipping Address</p>
                               <p style="font-size:12px;line-height:1.6;">
                                 ${escapeHtml(order.ship_line1 || 'N/A')}${order.ship_line2 ? ', ' + escapeHtml(order.ship_line2) : ''}<br>
                                 ${order.ship_city ? escapeHtml(order.ship_city) + ', ' : ''}${escapeHtml(order.ship_state || '')} ${escapeHtml(order.ship_zip || '')}<br>
@@ -6059,7 +6064,7 @@
 
                             <!-- Tracking -->
                             <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);">
-                              <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Tracking Information</p>
+                              <p class="zw-eyebrow">Tracking Information</p>
                               <p style="font-size:12px;margin-bottom:4px;">
                                 <strong>${escapeHtml(order.shipping_provider || 'N/A')}</strong>
                                 ${order.shipping_service ? ' — ' + escapeHtml(order.shipping_service) : ''}
