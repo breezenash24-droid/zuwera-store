@@ -71,24 +71,28 @@
   }
 
   function unlockScroll() {
-    if (!locked || !document.body) return;
-
-    locked = false;
+    if (!document.body) return;
 
     const root = document.documentElement;
     const body = document.body;
+    const wasLocked = locked;
     const restoreY = lockedScrollY;
+
+    // Always clear the lock styles when asked to unlock — even if `locked` is
+    // already false. Three different mechanisms can pin the body (this module,
+    // the base.css :has(.modal.open) rule, and inline body.style.overflow in
+    // the page handlers); a desynced `locked` flag must never be able to strand
+    // body{position:fixed}/overflow:hidden, which body.style.overflow='' alone
+    // cannot undo and which leaves the page scroll-frozen (clicks still work).
+    locked = false;
 
     delete root.dataset.scrollLocked;
     delete body.dataset.scrollLocked;
 
     root.style.overflow = '';
     root.style.overscrollBehavior = '';
-    root.style.scrollBehavior = previousRootScrollBehavior;
-
     // Disable smooth-scroll momentarily so the position restore is instant,
-    // not an animated scroll from 0 → restoreY (which causes the visible "jump to top").
-    const prevScrollBehavior = root.style.scrollBehavior;
+    // not an animated scroll from 0 → restoreY (the visible "jump to top").
     root.style.scrollBehavior = 'auto';
 
     body.style.position = '';
@@ -101,17 +105,21 @@
     body.style.scrollBehavior = previousBodyScrollBehavior;
     body.style.paddingRight = '';
 
-    // Signal restore BEFORE scrollTo so scroll handlers can ignore the programmatic jump
-    window.__zwScrollRestoring = true;
-    try {
-      window.scrollTo({ top: restoreY, left: 0, behavior: 'instant' });
-    } catch (_) {
-      window.scrollTo(0, restoreY);
+    // Only restore the saved scroll position if we genuinely had it locked,
+    // so a defensive unlock (called while already unlocked) can't jump the page.
+    if (wasLocked) {
+      // Signal restore BEFORE scrollTo so scroll handlers ignore the programmatic jump
+      window.__zwScrollRestoring = true;
+      try {
+        window.scrollTo({ top: restoreY, left: 0, behavior: 'instant' });
+      } catch (_) {
+        window.scrollTo(0, restoreY);
+      }
     }
 
     // Restore scroll-behavior and clear flag after the browser has painted
     requestAnimationFrame(() => {
-      root.style.scrollBehavior = prevScrollBehavior;
+      root.style.scrollBehavior = previousRootScrollBehavior;
       window.__zwScrollRestoring = false;
     });
   }

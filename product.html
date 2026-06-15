@@ -3923,18 +3923,21 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
   document.getElementById('all-reviews-close')?.addEventListener('click', () => {
     document.getElementById('all-reviews-modal').classList.remove('open');
     document.body.style.overflow = '';
+    if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh();
   });
   document.getElementById('all-reviews-modal')?.addEventListener('click', e => {
-    if (e.target === e.currentTarget) { document.getElementById('all-reviews-modal').classList.remove('open'); document.body.style.overflow = ''; }
+    if (e.target === e.currentTarget) { document.getElementById('all-reviews-modal').classList.remove('open'); document.body.style.overflow = ''; if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh(); }
   });
   document.getElementById('size-fit-close')?.addEventListener('click', () => {
     document.getElementById('size-fit-modal').classList.remove('open');
     document.body.style.overflow = '';
+    if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh();
   });
   document.getElementById('size-fit-modal')?.addEventListener('click', e => {
     if (e.target === e.currentTarget) {
       document.getElementById('size-fit-modal').classList.remove('open');
       document.body.style.overflow = '';
+      if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh();
     }
   });
   document.getElementById('size-guide-close')?.addEventListener('click', () => {
