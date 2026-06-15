@@ -905,6 +905,14 @@
         .policy-visual-editor ul { padding-left: 1.4em; margin: .4em 0 .8em; }
         .policy-visual-editor li { margin-bottom: .3em; }
         .policy-visual-editor a { color: var(--accent, #F891A5); text-decoration: underline; }
+        .policy-fmt-color {
+            -webkit-appearance: none; appearance: none;
+            width: 28px; height: 26px; padding: 2px; cursor: pointer; vertical-align: middle;
+            background: none; border: 1px solid var(--border); border-radius: 4px;
+        }
+        .policy-fmt-color::-webkit-color-swatch-wrapper { padding: 0; }
+        .policy-fmt-color::-webkit-color-swatch { border: none; border-radius: 2px; }
+        .policy-fmt-color::-moz-color-swatch { border: none; border-radius: 2px; }
         [data-policy-html-mode="true"] .policy-visual-editor { display: none; }
         [data-policy-html-mode="true"] .policy-html-textarea { display: block !important; border-radius: 0 0 6px 6px; }
         [data-policy-html-mode="false"] .policy-html-textarea { display: none !important; }
@@ -6332,6 +6340,7 @@
                                         <button type="button" class="policy-fmt-btn" data-cmd="italic" title="Italic"><em>I</em></button>
                                         <button type="button" class="policy-fmt-btn" data-cmd="insertUnorderedList" title="Bullet list">&#8801;</button>
                                         <button type="button" class="policy-fmt-btn" data-cmd="createLink" title="Insert link">&#128279;</button>
+                                        <input type="color" class="policy-fmt-color" value="#F891A5" title="Text colour (applies to the selected text)">
                                         <button type="button" class="policy-fmt-btn" data-cmd="removeFormat" title="Clear formatting">&#10006;</button>
                                     </div>
                                     <div class="policy-mode-toggle">
@@ -6354,6 +6363,7 @@
                                         <button type="button" class="policy-fmt-btn" data-cmd="italic" title="Italic"><em>I</em></button>
                                         <button type="button" class="policy-fmt-btn" data-cmd="insertUnorderedList" title="Bullet list">&#8801;</button>
                                         <button type="button" class="policy-fmt-btn" data-cmd="createLink" title="Insert link">&#128279;</button>
+                                        <input type="color" class="policy-fmt-color" value="#F891A5" title="Text colour (applies to the selected text)">
                                         <button type="button" class="policy-fmt-btn" data-cmd="removeFormat" title="Clear formatting">&#10006;</button>
                                     </div>
                                     <div class="policy-mode-toggle">
@@ -6376,6 +6386,7 @@
                                         <button type="button" class="policy-fmt-btn" data-cmd="italic" title="Italic"><em>I</em></button>
                                         <button type="button" class="policy-fmt-btn" data-cmd="insertUnorderedList" title="Bullet list">&#8801;</button>
                                         <button type="button" class="policy-fmt-btn" data-cmd="createLink" title="Insert link">&#128279;</button>
+                                        <input type="color" class="policy-fmt-color" value="#F891A5" title="Text colour (applies to the selected text)">
                                         <button type="button" class="policy-fmt-btn" data-cmd="removeFormat" title="Clear formatting">&#10006;</button>
                                     </div>
                                     <div class="policy-mode-toggle">
@@ -6398,6 +6409,7 @@
                                         <button type="button" class="policy-fmt-btn" data-cmd="italic" title="Italic"><em>I</em></button>
                                         <button type="button" class="policy-fmt-btn" data-cmd="insertUnorderedList" title="Bullet list">&#8801;</button>
                                         <button type="button" class="policy-fmt-btn" data-cmd="createLink" title="Insert link">&#128279;</button>
+                                        <input type="color" class="policy-fmt-color" value="#F891A5" title="Text colour (applies to the selected text)">
                                         <button type="button" class="policy-fmt-btn" data-cmd="removeFormat" title="Clear formatting">&#10006;</button>
                                     </div>
                                     <div class="policy-mode-toggle">
@@ -12165,6 +12177,29 @@
                 }
             });
         });
+
+        // Text colour — capture the selection before the OS colour picker steals
+        // focus, restore it, then apply the colour inline (styleWithCSS => <span
+        // style="color:…">, which survives on the storefront in any theme).
+        const colorInput = wrap.querySelector('.policy-fmt-color');
+        if (colorInput) {
+            let savedRange = null;
+            colorInput.addEventListener('mousedown', () => {
+                const sel = window.getSelection();
+                savedRange = sel && sel.rangeCount ? sel.getRangeAt(0).cloneRange() : null;
+            });
+            colorInput.addEventListener('input', () => {
+                ve.focus();
+                if (savedRange) {
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(savedRange);
+                }
+                try { document.execCommand('styleWithCSS', false, true); } catch (_) {}
+                document.execCommand('foreColor', false, colorInput.value);
+                ta.value = ve.innerHTML;
+            });
+        }
 
         // Sync to textarea on every keystroke (so save always has fresh content)
         ve.addEventListener('input', () => { ta.value = ve.innerHTML; });
