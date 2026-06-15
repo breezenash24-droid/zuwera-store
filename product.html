@@ -3759,10 +3759,13 @@ window.openSizeGuideModal = async function() {
       if (!doc?.body) return;
       revealed = true;
       const syncH = () => {
-        const h = Math.max(
-          doc?.body?.scrollHeight || 0, doc?.body?.offsetHeight || 0,
-          doc?.documentElement?.scrollHeight || 0
-        );
+        // Measure the BODY's content height only. documentElement.scrollHeight
+        // reports at least the iframe's own (already-set) height, so including it
+        // makes the frame only ever grow — which left a tall empty gap once the
+        // content settled shorter than a transient earlier measurement.
+        const b = doc?.body;
+        if (!b) return;
+        const h = Math.max(b.scrollHeight || 0, b.offsetHeight || 0);
         if (h > 0) iframe.style.height = h + 'px';
       };
       syncH();
@@ -3824,6 +3827,7 @@ document.addEventListener('keydown', (e) => {
 
   if (e.key === 'Escape') {
     document.querySelectorAll('.modal.open').forEach(m => { m.classList.remove('open'); document.body.style.overflow = ''; });
+    if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh();
   }
 });
 
@@ -3901,6 +3905,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     });
     document.body.style.overflow = '';
     document.documentElement.style.overflow = '';
+    if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh();
   }
 
   function goToBagPage() {
@@ -3944,6 +3949,10 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     }
     document.getElementById('size-guide-modal').classList.remove('open');
     document.body.style.overflow = '';
+    // Release the shared scroll lock — modal-lock.js holds the page with
+    // body{position:fixed} + documentElement overflow, which clearing
+    // body.style.overflow alone cannot undo (that left the page frozen).
+    if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh();
   });
 
   /* Swipe-down-to-close for scrollable modals. If the user drags down >80px while
@@ -3989,6 +3998,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
       }
       document.getElementById('size-guide-modal').classList.remove('open');
       document.body.style.overflow = '';
+      if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh();
     }
   });
 
