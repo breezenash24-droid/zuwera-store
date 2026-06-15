@@ -176,6 +176,15 @@
     .guide-hero .calculator {
       margin-bottom: 0;
     }
+    /* Lay the finder's fields out two-up on desktop so the card stays compact
+       and balances the title block — otherwise the revealed measurement inputs
+       (men/women/kids show 4-6) stack into a tower beside a short title. */
+    @media (min-width: 981px) {
+      .guide-hero .calc-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 1.1rem 1.25rem;
+      }
+    }
     @media (max-width: 980px) {
       .guide-hero {
         grid-template-columns: 1fr;
