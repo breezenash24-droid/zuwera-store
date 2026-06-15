@@ -1766,7 +1766,9 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
   <span id="announcementText">Release 001 — Launching Sep 20, 2026</span>
   <span class="bar-sep" aria-hidden="true"></span>
 </div>
-<!-- Spacer holds bar height in document flow on desktop -->
+<!-- Spacer holds bar height in document flow on desktop. Its height transition is
+     enabled by JS after first paint (see applyAnnouncementBar) so the bar's initial
+     appearance doesn't animate a push-down on load. -->
 <div id="bar-spacer" style="height:0;pointer-events:none" aria-hidden="true"></div>
 
 <!-- NAV -->

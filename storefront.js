@@ -834,6 +834,14 @@ function applyAnnouncementBar(mode, msgText) {
   barEl.style.display = 'flex';
   setAnnouncementBarLayout(barEl, navEl, true);
 
+  // Smooth the spacer's height changes on scroll hide/show — but only enable the
+  // transition AFTER the initial layout has painted, so the bar's first
+  // appearance (0 -> height, once settings load) doesn't animate a push-down.
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const sp = document.getElementById('bar-spacer');
+    if (sp) sp.style.transition = 'height .45s ease';
+  }));
+
   if (normalizedMode !== 'scroll' && normalizedMode !== 'scrolloff') return;
 
   if (isMobileViewport) {

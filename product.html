@@ -217,10 +217,10 @@
 }
 .bar-sep {
   opacity: .25;
-  display: inline-flex;
-  align-items: center;
+  font-size: 0;
+  line-height: 1;
 }
-.bar-sep::before { content: "|"; }
+.bar-sep::before { content: '\2726'; font-size: .6rem; }
 body.light-mode #bar {
   background: #09090b; color: #F0EEE9;
   border-bottom-color: rgba(244,241,235,.1);
