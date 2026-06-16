@@ -258,9 +258,17 @@ body.light-mode #bar {
   width: 100%;
   overflow: hidden;
 }
-/* Close button: always above the iframe and visible. Without z-index the
-   iframe (a later sibling) can paint over the absolutely-positioned button. */
+/* Close button: sticky so it stays pinned top-right as the dialog scrolls
+   (was position:absolute, which scrolled away with the content). The negative
+   bottom margin lets it overlap the header corner instead of taking its own
+   row, so the layout is unchanged. z-index keeps it above the iframe, which as
+   a later sibling can otherwise paint over it. */
 #size-guide-modal .mclose {
+  position: sticky;
+  top: .9rem;
+  align-self: flex-end;
+  right: auto;
+  margin: 0 .9rem -30px auto;
   z-index: 12;
   opacity: 1;
 }
