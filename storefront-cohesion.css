@@ -14,8 +14,9 @@
 
    ── MOTION TOKENS — use these for new animations/transitions ──
      --zw-motion-fast   .15s  hovers, button presses
-     --zw-motion-base   .2s   modal open/close, reveals, state changes
+     --zw-motion-base   .2s   reveals, state changes
      --zw-motion-panel  .25s  drawers, side panels
+     --zw-motion-modal  .3s   modal/dialog open + close
      --zw-motion-slow   .35s  large/hero movements
    Don't invent new durations or cubic-beziers; legacy hardcoded values
    (.4s/.46s/.6s/.72s + assorted beziers) should migrate to tokens whenever
@@ -75,6 +76,7 @@ a,button,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:t
   --zw-motion-fast:.15s;
   --zw-motion-base:.2s;
   --zw-motion-panel:.25s;
+  --zw-motion-modal:.3s;
   --zw-motion-slow:.35s;
   --zw-space-page:clamp(1.2rem,4vw,2.5rem);
   --zw-panel-width:clamp(24rem,34vw,34rem);
@@ -335,22 +337,26 @@ body.light-mode #zw-lang-modal{
   visibility:hidden;
   opacity:0;
   pointer-events:none;
-  transition:opacity var(--zw-motion-base) ease,
-             visibility 0s linear var(--zw-motion-base);
+  transition:opacity var(--zw-motion-modal) ease,
+             visibility 0s linear var(--zw-motion-modal);
 }
 .modal:not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal).open{
   visibility:visible;
   opacity:1;
   pointer-events:auto;
-  transition:opacity var(--zw-motion-base) ease;
+  transition:opacity var(--zw-motion-modal) ease;
 }
 .modal:not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.review-dialog,.cbox){
-  transition:transform var(--zw-motion-base) cubic-bezier(.32,.72,.34,1),
-             opacity var(--zw-motion-base) ease;
+  transition:transform var(--zw-motion-modal) cubic-bezier(.32,.72,.34,1),
+             opacity var(--zw-motion-modal) ease;
 }
+/* Closed box: fade out + slide down 14px + ease back to 98% scale, so the
+   dialog gently grows into place on open and recedes on close (was a bare
+   slide). The .open state restores transform:none/opacity:1, and the same
+   transition above carries both directions for symmetric in/out motion. */
 .modal:not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal):not(.open) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.review-dialog,.cbox){
   opacity:0;
-  transform:translateY(14px);
+  transform:translateY(14px) scale(.98);
 }
 @media (prefers-reduced-motion: reduce){
   .modal:not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal),
