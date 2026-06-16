@@ -275,11 +275,11 @@ body.light-mode #bar {
   top: .9rem;
   align-self: flex-end;
   right: auto;
-  /* Pull the button right, out of the content column and into the .mbox's
-     right padding gutter (2.4rem), so words scrolling up underneath the sticky
-     button are no longer covered. The negative margin clears the text but stops
-     short of the scrollbar. */
-  margin: .9rem -1rem 0 auto;
+  /* Seat the button fully inside the .mbox's right padding gutter (2.4rem),
+     past the content cards/tables, so nothing scrolling up underneath the
+     sticky button is covered. ~1.8rem clears the content's right edge and lands
+     just inside the scrollbar. */
+  margin: .9rem -1.8rem 0 auto;
   z-index: 12;
   opacity: 1;
 }
