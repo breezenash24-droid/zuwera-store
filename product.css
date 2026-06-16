@@ -478,7 +478,7 @@ body.light-mode #size-fit-modal { background: rgba(9,9,11,.4) !important; }
 
 .accordion-header svg {
   flex-shrink: 0;
-  transition: transform 0.3s ease;
+  transition: transform 0.4s cubic-bezier(.4, 0, .2, 1);
 }
 
 .accordion-header.open svg {
@@ -488,8 +488,17 @@ body.light-mode #size-fit-modal { background: rgba(9,9,11,.4) !important; }
 .accordion-body {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.3s ease;
+  transition: max-height 0.4s cubic-bezier(.4, 0, .2, 1);
   color: var(--c65);
+}
+
+/* Reduced motion: collapse the animation, but keep a hair of duration so the
+   transitionend that releases the panel's height cap (see toggleAccordion)
+   still fires — a flat `transition:none` would never fire it, and the panel
+   could then clip dynamically-added content. */
+@media (prefers-reduced-motion: reduce) {
+  .accordion-header svg,
+  .accordion-body { transition-duration: 0.01ms; }
 }
 
 .accordion-body p {
