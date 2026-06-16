@@ -3136,3 +3136,13 @@ body.light-mode .quick-add-gallery-arrow{background:rgba(9,9,11,.55);border-colo
 @media(max-width:760px){
   .quick-add-gallery-arrow{width:38px;height:38px}
 }
+/* Promote the arrows onto their own GPU compositing layer so they paint ABOVE a
+   <video> media frame. A <video> gets its own compositing layer that otherwise
+   renders over positioned siblings regardless of z-index — which is why the
+   arrows show on image slides but vanish on video slides. translateZ(0) forces
+   the arrows into a sibling layer that composites by z-index again. The
+   .quick-add-review-media parent gives this (0,2,0) specificity so it outranks
+   the per-page inline `.quick-add-gallery-arrow{transform:…}` and wins. */
+.quick-add-review-media .quick-add-gallery-arrow{
+  transform:translateY(-50%) translateZ(0);
+}
