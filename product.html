@@ -275,7 +275,11 @@ body.light-mode #bar {
   top: .9rem;
   align-self: flex-end;
   right: auto;
-  margin: .9rem .9rem 0 auto;
+  /* Pull the button right, out of the content column and into the .mbox's
+     right padding gutter (2.4rem), so words scrolling up underneath the sticky
+     button are no longer covered. The negative margin clears the text but stops
+     short of the scrollbar. */
+  margin: .9rem -1rem 0 auto;
   z-index: 12;
   opacity: 1;
 }
@@ -1392,7 +1396,7 @@ body.super-light-mode { background: #FFFFFF !important; }
 <!-- SIZE GUIDE MODAL -->
 <div id="size-guide-modal" class="modal modal--guide" role="dialog" aria-modal="true" aria-labelledby="size-guide-modal-title" aria-hidden="true">
   <div class="mbox size-guide-dialog">
-    <button id="size-guide-close" class="mclose size-guide-close" aria-label="Close">&#215;</button>
+    <button id="size-guide-close" class="mclose size-guide-close" aria-label="Close"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19"/></svg></button>
     <div class="size-guide-head">
       <p id="size-guide-modal-kicker" class="size-guide-kicker">Fit Reference</p>
       <h2 id="size-guide-modal-title" class="size-guide-title">Size Guide</h2>
