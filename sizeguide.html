@@ -2228,6 +2228,27 @@
       if (typeof updateCalculatorFields === 'function') updateCalculatorFields();
     }
 
+    // Re-apply only the recommended-size highlight, no reload — called by the
+    // parent page when the (warm) size guide modal is reused with a new size.
+    window.__zwApplyGuideSize = function(size) {
+      try {
+        const injected = window.__ZW_SIZEGUIDE_PARAMS__;
+        if (injected && typeof injected === 'object') {
+          if (size) injected.size = size; else delete injected.size;
+        }
+        let tabId = window.currentTab;
+        if (!tabId) {
+          const ctx = classifyGuideContext(getGuideParams());
+          tabId = ctx && ctx.tabId;
+          if (tabId) window.currentTab = tabId;
+        }
+        window.recommendedSize = (size && tabId) ? resolveGuideSizeLabel(size, tabId) : null;
+        renderAllTables();
+        updateHighlightCard();
+        updatePlaceholdersFromSize();
+      } catch (e) {}
+    };
+
     // ────── INIT ──────
     function init() {
       if (!isEmbedMode()) initCookieConsent();

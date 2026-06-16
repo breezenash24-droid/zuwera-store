@@ -3731,6 +3731,10 @@ function buildSizeGuideSrcdoc(sourceHtml, params) {
 
 let _sizeGuideModalResizeObserver = null;
 let _sizeGuideModalLoadToken = 0;
+let _sizeGuideBooted = false;        // iframe has the guide document loaded + ready
+let _sizeGuideBootedKey = '';        // non-size context the iframe was booted with
+let _sizeGuideBootedSize = null;     // size currently reflected in the booted guide
+let _sizeGuideBootPromise = null;    // in-flight boot, so prewarm + open don't double-boot
 
 function teardownSizeGuideModalAutoHeight() {
   if (_sizeGuideModalResizeObserver) {
@@ -3739,17 +3743,8 @@ function teardownSizeGuideModalAutoHeight() {
   }
 }
 
-window.openSizeGuideModal = async function() {
-  if (syncSizeGuideVisibility(getAvailableProductSizes())) return;
-  const modal   = document.getElementById('size-guide-modal');
-  const iframe  = document.getElementById('size-guide-modal-iframe');
-  const loading = document.getElementById('size-guide-modal-loading');
-  if (!modal || !iframe) return;
-  const loadToken = ++_sizeGuideModalLoadToken;
-
+function buildSizeGuideParams() {
   const context = getSizeGuideContext();
-  syncSizeGuideModalMeta(context);
-
   const params = {};
   if (context?.gender) params.gender = context.gender;
   if (context?.categoryLabel) params.category = context.categoryLabel;
@@ -3758,54 +3753,132 @@ window.openSizeGuideModal = async function() {
   if (context?.focused) params.focused = true;
   if (currentProduct?.id) params.id = currentProduct.id;
   if (selectedSize) params.size = selectedSize;
+  return params;
+}
 
-  if (loading) { loading.hidden = false; loading.textContent = 'Loading size guide...'; }
+// Everything in the context except the selected size — fixed for a product page,
+// so a booted iframe can be reused as long as this key matches.
+function sizeGuideContextKey(params) {
+  const p = Object.assign({}, params);
+  delete p.size;
+  return JSON.stringify(p);
+}
+
+// Measure the embedded guide and keep its height synced. Shared by boot + reuse.
+function attachSizeGuideAutoHeight(iframe) {
+  const doc = iframe.contentDocument;
+  if (!doc?.body) return;
+  const syncH = () => {
+    const b = iframe.contentDocument?.body;
+    if (!b) return;
+    // Body content height only — documentElement.scrollHeight reports at least
+    // the iframe's own height, which would make the frame only ever grow.
+    const h = Math.max(b.scrollHeight || 0, b.offsetHeight || 0);
+    if (h > 0) iframe.style.height = h + 'px';
+  };
   teardownSizeGuideModalAutoHeight();
-  iframe.onload = null;
+  syncH();
+  if (typeof ResizeObserver === 'function' && doc.body) {
+    _sizeGuideModalResizeObserver = new ResizeObserver(syncH);
+    _sizeGuideModalResizeObserver.observe(doc.body);
+    if (doc.documentElement) _sizeGuideModalResizeObserver.observe(doc.documentElement);
+  }
+  setTimeout(syncH, 0); setTimeout(syncH, 120); setTimeout(syncH, 360);
+}
+
+function revealSizeGuideIframe(iframe, loading) {
   iframe.hidden = false;
-  iframe.style.visibility = 'hidden';
-  iframe.style.height = '1px';
+  iframe.style.visibility = 'hidden';   // in layout but unpainted, so we can measure
+  attachSizeGuideAutoHeight(iframe);
+  iframe.style.visibility = '';
+  if (loading) loading.hidden = true;
+}
+
+// Boot the guide document into the iframe exactly once (shared by prewarm and
+// open). Resolves as soon as the body is parsed, not on full sub-resource load.
+function ensureSizeGuideBooted(iframe, params) {
+  if (_sizeGuideBooted) return Promise.resolve(true);
+  if (_sizeGuideBootPromise) return _sizeGuideBootPromise;
+  _sizeGuideBootPromise = (async () => {
+    let ok = false;
+    try {
+      const sourceHtml = await getSizeGuideDocumentHtml();
+      ok = await new Promise((resolve) => {
+        let settled = false;
+        const settle = (v) => { if (settled) return; settled = true; iframe.onload = null; resolve(v); };
+        const ready = () => {
+          // Require the REAL guide content (not an empty about:blank). Matters
+          // when prewarming inside a still-hidden modal, where some browsers
+          // defer the srcdoc load — we must not mark an empty iframe as booted.
+          const doc = iframe.contentDocument;
+          if (doc && doc.body && doc.querySelector('.page-wrap')) settle(true);
+        };
+        iframe.onload = ready;
+        iframe.srcdoc = buildSizeGuideSrcdoc(sourceHtml, params);
+        setTimeout(ready, 250);
+        setTimeout(ready, 900);
+        setTimeout(() => settle(false), 4000);   // give up — caller boots on demand
+      });
+      if (ok) {
+        _sizeGuideBooted = true;
+        _sizeGuideBootedKey = sizeGuideContextKey(params);
+        _sizeGuideBootedSize = params.size || null;
+      }
+    } finally {
+      _sizeGuideBootPromise = null;
+    }
+    return ok;
+  })();
+  return _sizeGuideBootPromise;
+}
+
+window.openSizeGuideModal = async function() {
+  if (syncSizeGuideVisibility(getAvailableProductSizes())) return;
+  const modal   = document.getElementById('size-guide-modal');
+  const iframe  = document.getElementById('size-guide-modal-iframe');
+  const loading = document.getElementById('size-guide-modal-loading');
+  if (!modal || !iframe) return;
+
+  const context = getSizeGuideContext();
+  syncSizeGuideModalMeta(context);
+  const params = buildSizeGuideParams();
+
   modal.classList.add('open');
   modal.style.setProperty('background', 'transparent', 'important');
   modal.style.setProperty('backdrop-filter', 'none', 'important');
   modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
   document.body.style.overflow = 'hidden';
 
+  // Warm path: the iframe is already booted for this product — re-sync only the
+  // selected size (if it changed) and reveal. No rebuild, so it opens instantly.
+  const win = iframe.contentWindow;
+  if (_sizeGuideBooted
+      && iframe.contentDocument?.body
+      && sizeGuideContextKey(params) === _sizeGuideBootedKey
+      && typeof win?.__zwApplyGuideSize === 'function') {
+    try {
+      const size = params.size || null;
+      if (size !== _sizeGuideBootedSize) { win.__zwApplyGuideSize(size); _sizeGuideBootedSize = size; }
+      _sizeGuideModalLoadToken++;   // invalidate any stale cold-boot reveal
+      revealSizeGuideIframe(iframe, loading);
+      return;
+    } catch (e) { _sizeGuideBooted = false; _sizeGuideBootPromise = null; }
+  }
+
+  // Cold path: (re)boot the iframe. Rebuild only if the product context changed.
+  if (_sizeGuideBooted && sizeGuideContextKey(params) !== _sizeGuideBootedKey) {
+    _sizeGuideBooted = false;
+  }
+  const loadToken = ++_sizeGuideModalLoadToken;
+  if (loading) { loading.hidden = false; loading.textContent = 'Loading size guide...'; }
+  teardownSizeGuideModalAutoHeight();
+  iframe.hidden = false;          // make it visible so a deferred prewarm load kicks in
+  iframe.style.visibility = 'hidden';
+  iframe.style.height = '1px';
   try {
-    const sourceHtml = await getSizeGuideDocumentHtml();
+    await ensureSizeGuideBooted(iframe, params);
     if (loadToken !== _sizeGuideModalLoadToken) return;
-    let revealed = false;
-    const revealIframe = () => {
-      if (revealed || loadToken !== _sizeGuideModalLoadToken) return;
-      const doc = iframe.contentDocument;
-      if (!doc?.body) return;
-      revealed = true;
-      const syncH = () => {
-        // Measure the BODY's content height only. documentElement.scrollHeight
-        // reports at least the iframe's own (already-set) height, so including it
-        // makes the frame only ever grow — which left a tall empty gap once the
-        // content settled shorter than a transient earlier measurement.
-        const b = doc?.body;
-        if (!b) return;
-        const h = Math.max(b.scrollHeight || 0, b.offsetHeight || 0);
-        if (h > 0) iframe.style.height = h + 'px';
-      };
-      syncH();
-      if (typeof ResizeObserver === 'function' && doc?.body) {
-        _sizeGuideModalResizeObserver = new ResizeObserver(syncH);
-        _sizeGuideModalResizeObserver.observe(doc.body);
-        if (doc.documentElement) _sizeGuideModalResizeObserver.observe(doc.documentElement);
-      }
-      setTimeout(syncH, 0); setTimeout(syncH, 120); setTimeout(syncH, 360);
-      if (loading) loading.hidden = true;
-      iframe.hidden = false;
-      iframe.style.visibility = '';
-      iframe.onload = null;
-    };
-    iframe.onload = revealIframe;
-    iframe.srcdoc = buildSizeGuideSrcdoc(sourceHtml, params);
-    setTimeout(revealIframe, 250);
-    setTimeout(revealIframe, 900);
+    revealSizeGuideIframe(iframe, loading);
   } catch (error) {
     console.error('Size guide modal failed:', error);
     teardownSizeGuideModalAutoHeight();
@@ -3813,15 +3886,22 @@ window.openSizeGuideModal = async function() {
     iframe.hidden = true;
     iframe.style.visibility = '';
     iframe.style.height = '';
+    _sizeGuideBooted = false; _sizeGuideBootPromise = null;
     if (loading) { loading.hidden = false; loading.textContent = 'Could not load the size guide right now.'; }
   }
 };
 
-// Warm the cache: fetch the size guide document during idle time so the first
-// open doesn't pay for the download. getSizeGuideDocumentHtml() memoizes it.
+// Prewarm: boot the guide iframe during idle time (the modal stays hidden) so
+// the first open is instant. Only once the product has loaded, so the booted
+// context matches what the open will request — otherwise the first open boots.
 (function prewarmSizeGuide() {
-  const warm = () => { getSizeGuideDocumentHtml().catch(() => {}); };
-  if ('requestIdleCallback' in window) requestIdleCallback(warm, { timeout: 4000 });
+  const warm = () => {
+    const iframe = document.getElementById('size-guide-modal-iframe');
+    if (!iframe || _sizeGuideBooted || _sizeGuideBootPromise) return;
+    if (!currentProduct?.id) return;
+    ensureSizeGuideBooted(iframe, buildSizeGuideParams()).catch(() => {});
+  };
+  if ('requestIdleCallback' in window) requestIdleCallback(warm, { timeout: 5000 });
   else setTimeout(warm, 2500);
 })();
 
