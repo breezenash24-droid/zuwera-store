@@ -350,6 +350,22 @@
   font-size: 1rem;
   cursor: pointer;
 }
+@media (min-width: 901px) {
+  /* Pin the close so it stays visible while the reviews list scrolls — it was
+     position:absolute, anchored to the content top, so it scrolled away. (Mobile
+     already pins it via the cohesion bottom-sheet rule.) margin-bottom keeps it
+     overlapping the title corner instead of taking its own row. The
+     .review-list-mbox prefix outranks the base .mclose rule regardless of
+     stylesheet order. */
+  .review-list-mbox > .review-list-close {
+    position: sticky;
+    top: 1rem;
+    right: auto;
+    margin-left: auto;
+    margin-bottom: -30px;
+    z-index: 5;
+  }
+}
 .review-list-write-btn { margin-bottom: 1.5rem; }
 .review-list-select {
   flex: 1;
