@@ -1385,6 +1385,10 @@
 
     // ────── FETCH SIZE CHARTS ──────
     async function fetchSizeCharts() {
+      // Paint the charts immediately from the bundled fallback data so they
+      // appear without waiting on this request; we re-render with live data
+      // (or keep fallback) once it resolves below.
+      renderAllTables();
       try {
         const response = await fetch(`${SUPABASE_URL}/rest/v1/size_charts`, {
           headers: {
