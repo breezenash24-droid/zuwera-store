@@ -240,6 +240,12 @@ body.light-mode #bar {
   display: flex;
   flex-direction: column;
 }
+/* Children keep their natural size and let .mbox scroll. Without this, when the
+   chart content is taller than the dialog the flex algorithm shrinks the
+   shrinkable children — squashing the sticky close button (and the header). */
+#size-guide-modal .mbox > * {
+  flex-shrink: 0;
+}
 .size-guide-body {
   /* Take the iframe's full (JS-set) height instead of flex-shrinking to fit.
      flex:1 + overflow:hidden clipped tall content and stopped the .mbox from
