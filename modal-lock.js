@@ -49,7 +49,13 @@
 
     const root = document.documentElement;
     const body = document.body;
-    const scrollbarGap = Math.max(0, window.innerWidth - root.clientWidth);
+    // Content width before the scrollbar is hidden. We compare the body's width
+    // *after* locking against this to add back exactly what the page lost. With
+    // html{scrollbar-gutter:stable} the gutter stays reserved, so the width is
+    // unchanged and this resolves to 0 (no double-compensation); on browsers
+    // without scrollbar-gutter it resolves to the scrollbar width. Measuring the
+    // real boxes means the page never shifts sideways either way.
+    const clientWidthBefore = root.clientWidth;
     previousRootScrollBehavior = root.style.scrollBehavior || '';
     previousBodyScrollBehavior = body.style.scrollBehavior || '';
 
@@ -71,6 +77,7 @@
     body.style.overscrollBehavior = 'none';
     body.style.scrollBehavior = 'auto';
 
+    const scrollbarGap = Math.max(0, body.clientWidth - clientWidthBefore);
     if (scrollbarGap > 0) {
       body.style.paddingRight = `${scrollbarGap}px`;
     }
