@@ -84,6 +84,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 #account-btn {
   background: none;

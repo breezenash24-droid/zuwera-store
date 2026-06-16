@@ -3021,7 +3021,7 @@ footer.zw-footer{
   border-top:1px solid rgba(244,241,235,.12);
   padding:2.4rem clamp(1.15rem,5vw,3rem) 2rem;
   color:rgba(244,241,235,.6);
-  max-width:1240px; margin:0 auto; width:100%;
+  max-width:1200px; margin:0 auto; width:100%;
 }
 body.light-mode .zw-footer,
 body.super-light-mode .zw-footer{ border-top-color:rgba(9,9,11,.12); color:rgba(9,9,11,.6); }

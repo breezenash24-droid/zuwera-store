@@ -199,7 +199,7 @@
             : '<img src="' + quickAddEscapeAttr(current) + '" alt="' + quickAddEscapeAttr(item.title) + '" ' + imgStyle + '>')
         : '';
       media.innerHTML = current
-        ? (hasMultipleImages ? '<button type="button" class="quick-add-gallery-arrow prev" data-gallery-step="-1" aria-label="Previous product image">&#10094;</button>' : '') + mediaEl + (hasMultipleImages ? '<button type="button" class="quick-add-gallery-arrow next" data-gallery-step="1" aria-label="Next product image">&#10095;</button>' : '')
+        ? (hasMultipleImages ? '<button type="button" class="quick-add-gallery-arrow prev" data-gallery-step="-1" aria-label="Previous product image"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>' : '') + mediaEl + (hasMultipleImages ? '<button type="button" class="quick-add-gallery-arrow next" data-gallery-step="1" aria-label="Next product image"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>' : '')
         : '<span class="quick-add-review-placeholder">Image Coming Soon</span>';
       media.querySelectorAll('[data-gallery-step]').forEach(function (button) {
         button.addEventListener('click', function (event) {
