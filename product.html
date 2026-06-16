@@ -259,16 +259,17 @@ body.light-mode #bar {
   overflow: hidden;
 }
 /* Close button: sticky so it stays pinned top-right as the dialog scrolls
-   (was position:absolute, which scrolled away with the content). The negative
-   bottom margin lets it overlap the header corner instead of taking its own
-   row, so the layout is unchanged. z-index keeps it above the iframe, which as
-   a later sibling can otherwise paint over it. */
+   (was position:absolute, which scrolled away with the content). Sits as its
+   own top-right row — the earlier negative-margin overlap collapsed the
+   button's flex box and clipped its top against the scroll container. Matches
+   the mobile rule's approach. z-index keeps it above the iframe, which as a
+   later sibling can otherwise paint over it. */
 #size-guide-modal .mclose {
   position: sticky;
   top: .9rem;
   align-self: flex-end;
   right: auto;
-  margin: 0 .9rem -30px auto;
+  margin: .9rem .9rem 0 auto;
   z-index: 12;
   opacity: 1;
 }
