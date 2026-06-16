@@ -3270,17 +3270,13 @@ function toggleAccordion(header) {
   const body = header.nextElementSibling;
   const isOpen = body.style.maxHeight;
 
-  // Close all other accordions
-  document.querySelectorAll('.accordion-body').forEach(b => {
-    b.style.maxHeight = null;
-  });
-  document.querySelectorAll('.accordion-header').forEach(h => {
-    h.classList.remove('open');
-    h.setAttribute('aria-expanded', 'false');
-  });
-
-  // Toggle current
-  if (!isOpen) {
+  // Toggle only the clicked column — the others keep their state, so any number
+  // of columns can be open at the same time.
+  if (isOpen) {
+    body.style.maxHeight = null;
+    header.classList.remove('open');
+    header.setAttribute('aria-expanded', 'false');
+  } else {
     header.classList.add('open');
     header.setAttribute('aria-expanded', 'true');
     // Add a large flexible buffer so the review forms and dynamic content don't get clipped
