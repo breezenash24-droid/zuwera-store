@@ -33,8 +33,11 @@ html:has(body.super-light-mode)::before{background:#FFFFFF}
    the content + fixed nav sideways; a permanently-reserved gutter keeps the
    layout width identical whether the scrollbar is shown or hidden, so nothing
    shifts on open/close. modal-lock.js measures the real lock-delta (which is 0
-   here) so it adds no compensating padding on top. */
-html{scrollbar-gutter:stable}
+   here) so it adds no compensating padding on top.
+   :not(.in-iframe) excludes the embedded size-guide iframe — it's scrolling="no"
+   and auto-height, so a reserved gutter there never holds a scrollbar and just
+   exposes a cream strip of page background down its right edge. */
+html:not(.in-iframe){scrollbar-gutter:stable}
 a,button,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 :root{
   --zw-ink:#09090b;
