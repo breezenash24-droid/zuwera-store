@@ -83,6 +83,7 @@ a,button,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:t
   --zw-radius-control:0;
   --zw-radius-tight:2px;
   --zw-radius-soft:4px;
+  --zw-radius-modal:var(--zw-radius-tight);  /* modal/dialog corners — tight/sharp; one knob for every dialog */
   --zw-motion-fast:.15s;
   --zw-motion-base:.2s;
   --zw-motion-panel:.25s;
@@ -380,7 +381,7 @@ body.light-mode #zw-lang-modal{
   border:1px solid var(--zw-line-dark) !important;
   border-top:2px solid var(--zw-accent) !important;
   border-left:1px solid var(--zw-line-dark) !important;
-  border-radius:18px !important;
+  border-radius:var(--zw-radius-modal) !important;
   box-shadow:0 28px 90px rgba(0,0,0,.28) !important;
   pointer-events:auto;
   width:min(var(--zw-panel-width), calc(100vw - 2rem)) !important;
@@ -500,7 +501,7 @@ body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel{
     background:var(--zw-surface) !important;
     border:1px solid var(--zw-line-dark) !important;
     border-top:2px solid var(--zw-accent) !important;
-    border-radius:18px !important;
+    border-radius:var(--zw-radius-modal) !important;
     box-shadow:0 28px 90px rgba(0,0,0,.28) !important;
     min-height:0 !important;
     height:auto !important;
@@ -527,7 +528,7 @@ body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel{
   background:var(--zw-surface) !important;
   border:1px solid var(--zw-line-dark) !important;
   border-top:2px solid var(--zw-accent) !important;
-  border-radius:18px !important;
+  border-radius:var(--zw-radius-modal) !important;
   box-shadow:0 28px 90px rgba(0,0,0,.28) !important;
   pointer-events:auto;
   width:min(var(--zw-lang-panel-width), calc(100vw - 2rem)) !important;
@@ -1112,7 +1113,7 @@ body.light-mode .heart-btn{
     min-height:0 !important;
     height:auto !important;
     max-height:min(90dvh, 54rem) !important;
-    border-radius:18px !important;
+    border-radius:var(--zw-radius-modal) !important;
     border-left:1px solid var(--zw-line-dark) !important;
     border-right:1px solid var(--zw-line-dark) !important;
     border-bottom:1px solid var(--zw-line-dark) !important;
@@ -1136,7 +1137,7 @@ body.light-mode .heart-btn{
     max-height:min(90dvh, 54rem) !important;
     border:1px solid var(--zw-line-dark) !important;
     border-top:2px solid var(--zw-accent) !important;
-    border-radius:18px !important;
+    border-radius:var(--zw-radius-modal) !important;
   }
 
   body.light-mode #size-fit-modal > .review-dialog{
@@ -3164,7 +3165,7 @@ body.light-mode .quick-add-gallery-arrow{background:rgba(9,9,11,.55);border-colo
   #all-reviews-modal .review-list-mbox,
   .modal--review .review-mbox,
   #payment-modal .pbox {
-    border-radius: 18px !important;
+    border-radius: var(--zw-radius-modal) !important;
     box-shadow: 0 28px 90px rgba(0,0,0,.28) !important;
     border-top: 2px solid var(--zw-accent) !important;
   }

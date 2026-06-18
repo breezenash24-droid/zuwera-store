@@ -1978,7 +1978,7 @@ body.light-mode .review-dialog--classic-form .review-submit-btn:hover {
     border-left: none;
     border-right: none;
     border-bottom: none;
-    border-radius: 18px 18px 0 0;
+    border-radius: var(--zw-radius-modal) var(--zw-radius-modal) 0 0;
   }
 
   .review-dialog--guide {
@@ -1989,7 +1989,7 @@ body.light-mode .review-dialog--classic-form .review-submit-btn:hover {
     border-left: none;
     border-right: none;
     border-bottom: none;
-    border-radius: 18px 18px 0 0;
+    border-radius: var(--zw-radius-modal) var(--zw-radius-modal) 0 0;
     max-height: 100dvh;
     height: auto;
   }
@@ -2015,6 +2015,6 @@ body.light-mode .review-dialog--classic-form .review-submit-btn:hover {
 
   #size-fit-modal .review-dialog {
     max-height: min(90dvh, 54rem) !important;
-    border-radius: 18px !important;
+    border-radius: var(--zw-radius-modal) !important;
   }
 }
