@@ -363,7 +363,13 @@
 
   /* Product page */
   .product-page{
-    padding-top:calc(8.5rem + env(safe-area-inset-top,0px)) !important;
+    /* Pre-JS fallback only — clears the fixed nav (which itself covers the
+       notch via top:0 + its ::before). setAnnouncementBarLayout() refines this
+       to the exact nav (+ announcement bar) height at runtime, with !important
+       so it wins over this rule. Was 8.5rem+safe-area (~183px) which both
+       double-counted the safe area and, via !important, blocked the JS — that
+       was the persistent gap above the product. */
+    padding-top:4rem !important;
     padding-bottom:calc(3rem + env(safe-area-inset-bottom,0px)) !important;
   }
 

@@ -1545,7 +1545,10 @@ function setAnnouncementBarLayout(barEl, navEl, isVisible) {
     // The CSS padding-top (140px, sized for the desktop bar+nav) is far too tall
     // for mobile and left a white gap above the product. Clear exactly the fixed
     // nav + bar instead.
-    if (pageEl) pageEl.style.paddingTop = (navEl.offsetHeight + barH) + 'px';
+    // !important so this beats the mobile-rebuild `.product-page{padding-top…!important}`
+    // fallback — otherwise the JS padding is ignored and the page sits under a
+    // fixed 8.5rem gap regardless of the real nav/bar height.
+    if (pageEl) pageEl.style.setProperty('padding-top', (navEl.offsetHeight + barH) + 'px', 'important');
   } else {
     // Desktop: bar always fixed at top:0; nav pushed below; spacer holds bar height in flow
     const barH = (barEl && isVisible) ? barEl.offsetHeight : 0;
