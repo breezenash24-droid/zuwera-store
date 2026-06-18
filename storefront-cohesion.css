@@ -3149,3 +3149,35 @@ body.light-mode .quick-add-gallery-arrow{background:rgba(9,9,11,.55);border-colo
 .quick-add-review-media .quick-add-gallery-arrow{
   transform:translateY(-50%) translateZ(0);
 }
+
+/* ── Unify the modals excluded from the centered-modal baseline ──────────────
+   On desktop every dialog is a centered card, so give the excluded ones
+   (quick-add, size guide, review form, all-reviews, payment) the same card
+   treatment the baseline modals get: 18px radius, the soft drop shadow, and the
+   2px accent top border (pink on dark, dark on light). Desktop-scoped so the
+   mobile bottom-sheets (size guide / reviews) keep their top-only radius and the
+   fullscreen mobile checkout keeps its edge-to-edge shape. The modal-id/class
+   ancestor + !important outrank each modal's own per-page box rule. */
+@media (min-width: 901px) {
+  .quick-add-review-modal .mbox,
+  .modal--guide .mbox,
+  #all-reviews-modal .review-list-mbox,
+  .modal--review .review-mbox,
+  #payment-modal .pbox {
+    border-radius: 18px !important;
+    box-shadow: 0 28px 90px rgba(0,0,0,.28) !important;
+    border-top: 2px solid var(--zw-accent) !important;
+  }
+  body.light-mode .quick-add-review-modal .mbox,
+  body.light-mode .modal--guide .mbox,
+  body.light-mode #all-reviews-modal .review-list-mbox,
+  body.light-mode .modal--review .review-mbox,
+  body.light-mode #payment-modal .pbox,
+  body.super-light-mode .quick-add-review-modal .mbox,
+  body.super-light-mode .modal--guide .mbox,
+  body.super-light-mode #all-reviews-modal .review-list-mbox,
+  body.super-light-mode .modal--review .review-mbox,
+  body.super-light-mode #payment-modal .pbox {
+    border-top-color: var(--zw-ink) !important;
+  }
+}
