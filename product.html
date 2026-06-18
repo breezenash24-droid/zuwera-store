@@ -225,6 +225,12 @@ body.light-mode #bar {
   background: #09090b; color: #F0EEE9;
   border-bottom-color: rgba(244,241,235,.1);
 }
+/* Super-light has no #bar override, so the base background:var(--ink) resolved
+   to #FFFFFF — a white bar that vanished into the page. Match light mode. */
+body.super-light-mode #bar {
+  background: #09090b; color: #F0EEE9;
+  border-bottom-color: rgba(244,241,235,.1);
+}
 .product-page { padding-top: 140px; }
 @media (max-width: 900px) {
   /* Mobile: bar positioned below nav by JS, no other override needed */
@@ -1593,6 +1599,10 @@ function applyAnnouncementBar(mode, msgText) {
     const syncAnnouncementState = (hidden) => {
       barEl.style.opacity = hidden ? '0' : '1';
       barEl.style.pointerEvents = hidden ? 'none' : '';
+      // Reclaim the bar's height when it hides so the product slides up to fill
+      // the space (and back down when it returns) — previously only the opacity
+      // changed, leaving an empty gap where the faded bar used to be.
+      setAnnouncementBarLayout(barEl, navEl, !hidden);
     };
     syncAnnouncementState(false);
     _productAnnouncementBarScrollHandler = function() {
@@ -2189,6 +2199,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const bar = document.getElementById('bar');
   const nav = document.querySelector('.nav');
   if (bar && nav) {
+    // The bar is display:none until the async site-setting resolves, and the CSS
+    // padding-top (140px, desktop-sized) reserves space for it — leaving a tall
+    // white gap above the product on slow loads. Clear it to just the nav height
+    // now; loadSiteSettings re-applies with the real bar state/height.
+    setAnnouncementBarLayout(bar, nav, false);
     const syncNavOffset = () => {
       if (window.matchMedia('(max-width: 900px)').matches) {
         nav.style.top = '0';
