@@ -4725,5 +4725,23 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
   }
 })();
 </script>
+<script src="zw-login.js?v=ab0d5d3c" defer></script>
+<script>
+/* The product page's own auth modal (auth.js #auth-modal) freezes the page on
+   open. Route every openAuthModal caller — the Login button, "save product",
+   and early-access prompts — through the self-contained zw-login modal instead.
+   openAuthModal is a global function in the classic-script auth.js, so
+   reassigning window.openAuthModal redirects all callers (including auth.js's
+   own login-button listener). auth.js still owns header + favourite state, and
+   zw-login signs in through the same window.sb client. */
+document.addEventListener('DOMContentLoaded', function () {
+  if (window.zwOpenLogin) {
+    window.openAuthModal = function (tab) {
+      window.zwOpenLogin(tab === 'signup' ? 'signup' : (tab === 'forgot' ? 'forgot' : 'signin'));
+      return false;
+    };
+  }
+});
+</script>
 </body>
 </html>
