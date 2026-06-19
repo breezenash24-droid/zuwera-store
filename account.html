@@ -128,7 +128,7 @@
     .zw-nav {
       position: sticky; top: 0; z-index: 100;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0.75rem 2.5rem;
+      padding: 0.5rem 2.5rem;
       background: var(--ink);
       border-bottom: 1px solid rgba(244,241,235,.07);
       backdrop-filter: blur(8px);
@@ -639,7 +639,7 @@
     /* ── FOOTER ── */
     footer { margin-top: auto; }
     @media(max-width: 900px) {
-      .zw-nav { padding: 1rem 1.2rem; justify-content: flex-end; }
+      .zw-nav { padding: calc(0.55rem + env(safe-area-inset-top, 0px)) 1.2rem 0.8rem; justify-content: flex-end; }
       .page-wrap { padding: 2rem 1.2rem 4rem; }
       /* Collapse the two-pane: identity card on top, tabs as a horizontal
          scroll strip, content below, sign-out moves to the end. */
