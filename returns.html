@@ -134,10 +134,11 @@
       color: var(--muted); display: flex; align-items: center; gap: .4rem; transition: color .2s;
     }
     .zw-nav-back:hover { color: var(--ret-text); }
-    .zw-nav-right { display: flex; align-items: center; justify-content: flex-end; gap: 1.5rem; }
-    .zw-nav-action { font-family: var(--fw); font-size: .66rem; letter-spacing: .16em; text-transform: uppercase; color: var(--ret-text); text-decoration: none; opacity: .82; transition: opacity .2s; display: inline-flex; align-items: center; gap: .4rem; }
-    .zw-nav-action:hover { opacity: 1; }
-    .zw-nav-bag-count { font-family: var(--fw); font-size: .58rem; min-width: 1.05rem; height: 1.05rem; padding: 0 .25rem; border-radius: 999px; background: var(--ret-text); color: var(--bg); display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+    .zw-nav-right { display: flex; align-items: center; justify-content: flex-end; gap: 1.4rem; }
+    /* Match the main site nav (.nbtn / .cc): mono font, muted color, contrast count badge. */
+    .zw-nav-action { font-family: var(--fm); font-size: .6rem; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); text-decoration: none; transition: color .2s; display: inline-flex; align-items: center; gap: .45rem; }
+    .zw-nav-action:hover { color: var(--ret-text); }
+    .zw-nav-bag-count { font-family: var(--fm); font-size: .56rem; font-weight: 500; min-width: 17px; height: 17px; padding: 0 .22rem; border-radius: 50%; background: var(--paper); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; line-height: 1; font-variant-numeric: tabular-nums; }
     /* On mobile the hamburger menu already carries Account + Bag, so keep the
        header uncluttered there and only show these on desktop. */
     @media (max-width: 760px) { .zw-nav-action { display: none; } }
