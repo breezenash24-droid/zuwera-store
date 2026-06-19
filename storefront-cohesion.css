@@ -39,6 +39,24 @@ html:has(body.super-light-mode)::before{background:#FFFFFF}
    exposes a cream strip of page background down its right edge. */
 html:not(.in-iframe){scrollbar-gutter:stable}
 a,button,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+
+/* ── Secondary-page header actions (Login + Bag) ───────────────────────────
+   One shared definition mirroring the homepage nav (.nbtn / #cart-btn / .cc)
+   so returns, policies, sizeguide, account and the collection page all carry
+   an identical header. Spacing lives in .zw-hdr-group so it never depends on
+   each page's own nav container gap. !important guards against page-level
+   `a {}` / nav-anchor resets. Colours are mode-aware via --paper/--ink. */
+.zw-hdr-group{display:inline-flex;align-items:center;gap:.4rem}
+.zw-hdr-action{font-family:var(--zw-font-mono) !important;font-size:.6rem !important;letter-spacing:.18em !important;text-transform:uppercase !important;color:rgba(244,241,235,.55) !important;text-decoration:none !important;padding:.55rem .9rem !important;transition:color .2s !important;display:inline-flex;align-items:center;line-height:1}
+.zw-hdr-action:hover{color:var(--paper) !important}
+.zw-hdr-bag{display:inline-flex !important;align-items:center;justify-content:center;gap:.5rem;border:1px solid rgba(244,241,235,.2) !important;color:var(--paper) !important;min-width:44px;min-height:36px;padding:.45rem .72rem !important;text-decoration:none !important;transition:border-color .2s !important;border-radius:0 !important}
+.zw-hdr-bag:hover{border-color:rgba(244,241,235,.5) !important}
+.zw-hdr-bag svg{width:16px !important;height:16px !important;stroke:currentColor !important;fill:none !important;stroke-width:1.5 !important;flex-shrink:0}
+.zw-hdr-bag-count{background:var(--paper) !important;color:var(--ink) !important;width:17px;height:17px;border-radius:50% !important;display:inline-flex;align-items:center;justify-content:center;font-size:.58rem;font-weight:500;line-height:1;font-variant-numeric:tabular-nums}
+body.light-mode .zw-hdr-action,body.super-light-mode .zw-hdr-action{color:rgba(9,9,11,.55) !important}
+body.light-mode .zw-hdr-bag,body.super-light-mode .zw-hdr-bag{border-color:rgba(9,9,11,.2) !important}
+body.light-mode .zw-hdr-bag:hover,body.super-light-mode .zw-hdr-bag:hover{border-color:rgba(9,9,11,.5) !important}
+@media(max-width:760px){.zw-hdr-group{display:none !important}}
 :root{
   --zw-ink:#09090b;
   --zw-paper:#f4f1eb;

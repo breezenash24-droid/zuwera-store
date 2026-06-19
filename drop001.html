@@ -4,6 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <script>
+/* AUTH PRE-READ — synchronous session decode (same as account/bag/returns) so
+   the header can show Account instead of Login without a flash. */
+(function(){try{
+  var _b=null,_ck={},_i;
+  for(_i=0;_i<localStorage.length;_i++){
+    var _k=localStorage.key(_i);if(!_k)continue;
+    var _m=_k.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:.(d+))?$/);if(!_m)continue;
+    if(_m[1]===undefined)_b=localStorage.getItem(_k);else _ck[_m[1]]=localStorage.getItem(_k);
+  }
+  var _ord=Object.keys(_ck).map(Number).sort(function(a,b){return a-b;});
+  var _str=_ord.length?_ord.map(function(n){return _ck[n];}).join(""):_b;
+  if(_str&&_str.indexOf("base64-")===0){
+    var _bb=_str.slice(7).replace(/-/g,"+").replace(/_/g,"/");
+    _str=new TextDecoder().decode(Uint8Array.from(atob(_bb),function(c){return c.charCodeAt(0);}));
+  }
+  var _raw=_str?JSON.parse(_str):null;
+  var _se=_raw&&_raw.currentSession?_raw.currentSession:_raw;
+  if(_se&&_se.user&&(Number(_se.expires_at||0)*1000>Date.now()||_se.refresh_token))window.__zwSessionUser=_se.user;
+}catch(_){}})()
+</script>
+<script>
 /* THEME FLASH PREVENTION — runs before any CSS loads */
 (function(){try{
   var m=localStorage.getItem('zw_theme_mode');
@@ -61,7 +82,7 @@
        are cached immutable, so on every repeat view the real font is ready at
        first paint with no fallback swap. Preconnects keep cold-cache cost small. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=e3e1f6e4">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=87496dae">
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=29023607">
 <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DCVWDZ8ZBC"></script>
@@ -860,10 +881,28 @@
       <img src="images/logo-192.png" srcset="images/logo-192.png 192w, images/logo.png?v=2 2000w" sizes="60px" width="60" height="60" alt="ZUWERA" decoding="async">
     </a>
     <div class="nav-actions">
+      <span class="zw-hdr-group">
+        <a href="/?auth=signin&next=/drop001.html" class="zw-hdr-action" id="hdr-login">Login</a>
+        <a href="bag.html" class="zw-hdr-bag" aria-label="Bag">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 01-8 0"></path></svg>
+          <span class="zw-hdr-bag-count cart-count" id="hdr-bag-count">0</span>
+        </a>
+      </span>
       <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" aria-controls="mobile-menu" aria-expanded="false">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
       </button>
     </div>
+    <script>
+    (function(){
+      try {
+        var a = document.getElementById('hdr-login');
+        if (a && window.__zwSessionUser) { a.textContent = 'Account'; a.href = 'account.html'; }
+        var cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        var n = Array.isArray(cart) ? cart.reduce(function(s, it){ return s + (Number(it && (it.qty || it.quantity || it.q)) || 1); }, 0) : 0;
+        document.querySelectorAll('#hdr-bag-count, .cart-count, .zw-mobile-bag-count').forEach(function(el){ el.textContent = n; });
+      } catch (_) {}
+    })();
+    </script>
   </header>
 
   <div id="mobile-menu" class="modal zw-mobile-menu" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="mobile-menu-title">

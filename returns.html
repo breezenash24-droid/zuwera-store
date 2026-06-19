@@ -134,14 +134,9 @@
       color: var(--muted); display: flex; align-items: center; gap: .4rem; transition: color .2s;
     }
     .zw-nav-back:hover { color: var(--ret-text); }
-    .zw-nav-right { display: flex; align-items: center; justify-content: flex-end; gap: 1.4rem; }
-    /* Match the main site nav (.nbtn / .cc): mono font, muted color, contrast count badge. */
-    .zw-nav-action { font-family: var(--fm); font-size: .6rem; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); text-decoration: none; transition: color .2s; display: inline-flex; align-items: center; gap: .45rem; }
-    .zw-nav-action:hover { color: var(--ret-text); }
-    .zw-nav-bag-count { font-family: var(--fm); font-size: .56rem; font-weight: 500; min-width: 17px; height: 17px; padding: 0 .22rem; border-radius: 50%; background: var(--paper); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; line-height: 1; font-variant-numeric: tabular-nums; }
-    /* On mobile the hamburger menu already carries Account + Bag, so keep the
-       header uncluttered there and only show these on desktop. */
-    @media (max-width: 760px) { .zw-nav-action { display: none; } }
+    .zw-nav-right { display: flex; align-items: center; justify-content: flex-end; gap: 1rem; }
+    /* Login + Bag header styles are shared via storefront-cohesion.css
+       (.zw-hdr-group / .zw-hdr-action / .zw-hdr-bag / .zw-hdr-bag-count). */
 
     /* ── PAGE ── */
     .page { flex: 1; }
@@ -578,7 +573,7 @@
       .review-label { width: 80px; }
     }
   </style>
-<link rel="stylesheet" href="storefront-cohesion.css?v=e3e1f6e4">
+<link rel="stylesheet" href="storefront-cohesion.css?v=87496dae">
 <style>
 /* storefront-cohesion.css inverts --ink to the page background color in light/super-light
    mode (by design for other pages), which makes policy body text cream-on-cream = invisible.
@@ -612,11 +607,13 @@ body.super-light-mode .policy-section { border-color: rgba(9,9,11,.14); }
     <img src="images/wordmark-nav.png" srcset="images/wordmark-nav@2x.png 2x" alt="ZUWERA" width="113" height="22" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
   </a>
   <div class="zw-nav-right">
-    <a href="/?auth=signin&next=/returns.html" class="zw-nav-action" id="ret-account-link">Login</a>
-    <a href="bag.html" class="zw-nav-action zw-nav-bag" aria-label="Bag">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-      <span class="zw-nav-bag-count" id="ret-bag-count">0</span>
-    </a>
+    <span class="zw-hdr-group">
+      <a href="/?auth=signin&next=/returns.html" class="zw-hdr-action" id="hdr-login">Login</a>
+      <a href="bag.html" class="zw-hdr-bag" aria-label="Bag">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 01-8 0"></path></svg>
+        <span class="zw-hdr-bag-count cart-count" id="hdr-bag-count">0</span>
+      </a>
+    </span>
     <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" aria-controls="mobile-menu" aria-expanded="false">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="8" x2="21" y2="8"></line><line x1="3" y1="16" x2="21" y2="16"></line></svg>
     </button>
@@ -624,11 +621,11 @@ body.super-light-mode .policy-section { border-color: rgba(9,9,11,.14); }
   <script>
   (function(){
     try {
-      var a = document.getElementById('ret-account-link');
+      var a = document.getElementById('hdr-login');
       if (a && window.__zwSessionUser) { a.textContent = 'Account'; a.href = 'account.html'; }
       var cart = JSON.parse(localStorage.getItem('cart') || '[]');
       var n = Array.isArray(cart) ? cart.reduce(function(s, it){ return s + (Number(it && (it.qty || it.quantity || it.q)) || 1); }, 0) : 0;
-      document.querySelectorAll('#ret-bag-count, .zw-mobile-bag-count').forEach(function(el){ el.textContent = n; });
+      document.querySelectorAll('#hdr-bag-count, .zw-mobile-bag-count').forEach(function(el){ el.textContent = n; });
     } catch (_) {}
   })();
   </script>
