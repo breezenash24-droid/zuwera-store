@@ -3721,7 +3721,9 @@ window.openSizeFitModal = async function() {
   modal.style.setProperty('background', 'transparent', 'important');
   modal.style.setProperty('backdrop-filter', 'none', 'important');
   modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
-  document.body.style.overflow = 'hidden';
+  // Defer the scroll lock to modal-lock.js (position:fixed + scroll compensation)
+  // instead of a raw overflow:hidden — the dual lock shifted the page up on open.
+  if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh(); else document.body.style.overflow = 'hidden';
 
   try {
     const reviews = await loadProductReviewsForModal();
@@ -3894,7 +3896,9 @@ window.openSizeGuideModal = async function() {
   modal.style.setProperty('background', 'transparent', 'important');
   modal.style.setProperty('backdrop-filter', 'none', 'important');
   modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
-  document.body.style.overflow = 'hidden';
+  // Defer the scroll lock to modal-lock.js (position:fixed + scroll compensation)
+  // instead of a raw overflow:hidden — the dual lock shifted the page up on open.
+  if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh(); else document.body.style.overflow = 'hidden';
 
   // Warm path: the iframe is already booted for this product — re-sync only the
   // selected size (if it changed) and reveal. No rebuild, so it opens instantly.
@@ -4315,7 +4319,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
   }
   function openPaymentModal(subtotalCents) {
     document.getElementById('payment-modal').classList.add('open');
-    document.body.style.overflow = 'hidden';
+    if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh(); else document.body.style.overflow = 'hidden';
     document.getElementById('pay-error').textContent = '';
     void prefillCheckoutStateFromGeo();
     _loadStripe(() => {
@@ -4626,7 +4630,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
     document.getElementById('success-order').textContent = oid ? 'Order #' + oid : '';
     document.getElementById('success-msg').textContent = `Thank you! A confirmation has been sent to ${email||'your email'}.`;
     document.getElementById('payment-success').classList.add('open');
-    document.body.style.overflow = 'hidden';
+    if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh(); else document.body.style.overflow = 'hidden';
     cartItems = [];
     localStorage.removeItem('cart');
     loadCartCount();
