@@ -128,7 +128,7 @@
           '<button class="zwlg-submit" type="button" data-act="forgot">Send Reset Link</button>' +
           '<button class="zwlg-mini" type="button" data-go="signin">&larr; Back to login</button>' +
         '</div>' +
-        '<a class="zwlg-mini" data-escape href="/?auth=signin&next=' + nextParam() + '">Having trouble? Sign in on the main page &rarr;</a>' +
+        '<a class="zwlg-mini" data-escape href="/?auth=signin&next=' + nextParam() + '">Having trouble? Log in on the main page &rarr;</a>' +
       '</div>' +
     '</div>';
 
@@ -195,7 +195,7 @@
     busy(btn, true, 'Login');
     try {
       var res = await sb.auth.signInWithPassword({ email: email.trim(), password: pw });
-      if (res.error) { setErr('signin', res.error.message || 'Could not sign in.'); busy(btn, false, 'Login'); return; }
+      if (res.error) { setErr('signin', res.error.message || 'Could not log in.'); busy(btn, false, 'Login'); return; }
       location.reload();
     } catch (e) {
       setErr('signin', (e && e.message) || 'Something went wrong.');
@@ -283,15 +283,18 @@
     return href.indexOf('auth=signin') !== -1;
   }
   function bind() {
-    document.querySelectorAll('a.zw-hdr-action, [data-zw-login]').forEach(function (a) {
-      if (a.__zwlgBound) return;
-      a.__zwlgBound = true;
-      a.addEventListener('click', function (e) {
-        if (a.hasAttribute('data-escape')) return;       // the in-modal escape link must navigate
-        if (!isLoginTrigger(a) && !a.hasAttribute('data-zw-login')) return;
-        e.preventDefault();
-        openModal('signin');
-      });
+    if (bind._done) return;
+    bind._done = true;
+    // Event delegation, so it also catches auth-wall buttons that pages render
+    // dynamically (e.g. returns.html / account.html) after this script ran.
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      var a = (t && t.closest) ? t.closest('a.zw-hdr-action, [data-zw-login]') : null;
+      if (!a) return;
+      if (a.hasAttribute('data-escape')) return;          // the in-modal escape link must navigate
+      if (!isLoginTrigger(a) && !a.hasAttribute('data-zw-login')) return;
+      e.preventDefault();
+      openModal('signin');
     });
   }
 
