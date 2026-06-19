@@ -73,8 +73,13 @@
 
 /* ===================== GALLERY SECTION ===================== */
 .gallery-section {
-  position: sticky;
-  top: 100px;
+  /* NOT sticky. A position:sticky gallery re-resolves and jumps out of place
+     whenever a modal scroll-locks the page — modal-lock.js pins the body with
+     position:fixed, and sticky can't resolve against a fixed ancestor, so the
+     gallery dropped to its in-flow spot on every modal open (only visible once
+     the spec accordions made the page tall enough to scroll). Plain in-flow
+     positioning stays put because modal-lock compensates the scroll offset. */
+  position: static;
   display: flex;
   flex-direction: column;
   gap: 1rem;
