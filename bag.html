@@ -701,16 +701,21 @@ body.super-light-mode .zw-fav-size-picker{background:#FFFFFF!important;border-co
 /* ── Modal helpers (also provided by auth.js, but defined early for safety) ── */
 window._openModal = function(id) {
   const m = document.getElementById(id);
-  if (m) { m.classList.add('open'); document.body.style.overflow = 'hidden'; document.documentElement.style.overflow = 'hidden'; }
+  if (!m) return;
+  m.classList.add('open');
+  // modal-lock.js (loaded here) owns the scroll lock; an overflow lock on top of
+  // its position:fixed lock conflicts (jump-to-top / freeze). Defer to it.
+  if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); return; }
+  document.body.style.overflow = 'hidden'; document.documentElement.style.overflow = 'hidden';
 };
 window._closeModal = function(id) {
   const m = document.getElementById(id);
-  if (m) {
-    m.classList.remove('open');
-    if (!document.querySelector('.modal.open')) {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-    }
+  if (!m) return;
+  m.classList.remove('open');
+  if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); return; }
+  if (!document.querySelector('.modal.open')) {
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
   }
 };
 

@@ -37,16 +37,23 @@ function setBtn(id, loading, defaultLabel) {
 // ── Safe global helpers ────────────────────────────────────────────
 window._openModal = window._openModal || function(id) {
   const m = document.getElementById(id);
-  if (m) { m.classList.add('open'); document.body.style.overflow = 'hidden'; document.documentElement.style.overflow = 'hidden'; }
+  if (!m) return;
+  m.classList.add('open');
+  // modal-lock.js owns the scroll lock when present — its position:fixed lock
+  // preserves the scroll position and unlocks cleanly. Doing our own overflow
+  // lock on top of it conflicts (page jumps / freezes). Fall back to a plain
+  // overflow lock only where modal-lock isn't loaded (e.g. checkout.html).
+  if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); return; }
+  document.body.style.overflow = 'hidden'; document.documentElement.style.overflow = 'hidden';
 };
 window._closeModal = window._closeModal || function(id) {
   const m = document.getElementById(id);
-  if (m) {
-    m.classList.remove('open');
-    if (!document.querySelector('.modal.open')) {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-    }
+  if (!m) return;
+  m.classList.remove('open');
+  if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); return; }
+  if (!document.querySelector('.modal.open')) {
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
   }
 };
 window.togglePwd = window.togglePwd || function(id, btn) {
@@ -157,7 +164,8 @@ function closeAuthModal() {
     if (returnModal) {
       returnModal.classList.add('open');
       returnModal.setAttribute('aria-hidden', 'false');
-      document.body.style.overflow = 'hidden';
+      if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh();
+      else document.body.style.overflow = 'hidden';
       if (returnId === 'cart-modal') {
         if (typeof window.renderProductCartItems === 'function') window.renderProductCartItems();
         if (typeof renderCart === 'function') renderCart();

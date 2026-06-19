@@ -1608,6 +1608,12 @@ function setPageScrollLock(locked) {
   const root = document.documentElement;
   const body = document.body;
   if (!root || !body) return;
+  // Defer to the centralized modal-lock.js when present. This function is a
+  // second position:fixed scroll lock; running it on top of modal-lock makes
+  // whichever locks LAST read scrollY = 0 (the body is already pinned) and
+  // overwrite the offset to top:0 — snapping the page to the top — and the two
+  // unlocks then race and leave the body frozen. modal-lock owns the lock.
+  if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); return; }
   if (!window.__zwPageScrollState) {
     window.__zwPageScrollState = { locked: false, y: 0 };
   }

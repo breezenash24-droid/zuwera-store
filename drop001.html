@@ -1645,6 +1645,9 @@ function updateCountdown() {
   }
 
   function collectionSetScrollLock(locked) {
+    // modal-lock.js owns the lock when present; defer to avoid the dual-lock
+    // jump/freeze (it re-checks open modals on refresh).
+    if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); return; }
     document.body.style.overflow = locked ? 'hidden' : '';
     document.documentElement.style.overflow = locked ? 'hidden' : '';
   }
