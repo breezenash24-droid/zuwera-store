@@ -268,7 +268,7 @@ window.openAllReviewsModal = async function(pid, domId, productName) {
   modal.style.setProperty('background', 'transparent', 'important');
   modal.style.setProperty('backdrop-filter', 'none', 'important');
   modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
-  document.body.style.overflow = 'hidden';
+  if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); } else { document.body.style.overflow = 'hidden'; }
 
   try {
     const reviews = await withTimeout(loadReviews(pid), 8000, 'Reviews request');
@@ -375,7 +375,7 @@ function openReviewForm(pid, pname) {
   reviewModal.style.setProperty('background', 'transparent', 'important');
   reviewModal.style.setProperty('backdrop-filter', 'none', 'important');
   reviewModal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
-  document.body.style.overflow = 'hidden';
+  if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); } else { document.body.style.overflow = 'hidden'; }
   window.requestAnimationFrame(() => {
     try { document.querySelector('#star-selector button')?.focus({ preventScroll: true }); } catch (_) {}
   });
@@ -459,7 +459,7 @@ function openEditReviewForm(id, rating, pid) {
   editModal.style.setProperty('background', 'transparent', 'important');
   editModal.style.setProperty('backdrop-filter', 'none', 'important');
   editModal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
-  document.body.style.overflow = 'hidden';
+  if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); } else { document.body.style.overflow = 'hidden'; }
 }
 
 // -- Star selector interaction ----------------------------------------
@@ -608,7 +608,7 @@ async function submitReview() {
 
   const _rm = document.getElementById('review-modal');
   if (_rm) { _rm.classList.remove('open'); _rm.setAttribute('aria-hidden', 'true'); }
-  document.body.style.overflow = '';
+  if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); } else { document.body.style.overflow = ''; }
   if (typeof showToast === 'function') {
     showToast(submittedWasEdit ? 'Review updated.' : 'Review submitted. Thank you!');
   }
@@ -760,7 +760,7 @@ window.translateReviews = async function(domId) {
     if (!_rm) return;
     _rm.classList.remove('open');
     _rm.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
+    if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); } else { document.body.style.overflow = ''; }
   }
   if (_rm) {
     _rm.addEventListener('click', e => { if (e.target === e.currentTarget) closeReviewModal(); });
@@ -778,7 +778,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function closeAllReviewsModal() {
       allModal.classList.remove('open');
       allModal.setAttribute('aria-hidden', 'true');
-      document.body.style.overflow = '';
+      if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); } else { document.body.style.overflow = ''; }
     }
     allModal.addEventListener('click', e => { if (e.target === e.currentTarget) closeAllReviewsModal(); });
     const closeBtn = document.getElementById('all-reviews-close');

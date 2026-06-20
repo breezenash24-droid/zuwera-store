@@ -71,9 +71,12 @@ body {
   overflow-x: clip;
 }
 
-/* Prevent scrolling behind any open modal */
-html:has(.modal.open),
-body:has(.modal.open) {
+/* Prevent scrolling behind any open modal — lock <html> ONLY. overflow:hidden on
+   <body> turns body into a scroll container, which steals position:sticky
+   resolution from the viewport (body scrollTop is 0) and shifted the sticky
+   product gallery on modal open. html's overflow propagates to the viewport, so
+   this still freezes the page. */
+html:has(.modal.open) {
   overflow: hidden;
 }
 

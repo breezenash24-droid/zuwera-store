@@ -96,12 +96,13 @@
       // Clear locking flag after paint — any scroll event during this frame is suppressed
       requestAnimationFrame(() => { window.__zwScrollLocking = false; });
     } else {
-      body.style.overflow = 'hidden';
-      body.style.overscrollBehavior = 'none';
-      // Same scrollbar-gap guard as the fixed path, on <html> this time. With
-      // html{scrollbar-gutter:stable} (all storefront pages) this resolves to 0;
-      // without it, it compensates the scrollbar that overflow:hidden removed so
-      // the page never shifts sideways.
+      // Desktop: lock the page on <html> ONLY (set above). Do NOT also set
+      // overflow:hidden on <body> — that turns body into a scroll container, and
+      // position:sticky then resolves against body (whose scrollTop is 0, since
+      // the page scrolls on <html>), which un-sticks and SHIFTS the product
+      // gallery on modal open. Locking html alone freezes the page while sticky
+      // keeps resolving against the viewport, so the gallery stays put.
+      // Scrollbar-gap guard (with html{scrollbar-gutter:stable} this is 0).
       const scrollbarGap = Math.max(0, root.clientWidth - clientWidthBefore);
       if (scrollbarGap > 0) {
         root.style.paddingRight = `${scrollbarGap}px`;

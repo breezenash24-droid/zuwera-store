@@ -279,11 +279,12 @@
     langModalFallbackLocked = true;
     // Use overflow:hidden ONLY — never body.position:fixed, which snaps the page to top
     // and makes the transparent overlay show the body background colour behind it.
+    // Lock <html> ONLY. overflow:hidden on <body> makes body a scroll container,
+    // which breaks position:sticky (it shifted the product gallery on modal open).
+    // html's overflow propagates to the viewport, so this still freezes the page.
     root.style.overflow = 'hidden';
-    body.style.overflow = 'hidden';
     root.style.overscrollBehavior = 'none';
-    body.style.overscrollBehavior = 'none';
-    if (scrollbarGap > 0) body.style.paddingRight = `${scrollbarGap}px`;
+    if (scrollbarGap > 0) root.style.paddingRight = `${scrollbarGap}px`;
   }
 
   function unlockLangModalScrollFallback() {
@@ -294,8 +295,9 @@
 
     langModalFallbackLocked = false;
     root.style.overflow = '';
-    body.style.overflow = '';
     root.style.overscrollBehavior = '';
+    root.style.paddingRight = '';
+    body.style.overflow = '';
     body.style.overscrollBehavior = '';
     body.style.paddingRight = '';
   }
