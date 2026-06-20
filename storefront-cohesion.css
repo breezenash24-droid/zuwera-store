@@ -71,7 +71,9 @@ a,button,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:t
 body.light-mode .zw-hdr-action,body.super-light-mode .zw-hdr-action{color:rgba(9,9,11,.55) !important}
 body.light-mode .zw-hdr-bag,body.super-light-mode .zw-hdr-bag{border-color:rgba(9,9,11,.2) !important}
 body.light-mode .zw-hdr-bag:hover,body.super-light-mode .zw-hdr-bag:hover{border-color:rgba(9,9,11,.5) !important}
-@media(max-width:760px){.zw-hdr-group{display:none !important}}
+/* Keep the account/login + Bag visible on mobile too (was hidden, leaving only a
+   hamburger). Tighten the account-link padding so it fits the narrow header. */
+@media(max-width:760px){.zw-hdr-action{padding-left:.5rem !important;padding-right:.5rem !important}}
 :root{
   --zw-ink:#09090b;
   --zw-paper:#f4f1eb;
