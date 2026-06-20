@@ -141,7 +141,12 @@
 
   function quickAddSetScrollLock(locked) {
     if (window.ZWModalScrollLock && typeof window.ZWModalScrollLock.refresh === 'function') {
-      window.requestAnimationFrame(function () { window.ZWModalScrollLock.refresh(); });
+      // Lock SYNCHRONOUSLY (same as the login modal), not via requestAnimationFrame.
+      // Deferring by a frame let the modal paint once at the pre-lock viewport width
+      // (scrollbar still present); the next frame removed the scrollbar and the whole
+      // fixed-coordinate system jumped sideways. A synchronous refresh removes the
+      // scrollbar in the same frame the modal opens, so nothing shifts.
+      window.ZWModalScrollLock.refresh();
       return;
     }
     if (typeof window.setPageScrollLock === 'function') window.setPageScrollLock(locked);
