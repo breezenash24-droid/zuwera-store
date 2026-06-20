@@ -2361,6 +2361,23 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
   // refreshCheckoutCardTheme()
 })();
 </script>
+<script src="zw-login.js?v=0bf378bf" defer></script>
+<script>
+/* Use the shared zw-login modal so every page's login is identical. storefront.js
+   exposes a global openAuth() (called by the login button via __zwOpenAuth, and
+   directly by the cart/favourites/deferred-?auth prompts) — reassigning the
+   global reroutes every caller to the self-contained zw-login modal. */
+document.addEventListener('DOMContentLoaded', function () {
+  if (window.zwOpenLogin) {
+    var reroute = function (tab) {
+      window.zwOpenLogin(tab === 'signup' ? 'signup' : (tab === 'forgot' ? 'forgot' : 'signin'));
+      return false;
+    };
+    window.openAuth = reroute;
+    window.__zwOpenAuth = reroute;
+  }
+});
+</script>
 
 </body>
 </html>

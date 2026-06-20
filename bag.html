@@ -1333,5 +1333,20 @@ window.__zwOpenAuth = function(tab) {
 <script src="modal-lock.js?v=437386c2"></script>
 <script src="storefront-theme.js?v=5762e141" defer></script>
 <script src="lang.js?v=5a87b132" defer></script>
+<script src="zw-login.js?v=0bf378bf" defer></script>
+<script>
+/* Use the shared zw-login modal so every page's login is identical. bag's login
+   button is wired by auth.js (openAuthModal); it also exposes __zwOpenAuth.
+   Route both to the self-contained zw-login modal. */
+document.addEventListener('DOMContentLoaded', function () {
+  if (window.zwOpenLogin) {
+    window.openAuthModal = function (tab) {
+      window.zwOpenLogin(tab === 'signup' ? 'signup' : (tab === 'forgot' ? 'forgot' : 'signin'));
+      return false;
+    };
+    window.__zwOpenAuth = window.openAuthModal;
+  }
+});
+</script>
 </body>
 </html>
