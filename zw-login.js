@@ -149,8 +149,21 @@
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   function el(sel, root) { return (root || document).querySelector(sel); }
-  function lock()   { if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); return; } document.body.style.overflow = 'hidden'; }
-  function unlock() { if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); return; } document.body.style.overflow = ''; }
+  // Fallback (pages without modal-lock.js, e.g. returns/account): lock <html>
+  // — never <body>, which becomes a scroll container and breaks sticky — and add
+  // the scrollbar width as padding so the page doesn't shift sideways on open.
+  function lock() {
+    if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); return; }
+    var r = document.documentElement;
+    var gap = Math.max(0, window.innerWidth - r.clientWidth);
+    r.style.overflow = 'hidden';
+    if (gap > 0) r.style.paddingRight = gap + 'px';
+  }
+  function unlock() {
+    if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); return; }
+    document.documentElement.style.overflow = '';
+    document.documentElement.style.paddingRight = '';
+  }
 
   var _built = false;
   function build() {

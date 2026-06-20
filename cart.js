@@ -6,7 +6,15 @@ function _openModal(id) {
   if (!el) return;
   el.classList.add('open');
   el.setAttribute('aria-hidden', 'false');
-  document.body.style.overflow = 'hidden';
+  // Defer to the centralized lock (it compensates the scrollbar so the page
+  // doesn't shift sideways on open). Fallback: lock <html> (not <body>, which
+  // becomes a scroll container and breaks position:sticky) and add the scrollbar
+  // width as padding so the content never moves.
+  if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); return; }
+  const r = document.documentElement;
+  const gap = Math.max(0, window.innerWidth - r.clientWidth);
+  r.style.overflow = 'hidden';
+  if (gap > 0) r.style.paddingRight = `${gap}px`;
 }
 
 function _closeModal(id) {
@@ -14,7 +22,9 @@ function _closeModal(id) {
   if (!el) return;
   el.classList.remove('open');
   el.setAttribute('aria-hidden', 'true');
-  document.body.style.overflow = '';
+  if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); return; }
+  document.documentElement.style.overflow = '';
+  document.documentElement.style.paddingRight = '';
 }
 
 // ===================== TOAST =====================

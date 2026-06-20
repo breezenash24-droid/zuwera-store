@@ -71,14 +71,11 @@ body {
   overflow-x: clip;
 }
 
-/* Prevent scrolling behind any open modal — lock <html> ONLY. overflow:hidden on
-   <body> turns body into a scroll container, which steals position:sticky
-   resolution from the viewport (body scrollTop is 0) and shifted the sticky
-   product gallery on modal open. html's overflow propagates to the viewport, so
-   this still freezes the page. */
-html:has(.modal.open) {
-  overflow: hidden;
-}
+/* Scroll-behind-modal locking is owned by modal-lock.js (loaded on these pages),
+   which locks <html> AND compensates for the scrollbar width so the page never
+   shifts sideways. A CSS `:has(.modal.open){overflow:hidden}` rule here removed
+   the scrollbar instantly — before modal-lock could measure it — so its
+   compensation read 0 and the page jumped right. Intentionally no CSS lock. */
 
 /* Contain overscroll within modals */
 .modal.open {
