@@ -11,6 +11,7 @@
 
   let locked = false;
   let lockedScrollY = 0;
+  let lockUsedFixed = false;
   let previousRootScrollBehavior = '';
   let previousBodyScrollBehavior = '';
 
@@ -66,24 +67,46 @@
     root.style.overscrollBehavior = 'none';
     root.style.scrollBehavior = 'auto';
 
-    // Signal that a scroll position snap is about to happen (body→fixed snaps to 0)
-    window.__zwScrollLocking = true;
-    body.style.position = 'fixed';
-    body.style.setProperty('top', `-${lockedScrollY}px`, 'important');
-    body.style.left = '0';
-    body.style.right = '0';
-    body.style.width = '100%';
-    body.style.overflow = 'hidden';
-    body.style.overscrollBehavior = 'none';
-    body.style.scrollBehavior = 'auto';
+    // Desktop locks with overflow ONLY. body{position:fixed} breaks
+    // position:sticky (the product image gallery jumped out of place every time
+    // a modal opened, and the page lost the sticky-follow that filled the column).
+    // overflow:hidden already freezes the scroll in place on desktop and leaves
+    // sticky intact. Mobile/iOS still needs position:fixed — overflow:hidden does
+    // not stop iOS touch-scrolling behind the modal — and the <=1024px layouts
+    // are single-column with no sticky, so nothing breaks there.
+    lockUsedFixed = window.matchMedia('(max-width: 1024px)').matches;
 
-    const scrollbarGap = Math.max(0, body.clientWidth - clientWidthBefore);
-    if (scrollbarGap > 0) {
-      body.style.paddingRight = `${scrollbarGap}px`;
+    if (lockUsedFixed) {
+      // Signal that a scroll position snap is about to happen (body→fixed snaps to 0)
+      window.__zwScrollLocking = true;
+      body.style.position = 'fixed';
+      body.style.setProperty('top', `-${lockedScrollY}px`, 'important');
+      body.style.left = '0';
+      body.style.right = '0';
+      body.style.width = '100%';
+      body.style.overflow = 'hidden';
+      body.style.overscrollBehavior = 'none';
+      body.style.scrollBehavior = 'auto';
+
+      const scrollbarGap = Math.max(0, body.clientWidth - clientWidthBefore);
+      if (scrollbarGap > 0) {
+        body.style.paddingRight = `${scrollbarGap}px`;
+      }
+
+      // Clear locking flag after paint — any scroll event during this frame is suppressed
+      requestAnimationFrame(() => { window.__zwScrollLocking = false; });
+    } else {
+      body.style.overflow = 'hidden';
+      body.style.overscrollBehavior = 'none';
+      // Same scrollbar-gap guard as the fixed path, on <html> this time. With
+      // html{scrollbar-gutter:stable} (all storefront pages) this resolves to 0;
+      // without it, it compensates the scrollbar that overflow:hidden removed so
+      // the page never shifts sideways.
+      const scrollbarGap = Math.max(0, root.clientWidth - clientWidthBefore);
+      if (scrollbarGap > 0) {
+        root.style.paddingRight = `${scrollbarGap}px`;
+      }
     }
-
-    // Clear locking flag after paint — any scroll event during this frame is suppressed
-    requestAnimationFrame(() => { window.__zwScrollLocking = false; });
   }
 
   function unlockScroll() {
@@ -107,6 +130,7 @@
 
     root.style.overflow = '';
     root.style.overscrollBehavior = '';
+    root.style.paddingRight = '';
     // Disable smooth-scroll momentarily so the position restore is instant,
     // not an animated scroll from 0 → restoreY (the visible "jump to top").
     root.style.scrollBehavior = 'auto';
@@ -121,9 +145,9 @@
     body.style.scrollBehavior = previousBodyScrollBehavior;
     body.style.paddingRight = '';
 
-    // Only restore the saved scroll position if we genuinely had it locked,
-    // so a defensive unlock (called while already unlocked) can't jump the page.
-    if (wasLocked) {
+    // Only the fixed path moved the document scroll (body→fixed snaps to 0); the
+    // desktop overflow path froze it in place, so there's nothing to restore there.
+    if (wasLocked && lockUsedFixed) {
       // Signal restore BEFORE scrollTo so scroll handlers ignore the programmatic jump
       window.__zwScrollRestoring = true;
       try {
