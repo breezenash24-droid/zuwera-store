@@ -37,7 +37,22 @@ html:has(body.super-light-mode)::before{background:#FFFFFF}
    :not(.in-iframe) excludes the embedded size-guide iframe — it's scrolling="no"
    and auto-height, so a reserved gutter there never holds a scrollbar and just
    exposes a cream strip of page background down its right edge. */
-html:not(.in-iframe){scrollbar-gutter:stable}
+/* Keep a real scrollbar present at all times. scrollbar-gutter:stable looked
+   cleaner but its interaction with overflow:hidden is inconsistent in Chrome
+   (it half-keeps the gutter), so the page drifted a few px when a modal opened
+   and any fixed-width compensation over/under-corrected. A permanent scrollbar
+   means locking removes a known, fixed width that JS compensates exactly. */
+html:not(.in-iframe){overflow-y:scroll}
+
+/* When a modal scroll-locks the page (modal-lock.js sets html{overflow:hidden}),
+   that scrollbar is removed and the viewport widens — sliding fixed full-width
+   bars (nav / announcement) and their right-aligned content (login/bag) right.
+   modal-lock exposes the removed width as --zw-lock-gap; pull the bars' right
+   edge back by it so nothing moves. (Flow content is handled by modal-lock's
+   html padding; sticky navs are flow content and already compensated.) */
+body[data-scroll-locked] :is(nav#nav, header.nav, .nav, .announcement-bar, #bar){
+  right: var(--zw-lock-gap, 0px) !important;
+}
 a,button,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 
 /* ── Secondary-page header actions (Login + Bag) ───────────────────────────

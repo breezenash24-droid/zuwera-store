@@ -57,6 +57,10 @@
     // without scrollbar-gutter it resolves to the scrollbar width. Measuring the
     // real boxes means the page never shifts sideways either way.
     const clientWidthBefore = root.clientWidth;
+    // Width of the (always-present, html{overflow-y:scroll}) scrollbar that
+    // overflow:hidden is about to remove. Exposed so fixed full-width bars can
+    // pad their right edge back by it (flow content is compensated below).
+    root.style.setProperty('--zw-lock-gap', `${Math.max(0, window.innerWidth - clientWidthBefore)}px`);
     previousRootScrollBehavior = root.style.scrollBehavior || '';
     previousBodyScrollBehavior = body.style.scrollBehavior || '';
 
@@ -102,7 +106,10 @@
       // the page scrolls on <html>), which un-sticks and SHIFTS the product
       // gallery on modal open. Locking html alone freezes the page while sticky
       // keeps resolving against the viewport, so the gallery stays put.
-      // Scrollbar-gap guard (with html{scrollbar-gutter:stable} this is 0).
+      // Compensate the removed scrollbar so flow content doesn't shift sideways:
+      // pad <html> by the width the scrollbar occupied (html{overflow-y:scroll}
+      // keeps it present, so this is the real ~15px). Fixed bars are handled
+      // separately via --zw-lock-gap in the CSS above.
       const scrollbarGap = Math.max(0, root.clientWidth - clientWidthBefore);
       if (scrollbarGap > 0) {
         root.style.paddingRight = `${scrollbarGap}px`;
@@ -131,6 +138,7 @@
 
     root.style.overflow = '';
     root.style.overscrollBehavior = '';
+    root.style.removeProperty('--zw-lock-gap');
     root.style.paddingRight = '';
     // Disable smooth-scroll momentarily so the position restore is instant,
     // not an animated scroll from 0 → restoreY (the visible "jump to top").
