@@ -57,11 +57,6 @@
     // without scrollbar-gutter it resolves to the scrollbar width. Measuring the
     // real boxes means the page never shifts sideways either way.
     const clientWidthBefore = root.clientWidth;
-    // Width the viewport scrollbar occupies. Exposed as a CSS var so that fixed,
-    // full-width bars (nav / announcement) can pull their right edge back by it —
-    // overflow:hidden removes the scrollbar and widens the viewport, which would
-    // otherwise slide their right-aligned content (login/bag) sideways on open.
-    root.style.setProperty('--zw-lock-gap', `${Math.max(0, window.innerWidth - clientWidthBefore)}px`);
     previousRootScrollBehavior = root.style.scrollBehavior || '';
     previousBodyScrollBehavior = body.style.scrollBehavior || '';
 
@@ -137,7 +132,6 @@
     root.style.overflow = '';
     root.style.overscrollBehavior = '';
     root.style.paddingRight = '';
-    root.style.removeProperty('--zw-lock-gap');
     // Disable smooth-scroll momentarily so the position restore is instant,
     // not an animated scroll from 0 → restoreY (the visible "jump to top").
     root.style.scrollBehavior = 'auto';
