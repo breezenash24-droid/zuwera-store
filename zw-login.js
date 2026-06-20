@@ -24,62 +24,77 @@
   var MODAL_ID = 'zwlg-modal';
 
   // ── Styles ────────────────────────────────────────────────────────────────
+  // Mirrors the site's main auth modal (product/bag/index .mbox/.atabs/.fgroup/
+  // .auth-submit-btn) so every login modal is one cohesive design: dark .mbox
+  // with a 2px pink top border, the ZUWERA wordmark, an italic Barlow Condensed
+  // title, pink underlined tabs, and Barlow body text. Scoped under #zwlg-modal.
   var CSS = [
     '#zwlg-modal{position:fixed;inset:0;z-index:9998;display:flex;align-items:center;justify-content:center;padding:1rem;',
       'background:rgba(9,9,11,.62);opacity:0;visibility:hidden;pointer-events:none;',
       'transition:opacity .28s ease,visibility 0s linear .28s;-webkit-tap-highlight-color:transparent;}',
     '#zwlg-modal.open{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .28s ease;}',
-    '#zwlg-modal .zwlg-box{width:min(420px,94vw);max-height:92dvh;overflow-y:auto;background:#0f0f0f;color:#f4f1eb;',
-      'border:1px solid rgba(244,241,235,.1);border-top:2px solid #F891A5;border-radius:2px;',
-      'box-shadow:0 28px 90px rgba(0,0,0,.5);padding:2.4rem 2rem 2rem;position:relative;',
-      'transform:translateY(14px) scale(.98);opacity:0;transition:transform .28s cubic-bezier(.32,.72,.34,1),opacity .28s ease;',
-      'font-family:"IBM Plex Mono",monospace;}',
+    '#zwlg-modal .zwlg-box{position:relative;width:min(420px,92vw);max-height:92dvh;overflow-y:auto;',
+      'background:#0f0f0f;color:#f4f1eb;border:1px solid rgba(244,241,235,.08);border-top:2px solid #F891A5;',
+      'padding:2.6rem 2.4rem 2.2rem;font-family:"Barlow",sans-serif;',
+      'transform:translateY(14px);opacity:0;transition:transform .28s cubic-bezier(.32,.72,.34,1),opacity .28s ease;}',
     '#zwlg-modal.open .zwlg-box{transform:none;opacity:1;}',
-    '#zwlg-modal .zwlg-close{position:absolute;top:.85rem;right:.9rem;background:none;border:none;color:inherit;',
-      'font-size:1.35rem;line-height:1;cursor:pointer;opacity:.55;transition:opacity .2s;padding:.2rem;}',
-    '#zwlg-modal .zwlg-close:hover{opacity:1;}',
-    '#zwlg-modal .zwlg-brand{font-family:"Barlow Condensed",sans-serif;font-weight:700;letter-spacing:.22em;',
-      'font-size:1.1rem;text-align:center;margin-bottom:1.4rem;text-transform:uppercase;}',
-    '#zwlg-modal .zwlg-tabs{display:flex;border-bottom:1px solid rgba(244,241,235,.1);margin-bottom:1.6rem;}',
-    '#zwlg-modal .zwlg-tab{flex:1;background:none;border:none;color:rgba(244,241,235,.45);font-family:inherit;',
-      'font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;padding:.7rem .4rem;cursor:pointer;',
-      'border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .2s,border-color .2s;}',
-    '#zwlg-modal .zwlg-tab.active{color:#f4f1eb;border-bottom-color:#F891A5;}',
+    '#zwlg-modal .zwlg-close{position:absolute;top:.9rem;right:.9rem;width:30px;height:30px;display:flex;',
+      'align-items:center;justify-content:center;background:rgba(244,241,235,.05);border:1px solid rgba(244,241,235,.08);',
+      'color:#f4f1eb;font-size:1rem;line-height:1;opacity:.45;cursor:pointer;transition:opacity .2s,background .2s;}',
+    '#zwlg-modal .zwlg-close:hover{opacity:1;background:rgba(244,241,235,.1);}',
+    '#zwlg-modal .zwlg-brand{display:flex;justify-content:center;margin-bottom:1.6rem;padding-bottom:1.4rem;',
+      'border-bottom:1px solid rgba(244,241,235,.06);}',
+    '#zwlg-modal .zwlg-brand img{display:block;width:132px;height:36px;object-fit:cover;object-position:center;}',
+    '#zwlg-modal .zwlg-tabs{display:flex;border-bottom:1px solid rgba(244,241,235,.08);margin-bottom:1.8rem;}',
+    '#zwlg-modal .zwlg-tab{flex:1;background:none;border:none;color:rgba(244,241,235,.25);',
+      'font-family:"Barlow",sans-serif;font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;',
+      'padding:.75rem 0;position:relative;cursor:pointer;transition:color .2s;}',
+    '#zwlg-modal .zwlg-tab.active{color:#F891A5;}',
+    '#zwlg-modal .zwlg-tab.active::after{content:"";position:absolute;bottom:-1px;left:0;right:0;height:1px;background:#F891A5;}',
     '#zwlg-modal .zwlg-panel{display:none;}',
     '#zwlg-modal .zwlg-panel.active{display:block;}',
-    '#zwlg-modal .zwlg-title{font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:1.5rem;',
-      'letter-spacing:.02em;margin-bottom:.2rem;}',
-    '#zwlg-modal .zwlg-sub{font-size:.66rem;color:rgba(244,241,235,.45);margin-bottom:1.4rem;letter-spacing:.04em;}',
-    '#zwlg-modal label{display:block;font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;',
-      'color:rgba(244,241,235,.5);margin-bottom:.4rem;}',
-    '#zwlg-modal .zwlg-field{margin-bottom:1rem;position:relative;}',
-    '#zwlg-modal input{width:100%;background:rgba(244,241,235,.04);border:1px solid rgba(244,241,235,.12);',
-      'color:#f4f1eb;padding:.7rem .8rem;font-family:inherit;font-size:.9rem;outline:none;border-radius:2px;',
-      'transition:border-color .18s;}',
-    '#zwlg-modal input:focus{border-color:rgba(244,241,235,.45);}',
-    '#zwlg-modal .zwlg-pwtoggle{position:absolute;right:.6rem;top:calc(50% + .5rem);transform:translateY(-50%);',
+    '#zwlg-modal .zwlg-title{font-family:"Barlow Condensed",sans-serif;font-weight:900;font-style:italic;',
+      'font-size:2rem;letter-spacing:.04em;margin-bottom:.25rem;color:#f4f1eb;}',
+    '#zwlg-modal .zwlg-sub{font-family:"Barlow",sans-serif;font-size:.6rem;letter-spacing:.15em;',
+      'text-transform:uppercase;color:rgba(244,241,235,.3);margin-bottom:1.6rem;}',
+    '#zwlg-modal .zwlg-field{margin-bottom:1rem;text-align:left;position:relative;}',
+    '#zwlg-modal label{display:block;font-family:"Barlow",sans-serif;font-size:.55rem;letter-spacing:.18em;',
+      'text-transform:uppercase;color:rgba(244,241,235,.38);margin-bottom:.4rem;}',
+    '#zwlg-modal input{width:100%;background:rgba(244,241,235,.03);border:1px solid rgba(244,241,235,.1);',
+      'color:#f4f1eb;padding:.82rem 1rem;font-family:"Barlow",sans-serif;font-size:.9rem;outline:none;',
+      'transition:border-color .2s,box-shadow .2s;}',
+    '#zwlg-modal input::placeholder{color:rgba(244,241,235,.18);}',
+    '#zwlg-modal input:focus{border-color:#F891A5;box-shadow:0 0 0 3px rgba(248,145,165,.08);}',
+    '#zwlg-modal .zwlg-pwtoggle{position:absolute;right:.6rem;top:calc(50% + .55rem);transform:translateY(-50%);',
       'background:none;border:none;color:rgba(244,241,235,.4);cursor:pointer;padding:0;display:flex;}',
     '#zwlg-modal .zwlg-submit{width:100%;background:#f4f1eb;color:#09090b;border:1px solid #f4f1eb;',
-      'font-family:inherit;font-size:.62rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;',
-      'padding:.85rem;cursor:pointer;border-radius:2px;transition:opacity .2s;margin-top:.3rem;}',
-    '#zwlg-modal .zwlg-submit:hover{opacity:.88;}',
+      'font-family:"Barlow",sans-serif;font-weight:600;font-size:.85rem;letter-spacing:.12em;text-transform:uppercase;',
+      'padding:.9rem;cursor:pointer;margin-top:1rem;transition:background .2s,color .2s,border-color .2s;}',
+    '#zwlg-modal .zwlg-submit:hover{background:#e2dfd9;border-color:#e2dfd9;}',
     '#zwlg-modal .zwlg-submit:disabled{opacity:.5;cursor:default;}',
-    '#zwlg-modal .zwlg-err{color:#ff8095;font-size:.66rem;letter-spacing:.03em;min-height:1em;margin:.2rem 0 .6rem;}',
-    '#zwlg-modal .zwlg-ok{color:#7bd88f;font-size:.68rem;letter-spacing:.03em;margin:.2rem 0 .6rem;display:none;}',
-    '#zwlg-modal .zwlg-mini{display:block;width:100%;text-align:center;background:none;border:none;color:rgba(244,241,235,.45);',
-      'font-family:inherit;font-size:.6rem;letter-spacing:.06em;cursor:pointer;margin-top:1rem;text-decoration:none;}',
-    '#zwlg-modal .zwlg-mini:hover{color:#f4f1eb;}',
-    // Light / super-light mode
-    'body.light-mode #zwlg-modal .zwlg-box,body.super-light-mode #zwlg-modal .zwlg-box{background:#fff;color:#09090b;border-color:rgba(9,9,11,.1);border-top-color:#09090b;}',
-    'body.light-mode #zwlg-modal .zwlg-tabs{border-bottom-color:rgba(9,9,11,.1);}',
-    'body.light-mode #zwlg-modal .zwlg-tab{color:rgba(9,9,11,.45);}',
-    'body.light-mode #zwlg-modal .zwlg-tab.active{color:#09090b;border-bottom-color:#09090b;}',
-    'body.light-mode #zwlg-modal label,body.light-mode #zwlg-modal .zwlg-sub{color:rgba(9,9,11,.5);}',
-    'body.light-mode #zwlg-modal input{background:rgba(9,9,11,.03);border-color:rgba(9,9,11,.15);color:#09090b;}',
-    'body.light-mode #zwlg-modal input:focus{border-color:rgba(9,9,11,.45);}',
-    'body.light-mode #zwlg-modal .zwlg-submit{background:#09090b;color:#f4f1eb;border-color:#09090b;}',
-    'body.light-mode #zwlg-modal .zwlg-mini{color:rgba(9,9,11,.5);}',
-    'body.light-mode #zwlg-modal .zwlg-mini:hover{color:#09090b;}',
+    '#zwlg-modal .zwlg-err{color:#c0392b;font-family:"Barlow",sans-serif;font-size:.65rem;min-height:.9rem;margin:.3rem 0 .4rem;}',
+    '#zwlg-modal .zwlg-ok{color:#7bd88f;font-family:"Barlow",sans-serif;font-size:.7rem;margin:.3rem 0 .4rem;display:none;}',
+    '#zwlg-modal .zwlg-mini{display:block;width:100%;text-align:center;background:none;border:none;color:rgba(244,241,235,.7);',
+      'font-family:"Barlow",sans-serif;font-size:.6rem;letter-spacing:.1em;cursor:pointer;margin-top:1rem;text-decoration:none;}',
+    '#zwlg-modal .zwlg-mini:hover{color:#F891A5;}',
+    // Light / super-light mode — matches the main modal (cream/white .mbox, dark
+    // text, wordmark inverted to dark).
+    'body.light-mode #zwlg-modal .zwlg-box,body.super-light-mode #zwlg-modal .zwlg-box{background:#F0EEE9;color:#09090b;border-color:rgba(9,9,11,.08);border-top-color:#F891A5;}',
+    'body.super-light-mode #zwlg-modal .zwlg-box{background:#FFFFFF;}',
+    'body.light-mode #zwlg-modal .zwlg-brand img,body.super-light-mode #zwlg-modal .zwlg-brand img{filter:invert(1);}',
+    'body.light-mode #zwlg-modal .zwlg-brand,body.super-light-mode #zwlg-modal .zwlg-brand{border-bottom-color:rgba(9,9,11,.06);}',
+    'body.light-mode #zwlg-modal .zwlg-title,body.super-light-mode #zwlg-modal .zwlg-title{color:#09090b;}',
+    'body.light-mode #zwlg-modal .zwlg-sub,body.super-light-mode #zwlg-modal .zwlg-sub{color:rgba(9,9,11,.55);}',
+    'body.light-mode #zwlg-modal .zwlg-tabs,body.super-light-mode #zwlg-modal .zwlg-tabs{border-bottom-color:rgba(9,9,11,.08);}',
+    'body.light-mode #zwlg-modal .zwlg-tab,body.super-light-mode #zwlg-modal .zwlg-tab{color:rgba(9,9,11,.45);}',
+    'body.light-mode #zwlg-modal .zwlg-close,body.super-light-mode #zwlg-modal .zwlg-close{background:rgba(9,9,11,.05);border-color:rgba(9,9,11,.12);color:#09090b;}',
+    'body.light-mode #zwlg-modal label,body.super-light-mode #zwlg-modal label{color:rgba(9,9,11,.55);}',
+    'body.light-mode #zwlg-modal input,body.super-light-mode #zwlg-modal input{background:rgba(9,9,11,.03);border-color:rgba(9,9,11,.1);color:#09090b;}',
+    'body.light-mode #zwlg-modal input::placeholder,body.super-light-mode #zwlg-modal input::placeholder{color:rgba(9,9,11,.18);}',
+    'body.light-mode #zwlg-modal .zwlg-submit,body.super-light-mode #zwlg-modal .zwlg-submit{background:#09090b;color:#E8E3DC;border-color:#09090b;}',
+    'body.light-mode #zwlg-modal .zwlg-submit:hover,body.super-light-mode #zwlg-modal .zwlg-submit:hover{background:#1a1a1a;border-color:#1a1a1a;}',
+    'body.light-mode #zwlg-modal .zwlg-mini,body.super-light-mode #zwlg-modal .zwlg-mini{color:rgba(9,9,11,.75);}',
+    'body.light-mode #zwlg-modal .zwlg-mini:hover,body.super-light-mode #zwlg-modal .zwlg-mini:hover{color:#09090b;}',
     '@media(prefers-reduced-motion:reduce){#zwlg-modal,#zwlg-modal .zwlg-box{transition:none!important;}}'
   ].join('');
 
@@ -92,7 +107,7 @@
     '<div id="' + MODAL_ID + '" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Account">' +
       '<div class="zwlg-box">' +
         '<button class="zwlg-close" type="button" aria-label="Close">&#215;</button>' +
-        '<div class="zwlg-brand">Zuwera</div>' +
+        '<div class="zwlg-brand"><img src="/images/wordmark.png" alt="Zuwera"></div>' +
         '<div class="zwlg-tabs">' +
           '<button class="zwlg-tab active" type="button" data-tab="signin">Login</button>' +
           '<button class="zwlg-tab" type="button" data-tab="signup">Create Account</button>' +
@@ -128,7 +143,7 @@
           '<button class="zwlg-submit" type="button" data-act="forgot">Send Reset Link</button>' +
           '<button class="zwlg-mini" type="button" data-go="signin">&larr; Back to login</button>' +
         '</div>' +
-        '<a class="zwlg-mini" data-escape href="/?auth=signin&next=' + nextParam() + '">Having trouble? Log in on the main page &rarr;</a>' +
+        '<a class="zwlg-mini" data-escape href="/?auth=signin&next=' + nextParam() + '">Having trouble? Login on the main page &rarr;</a>' +
       '</div>' +
     '</div>';
 
@@ -195,7 +210,7 @@
     busy(btn, true, 'Login');
     try {
       var res = await sb.auth.signInWithPassword({ email: email.trim(), password: pw });
-      if (res.error) { setErr('signin', res.error.message || 'Could not log in.'); busy(btn, false, 'Login'); return; }
+      if (res.error) { setErr('signin', res.error.message || 'Could not login.'); busy(btn, false, 'Login'); return; }
       location.reload();
     } catch (e) {
       setErr('signin', (e && e.message) || 'Something went wrong.');
