@@ -44,7 +44,7 @@
     '#zwlg-modal .zwlg-close:hover{opacity:1;background:rgba(244,241,235,.1);}',
     '#zwlg-modal .zwlg-brand{display:flex;justify-content:center;margin-bottom:1.6rem;padding-bottom:1.4rem;',
       'border-bottom:1px solid rgba(244,241,235,.06);}',
-    '#zwlg-modal .zwlg-brand img{display:block;width:auto;height:48px;max-width:72%;object-fit:contain;object-position:center;}',
+    '#zwlg-modal .zwlg-brand img{display:block;width:auto;height:64px;max-width:85%;object-fit:contain;object-position:center;}',
     '#zwlg-modal .zwlg-tabs{display:flex;border-bottom:1px solid rgba(244,241,235,.08);margin-bottom:1.8rem;}',
     '#zwlg-modal .zwlg-tab{flex:1;background:none;border:none;color:rgba(244,241,235,.25);',
       'font-family:"Barlow",sans-serif;font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;',
