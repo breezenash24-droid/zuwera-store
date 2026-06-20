@@ -38,6 +38,16 @@ html:has(body.super-light-mode)::before{background:#FFFFFF}
    and auto-height, so a reserved gutter there never holds a scrollbar and just
    exposes a cream strip of page background down its right edge. */
 html:not(.in-iframe){scrollbar-gutter:stable}
+
+/* When a modal scroll-locks the page, modal-lock.js sets body[data-scroll-locked]
+   and --zw-lock-gap = the viewport scrollbar width. overflow:hidden removes the
+   scrollbar and widens the viewport, which slides fixed, full-width bars (nav,
+   announcement) — and their right-aligned content (login/bag) — to the right.
+   Pull their right edge back by the gap so nothing moves. Flow content and
+   sticky navs are already handled by scrollbar-gutter:stable / padding. */
+body[data-scroll-locked] :is(nav#nav, header.nav, .nav, .announcement-bar, #bar){
+  right: var(--zw-lock-gap, 0px) !important;
+}
 a,button,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 
 /* ── Secondary-page header actions (Login + Bag) ───────────────────────────
