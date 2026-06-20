@@ -896,7 +896,7 @@
     (function(){
       try {
         var a = document.getElementById('hdr-login');
-        if (a && window.__zwSessionUser) { a.textContent = 'Account'; a.href = 'account.html'; }
+        if (a && window.__zwSessionUser) { var _u = window.__zwSessionUser; a.textContent = String(((_u.user_metadata && _u.user_metadata.full_name) || (_u.email || '').split('@')[0] || 'Account')).split(' ')[0]; a.href = 'account.html'; }
         var cart = JSON.parse(localStorage.getItem('cart') || '[]');
         var n = Array.isArray(cart) ? cart.reduce(function(s, it){ return s + (Number(it && (it.qty || it.quantity || it.q)) || 1); }, 0) : 0;
         document.querySelectorAll('#hdr-bag-count, .cart-count, .zw-mobile-bag-count').forEach(function(el){ el.textContent = n; });
