@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny-ps" viewBox="0 0 480 480">
+  <title>Zuwera</title>
+  <rect x="0" y="0" width="480" height="480" fill="#09090b"/>
+  <path d="M144 150 H336 V200 L204 280 H336 V330 H144 V280 L276 200 H144 Z" fill="#f4f1eb"/>
+</svg>
