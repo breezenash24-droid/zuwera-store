@@ -74,17 +74,23 @@ body.light-mode .zw-hdr-bag:hover,body.super-light-mode .zw-hdr-bag:hover{border
 /* Keep the account/login + Bag visible on mobile too (was hidden, leaving only a
    hamburger). Tighten the account-link padding so it fits the narrow header. */
 @media(max-width:760px){.zw-hdr-action{padding-left:.5rem !important;padding-right:.5rem !important}}
-/* On phones, collapse the Login/Account WORD to a compact person icon to save
-   header room (the word crowded the bag box on narrow screens). The text node is
-   zeroed and a currentColor-masked person glyph is drawn in its place, so it
-   still recolours per theme + on hover and works signed-in (name) or out. */
+/* On phones, collapse the Login/Account WORD to ONE shared person icon to save
+   header room (the word crowded the bag box on narrow screens). Covers BOTH
+   header systems so the glyph is identical on every page:
+     • .zw-hdr-action  — secondary pages (returns, policies, account, about…)
+     • #login-btn / #account-btn — the .nbtn nav (homepage, bag, product)
+   The text node is zeroed and a currentColor-masked glyph is drawn in its place,
+   so it recolours per theme + on hover and works signed-in (name) or out. We do
+   NOT set `display` on the buttons (each page toggles login↔account its own way —
+   .show class, body.zw-authed, inline style); the icon centres via margin:auto. */
 @media(max-width:600px){
-  .zw-hdr-action{
+  .zw-hdr-action,#login-btn,#account-btn{
     font-size:0 !important;letter-spacing:0 !important;gap:0 !important;
-    width:38px;min-height:36px;padding:.45rem !important;justify-content:center;
+    width:38px;min-height:36px;padding:.45rem !important;
+    text-align:center;align-items:center;justify-content:center;
   }
-  .zw-hdr-action::before{
-    content:"";width:21px;height:21px;display:block;background-color:currentColor;
+  .zw-hdr-action::before,#login-btn::before,#account-btn::before{
+    content:"";width:21px;height:21px;display:block;margin:0 auto;background-color:currentColor;
     -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E") center/contain no-repeat;
     mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E") center/contain no-repeat;
   }
