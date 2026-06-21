@@ -6466,19 +6466,36 @@
                             <textarea class="form-textarea" id="settAboutBody" rows="6" placeholder="Bold, athletic, and designed for those who dream big..." style="resize:vertical;"></textarea>
                             <span style="color:var(--text-secondary);font-size:.72rem;display:block;margin-top:4px;">Separate paragraphs with a blank line.</span>
                         </div>
-                        <label class="form-label" style="display:block;margin-bottom:8px;">Stat blocks</label>
-                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;">
-                            <div>
-                                <input type="text" class="form-input" id="settAboutStat1n" placeholder="001" style="margin-bottom:6px;">
-                                <input type="text" class="form-input" id="settAboutStat1l" placeholder="First Release">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px;flex-wrap:wrap;">
+                            <label class="form-label" style="margin:0;">Stat blocks <span style="color:var(--text-secondary);font-weight:400;">(add as many as you like)</span></label>
+                            <button type="button" class="btn btn-secondary btn-sm" id="addAboutStatBtn">+ Add stat</button>
+                        </div>
+                        <div id="aboutStatsContainer" style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;"></div>
+
+                        <div style="border-top:1px solid var(--border);margin:4px 0 18px;padding-top:18px;">
+                            <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;letter-spacing:.06em;margin-bottom:4px;">Buttons &amp; closing band</div>
+                            <p style="color:var(--text-secondary);font-size:.8rem;margin-bottom:16px;line-height:1.6;">The "shop" button next to the stats, plus the big closing banner at the bottom of the page.</p>
+                            <div class="form-group">
+                                <label class="form-label">Top button — label &amp; link</label>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                                    <input type="text" class="form-input" id="settAboutCtaLabel" placeholder="Shop Release 001">
+                                    <input type="text" class="form-input" id="settAboutCtaHref" placeholder="drop001.html">
+                                </div>
                             </div>
-                            <div>
-                                <input type="text" class="form-input" id="settAboutStat2n" placeholder="2026" style="margin-bottom:6px;">
-                                <input type="text" class="form-input" id="settAboutStat2l" placeholder="Launching">
+                            <div class="form-group">
+                                <label class="form-label">Closing heading</label>
+                                <textarea class="form-textarea" id="settAboutClosingHeading" rows="2" placeholder="For Those&#10;Who Dream." style="resize:vertical;"></textarea>
                             </div>
-                            <div>
-                                <input type="text" class="form-input" id="settAboutStat3n" placeholder="3" style="margin-bottom:6px;">
-                                <input type="text" class="form-input" id="settAboutStat3l" placeholder="Styles">
+                            <div class="form-group">
+                                <label class="form-label">Closing subtext</label>
+                                <input type="text" class="form-input" id="settAboutClosingText" placeholder="Join the movement — be first to the next release.">
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label class="form-label">Closing button — label &amp; link</label>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                                    <input type="text" class="form-input" id="settAboutClosingCtaLabel" placeholder="Explore the Collection">
+                                    <input type="text" class="form-input" id="settAboutClosingCtaHref" placeholder="drop001.html">
+                                </div>
                             </div>
                         </div>
                         <button type="button" class="btn btn-primary btn-sm" id="saveAboutBtn">Save About Page</button>
@@ -11952,19 +11969,43 @@
         label: 'About Zuwera',
         heading: 'Built For\nMovement.',
         body: 'Bold, athletic, and designed for those who dream big. Zuwera is sportswear built for the relentless — those who push past limits and never stop.\n\nRelease 001 is the beginning. A collection of jackets crafted for those who move with purpose and style.',
-        stats: [ { n: '001', l: 'First Release' }, { n: '2026', l: 'Launching' }, { n: '3', l: 'Styles' } ]
+        stats: [ { n: '001', l: 'First Release' }, { n: '2026', l: 'Launching' }, { n: '3', l: 'Styles' } ],
+        primary_cta: { label: 'Shop Release 001', href: 'drop001.html' },
+        closing: { heading: 'For Those\nWho Dream.', text: 'Join the movement — be first to the next release.', cta_label: 'Explore the Collection', cta_href: 'drop001.html' }
     };
+    function addAboutStatDOM(n = '', l = '') {
+        const c = document.getElementById('aboutStatsContainer');
+        if (!c) return;
+        const el = document.createElement('div');
+        el.className = 'about-stat-row';
+        el.style.cssText = 'display:grid;grid-template-columns:1fr 2fr auto;gap:10px;align-items:center;';
+        el.innerHTML =
+            '<input type="text" class="form-input as-n" placeholder="001" value="' + String(n).replace(/"/g, '&quot;') + '">' +
+            '<input type="text" class="form-input as-l" placeholder="First Release" value="' + String(l).replace(/"/g, '&quot;') + '">' +
+            '<button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">Remove</button>';
+        c.appendChild(el);
+    }
+    function renderAboutStats(stats) {
+        const c = document.getElementById('aboutStatsContainer');
+        if (!c) return;
+        c.innerHTML = '';
+        (Array.isArray(stats) ? stats : []).forEach(s => addAboutStatDOM(s && s.n, s && s.l));
+    }
     function fillAboutFields(v) {
         v = v || {};
         const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val == null ? '' : val; };
         set('settAboutLabel', v.label || '');
         set('settAboutHeading', v.heading || '');
         set('settAboutBody', v.body || '');
-        const st = Array.isArray(v.stats) ? v.stats : [];
-        for (let i = 0; i < 3; i++) {
-            set('settAboutStat' + (i + 1) + 'n', (st[i] && st[i].n) || '');
-            set('settAboutStat' + (i + 1) + 'l', (st[i] && st[i].l) || '');
-        }
+        renderAboutStats(Array.isArray(v.stats) ? v.stats : []);
+        const pc = v.primary_cta || {};
+        set('settAboutCtaLabel', pc.label || '');
+        set('settAboutCtaHref', pc.href || '');
+        const cl = v.closing || {};
+        set('settAboutClosingHeading', cl.heading || '');
+        set('settAboutClosingText', cl.text || '');
+        set('settAboutClosingCtaLabel', cl.cta_label || '');
+        set('settAboutClosingCtaHref', cl.cta_href || '');
     }
 
     async function loadSettings() {
@@ -12195,18 +12236,31 @@
         }
     });
 
+    document.getElementById('addAboutStatBtn')?.addEventListener('click', () => addAboutStatDOM());
+
     document.getElementById('saveAboutBtn')?.addEventListener('click', async () => {
         const stats = [];
-        for (let i = 1; i <= 3; i++) {
-            const n = (document.getElementById('settAboutStat' + i + 'n').value || '').trim();
-            const l = (document.getElementById('settAboutStat' + i + 'l').value || '').trim();
+        document.querySelectorAll('#aboutStatsContainer .about-stat-row').forEach(row => {
+            const n = (row.querySelector('.as-n').value || '').trim();
+            const l = (row.querySelector('.as-l').value || '').trim();
             if (n || l) stats.push({ n, l });
-        }
+        });
+        const g = id => (document.getElementById(id)?.value || '');
         const val = {
-            label:   document.getElementById('settAboutLabel').value.trim(),
-            heading: document.getElementById('settAboutHeading').value.replace(/\r\n/g, '\n').trim(),
-            body:    document.getElementById('settAboutBody').value.replace(/\r\n/g, '\n').trim(),
-            stats
+            label:   g('settAboutLabel').trim(),
+            heading: g('settAboutHeading').replace(/\r\n/g, '\n').trim(),
+            body:    g('settAboutBody').replace(/\r\n/g, '\n').trim(),
+            stats,
+            primary_cta: {
+                label: g('settAboutCtaLabel').trim(),
+                href:  g('settAboutCtaHref').trim()
+            },
+            closing: {
+                heading:   g('settAboutClosingHeading').replace(/\r\n/g, '\n').trim(),
+                text:      g('settAboutClosingText').trim(),
+                cta_label: g('settAboutClosingCtaLabel').trim(),
+                cta_href:  g('settAboutClosingCtaHref').trim()
+            }
         };
         const { error } = await sb.from('site_settings').upsert(
             { key: 'about_page', value: val, updated_at: new Date().toISOString() },

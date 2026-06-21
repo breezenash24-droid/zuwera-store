@@ -171,9 +171,9 @@
     .about-cta:hover { opacity: .85; }
     .about-cta svg { width: 13px; height: 13px; }
 
-    /* ── STATS ── */
+    /* ── STATS ── (auto-fit so any number of admin-added stats wraps cleanly) */
     .about-stats {
-      display: grid; grid-template-columns: repeat(3, 1fr);
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
       gap: 1px; background: var(--border);
       border: 1px solid var(--border);
     }
@@ -226,6 +226,7 @@
   </style>
 <link rel="stylesheet" href="storefront-cohesion.css?v=db599b2d">
 <script src="mobile-menu.js?v=251b10fb" defer></script>
+<script src="lang.js?v=5a87b132" defer></script>
 <script>try{var _t=localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
 <script src="/posthog-init.js?v=07d5a8c8" defer></script>
 <style>body.super-light-mode{background:#FFFFFF!important;--bg:#FFFFFF}</style>
@@ -301,8 +302,8 @@
         <p>Release 001 is the beginning. A collection of jackets crafted for those who move with purpose and style.</p>
       </div>
       <div class="about-side">
-        <a href="drop001.html" class="about-cta">
-          Shop Release 001
+        <a href="drop001.html" class="about-cta" id="about-cta-primary">
+          <span class="about-cta-label">Shop Release 001</span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
         </a>
         <div class="about-stats" id="about-stats">
@@ -316,11 +317,11 @@
 
   <section class="about-closing">
     <div>
-      <h2>For Those<br>Who Dream.</h2>
-      <p>Join the movement — be first to the next release.</p>
+      <h2 id="about-closing-heading">For Those<br>Who Dream.</h2>
+      <p id="about-closing-text">Join the movement — be first to the next release.</p>
     </div>
-    <a href="drop001.html" class="about-cta" style="margin-bottom:0">
-      Explore the Collection
+    <a href="drop001.html" class="about-cta" id="about-cta-closing" style="margin-bottom:0">
+      <span class="about-cta-label">Explore the Collection</span>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
     </a>
   </section>
@@ -395,9 +396,33 @@
     }
     if (Array.isArray(val.stats) && val.stats.length) {
       var s = document.getElementById('about-stats');
-      if (s) s.innerHTML = val.stats.slice(0, 6).map(function(st){
+      if (s) s.innerHTML = val.stats.slice(0, 12).map(function(st){
         return '<div class="about-stat"><div class="stat-n">' + esc(st && st.n) + '</div><div class="stat-l">' + esc(st && st.l) + '</div></div>';
       }).join('');
+    }
+    // Primary (hero) button label + link.
+    if (val.primary_cta && typeof val.primary_cta === 'object') {
+      var pc = document.getElementById('about-cta-primary');
+      if (pc) {
+        var pl = pc.querySelector('.about-cta-label');
+        if (pl && String(val.primary_cta.label || '').trim()) pl.textContent = String(val.primary_cta.label);
+        if (String(val.primary_cta.href || '').trim()) pc.setAttribute('href', String(val.primary_cta.href));
+      }
+    }
+    // Closing band: heading, subtext, button label + link.
+    if (val.closing && typeof val.closing === 'object') {
+      if (String(val.closing.heading || '').trim()) {
+        var ch = document.getElementById('about-closing-heading'); if (ch) ch.innerHTML = nl2br(val.closing.heading);
+      }
+      if (String(val.closing.text || '').trim()) {
+        var ct = document.getElementById('about-closing-text'); if (ct) ct.textContent = String(val.closing.text);
+      }
+      var cc = document.getElementById('about-cta-closing');
+      if (cc) {
+        var cl = cc.querySelector('.about-cta-label');
+        if (cl && String(val.closing.cta_label || '').trim()) cl.textContent = String(val.closing.cta_label);
+        if (String(val.closing.cta_href || '').trim()) cc.setAttribute('href', String(val.closing.cta_href));
+      }
     }
   }
 
