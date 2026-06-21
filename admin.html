@@ -8094,7 +8094,7 @@
                 label: 'Email Branding',
                 keys: [
                     { name: 'EMAIL_FROM',     label: 'From Address', type: 'text',     placeholder: 'orders@zuwera.store', warn: 'Must be verified in both Resend and Brevo.' },
-                    { name: 'BRAND_LOGO_URL', label: 'Logo URL',     type: 'text',     placeholder: 'https://zuwera.store/assets/Zuwera_Wordmark_White.png' },
+                    { name: 'BRAND_LOGO_URL', label: 'Logo URL',     type: 'text',     upload: true, warn: 'Shown at the top of every email (orders, shipping, returns). Use a WHITE / light PNG — the email background is dark. Upload an image or paste a URL.', placeholder: 'https://zuwera.store/assets/Zuwera_Wordmark_White.png' },
                 ]
             },
             loops: {
@@ -8582,6 +8582,7 @@
                         placeholder="${masked ? 'Enter new value to replace…' : (k.placeholder || 'Enter value…')}"
                         autocomplete="off" spellcheck="false" data-keyname="${k.name}">
                       ${k.type === 'password' ? `<button type="button" class="api-key-field-toggle" onclick="toggleKeyVis('akf-${k.name}',this)" title="Show/hide">👁</button>` : ''}
+                      ${k.upload ? `<label class="api-key-field-toggle" style="cursor:pointer;white-space:nowrap;padding:0 10px;width:auto;" title="Upload an image"><span class="akf-up-label" data-for="akf-${k.name}">Upload</span><input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" style="display:none" onchange="handleKeyImageUpload(this,'akf-${k.name}')"></label>` : ''}
                     </div>
                   </div>`;
             }).join('');
@@ -8591,6 +8592,30 @@
         function closeKeyModal() {
             document.getElementById('api-key-modal').classList.remove('open');
             _currentKeyService = null;
+        }
+
+        // Upload an image straight into an API-key text field (e.g. the email
+        // Logo URL). Uploads the RAW file (no canvas re-encode) so a PNG stays a
+        // PNG — webp/canvas output can break in Outlook. Sets the input; the user
+        // still clicks Save to persist the setting.
+        async function handleKeyImageUpload(fileInput, inputId) {
+            const file = fileInput.files && fileInput.files[0];
+            if (!file) return;
+            const input = document.getElementById(inputId);
+            const lbl = fileInput.parentElement?.querySelector('.akf-up-label');
+            const orig = lbl ? lbl.textContent : '';
+            if (lbl) lbl.textContent = 'Uploading…';
+            try {
+                const upload = await uploadProductImageToR2(file);
+                if (input) { input.value = upload.url; input.dispatchEvent(new Event('input', { bubbles: true })); }
+                showToast('Logo uploaded — click Save to apply it', 'success');
+            } catch (err) {
+                console.error('Logo upload error:', err);
+                showToast('Upload failed: ' + (err.message || err), 'error');
+            } finally {
+                if (lbl) lbl.textContent = orig || 'Upload';
+                fileInput.value = '';
+            }
         }
 
         function toggleKeyVis(inputId, btn) {

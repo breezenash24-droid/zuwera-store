@@ -1501,16 +1501,20 @@ body.light-mode .heart-btn{
   }
 
   /* Smaller bag (cart) button on mobile + Account/Login shown as a person icon
-     instead of text (Nike/Apple style). Keeps the nav row short. */
+     instead of text (Nike/Apple style). Keeps the nav row short. .zw-hdr-bag is
+     the same box on the wordmark pages (returns/account/policies/about/etc.) —
+     include it so the bag is IDENTICAL in size on every page on mobile. */
   nav#nav #cart-btn,
-  .nav #cart-btn{
+  .nav #cart-btn,
+  .zw-hdr-bag{
     min-height:20px !important;
     min-width:0 !important;
     padding:.3rem .5rem !important;
     gap:.35rem !important;
   }
   nav#nav #cart-btn svg,
-  .nav #cart-btn svg{
+  .nav #cart-btn svg,
+  .zw-hdr-bag svg{
     width:15px !important;
     height:15px !important;
   }
