@@ -76,7 +76,7 @@
 <link rel="preload" href="reviews.css?v=cf5b3ca4" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="reviews.css?v=cf5b3ca4"></noscript>
 <link rel="stylesheet" href="reviews-vibe.css?v=1064544c">
-<link rel="stylesheet" href="storefront-cohesion.css?v=9977506f">
+<link rel="stylesheet" href="storefront-cohesion.css?v=7a99e2cd">
 <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=29023607">
 <link rel="preload" as="image" href="/images/wordmark.png" fetchpriority="high">
 <script src="/stripe-client-config.js?v=c262166e" defer></script>
@@ -1039,7 +1039,7 @@ body.super-light-mode { background: #FFFFFF !important; }
         <a href="drop001.html?category=T-Shirts" class="mobile-nav-link zw-mobile-primary-link">T-Shirts</a>
         <a href="drop001.html?category=Sweatpants" class="mobile-nav-link zw-mobile-primary-link">Sweatpants</a>
         <a href="drop001.html?category=Socks" class="mobile-nav-link zw-mobile-primary-link">Socks</a>
-        <a href="index.html#about" class="mobile-nav-link zw-mobile-primary-link">About</a>
+        <a href="about.html" class="mobile-nav-link zw-mobile-primary-link">About</a>
       </div>
       <div class="zw-mobile-menu-secondary">
         <a href="account.html" class="zw-mobile-secondary-link">Account</a>
@@ -1447,8 +1447,9 @@ body.super-light-mode { background: #FFFFFF !important; }
       </div>
     </details>
     <details class="zwf-col">
-      <summary class="zwf-col-head">Account<svg class="zwf-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+      <summary class="zwf-col-head">Company<svg class="zwf-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
       <div class="zwf-col-links">
+        <a href="/about.html">About</a>
         <a href="/account.html">Account</a>
       </div>
     </details>
@@ -2075,7 +2076,7 @@ function applyProductCategoryNavigation(products, fallbackProduct = currentProdu
   if (mobileLinks) {
     mobileLinks.innerHTML = [
       ...labels.map(label => `<a href="${categoryHref(label)}" class="mobile-nav-link zw-mobile-primary-link">${label}</a>`),
-      '<a href="index.html#about" class="mobile-nav-link zw-mobile-primary-link">About</a>'
+      '<a href="about.html" class="mobile-nav-link zw-mobile-primary-link">About</a>'
     ].join('');
   }
 

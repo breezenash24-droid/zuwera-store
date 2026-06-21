@@ -205,7 +205,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
   <link rel="preload" href="reviews.css?v=cf5b3ca4" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="reviews.css?v=cf5b3ca4"></noscript>
-  <link rel="stylesheet" href="storefront-cohesion.css?v=9977506f">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=7a99e2cd">
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=29023607">
 <!-- Quick-add modal module MUST load before storefront.js: the grid wiring in
      storefront.js calls window.quickAddToCart, which this module provides. -->
@@ -357,6 +357,20 @@ nav#nav.scrolled{
 }
 #account-btn{display:none!important}
 #account-btn.show{display:flex!important}
+/* Phones: collapse the Login/Account WORD to a person icon to save header room
+   (matches the secondary-page header behaviour in storefront-cohesion.css). */
+@media(max-width:600px){
+  #login-btn,#account-btn.show{
+    font-size:0 !important;letter-spacing:0 !important;
+    width:38px;min-height:36px;padding:.45rem !important;
+    align-items:center;justify-content:center;
+  }
+  #login-btn::before,#account-btn::before{
+    content:"";width:21px;height:21px;display:block;background-color:currentColor;
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E") center/contain no-repeat;
+    mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E") center/contain no-repeat;
+  }
+}
 
 .hamburger-btn { display:none; background:none; border:none; color:var(--paper) !important; cursor:pointer; -webkit-appearance:none; appearance:none; padding:0; -webkit-tap-highlight-color: transparent; }
 .hamburger-btn svg { stroke: var(--paper) !important; }
@@ -1821,7 +1835,7 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
         <a href="drop001.html?category=T-Shirts" class="mobile-nav-link zw-mobile-primary-link">T-Shirts</a>
         <a href="drop001.html?category=Sweatpants" class="mobile-nav-link zw-mobile-primary-link">Sweatpants</a>
         <a href="drop001.html?category=Socks" class="mobile-nav-link zw-mobile-primary-link">Socks</a>
-        <a href="index.html#about" class="mobile-nav-link zw-mobile-primary-link">About</a>
+        <a href="about.html" class="mobile-nav-link zw-mobile-primary-link">About</a>
       </div>
       <div class="zw-mobile-menu-secondary">
         <a href="account.html" class="zw-mobile-secondary-link">Account</a>
@@ -1989,8 +2003,9 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
       </div>
     </details>
     <details class="zwf-col">
-      <summary class="zwf-col-head">Account<svg class="zwf-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+      <summary class="zwf-col-head">Company<svg class="zwf-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
       <div class="zwf-col-links">
+        <a href="/about.html">About</a>
         <a href="/account.html">Account</a>
       </div>
     </details>

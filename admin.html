@@ -6444,6 +6444,45 @@
                         <div id="faqListContainer" style="display:flex;flex-direction:column;gap:16px;margin-bottom:16px;"></div>
                         <button type="button" class="btn btn-primary btn-sm" id="saveFaqBtn">Save FAQ</button>
                     </div>
+
+                    <!-- About Page -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:12px;flex-wrap:wrap;">
+                            <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;letter-spacing:.08em;">About Page</div>
+                            <a href="/about.html" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">View page &#8599;</a>
+                        </div>
+                        <p style="color:var(--text-secondary);font-size:.82rem;margin-bottom:18px;line-height:1.6;">Your dedicated About page (linked from the footer of every page). Edit the eyebrow label, the big heading, the story, and the three stat blocks. Leave any field blank to fall back to the built-in default.</p>
+                        <div class="form-group">
+                            <label class="form-label">Label (small eyebrow)</label>
+                            <input type="text" class="form-input" id="settAboutLabel" placeholder="About Zuwera">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Heading</label>
+                            <textarea class="form-textarea" id="settAboutHeading" rows="2" placeholder="Built For&#10;Movement." style="resize:vertical;"></textarea>
+                            <span style="color:var(--text-secondary);font-size:.72rem;display:block;margin-top:4px;">Press Enter for a line break inside the big heading.</span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Body / story</label>
+                            <textarea class="form-textarea" id="settAboutBody" rows="6" placeholder="Bold, athletic, and designed for those who dream big..." style="resize:vertical;"></textarea>
+                            <span style="color:var(--text-secondary);font-size:.72rem;display:block;margin-top:4px;">Separate paragraphs with a blank line.</span>
+                        </div>
+                        <label class="form-label" style="display:block;margin-bottom:8px;">Stat blocks</label>
+                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;">
+                            <div>
+                                <input type="text" class="form-input" id="settAboutStat1n" placeholder="001" style="margin-bottom:6px;">
+                                <input type="text" class="form-input" id="settAboutStat1l" placeholder="First Release">
+                            </div>
+                            <div>
+                                <input type="text" class="form-input" id="settAboutStat2n" placeholder="2026" style="margin-bottom:6px;">
+                                <input type="text" class="form-input" id="settAboutStat2l" placeholder="Launching">
+                            </div>
+                            <div>
+                                <input type="text" class="form-input" id="settAboutStat3n" placeholder="3" style="margin-bottom:6px;">
+                                <input type="text" class="form-input" id="settAboutStat3l" placeholder="Styles">
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" id="saveAboutBtn">Save About Page</button>
+                    </div>
                 </div>
 
                     <!-- Website Settings Page -->
@@ -11907,10 +11946,31 @@
         }
     }
 
+    // About page defaults — mirror the baked-in markup in about.html so the
+    // editor opens with the current live content and the merchant can tweak it.
+    const defaultAbout = {
+        label: 'About Zuwera',
+        heading: 'Built For\nMovement.',
+        body: 'Bold, athletic, and designed for those who dream big. Zuwera is sportswear built for the relentless — those who push past limits and never stop.\n\nRelease 001 is the beginning. A collection of jackets crafted for those who move with purpose and style.',
+        stats: [ { n: '001', l: 'First Release' }, { n: '2026', l: 'Launching' }, { n: '3', l: 'Styles' } ]
+    };
+    function fillAboutFields(v) {
+        v = v || {};
+        const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val == null ? '' : val; };
+        set('settAboutLabel', v.label || '');
+        set('settAboutHeading', v.heading || '');
+        set('settAboutBody', v.body || '');
+        const st = Array.isArray(v.stats) ? v.stats : [];
+        for (let i = 0; i < 3; i++) {
+            set('settAboutStat' + (i + 1) + 'n', (st[i] && st[i].n) || '');
+            set('settAboutStat' + (i + 1) + 'l', (st[i] && st[i].l) || '');
+        }
+    }
+
     async function loadSettings() {
         const { data } = await sb.from('site_settings').select('*');
         let hasTechs = false;
-        let hasLegal = false, hasFaq = false;
+        let hasLegal = false, hasFaq = false, hasAbout = false;
         if (!data) return;
         data.forEach(row => {
             if (row.key === 'early_access') {
@@ -11962,6 +12022,11 @@
                 window._loadedFaq = v || [];
                 if (window._loadedFaq.length > 0) hasFaq = true;
                 renderFaqList();
+            } else if (row.key === 'about_page') {
+                let v = row.value;
+                try { if (typeof v === 'string') v = JSON.parse(v); } catch(e) {}
+                fillAboutFields(v || {});
+                hasAbout = true;
             }
         });
         if (!hasTechs) {
@@ -11978,6 +12043,11 @@
         if (!hasFaq) {
             window._loadedFaq = defaultFaq;
             renderFaqList();
+        }
+        if (!hasAbout) {
+            // Prefill the editor with the live page defaults so it's editable from
+            // a sensible starting point (saving stores them; blank fields fall back).
+            fillAboutFields(defaultAbout);
         }
     }
 
@@ -12122,6 +12192,30 @@
         else {
             await logAdminAudit('settings.update', 'site_settings', 'faq', { count: faqs.length });
             showToast('FAQ saved!', 'success');
+        }
+    });
+
+    document.getElementById('saveAboutBtn')?.addEventListener('click', async () => {
+        const stats = [];
+        for (let i = 1; i <= 3; i++) {
+            const n = (document.getElementById('settAboutStat' + i + 'n').value || '').trim();
+            const l = (document.getElementById('settAboutStat' + i + 'l').value || '').trim();
+            if (n || l) stats.push({ n, l });
+        }
+        const val = {
+            label:   document.getElementById('settAboutLabel').value.trim(),
+            heading: document.getElementById('settAboutHeading').value.replace(/\r\n/g, '\n').trim(),
+            body:    document.getElementById('settAboutBody').value.replace(/\r\n/g, '\n').trim(),
+            stats
+        };
+        const { error } = await sb.from('site_settings').upsert(
+            { key: 'about_page', value: val, updated_at: new Date().toISOString() },
+            { onConflict: 'key' }
+        );
+        if (error) { showToast('Error saving About page', 'error'); console.error(error); }
+        else {
+            await logAdminAudit('settings.update', 'site_settings', 'about_page', { has_body: Boolean(val.body), stats: stats.length });
+            showToast('About page saved!', 'success');
         }
     });
 

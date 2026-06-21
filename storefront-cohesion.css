@@ -74,6 +74,21 @@ body.light-mode .zw-hdr-bag:hover,body.super-light-mode .zw-hdr-bag:hover{border
 /* Keep the account/login + Bag visible on mobile too (was hidden, leaving only a
    hamburger). Tighten the account-link padding so it fits the narrow header. */
 @media(max-width:760px){.zw-hdr-action{padding-left:.5rem !important;padding-right:.5rem !important}}
+/* On phones, collapse the Login/Account WORD to a compact person icon to save
+   header room (the word crowded the bag box on narrow screens). The text node is
+   zeroed and a currentColor-masked person glyph is drawn in its place, so it
+   still recolours per theme + on hover and works signed-in (name) or out. */
+@media(max-width:600px){
+  .zw-hdr-action{
+    font-size:0 !important;letter-spacing:0 !important;gap:0 !important;
+    width:38px;min-height:36px;padding:.45rem !important;justify-content:center;
+  }
+  .zw-hdr-action::before{
+    content:"";width:21px;height:21px;display:block;background-color:currentColor;
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E") center/contain no-repeat;
+    mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E") center/contain no-repeat;
+  }
+}
 :root{
   --zw-ink:#09090b;
   --zw-paper:#f4f1eb;
