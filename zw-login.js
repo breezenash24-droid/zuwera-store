@@ -29,12 +29,16 @@
   // with a 2px pink top border, the ZUWERA wordmark, an italic Barlow Condensed
   // title, pink underlined tabs, and Barlow body text. Scoped under #zwlg-modal.
   var CSS = [
+    // Clear backing (no dark scrim) to match every other modal — storefront-cohesion.css
+    // sets .modal/.collection-review-modal background:none in both themes; the card floats
+    // on the visible page with a shadow rather than dimming it.
     '#zwlg-modal{position:fixed;inset:0;z-index:9998;display:flex;align-items:center;justify-content:center;padding:1rem;',
-      'background:rgba(9,9,11,.62);opacity:0;visibility:hidden;pointer-events:none;',
+      'background:transparent;opacity:0;visibility:hidden;pointer-events:none;',
       'transition:opacity .28s ease,visibility 0s linear .28s;-webkit-tap-highlight-color:transparent;}',
     '#zwlg-modal.open{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .28s ease;}',
     '#zwlg-modal .zwlg-box{position:relative;width:min(420px,92vw);max-height:92dvh;overflow-y:auto;',
       'background:#0f0f0f;color:#f4f1eb;border:1px solid rgba(244,241,235,.08);border-top:2px solid #F891A5;',
+      'box-shadow:0 28px 90px rgba(0,0,0,.28);',
       'padding:2.6rem 2.4rem 2.2rem;font-family:"Barlow",sans-serif;',
       'transform:translateY(14px);opacity:0;transition:transform .28s cubic-bezier(.32,.72,.34,1),opacity .28s ease;}',
     '#zwlg-modal.open .zwlg-box{transform:none;opacity:1;}',
