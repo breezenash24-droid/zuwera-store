@@ -3267,16 +3267,25 @@ body.light-mode .quick-add-gallery-arrow{background:rgba(9,9,11,.55);border-colo
 
 /* 4) Auto-hide header (Adidas-style). header-scroll.js toggles .zw-nav-hidden by
    scroll direction when the admin header mode is "auto-hide" (hide on scroll down,
-   reveal on scroll up). Works for both the fixed nav (nav#nav / nav.nav) and the
-   sticky one (nav.zw-nav). The transition is a superset of the existing scrolled-
-   state effects so none are lost. Reduced-motion keeps the header shown (no yank). */
-nav#nav, nav.nav, nav.zw-nav{
-  transition: transform .35s cubic-bezier(.22,.61,.36,1), background .35s, border-color .35s, box-shadow .35s, top .45s ease, padding .35s !important;
-  will-change: transform;
+   reveal on scroll up). Covers EVERY header element/tag in use:
+     • nav#nav      — homepage, bag           (position:fixed)
+     • header.nav   — collection, policies, size guide (position:fixed, <header>)
+     • nav.nav      — product                 (position:fixed)
+     • nav.zw-nav   — account, returns, about  (position:STICKY)
+   Fixed headers slide up via transform. Sticky headers can't be moved off-screen
+   reliably with transform (a transform on a position:sticky element doesn't shift
+   its stuck box), so they hide via a negative sticky `top` instead. Reduced-motion
+   keeps the header shown. */
+nav#nav, header.nav, nav.nav, nav.zw-nav{
+  transition: transform .35s cubic-bezier(.22,.61,.36,1), top .4s cubic-bezier(.22,.61,.36,1), background .35s, border-color .35s, box-shadow .35s, padding .35s !important;
 }
-nav#nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-nav.zw-nav-hidden{
+nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden{
   transform: translateY(-100%) !important;
 }
+nav.zw-nav.zw-nav-hidden{
+  top: -110px !important;
+}
 @media (prefers-reduced-motion: reduce){
-  nav#nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-nav.zw-nav-hidden{ transform: none !important; }
+  nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden{ transform: none !important; }
+  nav.zw-nav.zw-nav-hidden{ top: 0 !important; }
 }

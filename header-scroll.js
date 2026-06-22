@@ -20,7 +20,10 @@
   var THRESH = 6;       // ignore sub-pixel / jitter scrolls
   var REVEAL_AT = 90;   // always show within this many px of the top
 
-  function getNav() { return document.querySelector('nav#nav, nav.nav, nav.zw-nav'); }
+  // Header element varies by page: <nav id="nav"> (home/bag), <header class="nav">
+  // (collection/policies/size guide), <nav class="nav"> (product), <nav class="zw-nav">
+  // (account/returns/about). Match them all (but never the in-modal mobile menu nav).
+  function getNav() { return document.querySelector('nav#nav, header.nav, nav.nav, nav.zw-nav'); }
 
   // Page identity = filename without ".html" ("/" or "/index.html" → "home").
   function pageKey() {
