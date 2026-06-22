@@ -6294,6 +6294,20 @@
                         <button type="button" class="btn btn-primary btn-sm" id="saveHeaderBtn" style="margin-top:16px;">Save Header</button>
                     </div>
 
+                    <!-- Product Cards — CTA style -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
+                        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:6px;">Product Cards</div>
+                        <p style="color:var(--text-secondary);font-size:.82rem;margin-bottom:16px;line-height:1.6;">What each product card shows (homepage &amp; collection grids). <em>Add to Bag button</em> = the current button that opens the quick-add modal. <em>Color swatches</em> = Nike-style square color chips; hovering a chip previews that color's photo and clicking it opens the add-to-bag modal on that color. <span style="opacity:.8;">Swatches show on desktop only — on mobile the card opens the product page as before.</span></p>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                            <label style="font-size:.85rem;font-weight:600;color:var(--text-primary);">Card style</label>
+                            <select id="settCardCta" class="form-input" style="width:auto;min-width:220px;">
+                                <option value="add-to-bag">Add to Bag button</option>
+                                <option value="color-swatches">Color swatches (hover to preview)</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" id="saveCardCtaBtn" style="margin-top:16px;">Save Card Style</button>
+                    </div>
+
                     <!-- ── Section: Store rules ── -->
                     <div style="margin:28px 0 12px;display:flex;align-items:center;gap:12px;">
                         <span style="font-family:'Barlow Condensed',sans-serif;font-size:.82rem;letter-spacing:.16em;text-transform:uppercase;color:var(--text-secondary);white-space:nowrap;">Store rules</span>
@@ -8036,6 +8050,7 @@
         const ZW_SEARCH_FEATURES = [
             {icon:'📣',main:'Announcement Bar',sub:'Settings · Storefront chrome',kw:'banner promo top bar message marquee scrolling',page:'settings',el:'settAnnouncementBarMain'},
             {icon:'🧭',main:'Header Scroll Behavior',sub:'Settings · Storefront chrome',kw:'header sticky auto hide pin nav scroll adidas always visible per page override returns',page:'settings',el:'settHeaderDefault'},
+            {icon:'🎨',main:'Product Cards (Add to Bag vs Color swatches)',sub:'Settings · Storefront chrome',kw:'product card swatch swatches color colour chips nike hover preview add to bag button cta grid homepage collection toggle',page:'settings',el:'settCardCta'},
             {icon:'🔐',main:'Early Access',sub:'Settings · Store rules',kw:'members early access window gate exclusive presale drop',page:'settings',el:'earlyAccessEnabled'},
             {icon:'🚚',main:'Free Shipping & Rates',sub:'Settings · Store rules',kw:'free shipping threshold standard rate delivery days cost',page:'settings',el:'settFreeThreshold'},
             {icon:'↩',main:'Return Window (days)',sub:'Settings · Store rules',kw:'return days member nonmember refund window policy',page:'settings',el:'settReturnMember'},
@@ -12222,6 +12237,11 @@
                 try { if (typeof v === 'string') v = JSON.parse(v); } catch(e) {}
                 fillAboutFields(v || {});
                 hasAbout = true;
+            } else if (row.key === 'product_card_cta') {
+                let v = row.value;
+                try { if (typeof v === 'string') v = JSON.parse(v); } catch(e) {}
+                const sel = document.getElementById('settCardCta');
+                if (sel) sel.value = (v && v.mode === 'color-swatches') ? 'color-swatches' : 'add-to-bag';
             }
         });
         if (!hasTechs) {
@@ -12281,6 +12301,20 @@
         else {
             await logAdminAudit('settings.update', 'site_settings', 'header_behavior', { mode, overrides: Object.keys(pages).length });
             showToast('Header behavior saved!', 'success');
+        }
+    });
+
+    document.getElementById('saveCardCtaBtn')?.addEventListener('click', async () => {
+        const sel = document.getElementById('settCardCta');
+        const mode = sel && sel.value === 'color-swatches' ? 'color-swatches' : 'add-to-bag';
+        const { error } = await sb.from('site_settings').upsert(
+            { key: 'product_card_cta', value: { mode }, updated_at: new Date().toISOString() },
+            { onConflict: 'key' }
+        );
+        if (error) { showToast('Error saving card style', 'error'); console.error(error); }
+        else {
+            await logAdminAudit('settings.update', 'site_settings', 'product_card_cta', { mode });
+            showToast('Card style saved!', 'success');
         }
     });
 

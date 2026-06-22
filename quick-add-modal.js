@@ -337,7 +337,7 @@
     window.requestAnimationFrame(function () { quickAddFocusWithoutScroll(document.getElementById('quick-add-review-confirm')); });
   }
 
-  async function quickAddToCart(productId, productTitle, productPrice, productSku, productImage, productWeightLb, btn) {
+  async function quickAddToCart(productId, productTitle, productPrice, productSku, productImage, productWeightLb, btn, preselectColorName) {
     // Early-access gate: admin-enabled members-only window (see storefront-theme.js).
     if (typeof window.zwEarlyAccessBlocked === 'function' && window.zwEarlyAccessBlocked()) {
       toast('Early access is for members — sign in to shop first.');
@@ -388,7 +388,11 @@
       modalItem.images = images;
       modalItem.colors = Array.isArray(colors) ? colors : [];
       modalItem.sizes = sizeEntries;
-      modalItem.selectedColor = null;
+      // Preselect a color when opened from a grid swatch click (openQuickAddReviewModal
+      // then recomputes the gallery for it). Falls back to first color if no match.
+      modalItem.selectedColor = preselectColorName
+        ? (modalItem.colors.find(function (c) { return (c.color_name || '').toLowerCase() === String(preselectColorName).toLowerCase(); }) || null)
+        : null;
       modalItem.selectedSize = null;
       if (_quickAddReviewItem === modalItem) openQuickAddReviewModal(modalItem);
     } catch (e) {

@@ -82,7 +82,7 @@
        are cached immutable, so on every repeat view the real font is ready at
        first paint with no fallback swap. Preconnects keep cold-cache cost small. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=9a5aae42">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=62e93649">
 <script src="header-scroll.js?v=4a734678" defer></script>
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=29023607">
 <!-- Google tag (gtag.js) -->
@@ -869,6 +869,16 @@
   }
   try { applyThemeMode(localStorage.getItem('zw_theme_mode') || 'dark'); } catch(_) { applyThemeMode('dark'); }
   window.__zwApplyAdminTheme = applyThemeMode;
+
+  // Product-card CTA mode (Add-to-Bag button vs Nike-style color swatches).
+  // Toggles body.zw-cards-swatches (CSS in storefront-cohesion.css swaps the UI).
+  // Apply the cached value now (flash-free); the site_settings fetch refreshes it.
+  window.__zwApplyCardMode = function (mode) {
+    var on = mode === 'color-swatches';
+    if (document.body) document.body.classList.toggle('zw-cards-swatches', on);
+    try { localStorage.setItem('zw_card_cta', on ? 'color-swatches' : 'add-to-bag'); } catch (_) {}
+  };
+  try { window.__zwApplyCardMode(localStorage.getItem('zw_card_cta') || 'add-to-bag'); } catch (_) {}
   window.__zwSyncThemeColor = function() {
     var m = document.body.classList.contains('super-light-mode') ? 'super-light'
           : document.body.classList.contains('light-mode') ? 'light' : 'dark';
@@ -1285,10 +1295,15 @@ function updateCountdown() {
       });
 
     try {
-      const { data } = await sb.from('site_settings').select('*').in('key', ['theme', 'brand']);
+      const { data } = await sb.from('site_settings').select('*').in('key', ['theme', 'brand', 'product_card_cta']);
       if (data) {
         data.forEach(row => {
-          if (row.key === 'theme' && row.value) {
+          if (row.key === 'product_card_cta') {
+            let cta = row.value;
+            try { if (typeof cta === 'string') cta = JSON.parse(cta); } catch (_) {}
+            window.__zwApplyCardMode((cta && cta.mode === 'color-swatches') ? 'color-swatches' : 'add-to-bag');
+          }
+          else if (row.key === 'theme' && row.value) {
             const mode = row.value.mode === 'dark' ? 'dark' : row.value.mode === 'super-light' ? 'super-light' : 'light';
             if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode);
             else document.body.classList.toggle('light-mode', mode === 'light');
@@ -1314,15 +1329,17 @@ function updateCountdown() {
       let products;
       try {
         const headers = { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` };
-        const [productsResp, imagesResp, sizesResp] = await Promise.all([
+        const [productsResp, imagesResp, sizesResp, colorsResp] = await Promise.all([
           fetch(`${SUPABASE_URL}/rest/v1/products?select=*&order=sort_order.asc`, { headers }),
           fetch(`${SUPABASE_URL}/rest/v1/product_images?select=*&order=sort_order.asc`, { headers }),
-          fetch(`${SUPABASE_URL}/rest/v1/product_sizes?select=product_id,stock_quantity`, { headers })
+          fetch(`${SUPABASE_URL}/rest/v1/product_sizes?select=product_id,stock_quantity`, { headers }),
+          fetch(`${SUPABASE_URL}/rest/v1/color_variants?select=*&order=sort_order.asc`, { headers })
         ]);
         if (!productsResp.ok) throw new Error(`HTTP ${productsResp.status}`);
         products = await productsResp.json();
         const imageRows = imagesResp.ok ? await imagesResp.json() : [];
         const sizeRows = sizesResp.ok ? await sizesResp.json() : [];
+        const colorRows = colorsResp.ok ? await colorsResp.json() : [];
 
         // Aggregate total stock per product
         const stockByProductId = {};
@@ -1338,9 +1355,17 @@ function updateCountdown() {
           bucket.push(image);
           imagesByProductId.set(image.product_id, bucket);
         });
+        const colorsByProductId = new Map();
+        (Array.isArray(colorRows) ? colorRows : []).forEach((c) => {
+          if (!c || !c.product_id) return;
+          const bucket = colorsByProductId.get(c.product_id) || [];
+          bucket.push(c);
+          colorsByProductId.set(c.product_id, bucket);
+        });
         products = (Array.isArray(products) ? products : []).map((product) => ({
           ...product,
           product_images: (imagesByProductId.get(product.id) || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)),
+          color_variants: (colorsByProductId.get(product.id) || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)),
           totalStock: stockByProductId[product.id] ?? null
         }));
       } catch(e) {
@@ -1392,6 +1417,22 @@ function updateCountdown() {
           grid.classList.add('two-items');
         }
 
+        const zwColSwatchRow = (p, payload, fallbackImg) => {
+          const colors = (p.color_variants || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+          if (!colors.length) return '';
+          const imgs = p.product_images || [];
+          const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const MAX = 6;
+          let html = colors.slice(0, MAX).map((c) => {
+            const ci = imgs.filter((im) => im.color_variant_id === c.id).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))[0];
+            let src = (ci && ci.image_url) || fallbackImg || '';
+            if (src && typeof optimizeImage === 'function') src = optimizeImage(src, 600);
+            const nm = c.color_name || 'Color';
+            return `<button type="button" class="zw-card-swatch" data-color-name="${esc(nm)}" data-img="${esc(src)}" title="${esc(nm)}" aria-label="${esc(nm)}" style="background:${esc(c.hex_color || '#888')}"></button>`;
+          }).join('');
+          if (colors.length > MAX) html += `<button type="button" class="zw-card-swatch zw-swatch-more" aria-label="More colors">+${colors.length - MAX}</button>`;
+          return `<div class="zw-card-swatches" data-quick-add="${payload}">${html}</div>`;
+        };
         grid.innerHTML = renderList.map(p => {
           const productName = p.title || p.name || 'Untitled';
           const productCategory = categoryLabelFromProduct(p);
@@ -1428,7 +1469,7 @@ function updateCountdown() {
             imageFocalY: p.image_focal_y ?? 0
           }));
           return `
-            <a href="${productHref(p)}" style="text-decoration:none;color:inherit" onclick="${isLive ? `if(event.target.closest('.product-add-btn,.quick-size-panel-col,.qback-btn,.qcol-swatch,.qsz-btn')){event.preventDefault();event.stopPropagation();}` : ''}">
+            <a href="${productHref(p)}" style="text-decoration:none;color:inherit" onclick="${isLive ? `if(event.target.closest('.product-add-btn,.quick-size-panel-col,.qback-btn,.qcol-swatch,.qsz-btn,.zw-card-swatches')){event.preventDefault();event.stopPropagation();}` : ''}">
               <div class="product-card">
                 <div class="product-img">
                   <button
@@ -1458,6 +1499,7 @@ function updateCountdown() {
                     ? `<button type="button" class="product-add-btn"${isSoldOut ? ' disabled style="opacity:.35;cursor:not-allowed"' : ''} data-col-quick-add="${quickAddPayload}" onclick="return window.__zwCollectionQuickAddClick && window.__zwCollectionQuickAddClick(event,this)">${isSoldOut ? 'Sold Out' : 'Add to Bag'}</button>`
                     : `<span class="product-notify" onclick="scrollToNotify(event)">Notify Me When Live →</span>`
                   }
+                  ${isLive && !isSoldOut ? zwColSwatchRow(p, quickAddPayload, originalImg) : ''}
                 </div>
                 ${isLive ? `<div class="quick-size-panel-col" id="${colCardId}">
                   <div class="quick-size-ph">
@@ -1532,7 +1574,7 @@ function updateCountdown() {
     }
   });
 
-  async function colQuickAdd(productId, productTitle, productPrice, productSku, productImage, productWeightLb, panelId, btn) {
+  async function colQuickAdd(productId, productTitle, productPrice, productSku, productImage, productWeightLb, panelId, btn, preselectColorName) {
     document.querySelectorAll('.quick-size-panel-col.open').forEach(function(p){ p.classList.remove('open'); });
 
     if (btn) {
@@ -1579,7 +1621,11 @@ function updateCountdown() {
       modalItem.images = images;
       modalItem.colors = Array.isArray(colors) ? colors : [];
       modalItem.sizes = sizeEntries;
-      modalItem.selectedColor = null;
+      // Preselect a color when opened from a grid swatch click (the modal then
+      // recomputes the gallery for it); falls back to first color if no match.
+      modalItem.selectedColor = preselectColorName
+        ? (modalItem.colors.find(function (c) { return (c.color_name || '').toLowerCase() === String(preselectColorName).toLowerCase(); }) || null)
+        : null;
       modalItem.selectedSize = null;
       if (_collectionReviewItem === modalItem) openCollectionReviewModal(modalItem);
     } catch(e) {
@@ -1628,6 +1674,33 @@ function updateCountdown() {
     var btn = e.target.closest('.product-add-btn[data-col-quick-add]');
     if (!btn) return;
     window.__zwCollectionQuickAddClick(e, btn);
+  }, true);
+
+  // ── Nike-style card color swatches (swatch mode) ──
+  // Hover swaps the card photo to the color's image; click opens the bag modal
+  // preselected to that color.
+  document.addEventListener('mouseover', function (e) {
+    var sw = e.target.closest('.zw-card-swatch'); if (!sw || sw.classList.contains('zw-swatch-more')) return;
+    var card = sw.closest('.product-card'); var img = card && card.querySelector('.product-img img');
+    if (!img || !sw.dataset.img) return;
+    if (!img.dataset.origSrc) img.dataset.origSrc = img.getAttribute('src') || '';
+    img.setAttribute('src', sw.dataset.img);
+  });
+  document.addEventListener('mouseout', function (e) {
+    var row = e.target.closest('.zw-card-swatches'); if (!row) return;
+    if (row.contains(e.relatedTarget)) return;
+    var card = row.closest('.product-card'); var img = card && card.querySelector('.product-img img');
+    if (img && img.dataset.origSrc) img.setAttribute('src', img.dataset.origSrc);
+  });
+  document.addEventListener('click', function (e) {
+    var sw = e.target.closest('.zw-card-swatch'); if (!sw) return;
+    e.preventDefault(); e.stopPropagation();
+    if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+    var row = sw.closest('.zw-card-swatches'); if (!row) return;
+    var payload = {};
+    try { payload = JSON.parse(decodeURIComponent(row.dataset.quickAdd || '{}')); }
+    catch (_) { showToast('Unable to open product options'); return; }
+    colQuickAdd(payload.productId, payload.title, payload.price, payload.sku, payload.image, payload.weightLb, payload.panelId, null, sw.dataset.colorName || null);
   }, true);
 
   var _collectionReviewItem = null;

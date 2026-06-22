@@ -3287,3 +3287,37 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
 @media (prefers-reduced-motion: reduce){
   nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-nav.zw-nav-hidden{ transform: none !important; }
 }
+
+/* 5) Product-card color swatches (Nike-style). Admin toggle `product_card_cta`:
+   when mode = "color-swatches", <body> gets .zw-cards-swatches and each card
+   shows a row of SQUARE color swatches instead of the "Add to Bag" button.
+   Hovering a swatch swaps the card photo to that color; clicking opens the
+   add-to-bag modal preselected to that color. Desktop-only — on mobile the
+   swatches stay hidden and the card keeps its existing tap → product behavior.
+   Shared by the homepage grid (.pcard) and the collection grid (.product-card). */
+.zw-card-swatches{ display:none; flex-wrap:wrap; gap:.42rem; align-items:center; margin-top:.6rem; }
+.zw-card-swatch{
+  width:20px; height:20px; flex:0 0 auto; padding:0; cursor:pointer;
+  border:1px solid rgba(128,128,128,.5); border-radius:2px;   /* square, like the modal/site swatches */
+  background-clip:padding-box;
+  transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+.zw-card-swatch:hover, .zw-card-swatch:focus-visible{
+  transform:translateY(-1px); outline:none;
+  box-shadow:0 0 0 2px var(--paper,#f4f1eb), 0 0 0 3px rgba(0,0,0,.35);
+}
+.zw-card-swatch.zw-swatch-more{
+  width:auto; min-width:20px; padding:0 5px; background:transparent;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-family:var(--fm,'IBM Plex Mono',monospace); font-size:.56rem; letter-spacing:.04em;
+  color:inherit; border-color:rgba(128,128,128,.4);
+}
+/* Mode switch is scoped to desktop so mobile keeps the existing card behavior.
+   :has() hides the Add-to-Bag button only on cards that actually rendered
+   swatches, so a color-less product still shows its button as a fallback. */
+@media (min-width:901px){
+  body.zw-cards-swatches .zw-card-swatches{ display:flex; }
+  body.zw-cards-swatches .pcard:has(.zw-card-swatches) .pcard-add-btn,
+  body.zw-cards-swatches .product-card:has(.zw-card-swatches) .product-add-btn{ display:none; }
+}
+@media (max-width:900px){ .zw-card-swatches{ display:none !important; } }
