@@ -82,7 +82,7 @@
        are cached immutable, so on every repeat view the real font is ready at
        first paint with no fallback swap. Preconnects keep cold-cache cost small. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=5d14f9fc">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=5cf6d615">
 <script src="header-scroll.js?v=4a734678" defer></script>
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=29023607">
 <!-- Google tag (gtag.js) -->
@@ -1454,6 +1454,7 @@ function updateCountdown() {
           const isLive = (p.status === 'live' || p.status === 'Live');
           const totalStock = p.totalStock;
           const isSoldOut = isLive && totalStock !== null && totalStock <= 0;
+          const hasSwatches = isLive && !isSoldOut && (p.color_variants || []).length > 0;
           const lowThreshold = Number(p.low_stock_threshold) || 10;
           const isLowStock = isLive && !isSoldOut && totalStock !== null && totalStock > 0 && totalStock <= lowThreshold;
           const colCardId = 'cqsp-' + (p.unique_id || p.id).toString().replace(/[^a-z0-9]/gi,'');
@@ -1470,7 +1471,7 @@ function updateCountdown() {
           }));
           return `
             <a href="${productHref(p)}" style="text-decoration:none;color:inherit" onclick="${isLive ? `if(event.target.closest('.product-add-btn,.quick-size-panel-col,.qback-btn,.qcol-swatch,.qsz-btn,.zw-card-swatches')){event.preventDefault();event.stopPropagation();}` : ''}">
-              <div class="product-card">
+              <div class="product-card${hasSwatches ? ' product-card--swatched' : ''}">
                 <div class="product-img">
                   <button
                     type="button"
@@ -1499,7 +1500,7 @@ function updateCountdown() {
                     ? `<button type="button" class="product-add-btn"${isSoldOut ? ' disabled style="opacity:.35;cursor:not-allowed"' : ''} data-col-quick-add="${quickAddPayload}" onclick="return window.__zwCollectionQuickAddClick && window.__zwCollectionQuickAddClick(event,this)">${isSoldOut ? 'Sold Out' : 'Add to Bag'}</button>`
                     : `<span class="product-notify" onclick="scrollToNotify(event)">Notify Me When Live →</span>`
                   }
-                  ${isLive && !isSoldOut ? zwColSwatchRow(p, quickAddPayload, originalImg) : ''}
+                  ${hasSwatches ? zwColSwatchRow(p, quickAddPayload, originalImg) : ''}
                 </div>
                 ${isLive ? `<div class="quick-size-panel-col" id="${colCardId}">
                   <div class="quick-size-ph">

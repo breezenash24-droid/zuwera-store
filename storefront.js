@@ -1537,6 +1537,9 @@ function renderProductCards(products, grid) {
     const priceDisplay = productPrice ? `$${Number(productPrice).toFixed(2)}` : 'Price TBA';
     const domId = p.unique_id || p.id;
     const isLive = (p.status === 'live' || p.status === 'Live');
+    // Cards that render a swatch row get .pcard--swatched so swatch mode can hide
+    // their Add-to-Bag button via a plain class selector (no :has() reliance).
+    const hasSwatches = isLive && window.innerWidth > 900 && (p.color_variants || []).length > 0;
     const quickAddPayload = encodeURIComponent(JSON.stringify({
       productId: p.id,
       title: productName,
@@ -1549,7 +1552,7 @@ function renderProductCards(products, grid) {
       imageFocalY: p.image_focal_y ?? 50
     }));
     return `
-      <div class="pcard" onclick="if(!event.target.closest('.quick-size-panel,.pcard-add-btn,.zw-card-swatches')){window.location.href='${productHref(p)}'}" style="cursor:pointer;position:relative;overflow:hidden">
+      <div class="pcard${hasSwatches ? ' pcard--swatched' : ''}" onclick="if(!event.target.closest('.quick-size-panel,.pcard-add-btn,.zw-card-swatches')){window.location.href='${productHref(p)}'}" style="cursor:pointer;position:relative;overflow:hidden">
         <div class="pcard-img">
           ${imgHtml}
           <div class="pcard-badge">${escapeHomeFavoriteHtml(badge)}</div>
@@ -1566,7 +1569,7 @@ function renderProductCards(products, grid) {
             <span id="cnt-${domId}">Be the first to review</span>
           </button>
           ${isLive && window.innerWidth > 900 ? `<button type="button" class="pcard-add-btn" data-quick-add="${quickAddPayload}"><span class="pcard-add-desktop-label">Add to Bag</span></button>` : ''}
-          ${isLive && window.innerWidth > 900 ? zwCardSwatchRow(p, quickAddPayload, firstImg) : ''}
+          ${hasSwatches ? zwCardSwatchRow(p, quickAddPayload, firstImg) : ''}
         </div>
         ${isLive ? `<div class="quick-size-panel" id="qsp-${domId}">
           <div class="quick-size-panel-header">
