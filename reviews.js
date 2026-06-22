@@ -298,8 +298,10 @@ window.openAllReviewsModal = async function(pid, domId, productName) {
     ` : '';
 
       let editBtnHtml = '';
-      if (user && review.user_id === user.id) {
-        editBtnHtml = `<button class="review-card-action" type="button" onclick="openEditReviewForm('${escHtml(review.id)}', ${Number(review.rating)}, '${escHtml(pid)}'); (function(m){if(m){m.classList.remove('open');m.setAttribute('aria-hidden','true');}})(document.getElementById('all-reviews-modal'));">Edit</button>`;
+      const canEditReview = user && review.user_id === user.id;
+      if (canEditReview) {
+        // No interpolated inline handler — listener attached after insert (below).
+        editBtnHtml = `<button class="review-card-action review-edit-btn" type="button">Edit</button>`;
       }
 
       const reviewDate = review.created_at
@@ -325,6 +327,14 @@ window.openAllReviewsModal = async function(pid, domId, productName) {
       ${adminResponseHtml}
     `;
       list.appendChild(reviewEl);
+      if (canEditReview) {
+        const _editBtn = reviewEl.querySelector('.review-edit-btn');
+        if (_editBtn) _editBtn.addEventListener('click', () => {
+          openEditReviewForm(review.id, Number(review.rating), pid);
+          const m = document.getElementById('all-reviews-modal');
+          if (m) { m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
+        });
+      }
     });
   } catch (error) {
     console.error('All reviews modal failed:', error);

@@ -385,14 +385,14 @@ function showToast(msg) {
             ctaPrimary.textContent = primaryText;
             if (svg) ctaPrimary.appendChild(svg);
           }
-          if (ctaPrimary && primaryUrl) ctaPrimary.onclick = () => { if(primaryUrl.startsWith('#')) document.getElementById(primaryUrl.slice(1))?.scrollIntoView({behavior:'smooth'}); else location.href=primaryUrl; };
+          if (ctaPrimary && primaryUrl) ctaPrimary.onclick = () => { if(primaryUrl.startsWith('#')) document.getElementById(primaryUrl.slice(1))?.scrollIntoView({behavior:'smooth'}); else location.href=zwSafeUrl(primaryUrl); };
           
           const secondaryVisible = s.cta2_on !== undefined ? s.cta2_on : s.cta_secondary_visible;
           const secondaryText = s.cta2_text || s.cta_secondary_text;
           const secondaryUrl = s.cta2_url || s.cta_secondary_url;
           if (ctaSecondary) ctaSecondary.style.display = secondaryVisible ? '' : 'none';
           if (ctaSecondary && secondaryText !== undefined) ctaSecondary.textContent = secondaryText;
-          if (ctaSecondary && secondaryUrl) ctaSecondary.onclick = () => { if(secondaryUrl.startsWith('#')) document.getElementById(secondaryUrl.slice(1))?.scrollIntoView({behavior:'smooth'}); else location.href=secondaryUrl; };
+          if (ctaSecondary && secondaryUrl) ctaSecondary.onclick = () => { if(secondaryUrl.startsWith('#')) document.getElementById(secondaryUrl.slice(1))?.scrollIntoView({behavior:'smooth'}); else location.href=zwSafeUrl(secondaryUrl); };
           
           // Image CTA overlay
           let imgCta = el.querySelector('.hero-img-cta');
@@ -625,7 +625,7 @@ function showToast(msg) {
         case 'banner': {
           el.className = 'builder-banner-section';
           el.style.cssText = `padding:1.5rem 2.5rem;text-align:center;background:${s.bg_color||s.sec_bg||'#09090b'};color:${s.text_color||'#f4f1eb'}`;
-          el.innerHTML = `<span style="font-family:var(--fm,var(--fb));font-size:.8rem;letter-spacing:.12em;text-transform:uppercase">${s.text||''}</span>${s.link_text?` <a href="${s.link_url||'#'}" style="color:inherit;margin-left:.75rem;text-decoration:underline;font-family:var(--fm,var(--fb));font-size:.8rem;letter-spacing:.12em;text-transform:uppercase">${s.link_text}</a>`:''}`;
+          el.innerHTML = `<span style="font-family:var(--fm,var(--fb));font-size:.8rem;letter-spacing:.12em;text-transform:uppercase">${s.text||''}</span>${s.link_text?` <a href="${escapeHomeFavoriteHtml(zwSafeUrl(s.link_url))}" style="color:inherit;margin-left:.75rem;text-decoration:underline;font-family:var(--fm,var(--fb));font-size:.8rem;letter-spacing:.12em;text-transform:uppercase">${s.link_text}</a>`:''}`;
           break;
         }
         case 'gallery': {
@@ -740,8 +740,11 @@ function showToast(msg) {
       }
     });
 
-    // Also keep postMessage as fallback
+    // Also keep postMessage as fallback. SECURITY: only accept messages from our
+    // own origin (the admin page-builder, served same-origin). Without this, any
+    // site that framed us could post a ZW_BUILDER_CONFIG and inject HTML (XSS).
     window.addEventListener('message', e => {
+      if (e.origin !== window.location.origin) return;
       if (e.data && e.data.type === 'ZW_BUILDER_CONFIG') {
         applyBuilderConfig(e.data);
       }
@@ -1929,6 +1932,14 @@ function escapeHomeFavoriteHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+// Allow only safe URL schemes for admin/CMS-supplied links: http(s), mailto, tel,
+// root-relative ("/x", not "//host"), and #anchors. Blocks javascript:/data:/etc.
+function zwSafeUrl(value) {
+  const u = String(value == null ? '' : value).trim();
+  if (!u) return '#';
+  if (/^(?:#|\/(?!\/)|https?:\/\/|mailto:|tel:)/i.test(u)) return u;
+  return '#';
 }
 
 function normalizeHomeFavoriteText(value) {
