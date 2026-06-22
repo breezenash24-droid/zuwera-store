@@ -1428,6 +1428,30 @@ async function _doLoadProducts() {
 // Standalone review-summary loader ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â uses direct REST (no _sb dependency,
 // Batch review loader â€” one request for all cards instead of N separate fetches.
 // Falls back to a per-card fetch for the legacy loadCardReviewSummary(pid, domId) call signature.
+// Shared review-summary helpers (used by both initial render and the async loader,
+// and cached in sessionStorage so a reviewed card shows the right count immediately
+// on the next render instead of flashing the "Be the first to review" placeholder).
+function zwStarsMarkup(avg) {
+  const full = Math.round(avg);
+  return `<span style="color:#F891A5" aria-hidden="true">${'★'.repeat(full)}</span>` +
+    `<span style="color:rgba(244,241,235,.15)" aria-hidden="true">${'★'.repeat(5 - full)}</span>` +
+    `<span class="sr-only">${avg.toFixed(1)} out of 5 stars</span>`;
+}
+function zwReviewCountText(count, avg) {
+  return count > 0 ? `${count} review${count !== 1 ? 's' : ''} · ${avg.toFixed(1)}` : 'Be the first to review';
+}
+function zwReadRevCache() { try { return JSON.parse(sessionStorage.getItem('zw_rev_sum') || '{}') || {}; } catch (_) { return {}; } }
+function zwWriteRevCache(map) { try { sessionStorage.setItem('zw_rev_sum', JSON.stringify(map)); } catch (_) {} }
+function zwApplyCardReview(domId, count, avg) {
+  const avgEl = document.getElementById(`avg-${domId}`);
+  const cntEl = document.getElementById(`cnt-${domId}`);
+  if (cntEl) cntEl.textContent = zwReviewCountText(count, avg);
+  if (avgEl) {
+    if (count > 0) { avgEl.innerHTML = zwStarsMarkup(avg); avgEl.style.display = ''; }
+    else { avgEl.innerHTML = ''; avgEl.style.display = 'none'; }
+  }
+}
+
 async function loadAllCardReviewSummaries(cardMap) {
   // cardMap: { [pid]: domId }
   const pids = Object.keys(cardMap);
@@ -1451,20 +1475,20 @@ async function loadAllCardReviewSummaries(cardMap) {
       groups[r.product_id] = groups[r.product_id] || [];
       groups[r.product_id].push(r.rating);
     });
-    Object.entries(groups).forEach(([pid, ratings]) => {
+    const cache = zwReadRevCache();
+    // Resolve EVERY card (not only reviewed ones): zero-review products settle on
+    // "Be the first to review" and reviewed products get their count \u2014 so neither
+    // is left showing a stale placeholder. Cache for instant-correct re-renders.
+    pids.forEach(pid => {
       const domId = cardMap[pid];
       if (!domId) return;
-      const avg = ratings.reduce((s, r) => s + r, 0) / ratings.length;
-      const full = Math.round(avg);
-      const avgEl = document.getElementById(`avg-${domId}`);
-      const cntEl = document.getElementById(`cnt-${domId}`);
-      if (avgEl) avgEl.innerHTML =
-        `<span style="color:#F891A5" aria-hidden="true">${'\u2605'.repeat(full)}</span>` +
-        `<span style="color:rgba(244,241,235,.15)" aria-hidden="true">${'\u2605'.repeat(5 - full)}</span>` +
-        `<span class="sr-only">${avg.toFixed(1)} out of 5 stars</span>`;
-      if (cntEl) cntEl.textContent =
-        `${ratings.length} review${ratings.length !== 1 ? 's' : ''} \u00B7 ${avg.toFixed(1)}`;
+      const ratings = groups[pid] || [];
+      const count = ratings.length;
+      const avg = count ? ratings.reduce((s, r) => s + r, 0) / count : 0;
+      zwApplyCardReview(domId, count, avg);
+      cache[pid] = { count, avg };
     });
+    zwWriteRevCache(cache);
   } catch(e) { console.error('Review summary error:', e); }
 }
 // Keep the per-card function for any existing call sites outside renderProductCards
@@ -1520,6 +1544,7 @@ function renderProductCards(products, grid) {
     grid.classList.add('two-items');
   }
 
+  const _revCache = zwReadRevCache();
   grid.innerHTML = renderList.map(p => {
     const productName = p.title || p.name || 'Untitled';
     const productCategory = categoryLabelFromProduct(p);
@@ -1568,8 +1593,8 @@ function renderProductCards(products, grid) {
           <p class="pcard-name">${escapeHomeFavoriteHtml(productName)}</p>
           <p class="pcard-price">${priceDisplay}</p>
           <button class="pcard-action" onclick="event.stopPropagation();openAllReviewsModal('${p.id}', '${domId}', this.dataset.pname)" data-review-pid="${p.id}" data-review-domid="${domId}" data-pname="${escapeHomeFavoriteHtml(productName)}">
-            <span id="avg-${domId}" style="display:none"></span>
-            <span id="cnt-${domId}">Be the first to review</span>
+            <span id="avg-${domId}" style="${_revCache[p.id] && _revCache[p.id].count > 0 ? '' : 'display:none'}">${_revCache[p.id] && _revCache[p.id].count > 0 ? zwStarsMarkup(_revCache[p.id].avg) : ''}</span>
+            <span id="cnt-${domId}">${_revCache[p.id] ? zwReviewCountText(_revCache[p.id].count, _revCache[p.id].avg) : ''}</span>
           </button>
           ${isLive && window.innerWidth > 900 ? `<button type="button" class="pcard-add-btn" data-quick-add="${quickAddPayload}"><span class="pcard-add-desktop-label">Add to Bag</span></button>` : ''}
           ${hasSwatches ? zwCardSwatchRow(p, quickAddPayload, firstImg) : ''}
