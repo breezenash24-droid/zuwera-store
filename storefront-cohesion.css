@@ -3264,3 +3264,19 @@ body.light-mode .quick-add-gallery-arrow{background:rgba(9,9,11,.55);border-colo
    covered by the universal guard above (the shake collapses to ~0ms). */
 @keyframes zwShake{10%,90%{transform:translateX(-1px)}20%,80%{transform:translateX(2px)}30%,50%,70%{transform:translateX(-5px)}40%,60%{transform:translateX(5px)}}
 .zw-shake{animation:zwShake .5s cubic-bezier(.36,.07,.19,.97) both;}
+
+/* 4) Auto-hide header (Adidas-style). header-scroll.js toggles .zw-nav-hidden by
+   scroll direction when the admin header mode is "auto-hide" (hide on scroll down,
+   reveal on scroll up). Works for both the fixed nav (nav#nav / nav.nav) and the
+   sticky one (nav.zw-nav). The transition is a superset of the existing scrolled-
+   state effects so none are lost. Reduced-motion keeps the header shown (no yank). */
+nav#nav, nav.nav, nav.zw-nav{
+  transition: transform .35s cubic-bezier(.22,.61,.36,1), background .35s, border-color .35s, box-shadow .35s, top .45s ease, padding .35s !important;
+  will-change: transform;
+}
+nav#nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-nav.zw-nav-hidden{
+  transform: translateY(-100%) !important;
+}
+@media (prefers-reduced-motion: reduce){
+  nav#nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-nav.zw-nav-hidden{ transform: none !important; }
+}

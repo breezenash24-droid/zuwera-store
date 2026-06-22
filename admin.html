@@ -6274,6 +6274,23 @@
                         <button type="button" class="btn btn-primary btn-sm" id="saveAnnouncementBtn">Save Announcement</button>
                     </div>
 
+                    <!-- Header Scroll Behavior -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
+                        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:6px;">Header Scroll Behavior</div>
+                        <p style="color:var(--text-secondary);font-size:.82rem;margin-bottom:16px;line-height:1.6;">How the top navigation bar behaves as customers scroll — applies to every page.</p>
+                        <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">
+                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);">
+                                <input type="radio" name="headerMode" id="settHeaderModeAutoHide" value="auto-hide" checked style="accent-color:var(--accent);cursor:pointer;">
+                                <span><strong>Auto-hide</strong> — hides when scrolling down, reappears when scrolling up (like adidas.com)</span>
+                            </label>
+                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);">
+                                <input type="radio" name="headerMode" id="settHeaderModePinned" value="pinned" style="accent-color:var(--accent);cursor:pointer;">
+                                <span><strong>Always visible</strong> — header stays pinned at the top while scrolling</span>
+                            </label>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" id="saveHeaderBtn">Save Header</button>
+                    </div>
+
                     <!-- Shipping Policy -->
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
                         <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:20px;">Shipping &amp; Returns Policy</div>
@@ -12060,6 +12077,12 @@
                     document.getElementById('settAnnouncementBarMain').value = typeof v === 'string' ? v : '';
                     document.getElementById('settAnnouncementModeOn').checked = true;
                 }
+            } else if (row.key === 'header_behavior') {
+                let v = row.value;
+                try { if (typeof v === 'string') v = JSON.parse(v); } catch(e) {}
+                const hm = (v && v.mode === 'pinned') ? 'pinned' : 'auto-hide';
+                const hr = document.querySelector(`input[name="headerMode"][value="${hm}"]`);
+                if (hr) hr.checked = true;
             } else if (row.key === 'shipping_policy') {
                 const v = row.value || {};
                 const enabledToggle = document.getElementById('settFreeShippingEnabled');
@@ -12134,6 +12157,20 @@
         else {
             await logAdminAudit('settings.update', 'site_settings', 'announcement_bar', { mode, has_main: Boolean(val.main), has_product: Boolean(val.product) });
             showToast('Announcement saved!', 'success');
+        }
+    });
+
+    document.getElementById('saveHeaderBtn')?.addEventListener('click', async () => {
+        const sel = document.querySelector('input[name="headerMode"]:checked');
+        const mode = sel && sel.value === 'pinned' ? 'pinned' : 'auto-hide';
+        const { error } = await sb.from('site_settings').upsert(
+            { key: 'header_behavior', value: { mode }, updated_at: new Date().toISOString() },
+            { onConflict: 'key' }
+        );
+        if (error) { showToast('Error saving header behavior', 'error'); console.error(error); }
+        else {
+            await logAdminAudit('settings.update', 'site_settings', 'header_behavior', { mode });
+            showToast('Header behavior saved!', 'success');
         }
     });
 
