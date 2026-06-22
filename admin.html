@@ -1698,24 +1698,24 @@
            `mobile` pins a page to the bottom bar with that label; everything
            else lands in the drawer. `searchLabel` overrides the Ctrl+K name. */
         const ADMIN_PAGES = [
-            { id:'dashboard',  icon:'📊', label:'Dashboard',   title:'Dashboard',           group:'overview',      mobile:'Home' },
-            { id:'analytics',  icon:'📈', label:'Analytics',   title:'Analytics',           group:'overview' },
-            { id:'finance',    icon:'💰', label:'Finance',     title:'Finance',             group:'overview',      mobile:'Finance' },
-            { id:'tax',        icon:'🧾', label:'Tax',         title:'Tax',                 group:'overview' },
-            { id:'products',   icon:'👟', label:'Products',    title:'Product Inventory',   group:'catalogue',     mobile:'Products' },
-            { id:'commerce',   icon:'🏷️', label:'Coupons',     title:'Coupons',             group:'marketing',     searchLabel:'Commerce / Coupons / Promotions' },
-            { id:'legacy',     icon:'📦', label:'Legacy',      title:'Legacy Products',     group:'catalogue',     searchLabel:'Legacy Products' },
-            { id:'sizecharts', icon:'📏', label:'Size Charts', title:'Size Charts',         group:'catalogue' },
-            { id:'reviews',    icon:'⭐', label:'Reviews',     title:'Customer Reviews',    group:'catalogue' },
-            { id:'receipts',   icon:'🧾', label:'Receipts',    title:'Receipts',            group:'operations',    mobile:'Orders', searchLabel:'Receipts / Orders' },
-            { id:'shipping',   icon:'🚚', label:'Shipping',    title:'Shipping',            group:'overview' },
-            { id:'returns',    icon:'↩',  label:'Returns',     title:'Returns & Exchanges', group:'operations' },
-            { id:'users',      icon:'👥', label:'Users',       title:'User Management',     group:'operations' },
-            { id:'settings',   icon:'⚙️', label:'Settings',    title:'Settings',            group:'configuration' },
-            { id:'website',    icon:'🎨', label:'Appearance',  title:'Appearance',          group:'storefront' },
-            { id:'apis',       icon:'🔑', label:'APIs',        title:'API Status',          group:'configuration', searchLabel:'API Keys' },
-            { id:'meta',       icon:'📣', label:'Ads & Tracking', title:'Ads & Tracking', group:'marketing', searchLabel:'Meta / Facebook / Pixel / Conversions API / Google Ads / Analytics / GA4 / Merchant Center' },
-            { id:'audit',      icon:'📋', label:'Audit Log',   title:'Audit Log',           group:'configuration' },
+            { id:'dashboard',  icon:'📊', label:'Dashboard',   title:'Dashboard',           group:'overview',      mobile:'Home', kw:'home overview summary' },
+            { id:'analytics',  icon:'📈', label:'Analytics',   title:'Analytics',           group:'overview', kw:'traffic visitors stats metrics sessions conversion' },
+            { id:'finance',    icon:'💰', label:'Finance',     title:'Finance',             group:'overview',      mobile:'Finance', kw:'revenue profit payouts sales money earnings refunds' },
+            { id:'products',   icon:'👟', label:'Products',    title:'Product Inventory',   group:'catalogue',     mobile:'Products', kw:'inventory stock sku catalog items drop jackets variants colors' },
+            { id:'legacy',     icon:'📦', label:'Legacy',      title:'Legacy Products',     group:'catalogue',     searchLabel:'Legacy Products', kw:'old archived products' },
+            { id:'sizecharts', icon:'📏', label:'Size Charts', title:'Size Charts',         group:'catalogue', kw:'size guide measurements fit chart sizing' },
+            { id:'reviews',    icon:'⭐', label:'Reviews',     title:'Customer Reviews',    group:'catalogue', kw:'ratings testimonials stars moderate feedback' },
+            { id:'commerce',   icon:'🏷️', label:'Coupons',     title:'Coupons',             group:'marketing',     searchLabel:'Commerce / Coupons / Promotions', kw:'discount promo code voucher sale promotion loyalty' },
+            { id:'meta',       icon:'📣', label:'Ads & Tracking', title:'Ads & Tracking', group:'marketing', searchLabel:'Meta / Facebook / Pixel / Conversions API / Google Ads / Analytics / GA4 / Merchant Center', kw:'facebook instagram pixel capi conversions api google ads ga4 gtag merchant center tracking utm marketing' },
+            { id:'receipts',   icon:'🧾', label:'Receipts',    title:'Receipts',            group:'operations',    mobile:'Orders', searchLabel:'Receipts / Orders', kw:'orders invoices sales transactions purchases' },
+            { id:'shipping',   icon:'🚚', label:'Shipping',    title:'Shipping',            group:'operations', kw:'fulfillment labels tracking shippo dispatch send' },
+            { id:'returns',    icon:'↩',  label:'Returns',     title:'Returns & Exchanges', group:'operations', kw:'exchange refund rma return request' },
+            { id:'users',      icon:'👥', label:'Users',       title:'User Management',     group:'operations', kw:'customers accounts members profiles delete user' },
+            { id:'website',    icon:'🎨', label:'Appearance',  title:'Appearance',          group:'storefront', kw:'theme look design brand logo favicon hero fonts typography colors wordmark' },
+            { id:'settings',   icon:'⚙️', label:'Settings',    title:'Settings',            group:'storefront', kw:'config announcement banner header policy faq about content technologies early access' },
+            { id:'tax',        icon:'🧮', label:'Tax',         title:'Tax',                 group:'configuration', kw:'tax rate sales tax vat state rates nexus override' },
+            { id:'apis',       icon:'🔑', label:'APIs',        title:'API Status',          group:'configuration', searchLabel:'API Keys', kw:'api keys stripe shippo resend brevo cloudinary deepl cloudflare loops twilio posthog email branding integrations secrets' },
+            { id:'audit',      icon:'📋', label:'Audit Log',   title:'Audit Log',           group:'configuration', kw:'history changes log activity events admin actions' },
         ];
         const ADMIN_NAV_GROUPS = [
             { id:'overview',      label:'Overview' },
@@ -6223,20 +6223,10 @@
                         <p class="zw-page-intro">Control how your store behaves — your banner message, shipping rules, return policy, legal pages, FAQs, and more. Hit the <strong>Save</strong> button in each section after making changes.</p>
                     </div>
 
-                    <!-- Early Access -->
-                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
-                        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:8px;">🔐 Early Access</div>
-                        <p style="color:var(--text-secondary);font-size:.82rem;margin-bottom:16px;line-height:1.6;">When enabled, only signed-in members can add items to their bag — guests are prompted to sign in. Use this to give your waitlist a members-only shopping window at launch.</p>
-                        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:.88rem;margin-bottom:14px;">
-                            <input type="checkbox" id="earlyAccessEnabled" style="accent-color:var(--accent);cursor:pointer;width:16px;height:16px;">
-                            <span>Members-only Add to Bag</span>
-                        </label>
-                        <div style="margin-bottom:16px;">
-                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:8px;">Ends at (optional — gate lifts automatically)</label>
-                            <input type="datetime-local" id="earlyAccessEndsAt" class="form-input" style="max-width:280px;">
-                        </div>
-                        <button class="btn btn-primary" onclick="saveEarlyAccess()">Save Early Access</button>
-                        <span id="earlyAccessStatus" style="margin-left:10px;font-size:.8rem;color:var(--text-secondary);"></span>
+                    <!-- ── Section: Storefront chrome ── -->
+                    <div style="margin:4px 0 12px;display:flex;align-items:center;gap:12px;">
+                        <span style="font-family:'Barlow Condensed',sans-serif;font-size:.82rem;letter-spacing:.16em;text-transform:uppercase;color:var(--text-secondary);white-space:nowrap;">Storefront chrome</span>
+                        <span style="flex:1;height:1px;background:var(--border);"></span>
                     </div>
 
                     <!-- Announcement Bar -->
@@ -6291,6 +6281,28 @@
                         <button type="button" class="btn btn-primary btn-sm" id="saveHeaderBtn">Save Header</button>
                     </div>
 
+                    <!-- ── Section: Store rules ── -->
+                    <div style="margin:28px 0 12px;display:flex;align-items:center;gap:12px;">
+                        <span style="font-family:'Barlow Condensed',sans-serif;font-size:.82rem;letter-spacing:.16em;text-transform:uppercase;color:var(--text-secondary);white-space:nowrap;">Store rules</span>
+                        <span style="flex:1;height:1px;background:var(--border);"></span>
+                    </div>
+
+                    <!-- Early Access -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
+                        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:8px;">🔐 Early Access</div>
+                        <p style="color:var(--text-secondary);font-size:.82rem;margin-bottom:16px;line-height:1.6;">When enabled, only signed-in members can add items to their bag — guests are prompted to sign in. Use this to give your waitlist a members-only shopping window at launch.</p>
+                        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:.88rem;margin-bottom:14px;">
+                            <input type="checkbox" id="earlyAccessEnabled" style="accent-color:var(--accent);cursor:pointer;width:16px;height:16px;">
+                            <span>Members-only Add to Bag</span>
+                        </label>
+                        <div style="margin-bottom:16px;">
+                            <label style="display:block;font-size:.8rem;color:var(--text-secondary);margin-bottom:8px;">Ends at (optional — gate lifts automatically)</label>
+                            <input type="datetime-local" id="earlyAccessEndsAt" class="form-input" style="max-width:280px;">
+                        </div>
+                        <button class="btn btn-primary" onclick="saveEarlyAccess()">Save Early Access</button>
+                        <span id="earlyAccessStatus" style="margin-left:10px;font-size:.8rem;color:var(--text-secondary);"></span>
+                    </div>
+
                     <!-- Shipping Policy -->
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
                         <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:20px;">Shipping &amp; Returns Policy</div>
@@ -6338,6 +6350,12 @@
                         <button type="button" class="btn btn-primary btn-sm" id="saveShippingBtn">Save Shipping Settings</button>
                     </div>
                     
+                    <!-- ── Section: Content & pages ── -->
+                    <div style="margin:28px 0 12px;display:flex;align-items:center;gap:12px;">
+                        <span style="font-family:'Barlow Condensed',sans-serif;font-size:.82rem;letter-spacing:.16em;text-transform:uppercase;color:var(--text-secondary);white-space:nowrap;">Content &amp; pages</span>
+                        <span style="flex:1;height:1px;background:var(--border);"></span>
+                    </div>
+
                     <!-- Fabric Technologies -->
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
@@ -7986,7 +8004,7 @@
         })();
 
         // ─── Ctrl+K Global Search ────────────────────────────────────────────────
-        let _zwSearchIdx = [], _zwSearchSel = -1;
+        let _zwSearchIdx = [], _zwShown = [], _zwSearchSel = -1;
         function openSearch() {
             const ov = document.getElementById('zw-search-overlay');
             const inp = document.getElementById('zw-search-input');
@@ -7998,44 +8016,115 @@
         function closeSearch() {
             document.getElementById('zw-search-overlay').classList.remove('open');
         }
+        // Deep, keyword-rich index of niche settings/features → jump straight to the
+        // exact card (navigate + scroll + flash). Add an entry here to make anything
+        // findable by name OR alias (kw) in the ⌘K search, even if it lives several
+        // cards down inside a page.
+        const ZW_SEARCH_FEATURES = [
+            {icon:'📣',main:'Announcement Bar',sub:'Settings · Storefront chrome',kw:'banner promo top bar message marquee scrolling',page:'settings',el:'settAnnouncementBarMain'},
+            {icon:'🧭',main:'Header Scroll Behavior',sub:'Settings · Storefront chrome',kw:'header sticky auto hide pin nav scroll adidas always visible',page:'settings',el:'settHeaderModeAutoHide'},
+            {icon:'🔐',main:'Early Access',sub:'Settings · Store rules',kw:'members early access window gate exclusive presale drop',page:'settings',el:'earlyAccessEnabled'},
+            {icon:'🚚',main:'Free Shipping & Rates',sub:'Settings · Store rules',kw:'free shipping threshold standard rate delivery days cost',page:'settings',el:'settFreeThreshold'},
+            {icon:'↩',main:'Return Window (days)',sub:'Settings · Store rules',kw:'return days member nonmember refund window policy',page:'settings',el:'settReturnMember'},
+            {icon:'📄',main:'About Page Content',sub:'Settings · Content',kw:'about story heading stats company label body editor',page:'settings',el:'settAboutLabel'},
+            {icon:'❓',main:'FAQ',sub:'Settings · Content',kw:'faq frequently asked questions answers help',page:'settings',el:'faqListContainer'},
+            {icon:'⚖️',main:'Legal Policies',sub:'Settings · Content',kw:'privacy terms returns policy legal shipping gdpr',page:'settings',el:'saveLegalBtn'},
+            {icon:'🧵',main:'Fabric Technologies',sub:'Settings · Content',kw:'fabric technologies materials features product tech',page:'settings',el:'techListContainer'},
+            {icon:'🖼️',main:'Favicon / Brand Logo',sub:'Appearance · Brand',kw:'favicon brand logo icon tab wordmark site icon',page:'website',el:'faviconImage'},
+            {icon:'🏞️',main:'Hero Image & Heading',sub:'Appearance · Hero',kw:'hero image heading headline subtext homepage banner cta',page:'website',el:'heroHeading'},
+            {icon:'🔤',main:'Typography / Fonts',sub:'Appearance · Type',kw:'fonts typography typeface heading body mono custom import barlow',page:'website',el:'font-head-select'},
+            {icon:'🎨',main:'Theme (Dark / Light)',sub:'Appearance',kw:'theme dark light super-light mode colors background',page:'website'},
+            {icon:'✉️',main:'Email Logo & Sender (BIMI)',sub:'APIs · Email Branding',kw:'email logo brand_logo_url from address sender bimi avatar profile picture resend brevo',page:'apis'},
+            {icon:'💳',main:'Stripe Keys',sub:'APIs',kw:'stripe payment secret key checkout',page:'apis'},
+            {icon:'📦',main:'Shippo (shipping API)',sub:'APIs',kw:'shippo shipping api label tracking return address',page:'apis'},
+            {icon:'☁️',main:'Cloudinary',sub:'APIs',kw:'cloudinary image cdn upload',page:'apis'},
+            {icon:'🌍',main:'DeepL (translation)',sub:'APIs',kw:'deepl translation translate language',page:'apis'},
+            {icon:'📨',main:'Email (Loops / Resend / Brevo)',sub:'APIs',kw:'loops resend brevo email marketing newsletter transactional',page:'apis'},
+            {icon:'🧮',main:'Tax Rates',sub:'Configuration',kw:'tax rate sales tax vat state nexus override flat',page:'tax'},
+            {icon:'🏗️',main:'Page Builder',sub:'Storefront ↗',kw:'page builder landing sections drag drop layout',open:'/builder.html'},
+        ];
+
+        // Navigate to a page, then scroll the target card into view + flash it.
+        function zwGoto(page, el) {
+            navigateTo(page);
+            if (!el) return;
+            setTimeout(function () {
+                var node = document.getElementById(el);
+                if (!node) return;
+                var card = node.closest('div[style*="background:var(--bg-secondary)"]') || node;
+                try { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) { node.scrollIntoView(); }
+                var prev = card.style.boxShadow, prevT = card.style.transition;
+                card.style.transition = 'box-shadow .25s ease';
+                card.style.boxShadow = '0 0 0 2px var(--accent)';
+                setTimeout(function () { card.style.boxShadow = prev; setTimeout(function () { card.style.transition = prevT; }, 320); }, 1500);
+            }, 380);
+        }
+
         function zwBuildIndex() {
-            // Nav pages derived from ADMIN_PAGES (single source of truth).
+            // Nav pages (single source of truth) — now carry kw aliases for niche matching.
             const groupLabels = Object.fromEntries(ADMIN_NAV_GROUPS.map(g => [g.id, g.label]));
             _zwSearchIdx = ADMIN_PAGES.map(p => ({
-                icon: p.icon,
-                main: p.searchLabel || p.label,
-                sub: groupLabels[p.group] || '',
+                icon: p.icon, main: p.searchLabel || p.label, sub: groupLabels[p.group] || '', kw: p.kw || '',
                 action: () => navigateTo(p.id),
             }));
-            _zwSearchIdx.push({icon:'🏗️',main:'Page Builder',sub:'Storefront ↗',action:()=>window.open('/builder.html','_blank')});
-            // Add live products from DOM
+            // Deep feature/settings index.
+            ZW_SEARCH_FEATURES.forEach(f => _zwSearchIdx.push({
+                icon: f.icon, main: f.main, sub: f.sub || '', kw: f.kw || '',
+                action: f.open ? (() => window.open(f.open, '_blank')) : (() => zwGoto(f.page, f.el)),
+            }));
+            // Live products currently in the DOM.
             document.querySelectorAll('#productsTable tbody tr[data-id]').forEach(row => {
                 const title = row.querySelector('td:nth-child(2)')?.textContent?.trim();
                 const sku = row.querySelector('td:nth-child(3)')?.textContent?.trim();
-                if (title) _zwSearchIdx.push({icon:'👟',main:title,sub:`Product · ${sku||''}`,action:()=>{ navigateTo('products'); setTimeout(()=>{ const b=document.querySelector(`[data-id="${row.dataset.id}"] .btn-secondary`);if(b)b.click(); },400); }});
+                if (title) _zwSearchIdx.push({ icon: '👟', main: title, sub: `Product · ${sku || ''}`, kw: 'product ' + (sku || ''), action: () => { navigateTo('products'); setTimeout(() => { const b = document.querySelector(`[data-id="${row.dataset.id}"] .btn-secondary`); if (b) b.click(); }, 400); } });
             });
+        }
+
+        function zwRenderItems(items) {
+            return items.map((item, i) => `<div class="zw-sr-item" data-idx="${i}"><span class="zw-sr-icon">${item.icon}</span><div><div class="zw-sr-main">${item.main}</div><div class="zw-sr-sub">${item.sub || ''}</div></div></div>`).join('');
+        }
+        function zwBindItems(res) {
+            res.querySelectorAll('.zw-sr-item').forEach(el => { el.addEventListener('click', () => { _zwShown[el.dataset.idx]?.action?.(); closeSearch(); }); });
         }
         function zwSearchQuery(q) {
             zwBuildIndex();
             const res = document.getElementById('zw-search-results');
             _zwSearchSel = -1;
-            if (!q.trim()) {
-                res.innerHTML = '<div class="zw-sr-section">Quick Nav</div>' + _zwSearchIdx.slice(0,8).map((item,i)=>`<div class="zw-sr-item" data-idx="${i}"><span class="zw-sr-icon">${item.icon}</span><div><div class="zw-sr-main">${item.main}</div><div class="zw-sr-sub">${item.sub}</div></div></div>`).join('');
-            } else {
-                const lq = q.toLowerCase();
-                const hits = _zwSearchIdx.filter(item => item.main.toLowerCase().includes(lq) || item.sub.toLowerCase().includes(lq));
-                if (!hits.length) { res.innerHTML = '<div class="zw-sr-empty">No results for "' + q + '"</div>'; return; }
-                res.innerHTML = hits.slice(0,12).map((item,i)=>`<div class="zw-sr-item" data-idx="${i}"><span class="zw-sr-icon">${item.icon}</span><div><div class="zw-sr-main">${item.main}</div><div class="zw-sr-sub">${item.sub}</div></div></div>`).join('');
+            const query = q.trim().toLowerCase();
+            if (!query) {
+                _zwShown = _zwSearchIdx.slice(0, 8);
+                res.innerHTML = '<div class="zw-sr-section">Quick Nav</div>' + zwRenderItems(_zwShown);
+                zwBindItems(res);
+                return;
             }
-            res.querySelectorAll('.zw-sr-item').forEach(el => {
-                el.addEventListener('click', () => { _zwSearchIdx[el.dataset.idx]?.action?.(); closeSearch(); });
+            // Token-based ranked match across main + sub + keywords (every token must hit).
+            const tokens = query.split(/\s+/).filter(Boolean);
+            const scored = [];
+            _zwSearchIdx.forEach(item => {
+                const mainL = item.main.toLowerCase();
+                const subL = (item.sub || '').toLowerCase();
+                const hay = mainL + ' ' + subL + ' ' + (item.kw || '').toLowerCase();
+                let ok = true, score = 0;
+                for (const t of tokens) {
+                    if (hay.indexOf(t) === -1) { ok = false; break; }
+                    if (mainL.indexOf(t) === 0) score += 6;
+                    else if (mainL.indexOf(t) !== -1) score += 4;
+                    else if (subL.indexOf(t) !== -1) score += 2;
+                    else score += 1; // matched only via keywords
+                }
+                if (ok) scored.push({ item, score });
             });
+            if (!scored.length) { _zwShown = []; res.innerHTML = '<div class="zw-sr-empty">No results for "' + q + '"</div>'; return; }
+            scored.sort((a, b) => b.score - a.score);
+            _zwShown = scored.slice(0, 20).map(s => s.item);
+            res.innerHTML = zwRenderItems(_zwShown);
+            zwBindItems(res);
         }
         function zwSearchKey(e) {
             const items = document.querySelectorAll('.zw-sr-item');
             if (e.key === 'ArrowDown') { e.preventDefault(); _zwSearchSel = Math.min(_zwSearchSel+1, items.length-1); items.forEach((el,i)=>el.classList.toggle('zw-sr-active',i===_zwSearchSel)); items[_zwSearchSel]?.scrollIntoView({block:'nearest'}); }
             else if (e.key === 'ArrowUp') { e.preventDefault(); _zwSearchSel = Math.max(_zwSearchSel-1, 0); items.forEach((el,i)=>el.classList.toggle('zw-sr-active',i===_zwSearchSel)); items[_zwSearchSel]?.scrollIntoView({block:'nearest'}); }
-            else if (e.key === 'Enter') { e.preventDefault(); const active = document.querySelector('.zw-sr-active'); if (active) { _zwSearchIdx[active.dataset.idx]?.action?.(); closeSearch(); } else if (items[0]) { _zwSearchIdx[items[0].dataset.idx]?.action?.(); closeSearch(); } }
+            else if (e.key === 'Enter') { e.preventDefault(); const active = document.querySelector('.zw-sr-active'); if (active) { _zwShown[active.dataset.idx]?.action?.(); closeSearch(); } else if (items[0]) { _zwShown[items[0].dataset.idx]?.action?.(); closeSearch(); } }
             else if (e.key === 'Escape') closeSearch();
         }
         document.addEventListener('keydown', e => {
