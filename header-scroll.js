@@ -1,31 +1,46 @@
 /* ────────────────────────────────────────────────────────────────────────────
-   header-scroll.js — header scroll behavior, admin-controlled.
+   header-scroll.js — header scroll behavior, admin-controlled PER PAGE.
 
-   Modes (site_settings.header_behavior = { mode }):
-     • "auto-hide" (default) — Adidas-style: hide the header when scrolling DOWN,
-       reveal it when scrolling UP (and always show near the top).
-     • "pinned" — header always visible (no auto-hide).
+   site_settings.header_behavior = { mode, pages } where:
+     • mode  — site-wide default: "auto-hide" (Adidas-style: hide on scroll down,
+       reveal on scroll up) or "pinned" (always visible).
+     • pages — per-page overrides keyed by page, e.g. { "returns": "pinned" }.
+       The page key is the filename without extension ("/" → "home").
 
-   The mode is cached in localStorage (zw_header_mode) for instant application, then
-   refreshed from site_settings in the background. CSS lives in storefront-cohesion.css
-   (.zw-nav-hidden → translateY(-100%); reduced-motion keeps it shown).
+   Resolution for the current page: pages[pageKey] || mode || "auto-hide".
+   The whole config is cached in localStorage (zw_header_cfg) for instant apply,
+   then refreshed from site_settings. CSS lives in storefront-cohesion.css
+   (.zw-nav-hidden → translateY(-100%); reduced-motion keeps the header shown).
    ──────────────────────────────────────────────────────────────────────────── */
 (function () {
   var ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
   var REST = 'https://qfgnrsifcwdubkolsgsq.supabase.co/rest/v1/site_settings?select=value&key=eq.header_behavior';
-  var MODE_KEY = 'zw_header_mode';
+  var CFG_KEY = 'zw_header_cfg';
   var HIDDEN = 'zw-nav-hidden';
   var THRESH = 6;       // ignore sub-pixel / jitter scrolls
   var REVEAL_AT = 90;   // always show within this many px of the top
 
   function getNav() { return document.querySelector('nav#nav, nav.nav, nav.zw-nav'); }
-  function cachedMode() { try { return localStorage.getItem(MODE_KEY); } catch (_) { return null; } }
+
+  // Page identity = filename without ".html" ("/" or "/index.html" → "home").
+  function pageKey() {
+    var p = (location.pathname || '').replace(/^\/+/, '').replace(/\.html$/i, '').toLowerCase();
+    if (!p || p === 'index') return 'home';
+    return p;
+  }
+  function cachedCfg() { try { return JSON.parse(localStorage.getItem(CFG_KEY) || 'null'); } catch (_) { return null; } }
+  function resolveMode(cfg) {
+    if (!cfg || typeof cfg !== 'object') return 'auto-hide';
+    var ov = cfg.pages && cfg.pages[pageKey()];
+    if (ov === 'pinned' || ov === 'auto-hide') return ov;
+    return cfg.mode === 'pinned' ? 'pinned' : 'auto-hide';
+  }
 
   function init() {
     var nav = getNav();
     if (!nav) return;
 
-    var mode = cachedMode() || 'auto-hide';
+    var mode = resolveMode(cachedCfg());
     var lastY = window.pageYOffset || document.documentElement.scrollTop || 0;
     var ticking = false;
 
@@ -53,20 +68,18 @@
     window.addEventListener('scroll', onScroll, { passive: true });
     if (mode !== 'auto-hide') show();
 
-    // Refresh the mode from site_settings (background), cache + apply.
+    // Refresh config from site_settings (background), cache + re-resolve for THIS page.
     try {
       fetch(REST, { headers: { apikey: ANON, Authorization: 'Bearer ' + ANON } })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (rows) {
           if (!rows || !rows[0]) return;
-          var v = rows[0].value;
-          if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
-          var m = v && v.mode;
-          if (m === 'pinned' || m === 'auto-hide') {
-            try { localStorage.setItem(MODE_KEY, m); } catch (_) {}
-            mode = m;
-            if (m !== 'auto-hide') show();
-          }
+          var cfg = rows[0].value;
+          if (typeof cfg === 'string') { try { cfg = JSON.parse(cfg); } catch (_) {} }
+          if (!cfg || typeof cfg !== 'object') return;
+          try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (_) {}
+          mode = resolveMode(cfg);
+          if (mode !== 'auto-hide') show();
         })
         .catch(function () {});
     } catch (_) {}

@@ -6267,18 +6267,31 @@
                     <!-- Header Scroll Behavior -->
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
                         <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:6px;">Header Scroll Behavior</div>
-                        <p style="color:var(--text-secondary);font-size:.82rem;margin-bottom:16px;line-height:1.6;">How the top navigation bar behaves as customers scroll — applies to every page.</p>
-                        <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">
-                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);">
-                                <input type="radio" name="headerMode" id="settHeaderModeAutoHide" value="auto-hide" checked style="accent-color:var(--accent);cursor:pointer;">
-                                <span><strong>Auto-hide</strong> — hides when scrolling down, reappears when scrolling up (like adidas.com)</span>
-                            </label>
-                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text-primary);">
-                                <input type="radio" name="headerMode" id="settHeaderModePinned" value="pinned" style="accent-color:var(--accent);cursor:pointer;">
-                                <span><strong>Always visible</strong> — header stays pinned at the top while scrolling</span>
-                            </label>
+                        <p style="color:var(--text-secondary);font-size:.82rem;margin-bottom:16px;line-height:1.6;">How the top navigation bar behaves as customers scroll. Set a site-wide <strong>default</strong>, then override any individual page below. <em>Auto-hide</em> = hides on scroll down, reappears on scroll up (adidas-style); <em>Always visible</em> = stays pinned.</p>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;">
+                            <label style="font-size:.85rem;font-weight:600;color:var(--text-primary);">Default — all pages</label>
+                            <select id="settHeaderDefault" class="form-input" style="width:auto;min-width:170px;">
+                                <option value="auto-hide">Auto-hide (adidas-style)</option>
+                                <option value="pinned">Always visible</option>
+                            </select>
                         </div>
-                        <button type="button" class="btn btn-primary btn-sm" id="saveHeaderBtn">Save Header</button>
+                        <label style="display:block;font-size:.78rem;color:var(--text-secondary);margin:14px 0 4px;">Per-page overrides</label>
+                        <div id="headerOverrideList"></div>
+                        <script>
+                        (function(){
+                            var el = document.getElementById('headerOverrideList');
+                            if (!el || el.dataset.built) return;
+                            el.dataset.built = '1';
+                            var pages = [['home','Home'],['drop001','Collection (Release 001)'],['product','Product'],['bag','Bag'],['account','Account'],['returns','Returns'],['policies','Policies'],['sizeguide','Size Guide'],['about','About']];
+                            el.innerHTML = pages.map(function(p){
+                                return '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--border);">'
+                                    + '<span style="font-size:.85rem;color:var(--text-primary);">'+p[1]+'</span>'
+                                    + '<select class="form-input hdr-ovr" data-page="'+p[0]+'" style="width:auto;min-width:160px;"><option value="">Use default</option><option value="auto-hide">Auto-hide</option><option value="pinned">Always visible</option></select>'
+                                    + '</div>';
+                            }).join('');
+                        })();
+                        </script>
+                        <button type="button" class="btn btn-primary btn-sm" id="saveHeaderBtn" style="margin-top:16px;">Save Header</button>
                     </div>
 
                     <!-- ── Section: Store rules ── -->
@@ -8022,7 +8035,7 @@
         // cards down inside a page.
         const ZW_SEARCH_FEATURES = [
             {icon:'📣',main:'Announcement Bar',sub:'Settings · Storefront chrome',kw:'banner promo top bar message marquee scrolling',page:'settings',el:'settAnnouncementBarMain'},
-            {icon:'🧭',main:'Header Scroll Behavior',sub:'Settings · Storefront chrome',kw:'header sticky auto hide pin nav scroll adidas always visible',page:'settings',el:'settHeaderModeAutoHide'},
+            {icon:'🧭',main:'Header Scroll Behavior',sub:'Settings · Storefront chrome',kw:'header sticky auto hide pin nav scroll adidas always visible per page override returns',page:'settings',el:'settHeaderDefault'},
             {icon:'🔐',main:'Early Access',sub:'Settings · Store rules',kw:'members early access window gate exclusive presale drop',page:'settings',el:'earlyAccessEnabled'},
             {icon:'🚚',main:'Free Shipping & Rates',sub:'Settings · Store rules',kw:'free shipping threshold standard rate delivery days cost',page:'settings',el:'settFreeThreshold'},
             {icon:'↩',main:'Return Window (days)',sub:'Settings · Store rules',kw:'return days member nonmember refund window policy',page:'settings',el:'settReturnMember'},
@@ -12169,9 +12182,13 @@
             } else if (row.key === 'header_behavior') {
                 let v = row.value;
                 try { if (typeof v === 'string') v = JSON.parse(v); } catch(e) {}
-                const hm = (v && v.mode === 'pinned') ? 'pinned' : 'auto-hide';
-                const hr = document.querySelector(`input[name="headerMode"][value="${hm}"]`);
-                if (hr) hr.checked = true;
+                const cfg = (v && typeof v === 'object') ? v : {};
+                const def = document.getElementById('settHeaderDefault');
+                if (def) def.value = cfg.mode === 'pinned' ? 'pinned' : 'auto-hide';
+                const pages = cfg.pages || {};
+                document.querySelectorAll('#headerOverrideList .hdr-ovr').forEach(sel => {
+                    sel.value = (pages[sel.dataset.page] === 'pinned' || pages[sel.dataset.page] === 'auto-hide') ? pages[sel.dataset.page] : '';
+                });
             } else if (row.key === 'shipping_policy') {
                 const v = row.value || {};
                 const enabledToggle = document.getElementById('settFreeShippingEnabled');
@@ -12250,15 +12267,19 @@
     });
 
     document.getElementById('saveHeaderBtn')?.addEventListener('click', async () => {
-        const sel = document.querySelector('input[name="headerMode"]:checked');
-        const mode = sel && sel.value === 'pinned' ? 'pinned' : 'auto-hide';
+        const defSel = document.getElementById('settHeaderDefault');
+        const mode = defSel && defSel.value === 'pinned' ? 'pinned' : 'auto-hide';
+        const pages = {};
+        document.querySelectorAll('#headerOverrideList .hdr-ovr').forEach(sel => {
+            if (sel.value === 'pinned' || sel.value === 'auto-hide') pages[sel.dataset.page] = sel.value;
+        });
         const { error } = await sb.from('site_settings').upsert(
-            { key: 'header_behavior', value: { mode }, updated_at: new Date().toISOString() },
+            { key: 'header_behavior', value: { mode, pages }, updated_at: new Date().toISOString() },
             { onConflict: 'key' }
         );
         if (error) { showToast('Error saving header behavior', 'error'); console.error(error); }
         else {
-            await logAdminAudit('settings.update', 'site_settings', 'header_behavior', { mode });
+            await logAdminAudit('settings.update', 'site_settings', 'header_behavior', { mode, overrides: Object.keys(pages).length });
             showToast('Header behavior saved!', 'success');
         }
     });
