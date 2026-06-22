@@ -39,12 +39,19 @@
     return cfg.mode === 'pinned' ? 'pinned' : 'auto-hide';
   }
 
+  // Read scroll position from whichever element actually scrolls. Pages that set
+  // overflow-x on <body> can make <body> the scroll container (window.scrollY stays
+  // 0), so fall back to documentElement/body scrollTop.
+  function scrollY() {
+    return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+  }
+
   function init() {
     var nav = getNav();
     if (!nav) return;
 
     var mode = resolveMode(cachedCfg());
-    var lastY = window.pageYOffset || document.documentElement.scrollTop || 0;
+    var lastY = scrollY();
     var ticking = false;
 
     function show() { nav.classList.remove(HIDDEN); }
@@ -55,7 +62,7 @@
       if (mode !== 'auto-hide') { show(); return; }
       // Never hide while a modal / scroll-lock is active (modal-lock.js sets these).
       if (document.body.dataset.scrollLocked || window.__zwScrollLocking || window.__zwScrollRestoring) return;
-      var y = window.pageYOffset || document.documentElement.scrollTop || 0;
+      var y = scrollY();
       if (y <= REVEAL_AT) { show(); lastY = y; return; }
       var dy = y - lastY;
       if (Math.abs(dy) < THRESH) return;
@@ -68,7 +75,10 @@
       (window.requestAnimationFrame || function (f) { setTimeout(f, 16); })(update);
     }
 
-    window.addEventListener('scroll', onScroll, { passive: true });
+    // Capture phase + document listener so a scroll on a nested scroll container
+    // (e.g. <body> when a page sets overflow-x) still reaches us.
+    window.addEventListener('scroll', onScroll, { passive: true, capture: true });
+    document.addEventListener('scroll', onScroll, { passive: true, capture: true });
     if (mode !== 'auto-hide') show();
 
     // Refresh config from site_settings (background), cache + re-resolve for THIS page.

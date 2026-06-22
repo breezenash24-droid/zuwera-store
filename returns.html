@@ -111,7 +111,8 @@
       font-family: var(--fb);
       font-weight: 300;
       min-height: 100vh;
-      overflow-x: hidden;
+      overflow-x: hidden;   /* fallback for old Safari */
+      overflow-x: clip;     /* clip horizontal overflow WITHOUT making <body> a scroll container (keeps window scroll → header auto-hide works) */
       display: flex;
       flex-direction: column;
     }
@@ -573,7 +574,7 @@
     }
   </style>
 <link rel="stylesheet" href="storefront-cohesion.css?v=9a5aae42">
-<script src="header-scroll.js?v=66897daf" defer></script>
+<script src="header-scroll.js?v=4a734678" defer></script>
 <style>
 /* storefront-cohesion.css inverts --ink to the page background color in light/super-light
    mode (by design for other pages), which makes policy body text cream-on-cream = invisible.

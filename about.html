@@ -98,7 +98,8 @@
       font-family: var(--fb);
       font-weight: 300;
       min-height: 100vh;
-      overflow-x: hidden;
+      overflow-x: hidden;   /* fallback for old Safari */
+      overflow-x: clip;     /* clip horizontal overflow WITHOUT making <body> a scroll container (keeps window scroll → header auto-hide works) */
       display: flex;
       flex-direction: column;
     }
@@ -245,7 +246,7 @@
     }
   </style>
 <link rel="stylesheet" href="storefront-cohesion.css?v=9a5aae42">
-<script src="header-scroll.js?v=66897daf" defer></script>
+<script src="header-scroll.js?v=4a734678" defer></script>
 <script src="mobile-menu.js?v=251b10fb" defer></script>
 <script src="lang.js?v=5a87b132" defer></script>
 <script src="zw-login.js?v=1b83aa67" defer></script>
