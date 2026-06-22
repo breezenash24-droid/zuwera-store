@@ -212,7 +212,12 @@
     unlock();
   }
 
-  function setErr(which, msg) { var e = el('[data-err="' + which + '"]'); if (e) e.textContent = msg || ''; }
+  function setErr(which, msg) {
+    var e = el('[data-err="' + which + '"]'); if (e) e.textContent = msg || '';
+    // Nudge the modal on a failed submit (.zw-shake lives in storefront-cohesion.css;
+    // reduced-motion users get no shake via the universal guard there).
+    if (msg) { var box = el('.zwlg-box'); if (box) { box.classList.remove('zw-shake'); void box.offsetWidth; box.classList.add('zw-shake'); } }
+  }
   function busy(btn, on, label) { if (!btn) return; btn.disabled = on; btn.textContent = on ? '…' : label; }
 
   function client() { return window.sb || null; }
