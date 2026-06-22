@@ -7,8 +7,8 @@
 //     the BACKUP_TOKEN function secret. With no token set it rejects everything.
 //   • Uses the service role (auto-injected) to read past RLS, but NEVER returns
 //     secrets: password hashes are excluded (auth admin API omits them), the
-//     api_key_overrides / webhook_events tables are skipped, and secret-looking
-//     site_settings values are redacted.
+//     api_key_overrides table is skipped, and secret-looking site_settings
+//     values are redacted.
 //   • Deploy with JWT verification OFF (it uses its own token), e.g.
 //       supabase functions deploy backup-export --no-verify-jwt
 //
@@ -21,9 +21,11 @@ const TABLES = [
   "orders", "profiles", "return_requests", "restock_requests", "waitlist",
   "reviews", "favorites", "products", "color_variants", "product_images",
   "product_sizes", "size_charts", "site_settings", "admin_audit_log",
+  "webhook_events", "zw_banned_words",
 ];
-// Excluded on purpose: api_key_overrides, webhook_events, zw_insert_throttle,
-// zw_banned_words (secrets / raw webhook payloads / noise).
+// Excluded on purpose: api_key_overrides (secret keys) and zw_insert_throttle
+// (transient rate-limit state). webhook_events IS included — it's a structured
+// payment-event log (no raw payloads/secrets).
 
 // site_settings rows whose key matches this hold API secrets — redact the value.
 const SECRET_KEY_RX = /key|token|secret|password|capi|webhook/i;
@@ -36,6 +38,7 @@ const COMMERCE_BLOBS: Array<{ key: string; table: string; arrayProp?: string }> 
   { key: "commerce_order_ops", table: "order_ops" },
   { key: "commerce_customer_profiles", table: "customer_profiles" },
   { key: "commerce_inventory", table: "inventory" },
+  { key: "refund_audit_log", table: "refund_audit_log" },
 ];
 
 // Turn an object-map ({id: {...}}) into an array of rows ({id, ...fields}).
@@ -73,8 +76,12 @@ Deno.serve(async (req) => {
       // Split the commerce_* JSON blobs out into their own readable tables.
       const byKey: Record<string, unknown> = {};
       const blobKeys = new Set(COMMERCE_BLOBS.map((b) => b.key));
+      let commerceConfig: Record<string, unknown> | null = null;
       rows = rows.filter((r: Record<string, unknown>) => {
         const k = String(r.key ?? "");
+        if (k === "commerce_config" && r.value && typeof r.value === "object") {
+          commerceConfig = r.value as Record<string, unknown>; // peek; keep in rows
+        }
         if (blobKeys.has(k)) { byKey[k] = r.value; return false; }
         return true;
       });
@@ -87,6 +94,11 @@ Deno.serve(async (req) => {
         tables[b.table] = arr;
         counts[b.table] = arr.length;
       }
+      // Coupons/discounts are nested in commerce_config.promotions.
+      const promos = commerceConfig && Array.isArray(commerceConfig.promotions)
+        ? (commerceConfig.promotions as unknown[]) : [];
+      tables["promotions"] = promos;
+      counts["promotions"] = promos.length;
       // Redact secret-looking values from whatever site_settings rows remain.
       rows = rows.map((r: Record<string, unknown>) =>
         SECRET_KEY_RX.test(String(r.key ?? "")) ? { ...r, value: "[redacted]" } : r
