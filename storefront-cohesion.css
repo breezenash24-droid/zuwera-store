@@ -3319,5 +3319,10 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
   body.zw-cards-swatches .zw-card-swatches{ display:flex; }
   body.zw-cards-swatches .pcard:has(.zw-card-swatches) .pcard-add-btn,
   body.zw-cards-swatches .product-card:has(.zw-card-swatches) .product-add-btn{ display:none; }
+  /* The swatch row is shorter than the full-width Add-to-Bag button, so trim the
+     dead space the button used to occupy beneath it (keeps cards from looking
+     bottom-heavy in swatch mode). */
+  body.zw-cards-swatches .pcard:has(.zw-card-swatches) .pcard-info{ padding-bottom:.85rem; }
+  body.zw-cards-swatches .product-card:has(.zw-card-swatches) .product-info{ padding-bottom:.75rem; }
 }
 @media (max-width:900px){ .zw-card-swatches{ display:none !important; } }
