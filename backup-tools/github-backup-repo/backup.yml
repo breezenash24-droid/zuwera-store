@@ -1,0 +1,41 @@
+# Daily Supabase backup -> dated CSV/JSON committed to THIS repo.
+# Put this file at .github/workflows/backup.yml in a NEW *private* repo
+# (e.g. "zuwera-backups"), alongside export.mjs. Add two repo secrets:
+#   BACKUP_URL   = https://qfgnrsifcwdubkolsgsq.supabase.co/functions/v1/backup-export
+#   BACKUP_TOKEN = <the shared token you set on the edge function>
+#
+# Keep the repo PRIVATE — these files contain customer emails / addresses.
+name: Daily backup
+
+on:
+  schedule:
+    - cron: "0 7 * * *" # 07:00 UTC every day
+  workflow_dispatch: {} # lets you run it on demand from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Export tables
+        env:
+          BACKUP_URL: ${{ secrets.BACKUP_URL }}
+          BACKUP_TOKEN: ${{ secrets.BACKUP_TOKEN }}
+        run: node export.mjs
+      - name: Commit snapshot
+        run: |
+          git config user.name "backup-bot"
+          git config user.email "backup-bot@users.noreply.github.com"
+          git add backups
+          if git diff --cached --quiet; then
+            echo "No changes today."
+          else
+            git commit -m "Backup $(date -u +%Y-%m-%d)"
+            git push
+          fi
