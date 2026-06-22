@@ -28,6 +28,27 @@ const TABLES = [
 // site_settings rows whose key matches this hold API secrets — redact the value.
 const SECRET_KEY_RX = /key|token|secret|password|capi|webhook/i;
 
+// Some operational data (returns, order ops, customer profiles, inventory) lives
+// as JSON blobs in site_settings rather than in dedicated tables. Pull these out
+// into readable tables so the backup shows them as rows, not one giant cell.
+const COMMERCE_BLOBS: Array<{ key: string; table: string; arrayProp?: string }> = [
+  { key: "commerce_returns", table: "returns", arrayProp: "requests" },
+  { key: "commerce_order_ops", table: "order_ops" },
+  { key: "commerce_customer_profiles", table: "customer_profiles" },
+  { key: "commerce_inventory", table: "inventory" },
+];
+
+// Turn an object-map ({id: {...}}) into an array of rows ({id, ...fields}).
+function mapToRows(obj: unknown): Record<string, unknown>[] {
+  if (!obj || typeof obj !== "object") return [];
+  if (Array.isArray(obj)) return obj as Record<string, unknown>[];
+  return Object.entries(obj as Record<string, unknown>).map(([k, v]) =>
+    v && typeof v === "object" && !Array.isArray(v)
+      ? { id: k, ...(v as Record<string, unknown>) }
+      : { id: k, value: v }
+  );
+}
+
 Deno.serve(async (req) => {
   const expected = Deno.env.get("BACKUP_TOKEN");
   const provided = req.headers.get("x-backup-token") || "";
@@ -49,6 +70,24 @@ Deno.serve(async (req) => {
     if (error) { tables[t] = { error: error.message }; continue; }
     let rows = data ?? [];
     if (t === "site_settings") {
+      // Split the commerce_* JSON blobs out into their own readable tables.
+      const byKey: Record<string, unknown> = {};
+      const blobKeys = new Set(COMMERCE_BLOBS.map((b) => b.key));
+      rows = rows.filter((r: Record<string, unknown>) => {
+        const k = String(r.key ?? "");
+        if (blobKeys.has(k)) { byKey[k] = r.value; return false; }
+        return true;
+      });
+      for (const b of COMMERCE_BLOBS) {
+        const v = byKey[b.key];
+        const src = b.arrayProp && v && typeof v === "object"
+          ? (v as Record<string, unknown>)[b.arrayProp]
+          : v;
+        const arr = mapToRows(src);
+        tables[b.table] = arr;
+        counts[b.table] = arr.length;
+      }
+      // Redact secret-looking values from whatever site_settings rows remain.
       rows = rows.map((r: Record<string, unknown>) =>
         SECRET_KEY_RX.test(String(r.key ?? "")) ? { ...r, value: "[redacted]" } : r
       );

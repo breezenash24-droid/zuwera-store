@@ -15,9 +15,12 @@ hold a harmless shared token.
 ## What's included / excluded
 
 **Included:** `orders`, `profiles`, `auth_users` (emails + metadata), `reviews`,
-`return_requests`, `restock_requests`, `waitlist`, `favorites`, `products`,
-`color_variants`, `product_images`, `product_sizes`, `size_charts`,
-`site_settings`, `admin_audit_log`.
+`restock_requests`, `waitlist`, `favorites`, `products`, `color_variants`,
+`product_images`, `product_sizes`, `size_charts`, `site_settings`,
+`admin_audit_log` — plus `returns`, `order_ops`, `customer_profiles`, and
+`inventory`, which the app stores as JSON inside `site_settings` (the function
+breaks them out into readable tables). Note: the `return_requests` *table* is an
+empty legacy table; live returns are the `returns` tab.
 
 **Excluded for safety:** password hashes (never returned), `api_key_overrides`,
 `webhook_events`, and any secret-looking `site_settings` value (redacted).
