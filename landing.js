@@ -99,6 +99,39 @@
     return null;
   }
 
+  /* ---- PER-PAGE THEME ---------------------------------------------------------
+     A landing page can override the global site theme (builder Pages tab). We
+     apply it ourselves (and cache per slug for flash-free reloads) WITHOUT
+     touching the global zw_theme_mode, and re-assert it if storefront-theme.js
+     later applies the global theme (race-proof via the zw-theme-applied event). */
+  var _slug = '', _preview = false, pageTheme = null;
+  function lpApplyTheme(mode) {
+    var resolved = mode === 'dark' ? 'dark' : mode === 'super-light' ? 'super-light' : 'light';
+    if (!document.body) return;
+    document.body.classList.toggle('light-mode', resolved !== 'dark');
+    document.body.classList.toggle('super-light-mode', resolved === 'super-light');
+    var color = resolved === 'dark' ? '#09090b' : resolved === 'super-light' ? '#FFFFFF' : '#F0EEE9';
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', color);
+    document.documentElement.style.backgroundColor = color;
+  }
+  function applyPageTheme(cfg) {
+    var t = cfg && cfg.theme;
+    if (t === 'dark' || t === 'light' || t === 'super-light') {
+      pageTheme = t;
+      lpApplyTheme(t);
+      if (!_preview) { try { localStorage.setItem('zw_landing_theme_' + _slug, t); } catch (_) {} }
+    } else {
+      pageTheme = null;
+      try { localStorage.removeItem('zw_landing_theme_' + _slug); } catch (_) {}
+      // No override → leave the global theme (storefront-theme.js) in charge.
+    }
+  }
+  // If storefront-theme.js applies the global theme after us, re-assert the override.
+  window.addEventListener('zw-theme-applied', function (e) {
+    if (pageTheme && e && e.detail && e.detail.mode !== pageTheme) lpApplyTheme(pageTheme);
+  });
+
   function buildPage(products, gender, cfg) {
     cfg = cfg || {};
     var gLabel = displayGender(gender);
@@ -216,9 +249,11 @@
     var gender = slug;
     var preview = !!qp('preview');            // builder preview → read the draft
     var key = preview ? 'landing_pages' : 'landing_pages_published';
+    _slug = slug; _preview = preview;
     // Shared config: whichever fetch (config / products) resolves last rebuilds
     // with the freshest data. Starts from cache (live) or null (preview).
     var loadedCfg = preview ? null : getConfig(slug);
+    if (loadedCfg) applyPageTheme(loadedCfg);  // flash-free from cache
 
     // Refresh config from server (so builder edits show without a hard cache).
     fetch(SB + 'site_settings?select=value&key=eq.' + key, { headers: H })
@@ -228,7 +263,8 @@
         if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
         if (v && typeof v === 'object') {
           if (!preview) { try { localStorage.setItem('zw_landing_pages', JSON.stringify(v)); } catch (_) {} }
-          if (v[slug]) { loadedCfg = v[slug]; if (window.__zwProducts) buildPage(window.__zwProducts, gender, loadedCfg); }
+          if (v[slug]) { loadedCfg = v[slug]; applyPageTheme(loadedCfg); if (window.__zwProducts) buildPage(window.__zwProducts, gender, loadedCfg); }
+          else { applyPageTheme(null); }  // page deleted/never set → clear any cached override
         }
       }).catch(function () {});
 

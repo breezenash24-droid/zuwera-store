@@ -710,6 +710,8 @@ function landingLoadProducts(){if(landingProducts||landingProductsLoading)return
 function renderPagesTab(container){
   landingLoadProducts();
   const cfg=lpCfg();const h=cfg.hero,cat=cfg.categories,feat=cfg.featured;
+  const th=cfg.theme||'';
+  const themeOpts=[['','Site theme (Appearance)'],['dark','Dark'],['light','Light'],['super-light','Super-light (white)']].map(o=>`<option value="${o[0]}"${th===o[0]?' selected':''}>${o[1]}</option>`).join('');
   const builtin=['men','women','kids','unisex'];
   const extra=Object.keys(landingPages).filter(k=>builtin.indexOf(k)===-1);
   const opts=builtin.concat(extra).map(s=>`<option value="${he(s)}"${s===landingSlug?' selected':''}>${he(s.charAt(0).toUpperCase()+s.slice(1))}</option>`).join('');
@@ -742,6 +744,7 @@ function renderPagesTab(container){
     <div class="fhint" style="margin-bottom:.5rem">The page shown when a shopper clicks a gender (Men, Women…) in the nav. Leave anything blank to auto-build it from your products.</div>
     <div class="field"><label>Editing page</label><select id="lpPageSel" onchange="landingSelect(this.value)">${opts}</select></div>
     <div class="field"><label>Add a custom page</label><div style="display:flex;gap:.3rem"><input id="lpNewSlug" placeholder="e.g. sale"><button class="add-item-btn" style="white-space:nowrap" onclick="landingAddSlug()">+ Add</button></div></div>
+    <div class="field"><label>Page theme</label><select data-lp="theme">${themeOpts}</select><div class="fhint" style="margin-top:.2rem">Overrides the site Appearance theme for this page only. Use “Save draft &amp; preview” to see it.</div></div>
     <div class="fdiv"></div>
 
     <div class="tab-hd">Hero</div>

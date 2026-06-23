@@ -25,9 +25,15 @@
 }catch(_){}})()
 </script>
 <script>
+/* Effective theme for this landing page: a per-page override (set by the builder
+   Pages tab, cached per slug) wins over the global site theme. Never writes the
+   global zw_theme_mode so other pages are unaffected. */
+window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var slug=(sp.get('page')||sp.get('gender')||'').toLowerCase();return (slug&&localStorage.getItem('zw_landing_theme_'+slug))||localStorage.getItem('zw_theme_mode')||'';}catch(_){return '';}};
+</script>
+<script>
 /* THEME FLASH PREVENTION — runs before any CSS loads */
 (function(){try{
-  var m=localStorage.getItem('zw_theme_mode');
+  var m=window.__zwLM();
   var h=document.documentElement;
   if(m==='super-light'||m==='light'){
     var bg=m==='super-light'?'#FFFFFF':'#F0EEE9';
@@ -169,7 +175,7 @@
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to content</a>
-<script>(function(){try{var m=localStorage.getItem('zw_theme_mode');if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
+<script>(function(){try{var m=window.__zwLM();if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
 <script>
 (function() {
   function applyThemeMode(mode) {
@@ -181,7 +187,7 @@
     if (meta) meta.setAttribute('content', color);
     document.documentElement.style.backgroundColor = color;
   }
-  try { applyThemeMode(localStorage.getItem('zw_theme_mode') || 'dark'); } catch(_) { applyThemeMode('dark'); }
+  try { applyThemeMode(window.__zwLM() || 'dark'); } catch(_) { applyThemeMode('dark'); }
   window.__zwApplyAdminTheme = applyThemeMode;
   window.__zwSyncThemeColor = function() {
     var m = document.body.classList.contains('super-light-mode') ? 'super-light'
@@ -324,6 +330,6 @@
   <script src="auth.js?v=7be42027" defer></script>
   <script src="zw-login.js?v=1b83aa67" defer></script>
   <script src="/nav-menu.js?v=bebee2d6" defer></script>
-  <script src="landing.js?v=3f54d8c6" defer></script>
+  <script src="landing.js?v=17bf5dff" defer></script>
 </body>
 </html>
