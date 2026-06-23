@@ -3400,3 +3400,7 @@ body.light-mode .zw-mega-col a:hover{ color:#09090b; }
   font-family:var(--fb); font-size:.85rem; letter-spacing:.02em; opacity:.85; text-decoration:none; color:inherit;
 }
 .zw-macc-link:hover{ opacity:1; }
+/* No-flash: when a custom nav is cached (html.zw-customnav set synchronously in
+   <head>), hide the static fallback links until nav-menu.js renders the real nav
+   and sets .zw-nav-ready. visibility (not display) keeps the layout stable. */
+html.zw-customnav:not(.zw-nav-ready) #nav-category-links{ visibility:hidden; }

@@ -143,11 +143,15 @@
   }
 
   function render() {
-    if (!Array.isArray(navCfg) || !navCfg.length) return;
+    // Reveal the nav once we've settled (custom rendered OR confirmed none),
+    // clearing the no-flash hide set in <head>.
+    function ready() { document.documentElement.classList.add('zw-nav-ready'); }
+    if (!Array.isArray(navCfg) || !navCfg.length) { ready(); return; }
     window.__zwCustomNavApplied = true;
     var items = resolveAll();
     renderDesktop(items);
     renderMobile(items);
+    ready();
   }
 
   // Mobile accordion toggle (delegated).
