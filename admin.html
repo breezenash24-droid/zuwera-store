@@ -6414,11 +6414,15 @@
                             });
                             document.addEventListener('click', function(e){
                                 var b = e.target.closest('[data-navadd]'); if (!b) return;
-                                var ty = b.dataset.navadd;
-                                window._zwNavMenu.push(ty==='gender' ? {type:'gender',label:'',gender:'',shopAll:true,columns:[]}
-                                    : ty==='tag' ? {type:'tag',label:'',tag:''}
-                                    : {type:'link',label:'',url:'',columns:[]});
-                                render();
+                                var ty = b.dataset.navadd, item;
+                                if (ty === 'gender'){
+                                    // Default to the next unused gender so "+ Gender group" → Save just works.
+                                    var used = {}; window._zwNavMenu.forEach(function(it){ if (it.gender) used[String(it.gender).toLowerCase()] = 1; });
+                                    var g = ['Men','Women','Kids'].filter(function(x){ return !used[x.toLowerCase()]; })[0] || 'Men';
+                                    item = { type:'gender', label:g, gender:g, shopAll:true, columns:[] };
+                                } else if (ty === 'tag'){ item = { type:'tag', label:'', tag:'' }; }
+                                else { item = { type:'link', label:'', url:'', columns:[] }; }
+                                window._zwNavMenu.push(item); render();
                             });
                             window._zwFillNavMenu = function(v){ window._zwNavMenu = Array.isArray(v) ? v : []; render(); };
                             render();
