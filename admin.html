@@ -6342,7 +6342,10 @@
                                 if (type === 'gender'){
                                     body = '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">'
                                         + '<label style="font-size:.78rem;color:var(--text-secondary);">Gender</label>'
-                                        + '<input class="form-input" data-i="'+i+'" data-f="gender" value="'+esc(item.gender||'')+'" placeholder="Men / Women / Kids" style="width:auto;min-width:130px;">'
+                                        + '<select class="form-input" data-i="'+i+'" data-f="gender" style="width:auto;min-width:130px;">'
+                                        + '<option value="">Select gender…</option>'
+                                        + ['Men','Women','Kids','Unisex'].map(function(g){ return '<option value="'+g+'"'+((item.gender||'')===g?' selected':'')+'>'+g+'</option>'; }).join('')
+                                        + '</select>'
                                         + '<label style="font-size:.78rem;color:var(--text-secondary);display:flex;align-items:center;gap:5px;"><input type="checkbox" data-i="'+i+'" data-f="shopAll" '+(item.shopAll!==false?'checked':'')+'> Include “Shop all”</label></div>'
                                         + '<p style="font-size:.74rem;color:var(--text-secondary);margin:0 0 6px;">Categories auto-fill from your products (Men &amp; Women include Unisex). Optionally group them into columns; anything not placed appears under “More”. No columns = one auto list.</p>'
                                         + (item.columns||[]).map(function(col,j){
@@ -6387,6 +6390,7 @@
                                 var i=+el.dataset.i, j=el.dataset.j, l=el.dataset.l, f=el.dataset.f, m=window._zwNavMenu;
                                 if (!m[i]) return;
                                 if (f === 'type'){ m[i].type = el.value; render(); return; }
+                                if (f === 'gender'){ m[i].gender = el.value; if (!(m[i].label||'').trim()) m[i].label = el.value; render(); return; }
                                 if (f === 'shopAll'){ m[i].shopAll = el.checked; return; }
                                 if (l !== undefined){ m[i].columns[+j].links[+l][f] = el.value; }
                                 else if (j !== undefined){
@@ -12449,10 +12453,11 @@
         const clean = (window._zwNavMenu || []).map(it => {
             const type = it.type || (it.gender ? 'gender' : (it.tag ? 'tag' : 'link'));
             const label = (it.label || '').trim();
-            if (!label) return null;
             if (type === 'gender') {
+                const gender = (it.gender || label).trim();
+                if (!gender) return null;                       // a gender group only needs a gender
                 return {
-                    type: 'gender', label, gender: (it.gender || label).trim(), shopAll: it.shopAll !== false,
+                    type: 'gender', label: label || gender, gender, shopAll: it.shopAll !== false,
                     columns: (it.columns || []).map(c => ({
                         heading: (c.heading || '').trim(),
                         categories: (c.categories || []).map(s => String(s).trim()).filter(Boolean)
@@ -12461,8 +12466,10 @@
             }
             if (type === 'tag') {
                 const tag = (it.tag || label).trim();
-                return tag ? { type: 'tag', label, tag } : null;
+                if (!tag) return null;                          // a tag item only needs a tag
+                return { type: 'tag', label: label || tag, tag };
             }
+            if (!label) return null;
             return {
                 type: 'link', label, url: (it.url || '').trim(),
                 columns: (it.columns || []).map(c => ({
