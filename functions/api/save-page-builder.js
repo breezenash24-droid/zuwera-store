@@ -6,7 +6,7 @@
 
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
-const ALLOWED_KEYS = ['page_builder','builder_theme','builder_nav','builder_history','builder_templates','page_builder_published'];
+const ALLOWED_KEYS = ['page_builder','builder_theme','builder_nav','builder_history','builder_templates','page_builder_published','landing_pages','landing_pages_published'];
 
 function cors(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -62,6 +62,9 @@ export async function onRequestPost({ request, env }) {
     const rows = [{ key, value }];
     if (key === 'page_builder' && published) {
       rows.push({ key: 'page_builder_published', value });
+    }
+    if (key === 'landing_pages' && published) {
+      rows.push({ key: 'landing_pages_published', value });
     }
 
     const saveRes = await fetch(`${SUPABASE_URL}/rest/v1/site_settings?on_conflict=key`, {

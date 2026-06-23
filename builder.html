@@ -228,6 +228,7 @@ body{display:flex;flex-direction:column}
 <div class="lp">
   <div class="lp-tabs">
     <button class="lp-tab on" onclick="lpTab('sections')" id="tab-sections">Sections</button>
+    <button class="lp-tab" onclick="lpTab('pages')"     id="tab-pages">Pages</button>
     <button class="lp-tab" onclick="lpTab('theme')"    id="tab-theme">Theme</button>
     <button class="lp-tab" onclick="lpTab('nav')"      id="tab-nav">Nav</button>
     <button class="lp-tab" onclick="lpTab('seo')"      id="tab-seo">SEO</button>
@@ -478,6 +479,7 @@ const DEFAULT_SECTIONS=['hero','marquee','about','release','products'].map((t,i)
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 let sections=[],themeSettings={},navSettings={links:[]},seoSettings={},lastSaved=null;
+let landingPages={},landingSlug='men',landingProducts=null,landingProductsLoading=false;
 let undoStack=[],redoStack=[],versionHistory=[],templates=[];
 let selId=null,pvMode='desk',pvTheme='dark',dirty=false,curTab='sections';
 let _imgKey=null,_tt,_sendT,_autosaveT;
@@ -494,14 +496,21 @@ let _imgKey=null,_tt,_sendT,_autosaveT;
     const sb=getSb();
     if(sb){
       // Load all builder settings with a 5s timeout per query group
-      const[pd,th,nv,hist,tmpl,pub]=await withTimeout(Promise.all([
+      const[pd,th,nv,hist,tmpl,pub,lpDraft,lpPub]=await withTimeout(Promise.all([
         sb.from('site_settings').select('value').eq('key','page_builder').maybeSingle(),
         sb.from('site_settings').select('value').eq('key','builder_theme').maybeSingle(),
         sb.from('site_settings').select('value').eq('key','builder_nav').maybeSingle(),
         sb.from('site_settings').select('value').eq('key','builder_history').maybeSingle(),
         sb.from('site_settings').select('value').eq('key','builder_templates').maybeSingle(),
         sb.from('site_settings').select('value').eq('key','page_builder_published').maybeSingle(),
+        sb.from('site_settings').select('value').eq('key','landing_pages').maybeSingle(),
+        sb.from('site_settings').select('value').eq('key','landing_pages_published').maybeSingle(),
       ]), 5000);
+      { // Landing pages: prefer draft, fall back to published; strip save-meta keys
+        const lpRaw = (lpDraft?.data?.value) || (lpPub?.data?.value) || {};
+        const lpClean = {...lpRaw}; delete lpClean.updated_at; delete lpClean.published;
+        landingPages = lpClean;
+      }
       const activeData = pd?.data?.value || pub?.data?.value;
       if(activeData?.sections){
         sections=activeData.sections.map(s=>({...s,settings:{...SECT_DEFS[s.type],...(s.settings||{})}}));
@@ -559,6 +568,7 @@ function lpTab(name){
 function renderLP(){
   const el=document.getElementById('lpContent');
   if(curTab==='sections'){renderSidebar(el);}
+  else if(curTab==='pages'){renderPagesTab(el);}
   else if(curTab==='theme'){renderThemeTab(el);}
   else if(curTab==='nav'){renderNavTab(el);}
   else if(curTab==='seo'){renderSeoTab(el);}
@@ -676,6 +686,107 @@ async function saveNav(){
     toast('Navigation saved','ok');sendCfg();
   }catch(e){showErr(e.message);}
 }
+
+// ── PAGES TAB (gender / landing pages) ─────────────────────────────────────
+const LP_CLOTHING_ORDER=['Outerwear','Jackets','Coats','Vests','Hoodies','Sweatshirts','Sweaters','Knitwear','Tops','T-Shirts','Tees','Shirts','Polos','Long Sleeves','Sweatpants','Joggers','Pants','Trousers','Leggings','Shorts','Bottoms','Sets','Tracksuits','Dresses','Skirts','Swim','Underwear','Socks','Hats','Caps','Beanies','Gloves','Bags','Accessories'];
+function lpCatRank(n){const i=LP_CLOTHING_ORDER.findIndex(c=>c.toLowerCase()===String(n).toLowerCase());return i===-1?999:i;}
+function lpMatchGender(p,want){if(!want)return true;const g=String(p&&p.gender||'').trim().toLowerCase();want=String(want).toLowerCase();if(want==='men')return g==='men'||g==='unisex';if(want==='women')return g==='women'||g==='unisex';return g===want;}
+function lpCfg(){let c=landingPages[landingSlug];if(!c||typeof c!=='object'){c={};landingPages[landingSlug]=c;}c.hero=c.hero||{};c.categories=c.categories||{};c.featured=c.featured||{};return c;}
+function lpSetPath(path,val){const c=lpCfg();const parts=path.split('.');let o=c;for(let i=0;i<parts.length-1;i++){o[parts[i]]=o[parts[i]]||{};o=o[parts[i]];}o[parts[parts.length-1]]=val;markLpDirty();}
+let _lpDirty=false; function markLpDirty(){_lpDirty=true;const b=document.getElementById('lpSaveHint');if(b)b.textContent='Unsaved changes';}
+function lpGenderProducts(){return (landingProducts||[]).filter(p=>lpMatchGender(p,landingSlug));}
+function lpAvailCats(){const seen={},list=[];lpGenderProducts().forEach(p=>{const c=String(p.subtitle||'').trim();if(!c||seen[c.toLowerCase()])return;seen[c.toLowerCase()]=true;list.push(c);});return list;}
+function lpOrderedCats(){const avail=lpAvailCats();const byLow={};avail.forEach(a=>byLow[a.toLowerCase()]=a);const order=Array.isArray(lpCfg().categories.order)?lpCfg().categories.order:[];const inOrder=[],placed={};order.forEach(c=>{const a=byLow[String(c).toLowerCase()];if(a&&!placed[a.toLowerCase()]){inOrder.push(a);placed[a.toLowerCase()]=true;}});const rest=avail.filter(a=>!placed[a.toLowerCase()]).sort((a,b)=>lpCatRank(a)-lpCatRank(b)||a.localeCompare(b));return inOrder.concat(rest);}
+function lpCatHidden(cat){const h=lpCfg().categories.hidden||[];const low=String(cat).toLowerCase();return h.some(x=>String(x).toLowerCase()===low);}
+function lpCatToggle(cat){const c=lpCfg().categories;c.hidden=c.hidden||[];const low=String(cat).toLowerCase();const i=c.hidden.findIndex(x=>String(x).toLowerCase()===low);if(i>=0)c.hidden.splice(i,1);else c.hidden.push(cat);markLpDirty();renderLP();}
+function lpCatMove(idx,dir){const ord=lpOrderedCats();const j=idx+dir;if(j<0||j>=ord.length)return;const t=ord[idx];ord[idx]=ord[j];ord[j]=t;lpCfg().categories.order=ord;markLpDirty();renderLP();}
+function lpFeatToggle(id){const f=lpCfg().featured;f.productIds=f.productIds||[];const i=f.productIds.findIndex(x=>String(x)===String(id));if(i>=0)f.productIds.splice(i,1);else f.productIds.push(id);markLpDirty();renderLP();}
+function lpFeatChecked(id){const ids=lpCfg().featured.productIds||[];return ids.some(x=>String(x)===String(id));}
+function lpSetMode(v){lpSetPath('featured.mode',v);renderLP();}
+function landingSelect(slug){landingSlug=slug;renderLP();}
+function landingAddSlug(){const el=document.getElementById('lpNewSlug');if(!el)return;const s=String(el.value||'').trim().toLowerCase().replace(/[^a-z0-9-]/g,'');if(!s)return;landingPages[s]=landingPages[s]||{};landingSlug=s;renderLP();}
+function landingLoadProducts(){if(landingProducts||landingProductsLoading)return;landingProductsLoading=true;try{const sb=getSb();if(!sb){landingProducts=[];landingProductsLoading=false;return;}sb.from('products').select('id,title,gender,subtitle,status,sort_order').order('sort_order',{ascending:true}).then(r=>{landingProducts=(r&&r.data)||[];landingProductsLoading=false;if(curTab==='pages')renderLP();},()=>{landingProducts=[];landingProductsLoading=false;if(curTab==='pages')renderLP();});}catch(_){landingProducts=[];landingProductsLoading=false;}}
+
+function renderPagesTab(container){
+  landingLoadProducts();
+  const cfg=lpCfg();const h=cfg.hero,cat=cfg.categories,feat=cfg.featured;
+  const builtin=['men','women','kids','unisex'];
+  const extra=Object.keys(landingPages).filter(k=>builtin.indexOf(k)===-1);
+  const opts=builtin.concat(extra).map(s=>`<option value="${he(s)}"${s===landingSlug?' selected':''}>${he(s.charAt(0).toUpperCase()+s.slice(1))}</option>`).join('');
+
+  let catHtml;
+  if(landingProducts===null){catHtml=`<div class="fhint">Loading products…</div>`;}
+  else{
+    const ord=lpOrderedCats();
+    if(!ord.length)catHtml=`<div class="fhint">No products tagged for “${he(landingSlug)}” yet. Categories appear here automatically as you add products with this gender.</div>`;
+    else catHtml=`<div class="fhint" style="margin-bottom:.4rem">Drag order with the arrows. Unchecked = hidden on the page. New categories appear automatically (clothing first).</div>`+
+      ord.map((c,i)=>`<div class="nav-link-item"><label style="display:flex;align-items:center;gap:.4rem;flex:1;min-width:0;cursor:pointer"><input type="checkbox" ${lpCatHidden(c)?'':'checked'} onchange="lpCatToggle('${he(c).replace(/'/g,"\\'")}')"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${he(c)}</span></label><button class="nav-link-rm" title="Up" onclick="lpCatMove(${i},-1)"${i===0?' disabled style=opacity:.3':''}>↑</button><button class="nav-link-rm" title="Down" onclick="lpCatMove(${i},1)"${i===ord.length-1?' disabled style=opacity:.3':''}>↓</button></div>`).join('');
+  }
+
+  let featHtml;
+  if(landingProducts===null){featHtml=`<div class="fhint">Loading products…</div>`;}
+  else{
+    const gp=lpGenderProducts();
+    const manual=(feat.mode==='manual');
+    featHtml=`<div class="field"><label>Mode</label><select onchange="lpSetMode(this.value)"><option value="auto"${manual?'':' selected'}>Auto — newest items</option><option value="manual"${manual?' selected':''}>Manual — pick items</option></select></div>`+
+      `<div class="field"><label>Max items shown</label><input type="number" min="1" max="40" data-lp="featured.limit" value="${he(feat.limit||8)}"></div>`;
+    if(manual){
+      featHtml+= gp.length?(`<div class="fhint" style="margin-bottom:.4rem">Check the items to feature for ${he(landingSlug)}.</div>`+gp.map(p=>`<label class="nav-link-item" style="cursor:pointer"><input type="checkbox" ${lpFeatChecked(p.id)?'checked':''} onchange="lpFeatToggle('${he(String(p.id)).replace(/'/g,"\\'")}')"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${he(p.title||p.id)}</span><span style="opacity:.4;font-size:.55rem">${he(p.subtitle||'')}</span></label>`).join('')):`<div class="fhint">No ${he(landingSlug)} products yet.</div>`;
+    }
+  }
+
+  const heroImg = h.image ? `<img src="${he(h.image)}" style="width:100%;height:70px;object-fit:cover;border:1px solid var(--bd);border-radius:2px;margin-bottom:.25rem;display:block">` : '';
+
+  container.innerHTML=`<div class="tab-pane">
+    <div class="tab-hd">Landing Pages</div>
+    <div class="fhint" style="margin-bottom:.5rem">The page shown when a shopper clicks a gender (Men, Women…) in the nav. Leave anything blank to auto-build it from your products.</div>
+    <div class="field"><label>Editing page</label><select id="lpPageSel" onchange="landingSelect(this.value)">${opts}</select></div>
+    <div class="field"><label>Add a custom page</label><div style="display:flex;gap:.3rem"><input id="lpNewSlug" placeholder="e.g. sale"><button class="add-item-btn" style="white-space:nowrap" onclick="landingAddSlug()">+ Add</button></div></div>
+    <div class="fdiv"></div>
+
+    <div class="tab-hd">Hero</div>
+    <div class="field"><label>Kicker (small text above title)</label><input data-lp="hero.kicker" value="${he(h.kicker||'')}" placeholder="Zuwera"></div>
+    <div class="field"><label>Title</label><input data-lp="hero.title" value="${he(h.title||'')}" placeholder="${he(landingSlug.charAt(0).toUpperCase()+landingSlug.slice(1))}"></div>
+    <div class="field"><label>Subtitle</label><textarea data-lp="hero.subtitle" rows="2" style="font-family:inherit;font-size:.68rem" placeholder="Auto tagline…">${he(h.subtitle||'')}</textarea></div>
+    <div class="field"><label>Button text</label><input data-lp="hero.ctaText" value="${he(h.ctaText||'')}" placeholder="Shop all ${he(landingSlug)}"></div>
+    <div class="field"><label>Button link</label><input data-lp="hero.ctaUrl" value="${he(h.ctaUrl||'')}" placeholder="drop001.html?gender=…"></div>
+    <div class="field"><label>Hero image</label>${heroImg}<input data-lp="hero.image" data-f="__lpHero" id="lpHeroImg" value="${he(h.image||'')}" placeholder="Auto: first product image"><div style="display:flex;gap:.3rem;margin-top:.25rem"><button type="button" class="img-btn" onclick="openMedia('__lpHero')">📁 Browse</button></div></div>
+    <div class="fdiv"></div>
+
+    <div class="tab-hd">Shop by Category</div>
+    <div class="field"><label>Section heading</label><input data-lp="categories.heading" value="${he(cat.heading||'')}" placeholder="Shop by category"></div>
+    ${catHtml}
+    <div class="fdiv"></div>
+
+    <div class="tab-hd">Featured</div>
+    <div class="field"><label>Section heading</label><input data-lp="featured.heading" value="${he(feat.heading||'')}" placeholder="Featured"></div>
+    ${featHtml}
+    <div class="fdiv"></div>
+
+    <div style="display:flex;gap:.3rem;align-items:center;flex-wrap:wrap">
+      <button onclick="landingSavePreview()" class="add-item-btn">👁 Save draft &amp; preview</button>
+      <button onclick="saveLandingPages(false)" class="apply-btn">💾 Save Draft</button>
+      <button onclick="saveLandingPages(true)" class="apply-btn">🚀 Publish</button>
+    </div>
+    <div class="fhint" id="lpSaveHint" style="margin-top:.4rem">${_lpDirty?'Unsaved changes':'Saved'}</div>
+  </div>`;
+
+  container.querySelectorAll('[data-lp]').forEach(el=>{
+    const sync=()=>lpSetPath(el.dataset.lp,el.value);
+    el.addEventListener('input',sync); el.addEventListener('change',sync);
+  });
+}
+
+async function saveLandingPages(pub){
+  try{
+    const token=await getAccessToken();if(!token)throw new Error('Session expired');
+    const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:token,key:'landing_pages',value:landingPages,published:!!pub})});
+    if(!res.ok)throw new Error(await res.text());
+    _lpDirty=false;const hint=document.getElementById('lpSaveHint');if(hint)hint.textContent='Saved';
+    toast(pub?'Landing page published 🚀':'Landing draft saved','ok');
+  }catch(e){showErr(e.message);}
+}
+async function landingSavePreview(){await saveLandingPages(false);window.open('/landing.html?page='+encodeURIComponent(landingSlug)+'&preview=1','_blank');}
 
 // ── SEO TAB ───────────────────────────────────────────────────────────────
 function renderSeoTab(container){

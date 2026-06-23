@@ -214,17 +214,21 @@
   function init() {
     var slug = (qp('page') || qp('gender')).toLowerCase();
     var gender = slug;
-    var cfg = getConfig(slug);
+    var preview = !!qp('preview');            // builder preview → read the draft
+    var key = preview ? 'landing_pages' : 'landing_pages_published';
+    // Shared config: whichever fetch (config / products) resolves last rebuilds
+    // with the freshest data. Starts from cache (live) or null (preview).
+    var loadedCfg = preview ? null : getConfig(slug);
 
     // Refresh config from server (so builder edits show without a hard cache).
-    fetch(SB + 'site_settings?select=value&key=eq.landing_pages_published', { headers: H })
+    fetch(SB + 'site_settings?select=value&key=eq.' + key, { headers: H })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (rows) {
         var v = rows && rows[0] && rows[0].value;
         if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
         if (v && typeof v === 'object') {
-          try { localStorage.setItem('zw_landing_pages', JSON.stringify(v)); } catch (_) {}
-          if (v[slug] && window.__zwProducts) buildPage(window.__zwProducts, gender, v[slug]);
+          if (!preview) { try { localStorage.setItem('zw_landing_pages', JSON.stringify(v)); } catch (_) {} }
+          if (v[slug]) { loadedCfg = v[slug]; if (window.__zwProducts) buildPage(window.__zwProducts, gender, loadedCfg); }
         }
       }).catch(function () {});
 
@@ -234,7 +238,7 @@
       .then(function (products) {
         products = Array.isArray(products) ? products : [];
         window.__zwProducts = products;
-        buildPage(products, gender, getConfig(slug) || cfg);
+        buildPage(products, gender, loadedCfg);
       })
       .catch(function () {
         var grid = document.getElementById('lp-feat-grid');
