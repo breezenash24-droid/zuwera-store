@@ -1061,6 +1061,17 @@ body.light-mode .heart-btn{
     overflow-y:auto;
     }
 
+  /* Native-feel bottom sheet: the full-screen mobile modal slides up from the
+     bottom edge (and back down on close) instead of a small nudge + scale.
+     The shared box transition above carries the transform in both directions. */
+  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox){
+    transition:transform .36s cubic-bezier(.22,.61,.36,1), opacity .2s ease !important;
+    }
+  .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal):not(.open) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox){
+    transform:translateY(100%) !important;
+    opacity:1 !important;
+    }
+
   .collection-review-modal{
     align-items:stretch !important;
     justify-content:flex-end !important;

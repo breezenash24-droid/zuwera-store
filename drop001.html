@@ -82,7 +82,7 @@
        are cached immutable, so on every repeat view the real font is ready at
        first paint with no fallback swap. Preconnects keep cold-cache cost small. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=5cf6d615">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=abc3bb05">
 <script src="header-scroll.js?v=4a734678" defer></script>
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=29023607">
 <!-- Google tag (gtag.js) -->
@@ -551,6 +551,9 @@
     }
     @keyframes collectionModalIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
     @keyframes collectionModalOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(18px)}}
+    /* Mobile: slide the bottom sheet up from / down to the screen edge. */
+    @keyframes collectionSheetIn{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    @keyframes collectionSheetOut{from{transform:translateY(0)}to{transform:translateY(100%)}}
     .collection-review-close{
       position:absolute;top:.9rem;right:.9rem;z-index:30;width:32px;height:32px;
       border:1px solid rgba(244,241,235,.12);background:rgba(9,9,11,.72);color:var(--white);
@@ -669,6 +672,10 @@
         overflow-y:auto;
         overflow-x:hidden;
         -webkit-overflow-scrolling:touch;
+        animation:collectionSheetIn .34s cubic-bezier(.22,.61,.36,1);
+      }
+      .collection-review-modal.closing .collection-review-box{
+        animation:collectionSheetOut .2s ease forwards;
       }
       .collection-review-close{
         position:fixed;
