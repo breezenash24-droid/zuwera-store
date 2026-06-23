@@ -420,6 +420,8 @@ function showToast(msg) {
             if (img) img.src = 'images/hero.jpg?v=2';
             if (mobileSource) mobileSource.srcset = 'images/hero-mobile.jpg';
           }
+          // Fill (cover) vs Fit (contain) — lets a logo/graphic show whole.
+          if (img) img.style.objectFit = (s.fit === 'contain') ? 'contain' : 'cover';
           break;
         }
         case 'marquee': {

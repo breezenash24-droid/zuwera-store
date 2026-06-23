@@ -148,6 +148,10 @@
       : 'Browse the latest Zuwera collection.');
     var heroImg = heroCfg.image || firstImage(inGender[0] || products[0] || {});
     var heroVideo = heroCfg.video || '';
+    // Show the hero media exactly as uploaded: full quality (no Cloudinary
+    // re-encode, which softens crisp logos/line-art) and either Fill (cover) or
+    // Fit (contain, shows the whole image). Default Fill.
+    var heroFit = (heroCfg.fit === 'contain') ? 'contain' : 'cover';
     var heroCtaText = heroCfg.ctaText || ('Shop all ' + (gLabel || 'products'));
     var heroCtaUrl = heroCfg.ctaUrl || base;
 
@@ -155,11 +159,11 @@
     // image; the image doubles as the video poster (first frame).
     var mediaHtml;
     if (heroVideo) {
-      mediaHtml = '<video class="lp-hero-bg" autoplay muted loop playsinline preload="auto"' +
-        (heroImg ? ' poster="' + esc(optImg(heroImg, 1400)) + '"' : '') +
+      mediaHtml = '<video class="lp-hero-bg" style="object-fit:' + heroFit + '" autoplay muted loop playsinline preload="auto"' +
+        (heroImg ? ' poster="' + esc(heroImg) + '"' : '') +
         '><source src="' + esc(heroVideo) + '"></video>';
     } else {
-      mediaHtml = '<div class="lp-hero-bg"></div>';
+      mediaHtml = '<div class="lp-hero-bg" style="background-size:' + heroFit + '"></div>';
     }
     var heroEl = document.getElementById('lp-hero');
     if (heroEl) {
@@ -171,7 +175,7 @@
         '<a class="lp-hero-cta" href="' + esc(heroCtaUrl) + '">' + esc(heroCtaText) + '</a>';
       if (!heroVideo && heroImg) {
         var bg2 = heroEl.querySelector('.lp-hero-bg');
-        if (bg2) bg2.style.backgroundImage = "url('" + optImg(heroImg, 1400).replace(/'/g, "%27") + "')";
+        if (bg2) bg2.style.backgroundImage = "url('" + heroImg.replace(/'/g, "%27") + "')";
       }
     }
     document.title = (gLabel ? gLabel + ' — Shop ' : 'Shop ') + '| ZUWERA';
