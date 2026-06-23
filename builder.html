@@ -1122,13 +1122,19 @@ async function openMedia(fieldKey){
   const grid=document.getElementById('mediaGrid');
   // Start with known site images
   grid.innerHTML=SITE_IMGS.map(img=>`<div class="media-thumb" onclick="applyMedia('${img.src}')"><img src="${img.src}" alt="${img.label}" onerror="this.parentElement.style.display='none'"><div class="media-thumb-lbl">${img.label}</div></div>`).join('');
-  // Load from Supabase storage
+  // Load from Supabase storage (listing needs the admin token — anon is blocked by RLS)
   try{
-    const sb=getSb();
-    const{data}=await sb.storage.from('product-images').list('builder',{limit:50,sortBy:{column:'created_at',order:'desc'}});
-    if(data){
+    const token=await getAccessToken();
+    const listRes=await fetch(SUPA_URL+'/storage/v1/object/list/product-images',{
+      method:'POST',
+      headers:{ apikey:SUPA_ANON, Authorization:'Bearer '+(token||SUPA_ANON), 'Content-Type':'application/json' },
+      body:JSON.stringify({prefix:'builder/',limit:50,sortBy:{column:'created_at',order:'desc'}})
+    });
+    const data=listRes.ok?await listRes.json():null;
+    if(Array.isArray(data)){
       data.forEach(file=>{
-        const{data:{publicUrl}}=sb.storage.from('product-images').getPublicUrl('builder/'+file.name);
+        if(!file||!file.name)return;
+        const publicUrl=SUPA_URL+'/storage/v1/object/public/product-images/builder/'+file.name;
         const isVid=/\.(mp4|webm|mov|m4v|ogv|ogg)$/i.test(file.name);
         const d=document.createElement('div');d.className='media-thumb';d.onclick=()=>applyMedia(publicUrl);
         d.innerHTML=(isVid
@@ -1159,15 +1165,25 @@ async function uploadFromMedia(input){
     if(!confirm('This video is '+(file.size/1048576).toFixed(1)+' MB. Large videos slow the page on first load — aim for a short, compressed clip (ideally under ~10 MB). Upload anyway?'))return;
   }
   try{
-    const sb=getSb();
-    const path='builder/'+Date.now()+'.'+file.name.split('.').pop();
-    const{error}=await sb.storage.from('product-images').upload(path,file,{upsert:true});
-    if(error)throw error;
-    const{data:{publicUrl}}=sb.storage.from('product-images').getPublicUrl(path);
+    // The builder's Supabase JS client has no auth session (it only holds an
+    // access token for the save API), so sb.storage.upload runs as anon and RLS
+    // blocks it. Upload straight to the Storage REST API with the admin's access
+    // token instead, so RLS sees an authenticated admin.
+    const token=await getAccessToken();
+    if(!token)throw new Error('Your admin session expired — re-open the builder from the Admin panel.');
+    const ext=(String(file.name.split('.').pop()||'bin')).toLowerCase().replace(/[^a-z0-9]/g,'')||'bin';
+    const path='builder/'+Date.now()+'-'+Math.random().toString(36).slice(2,7)+'.'+ext;
+    const res=await fetch(SUPA_URL+'/storage/v1/object/product-images/'+path,{
+      method:'POST',
+      headers:{ apikey:SUPA_ANON, Authorization:'Bearer '+token, 'x-upsert':'true', 'Content-Type':file.type||'application/octet-stream' },
+      body:file
+    });
+    if(!res.ok)throw new Error((await res.text())||('HTTP '+res.status));
+    const publicUrl=SUPA_URL+'/storage/v1/object/public/product-images/'+path;
     applyMedia(publicUrl);toast('Uploaded','ok');
   }catch(e){
     // Don't silently fall back to a blob: URL — it can't load once saved/published.
-    showErr('Upload failed: '+((e&&e.message)||e||'unknown')+'. Make sure you are signed in as admin, or paste an image URL instead.');
+    showErr('Upload failed: '+((e&&e.message)||e||'unknown')+'. Make sure you opened the builder from the Admin panel (so you are signed in), or paste an image URL instead.');
   }
 }
 

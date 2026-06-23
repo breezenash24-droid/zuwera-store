@@ -114,6 +114,10 @@
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', color);
     document.documentElement.style.backgroundColor = color;
+    // Also force the BODY background so transparent sections (the lower part of
+    // the page) match — overrides the head flash-prevention style, which keys off
+    // the cached/global mode and would otherwise leave the bottom off-white.
+    try { document.body.style.setProperty('background-color', color, 'important'); } catch (_) {}
   }
   function applyPageTheme(cfg) {
     var t = cfg && cfg.theme;
