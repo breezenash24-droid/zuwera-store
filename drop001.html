@@ -1430,7 +1430,11 @@ function updateCountdown() {
         }
 
         let renderList = filteredProducts;
-        if (filteredProducts.length === 1 && filteredProducts[0].product_images && filteredProducts[0].product_images.length > 1) {
+        // A lone product is normally split into one card per image — but NOT when it
+        // has color variants, or that split would strip the per-color images the
+        // swatch hover needs (and break the swatches).
+        if (filteredProducts.length === 1 && filteredProducts[0].product_images && filteredProducts[0].product_images.length > 1
+            && !(filteredProducts[0].color_variants && filteredProducts[0].color_variants.length)) {
           const p = filteredProducts[0];
           let allImages = [...p.product_images].sort((a, b) => a.sort_order - b.sort_order);
           if (p.image_url && !allImages.some(img => img.image_url === p.image_url)) {

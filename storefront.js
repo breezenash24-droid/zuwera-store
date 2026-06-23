@@ -1526,8 +1526,10 @@ function renderProductCards(products, grid) {
     const s = (p.status || '').toLowerCase();
     return s !== 'legacy' && s !== 'draft';
   });
-  // If only 1 product, show its different images as separate cards
-  if (products.length === 1 && products[0].product_images && products[0].product_images.length > 1) {
+  // If only 1 product, show its different images as separate cards — but not when
+  // it has color variants (that split strips the per-color images the swatches need).
+  if (products.length === 1 && products[0].product_images && products[0].product_images.length > 1
+      && !(products[0].color_variants && products[0].color_variants.length)) {
     const p = products[0];
     let allImages = [...p.product_images].sort((a, b) => a.sort_order - b.sort_order);
     if (p.image_url && !allImages.some(img => img.image_url === p.image_url)) {
