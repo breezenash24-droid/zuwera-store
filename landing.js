@@ -232,7 +232,7 @@
         }
       }).catch(function () {});
 
-    var sel = 'id,title,subtitle,gender,status,current_price,msrp,price,sku,image_url,sort_order,image_focal_y,product_images(image_url,sort_order)';
+    var sel = 'id,title,subtitle,gender,status,current_price,msrp,sku,image_url,sort_order,image_focal_y,product_images(image_url,sort_order)';
     fetch(SB + 'products?select=' + encodeURIComponent(sel) + '&status=neq.Draft&status=neq.Legacy&order=sort_order.asc', { headers: H })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (products) {
