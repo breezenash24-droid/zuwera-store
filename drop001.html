@@ -1071,6 +1071,26 @@ function categoryLabelFromProduct(product) {
 function getRequestedCategory() {
   return normalizeCategoryLabel(new URLSearchParams(window.location.search).get('category'));
 }
+function getRequestedGender() {
+  return (new URLSearchParams(window.location.search).get('gender') || '').trim();
+}
+function getRequestedTag() {
+  return (new URLSearchParams(window.location.search).get('tag') || '').trim();
+}
+// Men/Women include Unisex products; Kids do not.
+function productMatchesGender(p, want) {
+  if (!want) return true;
+  var g = String((p && p.gender) || '').trim().toLowerCase();
+  var w = want.toLowerCase();
+  if (g === w) return true;
+  if (g === 'unisex' && (w === 'men' || w === 'women')) return true;
+  return false;
+}
+function productMatchesTag(p, want) {
+  if (!want) return true;
+  var tags = (p && Array.isArray(p.tags)) ? p.tags : [];
+  return tags.some(function (t) { return String(t || '').trim().toLowerCase() === want.toLowerCase(); });
+}
 
 function updateCollectionMeta(categoryLabel) {
   const label = categoryLabel || 'All Products';
@@ -1328,7 +1348,10 @@ function updateCountdown() {
 
       const grid = document.getElementById('products-grid');
       const requestedCategory = getRequestedCategory();
-      updateCollectionMeta(requestedCategory);
+      const requestedGender = getRequestedGender();
+      const requestedTag = getRequestedTag();
+      const requestedLabel = [requestedGender, requestedCategory].filter(Boolean).join(' · ') || requestedTag || '';
+      updateCollectionMeta(requestedLabel);
 
       let cached = null;
       try { cached = sessionStorage.getItem('zw_collection_products'); } catch(_) {}
@@ -1393,15 +1416,16 @@ function updateCountdown() {
       renderProducts(products);
 
       function renderProducts(productsList) {
-        const filteredProducts = requestedCategory
-          ? (productsList || []).filter(product => categoryLabelFromProduct(product).toLowerCase() === requestedCategory.toLowerCase())
-          : (productsList || []);
+        const filteredProducts = (productsList || []).filter(function (p) {
+          if (requestedCategory && categoryLabelFromProduct(p).toLowerCase() !== requestedCategory.toLowerCase()) return false;
+          return productMatchesGender(p, requestedGender) && productMatchesTag(p, requestedTag);
+        });
 
-        updateCollectionMeta(requestedCategory || (filteredProducts.length === 1 ? categoryLabelFromProduct(filteredProducts[0]) : ''));
+        updateCollectionMeta(requestedLabel || (filteredProducts.length === 1 ? categoryLabelFromProduct(filteredProducts[0]) : ''));
 
         if (!filteredProducts.length) {
           grid.classList.remove('single-item', 'two-items');
-          grid.innerHTML = `<div class="product-card" style="opacity:.35;text-align:center;padding:3rem;grid-column:1/-1">No ${requestedCategory || 'products'} yet.</div>`;
+          grid.innerHTML = `<div class="product-card" style="opacity:.35;text-align:center;padding:3rem;grid-column:1/-1">No ${requestedLabel || 'products'} yet.</div>`;
           return;
         }
 
@@ -2098,6 +2122,6 @@ function updateCountdown() {
   </script>
 <script src="auth.js?v=7be42027" defer></script>
 <script src="zw-login.js?v=1b83aa67" defer></script>
-<script src="/nav-menu.js?v=71526856" defer></script>
+<script src="/nav-menu.js?v=b791723e" defer></script>
 </body>
 </html>
