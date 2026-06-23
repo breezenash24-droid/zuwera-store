@@ -20,7 +20,7 @@ body{display:flex;flex-direction:column}
 .tlogo{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-weight:900;font-size:1.1rem;color:#f4f1eb;text-decoration:none;flex-shrink:0}
 .tsep{width:1px;height:18px;background:var(--bd);flex-shrink:0}
 .ttitle{font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;color:var(--mu);flex:1;white-space:nowrap}
-.tbtn{border:none;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.54rem;letter-spacing:.09em;text-transform:uppercase;padding:.32rem .7rem;border-radius:2px;transition:.13s;flex-shrink:0;white-space:nowrap}
+.tbtn{border:none;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.09em;text-transform:uppercase;padding:.42rem .8rem;border-radius:3px;transition:.13s;flex-shrink:0;white-space:nowrap}
 .tbtn-ghost{background:transparent;border:1px solid var(--bd);color:var(--mu)}
 .tbtn-ghost:hover{border-color:rgba(255,255,255,.22);color:#f4f1eb}
 .tbtn-solid{background:#f4f1eb;color:#0f0f11;font-weight:600}
@@ -32,12 +32,28 @@ body{display:flex;flex-direction:column}
 .dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--mu);margin-right:.28rem;vertical-align:middle;transition:background .3s}
 .dot.g{background:#6fcf6f}.dot.y{background:#f6c90e}.dot.r{background:#e07060}
 
+/* ── "MORE" OVERFLOW MENU ── */
+.more-wrap{position:relative;flex-shrink:0}
+.more-menu{position:fixed;background:var(--sf2);border:1px solid var(--bd);border-radius:7px;box-shadow:0 12px 34px rgba(0,0,0,.55);padding:.35rem;min-width:225px;z-index:300;display:flex;flex-direction:column;gap:1px}
+.more-menu[hidden]{display:none}
+.more-sec{font-family:'IBM Plex Mono',monospace;font-size:.46rem;letter-spacing:.15em;text-transform:uppercase;color:var(--mu);padding:.4rem .55rem .22rem}
+.more-div{height:1px;background:var(--bd);margin:.28rem .2rem}
+.more-item{display:block;width:100%;text-align:left;background:none;border:none;color:#f4f1eb;font-family:'Barlow',sans-serif;font-size:.74rem;padding:.5rem .55rem;border-radius:5px;cursor:pointer;transition:background .1s}
+.more-item:hover{background:rgba(255,255,255,.08)}
+.more-item.danger:hover{background:rgba(224,112,96,.14);color:#e07060}
+.more-tog{margin:.1rem .35rem .2rem}
+.more-tog button{flex:1}
+/* Design sub-tabs (Appearance | Navigation) */
+.design-subtabs{display:flex;gap:.3rem;padding:.6rem .7rem .2rem}
+.dsub{flex:1;background:var(--sf2);border:1px solid var(--bd);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;padding:.4rem;cursor:pointer;border-radius:3px;transition:.12s}
+.dsub.on{background:var(--ac);color:#0f0f11;border-color:var(--ac);font-weight:600}
+
 .layout{display:flex;flex:1;overflow:hidden}
 
 /* ── LEFT PANEL (tabs) ── */
 .lp{width:260px;flex-shrink:0;background:var(--sf);border-right:1px solid var(--bd);display:flex;flex-direction:column;min-height:0}
 .lp-tabs{display:flex;border-bottom:1px solid var(--bd);flex-shrink:0}
-.lp-tab{flex:1;background:none;border:none;color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.46rem;letter-spacing:.12em;text-transform:uppercase;padding:.45rem .2rem;cursor:pointer;transition:.12s;border-bottom:2px solid transparent;white-space:nowrap}
+.lp-tab{flex:1;background:none;border:none;color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;padding:.62rem .2rem;cursor:pointer;transition:.12s;border-bottom:2px solid transparent;white-space:nowrap}
 .lp-tab.on{color:#f4f1eb;border-bottom-color:var(--ac)}
 .lp-tab:hover:not(.on){color:rgba(244,241,235,.7)}
 .lp-content{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-height:0}
@@ -196,27 +212,38 @@ body{display:flex;flex-direction:column}
   <a href="/admin.html" class="tlogo" title="Back to Admin">Z</a>
   <div class="tsep"></div>
   <span class="ttitle">Page Builder</span>
-  <div class="tog" id="pvTog">
-    <button class="on" data-m="desk" onclick="setPvMode('desk')">🖥</button>
-    <button data-m="tab"  onclick="setPvMode('tab')">⬜</button>
-    <button data-m="mob"  onclick="setPvMode('mob')">📱</button>
-  </div>
-  <div class="tog" id="thTog">
-    <button class="on" data-t="dark"  onclick="setTheme('dark')">🌙</button>
-    <button data-t="light" onclick="setTheme('light')">☀️</button>
-    <button data-t="super-light" onclick="setTheme('super-light')">⬜</button>
+  <div class="tog" id="pvTog" title="Preview size">
+    <button class="on" data-m="desk" onclick="setPvMode('desk')">🖥 Desktop</button>
+    <button data-m="tab"  onclick="setPvMode('tab')">Tablet</button>
+    <button data-m="mob"  onclick="setPvMode('mob')">📱 Mobile</button>
   </div>
   <div class="tsep"></div>
-  <button class="tbtn tbtn-ghost" onclick="undo()" title="Undo Ctrl+Z">↩</button>
-  <button class="tbtn tbtn-ghost" onclick="redo()" title="Redo Ctrl+Y">↪</button>
-  <button class="tbtn tbtn-ghost" onclick="exportCfg()" title="Export JSON">⬇ Export</button>
-  <button class="tbtn tbtn-ghost" onclick="importCfg()" title="Import JSON">⬆ Import</button>
-  <button class="tbtn tbtn-ghost" onclick="window.open('/','_blank')" title="View live site">🌐 Live</button>
-  <button class="tbtn tbtn-ghost" onclick="showQrModal()" title="Preview on mobile device">📱 Device Preview</button>
-  <button class="tbtn tbtn-ghost" onclick="revertChanges()">↺ Revert</button>
-  <button class="tbtn tbtn-ghost" onclick="saveDraft()">💾 Draft</button>
-  <button class="tbtn tbtn-solid" onclick="publishPage()">🚀 Publish</button>
-  <button class="tbtn tbtn-ghost" onclick="showKb()" title="Keyboard shortcuts">?</button>
+  <button class="tbtn tbtn-ghost" onclick="undo()" title="Undo (Ctrl+Z)">↩ Undo</button>
+  <button class="tbtn tbtn-ghost" onclick="redo()" title="Redo (Ctrl+Y)">↪ Redo</button>
+  <button class="tbtn tbtn-ghost" onclick="saveDraft()" title="Save a private draft">💾 Save Draft</button>
+  <button class="tbtn tbtn-solid" onclick="publishPage()" title="Make your changes live">🚀 Publish</button>
+  <div class="more-wrap">
+    <button class="tbtn tbtn-ghost" id="moreBtn" onclick="toggleMore(event)" aria-haspopup="true" aria-expanded="false">More ▾</button>
+    <div class="more-menu" id="moreMenu" hidden>
+      <div class="more-sec">Preview theme</div>
+      <div class="tog more-tog" id="thTog">
+        <button class="on" data-t="dark" onclick="setTheme('dark')">🌙 Dark</button>
+        <button data-t="light" onclick="setTheme('light')">☀️ Light</button>
+        <button data-t="super-light" onclick="setTheme('super-light')">⬜ White</button>
+      </div>
+      <div class="more-div"></div>
+      <button class="more-item" onclick="window.open('/','_blank')">🌐 View live site</button>
+      <button class="more-item" onclick="showQrModal()">📱 Preview on phone (QR)</button>
+      <button class="more-item" onclick="lpTab('history')">🕘 Version history</button>
+      <button class="more-item" onclick="lpTab('templates')">🗂 Templates</button>
+      <div class="more-div"></div>
+      <button class="more-item" onclick="exportCfg()">⬇ Export backup (JSON)</button>
+      <button class="more-item" onclick="importCfg()">⬆ Import backup (JSON)</button>
+      <button class="more-item danger" onclick="revertChanges()">↺ Revert all changes</button>
+      <div class="more-div"></div>
+      <button class="more-item" onclick="showKb()">⌨ Keyboard shortcuts</button>
+    </div>
+  </div>
   <div class="tsep"></div>
   <span id="tstatus"><span class="dot" id="sdot"></span>Ready</span>
 </div>
@@ -227,13 +254,10 @@ body{display:flex;flex-direction:column}
 <!-- LEFT PANEL -->
 <div class="lp">
   <div class="lp-tabs">
-    <button class="lp-tab on" onclick="lpTab('sections')" id="tab-sections">Sections</button>
-    <button class="lp-tab" onclick="lpTab('pages')"     id="tab-pages">Pages</button>
-    <button class="lp-tab" onclick="lpTab('theme')"    id="tab-theme">Theme</button>
-    <button class="lp-tab" onclick="lpTab('nav')"      id="tab-nav">Nav</button>
-    <button class="lp-tab" onclick="lpTab('seo')"      id="tab-seo">SEO</button>
-    <button class="lp-tab" onclick="lpTab('history')"  id="tab-history">History</button>
-    <button class="lp-tab" onclick="lpTab('templates')" id="tab-templates">Templates</button>
+    <button class="lp-tab on" onclick="lpTab('content')" id="tab-content" title="Homepage sections">Content</button>
+    <button class="lp-tab" onclick="lpTab('pages')"   id="tab-pages" title="Men / Women landing pages">Pages</button>
+    <button class="lp-tab" onclick="lpTab('design')"  id="tab-design" title="Theme & navigation">Design</button>
+    <button class="lp-tab" onclick="lpTab('settings')" id="tab-settings" title="SEO & metadata">Settings</button>
   </div>
   <div class="lp-content" id="lpContent"></div>
   <div class="lp-footer" id="lpFooter" style="display:none">
@@ -481,7 +505,7 @@ const DEFAULT_SECTIONS=['hero','marquee','about','release','products'].map((t,i)
 let sections=[],themeSettings={},navSettings={links:[]},seoSettings={},lastSaved=null;
 let landingPages={},landingSlug='men',landingProducts=null,landingProductsLoading=false;
 let undoStack=[],redoStack=[],versionHistory=[],templates=[];
-let selId=null,pvMode='desk',pvTheme='dark',dirty=false,curTab='sections';
+let selId=null,pvMode='desk',pvTheme='dark',dirty=false,curTab='content';
 let _imgKey=null,_tt,_sendT,_autosaveT;
 
 // ── INIT ──────────────────────────────────────────────────────────────────
@@ -555,19 +579,35 @@ let _imgKey=null,_tt,_sendT,_autosaveT;
   document.addEventListener('keydown',onKey);
 })();
 
+// ── "MORE" OVERFLOW MENU ──────────────────────────────────────────────────
+function toggleMore(e){ if(e)e.stopPropagation(); const m=document.getElementById('moreMenu'),b=document.getElementById('moreBtn'); const willOpen=m.hasAttribute('hidden'); if(willOpen){ const r=b.getBoundingClientRect(); m.style.top=(r.bottom+7)+'px'; m.style.right=Math.max(8,(window.innerWidth-r.right))+'px'; m.removeAttribute('hidden'); b&&b.setAttribute('aria-expanded','true'); } else { m.setAttribute('hidden',''); b&&b.setAttribute('aria-expanded','false'); } }
+function closeMore(){ const m=document.getElementById('moreMenu'); if(m&&!m.hasAttribute('hidden')){m.setAttribute('hidden','');const b=document.getElementById('moreBtn');b&&b.setAttribute('aria-expanded','false');} }
+document.addEventListener('click',function(e){ if(!e.target.closest('.more-wrap'))closeMore(); else if(e.target.closest('.more-item'))closeMore(); });
+
 // ── LEFT PANEL TABS ───────────────────────────────────────────────────────
+let designSub='theme';
+function setDesignSub(s){designSub=s;renderLP();}
 function lpTab(name){
   curTab=name;
   document.querySelectorAll('.lp-tab').forEach(t=>t.classList.toggle('on',t.id==='tab-'+name));
-  // Footer (Add Section) only shows on sections tab
-  document.getElementById('lpFooter').style.display=name==='sections'?'':'none';
-  if(name!=='sections')closeEd();
+  // "Add Section" footer only on the Content tab
+  document.getElementById('lpFooter').style.display=name==='content'?'':'none';
+  if(name!=='content')closeEd();
+  closeMore();
   renderLP();
+}
+
+function renderDesignTab(container){
+  container.innerHTML='<div class="design-subtabs"><button class="dsub'+(designSub==='theme'?' on':'')+'" onclick="setDesignSub(\'theme\')">Appearance</button><button class="dsub'+(designSub==='nav'?' on':'')+'" onclick="setDesignSub(\'nav\')">Navigation</button></div><div id="designSub"></div>';
+  const sub=container.querySelector('#designSub');
+  if(designSub==='nav')renderNavTab(sub); else renderThemeTab(sub);
 }
 
 function renderLP(){
   const el=document.getElementById('lpContent');
-  if(curTab==='sections'){renderSidebar(el);}
+  if(curTab==='content'||curTab==='sections'){renderSidebar(el);}
+  else if(curTab==='design'){renderDesignTab(el);}
+  else if(curTab==='settings'){renderSeoTab(el);}
   else if(curTab==='pages'){renderPagesTab(el);}
   else if(curTab==='theme'){renderThemeTab(el);}
   else if(curTab==='nav'){renderNavTab(el);}
