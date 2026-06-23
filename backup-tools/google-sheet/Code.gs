@@ -1,16 +1,22 @@
 /**
- * Zuwera backup -> Google Sheet (one tab per table), refreshed daily, formatted
- * for readability: friendly tab names, an Overview dashboard, styled frozen
- * headers, banded rows, tidy column widths, currency formatting, and color-coded
- * tabs. Re-running migrates old raw-named tabs in place (no duplicates).
+ * Zuwera backup -> Google Sheet, refreshed daily and formatted to FIND ANYTHING
+ * EASILY:
+ *   • Overview tab = clickable index (click a tab name to jump) + row counts +
+ *     plain-language descriptions.
+ *   • Every tab has filter buttons (the small ▾ on each column) so you can
+ *     search, sort, or filter any column instantly.
+ *   • Dates are real dates (sortable/filterable); rows are sorted newest-first.
+ *   • Friendly tab names, styled frozen headers, banded rows, tidy widths,
+ *     currency formatting, color-coded tabs. Re-running migrates old tabs in
+ *     place (no duplicates).
  *
  * SETUP: Script Properties BACKUP_URL + BACKUP_TOKEN, then run `setup` once.
  */
 
 var SUMMARY_NAME = 'Overview';
 var HEADER_BG = '#09090b', HEADER_FG = '#ffffff';
+var DATE_RE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}|$)/;
 
-// Raw table name -> friendly tab name.
 var DISPLAY = {
   orders: 'Orders', returns: 'Returns', promotions: 'Coupons',
   refund_audit_log: 'Refunds', order_ops: 'Order Edits',
@@ -23,7 +29,6 @@ var DISPLAY = {
   zw_banned_words: 'Banned Words', site_settings: 'Settings & Content',
   return_requests: 'Returns (legacy table)'
 };
-// Plain-language descriptions for the Overview tab.
 var DESCRIPTION = {
   orders: 'Every order — items, totals, shipping address, status',
   returns: 'Return & exchange requests', promotions: 'Discount / coupon codes',
@@ -37,12 +42,10 @@ var DESCRIPTION = {
   zw_banned_words: 'Review moderation word list', site_settings: 'Store settings & page content',
   return_requests: 'Empty legacy table — real returns are the Returns tab'
 };
-// Tab display order (most useful first). Anything not listed lands after these.
 var TAB_ORDER = ['orders', 'returns', 'promotions', 'refund_audit_log', 'order_ops',
   'auth_users', 'profiles', 'customer_profiles', 'reviews', 'waitlist', 'restock_requests', 'favorites',
   'products', 'color_variants', 'product_sizes', 'product_images', 'size_charts', 'inventory',
   'webhook_events', 'admin_audit_log', 'zw_banned_words', 'site_settings', 'return_requests'];
-// Columns to float to the left of each table (snake_case + camelCase variants).
 var PRIORITY_COLS = ['order_number', 'orderNumber', 'order_label', 'orderLabel', 'id', 'code',
   'created_at', 'createdAt', 'date', 'email', 'customer_email', 'customerEmail', 'user_email', 'userEmail',
   'customer_name', 'customerName', 'user_name', 'userName', 'full_name', 'name', 'status', 'resolution',
@@ -75,10 +78,11 @@ function backupToSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var tables = payload.tables || {};
 
-  writeSummary_(ss, payload);
+  // Data tabs first (so the Overview can link to them), then the index, then order.
   Object.keys(tables).forEach(function (name) {
     if (Array.isArray(tables[name])) writeTab_(ss, name, tables[name]);
   });
+  writeSummary_(ss, payload);
   orderAndColorTabs_(ss);
   var sum = ss.getSheetByName(SUMMARY_NAME);
   if (sum) sum.activate();
@@ -88,6 +92,7 @@ function getOrRenameSheet_(ss, raw, disp, insertFirst) {
   var sheet = ss.getSheetByName(disp) || ss.getSheetByName(raw);
   if (!sheet) sheet = insertFirst ? ss.insertSheet(disp, 0) : ss.insertSheet(disp);
   if (sheet.getName() !== disp) sheet.setName(disp);
+  var f = sheet.getFilter(); if (f) f.remove();
   sheet.getBandings().forEach(function (b) { b.remove(); });
   sheet.clear();
   return sheet;
@@ -96,7 +101,6 @@ function getOrRenameSheet_(ss, raw, disp, insertFirst) {
 function collectKeys_(rows) {
   var keys = [], seen = {};
   rows.forEach(function (r) { Object.keys(r).forEach(function (k) { if (!seen[k]) { seen[k] = true; keys.push(k); } }); });
-  // priority columns first, in PRIORITY_COLS order, then the rest as-is
   var pri = [], rest = [];
   PRIORITY_COLS.forEach(function (p) { if (keys.indexOf(p) >= 0) pri.push(p); });
   keys.forEach(function (k) { if (pri.indexOf(k) === -1) rest.push(k); });
@@ -109,11 +113,17 @@ function writeTab_(ss, table, rows) {
   if (!rows.length) { sheet.getRange(1, 1).setValue('(no rows yet)').setFontColor('#999999'); return; }
 
   var keys = collectKeys_(rows);
+  var colIsDate = [];
   var values = [keys];
   rows.forEach(function (r) {
-    values.push(keys.map(function (k) {
+    values.push(keys.map(function (k, ci) {
       var v = r[k];
       if (v === null || v === undefined) return '';
+      if (typeof v === 'string' && DATE_RE.test(v)) {
+        var d = new Date(v);
+        if (!isNaN(d.getTime())) { colIsDate[ci] = true; return d; }
+        return v;
+      }
       if (typeof v === 'object') return JSON.stringify(v);
       return v;
     }));
@@ -124,39 +134,64 @@ function writeTab_(ss, table, rows) {
   sheet.getRange(1, 1, 1, nCols).setBackground(HEADER_BG).setFontColor(HEADER_FG).setFontWeight('bold');
   sheet.setFrozenRows(1);
   sheet.setFrozenColumns(1);
-  if (nRows > 2) sheet.getRange(2, 1, nRows - 1, nCols).applyRowBanding(SpreadsheetApp.BandingTheme.LIGHT_GREY, false, false);
+
+  // Newest-first: sort by the first date column (or created_at) descending.
+  var sortCol = 0;
+  for (var i = 0; i < keys.length; i++) {
+    if (keys[i] === 'created_at' || keys[i] === 'createdAt' || colIsDate[i]) { sortCol = i + 1; break; }
+  }
+  if (sortCol > 0 && nRows > 2) sheet.getRange(2, 1, nRows - 1, nCols).sort({ column: sortCol, ascending: false });
+
+  // Number formats: dates and currency.
   keys.forEach(function (k, i) {
-    if (isCurrencyCol_(k)) sheet.getRange(2, i + 1, nRows - 1, 1).setNumberFormat('$#,##0.00');
+    if (colIsDate[i]) sheet.getRange(2, i + 1, nRows - 1, 1).setNumberFormat('yyyy-mm-dd hh:mm');
+    else if (isCurrencyCol_(k)) sheet.getRange(2, i + 1, nRows - 1, 1).setNumberFormat('$#,##0.00');
   });
+
+  if (nRows > 2) sheet.getRange(2, 1, nRows - 1, nCols).applyRowBanding(SpreadsheetApp.BandingTheme.LIGHT_GREY, false, false);
+
   sheet.autoResizeColumns(1, nCols);
   for (var c = 1; c <= nCols; c++) {
     var w = sheet.getColumnWidth(c);
     if (w > 320) sheet.setColumnWidth(c, 320);
     else if (w < 70) sheet.setColumnWidth(c, 70);
   }
+
+  // Filter buttons on the header so any column can be searched/sorted/filtered.
+  sheet.getRange(1, 1, nRows, nCols).createFilter();
 }
 
 function writeSummary_(ss, payload) {
   var sheet = getOrRenameSheet_(ss, '_summary', SUMMARY_NAME, true);
   var counts = payload.counts || {};
+
   var rows = [
     ['Zuwera data backup', '', ''],
     ['Last updated', formatWhen_(payload.exported_at), ''],
+    ['Tip', 'Click a tab name below to jump to it. On any tab, use the ▾ filter buttons to search, sort, or filter a column.', ''],
     ['', '', ''],
-    ['Tab', 'Rows', 'What it is']
+    ['Tab (click to open)', 'Rows', 'What it is']
   ];
   var seen = {};
-  TAB_ORDER.forEach(function (t) { if (t in counts) { rows.push([displayName_(t), counts[t], DESCRIPTION[t] || '']); seen[t] = true; } });
-  Object.keys(counts).forEach(function (t) { if (!seen[t]) rows.push([displayName_(t), counts[t], DESCRIPTION[t] || '']); });
+  var addRow = function (t) {
+    var sh = ss.getSheetByName(displayName_(t));
+    var label = sh
+      ? '=HYPERLINK("#gid=' + sh.getSheetId() + '","' + displayName_(t) + '")'
+      : displayName_(t);
+    rows.push([label, counts[t], DESCRIPTION[t] || '']);
+  };
+  TAB_ORDER.forEach(function (t) { if (t in counts) { addRow(t); seen[t] = true; } });
+  Object.keys(counts).forEach(function (t) { if (!seen[t]) addRow(t); });
 
   sheet.getRange(1, 1, rows.length, 3).setValues(rows).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
   sheet.getRange(1, 1).setFontSize(16).setFontWeight('bold');
-  sheet.getRange(2, 1, 1, 2).setFontColor('#666666');
-  sheet.getRange(4, 1, 1, 3).setBackground(HEADER_BG).setFontColor(HEADER_FG).setFontWeight('bold');
-  sheet.setFrozenRows(4);
-  var bodyRows = rows.length - 4;
-  if (bodyRows > 0) sheet.getRange(5, 1, bodyRows, 3).applyRowBanding(SpreadsheetApp.BandingTheme.LIGHT_GREY, false, false);
-  sheet.setColumnWidth(1, 200); sheet.setColumnWidth(2, 70); sheet.setColumnWidth(3, 540);
+  sheet.getRange(2, 1, 2, 1).setFontWeight('bold');
+  sheet.getRange(2, 2, 2, 1).setFontColor('#666666');
+  sheet.getRange(5, 1, 1, 3).setBackground(HEADER_BG).setFontColor(HEADER_FG).setFontWeight('bold');
+  sheet.setFrozenRows(5);
+  var bodyRows = rows.length - 5;
+  if (bodyRows > 0) sheet.getRange(6, 1, bodyRows, 3).applyRowBanding(SpreadsheetApp.BandingTheme.LIGHT_GREY, false, false);
+  sheet.setColumnWidth(1, 210); sheet.setColumnWidth(2, 70); sheet.setColumnWidth(3, 560);
   sheet.setTabColor('#d4af37');
 }
 
