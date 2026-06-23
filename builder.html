@@ -642,6 +642,7 @@ function lpTab(name){
   if(name!=='content')closeEd();
   closeMore();
   renderLP();
+  syncPreviewFrame();
 }
 
 function renderDesignTab(container){
@@ -790,7 +791,7 @@ function lpCatMove(idx,dir){const ord=lpOrderedCats();const j=idx+dir;if(j<0||j>
 function lpFeatToggle(id){const f=lpCfg().featured;f.productIds=f.productIds||[];const i=f.productIds.findIndex(x=>String(x)===String(id));if(i>=0)f.productIds.splice(i,1);else f.productIds.push(id);markLpDirty();renderLP();}
 function lpFeatChecked(id){const ids=lpCfg().featured.productIds||[];return ids.some(x=>String(x)===String(id));}
 function lpSetMode(v){lpSetPath('featured.mode',v);renderLP();}
-function landingSelect(slug){landingSlug=slug;renderLP();}
+function landingSelect(slug){landingSlug=slug;renderLP();if(curTab==='pages')reloadLandingPreview();}
 function landingAddSlug(){const el=document.getElementById('lpNewSlug');if(!el)return;const s=String(el.value||'').trim().toLowerCase().replace(/[^a-z0-9-]/g,'');if(!s)return;landingPages[s]=landingPages[s]||{};landingSlug=s;renderLP();}
 function landingLoadProducts(){if(landingProducts||landingProductsLoading)return;landingProductsLoading=true;try{const sb=getSb();if(!sb){landingProducts=[];landingProductsLoading=false;return;}sb.from('products').select('id,title,gender,subtitle,status,sort_order').order('sort_order',{ascending:true}).then(r=>{landingProducts=(r&&r.data)||[];landingProductsLoading=false;if(curTab==='pages')renderLP();},()=>{landingProducts=[];landingProductsLoading=false;if(curTab==='pages')renderLP();});}catch(_){landingProducts=[];landingProductsLoading=false;}}
 
@@ -876,9 +877,22 @@ async function saveLandingPages(pub){
     if(!res.ok)throw new Error(await res.text());
     _lpDirty=false;const hint=document.getElementById('lpSaveHint');if(hint)hint.textContent='Saved';
     toast(pub?'Landing page published 🚀':'Landing draft saved','ok');
+    if(curTab==='pages') reloadLandingPreview();   // show the saved draft in the inline preview
   }catch(e){showErr(e.message);}
 }
 async function landingSavePreview(){await saveLandingPages(false);window.open('/landing.html?page='+encodeURIComponent(landingSlug)+'&preview=1','_blank');}
+
+// Inline preview of the landing page being edited (Pages tab). The preview reads
+// the saved DRAFT (preview=1), so it refreshes after each "Save Draft".
+function landingPreviewUrl(){ return '/landing.html?page='+encodeURIComponent(landingSlug||'men')+'&preview=1'; }
+function reloadLandingPreview(){ const f=document.getElementById('pvIframe'); if(f) f.src=landingPreviewUrl()+'&_cb='+Date.now(); }
+function syncPreviewFrame(){
+  const f=document.getElementById('pvIframe'); if(!f) return;
+  if(curTab==='pages'){ reloadLandingPreview(); }
+  else {
+    try{ const cur=new URL(f.src,location.origin); if(cur.pathname.indexOf('landing')!==-1) f.src='/index.html?builder=1'; }catch(_){ f.src='/index.html?builder=1'; }
+  }
+}
 
 // ── SEO TAB ───────────────────────────────────────────────────────────────
 function renderSeoTab(container){
@@ -1111,10 +1125,10 @@ async function openMedia(fieldKey){
   // Load from Supabase storage
   try{
     const sb=getSb();
-    const{data}=await sb.storage.from('images').list('builder',{limit:50,sortBy:{column:'created_at',order:'desc'}});
+    const{data}=await sb.storage.from('product-images').list('builder',{limit:50,sortBy:{column:'created_at',order:'desc'}});
     if(data){
       data.forEach(file=>{
-        const{data:{publicUrl}}=sb.storage.from('images').getPublicUrl('builder/'+file.name);
+        const{data:{publicUrl}}=sb.storage.from('product-images').getPublicUrl('builder/'+file.name);
         const isVid=/\.(mp4|webm|mov|m4v|ogv|ogg)$/i.test(file.name);
         const d=document.createElement('div');d.className='media-thumb';d.onclick=()=>applyMedia(publicUrl);
         d.innerHTML=(isVid
@@ -1147,11 +1161,14 @@ async function uploadFromMedia(input){
   try{
     const sb=getSb();
     const path='builder/'+Date.now()+'.'+file.name.split('.').pop();
-    const{error}=await sb.storage.from('images').upload(path,file,{upsert:true});
+    const{error}=await sb.storage.from('product-images').upload(path,file,{upsert:true});
     if(error)throw error;
-    const{data:{publicUrl}}=sb.storage.from('images').getPublicUrl(path);
+    const{data:{publicUrl}}=sb.storage.from('product-images').getPublicUrl(path);
     applyMedia(publicUrl);toast('Uploaded','ok');
-  }catch(e){const url=URL.createObjectURL(file);applyMedia(url);toast('Local preview only','err');}
+  }catch(e){
+    // Don't silently fall back to a blob: URL — it can't load once saved/published.
+    showErr('Upload failed: '+((e&&e.message)||e||'unknown')+'. Make sure you are signed in as admin, or paste an image URL instead.');
+  }
 }
 
 // ── LIBRARY ───────────────────────────────────────────────────────────────
