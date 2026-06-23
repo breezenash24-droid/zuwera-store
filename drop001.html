@@ -1202,6 +1202,23 @@ function updateCountdown() {
       let collectionUser = null;
       let collectionFavoriteIds = new Set();
 
+      // ── Paint the (already FILTERED) collection from cache IMMEDIATELY — before
+      //    the auth + settings network round-trips below — so the correct products
+      //    show right away and the previous page doesn't linger (which looked like
+      //    an all-products flash). renderProducts() applies the category/gender/tag
+      //    filter, so this paints only the right items.
+      const grid = document.getElementById('products-grid');
+      const requestedCategory = getRequestedCategory();
+      const requestedGender = getRequestedGender();
+      const requestedTag = getRequestedTag();
+      const requestedLabel = [requestedGender, requestedCategory].filter(Boolean).join(' · ') || requestedTag || '';
+      updateCollectionMeta(requestedLabel);
+      let _painted = false;
+      try {
+        const _cachedProducts = sessionStorage.getItem('zw_collection_products');
+        if (_cachedProducts) { renderProducts(JSON.parse(_cachedProducts)); _painted = true; }
+      } catch (_) {}
+
       function collectionToast(message) {
         let toast = document.getElementById('collection-toast');
         if (!toast) {
@@ -1345,24 +1362,6 @@ function updateCountdown() {
         });
       }
     } catch (e) {}
-
-      const grid = document.getElementById('products-grid');
-      const requestedCategory = getRequestedCategory();
-      const requestedGender = getRequestedGender();
-      const requestedTag = getRequestedTag();
-      const requestedLabel = [requestedGender, requestedCategory].filter(Boolean).join(' · ') || requestedTag || '';
-      updateCollectionMeta(requestedLabel);
-
-      let cached = null;
-      try { cached = sessionStorage.getItem('zw_collection_products'); } catch(_) {}
-      // Only paint instantly from the cached (FULL) product list on the unfiltered
-      // collection. On a filtered view (category/gender/tag) that cache would flash
-      // every product before narrowing, so wait for the fresh, filtered render.
-      const _hasFilter = requestedCategory || requestedGender || requestedTag;
-      let _painted = false;
-      if (cached && !_hasFilter) {
-        try { renderProducts(JSON.parse(cached)); _painted = true; } catch(e){}
-      }
 
       let products;
       try {
