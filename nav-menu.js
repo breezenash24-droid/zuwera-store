@@ -22,11 +22,15 @@
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
-  // Allow safe link targets only (relative paths, .html, anchors, http(s), mail/tel).
+  // Allow safe link targets only (anchors, absolute/relative paths, full http(s),
+  // mailto/tel). Matches by PREFIX so a complete "https://…?a=b&c=d" URL passes.
   function safeUrl(u) {
     u = String(u == null ? '' : u).trim();
-    if (!u || u.slice(0, 2) === '//') return '#';            // block protocol-relative
-    if (/^(?:#|\/(?!\/)|https?:\/\/|mailto:|tel:|[\w.?=&%+-][\w./?=&%+-]*)$/i.test(u)) return u;
+    if (!u || u.slice(0, 2) === '//') return '#';                 // protocol-relative
+    if (/^(?:javascript|data|vbscript|file):/i.test(u)) return '#'; // dangerous schemes
+    if (/^[#/]/.test(u)) return u;                                 // #anchor or /path
+    if (/^(?:https?:\/\/|mailto:|tel:)/i.test(u)) return u;        // safe schemes (+ rest)
+    if (/^[\w][\w./?=&%#+-]*$/.test(u)) return u;                  // relative, e.g. drop001.html?category=X
     return '#';
   }
   function cols_(item) {
