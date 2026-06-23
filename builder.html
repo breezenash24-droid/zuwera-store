@@ -1165,25 +1165,21 @@ async function uploadFromMedia(input){
     if(!confirm('This video is '+(file.size/1048576).toFixed(1)+' MB. Large videos slow the page on first load — aim for a short, compressed clip (ideally under ~10 MB). Upload anyway?'))return;
   }
   try{
-    // The builder's Supabase JS client has no auth session (it only holds an
-    // access token for the save API), so sb.storage.upload runs as anon and RLS
-    // blocks it. Upload straight to the Storage REST API with the admin's access
-    // token instead, so RLS sees an authenticated admin.
+    // Storage RLS requires profiles.role='admin', which the builder JWT doesn't
+    // satisfy directly. Upload through the server endpoint (service role) instead
+    // — same trust model as Save/Publish — so it always works for the builder.
     const token=await getAccessToken();
     if(!token)throw new Error('Your admin session expired — re-open the builder from the Admin panel.');
-    const ext=(String(file.name.split('.').pop()||'bin')).toLowerCase().replace(/[^a-z0-9]/g,'')||'bin';
-    const path='builder/'+Date.now()+'-'+Math.random().toString(36).slice(2,7)+'.'+ext;
-    const res=await fetch(SUPA_URL+'/storage/v1/object/product-images/'+path,{
-      method:'POST',
-      headers:{ apikey:SUPA_ANON, Authorization:'Bearer '+token, 'x-upsert':'true', 'Content-Type':file.type||'application/octet-stream' },
-      body:file
-    });
-    if(!res.ok)throw new Error((await res.text())||('HTTP '+res.status));
-    const publicUrl=SUPA_URL+'/storage/v1/object/public/product-images/'+path;
-    applyMedia(publicUrl);toast('Uploaded','ok');
+    const fd=new FormData();
+    fd.append('accessToken',token);
+    fd.append('file',file,file.name||'upload');
+    const res=await fetch('/api/upload-image',{method:'POST',body:fd});
+    let out={}; try{ out=await res.json(); }catch(_){}
+    if(!res.ok||!out.url)throw new Error(out.error||('HTTP '+res.status));
+    applyMedia(out.url);toast('Uploaded','ok');
   }catch(e){
     // Don't silently fall back to a blob: URL — it can't load once saved/published.
-    showErr('Upload failed: '+((e&&e.message)||e||'unknown')+'. Make sure you opened the builder from the Admin panel (so you are signed in), or paste an image URL instead.');
+    showErr('Upload failed: '+((e&&e.message)||e||'unknown')+'. Try again, or paste an image URL instead.');
   }
 }
 
