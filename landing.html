@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<script>
+/* AUTH PRE-READ — synchronous session decode (same as drop001/account) so the
+   header shows Account instead of Login without a flash. */
+(function(){try{
+  var _b=null,_ck={},_i;
+  for(_i=0;_i<localStorage.length;_i++){
+    var _k=localStorage.key(_i);if(!_k)continue;
+    var _m=_k.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:.(d+))?$/);if(!_m)continue;
+    if(_m[1]===undefined)_b=localStorage.getItem(_k);else _ck[_m[1]]=localStorage.getItem(_k);
+  }
+  var _ord=Object.keys(_ck).map(Number).sort(function(a,b){return a-b;});
+  var _str=_ord.length?_ord.map(function(n){return _ck[n];}).join(""):_b;
+  if(_str&&_str.indexOf("base64-")===0){
+    var _bb=_str.slice(7).replace(/-/g,"+").replace(/_/g,"/");
+    _str=new TextDecoder().decode(Uint8Array.from(atob(_bb),function(c){return c.charCodeAt(0);}));
+  }
+  var _raw=_str?JSON.parse(_str):null;
+  var _se=_raw&&_raw.currentSession?_raw.currentSession:_raw;
+  if(_se&&_se.user&&(Number(_se.expires_at||0)*1000>Date.now()||_se.refresh_token))window.__zwSessionUser=_se.user;
+}catch(_){}})()
+</script>
+<script>
+/* THEME FLASH PREVENTION — runs before any CSS loads */
+(function(){try{
+  var m=localStorage.getItem('zw_theme_mode');
+  var h=document.documentElement;
+  if(m==='super-light'||m==='light'){
+    var bg=m==='super-light'?'#FFFFFF':'#F0EEE9';
+    h.style.background=bg;h.style.colorScheme='light';
+    var st=document.createElement('style');
+    st.textContent='body{background:'+bg+'!important}html::before{background:'+bg+'!important}';
+    document.head.appendChild(st);
+  }
+  var f=localStorage.getItem('zw_fonts');
+  if(f){f=JSON.parse(f);
+    if(f.vars)Object.keys(f.vars).forEach(function(k){h.style.setProperty(k,f.vars[k])});
+    if(f.urls)f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});
+    if(f.css){var s=document.createElement('style');s.textContent=f.css;document.head.appendChild(s);}
+  }
+}catch(_){}})()</script>
+<script>
+/* NAV FLASH PREVENTION — if a custom nav menu is cached, hide the placeholder
+   desktop links until nav-menu.js renders (it adds .zw-nav-ready). Mirrors index.html. */
+(function(){try{
+  var raw=localStorage.getItem('zw_nav_menu');
+  if(raw){var arr=JSON.parse(raw);if(Array.isArray(arr)&&arr.length){
+    document.documentElement.classList.add('zw-customnav');
+    setTimeout(function(){document.documentElement.classList.add('zw-nav-ready');},3000);
+  }}
+}catch(_){}})()</script>
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#09090b">
+  <title>Shop — ZUWERA</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png?v=3" id="site-favicon">
+  <link rel="icon" type="image/png" sizes="192x192" href="/images/favicon-black-192.png?v=3">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=3">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="description" content="Shop Zuwera by category. Browse the latest athletic sportswear and find your next piece.">
+  <meta name="robots" content="index, follow">
+  <script src="/favicon-utils.js?v=687e90ea" defer></script>
+  <script src="/meta-pixel.js?v=f62735e4" defer></script>
+  <script src="/google-tag.js?v=0948017e" defer></script>
+  <script src="/supabase.min.js?v=3277b334" defer></script>
+  <script src="/supabase-client.js?v=b28896db" defer></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://qfgnrsifcwdubkolsgsq.supabase.co" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=cafc6a94">
+  <script src="header-scroll.js?v=4a734678" defer></script>
+  <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=29023607">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --black:#09090b; --white:#f4f1eb;
+      --font-head:'Barlow Condensed',sans-serif;
+      --font-body:'Barlow',sans-serif;
+      --font-mono:'IBM Plex Mono',monospace;
+      --fw:var(--font-head); --fb:var(--font-body); --fm:var(--font-mono);
+      --border:rgba(244,241,235,0.1);
+    }
+    body { background:var(--black); color:var(--white); font-family:var(--font-body); font-weight:300; overflow-x:clip; }
+
+    /* NAV — mirrors homepage so storefront-cohesion.css mega-menu + header-scroll apply */
+    nav#nav{
+      position:fixed; top:0; left:0; right:0; z-index:220;
+      display:flex; justify-content:space-between; align-items:center;
+      padding:0.5rem 2.5rem; background:#09090b; isolation:isolate;
+      transition:background .35s,border-color .35s,padding .35s,top .45s ease;
+      border-bottom:1px solid rgba(244,241,235,.07);
+    }
+    .nav-logo{ display:flex; align-items:center; text-decoration:none; }
+    .nav-logo img{ height:36px; width:auto; display:block; transition:filter .35s; filter:none; }
+    .nav-center{ position:absolute; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:2rem; }
+    .nav-link{ font-family:var(--fm); font-size:.6rem; letter-spacing:.22em; text-transform:uppercase; color:rgba(244,241,235,.78); text-decoration:none; transition:color .2s; background:none; border:none; cursor:pointer; }
+    .nav-link:hover{ color:var(--white); }
+    .nav-right{ display:flex; align-items:center; gap:.4rem; }
+    body.light-mode nav#nav{ background:#F0EEE9; }
+    body.super-light-mode nav#nav{ background:#FFFFFF; }
+    body.light-mode .nav-logo img{ filter:invert(1); }
+    body.light-mode .nav-link{ color:rgba(9,9,11,.65); }
+    body.light-mode .nav-link:hover{ color:#09090b; }
+    @media(max-width:900px){ .nav-center{ display:none; } }
+
+    /* HERO */
+    .lp-hero{
+      min-height:62vh; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-end;
+      padding:9rem 2.5rem 3rem; position:relative; overflow:hidden;
+      background:#0c0c0f;
+    }
+    .lp-hero::after{ content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(9,9,11,.15) 0%,rgba(9,9,11,.72) 100%); pointer-events:none; z-index:1; }
+    .lp-hero-bg{ position:absolute; inset:0; background-size:cover; background-position:center; z-index:0; transform:scale(1.02); }
+    .lp-hero > *{ position:relative; z-index:2; }
+    .lp-hero-kicker{ font-family:var(--fm); font-size:.66rem; letter-spacing:.32em; text-transform:uppercase; opacity:.7; margin-bottom:.9rem; }
+    .lp-hero-title{ font-family:var(--fw); font-weight:900; font-style:italic; text-transform:uppercase; letter-spacing:.02em; font-size:clamp(2.8rem,9vw,6rem); line-height:.92; }
+    .lp-hero-sub{ font-family:var(--fb); font-size:1.05rem; opacity:.8; margin-top:1rem; max-width:40ch; line-height:1.55; }
+    .lp-hero-cta{ display:inline-block; margin-top:1.6rem; padding:.85rem 2rem; background:var(--white); color:var(--black); font-family:var(--fm); font-size:.66rem; letter-spacing:.18em; text-transform:uppercase; text-decoration:none; transition:opacity .2s; }
+    .lp-hero-cta:hover{ opacity:.82; }
+
+    /* SECTION HEADINGS */
+    .lp-sec{ padding:4.5rem 2.5rem; max-width:1500px; margin:0 auto; }
+    .lp-sec-head{ display:flex; align-items:baseline; justify-content:space-between; gap:1rem; margin-bottom:2rem; flex-wrap:wrap; }
+    .lp-sec-head h2{ font-family:var(--fw); font-weight:900; font-style:italic; text-transform:uppercase; letter-spacing:.04em; font-size:clamp(1.5rem,3.4vw,2.3rem); }
+    .lp-sec-head a{ font-family:var(--fm); font-size:.62rem; letter-spacing:.16em; text-transform:uppercase; color:inherit; opacity:.65; text-decoration:none; transition:opacity .2s; white-space:nowrap; }
+    .lp-sec-head a:hover{ opacity:1; }
+
+    /* SHOP BY CATEGORY TILES */
+    .lp-cat-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:1rem; }
+    .lp-cat-tile{ position:relative; display:block; aspect-ratio:4/5; overflow:hidden; background:#161619; text-decoration:none; color:#fff; }
+    .lp-cat-tile img{ width:100%; height:100%; object-fit:cover; transition:transform .5s ease; }
+    .lp-cat-tile:hover img{ transform:scale(1.05); }
+    .lp-cat-tile::after{ content:''; position:absolute; inset:0; background:linear-gradient(180deg,transparent 45%,rgba(0,0,0,.62) 100%); }
+    .lp-cat-ph{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; opacity:.25; }
+    .lp-cat-label{ position:absolute; left:1.1rem; bottom:1rem; z-index:2; font-family:var(--fw); font-weight:900; font-style:italic; text-transform:uppercase; letter-spacing:.03em; font-size:1.3rem; display:flex; align-items:center; gap:.5rem; }
+    .lp-cat-label svg{ width:16px; height:16px; opacity:.8; transition:transform .25s; }
+    .lp-cat-tile:hover .lp-cat-label svg{ transform:translateX(4px); }
+
+    /* FEATURED PRODUCT CARDS */
+    .lp-feat-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:1.4rem 1rem; }
+    .lp-card{ text-decoration:none; color:inherit; display:block; }
+    .lp-card-img{ position:relative; aspect-ratio:4/5; overflow:hidden; background:#161619; }
+    .lp-card-img img{ width:100%; height:100%; object-fit:cover; transition:transform .5s ease; }
+    .lp-card:hover .lp-card-img img{ transform:scale(1.04); }
+    .lp-card-ph{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; opacity:.25; }
+    .lp-card-badge{ position:absolute; top:.7rem; left:.7rem; font-family:var(--fm); font-size:.55rem; letter-spacing:.14em; text-transform:uppercase; background:rgba(9,9,11,.78); color:#fff; padding:.32rem .55rem; }
+    .lp-card-cat{ font-family:var(--fm); font-size:.58rem; letter-spacing:.16em; text-transform:uppercase; opacity:.55; margin:.7rem 0 .25rem; }
+    .lp-card-name{ font-family:var(--fw); font-weight:600; font-size:1.02rem; letter-spacing:.01em; }
+    .lp-card-price{ font-family:var(--fm); font-size:.82rem; margin-top:.3rem; opacity:.9; }
+
+    .lp-empty{ text-align:center; padding:4rem 1rem; opacity:.55; font-family:var(--fm); font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; }
+    .lp-skel{ opacity:.35; }
+
+    body.light-mode .lp-hero{ background:#e8e5de; }
+    body.light-mode .lp-hero::after{ background:linear-gradient(180deg,rgba(240,238,233,.1) 0%,rgba(240,238,233,.5) 100%); }
+    body.light-mode .lp-hero-cta{ background:#09090b; color:#fff; }
+    body.light-mode .lp-cat-tile,body.light-mode .lp-card-img{ background:#ddd9d0; }
+    body.light-mode .lp-cat-label{ color:#fff; }
+  </style>
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to content</a>
+<script>(function(){try{var m=localStorage.getItem('zw_theme_mode');if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
+<script>
+(function() {
+  function applyThemeMode(mode) {
+    var resolved = mode === 'dark' ? 'dark' : mode === 'super-light' ? 'super-light' : 'light';
+    document.body.classList.toggle('light-mode', resolved !== 'dark');
+    document.body.classList.toggle('super-light-mode', resolved === 'super-light');
+    var color = resolved === 'dark' ? '#09090b' : resolved === 'super-light' ? '#FFFFFF' : '#F0EEE9';
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', color);
+    document.documentElement.style.backgroundColor = color;
+  }
+  try { applyThemeMode(localStorage.getItem('zw_theme_mode') || 'dark'); } catch(_) { applyThemeMode('dark'); }
+  window.__zwApplyAdminTheme = applyThemeMode;
+  window.__zwSyncThemeColor = function() {
+    var m = document.body.classList.contains('super-light-mode') ? 'super-light'
+          : document.body.classList.contains('light-mode') ? 'light' : 'dark';
+    applyThemeMode(m);
+  };
+})();
+</script>
+
+  <nav id="nav">
+    <a href="/" class="nav-logo" aria-label="Back to Zuwera home">
+      <img src="images/logo-192.png" srcset="images/logo-192.png 192w, images/logo.png?v=2 2000w" sizes="60px" width="60" height="60" alt="ZUWERA" decoding="async">
+    </a>
+    <div class="nav-center" id="nav-category-links"></div>
+    <div class="nav-right">
+      <span class="zw-hdr-group">
+        <a href="/?auth=signin" class="zw-hdr-action" id="hdr-login">Login</a>
+        <a href="bag.html" class="zw-hdr-bag" aria-label="Bag">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 01-8 0"></path></svg>
+          <span class="zw-hdr-bag-count cart-count" id="hdr-bag-count">0</span>
+        </a>
+      </span>
+      <button class="hamburger-btn" id="mobile-menu-btn" aria-label="Menu" aria-controls="mobile-menu" aria-expanded="false">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+    </div>
+    <script>
+    (function(){
+      try {
+        var a = document.getElementById('hdr-login');
+        if (a && window.__zwSessionUser) { var _u = window.__zwSessionUser; a.textContent = String(((_u.user_metadata && _u.user_metadata.full_name) || (_u.email || '').split('@')[0] || 'Account')).split(' ')[0]; a.href = 'account.html'; }
+        var cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        var n = Array.isArray(cart) ? cart.reduce(function(s, it){ return s + (Number(it && (it.qty || it.quantity || it.q)) || 1); }, 0) : 0;
+        document.querySelectorAll('#hdr-bag-count, .cart-count, .zw-mobile-bag-count').forEach(function(el){ el.textContent = n; });
+      } catch (_) {}
+    })();
+    </script>
+  </nav>
+
+  <div id="mobile-menu" class="modal zw-mobile-menu" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="mobile-menu-title">
+    <div class="mbox zw-mobile-menu-panel">
+      <div class="zw-mobile-menu-top">
+        <p class="zw-mobile-menu-kicker">Zuwera Navigation</p>
+        <button id="mobile-menu-close" class="mclose zw-mobile-menu-close" aria-label="Close menu" onclick="return window.closeMobileMenu ? window.closeMobileMenu() : false;">Close</button>
+      </div>
+      <nav class="zw-mobile-menu-nav" aria-label="Mobile navigation">
+        <h2 id="mobile-menu-title" class="zw-mobile-menu-title">Menu</h2>
+        <div id="mobile-category-links" class="mobile-nav-links zw-mobile-menu-primary">
+          <a href="drop001.html" class="mobile-nav-link zw-mobile-primary-link">Shop All</a>
+        </div>
+        <div class="zw-mobile-menu-secondary">
+          <a href="account.html" class="zw-mobile-secondary-link">Account</a>
+          <a href="account.html#orders" class="zw-mobile-secondary-link">Track Order</a>
+          <a href="mailto:nasirubreeze@zuwera.store" class="zw-mobile-secondary-link">Support</a>
+          <a href="bag.html" class="zw-mobile-secondary-link zw-mobile-bag-link" aria-label="Open bag">Bag <span class="zw-mobile-bag-count">0</span></a>
+          <a href="sizeguide.html" class="zw-mobile-secondary-link">Size Guide</a>
+        </div>
+      </nav>
+    </div>
+  </div>
+
+  <main>
+    <!-- HERO (filled by landing.js) -->
+    <section class="lp-hero" id="lp-hero">
+      <div class="lp-hero-bg" id="lp-hero-bg"></div>
+      <p class="lp-hero-kicker" id="lp-hero-kicker">Zuwera</p>
+      <h1 class="lp-hero-title" id="lp-hero-title">Shop</h1>
+    </section>
+
+    <!-- SHOP BY CATEGORY -->
+    <section class="lp-sec" id="lp-cats-sec" hidden>
+      <div class="lp-sec-head">
+        <h2 id="lp-cats-h">Shop by category</h2>
+        <a id="lp-cats-all" href="drop001.html">View all →</a>
+      </div>
+      <div class="lp-cat-grid" id="lp-cat-grid"></div>
+    </section>
+
+    <!-- FEATURED -->
+    <section class="lp-sec" id="main-content">
+      <div class="lp-sec-head">
+        <h2 id="lp-feat-h">Featured</h2>
+        <a id="lp-feat-all" href="drop001.html">Shop all →</a>
+      </div>
+      <div class="lp-feat-grid" id="lp-feat-grid">
+        <div class="lp-empty lp-skel" style="grid-column:1/-1">Loading…</div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="zw-footer">
+    <div class="zwf-cols">
+      <details class="zwf-col">
+        <summary class="zwf-col-head">Shop<svg class="zwf-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="zwf-col-links">
+          <a href="/drop001.html">Release 001</a>
+          <a href="/sizeguide.html">Size Guide</a>
+        </div>
+      </details>
+      <details class="zwf-col">
+        <summary class="zwf-col-head">Help<svg class="zwf-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="zwf-col-links">
+          <a href="/returns.html">Returns</a>
+          <a href="/policies.html">Policies</a>
+          <a href="mailto:nasirubreeze@zuwera.store">Contact</a>
+        </div>
+      </details>
+      <details class="zwf-col">
+        <summary class="zwf-col-head">Company<svg class="zwf-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+        <div class="zwf-col-links">
+          <a href="/about.html">About</a>
+          <a href="/account.html">Account</a>
+        </div>
+      </details>
+    </div>
+    <div class="zwf-bottom">
+      <div class="zwf-bottom-left">
+        <div class="zwf-logo">
+          <img src="images/wordmark-footer.png" srcset="images/wordmark-footer@2x.png 2x" alt="ZUWERA" width="175" height="34" loading="lazy" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
+        </div>
+        <p class="zwf-copy">&copy; 2026 Zuwera. All rights reserved.</p>
+      </div>
+      <div class="zwf-bottom-right">
+        <div class="zwf-social">
+          <a href="https://instagram.com/Zuw.era" target="_blank" rel="noopener" aria-label="Instagram on Zuwera">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+          </a>
+        </div>
+        <div class="zw-footer-right"></div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="image-utils.js?v=6eef467b" defer></script>
+  <script src="mobile-menu.js?v=251b10fb" defer></script>
+  <script src="storefront-theme.js?v=5762e141" defer></script>
+  <script src="modal-lock.js?v=d1fe635c" defer></script>
+  <script src="lang.js?v=5a87b132" defer></script>
+  <script src="scroll-reveal.js?v=7896153c" defer></script>
+  <script src="auth.js?v=7be42027" defer></script>
+  <script src="zw-login.js?v=1b83aa67" defer></script>
+  <script src="/nav-menu.js?v=bebee2d6" defer></script>
+  <script src="landing.js?v=982677c2" defer></script>
+</body>
+</html>

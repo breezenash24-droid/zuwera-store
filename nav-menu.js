@@ -69,7 +69,9 @@
     if (type === 'gender') {
       var gender = item.gender || item.label;
       var set = (tax && tax.byGender[String(gender).toLowerCase()]) || null;
-      if (!tax) return { label: label, url: 'drop001.html?gender=' + encodeURIComponent(gender), columns: [] };
+      // Top link → the gender landing page; mega-menu links → the filtered PLP.
+      var landing = item.url || ('landing.html?page=' + encodeURIComponent(String(gender).toLowerCase()));
+      if (!tax) return { label: label, url: landing, columns: [] };
       if (!set) return null; // no products for this gender — hide it
       var avail = {}; Object.keys(set).forEach(function (s) { avail[s.toLowerCase()] = s; });
       var base = 'drop001.html?gender=' + encodeURIComponent(gender);
@@ -88,7 +90,7 @@
       var leftovers = Object.keys(avail).filter(function (k) { return !placed[k]; }).map(function (k) { return avail[k]; });
       if (leftovers.length) columns.push({ heading: defs ? 'More' : '', links: leftovers.map(function (c) { return { text: c, url: base + '&category=' + encodeURIComponent(c) }; }) });
       if (item.shopAll !== false) columns.unshift({ heading: '', links: [{ text: 'Shop all ' + label, url: base }] });
-      return { label: label, url: item.url || base, columns: columns };
+      return { label: label, url: landing, columns: columns };
     }
 
     if (type === 'tag') {
