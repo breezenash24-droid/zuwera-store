@@ -147,21 +147,32 @@
       ? ('Explore the latest ' + gLabel + "'s pieces — built for movement, made to last.")
       : 'Browse the latest Zuwera collection.');
     var heroImg = heroCfg.image || firstImage(inGender[0] || products[0] || {});
+    var heroVideo = heroCfg.video || '';
     var heroCtaText = heroCfg.ctaText || ('Shop all ' + (gLabel || 'products'));
     var heroCtaUrl = heroCfg.ctaUrl || base;
 
-    var heroBg = document.getElementById('lp-hero-bg');
-    if (heroBg && heroImg) heroBg.style.backgroundImage = "url('" + optImg(heroImg, 1400).replace(/'/g, "%27") + "')";
+    // Background media: a hero video (muted/looping) takes priority over the
+    // image; the image doubles as the video poster (first frame).
+    var mediaHtml;
+    if (heroVideo) {
+      mediaHtml = '<video class="lp-hero-bg" autoplay muted loop playsinline preload="auto"' +
+        (heroImg ? ' poster="' + esc(optImg(heroImg, 1400)) + '"' : '') +
+        '><source src="' + esc(heroVideo) + '"></video>';
+    } else {
+      mediaHtml = '<div class="lp-hero-bg"></div>';
+    }
     var heroEl = document.getElementById('lp-hero');
     if (heroEl) {
       heroEl.innerHTML =
-        '<div class="lp-hero-bg" id="lp-hero-bg"></div>' +
+        mediaHtml +
         '<p class="lp-hero-kicker">' + esc(heroKicker) + '</p>' +
         '<h1 class="lp-hero-title">' + esc(heroTitle) + '</h1>' +
         '<p class="lp-hero-sub">' + esc(heroSub) + '</p>' +
         '<a class="lp-hero-cta" href="' + esc(heroCtaUrl) + '">' + esc(heroCtaText) + '</a>';
-      var bg2 = document.getElementById('lp-hero-bg');
-      if (bg2 && heroImg) bg2.style.backgroundImage = "url('" + optImg(heroImg, 1400).replace(/'/g, "%27") + "')";
+      if (!heroVideo && heroImg) {
+        var bg2 = heroEl.querySelector('.lp-hero-bg');
+        if (bg2) bg2.style.backgroundImage = "url('" + optImg(heroImg, 1400).replace(/'/g, "%27") + "')";
+      }
     }
     document.title = (gLabel ? gLabel + ' — Shop ' : 'Shop ') + '| ZUWERA';
 

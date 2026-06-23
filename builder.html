@@ -754,6 +754,7 @@ function renderPagesTab(container){
     <div class="field"><label>Button text</label><input data-lp="hero.ctaText" value="${he(h.ctaText||'')}" placeholder="Shop all ${he(landingSlug)}"></div>
     <div class="field"><label>Button link</label><input data-lp="hero.ctaUrl" value="${he(h.ctaUrl||'')}" placeholder="drop001.html?gender=…"></div>
     <div class="field"><label>Hero image</label>${heroImg}<input data-lp="hero.image" data-f="__lpHero" id="lpHeroImg" value="${he(h.image||'')}" placeholder="Auto: first product image"><div style="display:flex;gap:.3rem;margin-top:.25rem"><button type="button" class="img-btn" onclick="openMedia('__lpHero')">📁 Browse</button></div></div>
+    <div class="field"><label>Hero video (optional — plays muted &amp; looping; overrides the image)</label><input data-lp="hero.video" data-f="__lpHeroVid" id="lpHeroVid" value="${he(h.video||'')}" placeholder="https://… .mp4 or .webm"><div style="display:flex;gap:.3rem;margin-top:.25rem"><button type="button" class="img-btn" onclick="openMedia('__lpHeroVid')">📁 Browse</button></div><div class="fhint" style="margin-top:.2rem">The hero image above is used as the video’s poster (first frame).</div></div>
     <div class="fdiv"></div>
 
     <div class="tab-hd">Shop by Category</div>

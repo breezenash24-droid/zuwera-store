@@ -125,8 +125,11 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var slu
       background:#0c0c0f;
     }
     .lp-hero::after{ content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(9,9,11,.15) 0%,rgba(9,9,11,.72) 100%); pointer-events:none; z-index:1; }
-    .lp-hero-bg{ position:absolute; inset:0; background-size:cover; background-position:center; z-index:0; transform:scale(1.02); }
+    .lp-hero-bg{ background-size:cover; background-position:center; transform:scale(1.02); }
     .lp-hero > *{ position:relative; z-index:2; }
+    /* Background media (image OR video) must sit behind the content. This rule is
+       more specific than ".lp-hero > *" so it wins the z-index/position cascade. */
+    .lp-hero > .lp-hero-bg{ position:absolute; inset:0; z-index:0; width:100%; height:100%; object-fit:cover; border:0; }
     .lp-hero-kicker{ font-family:var(--fm); font-size:.66rem; letter-spacing:.32em; text-transform:uppercase; opacity:.7; margin-bottom:.9rem; }
     .lp-hero-title{ font-family:var(--fw); font-weight:900; font-style:italic; text-transform:uppercase; letter-spacing:.02em; font-size:clamp(2.8rem,9vw,6rem); line-height:.92; }
     .lp-hero-sub{ font-family:var(--fb); font-size:1.05rem; opacity:.8; margin-top:1rem; max-width:40ch; line-height:1.55; }
@@ -330,6 +333,6 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var slu
   <script src="auth.js?v=7be42027" defer></script>
   <script src="zw-login.js?v=1b83aa67" defer></script>
   <script src="/nav-menu.js?v=bebee2d6" defer></script>
-  <script src="landing.js?v=17bf5dff" defer></script>
+  <script src="landing.js?v=34342424" defer></script>
 </body>
 </html>
