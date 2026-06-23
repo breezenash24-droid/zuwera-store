@@ -170,14 +170,16 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var slu
     .lp-skel{ opacity:.35; }
 
     body.light-mode .lp-hero{ background:#e8e5de; }
-    body.light-mode .lp-hero::after{ background:linear-gradient(180deg,rgba(240,238,233,.1) 0%,rgba(240,238,233,.5) 100%); }
+    /* No bottom haze in light themes — the hero text is dark, so the gradient
+       isn't needed for contrast and just veils a logo/graphic hero. */
+    body.light-mode .lp-hero::after{ background:none; }
     body.light-mode .lp-hero-cta{ background:#09090b; color:#fff; }
     body.light-mode .lp-cat-tile,body.light-mode .lp-card-img{ background:#ddd9d0; }
     body.light-mode .lp-cat-label{ color:#fff; }
     /* Super-light = crisp white (must override the light-mode rules above, which
        also apply because super-light keeps the light-mode class). */
     body.super-light-mode .lp-hero{ background:#FFFFFF; }
-    body.super-light-mode .lp-hero::after{ background:linear-gradient(180deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.35) 100%); }
+    body.super-light-mode .lp-hero::after{ background:none; }
     body.super-light-mode .lp-cat-tile,body.super-light-mode .lp-card-img{ background:#f1f0ec; }
   </style>
 </head>
