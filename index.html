@@ -211,7 +211,7 @@
 <!-- Quick-add modal module MUST load before storefront.js: the grid wiring in
      storefront.js calls window.quickAddToCart, which this module provides. -->
 <script src="quick-add-modal.js?v=bf583591" defer></script>
-<script src="storefront.js?v=ae81826a" defer></script>
+<script src="storefront.js?v=f905ff10" defer></script>
 <script src="/stripe-client-config.js?v=c262166e" defer></script>
 <script src="/checkout-tax.js?v=b12c4e5f" defer></script>
 
@@ -1760,6 +1760,11 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
 </style>
 </head>
 <body>
+<!-- THEME FLASH PREVENTION (synchronous, runs the instant <body> is parsed):
+     add light-mode to <body> from the cached mode BEFORE first paint so the nav,
+     hero, sections etc. render in light mode instead of flashing dark until
+     deferred storefront.js applies the class. Mirrors what drop001/account do. -->
+<script>(function(){try{var m=localStorage.getItem('zw_homepage_theme_mode')||localStorage.getItem('zw_theme_mode');if(m==='light')document.body.classList.add('light-mode');else if(m==='super-light')document.body.classList.add('light-mode','super-light-mode');}catch(_){}})()</script>
 <!-- iOS safe-area cover: composited opaque layer that doesn't lag during momentum
      scroll (the nav itself does, which is what bleeds). Themed to match the nav so
      it's seamless, sized to the status-bar strip only — adds no header height. -->

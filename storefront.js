@@ -1045,12 +1045,16 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
           document.body.classList.toggle('super-light-mode', mode === 'super-light');
           if (window.__zwSyncThemeColor) window.__zwSyncThemeColor();
         }
-        // When a page-builder layout drives the homepage, applyThemeMode persists
-        // the chosen mode under zw_homepage_theme_mode for FOUC-free reloads; only
-        // clear that key when the homepage is NOT page-builder-driven.
-        if (!window.__zwPageBuilderActive) {
-          try { localStorage.removeItem('zw_homepage_theme_mode'); } catch(e) {}
-        }
+        // Persist the resolved mode so the synchronous <head> flash-prevention
+        // script (which reads zw_homepage_theme_mode || zw_theme_mode before first
+        // paint) renders the correct background on the NEXT load — no dark flash.
+        // Previously this key was REMOVED whenever the homepage wasn't page-builder
+        // driven, which is exactly why an admin-set light theme flashed dark on
+        // every refresh. Cache both keys so every page (home + the rest) is covered.
+        try {
+          localStorage.setItem('zw_homepage_theme_mode', mode);
+          localStorage.setItem('zw_theme_mode', mode);
+        } catch(e) {}
     }
 
     // 4. hero
