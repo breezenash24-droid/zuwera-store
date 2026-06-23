@@ -57,6 +57,16 @@ body{display:flex;flex-direction:column}
 .lp-tab.on{color:#f4f1eb;border-bottom-color:var(--ac)}
 .lp-tab:hover:not(.on){color:rgba(244,241,235,.7)}
 .lp-content{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-height:0}
+/* Detachable / draggable panel */
+.lp-bar{display:flex;align-items:center;gap:.45rem;padding:.32rem .5rem;border-bottom:1px solid var(--bd);flex-shrink:0;background:var(--sf2)}
+.lp-grip{color:var(--mu);opacity:.35;font-size:.72rem;line-height:1;display:none}
+.lp-bar-title{font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.14em;text-transform:uppercase;color:var(--mu);flex:1;white-space:nowrap}
+.lp-float-btn{background:transparent;border:1px solid var(--bd);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.08em;text-transform:uppercase;padding:.26rem .55rem;cursor:pointer;border-radius:2px;transition:.12s;white-space:nowrap}
+.lp-float-btn:hover{border-color:var(--ac);color:var(--ac)}
+.lp.float{position:fixed;top:64px;left:24px;width:320px;height:72vh;z-index:400;border:1px solid var(--bd);border-radius:9px;box-shadow:0 18px 52px rgba(0,0,0,.62);resize:both;overflow:hidden}
+.lp.float .lp-bar{cursor:grab}
+.lp.float .lp-bar:active{cursor:grabbing}
+.lp.float .lp-grip{display:inline;opacity:.7}
 
 /* ── SECTIONS TAB ── */
 .sec-search-wrap{padding:.4rem .6rem .35rem;border-bottom:1px solid var(--bd);flex-shrink:0}
@@ -253,6 +263,11 @@ body{display:flex;flex-direction:column}
 
 <!-- LEFT PANEL -->
 <div class="lp">
+  <div class="lp-bar" id="lpBar">
+    <span class="lp-grip" aria-hidden="true">⠿</span>
+    <span class="lp-bar-title">Editor</span>
+    <button class="lp-float-btn" id="lpFloatBtn" onclick="toggleFloat()" title="Detach this panel so you can move and resize it">⤢ Float</button>
+  </div>
   <div class="lp-tabs">
     <button class="lp-tab on" onclick="lpTab('content')" id="tab-content" title="Homepage sections">Content</button>
     <button class="lp-tab" onclick="lpTab('pages')"   id="tab-pages" title="Men / Women landing pages">Pages</button>
@@ -583,6 +598,38 @@ let _imgKey=null,_tt,_sendT,_autosaveT;
 function toggleMore(e){ if(e)e.stopPropagation(); const m=document.getElementById('moreMenu'),b=document.getElementById('moreBtn'); const willOpen=m.hasAttribute('hidden'); if(willOpen){ const r=b.getBoundingClientRect(); m.style.top=(r.bottom+7)+'px'; m.style.right=Math.max(8,(window.innerWidth-r.right))+'px'; m.removeAttribute('hidden'); b&&b.setAttribute('aria-expanded','true'); } else { m.setAttribute('hidden',''); b&&b.setAttribute('aria-expanded','false'); } }
 function closeMore(){ const m=document.getElementById('moreMenu'); if(m&&!m.hasAttribute('hidden')){m.setAttribute('hidden','');const b=document.getElementById('moreBtn');b&&b.setAttribute('aria-expanded','false');} }
 document.addEventListener('click',function(e){ if(!e.target.closest('.more-wrap'))closeMore(); else if(e.target.closest('.more-item'))closeMore(); });
+
+// ── DETACHABLE EDITOR PANEL (drag the settings out) ───────────────────────
+function toggleFloat(){
+  const p=document.querySelector('.lp'); if(!p)return;
+  const f=p.classList.toggle('float');
+  const b=document.getElementById('lpFloatBtn'); if(b)b.textContent=f?'⤡ Dock':'⤢ Float';
+  if(f){ p.style.left='24px'; p.style.top='64px'; }
+  else { p.style.left=p.style.top=p.style.width=p.style.height=''; }
+  try{ localStorage.setItem('zw_builder_panel_float', f?'1':'0'); }catch(_){}
+}
+(function(){
+  let dragging=false, sx=0, sy=0, ox=0, oy=0;
+  function panel(){ return document.querySelector('.lp.float'); }
+  document.addEventListener('mousedown',function(e){
+    const bar=e.target.closest('#lpBar'); if(!bar)return;
+    if(e.target.closest('.lp-float-btn'))return;      // clicking Dock shouldn't drag
+    const p=panel(); if(!p)return;                      // only draggable when floating
+    const r=p.getBoundingClientRect();
+    dragging=true; sx=e.clientX; sy=e.clientY; ox=r.left; oy=r.top;
+    p.style.left=ox+'px'; p.style.top=oy+'px';
+    document.body.style.userSelect='none'; e.preventDefault();
+  });
+  document.addEventListener('mousemove',function(e){
+    if(!dragging)return; const p=panel(); if(!p)return;
+    const nx=Math.max(0, Math.min(window.innerWidth-60, ox+e.clientX-sx));
+    const ny=Math.max(48, Math.min(window.innerHeight-60, oy+e.clientY-sy));
+    p.style.left=nx+'px'; p.style.top=ny+'px';
+  });
+  document.addEventListener('mouseup',function(){ if(dragging){ dragging=false; document.body.style.userSelect=''; } });
+  // Restore floating state from last session (the .lp markup already exists here)
+  try{ if(localStorage.getItem('zw_builder_panel_float')==='1' && document.querySelector('.lp')) toggleFloat(); }catch(_){}
+})();
 
 // ── LEFT PANEL TABS ───────────────────────────────────────────────────────
 let designSub='theme';
