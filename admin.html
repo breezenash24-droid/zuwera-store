@@ -6308,6 +6308,79 @@
                         <button type="button" class="btn btn-primary btn-sm" id="saveCardCtaBtn" style="margin-top:16px;">Save Card Style</button>
                     </div>
 
+                    <!-- Navigation menu (editable header + hover mega-menu) -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:24px;margin-bottom:20px;">
+                        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:6px;">Navigation Menu</div>
+                        <p style="color:var(--text-secondary);font-size:.82rem;margin-bottom:16px;line-height:1.6;">Control the links in the header. Add top-level items (e.g. <em>Men</em>, <em>Shoes</em>); give an item <strong>columns of links</strong> to turn it into a <strong>hover mega-menu</strong> (desktop) / tap-to-expand (mobile). Leave this empty to auto-list your product categories (current behavior). A link's URL can be a path like <code style="font-size:.78rem;">drop001.html?category=Jackets</code>, an anchor like <code style="font-size:.78rem;">about.html</code>, or any full URL.</p>
+                        <div id="navMenuEditor"></div>
+                        <button type="button" class="btn btn-secondary btn-sm" id="navAddItemBtn" style="margin-top:10px;">+ Add top-level item</button>
+                        <div style="margin-top:16px;"><button type="button" class="btn btn-primary btn-sm" id="saveNavMenuBtn">Save Navigation</button></div>
+                        <script>
+                        (function(){
+                            var ed = document.getElementById('navMenuEditor');
+                            if (!ed || ed.dataset.built) return;
+                            ed.dataset.built = '1';
+                            window._zwNavMenu = window._zwNavMenu || [];
+                            function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+                            function render(){
+                                var m = window._zwNavMenu;
+                                if (!m.length){ ed.innerHTML = '<p style="color:var(--text-secondary);font-size:.82rem;margin:0;">No custom items — the header auto-lists your product categories. Click “Add top-level item” to take control.</p>'; return; }
+                                ed.innerHTML = m.map(function(item,i){
+                                    var cols = (item.columns||[]).map(function(col,j){
+                                        var links = (col.links||[]).map(function(lk,l){
+                                            return '<div style="display:flex;gap:6px;margin:4px 0;">'
+                                                + '<input class="form-input" data-i="'+i+'" data-j="'+j+'" data-l="'+l+'" data-f="text" value="'+esc(lk.text)+'" placeholder="Link text" style="flex:1;">'
+                                                + '<input class="form-input" data-i="'+i+'" data-j="'+j+'" data-l="'+l+'" data-f="url" value="'+esc(lk.url)+'" placeholder="URL" style="flex:1.4;">'
+                                                + '<button type="button" class="btn btn-secondary btn-sm" data-act="delLink" data-i="'+i+'" data-j="'+j+'" data-l="'+l+'">×</button></div>';
+                                        }).join('');
+                                        return '<div style="border:1px solid var(--border);border-radius:6px;padding:10px;margin:8px 0;">'
+                                            + '<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">'
+                                            + '<input class="form-input" data-i="'+i+'" data-j="'+j+'" data-f="heading" value="'+esc(col.heading)+'" placeholder="Column heading (optional)" style="flex:1;font-weight:600;">'
+                                            + '<button type="button" class="btn btn-secondary btn-sm" data-act="delCol" data-i="'+i+'" data-j="'+j+'">Remove column</button></div>'
+                                            + links
+                                            + '<button type="button" class="btn btn-secondary btn-sm" data-act="addLink" data-i="'+i+'" data-j="'+j+'" style="margin-top:4px;">+ link</button></div>';
+                                    }).join('');
+                                    return '<div style="border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px;background:var(--bg-primary);">'
+                                        + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">'
+                                        + '<input class="form-input" data-i="'+i+'" data-f="label" value="'+esc(item.label)+'" placeholder="Item label (e.g. Men)" style="flex:1;min-width:120px;font-weight:700;">'
+                                        + '<input class="form-input" data-i="'+i+'" data-f="url" value="'+esc(item.url)+'" placeholder="Item link URL (optional)" style="flex:1.3;min-width:140px;">'
+                                        + '<button type="button" class="btn btn-secondary btn-sm" data-act="moveUp" data-i="'+i+'" title="Move up">↑</button>'
+                                        + '<button type="button" class="btn btn-secondary btn-sm" data-act="moveDown" data-i="'+i+'" title="Move down">↓</button>'
+                                        + '<button type="button" class="btn btn-secondary btn-sm" data-act="delItem" data-i="'+i+'">Delete</button></div>'
+                                        + (cols ? '<div style="margin-top:8px;">'+cols+'</div>' : '')
+                                        + '<button type="button" class="btn btn-secondary btn-sm" data-act="addCol" data-i="'+i+'" style="margin-top:8px;">+ column (makes it a hover menu)</button>'
+                                        + '</div>';
+                                }).join('');
+                            }
+                            ed.addEventListener('input', function(e){
+                                var el = e.target; if (el.dataset.i === undefined) return;
+                                var i=+el.dataset.i, j=el.dataset.j, l=el.dataset.l, f=el.dataset.f, m=window._zwNavMenu;
+                                if (!m[i]) return;
+                                if (l !== undefined){ m[i].columns[+j].links[+l][f] = el.value; }
+                                else if (j !== undefined){ m[i].columns[+j][f] = el.value; }
+                                else { m[i][f] = el.value; }
+                            });
+                            ed.addEventListener('click', function(e){
+                                var b = e.target.closest('[data-act]'); if (!b) return;
+                                var act=b.dataset.act, i=+b.dataset.i, j=b.dataset.j, l=b.dataset.l, m=window._zwNavMenu, t;
+                                if (act==='delItem') m.splice(i,1);
+                                else if (act==='addCol'){ (m[i].columns = m[i].columns||[]).push({heading:'',links:[{text:'',url:''}]}); }
+                                else if (act==='delCol') m[i].columns.splice(+j,1);
+                                else if (act==='addLink'){ (m[i].columns[+j].links = m[i].columns[+j].links||[]).push({text:'',url:''}); }
+                                else if (act==='delLink') m[i].columns[+j].links.splice(+l,1);
+                                else if (act==='moveUp' && i>0){ t=m[i]; m[i]=m[i-1]; m[i-1]=t; }
+                                else if (act==='moveDown' && i<m.length-1){ t=m[i]; m[i]=m[i+1]; m[i+1]=t; }
+                                render();
+                            });
+                            document.getElementById('navAddItemBtn').addEventListener('click', function(){
+                                window._zwNavMenu.push({ label:'', url:'', columns:[] }); render();
+                            });
+                            window._zwFillNavMenu = function(v){ window._zwNavMenu = Array.isArray(v) ? v : []; render(); };
+                            render();
+                        })();
+                        </script>
+                    </div>
+
                     <!-- ── Section: Store rules ── -->
                     <div style="margin:28px 0 12px;display:flex;align-items:center;gap:12px;">
                         <span style="font-family:'Barlow Condensed',sans-serif;font-size:.82rem;letter-spacing:.16em;text-transform:uppercase;color:var(--text-secondary);white-space:nowrap;">Store rules</span>
@@ -8051,6 +8124,7 @@
             {icon:'📣',main:'Announcement Bar',sub:'Settings · Storefront chrome',kw:'banner promo top bar message marquee scrolling',page:'settings',el:'settAnnouncementBarMain'},
             {icon:'🧭',main:'Header Scroll Behavior',sub:'Settings · Storefront chrome',kw:'header sticky auto hide pin nav scroll adidas always visible per page override returns',page:'settings',el:'settHeaderDefault'},
             {icon:'🎨',main:'Product Cards (Add to Bag vs Color swatches)',sub:'Settings · Storefront chrome',kw:'product card swatch swatches color colour chips nike hover preview add to bag button cta grid homepage collection toggle',page:'settings',el:'settCardCta'},
+            {icon:'🧭',main:'Navigation Menu (header links & mega-menu)',sub:'Settings · Storefront chrome',kw:'navigation nav menu header links mega menu dropdown hover categories men women top level columns editable customize what is listed',page:'settings',el:'navMenuEditor'},
             {icon:'🔐',main:'Early Access',sub:'Settings · Store rules',kw:'members early access window gate exclusive presale drop',page:'settings',el:'earlyAccessEnabled'},
             {icon:'🚚',main:'Free Shipping & Rates',sub:'Settings · Store rules',kw:'free shipping threshold standard rate delivery days cost',page:'settings',el:'settFreeThreshold'},
             {icon:'↩',main:'Return Window (days)',sub:'Settings · Store rules',kw:'return days member nonmember refund window policy',page:'settings',el:'settReturnMember'},
@@ -12242,6 +12316,10 @@
                 try { if (typeof v === 'string') v = JSON.parse(v); } catch(e) {}
                 const sel = document.getElementById('settCardCta');
                 if (sel) sel.value = (v && v.mode === 'color-swatches') ? 'color-swatches' : 'add-to-bag';
+            } else if (row.key === 'nav_menu') {
+                let v = row.value;
+                try { if (typeof v === 'string') v = JSON.parse(v); } catch(e) {}
+                if (window._zwFillNavMenu) window._zwFillNavMenu(Array.isArray(v) ? v : []);
             }
         });
         if (!hasTechs) {
@@ -12315,6 +12393,29 @@
         else {
             await logAdminAudit('settings.update', 'site_settings', 'product_card_cta', { mode });
             showToast('Card style saved!', 'success');
+        }
+    });
+
+    document.getElementById('saveNavMenuBtn')?.addEventListener('click', async () => {
+        // Clean: trim everything, drop empty links/columns/items.
+        const clean = (window._zwNavMenu || []).map(it => ({
+            label: (it.label || '').trim(),
+            url: (it.url || '').trim(),
+            columns: (it.columns || []).map(c => ({
+                heading: (c.heading || '').trim(),
+                links: (c.links || []).map(l => ({ text: (l.text || '').trim(), url: (l.url || '').trim() }))
+                    .filter(l => l.text || l.url)
+            })).filter(c => c.heading || c.links.length)
+        })).filter(it => it.label);
+        const { error } = await sb.from('site_settings').upsert(
+            { key: 'nav_menu', value: clean, updated_at: new Date().toISOString() },
+            { onConflict: 'key' }
+        );
+        if (error) { showToast('Error saving navigation', 'error'); console.error(error); }
+        else {
+            window._zwNavMenu = clean;
+            await logAdminAudit('settings.update', 'site_settings', 'nav_menu', { items: clean.length });
+            showToast('Navigation saved!', 'success');
         }
     });
 

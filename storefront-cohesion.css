@@ -3340,3 +3340,63 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
   body.zw-cards-swatches .product-card--swatched .product-info{ padding-bottom:.75rem; }
 }
 @media (max-width:900px){ .zw-card-swatches{ display:none !important; } }
+
+/* 6) Editable mega-menu navigation (nav-menu.js reads site_settings.nav_menu).
+   Desktop: each top item with sub-groups opens a hover panel (.zw-mega) of
+   columns. Mobile: the slide-out menu shows an accordion (.zw-macc-*). */
+.zw-navitem{ position:relative; display:flex; align-items:center; }
+.zw-navtrigger{ background:none; border:none; padding:0; cursor:pointer; line-height:inherit; }
+.zw-navitem > .zw-mega{
+  position:absolute; top:calc(100% + .9rem); left:50%; transform:translateX(-50%) translateY(6px);
+  display:flex; gap:2.4rem; padding:1.5rem 1.8rem; max-width:90vw;
+  background:var(--zw-surface, #131316);
+  border:1px solid var(--zw-line-dark, rgba(244,241,235,.12));
+  border-top:2px solid var(--zw-accent, #F891A5);
+  box-shadow:0 24px 70px rgba(0,0,0,.42);
+  opacity:0; visibility:hidden; pointer-events:none;
+  transition:opacity .18s ease, transform .18s ease, visibility 0s linear .18s;
+  z-index:240;
+}
+/* transparent bridge so moving the cursor from the item to the panel doesn't close it */
+.zw-navitem > .zw-mega::before{ content:''; position:absolute; left:0; right:0; top:-1rem; height:1rem; }
+.zw-navitem:hover > .zw-mega, .zw-navitem:focus-within > .zw-mega{
+  opacity:1; visibility:visible; pointer-events:auto; transform:translateX(-50%) translateY(0);
+  transition:opacity .18s ease, transform .18s ease;
+}
+.zw-mega-col{ display:flex; flex-direction:column; gap:.5rem; min-width:120px; }
+.zw-mega-col h4{
+  font-family:var(--fm); font-size:.55rem; letter-spacing:.2em; text-transform:uppercase;
+  color:rgba(244,241,235,.4); margin:0 0 .35rem; font-weight:500;
+}
+.zw-mega-col a{
+  font-family:var(--fm); font-size:.62rem; letter-spacing:.12em; text-transform:uppercase;
+  color:rgba(244,241,235,.8); text-decoration:none; transition:color .18s; white-space:nowrap;
+}
+.zw-mega-col a:hover{ color:var(--paper, #f4f1eb); }
+body.light-mode .zw-navitem > .zw-mega{
+  background:#fff; border-color:rgba(9,9,11,.1); border-top-color:#09090b; box-shadow:0 24px 70px rgba(0,0,0,.16);
+}
+body.light-mode .zw-mega-col h4{ color:rgba(9,9,11,.4); }
+body.light-mode .zw-mega-col a{ color:rgba(9,9,11,.72); }
+body.light-mode .zw-mega-col a:hover{ color:#09090b; }
+
+/* Mobile accordion (inside the slide-out menu's #mobile-category-links) */
+.zw-macc-trigger{
+  display:flex; align-items:center; justify-content:space-between; width:100%;
+  background:none; border:none; cursor:pointer; text-align:left;
+}
+.zw-macc-ico{ position:relative; width:11px; height:11px; flex:0 0 auto; margin-left:1rem; opacity:.55; }
+.zw-macc-ico::before, .zw-macc-ico::after{ content:''; position:absolute; background:currentColor; transition:transform .25s ease; }
+.zw-macc-ico::before{ top:5px; left:0; width:11px; height:1.5px; }
+.zw-macc-ico::after{ left:5px; top:0; width:1.5px; height:11px; }
+.zw-macc-trigger.open .zw-macc-ico::after{ transform:scaleY(0); }
+.zw-macc-panel{ max-height:0; overflow:hidden; transition:max-height .3s ease; }
+.zw-macc-head{
+  font-family:var(--fm); font-size:.55rem; letter-spacing:.2em; text-transform:uppercase;
+  opacity:.4; margin:.9rem 0 .25rem;
+}
+.zw-macc-link{
+  display:block; padding:.45rem 0 .45rem .2rem;
+  font-family:var(--fb); font-size:.85rem; letter-spacing:.02em; opacity:.85; text-decoration:none; color:inherit;
+}
+.zw-macc-link:hover{ opacity:1; }
