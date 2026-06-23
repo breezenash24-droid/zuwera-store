@@ -2492,21 +2492,15 @@ document.addEventListener('click', function(e) {
 }, true);
 
 /* ── Nike-style card color swatches (swatch mode) ───────────────────────────
-   Hover a swatch → swap the card photo to that color's image; leave the row →
-   restore. Click a swatch → open the add-to-bag modal preselected to that
+   Hover a swatch → swap the card photo to that color's image and KEEP it there
+   (the card sticks on the last colour you hovered; a page refresh re-renders the
+   default). Click a swatch → open the add-to-bag modal preselected to that
    color (on mobile the modal bypasses to the product page, same as Add to Bag). */
 document.addEventListener('mouseover', function (e) {
   const sw = e.target.closest('.zw-card-swatch'); if (!sw || sw.classList.contains('zw-swatch-more')) return;
   const card = sw.closest('.pcard'); const img = card && card.querySelector('.pcard-img img');
   if (!img || !sw.dataset.img) return;
-  if (!img.dataset.origSrc) img.dataset.origSrc = img.getAttribute('src') || '';
   img.setAttribute('src', sw.dataset.img);
-});
-document.addEventListener('mouseout', function (e) {
-  const row = e.target.closest('.zw-card-swatches'); if (!row) return;
-  if (row.contains(e.relatedTarget)) return;   // still inside the swatch row
-  const card = row.closest('.pcard'); const img = card && card.querySelector('.pcard-img img');
-  if (img && img.dataset.origSrc) img.setAttribute('src', img.dataset.origSrc);
 });
 document.addEventListener('click', function (e) {
   const sw = e.target.closest('.zw-card-swatch'); if (!sw) return;

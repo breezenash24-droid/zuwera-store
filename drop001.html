@@ -1685,20 +1685,14 @@ function updateCountdown() {
   }, true);
 
   // ── Nike-style card color swatches (swatch mode) ──
-  // Hover swaps the card photo to the color's image; click opens the bag modal
-  // preselected to that color.
+  // Hover swaps the card photo to the color's image and KEEPS it (sticks on the
+  // last colour hovered; a refresh re-renders the default). Click opens the bag
+  // modal preselected to that color.
   document.addEventListener('mouseover', function (e) {
     var sw = e.target.closest('.zw-card-swatch'); if (!sw || sw.classList.contains('zw-swatch-more')) return;
     var card = sw.closest('.product-card'); var img = card && card.querySelector('.product-img img');
     if (!img || !sw.dataset.img) return;
-    if (!img.dataset.origSrc) img.dataset.origSrc = img.getAttribute('src') || '';
     img.setAttribute('src', sw.dataset.img);
-  });
-  document.addEventListener('mouseout', function (e) {
-    var row = e.target.closest('.zw-card-swatches'); if (!row) return;
-    if (row.contains(e.relatedTarget)) return;
-    var card = row.closest('.product-card'); var img = card && card.querySelector('.product-img img');
-    if (img && img.dataset.origSrc) img.setAttribute('src', img.dataset.origSrc);
   });
   document.addEventListener('click', function (e) {
     var sw = e.target.closest('.zw-card-swatch'); if (!sw) return;
