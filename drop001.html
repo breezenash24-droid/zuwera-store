@@ -1355,8 +1355,13 @@ function updateCountdown() {
 
       let cached = null;
       try { cached = sessionStorage.getItem('zw_collection_products'); } catch(_) {}
-      if (cached) {
-        try { renderProducts(JSON.parse(cached)); } catch(e){}
+      // Only paint instantly from the cached (FULL) product list on the unfiltered
+      // collection. On a filtered view (category/gender/tag) that cache would flash
+      // every product before narrowing, so wait for the fresh, filtered render.
+      const _hasFilter = requestedCategory || requestedGender || requestedTag;
+      let _painted = false;
+      if (cached && !_hasFilter) {
+        try { renderProducts(JSON.parse(cached)); _painted = true; } catch(e){}
       }
 
       let products;
@@ -1403,12 +1408,12 @@ function updateCountdown() {
         }));
       } catch(e) {
         console.error('loadProducts error:', e);
-        if (!cached) grid.innerHTML = '<div class="product-card" style="opacity:.3;text-align:center;padding:3rem;grid-column:1/-1">Could not load products.</div>';
+        if (!_painted) grid.innerHTML = '<div class="product-card" style="opacity:.3;text-align:center;padding:3rem;grid-column:1/-1">Could not load products.</div>';
         return;
       }
 
       if (!Array.isArray(products) || products.length === 0) {
-        if (!cached) grid.innerHTML = '<div class="product-card" style="opacity:.3;text-align:center;padding:3rem;grid-column:1/-1">No products yet.</div>';
+        if (!_painted) grid.innerHTML = '<div class="product-card" style="opacity:.3;text-align:center;padding:3rem;grid-column:1/-1">No products yet.</div>';
         return;
       }
 
