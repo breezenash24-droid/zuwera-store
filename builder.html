@@ -198,6 +198,12 @@ body{display:flex;flex-direction:column}
 .media-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .media-thumb-lbl{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.65);font-family:'IBM Plex Mono',monospace;font-size:.42rem;color:rgba(255,255,255,.75);padding:.2rem .3rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sched-wrap{display:flex;gap:.4rem;align-items:flex-end}
+/* Image previews — click to enlarge (lightbox) */
+.field > img,.field img[data-preview]{cursor:zoom-in}
+#imgZoom{position:fixed;inset:0;background:rgba(0,0,0,.86);z-index:600;display:none;align-items:center;justify-content:center;padding:3vmin;cursor:zoom-out}
+#imgZoom.on{display:flex}
+#imgZoom img{max-width:94vw;max-height:90vh;object-fit:contain;background:#fff;box-shadow:0 12px 50px rgba(0,0,0,.6);border-radius:3px}
+#imgZoom .iz-hint{position:fixed;top:14px;left:0;right:0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.55rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.55);pointer-events:none}
 
 /* ── OVERLAYS ── */
 #toast{position:fixed;bottom:1.1rem;left:50%;transform:translateX(-50%) translateY(6px);background:var(--sf);border:1px solid var(--bd);color:#f4f1eb;padding:.35rem .85rem;font-family:'IBM Plex Mono',monospace;font-size:.56rem;letter-spacing:.09em;opacity:0;transition:.17s;pointer-events:none;z-index:300;border-radius:2px;white-space:nowrap}
@@ -375,6 +381,7 @@ body{display:flex;flex-direction:column}
 </div>
 
 <div id="toast"></div>
+<div id="imgZoom" onclick="this.classList.remove('on')"><div class="iz-hint">Click anywhere to close</div><img id="imgZoomImg" alt="Enlarged preview"></div>
 <div id="errBox"><div style="display:flex;justify-content:space-between;margin-bottom:.28rem"><b>Error</b><button onclick="this.closest('#errBox').classList.remove('on')" style="background:none;border:none;color:inherit;cursor:pointer">×</button></div><div id="errMsg"></div></div>
 
 <script src="/supabase.min.js?v=3277b334"></script>
@@ -598,6 +605,16 @@ let _imgKey=null,_tt,_sendT,_autosaveT;
 function toggleMore(e){ if(e)e.stopPropagation(); const m=document.getElementById('moreMenu'),b=document.getElementById('moreBtn'); const willOpen=m.hasAttribute('hidden'); if(willOpen){ const r=b.getBoundingClientRect(); m.style.top=(r.bottom+7)+'px'; m.style.right=Math.max(8,(window.innerWidth-r.right))+'px'; m.removeAttribute('hidden'); b&&b.setAttribute('aria-expanded','true'); } else { m.setAttribute('hidden',''); b&&b.setAttribute('aria-expanded','false'); } }
 function closeMore(){ const m=document.getElementById('moreMenu'); if(m&&!m.hasAttribute('hidden')){m.setAttribute('hidden','');const b=document.getElementById('moreBtn');b&&b.setAttribute('aria-expanded','false');} }
 document.addEventListener('click',function(e){ if(!e.target.closest('.more-wrap'))closeMore(); else if(e.target.closest('.more-item'))closeMore(); });
+
+// Click any image preview to see it full-size (lightbox).
+document.addEventListener('click',function(e){
+  var img=e.target;
+  if(!img||img.tagName!=='IMG'||img.id==='imgZoomImg')return;
+  var isPreview=(img.matches&&img.matches('img[data-preview]'))||(img.parentElement&&img.parentElement.classList&&img.parentElement.classList.contains('field'));
+  if(!isPreview||!img.src||img.src.slice(0,5)==='data:')return;
+  var zi=document.getElementById('imgZoomImg'),z=document.getElementById('imgZoom');
+  if(zi&&z){ zi.src=img.src; z.classList.add('on'); }
+});
 
 // ── DETACHABLE EDITOR PANEL (drag the settings out) ───────────────────────
 function toggleFloat(){
@@ -825,7 +842,7 @@ function renderPagesTab(container){
     }
   }
 
-  const heroImg = h.image ? `<img src="${he(h.image)}" style="width:100%;height:70px;object-fit:cover;border:1px solid var(--bd);border-radius:2px;margin-bottom:.25rem;display:block">` : '';
+  const heroImg = h.image ? `<img src="${he(h.image)}" title="Click to enlarge" style="width:100%;height:130px;object-fit:contain;background:var(--sf2);border:1px solid var(--bd);border-radius:2px;margin-bottom:.25rem;display:block">` : '';
 
   container.innerHTML=`<div class="tab-pane">
     <div class="tab-hd">Landing Pages</div>
