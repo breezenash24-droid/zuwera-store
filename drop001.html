@@ -300,8 +300,28 @@
     /* PRODUCTS GRID */
     .products-section {
       padding: 6rem 2.5rem;
-      max-width: 1100px;
+      max-width: 1400px;
       margin: 0 auto;
+    }
+    /* PLP: filter sidebar + sort + count (Nike-style listing) */
+    .plp-bar { display:flex; align-items:center; gap:1rem; margin-bottom:1.5rem; flex-wrap:wrap; }
+    .plp-count { font-family:var(--font-mono); font-size:.7rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+    .plp-sort-wrap { margin-left:auto; font-family:var(--font-mono); font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); display:flex; align-items:center; gap:.5rem; }
+    .plp-sort { background:transparent; color:inherit; border:1px solid var(--border); font-family:var(--font-mono); font-size:.68rem; padding:.4rem .6rem; cursor:pointer; border-radius:0; }
+    .plp-filter-toggle { display:none; background:transparent; color:inherit; border:1px solid var(--border); font-family:var(--font-mono); font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; padding:.45rem .8rem; cursor:pointer; }
+    .plp-layout { display:flex; gap:2.5rem; align-items:flex-start; }
+    .plp-sidebar { flex:0 0 190px; position:sticky; top:90px; }
+    .plp-main { flex:1; min-width:0; }
+    .plp-sidebar-head { font-family:var(--font-mono); font-size:.58rem; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin-bottom:.7rem; }
+    .plp-cat-list { display:flex; flex-direction:column; }
+    .plp-cat-btn { background:transparent; border:0; text-align:left; color:inherit; font-family:var(--font-head); font-size:1.05rem; letter-spacing:.02em; padding:.42rem 0; cursor:pointer; opacity:.65; transition:opacity .15s; }
+    .plp-cat-btn:hover { opacity:1; }
+    .plp-cat-btn.active { opacity:1; font-weight:700; text-decoration:underline; text-underline-offset:4px; }
+    @media (max-width:760px) {
+      .plp-filter-toggle { display:inline-block; }
+      .plp-layout { flex-direction:column; gap:1rem; }
+      .plp-sidebar { display:none; position:static; flex-basis:auto; width:100%; margin-bottom:.5rem; border-bottom:1px solid var(--border); padding-bottom:1rem; }
+      .plp-sidebar.open { display:block; }
     }
     .section-header {
       display: flex;
@@ -1000,9 +1020,27 @@
       <span>Releasing 09 / 20 / 2026</span>
     </div>
 
-    <div class="products-grid" id="products-grid">
-      <!-- Products loaded dynamically from Supabase -->
-      <div class="product-card" style="opacity:.3;text-align:center;padding:3rem;grid-column:1/-1">Loading products...</div>
+    <div class="plp-bar">
+      <button type="button" class="plp-filter-toggle" id="plp-filter-toggle" aria-expanded="false" aria-controls="plp-sidebar" onclick="window.__zwTogglePlpFilters && window.__zwTogglePlpFilters()">Filters</button>
+      <span class="plp-count" id="plp-count"></span>
+      <label class="plp-sort-wrap">Sort by
+        <select class="plp-sort" id="plp-sort" onchange="window.__zwSetPlpSort && window.__zwSetPlpSort(this.value)">
+          <option value="featured">Featured</option>
+          <option value="price-asc">Price: Low to High</option>
+          <option value="price-desc">Price: High to Low</option>
+          <option value="name">Name: A to Z</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="plp-layout">
+      <aside class="plp-sidebar" id="plp-sidebar" aria-label="Filter by category"></aside>
+      <div class="plp-main">
+        <div class="products-grid" id="products-grid">
+          <!-- Products loaded dynamically from Supabase -->
+          <div class="product-card" style="opacity:.3;text-align:center;padding:3rem;grid-column:1/-1">Loading products...</div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -1213,10 +1251,52 @@ function updateCountdown() {
       const requestedTag = getRequestedTag();
       const requestedLabel = [requestedGender, requestedCategory].filter(Boolean).join(' · ') || requestedTag || '';
       updateCollectionMeta(requestedLabel);
+
+      // ── PLP filter/sort state (client-side; sidebar + sort + count) ──────────
+      let activeCategory = requestedCategory;   // mutable: sidebar overrides the URL category
+      let activeSort = 'featured';
+      let _allProducts = [];
+      const PLP_CLOTHING_ORDER = ['Outerwear','Jackets','Coats','Vests','Hoodies','Sweatshirts','Sweaters','Knitwear','Tops','T-Shirts','Tees','Shirts','Polos','Long Sleeves','Sweatpants','Joggers','Pants','Trousers','Leggings','Shorts','Bottoms','Sets','Tracksuits','Dresses','Skirts','Swim','Underwear','Socks','Hats','Caps','Beanies','Gloves','Bags','Accessories'];
+      function plpCatRank(n){ const i = PLP_CLOTHING_ORDER.findIndex(c => c.toLowerCase() === String(n).toLowerCase()); return i === -1 ? 999 : i; }
+      function plpEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+      function plpPrice(p){ return parseFloat(p && (p.current_price || p.msrp)) || 0; }
+
+      function renderPlpSidebar(){
+        const aside = document.getElementById('plp-sidebar');
+        if (!aside) return;
+        const seen = {}, cats = [];
+        (_allProducts || []).forEach(function(p){
+          if (!(productMatchesGender(p, requestedGender) && productMatchesTag(p, requestedTag))) return;
+          const c = categoryLabelFromProduct(p);
+          if (c && !seen[c.toLowerCase()]) { seen[c.toLowerCase()] = true; cats.push(c); }
+        });
+        cats.sort(function(a,b){ return plpCatRank(a) - plpCatRank(b) || a.localeCompare(b); });
+        if (cats.length < 2) { aside.innerHTML = ''; return; }   // nothing to filter
+        const scope = requestedGender || requestedTag || 'All';
+        let html = '<p class="plp-sidebar-head">Category</p><div class="plp-cat-list">';
+        html += '<button type="button" class="plp-cat-btn'+(!activeCategory?' active':'')+'" data-cat="">All '+plpEsc(scope)+'</button>';
+        cats.forEach(function(c){
+          const on = activeCategory && activeCategory.toLowerCase() === c.toLowerCase();
+          html += '<button type="button" class="plp-cat-btn'+(on?' active':'')+'" data-cat="'+plpEsc(c)+'">'+plpEsc(c)+'</button>';
+        });
+        html += '</div>';
+        aside.innerHTML = html;
+        aside.onclick = function(e){ const b = e.target.closest('.plp-cat-btn'); if (b) window.__zwSetPlpCategory(b.getAttribute('data-cat') || ''); };
+      }
+
+      window.__zwSetPlpCategory = function(cat){
+        activeCategory = cat || '';
+        try { const u = new URL(location.href); if (activeCategory) u.searchParams.set('category', activeCategory); else u.searchParams.delete('category'); history.replaceState(null, '', u); } catch(_){}
+        renderProducts(_allProducts);
+        renderPlpSidebar();
+        const sb = document.getElementById('plp-sidebar'); if (sb) sb.classList.remove('open');
+      };
+      window.__zwSetPlpSort = function(s){ activeSort = s || 'featured'; renderProducts(_allProducts); };
+      window.__zwTogglePlpFilters = function(){ const sb = document.getElementById('plp-sidebar'); if (!sb) return; const open = sb.classList.toggle('open'); const t = document.getElementById('plp-filter-toggle'); if (t) t.setAttribute('aria-expanded', open ? 'true' : 'false'); };
       let _painted = false;
       try {
         const _cachedProducts = sessionStorage.getItem('zw_collection_products');
-        if (_cachedProducts) { renderProducts(JSON.parse(_cachedProducts)); _painted = true; }
+        if (_cachedProducts) { renderProducts(JSON.parse(_cachedProducts)); renderPlpSidebar(); _painted = true; }
       } catch (_) {}
 
       function collectionToast(message) {
@@ -1418,18 +1498,31 @@ function updateCountdown() {
 
       try { sessionStorage.setItem('zw_collection_products', JSON.stringify(products)); } catch(_) {}
       renderProducts(products);
+      renderPlpSidebar();
 
       function renderProducts(productsList) {
+        if (productsList && productsList.length) _allProducts = productsList;
         const filteredProducts = (productsList || []).filter(function (p) {
-          if (requestedCategory && categoryLabelFromProduct(p).toLowerCase() !== requestedCategory.toLowerCase()) return false;
+          if (activeCategory && categoryLabelFromProduct(p).toLowerCase() !== activeCategory.toLowerCase()) return false;
           return productMatchesGender(p, requestedGender) && productMatchesTag(p, requestedTag);
         });
 
-        updateCollectionMeta(requestedLabel || (filteredProducts.length === 1 ? categoryLabelFromProduct(filteredProducts[0]) : ''));
+        // Sort (Featured = curated sort_order)
+        filteredProducts.sort(function (a, b) {
+          if (activeSort === 'price-asc') return plpPrice(a) - plpPrice(b);
+          if (activeSort === 'price-desc') return plpPrice(b) - plpPrice(a);
+          if (activeSort === 'name') return String(a.title || '').localeCompare(String(b.title || ''));
+          return (a.sort_order || 0) - (b.sort_order || 0);
+        });
+
+        const curLabel = [requestedGender, activeCategory].filter(Boolean).join(' · ') || requestedTag || '';
+        updateCollectionMeta(curLabel || (filteredProducts.length === 1 ? categoryLabelFromProduct(filteredProducts[0]) : ''));
+        const _countEl = document.getElementById('plp-count');
+        if (_countEl) _countEl.textContent = filteredProducts.length + (filteredProducts.length === 1 ? ' Product' : ' Products');
 
         if (!filteredProducts.length) {
           grid.classList.remove('single-item', 'two-items');
-          grid.innerHTML = `<div class="product-card" style="opacity:.35;text-align:center;padding:3rem;grid-column:1/-1">No ${requestedLabel || 'products'} yet.</div>`;
+          grid.innerHTML = `<div class="product-card" style="opacity:.35;text-align:center;padding:3rem;grid-column:1/-1">No ${curLabel || 'products'} yet.</div>`;
           return;
         }
 
