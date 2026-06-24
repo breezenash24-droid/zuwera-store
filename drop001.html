@@ -319,10 +319,10 @@ document.documentElement.classList.add('zw-collflash');
     .plp-filter-toggle { display:inline-flex; align-items:center; gap:.45rem; background:transparent; color:inherit; border:1px solid var(--border); font-family:var(--font-mono); font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; padding:.45rem .8rem; cursor:pointer; transition:border-color .15s; }
     .plp-filter-toggle:hover { border-color:var(--muted); }
     .plp-filter-toggle svg { width:13px; height:13px; }
-    /* Desktop: "Hide Filters" collapses the sidebar; the grid widens to fill. */
-    @media (min-width:761px){ .plp-layout.plp-filters-off .plp-sidebar { display:none; } }
-    .plp-layout { display:flex; gap:2.5rem; align-items:flex-start; }
-    .plp-sidebar { flex:0 0 190px; position:sticky; top:calc(var(--zw-nav-h,54px) + var(--zw-plpbar-h,50px) + 14px); transition:top .4s ease; }
+    /* Desktop: "Hide Filters" smoothly collapses the sidebar; the grid widens. */
+    @media (min-width:761px){ .plp-layout.plp-filters-off .plp-sidebar { flex-basis:0; margin-right:0; opacity:0; transform:translateX(-10px); pointer-events:none; } }
+    .plp-layout { display:flex; align-items:flex-start; }
+    .plp-sidebar { flex:0 0 190px; margin-right:2.5rem; overflow:hidden; position:sticky; top:calc(var(--zw-nav-h,54px) + var(--zw-plpbar-h,50px) + 14px); transition:top .4s ease, flex-basis .4s cubic-bezier(.4,0,.2,1), margin-right .4s cubic-bezier(.4,0,.2,1), opacity .28s ease, transform .4s cubic-bezier(.4,0,.2,1); }
     html.zw-nav-hidden .plp-sidebar { top:calc(var(--zw-plpbar-h,50px) + 14px); }
     .plp-main { flex:1; min-width:0; }
     .plp-sidebar-head { font-family:var(--font-mono); font-size:.58rem; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin-bottom:.7rem; }
@@ -330,9 +330,20 @@ document.documentElement.classList.add('zw-collflash');
     .plp-cat-btn { background:transparent; border:0; text-align:left; color:inherit; font-family:var(--font-head); font-size:1.05rem; letter-spacing:.02em; padding:.42rem 0; cursor:pointer; opacity:.65; transition:opacity .15s; }
     .plp-cat-btn:hover { opacity:1; }
     .plp-cat-btn.active { opacity:1; font-weight:700; text-decoration:underline; text-underline-offset:4px; }
+    /* Immersive grid swap: cards fade + rise in (staggered) when filters/sort change */
+    @keyframes plpCardIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+    .products-grid.plp-animate-in > a { animation:plpCardIn .46s cubic-bezier(.22,.61,.36,1) both; }
+    .products-grid.plp-animate-in > a:nth-child(1){animation-delay:0s}
+    .products-grid.plp-animate-in > a:nth-child(2){animation-delay:.045s}
+    .products-grid.plp-animate-in > a:nth-child(3){animation-delay:.09s}
+    .products-grid.plp-animate-in > a:nth-child(4){animation-delay:.135s}
+    .products-grid.plp-animate-in > a:nth-child(5){animation-delay:.18s}
+    .products-grid.plp-animate-in > a:nth-child(6){animation-delay:.225s}
+    .products-grid.plp-animate-in > a:nth-child(n+7){animation-delay:.27s}
+    @media (prefers-reduced-motion: reduce){ .products-grid.plp-animate-in > a{ animation:none; } .plp-sidebar,.plp-bar{ transition:none; } }
     @media (max-width:760px) {
       .plp-layout { flex-direction:column; gap:1rem; }
-      .plp-sidebar { display:none; position:static; flex-basis:auto; width:100%; margin-bottom:.5rem; border-bottom:1px solid var(--border); padding-bottom:1rem; }
+      .plp-sidebar { display:none; position:static; flex-basis:auto; width:100%; margin-right:0; margin-bottom:.5rem; border-bottom:1px solid var(--border); padding-bottom:1rem; }
       .plp-sidebar.open { display:block; }
     }
     .section-header {
@@ -1355,14 +1366,26 @@ function updateCountdown() {
         aside.onclick = function(e){ const b = e.target.closest('.plp-cat-btn'); if (b) window.__zwSetPlpCategory(b.getAttribute('data-cat') || ''); };
       }
 
+      // Smoothly swap the grid: fade the current products out, re-render, then
+      // fade + rise the new ones in (staggered) so it feels immersive, not abrupt.
+      function _plpAnimateGrid(renderFn){
+        var grid = document.getElementById('products-grid');
+        if (!grid || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) { renderFn(); return; }
+        grid.style.transition = 'opacity .15s ease';
+        grid.style.opacity = '0';
+        setTimeout(function(){
+          renderFn();
+          grid.style.opacity = '1';
+          grid.classList.remove('plp-animate-in'); void grid.offsetWidth; grid.classList.add('plp-animate-in');
+        }, 150);
+      }
       window.__zwSetPlpCategory = function(cat){
         activeCategory = cat || '';
         try { const u = new URL(location.href); if (activeCategory) u.searchParams.set('category', activeCategory); else u.searchParams.delete('category'); history.replaceState(null, '', u); } catch(_){}
-        renderProducts(_allProducts);
-        renderPlpSidebar();
+        _plpAnimateGrid(function(){ renderProducts(_allProducts); renderPlpSidebar(); });
         const sb = document.getElementById('plp-sidebar'); if (sb) sb.classList.remove('open');
       };
-      window.__zwSetPlpSort = function(s){ activeSort = s || 'featured'; renderProducts(_allProducts); };
+      window.__zwSetPlpSort = function(s){ activeSort = s || 'featured'; _plpAnimateGrid(function(){ renderProducts(_allProducts); }); };
       function _plpFiltersVisible(){
         var sb = document.getElementById('plp-sidebar'), lay = document.querySelector('.plp-layout');
         if (!sb || !lay) return false;
