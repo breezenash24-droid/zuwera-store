@@ -311,7 +311,8 @@ document.documentElement.classList.add('zw-collflash');
       margin: 0 auto;
     }
     /* PLP: filter sidebar + sort + count (Nike-style listing) */
-    .plp-bar { display:flex; align-items:center; gap:1rem; margin-bottom:1.5rem; flex-wrap:wrap; }
+    .plp-bar { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; position:sticky; top:var(--zw-nav-h,54px); z-index:50; background:var(--black); padding:.75rem 0; margin-bottom:1rem; border-bottom:1px solid var(--border); transition:top .4s ease; }
+    html.zw-nav-hidden .plp-bar { top:0; }
     .plp-count { font-family:var(--font-mono); font-size:.7rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
     .plp-sort-wrap { margin-left:auto; font-family:var(--font-mono); font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); display:flex; align-items:center; gap:.5rem; }
     .plp-sort { background:transparent; color:inherit; border:1px solid var(--border); font-family:var(--font-mono); font-size:.68rem; padding:.4rem .6rem; cursor:pointer; border-radius:0; }
@@ -321,7 +322,8 @@ document.documentElement.classList.add('zw-collflash');
     /* Desktop: "Hide Filters" collapses the sidebar; the grid widens to fill. */
     @media (min-width:761px){ .plp-layout.plp-filters-off .plp-sidebar { display:none; } }
     .plp-layout { display:flex; gap:2.5rem; align-items:flex-start; }
-    .plp-sidebar { flex:0 0 190px; position:sticky; top:90px; }
+    .plp-sidebar { flex:0 0 190px; position:sticky; top:calc(var(--zw-nav-h,54px) + var(--zw-plpbar-h,50px) + 14px); transition:top .4s ease; }
+    html.zw-nav-hidden .plp-sidebar { top:calc(var(--zw-plpbar-h,50px) + 14px); }
     .plp-main { flex:1; min-width:0; }
     .plp-sidebar-head { font-family:var(--font-mono); font-size:.58rem; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin-bottom:.7rem; }
     .plp-cat-list { display:flex; flex-direction:column; }
@@ -1070,6 +1072,24 @@ document.documentElement.classList.add('zw-collflash');
       addEventListener('load',function(){ setTimeout(function(){ window.__zwRestoreCollScroll&&window.__zwRestoreCollScroll(); }, 80); });
     })();
     </script>
+    <script>
+    /* STICKY TOOLBAR ↔ HEADER — mirror the header's hidden state to <html> and
+       measure the header + toolbar heights, so the sticky .plp-bar sits just under
+       the header and slides to the very top as the header auto-hides. */
+    (function(){
+      function setup(){
+        var nav=document.querySelector('header.nav, nav#nav'), bar=document.querySelector('.plp-bar'), root=document.documentElement;
+        function sync(){
+          if(nav){ root.classList.toggle('zw-nav-hidden', nav.classList.contains('zw-nav-hidden')); root.style.setProperty('--zw-nav-h', (nav.offsetHeight||54)+'px'); }
+          if(bar){ root.style.setProperty('--zw-plpbar-h', (bar.offsetHeight||50)+'px'); }
+        }
+        sync();
+        if(nav) new MutationObserver(sync).observe(nav,{attributes:true,attributeFilter:['class']});
+        addEventListener('resize', sync, {passive:true});
+      }
+      if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', setup); else setup();
+    })();
+    </script>
 
     <div class="plp-bar">
       <button type="button" class="plp-filter-toggle" id="plp-filter-toggle" aria-expanded="true" aria-controls="plp-sidebar" onclick="window.__zwTogglePlpFilters && window.__zwTogglePlpFilters()"><span id="plp-filter-label">Hide Filters</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/></svg></button>
@@ -1591,7 +1611,7 @@ function updateCountdown() {
         const curLabel = [requestedGender, activeCategory].filter(Boolean).join(' · ') || requestedTag || '';
         updateCollectionMeta(curLabel || (filteredProducts.length === 1 ? categoryLabelFromProduct(filteredProducts[0]) : ''));
         const _countEl = document.getElementById('plp-count');
-        if (_countEl) _countEl.textContent = filteredProducts.length + (filteredProducts.length === 1 ? ' Product' : ' Products');
+        if (_countEl) _countEl.textContent = (curLabel ? curLabel + ' · ' : '') + filteredProducts.length + (filteredProducts.length === 1 ? ' Product' : ' Products');
 
         if (!filteredProducts.length) {
           grid.classList.remove('single-item', 'two-items');
