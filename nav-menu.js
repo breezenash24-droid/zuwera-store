@@ -139,8 +139,12 @@
         return (c.heading ? '<p class="zw-macc-head">' + esc(c.heading) + '</p>' : '') +
           c.links.map(function (l) { return '<a href="' + esc(l.url) + '" class="zw-macc-link">' + esc(l.text) + '</a>'; }).join('');
       }).join('');
-      return '<button type="button" class="mobile-nav-link zw-mobile-primary-link zw-macc-trigger" aria-expanded="false">' +
-        esc(n.label) + '<span class="zw-macc-ico" aria-hidden="true"></span></button>' +
+      // Gender/tag row: the NAME links to its page; a toggle on the right edge
+      // opens the category accordion.
+      return '<div class="zw-macc-row">' +
+        '<a href="' + esc(n.url || '#') + '" class="mobile-nav-link zw-mobile-primary-link zw-macc-main">' + esc(n.label) + '</a>' +
+        '<button type="button" class="zw-macc-toggle" aria-expanded="false" aria-label="Show ' + esc(n.label) + ' categories"><span class="zw-macc-ico" aria-hidden="true"></span></button>' +
+        '</div>' +
         '<div class="zw-macc-panel">' + sub + '</div>';
     }).join('');
   }
@@ -169,13 +173,14 @@
 
   // Mobile accordion toggle (delegated).
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('.zw-macc-trigger');
+    var t = e.target.closest('.zw-macc-toggle');
     if (!t) return;
-    e.preventDefault();
-    var panel = t.nextElementSibling;
+    e.preventDefault(); e.stopPropagation();   // toggle only — the name link still navigates
+    var row = t.closest('.zw-macc-row');
+    var panel = (row || t).nextElementSibling;
     var open = t.classList.toggle('open');
     t.setAttribute('aria-expanded', open ? 'true' : 'false');
-    if (panel) panel.style.maxHeight = open ? (panel.scrollHeight + 'px') : '0px';
+    if (panel && panel.classList.contains('zw-macc-panel')) panel.style.maxHeight = open ? (panel.scrollHeight + 'px') : '0px';
   });
 
   function init() {

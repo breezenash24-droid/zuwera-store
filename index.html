@@ -208,7 +208,7 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
   <link rel="preload" href="reviews.css?v=cf5b3ca4" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="reviews.css?v=cf5b3ca4"></noscript>
-  <link rel="stylesheet" href="storefront-cohesion.css?v=9d9a711b">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=9bd89dc8">
 <script src="header-scroll.js?v=4a734678" defer></script>
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=29023607">
 <!-- Quick-add modal module MUST load before storefront.js: the grid wiring in
@@ -325,15 +325,17 @@ nav#nav.scrolled{
 }
 .nav-logo img{height:36px;width:auto;display:block;transition:filter .35s;filter:none}
 .nav-center{
-  position:absolute;left:50%;transform:translateX(-50%);
-  display:flex;align-items:center;gap:2rem;
+  /* centered WITHOUT transform (a transform would trap the fixed mega-menu in a
+     narrow containing block instead of letting it go full-width) */
+  position:absolute;left:0;right:0;margin:0 auto;width:fit-content;
+  display:flex;align-items:center;gap:2.4rem;
 }
 .nav-link{
-  font-family:var(--fw,'Barlow Condensed',sans-serif);font-size:1.35rem;font-weight:900;font-style:italic;
-  letter-spacing:.01em;text-transform:uppercase;line-height:1;
-  color:rgba(244,241,235,.82);text-decoration:none;transition:color .2s;
+  font-family:var(--fw,'Barlow Condensed',sans-serif);font-size:1.45rem;font-weight:900;font-style:italic;
+  letter-spacing:.005em;text-transform:uppercase;line-height:1;
+  color:#f4f1eb;text-decoration:none;transition:color .2s;opacity:.92;
 }
-.nav-link:hover{color:var(--paper)}
+.nav-link:hover{color:var(--paper);opacity:1}
 .nav-right{display:flex;align-items:center;gap:.4rem}
 .nbtn{
   font-family:var(--fm);font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;
@@ -1523,8 +1525,8 @@ body.light-mode nav#nav .nbtn,
 body.light-mode nav#nav.scrolled .nbtn{color:rgba(9,9,11,.55)}
 body.light-mode nav#nav .nbtn:hover,
 body.light-mode nav#nav.scrolled .nbtn:hover{color:var(--paper)}
-body.light-mode .nav-link{color:rgba(9,9,11,.65)}
-body.light-mode .nav-link:hover{color:var(--paper)}
+body.light-mode .nav-link{color:#09090b;opacity:1}
+body.light-mode .nav-link:hover{color:#09090b;opacity:.65}
 body.light-mode nav#nav #cart-btn,
 body.light-mode nav#nav.scrolled #cart-btn{border-color:rgba(9,9,11,.2);color:var(--paper)}
 body.light-mode nav#nav #cart-btn:hover,
@@ -2393,6 +2395,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-<script src="/nav-menu.js?v=976758ed" defer></script>
+<script src="/nav-menu.js?v=e9270bbe" defer></script>
 </body>
 </html>

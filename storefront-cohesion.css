@@ -3384,16 +3384,25 @@ body.light-mode .zw-mega-col h4{ color:rgba(9,9,11,.4); }
 body.light-mode .zw-mega-col a{ color:rgba(9,9,11,.72); }
 body.light-mode .zw-mega-col a:hover{ color:#09090b; }
 
-/* Mobile accordion (inside the slide-out menu's #mobile-category-links) */
+/* Mobile accordion (inside the slide-out menu's #mobile-category-links).
+   The gender/tag NAME is a link (navigates to its page); a toggle button on the
+   right edge opens the category accordion. */
+.zw-macc-row{ position:relative; }
+.zw-macc-row .zw-macc-main{ padding-right:74px !important; }   /* room for the toggle */
+.zw-macc-toggle{
+  position:absolute; right:0; top:0; bottom:0; width:74px; z-index:2;
+  display:flex; align-items:center; justify-content:flex-end; padding-right:.25rem;
+  background:none; border:none; cursor:pointer; color:inherit;
+}
 .zw-macc-trigger{
   display:flex; align-items:center; justify-content:space-between; width:100%;
   background:none; border:none; cursor:pointer; text-align:left;
 }
-.zw-macc-ico{ position:relative; width:11px; height:11px; flex:0 0 auto; margin-left:1rem; opacity:.55; }
+.zw-macc-ico{ position:relative; width:13px; height:13px; flex:0 0 auto; margin-left:1rem; opacity:.55; }
 .zw-macc-ico::before, .zw-macc-ico::after{ content:''; position:absolute; background:currentColor; transition:transform .25s ease; }
-.zw-macc-ico::before{ top:5px; left:0; width:11px; height:1.5px; }
-.zw-macc-ico::after{ left:5px; top:0; width:1.5px; height:11px; }
-.zw-macc-trigger.open .zw-macc-ico::after{ transform:scaleY(0); }
+.zw-macc-ico::before{ top:6px; left:0; width:13px; height:1.6px; }
+.zw-macc-ico::after{ left:6px; top:0; width:1.6px; height:13px; }
+.zw-macc-toggle.open .zw-macc-ico::after, .zw-macc-trigger.open .zw-macc-ico::after{ transform:scaleY(0); }
 .zw-macc-panel{ max-height:0; overflow:hidden; transition:max-height .3s ease; }
 .zw-macc-head{
   font-family:var(--fm); font-size:.55rem; letter-spacing:.2em; text-transform:uppercase;
