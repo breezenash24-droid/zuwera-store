@@ -57,6 +57,12 @@
     if (want === 'women') return g === 'women' || g === 'unisex';
     return g === want;
   }
+  function matchTag(p, want) {
+    if (!want) return true;
+    want = String(want).toLowerCase();
+    var tags = (p && Array.isArray(p.tags)) ? p.tags : [];
+    return tags.some(function (t) { return String(t).trim().toLowerCase() === want; });
+  }
 
   function productSlug(title) {
     if (!title) return '';
@@ -104,7 +110,7 @@
      apply it ourselves (and cache per slug for flash-free reloads) WITHOUT
      touching the global zw_theme_mode, and re-assert it if storefront-theme.js
      later applies the global theme (race-proof via the zw-theme-applied event). */
-  var _slug = '', _preview = false, pageTheme = null;
+  var _slug = '', _preview = false, pageTheme = null, _tag = '';
   function lpApplyTheme(mode) {
     var resolved = mode === 'dark' ? 'dark' : mode === 'super-light' ? 'super-light' : 'light';
     if (!document.body) return;
@@ -138,18 +144,22 @@
 
   function buildPage(products, gender, cfg) {
     cfg = cfg || {};
-    var gLabel = displayGender(gender);
-    var inGender = products.filter(function (p) { return matchGender(p, gender); });
-    // Only published/visible-ish products (exclude obvious drafts already filtered server-side)
-    var base = gender ? ('drop001.html?gender=' + encodeURIComponent(gLabel)) : 'drop001.html';
+    // A page is filtered by either a tag (?tag=) or a gender. Tag wins.
+    var isTag = !!_tag;
+    var gLabel = isTag ? _tag : displayGender(gender);
+    var inGender = products.filter(function (p) { return isTag ? matchTag(p, _tag) : matchGender(p, gender); });
+    var base = isTag ? ('drop001.html?tag=' + encodeURIComponent(_tag))
+             : (gender ? ('drop001.html?gender=' + encodeURIComponent(gLabel)) : 'drop001.html');
 
     /* ---- HERO ---- */
     var heroCfg = cfg.hero || {};
     var heroTitle = heroCfg.title || (gLabel || 'Shop');
     var heroKicker = heroCfg.kicker || 'Zuwera';
-    var heroSub = heroCfg.subtitle || (gLabel
-      ? ('Explore the latest ' + gLabel + "'s pieces — built for movement, made to last.")
-      : 'Browse the latest Zuwera collection.');
+    var heroSub = heroCfg.subtitle || (isTag
+      ? ('Explore our ' + gLabel + ' edit.')
+      : (gLabel
+        ? ('Explore the latest ' + gLabel + "'s pieces — built for movement, made to last.")
+        : 'Browse the latest Zuwera collection.'));
     var heroImg = heroCfg.image || firstImage(inGender[0] || products[0] || {});
     var heroVideo = heroCfg.video || '';
     // Show the hero media exactly as uploaded: full quality (no Cloudinary
@@ -216,7 +226,7 @@
       var hCat = document.getElementById('lp-cats-h'); if (hCat && catCfg.heading) hCat.textContent = catCfg.heading;
       var allCat = document.getElementById('lp-cats-all'); if (allCat) allCat.href = catCfg.shopAllUrl || base;
       catGrid.innerHTML = catList.map(function (c) {
-        var url = base + (gender ? '&' : '?') + 'category=' + encodeURIComponent(c);
+        var url = base + (base.indexOf('?') > -1 ? '&' : '?') + 'category=' + encodeURIComponent(c);
         var img = catFirstImg[c];
         var inner = img
           ? '<img src="' + esc(optImg(img, 600)) + '" alt="' + esc(c) + '" loading="lazy">'
@@ -243,7 +253,7 @@
     featured = featured.slice(0, limit);
 
     var featH = document.getElementById('lp-feat-h');
-    if (featH) featH.textContent = featCfg.heading || (gLabel ? (gLabel + "'s featured") : 'Featured');
+    if (featH) featH.textContent = featCfg.heading || (isTag ? gLabel : (gLabel ? (gLabel + "'s featured") : 'Featured'));
     var featAll = document.getElementById('lp-feat-all'); if (featAll) featAll.href = base;
     var grid = document.getElementById('lp-feat-grid');
     if (!grid) return;
@@ -268,11 +278,14 @@
   }
 
   function init() {
-    var slug = (qp('page') || qp('gender')).toLowerCase();
-    var gender = slug;
+    // A page is keyed by a tag (?tag=) or a gender (?page=/?gender=). Tag pages
+    // are namespaced 'tag:<lowercase>' so their config can't collide with genders.
+    var tag = qp('tag');
+    var gender = tag ? '' : (qp('page') || qp('gender')).toLowerCase();
+    var slug = tag ? ('tag:' + tag.toLowerCase()) : gender;
     var preview = !!qp('preview');            // builder preview → read the draft
     var key = preview ? 'landing_pages' : 'landing_pages_published';
-    _slug = slug; _preview = preview;
+    _slug = slug; _preview = preview; _tag = tag;
     // Shared config: whichever fetch (config / products) resolves last rebuilds
     // with the freshest data. Starts from cache (live) or null (preview).
     var loadedCfg = preview ? null : getConfig(slug);
@@ -291,7 +304,7 @@
         }
       }).catch(function () {});
 
-    var sel = 'id,title,subtitle,gender,status,current_price,msrp,sku,image_url,sort_order,image_focal_y,product_images(image_url,sort_order)';
+    var sel = 'id,title,subtitle,gender,tags,status,current_price,msrp,sku,image_url,sort_order,image_focal_y,product_images(image_url,sort_order)';
     fetch(SB + 'products?select=' + encodeURIComponent(sel) + '&status=neq.Draft&status=neq.Legacy&order=sort_order.asc', { headers: H })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (products) {

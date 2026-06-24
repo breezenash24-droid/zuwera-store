@@ -28,7 +28,7 @@
 /* Effective theme for this landing page: a per-page override (set by the builder
    Pages tab, cached per slug) wins over the global site theme. Never writes the
    global zw_theme_mode so other pages are unaffected. */
-window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var slug=(sp.get('page')||sp.get('gender')||'').toLowerCase();return (slug&&localStorage.getItem('zw_landing_theme_'+slug))||localStorage.getItem('zw_theme_mode')||'';}catch(_){return '';}};
+window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag=(sp.get('tag')||'').toLowerCase();var slug=tag?('tag:'+tag):((sp.get('page')||sp.get('gender')||'').toLowerCase());return (slug&&localStorage.getItem('zw_landing_theme_'+slug))||localStorage.getItem('zw_theme_mode')||'';}catch(_){return '';}};
 </script>
 <script>
 /* THEME FLASH PREVENTION — runs before any CSS loads */
@@ -345,7 +345,7 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var slu
   <script src="scroll-reveal.js?v=7896153c" defer></script>
   <script src="auth.js?v=7be42027" defer></script>
   <script src="zw-login.js?v=1b83aa67" defer></script>
-  <script src="/nav-menu.js?v=bebee2d6" defer></script>
-  <script src="landing.js?v=d6094273" defer></script>
+  <script src="/nav-menu.js?v=dd74731a" defer></script>
+  <script src="landing.js?v=f6e7f205" defer></script>
 </body>
 </html>

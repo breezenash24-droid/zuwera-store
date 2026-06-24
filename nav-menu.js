@@ -94,7 +94,8 @@
     }
 
     if (type === 'tag') {
-      return { label: label, url: 'drop001.html?tag=' + encodeURIComponent(item.tag || label), columns: [] };
+      // Tag top-level link → its editable landing page (hero/featured/categories).
+      return { label: label, url: 'landing.html?tag=' + encodeURIComponent(item.tag || label), columns: [] };
     }
 
     // custom link
