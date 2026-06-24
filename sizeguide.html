@@ -2453,24 +2453,17 @@
         const htm = document.querySelector('.how-to-measure');
         if (htm) htm.hidden = true;
       }
-      const heading = (matchedSection || targetPanel)?.querySelector('h2');
 
-      if (note) {
-        note.hidden = false;
-        note.innerHTML = '<span></span><strong></strong>';
-        const noteLabel = note.querySelector('span');
-        const noteHeading = note.querySelector('strong');
-        if (noteLabel) noteLabel.textContent = 'Focused on';
-        if (noteHeading) noteHeading.textContent = focusedHeading;
-      }
+      // The modal's own title already names the guide (e.g. "Sweatpant Size
+      // Guide"), so the "Focused on …" box just repeated it — keep it hidden.
+      if (note) note.hidden = true;
 
       if (tabsNav) {
         tabsNav.classList.toggle('tabs-nav--hidden', lockSingleTab);
       }
 
-      if (calcTitle && context.label && context.label.toLowerCase() !== 'apparel') {
-        calcTitle.textContent = `Find Your ${context.label} Size`;
-      }
+      // Calculator title stays the generic "Find My Size" — the modal title
+      // already says which product's guide this is.
 
       if (genderField && (context.hasExplicitGender || ['kids', 'sports_bras', 'hats'].includes(context.tabId))) {
         genderField.hidden = true;
@@ -2478,10 +2471,6 @@
 
       if (categoryField && context.calcCategory) {
         categoryField.hidden = true;
-      }
-
-      if (heading) {
-        heading.textContent = focusedHeading;
       }
     }
 
