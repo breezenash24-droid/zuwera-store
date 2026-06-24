@@ -348,6 +348,30 @@ document.documentElement.classList.add('zw-collflash');
     .products-grid.plp-animate-in > a:nth-child(6){animation-delay:.225s}
     .products-grid.plp-animate-in > a:nth-child(n+7){animation-delay:.27s}
     @media (prefers-reduced-motion: reduce){ .products-grid.plp-animate-in > a{ animation:none; } .plp-sidebar,.plp-bar{ transition:none; } }
+    /* Filter count badge on the toolbar button */
+    .plp-fcount{ display:inline-flex; align-items:center; justify-content:center; min-width:17px; height:17px; padding:0 4px; border-radius:999px; background:var(--white); color:var(--black); font-size:.55rem; font-weight:600; line-height:1; }
+    /* Mobile filter & sort bottom-sheet modal */
+    .plp-fm{ position:fixed; inset:0; z-index:600; display:none; }
+    .plp-fm.open{ display:block; }
+    .plp-fm::before{ content:''; position:absolute; inset:0; background:rgba(0,0,0,.55); opacity:0; transition:opacity .25s ease; }
+    .plp-fm.open::before{ opacity:1; }
+    .plp-fm-sheet{ position:absolute; left:0; right:0; bottom:0; max-height:86vh; display:flex; flex-direction:column; background:var(--black); border-top-left-radius:18px; border-top-right-radius:18px; transform:translateY(100%); transition:transform .32s cubic-bezier(.4,0,.2,1); }
+    .plp-fm.open .plp-fm-sheet{ transform:translateY(0); }
+    .plp-fm-head{ display:flex; align-items:center; justify-content:space-between; padding:1.1rem 1.3rem; border-bottom:1px solid var(--border); flex-shrink:0; }
+    .plp-fm-title{ font-family:var(--font-head); font-size:1.35rem; font-weight:700; letter-spacing:.03em; text-transform:uppercase; }
+    .plp-fm-x{ background:none; border:none; color:inherit; font-size:1.5rem; line-height:1; cursor:pointer; padding:.2rem .4rem; }
+    .plp-fm-body{ overflow-y:auto; -webkit-overflow-scrolling:touch; padding:0 1.3rem; flex:1; }
+    .plp-fm-sec{ padding:1.1rem 0; border-bottom:1px solid var(--border); }
+    .plp-fm-sec:last-child{ border-bottom:none; }
+    .plp-fm-label{ font-family:var(--font-mono); font-size:.6rem; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin-bottom:.6rem; }
+    .plp-fm-opt{ display:flex; align-items:center; gap:.75rem; padding:.62rem 0; font-family:var(--font-body); font-size:1.02rem; cursor:pointer; }
+    .plp-fm-opt input{ width:19px; height:19px; accent-color:var(--white); flex-shrink:0; }
+    .plp-fm-cat{ display:block; width:100%; text-align:left; background:none; border:none; color:inherit; cursor:pointer; padding:.6rem 0; font-family:var(--font-head); font-size:1.25rem; text-transform:uppercase; letter-spacing:.02em; opacity:.7; }
+    .plp-fm-cat.active{ opacity:1; font-weight:700; text-decoration:underline; text-underline-offset:4px; }
+    .plp-fm-foot{ padding:1rem 1.3rem calc(1rem + env(safe-area-inset-bottom,0px)); border-top:1px solid var(--border); flex-shrink:0; }
+    .plp-fm-apply{ width:100%; padding:1.05rem; background:var(--white); color:var(--black); border:none; font-family:var(--font-mono); font-size:.7rem; letter-spacing:.16em; text-transform:uppercase; font-weight:600; cursor:pointer; }
+    @media (max-width:760px){ .plp-bar .plp-sort-wrap{ display:none; } }
+    @media (prefers-reduced-motion: reduce){ .plp-fm-sheet, .plp-fm::before{ transition:none; } }
     @media (max-width:760px) {
       .plp-layout { flex-direction:column; gap:1rem; }
       .plp-sidebar { display:none; position:static; flex-basis:auto; width:100%; margin-right:0; margin-bottom:.5rem; border-bottom:1px solid var(--border); padding-bottom:1rem; }
@@ -1110,7 +1134,7 @@ document.documentElement.classList.add('zw-collflash');
     </script>
 
     <div class="plp-bar">
-      <button type="button" class="plp-filter-toggle" id="plp-filter-toggle" aria-expanded="true" aria-controls="plp-sidebar" onclick="window.__zwTogglePlpFilters && window.__zwTogglePlpFilters()"><span id="plp-filter-label">Hide Filters</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/></svg></button>
+      <button type="button" class="plp-filter-toggle" id="plp-filter-toggle" aria-expanded="true" aria-controls="plp-sidebar" onclick="window.__zwTogglePlpFilters && window.__zwTogglePlpFilters()"><span id="plp-filter-label">Hide Filters</span><span id="plp-filter-count-badge" class="plp-fcount" style="display:none"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/></svg></button>
       <span class="plp-count" id="plp-count"></span>
       <label class="plp-sort-wrap">Sort by
         <select class="plp-sort" id="plp-sort" onchange="window.__zwSetPlpSort && window.__zwSetPlpSort(this.value)">
@@ -1120,6 +1144,29 @@ document.documentElement.classList.add('zw-collflash');
           <option value="name">Name: A to Z</option>
         </select>
       </label>
+    </div>
+
+    <!-- Mobile filter & sort bottom-sheet -->
+    <div id="plp-filter-modal" class="plp-fm" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Filter and sort" onclick="if(event.target===this)window.__zwClosePlpFilterModal&&window.__zwClosePlpFilterModal()">
+      <div class="plp-fm-sheet">
+        <div class="plp-fm-head">
+          <span class="plp-fm-title">Filter &amp; Sort</span>
+          <button type="button" class="plp-fm-x" aria-label="Close" onclick="window.__zwClosePlpFilterModal&&window.__zwClosePlpFilterModal()">&#215;</button>
+        </div>
+        <div class="plp-fm-body">
+          <div class="plp-fm-sec">
+            <p class="plp-fm-label">Sort by</p>
+            <div id="plp-fm-sort"></div>
+          </div>
+          <div class="plp-fm-sec" id="plp-fm-catsec">
+            <p class="plp-fm-label">Category</p>
+            <div id="plp-fm-cats"></div>
+          </div>
+        </div>
+        <div class="plp-fm-foot">
+          <button type="button" class="plp-fm-apply" onclick="window.__zwClosePlpFilterModal&&window.__zwClosePlpFilterModal()">Done</button>
+        </div>
+      </div>
     </div>
 
     <div class="plp-layout">
@@ -1350,9 +1397,8 @@ function updateCountdown() {
       function plpEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
       function plpPrice(p){ return parseFloat(p && (p.current_price || p.msrp)) || 0; }
 
-      function renderPlpSidebar(){
-        const aside = document.getElementById('plp-sidebar');
-        if (!aside) return;
+      function plpScopeName(){ return requestedGender || requestedTag || 'All'; }
+      function plpCategoryList(){
         const seen = {}, cats = [];
         (_allProducts || []).forEach(function(p){
           if (!(productMatchesGender(p, requestedGender) && productMatchesTag(p, requestedTag))) return;
@@ -1360,10 +1406,15 @@ function updateCountdown() {
           if (c && !seen[c.toLowerCase()]) { seen[c.toLowerCase()] = true; cats.push(c); }
         });
         cats.sort(function(a,b){ return plpCatRank(a) - plpCatRank(b) || a.localeCompare(b); });
-        if (cats.length < 2) { aside.innerHTML = ''; return; }   // nothing to filter
-        const scope = requestedGender || requestedTag || 'All';
+        return cats;
+      }
+      function renderPlpSidebar(){
+        const aside = document.getElementById('plp-sidebar');
+        if (!aside) return;
+        const cats = plpCategoryList();
+        if (cats.length < 2) { aside.innerHTML = ''; renderPlpFilterModal(); return; }
         let html = '<p class="plp-sidebar-head">Category</p><div class="plp-cat-list">';
-        html += '<button type="button" class="plp-cat-btn'+(!activeCategory?' active':'')+'" data-cat="">All '+plpEsc(scope)+'</button>';
+        html += '<button type="button" class="plp-cat-btn'+(!activeCategory?' active':'')+'" data-cat="">All '+plpEsc(plpScopeName())+'</button>';
         cats.forEach(function(c){
           const on = activeCategory && activeCategory.toLowerCase() === c.toLowerCase();
           html += '<button type="button" class="plp-cat-btn'+(on?' active':'')+'" data-cat="'+plpEsc(c)+'">'+plpEsc(c)+'</button>';
@@ -1371,7 +1422,42 @@ function updateCountdown() {
         html += '</div>';
         aside.innerHTML = html;
         aside.onclick = function(e){ const b = e.target.closest('.plp-cat-btn'); if (b) window.__zwSetPlpCategory(b.getAttribute('data-cat') || ''); };
+        renderPlpFilterModal();
       }
+      // ── Mobile filter/sort bottom-sheet modal (so you can change category/sort
+      //    from anywhere without scrolling back up to the sidebar) ──
+      function renderPlpFilterModal(){
+        const sortHost = document.getElementById('plp-fm-sort');
+        if (sortHost){
+          const opts = [['featured','Featured'],['price-asc','Price: Low to High'],['price-desc','Price: High to Low'],['name','Name: A to Z']];
+          sortHost.innerHTML = opts.map(function(o){ return '<label class="plp-fm-opt"><input type="radio" name="plpfmsort" value="'+o[0]+'"'+(activeSort===o[0]?' checked':'')+'><span>'+o[1]+'</span></label>'; }).join('');
+          sortHost.onchange = function(e){ if (e.target && e.target.name==='plpfmsort') window.__zwSetPlpSort(e.target.value); };
+        }
+        const catHost = document.getElementById('plp-fm-cats'), catSec = document.getElementById('plp-fm-catsec');
+        if (catHost){
+          const cats = plpCategoryList();
+          if (catSec) catSec.style.display = cats.length < 2 ? 'none' : '';
+          let html = '<button type="button" class="plp-fm-cat'+(!activeCategory?' active':'')+'" data-cat="">All '+plpEsc(plpScopeName())+'</button>';
+          cats.forEach(function(c){ const on = activeCategory && activeCategory.toLowerCase()===c.toLowerCase(); html += '<button type="button" class="plp-fm-cat'+(on?' active':'')+'" data-cat="'+plpEsc(c)+'">'+plpEsc(c)+'</button>'; });
+          catHost.innerHTML = html;
+          catHost.onclick = function(e){ const b=e.target.closest('.plp-fm-cat'); if (b){ window.__zwSetPlpCategory(b.getAttribute('data-cat')||''); window.__zwClosePlpFilterModal(); } };
+        }
+        _plpUpdateFilterCount();
+      }
+      function _plpUpdateFilterCount(){
+        var n = (activeCategory ? 1 : 0) + (activeSort && activeSort !== 'featured' ? 1 : 0);
+        var el = document.getElementById('plp-filter-count-badge');
+        if (el){ el.textContent = n ? String(n) : ''; el.style.display = n ? '' : 'none'; }
+      }
+      window.__zwOpenPlpFilterModal = function(){
+        renderPlpFilterModal();
+        var m = document.getElementById('plp-filter-modal'); if (!m) return;
+        m.classList.add('open'); m.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden';
+      };
+      window.__zwClosePlpFilterModal = function(){
+        var m = document.getElementById('plp-filter-modal'); if (!m) return;
+        m.classList.remove('open'); m.setAttribute('aria-hidden','true'); document.body.style.overflow='';
+      };
 
       // Smoothly swap the grid: fade the current products out, re-render, then
       // fade + rise the new ones in (staggered) so it feels immersive, not abrupt.
@@ -1392,24 +1478,22 @@ function updateCountdown() {
         _plpAnimateGrid(function(){ renderProducts(_allProducts); renderPlpSidebar(); });
         const sb = document.getElementById('plp-sidebar'); if (sb) sb.classList.remove('open');
       };
-      window.__zwSetPlpSort = function(s){ activeSort = s || 'featured'; _plpAnimateGrid(function(){ renderProducts(_allProducts); }); };
+      window.__zwSetPlpSort = function(s){ activeSort = s || 'featured'; _plpAnimateGrid(function(){ renderProducts(_allProducts); }); renderPlpFilterModal(); };
       function _plpFiltersVisible(){
-        var sb = document.getElementById('plp-sidebar'), lay = document.querySelector('.plp-layout');
-        if (!sb || !lay) return false;
-        if (window.matchMedia('(max-width:760px)').matches) return sb.classList.contains('open');
-        return !lay.classList.contains('plp-filters-off');
+        var lay = document.querySelector('.plp-layout');
+        return lay ? !lay.classList.contains('plp-filters-off') : false;
       }
       function _plpSyncFilterLabel(){
         var lbl = document.getElementById('plp-filter-label'), btn = document.getElementById('plp-filter-toggle');
+        if (window.matchMedia('(max-width:760px)').matches){ if (lbl) lbl.textContent = 'Filter & Sort'; if (btn) btn.setAttribute('aria-haspopup','dialog'); return; }
         var vis = _plpFiltersVisible();
         if (lbl) lbl.textContent = vis ? 'Hide Filters' : 'Show Filters';
         if (btn) btn.setAttribute('aria-expanded', vis ? 'true' : 'false');
       }
       window.__zwTogglePlpFilters = function(){
-        var sb = document.getElementById('plp-sidebar'), lay = document.querySelector('.plp-layout');
-        if (!sb || !lay) return;
-        if (window.matchMedia('(max-width:760px)').matches) sb.classList.toggle('open');   // drawer
-        else lay.classList.toggle('plp-filters-off');                                       // collapse inline
+        // Mobile → open the bottom-sheet modal; desktop → collapse/expand sidebar.
+        if (window.matchMedia('(max-width:760px)').matches){ window.__zwOpenPlpFilterModal(); return; }
+        var lay = document.querySelector('.plp-layout'); if (lay) lay.classList.toggle('plp-filters-off');
         _plpSyncFilterLabel();
       };
       // Keep the label correct on first paint and when crossing the mobile breakpoint.
@@ -2346,6 +2430,6 @@ function updateCountdown() {
   </script>
 <script src="auth.js?v=7be42027" defer></script>
 <script src="zw-login.js?v=1b83aa67" defer></script>
-<script src="/nav-menu.js?v=47f37718" defer></script>
+<script src="/nav-menu.js?v=e300bf8d" defer></script>
 </body>
 </html>

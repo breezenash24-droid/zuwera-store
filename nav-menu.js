@@ -131,18 +131,9 @@
   function renderMobile(items) {
     var host = document.getElementById('mobile-category-links');
     if (!host) return;
-    // Compact, Nike-style groups (space-efficient on mobile): the gender/tag NAME
-    // links to its page; its categories sit in a horizontal scroll row beneath.
+    // Hamburger menu: every item is a plain link straight to its page.
     host.innerHTML = items.map(function (n) {
-      var cats = [];
-      (n.columns || []).forEach(function (c) { (c.links || []).forEach(function (l) { cats.push(l); }); });
-      var chips = cats.length
-        ? '<div class="zw-mnav-cats">' + cats.map(function (l) { return '<a href="' + esc(l.url) + '" class="zw-mnav-cat">' + esc(l.text) + '</a>'; }).join('') + '</div>'
-        : '';
-      return '<div class="zw-mnav-group">' +
-        '<a href="' + esc(n.url || '#') + '" class="zw-mnav-title">' + esc(n.label) + '</a>' +
-        chips +
-        '</div>';
+      return '<a href="' + esc(n.url || '#') + '" class="mobile-nav-link zw-mobile-primary-link">' + esc(n.label) + '</a>';
     }).join('');
   }
 
