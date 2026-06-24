@@ -131,21 +131,10 @@
   function renderMobile(items) {
     var host = document.getElementById('mobile-category-links');
     if (!host) return;
+    // Every top item is a plain link straight to its page — no accordion. The
+    // landing page itself lists the categories.
     host.innerHTML = items.map(function (n) {
-      if (!n.columns.length) {
-        return '<a href="' + esc(n.url || '#') + '" class="mobile-nav-link zw-mobile-primary-link">' + esc(n.label) + '</a>';
-      }
-      var sub = n.columns.map(function (c) {
-        return (c.heading ? '<p class="zw-macc-head">' + esc(c.heading) + '</p>' : '') +
-          c.links.map(function (l) { return '<a href="' + esc(l.url) + '" class="zw-macc-link">' + esc(l.text) + '</a>'; }).join('');
-      }).join('');
-      // Gender/tag row: the NAME links to its page; a toggle on the right edge
-      // opens the category accordion.
-      return '<div class="zw-macc-row">' +
-        '<a href="' + esc(n.url || '#') + '" class="mobile-nav-link zw-mobile-primary-link zw-macc-main">' + esc(n.label) + '</a>' +
-        '<button type="button" class="zw-macc-toggle" aria-expanded="false" aria-label="Show ' + esc(n.label) + ' categories"><span class="zw-macc-ico" aria-hidden="true"></span></button>' +
-        '</div>' +
-        '<div class="zw-macc-panel">' + sub + '</div>';
+      return '<a href="' + esc(n.url || '#') + '" class="mobile-nav-link zw-mobile-primary-link">' + esc(n.label) + '</a>';
     }).join('');
   }
 
