@@ -1098,6 +1098,7 @@
       .mb-head{ display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-bottom:.45rem; }
       .mb-head h2{ margin:0; }
       .mb-note{ font-size:.82rem; opacity:.62; margin:0 0 1rem; line-height:1.5; }
+      .mb-subcap{ font-family:var(--fm,'IBM Plex Mono',monospace); font-size:.6rem; letter-spacing:.16em; text-transform:uppercase; opacity:.55; margin:0 0 .6rem; }
       .mb-tips{ margin-top:1.7rem; display:grid; gap:1.5rem; }
       .mb-tips h3{ font-family:var(--fw,'Barlow Condensed',sans-serif); font-style:italic; font-weight:900; text-transform:uppercase; letter-spacing:.04em; font-size:1.15rem; margin:0 0 .55rem; }
       .mb-tips p{ font-size:.88rem; line-height:1.65; opacity:.78; margin:0 0 .6rem; }
@@ -1190,6 +1191,37 @@
                 <th data-unit-label="Bust">Bust (in)</th>
                 <th data-unit-label="Waist">Waist (in)</th>
                 <th data-unit-label="Hips">Hips (in)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="table-section mb-section">
+        <h2>Women's Bottoms Size Chart</h2>
+        <p class="mb-note">Body measurements — not garment dimensions. Use the IN / CM switch above to change units.</p>
+        <p class="mb-subcap">Sizes XXS&ndash;XXL</p>
+        <div class="table-wrap">
+          <table id="table-womens-bottoms">
+            <thead>
+              <tr>
+                <th>Size</th>
+                <th data-unit-label="Waist">Waist (in)</th>
+                <th data-unit-label="Hip">Hip (in)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="mb-subcap" style="margin-top:1.5rem">Plus sizes 0X&ndash;4X</p>
+        <div class="table-wrap">
+          <table id="table-womens-bottoms-plus">
+            <thead>
+              <tr>
+                <th>Size</th>
+                <th data-unit-label="Waist">Waist (in)</th>
+                <th data-unit-label="Hip">Hip (in)</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -1456,6 +1488,22 @@
         { size_label: 'XL', us_size: '16-18', bust_in: '41-44.5', waist_in: '34.5-38.5', hips_in: '44-47' },
         { size_label: '2XL', us_size: '20-22', bust_in: '44.5-48.5', waist_in: '38.5-42.5', hips_in: '47-50' }
       ],
+      women_bottoms: [
+        { size_label: 'XXS', waist_in: '21.25-23.5', waist_cm: '54-60',  hip_in: '30.5-33',   hip_cm: '78-84' },
+        { size_label: 'XS',  waist_in: '23.5-26',    waist_cm: '60-67',  hip_in: '33-35.5',   hip_cm: '84-91' },
+        { size_label: 'S',   waist_in: '26-29',      waist_cm: '67-74',  hip_in: '35.5-38.5', hip_cm: '91-98' },
+        { size_label: 'M',   waist_in: '29-31.5',    waist_cm: '74-81',  hip_in: '38.5-41',   hip_cm: '98-105' },
+        { size_label: 'L',   waist_in: '31.5-34.5',  waist_cm: '81-88',  hip_in: '41-44',     hip_cm: '105-112' },
+        { size_label: 'XL',  waist_in: '34.5-38.5',  waist_cm: '88-98',  hip_in: '44-47',     hip_cm: '112-120' },
+        { size_label: 'XXL', waist_in: '38.5-42.5',  waist_cm: '98-108', hip_in: '47-50',     hip_cm: '120-128' }
+      ],
+      women_bottoms_plus: [
+        { size_label: '0X', waist_in: '40-43',   waist_cm: '101.5-108.5', hip_in: '48-51', hip_cm: '122.5-129.5' },
+        { size_label: '1X', waist_in: '43-45.5', waist_cm: '108.5-115.5', hip_in: '51-54', hip_cm: '129.5-136.5' },
+        { size_label: '2X', waist_in: '45.5-49', waist_cm: '115.5-124',   hip_in: '54-57', hip_cm: '136.5-145' },
+        { size_label: '3X', waist_in: '49-53',   waist_cm: '124-134',     hip_in: '57-61', hip_cm: '145-155' },
+        { size_label: '4X', waist_in: '53-57',   waist_cm: '134-144',     hip_in: '61-65', hip_cm: '155-165' }
+      ],
       kids: [
         { size_label: 'XS', numeric_size: '6-7', height_in: '48-50', chest_in: '25.5-26', waist_in: '23.5-24', hips_in: '27-28' },
         { size_label: 'S', numeric_size: '8-9', height_in: '50-54', chest_in: '26-27', waist_in: '24-25.5', hips_in: '28-31' },
@@ -1631,6 +1679,8 @@
         men_bottoms: [],
         men_underwear: [],
         women_tops: [],
+        women_bottoms: [],
+        women_bottoms_plus: [],
         women_underwear: [],
         kids: [],
         sports_bras: [],
@@ -1658,6 +1708,8 @@
       renderBottomsTable();
       renderTable('mens-underwear', sizeChartData.men_underwear, ['size_label', 'chest_in', 'waist_in']);
       renderTable('womens', sizeChartData.women_tops, ['size_label', 'us_size', 'bust_in', 'waist_in', 'hips_in']);
+      renderTable('womens-bottoms', sizeChartData.women_bottoms, ['size_label', 'waist_in', 'hip_in']);
+      renderTable('womens-bottoms-plus', sizeChartData.women_bottoms_plus, ['size_label', 'waist_in', 'hip_in']);
       renderTable('womens-underwear', sizeChartData.women_underwear, ['size_label', 'waist_in', 'hip_in']);
       renderTable('kids', sizeChartData.kids, ['size_label', 'numeric_size', 'height_in', 'chest_in', 'waist_in', 'hips_in']);
       renderSportsBrasTable();
