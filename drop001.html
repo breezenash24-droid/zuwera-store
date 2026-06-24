@@ -351,12 +351,17 @@ document.documentElement.classList.add('zw-collflash');
     /* Filter count badge on the toolbar button */
     .plp-fcount{ display:inline-flex; align-items:center; justify-content:center; min-width:17px; height:17px; padding:0 4px; border-radius:999px; background:var(--white); color:var(--black); font-size:.55rem; font-weight:600; line-height:1; }
     /* Mobile filter & sort bottom-sheet modal */
-    .plp-fm{ position:fixed; inset:0; z-index:600; display:none; }
-    .plp-fm.open{ display:block; }
-    .plp-fm::before{ content:''; position:absolute; inset:0; background:rgba(0,0,0,.55); opacity:0; transition:opacity .25s ease; }
+    /* Kept in the layout (visibility, not display:none) so it animates BOTH ways.
+       Visibility flips to hidden only after the slide-out finishes (delayed). */
+    .plp-fm{ position:fixed; inset:0; z-index:600; visibility:hidden; transition:visibility 0s linear .46s; }
+    .plp-fm.open{ visibility:visible; transition-delay:0s; }
+    .plp-fm::before{ content:''; position:absolute; inset:0; background:rgba(0,0,0,.55); opacity:0; transition:opacity .35s ease; }
     .plp-fm.open::before{ opacity:1; }
-    .plp-fm-sheet{ position:absolute; left:0; right:0; bottom:0; max-height:86vh; display:flex; flex-direction:column; background:var(--black); border-top-left-radius:18px; border-top-right-radius:18px; transform:translateY(100%); transition:transform .32s cubic-bezier(.4,0,.2,1); }
+    .plp-fm.plp-fm-dragging::before{ transition:none; opacity:var(--zw-fm-ov,1); }   /* follow the finger */
+    .plp-fm-sheet{ position:absolute; left:0; right:0; bottom:0; max-height:86vh; display:flex; flex-direction:column; background:var(--black); border-top-left-radius:18px; border-top-right-radius:18px; transform:translateY(100%); transition:transform .46s cubic-bezier(.32,.72,0,1); will-change:transform; }
     .plp-fm.open .plp-fm-sheet{ transform:translateY(0); }
+    .plp-fm.plp-fm-dragging .plp-fm-sheet{ transition:none; }
+    .plp-fm-grab{ width:38px; height:4px; border-radius:99px; background:var(--white); opacity:.3; margin:.55rem auto .1rem; flex-shrink:0; }
     .plp-fm-head{ display:flex; align-items:center; justify-content:space-between; padding:1.1rem 1.3rem; border-bottom:1px solid var(--border); flex-shrink:0; }
     .plp-fm-title{ font-family:var(--font-head); font-size:1.35rem; font-weight:700; letter-spacing:.03em; text-transform:uppercase; }
     .plp-fm-x{ background:none; border:none; color:inherit; font-size:1.5rem; line-height:1; cursor:pointer; padding:.2rem .4rem; }
@@ -371,7 +376,7 @@ document.documentElement.classList.add('zw-collflash');
     .plp-fm-foot{ padding:1rem 1.3rem calc(1rem + env(safe-area-inset-bottom,0px)); border-top:1px solid var(--border); flex-shrink:0; }
     .plp-fm-apply{ width:100%; padding:1.05rem; background:var(--white); color:var(--black); border:none; font-family:var(--font-mono); font-size:.7rem; letter-spacing:.16em; text-transform:uppercase; font-weight:600; cursor:pointer; }
     @media (max-width:760px){ .plp-bar .plp-sort-wrap{ display:none; } }
-    @media (prefers-reduced-motion: reduce){ .plp-fm-sheet, .plp-fm::before{ transition:none; } }
+    @media (prefers-reduced-motion: reduce){ .plp-fm, .plp-fm-sheet, .plp-fm::before{ transition:none; } }
     @media (max-width:760px) {
       .plp-layout { flex-direction:column; gap:1rem; }
       .plp-sidebar { display:none; position:static; flex-basis:auto; width:100%; margin-right:0; margin-bottom:.5rem; border-bottom:1px solid var(--border); padding-bottom:1rem; }
@@ -1149,6 +1154,7 @@ document.documentElement.classList.add('zw-collflash');
     <!-- Mobile filter & sort bottom-sheet -->
     <div id="plp-filter-modal" class="plp-fm" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Filter and sort" onclick="if(event.target===this)window.__zwClosePlpFilterModal&&window.__zwClosePlpFilterModal()">
       <div class="plp-fm-sheet">
+        <div class="plp-fm-grab" aria-hidden="true"></div>
         <div class="plp-fm-head">
           <span class="plp-fm-title">Filter &amp; Sort</span>
           <button type="button" class="plp-fm-x" aria-label="Close" onclick="window.__zwClosePlpFilterModal&&window.__zwClosePlpFilterModal()">&#215;</button>
@@ -1456,8 +1462,53 @@ function updateCountdown() {
       };
       window.__zwClosePlpFilterModal = function(){
         var m = document.getElementById('plp-filter-modal'); if (!m) return;
-        m.classList.remove('open'); m.setAttribute('aria-hidden','true'); document.body.style.overflow='';
+        m.classList.remove('open','plp-fm-dragging'); m.setAttribute('aria-hidden','true');
+        m.style.removeProperty('--zw-fm-ov'); var sh = m.querySelector('.plp-fm-sheet'); if (sh) sh.style.transform='';
+        document.body.style.overflow='';
       };
+
+      // Drag-to-dismiss: swipe the sheet down (from the grab handle/header, or by
+      // pulling down when the list is already at the top) to close. The sheet
+      // follows your finger, then snaps shut past a threshold or springs back.
+      (function(){
+        var modal = document.getElementById('plp-filter-modal'); if (!modal) return;
+        var sheet = modal.querySelector('.plp-fm-sheet'); if (!sheet) return;
+        var scroller = modal.querySelector('.plp-fm-body');
+        var startY = 0, dy = 0, h = 1, dragging = false, onHandle = false, active = false;
+        function start(e){
+          if (!modal.classList.contains('open')) return;
+          var t = e.touches ? e.touches[0] : e;
+          startY = t.clientY; dy = 0; dragging = false;
+          h = sheet.getBoundingClientRect().height || 1;
+          onHandle = !!(e.target.closest && e.target.closest('.plp-fm-grab, .plp-fm-head'));
+          active = onHandle || (scroller ? scroller.scrollTop <= 0 : true);
+        }
+        function move(e){
+          if (!active) return;
+          var t = e.touches ? e.touches[0] : e, d = t.clientY - startY;
+          if (d <= 0 && !dragging) return;                       // swiping up — let it scroll
+          if (!onHandle && scroller && scroller.scrollTop > 0){ active = false; return; }
+          if (d < 0) d = 0;
+          dy = d; dragging = true;
+          if (e.cancelable) e.preventDefault();
+          modal.classList.add('plp-fm-dragging');
+          sheet.style.transform = 'translateY(' + d + 'px)';
+          modal.style.setProperty('--zw-fm-ov', Math.max(0, 1 - d / h).toFixed(3));
+        }
+        function end(){
+          if (!dragging){ active = false; return; }
+          var close = dy > Math.min(150, h * 0.3);
+          dragging = false; active = false;
+          modal.classList.remove('plp-fm-dragging');
+          sheet.style.transform = '';
+          modal.style.removeProperty('--zw-fm-ov');
+          if (close) window.__zwClosePlpFilterModal();
+        }
+        sheet.addEventListener('touchstart', start, { passive:true });
+        sheet.addEventListener('touchmove', move, { passive:false });
+        sheet.addEventListener('touchend', end, { passive:true });
+        sheet.addEventListener('touchcancel', end, { passive:true });
+      })();
 
       // Smoothly swap the grid: fade the current products out, re-render, then
       // fade + rise the new ones in (staggered) so it feels immersive, not abrupt.
