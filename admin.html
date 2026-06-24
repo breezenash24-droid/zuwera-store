@@ -42,7 +42,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Render-blocking on purpose (matches the storefront): cached woff2 means
          no font swap on every admin visit after the first. -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
     <style>
         :root {
             --bg-primary: #09090b;
@@ -12891,7 +12891,7 @@
 
         const SECTION_DEFS = [
             { id: 'logo',         label: 'Logo / Wordmark',  role: 'head', sample: 'ZUWERA',                      cssSel: '.flogo, .nav-logo span, .zw-nav-logo span',       previewEl: '.fp-wordmark',             previewAll: false },
-            { id: 'nav',          label: 'Navigation Links',  role: 'mono', sample: 'SHOP · DROP 001 · BAG',       cssSel: '.nbtn, .mobile-nav-link, .zw-mobile-primary-link', previewEl: '.fp-navlink',              previewAll: true  },
+            { id: 'nav',          label: 'Navigation Links',  role: 'mono', sample: 'SHOP · DROP 001 · BAG',       cssSel: '.nav-link, .nbtn, .mobile-nav-link, .zw-mobile-primary-link', previewEl: '.fp-navlink',              previewAll: true  },
             { id: 'announce',     label: 'Announcement Bar',  role: 'mono', sample: 'FREE SHIPPING OVER $100',     cssSel: '#announcementText',                                previewEl: '.fp-announce',             previewAll: false },
             { id: 'hero-title',   label: 'Hero Heading',      role: 'head', sample: 'FOR THOSE WHO DREAM.',        cssSel: '.hero-h1',                                         previewEl: '.fp-heading',              previewAll: false },
             { id: 'hero-sub',     label: 'Hero Subtext',      role: 'body', sample: 'Bold athletic sportswear.',   cssSel: '.hero-sub',                                        previewEl: '.fp-subtext',              previewAll: false },
@@ -13116,7 +13116,7 @@
             if (existing) { status.textContent = '"' + name + '" is already available in the dropdowns.'; status.style.color = 'var(--warning)'; return; }
             status.textContent = 'Loading font...'; status.style.color = 'var(--text-secondary)';
             previewBox.style.display = 'none';
-            const url = 'https://fonts.googleapis.com/css2?family=' + name.replace(/ /g, '+') + ':ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,900&display=swap';
+            const url = 'https://fonts.googleapis.com/css2?family=' + name.replace(/ /g, '+') + ':ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&display=swap';
             _loadFontUrl(url);
             await new Promise(r => setTimeout(r, 900));
             const stack = "'" + name + "', sans-serif";
