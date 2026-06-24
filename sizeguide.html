@@ -1103,7 +1103,10 @@
       .mb-tips p{ font-size:.88rem; line-height:1.65; opacity:.78; margin:0 0 .6rem; }
       .mb-tips ul{ margin:.2rem 0 0; padding-left:1.15rem; }
       .mb-tips li{ font-size:.88rem; line-height:1.6; opacity:.82; margin-bottom:.5rem; }
+      .unit-bar{ display:flex; align-items:center; justify-content:flex-end; gap:.7rem; margin:.1rem 0 1.4rem; }
+      .unit-bar-lbl{ font-family:var(--fm,'IBM Plex Mono',monospace); font-size:.58rem; letter-spacing:.2em; text-transform:uppercase; opacity:.5; }
     </style>
+    <div class="unit-bar"><span class="unit-bar-lbl">Measurements</span><div class="calc-toggles" id="chart-unit-toggle"><button type="button" class="calc-toggle-btn active" data-unit="in">IN</button><button type="button" class="calc-toggle-btn" data-unit="cm">CM</button></div></div>
     <div class="tab-panel active" id="tab-mens">
       <div class="highlight-card" id="highlight-mens"></div>
       <div class="table-section">
@@ -1113,9 +1116,9 @@
             <thead>
               <tr>
                 <th>Size</th>
-                <th>Chest (in)</th>
-                <th>Waist (in)</th>
-                <th>Hips (in)</th>
+                <th data-unit-label="Chest">Chest (in)</th>
+                <th data-unit-label="Waist">Waist (in)</th>
+                <th data-unit-label="Hips">Hips (in)</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -1124,22 +1127,16 @@
       </div>
 
       <div class="table-section mb-section">
-        <div class="mb-head">
-          <h2>Men's Bottoms Size Chart</h2>
-          <div class="calc-toggles" id="bottoms-unit-toggle">
-            <button type="button" class="calc-toggle-btn active" data-unit="in">IN</button>
-            <button type="button" class="calc-toggle-btn" data-unit="cm">CM</button>
-          </div>
-        </div>
+        <h2>Men's Bottoms Size Chart</h2>
         <p class="mb-note">Body measurements — not garment dimensions. Find your size below; on a phone, swipe the table sideways to see every column.</p>
         <div class="table-wrap">
           <table id="table-mens-bottoms">
             <thead>
               <tr>
                 <th>Size</th>
-                <th id="mb-th-waist">Waist (in)</th>
-                <th id="mb-th-hip">Hip (in)</th>
-                <th id="mb-th-height">Height</th>
+                <th data-unit-label="Waist">Waist (in)</th>
+                <th data-unit-label="Hip">Hip (in)</th>
+                <th>Height</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -1160,22 +1157,56 @@
           </div>
         </div>
       </div>
+
+      <div class="table-section mb-section">
+        <h2>Men's Underwear Size Chart</h2>
+        <p class="mb-note">Body measurements. Use the IN / CM switch above to change units.</p>
+        <div class="table-wrap">
+          <table id="table-mens-underwear">
+            <thead>
+              <tr>
+                <th>Size</th>
+                <th data-unit-label="Chest">Chest (in)</th>
+                <th data-unit-label="Waist">Waist (in)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- WOMEN'S APPAREL -->
     <div class="tab-panel" id="tab-womens">
       <div class="highlight-card" id="highlight-womens"></div>
       <div class="table-section">
-        <h2>Women's Size Chart</h2>
+        <h2>Women's Tops Size Chart</h2>
         <div class="table-wrap">
           <table id="table-womens">
             <thead>
               <tr>
                 <th>Size</th>
                 <th>US Size</th>
-                <th>Bust (in)</th>
-                <th>Waist (in)</th>
-                <th>Hips (in)</th>
+                <th data-unit-label="Bust">Bust (in)</th>
+                <th data-unit-label="Waist">Waist (in)</th>
+                <th data-unit-label="Hips">Hips (in)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="table-section mb-section">
+        <h2>Women's Underwear Size Chart</h2>
+        <p class="mb-note">Body measurements. Use the IN / CM switch above to change units.</p>
+        <div class="table-wrap">
+          <table id="table-womens-underwear">
+            <thead>
+              <tr>
+                <th>Size</th>
+                <th data-unit-label="Waist">Waist (in)</th>
+                <th data-unit-label="Hip">Hip (in)</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -1195,10 +1226,10 @@
               <tr>
                 <th>Size</th>
                 <th>Age</th>
-                <th>Height (in)</th>
-                <th>Chest (in)</th>
-                <th>Waist (in)</th>
-                <th>Hips (in)</th>
+                <th data-unit-label="Height">Height (in)</th>
+                <th data-unit-label="Chest">Chest (in)</th>
+                <th data-unit-label="Waist">Waist (in)</th>
+                <th data-unit-label="Hips">Hips (in)</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -1400,6 +1431,23 @@
         { size_label: '4XL',      waist_in: '52.5-57',   waist_cm: '133-145', hip_in: '53.5-58.5', hip_cm: '136-148', height_in: '5\'7"-6\'0"',  height_cm: '170-183' },
         { size_label: '4XL Tall', waist_in: '52.5-57',   waist_cm: '133-145', hip_in: '53.5-58.5', hip_cm: '136-148', height_in: '6\'0"-6\'5"',  height_cm: '183-196' }
       ],
+      men_underwear: [
+        { size_label: 'XS',  chest_in: '30-32', chest_cm: '76-81',   waist_in: '24-26', waist_cm: '60-66' },
+        { size_label: 'S',   chest_in: '34-36', chest_cm: '86-91',   waist_in: '28-30', waist_cm: '71-76' },
+        { size_label: 'M',   chest_in: '38-40', chest_cm: '97-101',  waist_in: '32-34', waist_cm: '81-86' },
+        { size_label: 'L',   chest_in: '42-44', chest_cm: '107-111', waist_in: '36-38', waist_cm: '91-97' },
+        { size_label: 'XL',  chest_in: '46-48', chest_cm: '117-122', waist_in: '40-42', waist_cm: '102-107' },
+        { size_label: 'XXL', chest_in: '50-52', chest_cm: '127-132', waist_in: '44-46', waist_cm: '112-117' }
+      ],
+      women_underwear: [
+        { size_label: 'XXS', waist_in: '21-23',     waist_cm: '54-59',  hip_in: '30.5-32.5', hip_cm: '78-83' },
+        { size_label: 'XS',  waist_in: '23.5-26',   waist_cm: '60-66',  hip_in: '33-35.5',   hip_cm: '84-90' },
+        { size_label: 'S',   waist_in: '26.5-29',   waist_cm: '67-73',  hip_in: '36-38',     hip_cm: '91-97' },
+        { size_label: 'M',   waist_in: '29.5-31.5', waist_cm: '74-80',  hip_in: '38.5-41',   hip_cm: '98-104' },
+        { size_label: 'L',   waist_in: '32-34.5',   waist_cm: '81-87',  hip_in: '41.5-44',   hip_cm: '105-111' },
+        { size_label: 'XL',  waist_in: '35-38',     waist_cm: '88-97',  hip_in: '44.5-47',   hip_cm: '112-119' },
+        { size_label: 'XXL', waist_in: '38.5-42.5', waist_cm: '98-108', hip_in: '47.5-50.5', hip_cm: '120-128' }
+      ],
       women_tops: [
         { size_label: 'XXS', us_size: '00', bust_in: '27.5-29.5', waist_in: '21.5-23.5', hips_in: '30.5-33' },
         { size_label: 'XS', us_size: '0-2', bust_in: '29.5-32.5', waist_in: '23.5-26', hips_in: '33-35.5' },
@@ -1456,7 +1504,7 @@
     let sizeChartData = { ...fallbackData };
     let recommendedSize = null;
     let currentTab = 'mens';
-    let bottomsUnit = 'in';   // IN/CM toggle for the Men's Bottoms chart
+    let chartUnit = 'in';   // global IN/CM toggle for all measurement charts
     
     // Default fallback technologies just in case Supabase errors out
     const fallbackTechDict = {
@@ -1582,7 +1630,9 @@
       const categorized = {
         men_tops: [],
         men_bottoms: [],
+        men_underwear: [],
         women_tops: [],
+        women_underwear: [],
         kids: [],
         sports_bras: [],
         hats: [],
@@ -1607,7 +1657,9 @@
     function renderAllTables() {
       renderTable('mens', sizeChartData.men_tops, ['size_label', 'chest_in', 'waist_in', 'hips_in']);
       renderBottomsTable();
+      renderTable('mens-underwear', sizeChartData.men_underwear, ['size_label', 'chest_in', 'waist_in']);
       renderTable('womens', sizeChartData.women_tops, ['size_label', 'us_size', 'bust_in', 'waist_in', 'hips_in']);
+      renderTable('womens-underwear', sizeChartData.women_underwear, ['size_label', 'waist_in', 'hip_in']);
       renderTable('kids', sizeChartData.kids, ['size_label', 'numeric_size', 'height_in', 'chest_in', 'waist_in', 'hips_in']);
       renderSportsBrasTable();
       renderHatsTable();
@@ -1650,7 +1702,7 @@
 
         columns.forEach((col, idx) => {
           const td = document.createElement('td');
-          td.textContent = row[col] || '—';
+          td.textContent = unitCell(row, col) || '—';
           tr.appendChild(td);
         });
 
@@ -1658,38 +1710,51 @@
       });
     }
 
-    // Men's Bottoms — supports an IN/CM toggle (waist + hip switch units; height
-    // shows feet/inches in IN mode and centimetres in CM mode).
+    // ── Unit conversion (IN ⇄ CM) shared by every measurement chart ──
+    // Convert an inches value/range string to cm (e.g. "31.5-35" → "80-89").
+    function toCm(v){
+      if (v == null) return v;
+      return String(v).replace(/\d+(\.\d+)?/g, function(n){ return String(Math.round(parseFloat(n) * 2.54)); });
+    }
+    // Value for a cell in the active unit: prefer an explicit *_cm field, else
+    // auto-convert the *_in value. Non-measurement fields pass through unchanged.
+    function unitCell(row, field){
+      if (chartUnit === 'cm' && /_in$/.test(field)){
+        var cmf = field.replace(/_in$/, '_cm');
+        if (row[cmf] != null && row[cmf] !== '') return row[cmf];
+        return toCm(row[field]);
+      }
+      return row[field];
+    }
+    // Re-label any "(in)" header as "(cm)" (and back) on toggle.
+    function updateUnitHeaders(){
+      document.querySelectorAll('th[data-unit-label]').forEach(function(th){
+        th.textContent = th.dataset.unitLabel + ' (' + chartUnit + ')';
+      });
+    }
     function renderBottomsTable() {
       const table = document.getElementById('table-mens-bottoms');
       if (!table) return;
       const tbody = table.querySelector('tbody');
       const data = sizeChartData.men_bottoms || [];
-      const cm = bottomsUnit === 'cm';
-      const wTh = document.getElementById('mb-th-waist');
-      const hTh = document.getElementById('mb-th-hip');
-      if (wTh) wTh.textContent = cm ? 'Waist (cm)' : 'Waist (in)';
-      if (hTh) hTh.textContent = cm ? 'Hip (cm)' : 'Hip (in)';
       tbody.innerHTML = data.map(row => {
-        const waist  = (cm ? row.waist_cm  : row.waist_in)  || '—';
-        const hip    = (cm ? row.hip_cm    : row.hip_in)    || '—';
-        const height = (cm ? row.height_cm : row.height_in) || '—';
         const hl = (recommendedSize && sizeLabelsMatch(row.size_label, recommendedSize) && currentTab === 'mens') ? ' class="highlighted"' : '';
-        return `<tr${hl}><td>${row.size_label}</td><td>${waist}</td><td>${hip}</td><td>${height}</td></tr>`;
+        return `<tr${hl}><td>${row.size_label}</td><td>${unitCell(row,'waist_in')||'—'}</td><td>${unitCell(row,'hip_in')||'—'}</td><td>${unitCell(row,'height_in')||'—'}</td></tr>`;
       }).join('');
     }
-    function setupBottomsToggle() {
-      const toggle = document.getElementById('bottoms-unit-toggle');
+    function setupChartUnitToggle() {
+      const toggle = document.getElementById('chart-unit-toggle');
       if (!toggle) return;
       toggle.addEventListener('click', e => {
         const btn = e.target.closest('.calc-toggle-btn');
         if (!btn) return;
-        bottomsUnit = btn.dataset.unit === 'cm' ? 'cm' : 'in';
+        chartUnit = btn.dataset.unit === 'cm' ? 'cm' : 'in';
         toggle.querySelectorAll('.calc-toggle-btn').forEach(b => b.classList.toggle('active', b === btn));
-        renderBottomsTable();
+        updateUnitHeaders();
+        renderAllTables();
       });
     }
-    setupBottomsToggle();
+    setupChartUnitToggle();
 
     function renderSportsBrasTable() {
       const table = document.getElementById('table-sports_bras');
