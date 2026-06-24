@@ -3346,31 +3346,35 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
    columns. Mobile: the slide-out menu shows an accordion (.zw-macc-*). */
 .zw-navitem{ position:relative; display:flex; align-items:center; }
 .zw-navtrigger{ background:none; border:none; padding:0; cursor:pointer; line-height:inherit; }
+/* Full-width "flush" mega panel (Nike-style): fixed, edge-to-edge, dropping
+   from just under the header (--zw-megatop is measured by nav-menu.js). */
 .zw-navitem > .zw-mega{
-  position:absolute; top:calc(100% + .9rem); left:50%; transform:translateX(-50%) translateY(6px);
-  display:flex; gap:2.4rem; padding:1.5rem 1.8rem; max-width:90vw;
+  position:fixed; top:var(--zw-megatop, 92px); left:0; right:0; width:100%;
+  display:flex; gap:4rem; justify-content:flex-start; padding:2.4rem 3rem 2.8rem;
   background:var(--zw-surface, #131316);
-  border:1px solid var(--zw-line-dark, rgba(244,241,235,.12));
-  border-top:2px solid var(--zw-accent, #F891A5);
-  box-shadow:0 24px 70px rgba(0,0,0,.42);
+  border-top:1px solid var(--zw-line-dark, rgba(244,241,235,.1));
+  border-bottom:1px solid var(--zw-line-dark, rgba(244,241,235,.1));
+  box-shadow:0 28px 50px rgba(0,0,0,.32);
   opacity:0; visibility:hidden; pointer-events:none;
-  transition:opacity .18s ease, transform .18s ease, visibility 0s linear .18s;
-  z-index:240;
+  transform:translateY(-12px);
+  transition:opacity .22s ease, transform .22s ease, visibility 0s linear .22s;
+  z-index:219;
 }
 /* transparent bridge so moving the cursor from the item to the panel doesn't close it */
-.zw-navitem > .zw-mega::before{ content:''; position:absolute; left:0; right:0; top:-1rem; height:1rem; }
+.zw-navitem > .zw-mega::before{ content:''; position:absolute; left:0; right:0; top:-1.6rem; height:1.6rem; }
 .zw-navitem:hover > .zw-mega, .zw-navitem:focus-within > .zw-mega{
-  opacity:1; visibility:visible; pointer-events:auto; transform:translateX(-50%) translateY(0);
-  transition:opacity .18s ease, transform .18s ease;
+  opacity:1; visibility:visible; pointer-events:auto; transform:translateY(0);
+  transition:opacity .22s ease, transform .22s ease;
 }
-.zw-mega-col{ display:flex; flex-direction:column; gap:.5rem; min-width:120px; }
+.zw-mega-col{ display:flex; flex-direction:column; gap:.7rem; min-width:150px; }
 .zw-mega-col h4{
-  font-family:var(--fm); font-size:.55rem; letter-spacing:.2em; text-transform:uppercase;
-  color:rgba(244,241,235,.4); margin:0 0 .35rem; font-weight:500;
+  font-family:var(--fm); font-size:.6rem; letter-spacing:.2em; text-transform:uppercase;
+  color:rgba(244,241,235,.4); margin:0 0 .5rem; font-weight:500;
 }
 .zw-mega-col a{
-  font-family:var(--fm); font-size:.62rem; letter-spacing:.12em; text-transform:uppercase;
-  color:rgba(244,241,235,.8); text-decoration:none; transition:color .18s; white-space:nowrap;
+  font-family:var(--zw-font-head, 'Barlow Condensed', sans-serif); font-size:1.05rem; font-weight:600;
+  letter-spacing:.02em; text-transform:uppercase;
+  color:rgba(244,241,235,.82); text-decoration:none; transition:color .18s; white-space:nowrap;
 }
 .zw-mega-col a:hover{ color:var(--paper, #f4f1eb); }
 body.light-mode .zw-navitem > .zw-mega{

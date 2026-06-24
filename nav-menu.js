@@ -145,6 +145,15 @@
     }).join('');
   }
 
+  // The full-width mega panel drops from just under the header — measure where
+  // that is (varies with the announcement bar / nav height) into --zw-megatop.
+  function setMegaTop() {
+    try {
+      var nav = document.querySelector('nav#nav, header.nav, nav.nav, nav.zw-nav');
+      if (nav) document.documentElement.style.setProperty('--zw-megatop', Math.max(0, Math.round(nav.getBoundingClientRect().bottom)) + 'px');
+    } catch (_) {}
+  }
+
   function render() {
     // Reveal the nav once we've settled (custom rendered OR confirmed none),
     // clearing the no-flash hide set in <head>.
@@ -155,6 +164,7 @@
     renderDesktop(items);
     renderMobile(items);
     ready();
+    setMegaTop();
   }
 
   // Mobile accordion toggle (delegated).
@@ -173,6 +183,11 @@
     var t = cacheGet('zw_nav_tax');
     if (t) tax = t;
     render();
+    var _mt = 0;
+    function _onMt() { if (_mt) return; _mt = (window.requestAnimationFrame || setTimeout)(function () { _mt = 0; setMegaTop(); }); }
+    window.addEventListener('resize', _onMt, { passive: true });
+    window.addEventListener('scroll', _onMt, { passive: true, capture: true });
+    setTimeout(setMegaTop, 450); setTimeout(setMegaTop, 1300);
     // Refresh nav config + product taxonomy from the server.
     try {
       fetch(SB + 'site_settings?select=value&key=eq.nav_menu', { headers: H })
