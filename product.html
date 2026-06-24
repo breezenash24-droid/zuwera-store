@@ -68,7 +68,7 @@
 <!-- Stylesheets -->
 <link rel="stylesheet" href="base.css">
 <link rel="stylesheet" href="nav.css?v=e1e6dc8e">
-<link rel="stylesheet" href="product.css?v=ce42f2f3">
+<link rel="stylesheet" href="product.css?v=c2ba5451">
 <link rel="stylesheet" href="cart.css?v=6b9b7135">
 <!-- reviews.css styles only below-the-fold review content + hidden review
      modals, so load it non-render-blocking (matches index.html). reviews-vibe.css
@@ -3720,13 +3720,10 @@ window.openSizeFitModal = async function() {
 
   content.innerHTML = '<p class="review-modal-message">Loading fit ratings...</p>';
   modal.classList.add('open');
-  // Dim the page behind this dialog. It's often sparse ("no ratings yet"), so a
-  // transparent overlay made it read as a card floating over the page. Set the
-  // scrim inline so the global backdrop enforcer can't strip it (clearBackdrop()
-  // skips #size-fit-modal for the same reason).
-  modal.style.setProperty('background', 'rgba(9,9,11,.62)', 'important');
-  modal.style.removeProperty('backdrop-filter');
-  modal.style.removeProperty('-webkit-backdrop-filter');
+  // Clear/transparent backdrop, like every other modal on the site.
+  modal.style.setProperty('background', 'transparent', 'important');
+  modal.style.setProperty('backdrop-filter', 'none', 'important');
+  modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
   // Defer the scroll lock to modal-lock.js (position:fixed + scroll compensation)
   // instead of a raw overflow:hidden — the dual lock shifted the page up on open.
   if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh(); else document.body.style.overflow = 'hidden';
@@ -4667,9 +4664,6 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 (function() {
   function clearBackdrop(el) {
     if (!el || !el.classList || !el.classList.contains('modal')) return;
-    // Size & Fit keeps its dim scrim (set in openSizeFitModal) so it doesn't look
-    // like a sparse card floating over the page — don't strip its background.
-    if (el.id === 'size-fit-modal') return;
     el.style.setProperty('background', 'transparent', 'important');
     el.style.setProperty('backdrop-filter', 'none', 'important');
     el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
