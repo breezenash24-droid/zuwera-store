@@ -1104,13 +1104,14 @@
       .mb-tips p{ font-size:.88rem; line-height:1.65; opacity:.78; margin:0 0 .6rem; }
       .mb-tips ul{ margin:.2rem 0 0; padding-left:1.15rem; }
       .mb-tips li{ font-size:.88rem; line-height:1.6; opacity:.82; margin-bottom:.5rem; }
+      .table-section[hidden], .how-to-measure[hidden]{ display:none !important; }
       .unit-bar{ display:flex; align-items:center; justify-content:flex-end; gap:.7rem; margin:.1rem 0 1.4rem; }
       .unit-bar-lbl{ font-family:var(--fm,'IBM Plex Mono',monospace); font-size:.58rem; letter-spacing:.2em; text-transform:uppercase; opacity:.5; }
     </style>
     <div class="unit-bar"><span class="unit-bar-lbl">Measurements</span><div class="calc-toggles" id="chart-unit-toggle"><button type="button" class="calc-toggle-btn active" data-unit="in">IN</button><button type="button" class="calc-toggle-btn" data-unit="cm">CM</button></div></div>
     <div class="tab-panel active" id="tab-mens">
       <div class="highlight-card" id="highlight-mens"></div>
-      <div class="table-section">
+      <div class="table-section" data-guide-cat="tops">
         <h2>Men's Tops Size Chart</h2>
         <div class="table-wrap">
           <table id="table-mens">
@@ -1127,7 +1128,7 @@
         </div>
       </div>
 
-      <div class="table-section mb-section">
+      <div class="table-section mb-section" data-guide-cat="bottoms">
         <h2>Men's Bottoms Size Chart</h2>
         <p class="mb-note">Body measurements — not garment dimensions. Find your size below; on a phone, swipe the table sideways to see every column.</p>
         <div class="table-wrap">
@@ -1159,7 +1160,7 @@
         </div>
       </div>
 
-      <div class="table-section mb-section">
+      <div class="table-section mb-section" data-guide-cat="underwear">
         <h2>Men's Underwear Size Chart</h2>
         <p class="mb-note">Body measurements. Use the IN / CM switch above to change units.</p>
         <div class="table-wrap">
@@ -1180,7 +1181,7 @@
     <!-- WOMEN'S APPAREL -->
     <div class="tab-panel" id="tab-womens">
       <div class="highlight-card" id="highlight-womens"></div>
-      <div class="table-section">
+      <div class="table-section" data-guide-cat="tops">
         <h2>Women's Tops Size Chart</h2>
         <div class="table-wrap">
           <table id="table-womens">
@@ -1198,7 +1199,7 @@
         </div>
       </div>
 
-      <div class="table-section mb-section">
+      <div class="table-section mb-section" data-guide-cat="bottoms">
         <h2>Women's Bottoms Size Chart</h2>
         <p class="mb-note">Body measurements — not garment dimensions. Use the IN / CM switch above to change units.</p>
         <p class="mb-subcap">Sizes XXS&ndash;XXL</p>
@@ -1229,7 +1230,7 @@
         </div>
       </div>
 
-      <div class="table-section mb-section">
+      <div class="table-section mb-section" data-guide-cat="underwear">
         <h2>Women's Underwear Size Chart</h2>
         <p class="mb-note">Body measurements. Use the IN / CM switch above to change units.</p>
         <div class="table-wrap">
@@ -2433,9 +2434,26 @@
       const genderField = document.getElementById('calcGenderField');
       const categoryField = document.getElementById('calcCategoryField');
       const targetPanel = document.getElementById(`tab-${context.tabId}`);
-      const heading = targetPanel?.querySelector('.table-section h2');
       const focusedHeading = getFocusedGuideHeading(context);
       const lockSingleTab = context.hasExplicitGender || ['kids', 'sports_bras', 'hats'].includes(context.tabId);
+
+      // Streamline: show only the chart that matches the product's category — a
+      // sweatpant (bottoms) shows just the Bottoms chart, not Tops + Underwear too.
+      const wantCat = ({ bottoms: 'bottoms', underwear: 'underwear', tops: 'tops' })[context.calcCategory];
+      let matchedSection = null;
+      if (wantCat && targetPanel) {
+        targetPanel.querySelectorAll('.table-section[data-guide-cat]').forEach(sec => {
+          if (sec.getAttribute('data-guide-cat') === wantCat) matchedSection = sec;
+          else sec.hidden = true;
+        });
+      }
+      // When the focused chart carries its own Fit Tips / How To Measure (bottoms),
+      // drop the generic full-body measure grid so the guide isn't crowded.
+      if (matchedSection && matchedSection.querySelector('.mb-tips')) {
+        const htm = document.querySelector('.how-to-measure');
+        if (htm) htm.hidden = true;
+      }
+      const heading = (matchedSection || targetPanel)?.querySelector('h2');
 
       if (note) {
         note.hidden = false;
