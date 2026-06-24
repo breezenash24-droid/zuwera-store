@@ -30,7 +30,7 @@
   var _b=null,_ck={},_i;
   for(_i=0;_i<localStorage.length;_i++){
     var _k=localStorage.key(_i);if(!_k)continue;
-    var _m=_k.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:.(d+))?$/);if(!_m)continue;
+    var _m=_k.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:\.(\d+))?$/);if(!_m)continue;
     if(_m[1]===undefined)_b=localStorage.getItem(_k);else _ck[_m[1]]=localStorage.getItem(_k);
   }
   var _ord=Object.keys(_ck).map(Number).sort(function(a,b){return a-b;});
