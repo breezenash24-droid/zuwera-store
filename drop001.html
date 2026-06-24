@@ -312,7 +312,11 @@ document.documentElement.classList.add('zw-collflash');
     }
     /* PLP: filter sidebar + sort + count (Nike-style listing) */
     .plp-bar { display:flex; align-items:center; gap:1rem; flex-wrap:wrap; position:sticky; top:var(--zw-nav-h,54px); z-index:50; background:var(--black); padding:.75rem 0; margin-bottom:1rem; border-bottom:1px solid var(--border); transition:top .4s ease; }
+    /* When the header auto-hides, the toolbar takes over the top as a full-width
+       header bar (the ::before backdrop bleeds edge-to-edge behind it). */
+    .plp-bar::before { content:''; position:absolute; top:0; bottom:0; left:50%; width:100vw; transform:translateX(-50%); background:var(--black); border-bottom:1px solid var(--border); box-shadow:0 6px 20px rgba(0,0,0,.16); z-index:-1; opacity:0; transition:opacity .35s ease; pointer-events:none; }
     html.zw-nav-hidden .plp-bar { top:0; }
+    html.zw-nav-hidden .plp-bar::before { opacity:1; }
     .plp-count { font-family:var(--font-mono); font-size:.7rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
     .plp-sort-wrap { margin-left:auto; font-family:var(--font-mono); font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); display:flex; align-items:center; gap:.5rem; }
     .plp-sort { background:transparent; color:inherit; border:1px solid var(--border); font-family:var(--font-mono); font-size:.68rem; padding:.4rem .6rem; cursor:pointer; border-radius:0; }
