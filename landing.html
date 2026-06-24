@@ -159,6 +159,18 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
     .lp-cat-label{ position:absolute; left:1.1rem; bottom:1rem; z-index:2; font-family:var(--fw); font-weight:900; font-style:italic; text-transform:uppercase; letter-spacing:.03em; font-size:1.3rem; display:flex; align-items:center; gap:.5rem; }
     .lp-cat-label svg{ width:16px; height:16px; opacity:.8; transition:transform .25s; }
     .lp-cat-tile:hover .lp-cat-label svg{ transform:translateX(4px); }
+    /* Mobile: a compact, swipeable category row — not a stack of full-screen
+       posters. Simple to scan; swipe for more; tap to drill in. */
+    @media (max-width:640px){
+      .lp-sec{ padding:2.6rem 1.2rem; }
+      .lp-cat-grid{ display:flex; grid-template-columns:none; gap:.6rem;
+        overflow-x:auto; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity;
+        margin:0 -1.2rem; padding:0 1.2rem .5rem; }
+      .lp-cat-grid::-webkit-scrollbar{ display:none; }
+      .lp-cat-tile{ flex:0 0 43%; aspect-ratio:1/1; scroll-snap-align:start; }
+      .lp-cat-label{ left:.7rem; bottom:.7rem; font-size:1rem; }
+      .lp-cat-label svg{ width:13px; height:13px; }
+    }
 
     /* FEATURED PRODUCT CARDS */
     .lp-feat-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:1.4rem 1rem; }
