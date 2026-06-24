@@ -43,6 +43,13 @@
     if(f.css){var s=document.createElement('style');s.textContent=f.css;document.head.appendChild(s);}
   }
 }catch(_){}})()</script>
+<script>
+/* COLLECTION TITLE FLASH PREVENTION — hide the hero/section titles until their
+   real words are set (from the URL, below) AND the fonts are ready, so they
+   don't flash the hardcoded "Jackets"/"Collection" text or a fallback font. */
+document.documentElement.classList.add('zw-collflash');
+(function(){var s=document.createElement('style');s.textContent='html.zw-collflash .drop-title,html.zw-collflash .drop-label,html.zw-collflash .section-header h2{visibility:hidden}';document.head.appendChild(s);})();
+</script>
 <meta name="zuwera-deployment" content="2026-04-19-mobile-menu-v3">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1019,6 +1026,47 @@
       <h2>Release 001 — Jackets</h2>
       <span>Releasing 09 / 20 / 2026</span>
     </div>
+    <script>
+    /* Set the real title words NOW (from the URL) so the hardcoded defaults above
+       never paint, then reveal once fonts are ready. Mirrors updateCollectionMeta. */
+    (function(){try{
+      var p=new URLSearchParams(location.search);
+      var g=(p.get('gender')||'').trim();
+      var c=(p.get('category')||'').trim().replace(/\s+/g,' ');
+      var t=(p.get('tag')||'').trim();
+      var cl=[g,c].filter(Boolean).join(' · ')||t||'';
+      var label=cl||'All Products';
+      var catEl=document.getElementById('collection-category');
+      var secEl=document.querySelector('.section-header h2');
+      var lblEl=document.querySelector('.drop-label');
+      if(catEl)catEl.textContent=label;
+      if(secEl)secEl.textContent=cl?('Release 001 - '+label):'Release 001 - All Products';
+      if(lblEl)lblEl.textContent=cl?('Zuwera - '+label):'Zuwera - Collection';
+      function reveal(){document.documentElement.classList.remove('zw-collflash');}
+      try{ if(document.fonts&&document.fonts.ready){document.fonts.ready.then(reveal);} else reveal(); }catch(_){reveal();}
+      setTimeout(reveal,1000);
+    }catch(_){document.documentElement.classList.remove('zw-collflash');}})();
+    </script>
+    <script>
+    /* SCROLL POSITION RESTORE — on refresh, return to where you were. The product
+       grid renders async, so the browser's own restoration lands at the top; we
+       save the position and restore it once the grid is painted. */
+    (function(){
+      var KEY='zw_coll_scroll', restored=false, t;
+      try{ if('scrollRestoration' in history) history.scrollRestoration='manual'; }catch(_){}
+      function cy(){ return window.scrollY||document.documentElement.scrollTop||document.body.scrollTop||0; }
+      addEventListener('scroll',function(){ clearTimeout(t); t=setTimeout(function(){ try{ sessionStorage.setItem(KEY,JSON.stringify({u:location.href,y:cy()})); }catch(_){} },120); },{passive:true});
+      addEventListener('pagehide',function(){ try{ if('scrollRestoration' in history) history.scrollRestoration='auto'; }catch(_){} });
+      window.__zwRestoreCollScroll=function(){
+        if(restored)return;
+        var s; try{ s=JSON.parse(sessionStorage.getItem(KEY)||'null'); }catch(_){}
+        if(s&&s.u===location.href&&s.y>20){ restored=true; var yy=s.y;
+          requestAnimationFrame(function(){ window.scrollTo(0,yy); requestAnimationFrame(function(){ window.scrollTo(0,yy); }); });
+        }
+      };
+      addEventListener('load',function(){ setTimeout(function(){ window.__zwRestoreCollScroll&&window.__zwRestoreCollScroll(); }, 80); });
+    })();
+    </script>
 
     <div class="plp-bar">
       <button type="button" class="plp-filter-toggle" id="plp-filter-toggle" aria-expanded="false" aria-controls="plp-sidebar" onclick="window.__zwTogglePlpFilters && window.__zwTogglePlpFilters()">Filters</button>
@@ -1296,7 +1344,7 @@ function updateCountdown() {
       let _painted = false;
       try {
         const _cachedProducts = sessionStorage.getItem('zw_collection_products');
-        if (_cachedProducts) { renderProducts(JSON.parse(_cachedProducts)); renderPlpSidebar(); _painted = true; }
+        if (_cachedProducts) { renderProducts(JSON.parse(_cachedProducts)); renderPlpSidebar(); _painted = true; if (window.__zwRestoreCollScroll) window.__zwRestoreCollScroll(); }
       } catch (_) {}
 
       function collectionToast(message) {
@@ -1499,6 +1547,7 @@ function updateCountdown() {
       try { sessionStorage.setItem('zw_collection_products', JSON.stringify(products)); } catch(_) {}
       renderProducts(products);
       renderPlpSidebar();
+      if (window.__zwRestoreCollScroll) window.__zwRestoreCollScroll();
 
       function renderProducts(productsList) {
         if (productsList && productsList.length) _allProducts = productsList;
