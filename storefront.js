@@ -136,15 +136,10 @@ function showToast(msg) {
         logoImg.src = cfg.navSettings.logo_url;
         logoImg.srcset = cfg.navSettings.logo_url;
       }
-      if (Array.isArray(cfg.navSettings.links) && cfg.navSettings.links.length > 0) {
-        window.__zwCustomNavApplied = true;
-        const desktop = document.getElementById('nav-category-links');
-        const mobile = document.getElementById('mobile-category-links');
-        const desktopHtml = cfg.navSettings.links.map(l => `<a href="${l.url || '#'}" class="nav-link">${l.text || ''}</a>`).join('');
-        const mobileHtml = cfg.navSettings.links.map(l => `<a href="${l.url || '#'}" class="mobile-nav-link zw-mobile-primary-link">${l.text || ''}</a>`).join('');
-        if (desktop) desktop.innerHTML = desktopHtml;
-        if (mobile) mobile.innerHTML = mobileHtml;
-      }
+      // Navigation links are owned by nav-menu.js (reads site_settings.nav_menu —
+      // e.g. Men / Women / New). The legacy navSettings.links rendering was removed
+      // because it raced with and overwrote the mobile menu, showing product
+      // categories (Jackets, T-Shirts…) instead of the configured nav.
     }
 
     // Apply builder theme settings (bar bg/color, accent, etc.)
