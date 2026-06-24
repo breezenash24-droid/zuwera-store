@@ -84,7 +84,9 @@
   color: var(--paper, #f4f1eb);
   font-family: var(--fw, var(--font-head, "Barlow Condensed", sans-serif));
   font-size: clamp(1.85rem, 3vw, 2.6rem);
-  letter-spacing: 0.08em;
+  font-style: italic;       /* match the other modal titles (.mtitle, .review-modal-title) */
+  font-weight: 900;
+  letter-spacing: 0.04em;
   line-height: 1;
   text-transform: uppercase;
 }

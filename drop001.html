@@ -363,8 +363,10 @@ document.documentElement.classList.add('zw-collflash');
     .plp-fm.plp-fm-dragging .plp-fm-sheet{ transition:none; }
     .plp-fm-grab{ width:38px; height:4px; border-radius:99px; background:var(--white); opacity:.3; margin:.55rem auto .1rem; flex-shrink:0; }
     .plp-fm-head{ display:flex; align-items:center; justify-content:space-between; padding:1.1rem 1.3rem; border-bottom:1px solid var(--border); flex-shrink:0; }
-    .plp-fm-title{ font-family:var(--font-head); font-size:1.35rem; font-weight:700; letter-spacing:.03em; text-transform:uppercase; }
-    .plp-fm-x{ background:none; border:none; color:inherit; font-size:1.5rem; line-height:1; cursor:pointer; padding:.2rem .4rem; }
+    .plp-fm-title{ font-family:var(--font-head); font-size:1.5rem; font-weight:900; font-style:italic; letter-spacing:.03em; text-transform:uppercase; line-height:1; }
+    /* Square close button — matches the shared .mclose family on the other modals. */
+    .plp-fm-x{ width:36px; height:36px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:rgba(244,241,235,.06); border:1.5px solid rgba(244,241,235,.25); border-radius:0; color:inherit; font-size:1.25rem; line-height:1; cursor:pointer; padding:0; }
+    body.light-mode .plp-fm-x, body.super-light-mode .plp-fm-x{ background:rgba(9,9,11,.04); border-color:rgba(9,9,11,.18); }
     .plp-fm-body{ overflow-y:auto; -webkit-overflow-scrolling:touch; padding:0 1.3rem; flex:1; }
     .plp-fm-sec{ padding:1.1rem 0; border-bottom:1px solid var(--border); }
     .plp-fm-sec:last-child{ border-bottom:none; }
@@ -570,8 +572,11 @@ document.documentElement.classList.add('zw-collflash');
       color:rgba(244,241,235,.45);margin-bottom:.7rem;
     }
     .quick-size-ph .qsp-close{
-      background:none;border:none;color:rgba(244,241,235,.4);cursor:pointer;font-size:1rem;line-height:1;padding:2px 4px;
+      width:26px;height:26px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+      background:rgba(244,241,235,.06);border:1px solid rgba(244,241,235,.22);border-radius:0;
+      color:rgba(244,241,235,.55);cursor:pointer;font-size:.95rem;line-height:1;padding:0;
     }
+    body.light-mode .quick-size-ph .qsp-close{ background:rgba(9,9,11,.04);border-color:rgba(9,9,11,.18);color:rgba(9,9,11,.55); }
     .quick-size-ph .qsp-close:hover{color:#f4f1eb}
     /* Color swatches */
     .qcol-row{display:flex;flex-wrap:wrap;gap:.55rem;margin-bottom:.2rem}
@@ -739,7 +744,7 @@ document.documentElement.classList.add('zw-collflash');
     body.super-light-mode .product-add-btn{background:#09090b !important;color:#f4f1eb !important;border-color:#09090b !important}
     body.super-light-mode .product-add-btn:hover{background:#1a1a1a !important}
     body.super-light-mode .heart-btn{background:rgba(244,241,235,.9) !important;border-color:rgba(9,9,11,.15) !important;color:rgba(9,9,11,.4) !important}
-    body.super-light-mode .qsp-close{color:#09090b !important}
+    body.super-light-mode .qsp-close{color:rgba(9,9,11,.6) !important;background:rgba(9,9,11,.04) !important;border-color:rgba(9,9,11,.18) !important}
     @media(max-width:760px){
       .collection-review-modal{align-items:stretch;justify-content:flex-end;padding:0}
       .collection-review-box.collection-product-box{
