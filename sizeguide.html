@@ -1267,8 +1267,7 @@
             <thead>
               <tr>
                 <th>Size</th>
-                <th>Head Circumference (in)</th>
-                <th>Head Circumference (cm)</th>
+                <th data-unit-label="Head Circumference">Head Circumference (in)</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -1732,6 +1731,15 @@
         th.textContent = th.dataset.unitLabel + ' (' + chartUnit + ')';
       });
     }
+    // The IN/CM switch only applies to tabs with convertible measurements — hide
+    // it on Socks (shoe sizes), Sports Bras (band/cup) and Fabric Tech.
+    function updateUnitBarVisibility(){
+      const bar = document.querySelector('.unit-bar');
+      if (!bar) return;
+      const active = document.querySelector('.tab-panel.active');
+      const tab = active ? active.id.replace('tab-', '') : currentTab;
+      bar.style.display = ['mens', 'womens', 'kids', 'hats'].indexOf(tab) > -1 ? '' : 'none';
+    }
     function renderBottomsTable() {
       const table = document.getElementById('table-mens-bottoms');
       if (!table) return;
@@ -1789,7 +1797,8 @@
         if (recommendedSize && sizeLabelsMatch(row.size_label, recommendedSize) && currentTab === 'hats') {
           tr.classList.add('highlighted');
         }
-        tr.innerHTML = `<td>${row.size_label}</td><td>${row.head_circ_in}</td><td>${row.head_circ_cm}</td>`;
+        const circ = chartUnit === 'cm' ? row.head_circ_cm : row.head_circ_in;
+        tr.innerHTML = `<td>${row.size_label}</td><td>${circ || '—'}</td>`;
         tbody.appendChild(tr);
       });
     }
@@ -2166,6 +2175,7 @@
           e.target.classList.add('active');
           document.getElementById(`tab-${tabId}`).classList.add('active');
 
+          updateUnitBarVisibility();
           updateHighlightCard();
           updatePlaceholdersFromSize();
         });
@@ -2467,6 +2477,7 @@
       setupCalculator();
       setupTabs();
       applyUrlParams();
+      updateUnitBarVisibility();
     }
 
     document.addEventListener('DOMContentLoaded', init);
