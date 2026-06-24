@@ -119,7 +119,10 @@ document.documentElement.classList.add('zw-collflash');
       color: var(--white);
       font-family:var(--font-body);
       font-weight: 300;
-      overflow-x: hidden;
+      /* clip (not hidden): prevents horizontal scroll WITHOUT making <body> a
+         scroll container, which would break position:sticky (filter sidebar +
+         toolbar) and window.scrollY (scroll restore). */
+      overflow-x: clip;
     }
 
     /* NAV */
