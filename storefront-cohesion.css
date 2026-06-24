@@ -3350,10 +3350,10 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
    from just under the header (--zw-megatop is measured by nav-menu.js). */
 .zw-navitem > .zw-mega{
   position:fixed; top:var(--zw-megatop, 92px); left:0; right:0; width:100%;
-  display:flex; gap:4rem; justify-content:flex-start; padding:2.4rem 3rem 2.8rem;
+  display:flex; gap:4rem; justify-content:center; padding:2.4rem 3rem 2.8rem;
   background:var(--zw-surface, #131316);
-  border-top:1px solid var(--zw-line-dark, rgba(244,241,235,.1));
-  border-bottom:1px solid var(--zw-line-dark, rgba(244,241,235,.1));
+  border-top:1px solid var(--zw-line-dark, rgba(244,241,235,.08));
+  border-bottom:1px solid var(--zw-line-dark, rgba(244,241,235,.08));
   box-shadow:0 28px 50px rgba(0,0,0,.32);
   opacity:0; visibility:hidden; pointer-events:none;
   transform:translateY(-12px);
@@ -3378,7 +3378,7 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
 }
 .zw-mega-col a:hover{ color:var(--paper, #f4f1eb); }
 body.light-mode .zw-navitem > .zw-mega{
-  background:#fff; border-color:rgba(9,9,11,.1); border-top-color:#09090b; box-shadow:0 24px 70px rgba(0,0,0,.16);
+  background:#fff; border-color:rgba(9,9,11,.08); border-top-color:rgba(9,9,11,.08); box-shadow:0 24px 50px rgba(0,0,0,.14);
 }
 body.light-mode .zw-mega-col h4{ color:rgba(9,9,11,.4); }
 body.light-mode .zw-mega-col a{ color:rgba(9,9,11,.72); }
