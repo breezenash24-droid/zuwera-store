@@ -181,6 +181,10 @@
         var bg2 = heroEl.querySelector('.lp-hero-bg');
         if (bg2) bg2.style.backgroundImage = "url('" + heroImg.replace(/'/g, "%27") + "')";
       }
+      // Hero text color (Auto / Light / Dark) — keeps text readable over the image.
+      heroEl.classList.remove('lp-hero--lighttext', 'lp-hero--darktext');
+      if (heroCfg.textColor === 'light') heroEl.classList.add('lp-hero--lighttext');
+      else if (heroCfg.textColor === 'dark') heroEl.classList.add('lp-hero--darktext');
     }
     document.title = (gLabel ? gLabel + ' — Shop ' : 'Shop ') + '| ZUWERA';
 
