@@ -853,6 +853,7 @@ function renderPagesTab(container){
   }
 
   const heroImg = h.image ? `<img src="${he(h.image)}" title="Click to enlarge" style="width:100%;height:130px;object-fit:contain;background:var(--sf2);border:1px solid var(--bd);border-radius:2px;margin-bottom:.25rem;display:block">` : '';
+  const heroMobImg = h.mobileImage ? `<img src="${he(h.mobileImage)}" title="Mobile hero" style="width:55%;max-width:170px;aspect-ratio:9/16;object-fit:cover;background:var(--sf2);border:1px solid var(--bd);border-radius:2px;margin-bottom:.25rem;display:block">` : '';
 
   container.innerHTML=`<div class="tab-pane">
     <div class="tab-hd">Landing Pages</div>
@@ -871,6 +872,8 @@ function renderPagesTab(container){
     <div class="field"><label>Hero image</label>${heroImg}<input data-lp="hero.image" data-f="__lpHero" id="lpHeroImg" value="${he(h.image||'')}" placeholder="Auto: first product image"><div style="display:flex;gap:.3rem;margin-top:.25rem"><button type="button" class="img-btn" onclick="openMedia('__lpHero')">📁 Browse</button></div></div>
     <div class="field"><label>Hero video (optional — plays muted &amp; looping; overrides the image)</label><input data-lp="hero.video" data-f="__lpHeroVid" id="lpHeroVid" value="${he(h.video||'')}" placeholder="https://… .mp4 or .webm"><div style="display:flex;gap:.3rem;margin-top:.25rem"><button type="button" class="img-btn" onclick="openMedia('__lpHeroVid')">📁 Browse</button></div><div class="fhint" style="margin-top:.2rem">The hero image above is used as the video’s poster (first frame).</div></div>
     <div class="field"><label>Hero fit</label><select data-lp="hero.fit"><option value="cover"${(h.fit||'cover')==='cover'?' selected':''}>Fill — crop to fill (best for photos)</option><option value="contain"${h.fit==='contain'?' selected':''}>Fit — show the whole image (best for logos/graphics)</option></select></div>
+    <div class="field"><label>Mobile hero image (optional — shown on phones)</label>${heroMobImg}<input data-lp="hero.mobileImage" data-f="__lpHeroMob" id="lpHeroMobImg" value="${he(h.mobileImage||'')}" placeholder="Defaults to the hero image above"><div style="display:flex;gap:.3rem;margin-top:.25rem"><button type="button" class="img-btn" onclick="openMedia('__lpHeroMob')">📁 Browse</button></div><div class="fhint" style="margin-top:.2rem">A wide desktop image rarely crops well on a tall phone — use a portrait crop here.</div></div>
+    <div class="field"><label>Mobile hero fit</label><select data-lp="hero.mobileFit"><option value=""${!h.mobileFit?' selected':''}>Same as desktop</option><option value="cover"${h.mobileFit==='cover'?' selected':''}>Fill — crop to fill</option><option value="contain"${h.mobileFit==='contain'?' selected':''}>Fit — show the whole image</option></select></div>
     <div class="field"><label>Hero text color</label><select data-lp="hero.textColor"><option value=""${!h.textColor?' selected':''}>Auto — match theme</option><option value="light"${h.textColor==='light'?' selected':''}>Light — white (for dark images)</option><option value="dark"${h.textColor==='dark'?' selected':''}>Dark — black (for light images)</option></select></div>
     <div class="fdiv"></div>
 

@@ -125,7 +125,7 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
       background:#0c0c0f;
     }
     .lp-hero::after{ content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(9,9,11,.15) 0%,rgba(9,9,11,.72) 100%); pointer-events:none; z-index:1; }
-    .lp-hero-bg{ background-size:cover; background-position:center; background-repeat:no-repeat; }
+    .lp-hero-bg{ background-image:var(--lp-hero-img); background-size:var(--lp-hero-fit,cover); background-position:center; background-repeat:no-repeat; }
     .lp-hero > *{ position:relative; z-index:2; }
     /* Background media (image OR video) must sit behind the content. This rule is
        more specific than ".lp-hero > *" so it wins the z-index/position cascade. */
@@ -141,6 +141,14 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
     .lp-hero--lighttext .lp-hero-cta{ background:#FFFFFF !important; color:#09090b !important; }
     .lp-hero--darktext .lp-hero-kicker,.lp-hero--darktext .lp-hero-title,.lp-hero--darktext .lp-hero-sub{ color:#09090b !important; }
     .lp-hero--darktext .lp-hero-cta{ background:#09090b !important; color:#FFFFFF !important; }
+    /* Mobile hero: taller & tighter, swap to the mobile image/fit if one is set,
+       and lean the bottom gradient darker so the text stays readable on any crop. */
+    @media (max-width:640px){
+      .lp-hero{ min-height:74vh; padding:7rem 1.4rem 2.4rem; }
+      .lp-hero::after{ background:linear-gradient(180deg,rgba(9,9,11,.04) 0%,rgba(9,9,11,.32) 46%,rgba(9,9,11,.84) 100%); }
+      .lp-hero-bg{ background-image:var(--lp-hero-img-mob,var(--lp-hero-img)); background-size:var(--lp-hero-fit-mob,var(--lp-hero-fit,cover)); }
+      .lp-hero-sub{ font-size:.98rem; }
+    }
 
     /* SECTION HEADINGS */
     .lp-sec{ padding:4.5rem 2.5rem; max-width:1500px; margin:0 auto; }
@@ -358,6 +366,6 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
   <script src="auth.js?v=7be42027" defer></script>
   <script src="zw-login.js?v=1b83aa67" defer></script>
   <script src="/nav-menu.js?v=e300bf8d" defer></script>
-  <script src="landing.js?v=f6e7f205" defer></script>
+  <script src="landing.js?v=f89281e3" defer></script>
 </body>
 </html>

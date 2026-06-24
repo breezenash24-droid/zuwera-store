@@ -166,6 +166,10 @@
     // re-encode, which softens crisp logos/line-art) and either Fill (cover) or
     // Fit (contain, shows the whole image). Default Fill.
     var heroFit = (heroCfg.fit === 'contain') ? 'contain' : 'cover';
+    // Optional separate mobile artwork/fit (a wide desktop logo/photo rarely
+    // crops well on a tall phone). Falls back to the desktop image/fit.
+    var heroMobImg = heroCfg.mobileImage || '';
+    var heroMobFit = heroCfg.mobileFit || '';
     var heroCtaText = heroCfg.ctaText || ('Shop all ' + (gLabel || 'products'));
     var heroCtaUrl = heroCfg.ctaUrl || base;
 
@@ -177,7 +181,7 @@
         (heroImg ? ' poster="' + esc(heroImg) + '"' : '') +
         '><source src="' + esc(heroVideo) + '"></video>';
     } else {
-      mediaHtml = '<div class="lp-hero-bg" style="background-size:' + heroFit + '"></div>';
+      mediaHtml = '<div class="lp-hero-bg"></div>'; // image applied via CSS vars (responsive mobile swap)
     }
     var heroEl = document.getElementById('lp-hero');
     if (heroEl) {
@@ -188,8 +192,12 @@
         '<p class="lp-hero-sub">' + esc(heroSub) + '</p>' +
         '<a class="lp-hero-cta" href="' + esc(heroCtaUrl) + '">' + esc(heroCtaText) + '</a>';
       if (!heroVideo && heroImg) {
-        var bg2 = heroEl.querySelector('.lp-hero-bg');
-        if (bg2) bg2.style.backgroundImage = "url('" + heroImg.replace(/'/g, "%27") + "')";
+        // Drive the background through CSS custom properties so a media query can
+        // swap to the mobile image/fit on phones (set on the hero; .lp-hero-bg inherits).
+        heroEl.style.setProperty('--lp-hero-img', "url('" + heroImg.replace(/'/g, '%27') + "')");
+        heroEl.style.setProperty('--lp-hero-img-mob', "url('" + (heroMobImg || heroImg).replace(/'/g, '%27') + "')");
+        heroEl.style.setProperty('--lp-hero-fit', heroFit);
+        heroEl.style.setProperty('--lp-hero-fit-mob', (heroMobFit === 'cover' || heroMobFit === 'contain') ? heroMobFit : heroFit);
       }
       // Hero text color (Auto / Light / Dark) — keeps text readable over the image.
       heroEl.classList.remove('lp-hero--lighttext', 'lp-hero--darktext');
