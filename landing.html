@@ -149,6 +149,11 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
       .lp-hero-bg{ background-image:var(--lp-hero-img-mob,var(--lp-hero-img)); background-size:var(--lp-hero-fit-mob,var(--lp-hero-fit,cover)); }
       .lp-hero-sub{ font-size:.98rem; }
     }
+    /* Tablet hero: optional tablet image/fit, falling back to the mobile image
+       (then the desktop one) — the JS resolves the chain into these vars. */
+    @media (min-width:641px) and (max-width:1024px){
+      .lp-hero-bg{ background-image:var(--lp-hero-img-tab,var(--lp-hero-img)); background-size:var(--lp-hero-fit-tab,var(--lp-hero-fit,cover)); }
+    }
 
     /* SECTION HEADINGS */
     .lp-sec{ padding:4.5rem 2.5rem; max-width:1500px; margin:0 auto; }
@@ -366,6 +371,6 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
   <script src="auth.js?v=7be42027" defer></script>
   <script src="zw-login.js?v=1b83aa67" defer></script>
   <script src="/nav-menu.js?v=e300bf8d" defer></script>
-  <script src="landing.js?v=f89281e3" defer></script>
+  <script src="landing.js?v=93dd168b" defer></script>
 </body>
 </html>

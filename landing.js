@@ -170,6 +170,9 @@
     // crops well on a tall phone). Falls back to the desktop image/fit.
     var heroMobImg = heroCfg.mobileImage || '';
     var heroMobFit = heroCfg.mobileFit || '';
+    // Tablet artwork falls back to the mobile image, then the desktop image.
+    var heroTabImg = heroCfg.tabletImage || '';
+    var heroTabFit = heroCfg.tabletFit || '';
     var heroCtaText = heroCfg.ctaText || ('Shop all ' + (gLabel || 'products'));
     var heroCtaUrl = heroCfg.ctaUrl || base;
 
@@ -192,12 +195,22 @@
         '<p class="lp-hero-sub">' + esc(heroSub) + '</p>' +
         '<a class="lp-hero-cta" href="' + esc(heroCtaUrl) + '">' + esc(heroCtaText) + '</a>';
       if (!heroVideo && heroImg) {
-        // Drive the background through CSS custom properties so a media query can
-        // swap to the mobile image/fit on phones (set on the hero; .lp-hero-bg inherits).
-        heroEl.style.setProperty('--lp-hero-img', "url('" + heroImg.replace(/'/g, '%27') + "')");
-        heroEl.style.setProperty('--lp-hero-img-mob', "url('" + (heroMobImg || heroImg).replace(/'/g, '%27') + "')");
+        // Drive the background through CSS custom properties so media queries can
+        // swap image/fit per breakpoint (set on the hero; .lp-hero-bg inherits).
+        // Fallback chains: mobile → desktop; tablet → mobile → desktop.
+        var _fit = function (f, fb) { return (f === 'cover' || f === 'contain') ? f : fb; };
+        var _u = function (s) { return "url('" + String(s).replace(/'/g, '%27') + "')"; };
+        var mobFitEff = _fit(heroMobFit, heroFit);
+        var tabImgEff, tabFitEff;
+        if (heroTabImg) { tabImgEff = heroTabImg; tabFitEff = _fit(heroTabFit, heroFit); }
+        else if (heroMobImg) { tabImgEff = heroMobImg; tabFitEff = _fit(heroTabFit, mobFitEff); }
+        else { tabImgEff = heroImg; tabFitEff = _fit(heroTabFit, heroFit); }
+        heroEl.style.setProperty('--lp-hero-img', _u(heroImg));
         heroEl.style.setProperty('--lp-hero-fit', heroFit);
-        heroEl.style.setProperty('--lp-hero-fit-mob', (heroMobFit === 'cover' || heroMobFit === 'contain') ? heroMobFit : heroFit);
+        heroEl.style.setProperty('--lp-hero-img-tab', _u(tabImgEff));
+        heroEl.style.setProperty('--lp-hero-fit-tab', tabFitEff);
+        heroEl.style.setProperty('--lp-hero-img-mob', _u(heroMobImg || heroImg));
+        heroEl.style.setProperty('--lp-hero-fit-mob', mobFitEff);
       }
       // Hero text color (Auto / Light / Dark) — keeps text readable over the image.
       heroEl.classList.remove('lp-hero--lighttext', 'lp-hero--darktext');
