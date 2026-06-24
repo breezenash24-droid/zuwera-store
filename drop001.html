@@ -315,7 +315,11 @@ document.documentElement.classList.add('zw-collflash');
     .plp-count { font-family:var(--font-mono); font-size:.7rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
     .plp-sort-wrap { margin-left:auto; font-family:var(--font-mono); font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); display:flex; align-items:center; gap:.5rem; }
     .plp-sort { background:transparent; color:inherit; border:1px solid var(--border); font-family:var(--font-mono); font-size:.68rem; padding:.4rem .6rem; cursor:pointer; border-radius:0; }
-    .plp-filter-toggle { display:none; background:transparent; color:inherit; border:1px solid var(--border); font-family:var(--font-mono); font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; padding:.45rem .8rem; cursor:pointer; }
+    .plp-filter-toggle { display:inline-flex; align-items:center; gap:.45rem; background:transparent; color:inherit; border:1px solid var(--border); font-family:var(--font-mono); font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; padding:.45rem .8rem; cursor:pointer; transition:border-color .15s; }
+    .plp-filter-toggle:hover { border-color:var(--muted); }
+    .plp-filter-toggle svg { width:13px; height:13px; }
+    /* Desktop: "Hide Filters" collapses the sidebar; the grid widens to fill. */
+    @media (min-width:761px){ .plp-layout.plp-filters-off .plp-sidebar { display:none; } }
     .plp-layout { display:flex; gap:2.5rem; align-items:flex-start; }
     .plp-sidebar { flex:0 0 190px; position:sticky; top:90px; }
     .plp-main { flex:1; min-width:0; }
@@ -325,7 +329,6 @@ document.documentElement.classList.add('zw-collflash');
     .plp-cat-btn:hover { opacity:1; }
     .plp-cat-btn.active { opacity:1; font-weight:700; text-decoration:underline; text-underline-offset:4px; }
     @media (max-width:760px) {
-      .plp-filter-toggle { display:inline-block; }
       .plp-layout { flex-direction:column; gap:1rem; }
       .plp-sidebar { display:none; position:static; flex-basis:auto; width:100%; margin-bottom:.5rem; border-bottom:1px solid var(--border); padding-bottom:1rem; }
       .plp-sidebar.open { display:block; }
@@ -351,7 +354,7 @@ document.documentElement.classList.add('zw-collflash');
     }
     .products-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      grid-template-columns: repeat(3, 1fr);
       gap: 1.5rem;
       background: transparent;
     }
@@ -1069,7 +1072,7 @@ document.documentElement.classList.add('zw-collflash');
     </script>
 
     <div class="plp-bar">
-      <button type="button" class="plp-filter-toggle" id="plp-filter-toggle" aria-expanded="false" aria-controls="plp-sidebar" onclick="window.__zwTogglePlpFilters && window.__zwTogglePlpFilters()">Filters</button>
+      <button type="button" class="plp-filter-toggle" id="plp-filter-toggle" aria-expanded="true" aria-controls="plp-sidebar" onclick="window.__zwTogglePlpFilters && window.__zwTogglePlpFilters()"><span id="plp-filter-label">Hide Filters</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/></svg></button>
       <span class="plp-count" id="plp-count"></span>
       <label class="plp-sort-wrap">Sort by
         <select class="plp-sort" id="plp-sort" onchange="window.__zwSetPlpSort && window.__zwSetPlpSort(this.value)">
@@ -1340,7 +1343,28 @@ function updateCountdown() {
         const sb = document.getElementById('plp-sidebar'); if (sb) sb.classList.remove('open');
       };
       window.__zwSetPlpSort = function(s){ activeSort = s || 'featured'; renderProducts(_allProducts); };
-      window.__zwTogglePlpFilters = function(){ const sb = document.getElementById('plp-sidebar'); if (!sb) return; const open = sb.classList.toggle('open'); const t = document.getElementById('plp-filter-toggle'); if (t) t.setAttribute('aria-expanded', open ? 'true' : 'false'); };
+      function _plpFiltersVisible(){
+        var sb = document.getElementById('plp-sidebar'), lay = document.querySelector('.plp-layout');
+        if (!sb || !lay) return false;
+        if (window.matchMedia('(max-width:760px)').matches) return sb.classList.contains('open');
+        return !lay.classList.contains('plp-filters-off');
+      }
+      function _plpSyncFilterLabel(){
+        var lbl = document.getElementById('plp-filter-label'), btn = document.getElementById('plp-filter-toggle');
+        var vis = _plpFiltersVisible();
+        if (lbl) lbl.textContent = vis ? 'Hide Filters' : 'Show Filters';
+        if (btn) btn.setAttribute('aria-expanded', vis ? 'true' : 'false');
+      }
+      window.__zwTogglePlpFilters = function(){
+        var sb = document.getElementById('plp-sidebar'), lay = document.querySelector('.plp-layout');
+        if (!sb || !lay) return;
+        if (window.matchMedia('(max-width:760px)').matches) sb.classList.toggle('open');   // drawer
+        else lay.classList.toggle('plp-filters-off');                                       // collapse inline
+        _plpSyncFilterLabel();
+      };
+      // Keep the label correct on first paint and when crossing the mobile breakpoint.
+      _plpSyncFilterLabel();
+      addEventListener('resize', _plpSyncFilterLabel, { passive:true });
       let _painted = false;
       try {
         const _cachedProducts = sessionStorage.getItem('zw_collection_products');
