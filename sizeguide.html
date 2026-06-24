@@ -1093,10 +1093,21 @@
     </div>
 
     <!-- MEN'S APPAREL -->
+    <style>
+      .mb-section{ margin-top: 2.6rem; }
+      .mb-head{ display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-bottom:.45rem; }
+      .mb-head h2{ margin:0; }
+      .mb-note{ font-size:.82rem; opacity:.62; margin:0 0 1rem; line-height:1.5; }
+      .mb-tips{ margin-top:1.7rem; display:grid; gap:1.5rem; }
+      .mb-tips h3{ font-family:var(--fw,'Barlow Condensed',sans-serif); font-style:italic; font-weight:900; text-transform:uppercase; letter-spacing:.04em; font-size:1.15rem; margin:0 0 .55rem; }
+      .mb-tips p{ font-size:.88rem; line-height:1.65; opacity:.78; margin:0 0 .6rem; }
+      .mb-tips ul{ margin:.2rem 0 0; padding-left:1.15rem; }
+      .mb-tips li{ font-size:.88rem; line-height:1.6; opacity:.82; margin-bottom:.5rem; }
+    </style>
     <div class="tab-panel active" id="tab-mens">
       <div class="highlight-card" id="highlight-mens"></div>
       <div class="table-section">
-        <h2>Men's Size Chart</h2>
+        <h2>Men's Tops Size Chart</h2>
         <div class="table-wrap">
           <table id="table-mens">
             <thead>
@@ -1109,6 +1120,44 @@
             </thead>
             <tbody></tbody>
           </table>
+        </div>
+      </div>
+
+      <div class="table-section mb-section">
+        <div class="mb-head">
+          <h2>Men's Bottoms Size Chart</h2>
+          <div class="calc-toggles" id="bottoms-unit-toggle">
+            <button type="button" class="calc-toggle-btn active" data-unit="in">IN</button>
+            <button type="button" class="calc-toggle-btn" data-unit="cm">CM</button>
+          </div>
+        </div>
+        <p class="mb-note">Body measurements — not garment dimensions. Find your size below; on a phone, swipe the table sideways to see every column.</p>
+        <div class="table-wrap">
+          <table id="table-mens-bottoms">
+            <thead>
+              <tr>
+                <th>Size</th>
+                <th id="mb-th-waist">Waist (in)</th>
+                <th id="mb-th-hip">Hip (in)</th>
+                <th id="mb-th-height">Height</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="mb-tips">
+          <div>
+            <h3>Fit Tips</h3>
+            <p><strong>Tall sizes (for 6'0"&ndash;6'5" / 183&ndash;196&nbsp;cm):</strong> the inseam runs about 2"/5&nbsp;cm longer and the rise about &frac12;"/1.5&nbsp;cm higher than the standard fit. Tall lengths are offered on select styles only &mdash; check the product page for that style's exact inseam.</p>
+            <p>If a body measurement lands between two sizes, size down for a snugger fit or up for a roomier one. When your waist and hips point to different sizes, go with the size your hips suggest.</p>
+          </div>
+          <div>
+            <h3>How To Measure</h3>
+            <ul>
+              <li><strong>Waist:</strong> wrap the tape around the narrowest part of your torso &mdash; usually where you bend side to side &mdash; and keep it level.</li>
+              <li><strong>Hips:</strong> measure around the fullest part of your seat, keeping the tape level all the way around.</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
@@ -1333,6 +1382,24 @@
         { size_label: '2XL', chest_in: '48.5-53.5', waist_in: '43-47.5', hips_in: '47-50.5' },
         { size_label: '3XL', chest_in: '53.5-58', waist_in: '47.5-52.5', hips_in: '50.5-53.5' }
       ],
+      men_bottoms: [
+        { size_label: 'XXS',      waist_in: '22.5-25.5', waist_cm: '57-65',   hip_in: '28.5-31.5', hip_cm: '72-80',   height_in: '< 5\'7"',      height_cm: '< 170' },
+        { size_label: 'XS',       waist_in: '25.5-29',   waist_cm: '65-73',   hip_in: '31.5-35',   hip_cm: '80-88',   height_in: '5\'7"-6\'0"',  height_cm: '170-183' },
+        { size_label: 'S',        waist_in: '29-32',     waist_cm: '73-81',   hip_in: '35-37.5',   hip_cm: '88-96',   height_in: '5\'7"-6\'0"',  height_cm: '170-183' },
+        { size_label: 'S Tall',   waist_in: '29-32',     waist_cm: '73-81',   hip_in: '35-37.5',   hip_cm: '88-96',   height_in: '6\'0"-6\'5"',  height_cm: '183-196' },
+        { size_label: 'M',        waist_in: '32-35',     waist_cm: '81-89',   hip_in: '37.5-41',   hip_cm: '96-104',  height_in: '5\'7"-6\'0"',  height_cm: '170-183' },
+        { size_label: 'M Tall',   waist_in: '32-35',     waist_cm: '81-89',   hip_in: '37.5-41',   hip_cm: '96-104',  height_in: '6\'0"-6\'5"',  height_cm: '183-196' },
+        { size_label: 'L',        waist_in: '35-38',     waist_cm: '89-97',   hip_in: '41-44',     hip_cm: '104-112', height_in: '5\'7"-6\'0"',  height_cm: '170-183' },
+        { size_label: 'L Tall',   waist_in: '35-38',     waist_cm: '89-97',   hip_in: '41-44',     hip_cm: '104-112', height_in: '6\'0"-6\'5"',  height_cm: '183-196' },
+        { size_label: 'XL',       waist_in: '38-43',     waist_cm: '97-109',  hip_in: '44-47',     hip_cm: '112-120', height_in: '5\'7"-6\'0"',  height_cm: '170-183' },
+        { size_label: 'XL Tall',  waist_in: '38-43',     waist_cm: '97-109',  hip_in: '44-47',     hip_cm: '112-120', height_in: '6\'0"-6\'5"',  height_cm: '183-196' },
+        { size_label: 'XXL',      waist_in: '43-47.5',   waist_cm: '109-121', hip_in: '47-50.5',   hip_cm: '120-128', height_in: '5\'7"-6\'0"',  height_cm: '170-183' },
+        { size_label: 'XXL Tall', waist_in: '43-47.5',   waist_cm: '109-121', hip_in: '47-50.5',   hip_cm: '120-128', height_in: '6\'0"-6\'5"',  height_cm: '183-196' },
+        { size_label: '3XL',      waist_in: '47.5-52.5', waist_cm: '121-133', hip_in: '50.5-53.5', hip_cm: '128-136', height_in: '5\'7"-6\'0"',  height_cm: '170-183' },
+        { size_label: '3XL Tall', waist_in: '47.5-52.5', waist_cm: '121-133', hip_in: '50.5-53.5', hip_cm: '128-136', height_in: '6\'0"-6\'5"',  height_cm: '183-196' },
+        { size_label: '4XL',      waist_in: '52.5-57',   waist_cm: '133-145', hip_in: '53.5-58.5', hip_cm: '136-148', height_in: '5\'7"-6\'0"',  height_cm: '170-183' },
+        { size_label: '4XL Tall', waist_in: '52.5-57',   waist_cm: '133-145', hip_in: '53.5-58.5', hip_cm: '136-148', height_in: '6\'0"-6\'5"',  height_cm: '183-196' }
+      ],
       women_tops: [
         { size_label: 'XXS', us_size: '00', bust_in: '27.5-29.5', waist_in: '21.5-23.5', hips_in: '30.5-33' },
         { size_label: 'XS', us_size: '0-2', bust_in: '29.5-32.5', waist_in: '23.5-26', hips_in: '33-35.5' },
@@ -1389,6 +1456,7 @@
     let sizeChartData = { ...fallbackData };
     let recommendedSize = null;
     let currentTab = 'mens';
+    let bottomsUnit = 'in';   // IN/CM toggle for the Men's Bottoms chart
     
     // Default fallback technologies just in case Supabase errors out
     const fallbackTechDict = {
@@ -1513,6 +1581,7 @@
     function processSizeChartData(data) {
       const categorized = {
         men_tops: [],
+        men_bottoms: [],
         women_tops: [],
         kids: [],
         sports_bras: [],
@@ -1537,6 +1606,7 @@
     // ────── RENDER TABLES ──────
     function renderAllTables() {
       renderTable('mens', sizeChartData.men_tops, ['size_label', 'chest_in', 'waist_in', 'hips_in']);
+      renderBottomsTable();
       renderTable('womens', sizeChartData.women_tops, ['size_label', 'us_size', 'bust_in', 'waist_in', 'hips_in']);
       renderTable('kids', sizeChartData.kids, ['size_label', 'numeric_size', 'height_in', 'chest_in', 'waist_in', 'hips_in']);
       renderSportsBrasTable();
@@ -1587,6 +1657,39 @@
         tbody.appendChild(tr);
       });
     }
+
+    // Men's Bottoms — supports an IN/CM toggle (waist + hip switch units; height
+    // shows feet/inches in IN mode and centimetres in CM mode).
+    function renderBottomsTable() {
+      const table = document.getElementById('table-mens-bottoms');
+      if (!table) return;
+      const tbody = table.querySelector('tbody');
+      const data = sizeChartData.men_bottoms || [];
+      const cm = bottomsUnit === 'cm';
+      const wTh = document.getElementById('mb-th-waist');
+      const hTh = document.getElementById('mb-th-hip');
+      if (wTh) wTh.textContent = cm ? 'Waist (cm)' : 'Waist (in)';
+      if (hTh) hTh.textContent = cm ? 'Hip (cm)' : 'Hip (in)';
+      tbody.innerHTML = data.map(row => {
+        const waist  = (cm ? row.waist_cm  : row.waist_in)  || '—';
+        const hip    = (cm ? row.hip_cm    : row.hip_in)    || '—';
+        const height = (cm ? row.height_cm : row.height_in) || '—';
+        const hl = (recommendedSize && sizeLabelsMatch(row.size_label, recommendedSize) && currentTab === 'mens') ? ' class="highlighted"' : '';
+        return `<tr${hl}><td>${row.size_label}</td><td>${waist}</td><td>${hip}</td><td>${height}</td></tr>`;
+      }).join('');
+    }
+    function setupBottomsToggle() {
+      const toggle = document.getElementById('bottoms-unit-toggle');
+      if (!toggle) return;
+      toggle.addEventListener('click', e => {
+        const btn = e.target.closest('.calc-toggle-btn');
+        if (!btn) return;
+        bottomsUnit = btn.dataset.unit === 'cm' ? 'cm' : 'in';
+        toggle.querySelectorAll('.calc-toggle-btn').forEach(b => b.classList.toggle('active', b === btn));
+        renderBottomsTable();
+      });
+    }
+    setupBottomsToggle();
 
     function renderSportsBrasTable() {
       const table = document.getElementById('table-sports_bras');
