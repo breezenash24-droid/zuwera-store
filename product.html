@@ -1200,9 +1200,6 @@ body.super-light-mode { background: #FFFFFF !important; }
         <div class="product-header">
           <p class="product-subtitle" id="productSubtitle"></p>
           <h1 class="product-title" id="productTitle"></h1>
-          <div class="product-gender-tag">
-            <span id="genderTag"></span>
-          </div>
         </div>
 
         <!-- PRICE SECTION -->
@@ -2428,7 +2425,6 @@ function renderProduct() {
   document.getElementById('productTitle').textContent = currentProduct.title;
   const _mi = document.getElementById('mainImage');
   if (_mi && !_mi.alt && currentProduct.title) _mi.alt = currentProduct.title;
-  document.getElementById('genderTag').textContent = (currentProduct.gender || 'All').toUpperCase();
   renderProductCategoryNavigation(currentProduct).catch((error) => console.warn('Failed to render category navigation:', error));
 
   // Dynamic SEO meta — update page title and social tags per product
