@@ -1875,7 +1875,7 @@ function updateCountdown() {
           const isLive = (p.status === 'live' || p.status === 'Live');
           const totalStock = p.totalStock;
           const isSoldOut = isLive && totalStock !== null && totalStock <= 0;
-          const hasSwatches = isLive && !isSoldOut && (p.color_variants || []).length > 0;
+          const hasSwatches = isLive && !isSoldOut && (p.color_variants || []).length > 1;
           const lowThreshold = Number(p.low_stock_threshold) || 10;
           const isLowStock = isLive && !isSoldOut && totalStock !== null && totalStock > 0 && totalStock <= lowThreshold;
           const colCardId = 'cqsp-' + (p.unique_id || p.id).toString().replace(/[^a-z0-9]/gi,'');
