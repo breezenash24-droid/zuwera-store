@@ -643,4 +643,27 @@ body.light-mode .summary-row.total > span:first-child { opacity: 1; }
 /* 5. Item title italic — brand display voice (class-based, not inline) */
 .cart-item-title {
   font-style: italic !important;
+  font-weight: 900 !important;   /* match storefront card name (Barlow Condensed 900) */
+}
+
+/* 6. Prices & summary numerals — match the storefront card standard:
+      Barlow Condensed (NOT mono), bold, and lift the faint greys so the
+      money is legible. */
+.cart-item-price {
+  font-family: var(--zw-font-head, 'Barlow Condensed', sans-serif) !important;
+  font-weight: 700 !important;
+  font-size: 1.05rem !important;
+  letter-spacing: 0.01em !important;
+}
+.summary-value {
+  font-family: var(--zw-font-head, 'Barlow Condensed', sans-serif);
+  font-weight: 600;
+  opacity: 0.92;
+}
+.summary-row.total > span:last-child,
+#summary-total {
+  font-family: var(--zw-font-head, 'Barlow Condensed', sans-serif);
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.01em;
 }
