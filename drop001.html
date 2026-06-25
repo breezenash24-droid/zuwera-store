@@ -473,7 +473,7 @@ document.documentElement.classList.add('zw-collflash');
       .heart-btn svg.heart-pop { animation: none; }
     }
     .product-img {
-      aspect-ratio: 4/5;
+      aspect-ratio: 3/4;
       background: transparent;
       display: flex;
       align-items: center;
@@ -550,7 +550,8 @@ document.documentElement.classList.add('zw-collflash');
       transition:border-color .15s ease;
     }
     .product-card .zw-card-swatch:hover,
-    .product-card .zw-card-swatch.active{ border-color:var(--white); }
+    .product-card .zw-card-swatch:focus-visible,
+    .product-card .zw-card-swatch.active{ border-color:var(--white); box-shadow:none !important; transform:none !important; }
     .product-card .zw-card-swatch.zw-swatch-more{
       display:flex; align-items:center; justify-content:center;
       font-size:.6rem; font-weight:600; color:var(--white);
@@ -2102,16 +2103,32 @@ function updateCountdown() {
   // Hover swaps the card photo to the color's image and KEEPS it (sticks on the
   // last colour hovered; a refresh re-renders the default). Click opens the bag
   // modal preselected to that color.
+  function _zwSetActiveSwatch(sw) {
+    var row = sw.closest('.zw-card-swatches');
+    if (row) row.querySelectorAll('.zw-card-swatch').forEach(function (s) { s.classList.toggle('active', s === sw); });
+  }
   document.addEventListener('mouseover', function (e) {
     var sw = e.target.closest('.zw-card-swatch'); if (!sw || sw.classList.contains('zw-swatch-more')) return;
     var card = sw.closest('.product-card'); var img = card && card.querySelector('.product-img img');
     if (!img || !sw.dataset.img) return;
     img.setAttribute('src', sw.dataset.img);
+    _zwSetActiveSwatch(sw);
   });
   document.addEventListener('click', function (e) {
     var sw = e.target.closest('.zw-card-swatch'); if (!sw) return;
     e.preventDefault(); e.stopPropagation();
     if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+    // Mobile: a thumbnail tap just previews that colorway on the card — no bag
+    // modal. To view/buy, tap the product itself (the card links to the page).
+    if (window.matchMedia && window.matchMedia('(max-width:760px)').matches) {
+      if (!sw.classList.contains('zw-swatch-more')) {
+        var mcard = sw.closest('.product-card');
+        var mimg = mcard && mcard.querySelector('.product-img img');
+        if (mimg && sw.dataset.img) mimg.setAttribute('src', sw.dataset.img);
+        _zwSetActiveSwatch(sw);
+      }
+      return;
+    }
     var row = sw.closest('.zw-card-swatches'); if (!row) return;
     var payload = {};
     try { payload = JSON.parse(decodeURIComponent(row.dataset.quickAdd || '{}')); }
