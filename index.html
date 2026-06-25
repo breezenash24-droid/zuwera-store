@@ -65,8 +65,8 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=3">
   <link rel="manifest" href="/site.webmanifest">
   <script src="/favicon-utils.js?v=687e90ea" defer></script>
-  <script src="/meta-pixel.js?v=f62735e4" defer></script>
-  <script src="/google-tag.js?v=0948017e" defer></script>
+  <script src="/meta-pixel.js?v=71fe06fb" defer></script>
+  <script src="/google-tag.js?v=b141b2a1" defer></script>
   <script src="/supabase.min.js?v=3277b334" defer></script>
   <script src="/supabase-client.js?v=b28896db" defer></script>
 
@@ -219,11 +219,11 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
 <script src="/checkout-tax.js?v=b12c4e5f" defer></script>
 
 <!-- Stripe is loaded lazily on checkout click to avoid blocking initial render -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-DCVWDZ8ZBC"></script>
+<!-- gtag.js library is loaded on browser idle by google-tag.js (deferred); this inline block only primes the dataLayer/config queue so no events are lost. -->
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-DCVWDZ8ZBC');</script>
 
 <!-- PostHog analytics -->
-<script src="/posthog-init.js?v=07d5a8c8" defer></script>
+<script src="/posthog-init.js?v=6ebbeafc" defer></script>
 
 <!-- PWA -->
 <meta name="color-scheme" content="dark">

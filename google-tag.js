@@ -29,14 +29,26 @@
   if (typeof window.gtag !== 'function') {
     window.gtag = function () { window.dataLayer.push(arguments); };
   }
-  // Load the library once — only if no page-level gtag snippet already did.
-  if (!document.querySelector('script[src*="googletagmanager.com/gtag/js"]')) {
-    var s = document.createElement('script');
-    s.async = true;
-    s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA4;
-    document.head.appendChild(s);
-    gtag('js', new Date());
-  }
+  // Queue config immediately (into dataLayer); the gtag() stub buffers these and
+  // replays them once the library loads, so no events are lost.
+  var needLib = !document.querySelector('script[src*="googletagmanager.com/gtag/js"]');
+  if (needLib) gtag('js', new Date());
   gtag('config', GA4);
   gtag('config', ADS);
+
+  // Defer the heavy gtag.js library download to idle / first interaction (via
+  // window.zwWhenIdle from meta-pixel.js, with fallbacks) so it doesn't compete
+  // with the page's own resources during the initial load.
+  if (needLib) {
+    var loadGtag = function () {
+      if (document.querySelector('script[src*="googletagmanager.com/gtag/js"]')) return;
+      var s = document.createElement('script');
+      s.async = true;
+      s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA4;
+      document.head.appendChild(s);
+    };
+    if (typeof window.zwWhenIdle === 'function') window.zwWhenIdle(loadGtag);
+    else if ('requestIdleCallback' in window) requestIdleCallback(loadGtag, { timeout: 3000 });
+    else setTimeout(loadGtag, 2500);
+  }
 })();

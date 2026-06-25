@@ -34,7 +34,11 @@
     }
   };
 
-  /* ── 2. Load PostHog's array.js directly from CDN ── */
+  /* ── 2. Load PostHog's array.js directly from CDN ──
+     Deferred to idle / first interaction (via window.zwWhenIdle, defined in
+     meta-pixel.js with a setTimeout fallback) so the ~50KB library doesn't
+     compete with the page's own resources during load. zwTrack() queues events
+     until it loads, so nothing is lost. */
   var script = document.createElement('script');
   script.src   = HOST.replace('.i.posthog.com', '-assets.i.posthog.com') + '/static/array.js';
   script.async = true;
@@ -66,13 +70,17 @@
     });
   };
 
-  /* Insert before the first <script> so it loads at high priority */
-  var first = document.getElementsByTagName('script')[0];
-  if (first && first.parentNode) {
-    first.parentNode.insertBefore(script, first);
-  } else {
-    document.head.appendChild(script);
+  function loadPostHog() {
+    var first = document.getElementsByTagName('script')[0];
+    if (first && first.parentNode) {
+      first.parentNode.insertBefore(script, first);
+    } else {
+      document.head.appendChild(script);
+    }
   }
+  if (typeof window.zwWhenIdle === 'function') window.zwWhenIdle(loadPostHog);
+  else if ('requestIdleCallback' in window) requestIdleCallback(loadPostHog, { timeout: 3000 });
+  else setTimeout(loadPostHog, 2500);
 
   /* ── 3. Identify Supabase users when auth is ready ── */
   function tryIdentify() {

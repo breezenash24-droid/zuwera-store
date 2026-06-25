@@ -19,14 +19,34 @@
 (function () {
   'use strict';
 
+  /* Shared "run on first interaction OR browser idle, whichever comes first"
+     helper. Used to defer heavy third-party analytics libraries off the critical
+     load path. Defined once; the other analytics files reuse it. */
+  window.zwWhenIdle = window.zwWhenIdle || function (cb) {
+    var done = false;
+    function run() { if (done) return; done = true; cb(); }
+    ['pointerdown', 'keydown', 'scroll', 'touchstart', 'visibilitychange'].forEach(function (ev) {
+      (ev === 'visibilitychange' ? document : window).addEventListener(ev, run, { once: true, passive: true });
+    });
+    if ('requestIdleCallback' in window) requestIdleCallback(run, { timeout: 3000 });
+    else setTimeout(run, 2500);
+  };
+
   /* ---- Meta Pixel base code (standard snippet, ID inlined) ---- */
   !function (f, b, e, v, n, t, s) {
     if (f.fbq) return; n = f.fbq = function () {
       n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
     };
     if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
-    n.queue = []; t = b.createElement(e); t.async = !0; t.src = v;
-    s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s);
+    n.queue = [];
+    // Defer the fbevents.js download to idle / first interaction so it doesn't
+    // compete with the page's own resources during load. fbq() calls before then
+    // queue in n.queue and replay once the library finishes loading.
+    window.zwWhenIdle(function () {
+      if (f.__zwFbLoaded) return; f.__zwFbLoaded = 1;
+      t = b.createElement(e); t.async = !0; t.src = v;
+      s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s);
+    });
   }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
 
   fbq('init', '1695269795093400');
