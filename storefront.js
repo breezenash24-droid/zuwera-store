@@ -1512,7 +1512,8 @@ function zwCardSwatchRow(p, quickAddPayload, fallbackImg) {
     let src = (ci && ci.image_url) || fallbackImg || '';
     if (src && typeof window.optimizeImage === 'function') src = window.optimizeImage(src, 600);
     const nm = c.color_name || 'Color';
-    return `<button type="button" class="zw-card-swatch" data-color-name="${esc(nm)}" data-img="${esc(src)}" title="${esc(nm)}" aria-label="${esc(nm)}" style="background:${esc(c.hex_color || '#888')}"></button>`;
+    const thumbStyle = src ? `background-image:url('${esc(src)}')` : `background:${esc(c.hex_color || '#888')}`;
+    return `<button type="button" class="zw-card-swatch" data-color-name="${esc(nm)}" data-img="${esc(src)}" title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}"></button>`;
   }).join('');
   if (colors.length > MAX) html += `<button type="button" class="zw-card-swatch zw-swatch-more" aria-label="More colors">+${colors.length - MAX}</button>`;
   return `<div class="zw-card-swatches" data-quick-add="${quickAddPayload}">${html}</div>`;
@@ -1573,7 +1574,7 @@ function renderProductCards(products, grid) {
     const isLive = (p.status === 'live' || p.status === 'Live');
     // Cards that render a swatch row get .pcard--swatched so swatch mode can hide
     // their Add-to-Bag button via a plain class selector (no :has() reliance).
-    const hasSwatches = isLive && window.innerWidth > 900 && (p.color_variants || []).length > 0;
+    const hasSwatches = isLive && (p.color_variants || []).length > 1;
     const quickAddPayload = encodeURIComponent(JSON.stringify({
       productId: p.id,
       title: productName,
@@ -2498,16 +2499,30 @@ document.addEventListener('click', function(e) {
    (the card sticks on the last colour you hovered; a page refresh re-renders the
    default). Click a swatch → open the add-to-bag modal preselected to that
    color (on mobile the modal bypasses to the product page, same as Add to Bag). */
+function _zwSetActivePcardSwatch(sw) {
+  const row = sw.closest('.zw-card-swatches');
+  if (row) row.querySelectorAll('.zw-card-swatch').forEach((s) => s.classList.toggle('active', s === sw));
+}
 document.addEventListener('mouseover', function (e) {
   const sw = e.target.closest('.zw-card-swatch'); if (!sw || sw.classList.contains('zw-swatch-more')) return;
   const card = sw.closest('.pcard'); const img = card && card.querySelector('.pcard-img img');
   if (!img || !sw.dataset.img) return;
   img.setAttribute('src', sw.dataset.img);
+  _zwSetActivePcardSwatch(sw);
 });
 document.addEventListener('click', function (e) {
   const sw = e.target.closest('.zw-card-swatch'); if (!sw) return;
   e.preventDefault(); e.stopPropagation();
   if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+  // Mobile: a thumbnail tap just previews that colorway on the card — no modal.
+  if (window.matchMedia && window.matchMedia('(max-width:760px)').matches) {
+    if (!sw.classList.contains('zw-swatch-more')) {
+      const mcard = sw.closest('.pcard'); const mimg = mcard && mcard.querySelector('.pcard-img img');
+      if (mimg && sw.dataset.img) mimg.setAttribute('src', sw.dataset.img);
+      _zwSetActivePcardSwatch(sw);
+    }
+    return;
+  }
   const row = sw.closest('.zw-card-swatches'); if (!row) return;
   let payload = {};
   try { payload = JSON.parse(decodeURIComponent(row.dataset.quickAdd || '{}')); }
