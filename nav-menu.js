@@ -112,8 +112,26 @@
     return (navCfg || []).map(resolveItem).filter(Boolean);
   }
 
-  function renderDesktop(items) {
+  // Ensure the desktop nav-link host exists. index/landing have
+  // #nav-category-links in markup, but product/collection/about/etc. don't —
+  // inject it so MEN/WOMEN/NEW appear on every page.
+  function ensureDesktopNavHost() {
     var host = document.getElementById('nav-category-links');
+    if (host) return host;
+    var nav = document.querySelector('nav#nav, nav.nav, header.nav, nav.zw-nav, header.zw-nav, .zw-nav');
+    if (!nav) return null;
+    host = document.createElement('div');
+    host.id = 'nav-category-links';
+    host.className = 'nav-center';
+    var right = null, kids = nav.children;
+    for (var i = 0; i < kids.length; i++) {
+      if (/\b(nav-right|nav-actions|zw-nav-right|zw-nav-actions)\b/.test(kids[i].className || '')) { right = kids[i]; break; }
+    }
+    if (right) nav.insertBefore(host, right); else nav.appendChild(host);
+    return host;
+  }
+  function renderDesktop(items) {
+    var host = ensureDesktopNavHost();
     if (!host) return;
     host.innerHTML = items.map(function (n) {
       var top = n.url

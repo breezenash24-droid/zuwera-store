@@ -3343,6 +3343,15 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
 }
 @media (max-width:900px){ .zw-card-swatches{ display:none !important; } }
 
+/* Desktop nav links host. nav-menu.js injects #nav-category-links into pages that
+   lack it (product/collection/about/etc.) so MEN/WOMEN/NEW show everywhere.
+   index/landing keep their own inline .nav-center (their later inline rule wins);
+   this flex-centers the injected one. Hidden on mobile (hamburger handles nav). */
+.nav-center{ flex:1 1 auto; min-width:0; display:flex; align-items:center; justify-content:center; gap:2.2rem; }
+.nav-link{ font-family:var(--zw-font-head,'Barlow Condensed',sans-serif); font-size:1.45rem; font-weight:900; letter-spacing:.02em; text-transform:uppercase; line-height:1; color:inherit; text-decoration:none; opacity:.92; white-space:nowrap; background:none; border:none; cursor:pointer; }
+.nav-link:hover{ opacity:1; }
+@media (max-width:900px){ .nav-center{ display:none !important; } }
+
 /* 6) Editable mega-menu navigation (nav-menu.js reads site_settings.nav_menu).
    Desktop: each top item with sub-groups opens a hover panel (.zw-mega) of
    columns. Mobile: the slide-out menu shows an accordion (.zw-macc-*). */
