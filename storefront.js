@@ -1503,10 +1503,17 @@ async function loadCardReviewSummary(pid, domId) {
 // the product has no color variants (the card then keeps its Add-to-Bag button).
 function zwCardSwatchRow(p, quickAddPayload, fallbackImg) {
   const colors = (p.color_variants || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  if (!colors.length) return '';
   const imgs = p.product_images || [];
   const esc = (s) => escapeHomeFavoriteHtml(String(s == null ? '' : s));
   const MAX = 6;
+  if (!colors.length) {
+    // Single-image product: show one thumbnail of the main image so the card
+    // stays consistent (no out-of-place Add-to-Bag button).
+    let src = fallbackImg || '';
+    if (src && typeof window.optimizeImage === 'function') src = window.optimizeImage(src, 600);
+    if (!src) return '';
+    return `<div class="zw-card-swatches" data-quick-add="${quickAddPayload}"><button type="button" class="zw-card-swatch" data-img="${esc(src)}" aria-label="${esc(p.title || 'View')}" style="background-image:url('${esc(src)}')"></button></div>`;
+  }
   let html = colors.slice(0, MAX).map((c) => {
     const ci = imgs.filter((im) => im.color_variant_id === c.id).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))[0];
     let src = (ci && ci.image_url) || fallbackImg || '';
@@ -1574,7 +1581,7 @@ function renderProductCards(products, grid) {
     const isLive = (p.status === 'live' || p.status === 'Live');
     // Cards that render a swatch row get .pcard--swatched so swatch mode can hide
     // their Add-to-Bag button via a plain class selector (no :has() reliance).
-    const hasSwatches = isLive && (p.color_variants || []).length > 1;
+    const hasSwatches = isLive && ((p.color_variants || []).length > 0 || !!firstImg);
     const quickAddPayload = encodeURIComponent(JSON.stringify({
       productId: p.id,
       title: productName,
