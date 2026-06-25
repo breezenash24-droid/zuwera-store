@@ -2073,8 +2073,11 @@ function applyProductCategoryNavigation(products, fallbackProduct = currentProdu
     };
   }
 
+  // The mobile hamburger menu is owned by nav-menu.js (reads site_settings.nav_menu —
+  // e.g. Men / Women / New). Only fall back to product categories if no custom nav
+  // is configured, so we don't overwrite it with Jackets/T-Shirts/etc.
   const mobileLinks = document.getElementById('mobile-category-links');
-  if (mobileLinks) {
+  if (mobileLinks && !window.__zwCustomNavApplied) {
     mobileLinks.innerHTML = [
       ...labels.map(label => `<a href="${categoryHref(label)}" class="mobile-nav-link zw-mobile-primary-link">${label}</a>`),
       '<a href="about.html" class="mobile-nav-link zw-mobile-primary-link">About</a>'
