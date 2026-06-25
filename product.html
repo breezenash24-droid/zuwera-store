@@ -2885,11 +2885,12 @@ function renderGallery() {
       thumb.appendChild(thumbImg);
       // Preload into cache
       const p = new Image(); p.src = item.image_url;
-      // Hover an image thumbnail to preview it in the main area; it stays until
-      // another thumbnail is hovered/clicked or the gallery is advanced.
-      thumb.addEventListener('mouseenter', () => { if (idx !== currentImageIndex) updateMainImage(idx); });
     }
 
+    // Hover any thumbnail (image OR video) to preview it in the main area; it
+    // stays until another thumbnail is hovered/clicked or the gallery is advanced.
+    // Video is muted+playsinline, so hovering its thumbnail autoplays it.
+    thumb.addEventListener('mouseenter', () => { if (idx !== currentImageIndex) updateMainImage(idx); });
     thumb.addEventListener('click', () => updateMainImage(idx));
     thumbContainer.appendChild(thumb);
   });
