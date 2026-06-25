@@ -819,22 +819,26 @@ body :is(.auth-submit-btn, .review-submit-btn, .wallet-chip, #pay-submit, #succe
   margin-bottom: .9rem;
 }
 
-body .product-page :is(#priceDisplay, #memberPrice, #msrpDisplay, .price-current, .price-member, .price-msrp) {
+/* Secondary price lines (Regular / Member savings) — small mono, legible grey. */
+body .product-page :is(#memberPrice, #msrpDisplay, .price-member, .price-msrp) {
   font-family: var(--font-mono) !important;
-  font-size: .7rem !important;
+  font-size: .72rem !important;
   font-weight: 400 !important;
   letter-spacing: 0 !important;
-  line-height: 1.35 !important;
+  line-height: 1.4 !important;
   text-transform: none !important;
-  color: rgba(244,241,235,.35);
+  color: rgba(244,241,235,.62) !important;
 }
 
+/* Main price — Barlow Condensed, prominent, full contrast (matches the title). */
 body .product-page :is(#priceDisplay, .price-current) {
-  color: rgba(244,241,235,.48);
-}
-
-body .product-page :is(#memberPrice, .price-member) {
-  color: rgba(244,241,235,.35);
+  font-family: var(--font-head) !important;
+  font-size: 1.55rem !important;
+  font-weight: 700 !important;
+  letter-spacing: .01em !important;
+  line-height: 1.1 !important;
+  text-transform: none !important;
+  color: #f4f1eb !important;
 }
 
 .product-page .size-grid {
@@ -895,12 +899,14 @@ body .product-page .accordion-body .add-to-cart-btn {
   text-transform: uppercase !important;
 }
 
-body.light-mode .product-page :is(#priceDisplay, .price-current) {
-  color: rgba(9,9,11,.58) !important;
+body.light-mode .product-page :is(#priceDisplay, .price-current),
+body.super-light-mode .product-page :is(#priceDisplay, .price-current) {
+  color: #09090b !important;
 }
 
-body.light-mode .product-page :is(#memberPrice, #msrpDisplay, .price-member, .price-msrp) {
-  color: rgba(9,9,11,.46) !important;
+body.light-mode .product-page :is(#memberPrice, #msrpDisplay, .price-member, .price-msrp),
+body.super-light-mode .product-page :is(#memberPrice, #msrpDisplay, .price-member, .price-msrp) {
+  color: rgba(9,9,11,.6) !important;
 }
 
 .nav .nav-right {
