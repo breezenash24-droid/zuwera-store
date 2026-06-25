@@ -505,10 +505,10 @@ body.super-light-mode :is(.pcard-name,.product-name){
   color:#09090b !important;
 }
 body.super-light-mode :is(.pcard-price,.product-price){
-  color:rgba(9,9,11,.55) !important;
+  color:rgba(9,9,11,.92) !important;
 }
 body.super-light-mode :is(.pcard-cat,.product-category){
-  color:rgba(9,9,11,.45) !important;
+  color:rgba(9,9,11,.62) !important;
 }
 body.super-light-mode :is(.pcard-action){
   color:rgba(9,9,11,.7) !important;
@@ -923,37 +923,39 @@ body.light-mode :is(.pcard-info,.product-info){
 
 :is(.pcard-cat,.product-category){
   font-family:var(--zw-font-body) !important;
-  font-size:.65rem !important;
-  letter-spacing:.2em !important;
+  font-size:.62rem !important;
+  letter-spacing:.09em !important;
   text-transform:uppercase !important;
-  color:var(--zw-muted-dark) !important;
-  margin-bottom:.3rem !important;
+  font-weight:600 !important;
+  color:rgba(244,241,235,.62) !important;
+  margin-bottom:.28rem !important;
 }
 
 body.light-mode :is(.pcard-cat,.product-category){
-  color:var(--zw-muted-light) !important;
+  color:rgba(9,9,11,.62) !important;
 }
 
 :is(.pcard-name,.product-name){
   font-family:var(--zw-font-head) !important;
   font-style:normal !important;
-  font-weight:400 !important;
+  font-weight:600 !important;
   font-size:1.2rem !important;
-  letter-spacing:.08em !important;
-  line-height:1 !important;
+  letter-spacing:.03em !important;
+  line-height:1.05 !important;
   text-transform:uppercase !important;
-  margin-bottom:.3rem !important;
+  margin-bottom:.28rem !important;
 }
 
 :is(.pcard-price,.product-price){
-  font-family:var(--zw-font-body) !important;
-  font-size:.82rem !important;
-  letter-spacing:.05em !important;
-  color:var(--zw-muted-dark) !important;
+  font-family:var(--zw-font-head) !important;
+  font-size:1.05rem !important;
+  font-weight:700 !important;
+  letter-spacing:.01em !important;
+  color:rgba(244,241,235,.95) !important;
 }
 
 body.light-mode :is(.pcard-price,.product-price){
-  color:var(--zw-muted-light) !important;
+  color:rgba(9,9,11,.92) !important;
 }
 
 :is(.pcard-badge,.coming-soon-badge){
