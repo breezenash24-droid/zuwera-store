@@ -3389,7 +3389,12 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
 }
 .zw-mega-col a:hover{ color:var(--paper, #f4f1eb); }
 body.light-mode .zw-navitem > .zw-mega{
-  background:#fff; border-color:rgba(9,9,11,.08); border-top-color:rgba(9,9,11,.08); box-shadow:0 24px 50px rgba(0,0,0,.14);
+  background:#fff; border-color:rgba(9,9,11,.08); border-top-color:transparent; box-shadow:0 24px 50px rgba(0,0,0,.14);
+}
+/* Super-light: panel is pure white like the page, with no top border line so it
+   blends seamlessly into the white header (no apparent colour shift on open). */
+body.super-light-mode .zw-navitem > .zw-mega{
+  background:#FFFFFF; border-color:rgba(9,9,11,.06); border-top-color:transparent; box-shadow:0 22px 42px rgba(0,0,0,.07);
 }
 body.light-mode .zw-mega-col h4{ color:rgba(9,9,11,.4); }
 body.light-mode .zw-mega-col a{ color:rgba(9,9,11,.72); }
