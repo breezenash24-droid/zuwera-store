@@ -11429,12 +11429,22 @@
 
             // Merge pending stock from load
             if (window._pendingStockData) {
+                const variantColors = getColorVariantEntries().map(c => c.color_name).filter(Boolean);
                 Object.entries(window._pendingStockData).forEach(([color, sizeMap]) => {
-                    if (!existingStock[color]) existingStock[color] = {};
-                    Object.entries(sizeMap).forEach(([size, qty]) => {
-                        if (!(existingStock[color][size] > '')) {
-                            existingStock[color][size] = String(qty);
-                        }
+                    // Stock saved without a color (color_name null → '__nocolor__'), or
+                    // under a color that no longer exists, must still appear when the
+                    // product shows per-color columns — mirror it into every color so it
+                    // isn't dropped from the matrix and then zeroed on the next save.
+                    const targets = (variantColors.length && (color === '__nocolor__' || !variantColors.includes(color)))
+                        ? variantColors
+                        : [color];
+                    targets.forEach(targetColor => {
+                        if (!existingStock[targetColor]) existingStock[targetColor] = {};
+                        Object.entries(sizeMap).forEach(([size, qty]) => {
+                            if (!(existingStock[targetColor][size] > '')) {
+                                existingStock[targetColor][size] = String(qty);
+                            }
+                        });
                     });
                 });
                 window._pendingStockData = null;
