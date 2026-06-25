@@ -198,6 +198,10 @@
     function _onMt() { if (_mt) return; _mt = (window.requestAnimationFrame || setTimeout)(function () { _mt = 0; setMegaTop(); }); }
     window.addEventListener('resize', _onMt, { passive: true });
     window.addEventListener('scroll', _onMt, { passive: true, capture: true });
+    // Re-measure right as a nav item is hovered, so the mega panel always drops
+    // from the CURRENT header bottom (the homepage shifts the nav down once the
+    // announcement bar lays out — a stale value let the panel overlap the header).
+    document.addEventListener('mouseover', function (e) { if (e.target.closest && e.target.closest('.zw-navitem')) setMegaTop(); }, { passive: true });
     setTimeout(setMegaTop, 450); setTimeout(setMegaTop, 1300);
     // Refresh nav config + product taxonomy from the server.
     try {
