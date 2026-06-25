@@ -473,7 +473,7 @@ document.documentElement.classList.add('zw-collflash');
       .heart-btn svg.heart-pop { animation: none; }
     }
     .product-img {
-      aspect-ratio: 3/4;
+      aspect-ratio: 4/5;
       background: transparent;
       display: flex;
       align-items: center;
@@ -514,26 +514,30 @@ document.documentElement.classList.add('zw-collflash');
       color: var(--white);
     }
     .product-info {
-      padding: 1.2rem;
-      border-top: 1px solid var(--border);
+      padding: 0.85rem 0 0;
+      border-top: none;
     }
     .product-category {
-      font-size: 0.65rem;
-      letter-spacing: 0.2em;
+      font-size: 0.62rem;
+      letter-spacing: 0.07em;
       text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 0.3rem;
+      color: var(--white);
+      opacity: 0.55;
+      font-weight: 600;
+      margin-bottom: 0.22rem;
     }
     .product-name {
       font-family:var(--font-head);
-      font-size: 1.2rem;
-      letter-spacing: 0.08em;
-      margin-bottom: 0.3rem;
+      font-size: 1.05rem;
+      letter-spacing: 0.02em;
+      line-height: 1.15;
+      margin-bottom: 0.22rem;
     }
     .product-price {
-      font-size: 0.82rem;
-      color: var(--muted);
-      letter-spacing: 0.05em;
+      font-size: 0.9rem;
+      color: var(--white);
+      font-weight: 600;
+      letter-spacing: 0;
     }
     .product-notify {
       display: inline-block;
@@ -830,7 +834,7 @@ document.documentElement.classList.add('zw-collflash');
       }
       .products-grid::-webkit-scrollbar { display: none; }
       .products-grid > a { flex: 0 0 85%; scroll-snap-align: start; }
-      .product-card { padding: 1.2rem; }
+      .product-card { padding: 0; }
       .notify-section { padding: 3rem 1rem; }
       .notify-form { flex-direction: column; gap: 0; }
       .notify-form input {
