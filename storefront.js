@@ -1551,6 +1551,9 @@ function renderProductCards(products, grid) {
   grid.innerHTML = renderList.map(p => {
     const productName = p.title || p.name || 'Untitled';
     const productCategory = categoryLabelFromProduct(p);
+    const _g = String(p.gender || '').trim().toLowerCase();
+    const _genderPrefix = _g === 'men' ? "Men's " : _g === 'women' ? "Women's " : _g === 'unisex' ? 'Unisex ' : _g === 'kids' ? "Kids' " : '';
+    const productType = (_genderPrefix + (productCategory || '')).trim();
     const productPrice = getEffectiveListPrice(p) || parseFloat(p.msrp || 0) || parseFloat(p.price || 0) || 0;
     const badge = (p.status === 'coming_soon' || p.status === 'Coming Soon') ? 'Coming Soon' : (p.status === 'live' || p.status === 'Live' ? 'Available' : (p.status || 'Coming Soon'));
     let firstImg = p.image_url;
@@ -1592,8 +1595,8 @@ function renderProductCards(products, grid) {
           </button>
         </div>
         <div class="pcard-info">
-          <p class="pcard-cat">${escapeHomeFavoriteHtml(productCategory)}</p>
           <p class="pcard-name">${escapeHomeFavoriteHtml(productName)}</p>
+          <p class="pcard-cat">${escapeHomeFavoriteHtml(productType)}</p>
           <p class="pcard-price">${priceDisplay}</p>
           <button class="pcard-action" onclick="event.stopPropagation();openAllReviewsModal('${p.id}', '${domId}', this.dataset.pname)" data-review-pid="${p.id}" data-review-domid="${domId}" data-pname="${escapeHomeFavoriteHtml(productName)}">
             <span id="avg-${domId}" style="${_revCache[p.id] && _revCache[p.id].count > 0 ? '' : 'display:none'}">${_revCache[p.id] && _revCache[p.id].count > 0 ? zwStarsMarkup(_revCache[p.id].avg) : ''}</span>

@@ -937,10 +937,10 @@ body.light-mode :is(.pcard-cat,.product-category){
 
 :is(.pcard-name,.product-name){
   font-family:var(--zw-font-head) !important;
-  font-style:normal !important;
-  font-weight:600 !important;
+  font-style:italic !important;        /* match the product-page title (ZUWERA VOGUE) */
+  font-weight:900 !important;
   font-size:1.2rem !important;
-  letter-spacing:.03em !important;
+  letter-spacing:.02em !important;
   line-height:1.05 !important;
   text-transform:uppercase !important;
   margin-bottom:.28rem !important;

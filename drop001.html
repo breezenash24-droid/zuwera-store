@@ -89,7 +89,7 @@ document.documentElement.classList.add('zw-collflash');
        are cached immutable, so on every repeat view the real font is ready at
        first paint with no fallback swap. Preconnects keep cold-cache cost small. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=98cc97fd">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=5d6f131c">
 <script src="header-scroll.js?v=4a734678" defer></script>
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=29023607">
 <!-- Google tag (gtag.js) -->
@@ -1858,6 +1858,9 @@ function updateCountdown() {
         grid.innerHTML = renderList.map(p => {
           const productName = p.title || p.name || 'Untitled';
           const productCategory = categoryLabelFromProduct(p);
+          const _g = String(p.gender || '').trim().toLowerCase();
+          const _genderPrefix = _g === 'men' ? "Men's " : _g === 'women' ? "Women's " : _g === 'unisex' ? 'Unisex ' : _g === 'kids' ? "Kids' " : '';
+          const productType = (_genderPrefix + (productCategory || '')).trim();
           const productPrice = p.current_price || p.msrp || p.price;
           const badge = (p.status === 'coming_soon' || p.status === 'Coming Soon') ? 'Coming Soon' : (p.status === 'live' || p.status === 'Live' ? 'Available' : (p.status || 'Coming Soon'));
           let firstImg = p.image_url;
@@ -1914,8 +1917,8 @@ function updateCountdown() {
                   </div>
                 </div>
                 <div class="product-info">
-                  <p class="product-category">${productCategory}</p>
                   <p class="product-name">${productName}</p>
+                  <p class="product-category">${productType}</p>
                   <p class="product-price">${productPrice ? '$' + Number(productPrice).toFixed(2) : 'Price TBA'}</p>
                   ${isLowStock ? `<span class="stock-badge-low">Low Stock</span>` : ''}
                   ${!isLive
