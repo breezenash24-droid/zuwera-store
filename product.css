@@ -122,11 +122,14 @@
   display: block;
 }
 
-/* A video is shown object-fit:contain, so it letterboxes inside the 4/5 box.
-   Hide the image-only overlays (Low Stock badge + save heart) while it plays so
-   they don't float over the empty bars. Restored automatically for images. */
-.gallery-main.gm-video .low-stock-badge,
-.gallery-main.gm-video .heart-btn { display: none; }
+/* The gallery video fills the 4/5 frame just like the photos (object-fit:cover),
+   so it never letterboxes into an empty gap with the badge/heart floating in it. */
+#mainVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
 
 .low-stock-badge {
   position: absolute;
