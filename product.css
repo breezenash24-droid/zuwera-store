@@ -122,6 +122,12 @@
   display: block;
 }
 
+/* A video is shown object-fit:contain, so it letterboxes inside the 4/5 box.
+   Hide the image-only overlays (Low Stock badge + save heart) while it plays so
+   they don't float over the empty bars. Restored automatically for images. */
+.gallery-main.gm-video .low-stock-badge,
+.gallery-main.gm-video .heart-btn { display: none; }
+
 .low-stock-badge {
   position: absolute;
   top: 1rem;
