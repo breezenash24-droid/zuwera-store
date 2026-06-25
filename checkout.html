@@ -245,19 +245,22 @@
     .pm-item-img { width: 64px; height: 80px; object-fit: cover; border: 1px solid var(--border); flex-shrink: 0; display: block; }
     .pm-item-img-placeholder { width: 64px; height: 80px; background: rgba(244,241,235,.04); flex-shrink: 0; }
     .pm-item-info { flex: 1; min-width: 0; }
-    .pm-item-title { font-family: var(--font-head); font-size: 1.05rem; font-weight: 700; letter-spacing: .06em; line-height: 1.2; text-transform: uppercase; }
+    .pm-item-title { font-family: var(--font-head); font-size: 1.05rem; font-weight: 900; font-style: italic; letter-spacing: .04em; line-height: 1.2; text-transform: uppercase; }
     .pm-item-meta { font-family: var(--font-mono); font-size: .65rem; color: var(--sub); text-transform: uppercase; letter-spacing: .07em; margin-top: .3rem; display: flex; align-items: center; gap: .25rem; }
-    .pm-item-price { font-family: var(--font-mono); font-size: .95rem; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+    /* Price in Barlow Condensed (NOT mono), bold — matches the storefront cards. */
+    .pm-item-price { font-family: var(--font-head); font-size: 1.05rem; font-weight: 700; letter-spacing: .01em; flex-shrink: 0; font-variant-numeric: tabular-nums; }
 
     .pm-lines { border-top: 1px solid var(--border); padding-top: .85rem; margin-top: .2rem; display: flex; flex-direction: column; gap: .4rem; margin-bottom: .9rem; }
     .pm-line { display: flex; justify-content: space-between; font-size: .9rem; color: var(--sub); font-variant-numeric: tabular-nums; }
     /* Line-item labels — small muted mono uppercase to match the bag page summary */
     .pm-line > span:first-child { font-family: var(--font-mono); font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; opacity: .7; }
-    .pm-line > span:last-child { font-family: var(--font-mono); }
+    /* Line values (subtotal/shipping/tax) — Barlow Condensed + full-strength colour
+       so the money is legible (was muted mono inheriting --sub). */
+    .pm-line > span:last-child { font-family: var(--font-head); font-weight: 600; font-size: 1rem; color: var(--text); }
     .pm-total-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 1rem; font-weight: 600; border-top: 1px solid var(--border2); padding-top: .7rem; color: var(--text); font-variant-numeric: tabular-nums; margin-bottom: 1.6rem; }
     /* "TOTAL" label — match the bag page's brand display treatment (italic condensed) */
     .pm-total-row > span:first-child { font-family: var(--font-head); font-style: italic; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: 1.15rem; }
-    .pm-total-row > span:last-child { font-variant-numeric: tabular-nums; }
+    .pm-total-row > span:last-child { font-family: var(--font-head); font-weight: 700; font-size: 1.15rem; letter-spacing: .01em; font-variant-numeric: tabular-nums; }
 
     /* ───────────────────────────────── Form fields ── */
     .pgrow { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; }
