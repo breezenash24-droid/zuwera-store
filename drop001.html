@@ -539,6 +539,23 @@ document.documentElement.classList.add('zw-collflash');
       font-weight: 600;
       letter-spacing: 0;
     }
+    /* Variant photo thumbnails on the card (replace the Add-to-Bag button). The
+       more-specific selector + !important beats the shared swatch CSS that hides
+       them by default and on mobile. Tapping one previews that colorway. */
+    .product-card .zw-card-swatches{ display:flex !important; flex-wrap:wrap; gap:.4rem; margin-top:.6rem; }
+    .product-card .zw-card-swatch{
+      width:42px; height:53px; flex:0 0 auto; padding:0; cursor:pointer; border-radius:2px;
+      border:1px solid var(--border);
+      background-size:cover !important; background-position:center !important; background-repeat:no-repeat !important;
+      transition:border-color .15s ease;
+    }
+    .product-card .zw-card-swatch:hover,
+    .product-card .zw-card-swatch.active{ border-color:var(--white); }
+    .product-card .zw-card-swatch.zw-swatch-more{
+      display:flex; align-items:center; justify-content:center;
+      font-size:.6rem; font-weight:600; color:var(--white);
+      background-image:none !important; background:transparent !important;
+    }
     .product-notify {
       display: inline-block;
       margin-top: 0.8rem;
@@ -1830,7 +1847,8 @@ function updateCountdown() {
             let src = (ci && ci.image_url) || fallbackImg || '';
             if (src && typeof optimizeImage === 'function') src = optimizeImage(src, 600);
             const nm = c.color_name || 'Color';
-            return `<button type="button" class="zw-card-swatch" data-color-name="${esc(nm)}" data-img="${esc(src)}" title="${esc(nm)}" aria-label="${esc(nm)}" style="background:${esc(c.hex_color || '#888')}"></button>`;
+            const thumbStyle = src ? `background-image:url('${esc(src)}')` : `background:${esc(c.hex_color || '#888')}`;
+            return `<button type="button" class="zw-card-swatch" data-color-name="${esc(nm)}" data-img="${esc(src)}" title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}"></button>`;
           }).join('');
           if (colors.length > MAX) html += `<button type="button" class="zw-card-swatch zw-swatch-more" aria-label="More colors">+${colors.length - MAX}</button>`;
           return `<div class="zw-card-swatches" data-quick-add="${payload}">${html}</div>`;
@@ -1898,11 +1916,12 @@ function updateCountdown() {
                   <p class="product-name">${productName}</p>
                   <p class="product-price">${productPrice ? '$' + Number(productPrice).toFixed(2) : 'Price TBA'}</p>
                   ${isLowStock ? `<span class="stock-badge-low">Low Stock</span>` : ''}
-                  ${isLive
-                    ? `<button type="button" class="product-add-btn"${isSoldOut ? ' disabled style="opacity:.35;cursor:not-allowed"' : ''} data-col-quick-add="${quickAddPayload}" onclick="return window.__zwCollectionQuickAddClick && window.__zwCollectionQuickAddClick(event,this)">${isSoldOut ? 'Sold Out' : 'Add to Bag'}</button>`
-                    : `<span class="product-notify" onclick="scrollToNotify(event)">Notify Me When Live →</span>`
+                  ${!isLive
+                    ? `<span class="product-notify" onclick="scrollToNotify(event)">Notify Me When Live →</span>`
+                    : isSoldOut
+                      ? `<span class="product-notify" style="opacity:.55">Sold Out</span>`
+                      : (hasSwatches ? zwColSwatchRow(p, quickAddPayload, originalImg) : '')
                   }
-                  ${hasSwatches ? zwColSwatchRow(p, quickAddPayload, originalImg) : ''}
                 </div>
                 ${isLive ? `<div class="quick-size-panel-col" id="${colCardId}">
                   <div class="quick-size-ph">
