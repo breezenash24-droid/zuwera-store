@@ -731,6 +731,8 @@ document.documentElement.classList.add('zw-collflash');
     .collection-option-block{border:1px solid rgba(244,241,235,.09);padding:.9rem}
     .collection-option-head{display:flex;justify-content:space-between;gap:1rem;margin-bottom:.75rem;font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.42)}
     .collection-option-head strong{color:rgba(244,241,235,.88);font-weight:500;text-align:right}
+    .collection-color-dot{display:inline-block;width:11px;height:11px;border-radius:2px;border:1px solid rgba(244,241,235,.28);margin-right:5px;vertical-align:-1px}
+    body.light-mode .collection-color-dot{border-color:rgba(9,9,11,.25)}
     .collection-option-grid{display:flex;flex-wrap:wrap;gap:.55rem}
     .collection-size{border:1px solid rgba(244,241,235,.12);background:transparent;color:rgba(244,241,235,.76);min-height:38px;padding:0 .8rem;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
     /* Colour picker = product-photo thumbnail (matches the full product page). */
@@ -2422,7 +2424,11 @@ function updateCountdown() {
     var colorField = document.getElementById('collection-review-color');
     var sizeField = document.getElementById('collection-review-size');
     var skuField = document.getElementById('collection-review-sku');
-    if (colorField) colorField.textContent = item.selectedColor ? item.selectedColor.color_name : 'Standard';
+    if (colorField) {
+      var _cselName = item.selectedColor ? item.selectedColor.color_name : 'Standard';
+      var _cselHex = item.selectedColor ? (item.selectedColor.hex_color || '') : '';
+      colorField.innerHTML = (_cselHex ? '<span class="collection-color-dot" style="background:' + collectionEscapeAttr(_cselHex) + '"></span>' : '') + collectionEscapeAttr(_cselName);
+    }
     if (sizeField) sizeField.textContent = item.selectedSize || 'Choose size';
     if (skuField) skuField.textContent = item.sku || '-';
   }
@@ -2570,7 +2576,7 @@ function updateCountdown() {
   }
   </script>
 <script src="auth.js?v=7be42027" defer></script>
-<script src="zw-login.js?v=54480dc1" defer></script>
+<script src="zw-login.js?v=d30a7000" defer></script>
 <script src="/nav-menu.js?v=b0aa8cb7" defer></script>
 </body>
 </html>

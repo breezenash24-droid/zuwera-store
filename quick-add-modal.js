@@ -311,7 +311,11 @@
     var colorField = document.getElementById('quick-add-review-color');
     var sizeField = document.getElementById('quick-add-review-size');
     var skuField = document.getElementById('quick-add-review-sku');
-    if (colorField) colorField.textContent = (item.selectedColor && item.selectedColor.color_name) || 'Standard';
+    if (colorField) {
+      var _selName = (item.selectedColor && item.selectedColor.color_name) || 'Standard';
+      var _selHex = (item.selectedColor && item.selectedColor.hex_color) || '';
+      colorField.innerHTML = (_selHex ? '<span class="quick-add-color-dot" style="background:' + quickAddEscapeAttr(_selHex) + '"></span>' : '') + quickAddEscapeAttr(_selName);
+    }
     if (sizeField) sizeField.textContent = item.selectedSize || 'Choose size';
     if (skuField) skuField.textContent = item.sku || '-';
   }
