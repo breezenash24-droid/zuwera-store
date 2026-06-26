@@ -43,8 +43,9 @@
 
   // Build the gender→categories + tags index from a lightweight product list.
   function buildTax(products) {
-    var byGender = {}, tags = {};
+    var byGender = {}, tags = {}, byTag = {};
     function add(g, sub) { (byGender[g] = byGender[g] || {})[sub] = true; }
+    function addTag(tl, sub) { (byTag[tl] = byTag[tl] || {})[sub] = true; }
     (products || []).forEach(function (p) {
       var sub = String((p && p.subtitle) || '').trim();
       var g = String((p && p.gender) || '').trim().toLowerCase();
@@ -53,10 +54,11 @@
         if (g === 'unisex') { add('men', sub); add('women', sub); }
       }
       ((p && Array.isArray(p.tags)) ? p.tags : []).forEach(function (t) {
-        t = String(t || '').trim(); if (t) tags[t.toLowerCase()] = t;
+        t = String(t || '').trim();
+        if (t) { tags[t.toLowerCase()] = t; if (sub) addTag(t.toLowerCase(), sub); }
       });
     });
-    return { byGender: byGender, tags: tags };
+    return { byGender: byGender, tags: tags, byTag: byTag };
   }
 
   // Normalize any raw item to { label, url, columns:[{heading,links:[{text,url}]}] }.
@@ -94,8 +96,19 @@
     }
 
     if (type === 'tag') {
-      // Tag top-level link → its editable landing page (hero/featured/categories).
-      return { label: label, url: 'landing.html?tag=' + encodeURIComponent(item.tag || label), columns: [] };
+      // Tag top click → its editable landing page; hover → a mega of the product
+      // categories that carry this tag (mirrors the gender items), linking to the
+      // tag-filtered PLP.
+      var tagName = item.tag || label;
+      var tlanding = item.url || ('landing.html?tag=' + encodeURIComponent(tagName));
+      var tset = (tax && tax.byTag && tax.byTag[String(tagName).toLowerCase()]) || null;
+      if (!tset) return { label: label, url: tlanding, columns: [] };
+      var tbase = 'drop001.html?tag=' + encodeURIComponent(tagName);
+      var tcats = Object.keys(tset).sort(function (a, b) { return a.localeCompare(b); });
+      var tcolumns = [];
+      if (item.shopAll !== false) tcolumns.push({ heading: '', links: [{ text: 'Shop all ' + label, url: tbase }] });
+      if (tcats.length) tcolumns.push({ heading: '', links: tcats.map(function (c) { return { text: c, url: tbase + '&category=' + encodeURIComponent(c) }; }) });
+      return { label: label, url: tlanding, columns: tcolumns };
     }
 
     // custom link
