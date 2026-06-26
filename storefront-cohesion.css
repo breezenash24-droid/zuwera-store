@@ -3441,6 +3441,12 @@ body.light-mode .zw-mega-col h4{ color:rgba(9,9,11,.4); }
 body.light-mode .zw-mega-col a{ color:rgba(9,9,11,.72); }
 body.light-mode .zw-mega-col a:hover{ color:#09090b; }
 
+/* The first mega item ("Shop all …") reads as a heading — full-strength colour
+   — while the category links below stay muted grey (Nike-style hierarchy). */
+.zw-navitem > .zw-mega > .zw-mega-col:first-child > a{ color:var(--paper, #f4f1eb) !important; }
+body.light-mode .zw-navitem > .zw-mega > .zw-mega-col:first-child > a,
+body.super-light-mode .zw-navitem > .zw-mega > .zw-mega-col:first-child > a{ color:#09090b !important; }
+
 /* Mobile accordion (inside the slide-out menu's #mobile-category-links).
    The gender/tag NAME is a link (navigates to its page); a toggle button on the
    right edge opens the category accordion. */
