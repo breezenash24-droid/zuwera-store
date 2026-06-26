@@ -628,7 +628,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
           <td style="padding:16px 12px;border-bottom:1px solid rgba(244,241,235,.08);vertical-align:top;">
             <div style="font-weight:600;font-size:15px;color:#f4f1eb;margin-bottom:4px;">${i.name}</div>
             ${variant ? `<div style="font-size:13px;color:rgba(244,241,235,.5);margin-bottom:4px;">${variant}</div>` : ''}
-            ${i.sku ? `<div style="font-size:11px;color:rgba(244,241,235,.3);letter-spacing:.04em;font-family:monospace;">SKU: ${i.sku}</div>` : ''}
+            ${i.sku ? `<div style="font-size:11px;color:rgba(244,241,235,.3);letter-spacing:.04em;font-family:'IBM Plex Mono',monospace;">SKU: ${i.sku}</div>` : ''}
           </td>
           <td style="padding:16px 0;border-bottom:1px solid rgba(244,241,235,.08);vertical-align:top;text-align:right;white-space:nowrap;">
             <div style="font-size:14px;color:#f4f1eb;font-weight:500;">$${(i.amount / 100).toFixed(2)}</div>
@@ -647,7 +647,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
 
   const addressHtml = addrParts.length ? `
       <tr><td style="padding:0 0 28px;">
-        <p style="margin:0 0 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.4);font-weight:600;">Ships To</p>
+        <p style="margin:0 0 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.4);font-weight:600;font-family:'IBM Plex Mono',monospace;">Ships To</p>
         <p style="margin:0;font-size:14px;color:rgba(244,241,235,.7);line-height:1.65;">${toName}<br>${addrParts.join('<br>')}</p>
       </td></tr>` : '';
 
@@ -669,7 +669,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
 
   const carrierHtml = `
       <tr><td style="padding:0 0 32px;">
-        <p style="margin:0 0 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.4);font-weight:600;">Delivery</p>
+        <p style="margin:0 0 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.4);font-weight:600;font-family:'IBM Plex Mono',monospace;">Delivery</p>
         <p style="margin:0;font-size:14px;color:rgba(244,241,235,.7);">Ships via ${carrier}</p>
         <p style="margin:4px 0 0;font-size:14px;color:rgba(244,241,235,.5);">Estimated delivery: ${etaText}</p>
         ${tracking.number ? `<p style="margin:6px 0 0;font-size:14px;color:rgba(244,241,235,.7);">Tracking: ${tracking.url ? `<a href="${tracking.url}" style="color:#f4f1eb;text-decoration:underline;">${tracking.number}</a>` : tracking.number}</p>` : ''}
@@ -682,8 +682,9 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Order Confirmed – Zuwera</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
-<body style="margin:0;padding:0;background:#09090b;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#f4f1eb;">
+<body style="margin:0;padding:0;background:#09090b;font-family:'Barlow',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;color:#f4f1eb;">
   <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
     <tr><td align="center" style="padding:40px 20px 56px;">
       <table width="560" cellpadding="0" cellspacing="0" role="presentation" style="max-width:100%;width:100%;">
@@ -695,8 +696,8 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
 
         <!-- Confirmation heading -->
         <tr><td style="border-top:1px solid rgba(244,241,235,.12);padding:28px 0 32px;">
-          <p style="margin:0 0 6px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,241,235,.4);font-weight:600;">Order Confirmed</p>
-          <h1 style="margin:0 0 10px;font-size:34px;font-weight:700;line-height:1;color:#f4f1eb;">#${orderId}</h1>
+          <p style="margin:0 0 6px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:rgba(244,241,235,.4);font-weight:600;font-family:'IBM Plex Mono',monospace;">Order Confirmed</p>
+          <h1 style="margin:0 0 10px;font-size:36px;font-weight:700;line-height:1;color:#f4f1eb;font-family:'Barlow Condensed','Barlow',sans-serif;letter-spacing:.01em;">#${orderId}</h1>
           <p style="margin:0;font-size:14px;color:rgba(244,241,235,.5);line-height:1.6;">Thanks, ${toName}. Your order is confirmed and being prepared.</p>
         </td></tr>
 
