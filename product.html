@@ -68,7 +68,7 @@
 <!-- Stylesheets -->
 <link rel="stylesheet" href="base.css">
 <link rel="stylesheet" href="nav.css?v=e1e6dc8e">
-<link rel="stylesheet" href="product.css?v=13737ab5">
+<link rel="stylesheet" href="product.css?v=526402bb">
 <link rel="stylesheet" href="cart.css?v=43a9e1fb">
 <!-- reviews.css styles only below-the-fold review content + hidden review
      modals, so load it non-render-blocking (matches index.html). reviews-vibe.css
@@ -2951,10 +2951,18 @@ function updateMainImage(index) {
   } else {
     if (mainVidEl) { mainVidEl.style.display = 'none'; mainVidEl.pause(); mainVidEl.src = ''; }
     mainImgEl.style.display = '';
-    mainImgEl.src = optimizeImage(item.image_url, 1200);
-    mainImgEl.onload  = () => galleryMain?.classList.remove('loading');
-    mainImgEl.onerror = function() {
+    // Soft fade + settle on every swap (was a rigid instant cut). Thumbnails are
+    // preloaded, so the next image is usually cached and the fade plays at once.
+    const _fadeInMainImg = () => {
       galleryMain?.classList.remove('loading');
+      mainImgEl.classList.remove('zw-img-in');
+      void mainImgEl.offsetWidth;          // restart the animation each time
+      mainImgEl.classList.add('zw-img-in');
+    };
+    mainImgEl.src = optimizeImage(item.image_url, 1200);
+    mainImgEl.onload  = _fadeInMainImg;
+    mainImgEl.onerror = function() {
+      _fadeInMainImg();
       if (this.src !== item.image_url) this.src = item.image_url;
     };
     mainImgEl.alt = item.alt_text || currentProduct.title;
@@ -3013,6 +3021,23 @@ function placeColorwayForViewport() {
   }
 }
 
+// Selected-colour label = a mini colour box (the colour's hex) + the name.
+function setSelectedColorLabel(color) {
+  const el = document.getElementById('selectedColor');
+  if (!el) return;
+  el.innerHTML = '';
+  const hex = color && color.hex_color;
+  if (hex) {
+    const box = document.createElement('span');
+    box.className = 'selected-color-box';
+    box.style.background = hex;
+    el.appendChild(box);
+  }
+  const name = document.createElement('span');
+  name.textContent = (color && color.color_name) || '';
+  el.appendChild(name);
+}
+
 function renderColors() {
   const container = document.getElementById('colorSwatches');
   const colorwaySection = document.querySelector('.colorway-section');
@@ -3024,7 +3049,7 @@ function renderColors() {
     if (currentProduct.colorway && currentProduct.colorway.trim()) {
       container.innerHTML = '';
       const colorwayLabel = currentProduct.colorway.trim();
-      document.getElementById('selectedColor').textContent = colorwayLabel;
+      setSelectedColorLabel({ color_name: colorwayLabel });
       const swatch = document.createElement('button');
       swatch.className = 'color-swatch active';
       swatch.type = 'button';
@@ -3067,7 +3092,7 @@ function renderColors() {
       swatch.classList.add('active');
       selectedColor = color;
       selectedColorSku = color.variant_sku;
-      document.getElementById('selectedColor').textContent = color.color_name;
+      setSelectedColorLabel(color);
       selectedSize = null;
       renderSizes();
       // Switch gallery to this color's media, preserving position
@@ -3080,7 +3105,7 @@ function renderColors() {
     container.appendChild(swatch);
   });
 
-  document.getElementById('selectedColor').textContent = currentProduct.colors[0]?.color_name || '';
+  setSelectedColorLabel(currentProduct.colors[0]);
 
   placeColorwayForViewport();
   if (!_colorwayViewportSetup) {
