@@ -680,6 +680,14 @@ document.documentElement.classList.add('zw-collflash');
       touch-action:pan-y pinch-zoom;
     }
     .collection-review-media img{width:100%;height:100%;object-fit:cover;object-position:50% 0%;display:block}
+    /* Gallery transitions matching the full product page: slide for nav, fade for colorway. */
+    .collection-review-media :is(img,video).zw-img-in{animation:colImgIn .42s cubic-bezier(.22,.61,.36,1) both}
+    .collection-review-media :is(img,video).zw-slide-next{animation:colSlideNext .4s cubic-bezier(.22,.61,.36,1) both}
+    .collection-review-media :is(img,video).zw-slide-prev{animation:colSlidePrev .4s cubic-bezier(.22,.61,.36,1) both}
+    @keyframes colImgIn{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:scale(1)}}
+    @keyframes colSlideNext{from{opacity:.3;transform:translateX(32%)}to{opacity:1;transform:translateX(0)}}
+    @keyframes colSlidePrev{from{opacity:.3;transform:translateX(-32%)}to{opacity:1;transform:translateX(0)}}
+    @media(prefers-reduced-motion:reduce){.collection-review-media :is(img,video):is(.zw-img-in,.zw-slide-next,.zw-slide-prev){animation:none}}
     .collection-gallery-arrow{
       position:absolute;top:50%;transform:translateY(-50%);z-index:8;
       width:40px;height:40px;border-radius:50%;border:1px solid rgba(244,241,235,.16);
@@ -703,8 +711,11 @@ document.documentElement.classList.add('zw-collflash');
     }
     .collection-product-body{display:flex;flex-direction:column;gap:1rem}
     .collection-review-kicker{font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--pink);margin-bottom:.45rem}
-    .collection-review-title{font-family:var(--fw);font-size:2.15rem;font-style:italic;letter-spacing:.05em;line-height:.95;text-transform:uppercase;margin-bottom:.25rem}
+    .collection-review-title{font-family:var(--fw);font-size:2.15rem;font-style:italic;font-weight:900;letter-spacing:.05em;line-height:.95;text-transform:uppercase;margin-bottom:.25rem}
     .collection-product-meta{display:flex;gap:.7rem;align-items:center;justify-content:space-between;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(244,241,235,.68);border-bottom:1px solid rgba(244,241,235,.08);padding-bottom:.95rem}
+    /* Price in Barlow Condensed (matches the product page), not mono. */
+    #collection-review-price{font-family:var(--fw);font-weight:700;font-size:1.1rem;letter-spacing:.01em;text-transform:none;color:rgba(244,241,235,.95)}
+    body.light-mode #collection-review-price{color:rgba(9,9,11,.92)}
     .collection-review-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem;margin-bottom:1.25rem}
     .collection-review-detail{border:1px solid rgba(244,241,235,.09);padding:.75rem .8rem;min-height:58px}
     .collection-review-label{display:block;font-size:.52rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.34);margin-bottom:.35rem}
@@ -721,10 +732,12 @@ document.documentElement.classList.add('zw-collflash');
     .collection-option-head{display:flex;justify-content:space-between;gap:1rem;margin-bottom:.75rem;font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.42)}
     .collection-option-head strong{color:rgba(244,241,235,.88);font-weight:500;text-align:right}
     .collection-option-grid{display:flex;flex-wrap:wrap;gap:.55rem}
-    .collection-color,.collection-size{border:1px solid rgba(244,241,235,.12);background:transparent;color:rgba(244,241,235,.76);min-height:38px;padding:0 .8rem;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
-    .collection-color{display:flex;align-items:center;gap:.45rem}
-    .collection-color span{width:15px;height:15px;border-radius:2px;border:1.5px solid #000}
-    .collection-color.active,.collection-size.active{border-color:var(--white);color:var(--white);background:rgba(244,241,235,.1)}
+    .collection-size{border:1px solid rgba(244,241,235,.12);background:transparent;color:rgba(244,241,235,.76);min-height:38px;padding:0 .8rem;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+    /* Colour picker = product-photo thumbnail (matches the full product page). */
+    .collection-color{width:52px;height:65px;flex:0 0 auto;border:1px solid rgba(244,241,235,.2);border-radius:2px;background-color:transparent;background-size:cover;background-position:center top;background-repeat:no-repeat;padding:0;cursor:pointer;transition:border-color .15s ease,box-shadow .15s ease}
+    .collection-color:hover{border-color:rgba(244,241,235,.55)}
+    .collection-color.active{border-color:var(--white);box-shadow:0 0 0 1px var(--white)}
+    .collection-size.active{border-color:var(--white);color:var(--white);background:rgba(244,241,235,.1)}
     .collection-size.sold-out{opacity:.35;cursor:not-allowed;text-decoration:line-through}
     .collection-empty-option{font-size:.68rem;color:rgba(244,241,235,.48);margin:0}
     .collection-review-message{font-size:.68rem;letter-spacing:.06em;color:rgba(244,241,235,.5);min-height:1rem;margin:0}
@@ -749,9 +762,10 @@ document.documentElement.classList.add('zw-collflash');
     body.light-mode .collection-option-block{border-color:rgba(9,9,11,.09)}
     body.light-mode .collection-option-head{color:rgba(9,9,11,.42)}
     body.light-mode .collection-option-head strong{color:rgba(9,9,11,.86)}
-    body.light-mode .collection-color,body.light-mode .collection-size{border-color:rgba(9,9,11,.12);color:rgba(9,9,11,.74)}
-    body.light-mode .collection-color span{border-color:#000}
-    body.light-mode .collection-color.active,body.light-mode .collection-size.active{border-color:#09090b;color:#09090b;background:rgba(9,9,11,.06)}
+    body.light-mode .collection-size{border-color:rgba(9,9,11,.12);color:rgba(9,9,11,.74)}
+    body.light-mode .collection-color{border-color:rgba(9,9,11,.18)}
+    body.light-mode .collection-color.active{border-color:#09090b;box-shadow:0 0 0 1px #09090b}
+    body.light-mode .collection-size.active{border-color:#09090b;color:#09090b;background:rgba(9,9,11,.06)}
     body.light-mode .collection-thumb.active{border-color:#09090b;opacity:1}
     body.light-mode .collection-empty-option,body.light-mode .collection-review-message{color:rgba(9,9,11,.5)}
     body.light-mode .collection-review-actions button,body.light-mode .collection-review-actions a{border-color:rgba(9,9,11,.12);color:rgba(9,9,11,.68)}
@@ -2270,10 +2284,10 @@ function updateCountdown() {
     var currentIndex = collectionActiveImageIndex(item, images);
     var nextIndex = (currentIndex + step + images.length) % images.length;
     item.activeImage = images[nextIndex];
-    collectionRenderGallery(item);
+    collectionRenderGallery(item, { type: 'slide', dir: step });
   }
 
-  function collectionRenderGallery(item) {
+  function collectionRenderGallery(item, anim) {
     var media = document.getElementById('collection-review-media');
     var thumbs = document.getElementById('collection-review-thumbs');
     var images = item.images && item.images.length ? item.images : (item.image ? [item.image] : []);
@@ -2314,6 +2328,15 @@ function updateCountdown() {
         if (touchEndX < touchStartX - 40) collectionMoveGallery(item, 1);
         if (touchEndX > touchStartX + 40) collectionMoveGallery(item, -1);
       };
+      // Animate the swap to match the full product page: directional carousel
+      // slide for photo nav, soft fade+settle for colorway switches.
+      var animEl = media.querySelector('img, video');
+      if (animEl && anim) {
+        animEl.classList.remove('zw-img-in', 'zw-slide-next', 'zw-slide-prev');
+        void animEl.offsetWidth;
+        if (anim.type === 'fade') animEl.classList.add('zw-img-in');
+        else animEl.classList.add(anim.dir < 0 ? 'zw-slide-prev' : 'zw-slide-next');
+      }
     }
     if (!thumbs) return;
     thumbs.innerHTML = images.map(function(src, idx) {
@@ -2324,8 +2347,11 @@ function updateCountdown() {
     }).join('');
     thumbs.querySelectorAll('.collection-thumb').forEach(function(button) {
       button.addEventListener('click', function() {
+        var imgs = item.images && item.images.length ? item.images : (item.image ? [item.image] : []);
+        var prevI = collectionActiveImageIndex(item, imgs);
         item.activeImage = button.dataset.img;
-        collectionRenderGallery(item);
+        var newI = imgs.indexOf(button.dataset.img);
+        collectionRenderGallery(item, { type: 'slide', dir: newI < prevI ? -1 : 1 });
       });
     });
   }
@@ -2343,7 +2369,14 @@ function updateCountdown() {
         ? colors.map(function(color, idx) {
             var name = color.color_name || ('Color ' + (idx + 1));
             var active = item.selectedColor && item.selectedColor.color_name === color.color_name ? ' active' : '';
-            return '<button type="button" class="collection-color' + active + '" data-index="' + idx + '" aria-label="' + collectionEscapeAttr(name) + '"><span style="background:' + collectionEscapeAttr(color.hex_color || '#888') + '"></span>' + collectionEscapeAttr(name) + '</button>';
+            // Product-photo thumbnail per colour (matches the full product page),
+            // with a hex fallback if that colour has no image.
+            var cimgs = item.allImageRows ? collectionGetImagesForColor(item.allImageRows, item.image, color.id || null) : [];
+            var thumbSrc = '';
+            for (var ci = 0; ci < cimgs.length; ci++) { if (!collectionIsVideo(cimgs[ci])) { thumbSrc = cimgs[ci]; break; } }
+            if (!thumbSrc) thumbSrc = cimgs[0] || '';
+            var styleAttr = thumbSrc ? "background-image:url('" + collectionEscapeAttr(thumbSrc) + "')" : 'background:' + collectionEscapeAttr(color.hex_color || '#888');
+            return '<button type="button" class="collection-color' + active + (thumbSrc ? ' has-thumb' : '') + '" data-index="' + idx + '" title="' + collectionEscapeAttr(name) + '" aria-label="' + collectionEscapeAttr(name) + '" style="' + styleAttr + '"></button>';
           }).join('')
         : '<p class="collection-empty-option">Standard colorway</p>';
       colorWrap.querySelectorAll('.collection-color').forEach(function(button) {
@@ -2356,7 +2389,7 @@ function updateCountdown() {
             item.images = collectionGetImagesForColor(item.allImageRows, item.image, item.selectedColor ? item.selectedColor.id : null);
             var clampedIndex = Math.min(prevIndex, Math.max(item.images.length - 1, 0));
             item.activeImage = item.images[clampedIndex] || item.images[0] || '';
-            collectionRenderGallery(item);
+            collectionRenderGallery(item, { type: 'fade' });
           }
           collectionRenderOptions(item);
         });
