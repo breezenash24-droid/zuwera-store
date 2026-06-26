@@ -1147,8 +1147,20 @@
         }
 
         #productFormModal .modal-content {
-            max-width: 920px;
-            width: 95%;
+            max-width: 1160px;
+            width: 96%;
+            max-height: 92vh;
+            display: flex;
+            flex-direction: column;
+        }
+        /* Close button stays pinned to the top-right while the long form scrolls. */
+        #productFormModal .modal-close-btn {
+            position: sticky;
+            top: 8px;
+            align-self: flex-end;
+            order: -1;
+            z-index: 6;
+            margin-bottom: -28px;
         }
 
         .modal-header {
@@ -3122,6 +3134,10 @@
                         <button class="prod-filter-btn" data-f="live">Live</button>
                         <button class="prod-filter-btn" data-f="coming-soon">Coming Soon</button>
                         <button class="prod-filter-btn" data-f="sold-out">Sold Out</button>
+                        <label for="prodCategoryFilter" style="margin-left:auto;font-size:.78rem;color:var(--text-secondary);font-weight:600;letter-spacing:.02em;">Product type</label>
+                        <select id="prodCategoryFilter" class="form-input" style="width:auto;min-width:160px;padding:6px 10px;font-size:.82rem;">
+                            <option value="all">All types</option>
+                        </select>
                     </div>
                     <table class="products-table">
                         <thead>
@@ -7040,6 +7056,13 @@
                             </div>
                             <button type="button" class="btn btn-secondary btn-sm" id="addImageBtn" style="flex-shrink:0">+ Add Media</button>
                         </div>
+                        <div id="mediaFilterBar" style="display:none;align-items:center;gap:10px;margin:2px 0 12px;flex-wrap:wrap;">
+                            <label for="mediaColorFilter" style="font-size:.78rem;color:var(--text-secondary);font-weight:600;letter-spacing:.02em;">Show colorway</label>
+                            <select id="mediaColorFilter" class="form-input" style="width:auto;min-width:160px;padding:6px 10px;font-size:.82rem;">
+                                <option value="__all__">All media</option>
+                            </select>
+                            <span id="mediaFilterCount" style="font-size:.74rem;color:var(--text-secondary);"></span>
+                        </div>
                         <div id="imagesContainer" class="media-grid"></div>
                     </div>
                     <hr style="border:none;border-top:1px solid var(--border);margin:1.25rem 0 1rem">
@@ -9840,6 +9863,7 @@
         let _prodStatusFilter = 'all';
         let _prodSort = { key: null, dir: 'asc' };
         let _prodSearch = '';
+        let _prodCategoryFilter = 'all';
 
         function getFilteredSortedProducts() {
             let list = _allProducts;
@@ -9849,12 +9873,16 @@
             } else {
                 list = list.filter(p => (p.status || 'Draft').toLowerCase().replace(/\s+/g, '-') === _prodStatusFilter);
             }
+            if (_prodCategoryFilter && _prodCategoryFilter !== 'all') {
+                list = list.filter(p => (p.category || '') === _prodCategoryFilter);
+            }
             if (_prodSearch) {
                 const q = _prodSearch;
                 list = list.filter(p =>
                     (p.sku || '').toLowerCase().includes(q) ||
                     (p.title || '').toLowerCase().includes(q) ||
-                    (p.colorway || '').toLowerCase().includes(q)
+                    (p.colorway || '').toLowerCase().includes(q) ||
+                    (p.category || '').toLowerCase().includes(q)
                 );
             }
             if (_prodSort.key) {
@@ -9913,6 +9941,7 @@
                     .order('created_at', { ascending: false });
                 if (error) throw error;
                 _allProducts = products || [];
+                populateCategoryFilter();
                 renderProducts();
             } catch (error) {
                 console.error('Error loading products:', error);
@@ -10166,6 +10195,24 @@
             renderProducts();
         });
 
+        // Fill the "Product type" dropdown with the categories actually in use.
+        function populateCategoryFilter() {
+            const sel = document.getElementById('prodCategoryFilter');
+            if (!sel) return;
+            const cats = [...new Set((_allProducts || [])
+                .map(p => (p.category || '').trim())
+                .filter(Boolean))].sort((a, b) => a.localeCompare(b));
+            const prev = _prodCategoryFilter;
+            sel.innerHTML = '<option value="all">All types</option>' +
+                cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+            sel.value = cats.includes(prev) ? prev : 'all';
+            _prodCategoryFilter = sel.value;
+        }
+        document.getElementById('prodCategoryFilter').addEventListener('change', (e) => {
+            _prodCategoryFilter = e.target.value;
+            renderProducts();
+        });
+
         document.querySelectorAll('.prod-filter-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.prod-filter-btn').forEach(b => b.classList.remove('active'));
@@ -10294,6 +10341,7 @@
                 document.getElementById(tab).classList.add('active');
 
                 if (tab === 'colors') rebuildStockMatrix();
+                if (tab === 'visuals') syncMediaColorFilter();
             });
         });
 
@@ -10404,7 +10452,13 @@
         document.getElementById('addImageBtn').addEventListener('click', () => {
             const container = document.getElementById('imagesContainer');
             addMediaCard(container, '', '', '');
+            syncMediaColorFilter();
         });
+        // Re-evaluate the colorway filter whenever a card's "Show for" changes.
+        document.getElementById('imagesContainer').addEventListener('change', (e) => {
+            if (e.target.classList && e.target.classList.contains('media-color-select')) syncMediaColorFilter();
+        });
+        document.getElementById('mediaColorFilter').addEventListener('change', applyMediaColorFilter);
 
         function addMediaCard(container, url, colorOpts, selectedColor) {
             const opts = colorOpts || getColorOptionsForRows();
@@ -10702,6 +10756,46 @@
                     color_name: colorSel?.value || null
                 };
             }).filter(Boolean);
+        }
+
+        // Media gallery colorway filter — show only media assigned to a chosen
+        // colorway (plus shared "All colors" media). Fully safe: if anything is
+        // missing it falls back to showing every card, never hides the gallery.
+        function applyMediaColorFilter() {
+            const sel = document.getElementById('mediaColorFilter');
+            const val = sel ? sel.value : '__all__';
+            const cards = Array.from(document.querySelectorAll('#imagesContainer .media-card'));
+            let shown = 0;
+            cards.forEach(card => {
+                const cs = card.querySelector('.media-color-select');
+                const cv = cs ? cs.value : '';
+                const match = (val === '__all__') || cv === val || cv === '';
+                card.style.display = match ? '' : 'none';
+                if (match) shown++;
+            });
+            const count = document.getElementById('mediaFilterCount');
+            if (count) count.textContent = (val === '__all__') ? '' : (shown + ' of ' + cards.length + ' shown');
+        }
+        function syncMediaColorFilter() {
+            const bar = document.getElementById('mediaFilterBar');
+            const sel = document.getElementById('mediaColorFilter');
+            if (!bar || !sel) return;
+            const cards = Array.from(document.querySelectorAll('#imagesContainer .media-card'));
+            const colorSel = cards.map(c => c.querySelector('.media-color-select')).find(Boolean);
+            // Only worth showing once there are colorways AND enough media to scroll.
+            if (!colorSel || cards.length < 4) {
+                bar.style.display = 'none';
+                sel.value = '__all__';
+                applyMediaColorFilter();
+                return;
+            }
+            const names = Array.from(colorSel.options).map(o => o.value).filter(Boolean);
+            const prev = sel.value;
+            sel.innerHTML = '<option value="__all__">All media</option>' +
+                names.map(n => `<option value="${escapeAttr(n)}">${escapeAttr(n)}</option>`).join('');
+            sel.value = names.includes(prev) ? prev : '__all__';
+            bar.style.display = 'flex';
+            applyMediaColorFilter();
         }
 
         // Build color dropdown options from current color variant form entries
@@ -12066,6 +12160,7 @@
                     if (sel) sel.value = assignedColorName;
                 }
             });
+            syncMediaColorFilter();
 
             const colorContainer = document.getElementById('colorVariantsContainer');
             colorContainer.innerHTML = '';
