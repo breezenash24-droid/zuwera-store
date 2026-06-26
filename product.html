@@ -68,7 +68,7 @@
 <!-- Stylesheets -->
 <link rel="stylesheet" href="base.css">
 <link rel="stylesheet" href="nav.css?v=e1e6dc8e">
-<link rel="stylesheet" href="product.css?v=526402bb">
+<link rel="stylesheet" href="product.css?v=c7abac01">
 <link rel="stylesheet" href="cart.css?v=43a9e1fb">
 <!-- reviews.css styles only below-the-fold review content + hidden review
      modals, so load it non-render-blocking (matches index.html). reviews-vibe.css
@@ -2855,9 +2855,10 @@ function renderGallery() {
     return;
   }
 
-  // Preserve index across color switches; clamp to new length
+  // Preserve index across color switches; clamp to new length. This path runs on
+  // first paint and colorway switches → use the soft fade, not the slide.
   currentImageIndex = Math.max(0, Math.min(currentImageIndex, currentProduct.images.length - 1));
-  updateMainImage(currentImageIndex);
+  updateMainImage(currentImageIndex, 'fade');
 
   document.getElementById('prevImg').onclick = () => updateMainImage(currentImageIndex - 1);
   document.getElementById('nextImg').onclick = () => updateMainImage(currentImageIndex + 1);
@@ -2927,11 +2928,23 @@ function setActiveGalleryDot(index) {
   dotsEl.querySelectorAll('.gallery-dot').forEach((d, i) => d.classList.toggle('active', i === index));
 }
 
-function updateMainImage(index) {
+function updateMainImage(index, mode) {
+  // mode: 'slide' = directional carousel (swipe / arrows / thumbnails),
+  //       'fade'  = soft fade+settle (colorway switch / first paint).
+  mode = mode || 'slide';
   const images = currentProduct.images;
   if (!images || !images.length) return;
+  const _prevIndex = currentImageIndex;
   if (index < 0) index = images.length - 1;
   if (index >= images.length) index = 0;
+  // Carousel direction: +1 forward (new photo enters from the right), -1 back
+  // (enters from the left). Handles wrap-around at the ends.
+  let _slideDir = 1;
+  if (index !== _prevIndex) {
+    _slideDir = index > _prevIndex ? 1 : -1;
+    if (_prevIndex === images.length - 1 && index === 0) _slideDir = 1;
+    else if (_prevIndex === 0 && index === images.length - 1) _slideDir = -1;
+  }
   currentImageIndex = index;
 
   const item = images[index];
@@ -2951,18 +2964,20 @@ function updateMainImage(index) {
   } else {
     if (mainVidEl) { mainVidEl.style.display = 'none'; mainVidEl.pause(); mainVidEl.src = ''; }
     mainImgEl.style.display = '';
-    // Soft fade + settle on every swap (was a rigid instant cut). Thumbnails are
-    // preloaded, so the next image is usually cached and the fade plays at once.
-    const _fadeInMainImg = () => {
+    // Animate the swap: a directional carousel slide for photo navigation, or a
+    // soft fade+settle for colorway switches / first paint. Thumbnails are
+    // preloaded, so the next image is usually cached and it plays at once.
+    const _animMainImg = () => {
       galleryMain?.classList.remove('loading');
-      mainImgEl.classList.remove('zw-img-in');
+      mainImgEl.classList.remove('zw-img-in', 'zw-slide-next', 'zw-slide-prev');
       void mainImgEl.offsetWidth;          // restart the animation each time
-      mainImgEl.classList.add('zw-img-in');
+      if (mode === 'fade') mainImgEl.classList.add('zw-img-in');
+      else mainImgEl.classList.add(_slideDir < 0 ? 'zw-slide-prev' : 'zw-slide-next');
     };
     mainImgEl.src = optimizeImage(item.image_url, 1200);
-    mainImgEl.onload  = _fadeInMainImg;
+    mainImgEl.onload  = _animMainImg;
     mainImgEl.onerror = function() {
-      _fadeInMainImg();
+      _animMainImg();
       if (this.src !== item.image_url) this.src = item.image_url;
     };
     mainImgEl.alt = item.alt_text || currentProduct.title;

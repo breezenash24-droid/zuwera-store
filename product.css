@@ -114,14 +114,28 @@
   100% { background-position: -200% 0; }
 }
 
-/* Soft fade + settle when the main image changes (replaces the rigid cut). */
+/* Colorway switch / first paint: soft fade + settle. */
 .main-image.zw-img-in { animation: zwMainImgIn 0.42s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
 @keyframes zwMainImgIn {
   from { opacity: 0; transform: scale(1.04); }
   to   { opacity: 1; transform: scale(1); }
 }
+/* Photo navigation (swipe / arrows / thumbnails): directional carousel slide.
+   New photo slides in from the side you're navigating toward. */
+.main-image.zw-slide-next { animation: zwSlideNext 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+.main-image.zw-slide-prev { animation: zwSlidePrev 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+@keyframes zwSlideNext {
+  from { opacity: 0.3; transform: translateX(32%); }
+  to   { opacity: 1;   transform: translateX(0); }
+}
+@keyframes zwSlidePrev {
+  from { opacity: 0.3; transform: translateX(-32%); }
+  to   { opacity: 1;   transform: translateX(0); }
+}
 @media (prefers-reduced-motion: reduce) {
-  .main-image.zw-img-in { animation: none; }
+  .main-image.zw-img-in,
+  .main-image.zw-slide-next,
+  .main-image.zw-slide-prev { animation: none; }
 }
 
 .main-image {
