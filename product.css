@@ -739,9 +739,18 @@
 
   /* Mobile: hide the angle-thumbnail strip + the prev/next arrows. The colourway
      thumbnails (moved directly under the photo by JS) replace the strip, and the
-     main image stays swipeable for other angles. */
-  .gallery-thumbnails { display: none !important; }
-  .gallery-arrow { display: none !important; }
+     main image stays swipeable for other angles.
+     NB: higher specificity than storefront-mobile-rebuild.css's
+     `.gallery-thumbnails{display:flex!important}`, which loads later. */
+  .gallery-section .gallery-thumbnails { display: none !important; }
+  .gallery-main .gallery-arrow { display: none !important; }
+
+  /* Colourway picker now sits right under the photo: inset to the page gutter
+     (so it isn't jammed against the left edge) and pulled up close to the image. */
+  .gallery-section .colorway-section {
+    padding: 0.75rem var(--zw-mobile-gutter, 1.1rem) 0.5rem !important;
+  }
+  .gallery-section .colorway-section .color-swatches { margin-bottom: 0.5rem; }
 
   .product-title {
     font-size: clamp(1.5rem, 5vw, 2rem);
