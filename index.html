@@ -213,7 +213,7 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=29023607">
 <!-- Quick-add modal module MUST load before storefront.js: the grid wiring in
      storefront.js calls window.quickAddToCart, which this module provides. -->
-<script src="quick-add-modal.js?v=bf583591" defer></script>
+<script src="quick-add-modal.js?v=e5e70daa" defer></script>
 <script src="storefront.js?v=da4cf274" defer></script>
 <script src="/stripe-client-config.js?v=c262166e" defer></script>
 <script src="/checkout-tax.js?v=b12c4e5f" defer></script>
@@ -846,6 +846,13 @@ body.light-mode .quick-back-btn:hover{color:rgba(9,9,11,.7)}
    cream/white strip that goes stark on the dark modal or seams in super-light. */
 .quick-add-review-media{position:relative;background:var(--ink);aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:pan-y pinch-zoom}
 .quick-add-review-media img{width:100%;height:100%;object-fit:cover;object-position:center center;display:block}
+.quick-add-review-media :is(img,video).zw-img-in{animation:qaImgIn .42s cubic-bezier(.22,.61,.36,1) both}
+.quick-add-review-media :is(img,video).zw-slide-next{animation:qaSlideNext .4s cubic-bezier(.22,.61,.36,1) both}
+.quick-add-review-media :is(img,video).zw-slide-prev{animation:qaSlidePrev .4s cubic-bezier(.22,.61,.36,1) both}
+@keyframes qaImgIn{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:scale(1)}}
+@keyframes qaSlideNext{from{opacity:.3;transform:translateX(32%)}to{opacity:1;transform:translateX(0)}}
+@keyframes qaSlidePrev{from{opacity:.3;transform:translateX(-32%)}to{opacity:1;transform:translateX(0)}}
+@media(prefers-reduced-motion:reduce){.quick-add-review-media :is(img,video):is(.zw-img-in,.zw-slide-next,.zw-slide-prev){animation:none}}
 .quick-add-review-placeholder{font-family:var(--fm);font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(244,241,235,.28)}
 .quick-add-gallery-arrow{
   position:absolute;top:50%;transform:translateY(-50%);z-index:8;
@@ -863,8 +870,10 @@ body.light-mode .quick-back-btn:hover{color:rgba(9,9,11,.7)}
 .quick-add-review-body{padding:1.6rem 1.7rem 1.7rem}
 .quick-add-product-body{display:flex;flex-direction:column;gap:1rem}
 .quick-add-review-kicker{font-family:var(--fm);font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:.45rem}
-.quick-add-review-title{font-family:var(--fw);font-size:2.15rem;font-style:italic;letter-spacing:.05em;line-height:.95;text-transform:uppercase;margin-bottom:.25rem}
+.quick-add-review-title{font-family:var(--fw);font-size:2.15rem;font-style:italic;font-weight:900;letter-spacing:.05em;line-height:.95;text-transform:uppercase;margin-bottom:.25rem}
 .quick-add-product-meta{display:flex;gap:.7rem;align-items:center;justify-content:space-between;font-family:var(--fm);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(244,241,235,.68);border-bottom:1px solid rgba(244,241,235,.08);padding-bottom:.95rem}
+#quick-add-review-price{font-family:var(--fw);font-weight:700;font-size:1.1rem;letter-spacing:.01em;text-transform:none;color:rgba(244,241,235,.95)}
+body.light-mode #quick-add-review-price{color:rgba(9,9,11,.92)}
 .quick-add-review-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem;margin-bottom:1.25rem}
 .quick-add-review-detail{border:1px solid rgba(244,241,235,.09);padding:.75rem .8rem;min-height:58px}
 .quick-add-review-label{display:block;font-family:var(--fm);font-size:.52rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.34);margin-bottom:.35rem}
@@ -877,10 +886,11 @@ body.light-mode .quick-back-btn:hover{color:rgba(9,9,11,.7)}
 .quick-add-option-head{display:flex;justify-content:space-between;gap:1rem;margin-bottom:.75rem;font-family:var(--fm);font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,241,235,.42)}
 .quick-add-option-head strong{color:rgba(244,241,235,.88);font-weight:500;text-align:right}
 .quick-add-option-grid{display:flex;flex-wrap:wrap;gap:.55rem}
-.quick-add-color,.quick-add-size{border:1px solid rgba(244,241,235,.12);background:transparent;color:rgba(244,241,235,.76);min-height:38px;padding:0 .8rem;font-family:var(--fm);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
-.quick-add-color{display:flex;align-items:center;gap:.45rem}
-.quick-add-color span{width:15px;height:15px;border-radius:2px;border:1.5px solid #000}
-.quick-add-color.active,.quick-add-size.active{border-color:var(--paper);color:var(--paper);background:rgba(244,241,235,.1)}
+.quick-add-size{border:1px solid rgba(244,241,235,.12);background:transparent;color:rgba(244,241,235,.76);min-height:38px;padding:0 .8rem;font-family:var(--fm);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+.quick-add-color{width:52px;height:65px;flex:0 0 auto;border:1px solid rgba(244,241,235,.2);border-radius:2px;background-color:transparent;background-size:cover;background-position:center top;background-repeat:no-repeat;padding:0;cursor:pointer;transition:border-color .15s ease,box-shadow .15s ease}
+.quick-add-color:hover{border-color:rgba(244,241,235,.55)}
+.quick-add-color.active{border-color:var(--paper);box-shadow:0 0 0 1px var(--paper)}
+.quick-add-size.active{border-color:var(--paper);color:var(--paper);background:rgba(244,241,235,.1)}
 .quick-add-size.sold-out{opacity:.35;cursor:not-allowed;text-decoration:line-through}
 .quick-add-empty-option{font-family:var(--fm);font-size:.68rem;color:rgba(244,241,235,.48);margin:0}
 .quick-add-review-message{font-family:var(--fm);font-size:.68rem;letter-spacing:.06em;color:rgba(244,241,235,.5);min-height:1rem;margin:0}
@@ -906,8 +916,10 @@ body.light-mode .quick-add-thumb{border-color:rgba(9,9,11,.1)}
 body.light-mode .quick-add-option-block{border-color:rgba(9,9,11,.09)}
 body.light-mode .quick-add-option-head{color:rgba(9,9,11,.42)}
 body.light-mode .quick-add-option-head strong{color:rgba(9,9,11,.86)}
-body.light-mode .quick-add-color,body.light-mode .quick-add-size{border-color:rgba(9,9,11,.12);color:rgba(9,9,11,.74)}
-body.light-mode .quick-add-color.active,body.light-mode .quick-add-size.active{border-color:#09090b;color:#09090b;background:rgba(9,9,11,.09);font-weight:600}
+body.light-mode .quick-add-size{border-color:rgba(9,9,11,.12);color:rgba(9,9,11,.74)}
+body.light-mode .quick-add-color{border-color:rgba(9,9,11,.18)}
+body.light-mode .quick-add-color.active{border-color:#09090b;box-shadow:0 0 0 1px #09090b}
+body.light-mode .quick-add-size.active{border-color:#09090b;color:#09090b;background:rgba(9,9,11,.09);font-weight:600}
 body.light-mode .quick-add-thumb.active{border-color:#09090b;opacity:1}
 body.light-mode .quick-add-empty-option,body.light-mode .quick-add-review-message{color:rgba(9,9,11,.5)}
 body.light-mode .quick-add-review-actions button,body.light-mode .quick-add-review-actions a{border-color:rgba(9,9,11,.12);color:rgba(9,9,11,.68)}

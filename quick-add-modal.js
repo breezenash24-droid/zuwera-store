@@ -136,7 +136,7 @@
     var currentIndex = quickAddActiveImageIndex(item, images);
     var nextIndex = (currentIndex + direction + images.length) % images.length;
     item.activeImage = images[nextIndex];
-    quickAddRenderGallery(item);
+    quickAddRenderGallery(item, { type: 'slide', dir: direction });
   }
 
   function quickAddSetScrollLock(locked) {
@@ -187,7 +187,7 @@
     quickAddSetScrollLock(false);
   }
 
-  function quickAddRenderGallery(item) {
+  function quickAddRenderGallery(item, anim) {
     var media = document.getElementById('quick-add-review-media');
     var thumbs = document.getElementById('quick-add-review-thumbs');
     var images = (item.images && item.images.length) ? item.images : (item.image ? [item.image] : []);
@@ -220,6 +220,15 @@
         if (touchEndX < touchStartX - 40) quickAddMoveGallery(item, 1);
         if (touchEndX > touchStartX + 40) quickAddMoveGallery(item, -1);
       };
+      // Animate the swap to match the product page: directional slide for photo
+      // nav, soft fade for colorway switches.
+      var animEl = media.querySelector('img, video');
+      if (animEl && anim) {
+        animEl.classList.remove('zw-img-in', 'zw-slide-next', 'zw-slide-prev');
+        void animEl.offsetWidth;
+        if (anim.type === 'fade') animEl.classList.add('zw-img-in');
+        else animEl.classList.add(anim.dir < 0 ? 'zw-slide-prev' : 'zw-slide-next');
+      }
     }
     if (!thumbs) return;
     thumbs.innerHTML = images.map(function (src, idx) {
@@ -229,7 +238,13 @@
       return '<button type="button" class="quick-add-thumb' + (src === current ? ' active' : '') + '" data-img="' + quickAddEscapeAttr(src) + '" aria-label="View product media ' + (idx + 1) + '">' + inner + '</button>';
     }).join('');
     thumbs.querySelectorAll('.quick-add-thumb').forEach(function (button) {
-      button.addEventListener('click', function () { item.activeImage = button.dataset.img; quickAddRenderGallery(item); });
+      button.addEventListener('click', function () {
+        var imgs = (item.images && item.images.length) ? item.images : (item.image ? [item.image] : []);
+        var prevI = quickAddActiveImageIndex(item, imgs);
+        item.activeImage = button.dataset.img;
+        var newI = imgs.indexOf(button.dataset.img);
+        quickAddRenderGallery(item, { type: 'slide', dir: newI < prevI ? -1 : 1 });
+      });
     });
   }
 
@@ -247,7 +262,13 @@
         ? colors.map(function (color, idx) {
             var name = color.color_name || ('Color ' + (idx + 1));
             var active = (selectedColor && selectedColor.color_name === color.color_name) ? ' active' : '';
-            return '<button type="button" class="quick-add-color' + active + '" data-index="' + idx + '" aria-label="' + quickAddEscapeAttr(name) + '"><span style="background:' + quickAddEscapeAttr(color.hex_color || '#888') + '"></span>' + quickAddEscapeAttr(name) + '</button>';
+            // Product-photo thumbnail per colour (matches the full product page).
+            var cimgs = item.allImageRows ? quickAddGetImagesForColor(item.allImageRows, item.image, color.id || null) : [];
+            var thumbSrc = '';
+            for (var ci = 0; ci < cimgs.length; ci++) { if (!quickAddIsVideo(cimgs[ci])) { thumbSrc = cimgs[ci]; break; } }
+            if (!thumbSrc) thumbSrc = cimgs[0] || '';
+            var styleAttr = thumbSrc ? "background-image:url('" + quickAddEscapeAttr(thumbSrc) + "')" : 'background:' + quickAddEscapeAttr(color.hex_color || '#888');
+            return '<button type="button" class="quick-add-color' + active + (thumbSrc ? ' has-thumb' : '') + '" data-index="' + idx + '" title="' + quickAddEscapeAttr(name) + '" aria-label="' + quickAddEscapeAttr(name) + '" style="' + styleAttr + '"></button>';
           }).join('')
         : '<p class="quick-add-empty-option">Standard colorway</p>';
       colorWrap.querySelectorAll('.quick-add-color').forEach(function (button) {
@@ -259,7 +280,7 @@
             item.images = quickAddGetImagesForColor(item.allImageRows, item.image, (item.selectedColor && item.selectedColor.id) || null);
             var clampedIndex = Math.min(prevIndex, Math.max(item.images.length - 1, 0));
             item.activeImage = item.images[clampedIndex] || item.images[0] || '';
-            quickAddRenderGallery(item);
+            quickAddRenderGallery(item, { type: 'fade' });
           }
           quickAddRenderOptions(item);
         });
