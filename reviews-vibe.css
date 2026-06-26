@@ -2008,15 +2008,17 @@ body.light-mode .review-dialog--classic-form .review-submit-btn:hover {
     grid-template-columns: 1fr;
   }
 
-  /* Size & Fit should remain a centered dialog, not a bottom sheet. */
+  /* Size & Fit is a bottom sheet on mobile, like every other modal. */
   #size-fit-modal.modal--review {
-    align-items: center !important;
+    align-items: flex-end !important;
     justify-content: center !important;
-    padding: 0.75rem !important;
+    padding: calc(1.6rem + 36px + env(safe-area-inset-top, 0px)) 0 0 !important;
   }
 
   #size-fit-modal .review-dialog {
-    max-height: min(90dvh, 54rem) !important;
-    border-radius: var(--zw-radius-modal) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: calc(100dvh - 1.6rem - 36px - env(safe-area-inset-top, 0px) - 0.5rem) !important;
+    border-radius: 1.25rem 1.25rem 0 0 !important;
   }
 }
