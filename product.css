@@ -205,6 +205,39 @@
   display: block;
 }
 
+/* Carousel position indicator (Nike-style frosted pill of dots) — overlaid on
+   the main image. Hidden on desktop (the thumbnail strip shows position there);
+   shown on mobile where the angle strip is removed. */
+.gallery-dots {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 1px 7px rgba(0, 0, 0, 0.14);
+  z-index: 4;
+  pointer-events: none;
+}
+.gallery-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(9, 9, 11, 0.3);
+  transition: background 0.2s ease, width 0.2s ease;
+}
+.gallery-dot.active {
+  width: 17px;
+  border-radius: 999px;
+  background: rgba(9, 9, 11, 0.85);
+}
+
 /* ===================== INFO SECTION ===================== */
 .info-section {
   display: flex;
@@ -744,6 +777,10 @@
      `.gallery-thumbnails{display:flex!important}`, which loads later. */
   .gallery-section .gallery-thumbnails { display: none !important; }
   .gallery-main .gallery-arrow { display: none !important; }
+
+  /* Show the carousel position dots on mobile (the angle strip is gone, so this
+     is how you see which photo you're on while swiping). */
+  .gallery-dots.has-dots { display: flex; }
 
   /* Colourway picker now sits right under the photo: inset to the page gutter
      (so it isn't jammed against the left edge) and pulled up close to the image. */
