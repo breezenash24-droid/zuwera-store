@@ -1505,7 +1505,7 @@ function zwCardSwatchRow(p, quickAddPayload, fallbackImg) {
   const colors = (p.color_variants || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   const imgs = p.product_images || [];
   const esc = (s) => escapeHomeFavoriteHtml(String(s == null ? '' : s));
-  const MAX = 6;
+  const MAX = 5;
   if (!colors.length) {
     // Single-image product: show one thumbnail of the main image so the card
     // stays consistent (no out-of-place Add-to-Bag button).
@@ -1514,8 +1514,8 @@ function zwCardSwatchRow(p, quickAddPayload, fallbackImg) {
     if (!src) return '';
     return `<div class="zw-card-swatches" data-quick-add="${quickAddPayload}"><button type="button" class="zw-card-swatch" data-img="${esc(src)}" aria-label="${esc(p.title || 'View')}" style="background-image:url('${esc(src)}')"></button></div>`;
   }
-  // Show every colorway thumbnail (no "+N" overflow tile) so all options are visible.
-  let html = colors.map((c) => {
+  // Cap at MAX thumbnails + a "+N" overflow tile so every card is the same height.
+  let html = colors.slice(0, MAX).map((c) => {
     const ci = imgs.filter((im) => im.color_variant_id === c.id).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))[0];
     let src = (ci && ci.image_url) || fallbackImg || '';
     if (src && typeof window.optimizeImage === 'function') src = window.optimizeImage(src, 600);
@@ -1523,6 +1523,7 @@ function zwCardSwatchRow(p, quickAddPayload, fallbackImg) {
     const thumbStyle = src ? `background-image:url('${esc(src)}')` : `background:${esc(c.hex_color || '#888')}`;
     return `<button type="button" class="zw-card-swatch" data-color-name="${esc(nm)}" data-img="${esc(src)}" title="${esc(nm)}" aria-label="${esc(nm)}" style="${thumbStyle}"></button>`;
   }).join('');
+  if (colors.length > MAX) html += `<button type="button" class="zw-card-swatch zw-swatch-more" aria-label="${esc((colors.length - MAX) + ' more colors')}">+${colors.length - MAX}</button>`;
   return `<div class="zw-card-swatches" data-quick-add="${quickAddPayload}">${html}</div>`;
 }
 
