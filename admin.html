@@ -1102,6 +1102,26 @@
             margin-top: 14px;
             margin-bottom: 6px;
         }
+        /* Quick-fill bar — set stock for many cells at once. */
+        .stock-quickfill {
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            margin: 8px 0 4px; padding: 9px 11px;
+            background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px;
+        }
+        .stock-qf-label { font-size: .78rem; font-weight: 700; color: var(--text-secondary); letter-spacing: .03em; }
+        .stock-qf-input {
+            width: 80px; padding: 6px 8px; text-align: center;
+            background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px;
+            color: var(--text-primary); font-family: 'Barlow', sans-serif; font-size: .9rem;
+        }
+        .stock-qf-input:focus { outline: none; border-color: var(--accent); }
+        .stock-qf-hint { font-size: .72rem; color: var(--text-secondary); flex-basis: 100%; line-height: 1.4; }
+        .stock-col-fill, .stock-row-fill {
+            margin-left: 6px; padding: 0 6px; font-size: .82rem; line-height: 1.5;
+            background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 4px;
+            color: var(--text-secondary); cursor: pointer; vertical-align: middle;
+        }
+        .stock-col-fill:hover, .stock-row-fill:hover { color: var(--accent); border-color: var(--accent); }
 
         @media (max-width: 720px) {
             .size-row {
@@ -10460,6 +10480,29 @@
         });
         document.getElementById('mediaColorFilter').addEventListener('change', applyMediaColorFilter);
 
+        // Stock matrix quick-fill — one click to set many cells. Delegated to the
+        // wrapper (the matrix HTML is rebuilt on every color/size change).
+        document.getElementById('stockMatrixWrapper').addEventListener('click', (e) => {
+            const fillAll = e.target.closest('#stockFillAllBtn');
+            const fillEmpty = e.target.closest('#stockFillEmptyBtn');
+            const colFill = e.target.closest('.stock-col-fill');
+            const rowFill = e.target.closest('.stock-row-fill');
+            if (!fillAll && !fillEmpty && !colFill && !rowFill) return;
+            e.preventDefault();
+            const qf = document.getElementById('stockQuickFillVal');
+            const val = qf ? qf.value.trim() : '';
+            if (val === '') { if (qf) qf.focus(); return; }
+            document.querySelectorAll('#stockMatrixWrapper .stock-cell').forEach(cell => {
+                if (!cell.dataset.size) return;
+                let apply = false;
+                if (fillAll) apply = true;
+                else if (fillEmpty) apply = (cell.value.trim() === '');
+                else if (colFill) apply = (cell.dataset.color === colFill.dataset.color);
+                else if (rowFill) apply = (cell.dataset.size === rowFill.dataset.size);
+                if (apply) cell.value = val;
+            });
+        });
+
         function addMediaCard(container, url, colorOpts, selectedColor) {
             const opts = colorOpts || getColorOptionsForRows();
             const card = document.createElement('div');
@@ -11563,7 +11606,7 @@
                 const swatch = c.hex_color
                     ? `<span class="color-header-swatch" style="background:${escapeAttr(c.hex_color)}"></span>`
                     : '';
-                return `<th data-color="${escapeAttr(colorKey)}">${swatch}${escapeHtml(c.color_name ?? 'Stock')}</th>`;
+                return `<th data-color="${escapeAttr(colorKey)}">${swatch}${escapeHtml(c.color_name ?? 'Stock')}<button type="button" class="stock-col-fill" data-color="${escapeAttr(colorKey)}" title="Fill this colour's column with the Quick-fill quantity">⤓</button></th>`;
             }).join('');
 
             const tbody = sizes.map(size => {
@@ -11572,7 +11615,7 @@
                     const qty = existingStock[colorKey]?.[size] ?? '';
                     return `<td><input type="number" class="stock-cell" data-color="${escapeAttr(colorKey)}" data-size="${escapeAttr(size)}" min="0" placeholder="0" value="${escapeHtml(String(qty))}"></td>`;
                 }).join('');
-                return `<tr><td class="size-label-cell">${escapeHtml(size)}</td>${cells}</tr>`;
+                return `<tr><td class="size-label-cell">${escapeHtml(size)}<button type="button" class="stock-row-fill" data-size="${escapeAttr(size)}" title="Fill this size across all colours with the Quick-fill quantity">→</button></td>${cells}</tr>`;
             }).join('');
 
             const noColorNote = colorEntries.length === 0
@@ -11580,6 +11623,13 @@
                 : '';
 
             wrapper.innerHTML = `
+                <div class="stock-quickfill">
+                    <span class="stock-qf-label">Quick fill</span>
+                    <input type="number" id="stockQuickFillVal" class="stock-qf-input" min="0" placeholder="Qty">
+                    <button type="button" class="btn btn-secondary btn-sm" id="stockFillAllBtn">Fill all</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="stockFillEmptyBtn">Fill empty</button>
+                    <span class="stock-qf-hint">Type a quantity, then <strong>Fill all</strong> (every size &amp; colour) or <strong>Fill empty</strong> — or hit ⤓ on a colour / → on a size to fill just that one.</span>
+                </div>
                 <div class="stock-matrix-wrap">
                     <table class="stock-matrix">
                         <thead><tr><th style="text-align:left">Size</th>${theadCols}</tr></thead>
