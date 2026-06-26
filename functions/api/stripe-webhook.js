@@ -576,7 +576,7 @@ async function sendConfirmationEmail(pi, meta, tracking, env, emailKeyCache = {}
   const logoUrl = resolveSetting('BRAND_LOGO_URL', env, emailKeyCache)
     || 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
 
-  const orderId      = pi.id.slice(-8).toUpperCase();
+  const orderId      = meta.order_number || pi.id.slice(-8).toUpperCase();
   const toName       = meta.customer_name || 'Customer';
   const totalDollars = (pi.amount / 100).toFixed(2);
   const carrier      = [meta.shipping_provider, meta.shipping_service].filter(Boolean).join(' ') || 'Standard Shipping';
