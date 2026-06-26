@@ -3848,6 +3848,22 @@ window.openSizeFitModal = async function() {
 
   content.innerHTML = '<p class="review-modal-message">Loading fit ratings...</p>';
   modal.classList.add('open');
+  // Force the bottom-sheet layout on mobile inline — beats any stacked modal CSS
+  // that was still centring it. Desktop stays a centred dialog.
+  const _sfBox = modal.querySelector('.review-dialog');
+  if (window.matchMedia('(max-width:600px)').matches) {
+    modal.style.setProperty('align-items', 'flex-end', 'important');
+    modal.style.setProperty('justify-content', 'center', 'important');
+    if (_sfBox) {
+      _sfBox.style.setProperty('width', '100%', 'important');
+      _sfBox.style.setProperty('max-width', '100%', 'important');
+      _sfBox.style.setProperty('border-radius', '1.25rem 1.25rem 0 0', 'important');
+    }
+  } else {
+    modal.style.removeProperty('align-items');
+    modal.style.removeProperty('justify-content');
+    if (_sfBox) { _sfBox.style.removeProperty('width'); _sfBox.style.removeProperty('max-width'); _sfBox.style.removeProperty('border-radius'); }
+  }
   // Clear/transparent backdrop, like every other modal on the site.
   modal.style.setProperty('background', 'transparent', 'important');
   modal.style.setProperty('backdrop-filter', 'none', 'important');
