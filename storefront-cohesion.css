@@ -3038,6 +3038,25 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.18)!important;}
     padding:calc(1.6rem + 36px + env(safe-area-inset-top,0px)) 0 0 !important;
   }
 
+  /* ── Drag handle: a consistent grab-bar at the top of every bottom sheet.
+     The review / all-reviews sheets (.review-mbox / .review-list-mbox) already
+     carry their own matching handle, so they're excluded here to avoid doubles;
+     the nav drawer (#mobile-menu) is excluded too. ── */
+  .modal:not(#mobile-menu):not(#cart-modal):not(#payment-modal) > :is(.mbox,.collection-review-box)::before{
+    content:'';
+    display:block;
+    flex:0 0 auto;
+    order:-1;
+    width:36px;
+    height:4px;
+    border-radius:2px;
+    background:rgba(244,241,235,.18);
+    margin:.6rem auto .55rem;
+  }
+  body.light-mode .modal:not(#mobile-menu):not(#cart-modal):not(#payment-modal) > :is(.mbox,.collection-review-box)::before{
+    background:rgba(9,9,11,.16);
+  }
+
   /* ── Close button: sticky inside the scrollable modal, always visible ── */
   /* position:sticky + align-self:flex-end keeps it at top-right
      of the flex-column modal as you scroll down */
