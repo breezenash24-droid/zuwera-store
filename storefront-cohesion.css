@@ -3018,6 +3018,17 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.18)!important;}
     box-shadow:0 -8px 40px rgba(0,0,0,.28) !important;
   }
 
+  /* Consistent bottom-sheet MOTION: every sheet slides up from the bottom edge
+     (overrides the base 14px nudge + scale used on desktop). One timing/easing
+     shared by all sheets — quick-add, size guide, size & fit, login, reviews. */
+  .modal:not(#mobile-menu):not(#cart-modal):not(#payment-modal) > :is(.mbox,.review-mbox,.review-list-mbox,.review-dialog){
+    transition:transform .42s cubic-bezier(.32,.72,0,1), opacity .24s ease !important;
+  }
+  .modal:not(#mobile-menu):not(#cart-modal):not(#payment-modal):not(.open) > :is(.mbox,.review-mbox,.review-list-mbox,.review-dialog){
+    transform:translateY(100%) !important;
+    opacity:1 !important;
+  }
+
   /* Quick-add product modal: also bottom sheet */
   .quick-add-review-modal > .mbox.quick-add-product-box{
     min-height:0 !important;
