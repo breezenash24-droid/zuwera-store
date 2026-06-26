@@ -819,9 +819,13 @@
   .gallery-dots.has-dots { display: flex; }
 
   /* Colourway picker now sits right under the photo: inset to the page gutter
-     (so it isn't jammed against the left edge) and pulled up close to the image. */
+     (so it isn't jammed against the left edge) and pulled up close to the image.
+     Drop its top/bottom divider lines — those are for the desktop info column;
+     under the photo they read as stray lines floating in the gallery. */
   .gallery-section .colorway-section {
     padding: 0.75rem var(--zw-mobile-gutter, 1.1rem) 0.5rem !important;
+    border-top: none !important;
+    border-bottom: none !important;
   }
   .gallery-section .colorway-section .color-swatches { margin-bottom: 0.5rem; }
 

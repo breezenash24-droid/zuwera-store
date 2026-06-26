@@ -265,8 +265,11 @@
       color: var(--text);
       line-height: 1;
     }
-    body.embed-mode.embed-focused .focused-guide-note {
-      display: block;
+    /* The focused-guide note is intentionally kept hidden (the modal title
+       already names the guide). It is never populated, so don't force it
+       visible — doing so rendered an empty bordered box above "Find My Size". */
+    body.embed-mode.embed-focused .focused-guide-note[hidden] {
+      display: none;
     }
     body.embed-mode.embed-focused .tabs-nav.tabs-nav--hidden {
       display: none;
