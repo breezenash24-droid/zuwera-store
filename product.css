@@ -305,14 +305,20 @@
   flex-wrap: wrap;
 }
 
+/* Colorway picker = product-photo thumbnail (not a flat colour chip). */
 .color-swatch {
-  width: 48px;
-  height: 48px;
-  border: 2px solid var(--c20);
-  border-radius: 0;
+  width: 56px;
+  height: 70px;
+  border: 1px solid var(--c20);
+  border-radius: 2px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
   flex-shrink: 0;
+  padding: 0;
+  background-color: transparent;
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
 }
 
 .color-swatch:hover {
@@ -731,10 +737,11 @@
     gap: 1.5rem;
   }
 
-  .gallery-thumbnails {
-    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-    gap: 0.5rem;
-  }
+  /* Mobile: hide the angle-thumbnail strip + the prev/next arrows. The colourway
+     thumbnails (moved directly under the photo by JS) replace the strip, and the
+     main image stays swipeable for other angles. */
+  .gallery-thumbnails { display: none !important; }
+  .gallery-arrow { display: none !important; }
 
   .product-title {
     font-size: clamp(1.5rem, 5vw, 2rem);
@@ -749,8 +756,8 @@
   }
 
   .color-swatch {
-    width: 40px;
-    height: 40px;
+    width: 58px;
+    height: 72px;
   }
 
   .add-to-cart-btn {
@@ -829,8 +836,8 @@
   }
 
   .color-swatch {
-    width: 36px;
-    height: 36px;
+    width: 54px;
+    height: 68px;
   }
 
   .add-to-cart-btn {
