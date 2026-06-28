@@ -1351,15 +1351,30 @@ function renderCategoryNavigation(products) {
   if (mobile) mobile.innerHTML = mobilePrimaryHtml;
 }
 
-// Deduplication guard â€” if loadProducts() is called concurrently (e.g. from
+// Deduplication guard — if loadProducts() is called concurrently (e.g. from
 // auth init and applyBuilderConfig at the same time) only one fetch runs.
 // The early-fetch response body can only be read once, so concurrent calls
 // hitting it simultaneously caused "body stream already read" errors.
 let _loadProductsInFlight = null;
 
+// Lightweight re-render from sessionStorage cache — no fetch, no skeleton.
+// Used by onAuthStateChange so switching tabs doesn't flash.
+function reRenderProductsFromCache() {
+  const grid = document.getElementById('products-grid');
+  if (!grid) return false;
+  try {
+    const cached = JSON.parse(sessionStorage.getItem('zw_home_products') || '[]');
+    if (!Array.isArray(cached) || cached.length === 0) return false;
+    renderProductCards(cached, grid);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 async function loadProducts() {
   if (_loadProductsInFlight) {
-    // A fetch is already in progress â€” wait for it to finish, then re-render.
+    // A fetch is already in progress — wait for it to finish, then re-render.
     await _loadProductsInFlight.catch(() => {});
     return;
   }
@@ -1375,16 +1390,30 @@ async function _doLoadProducts() {
   const grid = document.getElementById('products-grid');
   if (!grid) return;
 
-  // Show skeleton placeholders while fetching.
-  grid.innerHTML = Array(4).fill(0).map(() => `
-    <div class="pcard pcard--skeleton" aria-hidden="true" tabindex="-1">
-      <div class="pcard-img"><div class="pcard-skel-img"></div></div>
-      <div class="pcard-info">
-        <div class="pcard-skel-line" style="width:38%;height:.52rem;margin-bottom:.55rem"></div>
-        <div class="pcard-skel-line" style="width:82%;height:.9rem;margin-bottom:.45rem"></div>
-        <div class="pcard-skel-line" style="width:26%;height:.68rem;margin-top:.9rem"></div>
-      </div>
-    </div>`).join('');
+  // If we already have cached products, render them instantly (no skeleton
+  // flash). The fetch below will still run and silently update if data changed.
+  let usedCache = false;
+  try {
+    const cached = JSON.parse(sessionStorage.getItem('zw_home_products') || '[]');
+    if (Array.isArray(cached) && cached.length > 0) {
+      renderCategoryNavigation(cached);
+      renderProductCards(cached, grid);
+      usedCache = true;
+    }
+  } catch (_) {}
+
+  // Show skeleton placeholders only on first visit (no cache yet).
+  if (!usedCache) {
+    grid.innerHTML = Array(4).fill(0).map(() => `
+      <div class="pcard pcard--skeleton" aria-hidden="true" tabindex="-1">
+        <div class="pcard-img"><div class="pcard-skel-img"></div></div>
+        <div class="pcard-info">
+          <div class="pcard-skel-line" style="width:38%;height:.52rem;margin-bottom:.55rem"></div>
+          <div class="pcard-skel-line" style="width:82%;height:.9rem;margin-bottom:.45rem"></div>
+          <div class="pcard-skel-line" style="width:26%;height:.68rem;margin-top:.9rem"></div>
+        </div>
+      </div>`).join('');
+  }
 
   try {
     const headers = { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` };
@@ -1403,18 +1432,27 @@ async function _doLoadProducts() {
     if (!productsResp.ok) throw new Error(`HTTP ${productsResp.status}`);
     const products = await productsResp.json();
     if (!Array.isArray(products) || products.length === 0) {
-      grid.innerHTML = '<div class="pcard" style="opacity:.3;text-align:center;padding:3rem">No products yet.</div>';
+      if (!usedCache) grid.innerHTML = '<div class="pcard" style="opacity:.3;text-align:center;padding:3rem">No products yet.</div>';
       return;
     }
     const normalizedProducts = products.map((product) => ({
       ...product,
       product_images: (product.product_images || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)),
     }));
-    sessionStorage.setItem('zw_home_products', JSON.stringify(normalizedProducts));
-    renderCategoryNavigation(normalizedProducts);
-    renderProductCards(normalizedProducts, grid);
+    // Only re-render if data actually changed (avoids a DOM thrash when
+    // returning to the tab with unchanged products).
+    const prevCache = sessionStorage.getItem('zw_home_products');
+    const newCache = JSON.stringify(normalizedProducts);
+    sessionStorage.setItem('zw_home_products', newCache);
+    if (!usedCache || newCache !== prevCache) {
+      renderCategoryNavigation(normalizedProducts);
+      renderProductCards(normalizedProducts, grid);
+    }
   } catch(e) {
     console.error('loadProducts error:', e);
+    // If we already showed cached products, leave them visible instead of
+    // replacing with an error message — the user still has a working page.
+    if (usedCache) return;
     // Actionable, not a dead end: offer a retry. The early fetch is cleared
     // first so the retry issues a fresh request instead of re-awaiting the
     // same rejected promise.
@@ -1426,8 +1464,8 @@ async function _doLoadProducts() {
   }
 }
 
-// Standalone review-summary loader ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â uses direct REST (no _sb dependency,
-// Batch review loader â€” one request for all cards instead of N separate fetches.
+// Standalone review-summary loader — uses direct REST (no _sb dependency,
+// Batch review loader — one request for all cards instead of N separate fetches.
 // Falls back to a per-card fetch for the legacy loadCardReviewSummary(pid, domId) call signature.
 // Shared review-summary helpers (used by both initial render and the async loader,
 // and cached in sessionStorage so a reviewed card shows the right count immediately
@@ -1674,7 +1712,10 @@ function _initAuth() {
       }, 0);
     } else { _favs = []; refreshHearts(); refreshCartFavs(); }
     renderCart();
-    loadProducts();
+    // Re-render from cache instead of full loadProducts() to avoid the
+    // skeleton-flash when switching tabs (onAuthStateChange fires on
+    // every INITIAL_SESSION which Supabase re-emits on tab refocus).
+    if (!reRenderProductsFromCache()) loadProducts();
   });
 }
 
