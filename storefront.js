@@ -292,7 +292,7 @@ function showToast(msg) {
         // Dynamically instantiate builder sections if they don't exist
         if (['spacer', 'text', 'img_cta', 'image_cta', 'custom', 'html',
              'numbers', 'press', 'faq', 'email_capture', 'logos', 'richtext',
-             'split', 'cta', 'features', 'testimonials', 'banner', 'gallery', 'video', 'countdown'].includes(sec.type)) {
+             'split', 'cta', 'features', 'testimonials', 'banner', 'gallery', 'video', 'countdown', 'hero_carousel', 'media_grid'].includes(sec.type)) {
           el = document.createElement('div');
           el.id = sec.id;
           if (sec.type === 'spacer') {
@@ -317,7 +317,7 @@ function showToast(msg) {
           } else if (sec.type === 'custom' || sec.type === 'html') {
             el.className = 'builder-custom-section';
           } else if (['numbers','press','faq','email_capture','logos','richtext',
-                      'split','cta','features','testimonials','banner','gallery','video','countdown'].includes(sec.type)) {
+                      'split','cta','features','testimonials','banner','gallery','video','countdown','hero_carousel','media_grid'].includes(sec.type)) {
             el.className = 'builder-' + sec.type.replace(/_/g,'-') + '-section';
           }
         }
@@ -696,6 +696,229 @@ function showToast(msg) {
             tick();
             setInterval(tick, 1000);
           })();
+          break;
+        }
+        case 'hero_carousel': {
+          el.className = 'builder-hero-carousel-section';
+          const hMap = { full:'100vh', tall:'75vh', half:'50vh', short:'40vh' };
+          el.style.cssText = `position:relative; overflow:hidden; width:100%; height:${hMap[s.height]||'100vh'}; background:${s.sec_bg||'#09090b'};`;
+          
+          const slides = Array.isArray(s.slides) ? s.slides : [];
+          if(slides.length === 0) {
+             el.innerHTML = '<div style="padding:4rem;text-align:center;color:#fff">Add slides in the editor</div>';
+             break;
+          }
+
+          let slidesHtml = '';
+          let dotsHtml = '';
+          slides.forEach((sl, i) => {
+             const active = i === 0 ? ' active' : '';
+             
+             let mediaHtml = '';
+             if (sl.media_type === 'video') {
+                mediaHtml = `<video class="zw-hc-media" src="${sl.media_url||''}" poster="${sl.video_poster||''}" playsinline autoplay loop muted style="object-position:center ${sl.focal_y??50}%"></video>`;
+             } else {
+                mediaHtml = `<picture class="zw-hc-media">
+                   ${sl.media_url_mobile ? `<source media="(max-width:768px)" srcset="${sl.media_url_mobile}">` : ''}
+                   <img src="${sl.media_url||''}" alt="" style="object-position:center ${sl.focal_y??50}%">
+                </picture>`;
+             }
+
+             slidesHtml += `
+             <div class="zw-hc-slide${active}" data-index="${i}">
+                ${mediaHtml}
+                <div class="zw-hc-overlay" style="opacity:${(sl.overlay_opacity??30)/100}"></div>
+                <div class="zw-hc-content" style="text-align:${sl.text_align||'center'}; color:${sl.text_color||'#ffffff'}">
+                   ${sl.eyebrow ? `<p class="zw-hc-eyebrow">${sl.eyebrow}</p>` : ''}
+                   ${sl.heading ? `<h2 class="zw-hc-heading">${sl.heading.replace(/\n/g,'<br>')}</h2>` : ''}
+                   ${sl.subtext ? `<p class="zw-hc-subtext">${sl.subtext}</p>` : ''}
+                   ${sl.cta_text ? `<a class="zw-hc-cta btn-${sl.cta_style||'solid'}" href="${sl.cta_url||'#'}">${sl.cta_text}</a>` : ''}
+                </div>
+                ${sl.watch_btn ? `<button class="zw-hc-watch" onclick="openWatchModal('${sl.watch_url||''}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> ${sl.watch_label||'Watch'}</button>` : ''}
+             </div>`;
+             
+             dotsHtml += `<button class="zw-hc-dot${active}" data-index="${i}" aria-label="Slide ${i+1}"></button>`;
+          });
+
+          el.innerHTML = `
+          <div class="zw-hc-track zw-hc-trans-${s.transition||'fade'}">
+             ${slidesHtml}
+          </div>
+          <div class="zw-hc-controls" style="display:${slides.length > 1 ? 'flex' : 'none'}">
+             ${s.show_dots !== false ? `<div class="zw-hc-dots">${dotsHtml}</div>` : '<div></div>'}
+             <div class="zw-hc-nav">
+                ${s.show_pause !== false ? `<button class="zw-hc-pause" aria-label="Pause/Play"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg></button>` : ''}
+                ${s.show_arrows !== false ? `
+                <button class="zw-hc-prev" aria-label="Previous"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg></button>
+                <button class="zw-hc-next" aria-label="Next"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></button>
+                ` : ''}
+             </div>
+          </div>
+          `;
+
+          const autoplay = s.autoplay !== false;
+          const interval = s.autoplay_interval || 5000;
+          const loop = s.loop !== false;
+          
+          (function initCarousel() {
+             const track = el.querySelector('.zw-hc-track');
+             const slideEls = Array.from(el.querySelectorAll('.zw-hc-slide'));
+             const dots = Array.from(el.querySelectorAll('.zw-hc-dot'));
+             const btnPrev = el.querySelector('.zw-hc-prev');
+             const btnNext = el.querySelector('.zw-hc-next');
+             const btnPause = el.querySelector('.zw-hc-pause');
+             if(!track || slideEls.length <= 1) return;
+
+             let curIdx = 0;
+             let timer = null;
+             let isPaused = false;
+             
+             const update = (newIdx) => {
+                if(!loop) {
+                   if(newIdx < 0) newIdx = 0;
+                   if(newIdx >= slideEls.length) newIdx = slideEls.length - 1;
+                } else {
+                   if(newIdx < 0) newIdx = slideEls.length - 1;
+                   if(newIdx >= slideEls.length) newIdx = 0;
+                }
+                if(newIdx === curIdx) return;
+                
+                const oldVid = slideEls[curIdx].querySelector('video');
+                if(oldVid) oldVid.pause();
+                
+                slideEls[curIdx].classList.remove('active');
+                if(dots[curIdx]) dots[curIdx].classList.remove('active');
+                
+                curIdx = newIdx;
+                slideEls[curIdx].classList.add('active');
+                if(dots[curIdx]) dots[curIdx].classList.add('active');
+                
+                const newVid = slideEls[curIdx].querySelector('video');
+                if(newVid && !isPaused) newVid.play().catch(()=>{});
+                
+                resetTimer();
+             };
+             
+             const next = () => update(curIdx + 1);
+             const prev = () => update(curIdx - 1);
+             
+             const resetTimer = () => {
+                if(timer) clearInterval(timer);
+                if(autoplay && !isPaused) timer = setInterval(next, interval);
+             };
+             
+             if(btnPrev) btnPrev.onclick = () => { isPaused=true; updatePauseIcon(); prev(); };
+             if(btnNext) btnNext.onclick = () => { isPaused=true; updatePauseIcon(); next(); };
+             dots.forEach(d => d.onclick = () => { isPaused=true; updatePauseIcon(); update(parseInt(d.dataset.index)); });
+             
+             const updatePauseIcon = () => {
+                if(!btnPause) return;
+                btnPause.innerHTML = isPaused 
+                  ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`
+                  : `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
+             };
+             
+             if(btnPause) {
+                btnPause.onclick = () => {
+                   isPaused = !isPaused;
+                   updatePauseIcon();
+                   if(isPaused) {
+                      if(timer) clearInterval(timer);
+                      const vid = slideEls[curIdx].querySelector('video');
+                      if(vid) vid.pause();
+                   } else {
+                      resetTimer();
+                      const vid = slideEls[curIdx].querySelector('video');
+                      if(vid) vid.play().catch(()=>{});
+                   }
+                };
+             }
+             
+             let touchStartX = 0;
+             let touchEndX = 0;
+             track.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive:true});
+             track.addEventListener('touchend', e => { 
+                touchEndX = e.changedTouches[0].screenX; 
+                handleSwipe();
+             }, {passive:true});
+             
+             const handleSwipe = () => {
+                const diff = touchStartX - touchEndX;
+                if(Math.abs(diff) > 50) {
+                   isPaused = true;
+                   updatePauseIcon();
+                   if(diff > 0) next(); else prev();
+                }
+             };
+
+             resetTimer();
+          })();
+          break;
+        }
+        case 'media_grid': {
+          el.className = 'builder-media-grid-section';
+          el.style.cssText = `padding:4rem 2.5rem; background:${s.sec_bg||'transparent'}`;
+          
+          const cards = Array.isArray(s.cards) ? s.cards : [];
+          if(cards.length === 0) {
+             el.innerHTML = '<div style="padding:4rem;text-align:center;opacity:0.5">Add cards in the editor</div>';
+             break;
+          }
+          
+          const layout = s.layout || 'grid';
+          const cols = s.columns || 3;
+          const gapMap = { none:'0', xs:'.5rem', sm:'1rem', md:'1.5rem', lg:'2.5rem' };
+          const gap = gapMap[s.gap||'md'] || '1.5rem';
+          const aspectMap = { square:'1/1', portrait:'3/4', wide:'16/9', auto:'auto' };
+          const aspect = aspectMap[s.aspect||'portrait'] || '3/4';
+          
+          let trackClass = 'zw-mg-track';
+          let trackStyle = '';
+          
+          if (layout === 'grid') {
+             trackClass += ' zw-mg-grid';
+             trackStyle = `display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap:${gap};`;
+          } else {
+             trackClass += ' zw-mg-scroll';
+             trackStyle = `display:flex; gap:${gap}; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:1rem; scrollbar-width:none;`;
+          }
+
+          let cardsHtml = '';
+          cards.forEach(cd => {
+             const tag = cd.link_url ? 'a' : 'div';
+             const href = cd.link_url ? ` href="${cd.link_url}"` : '';
+             const pos = cd.label_position || 'below'; 
+             
+             let mediaHtml = '';
+             const ht = s.card_height ? `height:${s.card_height};` : `aspect-ratio:${aspect};`;
+             if (cd.media_type === 'video') {
+                mediaHtml = `<video src="${cd.media_url||''}" poster="${cd.video_poster||''}" playsinline autoplay loop muted class="zw-mg-media" style="${ht}"></video>`;
+             } else {
+                mediaHtml = `<img src="${cd.media_url||''}" alt="" class="zw-mg-media" style="${ht}">`;
+             }
+             
+             const labelHtml = cd.label ? `<p class="zw-mg-label zw-mg-label-${pos}">${cd.label}</p>` : '';
+             const watchHtml = cd.watch_btn ? `<button class="zw-mg-watch" onclick="event.preventDefault(); openWatchModal('${cd.watch_url||''}')"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> ${cd.watch_label||'Watch'}</button>` : '';
+
+             const cardStyle = layout === 'scroll' ? `flex:0 0 auto; width:min(85vw, 360px); scroll-snap-align:start; position:relative;` : `position:relative; display:block; text-decoration:none; color:inherit;`;
+             
+             cardsHtml += `
+             <${tag}${href} class="zw-mg-card" style="${cardStyle}">
+                <div class="zw-mg-media-wrap" style="position:relative; overflow:hidden;">
+                   ${mediaHtml}
+                   ${pos.includes('overlay') ? labelHtml : ''}
+                   ${watchHtml}
+                </div>
+                ${pos === 'below' ? labelHtml : ''}
+             </${tag}>`;
+          });
+          
+          el.innerHTML = `
+             ${s.heading ? `<h2 class="zw-mg-heading">${s.heading}</h2>` : ''}
+             <div class="${trackClass}" style="${trackStyle}">
+                ${cardsHtml}
+             </div>
+          `;
           break;
         }
       }
@@ -3323,3 +3546,51 @@ function declineCookies(){try{localStorage.setItem('zw_cookie_consent','declined
     initReturnsModalClose();
   }
 })();
+
+window.openWatchModal = function(url) {
+   let modal = document.getElementById('zw-watch-modal');
+   if(!modal) {
+      modal = document.createElement('div');
+      modal.id = 'zw-watch-modal';
+      modal.innerHTML = `
+        <div class="zw-wm-backdrop" onclick="closeWatchModal()"></div>
+        <div class="zw-wm-content">
+           <button class="zw-wm-close" onclick="closeWatchModal()">✕</button>
+           <div class="zw-wm-vid-container" id="zw-wm-container"></div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      const style = document.createElement('style');
+      style.textContent = `
+        #zw-watch-modal { position:fixed; inset:0; z-index:99999; display:none; align-items:center; justify-content:center; }
+        #zw-watch-modal.open { display:flex; }
+        .zw-wm-backdrop { position:absolute; inset:0; background:rgba(0,0,0,.85); backdrop-filter:blur(5px); }
+        .zw-wm-content { position:relative; z-index:1; width:90%; max-width:1100px; aspect-ratio:16/9; background:#000; border-radius:8px; overflow:hidden; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); }
+        .zw-wm-close { position:absolute; top:-40px; right:0; color:#fff; background:none; border:none; font-size:1.5rem; cursor:pointer; padding:10px; }
+        .zw-wm-vid-container { width:100%; height:100%; }
+        .zw-wm-vid-container iframe, .zw-wm-vid-container video { width:100%; height:100%; border:none; outline:none; }
+      `;
+      document.head.appendChild(style);
+   }
+   
+   const container = document.getElementById('zw-wm-container');
+   const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
+   const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+   if(ytMatch) {
+      container.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&rel=0" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+   } else if (vimeoMatch) {
+      container.innerHTML = `<iframe src="https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+   } else {
+      container.innerHTML = `<video src="${url}" controls autoplay playsinline></video>`;
+   }
+   
+   modal.classList.add('open');
+};
+
+window.closeWatchModal = function() {
+   const modal = document.getElementById('zw-watch-modal');
+   if(modal) {
+      modal.classList.remove('open');
+      document.getElementById('zw-wm-container').innerHTML = ''; // stops playback
+   }
+};

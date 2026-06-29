@@ -493,6 +493,8 @@ const TYPES={
   img_cta:{icon:'🖼',cat:'layout',desc:'Image with overlay button'},
   html:{icon:'</>',cat:'layout',desc:'Raw HTML block (advanced)'},
   richtext:{icon:'📄',cat:'layout',desc:'Long-form rich text block'},
+  hero_carousel:{icon:'🎠',cat:'store',desc:'Full-screen hero carousel with slides, video, arrows & dots'},
+  media_grid:{icon:'🖼️',cat:'marketing',desc:'Image/video grid or scrollable row with CTAs'},
 };
 
 const SECT_DEFS={
@@ -519,6 +521,8 @@ const SECT_DEFS={
   img_cta:{image:'',alt:'',btn_on:true,btn_text:'Shop Now',btn_url:'/drop001.html',btn_position:'center',pad_top:0,pad_bot:0},
   html:{html:'',pad_top:0,pad_bot:0},
   richtext:{content:'Write your content here...',align:'left',pad_top:0,pad_bot:0},
+  hero_carousel:{height:'full',autoplay:true,autoplay_interval:5000,show_arrows:true,show_dots:true,show_pause:true,transition:'fade',loop:true,slides:[{media_type:'image',media_url:'',media_url_mobile:'',video_poster:'',focal_y:50,eyebrow:'',heading:'YOUR HEADLINE',subtext:'Supporting copy here.',text_align:'center',text_color:'#ffffff',overlay_opacity:30,cta_text:'Shop Now',cta_url:'/drop001.html',cta_style:'solid',watch_btn:false,watch_url:'',watch_label:'Watch'}],pad_top:0,pad_bot:0},
+  media_grid:{heading:'',layout:'grid',columns:3,gap:'md',aspect:'portrait',card_height:'',cards:[{media_type:'image',media_url:'',video_poster:'',label:'',label_position:'below',link_url:'',watch_btn:false,watch_url:'',watch_label:'Watch'}],pad_top:0,pad_bot:0},
 };
 
 const DEFAULT_SECTIONS=['hero','marquee','about','release','products'].map((t,i)=>({id:t,type:t,label:t.charAt(0).toUpperCase()+t.slice(1).replace('_',' '),visible:true,order:i,settings:{...SECT_DEFS[t]}}));
@@ -1126,6 +1130,76 @@ function buildForm(s){
     case 'email_capture': h+=f('heading','Heading',g.heading)+f('subtext','Subtext',g.subtext)+f('placeholder','Input Placeholder',g.placeholder)+f('btn_text','Button Text',g.btn_text)+colorF('bg_color','Background Color',g.bg_color||'')+padF(g);break;
     case 'logos': h+=f('heading','Label (optional)',g.heading)+fdiv()+arrField('items','Logo',g.items||[],[['name','Brand Name','text'],['src','Logo Image URL (optional)','text'],['alt','Alt Text','text']])+padF(g);break;
     case 'richtext': h+=`<div class="field"><label>Content</label><textarea data-f="content" style="min-height:140px;line-height:1.6" placeholder="Write your content here...">${he(g.content)}</textarea></div>`+sel('align','Text Alignment',g.align||'left',[['left','Left'],['center','Center'],['right','Right']])+padF(g);break;
+    case 'hero_carousel': {
+      h+=fhd('Carousel Settings')
+        +sel('height','Slide Height',g.height||'full',[['full','Full Screen (100vh)'],['tall','Tall (75vh)'],['half','Half (50vh)'],['short','Short (40vh)']])
+        +sel('transition','Transition',g.transition||'fade',[['fade','Fade'],['slide','Slide']])
+        +tog2('autoplay','Autoplay',g.autoplay!==false)
+        +f('autoplay_interval','Interval (ms)',g.autoplay_interval||5000,'number')
+        +tog2('show_arrows','Show Arrows',g.show_arrows!==false)
+        +tog2('show_dots','Show Dots',g.show_dots!==false)
+        +tog2('show_pause','Show Pause Button',g.show_pause!==false)
+        +tog2('loop','Loop Slides',g.loop!==false)
+        +fdiv()+fhd('Slides');
+      const slides=g.slides||[];
+      h+=`<div class="flist" data-arr="slides">${slides.map((sl,i)=>`<div data-arr-item style="background:var(--bg);border:1px solid var(--bd);border-radius:4px;padding:.55rem .6rem;margin-bottom:.4rem">
+        <div class="flist-item-hd"><span class="flist-item-lbl">Slide ${i+1}</span><button class="flist-rm" onclick="removeArrItem(this,'slides')">✕</button></div>
+        <div class="field" style="margin-top:.3rem"><label>Media Type</label><select data-f="media_type"><option value="image"${sl.media_type==='image'?' selected':''}>Image</option><option value="video"${sl.media_type==='video'?' selected':''}>Video</option></select></div>
+        <div class="field"><label>Media URL</label><div style="display:flex;gap:.3rem;align-items:center"><input type="text" data-f="media_url" value="${he(sl.media_url)}" placeholder="/images/hero.jpg" style="flex:1"><button type="button" class="img-btn" data-pick="slides.${i}.media_url">📁</button></div></div>
+        <div class="field"><label>Mobile Media URL (optional)</label><input type="text" data-f="media_url_mobile" value="${he(sl.media_url_mobile)}" placeholder="Mobile-specific image"></div>
+        <div class="field"><label>Video Poster</label><input type="text" data-f="video_poster" value="${he(sl.video_poster)}" placeholder="Poster frame for videos"></div>
+        ${rangeF('focal_y','Vertical Focal Point',sl.focal_y??50,0,100,'%')}
+        <div class="fdiv"></div>
+        <div class="field"><label>Eyebrow</label><input type="text" data-f="eyebrow" value="${he(sl.eyebrow)}" placeholder="Small text above heading"></div>
+        <div class="field"><label>Heading (↵=line break)</label><textarea data-f="heading" rows="2">${he(sl.heading)}</textarea></div>
+        <div class="field"><label>Subtext</label><textarea data-f="subtext" rows="2">${he(sl.subtext)}</textarea></div>
+        <div class="field"><label>Text Align</label><select data-f="text_align"><option value="left"${sl.text_align==='left'?' selected':''}>Left</option><option value="center"${(sl.text_align||'center')==='center'?' selected':''}>Center</option><option value="right"${sl.text_align==='right'?' selected':''}>Right</option></select></div>
+        <div class="field"><label>Text Color</label><div style="display:flex;gap:.35rem;align-items:center"><input type="color" data-f="text_color" value="${sl.text_color||'#ffffff'}" oninput="this.nextElementSibling.value=this.value"><input type="text" data-f="text_color" value="${he(sl.text_color||'#ffffff')}" style="flex:1" oninput="if(/^#[0-9a-f]{6}$/i.test(this.value.trim()))this.previousElementSibling.value=this.value.trim()"></div></div>
+        ${rangeF('overlay_opacity','Overlay Darkness',sl.overlay_opacity??30,0,90,'%')}
+        <div class="fdiv"></div>
+        <div class="fl" style="margin-top:.1rem">CTA Button</div>
+        <div class="field"><label>Button Text</label><input type="text" data-f="cta_text" value="${he(sl.cta_text)}" placeholder="Shop Now"></div>
+        <div class="field"><label>Button URL</label><input type="text" data-f="cta_url" value="${he(sl.cta_url)}" placeholder="/drop001.html"></div>
+        <div class="field"><label>Button Style</label><select data-f="cta_style"><option value="solid"${(sl.cta_style||'solid')==='solid'?' selected':''}>Solid</option><option value="outline"${sl.cta_style==='outline'?' selected':''}>Outlined</option><option value="ghost"${sl.cta_style==='ghost'?' selected':''}>Ghost</option></select></div>
+        <div class="fdiv"></div>
+        <div class="fl" style="margin-top:.1rem">Watch Button</div>
+        <div class="tog2"><label>Show Watch Button</label><label class="switch"><input type="checkbox" data-f="watch_btn" ${sl.watch_btn?'checked':''}><span class="sw-sl"></span></label></div>
+        <div class="field"><label>Video URL</label><input type="text" data-f="watch_url" value="${he(sl.watch_url)}" placeholder="YouTube or direct video URL"></div>
+        <div class="field"><label>Button Label</label><input type="text" data-f="watch_label" value="${he(sl.watch_label||'Watch')}" placeholder="Watch"></div>
+      </div>`).join('')}</div>
+      <button class="add-item-btn" onclick="addArrItem('slides')">+ Add Slide</button>`;
+      h+=padF(g);
+      break;
+    }
+    case 'media_grid': {
+      h+=fhd('Grid Settings')
+        +f('heading','Section Heading',g.heading)
+        +sel('layout','Layout',g.layout||'grid',[['grid','Static Grid'],['scroll','Horizontal Scroll']])
+        +sel('columns','Columns (grid mode)',String(g.columns||3),[['1','1'],['2','2'],['3','3'],['4','4']])
+        +sel('gap','Gap Between Cards',g.gap||'md',[['none','None'],['xs','XS'],['sm','Small'],['md','Medium'],['lg','Large']])
+        +sel('aspect','Aspect Ratio',g.aspect||'portrait',[['square','Square (1:1)'],['portrait','Portrait (3:4)'],['wide','Wide (16:9)'],['auto','Auto']])
+        +f('card_height','Card Height (optional)',g.card_height,'text','e.g. 500px')
+        +fdiv()+fhd('Cards');
+      const cards=g.cards||[];
+      h+=`<div class="flist" data-arr="cards">${cards.map((cd,i)=>`<div data-arr-item style="background:var(--bg);border:1px solid var(--bd);border-radius:4px;padding:.55rem .6rem;margin-bottom:.4rem">
+        <div class="flist-item-hd"><span class="flist-item-lbl">Card ${i+1}</span><button class="flist-rm" onclick="removeArrItem(this,'cards')">✕</button></div>
+        <div class="field" style="margin-top:.3rem"><label>Media Type</label><select data-f="media_type"><option value="image"${cd.media_type==='image'?' selected':''}>Image</option><option value="video"${cd.media_type==='video'?' selected':''}>Video</option></select></div>
+        <div class="field"><label>Media URL</label><div style="display:flex;gap:.3rem;align-items:center"><input type="text" data-f="media_url" value="${he(cd.media_url)}" placeholder="/images/photo.jpg" style="flex:1"><button type="button" class="img-btn" data-pick="cards.${i}.media_url">📁</button></div></div>
+        <div class="field"><label>Video Poster</label><input type="text" data-f="video_poster" value="${he(cd.video_poster)}" placeholder="Poster for video cards"></div>
+        <div class="fdiv"></div>
+        <div class="field"><label>Label / CTA Text</label><input type="text" data-f="label" value="${he(cd.label)}" placeholder="Shop Lifestyle"></div>
+        <div class="field"><label>Label Position</label><select data-f="label_position"><option value="below"${(cd.label_position||'below')==='below'?' selected':''}>Below Image</option><option value="overlay-bottom"${cd.label_position==='overlay-bottom'?' selected':''}>Overlay Bottom</option><option value="overlay-center"${cd.label_position==='overlay-center'?' selected':''}>Overlay Center</option></select></div>
+        <div class="field"><label>Link URL</label><input type="text" data-f="link_url" value="${he(cd.link_url)}" placeholder="/drop001.html?category=..."></div>
+        <div class="fdiv"></div>
+        <div class="fl" style="margin-top:.1rem">Watch Button</div>
+        <div class="tog2"><label>Show Watch Button</label><label class="switch"><input type="checkbox" data-f="watch_btn" ${cd.watch_btn?'checked':''}><span class="sw-sl"></span></label></div>
+        <div class="field"><label>Video URL</label><input type="text" data-f="watch_url" value="${he(cd.watch_url)}" placeholder="YouTube or video URL"></div>
+        <div class="field"><label>Button Label</label><input type="text" data-f="watch_label" value="${he(cd.watch_label||'Watch')}" placeholder="Watch"></div>
+      </div>`).join('')}</div>
+      <button class="add-item-btn" onclick="addArrItem('cards')">+ Add Card</button>`;
+      h+=padF(g);
+      break;
+    }
     default: h+='<div style="padding:.4rem;color:var(--mu);font-size:.65rem">No settings available.</div>';
   }
   // ── Universal Section Style controls (appended to every section editor)
