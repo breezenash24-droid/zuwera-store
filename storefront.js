@@ -715,7 +715,8 @@ function showToast(msg) {
              const active = i === 0 ? ' active' : '';
              
              let mediaHtml = '';
-             if (sl.media_type === 'video') {
+             const isVideo = sl.media_type === 'video' || (sl.media_url && sl.media_url.match(/\.(mp4|webm|mov)(\?.*)?$/i));
+             if (isVideo) {
                 mediaHtml = `<video class="zw-hc-media" src="${sl.media_url||''}" poster="${sl.video_poster||''}" playsinline autoplay loop muted style="object-position:center ${sl.focal_y??50}%"></video>`;
              } else {
                 mediaHtml = `<picture class="zw-hc-media">
@@ -891,7 +892,8 @@ function showToast(msg) {
              
              let mediaHtml = '';
              const ht = s.card_height ? `height:${s.card_height};` : `aspect-ratio:${aspect};`;
-             if (cd.media_type === 'video') {
+             const isVideo = cd.media_type === 'video' || (cd.media_url && cd.media_url.match(/\.(mp4|webm|mov)(\?.*)?$/i));
+             if (isVideo) {
                 mediaHtml = `<video src="${cd.media_url||''}" poster="${cd.video_poster||''}" playsinline autoplay loop muted class="zw-mg-media" style="${ht}"></video>`;
              } else {
                 mediaHtml = `<img src="${cd.media_url||''}" alt="" class="zw-mg-media" style="${ht}">`;
