@@ -608,9 +608,9 @@ function showToast(msg) {
         case 'split': {
           el.className = 'builder-split-section';
           const imgSide = s.image_side||'left';
-          const isFull = s.layout_width !== 'contained';
+          const isFull = !s.layout_width || s.layout_width === 'full';
           const px = isFull ? '0' : '2.5rem';
-          const mw = isFull ? 'none' : '1200px';
+          const mw = isFull ? 'none' : (s.layout_width === 'contained' ? '1200px' : `${s.layout_width}px`);
           el.style.cssText = `display:flex;flex-wrap:wrap;align-items:center;min-height:${s.image_height||500}px;background:${s.bg_color||s.sec_bg||'transparent'};padding:0 ${px};max-width:${mw};margin:0 auto;`;
           if (s.sec_bg && !s.bg_color) el.style.background = s.sec_bg;
           const imgPart = s.image?`<div style="flex:1 1 400px;min-height:${s.image_height||500}px;background:url(${s.image}) center/cover no-repeat"></div>`:'';
@@ -659,9 +659,9 @@ function showToast(msg) {
         }
         case 'gallery': {
           el.className = 'builder-gallery-section';
-          const isFull = s.layout_width !== 'contained';
+          const isFull = !s.layout_width || s.layout_width === 'full';
           const px = isFull ? '0' : '2.5rem';
-          const mw = isFull ? 'none' : '1200px';
+          const mw = isFull ? 'none' : (s.layout_width === 'contained' ? '1200px' : `${s.layout_width}px`);
           el.style.cssText = `padding:3rem ${px};max-width:${mw};margin:0 auto;`;
           if (s.sec_bg) el.style.background = s.sec_bg;
           const cols = parseInt(s.columns)||3;
@@ -901,9 +901,9 @@ function showToast(msg) {
         case 'media_grid': {
           el.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); v.load(); });
           el.className = 'builder-media-grid-section';
-          const isFull = s.layout_width !== 'contained';
+          const isFull = !s.layout_width || s.layout_width === 'full';
           const px = isFull ? '0' : '2.5rem';
-          const mw = isFull ? 'none' : '1200px';
+          const mw = isFull ? 'none' : (s.layout_width === 'contained' ? '1200px' : `${s.layout_width}px`);
           el.style.cssText = `padding:4rem ${px}; max-width:${mw}; margin:0 auto; background:${s.sec_bg||'transparent'}`;
           
           const cards = Array.isArray(s.cards) ? s.cards : [];
