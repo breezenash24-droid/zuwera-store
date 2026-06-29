@@ -802,7 +802,7 @@ function showToast(msg) {
              const btnPrev = el.querySelector('.zw-hc-prev');
              const btnNext = el.querySelector('.zw-hc-next');
              const btnPause = el.querySelector('.zw-hc-pause');
-             if(!track || slideEls.length <= 1) return;
+             if(!track || slideEls.length === 0) return;
 
              let curIdx = 0;
              let timer = null;
@@ -839,7 +839,7 @@ function showToast(msg) {
              
              const resetTimer = () => {
                 if(el._zwHcTimer) clearInterval(el._zwHcTimer);
-                if(autoplay && !isPaused) el._zwHcTimer = setInterval(next, interval);
+                if(autoplay && !isPaused && slideEls.length > 1) el._zwHcTimer = setInterval(next, interval);
              };
              
              if(btnPrev) btnPrev.onclick = () => { isPaused=true; updatePauseIcon(); prev(); };
