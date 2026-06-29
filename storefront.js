@@ -700,6 +700,7 @@ function showToast(msg) {
           break;
         }
         case 'hero_carousel': {
+          el.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); v.load(); });
           el.className = 'builder-hero-carousel-section';
           const hMap = { full:'100vh', tall:'75vh', half:'50vh', short:'40vh' };
           el.style.cssText = `position:relative; overflow:hidden; width:100%; height:${hMap[s.height]||'100vh'}; background:${s.sec_bg||'#09090b'};`;
@@ -718,7 +719,8 @@ function showToast(msg) {
              let mediaHtml = '';
              const isVideo = sl.media_type === 'video' || (sl.media_url && sl.media_url.match(/\.(mp4|webm|mov)(\?.*)?$/i));
              if (isVideo) {
-                mediaHtml = `<video class="zw-hc-media" src="${sl.media_url||''}" poster="${sl.video_poster||''}" playsinline autoplay loop muted style="object-position:center ${sl.focal_y??50}%"></video>`;
+                const auto = (i === 0 && s.autoplay !== false) ? ' autoplay' : '';
+                mediaHtml = `<video class="zw-hc-media" src="${sl.media_url||''}" poster="${sl.video_poster||''}" playsinline loop muted${auto} style="object-position:center ${sl.focal_y??50}%"></video>`;
              } else {
                 mediaHtml = `<picture class="zw-hc-media">
                    ${sl.media_url_mobile ? `<source media="(max-width:768px)" srcset="${sl.media_url_mobile}">` : ''}
@@ -859,6 +861,7 @@ function showToast(msg) {
           break;
         }
         case 'media_grid': {
+          el.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); v.load(); });
           el.className = 'builder-media-grid-section';
           el.style.cssText = `padding:4rem 2.5rem; background:${s.sec_bg||'transparent'}`;
           
