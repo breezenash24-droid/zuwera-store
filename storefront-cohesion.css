@@ -3517,6 +3517,7 @@ html.zw-customnav:not(.zw-nav-ready) #nav-category-links{ visibility:hidden; }
 .zw-hc-trans-slide .zw-hc-slide.active { pointer-events:auto; }
 
 .zw-hc-media { display:block; width:100%; height:100%; object-fit:cover; }
+picture.zw-hc-media img { display:block; width:100%; height:100%; object-fit:cover; }
 .zw-hc-overlay { position:absolute; inset:0; background:#000; pointer-events:none; z-index:1; }
 
 .zw-hc-content { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:2rem; z-index:2; color:#fff; }
