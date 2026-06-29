@@ -374,6 +374,24 @@ function showToast(msg) {
       else el.style.removeProperty('background'); // clear when unset so mode bg returns
       if (s.pad_top) el.style.paddingTop = s.pad_top + 'px';
       if (s.pad_bot) el.style.paddingBottom = s.pad_bot + 'px';
+      
+      if (s.font_head_override && _FONT_STACKS[s.font_head_override]) {
+        el.style.setProperty('--zw-font-head', _FONT_STACKS[s.font_head_override]);
+        el.style.setProperty('--fw', _FONT_STACKS[s.font_head_override]);
+        _loadBuilderFont(s.font_head_override);
+      } else {
+        el.style.removeProperty('--zw-font-head');
+        el.style.removeProperty('--fw');
+      }
+      
+      if (s.font_body_override && _FONT_STACKS[s.font_body_override]) {
+        el.style.setProperty('--zw-font-body', _FONT_STACKS[s.font_body_override]);
+        el.style.setProperty('--fb', _FONT_STACKS[s.font_body_override]);
+        _loadBuilderFont(s.font_body_override);
+      } else {
+        el.style.removeProperty('--zw-font-body');
+        el.style.removeProperty('--fb');
+      }
       if (s.anchor_id) el.id = s.anchor_id;
       if (s.hide_mobile) {
         let mobileHideStyle = document.getElementById('zw-builder-mobile-hide-' + el.id);
