@@ -608,8 +608,10 @@ function showToast(msg) {
         case 'split': {
           el.className = 'builder-split-section';
           const imgSide = s.image_side||'left';
-          const px = s.full_width !== false ? '0' : '2.5rem';
-          el.style.cssText = `display:flex;flex-wrap:wrap;align-items:center;min-height:${s.image_height||500}px;background:${s.bg_color||s.sec_bg||'transparent'};padding:0 ${px};`;
+          const isFull = s.layout_width !== 'contained';
+          const px = isFull ? '0' : '2.5rem';
+          const mw = isFull ? 'none' : '1200px';
+          el.style.cssText = `display:flex;flex-wrap:wrap;align-items:center;min-height:${s.image_height||500}px;background:${s.bg_color||s.sec_bg||'transparent'};padding:0 ${px};max-width:${mw};margin:0 auto;`;
           if (s.sec_bg && !s.bg_color) el.style.background = s.sec_bg;
           const imgPart = s.image?`<div style="flex:1 1 400px;min-height:${s.image_height||500}px;background:url(${s.image}) center/cover no-repeat"></div>`:'';
           const txtPart = `<div style="flex:1 1 400px;padding:4rem 3rem">${s.label?`<div style="font-family:var(--fm,var(--fb));font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;opacity:.5;margin-bottom:1rem">${s.label}</div>`:''}<h2 style="font-family:var(--fw);font-size:clamp(1.8rem,4vw,2.8rem);font-weight:900;font-style:italic;letter-spacing:.06em;text-transform:uppercase;line-height:1.05;margin-bottom:1.2rem">${s.heading||''}</h2><p style="opacity:.65;line-height:1.75;font-size:.95rem;margin-bottom:1.8rem">${s.body||''}</p>${s.cta_text?`<a href="${s.cta_url||'#'}" style="display:inline-block;border:1px solid currentColor;padding:.65rem 1.6rem;font-family:var(--fm,var(--fb));font-size:.65rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;color:inherit">${s.cta_text}</a>`:''}</div>`;
@@ -657,8 +659,10 @@ function showToast(msg) {
         }
         case 'gallery': {
           el.className = 'builder-gallery-section';
-          const px = s.full_width !== false ? '0' : '2.5rem';
-          el.style.cssText = `padding:3rem ${px}`;
+          const isFull = s.layout_width !== 'contained';
+          const px = isFull ? '0' : '2.5rem';
+          const mw = isFull ? 'none' : '1200px';
+          el.style.cssText = `padding:3rem ${px};max-width:${mw};margin:0 auto;`;
           if (s.sec_bg) el.style.background = s.sec_bg;
           const cols = parseInt(s.columns)||3;
           const aspectMap = {square:'1/1',portrait:'3/4',wide:'16/9'};
@@ -897,8 +901,10 @@ function showToast(msg) {
         case 'media_grid': {
           el.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); v.load(); });
           el.className = 'builder-media-grid-section';
-          const px = s.full_width !== false ? '0' : '2.5rem';
-          el.style.cssText = `padding:4rem ${px}; background:${s.sec_bg||'transparent'}`;
+          const isFull = s.layout_width !== 'contained';
+          const px = isFull ? '0' : '2.5rem';
+          const mw = isFull ? 'none' : '1200px';
+          el.style.cssText = `padding:4rem ${px}; max-width:${mw}; margin:0 auto; background:${s.sec_bg||'transparent'}`;
           
           const cards = Array.isArray(s.cards) ? s.cards : [];
           if(cards.length === 0) {
