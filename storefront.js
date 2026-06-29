@@ -656,7 +656,8 @@ function showToast(msg) {
         }
         case 'gallery': {
           el.className = 'builder-gallery-section';
-          el.style.cssText = 'padding:3rem 2.5rem';
+          const px = s.full_width ? '0' : '2.5rem';
+          el.style.cssText = `padding:3rem ${px}`;
           if (s.sec_bg) el.style.background = s.sec_bg;
           const cols = parseInt(s.columns)||3;
           const aspectMap = {square:'1/1',portrait:'3/4',wide:'16/9'};
@@ -895,7 +896,8 @@ function showToast(msg) {
         case 'media_grid': {
           el.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); v.load(); });
           el.className = 'builder-media-grid-section';
-          el.style.cssText = `padding:4rem 2.5rem; background:${s.sec_bg||'transparent'}`;
+          const px = s.full_width ? '0' : '2.5rem';
+          el.style.cssText = `padding:4rem ${px}; background:${s.sec_bg||'transparent'}`;
           
           const cards = Array.isArray(s.cards) ? s.cards : [];
           if(cards.length === 0) {
