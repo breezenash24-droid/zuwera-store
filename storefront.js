@@ -874,9 +874,9 @@ function showToast(msg) {
              const next = () => update(curIdx + 1);
              const prev = () => update(curIdx - 1);
              
-             if(btnPrev) btnPrev.onclick = () => { isPaused=true; updatePauseIcon(); prev(); };
-             if(btnNext) btnNext.onclick = () => { isPaused=true; updatePauseIcon(); next(); };
-             dots.forEach(d => d.onclick = () => { isPaused=true; updatePauseIcon(); update(parseInt(d.dataset.index)); });
+             if(btnPrev) btnPrev.onclick = () => { isPaused=false; updatePauseIcon(); prev(); };
+             if(btnNext) btnNext.onclick = () => { isPaused=false; updatePauseIcon(); next(); };
+             dots.forEach(d => d.onclick = () => { isPaused=false; updatePauseIcon(); update(parseInt(d.dataset.index)); });
              
              const updatePauseIcon = () => {
                 if(!btnPause) return;
@@ -954,7 +954,7 @@ function showToast(msg) {
              const handleSwipe = () => {
                 const diff = touchStartX - touchEndX;
                 if(Math.abs(diff) > 50) {
-                   isPaused = true;
+                   isPaused = false;
                    updatePauseIcon();
                    if(diff > 0) next(); else prev();
                 }
