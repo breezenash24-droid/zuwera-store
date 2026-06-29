@@ -88,6 +88,67 @@ function showToast(msg) {
     document.head.appendChild(style);
     stylesInjected = true;
   }
+  const _FONT_STACKS = {
+    'barlow-condensed':"'Barlow Condensed',sans-serif",
+    'oswald':"'Oswald',sans-serif",
+    'bebas-neue':"'Bebas Neue',sans-serif",
+    'anton':"'Anton',sans-serif",
+    'league-gothic':"'League Gothic',sans-serif",
+    'michroma':"'Michroma',sans-serif",
+    'montserrat':"'Montserrat',sans-serif",
+    'syne':"'Syne',sans-serif",
+    'archivo-black':"'Archivo Black',sans-serif",
+    'teko':"'Teko',sans-serif",
+    'righteous':"'Righteous',display",
+    'playfair-display':"'Playfair Display',serif",
+    'cinzel':"'Cinzel',serif",
+    'futura':'"Futura", "Jost", sans-serif',
+    'barlow':"'Barlow',sans-serif",
+    'inter':"'Inter',sans-serif",
+    'dm-sans':"'DM Sans',sans-serif",
+    'outfit':"'Outfit',sans-serif",
+    'manrope':"'Manrope',sans-serif",
+    'poppins':"'Poppins',sans-serif",
+    'lato':"'Lato',sans-serif",
+    'roboto':"'Roboto',sans-serif",
+    'work-sans':"'Work Sans',sans-serif",
+    'mulish':"'Mulish',sans-serif"
+  };
+  const _FONT_URLS = {
+    'oswald':'https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&display=swap',
+    'bebas-neue':'https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap',
+    'anton':'https://fonts.googleapis.com/css2?family=Anton&display=swap',
+    'league-gothic':'https://fonts.googleapis.com/css2?family=League+Gothic&display=swap',
+    'michroma':'https://fonts.googleapis.com/css2?family=Michroma&display=swap',
+    'montserrat':'https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&display=swap',
+    'syne':'https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap',
+    'archivo-black':'https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap',
+    'teko':'https://fonts.googleapis.com/css2?family=Teko:wght@600;700&display=swap',
+    'righteous':'https://fonts.googleapis.com/css2?family=Righteous&display=swap',
+    'playfair-display':'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&display=swap',
+    'cinzel':'https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&display=swap',
+    'futura':'https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap',
+    'inter':'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap',
+    'dm-sans':'https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap',
+    'outfit':'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
+    'manrope':'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap',
+    'poppins':'https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap',
+    'lato':'https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;1,400&display=swap',
+    'roboto':'https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap',
+    'work-sans':'https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap',
+    'mulish':'https://fonts.googleapis.com/css2?family=Mulish:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap'
+  };
+
+  function _loadBuilderFont(key) {
+    if (!key || !_FONT_URLS[key]) return;
+    const id = 'gf-' + key;
+    if (document.getElementById(id)) return;
+    const l = document.createElement('link');
+    l.id = id; l.rel = 'preload'; l.as = 'style';
+    l.href = _FONT_URLS[key];
+    l.onload = function(){ this.onload = null; this.rel = 'stylesheet'; };
+    document.head.appendChild(l);
+  }
 
   function applyBuilderConfig(cfg) {
     if (!cfg || !cfg.sections) return;
@@ -172,70 +233,7 @@ function showToast(msg) {
       if (cfg.themeSettings.surface_color) {
         document.documentElement.style.setProperty('--zw-paper', cfg.themeSettings.surface_color);
       }
-      // Font stacks & dynamic Google Fonts loading
-  const _FONT_STACKS = {
-    'barlow-condensed':"'Barlow Condensed',sans-serif",
-    'oswald':"'Oswald',sans-serif",
-    'bebas-neue':"'Bebas Neue',sans-serif",
-    'anton':"'Anton',sans-serif",
-    'league-gothic':"'League Gothic',sans-serif",
-    'michroma':"'Michroma',sans-serif",
-    'montserrat':"'Montserrat',sans-serif",
-    'syne':"'Syne',sans-serif",
-    'archivo-black':"'Archivo Black',sans-serif",
-    'teko':"'Teko',sans-serif",
-    'righteous':"'Righteous',display",
-    'playfair-display':"'Playfair Display',serif",
-    'cinzel':"'Cinzel',serif",
-    'futura':'"Futura", "Jost", sans-serif',
-    'barlow':"'Barlow',sans-serif",
-    'inter':"'Inter',sans-serif",
-    'dm-sans':"'DM Sans',sans-serif",
-    'outfit':"'Outfit',sans-serif",
-    'manrope':"'Manrope',sans-serif",
-    'poppins':"'Poppins',sans-serif",
-    'lato':"'Lato',sans-serif",
-    'roboto':"'Roboto',sans-serif",
-    'work-sans':"'Work Sans',sans-serif",
-    'mulish':"'Mulish',sans-serif"
-  };
-  const _FONT_URLS = {
-    'oswald':'https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&display=swap',
-    'bebas-neue':'https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap',
-    'anton':'https://fonts.googleapis.com/css2?family=Anton&display=swap',
-    'league-gothic':'https://fonts.googleapis.com/css2?family=League+Gothic&display=swap',
-    'michroma':'https://fonts.googleapis.com/css2?family=Michroma&display=swap',
-    'montserrat':'https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&display=swap',
-    'syne':'https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap',
-    'archivo-black':'https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap',
-    'teko':'https://fonts.googleapis.com/css2?family=Teko:wght@600;700&display=swap',
-    'righteous':'https://fonts.googleapis.com/css2?family=Righteous&display=swap',
-    'playfair-display':'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&display=swap',
-    'cinzel':'https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&display=swap',
-    'futura':'https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap',
-    'inter':'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap',
-    'dm-sans':'https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap',
-    'outfit':'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap',
-    'manrope':'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap',
-    'poppins':'https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap',
-    'lato':'https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;1,400&display=swap',
-    'roboto':'https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap',
-    'work-sans':'https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap',
-    'mulish':'https://fonts.googleapis.com/css2?family=Mulish:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap'
-  };
 
-  function _loadBuilderFont(key) {
-    if (!key || !_FONT_URLS[key]) return;
-    const id = 'gf-' + key;
-    if (document.getElementById(id)) return;
-    const l = document.createElement('link');
-    l.id = id; l.rel = 'preload'; l.as = 'style';
-    l.href = _FONT_URLS[key];
-    l.onload = function(){ this.onload = null; this.rel = 'stylesheet'; };
-    document.head.appendChild(l);
-  }
-
-  function applyBuilderConfig(cfg) {
       if (cfg.themeSettings.heading_font) {
         const stack = _FONT_STACKS[cfg.themeSettings.heading_font];
         if (stack) {
