@@ -694,7 +694,8 @@ function showToast(msg) {
               if (nums[3]) nums[3].textContent=pad(sc);
             }
             tick();
-            setInterval(tick, 1000);
+            if (el._zwCdTimer) clearInterval(el._zwCdTimer);
+            el._zwCdTimer = setInterval(tick, 1000);
           })();
           break;
         }
@@ -804,8 +805,8 @@ function showToast(msg) {
              const prev = () => update(curIdx - 1);
              
              const resetTimer = () => {
-                if(timer) clearInterval(timer);
-                if(autoplay && !isPaused) timer = setInterval(next, interval);
+                if(el._zwHcTimer) clearInterval(el._zwHcTimer);
+                if(autoplay && !isPaused) el._zwHcTimer = setInterval(next, interval);
              };
              
              if(btnPrev) btnPrev.onclick = () => { isPaused=true; updatePauseIcon(); prev(); };
@@ -824,7 +825,7 @@ function showToast(msg) {
                    isPaused = !isPaused;
                    updatePauseIcon();
                    if(isPaused) {
-                      if(timer) clearInterval(timer);
+                      if(el._zwHcTimer) clearInterval(el._zwHcTimer);
                       const vid = slideEls[curIdx].querySelector('video');
                       if(vid) vid.pause();
                    } else {
@@ -852,6 +853,7 @@ function showToast(msg) {
                 }
              };
 
+             if (el._zwHcTimer) clearInterval(el._zwHcTimer);
              resetTimer();
           })();
           break;
