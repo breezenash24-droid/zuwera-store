@@ -1151,6 +1151,8 @@ function buildForm(s){
         <div class="field"><label>Media URL</label><div style="display:flex;gap:.3rem;align-items:center"><input type="text" id="slides.${i}.media_url" data-f="media_url" value="${he(sl.media_url)}" placeholder="/images/hero.jpg" style="flex:1"><button type="button" class="img-btn" data-pick="slides.${i}.media_url">📁</button></div></div>
         <div class="field"><label>Mobile Media URL (optional)</label><input type="text" data-f="media_url_mobile" value="${he(sl.media_url_mobile)}" placeholder="Mobile-specific image"></div>
         <div class="field"><label>Video Poster</label><input type="text" data-f="video_poster" value="${he(sl.video_poster)}" placeholder="Poster frame for videos"></div>
+        <div class="field"><label>Slide Duration (ms)</label><input type="number" data-f="duration" value="${sl.duration||''}" placeholder="e.g. 5000 (leave blank for default)"></div>
+        <div class="field" style="${sl.media_type==='video'?'':'display:none'}"><label>Video Duration Mode</label><select data-f="video_duration_mode"><option value="full"${sl.video_duration_mode==='full'?' selected':''}>Wait for video to finish</option><option value="custom"${sl.video_duration_mode==='custom'?' selected':''}>Use Slide Duration</option></select></div>
         ${rangeF('focal_y','Vertical Focal Point',sl.focal_y??50,0,100,'%')}
         <div class="fdiv"></div>
         <div class="field"><label>Eyebrow</label><input type="text" data-f="eyebrow" value="${he(sl.eyebrow)}" placeholder="Small text above heading"></div>

@@ -778,7 +778,7 @@ function showToast(msg) {
              }
 
              slidesHtml += `
-             <div class="zw-hc-slide${active}" data-index="${i}">
+             <div class="zw-hc-slide${active}" data-index="${i}" data-duration="${sl.duration||''}" data-video-mode="${sl.video_duration_mode||'full'}">
                 ${mediaHtml}
                 <div class="zw-hc-overlay" style="opacity:${(sl.overlay_opacity??30)/100}"></div>
                 <div class="zw-hc-content" style="text-align:${sl.text_align||'center'}; color:${sl.text_color||'#ffffff'}">
@@ -801,7 +801,10 @@ function showToast(msg) {
              <div></div>
              ${(s.show_dots !== false && slides.length > 1) ? `<div class="zw-hc-dots">${dotsHtml}</div>` : '<div></div>'}
              <div class="zw-hc-nav">
-                ${s.show_pause !== false ? `<button class="zw-hc-pause" aria-label="Pause/Play"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg></button>` : ''}
+                ${s.show_pause !== false ? `<div class="zw-hc-pause-wrap">
+                  <svg class="zw-hc-progress-svg"><circle cx="20" cy="20" r="18" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/><circle class="zw-hc-progress-ring" cx="20" cy="20" r="18" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="113" stroke-dashoffset="113"/></svg>
+                  <button class="zw-hc-pause" aria-label="Pause/Play"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg></button>
+                </div>` : ''}
                 ${(s.show_arrows !== false && slides.length > 1) ? `
                 <button class="zw-hc-prev" aria-label="Previous"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg></button>
                 <button class="zw-hc-next" aria-label="Next"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></button>
@@ -824,9 +827,20 @@ function showToast(msg) {
              if(!track || slideEls.length === 0) return;
 
              let curIdx = 0;
-             let timer = null;
              let isPaused = false;
+             let elapsed = 0;
+             let lastTick = Date.now();
+             let rafId = null;
+             const progressRing = el.querySelector('.zw-hc-progress-ring');
+             const circumference = 113; // 2 * PI * 18
              
+             const setProgress = (percent) => {
+                if(progressRing) {
+                   const offset = circumference - (percent / 100) * circumference;
+                   progressRing.style.strokeDashoffset = offset;
+                }
+             };
+
              const update = (newIdx) => {
                 if(!loop) {
                    if(newIdx < 0) newIdx = 0;
@@ -850,16 +864,12 @@ function showToast(msg) {
                 const newVid = slideEls[curIdx].querySelector('video');
                 if(newVid && !isPaused) newVid.play().catch(()=>{});
                 
-                resetTimer();
+                elapsed = 0;
+                setProgress(0);
              };
              
              const next = () => update(curIdx + 1);
              const prev = () => update(curIdx - 1);
-             
-             const resetTimer = () => {
-                if(el._zwHcTimer) clearInterval(el._zwHcTimer);
-                if(autoplay && !isPaused && slideEls.length > 1) el._zwHcTimer = setInterval(next, interval);
-             };
              
              if(btnPrev) btnPrev.onclick = () => { isPaused=true; updatePauseIcon(); prev(); };
              if(btnNext) btnNext.onclick = () => { isPaused=true; updatePauseIcon(); next(); };
@@ -867,26 +877,55 @@ function showToast(msg) {
              
              const updatePauseIcon = () => {
                 if(!btnPause) return;
-                btnPause.innerHTML = isPaused 
-                  ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`
-                  : `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
+                const iconPath = isPaused 
+                  ? `<path d="M8 5v14l11-7z"/>`
+                  : `<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>`;
+                // update the icon inside the button while preserving the SVG wrapper
+                const svgEl = btnPause.querySelector('svg');
+                if(svgEl) svgEl.innerHTML = iconPath;
              };
              
              if(btnPause) {
                 btnPause.onclick = () => {
                    isPaused = !isPaused;
                    updatePauseIcon();
+                   const vid = slideEls[curIdx].querySelector('video');
                    if(isPaused) {
-                      if(el._zwHcTimer) clearInterval(el._zwHcTimer);
-                      const vid = slideEls[curIdx].querySelector('video');
                       if(vid) vid.pause();
                    } else {
-                      resetTimer();
-                      const vid = slideEls[curIdx].querySelector('video');
+                      lastTick = Date.now(); // prevent jumping elapsed time
                       if(vid) vid.play().catch(()=>{});
                    }
                 };
              }
+             
+             const tick = () => {
+                rafId = requestAnimationFrame(tick);
+                const now = Date.now();
+                const dt = now - lastTick;
+                lastTick = now;
+                
+                if(isPaused || !autoplay || slideEls.length <= 1) return;
+
+                const curSlide = slideEls[curIdx];
+                const isVideoModeFull = curSlide.dataset.videoMode === 'full';
+                const vid = curSlide.querySelector('video');
+
+                let percent = 0;
+                if (isVideoModeFull && vid) {
+                   if(vid.duration) {
+                      percent = (vid.currentTime / vid.duration) * 100;
+                      if(vid.ended || vid.currentTime >= vid.duration - 0.1) next();
+                   }
+                } else {
+                   elapsed += dt;
+                   const slideDur = parseInt(curSlide.dataset.duration) || interval;
+                   percent = (elapsed / slideDur) * 100;
+                   if (elapsed >= slideDur) next();
+                }
+                setProgress(Math.min(100, Math.max(0, percent)));
+             };
+             rafId = requestAnimationFrame(tick);
              
              let touchStartX = 0;
              let touchEndX = 0;
