@@ -766,7 +766,8 @@ function showToast(msg) {
              const isVideo = sl.media_type === 'video' || (sl.media_url && sl.media_url.match(/\.(mp4|webm|mov)(\?.*)?$/i));
              if (isVideo) {
                 const auto = (i === 0 && s.autoplay !== false) ? ' autoplay' : '';
-                const loopAttr = (sl.video_duration_mode === 'full') ? '' : ' loop';
+                const vidMode = sl.video_duration_mode || 'full';
+                const loopAttr = (vidMode === 'full') ? '' : ' loop';
                 mediaHtml = `<video class="zw-hc-media" src="${sl.media_url||''}" poster="${sl.video_poster||''}" playsinline${loopAttr} muted${auto} style="object-position:center ${sl.focal_y??50}%"></video>`;
              } else {
                 const lazy = i === 0 ? 'fetchpriority="high"' : 'loading="lazy"';
