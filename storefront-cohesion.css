@@ -136,7 +136,9 @@ body.light-mode .zw-hdr-bag:hover,body.super-light-mode .zw-hdr-bag:hover{border
 body{
   background:var(--zw-ink);
   color:var(--zw-paper);
+  font-family:var(--font-body, var(--fb, sans-serif));
 }
+input, textarea, select, button { font-family: inherit; }
 
 body.light-mode{
   background:var(--zw-page);

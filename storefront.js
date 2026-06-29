@@ -237,7 +237,7 @@ function showToast(msg) {
         const stack = _FONT_STACKS[cfg.themeSettings.heading_font];
         if (stack) {
           document.documentElement.style.setProperty('--fw', stack);
-          document.documentElement.style.setProperty('--font-head', stack);
+          document.documentElement.style.setProperty('--zw-font-head', stack);
         }
         _loadBuilderFont(cfg.themeSettings.heading_font);
       }
@@ -245,7 +245,7 @@ function showToast(msg) {
         const stack = _FONT_STACKS[cfg.themeSettings.body_font];
         if (stack) {
           document.documentElement.style.setProperty('--fb', stack);
-          document.documentElement.style.setProperty('--font-body', stack);
+          document.documentElement.style.setProperty('--zw-font-body', stack);
         }
         _loadBuilderFont(cfg.themeSettings.body_font);
       }
