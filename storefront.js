@@ -797,7 +797,8 @@ function showToast(msg) {
           <div class="zw-hc-track zw-hc-trans-${s.transition||'fade'}">
              ${slidesHtml}
           </div>
-          <div class="zw-hc-controls" style="display:flex">
+          <div class="zw-hc-controls">
+             <div></div>
              ${(s.show_dots !== false && slides.length > 1) ? `<div class="zw-hc-dots">${dotsHtml}</div>` : '<div></div>'}
              <div class="zw-hc-nav">
                 ${s.show_pause !== false ? `<button class="zw-hc-pause" aria-label="Pause/Play"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg></button>` : ''}
