@@ -664,7 +664,7 @@ function showToast(msg) {
           const gimgs = (s.images||[]).filter(i=>i.src);
           el.innerHTML = `${s.heading?`<h2 style="font-family:var(--fw);font-size:clamp(1.4rem,4vw,2rem);letter-spacing:.08em;text-transform:uppercase;font-weight:900;font-style:italic;margin-bottom:2rem;text-align:center">${s.heading}</h2>`:''}
             <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:.5rem">
-            ${gimgs.map(img=>`${img.link?`<a href="${img.link}"`:'<div'} style="aspect-ratio:${aspect};overflow:hidden;display:block"><img src="${img.src}" alt="${img.alt||''}" style="width:100%;height:100%;object-fit:cover" loading="lazy" decoding="async">${img.link?'</a>':'</div>'}`).join('')}
+            ${gimgs.map(img=>`${img.link?`<a href="${img.link}"`:'<div'} style="aspect-ratio:${aspect};overflow:hidden;display:block"><img src="${typeof window.optimizeImage==='function'?window.optimizeImage(img.src,1000):img.src}" alt="${img.alt||''}" style="width:100%;height:100%;object-fit:cover" loading="lazy" decoding="async">${img.link?'</a>':'</div>'}`).join('')}
             </div>`;
           break;
         }
@@ -752,9 +752,11 @@ function showToast(msg) {
                 mediaHtml = `<video class="zw-hc-media" src="${sl.media_url||''}" poster="${sl.video_poster||''}" playsinline loop muted${auto} style="object-position:center ${sl.focal_y??50}%"></video>`;
              } else {
                 const lazy = i === 0 ? 'fetchpriority="high"' : 'loading="lazy"';
+                const optDesktop = typeof window.optimizeImage === 'function' ? window.optimizeImage(sl.media_url, 1400) : sl.media_url;
+                const optMobile = typeof window.optimizeImage === 'function' ? window.optimizeImage(sl.media_url_mobile, 800) : sl.media_url_mobile;
                 mediaHtml = `<picture class="zw-hc-media">
-                   ${sl.media_url_mobile ? `<source media="(max-width:768px)" srcset="${sl.media_url_mobile}">` : ''}
-                   <img src="${sl.media_url||''}" alt="" style="object-position:center ${sl.focal_y??50}%" ${lazy} decoding="async">
+                   ${sl.media_url_mobile ? `<source media="(max-width:768px)" srcset="${optMobile||''}">` : ''}
+                   <img src="${optDesktop||''}" alt="" style="object-position:center ${sl.focal_y??50}%" ${lazy} decoding="async">
                 </picture>`;
              }
 
@@ -931,7 +933,8 @@ function showToast(msg) {
              if (isVideo) {
                 mediaHtml = `<video src="${cd.media_url||''}" poster="${cd.video_poster||''}" playsinline autoplay loop muted class="zw-mg-media" style="${ht}"></video>`;
              } else {
-                mediaHtml = `<img src="${cd.media_url||''}" alt="" class="zw-mg-media" style="${ht}" loading="lazy" decoding="async">`;
+                const optImg = typeof window.optimizeImage === 'function' ? window.optimizeImage(cd.media_url, 800) : cd.media_url;
+                mediaHtml = `<img src="${optImg||''}" alt="" class="zw-mg-media" style="${ht}" loading="lazy" decoding="async">`;
              }
              
              const labelHtml = cd.label ? `<p class="zw-mg-label zw-mg-label-${pos}">${cd.label}</p>` : '';

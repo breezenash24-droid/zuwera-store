@@ -3510,10 +3510,10 @@ html.zw-customnav:not(.zw-nav-ready) #nav-category-links{ visibility:hidden; }
 ────────────────────────────────────────────────────────────────────────── */
 .zw-hero-carousel { position:relative; overflow:hidden; background:#09090b; }
 .zw-hc-track { position:relative; width:100%; height:100%; }
-.zw-hc-trans-fade .zw-hc-slide { position:absolute; inset:0; opacity:0; transition:opacity .8s ease; pointer-events:none; z-index:0; }
+.zw-hc-trans-fade .zw-hc-slide { position:absolute; inset:0; opacity:0; transition:opacity .8s ease; pointer-events:none; z-index:0; will-change:opacity; }
 .zw-hc-trans-fade .zw-hc-slide.active { opacity:1; pointer-events:auto; z-index:1; }
-.zw-hc-trans-slide { display:flex; width:100%; height:100%; transition:transform .6s ease; }
-.zw-hc-trans-slide .zw-hc-slide { flex:0 0 100%; width:100%; height:100%; position:relative; pointer-events:none; }
+.zw-hc-trans-slide { display:flex; width:100%; height:100%; transition:transform .6s ease; will-change:transform; }
+.zw-hc-trans-slide .zw-hc-slide { flex:0 0 100%; width:100%; height:100%; position:relative; pointer-events:none; will-change:transform; }
 .zw-hc-trans-slide .zw-hc-slide.active { pointer-events:auto; }
 
 .zw-hc-media { display:block; width:100%; height:100%; object-fit:cover; }
