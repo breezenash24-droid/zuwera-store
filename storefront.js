@@ -853,7 +853,7 @@ function showToast(msg) {
                 if(newIdx === curIdx) return;
                 
                 const oldVid = slideEls[curIdx].querySelector('video');
-                if(oldVid) oldVid.pause();
+                if(oldVid) { oldVid.pause(); oldVid.currentTime = 0; }
                 
                 slideEls[curIdx].classList.remove('active');
                 if(dots[curIdx]) dots[curIdx].classList.remove('active');
@@ -863,9 +863,10 @@ function showToast(msg) {
                 if(dots[curIdx]) dots[curIdx].classList.add('active');
                 
                 const newVid = slideEls[curIdx].querySelector('video');
-                if(newVid && !isPaused) newVid.play().catch(()=>{});
+                if(newVid && !isPaused) { newVid.currentTime = 0; newVid.play().catch(()=>{}); }
                 
                 elapsed = 0;
+                lastTick = Date.now();
                 setProgress(0);
              };
              
@@ -912,21 +913,34 @@ function showToast(msg) {
                 const isVideoModeFull = curSlide.dataset.videoMode === 'full';
                 const vid = curSlide.querySelector('video');
 
-                let percent = 0;
                 if (isVideoModeFull && vid) {
-                   if(vid.duration) {
-                      percent = (vid.currentTime / vid.duration) * 100;
-                      if(vid.ended || vid.currentTime >= vid.duration - 0.1) next();
+                   // Video 'ended' event handles advancement; just update progress ring
+                   if(vid.duration && !isNaN(vid.duration) && vid.duration > 0) {
+                      const percent = (vid.currentTime / vid.duration) * 100;
+                      setProgress(Math.min(100, Math.max(0, percent)));
                    }
                 } else {
                    elapsed += dt;
                    const slideDur = parseInt(curSlide.dataset.duration) || interval;
-                   percent = (elapsed / slideDur) * 100;
+                   const percent = (elapsed / slideDur) * 100;
+                   setProgress(Math.min(100, Math.max(0, percent)));
                    if (elapsed >= slideDur) next();
                 }
-                setProgress(Math.min(100, Math.max(0, percent)));
              };
              rafId = requestAnimationFrame(tick);
+
+             // Bind 'ended' event on all video slides set to 'full' duration mode
+             // This is far more reliable than polling vid.ended in rAF
+             slideEls.forEach((sl, i) => {
+                if(sl.dataset.videoMode === 'full') {
+                   const v = sl.querySelector('video');
+                   if(v) {
+                      v.addEventListener('ended', () => {
+                         if(!isPaused && curIdx === i) next();
+                      });
+                   }
+                }
+             });
              
              let touchStartX = 0;
              let touchEndX = 0;
