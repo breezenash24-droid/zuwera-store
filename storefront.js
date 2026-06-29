@@ -611,11 +611,12 @@ function showToast(msg) {
           const isFull = !s.layout_width || s.layout_width === 'full';
           const px = isFull ? '0' : '2.5rem';
           const mw = isFull ? 'none' : (s.layout_width === 'contained' ? '1200px' : `${s.layout_width}px`);
-          el.style.cssText = `display:flex;flex-wrap:wrap;align-items:center;min-height:${s.image_height||500}px;background:${s.bg_color||s.sec_bg||'transparent'};padding:0 ${px};max-width:${mw};margin:0 auto;`;
+          el.style.cssText = `background:${s.bg_color||s.sec_bg||'transparent'};`;
           if (s.sec_bg && !s.bg_color) el.style.background = s.sec_bg;
           const imgPart = s.image?`<div style="flex:1 1 400px;min-height:${s.image_height||500}px;background:url(${s.image}) center/cover no-repeat"></div>`:'';
           const txtPart = `<div style="flex:1 1 400px;padding:4rem 3rem">${s.label?`<div style="font-family:var(--fm,var(--fb));font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;opacity:.5;margin-bottom:1rem">${s.label}</div>`:''}<h2 style="font-family:var(--fw);font-size:clamp(1.8rem,4vw,2.8rem);font-weight:900;font-style:italic;letter-spacing:.06em;text-transform:uppercase;line-height:1.05;margin-bottom:1.2rem">${s.heading||''}</h2><p style="opacity:.65;line-height:1.75;font-size:.95rem;margin-bottom:1.8rem">${s.body||''}</p>${s.cta_text?`<a href="${s.cta_url||'#'}" style="display:inline-block;border:1px solid currentColor;padding:.65rem 1.6rem;font-family:var(--fm,var(--fb));font-size:.65rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;color:inherit">${s.cta_text}</a>`:''}</div>`;
-          el.innerHTML = imgSide==='left' ? (imgPart+txtPart) : (txtPart+imgPart);
+          const innerHTML = imgSide==='left' ? (imgPart+txtPart) : (txtPart+imgPart);
+          el.innerHTML = `<div style="display:flex;flex-wrap:wrap;align-items:center;min-height:${s.image_height||500}px;padding:0 ${px};max-width:${mw};margin:0 auto;${!isFull && s.bg_color ? 'border-radius:12px;overflow:hidden;' : ''}">${innerHTML}</div>`;
           break;
         }
         case 'cta': {
@@ -649,8 +650,6 @@ function showToast(msg) {
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:2rem;max-width:1000px;margin:0 auto">
             ${titems.map(it=>`<div style="background:rgba(244,241,235,.04);border:1px solid rgba(244,241,235,.08);padding:2rem;text-align:left"><div style="color:var(--gold);margin-bottom:1rem;font-size:1.1rem">${'★'.repeat(Math.min(5,Math.max(1,parseInt(it.rating)||5)))}</div><p style="line-height:1.7;margin-bottom:1.2rem;opacity:.8;font-size:.95rem">"${it.quote||''}"</p><div style="font-family:var(--fw);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;opacity:.5">${it.author||''}</div></div>`).join('')}
             </div>`;
-          break;
-        }
         case 'banner': {
           el.className = 'builder-banner-section';
           el.style.cssText = `padding:1.5rem 2.5rem;text-align:center;background:${s.bg_color||s.sec_bg||'#09090b'};color:${s.text_color||'#f4f1eb'}`;
@@ -662,16 +661,22 @@ function showToast(msg) {
           const isFull = !s.layout_width || s.layout_width === 'full';
           const px = isFull ? '0' : '2.5rem';
           const mw = isFull ? 'none' : (s.layout_width === 'contained' ? '1200px' : `${s.layout_width}px`);
-          el.style.cssText = `padding:3rem ${px};max-width:${mw};margin:0 auto;`;
+          el.style.cssText = `padding:3rem 0;`;
           if (s.sec_bg) el.style.background = s.sec_bg;
           const cols = parseInt(s.columns)||3;
           const aspectMap = {square:'1/1',portrait:'3/4',wide:'16/9'};
           const aspect = aspectMap[s.aspect]||'1/1';
-          const gimgs = (s.images||[]).filter(i=>i.src);
-          el.innerHTML = `${s.heading?`<h2 style="font-family:var(--fw);font-size:clamp(1.4rem,4vw,2rem);letter-spacing:.08em;text-transform:uppercase;font-weight:900;font-style:italic;margin-bottom:2rem;text-align:center">${s.heading}</h2>`:''}
-            <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:.5rem">
-            ${gimgs.map(img=>`${img.link?`<a href="${img.link}"`:'<div'} style="aspect-ratio:${aspect};overflow:hidden;display:block"><img src="${typeof window.optimizeImage==='function'?window.optimizeImage(img.src,1000):img.src}" alt="${img.alt||''}" style="width:100%;height:100%;object-fit:cover" loading="lazy" decoding="async">${img.link?'</a>':'</div>'}`).join('')}
-            </div>`;
+          const gimgs = Array.isArray(s.images) ? s.images : [];
+          if(gimgs.length===0){
+            el.innerHTML=`<div style="padding:0 ${px};max-width:${mw};margin:0 auto;"><div style="opacity:.5;text-align:center">Add images to gallery</div></div>`;
+            break;
+          }
+          el.innerHTML = `<div style="padding:0 ${px};max-width:${mw};margin:0 auto;">
+            ${s.heading?`<h2 style="font-family:var(--fw);font-size:clamp(1.5rem,3vw,2.2rem);text-transform:uppercase;font-weight:800;font-style:italic;text-align:center;margin-bottom:2rem">${s.heading}</h2>`:''}
+            <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:1rem">
+            ${gimgs.map(img=>`${img.link?`<a href="${img.link}"`:'<div'} style="aspect-ratio:${aspect};overflow:hidden;display:block"><img src="${typeof window.optimizeImage==='function'?window.optimizeImage(img.src, 1200):img.src}" alt="${img.alt||''}" style="width:100%;height:100%;object-fit:cover;transition:transform .4s ease" loading="lazy" fetchpriority="low" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">${img.link?'</a>':'</div>'}`).join('')}
+            </div>
+          </div>`;
           break;
         }
         case 'video': {
@@ -904,11 +909,11 @@ function showToast(msg) {
           const isFull = !s.layout_width || s.layout_width === 'full';
           const px = isFull ? '0' : '2.5rem';
           const mw = isFull ? 'none' : (s.layout_width === 'contained' ? '1200px' : `${s.layout_width}px`);
-          el.style.cssText = `padding:4rem ${px}; max-width:${mw}; margin:0 auto; background:${s.sec_bg||'transparent'}`;
+          el.style.cssText = `background:${s.sec_bg||'transparent'}`;
           
           const cards = Array.isArray(s.cards) ? s.cards : [];
           if(cards.length === 0) {
-             el.innerHTML = '<div style="padding:4rem;text-align:center;opacity:0.5">Add cards in the editor</div>';
+             el.innerHTML = `<div style="padding:4rem ${px};max-width:${mw};margin:0 auto;text-align:center;opacity:0.5">Add cards in the editor</div>`;
              break;
           }
           
@@ -963,9 +968,11 @@ function showToast(msg) {
           });
           
           el.innerHTML = `
-             ${s.heading ? `<h2 class="zw-mg-heading">${s.heading}</h2>` : ''}
-             <div class="${trackClass}" style="${trackStyle}">
-                ${cardsHtml}
+             <div style="padding:4rem ${px}; max-width:${mw}; margin:0 auto;">
+                ${s.heading ? `<h2 class="zw-mg-heading">${s.heading}</h2>` : ''}
+                <div class="${trackClass}" style="${trackStyle}">
+                   ${cardsHtml}
+                </div>
              </div>
           `;
           break;
