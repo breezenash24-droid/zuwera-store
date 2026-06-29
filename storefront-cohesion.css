@@ -3578,14 +3578,15 @@ html.zw-customnav:not(.zw-nav-ready) #nav-category-links{ visibility:hidden; }
     padding-bottom: 1rem !important;
     margin-left: calc(50% - 50vw) !important;
     margin-right: calc(50% - 50vw) !important;
-    padding-left: max(1.5rem, calc(50vw - 50%)) !important;
-    padding-right: max(1.5rem, calc(50vw - 50%)) !important;
+    /* (100vw - 75vw) / 2 = 12.5vw */
+    padding-left: 12.5vw !important;
+    padding-right: 12.5vw !important;
   }
   .zw-mobile-scroll-grid::-webkit-scrollbar {
     display: none;
   }
   .zw-mobile-scroll-grid > * {
     flex: 0 0 75vw !important;
-    scroll-snap-align: start !important;
+    scroll-snap-align: center !important;
   }
 }
