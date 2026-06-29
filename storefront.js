@@ -365,6 +365,10 @@ function showToast(msg) {
         document.body.appendChild(el);
       }
 
+      const secDataStr = JSON.stringify(sec);
+      if (el._zwSecJSON === secDataStr) return;
+      el._zwSecJSON = secDataStr;
+
       const s = sec.settings || {};
 
       // Style overrides moved to the bottom of the function so they don't get erased by cssText
