@@ -303,8 +303,8 @@ VALUES (
   'product-images',
   'product-images',
   true,
-  10485760,
-  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  31457280, -- Increased to 30MB to allow for short web-optimized videos
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm']
 )
 ON CONFLICT (id) DO UPDATE
 SET public = true,
