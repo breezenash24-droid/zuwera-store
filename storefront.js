@@ -442,8 +442,8 @@ function showToast(msg) {
           const img = el.querySelector('#hero-image');
           const mobileSource = el.querySelector('#hero-mobile-source');
           if (s.image) {
-            if (img) img.src = s.image;
-            if (mobileSource) mobileSource.srcset = s.image;
+            if (img) img.src = typeof window.optimizeImage === 'function' ? window.optimizeImage(s.image, 1400) : s.image;
+            if (mobileSource) mobileSource.srcset = typeof window.optimizeImage === 'function' ? window.optimizeImage(s.image, 800) : s.image;
           } else {
             if (img) img.src = 'images/hero.jpg?v=2';
             if (mobileSource) mobileSource.srcset = 'images/hero-mobile.jpg';
@@ -531,7 +531,7 @@ function showToast(msg) {
         case 'img_cta': {
           const img = el.querySelector('[data-builder-img]');
           const btn = el.querySelector('[data-builder-btn]');
-          if (img && s.image !== undefined) { img.src = s.image||''; img.alt = s.alt||''; }
+          if (img && s.image !== undefined) { img.src = typeof window.optimizeImage === 'function' ? window.optimizeImage(s.image, 1200) : (s.image||''); img.alt = s.alt||''; }
           const btnVisible = s.btn_on !== undefined ? s.btn_on : s.btn_visible;
           if (btn && s.btn_text !== undefined) { btn.textContent = s.btn_text||''; btn.href = s.btn_url||'#'; btn.style.display = btnVisible?'':'none'; }
           break;
@@ -617,7 +617,8 @@ function showToast(msg) {
           const mw = isFull ? 'none' : (s.layout_width === 'contained' ? '1200px' : `${s.layout_width}px`);
           el.style.cssText = `background:${s.bg_color||s.sec_bg||'transparent'};`;
           if (s.sec_bg && !s.bg_color) el.style.background = s.sec_bg;
-          const imgPart = s.image?`<div style="flex:1 1 400px;min-height:${s.image_height||500}px;background:url(${s.image}) center/cover no-repeat"></div>`:'';
+          const optSplitImg = typeof window.optimizeImage === 'function' && s.image ? window.optimizeImage(s.image, 1200) : s.image;
+          const imgPart = s.image?`<div style="flex:1 1 400px;min-height:${s.image_height||500}px;background:url(${optSplitImg}) center/cover no-repeat"></div>`:'';
           const txtPart = `<div style="flex:1 1 400px;padding:4rem 3rem">${s.label?`<div style="font-family:var(--fm,var(--fb));font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;opacity:.5;margin-bottom:1rem">${s.label}</div>`:''}<h2 style="font-family:var(--fw);font-size:clamp(1.8rem,4vw,2.8rem);font-weight:900;font-style:italic;letter-spacing:.06em;text-transform:uppercase;line-height:1.05;margin-bottom:1.2rem">${s.heading||''}</h2><p style="opacity:.65;line-height:1.75;font-size:.95rem;margin-bottom:1.8rem">${s.body||''}</p>${s.cta_text?`<a href="${s.cta_url||'#'}" style="display:inline-block;border:1px solid currentColor;padding:.65rem 1.6rem;font-family:var(--fm,var(--fb));font-size:.65rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;color:inherit">${s.cta_text}</a>`:''}</div>`;
           const innerHTML = imgSide==='left' ? (imgPart+txtPart) : (txtPart+imgPart);
           el.innerHTML = `<div style="display:flex;flex-wrap:wrap;align-items:center;min-height:${s.image_height||500}px;padding:0 ${px};max-width:${mw};margin:0 auto;${!isFull && s.bg_color ? 'border-radius:12px;overflow:hidden;' : ''}">${innerHTML}</div>`;

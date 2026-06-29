@@ -44,7 +44,7 @@
     if (!/^https?:\/\//i.test(absoluteUrl)) return absoluteUrl;
 
     const safeWidth = normalizeWidth(width);
-    return `https://res.cloudinary.com/${cloudinaryCloudName}/image/fetch/f_auto,q_auto,w_${safeWidth}/${encodeURI(absoluteUrl)}`;
+    return `https://res.cloudinary.com/${cloudinaryCloudName}/image/fetch/f_auto,q_auto:eco,w_${safeWidth}/${encodeURI(absoluteUrl)}`;
   }
 
   async function loadImageConfig() {
