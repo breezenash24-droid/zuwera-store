@@ -3566,3 +3566,22 @@ html.zw-customnav:not(.zw-nav-ready) #nav-category-links{ visibility:hidden; }
 
 /* Hide scrollbars for the horizontal scroll layout */
 .zw-mg-scroll::-webkit-scrollbar { display:none; }
+
+@media(max-width: 900px) {
+  .zw-mobile-scroll-grid {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 1rem !important;
+  }
+  .zw-mobile-scroll-grid::-webkit-scrollbar {
+    display: none;
+  }
+  .zw-mobile-scroll-grid > * {
+    flex: 0 0 calc(85vw - 2.5rem) !important;
+    scroll-snap-align: start !important;
+  }
+}

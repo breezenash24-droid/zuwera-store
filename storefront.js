@@ -650,6 +650,8 @@ function showToast(msg) {
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:2rem;max-width:1000px;margin:0 auto">
             ${titems.map(it=>`<div style="background:rgba(244,241,235,.04);border:1px solid rgba(244,241,235,.08);padding:2rem;text-align:left"><div style="color:var(--gold);margin-bottom:1rem;font-size:1.1rem">${'★'.repeat(Math.min(5,Math.max(1,parseInt(it.rating)||5)))}</div><p style="line-height:1.7;margin-bottom:1.2rem;opacity:.8;font-size:.95rem">"${it.quote||''}"</p><div style="font-family:var(--fw);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;opacity:.5">${it.author||''}</div></div>`).join('')}
             </div>`;
+          break;
+        }
         case 'banner': {
           el.className = 'builder-banner-section';
           el.style.cssText = `padding:1.5rem 2.5rem;text-align:center;background:${s.bg_color||s.sec_bg||'#09090b'};color:${s.text_color||'#f4f1eb'}`;
@@ -673,7 +675,7 @@ function showToast(msg) {
           }
           el.innerHTML = `<div style="padding:0 ${px};max-width:${mw};margin:0 auto;">
             ${s.heading?`<h2 style="font-family:var(--fw);font-size:clamp(1.5rem,3vw,2.2rem);text-transform:uppercase;font-weight:800;font-style:italic;text-align:center;margin-bottom:2rem">${s.heading}</h2>`:''}
-            <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:1rem">
+            <div class="zw-mobile-scroll-grid" style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:1rem">
             ${gimgs.map(img=>`${img.link?`<a href="${img.link}"`:'<div'} style="aspect-ratio:${aspect};overflow:hidden;display:block"><img src="${typeof window.optimizeImage==='function'?window.optimizeImage(img.src, 1200):img.src}" alt="${img.alt||''}" style="width:100%;height:100%;object-fit:cover;transition:transform .4s ease" loading="lazy" fetchpriority="low" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">${img.link?'</a>':'</div>'}`).join('')}
             </div>
           </div>`;
@@ -928,7 +930,7 @@ function showToast(msg) {
           let trackStyle = '';
           
           if (layout === 'grid') {
-             trackClass += ' zw-mg-grid';
+             trackClass += ' zw-mg-grid zw-mobile-scroll-grid';
              trackStyle = `display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap:${gap};`;
           } else {
              trackClass += ' zw-mg-scroll';
