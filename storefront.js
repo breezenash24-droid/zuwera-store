@@ -748,11 +748,11 @@ function showToast(msg) {
           <div class="zw-hc-track zw-hc-trans-${s.transition||'fade'}">
              ${slidesHtml}
           </div>
-          <div class="zw-hc-controls" style="display:${slides.length > 1 ? 'flex' : 'none'}">
-             ${s.show_dots !== false ? `<div class="zw-hc-dots">${dotsHtml}</div>` : '<div></div>'}
+          <div class="zw-hc-controls" style="display:flex">
+             ${(s.show_dots !== false && slides.length > 1) ? `<div class="zw-hc-dots">${dotsHtml}</div>` : '<div></div>'}
              <div class="zw-hc-nav">
                 ${s.show_pause !== false ? `<button class="zw-hc-pause" aria-label="Pause/Play"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg></button>` : ''}
-                ${s.show_arrows !== false ? `
+                ${(s.show_arrows !== false && slides.length > 1) ? `
                 <button class="zw-hc-prev" aria-label="Previous"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg></button>
                 <button class="zw-hc-next" aria-label="Next"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></button>
                 ` : ''}
