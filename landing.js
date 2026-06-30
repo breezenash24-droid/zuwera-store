@@ -347,6 +347,20 @@
         var grid = document.getElementById('lp-feat-grid');
         if (grid) grid.innerHTML = '<div class="lp-empty" style="grid-column:1/-1">Couldn’t load products. <a href="drop001.html" style="color:inherit;text-decoration:underline">Browse the collection →</a></div>';
       });
+
+    // LIVE PREVIEW: the builder (Pages tab) postMessages its in-memory config as
+    // it's edited, so unsaved hero/category/featured/section changes render here
+    // immediately — no Save Draft needed. Same idea as the homepage's live cfg.
+    window.addEventListener('message', function (e) {
+      var d = e && e.data;
+      if (!d || d.type !== 'ZW_LANDING_PREVIEW') return;
+      if (d.slug && d.slug !== slug) return;          // a different page is being edited
+      try {
+        loadedCfg = d.cfg || loadedCfg;
+        applyPageTheme(loadedCfg);
+        buildPage(window.__zwProducts || [], gender, loadedCfg);
+      } catch (_) {}
+    });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

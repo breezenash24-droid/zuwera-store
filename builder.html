@@ -687,6 +687,12 @@ let secStore=null;
 function curSections(){ return secStore ? (Array.isArray(secStore.sections)?secStore.sections:(secStore.sections=[])) : sections; }
 function setCurSections(a){ if(secStore) secStore.sections=a; else sections=a; }
 function curApply(){ if(secStore) markLpDirty(); else schedSend(); }
+let _lpSendT;
+function schedLandingPreview(){ clearTimeout(_lpSendT); _lpSendT=setTimeout(sendLandingCfg,250); }
+function sendLandingCfg(){
+  const f=document.getElementById('pvIframe'); if(!f||!f.contentWindow)return;
+  try{ f.contentWindow.postMessage({type:'ZW_LANDING_PREVIEW',slug:landingSlug,cfg:lpCfg()}, location.origin); }catch(_){}
+}
 function curDirty(){ if(secStore) markLpDirty(); else markDirty(); }
 function curPushUndo(){ if(!secStore) pushUndo(); }   // undo is homepage-only
 
@@ -826,7 +832,7 @@ function lpScopeName(){const f=lpPageFilter();return String(f.value||'').replace
 function lpPageLabel(slug){return slug.indexOf('tag:')===0?('Tag: '+slug.slice(4).replace(/\b\w/g,c=>c.toUpperCase())):(slug.charAt(0).toUpperCase()+slug.slice(1));}
 function lpCfg(){let c=landingPages[landingSlug];if(!c||typeof c!=='object'){c={};landingPages[landingSlug]=c;}c.hero=c.hero||{};c.categories=c.categories||{};c.featured=c.featured||{};if(!Array.isArray(c.sections))c.sections=[];return c;}
 function lpSetPath(path,val){const c=lpCfg();const parts=path.split('.');let o=c;for(let i=0;i<parts.length-1;i++){o[parts[i]]=o[parts[i]]||{};o=o[parts[i]];}o[parts[parts.length-1]]=val;markLpDirty();}
-let _lpDirty=false; function markLpDirty(){_lpDirty=true;const b=document.getElementById('lpSaveHint');if(b)b.textContent='Unsaved changes';}
+let _lpDirty=false; function markLpDirty(){_lpDirty=true;const b=document.getElementById('lpSaveHint');if(b)b.textContent='Unsaved changes';schedLandingPreview();}
 function lpGenderProducts(){return (landingProducts||[]).filter(p=>lpMatchFilter(p));}
 function lpAvailCats(){const seen={},list=[];lpGenderProducts().forEach(p=>{const c=String(p.subtitle||'').trim();if(!c||seen[c.toLowerCase()])return;seen[c.toLowerCase()]=true;list.push(c);});return list;}
 function lpOrderedCats(){const avail=lpAvailCats();const byLow={};avail.forEach(a=>byLow[a.toLowerCase()]=a);const order=Array.isArray(lpCfg().categories.order)?lpCfg().categories.order:[];const inOrder=[],placed={};order.forEach(c=>{const a=byLow[String(c).toLowerCase()];if(a&&!placed[a.toLowerCase()]){inOrder.push(a);placed[a.toLowerCase()]=true;}});const rest=avail.filter(a=>!placed[a.toLowerCase()]).sort((a,b)=>lpCatRank(a)-lpCatRank(b)||a.localeCompare(b));return inOrder.concat(rest);}
@@ -952,7 +958,7 @@ async function landingSavePreview(){await saveLandingPages(false);window.open(la
 // Inline preview of the landing page being edited (Pages tab). The preview reads
 // the saved DRAFT (preview=1), so it refreshes after each "Save Draft".
 function landingPreviewUrl(){ var s=landingSlug||'men'; if(s.indexOf('tag:')===0) return '/landing.html?tag='+encodeURIComponent(s.slice(4))+'&preview=1'; return '/landing.html?page='+encodeURIComponent(s)+'&preview=1'; }
-function reloadLandingPreview(){ const f=document.getElementById('pvIframe'); if(f) f.src=landingPreviewUrl()+'&_cb='+Date.now(); }
+function reloadLandingPreview(){ const f=document.getElementById('pvIframe'); if(!f)return; f.onload=function(){ setTimeout(sendLandingCfg,120); }; f.src=landingPreviewUrl()+'&_cb='+Date.now(); }
 function syncPreviewFrame(){
   const f=document.getElementById('pvIframe'); if(!f) return;
   if(curTab==='pages'){ reloadLandingPreview(); }
