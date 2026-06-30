@@ -621,7 +621,7 @@ function showToast(msg) {
           const imgPart = s.image?`<div style="flex:1 1 400px;min-height:${s.image_height||500}px;background:url(${optSplitImg}) center/cover no-repeat"></div>`:'';
           const txtPart = `<div style="flex:1 1 400px;padding:4rem 3rem">${s.label?`<div style="font-family:var(--fm,var(--fb));font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;opacity:.5;margin-bottom:1rem">${s.label}</div>`:''}<h2 style="font-family:var(--fw);font-size:clamp(1.8rem,4vw,2.8rem);font-weight:900;font-style:italic;letter-spacing:.06em;text-transform:uppercase;line-height:1.05;margin-bottom:1.2rem">${s.heading||''}</h2><p style="opacity:.65;line-height:1.75;font-size:.95rem;margin-bottom:1.8rem">${s.body||''}</p>${s.cta_text?`<a href="${s.cta_url||'#'}" style="display:inline-block;border:1px solid currentColor;padding:.65rem 1.6rem;font-family:var(--fm,var(--fb));font-size:.65rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;color:inherit">${s.cta_text}</a>`:''}</div>`;
           const innerHTML = imgSide==='left' ? (imgPart+txtPart) : (txtPart+imgPart);
-          el.innerHTML = `<div style="display:flex;flex-wrap:wrap;align-items:center;min-height:${s.image_height||500}px;padding:0 ${px};max-width:${mw};margin:0 auto;${!isFull && s.bg_color ? 'border-radius:12px;overflow:hidden;' : ''}">${innerHTML}</div>`;
+          el.innerHTML = `<div style="display:flex;flex-wrap:wrap;align-items:center;min-height:${s.image_height||500}px;padding:0 ${px};max-width:${mw};margin:0 auto;${!isFull && (s.sec_bg||s.bg_color) ? 'border-radius:12px;overflow:hidden;' : ''}">${innerHTML}</div>`;
           break;
         }
         case 'cta': {
@@ -631,7 +631,7 @@ function showToast(msg) {
           el.innerHTML = `<div style="max-width:700px;margin:0 auto">
             ${s.heading?`<h2 style="font-family:var(--fw);font-size:clamp(2rem,6vw,3.2rem);font-weight:900;font-style:italic;letter-spacing:.08em;text-transform:uppercase;line-height:1.05;margin-bottom:1rem">${s.heading}</h2>`:''}
             ${s.subtext?`<p style="opacity:.65;line-height:1.7;margin-bottom:2rem;font-size:1rem">${s.subtext}</p>`:''}
-            ${s.btn_text?`<a href="${s.btn_url||'#'}" style="display:inline-block;background:${s.btn_style==='solid'?'currentColor':'transparent'};color:${s.btn_style==='solid'?(s.bg_color||'#09090b'):'currentColor'};border:1px solid currentColor;padding:.75rem 2rem;font-family:var(--fm,var(--fb));font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;text-decoration:none">${s.btn_text}</a>`:''}
+            ${s.btn_text?`<a href="${s.btn_url||'#'}" style="display:inline-block;background:${s.btn_style==='solid'?'currentColor':'transparent'};color:${s.btn_style==='solid'?(s.sec_bg||s.bg_color||'#09090b'):'currentColor'};border:1px solid currentColor;padding:.75rem 2rem;font-family:var(--fm,var(--fb));font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;text-decoration:none">${s.btn_text}</a>`:''}
           </div>`;
           break;
         }
@@ -1076,7 +1076,21 @@ function showToast(msg) {
       else el.style.removeProperty('background'); // clear when unset so mode bg returns
       if (s.pad_top) el.style.paddingTop = s.pad_top + 'px';
       if (s.pad_bot) el.style.paddingBottom = s.pad_bot + 'px';
-      
+
+      // Universal text color (opt-in). Sections that set color via cssText
+      // (cta/banner) ship a text_color default, so the else-branch only clears
+      // an inline override on sections that never set color themselves.
+      if (s.text_color) el.style.setProperty('color', s.text_color, 'important');
+      else el.style.removeProperty('color');
+      // Universal heading-size override (opt-in). Only applied when set — when
+      // blank, each section's own responsive heading size (re-rendered into the
+      // innerHTML on every update) stands, so there's nothing to clear.
+      if (s.heading_size) {
+        el.querySelectorAll('h1,h2,[data-builder-heading]').forEach(function (hEl) {
+          hEl.style.setProperty('font-size', s.heading_size, 'important');
+        });
+      }
+
       if (s.font_head_override && _FONT_STACKS[s.font_head_override]) {
         el.style.setProperty('--zw-font-head', _FONT_STACKS[s.font_head_override]);
         el.style.setProperty('--fw', _FONT_STACKS[s.font_head_override]);
