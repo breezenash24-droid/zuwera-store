@@ -3616,3 +3616,19 @@ picture.zw-hc-media img { display:block; width:100%; height:100%; object-fit:cov
     scroll-snap-align: center !important;
   }
 }
+
+/* ───────────────────────────────────────────────────────────────────────────
+   MOBILE MENU BACKDROP — fully transparent on every page AND every theme.
+   The drawer is a right-hand panel (.zw-mobile-menu-panel) that carries its own
+   solid surface + shadow; the overlay container itself must never paint a fill.
+   Earlier rules left it inconsistent: dark mode showed a 52% black scrim
+   (rgba(0,0,0,.52)), while light/super-light mode painted an OPAQUE --zw-paper/
+   white fill (higher-specificity body.light-mode rules) that hid the page
+   entirely. This single late rule outranks all of them (and any per-page inline
+   #mobile-menu background) so the area behind the drawer is always see-through.
+   Placed last so source-order tie-breaks resolve in its favour. */
+#mobile-menu.zw-mobile-menu,
+body.light-mode #mobile-menu.zw-mobile-menu,
+body.super-light-mode #mobile-menu.zw-mobile-menu{
+  background:transparent !important;
+}

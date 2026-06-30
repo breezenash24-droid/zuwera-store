@@ -11,6 +11,24 @@
   var previousHtmlOverscroll = '';
   var lockedScrollY = 0;
 
+  // Stop history-driven scroll restoration from fighting our manual restore.
+  // Opening the menu pushState()s a history entry while the body is locked at
+  // the top (position:fixed → document scroll snaps to 0), so the browser
+  // records scrollY=0 for that entry. Closing calls history.back(), and with
+  // the default 'auto' restoration the browser snaps the page back to that
+  // recorded 0 — overriding the scroll-lock's scrollTo(savedY) and jumping you
+  // to the very top. 'manual' hands restoration to us; we flip back to 'auto'
+  // on pagehide so normal cross-page back/forward still restores scroll.
+  // (drop001 already did this locally; doing it here fixes every page at once.)
+  try {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+      window.addEventListener('pagehide', function () {
+        try { window.history.scrollRestoration = 'auto'; } catch (_) {}
+      });
+    }
+  } catch (_) {}
+
   function menu() {
     return document.getElementById('mobile-menu');
   }
