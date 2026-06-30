@@ -187,7 +187,10 @@
       mediaHtml = '<div class="lp-hero-bg"></div>'; // image applied via CSS vars (responsive mobile swap)
     }
     var heroEl = document.getElementById('lp-hero');
-    if (heroEl) {
+    if (heroEl && heroCfg.enabled === false) {
+      heroEl.style.display = 'none';   // auto hero turned off in the builder
+    } else if (heroEl) {
+      heroEl.style.display = '';
       heroEl.innerHTML =
         mediaHtml +
         '<p class="lp-hero-kicker">' + esc(heroKicker) + '</p>' +
@@ -243,7 +246,9 @@
 
     var catSec = document.getElementById('lp-cats-sec');
     var catGrid = document.getElementById('lp-cat-grid');
-    if (catGrid && catList.length) {
+    if (catCfg.enabled === false) {
+      if (catSec) catSec.hidden = true;          // category tiles turned off in the builder
+    } else if (catGrid && catList.length) {
       var hCat = document.getElementById('lp-cats-h'); if (hCat && catCfg.heading) hCat.textContent = catCfg.heading;
       var allCat = document.getElementById('lp-cats-all'); if (allCat) allCat.href = catCfg.shopAllUrl || base;
       catGrid.innerHTML = catList.map(function (c) {
@@ -269,6 +274,12 @@
 
     /* ---- FEATURED ---- */
     var featCfg = cfg.featured || {};
+    var featSec = document.getElementById('main-content');
+    if (featCfg.enabled === false) {              // featured products turned off in the builder
+      if (featSec) featSec.style.display = 'none';
+      return;                                     // builder sections already rendered above
+    }
+    if (featSec) featSec.style.display = '';
     var pool = inGender.slice();
     var featured;
     if (featCfg.mode === 'manual' && Array.isArray(featCfg.productIds) && featCfg.productIds.length) {

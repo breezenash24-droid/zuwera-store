@@ -894,6 +894,8 @@ function renderPagesTab(container){
     <div class="fdiv"></div>
 
     <div class="tab-hd">Hero</div>
+    <div class="tog2"><label>Show hero at top</label><label class="switch"><input type="checkbox" data-lp="hero.enabled" ${h.enabled!==false?'checked':''}><span class="sw-sl"></span></label></div>
+    <div class="fhint" style="margin-bottom:.4rem">Turn this off to drop the auto hero and build your own with a Hero block in Page Sections (e.g. below the products).</div>
     <div class="field"><label>Kicker (small text above title)</label><input data-lp="hero.kicker" value="${he(h.kicker||'')}" placeholder="Zuwera"></div>
     <div class="field"><label>Title</label><input data-lp="hero.title" value="${he(h.title||'')}" placeholder="${he(lpScopeName())}"></div>
     <div class="field"><label>Subtitle</label><textarea data-lp="hero.subtitle" rows="2" style="font-family:inherit;font-size:.68rem" placeholder="Auto tagline…">${he(h.subtitle||'')}</textarea></div>
@@ -910,11 +912,13 @@ function renderPagesTab(container){
     <div class="fdiv"></div>
 
     <div class="tab-hd">Shop by Category</div>
+    <div class="tog2"><label>Show category tiles</label><label class="switch"><input type="checkbox" data-lp="categories.enabled" ${cat.enabled!==false?'checked':''}><span class="sw-sl"></span></label></div>
     <div class="field"><label>Section heading</label><input data-lp="categories.heading" value="${he(cat.heading||'')}" placeholder="Shop by category"></div>
     ${catHtml}
     <div class="fdiv"></div>
 
     <div class="tab-hd">Featured</div>
+    <div class="tog2"><label>Show featured products</label><label class="switch"><input type="checkbox" data-lp="featured.enabled" ${feat.enabled!==false?'checked':''}><span class="sw-sl"></span></label></div>
     <div class="field"><label>Section heading</label><input data-lp="featured.heading" value="${he(feat.heading||'')}" placeholder="Featured"></div>
     ${featHtml}
     <div class="fdiv"></div>
@@ -931,7 +935,7 @@ function renderPagesTab(container){
   </div>`;
 
   container.querySelectorAll('[data-lp]').forEach(el=>{
-    const sync=()=>lpSetPath(el.dataset.lp,el.value);
+    const sync=()=>lpSetPath(el.dataset.lp, el.type==='checkbox'?el.checked:el.value);
     el.addEventListener('input',sync); el.addEventListener('change',sync);
   });
   // Render this landing page's builder sections (secStore is set to lpCfg() by
@@ -1431,11 +1435,12 @@ async function uploadFromMedia(input){
 }
 
 // ── LIBRARY ───────────────────────────────────────────────────────────────
-// Section types that are bound to the homepage template (they update existing
-// index.html markup / load the drop grid) and don't belong on a landing page,
-// which already has its own auto hero + product strip. Hidden from the Pages-tab
-// palette to avoid e.g. stacking a 2nd hero.
-const HOMEPAGE_ONLY_TYPES=['hero','products','release'];
+// Section types bound to the homepage template (they update existing index.html
+// markup / load the drop grid) — these can't render on a landing page, so they
+// stay hidden from the Pages-tab palette. `hero` IS allowed: a hero section is
+// how you place a hero below the products (turn off the auto hero if you don't
+// want it at the top too).
+const HOMEPAGE_ONLY_TYPES=['products','release'];
 function openLib(){
   const cats={store:'Store Sections',marketing:'Marketing & Content',layout:'Layout Blocks'};
   let html='';
