@@ -626,10 +626,45 @@
       /* ── Super-light mode: white box instead of cream ── */
       body.super-light-mode #zw-lang-box { background: #FFFFFF !important; }
       body.super-light-mode #zw-lang-grid::-webkit-scrollbar-thumb { background: rgba(9,9,11,0.12); }
+      /* ── Mobile/tablet: bottom sheet, matching every other compact modal
+         on the site (full-width, rounded top corners only, anchored to the
+         bottom edge, slides up on open). ── */
+      @media (max-width: 900px) {
+        #zw-lang-modal {
+          padding: calc(1.6rem + 36px + env(safe-area-inset-top,0px)) 0 0 !important;
+        }
+        #zw-lang-box {
+          width: 100% !important;
+          max-width: 100% !important;
+          height: auto !important;
+          min-height: 0 !important;
+          max-height: calc(100dvh - 1.6rem - 36px - env(safe-area-inset-top,0px) - .5rem) !important;
+          margin: 0 !important;
+          border-radius: 1.25rem 1.25rem 0 0 !important;
+          border-left: none !important;
+          border-right: none !important;
+          box-shadow: 0 -8px 40px rgba(0,0,0,.28) !important;
+          animation: zwLangSheetIn .42s cubic-bezier(.32,.72,0,1) !important;
+        }
+        #zw-lang-box::before {
+          content: '';
+          display: block;
+          width: 36px;
+          height: 4px;
+          border-radius: 2px;
+          background: rgba(244,241,235,.18);
+          margin: .6rem auto .55rem;
+        }
+        body.light-mode #zw-lang-box::before {
+          background: rgba(9,9,11,.16);
+        }
+      }
       @media (max-width: 600px) {
-        #zw-lang-box { width: calc(100vw - 2rem) !important; max-width: calc(100vw - 2rem) !important; height: auto !important; max-height: 92dvh !important; border-radius: 18px !important; }
-        #zw-lang-modal { align-items: center !important; justify-content: center !important; }
         #zw-lang-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+      }
+      @keyframes zwLangSheetIn {
+        from { transform: translateY(100%); }
+        to   { transform: translateY(0); }
       }
     `;
     document.head.appendChild(style);
