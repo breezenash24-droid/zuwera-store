@@ -145,6 +145,9 @@ body{display:flex;flex-direction:column}
 .flist-item-lbl{font-family:'IBM Plex Mono',monospace;font-size:.46rem;letter-spacing:.11em;text-transform:uppercase;color:var(--mu)}
 .flist-rm{background:none;border:none;cursor:pointer;color:rgba(224,112,96,.5);font-size:.6rem;padding:0;line-height:1;transition:.11s}
 .flist-rm:hover{color:rgba(224,112,96,.9)}
+.flist-acts{display:flex;align-items:center;gap:.45rem}
+.flist-mv{background:none;border:none;cursor:pointer;color:var(--mu);font-size:.6rem;padding:0;line-height:1;transition:.11s}
+.flist-mv:hover{color:var(--ac)}
 .add-item-btn{background:transparent;border:1px dashed rgba(255,255,255,.11);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.48rem;letter-spacing:.09em;text-transform:uppercase;padding:.28rem;cursor:pointer;border-radius:2px;width:100%;transition:.11s;margin-top:.18rem}
 .add-item-btn:hover{border-color:var(--ac);color:var(--ac)}
 .del-sec{background:transparent;border:1px solid rgba(224,112,96,.18);color:rgba(224,112,96,.5);font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.09em;text-transform:uppercase;padding:.36rem;cursor:pointer;width:100%;border-radius:2px;transition:.12s;margin-top:.18rem}
@@ -1094,17 +1097,45 @@ const colorF2=(k,l,v='')=>`<div class="field"><label>${l}</label><div style="dis
 const rangeF=(k,l,v,min,max,unit='')=>`<div class="field"><label>${l}</label><div class="range-row"><input type="range" data-f="${k}" data-unit="${unit}" min="${min}" max="${max}" value="${v}" style="flex:1"><span class="range-val" data-range-disp="${k}">${v}${unit}</span></div></div>`;
 const padF=g=>`<div class="fdiv"></div>${fhd('Typography Override')}
 ${sel('font_head_override','Heading Font',g.font_head_override||'',[['','Use Global Theme'],['barlow-condensed','Barlow Condensed'],['oswald','Oswald'],['bebas-neue','Bebas Neue'],['anton','Anton'],['league-gothic','League Gothic'],['michroma','Michroma'],['montserrat','Montserrat'],['syne','Syne'],['archivo-black','Archivo Black'],['teko','Teko'],['righteous','Righteous'],['playfair-display','Playfair Display'],['cinzel','Cinzel'],['futura','Futura'],['futura-100-bold','Futura 100 Bold'],['futura-100-bold-oblique','Futura 100 Bold Oblique']])}
-${sel('font_body_override','Body Font',g.font_body_override||'',[['','Use Global Theme'],['barlow','Barlow'],['inter','Inter'],['dm-sans','DM Sans'],['outfit','Outfit'],['manrope','Manrope'],['poppins','Poppins'],['lato','Lato'],['roboto','Roboto'],['work-sans','Work Sans'],['mulish','Mulish'],['futura','Futura'],['futura-100-bold','Futura 100 Bold'],['futura-100-bold-oblique','Futura 100 Bold Oblique']])}
-<div class="fdiv"></div>${fhd('Section Padding')}<div class="pad-grid">${rangeF('pad_top','Top Padding',g.pad_top||0,0,200,'px')}${rangeF('pad_bot','Bottom Padding',g.pad_bot||0,0,200,'px')}</div>`;
+${sel('font_body_override','Body Font',g.font_body_override||'',[['','Use Global Theme'],['barlow','Barlow'],['inter','Inter'],['dm-sans','DM Sans'],['outfit','Outfit'],['manrope','Manrope'],['poppins','Poppins'],['lato','Lato'],['roboto','Roboto'],['work-sans','Work Sans'],['mulish','Mulish'],['futura','Futura'],['futura-100-bold','Futura 100 Bold'],['futura-100-bold-oblique','Futura 100 Bold Oblique']])}`;
+/* NOTE: Section padding is rendered once, by the universal "Section Style"
+   block in buildForm. It used to ALSO be rendered here as sliders, but both
+   wrote data-f="pad_top/pad_bot" — syncForm reads them in DOM order and the
+   later (number) input clobbered the slider, so dragging did nothing. */
 const bgF=(k,g)=>`${colorF(k,'Section Background Color',g[k]||'')} <div class="fhint">Leave blank for default site background</div>`;
 const imgField=(key,lbl,val='')=>{
   const prev=val?`<img data-preview="${key}" src="${he(val)}" style="width:100%;height:70px;object-fit:cover;border:1px solid var(--bd);border-radius:2px;margin-bottom:.25rem;display:block">`:`<div data-preview="${key}" style="display:none"></div>`;
   return `<div class="field"><label>${lbl}</label>${prev}<input type="text" data-f="${key}" value="${he(val)}" placeholder="/images/hero.jpg?v=2 or https://..."><div style="display:flex;gap:.3rem;margin-top:.25rem"><button type="button" class="img-btn" data-pick="${key}">📁 Browse</button></div></div>`;
 };
-const arrField=(key,itemLbl,items,fieldDefs)=>`<div class="flist" data-arr="${key}">${items.map((item,i)=>`<div data-arr-item style="background:var(--bg);border:1px solid var(--bd);border-radius:2px;padding:.38rem .48rem;margin-bottom:.25rem"><div class="flist-item-hd"><span class="flist-item-lbl">${itemLbl} ${i+1}</span><button class="flist-rm" onclick="removeArrItem(this,'${key}')">✕</button></div>${fieldDefs.map(([k,l,type])=>`<div class="field" style="margin-top:.28rem"><label>${l}</label><${type==='textarea'?`textarea data-f="${k}"`:(`input type="${type}" data-f="${k}"`)} ${type==='textarea'?'':'value="'+he(item[k]||'')+'"'}>${type==='textarea'?he(item[k]||''):''}${type==='textarea'?'</textarea>':'>'}</div>`).join('')}</div>`).join('')}</div><button class="add-item-btn" onclick="addArrItem('${key}')">+ Add ${itemLbl}</button>`;
+const arrField=(key,itemLbl,items,fieldDefs)=>`<div class="flist" data-arr="${key}">${items.map((item,i)=>`<div data-arr-item style="background:var(--bg);border:1px solid var(--bd);border-radius:2px;padding:.38rem .48rem;margin-bottom:.25rem"><div class="flist-item-hd"><span class="flist-item-lbl">${itemLbl} ${i+1}</span><span class="flist-acts"><button class="flist-mv" onclick="moveArrItem(this,-1)" title="Move up">↑</button><button class="flist-mv" onclick="moveArrItem(this,1)" title="Move down">↓</button><button class="flist-rm" onclick="removeArrItem(this,'${key}')">✕</button></span></div>${fieldDefs.map(([k,l,type])=>`<div class="field" style="margin-top:.28rem"><label>${l}</label><${type==='textarea'?`textarea data-f="${k}"`:(`input type="${type}" data-f="${k}"`)} ${type==='textarea'?'':'value="'+he(item[k]||'')+'"'}>${type==='textarea'?he(item[k]||''):''}${type==='textarea'?'</textarea>':'>'}</div>`).join('')}</div>`).join('')}</div><button class="add-item-btn" onclick="addArrItem('${key}')">+ Add ${itemLbl}</button>`;
 
-window.removeArrItem=function(btn,key){const item=btn.closest('[data-arr-item]');if(item){item.remove();const s=sections.find(x=>x.id===selId);if(s)syncForm(s);}};
-window.addArrItem=function(key){const s=sections.find(x=>x.id===selId);if(!s)return;if(!s.settings[key])s.settings[key]=[];const first=s.settings[key][0]||{};const def={};Object.keys(first).forEach(k=>def[k]='');s.settings[key].push(def);openEditor(s);toast('Item added');};
+window.removeArrItem=function(btn,key){const item=btn.closest('[data-arr-item]');if(item){item.remove();const s=sections.find(x=>x.id===selId);if(s){syncForm(s);schedSend();}}};
+window.addArrItem=function(key){
+  const s=sections.find(x=>x.id===selId);if(!s)return;
+  if(!s.settings[key])s.settings[key]=[];
+  // Seed the new item from the type's default template (if any) so structural
+  // defaults survive — e.g. a new carousel slide keeps focal_y:50,
+  // overlay_opacity:30, media_type:'image'. Fall back to a blank-keyed copy of
+  // the existing first item when there's no template.
+  const tmpl=(SECT_DEFS[s.type]&&Array.isArray(SECT_DEFS[s.type][key])&&SECT_DEFS[s.type][key][0])||null;
+  let def;
+  if(tmpl){def=clone(tmpl);}
+  else{const first=s.settings[key][0]||{};def={};Object.keys(first).forEach(k=>def[k]='');}
+  s.settings[key].push(def);
+  openEditor(s);schedSend();toast('Item added');
+};
+// Reorder an array item up (dir=-1) or down (dir=1). syncForm rebuilds the
+// array from DOM order, so swapping the [data-arr-item] nodes and re-syncing is
+// all that's needed — works for generic lists AND hand-built slides/cards.
+window.moveArrItem=function(btn,dir){
+  const item=btn.closest('[data-arr-item]');if(!item)return;
+  const sib=dir<0?item.previousElementSibling:item.nextElementSibling;
+  if(!sib||!(sib.matches&&sib.matches('[data-arr-item]')))return;
+  if(dir<0)item.parentNode.insertBefore(item,sib);
+  else item.parentNode.insertBefore(sib,item);
+  const s=sections.find(x=>x.id===selId);
+  if(s){syncForm(s);openEditor(s);schedSend();}
+};
 
 function buildForm(s){
   const g=s.settings||{};
@@ -1146,7 +1177,7 @@ function buildForm(s){
         +fdiv()+fhd('Slides');
       const slides=g.slides||[];
       h+=`<div class="flist" data-arr="slides">${slides.map((sl,i)=>`<div data-arr-item style="background:var(--bg);border:1px solid var(--bd);border-radius:4px;padding:.55rem .6rem;margin-bottom:.4rem">
-        <div class="flist-item-hd"><span class="flist-item-lbl">Slide ${i+1}</span><button class="flist-rm" onclick="removeArrItem(this,'slides')">✕</button></div>
+        <div class="flist-item-hd"><span class="flist-item-lbl">Slide ${i+1}</span><span class="flist-acts"><button class="flist-mv" onclick="moveArrItem(this,-1)" title="Move up">↑</button><button class="flist-mv" onclick="moveArrItem(this,1)" title="Move down">↓</button><button class="flist-rm" onclick="removeArrItem(this,'slides')">✕</button></span></div>
         <div class="field" style="margin-top:.3rem"><label>Media Type</label><select data-f="media_type"><option value="image"${sl.media_type==='image'?' selected':''}>Image</option><option value="video"${sl.media_type==='video'?' selected':''}>Video</option></select></div>
         <div class="field"><label>Media URL</label><div style="display:flex;gap:.3rem;align-items:center"><input type="text" id="slides.${i}.media_url" data-f="media_url" value="${he(sl.media_url)}" placeholder="/images/hero.jpg" style="flex:1"><button type="button" class="img-btn" data-pick="slides.${i}.media_url">📁</button></div></div>
         <div class="field"><label>Mobile Media URL (optional)</label><input type="text" data-f="media_url_mobile" value="${he(sl.media_url_mobile)}" placeholder="Mobile-specific image"></div>
@@ -1188,7 +1219,7 @@ function buildForm(s){
         +fdiv()+fhd('Cards');
       const cards=g.cards||[];
       h+=`<div class="flist" data-arr="cards">${cards.map((cd,i)=>`<div data-arr-item style="background:var(--bg);border:1px solid var(--bd);border-radius:4px;padding:.55rem .6rem;margin-bottom:.4rem">
-        <div class="flist-item-hd"><span class="flist-item-lbl">Card ${i+1}</span><button class="flist-rm" onclick="removeArrItem(this,'cards')">✕</button></div>
+        <div class="flist-item-hd"><span class="flist-item-lbl">Card ${i+1}</span><span class="flist-acts"><button class="flist-mv" onclick="moveArrItem(this,-1)" title="Move up">↑</button><button class="flist-mv" onclick="moveArrItem(this,1)" title="Move down">↓</button><button class="flist-rm" onclick="removeArrItem(this,'cards')">✕</button></span></div>
         <div class="field" style="margin-top:.3rem"><label>Media Type</label><select data-f="media_type"><option value="image"${cd.media_type==='image'?' selected':''}>Image</option><option value="video"${cd.media_type==='video'?' selected':''}>Video</option></select></div>
         <div class="field"><label>Media URL</label><div style="display:flex;gap:.3rem;align-items:center"><input type="text" id="cards.${i}.media_url" data-f="media_url" value="${he(cd.media_url)}" placeholder="/images/photo.jpg" style="flex:1"><button type="button" class="img-btn" data-pick="cards.${i}.media_url">📁</button></div></div>
         <div class="field"><label>Video Poster</label><input type="text" data-f="video_poster" value="${he(cd.video_poster)}" placeholder="Poster for video cards"></div>
