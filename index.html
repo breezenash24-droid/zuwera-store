@@ -176,17 +176,33 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
 <script>
 (function() {
   var isMobileHero = window.matchMedia && window.matchMedia('(max-width: 760px)').matches;
+  // Mini optimizeImage(): this runs in <head> before image-utils.js (deferred) is
+  // available, so we replicate its Cloudinary transform inline. Mirrors the real
+  // one in image-utils.js — keep the cloud name / caps in sync. User-uploaded
+  // heroes (absolute URLs) get resized; the bundled relative defaults are left raw.
+  function zwOpt(url, width){
+    var v = String(url || '').trim();
+    if(!v || /^(data:|blob:)/i.test(v)) return v;
+    if(v.indexOf('//') === 0) v = location.protocol + v;
+    else if(v.charAt(0) === '/' && location.protocol !== 'file:') v = location.origin + v;
+    if(!/^https?:\/\//i.test(v) || v.indexOf('cloudinary.com') !== -1) return v;
+    var vw = window.innerWidth || 0, cap = 1400;
+    if(vw && vw <= 520) cap = 760; else if(vw && vw <= 900) cap = 1000;
+    var w = Math.max(120, Math.min(Math.round(width || 800), cap));
+    return 'https://res.cloudinary.com/dubg4loah/image/fetch/f_auto,q_auto:eco,w_' + w + '/' + encodeURI(v);
+  }
   var heroSrc = isMobileHero ? 'images/hero-mobile.jpg' : 'images/hero.jpg?v=2';
   try {
     var savedHero = localStorage.getItem('zw-hero-image');
     if (savedHero) heroSrc = savedHero;
   } catch (e) {}
-  window.__ZW_HERO_IMAGE = heroSrc;
+  var optimized = zwOpt(heroSrc, isMobileHero ? 800 : 1400);
+  window.__ZW_HERO_IMAGE = optimized;
   var preload = document.createElement('link');
   preload.id = 'hero-preload';
   preload.rel = 'preload';
   preload.as = 'image';
-  preload.href = heroSrc;
+  preload.href = optimized;
   preload.fetchPriority = 'high';
   document.head.appendChild(preload);
 })();
@@ -208,14 +224,14 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
   <link rel="preload" href="reviews.css?v=cf5b3ca4" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="reviews.css?v=cf5b3ca4"></noscript>
-  <link rel="stylesheet" href="storefront-cohesion.css?v=421bca1c">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=a9ddee1c">
 <script src="header-scroll.js?v=4a734678" defer></script>
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=29023607">
 <!-- Quick-add modal module MUST load before storefront.js: the grid wiring in
      storefront.js calls window.quickAddToCart, which this module provides. -->
 <script src="quick-add-modal.js?v=95f47ca5" defer></script>
 <script src="image-utils.js?v=6eef467b" defer></script>
-<script src="storefront.js?v=4252a622" defer></script>
+<script src="storefront.js?v=df4a43cb" defer></script>
 <script src="/stripe-client-config.js?v=c262166e" defer></script>
 <script src="/checkout-tax.js?v=b12c4e5f" defer></script>
 

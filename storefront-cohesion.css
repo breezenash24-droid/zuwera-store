@@ -3541,10 +3541,10 @@ picture.zw-hc-media img { display:block; width:100%; height:100%; object-fit:cov
 .zw-hc-pause-wrap { position:relative; width:36px; height:36px; display:inline-block; }
 .zw-hc-progress-svg { position:absolute; top:-2px; left:-2px; width:40px; height:40px; pointer-events:none; transform:rotate(-90deg); }
 .zw-hc-progress-ring { transition:stroke-dashoffset 0.1s linear; }
-.zw-hc-pause { width:100%; height:100%; border-radius:50%; border:none; background:rgba(0,0,0,.3); color:#fff; cursor:pointer; backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; transition:all .2s; margin:0; padding:0; }
-.zw-hc-pause:hover { background:rgba(255,255,255,.2); }
-.zw-hc-prev, .zw-hc-next { width:36px; height:36px; border-radius:50%; border:1px solid rgba(255,255,255,.2); background:rgba(0,0,0,.3); color:#fff; cursor:pointer; backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; transition:all .2s; }
-.zw-hc-prev:hover, .zw-hc-next:hover { background:rgba(255,255,255,.2); border-color:rgba(255,255,255,.4); }
+.zw-hc-pause { width:100%; height:100%; border-radius:50%; border:none; background:#fff; color:#111; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,.15); display:flex; align-items:center; justify-content:center; transition:all .2s; margin:0; padding:0; }
+.zw-hc-pause:hover { background:#f0f0f0; }
+.zw-hc-prev, .zw-hc-next { width:36px; height:36px; border-radius:50%; border:none; background:#fff; color:#111; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,.15); display:flex; align-items:center; justify-content:center; transition:all .2s; }
+.zw-hc-prev:hover, .zw-hc-next:hover { background:#f0f0f0; transform:scale(1.05); }
 
 .zw-hc-watch { position:absolute; bottom:2.5rem; left:2.5rem; z-index:5; background:rgba(255,255,255,.92); color:#09090b; border:none; padding:.75rem 1.6rem; border-radius:30px; font-family:var(--fm); font-size:.7rem; font-weight:700; letter-spacing:.08em; cursor:pointer; display:flex; align-items:center; gap:.5rem; transition:all .2s; }
 .zw-hc-watch:hover { background:#fff; transform:scale(1.03); }

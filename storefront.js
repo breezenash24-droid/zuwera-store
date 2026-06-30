@@ -748,6 +748,10 @@ function showToast(msg) {
         }
         case 'hero_carousel': {
           el.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); v.load(); });
+          // Kill any loop/observer from a previous render of this section, or they
+          // pile up (builder re-renders on every edit) and thrash the main thread.
+          if (el._zwHcRaf) { cancelAnimationFrame(el._zwHcRaf); el._zwHcRaf = null; }
+          if (el._zwHcObs) { try { el._zwHcObs.disconnect(); } catch (_) {} el._zwHcObs = null; }
           el.className = 'builder-hero-carousel-section';
           const hMap = { full:'100vh', tall:'75vh', half:'50vh', short:'40vh' };
           el.style.cssText = `position:relative; overflow:hidden; width:100%; height:${hMap[s.height]||'100vh'}; background:${s.sec_bg||'#09090b'};`;
@@ -804,8 +808,8 @@ function showToast(msg) {
              <div></div>
              ${(s.show_dots !== false && slides.length > 1) ? `<div class="zw-hc-dots">${dotsHtml}</div>` : '<div></div>'}
              <div class="zw-hc-nav">
-                ${s.show_pause !== false ? `<div class="zw-hc-pause-wrap">
-                  <svg class="zw-hc-progress-svg"><circle cx="20" cy="20" r="18" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/><circle class="zw-hc-progress-ring" cx="20" cy="20" r="18" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="113" stroke-dashoffset="113"/></svg>
+                ${(s.show_pause !== false && slides.length > 1) ? `<div class="zw-hc-pause-wrap">
+                  <svg class="zw-hc-progress-svg"><circle cx="20" cy="20" r="18" fill="none" stroke="rgba(0,0,0,0.12)" stroke-width="2"/><circle class="zw-hc-progress-ring" cx="20" cy="20" r="18" fill="none" stroke="#111" stroke-width="2" stroke-dasharray="113" stroke-dashoffset="113"/></svg>
                   <button class="zw-hc-pause" aria-label="Pause/Play"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg></button>
                 </div>` : ''}
                 ${(s.show_arrows !== false && slides.length > 1) ? `
@@ -875,9 +879,9 @@ function showToast(msg) {
              const next = () => update(curIdx + 1);
              const prev = () => update(curIdx - 1);
              
-             if(btnPrev) btnPrev.onclick = () => { isPaused=false; updatePauseIcon(); prev(); };
-             if(btnNext) btnNext.onclick = () => { isPaused=false; updatePauseIcon(); next(); };
-             dots.forEach(d => d.onclick = () => { isPaused=false; updatePauseIcon(); update(parseInt(d.dataset.index)); });
+             if(btnPrev) btnPrev.onclick = () => { isPaused=false; updatePauseIcon(); prev(); startLoop(); };
+             if(btnNext) btnNext.onclick = () => { isPaused=false; updatePauseIcon(); next(); startLoop(); };
+             dots.forEach(d => d.onclick = () => { isPaused=false; updatePauseIcon(); update(parseInt(d.dataset.index)); startLoop(); });
              
              const updatePauseIcon = () => {
                 if(!btnPause) return;
@@ -899,17 +903,23 @@ function showToast(msg) {
                    } else {
                       lastTick = Date.now(); // prevent jumping elapsed time
                       if(vid) vid.play().catch(()=>{});
+                      startLoop();
                    }
                 };
              }
              
+             let visible = true;
+             const stopLoop = () => { if(rafId != null){ cancelAnimationFrame(rafId); rafId = null; el._zwHcRaf = null; } };
              const tick = () => {
-                rafId = requestAnimationFrame(tick);
+                // Bail out of the loop entirely (don't re-request) when nothing needs
+                // animating — paused, single slide, autoplay off, or scrolled out of
+                // view. Previously this rAF ran forever at 60fps even off-screen,
+                // which is what made scrolling feel glitchy.
+                if(isPaused || !autoplay || slideEls.length <= 1 || !visible){ rafId = null; el._zwHcRaf = null; return; }
+                rafId = requestAnimationFrame(tick); el._zwHcRaf = rafId;
                 const now = Date.now();
                 const dt = now - lastTick;
                 lastTick = now;
-                
-                if(isPaused || !autoplay || slideEls.length <= 1) return;
 
                 const curSlide = slideEls[curIdx];
                 const isVideoModeFull = curSlide.dataset.videoMode === 'full';
@@ -929,7 +939,24 @@ function showToast(msg) {
                    if (elapsed >= slideDur) next();
                 }
              };
-             rafId = requestAnimationFrame(tick);
+             const startLoop = () => {
+                if(rafId == null && visible && !isPaused && autoplay && slideEls.length > 1){
+                   lastTick = Date.now();
+                   rafId = requestAnimationFrame(tick);
+                   el._zwHcRaf = rafId;
+                }
+             };
+             startLoop();
+             // Suspend the loop while the carousel is off-screen so it can't compete
+             // with the rest of the page's scrolling/paint work.
+             if('IntersectionObserver' in window){
+                const obs = new IntersectionObserver((entries) => {
+                   visible = entries[0].isIntersecting;
+                   if(visible) startLoop(); else stopLoop();
+                }, { threshold: 0 });
+                obs.observe(el);
+                el._zwHcObs = obs;
+             }
 
              // Bind 'ended' event on all video slides set to 'full' duration mode
              // This is far more reliable than polling vid.ended in rAF
@@ -958,6 +985,7 @@ function showToast(msg) {
                    isPaused = false;
                    updatePauseIcon();
                    if(diff > 0) next(); else prev();
+                   startLoop();
                 }
              };
 
@@ -1446,14 +1474,20 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
           }
         }
         if (h.image) {
+          // Resize the hero through Cloudinary (raw user uploads can be multi-MB
+          // phone photos — the biggest LCP/scroll-jank offender). Relative bundled
+          // defaults pass through untouched. localStorage keeps the RAW url so the
+          // next load's early bootstrap can re-optimize for that viewport.
+          const optDesk = typeof window.optimizeImage === 'function' ? window.optimizeImage(h.image, 1400) : h.image;
+          const optMob = typeof window.optimizeImage === 'function' ? window.optimizeImage(h.image, 800) : h.image;
           const el = document.getElementById('hero-image');
-          if (el) el.src = h.image;
+          if (el) el.src = optDesk;
           const mobileSource = document.getElementById('hero-mobile-source');
-          if (mobileSource) mobileSource.srcset = h.image;
-          window.__ZW_HERO_IMAGE = h.image;
+          if (mobileSource) mobileSource.srcset = optMob;
+          window.__ZW_HERO_IMAGE = optDesk;
           try { localStorage.setItem('zw-hero-image', h.image); } catch (e) {}
           const preload = document.getElementById('hero-preload');
-          if (preload) preload.href = h.image;
+          if (preload) preload.href = optDesk;
         }
       }
     }
