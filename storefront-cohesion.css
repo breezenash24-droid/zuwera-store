@@ -651,11 +651,12 @@ body.super-light-mode #zw-lang-box{
   padding:2rem 1.6rem 1.8rem !important;
 }
 
-/* Account modal keeps a fixed dialog width on desktop (var(--zw-panel-width)
-   above), but on mobile/tablet it must match the bottom-sheet width every
-   other compact modal uses — otherwise it floats as a small centered card
-   instead of an edge-to-edge sheet. */
+/* Auth + account modals keep a fixed dialog width on desktop
+   (var(--zw-panel-width) above), but on mobile/tablet they must match the
+   bottom-sheet width every other compact modal uses — otherwise they float
+   as a small centered card instead of an edge-to-edge sheet. */
 @media(max-width:900px){
+  #auth-modal > .mbox,
   #account-modal > .mbox{
     width:100% !important;
     max-width:100% !important;
