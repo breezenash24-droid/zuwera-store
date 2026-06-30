@@ -260,6 +260,13 @@
       catSec.hidden = true;
     }
 
+    /* ---- BUILDER SECTIONS (Pages-tab highlights, render below the auto content) ---- */
+    try {
+      if (window.ZWLandingSections) {
+        window.ZWLandingSections.render(document.getElementById('lp-builder-sections'), cfg.sections || []);
+      }
+    } catch (e) { /* non-fatal — auto content still renders */ }
+
     /* ---- FEATURED ---- */
     var featCfg = cfg.featured || {};
     var pool = inGender.slice();

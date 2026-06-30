@@ -661,9 +661,9 @@ function setDesignSub(s){designSub=s;renderLP();}
 function lpTab(name){
   curTab=name;
   document.querySelectorAll('.lp-tab').forEach(t=>t.classList.toggle('on',t.id==='tab-'+name));
-  // "Add Section" footer only on the Content tab
+  // "Add Section" footer only on the Content tab (Pages tab has its own button)
   document.getElementById('lpFooter').style.display=name==='content'?'':'none';
-  if(name!=='content')closeEd();
+  closeEd();   // any open section editor belongs to the tab we're leaving
   closeMore();
   renderLP();
   syncPreviewFrame();
@@ -675,7 +675,23 @@ function renderDesignTab(container){
   if(designSub==='nav')renderNavTab(sub); else renderThemeTab(sub);
 }
 
+// ── SECTION EDITING CONTEXT ───────────────────────────────────────────────
+// The SAME section system (SECT_DEFS/buildForm/openEditor/addSec/…) edits BOTH
+// the homepage sections (global `sections`, Content tab) and a landing page's
+// own sections (landingPages[slug].sections, Pages tab). secStore=null →
+// homepage; secStore=<landing cfg obj> → that page's sections. renderLP() sets
+// it from curTab so every helper reads/writes the right array, and so the
+// homepage's autosave/undo/live-preview never touch landing data (separate
+// dirty flags + persistence).
+let secStore=null;
+function curSections(){ return secStore ? (Array.isArray(secStore.sections)?secStore.sections:(secStore.sections=[])) : sections; }
+function setCurSections(a){ if(secStore) secStore.sections=a; else sections=a; }
+function curApply(){ if(secStore) markLpDirty(); else schedSend(); }
+function curDirty(){ if(secStore) markLpDirty(); else markDirty(); }
+function curPushUndo(){ if(!secStore) pushUndo(); }   // undo is homepage-only
+
 function renderLP(){
+  secStore = (curTab==='pages') ? lpCfg() : null;
   const el=document.getElementById('lpContent');
   if(curTab==='content'||curTab==='sections'){renderSidebar(el);}
   else if(curTab==='design'){renderDesignTab(el);}
@@ -691,7 +707,7 @@ function renderLP(){
 // ── SECTIONS TAB ──────────────────────────────────────────────────────────
 function renderSidebar(container){
   const q=(document.getElementById('secQuery')||{value:''}).value.toLowerCase();
-  let sorted=[...sections].sort((a,b)=>(a.order||0)-(b.order||0));
+  let sorted=[...curSections()].sort((a,b)=>(a.order||0)-(b.order||0));
   if(q)sorted=sorted.filter(s=>s.label.toLowerCase().includes(q)||s.type.includes(q));
   container.innerHTML=`<div class="sec-search-wrap"><input class="sec-search" id="secQuery" placeholder="Search sections…" value="${q}" oninput="renderLP()"></div><div class="sec-list" id="secListEl"></div>`;
   const list=container.querySelector('#secListEl');
@@ -714,10 +730,10 @@ function renderSidebar(container){
   });
 }
 
-function toggleVis(id){pushUndo();const s=sections.find(x=>x.id===id);if(s){s.visible=!s.visible;markDirty();renderLP();schedSend();if(selId===id)openEditor(s);}}
-function reorder(fromId,toId){if(fromId===toId)return;pushUndo();const sorted=[...sections].sort((a,b)=>(a.order||0)-(b.order||0));const fi=sorted.findIndex(x=>x.id===fromId),ti=sorted.findIndex(x=>x.id===toId);if(fi<0||ti<0)return;const[m]=sorted.splice(fi,1);sorted.splice(ti,0,m);sorted.forEach((x,i)=>{const sec=sections.find(y=>y.id===x.id);if(sec)sec.order=i;});markDirty();renderLP();schedSend();}
-function dupSec(id){pushUndo();const src=sections.find(s=>s.id===id);if(!src)return;const maxOrd=Math.max(...sections.map(s=>s.order||0),-1);const dup={...clone(src),id:src.type+'-'+Date.now(),order:maxOrd+1,label:src.label+' (Copy)'};sections.push(dup);markDirty();renderLP();selectSec(dup.id);schedSend();toast('Duplicated');}
-function removeSec(id){if(!confirm('Remove section?'))return;pushUndo();sections=sections.filter(s=>s.id!==id);if(selId===id)closeEd();markDirty();renderLP();schedSend();}
+function toggleVis(id){curPushUndo();const s=curSections().find(x=>x.id===id);if(s){s.visible=!s.visible;curDirty();renderLP();curApply();if(selId===id)openEditor(s);}}
+function reorder(fromId,toId){if(fromId===toId)return;curPushUndo();const arr=curSections();const sorted=[...arr].sort((a,b)=>(a.order||0)-(b.order||0));const fi=sorted.findIndex(x=>x.id===fromId),ti=sorted.findIndex(x=>x.id===toId);if(fi<0||ti<0)return;const[m]=sorted.splice(fi,1);sorted.splice(ti,0,m);sorted.forEach((x,i)=>{const sec=arr.find(y=>y.id===x.id);if(sec)sec.order=i;});curDirty();renderLP();curApply();}
+function dupSec(id){curPushUndo();const arr=curSections();const src=arr.find(s=>s.id===id);if(!src)return;const maxOrd=Math.max(...arr.map(s=>s.order||0),-1);const dup={...clone(src),id:src.type+'-'+Date.now(),order:maxOrd+1,label:src.label+' (Copy)'};arr.push(dup);curDirty();renderLP();selectSec(dup.id);curApply();toast('Duplicated');}
+function removeSec(id){if(!confirm('Remove section?'))return;curPushUndo();setCurSections(curSections().filter(s=>s.id!==id));if(selId===id)closeEd();curDirty();renderLP();curApply();}
 
 // ── THEME TAB ─────────────────────────────────────────────────────────────
 function renderThemeTab(container){
@@ -808,7 +824,7 @@ function lpPageFilter(){return landingSlug.indexOf('tag:')===0?{type:'tag',value
 function lpMatchFilter(p){const f=lpPageFilter();return f.type==='tag'?lpMatchTag(p,f.value):lpMatchGender(p,f.value);}
 function lpScopeName(){const f=lpPageFilter();return String(f.value||'').replace(/\b\w/g,c=>c.toUpperCase());}
 function lpPageLabel(slug){return slug.indexOf('tag:')===0?('Tag: '+slug.slice(4).replace(/\b\w/g,c=>c.toUpperCase())):(slug.charAt(0).toUpperCase()+slug.slice(1));}
-function lpCfg(){let c=landingPages[landingSlug];if(!c||typeof c!=='object'){c={};landingPages[landingSlug]=c;}c.hero=c.hero||{};c.categories=c.categories||{};c.featured=c.featured||{};return c;}
+function lpCfg(){let c=landingPages[landingSlug];if(!c||typeof c!=='object'){c={};landingPages[landingSlug]=c;}c.hero=c.hero||{};c.categories=c.categories||{};c.featured=c.featured||{};if(!Array.isArray(c.sections))c.sections=[];return c;}
 function lpSetPath(path,val){const c=lpCfg();const parts=path.split('.');let o=c;for(let i=0;i<parts.length-1;i++){o[parts[i]]=o[parts[i]]||{};o=o[parts[i]];}o[parts[parts.length-1]]=val;markLpDirty();}
 let _lpDirty=false; function markLpDirty(){_lpDirty=true;const b=document.getElementById('lpSaveHint');if(b)b.textContent='Unsaved changes';}
 function lpGenderProducts(){return (landingProducts||[]).filter(p=>lpMatchFilter(p));}
@@ -820,7 +836,7 @@ function lpCatMove(idx,dir){const ord=lpOrderedCats();const j=idx+dir;if(j<0||j>
 function lpFeatToggle(id){const f=lpCfg().featured;f.productIds=f.productIds||[];const i=f.productIds.findIndex(x=>String(x)===String(id));if(i>=0)f.productIds.splice(i,1);else f.productIds.push(id);markLpDirty();renderLP();}
 function lpFeatChecked(id){const ids=lpCfg().featured.productIds||[];return ids.some(x=>String(x)===String(id));}
 function lpSetMode(v){lpSetPath('featured.mode',v);renderLP();}
-function landingSelect(slug){landingSlug=slug;renderLP();if(curTab==='pages')reloadLandingPreview();}
+function landingSelect(slug){landingSlug=slug;closeEd();renderLP();if(curTab==='pages')reloadLandingPreview();}
 function landingAddSlug(){const el=document.getElementById('lpNewSlug');if(!el)return;const s=String(el.value||'').trim().toLowerCase().replace(/[^a-z0-9-]/g,'');if(!s)return;landingPages[s]=landingPages[s]||{};landingSlug=s;renderLP();}
 function landingLoadProducts(){if(landingProducts||landingProductsLoading)return;landingProductsLoading=true;try{const sb=getSb();if(!sb){landingProducts=[];landingProductsLoading=false;return;}sb.from('products').select('id,title,gender,subtitle,tags,status,sort_order').order('sort_order',{ascending:true}).then(r=>{landingProducts=(r&&r.data)||[];landingProductsLoading=false;if(curTab==='pages')renderLP();},()=>{landingProducts=[];landingProductsLoading=false;if(curTab==='pages')renderLP();});}catch(_){landingProducts=[];landingProductsLoading=false;}}
 
@@ -897,6 +913,12 @@ function renderPagesTab(container){
     ${featHtml}
     <div class="fdiv"></div>
 
+    <div class="tab-hd">Page Sections</div>
+    <div class="fhint" style="margin-bottom:.45rem">Build category highlights with the same blocks as the homepage — carousels, media grids, galleries, CTAs and more. These render <b>below</b> the auto Hero / Categories / Featured, and apply to this page (gender or tag) only. Use “Save draft &amp; preview” to see them.</div>
+    <div id="lpSectionsHost"></div>
+    <button class="add-item-btn" style="margin-top:.45rem" onclick="openLib()">+ Add Section</button>
+    <div class="fdiv"></div>
+
     <div style="display:flex;gap:.3rem;align-items:center;flex-wrap:wrap">
       <button onclick="landingSavePreview()" class="add-item-btn">👁 Save draft &amp; preview</button>
       <button onclick="saveLandingPages(false)" class="apply-btn">💾 Save Draft</button>
@@ -909,6 +931,10 @@ function renderPagesTab(container){
     const sync=()=>lpSetPath(el.dataset.lp,el.value);
     el.addEventListener('input',sync); el.addEventListener('change',sync);
   });
+  // Render this landing page's builder sections (secStore is set to lpCfg() by
+  // renderLP, so addSec/dupSec/etc. all operate on landingPages[slug].sections).
+  const secHost=document.getElementById('lpSectionsHost');
+  if(secHost)renderSidebar(secHost);
 }
 
 async function saveLandingPages(pub){
@@ -1039,7 +1065,7 @@ async function deleteTemplate(i){templates.splice(i,1);await persistTemplates();
 async function persistTemplates(){try{const token=await getAccessToken();if(!token)throw new Error('Session expired');await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:token,key:'builder_templates',value:{list:templates}})});}catch(e){showErr(e.message);}}
 
 // ── EDITOR ────────────────────────────────────────────────────────────────
-function selectSec(id){selId=id;const s=sections.find(x=>x.id===id);if(s)openEditor(s);}
+function selectSec(id){selId=id;const s=curSections().find(x=>x.id===id);if(s)openEditor(s);}
 
 function openEditor(s){
   document.getElementById('editor').classList.remove('hidden');
@@ -1048,8 +1074,8 @@ function openEditor(s){
   const body=document.getElementById('edBody');
   body.innerHTML=buildForm(s);
   body.querySelectorAll('input,textarea,select').forEach(el=>{
-    el.addEventListener('input',()=>{syncForm(s);schedSend();});
-    el.addEventListener('change',()=>{syncForm(s);schedSend();});
+    el.addEventListener('input',()=>{syncForm(s);curApply();});
+    el.addEventListener('change',()=>{syncForm(s);curApply();});
   });
   body.querySelectorAll('.img-btn[data-pick]').forEach(b=>b.addEventListener('click',()=>openMedia(b.dataset.pick)));
   body.querySelectorAll('input[type=range]').forEach(r=>{
@@ -1074,7 +1100,7 @@ function syncForm(s){
     s.settings[key]=items;
   });
   const nm=body.querySelector('[data-section-label]');if(nm){s.label=nm.value;document.getElementById('edName').textContent=nm.value;}
-  markDirty();
+  curDirty();
 }
 
 // ── FORM HELPERS ──────────────────────────────────────────────────────────
@@ -1107,11 +1133,15 @@ const imgField=(key,lbl,val='')=>{
   const prev=val?`<img data-preview="${key}" src="${he(val)}" style="width:100%;height:70px;object-fit:cover;border:1px solid var(--bd);border-radius:2px;margin-bottom:.25rem;display:block">`:`<div data-preview="${key}" style="display:none"></div>`;
   return `<div class="field"><label>${lbl}</label>${prev}<input type="text" data-f="${key}" value="${he(val)}" placeholder="/images/hero.jpg?v=2 or https://..."><div style="display:flex;gap:.3rem;margin-top:.25rem"><button type="button" class="img-btn" data-pick="${key}">📁 Browse</button></div></div>`;
 };
-const arrField=(key,itemLbl,items,fieldDefs)=>`<div class="flist" data-arr="${key}">${items.map((item,i)=>`<div data-arr-item style="background:var(--bg);border:1px solid var(--bd);border-radius:2px;padding:.38rem .48rem;margin-bottom:.25rem"><div class="flist-item-hd"><span class="flist-item-lbl">${itemLbl} ${i+1}</span><span class="flist-acts"><button class="flist-mv" onclick="moveArrItem(this,-1)" title="Move up">↑</button><button class="flist-mv" onclick="moveArrItem(this,1)" title="Move down">↓</button><button class="flist-mv" onclick="dupArrItem(this)" title="Duplicate">⎘</button><button class="flist-rm" onclick="removeArrItem(this,'${key}')">✕</button></span></div>${fieldDefs.map(([k,l,type])=>`<div class="field" style="margin-top:.28rem"><label>${l}</label><${type==='textarea'?`textarea data-f="${k}"`:(`input type="${type}" data-f="${k}"`)} ${type==='textarea'?'':'value="'+he(item[k]||'')+'"'}>${type==='textarea'?he(item[k]||''):''}${type==='textarea'?'</textarea>':'>'}</div>`).join('')}</div>`).join('')}</div><button class="add-item-btn" onclick="addArrItem('${key}')">+ Add ${itemLbl}</button>`;
+const arrField=(key,itemLbl,items,fieldDefs)=>`<div class="flist" data-arr="${key}">${items.map((item,i)=>`<div data-arr-item style="background:var(--bg);border:1px solid var(--bd);border-radius:2px;padding:.38rem .48rem;margin-bottom:.25rem"><div class="flist-item-hd"><span class="flist-item-lbl">${itemLbl} ${i+1}</span><span class="flist-acts"><button class="flist-mv" onclick="moveArrItem(this,-1)" title="Move up">↑</button><button class="flist-mv" onclick="moveArrItem(this,1)" title="Move down">↓</button><button class="flist-mv" onclick="dupArrItem(this)" title="Duplicate">⎘</button><button class="flist-rm" onclick="removeArrItem(this,'${key}')">✕</button></span></div>${fieldDefs.map(([k,l,type])=>{
+  if(type==='image'){const pid=key+'.'+i+'.'+k;return `<div class="field" style="margin-top:.28rem"><label>${l}</label><div style="display:flex;gap:.3rem;align-items:center"><input type="text" id="${pid}" data-f="${k}" value="${he(item[k]||'')}" placeholder="Upload or paste URL" style="flex:1"><button type="button" class="img-btn" data-pick="${pid}">📁</button></div></div>`;}
+  if(type==='textarea')return `<div class="field" style="margin-top:.28rem"><label>${l}</label><textarea data-f="${k}">${he(item[k]||'')}</textarea></div>`;
+  return `<div class="field" style="margin-top:.28rem"><label>${l}</label><input type="${type}" data-f="${k}" value="${he(item[k]||'')}"></div>`;
+}).join('')}</div>`).join('')}</div><button class="add-item-btn" onclick="addArrItem('${key}')">+ Add ${itemLbl}</button>`;
 
-window.removeArrItem=function(btn,key){const item=btn.closest('[data-arr-item]');if(item){item.remove();const s=sections.find(x=>x.id===selId);if(s){syncForm(s);schedSend();}}};
+window.removeArrItem=function(btn,key){const item=btn.closest('[data-arr-item]');if(item){item.remove();const s=curSections().find(x=>x.id===selId);if(s){syncForm(s);curApply();}}};
 window.addArrItem=function(key){
-  const s=sections.find(x=>x.id===selId);if(!s)return;
+  const s=curSections().find(x=>x.id===selId);if(!s)return;
   if(!s.settings[key])s.settings[key]=[];
   // Seed the new item from the type's default template (if any) so structural
   // defaults survive — e.g. a new carousel slide keeps focal_y:50,
@@ -1122,7 +1152,7 @@ window.addArrItem=function(key){
   if(tmpl){def=clone(tmpl);}
   else{const first=s.settings[key][0]||{};def={};Object.keys(first).forEach(k=>def[k]='');}
   s.settings[key].push(def);
-  openEditor(s);schedSend();toast('Item added');
+  openEditor(s);curApply();toast('Item added');
 };
 // Reorder an array item up (dir=-1) or down (dir=1). syncForm rebuilds the
 // array from DOM order, so swapping the [data-arr-item] nodes and re-syncing is
@@ -1133,22 +1163,22 @@ window.moveArrItem=function(btn,dir){
   if(!sib||!(sib.matches&&sib.matches('[data-arr-item]')))return;
   if(dir<0)item.parentNode.insertBefore(item,sib);
   else item.parentNode.insertBefore(sib,item);
-  const s=sections.find(x=>x.id===selId);
-  if(s){syncForm(s);openEditor(s);schedSend();}
+  const s=curSections().find(x=>x.id===selId);
+  if(s){syncForm(s);openEditor(s);curApply();}
 };
 // Duplicate an array item (slide, card, stat, FAQ, etc.) right after itself.
 // syncForm captures live edits first, then we deep-clone by DOM index.
 window.dupArrItem=function(btn){
   const item=btn.closest('[data-arr-item]'),cont=btn.closest('[data-arr]');
   if(!item||!cont)return;
-  const key=cont.dataset.arr,s=sections.find(x=>x.id===selId);
+  const key=cont.dataset.arr,s=curSections().find(x=>x.id===selId);
   if(!s)return;
   syncForm(s);
   const idx=Array.prototype.indexOf.call(cont.querySelectorAll('[data-arr-item]'),item);
   const arr=s.settings[key]||[];
   if(idx<0||!arr[idx])return;
   arr.splice(idx+1,0,clone(arr[idx]));
-  openEditor(s);schedSend();toast('Item duplicated');
+  openEditor(s);curApply();toast('Item duplicated');
 };
 
 function buildForm(s){
@@ -1165,7 +1195,7 @@ function buildForm(s){
     case 'features': h+=f('heading','Section Heading',g.heading)+fdiv()+arrField('items','Feature',g.items||[],[['icon','Icon/Emoji','text'],['title','Title','text'],['desc','Description','textarea']])+padF(g);break;
     case 'testimonials': h+=f('heading','Heading',g.heading)+fdiv()+arrField('items','Review',g.items||[],[['quote','Quote','textarea'],['author','Author','text'],['rating','Rating (1–5)','number']])+padF(g);break;
     case 'banner': h+=f('text','Banner Text',g.text)+fdiv()+f('link_text','Link Text',g.link_text)+f('link_url','Link URL',g.link_url)+padF(g);break;
-    case 'gallery': h+=f('heading','Section Heading',g.heading)+sel('layout_width','Section Width',g.layout_width||'full',[['full','Full Bleed (Edge to Edge)'],['1400','Contained - Wide (1400px)'],['1200','Contained - Standard (1200px)'],['1000','Contained - Narrow (1000px)'],['800','Contained - Slim (800px)']])+sel('columns','Columns',String(g.columns||3),[['2','2'],['3','3'],['4','4']])+sel('aspect','Aspect Ratio',g.aspect||'square',[['square','Square'],['portrait','Portrait 3:4'],['wide','Wide 16:9']])+fdiv()+arrField('images','Image',g.images||[],[['src','Image URL','text'],['alt','Alt Text','text'],['link','Link (optional)','text']])+padF(g);break;
+    case 'gallery': h+=f('heading','Section Heading',g.heading)+sel('layout_width','Section Width',g.layout_width||'full',[['full','Full Bleed (Edge to Edge)'],['1400','Contained - Wide (1400px)'],['1200','Contained - Standard (1200px)'],['1000','Contained - Narrow (1000px)'],['800','Contained - Slim (800px)']])+sel('columns','Columns',String(g.columns||3),[['2','2'],['3','3'],['4','4']])+sel('aspect','Aspect Ratio',g.aspect||'square',[['square','Square'],['portrait','Portrait 3:4'],['wide','Wide 16:9']])+fdiv()+arrField('images','Image',g.images||[],[['src','Image (upload or URL)','image'],['alt','Alt Text','text'],['link','Link (optional)','text']])+padF(g);break;
     case 'video': h+=`<div class="field"><label>Video URL</label><input data-f="url" value="${he(g.url)}" placeholder="YouTube or Vimeo URL"><span class="fhint">Paste a YouTube or Vimeo URL</span></div>`+f('caption','Caption (optional)',g.caption)+tog2('controls','Show Controls',g.controls!==false)+tog2('autoplay','Autoplay',g.autoplay)+tog2('muted','Muted',g.muted!==false)+padF(g);break;
     case 'countdown': h+=f('heading','Heading',g.heading)+`<div class="field"><label>Launch Date & Time</label><input type="datetime-local" data-f="launch_date" value="${he(g.launch_date)}"></div>`+sel('align','Alignment',g.align||'center',[['center','Center'],['left','Left']])+tog2('show_labels','Show Unit Labels',g.show_labels!==false)+padF(g);break;
     case 'spacer': h+=sel('height','Height',g.height||'md',[['xs','XS (1rem)'],['sm','SM (2rem)'],['md','MD (4rem)'],['lg','LG (8rem)'],['xl','XL (12rem)']]);break;
@@ -1176,7 +1206,7 @@ function buildForm(s){
     case 'press': h+=f('heading','Label (e.g. "As Seen In")',g.heading)+fdiv()+arrField('items','Publication',g.items||[],[['name','Publication Name','text']])+padF(g);break;
     case 'faq': h+=f('heading','Section Heading',g.heading)+fdiv()+arrField('items','FAQ Item',g.items||[],[['q','Question','text'],['a','Answer','textarea']])+padF(g);break;
     case 'email_capture': h+=f('heading','Heading',g.heading)+f('subtext','Subtext',g.subtext)+f('placeholder','Input Placeholder',g.placeholder)+f('btn_text','Button Text',g.btn_text)+padF(g);break;
-    case 'logos': h+=f('heading','Label (optional)',g.heading)+f('logo_height','Logo Height (px)',g.logo_height||28,'number')+tog2('logo_original','Keep original logo colors',g.logo_original)+fdiv()+arrField('items','Logo',g.items||[],[['name','Brand Name','text'],['src','Logo Image URL (optional)','text'],['alt','Alt Text','text'],['link','Link → product / page (optional)','text']])+`<div class="fhint">Add a Link to make a logo clickable — point it at a product page or image.</div>`+padF(g);break;
+    case 'logos': h+=f('heading','Label (optional)',g.heading)+f('logo_height','Logo Height (px)',g.logo_height||28,'number')+tog2('logo_original','Keep original logo colors',g.logo_original)+fdiv()+arrField('items','Logo',g.items||[],[['name','Brand Name','text'],['src','Logo Image (upload or URL)','image'],['alt','Alt Text','text'],['link','Link → product / page (optional)','text']])+`<div class="fhint">Upload a logo (or paste a URL), then add a Link to make it clickable — point it at a product page or image.</div>`+padF(g);break;
     case 'richtext': h+=`<div class="field"><label>Content</label><textarea data-f="content" style="min-height:140px;line-height:1.6" placeholder="Write your content here...">${he(g.content)}</textarea></div>`+sel('align','Text Alignment',g.align||'left',[['left','Left'],['center','Center'],['right','Right']])+padF(g);break;
     case 'hero_carousel': {
       h+=fhd('Carousel Settings')
@@ -1273,7 +1303,7 @@ ${colorF('text_color','Text Color',g.text_color||'')}
   return h;
 }
 
-function manualApply(){const s=sections.find(x=>x.id===selId);if(s){syncForm(s);sendCfg();toast('Applied to preview');}}
+function manualApply(){const s=curSections().find(x=>x.id===selId);if(!s)return;syncForm(s);if(secStore){saveLandingPages(false);}else{sendCfg();toast('Applied to preview');}}
 
 // ── MEDIA LIBRARY ─────────────────────────────────────────────────────────
 const SITE_IMGS=[{label:'Hero',src:'/images/hero.jpg?v=2'},{label:'Hero Mobile',src:'/images/hero-mobile.jpg'},{label:'OG Image',src:'/images/og-image.jpg'},{label:'Logo',src:'/images/logo.png?v=2'},{label:'Wordmark',src:'/images/wordmark.png'}];
@@ -1413,11 +1443,12 @@ function openLib(){
 function closeLib(){document.getElementById('libModal').classList.remove('open');}
 
 function addSec(type){
-  closeLib();pushUndo();
+  closeLib();curPushUndo();
   const id=type+'-'+Date.now();
-  const maxOrd=Math.max(...sections.map(s=>s.order||0),-1);
-  sections.push({id,type,label:type.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),visible:true,order:maxOrd+1,settings:{...SECT_DEFS[type]||{}}});
-  markDirty();renderLP();selectSec(id);schedSend();toast('Section added');
+  const arr=curSections();
+  const maxOrd=Math.max(...arr.map(s=>s.order||0),-1);
+  arr.push({id,type,label:type.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),visible:true,order:maxOrd+1,settings:{...SECT_DEFS[type]||{}}});
+  curDirty();renderLP();selectSec(id);curApply();toast('Section added');
 }
 
 // ── PREVIEW ───────────────────────────────────────────────────────────────
@@ -1460,8 +1491,8 @@ function scrollPreviewTo(id){
 
 // ── UNDO / REDO ───────────────────────────────────────────────────────────
 function pushUndo(){if(undoStack.length>25)undoStack.shift();undoStack.push(clone(sections));redoStack=[];}
-function undo(){if(!undoStack.length){toast('Nothing to undo');return;}redoStack.push(clone(sections));sections=undoStack.pop();markDirty();if(selId&&!sections.find(s=>s.id===selId))closeEd();else if(selId){const s=sections.find(x=>x.id===selId);if(s)openEditor(s);}renderLP();sendCfg();toast('Undone');}
-function redo(){if(!redoStack.length){toast('Nothing to redo');return;}undoStack.push(clone(sections));sections=redoStack.pop();markDirty();renderLP();sendCfg();toast('Redone');}
+function undo(){if(secStore)return;if(!undoStack.length){toast('Nothing to undo');return;}redoStack.push(clone(sections));sections=undoStack.pop();markDirty();if(selId&&!sections.find(s=>s.id===selId))closeEd();else if(selId){const s=sections.find(x=>x.id===selId);if(s)openEditor(s);}renderLP();sendCfg();toast('Undone');}
+function redo(){if(secStore)return;if(!redoStack.length){toast('Nothing to redo');return;}undoStack.push(clone(sections));sections=redoStack.pop();markDirty();renderLP();sendCfg();toast('Redone');}
 
 // ── EXPORT / IMPORT ───────────────────────────────────────────────────────
 function exportCfg(){
