@@ -1540,6 +1540,9 @@ async function saveDraft(auto=false){
 }
 
 async function publishPage(){
+  // On the Pages tab the top Publish publishes the LANDING page you're viewing
+  // (not the homepage) — otherwise landing edits silently never go live.
+  if(curTab==='pages'){ await saveLandingPages(true); return; }
   status('Publishing…');dotCls('y');
   const ok=await saveToSupa('page_builder',{sections,theme:pvTheme,themeSettings,navSettings,seoSettings},true);
   if(ok){lastSaved=clone(sections);dirty=false;status('Published ✓');dotCls('g');toast('Published! Changes are live.','ok');
