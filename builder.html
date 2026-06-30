@@ -925,12 +925,9 @@ function renderPagesTab(container){
     <button class="add-item-btn" style="margin-top:.45rem" onclick="openLib()">+ Add Section</button>
     <div class="fdiv"></div>
 
-    <div style="display:flex;gap:.3rem;align-items:center;flex-wrap:wrap">
-      <button onclick="landingSavePreview()" class="add-item-btn">👁 Save draft &amp; preview</button>
-      <button onclick="saveLandingPages(false)" class="apply-btn">💾 Save Draft</button>
-      <button onclick="saveLandingPages(true)" class="apply-btn">🚀 Publish</button>
-    </div>
-    <div class="fhint" id="lpSaveHint" style="margin-top:.4rem">${_lpDirty?'Unsaved changes':'Saved'}</div>
+    <button onclick="landingSavePreview()" class="add-item-btn">↗ Save draft &amp; open full preview</button>
+    <div class="fhint" style="margin-top:.4rem"><b>Save Draft</b> and <b>Publish</b> are in the top bar ↑ — on the Pages tab they apply to this page. The preview on the right updates live as you edit.</div>
+    <div class="fhint" id="lpSaveHint" style="margin-top:.2rem">${_lpDirty?'Unsaved changes':'Saved'}</div>
   </div>`;
 
   container.querySelectorAll('[data-lp]').forEach(el=>{
@@ -1434,11 +1431,16 @@ async function uploadFromMedia(input){
 }
 
 // ── LIBRARY ───────────────────────────────────────────────────────────────
+// Section types that are bound to the homepage template (they update existing
+// index.html markup / load the drop grid) and don't belong on a landing page,
+// which already has its own auto hero + product strip. Hidden from the Pages-tab
+// palette to avoid e.g. stacking a 2nd hero.
+const HOMEPAGE_ONLY_TYPES=['hero','products','release'];
 function openLib(){
   const cats={store:'Store Sections',marketing:'Marketing & Content',layout:'Layout Blocks'};
   let html='';
   Object.entries(cats).forEach(([cat,catLabel])=>{
-    const types=Object.entries(TYPES).filter(([,t])=>t.cat===cat);
+    const types=Object.entries(TYPES).filter(([type,t])=>t.cat===cat && !(secStore && HOMEPAGE_ONLY_TYPES.includes(type)));
     if(!types.length)return;
     html+=`<div class="sc-cat">${catLabel}</div>`;
     html+=types.map(([type,d])=>`<div class="sc" onclick="addSec('${type}')"><div class="sc-ico">${d.icon}</div><div class="sc-nm">${type.replace(/_/g,' ')}</div><div class="sc-ds">${d.desc}</div></div>`).join('');
@@ -1532,6 +1534,9 @@ function importCfg(){
 // ── SAVE / PUBLISH / REVERT ───────────────────────────────────────────────
 async function saveDraft(auto=false){
   if(auto&&!dirty)return;
+  // Manual Save Draft on the Pages tab saves the LANDING draft (the page you're
+  // editing); the 60s autosave stays homepage-only (guarded by `dirty` above).
+  if(!auto && curTab==='pages'){ await saveLandingPages(false); return; }
   status('Saving…');dotCls('y');
   const ok=await saveToSupa('page_builder',{sections,theme:pvTheme,themeSettings,navSettings,seoSettings},false);
   if(ok){lastSaved=clone(sections);status('Saved · '+new Date().toLocaleTimeString());dotCls('g');if(!auto)toast('Draft saved','ok');}
