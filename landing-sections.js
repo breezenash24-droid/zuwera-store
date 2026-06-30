@@ -15,6 +15,13 @@
   function optImg(u, w) { try { return (typeof window.optimizeImage === 'function') ? window.optimizeImage(u, w) : u; } catch (_) { return u; } }
   function safeUrl(u) { try { return (typeof window.zwSafeUrl === 'function') ? window.zwSafeUrl(u) : (u || '#'); } catch (_) { return u || '#'; } }
   function isVideoUrl(u) { return u && /\.(mp4|webm|mov)(\?.*)?$/i.test(u); }
+  function ctaBtn(text, url, style) {
+    var base = 'display:inline-block;padding:.85rem 2rem;font-family:var(--fm,var(--fb));font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;text-decoration:none;';
+    if (style === 'solid') base += 'background:#fff;color:#09090b;border:1px solid #fff;';
+    else if (style === 'ghost') base += 'background:transparent;color:#fff;border:none;text-decoration:underline;text-underline-offset:4px;';
+    else base += 'background:transparent;color:#fff;border:1px solid #fff;';
+    return '<a href="' + safeUrl(url) + '" style="' + base + '">' + text + '</a>';
+  }
 
   // Minimal "Watch" video modal if the page doesn't already provide one.
   if (typeof window.openWatchModal !== 'function') {
@@ -56,6 +63,29 @@
   // ── Per-type markup (mirrors storefront.js). Returns false if unsupported. ──
   function renderBody(el, sec, s) {
     switch (sec.type) {
+      case 'hero': {
+        el.className = 'builder-hero-section';
+        var fit = s.fit === 'contain' ? 'contain' : 'cover';
+        var ov = (s.overlay_opacity != null ? s.overlay_opacity : 40) / 100;
+        var align = s.text_align || 'left';
+        var img = s.image || '';
+        el.style.cssText = 'position:relative;min-height:88vh;display:flex;flex-direction:column;justify-content:flex-end;padding:clamp(2rem,6vw,5rem);overflow:hidden;background:' + (s.bg_color || '#09090b') + ';text-align:' + align + ';';
+        var wrapMargin = align === 'center' ? 'margin:0 auto;' : align === 'right' ? 'margin-left:auto;' : '';
+        var btnJustify = align === 'center' ? 'justify-content:center;' : align === 'right' ? 'justify-content:flex-end;' : '';
+        el.innerHTML =
+          (img ? '<img src="' + optImg(img, 1600) + '" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:' + fit + ';z-index:0">' : '') +
+          '<div style="position:absolute;inset:0;background:rgba(9,9,11,' + ov + ');z-index:1"></div>' +
+          '<div style="position:relative;z-index:2;max-width:760px;' + wrapMargin + '">' +
+          ((s.show_kicker !== false && s.kicker) ? '<p style="font-family:var(--fm,var(--fb));font-size:.7rem;letter-spacing:.3em;text-transform:uppercase;opacity:.85;margin-bottom:1rem;color:#fff">' + s.kicker + '</p>' : '') +
+          (s.heading ? '<h1 style="font-family:var(--fw);font-weight:900;font-style:italic;text-transform:uppercase;line-height:.92;font-size:clamp(2.6rem,8vw,5.5rem);color:#fff;margin:0 0 1rem">' + String(s.heading).replace(/\n/g, '<br>') + '</h1>' : '') +
+          ((s.show_subtext !== false && s.subtext) ? '<p style="font-family:var(--fb);font-size:1.05rem;opacity:.85;color:#fff;max-width:46ch;' + (align === 'center' ? 'margin:0 auto 1.6rem;' : 'margin:0 0 1.6rem;') + 'line-height:1.5">' + s.subtext + '</p>' : '') +
+          '<div style="display:flex;gap:.8rem;flex-wrap:wrap;' + btnJustify + '">' +
+          (s.cta1_text ? ctaBtn(s.cta1_text, s.cta1_url, s.cta1_style || 'outline') : '') +
+          ((s.cta2_on && s.cta2_text) ? ctaBtn(s.cta2_text, s.cta2_url, 'ghost') : '') +
+          '</div></div>' +
+          ((s.img_btn_on && s.img_btn_text) ? '<a href="' + safeUrl(s.img_btn_url) + '" style="position:absolute;bottom:30%;left:50%;transform:translateX(-50%);z-index:3;padding:.65rem 1.8rem;background:rgba(255,255,255,.92);color:#09090b;font-family:var(--fm,var(--fb));font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;text-decoration:none">' + s.img_btn_text + '</a>' : '');
+        return true;
+      }
       case 'spacer': {
         el.className = 'builder-spacer';
         el.style.height = ({ xs: '1rem', sm: '2rem', md: '4rem', lg: '8rem', xl: '12rem' }[s.height] || '4rem');
