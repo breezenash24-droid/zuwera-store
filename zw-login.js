@@ -42,9 +42,11 @@
       'padding:2.6rem 2.4rem 2.2rem;font-family:"Barlow",sans-serif;',
       'transform:translateY(14px);opacity:0;transition:transform .28s cubic-bezier(.32,.72,.34,1),opacity .28s ease;}',
     '#zwlg-modal.open .zwlg-box{transform:none;opacity:1;}',
-    // Mobile: bottom sheet — matches the storefront modal redesign (rounded top,
-    // drag handle, slides up from the bottom edge).
-    '@media(max-width:600px){',
+    // Mobile + tablet: bottom sheet — matches the storefront modal redesign
+    // (rounded top, drag handle, slides up from the bottom edge). Uses the
+    // site-wide 900px compact breakpoint so tablet widths (601-900px) get the
+    // sheet too, instead of the centered desktop card.
+    '@media(max-width:900px){',
       '#zwlg-modal{align-items:flex-end;padding:0;}',
       '#zwlg-modal .zwlg-box{width:100%;max-width:100%;max-height:92dvh;border-radius:1.25rem 1.25rem 0 0;border-top:none;border-left:none;border-right:none;padding:2.4rem 1.4rem calc(1.8rem + env(safe-area-inset-bottom,0px));transform:translateY(100%);opacity:1;box-shadow:0 -8px 40px rgba(0,0,0,.28);transition:transform .42s cubic-bezier(.32,.72,0,1),opacity .24s ease;}',
       '#zwlg-modal.open .zwlg-box{transform:translateY(0);}',
