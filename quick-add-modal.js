@@ -238,13 +238,16 @@
       return '<button type="button" class="quick-add-thumb' + (src === current ? ' active' : '') + '" data-img="' + quickAddEscapeAttr(src) + '" aria-label="View product media ' + (idx + 1) + '">' + inner + '</button>';
     }).join('');
     thumbs.querySelectorAll('.quick-add-thumb').forEach(function (button) {
-      button.addEventListener('click', function () {
+      var activateThumb = function () {
         var imgs = (item.images && item.images.length) ? item.images : (item.image ? [item.image] : []);
+        if (item.activeImage === button.dataset.img) return;
         var prevI = quickAddActiveImageIndex(item, imgs);
         item.activeImage = button.dataset.img;
         var newI = imgs.indexOf(button.dataset.img);
         quickAddRenderGallery(item, { type: 'slide', dir: newI < prevI ? -1 : 1 });
-      });
+      };
+      button.addEventListener('click', activateThumb);
+      button.addEventListener('mouseenter', activateThumb);
     });
   }
 
