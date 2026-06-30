@@ -15,6 +15,41 @@
   function optImg(u, w) { try { return (typeof window.optimizeImage === 'function') ? window.optimizeImage(u, w) : u; } catch (_) { return u; } }
   function safeUrl(u) { try { return (typeof window.zwSafeUrl === 'function') ? window.zwSafeUrl(u) : (u || '#'); } catch (_) { return u || '#'; } }
   function isVideoUrl(u) { return u && /\.(mp4|webm|mov)(\?.*)?$/i.test(u); }
+
+  // Per-section font overrides — mirrors storefront.js _FONT_STACKS/_FONT_URLS so
+  // a section's Heading/Body font choice actually applies on landing pages too.
+  var FONT_STACKS = {
+    'barlow-condensed':"'Barlow Condensed',sans-serif",'oswald':"'Oswald',sans-serif",'bebas-neue':"'Bebas Neue',sans-serif",
+    'anton':"'Anton',sans-serif",'league-gothic':"'League Gothic',sans-serif",'michroma':"'Michroma',sans-serif",
+    'montserrat':"'Montserrat',sans-serif",'syne':"'Syne',sans-serif",'archivo-black':"'Archivo Black',sans-serif",
+    'teko':"'Teko',sans-serif",'righteous':"'Righteous',display",'playfair-display':"'Playfair Display',serif",
+    'cinzel':"'Cinzel',serif",'futura':'"Futura", "Jost", sans-serif','futura-100-bold':'"Futura 100 Bold", "Futura", "Jost", sans-serif',
+    'futura-100-bold-oblique':'"Futura 100 Bold Oblique", "Futura", "Jost", sans-serif','barlow':"'Barlow',sans-serif",
+    'inter':"'Inter',sans-serif",'dm-sans':"'DM Sans',sans-serif",'outfit':"'Outfit',sans-serif",'manrope':"'Manrope',sans-serif",
+    'poppins':"'Poppins',sans-serif",'lato':"'Lato',sans-serif",'roboto':"'Roboto',sans-serif",'work-sans':"'Work Sans',sans-serif",'mulish':"'Mulish',sans-serif"
+  };
+  var FONT_URLS = {
+    'oswald':'https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&display=swap','bebas-neue':'https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap',
+    'anton':'https://fonts.googleapis.com/css2?family=Anton&display=swap','league-gothic':'https://fonts.googleapis.com/css2?family=League+Gothic&display=swap',
+    'michroma':'https://fonts.googleapis.com/css2?family=Michroma&display=swap','montserrat':'https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&display=swap',
+    'syne':'https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap','archivo-black':'https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap',
+    'teko':'https://fonts.googleapis.com/css2?family=Teko:wght@600;700&display=swap','righteous':'https://fonts.googleapis.com/css2?family=Righteous&display=swap',
+    'playfair-display':'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&display=swap','cinzel':'https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&display=swap',
+    'futura':'https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap',
+    'futura-100-bold':'https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap',
+    'futura-100-bold-oblique':'https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap',
+    'inter':'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap','dm-sans':'https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap',
+    'outfit':'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap','manrope':'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap',
+    'poppins':'https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap','lato':'https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;1,400&display=swap',
+    'roboto':'https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap','work-sans':'https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap',
+    'mulish':'https://fonts.googleapis.com/css2?family=Mulish:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap'
+  };
+  function loadFont(key) {
+    if (!key || !FONT_URLS[key] || document.getElementById('gf-' + key)) return;
+    var l = document.createElement('link'); l.id = 'gf-' + key; l.rel = 'preload'; l.as = 'style'; l.href = FONT_URLS[key];
+    l.onload = function () { this.onload = null; this.rel = 'stylesheet'; };
+    document.head.appendChild(l);
+  }
   function ctaBtn(text, url, style) {
     var base = 'display:inline-block;padding:.85rem 2rem;font-family:var(--fm,var(--fb));font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;text-decoration:none;';
     if (style === 'solid') base += 'background:#fff;color:#09090b;border:1px solid #fff;';
@@ -53,6 +88,16 @@
     var idSel = s.anchor_id || secId;
     if (s.hide_mobile) addHideStyle('zw-lp-mh-' + idSel, '@media(max-width:900px){#' + idSel + '{display:none!important;}}');
     if (s.hide_desktop) addHideStyle('zw-lp-dh-' + idSel, '@media(min-width:901px){#' + idSel + '{display:none!important;}}');
+    if (s.font_head_override && FONT_STACKS[s.font_head_override]) {
+      el.style.setProperty('--zw-font-head', FONT_STACKS[s.font_head_override]);
+      el.style.setProperty('--fw', FONT_STACKS[s.font_head_override]);
+      loadFont(s.font_head_override);
+    }
+    if (s.font_body_override && FONT_STACKS[s.font_body_override]) {
+      el.style.setProperty('--zw-font-body', FONT_STACKS[s.font_body_override]);
+      el.style.setProperty('--fb', FONT_STACKS[s.font_body_override]);
+      loadFont(s.font_body_override);
+    }
   }
   function addHideStyle(id, css) {
     var st = document.getElementById(id);

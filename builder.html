@@ -1112,9 +1112,17 @@ function syncForm(s){
 
 // ── FORM HELPERS ──────────────────────────────────────────────────────────
 const he=v=>String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const f=(k,l,v='',type='text',ph='')=>`<div class="field"><label>${l}</label><input type="${type}" data-f="${k}" value="${he(v)}" placeholder="${ph}"></div>`;
+// Inline font picker: a heading/title field gets a "Heading Font" select right
+// under it; a body/subtext/content field gets a "Body Font" select. _curG is the
+// section being edited (set at the top of buildForm) so each picker shows its
+// current value. This puts font control next to the text it styles instead of in
+// a separate block. (font_head_override / font_body_override stay section-level.)
+let _curG={};
+const HEAD_KEYS={heading:1,title:1}, BODY_KEYS={body:1,subtext:1,content:1};
+const fontFor=k=>HEAD_KEYS[k]?hfont(_curG):(BODY_KEYS[k]?bfont(_curG):'');
+const f=(k,l,v='',type='text',ph='')=>`<div class="field"><label>${l}</label><input type="${type}" data-f="${k}" value="${he(v)}" placeholder="${ph}"></div>`+fontFor(k);
 const f2=(k,l,v='')=>`<div class="field"><label>${l}</label><input data-k="${k}" value="${he(v)}"></div>`;
-const ta=(k,l,v='',ph='')=>`<div class="field"><label>${l}</label><textarea data-f="${k}" placeholder="${ph}">${he(v)}</textarea></div>`;
+const ta=(k,l,v='',ph='')=>`<div class="field"><label>${l}</label><textarea data-f="${k}" placeholder="${ph}">${he(v)}</textarea></div>`+fontFor(k);
 const sel=(k,l,v,opts)=>`<div class="field"><label>${l}</label><select data-f="${k}">${opts.map(([val,txt])=>`<option value="${val}"${v===val?' selected':''}>${txt}</option>`).join('')}</select></div>`;
 const sel2=(k,l,v,opts)=>`<div class="field"><label>${l}</label><select data-k="${k}">${opts.map(([val,txt])=>`<option value="${val}"${v===val?' selected':''}>${txt}</option>`).join('')}</select></div>`;
 const tog2=(k,l,checked)=>`<div class="tog2"><label>${l}</label><label class="switch"><input type="checkbox" data-f="${k}" ${checked?'checked':''}><span class="sw-sl"></span></label></div>`;
@@ -1128,9 +1136,16 @@ const fhd=t=>`<div class="fl" style="margin-top:.1rem">${t}</div>`;
 const colorF=(k,l,v='')=>`<div class="field"><label>${l}</label><div style="display:flex;gap:.35rem;align-items:center"><input type="color" data-f="${k}" value="${v||'#09090b'}" oninput="this.nextElementSibling.value=this.value"><input type="text" data-f="${k}" value="${he(v)}" placeholder="#hex or blank" style="flex:1" oninput="const x=this.value.trim();if(/^#[0-9a-f]{6}$/i.test(x))this.previousElementSibling.value=x"></div></div>`;
 const colorF2=(k,l,v='')=>`<div class="field"><label>${l}</label><div style="display:flex;gap:.35rem;align-items:center"><input type="color" data-k="${k}" value="${v||'#09090b'}" oninput="this.nextElementSibling.value=this.value"><input type="text" data-k="${k}" value="${he(v)}" placeholder="#hex" style="flex:1" oninput="if(/^#[0-9a-f]{6}$/i.test(this.value.trim()))this.previousElementSibling.value=this.value.trim()"></div></div>`;
 const rangeF=(k,l,v,min,max,unit='')=>`<div class="field"><label>${l}</label><div class="range-row"><input type="range" data-f="${k}" data-unit="${unit}" min="${min}" max="${max}" value="${v}" style="flex:1"><span class="range-val" data-range-disp="${k}">${v}${unit}</span></div></div>`;
-const padF=g=>`<div class="fdiv"></div>${fhd('Typography Override')}
-${sel('font_head_override','Heading Font',g.font_head_override||'',[['','Use Global Theme'],['barlow-condensed','Barlow Condensed'],['oswald','Oswald'],['bebas-neue','Bebas Neue'],['anton','Anton'],['league-gothic','League Gothic'],['michroma','Michroma'],['montserrat','Montserrat'],['syne','Syne'],['archivo-black','Archivo Black'],['teko','Teko'],['righteous','Righteous'],['playfair-display','Playfair Display'],['cinzel','Cinzel'],['futura','Futura'],['futura-100-bold','Futura 100 Bold'],['futura-100-bold-oblique','Futura 100 Bold Oblique']])}
-${sel('font_body_override','Body Font',g.font_body_override||'',[['','Use Global Theme'],['barlow','Barlow'],['inter','Inter'],['dm-sans','DM Sans'],['outfit','Outfit'],['manrope','Manrope'],['poppins','Poppins'],['lato','Lato'],['roboto','Roboto'],['work-sans','Work Sans'],['mulish','Mulish'],['futura','Futura'],['futura-100-bold','Futura 100 Bold'],['futura-100-bold-oblique','Futura 100 Bold Oblique']])}`;
+// Font pickers now live INLINE next to the text they affect (hfont after a
+// heading field, bfont after a body field) instead of a separate "Typography
+// Override" block. padF is kept as a no-op so the existing `+padF(g)` tails
+// don't need touching. Section-level keys: font_head_override / font_body_override.
+const FOPT_HEAD=[['','Use Global Theme (default)'],['barlow-condensed','Barlow Condensed'],['oswald','Oswald'],['bebas-neue','Bebas Neue'],['anton','Anton'],['league-gothic','League Gothic'],['michroma','Michroma'],['montserrat','Montserrat'],['syne','Syne'],['archivo-black','Archivo Black'],['teko','Teko'],['righteous','Righteous'],['playfair-display','Playfair Display'],['cinzel','Cinzel'],['futura','Futura'],['futura-100-bold','Futura 100 Bold'],['futura-100-bold-oblique','Futura 100 Bold Oblique']];
+const FOPT_BODY=[['','Use Global Theme (default)'],['barlow','Barlow'],['inter','Inter'],['dm-sans','DM Sans'],['outfit','Outfit'],['manrope','Manrope'],['poppins','Poppins'],['lato','Lato'],['roboto','Roboto'],['work-sans','Work Sans'],['mulish','Mulish'],['futura','Futura'],['futura-100-bold','Futura 100 Bold'],['futura-100-bold-oblique','Futura 100 Bold Oblique']];
+const fontSelInline=(k,l,v,opts)=>`<div class="field" style="margin:-.15rem 0 .1rem .9rem"><label style="opacity:.7">↳ ${l}</label><select data-f="${k}">${opts.map(([val,txt])=>`<option value="${val}"${v===val?' selected':''}>${txt}</option>`).join('')}</select></div>`;
+const hfont=g=>fontSelInline('font_head_override','Font for this heading',g.font_head_override||'',FOPT_HEAD);
+const bfont=g=>fontSelInline('font_body_override','Font for this text',g.font_body_override||'',FOPT_BODY);
+const padF=g=>'';
 /* NOTE: Section padding is rendered once, by the universal "Section Style"
    block in buildForm. It used to ALSO be rendered here as sliders, but both
    wrote data-f="pad_top/pad_bot" — syncForm reads them in DOM order and the
@@ -1190,10 +1205,11 @@ window.dupArrItem=function(btn){
 
 function buildForm(s){
   const g=s.settings||{};
+  _curG=g;   // so the inline font pickers (fontFor) read this section's overrides
   let h=`<div class="field"><label>Section Label</label><input data-section-label value="${he(s.label)}"></div>`;
   switch(s.type){
     case 'hero': h+=imgField('image','Background Image',g.image)+sel('fit','Image Fit',g.fit||'cover',[['cover','Fill — crop to fill (photos)'],['contain','Fit — show whole image (logos)']])+fdiv()+fhd('Layout')+sel('text_align','Alignment',g.text_align||'left',[['left','Left'],['center','Center'],['right','Right']])+rangeF('overlay_opacity','Image Overlay Darkness',g.overlay_opacity??40,0,90,'%')+fdiv()+fhd('Content')+ta('kicker','Kicker',g.kicker)+tog2('show_kicker','Show Kicker',g.show_kicker!==false)+ta('heading','Heading (↵=line break)',g.heading)+ta('subtext','Subtext',g.subtext)+tog2('show_subtext','Show Subtext',g.show_subtext!==false)+fdiv()+fhd('Primary Button')+f('cta1_text','Text',g.cta1_text)+f('cta1_url','URL / #anchor',g.cta1_url)+sel('cta1_style','Style',g.cta1_style||'outline',[['outline','Outlined'],['solid','Solid'],['ghost','Ghost']])+fdiv()+fhd('Secondary Button')+tog2('cta2_on','Show',g.cta2_on)+f('cta2_text','Text',g.cta2_text)+f('cta2_url','URL',g.cta2_url)+fdiv()+fhd('Image Overlay Button')+tog2('img_btn_on','Show',g.img_btn_on)+f('img_btn_text','Text',g.img_btn_text)+f('img_btn_url','URL',g.img_btn_url)+padF(g);break;
-    case 'marquee': h+=`<div class="field"><label>Items (comma-separated)</label><textarea data-f="items" placeholder="ZUWERA, RELEASE 001, ...">${he(g.items)}</textarea><span class="fhint">Separate with commas</span></div>`+sel('speed','Speed',g.speed||'normal',[['slow','Slow'],['normal','Normal'],['fast','Fast']])+padF(g);break;
+    case 'marquee': h+=`<div class="field"><label>Items (comma-separated)</label><textarea data-f="items" placeholder="ZUWERA, RELEASE 001, ...">${he(g.items)}</textarea><span class="fhint">Separate with commas</span></div>`+hfont(g)+sel('speed','Speed',g.speed||'normal',[['slow','Slow'],['normal','Normal'],['fast','Fast']])+padF(g);break;
     case 'about': h+=f('label','Eyebrow Label',g.label)+ta('heading','Heading',g.heading)+ta('body','Body (↵↵=paragraph)',g.body)+fdiv()+fhd('Stats')+arrField('stats','Stat',g.stats||[],[['value','Number','text'],['label','Label','text']])+padF(g);break;
     case 'release': h+=f('eyebrow','Eyebrow',g.eyebrow)+ta('title','Title (↵=line break)',g.title)+f('launch_date','Launch Date',g.launch_date,'date')+fdiv()+tog2('notify_on','Show Notify Form',g.notify_on)+f('notify_label','Form Label',g.notify_label)+padF(g);break;
     case 'products': h+=f('title','Section Title',g.title)+f('subtitle','Subtitle',g.subtitle)+sel('columns','Columns',String(g.columns||2),[['2','2 Columns'],['3','3 Columns'],['4','4 Columns']])+padF(g);break;
@@ -1214,7 +1230,7 @@ function buildForm(s){
     case 'faq': h+=f('heading','Section Heading',g.heading)+fdiv()+arrField('items','FAQ Item',g.items||[],[['q','Question','text'],['a','Answer','textarea']])+padF(g);break;
     case 'email_capture': h+=f('heading','Heading',g.heading)+f('subtext','Subtext',g.subtext)+f('placeholder','Input Placeholder',g.placeholder)+f('btn_text','Button Text',g.btn_text)+padF(g);break;
     case 'logos': h+=f('heading','Label (optional)',g.heading)+f('logo_height','Logo Height (px)',g.logo_height||28,'number')+tog2('logo_original','Keep original logo colors',g.logo_original)+fdiv()+arrField('items','Logo',g.items||[],[['name','Brand Name','text'],['src','Logo Image (upload or URL)','image'],['alt','Alt Text','text'],['link','Link → product / page (optional)','text']])+`<div class="fhint">Upload a logo (or paste a URL), then add a Link to make it clickable — point it at a product page or image.</div>`+padF(g);break;
-    case 'richtext': h+=`<div class="field"><label>Content</label><textarea data-f="content" style="min-height:140px;line-height:1.6" placeholder="Write your content here...">${he(g.content)}</textarea></div>`+sel('align','Text Alignment',g.align||'left',[['left','Left'],['center','Center'],['right','Right']])+padF(g);break;
+    case 'richtext': h+=`<div class="field"><label>Content</label><textarea data-f="content" style="min-height:140px;line-height:1.6" placeholder="Write your content here...">${he(g.content)}</textarea></div>`+bfont(g)+sel('align','Text Alignment',g.align||'left',[['left','Left'],['center','Center'],['right','Right']])+padF(g);break;
     case 'hero_carousel': {
       h+=fhd('Carousel Settings')
         +sel('height','Slide Height',g.height||'full',[['full','Full Screen (100vh)'],['tall','Tall (75vh)'],['half','Half (50vh)'],['short','Short (40vh)']])
@@ -1226,6 +1242,7 @@ function buildForm(s){
         +sel('indicator_style','Indicator Style',g.indicator_style||'dots',[['dots','Dots (pill)'],['lines','Lines (bars)']])
         +tog2('show_pause','Show Pause Button',g.show_pause!==false)
         +tog2('loop','Loop Slides',g.loop!==false)
+        +fdiv()+fhd('Slide Fonts')+hfont(g)+bfont(g)
         +fdiv()+fhd('Slides');
       const slides=g.slides||[];
       h+=`<div class="flist" data-arr="slides">${slides.map((sl,i)=>`<div data-arr-item style="background:var(--bg);border:1px solid var(--bd);border-radius:4px;padding:.55rem .6rem;margin-bottom:.4rem">
