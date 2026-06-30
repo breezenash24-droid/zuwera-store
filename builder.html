@@ -1272,13 +1272,63 @@ function applyMedia(src){
 }
 window.applyMediaUrl=function(url){applyMedia(url);};
 
+// Decode a file to an ImageBitmap (fast path) or HTMLImageElement (fallback).
+function loadBitmapForCompress(file){
+  if(window.createImageBitmap){
+    return createImageBitmap(file).catch(()=>loadImgEl(file));
+  }
+  return loadImgEl(file);
+}
+function loadImgEl(file){
+  return new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{ resolve(img); setTimeout(()=>URL.revokeObjectURL(url),0); };
+    img.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error('decode failed')); };
+    img.src=url;
+  });
+}
+// Downscale + re-encode large raster photos before upload. Raw 2–4 MB phone/
+// export images are the main reason heroes & cards feel slow: even with the
+// Cloudinary layer, the first transform must download the full original. Cap the
+// long edge at 2000px (the site never displays wider than 1400) and re-encode to
+// WebP — usually a 10–20× shrink with no visible loss. Always falls back to the
+// original on anything unexpected so an upload never breaks.
+async function compressImage(file){
+  try{
+    const type=(file.type||'').toLowerCase();
+    if(!/^image\//.test(type) || type==='image/gif' || type==='image/svg+xml') return file;
+    const MAX=2000, Q=0.82;
+    const bmp=await loadBitmapForCompress(file);
+    const w=bmp.width||bmp.naturalWidth, h=bmp.height||bmp.naturalHeight;
+    if(!w||!h) return file;
+    const scale=Math.min(1, MAX/Math.max(w,h));
+    const tw=Math.max(1,Math.round(w*scale)), th=Math.max(1,Math.round(h*scale));
+    const canvas=document.createElement('canvas');
+    canvas.width=tw; canvas.height=th;
+    canvas.getContext('2d').drawImage(bmp,0,0,tw,th);
+    if(bmp.close) bmp.close();
+    let blob=await new Promise(r=>canvas.toBlob(r,'image/webp',Q));
+    if(!blob) blob=await new Promise(r=>canvas.toBlob(r,'image/jpeg',Q));
+    if(!blob || blob.size>=file.size) return file; // no win — keep original
+    const base=(file.name||'image').replace(/\.[^.]+$/,'');
+    return new File([blob], base+(blob.type==='image/webp'?'.webp':'.jpg'), {type:blob.type});
+  }catch(_){ return file; }
+}
+
 async function uploadFromMedia(input){
-  const file=input.files[0];if(!file)return;
+  let file=input.files[0];if(!file)return;
   // Hero videos should be short, compressed web clips — warn on heavy files.
   if(/^video\//.test(file.type||'') && file.size>15*1024*1024){
     if(!confirm('This video is '+(file.size/1048576).toFixed(1)+' MB. Large videos slow the page on first load — aim for a short, compressed clip (ideally under ~10 MB). Upload anyway?'))return;
   }
   try{
+    // Shrink heavy photos client-side so the stored master is small (fast first
+    // load + fast Cloudinary transforms). Videos/GIFs/SVGs pass through untouched.
+    const origSize=file.size;
+    const compressed=await compressImage(file);
+    const didShrink=compressed!==file;
+    file=compressed;
     // Storage RLS requires profiles.role='admin', which the builder JWT doesn't
     // satisfy directly. Upload through the server endpoint (service role) instead
     // — same trust model as Save/Publish — so it always works for the builder.
@@ -1290,7 +1340,8 @@ async function uploadFromMedia(input){
     const res=await fetch('/api/upload-image',{method:'POST',body:fd});
     let out={}; try{ out=await res.json(); }catch(_){}
     if(!res.ok||!out.url)throw new Error(out.error||('HTTP '+res.status));
-    applyMedia(out.url);toast('Uploaded','ok');
+    applyMedia(out.url);
+    toast(didShrink ? ('Compressed '+(origSize/1048576).toFixed(1)+'MB → '+Math.round(file.size/1024)+'KB') : 'Uploaded','ok');
   }catch(e){
     // Don't silently fall back to a blob: URL — it can't load once saved/published.
     showErr('Upload failed: '+((e&&e.message)||e||'unknown')+'. Try again, or paste an image URL instead.');
