@@ -752,6 +752,13 @@ body.light-mode #zw-lang-close{
   color:var(--zw-ink) !important;
 }
 
+/* On compact widths the language close shrinks to 38px like every other modal
+   close (.mclose/.collection-review-close get this from the redesign block;
+   #zw-lang-close is a separate system so it needs its own match here). */
+@media(max-width:900px){
+  #zw-lang-close{ width:38px !important; height:38px !important; }
+}
+
 .pbox .mclose{
   background:rgba(244,241,235,.2) !important;
   border-color:rgba(244,241,235,.3) !important;

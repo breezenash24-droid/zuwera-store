@@ -339,8 +339,8 @@
   position: absolute;
   top: 1rem;
   right: 1.2rem;
-  width: 30px;
-  height: 30px;
+  width: 44px;       /* match the site-standard close size (.mclose) */
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -349,6 +349,10 @@
   color: #f4f1eb;
   font-size: 1rem;
   cursor: pointer;
+}
+@media (max-width: 900px) {
+  /* Shrink to the site-standard compact close size (matches .mclose at ≤900px). */
+  .review-list-close { width: 38px; height: 38px; }
 }
 @media (min-width: 901px) {
   /* Pin the close so it stays visible while the reviews list scrolls — it was
