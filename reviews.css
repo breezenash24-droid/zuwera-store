@@ -363,10 +363,10 @@
      stylesheet order. */
   .review-list-mbox > .review-list-close {
     position: sticky;
-    top: 1rem;
+    top: .9rem;                /* match the standard .9rem desktop close offset */
     right: auto;
     margin-left: auto;
-    margin-bottom: -30px;
+    margin-bottom: -44px;      /* = button height, so it fully overlaps the corner */
     z-index: 5;
   }
 }

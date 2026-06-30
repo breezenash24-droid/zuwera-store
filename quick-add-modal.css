@@ -13,7 +13,7 @@
      position:absolute, anchored to the content top, so it scrolled away.
      margin-bottom keeps it overlapping the corner instead of taking its own row. */
   .quick-add-product-box>.mclose{
-    position:sticky;top:.9rem;right:auto;margin:0 .9rem -30px auto;z-index:40;
+    position:sticky;top:.9rem;right:auto;margin:0 .9rem -44px auto;z-index:40;
   }
 }
 .quick-add-product-layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr)}
