@@ -2102,10 +2102,16 @@ body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel::befor
   box-shadow:none !important;
   text-align:left !important;
   isolation:isolate;
+  /* Promote to its own compositor layer so the full-width slide stays on the
+     GPU — no sub-pixel jitter or paint passes during the animation. */
+  will-change:transform !important;
+  backface-visibility:hidden !important;
+  -webkit-backface-visibility:hidden !important;
+  transform:translateZ(0);
 }
 
 #mobile-menu.zw-mobile-menu.open > .zw-mobile-menu-panel{
-  animation:zwMenuPanelIn .38s cubic-bezier(.32,.72,0,1) both !important;
+  animation:zwMenuPanelIn .44s cubic-bezier(.32,.72,0,1) both !important;
 }
 
 /* Keep visible and non-interactive during exit animation */
@@ -2114,17 +2120,27 @@ body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel::befor
   pointer-events:none !important;
 }
 #mobile-menu.zw-mobile-menu.closing > .zw-mobile-menu-panel{
-  animation:zwMenuPanelOut .28s cubic-bezier(.32,.72,0,1) both !important;
+  animation:zwMenuPanelOut .34s cubic-bezier(.4,0,.6,1) both !important;
   pointer-events:none !important;
 }
 
+/* Pure-transform slide (no opacity): the panel is a full-width opaque drawer,
+   so fading it would let the page bleed through mid-slide (double-exposure)
+   and add a paint pass. translateZ(0) keeps the resting state on the GPU. */
 @keyframes zwMenuPanelIn{
-  from{opacity:0;transform:translateX(100%)}
-  to{opacity:1;transform:translateX(0)}
+  from{transform:translate3d(100%,0,0)}
+  to{transform:translate3d(0,0,0)}
 }
 @keyframes zwMenuPanelOut{
-  from{opacity:1;transform:translateX(0)}
-  to{opacity:0;transform:translateX(100%)}
+  from{transform:translate3d(0,0,0)}
+  to{transform:translate3d(100%,0,0)}
+}
+
+@media (prefers-reduced-motion: reduce){
+  #mobile-menu.zw-mobile-menu.open > .zw-mobile-menu-panel,
+  #mobile-menu.zw-mobile-menu.closing > .zw-mobile-menu-panel{
+    animation-duration:.01ms !important;
+  }
 }
 
 html.zw-mobile-menu-open,
