@@ -592,13 +592,30 @@ function showToast(msg) {
           break;
         }
         case 'logos': {
-          el.className = 'builder-logos-section';
+          el.className = 'builder-logos-section' + (s.logo_original ? ' logo-original' : '');
           el.style.cssText = 'padding:2.5rem 2.5rem;text-align:center';
           if (s.sec_bg) el.style.background = s.sec_bg;
           const logositems = (s.items||[]);
+          const logoH = s.logo_height || 28;
+          // logo_original keeps the artwork's real colors (for light sections,
+          // e.g. a black swoosh on white). Default tints logos white for the
+          // classic dark brand-strip look.
+          const imgFilter = s.logo_original ? '' : 'filter:brightness(0) invert(1);';
+          const imgOp = s.logo_original ? '1' : '.45';
+          const spanOp = s.logo_original ? '.75' : '.35';
           el.innerHTML = `${s.heading?`<div style="font-family:var(--fm,var(--fb));font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;opacity:.35;margin-bottom:1.2rem">${s.heading}</div>`:''}
             <div style="display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:1.5rem 2.5rem">
-            ${logositems.map(it=>it.src?`<img src="${it.src}" alt="${it.alt||it.name||''}" style="height:28px;width:auto;opacity:.45;filter:brightness(0) invert(1)">`:it.name?`<span style="font-family:var(--fw);font-size:1.1rem;font-weight:700;font-style:italic;letter-spacing:.06em;text-transform:uppercase;opacity:.35">${it.name}</span>`:''  ).join('')}
+            ${logositems.map(it=>{
+               const inner = it.src
+                 ? `<img src="${it.src}" alt="${it.alt||it.name||''}" style="height:${logoH}px;width:auto;opacity:${imgOp};${imgFilter}">`
+                 : it.name
+                   ? `<span style="font-family:var(--fw);font-size:1.1rem;font-weight:700;font-style:italic;letter-spacing:.06em;text-transform:uppercase;opacity:${spanOp}">${it.name}</span>`
+                   : '';
+               if (!inner) return '';
+               return it.link
+                 ? `<a class="zw-logo-link" href="${zwSafeUrl(it.link)}" style="display:inline-flex;align-items:center;text-decoration:none;color:inherit">${inner}</a>`
+                 : inner;
+            }).join('')}
             </div>`;
           break;
         }
@@ -764,6 +781,10 @@ function showToast(msg) {
 
           let slidesHtml = '';
           let dotsHtml = '';
+          // Indicator style: 'dots' (white pill of dots, default) or 'lines'
+          // (segmented bars). Both reuse the .zw-hc-dot class so the carousel
+          // JS wires clicks/active-state identically; CSS swaps the shape.
+          const indStyle = s.indicator_style === 'lines' ? 'lines' : 'dots';
           slides.forEach((sl, i) => {
              const active = i === 0 ? ' active' : '';
              
@@ -797,7 +818,7 @@ function showToast(msg) {
                 ${sl.watch_btn ? `<button class="zw-hc-watch" onclick="openWatchModal('${sl.watch_url||''}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> ${sl.watch_label||'Watch'}</button>` : ''}
              </div>`;
              
-             dotsHtml += `<button class="zw-hc-dot${active}" data-index="${i}" aria-label="Slide ${i+1}"></button>`;
+             dotsHtml += `<button class="zw-hc-dot${indStyle==='lines'?' zw-hc-line':''}${active}" data-index="${i}" aria-label="Slide ${i+1}"></button>`;
           });
 
           el.innerHTML = `
@@ -806,7 +827,7 @@ function showToast(msg) {
           </div>
           <div class="zw-hc-controls">
              <div></div>
-             ${(s.show_dots !== false && slides.length > 1) ? `<div class="zw-hc-dots">${dotsHtml}</div>` : '<div></div>'}
+             ${(s.show_dots !== false && slides.length > 1) ? `<div class="zw-hc-dots${indStyle==='lines'?' zw-hc-dots--lines':''}">${dotsHtml}</div>` : '<div></div>'}
              <div class="zw-hc-nav">
                 ${(s.show_pause !== false && slides.length > 1) ? `<div class="zw-hc-pause-wrap">
                   <svg class="zw-hc-progress-svg"><circle cx="20" cy="20" r="18" fill="none" stroke="rgba(0,0,0,0.12)" stroke-width="2"/><circle class="zw-hc-progress-ring" cx="20" cy="20" r="18" fill="none" stroke="#111" stroke-width="2" stroke-dasharray="113" stroke-dashoffset="113"/></svg>

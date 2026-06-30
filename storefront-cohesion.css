@@ -3586,6 +3586,21 @@ picture.zw-hc-media img { display:block; width:100%; height:100%; object-fit:cov
 .zw-hc-dot { width:6px; height:6px; border-radius:50%; border:none; background:#a0a0a0; cursor:pointer; transition:all .3s ease; padding:0; }
 .zw-hc-dot:hover { background:#666; }
 .zw-hc-dot.active { background:#111; transform:scale(1.2); }
+
+/* "Lines" indicator style — segmented bars sitting directly over the media
+   (no white pill), active segment filled, inactive translucent. */
+.zw-hc-dots--lines { background:transparent; box-shadow:none; padding:0; gap:.4rem; }
+.zw-hc-line { width:26px; height:3px; border-radius:2px; background:rgba(255,255,255,.45); transition:background .3s ease; }
+.zw-hc-line:hover { background:rgba(255,255,255,.7); }
+.zw-hc-line.active { background:#2b6fff; transform:none; }
+@media (max-width: 768px) { .zw-hc-line { width:20px; } }
+
+/* Clickable logos (logos section) — lift + full opacity on hover so a
+   product/page link reads as interactive. */
+.builder-logos-section .zw-logo-link img,
+.builder-logos-section .zw-logo-link span { transition:opacity .2s ease, transform .2s ease; }
+.builder-logos-section .zw-logo-link:hover img,
+.builder-logos-section .zw-logo-link:hover span { opacity:1 !important; transform:translateY(-1px); }
 .zw-hc-nav { display:flex; gap:.5rem; justify-content:flex-end; }
 .zw-hc-pause-wrap { position:relative; width:36px; height:36px; display:inline-block; }
 .zw-hc-progress-svg { position:absolute; top:-2px; left:-2px; width:40px; height:40px; pointer-events:none; transform:rotate(-90deg); }

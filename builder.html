@@ -518,13 +518,13 @@ const SECT_DEFS={
   press:{heading:'As Seen In',items:[{name:'GQ'},{name:'Complex'},{name:'Highsnobiety'},{name:'Sole Collector'}],pad_top:0,pad_bot:0},
   faq:{heading:'Questions, Answered',items:[{q:'When does Release 001 drop?',a:'September 20, 2026.'},{q:'What sizes are available?',a:'XS through 3XL.'},{q:'Do you ship internationally?',a:'Yes — worldwide.'}],pad_top:0,pad_bot:0},
   email_capture:{heading:'Be First To Know',subtext:'Join the waitlist for exclusive early access.',placeholder:'your@email.com',btn_text:'Join Waitlist',bg_color:'',pad_top:0,pad_bot:0},
-  logos:{heading:'',items:[{name:'Nike'},{name:'Adidas'},{name:'Puma'}],pad_top:0,pad_bot:0},
+  logos:{heading:'',items:[{name:'Nike',src:'',alt:'',link:''},{name:'Adidas',src:'',alt:'',link:''},{name:'Puma',src:'',alt:'',link:''}],logo_original:false,logo_height:28,pad_top:0,pad_bot:0},
   spacer:{height:'md'},
   text:{heading:'',heading_size:'2rem',body:'',cta_text:'',cta_url:'',align:'left',pad_top:0,pad_bot:0},
   img_cta:{image:'',alt:'',btn_on:true,btn_text:'Shop Now',btn_url:'/drop001.html',btn_position:'center',pad_top:0,pad_bot:0},
   html:{html:'',pad_top:0,pad_bot:0},
   richtext:{content:'Write your content here...',align:'left',pad_top:0,pad_bot:0},
-  hero_carousel:{height:'full',autoplay:true,autoplay_interval:5000,show_arrows:true,show_dots:true,show_pause:true,transition:'fade',loop:true,slides:[{media_type:'image',media_url:'',media_url_mobile:'',video_poster:'',focal_y:50,eyebrow:'',heading:'YOUR HEADLINE',subtext:'Supporting copy here.',text_align:'center',text_color:'#ffffff',overlay_opacity:30,cta_text:'Shop Now',cta_url:'/drop001.html',cta_style:'solid',watch_btn:false,watch_url:'',watch_label:'Watch'}],pad_top:0,pad_bot:0},
+  hero_carousel:{height:'full',autoplay:true,autoplay_interval:5000,show_arrows:true,show_dots:true,indicator_style:'dots',show_pause:true,transition:'fade',loop:true,slides:[{media_type:'image',media_url:'',media_url_mobile:'',video_poster:'',focal_y:50,eyebrow:'',heading:'YOUR HEADLINE',subtext:'Supporting copy here.',text_align:'center',text_color:'#ffffff',overlay_opacity:30,cta_text:'Shop Now',cta_url:'/drop001.html',cta_style:'solid',watch_btn:false,watch_url:'',watch_label:'Watch'}],pad_top:0,pad_bot:0},
   media_grid:{heading:'',layout:'grid',columns:3,gap:'md',aspect:'portrait',card_height:'',cards:[{media_type:'image',media_url:'',video_poster:'',label:'',label_position:'below',link_url:'',watch_btn:false,watch_url:'',watch_label:'Watch'}],pad_top:0,pad_bot:0},
 };
 
@@ -1175,8 +1175,8 @@ function buildForm(s){
     case 'numbers': h+=f('heading','Section Heading',g.heading)+fdiv()+arrField('items','Stat',g.items||[],[['value','Value / Number','text'],['label','Label','text']])+padF(g);break;
     case 'press': h+=f('heading','Label (e.g. "As Seen In")',g.heading)+fdiv()+arrField('items','Publication',g.items||[],[['name','Publication Name','text']])+padF(g);break;
     case 'faq': h+=f('heading','Section Heading',g.heading)+fdiv()+arrField('items','FAQ Item',g.items||[],[['q','Question','text'],['a','Answer','textarea']])+padF(g);break;
-    case 'email_capture': h+=f('heading','Heading',g.heading)+f('subtext','Subtext',g.subtext)+f('placeholder','Input Placeholder',g.placeholder)+f('btn_text','Button Text',g.btn_text)+colorF('bg_color','Background Color',g.bg_color||'')+padF(g);break;
-    case 'logos': h+=f('heading','Label (optional)',g.heading)+fdiv()+arrField('items','Logo',g.items||[],[['name','Brand Name','text'],['src','Logo Image URL (optional)','text'],['alt','Alt Text','text']])+padF(g);break;
+    case 'email_capture': h+=f('heading','Heading',g.heading)+f('subtext','Subtext',g.subtext)+f('placeholder','Input Placeholder',g.placeholder)+f('btn_text','Button Text',g.btn_text)+padF(g);break;
+    case 'logos': h+=f('heading','Label (optional)',g.heading)+f('logo_height','Logo Height (px)',g.logo_height||28,'number')+tog2('logo_original','Keep original logo colors',g.logo_original)+fdiv()+arrField('items','Logo',g.items||[],[['name','Brand Name','text'],['src','Logo Image URL (optional)','text'],['alt','Alt Text','text'],['link','Link → product / page (optional)','text']])+`<div class="fhint">Add a Link to make a logo clickable — point it at a product page or image.</div>`+padF(g);break;
     case 'richtext': h+=`<div class="field"><label>Content</label><textarea data-f="content" style="min-height:140px;line-height:1.6" placeholder="Write your content here...">${he(g.content)}</textarea></div>`+sel('align','Text Alignment',g.align||'left',[['left','Left'],['center','Center'],['right','Right']])+padF(g);break;
     case 'hero_carousel': {
       h+=fhd('Carousel Settings')
@@ -1185,7 +1185,8 @@ function buildForm(s){
         +tog2('autoplay','Autoplay',g.autoplay!==false)
         +f('autoplay_interval','Interval (ms)',g.autoplay_interval||5000,'number')
         +tog2('show_arrows','Show Arrows',g.show_arrows!==false)
-        +tog2('show_dots','Show Dots',g.show_dots!==false)
+        +tog2('show_dots','Show Indicators',g.show_dots!==false)
+        +sel('indicator_style','Indicator Style',g.indicator_style||'dots',[['dots','Dots (pill)'],['lines','Lines (bars)']])
         +tog2('show_pause','Show Pause Button',g.show_pause!==false)
         +tog2('loop','Loop Slides',g.loop!==false)
         +fdiv()+fhd('Slides');
