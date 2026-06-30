@@ -2105,12 +2105,26 @@ body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel::befor
 }
 
 #mobile-menu.zw-mobile-menu.open > .zw-mobile-menu-panel{
-  animation:zwMenuPanelIn .26s cubic-bezier(.4,0,.2,1) both !important;
+  animation:zwMenuPanelIn .38s cubic-bezier(.32,.72,0,1) both !important;
+}
+
+/* Keep visible and non-interactive during exit animation */
+#mobile-menu.zw-mobile-menu.closing{
+  display:flex !important;
+  pointer-events:none !important;
+}
+#mobile-menu.zw-mobile-menu.closing > .zw-mobile-menu-panel{
+  animation:zwMenuPanelOut .28s cubic-bezier(.32,.72,0,1) both !important;
+  pointer-events:none !important;
 }
 
 @keyframes zwMenuPanelIn{
-  from{opacity:0;transform:translateX(1.5rem)}
+  from{opacity:0;transform:translateX(100%)}
   to{opacity:1;transform:translateX(0)}
+}
+@keyframes zwMenuPanelOut{
+  from{opacity:1;transform:translateX(0)}
+  to{opacity:0;transform:translateX(100%)}
 }
 
 html.zw-mobile-menu-open,
