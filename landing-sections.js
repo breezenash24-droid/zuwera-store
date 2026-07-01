@@ -12,6 +12,23 @@
    Exposes: window.ZWLandingSections.render(hostEl, sectionsArray)
    ─────────────────────────────────────────────────────────────────────────── */
 (function () {
+  // Prev/Next swipe arrows for a products/featured row — mirror of the homepage
+  // helper (landing pages don't load storefront.js). Arrows show only when the
+  // grid is horizontally scrollable (swipe mode). See .zw-swipe-* CSS.
+  window.zwEnsureSwipeArrows = window.zwEnsureSwipeArrows || function (grid) {
+    if (!grid || !grid.parentNode) return;
+    var wrap = grid.closest('.zw-swipe-wrap');
+    if (!wrap) { wrap = document.createElement('div'); wrap.className = 'zw-swipe-wrap'; grid.parentNode.insertBefore(wrap, grid); wrap.appendChild(grid); }
+    var mk = function (cls, label, d) { var b = document.createElement('button'); b.type = 'button'; b.className = 'zw-swipe-arrow ' + cls; b.setAttribute('aria-label', label); b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>'; wrap.appendChild(b); return b; };
+    var prev = wrap.querySelector(':scope > .zw-swipe-arrow.prev') || mk('prev', 'Previous products', 'M15 18l-6-6 6-6');
+    var next = wrap.querySelector(':scope > .zw-swipe-arrow.next') || mk('next', 'Next products', 'M9 6l6 6-6 6');
+    var step = function () { var f = grid.firstElementChild; var w = f ? f.getBoundingClientRect().width : grid.clientWidth * 0.8; return w + 16; };
+    prev.onclick = function () { grid.scrollBy({ left: -step(), behavior: 'smooth' }); };
+    next.onclick = function () { grid.scrollBy({ left: step(), behavior: 'smooth' }); };
+    var sync = function () { var scrollable = grid.scrollWidth - grid.clientWidth > 4; wrap.classList.toggle('zw-has-swipe', scrollable); var x = grid.scrollLeft; prev.disabled = x <= 2; next.disabled = x >= grid.scrollWidth - grid.clientWidth - 2; };
+    if (!grid._zwArrowsBound) { grid.addEventListener('scroll', sync, { passive: true }); window.addEventListener('resize', sync, { passive: true }); grid._zwArrowsBound = true; }
+    requestAnimationFrame(sync); setTimeout(sync, 350);
+  };
   function optImg(u, w) { try { return (typeof window.optimizeImage === 'function') ? window.optimizeImage(u, w) : u; } catch (_) { return u; } }
   function safeUrl(u) { try { return (typeof window.zwSafeUrl === 'function') ? window.zwSafeUrl(u) : (u || '#'); } catch (_) { return u || '#'; } }
   function isVideoUrl(u) { return u && /\.(mp4|webm|mov)(\?.*)?$/i.test(u); }

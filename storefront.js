@@ -168,6 +168,45 @@ function showToast(msg) {
     grid.style.setProperty('--col-lg', col(cfg.col_lg, col(cfg.columns, 3)));
     grid.style.setProperty('--col-md', col(cfg.col_md, 2));
     grid.style.setProperty('--col-sm', col(cfg.col_sm, 2));
+    if (window.zwEnsureSwipeArrows) window.zwEnsureSwipeArrows(grid);
+  };
+
+  // Prev/Next arrow buttons for a swipe row. Wraps the grid in .zw-swipe-wrap and
+  // only reveals the arrows when the grid is horizontally scrollable (swipe mode);
+  // in grid mode there's no overflow so they stay hidden. Global so landing reuses.
+  window.zwEnsureSwipeArrows = window.zwEnsureSwipeArrows || function (grid) {
+    if (!grid || !grid.parentNode) return;
+    let wrap = grid.closest('.zw-swipe-wrap');
+    if (!wrap) {
+      wrap = document.createElement('div');
+      wrap.className = 'zw-swipe-wrap';
+      grid.parentNode.insertBefore(wrap, grid);
+      wrap.appendChild(grid);
+    }
+    const mk = (cls, label, d) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'zw-swipe-arrow ' + cls; b.setAttribute('aria-label', label);
+      b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>';
+      wrap.appendChild(b); return b;
+    };
+    let prev = wrap.querySelector(':scope > .zw-swipe-arrow.prev') || mk('prev', 'Previous products', 'M15 18l-6-6 6-6');
+    let next = wrap.querySelector(':scope > .zw-swipe-arrow.next') || mk('next', 'Next products', 'M9 6l6 6-6 6');
+    const step = () => { const f = grid.firstElementChild; const w = f ? f.getBoundingClientRect().width : grid.clientWidth * 0.8; return w + 16; };
+    prev.onclick = () => grid.scrollBy({ left: -step(), behavior: 'smooth' });
+    next.onclick = () => grid.scrollBy({ left: step(), behavior: 'smooth' });
+    const sync = () => {
+      const scrollable = grid.scrollWidth - grid.clientWidth > 4;
+      wrap.classList.toggle('zw-has-swipe', scrollable);
+      const x = grid.scrollLeft;
+      prev.disabled = x <= 2;
+      next.disabled = x >= grid.scrollWidth - grid.clientWidth - 2;
+    };
+    if (!grid._zwArrowsBound) {
+      grid.addEventListener('scroll', sync, { passive: true });
+      window.addEventListener('resize', sync, { passive: true });
+      grid._zwArrowsBound = true;
+    }
+    requestAnimationFrame(sync); setTimeout(sync, 350);
   };
 
   function applyBuilderConfig(cfg) {
@@ -2244,6 +2283,9 @@ function renderProductCards(products, grid) {
 
   // Re-init hearts for dynamically loaded cards
   if (typeof refreshHearts === 'function') refreshHearts();
+  // Now that the cards exist, (re)evaluate the swipe arrows — their visibility
+  // depends on the grid's real scroll width, which is only known once populated.
+  if (window.zwEnsureSwipeArrows) window.zwEnsureSwipeArrows(grid);
   // Load all review summaries in ONE batched request instead of N separate fetches
   const _reviewCardMap = {};
   renderList.forEach(p => { _reviewCardMap[p.id] = p.unique_id || p.id; });
