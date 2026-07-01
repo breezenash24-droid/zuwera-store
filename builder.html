@@ -255,6 +255,7 @@ body{display:flex;flex-direction:column}
       <button class="more-item" onclick="showQrModal()">📱 Preview on phone (QR)</button>
       <button class="more-item" onclick="lpTab('history')">🕘 Version history</button>
       <button class="more-item" onclick="lpTab('templates')">🗂 Templates</button>
+      <button class="more-item" onclick="openSchedulePublish()">⏰ Schedule publish…</button>
       <div class="more-div"></div>
       <button class="more-item" onclick="exportCfg()">⬇ Export backup (JSON)</button>
       <button class="more-item" onclick="importCfg()">⬆ Import backup (JSON)</button>
@@ -1740,6 +1741,61 @@ async function saveDraft(auto=false){
   if(ok){lastSaved=clone(sections);status('Saved · '+new Date().toLocaleTimeString());dotCls('g');if(!auto)toast('Draft saved','ok');}
   else{dotCls('r');if(!auto)toast('Save failed','err');}
   setTimeout(()=>dotCls(''),3000);
+}
+
+// ── SCHEDULED PUBLISH ─────────────────────────────────────────────────────
+// Snapshots the current homepage draft + a publish time into site_settings
+// (key scheduled_publish); a Supabase pg_cron job promotes it to the live
+// page_builder_published when due. See the SQL you ran in the Supabase editor.
+async function openSchedulePublish(){
+  try{document.getElementById('moreMenu').hidden=true;}catch(_){}
+  let pending=null;
+  try{const sb=getSb();if(sb){const r=await sb.from('site_settings').select('value').eq('key','scheduled_publish').maybeSingle();pending=(r&&r.data&&r.data.value)||null;}}catch(_){}
+  const old=document.getElementById('schedOverlay');if(old)old.remove();
+  const ov=document.createElement('div');ov.id='schedOverlay';
+  ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:1rem';
+  const pendingHtml=(pending&&pending.publish_at)?`<div style="background:rgba(248,145,165,.12);border:1px solid rgba(248,145,165,.4);border-radius:6px;padding:.6rem .7rem;margin-bottom:.8rem;font-size:.72rem">⏰ Scheduled for <b>${new Date(pending.publish_at).toLocaleString()}</b><br><button onclick="cancelScheduledPublish()" style="margin-top:.45rem;background:none;border:1px solid var(--bd);color:#e07060;border-radius:4px;padding:.25rem .6rem;cursor:pointer;font-size:.62rem">Cancel this schedule</button></div>`:'';
+  ov.innerHTML=`<div style="background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:1.2rem;max-width:360px;width:100%;color:#f4f1eb">
+    <div style="font-family:'Barlow Condensed';font-weight:900;font-style:italic;text-transform:uppercase;font-size:1.1rem;letter-spacing:.04em;margin-bottom:.3rem">Schedule Publish</div>
+    <div style="font-size:.72rem;opacity:.7;margin-bottom:.8rem">Auto-publish the current homepage draft at a chosen time (your local time). The draft is snapshotted now, so later edits won't change what goes live.</div>
+    ${pendingHtml}
+    <label style="font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;opacity:.7">Publish at</label>
+    <input id="schedWhen" type="datetime-local" style="width:100%;margin:.3rem 0 .9rem;padding:.5rem;background:var(--bg);border:1px solid var(--bd);color:#f4f1eb;border-radius:5px">
+    <div style="display:flex;gap:.5rem;justify-content:flex-end">
+      <button onclick="document.getElementById('schedOverlay').remove()" style="background:none;border:1px solid var(--bd);color:#f4f1eb;border-radius:5px;padding:.45rem .9rem;cursor:pointer;font-size:.72rem">Close</button>
+      <button onclick="schedulePublish()" style="background:#f4f1eb;color:#09090b;border:none;border-radius:5px;padding:.45rem .9rem;cursor:pointer;font-weight:600;font-size:.72rem">Schedule</button>
+    </div>
+  </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+async function schedulePublish(){
+  const el=document.getElementById('schedWhen');
+  if(!el||!el.value){showErr('Pick a date & time');return;}
+  const dt=new Date(el.value);
+  if(isNaN(dt.getTime())){showErr('Invalid date/time');return;}
+  if(dt.getTime()<=Date.now()){showErr('Pick a time in the future');return;}
+  const snapshot={sections:clone(sections),theme:pvTheme,themeSettings,navSettings,seoSettings,updated_at:new Date().toISOString(),published:true};
+  const rec={publish_at:dt.toISOString(),target_key:'page_builder_published',value:snapshot};
+  try{
+    const token=await getAccessToken();if(!token)throw new Error('Session expired');
+    await saveDraft(true).catch(()=>{});
+    const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:token,key:'scheduled_publish',value:rec})});
+    if(!res.ok)throw new Error(await res.text());
+    toast('Scheduled to publish '+dt.toLocaleString(),'ok');
+    const ov=document.getElementById('schedOverlay');if(ov)ov.remove();
+  }catch(e){showErr(e.message);}
+}
+async function cancelScheduledPublish(){
+  try{
+    const token=await getAccessToken();if(!token)throw new Error('Session expired');
+    // The save API upserts (no delete): overwrite with a no-publish_at record the
+    // cron ignores, which effectively cancels it.
+    const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:token,key:'scheduled_publish',value:{cancelled:true}})});
+    if(!res.ok)throw new Error(await res.text());
+    toast('Schedule cancelled','ok');
+    const ov=document.getElementById('schedOverlay');if(ov)ov.remove();
+  }catch(e){showErr(e.message);}
 }
 
 async function publishPage(){
