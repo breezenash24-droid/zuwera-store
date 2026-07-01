@@ -153,6 +153,23 @@ function showToast(msg) {
     document.head.appendChild(l);
   }
 
+  // Shared per-platform layout setter for a products/featured grid. Reads the
+  // builder settings and writes data-lg/md/sm ("grid"|"swipe") + --col-* onto the
+  // grid; the CSS applies grid or swipe per breakpoint. Global so landing.js can
+  // reuse it. Defaults: desktop grid, tablet + mobile swipe (one at a time).
+  window.zwApplyPlatLayout = function (grid, cfg) {
+    if (!grid || !cfg) return;
+    grid.classList.add('zw-plat-grid');
+    const mode = (v, d) => (v === 'swipe' || v === 'grid') ? v : d;
+    grid.setAttribute('data-lg', mode(cfg.lay_lg, 'grid'));
+    grid.setAttribute('data-md', mode(cfg.lay_md, 'swipe'));
+    grid.setAttribute('data-sm', mode(cfg.lay_sm, 'swipe'));
+    const col = (v, fb) => { const n = parseInt(v, 10); return (n >= 1 && n <= 6) ? n : fb; };
+    grid.style.setProperty('--col-lg', col(cfg.col_lg, col(cfg.columns, 3)));
+    grid.style.setProperty('--col-md', col(cfg.col_md, 2));
+    grid.style.setProperty('--col-sm', col(cfg.col_sm, 2));
+  };
+
   function applyBuilderConfig(cfg) {
     if (!cfg || !cfg.sections) return;
 
@@ -542,6 +559,10 @@ function showToast(msg) {
           const secSub = el.closest('.drop-wrap')?.querySelector('.sec-head span') || el.querySelector('.sec-head span');
           if (secHead && s.title !== undefined) secHead.textContent = s.title;
           if (secSub && s.subtitle !== undefined) secSub.textContent = s.subtitle;
+          // Per-platform layout: grid vs one-at-a-time swipe for desktop/tablet/
+          // mobile, driven by data attrs + --col vars the CSS reads per breakpoint.
+          const _pgrid = document.getElementById('products-grid');
+          if (_pgrid && typeof window.zwApplyPlatLayout === 'function') window.zwApplyPlatLayout(_pgrid, s);
           // Trigger product load â€” applyBuilderConfig shows the section but doesn't populate the grid
           if (sec.visible && typeof loadProducts === 'function') setTimeout(loadProducts, 0);
           break;

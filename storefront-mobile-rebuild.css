@@ -606,36 +606,3 @@
     grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
   }
 }
-
-/* ── Homepage products: one-at-a-time horizontal swipe (mobile + tablet) ──────
-   The homepage product grid becomes a full-bleed, snap-scrolling row so shoppers
-   see ONE product at a time and scroll right for more, instead of a long stacked
-   grid. Desktop (>1024px) keeps the multi-column grid. Scoped to .pgrid /
-   #products-grid so collection/PLP grids (.products-grid) are unaffected. */
-@media (max-width:1024px){
-  :is(.pgrid, #products-grid){
-    display:flex !important;
-    flex-wrap:nowrap !important;
-    overflow-x:auto !important;
-    overflow-y:visible !important;
-    scroll-snap-type:x mandatory !important;
-    grid-template-columns:none !important;
-    gap:1rem !important;
-    margin-left:calc(50% - 50vw) !important;
-    margin-right:calc(50% - 50vw) !important;
-    padding:0 9vw 1.2rem !important;
-    scrollbar-width:none !important;
-    -webkit-overflow-scrolling:touch !important;
-  }
-  :is(.pgrid, #products-grid)::-webkit-scrollbar{ display:none !important; }
-  :is(.pgrid, #products-grid) > .pcard{
-    flex:0 0 82vw !important;
-    width:82vw !important;
-    min-width:0 !important;
-    max-width:none !important;
-    scroll-snap-align:center !important;
-  }
-  /* Single product: just center it, nothing to scroll. */
-  .pgrid.single-item{ justify-content:center !important; }
-  .pgrid.single-item > .pcard{ flex-basis:min(82vw,420px) !important; width:min(82vw,420px) !important; }
-}

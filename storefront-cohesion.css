@@ -3733,3 +3733,45 @@ body.light-mode #mobile-menu.zw-mobile-menu,
 body.super-light-mode #mobile-menu.zw-mobile-menu{
   background:transparent !important;
 }
+
+/* ── PER-PLATFORM PRODUCTS LAYOUT ────────────────────────────────────────────
+   The products section (homepage) and featured section (landing) can each be set
+   — per page, in the builder — to a column grid OR a one-at-a-time swipe row,
+   independently for desktop / tablet / mobile.
+     data-lg / data-md / data-sm = "grid" | "swipe"
+     --col-lg / --col-md / --col-sm = number of columns in grid mode
+   Rules are !important so they win over the grids' own ID-based CSS. */
+.zw-plat-grid { display:grid; gap:1.5rem; }
+.zw-plat-grid[data-lg="swipe"]::-webkit-scrollbar,
+.zw-plat-grid[data-md="swipe"]::-webkit-scrollbar,
+.zw-plat-grid[data-sm="swipe"]::-webkit-scrollbar { display:none !important; }
+
+/* Desktop */
+@media (min-width:1025px){
+  .zw-plat-grid[data-lg="grid"]{ display:grid !important;
+    grid-template-columns:repeat(var(--col-lg,3), minmax(0,1fr)) !important; gap:1.5rem !important; overflow:visible !important; }
+  .zw-plat-grid[data-lg="swipe"]{ display:flex !important; flex-wrap:nowrap !important; overflow-x:auto !important;
+    scroll-snap-type:x mandatory !important; gap:1.25rem !important; padding-bottom:1rem !important; scrollbar-width:none !important; }
+  .zw-plat-grid[data-lg="swipe"] > *{ flex:0 0 clamp(280px, 30%, 360px) !important; width:auto !important;
+    min-width:0 !important; max-width:none !important; scroll-snap-align:start !important; margin:0 !important; }
+}
+/* Tablet */
+@media (min-width:641px) and (max-width:1024px){
+  .zw-plat-grid[data-md="grid"]{ display:grid !important;
+    grid-template-columns:repeat(var(--col-md,2), minmax(0,1fr)) !important; gap:1.1rem !important; overflow:visible !important; margin:0 !important; padding:0 !important; }
+  .zw-plat-grid[data-md="swipe"]{ display:flex !important; flex-wrap:nowrap !important; overflow-x:auto !important; overflow-y:visible !important;
+    scroll-snap-type:x mandatory !important; grid-template-columns:none !important; gap:1rem !important;
+    margin-left:calc(50% - 50vw) !important; margin-right:calc(50% - 50vw) !important; padding:0 9vw 1.2rem !important;
+    scrollbar-width:none !important; -webkit-overflow-scrolling:touch !important; }
+  .zw-plat-grid[data-md="swipe"] > *{ flex:0 0 62vw !important; width:62vw !important; min-width:0 !important; max-width:none !important; scroll-snap-align:center !important; margin:0 !important; }
+}
+/* Mobile */
+@media (max-width:640px){
+  .zw-plat-grid[data-sm="grid"]{ display:grid !important;
+    grid-template-columns:repeat(var(--col-sm,2), minmax(0,1fr)) !important; gap:.9rem !important; overflow:visible !important; margin:0 !important; padding:0 !important; }
+  .zw-plat-grid[data-sm="swipe"]{ display:flex !important; flex-wrap:nowrap !important; overflow-x:auto !important; overflow-y:visible !important;
+    scroll-snap-type:x mandatory !important; grid-template-columns:none !important; gap:1rem !important;
+    margin-left:calc(50% - 50vw) !important; margin-right:calc(50% - 50vw) !important; padding:0 9vw 1.2rem !important;
+    scrollbar-width:none !important; -webkit-overflow-scrolling:touch !important; }
+  .zw-plat-grid[data-sm="swipe"] > *{ flex:0 0 82vw !important; width:82vw !important; min-width:0 !important; max-width:none !important; scroll-snap-align:center !important; margin:0 !important; }
+}
