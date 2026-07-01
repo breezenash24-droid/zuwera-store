@@ -383,10 +383,23 @@
       var media = (cd.media_type === 'video' || isVideoUrl(cd.media_url))
         ? '<video src="' + (cd.media_url || '') + '" poster="' + (cd.video_poster || '') + '" playsinline autoplay loop muted class="zw-mg-media" style="' + ht + '"></video>'
         : '<img src="' + optImg(cd.media_url, 800) + '" alt="" class="zw-mg-media" style="' + ht + '" loading="lazy" decoding="async">';
-      var label = cd.label ? '<p class="zw-mg-label zw-mg-label-' + pos + '">' + cd.label + '</p>' : '';
+      // Adidas-style card content: chip label + description + CTA button. Overlay
+      // modes lay them over the image (gradient scrim); "below" stacks them under.
+      var arrow = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+      var _esc = function (v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
+      var lbl = cd.label ? _esc(cd.label) : '', sub = cd.sublabel ? _esc(cd.sublabel) : '', cta = cd.cta_text ? _esc(cd.cta_text) : '';
+      var isOverlay = pos.indexOf('overlay') === 0;
       var watch = cd.watch_btn ? '<button class="zw-mg-watch" onclick="event.preventDefault(); openWatchModal(\'' + (cd.watch_url || '') + '\')"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> ' + (cd.watch_label || 'Watch') + '</button>' : '';
+      var overlayHtml = '';
+      if (isOverlay && (lbl || sub || cta)) {
+        overlayHtml = '<div class="zw-mg-scrim"></div><div class="zw-mg-ov zw-mg-ov-' + pos.replace('overlay-', '') + '">' + (lbl ? '<span class="zw-mg-chip">' + lbl + '</span>' : '') + (sub ? '<p class="zw-mg-ovsub">' + sub + '</p>' : '') + (cta ? '<span class="zw-mg-btn">' + cta + arrow + '</span>' : '') + '</div>';
+      }
+      var belowHtml = '';
+      if (!isOverlay && (lbl || sub || cta)) {
+        belowHtml = '<div class="zw-mg-below">' + (lbl ? '<p class="zw-mg-h">' + lbl + '</p>' : '') + (sub ? '<p class="zw-mg-desc">' + sub + '</p>' : '') + (cta ? '<span class="zw-mg-link">' + cta + arrow + '</span>' : '') + '</div>';
+      }
       var cardStyle = layout === 'scroll' ? 'flex:0 0 auto; width:min(85vw, 360px); scroll-snap-align:start; position:relative;' : 'position:relative; display:block; text-decoration:none; color:inherit;';
-      return '<' + tag + href + ' class="zw-mg-card" style="' + cardStyle + '"><div class="zw-mg-media-wrap" style="position:relative; overflow:hidden;">' + media + (pos.indexOf('overlay') === 0 || pos.indexOf('overlay') > -1 ? label : '') + watch + '</div>' + (pos === 'below' ? label : '') + '</' + tag + '>';
+      return '<' + tag + href + ' class="zw-mg-card" style="' + cardStyle + '"><div class="zw-mg-media-wrap" style="position:relative; overflow:hidden;">' + media + overlayHtml + watch + '</div>' + belowHtml + '</' + tag + '>';
     }).join('');
     el.innerHTML = '<div style="padding:0 ' + px + ';max-width:' + mw + ';margin:0 auto;">' + (s.heading ? '<h2 style="font-family:var(--fw);font-size:clamp(1.5rem,3vw,2.2rem);text-transform:uppercase;font-weight:800;font-style:italic;text-align:center;margin-bottom:2rem">' + s.heading + '</h2>' : '') + '<div class="' + trackClass + '" style="' + trackStyle + '">' + cardsHtml + '</div></div>';
     return true;

@@ -498,7 +498,7 @@ const TYPES={
   richtext:{icon:'📄',cat:'layout',desc:'Long-form rich text block'},
   header:{icon:'▭',cat:'layout',desc:'Label + right note with a divider line (add/remove anywhere)'},
   hero_carousel:{icon:'🎠',cat:'store',desc:'Full-screen hero carousel with slides, video, arrows & dots'},
-  media_grid:{icon:'🖼️',cat:'marketing',desc:'Image/video grid or scrollable row with CTAs'},
+  media_grid:{icon:'🖼️',cat:'marketing',desc:'Collection / category tiles — grid or scroll-right row, overlays & CTAs'},
 };
 
 const SECT_DEFS={
@@ -527,7 +527,7 @@ const SECT_DEFS={
   richtext:{content:'Write your content here...',align:'left',pad_top:0,pad_bot:0},
   header:{left:'Section Title',right:'',show_line:true,line_position:'below',pad_top:0,pad_bot:0},
   hero_carousel:{height:'full',autoplay:true,autoplay_interval:5000,show_arrows:true,show_dots:true,indicator_style:'dots',show_pause:true,transition:'fade',loop:true,slides:[{media_type:'image',media_url:'',media_url_mobile:'',video_poster:'',focal_y:50,eyebrow:'',heading:'YOUR HEADLINE',subtext:'Supporting copy here.',text_align:'center',text_color:'#ffffff',overlay_opacity:30,cta_text:'Shop Now',cta_url:'/drop001.html',cta_style:'solid',watch_btn:false,watch_url:'',watch_label:'Watch'}],pad_top:0,pad_bot:0},
-  media_grid:{heading:'',layout:'grid',columns:3,gap:'md',aspect:'portrait',card_height:'',cards:[{media_type:'image',media_url:'',video_poster:'',label:'',label_position:'below',link_url:'',watch_btn:false,watch_url:'',watch_label:'Watch'}],pad_top:0,pad_bot:0},
+  media_grid:{heading:'',layout:'grid',columns:3,gap:'md',aspect:'portrait',card_height:'',cards:[{media_type:'image',media_url:'',video_poster:'',label:'',sublabel:'',cta_text:'',label_position:'below',link_url:'',watch_btn:false,watch_url:'',watch_label:'Watch'}],pad_top:0,pad_bot:0},
 };
 
 const DEFAULT_SECTIONS=['hero','marquee','about','release','products'].map((t,i)=>({id:t,type:t,label:t.charAt(0).toUpperCase()+t.slice(1).replace('_',' '),visible:true,order:i,settings:{...SECT_DEFS[t]}}));
@@ -1427,9 +1427,11 @@ function buildForm(s){
         <div class="field"><label>Media URL</label><div style="display:flex;gap:.3rem;align-items:center"><input type="text" id="cards.${i}.media_url" data-f="media_url" value="${he(cd.media_url)}" placeholder="/images/photo.jpg" style="flex:1"><button type="button" class="img-btn" data-pick="cards.${i}.media_url">📁</button></div></div>
         <div class="field"><label>Video Poster</label><input type="text" data-f="video_poster" value="${he(cd.video_poster)}" placeholder="Poster for video cards"></div>
         <div class="fdiv"></div>
-        <div class="field"><label>Label / CTA Text</label><input type="text" data-f="label" value="${he(cd.label)}" placeholder="Shop Lifestyle"></div>
-        <div class="field"><label>Label Position</label><select data-f="label_position"><option value="below"${(cd.label_position||'below')==='below'?' selected':''}>Below Image</option><option value="overlay-bottom"${cd.label_position==='overlay-bottom'?' selected':''}>Overlay Bottom</option><option value="overlay-center"${cd.label_position==='overlay-center'?' selected':''}>Overlay Center</option></select></div>
-        <div class="field"><label>Link URL</label><input type="text" data-f="link_url" value="${he(cd.link_url)}" placeholder="/drop001.html?category=..."></div>
+        <div class="field"><label>Label / Title</label><input type="text" data-f="label" value="${he(cd.label)}" placeholder="e.g. Sportswear"></div>
+        <div class="field"><label>Description (optional)</label><input type="text" data-f="sublabel" value="${he(cd.sublabel)}" placeholder="e.g. From the pitch to the street."></div>
+        <div class="field"><label>Button Text (optional)</label><input type="text" data-f="cta_text" value="${he(cd.cta_text)}" placeholder="e.g. Shop Now"></div>
+        <div class="field"><label>Text Placement</label><select data-f="label_position"><option value="below"${(cd.label_position||'below')==='below'?' selected':''}>Below Image (title + description under)</option><option value="overlay-bottom"${cd.label_position==='overlay-bottom'?' selected':''}>Overlay — Bottom Left</option><option value="overlay-top"${cd.label_position==='overlay-top'?' selected':''}>Overlay — Top Left</option><option value="overlay-center"${cd.label_position==='overlay-center'?' selected':''}>Overlay — Center</option></select></div>
+        <div class="field"><label>Link URL (whole card + button)</label><input type="text" data-f="link_url" value="${he(cd.link_url)}" placeholder="/drop001.html?category=..."></div>
         <div class="fdiv"></div>
         <div class="fl" style="margin-top:.1rem">Watch Button</div>
         <div class="tog2"><label>Show Watch Button</label><label class="switch"><input type="checkbox" data-f="watch_btn" ${cd.watch_btn?'checked':''}><span class="sw-sl"></span></label></div>

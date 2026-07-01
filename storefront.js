@@ -1134,19 +1134,37 @@ function showToast(msg) {
                 mediaHtml = `<img src="${optImg||''}" alt="" class="zw-mg-media" style="${ht}" loading="lazy" decoding="async">`;
              }
              
-             const labelHtml = cd.label ? `<p class="zw-mg-label zw-mg-label-${pos}">${cd.label}</p>` : '';
+             // Adidas-style card content: a chip label, description and CTA button.
+             // Overlay modes lay them over the image (with a gradient scrim);
+             // "below" mode stacks them under the image (World-Cup-grid style).
+             const _e = (v) => typeof escapeHomeFavoriteHtml === 'function' ? escapeHomeFavoriteHtml(v || '') : (v || '');
+             const _arrow = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+             const _label = cd.label ? _e(cd.label) : '';
+             const _sub = cd.sublabel ? _e(cd.sublabel) : '';
+             const _cta = cd.cta_text ? _e(cd.cta_text) : '';
+             const isOverlay = pos.indexOf('overlay') === 0;
              const watchHtml = cd.watch_btn ? `<button class="zw-mg-watch" onclick="event.preventDefault(); openWatchModal('${cd.watch_url||''}')"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> ${cd.watch_label||'Watch'}</button>` : '';
 
+             let overlayHtml = '';
+             if (isOverlay && (_label || _sub || _cta)) {
+                const opos = pos.replace('overlay-', '');
+                overlayHtml = `<div class="zw-mg-scrim"></div><div class="zw-mg-ov zw-mg-ov-${opos}">${_label ? `<span class="zw-mg-chip">${_label}</span>` : ''}${_sub ? `<p class="zw-mg-ovsub">${_sub}</p>` : ''}${_cta ? `<span class="zw-mg-btn">${_cta}${_arrow}</span>` : ''}</div>`;
+             }
+             let belowHtml = '';
+             if (!isOverlay && (_label || _sub || _cta)) {
+                belowHtml = `<div class="zw-mg-below">${_label ? `<p class="zw-mg-h">${_label}</p>` : ''}${_sub ? `<p class="zw-mg-desc">${_sub}</p>` : ''}${_cta ? `<span class="zw-mg-link">${_cta}${_arrow}</span>` : ''}</div>`;
+             }
+
              const cardStyle = layout === 'scroll' ? `flex:0 0 auto; width:min(85vw, 360px); scroll-snap-align:start; position:relative;` : `position:relative; display:block; text-decoration:none; color:inherit;`;
-             
+
              cardsHtml += `
              <${tag}${href} class="zw-mg-card" style="${cardStyle}">
                 <div class="zw-mg-media-wrap" style="position:relative; overflow:hidden;">
                    ${mediaHtml}
-                   ${pos.includes('overlay') ? labelHtml : ''}
+                   ${overlayHtml}
                    ${watchHtml}
                 </div>
-                ${pos === 'below' ? labelHtml : ''}
+                ${belowHtml}
              </${tag}>`;
           });
           
