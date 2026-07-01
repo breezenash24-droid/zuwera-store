@@ -319,6 +319,9 @@
     grid.setAttribute('data-snap-lg', _sn(featCfg.snap_lg));
     grid.setAttribute('data-snap-md', _sn(featCfg.snap_md));
     grid.setAttribute('data-snap-sm', _sn(featCfg.snap_sm));
+    if (window.zwEnsureSwipeBar) window.zwEnsureSwipeBar(grid);
+    var _w = grid.closest('.zw-swipe-wrap');
+    if (_w) _w.classList.toggle('zw-bar-hover', !!featCfg.bar_hover);
     var _c = function (v, fb) { var n = parseInt(v, 10); return (n >= 1 && n <= 6) ? n : fb; };
     grid.style.setProperty('--col-lg', _c(featCfg.col_lg, _c(featCfg.columns, 3)));
     grid.style.setProperty('--col-md', _c(featCfg.col_md, 2));

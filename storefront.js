@@ -174,6 +174,9 @@ function showToast(msg) {
     grid.style.setProperty('--col-md', col(cfg.col_md, 2));
     grid.style.setProperty('--col-sm', col(cfg.col_sm, 2));
     if (window.zwEnsureSwipeBar) window.zwEnsureSwipeBar(grid);
+    // Optional: hide the scrollbar until the row is hovered (desktop only).
+    const _w = grid.closest('.zw-swipe-wrap');
+    if (_w) _w.classList.toggle('zw-bar-hover', !!cfg.bar_hover);
   };
 
   // Nike-style draggable scrollbar for a swipe row. Wraps the grid in

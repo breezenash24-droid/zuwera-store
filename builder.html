@@ -1036,6 +1036,7 @@ function renderPagesTab(container){
     ${lpLayRow('🖥️ Desktop','featured.lay_lg','featured.col_lg','featured.snap_lg',feat.lay_lg||'grid',String(feat.col_lg||3),feat.snap_lg||'smooth')}
     ${lpLayRow('▭ Tablet','featured.lay_md','featured.col_md','featured.snap_md',feat.lay_md||'swipe',String(feat.col_md||2),feat.snap_md||'smooth')}
     ${lpLayRow('▯ Mobile','featured.lay_sm','featured.col_sm','featured.snap_sm',feat.lay_sm||'swipe',String(feat.col_sm||2),feat.snap_sm||'smooth')}
+    <div class="tog2" style="margin-top:.3rem"><label>Reveal scrollbar on hover (desktop)</label><label class="switch"><input type="checkbox" data-lp="featured.bar_hover" ${feat.bar_hover?'checked':''}><span class="sw-sl"></span></label></div>
     <div class="fdiv"></div>
 
     <div class="tab-hd">Page Sections</div>
@@ -1362,6 +1363,8 @@ function buildForm(s){
         +`<div class="fl" style="margin-top:.1rem">🖥️ Desktop</div>`+sel('lay_lg','Layout',g.lay_lg||'grid',LAYO)+sel('col_lg','Columns (grid mode)',String(g.col_lg||g.columns||3),COLO)+sel('snap_lg','Scroll feel (swipe)',g.snap_lg||'smooth',SNAPO)
         +`<div class="fl" style="margin-top:.1rem">▭ Tablet</div>`+sel('lay_md','Layout',g.lay_md||'swipe',LAYO)+sel('col_md','Columns (grid mode)',String(g.col_md||2),COLO)+sel('snap_md','Scroll feel (swipe)',g.snap_md||'smooth',SNAPO)
         +`<div class="fl" style="margin-top:.1rem">▯ Mobile</div>`+sel('lay_sm','Layout',g.lay_sm||'swipe',LAYO)+sel('col_sm','Columns (grid mode)',String(g.col_sm||2),COLO)+sel('snap_sm','Scroll feel (swipe)',g.snap_sm||'smooth',SNAPO)
+        +fdiv()+tog2('bar_hover','Reveal scrollbar on hover (desktop)',g.bar_hover)
+        +`<div class="fhint" style="margin:-.15rem 0 .3rem">When on, the swipe scrollbar stays hidden until the shopper hovers over the product row. Touch devices always show it.</div>`
         +padF(g);
       break;
     }

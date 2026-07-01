@@ -3804,6 +3804,14 @@ body.super-light-mode #mobile-menu.zw-mobile-menu{
   background:rgba(244,241,235,.16);
 }
 .zw-swipe-wrap.zw-has-swipe > .zw-swipe-bar{ display:block; }
+/* Reveal-on-hover (desktop only): when .zw-bar-hover is set, the bar keeps its
+   space (no layout shift) but fades in only while the product row is hovered or
+   focused. Gated to hover-capable devices so touch always shows the bar. */
+@media (hover:hover){
+  .zw-swipe-wrap.zw-has-swipe.zw-bar-hover > .zw-swipe-bar{ opacity:0; transition:opacity .25s ease; }
+  .zw-swipe-wrap.zw-has-swipe.zw-bar-hover:hover > .zw-swipe-bar,
+  .zw-swipe-wrap.zw-has-swipe.zw-bar-hover:focus-within > .zw-swipe-bar{ opacity:1; }
+}
 .zw-swipe-thumb{
   position:absolute; top:-3px; left:0; height:10px; min-width:26px; border-radius:99px;
   background:rgba(244,241,235,.6); cursor:grab; transition:background .2s ease;
