@@ -3751,29 +3751,45 @@ body.super-light-mode #mobile-menu.zw-mobile-menu{
   .zw-plat-grid[data-lg="grid"]{ display:grid !important;
     grid-template-columns:repeat(var(--col-lg,3), minmax(0,1fr)) !important; gap:1.5rem !important; overflow:visible !important; }
   .zw-plat-grid[data-lg="swipe"]{ display:flex !important; flex-wrap:nowrap !important; overflow-x:auto !important;
-    scroll-snap-type:x mandatory !important; gap:1.25rem !important; padding-bottom:1rem !important; scrollbar-width:none !important; }
+    scroll-snap-type:none !important; gap:1.25rem !important; padding-bottom:1rem !important; scrollbar-width:none !important; }
   .zw-plat-grid[data-lg="swipe"] > *{ flex:0 0 clamp(280px, 30%, 360px) !important; width:auto !important;
-    min-width:0 !important; max-width:none !important; scroll-snap-align:start !important; margin:0 !important; }
+    min-width:0 !important; max-width:none !important; scroll-snap-align:none !important; margin:0 !important; }
 }
 /* Tablet */
 @media (min-width:641px) and (max-width:1024px){
   .zw-plat-grid[data-md="grid"]{ display:grid !important;
     grid-template-columns:repeat(var(--col-md,2), minmax(0,1fr)) !important; gap:1.1rem !important; overflow:visible !important; margin:0 !important; padding:0 !important; }
   .zw-plat-grid[data-md="swipe"]{ display:flex !important; flex-wrap:nowrap !important; overflow-x:auto !important; overflow-y:visible !important;
-    scroll-snap-type:x mandatory !important; grid-template-columns:none !important; gap:1rem !important;
+    scroll-snap-type:none !important; grid-template-columns:none !important; gap:1rem !important;
     margin-left:calc(50% - 50vw) !important; margin-right:calc(50% - 50vw) !important; padding:0 9vw 1.2rem !important;
     scrollbar-width:none !important; -webkit-overflow-scrolling:touch !important; }
-  .zw-plat-grid[data-md="swipe"] > *{ flex:0 0 62vw !important; width:62vw !important; min-width:0 !important; max-width:none !important; scroll-snap-align:center !important; margin:0 !important; }
+  .zw-plat-grid[data-md="swipe"] > *{ flex:0 0 62vw !important; width:62vw !important; min-width:0 !important; max-width:none !important; scroll-snap-align:none !important; margin:0 !important; }
 }
 /* Mobile */
 @media (max-width:640px){
   .zw-plat-grid[data-sm="grid"]{ display:grid !important;
     grid-template-columns:repeat(var(--col-sm,2), minmax(0,1fr)) !important; gap:.9rem !important; overflow:visible !important; margin:0 !important; padding:0 !important; }
   .zw-plat-grid[data-sm="swipe"]{ display:flex !important; flex-wrap:nowrap !important; overflow-x:auto !important; overflow-y:visible !important;
-    scroll-snap-type:x mandatory !important; grid-template-columns:none !important; gap:1rem !important;
+    scroll-snap-type:none !important; grid-template-columns:none !important; gap:1rem !important;
     margin-left:calc(50% - 50vw) !important; margin-right:calc(50% - 50vw) !important; padding:0 9vw 1.2rem !important;
     scrollbar-width:none !important; -webkit-overflow-scrolling:touch !important; }
-  .zw-plat-grid[data-sm="swipe"] > *{ flex:0 0 82vw !important; width:82vw !important; min-width:0 !important; max-width:none !important; scroll-snap-align:center !important; margin:0 !important; }
+  .zw-plat-grid[data-sm="swipe"] > *{ flex:0 0 82vw !important; width:82vw !important; min-width:0 !important; max-width:none !important; scroll-snap-align:none !important; margin:0 !important; }
+}
+/* Per-device swipe scroll mode: default is smooth/free (scroll-snap-type:none in
+   the swipe rules above). When the builder sets data-snap-lg/md/sm="on", cards
+   snap "one at a time" on that device. Only affects swipe mode; higher
+   specificity than the base swipe rule so it wins when enabled. */
+@media (min-width:1025px){
+  .zw-plat-grid[data-lg="swipe"][data-snap-lg="on"]{ scroll-snap-type:x mandatory !important; }
+  .zw-plat-grid[data-lg="swipe"][data-snap-lg="on"] > *{ scroll-snap-align:center !important; }
+}
+@media (min-width:641px) and (max-width:1024px){
+  .zw-plat-grid[data-md="swipe"][data-snap-md="on"]{ scroll-snap-type:x mandatory !important; }
+  .zw-plat-grid[data-md="swipe"][data-snap-md="on"] > *{ scroll-snap-align:center !important; }
+}
+@media (max-width:640px){
+  .zw-plat-grid[data-sm="swipe"][data-snap-sm="on"]{ scroll-snap-type:x mandatory !important; }
+  .zw-plat-grid[data-sm="swipe"][data-snap-sm="on"] > *{ scroll-snap-align:center !important; }
 }
 
 /* ── Swipe scrollbar for products/featured rows ──────────────────────────────
@@ -3784,7 +3800,7 @@ body.super-light-mode #mobile-menu.zw-mobile-menu{
 .zw-swipe-wrap{ position:relative; }
 .zw-swipe-bar{
   display:none; position:relative; height:4px; border-radius:99px; cursor:pointer;
-  width:min(560px, 82%); margin:1.5rem auto 0; touch-action:none;
+  width:min(760px, 92%); margin:1.5rem auto 0; touch-action:none;
   background:rgba(244,241,235,.16);
 }
 .zw-swipe-wrap.zw-has-swipe > .zw-swipe-bar{ display:block; }

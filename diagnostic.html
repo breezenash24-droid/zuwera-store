@@ -128,7 +128,7 @@ const STATIC_ASSETS = [
   '/stripe-client-config.js',
   '/manifest.json',
   '/site.webmanifest',
-  '/storefront-cohesion.css?v=6e65a74a',
+  '/storefront-cohesion.css?v=36e5d0e9',
   '/auth.js',
   '/posthog-init.js',
 ];
@@ -449,7 +449,7 @@ async function checkAssetHeaders() {
 /* ── 5. HTTP Response Headers ──────────────────────────── */
 async function checkHeaders() {
   createSection('headers', '5. HTTP Response Headers');
-  const paths = ['/', '/sw.js', '/supabase.min.js?v=3277b334', '/storefront-cohesion.css?v=6e65a74a'];
+  const paths = ['/', '/sw.js', '/supabase.min.js?v=3277b334', '/storefront-cohesion.css?v=36e5d0e9'];
   for (const path of paths) {
     try {
       const r = await fetchWithTimeout(path + '?_diag=' + Date.now(), { method: 'HEAD', cache: 'no-store' }, 6000);

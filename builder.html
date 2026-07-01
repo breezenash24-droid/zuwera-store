@@ -1033,9 +1033,9 @@ function renderPagesTab(container){
     ${featHtml}
     <div class="fl" style="margin-top:.35rem">Layout per device</div>
     <div class="fhint" style="margin-bottom:.35rem">“Swipe” shows one product at a time (scroll right for more); “Grid” tiles them in columns.</div>
-    ${lpLayRow('🖥️ Desktop','featured.lay_lg','featured.col_lg',feat.lay_lg||'grid',String(feat.col_lg||3))}
-    ${lpLayRow('▭ Tablet','featured.lay_md','featured.col_md',feat.lay_md||'swipe',String(feat.col_md||2))}
-    ${lpLayRow('▯ Mobile','featured.lay_sm','featured.col_sm',feat.lay_sm||'swipe',String(feat.col_sm||2))}
+    ${lpLayRow('🖥️ Desktop','featured.lay_lg','featured.col_lg','featured.snap_lg',feat.lay_lg||'grid',String(feat.col_lg||3),feat.snap_lg||'smooth')}
+    ${lpLayRow('▭ Tablet','featured.lay_md','featured.col_md','featured.snap_md',feat.lay_md||'swipe',String(feat.col_md||2),feat.snap_md||'smooth')}
+    ${lpLayRow('▯ Mobile','featured.lay_sm','featured.col_sm','featured.snap_sm',feat.lay_sm||'swipe',String(feat.col_sm||2),feat.snap_sm||'smooth')}
     <div class="fdiv"></div>
 
     <div class="tab-hd">Page Sections</div>
@@ -1281,10 +1281,11 @@ const padF=g=>'';
 // data-lp variant (Pages tab auto-hero etc.) — same inline look, writes to the landing config.
 const lpFontSel=(path,l,v,opts)=>`<div class="field" style="margin:-.15rem 0 .1rem .9rem"><label style="opacity:.7">↳ ${l}</label><select data-lp="${path}">${opts.map(([val,txt])=>`<option value="${val}"${v===val?' selected':''}>${txt}</option>`).join('')}</select></div>`;
 // Per-device layout row for the Pages featured section (Grid vs Swipe + columns).
-const LP_LAYO=[['grid','Grid'],['swipe','Swipe — one at a time']];
+const LP_LAYO=[['grid','Grid'],['swipe','Swipe row']];
 const LP_COLO=[['1','1'],['2','2'],['3','3'],['4','4']];
+const LP_SNAPO=[['smooth','Smooth (free scroll)'],['snap','One at a time (snap)']];
 const lpSelOpt=(v,opts)=>opts.map(([val,txt])=>`<option value="${val}"${String(v)===val?' selected':''}>${txt}</option>`).join('');
-const lpLayRow=(label,layPath,colPath,layV,colV)=>`<div class="fl" style="margin-top:.1rem">${label}</div><div class="field"><label>Layout</label><select data-lp="${layPath}">${lpSelOpt(layV,LP_LAYO)}</select></div><div class="field"><label>Columns (grid mode)</label><select data-lp="${colPath}">${lpSelOpt(colV,LP_COLO)}</select></div>`;
+const lpLayRow=(label,layPath,colPath,snapPath,layV,colV,snapV)=>`<div class="fl" style="margin-top:.1rem">${label}</div><div class="field"><label>Layout</label><select data-lp="${layPath}">${lpSelOpt(layV,LP_LAYO)}</select></div><div class="field"><label>Columns (grid mode)</label><select data-lp="${colPath}">${lpSelOpt(colV,LP_COLO)}</select></div><div class="field"><label>Scroll feel (swipe)</label><select data-lp="${snapPath}">${lpSelOpt(snapV,LP_SNAPO)}</select></div>`;
 /* NOTE: Section padding is rendered once, by the universal "Section Style"
    block in buildForm. It used to ALSO be rendered here as sliders, but both
    wrote data-f="pad_top/pad_bot" — syncForm reads them in DOM order and the
@@ -1352,14 +1353,15 @@ function buildForm(s){
     case 'about': h+=f('label','Eyebrow Label',g.label)+ta('heading','Heading',g.heading)+ta('body','Body (↵↵=paragraph)',g.body)+fdiv()+fhd('Stats')+arrField('stats','Stat',g.stats||[],[['value','Number','text'],['label','Label','text']])+padF(g);break;
     case 'release': h+=f('eyebrow','Eyebrow',g.eyebrow)+ta('title','Title (↵=line break)',g.title)+f('launch_date','Launch Date',g.launch_date,'date')+fdiv()+tog2('notify_on','Show Notify Form',g.notify_on)+f('notify_label','Form Label',g.notify_label)+padF(g);break;
     case 'products': {
-      const LAYO=[['grid','Grid'],['swipe','Swipe — one at a time']];
+      const LAYO=[['grid','Grid'],['swipe','Swipe row']];
       const COLO=[['1','1'],['2','2'],['3','3'],['4','4']];
+      const SNAPO=[['smooth','Smooth (free scroll)'],['snap','One at a time (snap)']];
       h+=f('title','Section Title',g.title)+f('subtitle','Subtitle',g.subtitle)
         +fdiv()+fhd('Layout per device')
-        +`<div class="fhint" style="margin-bottom:.35rem">“Swipe” shows one product at a time; shoppers scroll right for more. “Grid” tiles them in columns.</div>`
-        +`<div class="fl" style="margin-top:.1rem">🖥️ Desktop</div>`+sel('lay_lg','Layout',g.lay_lg||'grid',LAYO)+sel('col_lg','Columns (grid mode)',String(g.col_lg||g.columns||3),COLO)
-        +`<div class="fl" style="margin-top:.1rem">▭ Tablet</div>`+sel('lay_md','Layout',g.lay_md||'swipe',LAYO)+sel('col_md','Columns (grid mode)',String(g.col_md||2),COLO)
-        +`<div class="fl" style="margin-top:.1rem">▯ Mobile</div>`+sel('lay_sm','Layout',g.lay_sm||'swipe',LAYO)+sel('col_sm','Columns (grid mode)',String(g.col_sm||2),COLO)
+        +`<div class="fhint" style="margin-bottom:.35rem">“Swipe row” scrolls sideways (with a scrollbar); “Grid” tiles them in columns. For swipe, “Scroll feel” picks smooth free-scroll vs snapping one product at a time.</div>`
+        +`<div class="fl" style="margin-top:.1rem">🖥️ Desktop</div>`+sel('lay_lg','Layout',g.lay_lg||'grid',LAYO)+sel('col_lg','Columns (grid mode)',String(g.col_lg||g.columns||3),COLO)+sel('snap_lg','Scroll feel (swipe)',g.snap_lg||'smooth',SNAPO)
+        +`<div class="fl" style="margin-top:.1rem">▭ Tablet</div>`+sel('lay_md','Layout',g.lay_md||'swipe',LAYO)+sel('col_md','Columns (grid mode)',String(g.col_md||2),COLO)+sel('snap_md','Scroll feel (swipe)',g.snap_md||'smooth',SNAPO)
+        +`<div class="fl" style="margin-top:.1rem">▯ Mobile</div>`+sel('lay_sm','Layout',g.lay_sm||'swipe',LAYO)+sel('col_sm','Columns (grid mode)',String(g.col_sm||2),COLO)+sel('snap_sm','Scroll feel (swipe)',g.snap_sm||'smooth',SNAPO)
         +padF(g);
       break;
     }

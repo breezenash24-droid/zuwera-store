@@ -315,6 +315,10 @@
     grid.setAttribute('data-lg', _m(featCfg.lay_lg, 'grid'));
     grid.setAttribute('data-md', _m(featCfg.lay_md, 'swipe'));
     grid.setAttribute('data-sm', _m(featCfg.lay_sm, 'swipe'));
+    var _sn = function (v) { return v === 'snap' ? 'on' : 'off'; };
+    grid.setAttribute('data-snap-lg', _sn(featCfg.snap_lg));
+    grid.setAttribute('data-snap-md', _sn(featCfg.snap_md));
+    grid.setAttribute('data-snap-sm', _sn(featCfg.snap_sm));
     var _c = function (v, fb) { var n = parseInt(v, 10); return (n >= 1 && n <= 6) ? n : fb; };
     grid.style.setProperty('--col-lg', _c(featCfg.col_lg, _c(featCfg.columns, 3)));
     grid.style.setProperty('--col-md', _c(featCfg.col_md, 2));

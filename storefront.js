@@ -164,6 +164,11 @@ function showToast(msg) {
     grid.setAttribute('data-lg', mode(cfg.lay_lg, 'grid'));
     grid.setAttribute('data-md', mode(cfg.lay_md, 'swipe'));
     grid.setAttribute('data-sm', mode(cfg.lay_sm, 'swipe'));
+    // Per-device swipe scroll feel: 'snap' (one at a time) vs smooth (default).
+    const snap = (v) => v === 'snap' ? 'on' : 'off';
+    grid.setAttribute('data-snap-lg', snap(cfg.snap_lg));
+    grid.setAttribute('data-snap-md', snap(cfg.snap_md));
+    grid.setAttribute('data-snap-sm', snap(cfg.snap_sm));
     const col = (v, fb) => { const n = parseInt(v, 10); return (n >= 1 && n <= 6) ? n : fb; };
     grid.style.setProperty('--col-lg', col(cfg.col_lg, col(cfg.columns, 3)));
     grid.style.setProperty('--col-md', col(cfg.col_md, 2));
