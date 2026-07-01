@@ -831,7 +831,7 @@ function showToast(msg) {
           }
           el.innerHTML = `<div style="padding:0 ${px};max-width:${mw};margin:0 auto;">
             ${s.heading?`<h2 style="font-family:var(--fw);font-size:clamp(1.5rem,3vw,2.2rem);text-transform:uppercase;font-weight:800;font-style:italic;text-align:center;margin-bottom:2rem">${s.heading}</h2>`:''}
-            <div class="zw-mobile-scroll-grid" style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:1rem">
+            <div class="zw-plat-grid" style="gap:1rem">
             ${gimgs.map(img=>`${img.link?`<a href="${img.link}"`:'<div'} style="aspect-ratio:${aspect};overflow:hidden;display:block"><img src="${typeof window.optimizeImage==='function'?window.optimizeImage(img.src, 1200):img.src}" alt="${escapeHomeFavoriteHtml(img.alt||'')}" style="width:100%;height:100%;object-fit:cover;transition:transform .4s ease" loading="lazy" fetchpriority="low" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">${img.link?'</a>':'</div>'}`).join('')}
             </div>
           </div>`;
@@ -1196,16 +1196,10 @@ function showToast(msg) {
           const aspectMap = { square:'1/1', portrait:'3/4', wide:'16/9', auto:'auto' };
           const aspect = aspectMap[s.aspect||'portrait'] || '3/4';
           
-          let trackClass = 'zw-mg-track';
-          let trackStyle = '';
-          
-          if (layout === 'grid') {
-             trackClass += ' zw-mg-grid zw-mobile-scroll-grid';
-             trackStyle = `display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap:${gap};`;
-          } else {
-             trackClass += ' zw-mg-scroll';
-             trackStyle = `display:flex; gap:${gap}; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:1rem; scrollbar-width:none;`;
-          }
+          // Layout is driven by the per-device zw-plat-grid system (grid vs swipe,
+          // columns, scroll feel) applied after render via zwApplyPlatLayout.
+          let trackClass = 'zw-mg-track zw-plat-grid';
+          let trackStyle = `gap:${gap};`;
 
           let cardsHtml = '';
           cards.forEach(cd => {
@@ -1245,7 +1239,7 @@ function showToast(msg) {
                 belowHtml = `<div class="zw-mg-below">${_label ? `<p class="zw-mg-h">${_label}</p>` : ''}${_sub ? `<p class="zw-mg-desc">${_sub}</p>` : ''}${_cta ? `<span class="zw-mg-link">${_cta}${_arrow}</span>` : ''}</div>`;
              }
 
-             const cardStyle = layout === 'scroll' ? `flex:0 0 auto; width:min(85vw, 360px); scroll-snap-align:start; position:relative;` : `position:relative; display:block; text-decoration:none; color:inherit;`;
+             const cardStyle = `position:relative; display:block; text-decoration:none; color:inherit;`;
 
              cardsHtml += `
              <${tag}${href} class="zw-mg-card" style="${cardStyle}">
@@ -1269,6 +1263,11 @@ function showToast(msg) {
           break;
         }
       }
+
+      // Any section that rendered a .zw-plat-grid (gallery, media grid) gets the
+      // per-device grid/swipe layout + scroll feel + scrollbar, same as products.
+      const _plg = el.querySelector('.zw-plat-grid');
+      if (_plg && window.zwApplyPlatLayout) window.zwApplyPlatLayout(_plg, s);
 
       // Per-section style overrides.
       // Use !important so a chosen section background reliably beats the

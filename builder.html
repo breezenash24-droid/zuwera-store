@@ -1261,6 +1261,18 @@ const sel2=(k,l,v,opts)=>`<div class="field"><label>${l}</label><select data-k="
 const tog2=(k,l,checked)=>`<div class="tog2"><label>${l}</label><label class="switch"><input type="checkbox" data-f="${k}" ${checked?'checked':''}><span class="sw-sl"></span></label></div>`;
 const fdiv=()=>'<div class="fdiv"></div>';
 const fhd=t=>`<div class="fl" style="margin-top:.1rem">${t}</div>`;
+// Reusable per-device layout controls (Grid vs Swipe row, columns, scroll feel,
+// reveal-scrollbar-on-hover) for any section that renders a grid/row of cards or
+// images. Writes the data-f keys the renderers pass to window.zwApplyPlatLayout.
+const PLAT_LAYO=[['grid','Grid'],['swipe','Swipe row']];
+const PLAT_COLO=[['1','1'],['2','2'],['3','3'],['4','4']];
+const PLAT_SNAPO=[['smooth','Smooth (free scroll)'],['snap','One at a time (snap)']];
+const platFields=(g,dLg='grid',dMd='grid',dSm='swipe')=>fhd('Layout per device')
+  +`<div class="fhint" style="margin-bottom:.35rem">“Swipe row” scrolls sideways with a scrollbar; “Grid” tiles in columns. “Scroll feel” = smooth free-scroll vs snapping one at a time.</div>`
+  +`<div class="fl" style="margin-top:.1rem">🖥️ Desktop</div>`+sel('lay_lg','Layout',g.lay_lg||dLg,PLAT_LAYO)+sel('col_lg','Columns (grid)',String(g.col_lg||g.columns||3),PLAT_COLO)+sel('snap_lg','Scroll feel (swipe)',g.snap_lg||'smooth',PLAT_SNAPO)
+  +`<div class="fl" style="margin-top:.1rem">▭ Tablet</div>`+sel('lay_md','Layout',g.lay_md||dMd,PLAT_LAYO)+sel('col_md','Columns (grid)',String(g.col_md||2),PLAT_COLO)+sel('snap_md','Scroll feel (swipe)',g.snap_md||'smooth',PLAT_SNAPO)
+  +`<div class="fl" style="margin-top:.1rem">▯ Mobile</div>`+sel('lay_sm','Layout',g.lay_sm||dSm,PLAT_LAYO)+sel('col_sm','Columns (grid)',String(g.col_sm||2),PLAT_COLO)+sel('snap_sm','Scroll feel (swipe)',g.snap_sm||'smooth',PLAT_SNAPO)
+  +tog2('bar_hover','Reveal scrollbar on hover (desktop)',g.bar_hover);
 /* Color field with a live hex input. Both the swatch and the text box share
    data-f="${k}" so either one writes the value back to the section setting
    (syncForm reads the last [data-f], i.e. the hex box). Picking the swatch
@@ -1353,27 +1365,13 @@ function buildForm(s){
     case 'marquee': h+=`<div class="field"><label>Items (comma-separated)</label><textarea data-f="items" placeholder="ZUWERA, RELEASE 001, ...">${he(g.items)}</textarea><span class="fhint">Separate with commas</span></div>`+hfont(g)+sel('speed','Speed',g.speed||'normal',[['slow','Slow'],['normal','Normal'],['fast','Fast']])+padF(g);break;
     case 'about': h+=f('label','Eyebrow Label',g.label)+ta('heading','Heading',g.heading)+ta('body','Body (↵↵=paragraph)',g.body)+fdiv()+fhd('Stats')+arrField('stats','Stat',g.stats||[],[['value','Number','text'],['label','Label','text']])+padF(g);break;
     case 'release': h+=f('eyebrow','Eyebrow',g.eyebrow)+ta('title','Title (↵=line break)',g.title)+f('launch_date','Launch Date',g.launch_date,'date')+fdiv()+tog2('notify_on','Show Notify Form',g.notify_on)+f('notify_label','Form Label',g.notify_label)+padF(g);break;
-    case 'products': {
-      const LAYO=[['grid','Grid'],['swipe','Swipe row']];
-      const COLO=[['1','1'],['2','2'],['3','3'],['4','4']];
-      const SNAPO=[['smooth','Smooth (free scroll)'],['snap','One at a time (snap)']];
-      h+=f('title','Section Title',g.title)+f('subtitle','Subtitle',g.subtitle)
-        +fdiv()+fhd('Layout per device')
-        +`<div class="fhint" style="margin-bottom:.35rem">“Swipe row” scrolls sideways (with a scrollbar); “Grid” tiles them in columns. For swipe, “Scroll feel” picks smooth free-scroll vs snapping one product at a time.</div>`
-        +`<div class="fl" style="margin-top:.1rem">🖥️ Desktop</div>`+sel('lay_lg','Layout',g.lay_lg||'grid',LAYO)+sel('col_lg','Columns (grid mode)',String(g.col_lg||g.columns||3),COLO)+sel('snap_lg','Scroll feel (swipe)',g.snap_lg||'smooth',SNAPO)
-        +`<div class="fl" style="margin-top:.1rem">▭ Tablet</div>`+sel('lay_md','Layout',g.lay_md||'swipe',LAYO)+sel('col_md','Columns (grid mode)',String(g.col_md||2),COLO)+sel('snap_md','Scroll feel (swipe)',g.snap_md||'smooth',SNAPO)
-        +`<div class="fl" style="margin-top:.1rem">▯ Mobile</div>`+sel('lay_sm','Layout',g.lay_sm||'swipe',LAYO)+sel('col_sm','Columns (grid mode)',String(g.col_sm||2),COLO)+sel('snap_sm','Scroll feel (swipe)',g.snap_sm||'smooth',SNAPO)
-        +fdiv()+tog2('bar_hover','Reveal scrollbar on hover (desktop)',g.bar_hover)
-        +`<div class="fhint" style="margin:-.15rem 0 .3rem">When on, the swipe scrollbar stays hidden until the shopper hovers over the product row. Touch devices always show it.</div>`
-        +padF(g);
-      break;
-    }
+    case 'products': h+=f('title','Section Title',g.title)+f('subtitle','Subtitle',g.subtitle)+fdiv()+platFields(g,'grid','swipe','swipe')+padF(g);break;
     case 'split': h+=imgField('image','Image',g.image)+sel('image_side','Image Side',g.image_side||'left',[['left','Image Left'],['right','Image Right']])+sel('layout_width','Section Width',g.layout_width||'full',[['full','Full Bleed (Edge to Edge)'],['1400','Contained - Wide (1400px)'],['1200','Contained - Standard (1200px)'],['1000','Contained - Narrow (1000px)'],['800','Contained - Slim (800px)']])+f('image_height','Image Height (px)',g.image_height,'number')+fdiv()+f('label','Eyebrow',g.label)+ta('heading','Heading',g.heading)+ta('body','Body',g.body)+fdiv()+f('cta_text','Button Text',g.cta_text)+f('cta_url','Button URL',g.cta_url)+padF(g);break;
     case 'cta': h+=ta('heading','Heading',g.heading)+ta('subtext','Subtext',g.subtext)+fdiv()+f('btn_text','Button Text',g.btn_text)+f('btn_url','Button URL',g.btn_url)+sel('btn_style','Button Style',g.btn_style||'solid',[['solid','Solid'],['outline','Outlined'],['ghost','Ghost']])+sel('align','Alignment',g.align||'center',[['center','Center'],['left','Left'],['right','Right']])+padF(g);break;
     case 'features': h+=f('heading','Section Heading',g.heading)+fdiv()+arrField('items','Feature',g.items||[],[['icon','Icon/Emoji','text'],['title','Title','text'],['desc','Description','textarea']])+padF(g);break;
     case 'testimonials': h+=f('heading','Heading',g.heading)+fdiv()+arrField('items','Review',g.items||[],[['quote','Quote','textarea'],['author','Author','text'],['rating','Rating (1–5)','number']])+padF(g);break;
     case 'banner': h+=f('text','Banner Text',g.text)+fdiv()+f('link_text','Link Text',g.link_text)+f('link_url','Link URL',g.link_url)+padF(g);break;
-    case 'gallery': h+=f('heading','Section Heading',g.heading)+sel('layout_width','Section Width',g.layout_width||'full',[['full','Full Bleed (Edge to Edge)'],['1400','Contained - Wide (1400px)'],['1200','Contained - Standard (1200px)'],['1000','Contained - Narrow (1000px)'],['800','Contained - Slim (800px)']])+sel('columns','Columns',String(g.columns||3),[['2','2'],['3','3'],['4','4']])+sel('aspect','Aspect Ratio',g.aspect||'square',[['square','Square'],['portrait','Portrait 3:4'],['wide','Wide 16:9']])+fdiv()+arrField('images','Image',g.images||[],[['src','Image (upload or URL)','image'],['alt','Alt Text','text'],['link','Link (optional)','text']])+padF(g);break;
+    case 'gallery': h+=f('heading','Section Heading',g.heading)+sel('layout_width','Section Width',g.layout_width||'full',[['full','Full Bleed (Edge to Edge)'],['1400','Contained - Wide (1400px)'],['1200','Contained - Standard (1200px)'],['1000','Contained - Narrow (1000px)'],['800','Contained - Slim (800px)']])+sel('aspect','Aspect Ratio',g.aspect||'square',[['square','Square'],['portrait','Portrait 3:4'],['wide','Wide 16:9']])+fdiv()+platFields(g,'grid','grid','swipe')+fdiv()+arrField('images','Image',g.images||[],[['src','Image (upload or URL)','image'],['alt','Alt Text','text'],['link','Link (optional)','text']])+padF(g);break;
     case 'video': h+=`<div class="field"><label>Video URL</label><input data-f="url" value="${he(g.url)}" placeholder="YouTube or Vimeo URL"><span class="fhint">Paste a YouTube or Vimeo URL</span></div>`+f('caption','Caption (optional)',g.caption)+tog2('controls','Show Controls',g.controls!==false)+tog2('autoplay','Autoplay',g.autoplay)+tog2('muted','Muted',g.muted!==false)+padF(g);break;
     case 'countdown': h+=f('heading','Heading',g.heading)+`<div class="field"><label>Launch Date & Time</label><input type="datetime-local" data-f="launch_date" value="${he(g.launch_date)}"></div>`+sel('align','Alignment',g.align||'center',[['center','Center'],['left','Left']])+tog2('show_labels','Show Unit Labels',g.show_labels!==false)+padF(g);break;
     case 'spacer': h+=sel('height','Height',g.height||'md',[['xs','XS (1rem)'],['sm','SM (2rem)'],['md','MD (4rem)'],['lg','LG (8rem)'],['xl','XL (12rem)']]);break;
@@ -1440,11 +1438,10 @@ function buildForm(s){
       h+=fhd('Grid Settings')
         +f('heading','Section Heading',g.heading)
         +sel('layout_width','Section Width',g.layout_width||'full',[['full','Full Bleed (Edge to Edge)'],['1400','Contained - Wide (1400px)'],['1200','Contained - Standard (1200px)'],['1000','Contained - Narrow (1000px)'],['800','Contained - Slim (800px)']])
-        +sel('layout','Layout',g.layout||'grid',[['grid','Static Grid'],['scroll','Horizontal Scroll']])
-        +sel('columns','Columns (grid mode)',String(g.columns||3),[['1','1'],['2','2'],['3','3'],['4','4']])
         +sel('gap','Gap Between Cards',g.gap||'md',[['none','None'],['xs','XS'],['sm','Small'],['md','Medium'],['lg','Large']])
         +sel('aspect','Aspect Ratio',g.aspect||'portrait',[['square','Square (1:1)'],['portrait','Portrait (3:4)'],['wide','Wide (16:9)'],['auto','Auto']])
         +f('card_height','Card Height (optional)',g.card_height,'text','e.g. 500px')
+        +fdiv()+platFields(g,'grid','grid','swipe')
         +fdiv()+fhd('Cards');
       const cards=g.cards||[];
       h+=`<div class="flist" data-arr="cards">${cards.map((cd,i)=>`<div data-arr-item style="background:var(--bg);border:1px solid var(--bd);border-radius:4px;padding:.55rem .6rem;margin-bottom:.4rem">

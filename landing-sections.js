@@ -12,6 +12,28 @@
    Exposes: window.ZWLandingSections.render(hostEl, sectionsArray)
    ─────────────────────────────────────────────────────────────────────────── */
 (function () {
+  // Per-device grid/swipe layout setter — mirror of the homepage helper (landing
+  // pages don't load storefront.js). Writes data-lg/md/sm + --col-* + snap + hover.
+  window.zwApplyPlatLayout = window.zwApplyPlatLayout || function (grid, cfg) {
+    if (!grid || !cfg) return;
+    grid.classList.add('zw-plat-grid');
+    var mode = function (v, d) { return (v === 'swipe' || v === 'grid') ? v : d; };
+    grid.setAttribute('data-lg', mode(cfg.lay_lg, 'grid'));
+    grid.setAttribute('data-md', mode(cfg.lay_md, 'grid'));
+    grid.setAttribute('data-sm', mode(cfg.lay_sm, 'swipe'));
+    var sn = function (v) { return v === 'snap' ? 'on' : 'off'; };
+    grid.setAttribute('data-snap-lg', sn(cfg.snap_lg));
+    grid.setAttribute('data-snap-md', sn(cfg.snap_md));
+    grid.setAttribute('data-snap-sm', sn(cfg.snap_sm));
+    var col = function (v, fb) { var n = parseInt(v, 10); return (n >= 1 && n <= 6) ? n : fb; };
+    grid.style.setProperty('--col-lg', col(cfg.col_lg, col(cfg.columns, 3)));
+    grid.style.setProperty('--col-md', col(cfg.col_md, 2));
+    grid.style.setProperty('--col-sm', col(cfg.col_sm, 2));
+    if (window.zwEnsureSwipeBar) window.zwEnsureSwipeBar(grid);
+    var w = grid.closest('.zw-swipe-wrap');
+    if (w) w.classList.toggle('zw-bar-hover', !!cfg.bar_hover);
+  };
+
   // Nike-style draggable swipe scrollbar — mirror of the homepage helper (landing
   // pages don't load storefront.js). Shows only when the grid is horizontally
   // scrollable (swipe / individual-products mode). See .zw-swipe-* CSS.
@@ -349,7 +371,7 @@
         if (!gimgs.length) { el.innerHTML = '<div style="padding:0 ' + gpx + ';max-width:' + gmw + ';margin:0 auto;"><div style="opacity:.5;text-align:center">Add images to gallery</div></div>'; return true; }
         el.innerHTML = '<div style="padding:0 ' + gpx + ';max-width:' + gmw + ';margin:0 auto;">' +
           (s.heading ? '<h2 style="font-family:var(--fw);font-size:clamp(1.5rem,3vw,2.2rem);text-transform:uppercase;font-weight:800;font-style:italic;text-align:center;margin-bottom:2rem">' + s.heading + '</h2>' : '') +
-          '<div class="zw-mobile-scroll-grid" style="display:grid;grid-template-columns:repeat(' + gcols + ',1fr);gap:1rem">' +
+          '<div class="zw-plat-grid" style="gap:1rem">' +
           gimgs.map(function (img) { return (img.link ? '<a href="' + safeUrl(img.link) + '"' : '<div') + ' style="aspect-ratio:' + gAspect + ';overflow:hidden;display:block"><img src="' + optImg(img.src, 1200) + '" alt="' + (img.alt || '') + '" style="width:100%;height:100%;object-fit:cover;transition:transform .4s ease" loading="lazy">' + (img.link ? '</a>' : '</div>'); }).join('') +
           '</div></div>';
         return true;
@@ -403,9 +425,8 @@
     var layout = s.layout || 'grid';
     var gap = ({ none: '0', xs: '.5rem', sm: '1rem', md: '1.5rem', lg: '2.5rem' }[s.gap || 'md'] || '1.5rem');
     var aspect = ({ square: '1/1', portrait: '3/4', wide: '16/9', auto: 'auto' }[s.aspect || 'portrait'] || '3/4');
-    var trackClass = 'zw-mg-track', trackStyle;
-    if (layout === 'grid') { trackClass += ' zw-mg-grid zw-mobile-scroll-grid'; trackStyle = 'display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap:' + gap + ';'; }
-    else { trackClass += ' zw-mg-scroll'; trackStyle = 'display:flex; gap:' + gap + '; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:1rem; scrollbar-width:none;'; }
+    // Layout handled by the per-device zw-plat-grid system (applied post-render).
+    var trackClass = 'zw-mg-track zw-plat-grid', trackStyle = 'gap:' + gap + ';';
     var cardsHtml = cards.map(function (cd) {
       var tag = cd.link_url ? 'a' : 'div';
       var href = cd.link_url ? ' href="' + safeUrl(cd.link_url) + '"' : '';
@@ -430,7 +451,7 @@
       if (!isOverlay && (lbl || sub || cta)) {
         belowHtml = '<div class="zw-mg-below">' + (lbl ? '<p class="zw-mg-h">' + lbl + '</p>' : '') + (sub ? '<p class="zw-mg-desc">' + sub + '</p>' : '') + (cta ? '<span class="zw-mg-link">' + cta + arrow + '</span>' : '') + '</div>';
       }
-      var cardStyle = layout === 'scroll' ? 'flex:0 0 auto; width:min(85vw, 360px); scroll-snap-align:start; position:relative;' : 'position:relative; display:block; text-decoration:none; color:inherit;';
+      var cardStyle = 'position:relative; display:block; text-decoration:none; color:inherit;';
       return '<' + tag + href + ' class="zw-mg-card" style="' + cardStyle + '"><div class="zw-mg-media-wrap" style="position:relative; overflow:hidden;">' + media + overlayHtml + watch + '</div>' + belowHtml + '</' + tag + '>';
     }).join('');
     el.innerHTML = '<div style="padding:0 ' + px + ';max-width:' + mw + ';margin:0 auto;">' + (s.heading ? '<h2 style="font-family:var(--fw);font-size:clamp(1.5rem,3vw,2.2rem);text-transform:uppercase;font-weight:800;font-style:italic;text-align:center;margin-bottom:2rem">' + s.heading + '</h2>' : '') + '<div class="' + trackClass + '" style="' + trackStyle + '">' + cardsHtml + '</div></div>';
@@ -597,6 +618,9 @@
         if (ok === false) return;
         applyTail(el, s, sec.id);
         host.appendChild(el);
+        // Per-device grid/swipe layout for any section with a .zw-plat-grid.
+        var _plg = el.querySelector('.zw-plat-grid');
+        if (_plg && window.zwApplyPlatLayout) window.zwApplyPlatLayout(_plg, s);
         if (sec.type === 'countdown') startCountdown(el, s, sec.id);
       });
     }
