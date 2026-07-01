@@ -897,11 +897,18 @@ function showToast(msg) {
              const btnPause = el.querySelector('.zw-hc-pause');
              if(!track || slideEls.length === 0) return;
 
+             // The 'slide' transition is a horizontal flex row (each slide flex:0 0
+             // 100%); it only moves if we translate the track. Without this the 2nd+
+             // slides sit off-screen forever and never appear. (Fade uses opacity.)
+             const isSlideTrans = track.classList.contains('zw-hc-trans-slide');
+             const applyTrack = () => { if(isSlideTrans) track.style.transform = `translateX(-${curIdx * 100}%)`; };
+
              let curIdx = 0;
              let isPaused = false;
              let elapsed = 0;
              let lastTick = Date.now();
              let rafId = null;
+             applyTrack();
              const progressRing = el.querySelector('.zw-hc-progress-ring');
              const circumference = 113; // 2 * PI * 18
              
@@ -931,7 +938,8 @@ function showToast(msg) {
                 curIdx = newIdx;
                 slideEls[curIdx].classList.add('active');
                 if(dots[curIdx]) dots[curIdx].classList.add('active');
-                
+                applyTrack();
+
                 const newVid = slideEls[curIdx].querySelector('video');
                 if(newVid && !isPaused) { newVid.currentTime = 0; newVid.play().catch(()=>{}); }
                 

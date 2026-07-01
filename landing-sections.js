@@ -451,7 +451,12 @@
     var dots = Array.prototype.slice.call(el.querySelectorAll('.zw-hc-dot'));
     var btnPrev = el.querySelector('.zw-hc-prev'), btnNext = el.querySelector('.zw-hc-next'), btnPause = el.querySelector('.zw-hc-pause');
     if (!track || !slideEls.length) return;
+    // The 'slide' transition is a horizontal flex row — it only moves if we
+    // translate the track. Without this the 2nd+ slides never scroll into view.
+    var isSlideTrans = track.classList.contains('zw-hc-trans-slide');
     var curIdx = 0, isPaused = false, elapsed = 0, lastTick = Date.now(), rafId = null, visible = true;
+    function applyTrack() { if (isSlideTrans) track.style.transform = 'translateX(-' + (curIdx * 100) + '%)'; }
+    applyTrack();
     var progressRing = el.querySelector('.zw-hc-progress-ring'), circ = 113;
     function setProgress(pct) { if (progressRing) progressRing.style.strokeDashoffset = circ - (pct / 100) * circ; }
     function updatePauseIcon() { if (!btnPause) return; var svgEl = btnPause.querySelector('svg'); if (svgEl) svgEl.innerHTML = isPaused ? '<path d="M8 5v14l11-7z"/>' : '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'; }
@@ -463,6 +468,7 @@
       slideEls[curIdx].classList.remove('active'); if (dots[curIdx]) dots[curIdx].classList.remove('active');
       curIdx = newIdx;
       slideEls[curIdx].classList.add('active'); if (dots[curIdx]) dots[curIdx].classList.add('active');
+      applyTrack();
       var newVid = slideEls[curIdx].querySelector('video'); if (newVid && !isPaused) { newVid.currentTime = 0; newVid.play().catch(function () {}); }
       elapsed = 0; lastTick = Date.now(); setProgress(0);
     }
