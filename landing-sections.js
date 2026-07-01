@@ -609,9 +609,22 @@
       if (!host) return;
       host.innerHTML = '';
       var list = (Array.isArray(sections) ? sections : []).slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+      // Live landing pages honor a section's scheduled visibility window; the
+      // builder preview (?preview=1) ignores it so scheduled sections stay editable.
+      var _isPreview = /[?&]preview=1/.test(location.search);
+      var inWindow = function (s) {
+        if (!s) return true;
+        try {
+          var now = Date.now();
+          if (s.visible_from) { var a = new Date(s.visible_from).getTime(); if (!isNaN(a) && now < a) return false; }
+          if (s.visible_until) { var b = new Date(s.visible_until).getTime(); if (!isNaN(b) && now > b) return false; }
+        } catch (_) {}
+        return true;
+      };
       list.forEach(function (sec) {
         if (!sec || sec.visible === false) return;
         var s = sec.settings || {};
+        if (!_isPreview && !inWindow(s)) return;
         var el = document.createElement('section');
         el.id = sec.id;
         var ok = renderBody(el, sec, s);

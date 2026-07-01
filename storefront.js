@@ -238,6 +238,20 @@ function showToast(msg) {
     requestAnimationFrame(sync); setTimeout(sync, 350);
   };
 
+  // Windowed section visibility: a section can be scheduled to show only within
+  // a date/time window (visible_from / visible_until, the admin's datetime-local
+  // value, compared in the viewer's local time). Empty = no limit. Returns true
+  // if the section should currently show. Global so landing.js can reuse it.
+  window.zwSecInWindow = function (s) {
+    if (!s) return true;
+    try {
+      const now = Date.now();
+      if (s.visible_from) { const t = new Date(s.visible_from).getTime(); if (!isNaN(t) && now < t) return false; }
+      if (s.visible_until) { const t = new Date(s.visible_until).getTime(); if (!isNaN(t) && now > t) return false; }
+    } catch (_) {}
+    return true;
+  };
+
   function applyBuilderConfig(cfg) {
     if (!cfg || !cfg.sections) return;
 
@@ -456,7 +470,10 @@ function showToast(msg) {
       }
 
       if (!el) return;
-      el.style.display = sec.visible ? '' : 'none';
+      // Live site honors the scheduled visibility window; the builder preview
+      // ignores it so a future-scheduled section is still editable/visible.
+      const _inWin = window.__ZW_BUILDER_PREVIEW__ ? true : window.zwSecInWindow(s);
+      el.style.display = (sec.visible && _inWin) ? '' : 'none';
 
       // Physically move the element in the DOM to enforce the correct order
       if (footer) {
