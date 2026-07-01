@@ -406,10 +406,16 @@
       if (sl.media_type === 'video' || isVideoUrl(sl.media_url)) {
         var auto = (i === 0 && s.autoplay !== false) ? ' autoplay' : '';
         var loopAttr = (sl.video_duration_mode || 'full') === 'full' ? '' : ' loop';
-        media = '<video class="zw-hc-media" src="' + (sl.media_url || '') + '" poster="' + (sl.video_poster || '') + '" playsinline' + loopAttr + ' muted' + auto + ' style="object-position:center ' + (sl.focal_y != null ? sl.focal_y : 50) + '%"></video>';
+        // Preload so a non-first slide shows its first frame instead of black.
+        var vidPreload = i === 0 ? 'auto' : 'metadata';
+        media = '<video class="zw-hc-media" src="' + (sl.media_url || '') + '" poster="' + (sl.video_poster || '') + '" playsinline' + loopAttr + ' muted' + auto + ' preload="' + vidPreload + '" style="object-position:center ' + (sl.focal_y != null ? sl.focal_y : 50) + '%"></video>';
       } else {
-        var lazy = i === 0 ? 'fetchpriority="high"' : 'loading="lazy"';
-        media = '<picture class="zw-hc-media">' + (sl.media_url_mobile ? '<source media="(max-width:768px)" srcset="' + optImg(sl.media_url_mobile, 800) + '">' : '') + '<img src="' + optImg(sl.media_url, 1400) + '" alt="" style="object-position:center ' + (sl.focal_y != null ? sl.focal_y : 50) + '%" ' + lazy + ' decoding="async"></picture>';
+        // Never lazy-load carousel slides: an off-screen lazy slide (translateX
+        // transition) never loads until navigated to, showing blank. Load all
+        // eagerly — first high priority, the rest low — and fall back to the raw
+        // URL if the Cloudinary-optimized one fails, so a slide is never blank.
+        var loadAttr = i === 0 ? 'fetchpriority="high"' : 'loading="eager" fetchpriority="low"';
+        media = '<picture class="zw-hc-media">' + (sl.media_url_mobile ? '<source media="(max-width:768px)" srcset="' + optImg(sl.media_url_mobile, 800) + '">' : '') + '<img src="' + optImg(sl.media_url, 1400) + '" alt="" style="object-position:center ' + (sl.focal_y != null ? sl.focal_y : 50) + '%" ' + loadAttr + ' decoding="async" data-raw="' + (sl.media_url || '') + '" onerror="var i=this;if(!i.dataset.fb&&i.dataset.raw){i.dataset.fb=1;var p=i.parentNode;if(p){var ss=p.querySelectorAll(\'source\');for(var k=0;k<ss.length;k++)ss[k].removeAttribute(\'srcset\');}i.src=i.dataset.raw;}"></picture>';
       }
       slidesHtml += '<div class="zw-hc-slide' + active + '" data-index="' + i + '" data-duration="' + (sl.duration || '') + '" data-video-mode="' + (sl.video_duration_mode || 'full') + '">' + media +
         '<div class="zw-hc-overlay" style="opacity:' + ((sl.overlay_opacity != null ? sl.overlay_opacity : 30) / 100) + '"></div>' +

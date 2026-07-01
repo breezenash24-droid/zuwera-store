@@ -814,14 +814,24 @@ function showToast(msg) {
                 const auto = (i === 0 && s.autoplay !== false) ? ' autoplay' : '';
                 const vidMode = sl.video_duration_mode || 'full';
                 const loopAttr = (vidMode === 'full') ? '' : ' loop';
-                mediaHtml = `<video class="zw-hc-media" src="${sl.media_url||''}" poster="${sl.video_poster||''}" playsinline${loopAttr} muted${auto} style="object-position:center ${sl.focal_y??50}%"></video>`;
+                // Preload so a non-first slide shows its first frame immediately
+                // instead of a black box while waiting to be navigated to.
+                const vidPreload = i === 0 ? 'auto' : 'metadata';
+                mediaHtml = `<video class="zw-hc-media" src="${sl.media_url||''}" poster="${sl.video_poster||''}" playsinline${loopAttr} muted${auto} preload="${vidPreload}" style="object-position:center ${sl.focal_y??50}%"></video>`;
              } else {
-                const lazy = i === 0 ? 'fetchpriority="high"' : 'loading="lazy"';
+                // Carousel slides are a small, known set that will be shown within
+                // seconds — NEVER lazy-load them (a lazy slide in a translateX
+                // carousel sits off-screen and never loads until navigated to,
+                // showing blank). Load all eagerly: first at high priority (LCP),
+                // the rest at low priority so they don't fight the hero.
+                const loadAttr = i === 0 ? 'fetchpriority="high"' : 'loading="eager" fetchpriority="low"';
                 const optDesktop = typeof window.optimizeImage === 'function' ? window.optimizeImage(sl.media_url, 1400) : sl.media_url;
                 const optMobile = typeof window.optimizeImage === 'function' ? window.optimizeImage(sl.media_url_mobile, 800) : sl.media_url_mobile;
+                // Fallback: if the Cloudinary-optimized URL fails, drop to the raw
+                // uploaded URL so a slide is never left blank (fb flag stops loops).
                 mediaHtml = `<picture class="zw-hc-media">
                    ${sl.media_url_mobile ? `<source media="(max-width:768px)" srcset="${optMobile||''}">` : ''}
-                   <img src="${optDesktop||''}" alt="" style="object-position:center ${sl.focal_y??50}%" ${lazy} decoding="async">
+                   <img src="${optDesktop||''}" alt="" style="object-position:center ${sl.focal_y??50}%" ${loadAttr} decoding="async" data-raw="${sl.media_url||''}" onerror="var i=this;if(!i.dataset.fb&&i.dataset.raw){i.dataset.fb=1;var p=i.parentNode;if(p){var ss=p.querySelectorAll('source');for(var k=0;k<ss.length;k++)ss[k].removeAttribute('srcset');}i.src=i.dataset.raw;}">
                 </picture>`;
              }
 
