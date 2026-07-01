@@ -224,14 +224,14 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
   <link rel="preload" href="reviews.css?v=710a538e" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="reviews.css?v=710a538e"></noscript>
-  <link rel="stylesheet" href="storefront-cohesion.css?v=8f547b04">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=36afaa91">
 <script src="header-scroll.js?v=4a734678" defer></script>
   <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=18b2d04f">
 <!-- Quick-add modal module MUST load before storefront.js: the grid wiring in
      storefront.js calls window.quickAddToCart, which this module provides. -->
 <script src="quick-add-modal.js?v=3370ca5f" defer></script>
 <script src="image-utils.js?v=e6f0ec04" defer></script>
-<script src="storefront.js?v=0d7d111d" defer></script>
+<script src="storefront.js?v=141ca3bb" defer></script>
 <script src="/stripe-client-config.js?v=c262166e" defer></script>
 <script src="/checkout-tax.js?v=b12c4e5f" defer></script>
 
@@ -424,7 +424,16 @@ body.light-mode #mobile-menu-close { color:#09090b !important; }
 }
 .hero-img-wrap picture,
 .hero-img-wrap img{
-  width:100%;height:100%;object-fit:cover;object-position:center center;
+  width:100%;height:100%;object-fit:cover;
+  /* Viewfinder framing: object-position is driven by CSS vars the builder sets
+     per breakpoint (tablet/mobile focal point). Unset → center. */
+  object-position:var(--zwh-pos,center center);
+}
+@media (min-width:641px) and (max-width:1024px){
+  .hero-img-wrap img{ object-position:var(--zwh-pos-tab,var(--zwh-pos,center center)); }
+}
+@media (max-width:640px){
+  .hero-img-wrap img{ object-position:var(--zwh-pos-mob,var(--zwh-pos,center center)); }
 }
 .hero-img-wrap picture{display:block}
 .hero-img-wrap img{

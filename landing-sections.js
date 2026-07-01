@@ -117,8 +117,14 @@
         el.style.cssText = 'position:relative;min-height:88vh;display:flex;flex-direction:column;justify-content:flex-end;padding:clamp(2rem,6vw,5rem);overflow:hidden;background:' + (s.bg_color || '#09090b') + ';text-align:' + align + ';';
         var wrapMargin = align === 'center' ? 'margin:0 auto;' : align === 'right' ? 'margin-left:auto;' : '';
         var btnJustify = align === 'center' ? 'justify-content:center;' : align === 'right' ? 'justify-content:flex-end;' : '';
+        // Viewfinder framing: focal point → object-position on the tablet/mobile
+        // breakpoints (see .builder-hero-section img CSS in storefront-cohesion.css).
+        var _pos = function (f) { return (f && f.x != null && f.y != null) ? (f.x + '% ' + f.y + '%') : ''; };
+        var _posVars = '';
+        if (_pos(s.focalTab)) _posVars += '--zwh-pos-tab:' + _pos(s.focalTab) + ';';
+        if (_pos(s.focalMob)) _posVars += '--zwh-pos-mob:' + _pos(s.focalMob) + ';';
         el.innerHTML =
-          (img ? '<img src="' + optImg(img, 1600) + '" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:' + fit + ';z-index:0">' : '') +
+          (img ? '<img src="' + optImg(img, 1600) + '" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:' + fit + ';z-index:0;' + _posVars + '">' : '') +
           '<div style="position:absolute;inset:0;background:rgba(9,9,11,' + ov + ');z-index:1"></div>' +
           '<div style="position:relative;z-index:2;max-width:760px;' + wrapMargin + '">' +
           ((s.show_kicker !== false && s.kicker) ? '<p style="font-family:var(--fm,var(--fb));font-size:.7rem;letter-spacing:.3em;text-transform:uppercase;opacity:.85;margin-bottom:1rem;color:#fff">' + s.kicker + '</p>' : '') +

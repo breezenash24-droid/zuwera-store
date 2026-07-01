@@ -849,28 +849,21 @@ function landingAddSlug(){const el=document.getElementById('lpNewSlug');if(!el)r
 function landingLoadProducts(){if(landingProducts||landingProductsLoading)return;landingProductsLoading=true;try{const sb=getSb();if(!sb){landingProducts=[];landingProductsLoading=false;return;}sb.from('products').select('id,title,gender,subtitle,tags,status,sort_order').order('sort_order',{ascending:true}).then(r=>{landingProducts=(r&&r.data)||[];landingProductsLoading=false;if(curTab==='pages')renderLP();},()=>{landingProducts=[];landingProductsLoading=false;if(curTab==='pages')renderLP();});}catch(_){landingProducts=[];landingProductsLoading=false;}}
 
 // ── HERO VIEWFINDER ───────────────────────────────────────────────────────
-// Draggable tablet/mobile framing for the auto landing hero. Each frame shows
-// the image that device actually uses, cropped to that device's aspect ratio;
-// dragging sets a focal point (hero.focalTab / hero.focalMob = {x,y} percent)
-// that landing.js turns into background-position on the matching breakpoint.
-const VF_DEVICES=[
-  {key:'focalTab',label:'Tablet',ratio:[4,3],w:192,
-    img:h=>h.tabletImage||h.mobileImage||h.image,fit:h=>h.tabletFit||h.mobileFit||h.fit||'cover'},
-  {key:'focalMob',label:'Mobile',ratio:[9,16],w:116,
-    img:h=>h.mobileImage||h.image,fit:h=>h.mobileFit||h.fit||'cover'}
-];
-function initHeroViewfinders(){
-  const host=document.getElementById('lpHeroVF');if(!host)return;
-  const h=(lpCfg()&&lpCfg().hero)||{};
+// Draggable tablet/mobile framing, shared by the auto landing hero and the
+// Hero section block (Content + Pages). Each frame shows the device's image,
+// cropped to that device's aspect ratio; dragging sets a focal point {x,y}%.
+// buildVfFrames is the shared renderer; each caller supplies get/set + image.
+function buildVfFrames(host,devices){
+  if(!host)return;
   host.innerHTML='';
-  VF_DEVICES.forEach(dev=>{
-    const img=dev.img(h)||'',fit=dev.fit(h);
+  devices.forEach(dev=>{
+    const img=dev.img||'',fit=dev.fit||'cover';
     const wrap=document.createElement('div');wrap.style.cssText='flex:0 0 auto;text-align:center';
     const bw=dev.w,bh=Math.round(bw*dev.ratio[1]/dev.ratio[0]);
     const box=document.createElement('div');
     box.style.cssText=`position:relative;width:${bw}px;height:${bh}px;border:1px solid var(--bd);border-radius:3px;overflow:hidden;background:var(--sf2);cursor:${img&&fit!=='contain'?'grab':'default'};touch-action:none;margin:0 auto`;
     if(img){
-      const f=h[dev.key]||{x:50,y:50};
+      const f=dev.get()||{x:50,y:50};
       const im=document.createElement('img');im.src=img;im.draggable=false;
       im.style.cssText=`width:100%;height:100%;object-fit:${fit};object-position:${f.x}% ${f.y}%;pointer-events:none;user-select:none`;
       im.onerror=()=>{box.style.cursor='default';box.innerHTML='<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.55rem;opacity:.5">Image not loading</div>';};
@@ -886,7 +879,7 @@ function initHeroViewfinders(){
         box.appendChild(dot);
         const apply=(x,y)=>{x=Math.max(0,Math.min(100,x));y=Math.max(0,Math.min(100,y));
           im.style.objectPosition=x+'% '+y+'%';dot.style.left=x+'%';dot.style.top=y+'%';
-          lpSetPath('hero.'+dev.key,{x:Math.round(x),y:Math.round(y)});};
+          dev.set(Math.round(x),Math.round(y));};
         const toPct=e=>{const r=box.getBoundingClientRect();return [ (e.clientX-r.left)/r.width*100, (e.clientY-r.top)/r.height*100 ];};
         let dragging=false;
         box.addEventListener('pointerdown',e=>{dragging=true;try{box.setPointerCapture(e.pointerId);}catch(_){}box.style.cursor='grabbing';const p=toPct(e);apply(p[0],p[1]);});
@@ -903,6 +896,30 @@ function initHeroViewfinders(){
     cap.textContent=dev.label+' · '+dev.ratio[0]+':'+dev.ratio[1];
     wrap.appendChild(box);wrap.appendChild(cap);host.appendChild(wrap);
   });
+}
+// Auto landing hero (Pages tab) — uses per-device images; writes to lpCfg().hero.
+function initHeroViewfinders(){
+  const host=document.getElementById('lpHeroVF');if(!host)return;
+  const h=(lpCfg()&&lpCfg().hero)||{};
+  buildVfFrames(host,[
+    {label:'Tablet',ratio:[4,3],w:192,img:h.tabletImage||h.mobileImage||h.image,fit:h.tabletFit||h.mobileFit||h.fit||'cover',
+      get:()=>h.focalTab,set:(x,y)=>lpSetPath('hero.focalTab',{x,y})},
+    {label:'Mobile',ratio:[9,16],w:116,img:h.mobileImage||h.image,fit:h.mobileFit||h.fit||'cover',
+      get:()=>h.focalMob,set:(x,y)=>lpSetPath('hero.focalMob',{x,y})}
+  ]);
+}
+// Hero section block (Content + Pages) — one image; each device its own focal
+// point in s.settings.focalTab / .focalMob. curDirty+curApply refresh the preview.
+function initSectionViewfinder(s){
+  const host=document.getElementById('secHeroVF');if(!host||!s)return;
+  const g=s.settings||(s.settings={});
+  const commit=(key,x,y)=>{g[key]={x,y};curDirty();curApply();};
+  buildVfFrames(host,[
+    {label:'Tablet',ratio:[4,3],w:192,img:g.image,fit:g.fit||'cover',
+      get:()=>g.focalTab,set:(x,y)=>commit('focalTab',x,y)},
+    {label:'Mobile',ratio:[9,16],w:116,img:g.image,fit:g.fit||'cover',
+      get:()=>g.focalMob,set:(x,y)=>commit('focalMob',x,y)}
+  ]);
 }
 function renderPagesTab(container){
   landingLoadProducts();
@@ -1158,6 +1175,12 @@ function openEditor(s){
     const d=body.querySelector(`[data-range-disp="${r.dataset.f}"]`);
     if(d){d.textContent=r.value+(r.dataset.unit||'');r.addEventListener('input',()=>d.textContent=r.value+(r.dataset.unit||''));}
   });
+  // Hero section viewfinder: build the tablet/mobile frames and rebuild them when
+  // the image or fit changes (Browse dispatches 'change' on the image field).
+  if(s.type==='hero'){
+    initSectionViewfinder(s);
+    body.querySelectorAll('[data-f="image"],[data-f="fit"]').forEach(el=>el.addEventListener('change',()=>initSectionViewfinder(s)));
+  }
 }
 
 function closeEd(){selId=null;document.getElementById('editor').classList.add('hidden');renderLP();}
@@ -1279,7 +1302,7 @@ function buildForm(s){
   _curG=g;   // so the inline font pickers (fontFor) read this section's overrides
   let h=`<div class="field"><label>Section Label</label><input data-section-label value="${he(s.label)}"></div>`;
   switch(s.type){
-    case 'hero': h+=imgField('image','Background Image',g.image)+sel('fit','Image Fit',g.fit||'cover',[['cover','Fill — crop to fill (photos)'],['contain','Fit — show whole image (logos)']])+fdiv()+fhd('Layout')+sel('text_align','Alignment',g.text_align||'left',[['left','Left'],['center','Center'],['right','Right']])+rangeF('overlay_opacity','Image Overlay Darkness',g.overlay_opacity??40,0,90,'%')+fdiv()+fhd('Content')+ta('kicker','Kicker',g.kicker)+tog2('show_kicker','Show Kicker',g.show_kicker!==false)+ta('heading','Heading (↵=line break)',g.heading)+ta('subtext','Subtext',g.subtext)+tog2('show_subtext','Show Subtext',g.show_subtext!==false)+fdiv()+fhd('Primary Button')+f('cta1_text','Text',g.cta1_text)+f('cta1_url','URL / #anchor',g.cta1_url)+sel('cta1_style','Style',g.cta1_style||'outline',[['outline','Outlined'],['solid','Solid'],['ghost','Ghost']])+fdiv()+fhd('Secondary Button')+tog2('cta2_on','Show',g.cta2_on)+f('cta2_text','Text',g.cta2_text)+f('cta2_url','URL',g.cta2_url)+fdiv()+fhd('Image Overlay Button')+tog2('img_btn_on','Show',g.img_btn_on)+f('img_btn_text','Text',g.img_btn_text)+f('img_btn_url','URL',g.img_btn_url)+padF(g);break;
+    case 'hero': h+=imgField('image','Background Image',g.image)+sel('fit','Image Fit',g.fit||'cover',[['cover','Fill — crop to fill (photos)'],['contain','Fit — show whole image (logos)']])+`<div class="fl" style="margin-top:.35rem">Viewfinder — tablet &amp; mobile framing</div><div class="fhint" style="margin-bottom:.4rem">Drag inside a frame to choose what stays visible on that device (applies to the “Fill” crop). Double-click to re-center.</div><div id="secHeroVF" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-start;margin-bottom:.4rem"></div>`+fdiv()+fhd('Layout')+sel('text_align','Alignment',g.text_align||'left',[['left','Left'],['center','Center'],['right','Right']])+rangeF('overlay_opacity','Image Overlay Darkness',g.overlay_opacity??40,0,90,'%')+fdiv()+fhd('Content')+ta('kicker','Kicker',g.kicker)+tog2('show_kicker','Show Kicker',g.show_kicker!==false)+ta('heading','Heading (↵=line break)',g.heading)+ta('subtext','Subtext',g.subtext)+tog2('show_subtext','Show Subtext',g.show_subtext!==false)+fdiv()+fhd('Primary Button')+f('cta1_text','Text',g.cta1_text)+f('cta1_url','URL / #anchor',g.cta1_url)+sel('cta1_style','Style',g.cta1_style||'outline',[['outline','Outlined'],['solid','Solid'],['ghost','Ghost']])+fdiv()+fhd('Secondary Button')+tog2('cta2_on','Show',g.cta2_on)+f('cta2_text','Text',g.cta2_text)+f('cta2_url','URL',g.cta2_url)+fdiv()+fhd('Image Overlay Button')+tog2('img_btn_on','Show',g.img_btn_on)+f('img_btn_text','Text',g.img_btn_text)+f('img_btn_url','URL',g.img_btn_url)+padF(g);break;
     case 'marquee': h+=`<div class="field"><label>Items (comma-separated)</label><textarea data-f="items" placeholder="ZUWERA, RELEASE 001, ...">${he(g.items)}</textarea><span class="fhint">Separate with commas</span></div>`+hfont(g)+sel('speed','Speed',g.speed||'normal',[['slow','Slow'],['normal','Normal'],['fast','Fast']])+padF(g);break;
     case 'about': h+=f('label','Eyebrow Label',g.label)+ta('heading','Heading',g.heading)+ta('body','Body (↵↵=paragraph)',g.body)+fdiv()+fhd('Stats')+arrField('stats','Stat',g.stats||[],[['value','Number','text'],['label','Label','text']])+padF(g);break;
     case 'release': h+=f('eyebrow','Eyebrow',g.eyebrow)+ta('title','Title (↵=line break)',g.title)+f('launch_date','Launch Date',g.launch_date,'date')+fdiv()+tog2('notify_on','Show Notify Form',g.notify_on)+f('notify_label','Form Label',g.notify_label)+padF(g);break;

@@ -449,6 +449,15 @@ function showToast(msg) {
           }
           // Fill (cover) vs Fit (contain) — lets a logo/graphic show whole.
           if (img) img.style.objectFit = (s.fit === 'contain') ? 'contain' : 'cover';
+          // Viewfinder framing: a focal point set in the builder becomes
+          // object-position on the tablet/mobile breakpoints (see .hero-img-wrap
+          // img CSS vars). Unset → the var falls back to center.
+          if (img) {
+            const _p = f => (f && f.x != null && f.y != null) ? (f.x + '% ' + f.y + '%') : '';
+            const _pt = _p(s.focalTab), _pm = _p(s.focalMob);
+            if (_pt) img.style.setProperty('--zwh-pos-tab', _pt); else img.style.removeProperty('--zwh-pos-tab');
+            if (_pm) img.style.setProperty('--zwh-pos-mob', _pm); else img.style.removeProperty('--zwh-pos-mob');
+          }
           break;
         }
         case 'marquee': {

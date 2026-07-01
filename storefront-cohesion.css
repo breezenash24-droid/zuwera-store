@@ -3620,6 +3620,19 @@ picture.zw-hc-media img { display:block; width:100%; height:100%; object-fit:cov
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
+   BUILDER: HERO SECTION VIEWFINDER FRAMING
+   Focal point (set per device in the builder) → object-position on the
+   tablet/mobile breakpoints. Unset → the var chain falls back to center.
+────────────────────────────────────────────────────────────────────────── */
+.builder-hero-section img { object-position: var(--zwh-pos, 50% 50%); }
+@media (min-width:641px) and (max-width:1024px){
+  .builder-hero-section img { object-position: var(--zwh-pos-tab, var(--zwh-pos, 50% 50%)); }
+}
+@media (max-width:640px){
+  .builder-hero-section img { object-position: var(--zwh-pos-mob, var(--zwh-pos, 50% 50%)); }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
    BUILDER: MEDIA GRID
 ────────────────────────────────────────────────────────────────────────── */
 .builder-media-grid-section { position:relative; }
