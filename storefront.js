@@ -1193,6 +1193,15 @@ function showToast(msg) {
         el.style.removeProperty('--fb');
       }
     });
+
+    // Layout is now positioned. Cache that a builder layout is active so the next
+    // reload can hold a boot cover over the content while it reflows, then reveal
+    // here (rAF so the browser commits the final positions first) — no visible
+    // jump. Skip caching in the builder preview.
+    if (!window.__ZW_BUILDER_PREVIEW__) {
+      try { localStorage.setItem('zw_pb_active', '1'); } catch(e) {}
+    }
+    requestAnimationFrame(() => document.documentElement.classList.remove('zw-pb-pending'));
   }
 
   // URL param is the most reliable check â€” doesn't depend on iframe context

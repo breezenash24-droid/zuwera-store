@@ -1677,6 +1677,7 @@ async function publishPage(){
       const _hero=sections.find(s=>s&&s.type==='hero'&&s.visible!==false);
       const _hi=_hero&&_hero.settings&&_hero.settings.image;if(_hi)localStorage.setItem('zw-hero-image',_hi);
       localStorage.setItem('zw_hide_static_hero',_hero?'':'1');
+      localStorage.setItem('zw_pb_active','1');
     }catch(_){}
     // save snapshot on publish
     versionHistory.push({ts:new Date().toISOString(),label:'Published',sections:clone(sections)});
