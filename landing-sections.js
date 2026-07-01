@@ -392,7 +392,8 @@
       var watch = cd.watch_btn ? '<button class="zw-mg-watch" onclick="event.preventDefault(); openWatchModal(\'' + (cd.watch_url || '') + '\')"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> ' + (cd.watch_label || 'Watch') + '</button>' : '';
       var overlayHtml = '';
       if (isOverlay && (lbl || sub || cta)) {
-        overlayHtml = '<div class="zw-mg-scrim"></div><div class="zw-mg-ov zw-mg-ov-' + pos.replace('overlay-', '') + '">' + (lbl ? '<span class="zw-mg-chip">' + lbl + '</span>' : '') + (sub ? '<p class="zw-mg-ovsub">' + sub + '</p>' : '') + (cta ? '<span class="zw-mg-btn">' + cta + arrow + '</span>' : '') + '</div>';
+        var chipCls = cd.label_boxed === false ? 'zw-mg-chip zw-mg-chip--plain' : 'zw-mg-chip';
+        overlayHtml = '<div class="zw-mg-scrim"></div><div class="zw-mg-ov zw-mg-ov-' + pos.replace('overlay-', '') + '">' + (lbl ? '<span class="' + chipCls + '">' + lbl + '</span>' : '') + (sub ? '<p class="zw-mg-ovsub">' + sub + '</p>' : '') + (cta ? '<span class="zw-mg-btn">' + cta + arrow + '</span>' : '') + '</div>';
       }
       var belowHtml = '';
       if (!isOverlay && (lbl || sub || cta)) {

@@ -1148,7 +1148,8 @@ function showToast(msg) {
              let overlayHtml = '';
              if (isOverlay && (_label || _sub || _cta)) {
                 const opos = pos.replace('overlay-', '');
-                overlayHtml = `<div class="zw-mg-scrim"></div><div class="zw-mg-ov zw-mg-ov-${opos}">${_label ? `<span class="zw-mg-chip">${_label}</span>` : ''}${_sub ? `<p class="zw-mg-ovsub">${_sub}</p>` : ''}${_cta ? `<span class="zw-mg-btn">${_cta}${_arrow}</span>` : ''}</div>`;
+                const chipCls = cd.label_boxed === false ? 'zw-mg-chip zw-mg-chip--plain' : 'zw-mg-chip';
+                overlayHtml = `<div class="zw-mg-scrim"></div><div class="zw-mg-ov zw-mg-ov-${opos}">${_label ? `<span class="${chipCls}">${_label}</span>` : ''}${_sub ? `<p class="zw-mg-ovsub">${_sub}</p>` : ''}${_cta ? `<span class="zw-mg-btn">${_cta}${_arrow}</span>` : ''}</div>`;
              }
              let belowHtml = '';
              if (!isOverlay && (_label || _sub || _cta)) {

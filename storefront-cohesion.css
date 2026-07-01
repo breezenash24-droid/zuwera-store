@@ -3671,6 +3671,9 @@ video.zw-hc-media, picture.zw-hc-media img { object-position: var(--zwh-pos, cen
 .zw-mg-chip { display:inline-block; background:#fff; color:#09090b;
   font-family:var(--fm,var(--fb)); font-size:.72rem; font-weight:700; letter-spacing:.12em;
   text-transform:uppercase; padding:.42rem .72rem; line-height:1; }
+/* Plain (no box) label — just text on the image, with a shadow for readability. */
+.zw-mg-chip--plain { background:transparent; color:#fff; padding:0; font-size:.95rem;
+  letter-spacing:.14em; text-shadow:0 2px 10px rgba(0,0,0,.6); }
 .zw-mg-ovsub { margin:0; color:#fff; font-family:var(--fb); font-size:.95rem; line-height:1.4;
   max-width:36ch; text-shadow:0 1px 5px rgba(0,0,0,.55); }
 .zw-mg-ov-center .zw-mg-ovsub { margin-left:auto; margin-right:auto; }
