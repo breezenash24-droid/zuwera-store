@@ -177,6 +177,18 @@
         el.innerHTML = s.html || '';
         return true;
       }
+      case 'header': {
+        el.className = 'builder-header-section';
+        el.style.cssText = 'padding:1.4rem 2.5rem;max-width:1400px;margin:0 auto';
+        var hl = s.show_line !== false;
+        var above = s.line_position === 'above';
+        var rule = hl ? '1px solid rgba(128,128,128,.32)' : 'none';
+        el.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;' + (above ? 'border-top' : 'border-bottom') + ':' + rule + ';padding:' + (above ? '.9rem 0 0' : '0 0 .9rem') + '">' +
+          '<span style="font-family:var(--fm,var(--fb));font-size:.7rem;letter-spacing:.14em;text-transform:uppercase">' + (s.left || '') + '</span>' +
+          (s.right ? '<span style="font-family:var(--fm,var(--fb));font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;opacity:.45">' + s.right + '</span>' : '') +
+          '</div>';
+        return true;
+      }
       case 'cta': {
         el.className = 'builder-cta-section';
         var ctaAlign = s.align || 'center';

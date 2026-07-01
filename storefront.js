@@ -326,7 +326,7 @@ function showToast(msg) {
       
       if (!el) {
         // Dynamically instantiate builder sections if they don't exist
-        if (['spacer', 'text', 'img_cta', 'image_cta', 'custom', 'html',
+        if (['spacer', 'text', 'img_cta', 'image_cta', 'custom', 'html', 'header',
              'numbers', 'press', 'faq', 'email_capture', 'logos', 'richtext',
              'split', 'cta', 'features', 'testimonials', 'banner', 'gallery', 'video', 'countdown', 'hero_carousel', 'media_grid'].includes(sec.type)) {
           el = document.createElement('div');
@@ -352,7 +352,7 @@ function showToast(msg) {
             `;
           } else if (sec.type === 'custom' || sec.type === 'html') {
             el.className = 'builder-custom-section';
-          } else if (['numbers','press','faq','email_capture','logos','richtext',
+          } else if (['numbers','press','faq','email_capture','logos','richtext','header',
                       'split','cta','features','testimonials','banner','gallery','video','countdown','hero_carousel','media_grid'].includes(sec.type)) {
             el.className = 'builder-' + sec.type.replace(/_/g,'-') + '-section';
           }
@@ -539,6 +539,18 @@ function showToast(msg) {
         case 'custom':
         case 'html': {
           if (s.html !== undefined) el.innerHTML = s.html||'';
+          break;
+        }
+        case 'header': {
+          el.className = 'builder-header-section';
+          el.style.cssText = 'padding:1.4rem 2.5rem;max-width:1400px;margin:0 auto';
+          const _hl = s.show_line !== false;
+          const _above = s.line_position === 'above';
+          const _rule = _hl ? '1px solid rgba(128,128,128,.32)' : 'none';
+          el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;${_above?'border-top':'border-bottom'}:${_rule};padding:${_above?'.9rem 0 0':'0 0 .9rem'}">
+            <span style="font-family:var(--fm,var(--fb));font-size:.7rem;letter-spacing:.14em;text-transform:uppercase">${s.left||''}</span>
+            ${s.right?`<span style="font-family:var(--fm,var(--fb));font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;opacity:.45">${s.right}</span>`:''}
+          </div>`;
           break;
         }
         case 'numbers': {

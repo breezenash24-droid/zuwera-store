@@ -496,6 +496,7 @@ const TYPES={
   img_cta:{icon:'🖼',cat:'layout',desc:'Image with overlay button'},
   html:{icon:'</>',cat:'layout',desc:'Raw HTML block (advanced)'},
   richtext:{icon:'📄',cat:'layout',desc:'Long-form rich text block'},
+  header:{icon:'▭',cat:'layout',desc:'Label + right note with a divider line (add/remove anywhere)'},
   hero_carousel:{icon:'🎠',cat:'store',desc:'Full-screen hero carousel with slides, video, arrows & dots'},
   media_grid:{icon:'🖼️',cat:'marketing',desc:'Image/video grid or scrollable row with CTAs'},
 };
@@ -524,6 +525,7 @@ const SECT_DEFS={
   img_cta:{image:'',alt:'',btn_on:true,btn_text:'Shop Now',btn_url:'/drop001.html',btn_position:'center',pad_top:0,pad_bot:0},
   html:{html:'',pad_top:0,pad_bot:0},
   richtext:{content:'Write your content here...',align:'left',pad_top:0,pad_bot:0},
+  header:{left:'Section Title',right:'',show_line:true,line_position:'below',pad_top:0,pad_bot:0},
   hero_carousel:{height:'full',autoplay:true,autoplay_interval:5000,show_arrows:true,show_dots:true,indicator_style:'dots',show_pause:true,transition:'fade',loop:true,slides:[{media_type:'image',media_url:'',media_url_mobile:'',video_poster:'',focal_y:50,eyebrow:'',heading:'YOUR HEADLINE',subtext:'Supporting copy here.',text_align:'center',text_color:'#ffffff',overlay_opacity:30,cta_text:'Shop Now',cta_url:'/drop001.html',cta_style:'solid',watch_btn:false,watch_url:'',watch_label:'Watch'}],pad_top:0,pad_bot:0},
   media_grid:{heading:'',layout:'grid',columns:3,gap:'md',aspect:'portrait',card_height:'',cards:[{media_type:'image',media_url:'',video_poster:'',label:'',label_position:'below',link_url:'',watch_btn:false,watch_url:'',watch_label:'Watch'}],pad_top:0,pad_bot:0},
 };
@@ -1229,6 +1231,7 @@ function buildForm(s){
     case 'text': h+=f('heading','Heading (optional)',g.heading)+ta('body','Body',g.body)+sel('align','Alignment',g.align||'left',[['left','Left'],['center','Center'],['right','Right']])+fdiv()+f('cta_text','Button Text (optional)',g.cta_text)+f('cta_url','Button URL',g.cta_url)+padF(g);break;
     case 'img_cta': h+=imgField('image','Image',g.image)+f('alt','Alt Text',g.alt)+fdiv()+tog2('btn_on','Show Button',g.btn_on)+f('btn_text','Button Text',g.btn_text)+f('btn_url','Button URL',g.btn_url)+sel('btn_position','Button Position',g.btn_position||'center',[['center','Center'],['bottom-left','Bottom Left'],['bottom-right','Bottom Right'],['top-right','Top Right']])+padF(g);break;
     case 'html': h+=`<div class="field"><label>HTML</label><textarea data-f="html" style="min-height:120px;font-size:.6rem;font-family:'IBM Plex Mono',monospace" placeholder="<div>...</div>">${he(g.html)}</textarea><span class="fhint" style="color:#e07060">⚠ Raw HTML — use carefully.</span></div>`;break;
+    case 'header': h+=f('left','Left Label',g.left)+f('right','Right Note (optional)',g.right)+tog2('show_line','Show Divider Line',g.show_line!==false)+sel('line_position','Line Position',g.line_position||'below',[['below','Line Below Text'],['above','Line Above Text']]);break;
     case 'numbers': h+=f('heading','Section Heading',g.heading)+fdiv()+arrField('items','Stat',g.items||[],[['value','Value / Number','text'],['label','Label','text']])+padF(g);break;
     case 'press': h+=f('heading','Label (e.g. "As Seen In")',g.heading)+fdiv()+arrField('items','Publication',g.items||[],[['name','Publication Name','text']])+padF(g);break;
     case 'faq': h+=f('heading','Section Heading',g.heading)+fdiv()+arrField('items','FAQ Item',g.items||[],[['q','Question','text'],['a','Answer','textarea']])+padF(g);break;
