@@ -252,6 +252,7 @@ body{display:flex;flex-direction:column}
       </div>
       <div class="more-div"></div>
       <button class="more-item" onclick="window.open('/','_blank')">🌐 View live site</button>
+      <button class="more-item" onclick="copyHomepageDraftLink()">🔗 Copy homepage draft link</button>
       <button class="more-item" onclick="showQrModal()">📱 Preview on phone (QR)</button>
       <button class="more-item" onclick="lpTab('history')">🕘 Version history</button>
       <button class="more-item" onclick="lpTab('templates')">🗂 Templates</button>
@@ -1743,6 +1744,15 @@ async function saveDraft(auto=false){
   setTimeout(()=>dotCls(''),3000);
 }
 
+// Shareable homepage draft link. Needs the page_builder draft to be public-read
+// (RLS) — run the ALTER POLICY provided. Saves the draft first so it's current.
+async function copyHomepageDraftLink(){
+  try{document.getElementById('moreMenu').hidden=true;}catch(_){}
+  try{ await saveDraft(true); }catch(_){}
+  const url=location.origin+'/?builder=1';
+  try{ await navigator.clipboard.writeText(url); toast('Homepage draft link copied 🔗','ok'); }
+  catch(_){ try{ prompt('Copy this homepage draft link:',url); }catch(__){ toast(url); } }
+}
 // ── SCHEDULED PUBLISH ─────────────────────────────────────────────────────
 // Snapshots the current homepage draft + a publish time into site_settings
 // (key scheduled_publish); a Supabase pg_cron job promotes it to the live
