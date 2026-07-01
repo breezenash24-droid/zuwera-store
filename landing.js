@@ -219,6 +219,10 @@
       heroEl.classList.remove('lp-hero--lighttext', 'lp-hero--darktext');
       if (heroCfg.textColor === 'light') heroEl.classList.add('lp-hero--lighttext');
       else if (heroCfg.textColor === 'dark') heroEl.classList.add('lp-hero--darktext');
+      // Title / Subtitle font overrides (Pages-tab hero font pickers).
+      if (window.ZWLandingSections && window.ZWLandingSections.applyFonts) {
+        window.ZWLandingSections.applyFonts(heroEl, heroCfg.font_head, heroCfg.font_body);
+      }
     }
     document.title = (gLabel ? gLabel + ' — Shop ' : 'Shop ') + '| ZUWERA';
 

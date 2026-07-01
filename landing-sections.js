@@ -491,6 +491,15 @@
   }
 
   window.ZWLandingSections = {
+    // Apply heading/body font overrides to any element (used by landing.js for
+    // the auto hero). Empty key clears the override so the global theme returns.
+    applyFonts: function (el, headKey, bodyKey) {
+      if (!el) return;
+      if (headKey && FONT_STACKS[headKey]) { el.style.setProperty('--fw', FONT_STACKS[headKey]); el.style.setProperty('--zw-font-head', FONT_STACKS[headKey]); loadFont(headKey); }
+      else { el.style.removeProperty('--fw'); el.style.removeProperty('--zw-font-head'); }
+      if (bodyKey && FONT_STACKS[bodyKey]) { el.style.setProperty('--fb', FONT_STACKS[bodyKey]); el.style.setProperty('--zw-font-body', FONT_STACKS[bodyKey]); loadFont(bodyKey); }
+      else { el.style.removeProperty('--fb'); el.style.removeProperty('--zw-font-body'); }
+    },
     render: function (host, sections) {
       if (!host) return;
       host.innerHTML = '';

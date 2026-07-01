@@ -898,7 +898,9 @@ function renderPagesTab(container){
     <div class="fhint" style="margin-bottom:.4rem">Turn this off to drop the auto hero and build your own with a Hero block in Page Sections (e.g. below the products).</div>
     <div class="field"><label>Kicker (small text above title)</label><input data-lp="hero.kicker" value="${he(h.kicker||'')}" placeholder="Zuwera"></div>
     <div class="field"><label>Title</label><input data-lp="hero.title" value="${he(h.title||'')}" placeholder="${he(lpScopeName())}"></div>
+    ${lpFontSel('hero.font_head','Title font',h.font_head||'',FOPT_HEAD)}
     <div class="field"><label>Subtitle</label><textarea data-lp="hero.subtitle" rows="2" style="font-family:inherit;font-size:.68rem" placeholder="Auto tagline…">${he(h.subtitle||'')}</textarea></div>
+    ${lpFontSel('hero.font_body','Subtitle font',h.font_body||'',FOPT_BODY)}
     <div class="field"><label>Button text</label><input data-lp="hero.ctaText" value="${he(h.ctaText||'')}" placeholder="Shop all ${he(lpScopeName())}"></div>
     <div class="field"><label>Button link</label><input data-lp="hero.ctaUrl" value="${he(h.ctaUrl||'')}" placeholder="drop001.html?gender=…"></div>
     <div class="field"><label>Hero image</label>${heroImg}<input data-lp="hero.image" data-f="__lpHero" id="lpHeroImg" value="${he(h.image||'')}" placeholder="Auto: first product image"><div style="display:flex;gap:.3rem;margin-top:.25rem"><button type="button" class="img-btn" onclick="openMedia('__lpHero')">📁 Browse</button></div></div>
@@ -1146,6 +1148,8 @@ const fontSelInline=(k,l,v,opts)=>`<div class="field" style="margin:-.15rem 0 .1
 const hfont=g=>fontSelInline('font_head_override','Font for this heading',g.font_head_override||'',FOPT_HEAD);
 const bfont=g=>fontSelInline('font_body_override','Font for this text',g.font_body_override||'',FOPT_BODY);
 const padF=g=>'';
+// data-lp variant (Pages tab auto-hero etc.) — same inline look, writes to the landing config.
+const lpFontSel=(path,l,v,opts)=>`<div class="field" style="margin:-.15rem 0 .1rem .9rem"><label style="opacity:.7">↳ ${l}</label><select data-lp="${path}">${opts.map(([val,txt])=>`<option value="${val}"${v===val?' selected':''}>${txt}</option>`).join('')}</select></div>`;
 /* NOTE: Section padding is rendered once, by the universal "Section Style"
    block in buildForm. It used to ALSO be rendered here as sliders, but both
    wrote data-f="pad_top/pad_bot" — syncForm reads them in DOM order and the
