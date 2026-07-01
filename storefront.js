@@ -441,8 +441,21 @@ function showToast(msg) {
           const img = el.querySelector('#hero-image');
           const mobileSource = el.querySelector('#hero-mobile-source');
           if (s.image) {
-            if (img) img.src = typeof window.optimizeImage === 'function' ? window.optimizeImage(s.image, 1400) : s.image;
-            if (mobileSource) mobileSource.srcset = typeof window.optimizeImage === 'function' ? window.optimizeImage(s.image, 800) : s.image;
+            const optDesk = typeof window.optimizeImage === 'function' ? window.optimizeImage(s.image, 1400) : s.image;
+            const optMob = typeof window.optimizeImage === 'function' ? window.optimizeImage(s.image, 800) : s.image;
+            if (img) img.src = optDesk;
+            if (mobileSource) mobileSource.srcset = optMob;
+            // Cache the hero so the synchronous <head> bootstrap paints THIS image
+            // on the next load instead of the stale default/old one — otherwise the
+            // page-builder hero path (unlike the legacy settings.hero path) never
+            // updated the cache, so every load flashed old→new. Skip in the builder
+            // preview so an unpublished hero isn't cached for the real homepage.
+            if (!window.__ZW_BUILDER_PREVIEW__) {
+              window.__ZW_HERO_IMAGE = optDesk;
+              try { localStorage.setItem('zw-hero-image', s.image); } catch (e) {}
+              const preload = document.getElementById('hero-preload');
+              if (preload) preload.href = optDesk;
+            }
           } else {
             if (img) img.src = 'images/hero.jpg?v=2';
             if (mobileSource) mobileSource.srcset = 'images/hero-mobile.jpg';

@@ -1668,6 +1668,10 @@ async function publishPage(){
   status('Publishing…');dotCls('y');
   const ok=await saveToSupa('page_builder',{sections,theme:pvTheme,themeSettings,navSettings,seoSettings},true);
   if(ok){lastSaved=clone(sections);dirty=false;status('Published ✓');dotCls('g');toast('Published! Changes are live.','ok');
+    // Warm the homepage hero cache (same origin) so the admin's next homepage
+    // visit paints the just-published hero via the synchronous <head> bootstrap
+    // instead of flashing the previously-cached one.
+    try{const _hero=sections.find(s=>s&&s.type==='hero');const _hi=_hero&&_hero.settings&&_hero.settings.image;if(_hi)localStorage.setItem('zw-hero-image',_hi);}catch(_){}
     // save snapshot on publish
     versionHistory.push({ts:new Date().toISOString(),label:'Published',sections:clone(sections)});
     if(versionHistory.length>15)versionHistory.shift();
