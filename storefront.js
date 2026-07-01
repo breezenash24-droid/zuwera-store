@@ -1315,12 +1315,32 @@ function setAnnouncementBarLayout(barEl, navEl, isVisible) {
     // (e.g. left behind after a resize across the breakpoint) and drop the spacer.
     if (navEl) navEl.style.top = '';
     if (spacerEl) spacerEl.style.height = '0';
+    // Position the fixed bar flush under the nav by measuring the nav's REAL
+    // height (safe-area + padding + button all vary by device) and feeding it to
+    // --zw-bar-top. The old CSS-only formula drifted from the actual nav height,
+    // leaving the bar "floating" with a gap below the header.
+    if (navEl) {
+      const navH = Math.round(navEl.getBoundingClientRect().height);
+      if (navH) document.documentElement.style.setProperty('--zw-bar-top', navH + 'px');
+    }
   } else {
+    document.documentElement.style.removeProperty('--zw-bar-top');
     const barH = (barEl && isVisible) ? barEl.offsetHeight : 0;
     if (navEl) navEl.style.top = barH + 'px';
     if (spacerEl) spacerEl.style.height = isVisible ? barH + 'px' : '0';
   }
 }
+
+// Keep the mobile bar flush under the nav across resize / orientation changes by
+// re-measuring the nav height into --zw-bar-top (mobile only, no desktop effects).
+function zwSyncMobileBarTop() {
+  if (!window.matchMedia('(max-width:900px)').matches) { document.documentElement.style.removeProperty('--zw-bar-top'); return; }
+  const navEl = document.getElementById('nav');
+  if (navEl) { const h = Math.round(navEl.getBoundingClientRect().height); if (h) document.documentElement.style.setProperty('--zw-bar-top', h + 'px'); }
+}
+window.addEventListener('resize', zwSyncMobileBarTop, { passive: true });
+if (document.readyState !== 'loading') zwSyncMobileBarTop();
+else document.addEventListener('DOMContentLoaded', zwSyncMobileBarTop);
 
 function applyAnnouncementBar(mode, msgText) {
   const barEl = document.getElementById('bar');

@@ -257,7 +257,7 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
      storefront.js calls window.quickAddToCart, which this module provides. -->
 <script src="quick-add-modal.js?v=3370ca5f" defer></script>
 <script src="image-utils.js?v=e6f0ec04" defer></script>
-<script src="storefront.js?v=4b8ef00c" defer></script>
+<script src="storefront.js?v=36789b9b" defer></script>
 <script src="/stripe-client-config.js?v=c262166e" defer></script>
 <script src="/checkout-tax.js?v=b12c4e5f" defer></script>
 
@@ -1821,12 +1821,29 @@ body.light-mode::after{opacity:0.15}
   /* Bar: flush below nav, GPU-composited to prevent iOS Safari repaint flicker.
      Nav no longer reflows on scroll, so the scrolled bar top is identical. */
   #bar{
-    top:calc(.75rem + env(safe-area-inset-top,0px) + 36px + .85rem)!important;
+    /* --zw-bar-top is set by JS to the nav's measured height so the bar sits
+       flush (no floating gap); the calc() is a first-paint fallback. */
+    top:var(--zw-bar-top, calc(.75rem + env(safe-area-inset-top,0px) + 36px + .85rem))!important;
     transform:translate3d(0,0,0)!important;
     -webkit-transform:translate3d(0,0,0)!important;
+    /* Keep the message on ONE compact line instead of wrapping to two. */
+    padding:.4rem 1rem!important;
+    gap:0!important;
+    letter-spacing:.1em!important;
+    font-size:.55rem!important;
+    white-space:nowrap;
+    overflow:hidden;
+  }
+  /* Drop the decorative ✦ flourishes on mobile — they add width and clutter. */
+  #bar .bar-sep{ display:none!important; }
+  #bar #announcementText{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    min-width:0;
   }
   body:has(nav#nav.scrolled) #bar{
-    top:calc(.75rem + env(safe-area-inset-top,0px) + 36px + .85rem)!important;
+    top:var(--zw-bar-top, calc(.75rem + env(safe-area-inset-top,0px) + 36px + .85rem))!important;
     transform:translate3d(0,0,0)!important;
     -webkit-transform:translate3d(0,0,0)!important;
   }
