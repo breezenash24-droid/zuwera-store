@@ -146,13 +146,13 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
     @media (max-width:640px){
       .lp-hero{ min-height:74vh; padding:7rem 1.4rem 2.4rem; }
       .lp-hero::after{ background:linear-gradient(180deg,rgba(9,9,11,.04) 0%,rgba(9,9,11,.32) 46%,rgba(9,9,11,.84) 100%); }
-      .lp-hero-bg{ background-image:var(--lp-hero-img-mob,var(--lp-hero-img)); background-size:var(--lp-hero-fit-mob,var(--lp-hero-fit,cover)); }
+      .lp-hero-bg{ background-image:var(--lp-hero-img-mob,var(--lp-hero-img)); background-size:var(--lp-hero-fit-mob,var(--lp-hero-fit,cover)); background-position:var(--lp-hero-pos-mob,center); }
       .lp-hero-sub{ font-size:.98rem; }
     }
     /* Tablet hero: optional tablet image/fit, falling back to the mobile image
        (then the desktop one) — the JS resolves the chain into these vars. */
     @media (min-width:641px) and (max-width:1024px){
-      .lp-hero-bg{ background-image:var(--lp-hero-img-tab,var(--lp-hero-img)); background-size:var(--lp-hero-fit-tab,var(--lp-hero-fit,cover)); }
+      .lp-hero-bg{ background-image:var(--lp-hero-img-tab,var(--lp-hero-img)); background-size:var(--lp-hero-fit-tab,var(--lp-hero-fit,cover)); background-position:var(--lp-hero-pos-tab,center); }
     }
 
     /* SECTION HEADINGS */
@@ -375,6 +375,6 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
   <script src="zw-login.js?v=d30a7000" defer></script>
   <script src="/nav-menu.js?v=2abb3b12" defer></script>
   <script src="landing-sections.js?v=c04bd890" defer></script>
-  <script src="landing.js?v=37753448" defer></script>
+  <script src="landing.js?v=a4620a26" defer></script>
 </body>
 </html>

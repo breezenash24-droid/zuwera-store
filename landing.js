@@ -214,6 +214,12 @@
         heroEl.style.setProperty('--lp-hero-fit-tab', tabFitEff);
         heroEl.style.setProperty('--lp-hero-img-mob', _u(heroMobImg || heroImg));
         heroEl.style.setProperty('--lp-hero-fit-mob', mobFitEff);
+        // Per-device framing (builder "viewfinder"): a focal point set in the
+        // builder becomes background-position so the subject stays in frame on the
+        // narrower tablet/mobile crops. Unset → center (no visual change).
+        var _pos = function (f) { return (f && f.x != null && f.y != null) ? (f.x + '% ' + f.y + '%') : 'center'; };
+        heroEl.style.setProperty('--lp-hero-pos-tab', _pos(heroCfg.focalTab));
+        heroEl.style.setProperty('--lp-hero-pos-mob', _pos(heroCfg.focalMob));
       }
       // Hero text color (Auto / Light / Dark) — keeps text readable over the image.
       heroEl.classList.remove('lp-hero--lighttext', 'lp-hero--darktext');
