@@ -3776,24 +3776,28 @@ body.super-light-mode #mobile-menu.zw-mobile-menu{
   .zw-plat-grid[data-sm="swipe"] > *{ flex:0 0 82vw !important; width:82vw !important; min-width:0 !important; max-width:none !important; scroll-snap-align:center !important; margin:0 !important; }
 }
 
-/* ── Swipe arrows for products/featured rows ─────────────────────────────────
-   Prev/Next buttons that appear ONLY when the grid is actually a horizontal
-   swipe row (scrollWidth > clientWidth — i.e. "one at a time" mode). In grid
-   mode there's no horizontal overflow, so JS never adds .zw-has-swipe and the
-   arrows stay hidden. The grid is wrapped in .zw-swipe-wrap for positioning. */
+/* ── Swipe scrollbar for products/featured rows ──────────────────────────────
+   A Nike-style draggable scrollbar shown ONLY when the grid is actually a
+   horizontal swipe row (scrollWidth > clientWidth — i.e. "individual products"
+   mode). In grid mode ("products with rows") there's no horizontal overflow, so
+   JS never adds .zw-has-swipe and the bar stays hidden. Wrapped in .zw-swipe-wrap. */
 .zw-swipe-wrap{ position:relative; }
-.zw-swipe-arrow{
-  position:absolute; top:34%; transform:translateY(-50%); z-index:6;
-  width:44px; height:44px; border-radius:50%;
-  display:none; align-items:center; justify-content:center;
-  background:rgba(255,255,255,.94); color:#09090b; border:1px solid rgba(0,0,0,.06);
-  box-shadow:0 3px 12px rgba(0,0,0,.2); cursor:pointer;
-  transition:opacity .2s ease, background .2s ease, transform .1s ease;
+.zw-swipe-bar{
+  display:none; position:relative; height:4px; border-radius:99px; cursor:pointer;
+  width:min(560px, 82%); margin:1.5rem auto 0; touch-action:none;
+  background:rgba(244,241,235,.16);
 }
-.zw-swipe-wrap.zw-has-swipe > .zw-swipe-arrow{ display:flex; }
-.zw-swipe-arrow.prev{ left:.6rem; }
-.zw-swipe-arrow.next{ right:.6rem; }
-.zw-swipe-arrow:hover{ background:#fff; }
-.zw-swipe-arrow:active{ transform:translateY(-50%) scale(.93); }
-.zw-swipe-arrow:disabled{ opacity:0; pointer-events:none; }
-@media (max-width:640px){ .zw-swipe-arrow{ width:38px; height:38px; } }
+.zw-swipe-wrap.zw-has-swipe > .zw-swipe-bar{ display:block; }
+.zw-swipe-thumb{
+  position:absolute; top:-3px; left:0; height:10px; min-width:26px; border-radius:99px;
+  background:rgba(244,241,235,.6); cursor:grab; transition:background .2s ease;
+}
+.zw-swipe-thumb:hover{ background:rgba(244,241,235,.85); }
+.zw-swipe-thumb.zw-dragging{ cursor:grabbing; background:rgba(244,241,235,.95); }
+/* Light themes: dark bar on light background */
+body.light-mode .zw-swipe-bar,
+body.super-light-mode .zw-swipe-bar{ background:rgba(9,9,11,.12); }
+body.light-mode .zw-swipe-thumb,
+body.super-light-mode .zw-swipe-thumb{ background:rgba(9,9,11,.55); }
+body.light-mode .zw-swipe-thumb:hover,
+body.super-light-mode .zw-swipe-thumb:hover{ background:rgba(9,9,11,.8); }

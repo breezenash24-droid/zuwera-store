@@ -340,8 +340,8 @@
         '<p class="lp-card-price">' + esc(money(priceOf(p))) + '</p>' +
         '</a>';
     }).join('');
-    // Cards exist now — (re)evaluate the swipe arrows for the featured row.
-    if (window.zwEnsureSwipeArrows) window.zwEnsureSwipeArrows(grid);
+    // Cards exist now — (re)evaluate the swipe scrollbar for the featured row.
+    if (window.zwEnsureSwipeBar) window.zwEnsureSwipeBar(grid);
   }
 
   function init() {

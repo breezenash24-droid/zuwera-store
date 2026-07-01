@@ -12,21 +12,35 @@
    Exposes: window.ZWLandingSections.render(hostEl, sectionsArray)
    ─────────────────────────────────────────────────────────────────────────── */
 (function () {
-  // Prev/Next swipe arrows for a products/featured row — mirror of the homepage
-  // helper (landing pages don't load storefront.js). Arrows show only when the
-  // grid is horizontally scrollable (swipe mode). See .zw-swipe-* CSS.
-  window.zwEnsureSwipeArrows = window.zwEnsureSwipeArrows || function (grid) {
+  // Nike-style draggable swipe scrollbar — mirror of the homepage helper (landing
+  // pages don't load storefront.js). Shows only when the grid is horizontally
+  // scrollable (swipe / individual-products mode). See .zw-swipe-* CSS.
+  window.zwEnsureSwipeBar = window.zwEnsureSwipeBar || function (grid) {
     if (!grid || !grid.parentNode) return;
     var wrap = grid.closest('.zw-swipe-wrap');
     if (!wrap) { wrap = document.createElement('div'); wrap.className = 'zw-swipe-wrap'; grid.parentNode.insertBefore(wrap, grid); wrap.appendChild(grid); }
-    var mk = function (cls, label, d) { var b = document.createElement('button'); b.type = 'button'; b.className = 'zw-swipe-arrow ' + cls; b.setAttribute('aria-label', label); b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>'; wrap.appendChild(b); return b; };
-    var prev = wrap.querySelector(':scope > .zw-swipe-arrow.prev') || mk('prev', 'Previous products', 'M15 18l-6-6 6-6');
-    var next = wrap.querySelector(':scope > .zw-swipe-arrow.next') || mk('next', 'Next products', 'M9 6l6 6-6 6');
-    var step = function () { var f = grid.firstElementChild; var w = f ? f.getBoundingClientRect().width : grid.clientWidth * 0.8; return w + 16; };
-    prev.onclick = function () { grid.scrollBy({ left: -step(), behavior: 'smooth' }); };
-    next.onclick = function () { grid.scrollBy({ left: step(), behavior: 'smooth' }); };
-    var sync = function () { var scrollable = grid.scrollWidth - grid.clientWidth > 4; wrap.classList.toggle('zw-has-swipe', scrollable); var x = grid.scrollLeft; prev.disabled = x <= 2; next.disabled = x >= grid.scrollWidth - grid.clientWidth - 2; };
-    if (!grid._zwArrowsBound) { grid.addEventListener('scroll', sync, { passive: true }); window.addEventListener('resize', sync, { passive: true }); grid._zwArrowsBound = true; }
+    var bar = wrap.querySelector(':scope > .zw-swipe-bar'), thumb;
+    if (!bar) { bar = document.createElement('div'); bar.className = 'zw-swipe-bar'; thumb = document.createElement('div'); thumb.className = 'zw-swipe-thumb'; bar.appendChild(thumb); wrap.appendChild(bar); }
+    else { thumb = bar.querySelector('.zw-swipe-thumb'); }
+    var sync = function () {
+      var sw = grid.scrollWidth, cw = grid.clientWidth, max = sw - cw, scrollable = max > 4;
+      wrap.classList.toggle('zw-has-swipe', scrollable);
+      if (!scrollable) return;
+      var tw = Math.max((cw / sw) * 100, 8);
+      thumb.style.width = tw + '%';
+      thumb.style.left = ((max > 0 ? grid.scrollLeft / max : 0) * (100 - tw)) + '%';
+    };
+    if (!grid._zwBarBound) {
+      grid.addEventListener('scroll', sync, { passive: true });
+      window.addEventListener('resize', sync, { passive: true });
+      var dragging = false, startX = 0, startLeft = 0;
+      thumb.addEventListener('pointerdown', function (e) { dragging = true; startX = e.clientX; startLeft = grid.scrollLeft; thumb.classList.add('zw-dragging'); try { thumb.setPointerCapture(e.pointerId); } catch (_) {} e.preventDefault(); });
+      thumb.addEventListener('pointermove', function (e) { if (!dragging) return; var travel = bar.clientWidth - thumb.offsetWidth, max = grid.scrollWidth - grid.clientWidth; if (travel > 0) grid.scrollLeft = startLeft + ((e.clientX - startX) / travel) * max; });
+      var end = function (e) { if (!dragging) return; dragging = false; thumb.classList.remove('zw-dragging'); try { thumb.releasePointerCapture(e.pointerId); } catch (_) {} };
+      thumb.addEventListener('pointerup', end); thumb.addEventListener('pointercancel', end);
+      bar.addEventListener('pointerdown', function (e) { if (e.target === thumb) return; var r = bar.getBoundingClientRect(); grid.scrollTo({ left: ((e.clientX - r.left) / r.width) * (grid.scrollWidth - grid.clientWidth), behavior: 'smooth' }); });
+      grid._zwBarBound = true;
+    }
     requestAnimationFrame(sync); setTimeout(sync, 350);
   };
   function optImg(u, w) { try { return (typeof window.optimizeImage === 'function') ? window.optimizeImage(u, w) : u; } catch (_) { return u; } }

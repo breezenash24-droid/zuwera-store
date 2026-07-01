@@ -168,13 +168,14 @@ function showToast(msg) {
     grid.style.setProperty('--col-lg', col(cfg.col_lg, col(cfg.columns, 3)));
     grid.style.setProperty('--col-md', col(cfg.col_md, 2));
     grid.style.setProperty('--col-sm', col(cfg.col_sm, 2));
-    if (window.zwEnsureSwipeArrows) window.zwEnsureSwipeArrows(grid);
+    if (window.zwEnsureSwipeBar) window.zwEnsureSwipeBar(grid);
   };
 
-  // Prev/Next arrow buttons for a swipe row. Wraps the grid in .zw-swipe-wrap and
-  // only reveals the arrows when the grid is horizontally scrollable (swipe mode);
-  // in grid mode there's no overflow so they stay hidden. Global so landing reuses.
-  window.zwEnsureSwipeArrows = window.zwEnsureSwipeArrows || function (grid) {
+  // Nike-style draggable scrollbar for a swipe row. Wraps the grid in
+  // .zw-swipe-wrap and only shows the bar when the grid is horizontally
+  // scrollable (swipe / individual-products mode); in grid mode there's no
+  // overflow so it stays hidden. Global so landing.js reuses it.
+  window.zwEnsureSwipeBar = window.zwEnsureSwipeBar || function (grid) {
     if (!grid || !grid.parentNode) return;
     let wrap = grid.closest('.zw-swipe-wrap');
     if (!wrap) {
@@ -183,28 +184,48 @@ function showToast(msg) {
       grid.parentNode.insertBefore(wrap, grid);
       wrap.appendChild(grid);
     }
-    const mk = (cls, label, d) => {
-      const b = document.createElement('button');
-      b.type = 'button'; b.className = 'zw-swipe-arrow ' + cls; b.setAttribute('aria-label', label);
-      b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>';
-      wrap.appendChild(b); return b;
-    };
-    let prev = wrap.querySelector(':scope > .zw-swipe-arrow.prev') || mk('prev', 'Previous products', 'M15 18l-6-6 6-6');
-    let next = wrap.querySelector(':scope > .zw-swipe-arrow.next') || mk('next', 'Next products', 'M9 6l6 6-6 6');
-    const step = () => { const f = grid.firstElementChild; const w = f ? f.getBoundingClientRect().width : grid.clientWidth * 0.8; return w + 16; };
-    prev.onclick = () => grid.scrollBy({ left: -step(), behavior: 'smooth' });
-    next.onclick = () => grid.scrollBy({ left: step(), behavior: 'smooth' });
+    let bar = wrap.querySelector(':scope > .zw-swipe-bar');
+    let thumb;
+    if (!bar) {
+      bar = document.createElement('div'); bar.className = 'zw-swipe-bar';
+      thumb = document.createElement('div'); thumb.className = 'zw-swipe-thumb';
+      bar.appendChild(thumb); wrap.appendChild(bar);
+    } else { thumb = bar.querySelector('.zw-swipe-thumb'); }
     const sync = () => {
-      const scrollable = grid.scrollWidth - grid.clientWidth > 4;
+      const sw = grid.scrollWidth, cw = grid.clientWidth, max = sw - cw;
+      const scrollable = max > 4;
       wrap.classList.toggle('zw-has-swipe', scrollable);
-      const x = grid.scrollLeft;
-      prev.disabled = x <= 2;
-      next.disabled = x >= grid.scrollWidth - grid.clientWidth - 2;
+      if (!scrollable) return;
+      const tw = Math.max((cw / sw) * 100, 8);
+      thumb.style.width = tw + '%';
+      thumb.style.left = ((max > 0 ? grid.scrollLeft / max : 0) * (100 - tw)) + '%';
     };
-    if (!grid._zwArrowsBound) {
+    if (!grid._zwBarBound) {
       grid.addEventListener('scroll', sync, { passive: true });
       window.addEventListener('resize', sync, { passive: true });
-      grid._zwArrowsBound = true;
+      // Drag the thumb → scroll the row proportionally.
+      let dragging = false, startX = 0, startLeft = 0;
+      thumb.addEventListener('pointerdown', (e) => {
+        dragging = true; startX = e.clientX; startLeft = grid.scrollLeft;
+        thumb.classList.add('zw-dragging');
+        try { thumb.setPointerCapture(e.pointerId); } catch (_) {}
+        e.preventDefault();
+      });
+      thumb.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        const travel = bar.clientWidth - thumb.offsetWidth;
+        const max = grid.scrollWidth - grid.clientWidth;
+        if (travel > 0) grid.scrollLeft = startLeft + ((e.clientX - startX) / travel) * max;
+      });
+      const end = (e) => { if (!dragging) return; dragging = false; thumb.classList.remove('zw-dragging'); try { thumb.releasePointerCapture(e.pointerId); } catch (_) {} };
+      thumb.addEventListener('pointerup', end); thumb.addEventListener('pointercancel', end);
+      // Click the track (not the thumb) → jump toward that position.
+      bar.addEventListener('pointerdown', (e) => {
+        if (e.target === thumb) return;
+        const r = bar.getBoundingClientRect();
+        grid.scrollTo({ left: ((e.clientX - r.left) / r.width) * (grid.scrollWidth - grid.clientWidth), behavior: 'smooth' });
+      });
+      grid._zwBarBound = true;
     }
     requestAnimationFrame(sync); setTimeout(sync, 350);
   };
@@ -2283,9 +2304,9 @@ function renderProductCards(products, grid) {
 
   // Re-init hearts for dynamically loaded cards
   if (typeof refreshHearts === 'function') refreshHearts();
-  // Now that the cards exist, (re)evaluate the swipe arrows — their visibility
+  // Now that the cards exist, (re)evaluate the swipe scrollbar — its visibility
   // depends on the grid's real scroll width, which is only known once populated.
-  if (window.zwEnsureSwipeArrows) window.zwEnsureSwipeArrows(grid);
+  if (window.zwEnsureSwipeBar) window.zwEnsureSwipeBar(grid);
   // Load all review summaries in ONE batched request instead of N separate fetches
   const _reviewCardMap = {};
   renderList.forEach(p => { _reviewCardMap[p.id] = p.unique_id || p.id; });
