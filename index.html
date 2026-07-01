@@ -175,6 +175,16 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
      single biggest LCP (Largest Contentful Paint) improvement. -->
 <script>
 (function() {
+  // Carousel-led layouts have no static hero. If the last render cached that,
+  // hide the baked-in <section class="hero"> synchronously (before first paint)
+  // and skip its high-priority preload — otherwise the old default hero flashes
+  // in before storefront.js renders the carousel over it.
+  try {
+    if (localStorage.getItem('zw_hide_static_hero') === '1') {
+      document.documentElement.classList.add('zw-hide-static-hero');
+      return;
+    }
+  } catch (e) {}
   var isMobileHero = window.matchMedia && window.matchMedia('(max-width: 760px)').matches;
   // Mini optimizeImage(): this runs in <head> before image-utils.js (deferred) is
   // available, so we replicate its Cloudinary transform inline. Mirrors the real
@@ -231,7 +241,7 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
      storefront.js calls window.quickAddToCart, which this module provides. -->
 <script src="quick-add-modal.js?v=3370ca5f" defer></script>
 <script src="image-utils.js?v=e6f0ec04" defer></script>
-<script src="storefront.js?v=06dd5bd4" defer></script>
+<script src="storefront.js?v=d72666a2" defer></script>
 <script src="/stripe-client-config.js?v=c262166e" defer></script>
 <script src="/checkout-tax.js?v=b12c4e5f" defer></script>
 
@@ -413,6 +423,9 @@ body.light-mode #mobile-menu-close { color:#09090b !important; }
   position:relative;overflow:hidden;
   padding-top:80px;
 }
+/* Carousel-led layouts: the <head> flag hides the static hero before first
+   paint so the old default hero never flashes in ahead of the carousel. */
+html.zw-hide-static-hero .hero{display:none!important}
 .hero-bg{
   position:absolute;inset:0;
   background:radial-gradient(ellipse 80% 60% at 65% 40%, rgba(248,145,165,.08) 0%, transparent 65%),

@@ -302,6 +302,18 @@ function showToast(msg) {
 
     const sorted = [...cfg.sections].sort((a,b)=>(a.order||0)-(b.order||0));
 
+    // Flash prevention: if this layout has no visible static hero (e.g. the top
+    // section is a hero_carousel), cache that so the synchronous <head> script on
+    // the NEXT load hides the baked-in <section class="hero"> before first paint —
+    // otherwise the old default hero flashes in before the carousel renders.
+    // Toggle the class now too (authoritative — clears it if a hero section is
+    // present, so the !important hide rule can't strand a real static hero).
+    const _hasStaticHero = sorted.some(s => s.type === 'hero' && s.visible !== false);
+    document.documentElement.classList.toggle('zw-hide-static-hero', !_hasStaticHero);
+    if (!window.__ZW_BUILDER_PREVIEW__) {
+      try { localStorage.setItem('zw_hide_static_hero', _hasStaticHero ? '' : '1'); } catch(e) {}
+    }
+
     // Section visibility & order on the DOM
     const sectionMap = {
       hero:    document.querySelector('.hero'),
