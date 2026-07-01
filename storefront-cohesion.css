@@ -3776,20 +3776,22 @@ body.super-light-mode #mobile-menu.zw-mobile-menu{
   .zw-plat-grid[data-sm="swipe"] > *{ flex:0 0 82vw !important; width:82vw !important; min-width:0 !important; max-width:none !important; scroll-snap-align:none !important; margin:0 !important; }
 }
 /* Per-device swipe scroll mode: default is smooth/free (scroll-snap-type:none in
-   the swipe rules above). When the builder sets data-snap-lg/md/sm="on", cards
-   snap "one at a time" on that device. Only affects swipe mode; higher
-   specificity than the base swipe rule so it wins when enabled. */
+   the swipe rules above, with small multi-card widths). When the builder sets
+   data-snap-lg/md/sm="on", the row becomes a real "one at a time" carousel: cards
+   grow to ~one-per-view (with a peek of the next) AND snap so each swipe/scroll
+   settles on a single product. Higher specificity than the base swipe rule so it
+   wins when enabled. */
 @media (min-width:1025px){
   .zw-plat-grid[data-lg="swipe"][data-snap-lg="on"]{ scroll-snap-type:x mandatory !important; }
-  .zw-plat-grid[data-lg="swipe"][data-snap-lg="on"] > *{ scroll-snap-align:center !important; }
+  .zw-plat-grid[data-lg="swipe"][data-snap-lg="on"] > *{ flex:0 0 66% !important; width:66% !important; scroll-snap-align:center !important; }
 }
 @media (min-width:641px) and (max-width:1024px){
   .zw-plat-grid[data-md="swipe"][data-snap-md="on"]{ scroll-snap-type:x mandatory !important; }
-  .zw-plat-grid[data-md="swipe"][data-snap-md="on"] > *{ scroll-snap-align:center !important; }
+  .zw-plat-grid[data-md="swipe"][data-snap-md="on"] > *{ flex:0 0 80vw !important; width:80vw !important; scroll-snap-align:center !important; }
 }
 @media (max-width:640px){
   .zw-plat-grid[data-sm="swipe"][data-snap-sm="on"]{ scroll-snap-type:x mandatory !important; }
-  .zw-plat-grid[data-sm="swipe"][data-snap-sm="on"] > *{ scroll-snap-align:center !important; }
+  .zw-plat-grid[data-sm="swipe"][data-snap-sm="on"] > *{ flex:0 0 86vw !important; width:86vw !important; scroll-snap-align:center !important; }
 }
 
 /* ── Swipe scrollbar for products/featured rows ──────────────────────────────
