@@ -57,7 +57,6 @@ window.__zwApplyCardMode = function (mode) {
   if (footerCopy) footerCopy.innerHTML = '&copy; 2026 Zuwera. All rights reserved.';
 })();
 
-console.log('[ZUWERA] build: 2026-05-25-v1 | full-page checkout');
 /* TOAST */
 let _toastTimer = null;
 function showToast(msg) {
@@ -619,7 +618,7 @@ function showToast(msg) {
             <div style="display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:1.5rem 2.5rem">
             ${logositems.map(it=>{
                const inner = it.src
-                 ? `<img src="${it.src}" alt="${it.alt||it.name||''}" style="height:${logoH}px;width:auto;opacity:${imgOp};${imgFilter}">`
+                 ? `<img src="${it.src}" alt="${escapeHomeFavoriteHtml(it.alt||it.name||'')}" style="height:${logoH}px;width:auto;opacity:${imgOp};${imgFilter}">`
                  : it.name
                    ? `<span style="font-family:var(--fw);font-size:1.1rem;font-weight:700;font-style:italic;letter-spacing:.06em;text-transform:uppercase;opacity:${spanOp}">${it.name}</span>`
                    : '';
@@ -710,7 +709,7 @@ function showToast(msg) {
           el.innerHTML = `<div style="padding:0 ${px};max-width:${mw};margin:0 auto;">
             ${s.heading?`<h2 style="font-family:var(--fw);font-size:clamp(1.5rem,3vw,2.2rem);text-transform:uppercase;font-weight:800;font-style:italic;text-align:center;margin-bottom:2rem">${s.heading}</h2>`:''}
             <div class="zw-mobile-scroll-grid" style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:1rem">
-            ${gimgs.map(img=>`${img.link?`<a href="${img.link}"`:'<div'} style="aspect-ratio:${aspect};overflow:hidden;display:block"><img src="${typeof window.optimizeImage==='function'?window.optimizeImage(img.src, 1200):img.src}" alt="${img.alt||''}" style="width:100%;height:100%;object-fit:cover;transition:transform .4s ease" loading="lazy" fetchpriority="low" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">${img.link?'</a>':'</div>'}`).join('')}
+            ${gimgs.map(img=>`${img.link?`<a href="${img.link}"`:'<div'} style="aspect-ratio:${aspect};overflow:hidden;display:block"><img src="${typeof window.optimizeImage==='function'?window.optimizeImage(img.src, 1200):img.src}" alt="${escapeHomeFavoriteHtml(img.alt||'')}" style="width:100%;height:100%;object-fit:cover;transition:transform .4s ease" loading="lazy" fetchpriority="low" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">${img.link?'</a>':'</div>'}`).join('')}
             </div>
           </div>`;
           break;
@@ -1944,7 +1943,6 @@ async function loadAllCardReviewSummaries(cardMap) {
   const pids = Object.keys(cardMap);
   if (!pids.length) return;
   try {
-    const idList = pids.map(id => `"${id}"`).join(',');
     const resp = await Promise.race([
       fetch(
         `${SUPABASE_URL}/rest/v1/reviews?product_id=in.(${pids.join(',')})&select=product_id,rating`,
@@ -2058,7 +2056,7 @@ function renderProductCards(products, grid) {
     }
     const _cardImgSrc = firstImg && typeof window.optimizeImage === 'function' ? window.optimizeImage(firstImg, 600) : firstImg;
     const imgHtml = firstImg
-      ? `<img src="${_cardImgSrc}" alt="${productName}" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:top center">`
+      ? `<img src="${_cardImgSrc}" alt="${escapeHomeFavoriteHtml(productName)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:top center">`
       : `<div class="pcard-img-placeholder">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
             <p>Image Coming Soon</p>
@@ -2097,7 +2095,7 @@ function renderProductCards(products, grid) {
             <span id="avg-${domId}" style="${_revCache[p.id] && _revCache[p.id].count > 0 ? '' : 'display:none'}">${_revCache[p.id] && _revCache[p.id].count > 0 ? zwStarsMarkup(_revCache[p.id].avg) : ''}</span>
             <span id="cnt-${domId}">${_revCache[p.id] ? zwReviewCountText(_revCache[p.id].count, _revCache[p.id].avg) : ''}</span>
           </button>
-          ${isLive && window.innerWidth > 900 ? `<button type="button" class="pcard-add-btn" data-quick-add="${quickAddPayload}"><span class="pcard-add-desktop-label">Add to Bag</span></button>` : ''}
+          ${isLive ? `<button type="button" class="pcard-add-btn" data-quick-add="${quickAddPayload}"><span class="pcard-add-desktop-label">Add to Bag</span></button>` : ''}
           ${hasSwatches ? zwCardSwatchRow(p, quickAddPayload, firstImg) : ''}
         </div>
         ${isLive ? `<div class="quick-size-panel" id="qsp-${domId}">
