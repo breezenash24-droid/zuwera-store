@@ -864,9 +864,13 @@ function buildVfFrames(host,devices){
     box.style.cssText=`position:relative;width:${bw}px;height:${bh}px;border:1px solid var(--bd);border-radius:3px;overflow:hidden;background:var(--sf2);cursor:${img&&fit!=='contain'?'grab':'default'};touch-action:none;margin:0 auto`;
     if(img){
       const f=dev.get()||{x:50,y:50};
-      const im=document.createElement('img');im.src=img;im.draggable=false;
-      im.style.cssText=`width:100%;height:100%;object-fit:${fit};object-position:${f.x}% ${f.y}%;pointer-events:none;user-select:none`;
-      im.onerror=()=>{box.style.cursor='default';box.innerHTML='<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.55rem;opacity:.5">Image not loading</div>';};
+      // Video slides frame against the moving clip (muted/looping); images use an
+      // <img>. object-position works the same on both.
+      const im=document.createElement(dev.isVideo?'video':'img');im.src=img;
+      if(dev.isVideo){im.muted=true;im.autoplay=true;im.loop=true;im.playsInline=true;im.setAttribute('playsinline','');if(dev.poster)im.poster=dev.poster;}
+      else{im.draggable=false;}
+      im.style.cssText=`width:100%;height:100%;object-fit:${fit};object-position:${f.x}% ${f.y}%;pointer-events:none;user-select:none;background:#000`;
+      im.onerror=()=>{box.style.cursor='default';box.innerHTML='<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.55rem;opacity:.5">'+(dev.isVideo?'Video':'Image')+' not loading</div>';};
       box.appendChild(im);
       if(fit==='contain'){
         // "Fit" shows the whole image, so there's nothing to reframe.
@@ -920,6 +924,31 @@ function initSectionViewfinder(s){
     {label:'Mobile',ratio:[9,16],w:116,img:g.image,fit:g.fit||'cover',
       get:()=>g.focalMob,set:(x,y)=>commit('focalMob',x,y)}
   ]);
+}
+// Hero carousel — one viewfinder per slide (image OR video). Framing is stored as
+// flat data-f fields (focalTab_x/y, focalMob_x/y) so syncForm — which rebuilds the
+// slides array from the DOM — persists them. Dragging writes those hidden inputs
+// then syncs, so the value survives the next rebuild.
+function initCarouselViewfinders(s){
+  const g=s.settings||{};const slides=g.slides||[];
+  slides.forEach((sl,i)=>{
+    const host=document.getElementById('hcVF_'+i);if(!host)return;
+    const media=sl.media_url||'';
+    const isVideo=sl.media_type==='video'||/\.(mp4|webm|mov|m4v|ogv)(\?.*)?$/i.test(media);
+    const item=host.closest('[data-arr-item]');
+    const num=v=>{const n=parseFloat(v);return isNaN(n)?null:n;};
+    const getF=(dev)=>{const x=num(sl[dev+'_x']),y=num(sl[dev+'_y']);return (x!=null&&y!=null)?{x,y}:{x:50,y:num(sl.focal_y)??50};};
+    const setF=(dev,x,y)=>{
+      if(item){const ix=item.querySelector('[data-f="'+dev+'_x"]');if(ix)ix.value=x;const iy=item.querySelector('[data-f="'+dev+'_y"]');if(iy)iy.value=y;}
+      syncForm(s);curApply();
+    };
+    buildVfFrames(host,[
+      {label:'Tablet',ratio:[4,3],w:180,img:media,isVideo,poster:sl.video_poster||'',fit:'cover',
+        get:()=>getF('focalTab'),set:(x,y)=>setF('focalTab',x,y)},
+      {label:'Mobile',ratio:[9,16],w:110,img:media,isVideo,poster:sl.video_poster||'',fit:'cover',
+        get:()=>getF('focalMob'),set:(x,y)=>setF('focalMob',x,y)}
+    ]);
+  });
 }
 function renderPagesTab(container){
   landingLoadProducts();
@@ -1181,6 +1210,12 @@ function openEditor(s){
     initSectionViewfinder(s);
     body.querySelectorAll('[data-f="image"],[data-f="fit"]').forEach(el=>el.addEventListener('change',()=>initSectionViewfinder(s)));
   }
+  if(s.type==='hero_carousel'){
+    initCarouselViewfinders(s);
+    // Rebuild a slide's frames when its media URL or type changes (Browse
+    // dispatches 'change'). syncForm runs first, so s.settings is fresh.
+    body.querySelectorAll('[data-arr="slides"] [data-f="media_url"],[data-arr="slides"] [data-f="media_type"]').forEach(el=>el.addEventListener('change',()=>initCarouselViewfinders(s)));
+  }
 }
 
 function closeEd(){selId=null;document.getElementById('editor').classList.add('hidden');renderLP();}
@@ -1348,7 +1383,11 @@ function buildForm(s){
         <div class="field"><label>Video Poster</label><input type="text" data-f="video_poster" value="${he(sl.video_poster)}" placeholder="Poster frame for videos"></div>
         <div class="field"><label>Slide Duration (ms)</label><input type="number" data-f="duration" value="${sl.duration||''}" placeholder="e.g. 5000 (leave blank for default)"></div>
         <div class="field" style="${sl.media_type==='video'?'':'display:none'}"><label>Video Duration Mode</label><select data-f="video_duration_mode"><option value="full"${sl.video_duration_mode==='full'?' selected':''}>Wait for video to finish</option><option value="custom"${sl.video_duration_mode==='custom'?' selected':''}>Use Slide Duration</option></select></div>
-        ${rangeF('focal_y','Vertical Focal Point',sl.focal_y??50,0,100,'%')}
+        ${rangeF('focal_y','Vertical Focal Point (desktop)',sl.focal_y??50,0,100,'%')}
+        <div class="fl" style="margin-top:.25rem">Viewfinder — tablet &amp; mobile framing</div>
+        <div class="fhint" style="margin-bottom:.35rem">Drag to choose what stays visible on each device (works for images &amp; videos). Double-click a frame to re-center.</div>
+        <input type="hidden" data-f="focalTab_x" value="${sl.focalTab_x??''}"><input type="hidden" data-f="focalTab_y" value="${sl.focalTab_y??''}"><input type="hidden" data-f="focalMob_x" value="${sl.focalMob_x??''}"><input type="hidden" data-f="focalMob_y" value="${sl.focalMob_y??''}">
+        <div id="hcVF_${i}" style="display:flex;gap:.8rem;flex-wrap:wrap;align-items:flex-start;margin-top:.3rem"></div>
         <div class="fdiv"></div>
         <div class="field"><label>Eyebrow</label><input type="text" data-f="eyebrow" value="${he(sl.eyebrow)}" placeholder="Small text above heading"></div>
         <div class="field"><label>Heading (↵=line break)</label><textarea data-f="heading" rows="2">${he(sl.heading)}</textarea></div>

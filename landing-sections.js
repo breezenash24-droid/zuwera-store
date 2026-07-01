@@ -400,6 +400,15 @@
     if (!slides.length) { el.innerHTML = '<div style="padding:4rem;text-align:center;color:#fff">Add slides in the editor</div>'; return true; }
     var indStyle = s.indicator_style === 'lines' ? 'lines' : 'dots';
     var slidesHtml = '', dotsHtml = '';
+    // Per-slide framing: base center focal_y% (desktop); the viewfinder adds
+    // per-device object-position via CSS vars on tablet/mobile (see .zw-hc-media).
+    var _hasXY = function (x, y) { return x != null && x !== '' && y != null && y !== ''; };
+    var posVars = function (sl) {
+      var v = '--zwh-pos:center ' + (sl.focal_y != null ? sl.focal_y : 50) + '%;';
+      if (_hasXY(sl.focalTab_x, sl.focalTab_y)) v += '--zwh-pos-tab:' + sl.focalTab_x + '% ' + sl.focalTab_y + '%;';
+      if (_hasXY(sl.focalMob_x, sl.focalMob_y)) v += '--zwh-pos-mob:' + sl.focalMob_x + '% ' + sl.focalMob_y + '%;';
+      return v;
+    };
     slides.forEach(function (sl, i) {
       var active = i === 0 ? ' active' : '';
       var media;
@@ -408,14 +417,14 @@
         var loopAttr = (sl.video_duration_mode || 'full') === 'full' ? '' : ' loop';
         // Preload so a non-first slide shows its first frame instead of black.
         var vidPreload = i === 0 ? 'auto' : 'metadata';
-        media = '<video class="zw-hc-media" src="' + (sl.media_url || '') + '" poster="' + (sl.video_poster || '') + '" playsinline' + loopAttr + ' muted' + auto + ' preload="' + vidPreload + '" style="object-position:center ' + (sl.focal_y != null ? sl.focal_y : 50) + '%"></video>';
+        media = '<video class="zw-hc-media" src="' + (sl.media_url || '') + '" poster="' + (sl.video_poster || '') + '" playsinline' + loopAttr + ' muted' + auto + ' preload="' + vidPreload + '" style="' + posVars(sl) + '"></video>';
       } else {
         // Never lazy-load carousel slides: an off-screen lazy slide (translateX
         // transition) never loads until navigated to, showing blank. Load all
         // eagerly — first high priority, the rest low — and fall back to the raw
         // URL if the Cloudinary-optimized one fails, so a slide is never blank.
         var loadAttr = i === 0 ? 'fetchpriority="high"' : 'loading="eager" fetchpriority="low"';
-        media = '<picture class="zw-hc-media">' + (sl.media_url_mobile ? '<source media="(max-width:768px)" srcset="' + optImg(sl.media_url_mobile, 800) + '">' : '') + '<img src="' + optImg(sl.media_url, 1400) + '" alt="" style="object-position:center ' + (sl.focal_y != null ? sl.focal_y : 50) + '%" ' + loadAttr + ' decoding="async" data-raw="' + (sl.media_url || '') + '" onerror="var i=this;if(!i.dataset.fb&&i.dataset.raw){i.dataset.fb=1;var p=i.parentNode;if(p){var ss=p.querySelectorAll(\'source\');for(var k=0;k<ss.length;k++)ss[k].removeAttribute(\'srcset\');}i.src=i.dataset.raw;}"></picture>';
+        media = '<picture class="zw-hc-media" style="' + posVars(sl) + '">' + (sl.media_url_mobile ? '<source media="(max-width:768px)" srcset="' + optImg(sl.media_url_mobile, 800) + '">' : '') + '<img src="' + optImg(sl.media_url, 1400) + '" alt="" ' + loadAttr + ' decoding="async" data-raw="' + (sl.media_url || '') + '" onerror="var i=this;if(!i.dataset.fb&&i.dataset.raw){i.dataset.fb=1;var p=i.parentNode;if(p){var ss=p.querySelectorAll(\'source\');for(var k=0;k<ss.length;k++)ss[k].removeAttribute(\'srcset\');}i.src=i.dataset.raw;}"></picture>';
       }
       slidesHtml += '<div class="zw-hc-slide' + active + '" data-index="' + i + '" data-duration="' + (sl.duration || '') + '" data-video-mode="' + (sl.video_duration_mode || 'full') + '">' + media +
         '<div class="zw-hc-overlay" style="opacity:' + ((sl.overlay_opacity != null ? sl.overlay_opacity : 30) / 100) + '"></div>' +

@@ -830,6 +830,16 @@ function showToast(msg) {
           // (segmented bars). Both reuse the .zw-hc-dot class so the carousel
           // JS wires clicks/active-state identically; CSS swaps the shape.
           const indStyle = s.indicator_style === 'lines' ? 'lines' : 'dots';
+          // Per-slide framing: base = center focal_y% (desktop, unchanged); the
+          // viewfinder adds per-device object-position via CSS vars applied on the
+          // tablet/mobile breakpoints (see .zw-hc-media CSS). Unset → base.
+          const _hasXY = (x, y) => x != null && x !== '' && y != null && y !== '';
+          const posVars = (sl) => {
+             let v = `--zwh-pos:center ${sl.focal_y ?? 50}%;`;
+             if (_hasXY(sl.focalTab_x, sl.focalTab_y)) v += `--zwh-pos-tab:${sl.focalTab_x}% ${sl.focalTab_y}%;`;
+             if (_hasXY(sl.focalMob_x, sl.focalMob_y)) v += `--zwh-pos-mob:${sl.focalMob_x}% ${sl.focalMob_y}%;`;
+             return v;
+          };
           slides.forEach((sl, i) => {
              const active = i === 0 ? ' active' : '';
              
@@ -842,7 +852,7 @@ function showToast(msg) {
                 // Preload so a non-first slide shows its first frame immediately
                 // instead of a black box while waiting to be navigated to.
                 const vidPreload = i === 0 ? 'auto' : 'metadata';
-                mediaHtml = `<video class="zw-hc-media" src="${sl.media_url||''}" poster="${sl.video_poster||''}" playsinline${loopAttr} muted${auto} preload="${vidPreload}" style="object-position:center ${sl.focal_y??50}%"></video>`;
+                mediaHtml = `<video class="zw-hc-media" src="${sl.media_url||''}" poster="${sl.video_poster||''}" playsinline${loopAttr} muted${auto} preload="${vidPreload}" style="${posVars(sl)}"></video>`;
              } else {
                 // Carousel slides are a small, known set that will be shown within
                 // seconds — NEVER lazy-load them (a lazy slide in a translateX
@@ -854,9 +864,9 @@ function showToast(msg) {
                 const optMobile = typeof window.optimizeImage === 'function' ? window.optimizeImage(sl.media_url_mobile, 800) : sl.media_url_mobile;
                 // Fallback: if the Cloudinary-optimized URL fails, drop to the raw
                 // uploaded URL so a slide is never left blank (fb flag stops loops).
-                mediaHtml = `<picture class="zw-hc-media">
+                mediaHtml = `<picture class="zw-hc-media" style="${posVars(sl)}">
                    ${sl.media_url_mobile ? `<source media="(max-width:768px)" srcset="${optMobile||''}">` : ''}
-                   <img src="${optDesktop||''}" alt="" style="object-position:center ${sl.focal_y??50}%" ${loadAttr} decoding="async" data-raw="${sl.media_url||''}" onerror="var i=this;if(!i.dataset.fb&&i.dataset.raw){i.dataset.fb=1;var p=i.parentNode;if(p){var ss=p.querySelectorAll('source');for(var k=0;k<ss.length;k++)ss[k].removeAttribute('srcset');}i.src=i.dataset.raw;}">
+                   <img src="${optDesktop||''}" alt="" ${loadAttr} decoding="async" data-raw="${sl.media_url||''}" onerror="var i=this;if(!i.dataset.fb&&i.dataset.raw){i.dataset.fb=1;var p=i.parentNode;if(p){var ss=p.querySelectorAll('source');for(var k=0;k<ss.length;k++)ss[k].removeAttribute('srcset');}i.src=i.dataset.raw;}">
                 </picture>`;
              }
 

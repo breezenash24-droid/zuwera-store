@@ -3567,6 +3567,16 @@ html.zw-customnav:not(.zw-nav-ready) #nav-category-links{ visibility:hidden; }
 
 .zw-hc-media { display:block; width:100%; height:100%; object-fit:cover; }
 picture.zw-hc-media img { display:block; width:100%; height:100%; object-fit:cover; }
+/* Carousel slide framing (viewfinder): object-position from per-slide CSS vars.
+   Base --zwh-pos = center focal_y% (desktop); tablet/mobile override when set.
+   Vars are set inline on the <video> / <picture> (inherited by the inner img). */
+video.zw-hc-media, picture.zw-hc-media img { object-position: var(--zwh-pos, center 50%); }
+@media (min-width:641px) and (max-width:1024px){
+  video.zw-hc-media, picture.zw-hc-media img { object-position: var(--zwh-pos-tab, var(--zwh-pos, center 50%)); }
+}
+@media (max-width:640px){
+  video.zw-hc-media, picture.zw-hc-media img { object-position: var(--zwh-pos-mob, var(--zwh-pos, center 50%)); }
+}
 .zw-hc-overlay { position:absolute; inset:0; background:#000; pointer-events:none; z-index:1; }
 
 .zw-hc-content { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:2rem; z-index:2; color:#fff; }
