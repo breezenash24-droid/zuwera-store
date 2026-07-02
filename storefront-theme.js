@@ -26,8 +26,14 @@
       document.documentElement.style.setProperty('--zw-notch-bar', color);
     }
     try {
-      var key = (window.__zwPageBuilderActive || window.__ZW_BUILDER_PREVIEW__) ? 'zw_homepage_theme_mode' : 'zw_theme_mode';
-      localStorage.setItem(key, resolved);
+      // Don't persist while inside the builder preview iframe — the preview shares
+      // localStorage with the live homepage (same origin), so remembering a
+      // previewed theme here would "stick" the live homepage to it. The live
+      // homepage sets zw_homepage_theme_mode itself from the published config.
+      if (!window.__ZW_BUILDER_PREVIEW__) {
+        var key = window.__zwPageBuilderActive ? 'zw_homepage_theme_mode' : 'zw_theme_mode';
+        localStorage.setItem(key, resolved);
+      }
     } catch(_) {}
     window.dispatchEvent(new CustomEvent('zw-theme-applied', { detail: { mode: resolved } }));
   }

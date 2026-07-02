@@ -668,3 +668,9 @@ body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba
   .review-list-translate { width: 100% !important; }
 }
 
+
+/* Light/super-light: review toggle + count sit on the product card (theme bg),
+   so their hardcoded light color goes invisible on light backgrounds. */
+body.light-mode .review-toggle-btn, body.super-light-mode .review-toggle-btn{ color:rgba(9,9,11,.55); }
+body.light-mode .review-toggle-btn:hover, body.super-light-mode .review-toggle-btn:hover{ color:rgba(9,9,11,.85); }
+body.light-mode .review-count, body.super-light-mode .review-count{ color:rgba(9,9,11,.42); }
