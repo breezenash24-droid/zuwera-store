@@ -432,6 +432,9 @@ function showToast(msg) {
     });
 
     sorted.forEach((sec, idx) => {
+     // Isolate each section: one section throwing must never blank the whole
+     // homepage (defaults are already hidden above). Skip + log the bad one.
+     try {
       let el = sectionMap[sec.type] || document.getElementById(sec.id);
       
       if (!el) {
@@ -1326,6 +1329,9 @@ function showToast(msg) {
         el.style.removeProperty('--zw-font-body');
         el.style.removeProperty('--fb');
       }
+     } catch (_secErr) {
+       try { console.warn('[storefront] section render failed — skipped:', sec && sec.type, sec && sec.id, _secErr); } catch (_) {}
+     }
     });
 
     // Layout is now positioned. Cache that a builder layout is active so the next
