@@ -1,4 +1,4 @@
-import { ROLE_PERMISSIONS, roleCan } from './_rbac.js';
+import { resolvePerms, levelMapFor } from './_rbac.js';
 
 // Admin emails are configured via the ADMIN_EMAILS environment variable (comma-separated).
 const DEFAULT_ADMIN_EMAILS = [];
@@ -150,7 +150,7 @@ async function upsertAdminProfile(user, config) {
 // this works even when the service-role key isn't configured for this function.
 // Falls back to the service key if for some reason the self-read fails.
 async function fetchProfile(accessToken, userId, config) {
-  const select = `id,email,full_name,role,admin_role`;
+  const select = `id,email,full_name,role,admin_role,admin_permissions`;
   const url = `${config.supabaseUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=${select}`;
 
   const anonKey = config.anonKey || config.serviceKey;
@@ -226,11 +226,15 @@ export async function onRequestPost({ request, env }) {
       adminRole = existing.admin_role || 'super_admin';
     }
 
+    // Effective permissions from role preset + any per-user override matrix.
+    const resolveInput = { admin_role: adminRole, admin_permissions: profile.admin_permissions };
     return json({
       success: true,
       role: 'admin',
       admin_role: adminRole,
-      permissions: ROLE_PERMISSIONS[adminRole] || [],
+      permissions: resolvePerms(resolveInput),
+      levels: adminRole === 'super_admin' ? '*' : levelMapFor(resolveInput),
+      color: profile.admin_permissions?.color || null,
       profile,
       recoveredFromSwappedEnv: config.recoveredFromSwappedEnv
     });

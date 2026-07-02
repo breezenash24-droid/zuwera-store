@@ -4,7 +4,7 @@
  * Supports multiple keys: page_builder, builder_theme, builder_nav, builder_history, builder_templates
  */
 
-import { roleCan } from './_rbac.js';
+import { resolvePerms, permsHave } from './_rbac.js';
 
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
@@ -59,7 +59,7 @@ export async function onRequestPost({ request, env }) {
     // (Previously this endpoint only checked the session was valid — any
     // logged-in customer could overwrite the homepage. RBAC closes that.)
     const profRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(authUser.id)}&select=role,admin_role&limit=1`,
+      `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(authUser.id)}&select=role,admin_role,admin_permissions&limit=1`,
       { headers: { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey } }
     );
     const profRows = profRes.ok ? await profRes.json().catch(() => []) : [];
@@ -67,7 +67,8 @@ export async function onRequestPost({ request, env }) {
     if (!prof || prof.role !== 'admin') {
       return cors({ error: 'Your account does not have admin privileges.' }, 403);
     }
-    if (!roleCan(prof.admin_role || 'super_admin', 'builder_edit')) {
+    const perms = resolvePerms({ admin_role: prof.admin_role || 'super_admin', admin_permissions: prof.admin_permissions });
+    if (!permsHave(perms, 'builder_edit')) {
       return cors({ error: 'Your role does not have permission to edit pages.' }, 403);
     }
 

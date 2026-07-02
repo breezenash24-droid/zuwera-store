@@ -8,7 +8,7 @@ import {
   upsertTimelineEntry,
   verifyAdmin,
 } from './_commerce.js';
-import { roleCan } from './_rbac.js';
+import { permsHave } from './_rbac.js';
 
 function orderTotal(order = {}) {
   return Number(order.total || order.total_amount || 0);
@@ -105,7 +105,7 @@ async function requireAdmin(request, env, permission = 'returns') {
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
   const admin = await verifyAdmin(env, token);
   if (!admin) throw new Error('Not authorized');
-  if (permission && !roleCan(admin.admin_role, permission)) {
+  if (permission && !permsHave(admin.permissions, permission)) {
     throw new Error('Your role does not have permission for this action.');
   }
   return admin;

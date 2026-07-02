@@ -11,7 +11,25 @@
  */
 
 import { cors, json, verifyAdmin } from './_commerce.js';
-import { roleCan, STAFF_ROLES } from './_rbac.js';
+import { permsHave, STAFF_ROLES, PAGE_IDS } from './_rbac.js';
+
+// Validate + normalize a per-section access override into { pages, color } or null.
+function sanitizeAdminPermissions(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const out = {};
+  const pagesIn = raw.pages && typeof raw.pages === 'object' ? raw.pages : null;
+  if (pagesIn) {
+    const pages = {};
+    for (const page of PAGE_IDS) {
+      const lvl = pagesIn[page];
+      if (lvl === 'view' || lvl === 'edit') pages[page] = lvl;
+      // 'none' / missing -> omit (defaults to no access)
+    }
+    if (Object.keys(pages).length) out.pages = pages;
+  }
+  if (typeof raw.color === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(raw.color)) out.color = raw.color;
+  return Object.keys(out).length ? out : null;
+}
 
 export async function onRequestOptions({ env }) {
   return new Response(null, { status: 204, headers: cors(env) });
@@ -24,10 +42,12 @@ export async function onRequestPost({ request, env }) {
 
   const { accessToken, targetUserId } = body;
   const nextRole = body.adminRole ? String(body.adminRole).trim() : null;
+  // Optional per-section override matrix + color. null when using a plain preset.
+  const nextPermissions = nextRole ? sanitizeAdminPermissions(body.adminPermissions) : null;
 
   const admin = await verifyAdmin(env, accessToken);
   if (!admin) return json({ error: 'Unauthorized.' }, 403, h);
-  if (!roleCan(admin.admin_role, 'role_manage')) {
+  if (!permsHave(admin.permissions, 'role_manage')) {
     return json({ error: 'Only a Super Admin can change staff roles.' }, 403, h);
   }
 
@@ -55,6 +75,7 @@ export async function onRequestPost({ request, env }) {
 
   const patch = {
     admin_role: nextRole,
+    admin_permissions: nextPermissions,   // null => fall back to the role preset
     role: nextRole ? 'admin' : 'customer',
     updated_at: new Date().toISOString(),
   };

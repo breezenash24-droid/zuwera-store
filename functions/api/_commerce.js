@@ -1,4 +1,4 @@
-import { roleCan } from './_rbac.js';
+import { resolvePerms, permsHave } from './_rbac.js';
 
 export function json(body, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(body), {
@@ -104,21 +104,24 @@ export async function verifyUser(env, accessToken) {
 export async function verifyAdmin(env, accessToken) {
   const user = await verifyUser(env, accessToken);
   if (!user?.id) return null;
-  const rows = await supabaseSelect(env, `profiles?select=id,email,role,full_name,admin_role&id=eq.${encodeURIComponent(user.id)}&limit=1`);
+  const rows = await supabaseSelect(env, `profiles?select=id,email,role,full_name,admin_role,admin_permissions&id=eq.${encodeURIComponent(user.id)}&limit=1`);
   const profile = rows?.[0] || null;
   if (!profile || profile.role !== 'admin') return null;
   // admin_role may be null on stores that haven't run supabase-rbac.sql yet —
   // treat that as super_admin so RBAC rollout never locks the owner out.
   const adminRole = profile.admin_role || 'super_admin';
-  return { ...user, profile, admin_role: adminRole };
+  // Effective flat permission list from role preset + per-user overrides.
+  const permissions = resolvePerms({ admin_role: adminRole, admin_permissions: profile.admin_permissions });
+  return { ...user, profile, admin_role: adminRole, permissions };
 }
 
-// Like verifyAdmin, but also requires the staff role to hold `permission`.
+// Like verifyAdmin, but also requires the person to hold `permission`
+// (resolved from their role preset + per-user access overrides).
 // Returns the admin object on success, or null if unauthenticated / not permitted.
 export async function verifyAdminCan(env, accessToken, permission) {
   const admin = await verifyAdmin(env, accessToken);
   if (!admin) return null;
-  if (!roleCan(admin.admin_role, permission)) return null;
+  if (!permsHave(admin.permissions, permission)) return null;
   return admin;
 }
 
