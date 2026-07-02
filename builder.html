@@ -308,11 +308,12 @@ body{display:flex;flex-direction:column}
   <div class="pv-bar">
     <span>Preview</span>
     <span style="font-size:.45rem;opacity:.4" id="autoLbl">auto-updating</span>
+    <button id="selModeBtn" class="lp-float-btn" onclick="toggleSelectMode()" style="margin-left:.5rem" title="On: click a section in the preview to edit it. Off: links and buttons work normally.">🎯 Click-to-select: Off</button>
     <span id="pvDims" style="margin-left:auto">—</span>
   </div>
   <div class="pv-wrap">
     <div class="pv-frame desk" id="pvFrame">
-      <iframe id="pvIframe" src="/index.html?builder=1" title="Preview" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+      <iframe id="pvIframe" src="/index.html?builder=1" title="Preview" onload="sendSelectMode()" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
     </div>
   </div>
 </div>
@@ -1206,6 +1207,18 @@ async function persistTemplates(){try{const token=await getAccessToken();if(!tok
 
 // ── EDITOR ────────────────────────────────────────────────────────────────
 function selectSec(id){selId=id;const s=curSections().find(x=>x.id===id);if(s)openEditor(s);}
+
+// Click-to-select mode (default OFF so preview links/buttons work normally).
+// When ON, clicking a section in the canvas selects it for editing.
+let selectMode=false;
+function sendSelectMode(){ try{ document.getElementById('pvIframe').contentWindow.postMessage({type:'ZW_SELECT_MODE',on:selectMode}, location.origin); }catch(_){} }
+function toggleSelectMode(){
+  selectMode=!selectMode;
+  const b=document.getElementById('selModeBtn');
+  if(b){ b.textContent='🎯 Click-to-select: '+(selectMode?'On':'Off'); b.classList.toggle('on',selectMode); }
+  sendSelectMode();
+  if(typeof toast==='function') toast(selectMode?'Click a section in the preview to edit it':'Preview links are clickable again');
+}
 
 // On-canvas WYSIWYG: the preview iframe posts ZW_SECTION_CLICKED when a section
 // is clicked in the canvas — select + open its editor here. Same-origin gated.

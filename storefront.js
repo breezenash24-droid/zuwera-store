@@ -1390,6 +1390,14 @@ function showToast(msg) {
       if (e.data && e.data.type === 'ZW_BUILDER_CONFIG') {
         applyBuilderConfig(e.data);
       }
+      if (e.data && e.data.type === 'ZW_SELECT_MODE') {
+        window.__zwSelectMode = !!e.data.on;
+        document.body.classList.toggle('zw-select-mode', window.__zwSelectMode);
+        if (!window.__zwSelectMode) {
+          document.querySelectorAll('[data-zw-sec].zw-hover-sec, [data-zw-sec].zw-sel-sec')
+            .forEach(x => x.classList.remove('zw-hover-sec', 'zw-sel-sec'));
+        }
+      }
       if (e.data && e.data.type === 'ZW_SCROLL_TO_SECTION') {
         const secId = e.data.sectionId;
         const sectionMap = {
@@ -1410,12 +1418,16 @@ function showToast(msg) {
     // In builder preview, hovering a section outlines it and clicking it tells the
     // builder to select that section. Gated to preview mode, so the live store is
     // never affected. Clicks are captured so a section's own links don't navigate.
+    // Off by default so the preview behaves like the real site (links/buttons
+    // work). The builder toggles it via ZW_SELECT_MODE.
+    window.__zwSelectMode = false;
     (function initCanvasSelect() {
       const style = document.createElement('style');
-      style.textContent = '[data-zw-sec]{cursor:pointer}[data-zw-sec].zw-hover-sec{outline:2px dashed rgba(248,145,165,.85);outline-offset:-2px}[data-zw-sec].zw-sel-sec{outline:2px solid rgba(248,145,165,1);outline-offset:-2px}';
+      style.textContent = 'body.zw-select-mode [data-zw-sec]{cursor:pointer}[data-zw-sec].zw-hover-sec{outline:2px dashed rgba(248,145,165,.85);outline-offset:-2px}[data-zw-sec].zw-sel-sec{outline:2px solid rgba(248,145,165,1);outline-offset:-2px}';
       document.head.appendChild(style);
       let hovered = null;
       document.addEventListener('mousemove', e => {
+        if (!window.__zwSelectMode) { if (hovered) { hovered.classList.remove('zw-hover-sec'); hovered = null; } return; }
         const el = e.target.closest ? e.target.closest('[data-zw-sec]') : null;
         if (el === hovered) return;
         if (hovered) hovered.classList.remove('zw-hover-sec');
@@ -1423,6 +1435,7 @@ function showToast(msg) {
         if (hovered) hovered.classList.add('zw-hover-sec');
       });
       document.addEventListener('click', e => {
+        if (!window.__zwSelectMode) return;   // pass through — links work normally
         const el = e.target.closest ? e.target.closest('[data-zw-sec]') : null;
         if (!el) return;
         e.preventDefault();
