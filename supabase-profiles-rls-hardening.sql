@@ -17,8 +17,28 @@ to authenticated
 using (auth.uid() = id)
 with check (
   auth.uid() = id
-  -- role / admin_role must match the CURRENT committed values (MVCC snapshot),
-  -- so a self-update that tries to change either is rejected.
+  -- role / admin_role / admin_permissions must match the CURRENT committed values
+  -- (MVCC snapshot), so a self-update that tries to change any of them is rejected.
+  -- admin_permissions holds page grants; users must not self-escalate. Color
+  -- changes go through /api/set-my-color (service key), not direct writes.
   and role = (select p.role from public.profiles p where p.id = auth.uid())
   and admin_role is not distinct from (select p.admin_role from public.profiles p where p.id = auth.uid())
+  and admin_permissions is not distinct from (select p.admin_permissions from public.profiles p where p.id = auth.uid())
 );
+
+-- CRITICAL: the old broad policies let ANY role='admin' account (including a
+-- viewer) UPDATE ANY profile — so a restricted staffer could self-promote by
+-- editing their own role/admin_role/admin_permissions, bypassing the guard above
+-- (RLS policies are OR'd). Scope profile management to super_admins only.
+-- Admins keep READ access via "Admins read profiles". Name edits for other users
+-- go through /api/set-user-name (service key). Role changes go through
+-- /api/set-admin-role (service key). Both bypass RLS and keep working.
+drop policy if exists "Admins manage profiles" on public.profiles;
+drop policy if exists "Admin update profiles" on public.profiles;
+
+create policy "Super admins manage profiles"
+on public.profiles
+for all
+to authenticated
+using (public.is_super_admin())
+with check (public.is_super_admin());

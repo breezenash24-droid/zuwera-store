@@ -1685,6 +1685,9 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-logo">ZW</div>
+            <!-- Logged-in staff name (top-left). Click to edit your own name. -->
+            <div id="zw-my-name" onclick="editMyName()" title="Click to edit your name"
+                 style="display:none;padding:2px 4px 10px;font-size:.9rem;font-weight:600;cursor:pointer;line-height:1.2;color:var(--text-primary);"></div>
             <!-- Generated from ADMIN_PAGES (single source of truth) below -->
             <nav class="sidebar-nav" id="sidebarNav"></nav>
             <div class="sidebar-bottom">
@@ -8089,8 +8092,19 @@
                     b.style.cssText = 'font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);padding:6px 4px 0;opacity:.7;';
                     badgeHost.appendChild(b);
                 }
+                // Name in the top-left.
+                const nameEl = document.getElementById('zw-my-name');
+                if (nameEl) {
+                    const nm = ADMIN_ME?.profile?.full_name || (ADMIN_ME?.profile?.email || '').split('@')[0] || 'You';
+                    nameEl.textContent = '👤 ' + nm;
+                    nameEl.style.display = 'block';
+                }
                 const badge = document.getElementById('zw-role-badge');
-                if (badge) badge.textContent = ZW_ROLE_LABELS[ADMIN_ME?.admin_role] || 'Staff';
+                if (badge) {
+                    const roleTxt = ZW_ROLE_LABELS[ADMIN_ME?.admin_role] || 'Staff';
+                    // Your accent color (editable) + your role. Saved via /api/set-my-color.
+                    badge.innerHTML = `<input type="color" id="zw-my-color" value="${ADMIN_COLOR || '#F891A5'}" title="Your color — click to change" onchange="setMyColor(this.value)" style="width:18px;height:18px;padding:0;border:1px solid var(--border);border-radius:50%;background:none;cursor:pointer;vertical-align:middle;"> <span style="vertical-align:middle;">${escapeHtml(roleTxt)}</span>`;
+                }
                 // If the restored/active page isn't allowed, bounce to the first allowed one.
                 const activePage = document.querySelector('.page.active')?.id;
                 if (activePage && !can(activePage)) {
@@ -10044,9 +10058,12 @@
                     ? `<div class="action-buttons">${roleControl}${toggleRoleBtn}${deleteBtn}</div>`
                     : '<span style="color:var(--text-secondary);font-size:.75rem;">—</span>';
 
+                const editNameBtn = canManage
+                    ? `<button title="Edit name" data-ro-ok onclick="editUserName('${userId}')" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:.8rem;padding:0 4px;">✎</button>`
+                    : '';
                 return `
                     <tr>
-                        <td><strong>${userName}</strong> ${isCurrentUser ? '<span class="status-badge status-live" style="margin-left:8px;font-size:0.6rem;padding:2px 6px;">You</span>' : ''}</td>
+                        <td><strong>${userName}</strong>${editNameBtn} ${isCurrentUser ? '<span class="status-badge status-live" style="margin-left:8px;font-size:0.6rem;padding:2px 6px;">You</span>' : ''}</td>
                         <td>${userEmail}</td>
                         <td>${date}</td>
                         <td>${actions}</td>
@@ -10201,6 +10218,58 @@
               </div>`;
         };
         const ADMIN_ME_DEFAULT_COLOR = '#F891A5';
+        // Any staff member can change their OWN accent color (safe endpoint — only
+        // touches color, preserves page grants; RLS blocks direct self-writes).
+        window.setMyColor = async function(color) {
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                if (!session?.access_token) throw new Error('Session expired — sign in again.');
+                const resp = await fetch('/api/set-my-color', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: session.access_token, color })
+                });
+                const p = await resp.json().catch(() => ({}));
+                if (!resp.ok || !p.success) throw new Error(p.error || 'Could not save color.');
+                ADMIN_COLOR = color;
+                showToast('Your color was updated', 'success');
+            } catch (err) { showToast('Error: ' + err.message, 'error'); }
+        };
+        // Edit your OWN name (RLS "Users update own profile" allows full_name).
+        window.editMyName = async function() {
+            const cur = ADMIN_ME?.profile?.full_name || '';
+            const next = prompt('Your name:', cur);
+            if (next === null) return;
+            const name = next.trim();
+            if (!name) { showToast('Name cannot be empty', 'error'); return; }
+            try {
+                const { error } = await sb.from('profiles').update({ full_name: name }).eq('id', ADMIN_ME.profile.id);
+                if (error) throw error;
+                if (ADMIN_ME?.profile) ADMIN_ME.profile.full_name = name;
+                const nameEl = document.getElementById('zw-my-name');
+                if (nameEl) nameEl.textContent = '👤 ' + name;
+                showToast('Name updated', 'success');
+            } catch (err) { showToast('Error: ' + err.message, 'error'); }
+        };
+        // Admin edits ANOTHER user's name via the name-only endpoint (user_manage).
+        window.editUserName = async function(userId) {
+            const u = (window._zwProfilesById || {})[userId] || {};
+            const next = prompt('Name for ' + (u.email || 'this user') + ':', u.full_name || '');
+            if (next === null) return;
+            const name = next.trim();
+            if (!name) { showToast('Name cannot be empty', 'error'); return; }
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                if (!session?.access_token) throw new Error('Session expired — sign in again.');
+                const resp = await fetch('/api/set-user-name', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: session.access_token, targetUserId: userId, fullName: name })
+                });
+                const p = await resp.json().catch(() => ({}));
+                if (!resp.ok || !p.success) throw new Error(p.error || 'Could not save name.');
+                showToast('Name updated', 'success');
+                loadUsers();
+            } catch (err) { showToast('Error: ' + err.message, 'error'); }
+        };
         window.closeAccessModal = function() { const m = document.getElementById('accessModal'); if (m) m.remove(); };
         window.applyAccessPreset = function(role) {
             const superLevels = Object.fromEntries(ADMIN_PAGES.map(p => [p.id, 'edit']));
