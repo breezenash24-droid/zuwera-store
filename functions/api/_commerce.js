@@ -1,3 +1,5 @@
+import { roleCan } from './_rbac.js';
+
 export function json(body, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(body), {
     status,
@@ -102,10 +104,22 @@ export async function verifyUser(env, accessToken) {
 export async function verifyAdmin(env, accessToken) {
   const user = await verifyUser(env, accessToken);
   if (!user?.id) return null;
-  const rows = await supabaseSelect(env, `profiles?select=id,email,role,full_name&id=eq.${encodeURIComponent(user.id)}&limit=1`);
+  const rows = await supabaseSelect(env, `profiles?select=id,email,role,full_name,admin_role&id=eq.${encodeURIComponent(user.id)}&limit=1`);
   const profile = rows?.[0] || null;
   if (!profile || profile.role !== 'admin') return null;
-  return { ...user, profile };
+  // admin_role may be null on stores that haven't run supabase-rbac.sql yet —
+  // treat that as super_admin so RBAC rollout never locks the owner out.
+  const adminRole = profile.admin_role || 'super_admin';
+  return { ...user, profile, admin_role: adminRole };
+}
+
+// Like verifyAdmin, but also requires the staff role to hold `permission`.
+// Returns the admin object on success, or null if unauthenticated / not permitted.
+export async function verifyAdminCan(env, accessToken, permission) {
+  const admin = await verifyAdmin(env, accessToken);
+  if (!admin) return null;
+  if (!roleCan(admin.admin_role, permission)) return null;
+  return admin;
 }
 
 export async function getOrdersForUser(env, userId, userEmail = '') {

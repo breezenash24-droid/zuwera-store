@@ -14,6 +14,7 @@
 
 import Stripe from 'stripe';
 import { cors, json, verifyAdmin, getSetting, setSetting, getCommerceBundle } from './_commerce.js';
+import { roleCan } from './_rbac.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 
 const RATE_LIMIT_KEY = 'refund_rate_limit';
@@ -38,9 +39,16 @@ export async function onRequestPost({ request, env }) {
 
   const { accessToken, orderId, refundKey, action, amountCents, reason, customerNote } = body;
 
-  // ── 1. Verify admin JWT ──────────────────────────────────────────────────────
+  // ── 1. Verify admin JWT + refund permission ─────────────────────────────────
   const admin = await verifyAdmin(env, accessToken);
   if (!admin) return json({ error: 'Unauthorized.' }, 403, h);
+  if (!roleCan(admin.admin_role, 'refund')) {
+    await audit(env, {
+      adminId: String(admin.id || ''), adminEmail: String(admin.email || ''),
+      orderId, action, success: false, note: `blocked: role "${admin.admin_role}" lacks refund permission`,
+    });
+    return json({ error: 'Your role does not have permission to issue refunds.' }, 403, h);
+  }
 
   // ── 2. REFUND_SECRET must exist in Cloudflare env vars ──────────────────────
   const secret = env.REFUND_SECRET;

@@ -1729,6 +1729,33 @@
            drawer was missing Legacy, for example).
            `mobile` pins a page to the bottom bar with that label; everything
            else lands in the drawer. `searchLabel` overrides the Ctrl+K name. */
+        /* ── ZW_RBAC ─────────────────────────────────────────────────────────
+           Client mirror of functions/api/_rbac.js — KEEP THE TWO IN SYNC.
+           Drives which nav pages + action buttons this staff member can see.
+           The server re-checks every sensitive action, so this is UX, not the
+           security boundary. */
+        const ZW_RBAC = {
+            super_admin: ['*'],
+            manager: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','commerce','meta','receipts','shipping','returns','users','website','settings','tax','audit','refund','return_process','product_write','order_write','user_manage','builder_edit','bulk_actions','export'],
+            finance: ['dashboard','analytics','finance','receipts','tax','audit','refund','export'],
+            fulfillment: ['dashboard','products','receipts','shipping','returns','order_write','return_process','product_write','bulk_actions','export'],
+            content: ['dashboard','products','sizecharts','reviews','website','settings','product_write','builder_edit','export'],
+            viewer: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','commerce','meta','receipts','shipping','returns','users','website','settings','tax','audit','export']
+        };
+        const ZW_ROLE_LABELS = {
+            super_admin:'Super Admin', manager:'Manager', finance:'Finance',
+            fulfillment:'Fulfillment', content:'Content Editor', viewer:'Viewer (read-only)'
+        };
+        // Set from /api/admin-access. null = not yet resolved (pre-auth): allow
+        // everything so the panel renders normally until the real role arrives.
+        let ADMIN_ME = null;         // { admin_role, permissions, profile }
+        let ADMIN_PERMS = null;      // string[] | null
+        function can(permission) {
+            if (!ADMIN_PERMS) return true;              // pre-auth: don't hide anything yet
+            if (ADMIN_PERMS.includes('*')) return true; // super_admin
+            return ADMIN_PERMS.includes(permission);
+        }
+
         const ADMIN_PAGES = [
             { id:'dashboard',  icon:'📊', label:'Dashboard',   title:'Dashboard',           group:'overview',      mobile:'Home', kw:'home overview summary' },
             { id:'analytics',  icon:'📈', label:'Analytics',   title:'Analytics',           group:'overview', kw:'traffic visitors stats metrics sessions conversion' },
@@ -1757,17 +1784,22 @@
             { id:'storefront',    label:'Storefront',    collapsed:true },
             { id:'configuration', label:'Configuration', collapsed:true },
         ];
-        (function renderAdminNav(){
+        function renderAdminNav(){
             const esc = s => String(s).replace(/"/g,'&quot;');
             /* Sidebar */
             const nav = document.getElementById('sidebarNav');
             nav.innerHTML = ADMIN_NAV_GROUPS.map(g => {
-                const pageLinks = ADMIN_PAGES.filter(p => p.group === g.id).map(p =>
+                const groupPages = ADMIN_PAGES.filter(p => p.group === g.id && can(p.id));
+                // Hide an entire nav group when the role can't see any of its pages
+                // (Storefront keeps its Page Builder link only if builder_edit is allowed).
+                const showBuilderLink = g.id === 'storefront' && can('builder_edit');
+                if (groupPages.length === 0 && !showBuilderLink) return '';
+                const pageLinks = groupPages.map(p =>
                     `<a class="nav-link${p.id==='dashboard'?' active':''}" href="#" data-page="${p.id}" onclick="navigateTo('${p.id}')">${p.icon} ${esc(p.label)}</a>`
                   ).join('');
                 // Storefront leads with the external Page Builder link, then its
                 // in-app pages (e.g. Appearance); every other group is just its pages.
-                const links = g.id === 'storefront'
+                const links = showBuilderLink
                     ? `<a class="nav-link" href="/builder.html" target="_blank" style="display:flex;align-items:center;gap:.55rem;" onclick="(async function(){try{const s=await sb.auth.getSession();const sess=s&&s.data&&s.data.session;if(sess){localStorage.setItem('zw_builder_token',sess.access_token);localStorage.setItem('zw_builder_token_exp',String(sess.expires_at||0));}}catch(_){}})()">🏗️ Page Builder ↗</a>` + pageLinks
                     : pageLinks;
                 return `<div class="nav-section${g.collapsed?' collapsed':''}" data-group="${g.id}">
@@ -1775,22 +1807,23 @@
                     <div class="nav-section-links">${links}</div>
                 </div>`;
             }).join('');
-            /* Mobile bottom bar: pinned pages + More */
+            /* Mobile bottom bar: pinned pages the role can see + More */
             const bottom = document.getElementById('mobile-bottom-nav');
-            bottom.innerHTML = ADMIN_PAGES.filter(p => p.mobile).map(p =>
+            bottom.innerHTML = ADMIN_PAGES.filter(p => p.mobile && can(p.id)).map(p =>
                 `<button class="mob-nav-btn${p.id==='dashboard'?' active':''}" data-mob-page="${p.id}" onclick="navigateTo('${p.id}')">
                     <span class="mob-nav-icon">${p.icon}</span><span class="mob-nav-label">${esc(p.mobile)}</span>
                 </button>`
             ).join('') + `<button class="mob-nav-btn" id="mob-more-btn" onclick="openMobileMore()">
                     <span class="mob-nav-icon">☰</span><span class="mob-nav-label">More</span>
                 </button>`;
-            /* Drawer: everything not pinned */
-            document.getElementById('mobDrawerGrid').innerHTML = ADMIN_PAGES.filter(p => !p.mobile).map(p =>
+            /* Drawer: everything not pinned the role can see */
+            document.getElementById('mobDrawerGrid').innerHTML = ADMIN_PAGES.filter(p => !p.mobile && can(p.id)).map(p =>
                 `<button class="mob-drawer-item" onclick="navigateTo('${p.id}');closeMobileMore()">
                     <span class="mob-drawer-item-icon">${p.icon}</span>${esc(p.label)}
                 </button>`
             ).join('');
-        })();
+        }
+        renderAdminNav();
         </script>
 
         <!-- Main Content -->
@@ -7940,6 +7973,12 @@
                 try {
                     const serverAccess = await requestServerAdminAccess();
                     if (serverAccess?.role === 'admin' || serverAccess?.profile?.role === 'admin') {
+                        // Capture RBAC context and re-render nav gated to this role.
+                        ADMIN_ME = serverAccess;
+                        ADMIN_PERMS = Array.isArray(serverAccess.permissions) && serverAccess.permissions.length
+                            ? serverAccess.permissions
+                            : (ZW_RBAC[serverAccess.admin_role] || ['*']);
+                        applyRolePermissions();
                         await checkMFAAndProceed();
                         return;
                     }
@@ -7955,6 +7994,41 @@
                 console.error('Admin role check error:', err);
                 showAccessDenied(err.message);
             }
+        }
+
+        // Re-render nav + hide anything this role can't use, once RBAC is known.
+        function applyRolePermissions() {
+            try {
+                if (ADMIN_ME?.admin_role) document.body.dataset.role = ADMIN_ME.admin_role;
+                renderAdminNav();
+                setupEventListeners();
+                applyActionGates();
+                // Show the role in the sidebar bottom, if that area exists.
+                const badgeHost = document.querySelector('.sidebar-bottom');
+                if (badgeHost && !document.getElementById('zw-role-badge')) {
+                    const b = document.createElement('div');
+                    b.id = 'zw-role-badge';
+                    b.style.cssText = 'font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);padding:6px 4px 0;opacity:.7;';
+                    badgeHost.appendChild(b);
+                }
+                const badge = document.getElementById('zw-role-badge');
+                if (badge) badge.textContent = ZW_ROLE_LABELS[ADMIN_ME?.admin_role] || 'Staff';
+                // If the restored/active page isn't allowed, bounce to the first allowed one.
+                const activePage = document.querySelector('.page.active')?.id;
+                if (activePage && !can(activePage)) {
+                    const firstAllowed = ADMIN_PAGES.find(p => can(p.id));
+                    if (firstAllowed) navigateTo(firstAllowed.id);
+                }
+            } catch (e) { console.warn('applyRolePermissions failed', e); }
+        }
+
+        // Hide any element tagged [data-req-perm="x"] when the role lacks permission x.
+        // Lets us gate action buttons declaratively without per-button JS.
+        function applyActionGates(root = document) {
+            root.querySelectorAll('[data-req-perm]').forEach(el => {
+                const need = el.getAttribute('data-req-perm');
+                el.style.display = can(need) ? '' : 'none';
+            });
         }
 
         function showAuthGate() {
@@ -8121,6 +8195,13 @@
         }
 
         function navigateTo(page) {
+            // RBAC guard: block pages this role can't view (e.g. via Ctrl+K search
+            // or a restored session page) and fall back to the first allowed page.
+            if (ADMIN_PERMS && !can(page)) {
+                const firstAllowed = ADMIN_PAGES.find(p => can(p.id));
+                if (!firstAllowed || firstAllowed.id === page) return;
+                page = firstAllowed.id;
+            }
             if (page === 'website') { setTimeout(loadWebsiteSettings, 100); setTimeout(loadFonts, 120); }
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             const pageEl = document.getElementById(page);
@@ -8267,12 +8348,12 @@
         function zwBuildIndex() {
             // Nav pages (single source of truth) — now carry kw aliases for niche matching.
             const groupLabels = Object.fromEntries(ADMIN_NAV_GROUPS.map(g => [g.id, g.label]));
-            _zwSearchIdx = ADMIN_PAGES.map(p => ({
+            _zwSearchIdx = ADMIN_PAGES.filter(p => can(p.id)).map(p => ({
                 icon: p.icon, main: p.searchLabel || p.label, sub: groupLabels[p.group] || '', kw: p.kw || '',
                 action: () => navigateTo(p.id),
             }));
-            // Deep feature/settings index.
-            ZW_SEARCH_FEATURES.forEach(f => _zwSearchIdx.push({
+            // Deep feature/settings index — skip features whose page the role can't open.
+            ZW_SEARCH_FEATURES.filter(f => !f.page || can(f.page)).forEach(f => _zwSearchIdx.push({
                 icon: f.icon, main: f.main, sub: f.sub || '', kw: f.kw || '',
                 action: f.open ? (() => window.open(f.open, '_blank')) : (() => zwGoto(f.page, f.el)),
             }));
@@ -9821,30 +9902,54 @@
                 tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-secondary);">No users found.</td></tr>';
                 return;
             }
-            
+
+            const isAdminsTable = tbodyId === 'adminsTableBody';
+            const canManage = can('user_manage');   // manager+ can add/remove staff & delete
+            const canRole   = can('role_manage');    // super_admin only: change granular role
+
             tbody.innerHTML = users.map(u => {
                 const date = new Date(u.created_at).toLocaleDateString();
                 const isCurrentUser = currentUser && currentUser.id === u.id;
                 const userId = escapeAttr(u.id || '');
                 const userName = escapeHtml(u.full_name || 'No Name');
                 const userEmail = escapeHtml(u.email || 'N/A');
-                const toggleRoleBtn = u.role === 'admin' 
-                    ? `<button class="btn btn-secondary btn-sm" onclick="toggleUserRole('${userId}', 'customer')" ${isCurrentUser ? 'disabled title="Cannot demote yourself"' : ''}>Make Customer</button>`
-                    : `<button class="btn btn-secondary btn-sm" onclick="toggleUserRole('${userId}', 'admin')">Make Admin</button>`;
-                
-                const deleteBtn = `<button class="btn btn-danger btn-sm" onclick="deleteUser('${userId}')" ${isCurrentUser ? 'disabled title="Cannot delete yourself"' : ''}>Delete</button>`;
-                
+
+                // Granular role control (staff only, super_admin only). Falls back to a
+                // static label for everyone else so the role is still visible.
+                let roleControl = '';
+                if (isAdminsTable) {
+                    const cur = u.admin_role || 'super_admin';
+                    if (canRole) {
+                        const opts = Object.keys(ZW_ROLE_LABELS).map(r =>
+                            `<option value="${r}" ${r===cur?'selected':''}>${escapeHtml(ZW_ROLE_LABELS[r])}</option>`).join('');
+                        roleControl = `<select class="btn btn-secondary btn-sm" style="padding:4px 6px;" onchange="setAdminRole('${userId}', this.value)" ${isCurrentUser ? 'title="Changing your own role"' : ''}>${opts}</select>`;
+                    } else {
+                        roleControl = `<span class="status-badge" style="font-size:.6rem;padding:2px 6px;">${escapeHtml(ZW_ROLE_LABELS[cur] || 'Staff')}</span>`;
+                    }
+                }
+
+                // Promote/demote between customer and staff (default new staff = viewer).
+                let toggleRoleBtn = '';
+                if (canManage) {
+                    toggleRoleBtn = u.role === 'admin'
+                        ? `<button class="btn btn-secondary btn-sm" onclick="setAdminRole('${userId}', '')" ${isCurrentUser ? 'disabled title="Cannot demote yourself"' : ''}>Remove Staff</button>`
+                        : `<button class="btn btn-secondary btn-sm" onclick="setAdminRole('${userId}', 'viewer')">Make Staff</button>`;
+                }
+
+                const deleteBtn = canManage
+                    ? `<button class="btn btn-danger btn-sm" onclick="deleteUser('${userId}')" ${isCurrentUser ? 'disabled title="Cannot delete yourself"' : ''}>Delete</button>`
+                    : '';
+
+                const actions = (roleControl || toggleRoleBtn || deleteBtn)
+                    ? `<div class="action-buttons">${roleControl}${toggleRoleBtn}${deleteBtn}</div>`
+                    : '<span style="color:var(--text-secondary);font-size:.75rem;">—</span>';
+
                 return `
                     <tr>
                         <td><strong>${userName}</strong> ${isCurrentUser ? '<span class="status-badge status-live" style="margin-left:8px;font-size:0.6rem;padding:2px 6px;">You</span>' : ''}</td>
                         <td>${userEmail}</td>
                         <td>${date}</td>
-                        <td>
-                            <div class="action-buttons">
-                                ${toggleRoleBtn}
-                                ${deleteBtn}
-                            </div>
-                        </td>
+                        <td>${actions}</td>
                     </tr>
                 `;
             }).join('');
@@ -9864,18 +9969,31 @@
             }
         };
 
-        window.toggleUserRole = async function(userId, newRole) {
-            if (confirm(`Are you sure you want to make this user a ${newRole}?`)) {
-                try {
-                    const { error } = await sb.from('profiles').update({ role: newRole }).eq('id', userId);
-                    if (error) throw error;
-                    await logAdminAudit('user.role_update', 'profiles', userId, { role: newRole });
-                    showToast(`User role updated to ${newRole}`, 'success');
-                    loadUsers();
-                } catch (err) {
-                    showToast('Error updating role: ' + err.message, 'error');
-                }
+        // Assign / revoke a granular staff role via the audited server endpoint.
+        // adminRole '' = revoke staff access; otherwise one of the RBAC roles.
+        window.setAdminRole = async function(userId, adminRole) {
+            const label = adminRole ? (ZW_ROLE_LABELS[adminRole] || adminRole) : 'Customer (no staff access)';
+            if (!confirm(`Set this user's role to “${label}”?`)) { loadUsers(); return; }
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                if (!session?.access_token) throw new Error('Session expired — sign in again.');
+                const resp = await fetch('/api/set-admin-role', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: session.access_token, targetUserId: userId, adminRole: adminRole || null })
+                });
+                const payload = await resp.json().catch(() => ({}));
+                if (!resp.ok || !payload.success) throw new Error(payload.error || 'Could not update role.');
+                showToast(`Role updated to ${label}`, 'success');
+                loadUsers();
+            } catch (err) {
+                showToast('Error updating role: ' + err.message, 'error');
+                loadUsers();
             }
+        };
+        // Back-compat shim: any legacy callers of toggleUserRole route to the new flow.
+        window.toggleUserRole = function(userId, newRole) {
+            return window.setAdminRole(userId, newRole === 'admin' ? 'viewer' : '');
         };
 
         // Products
