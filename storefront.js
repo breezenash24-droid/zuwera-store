@@ -269,6 +269,64 @@ function showToast(msg) {
     return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6;   // perceived luminance
   }
 
+  // ── Auto-contrast an uploaded nav logo against the current theme ──────────
+  // When the user uploads their own logo it can be any colour, so a static CSS
+  // filter can't know whether to invert it. This measures the logo's opaque
+  // pixels once (cached per src) and sets an inline !important filter so the
+  // mark always contrasts with the header, re-evaluated on every theme change:
+  //   • a LIGHT mark shows as-is on dark and inverts on light,
+  //   • a DARK mark inverts on dark and shows as-is on light.
+  // Mostly-opaque images (a tile/photo logo like the default winged mark) are
+  // left to CSS — inverting those would flip the whole tile, not just a mark.
+  var _zwLogoMeta = {}; // src -> {skip} | {light:bool} | null(unmeasurable)
+  function _zwMeasureLogo(src, cb) {
+    if (_zwLogoMeta[src] !== undefined) return cb(_zwLogoMeta[src]);
+    var probe = new Image();
+    probe.crossOrigin = 'anonymous';
+    probe.onload = function () {
+      try {
+        var w = Math.min(80, probe.naturalWidth || 0), h = Math.min(80, probe.naturalHeight || 0);
+        if (!w || !h) { _zwLogoMeta[src] = null; return cb(null); }
+        var c = document.createElement('canvas'); c.width = w; c.height = h;
+        var ctx = c.getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(probe, 0, 0, w, h);
+        var d = ctx.getImageData(0, 0, w, h).data, lum = 0, opaque = 0, total = w * h;
+        for (var i = 0; i < d.length; i += 4) {
+          if (d[i + 3] < 60) continue;
+          lum += (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]); opaque++;
+        }
+        if (!opaque || opaque / total > 0.85) _zwLogoMeta[src] = { skip: true };
+        else _zwLogoMeta[src] = { light: (lum / opaque / 255) > 0.5 };
+      } catch (e) { _zwLogoMeta[src] = null; } // tainted (no CORS) → fall back to CSS
+      cb(_zwLogoMeta[src]);
+    };
+    probe.onerror = function () { _zwLogoMeta[src] = null; cb(null); };
+    probe.src = src;
+  }
+  function zwAutoThemeLogo(img) {
+    if (!img) return;
+    var src = img.currentSrc || img.src;
+    if (!src) return;
+    _zwMeasureLogo(src, function (m) {
+      if (!m || m.skip) { img.style.removeProperty('filter'); return; } // let CSS decide
+      var isLight = !!(document.body && document.body.classList.contains('light-mode'));
+      var invert = m.light ? isLight : !isLight; // dark mark inverts on dark; light mark inverts on light
+      img.style.setProperty('filter', invert ? 'invert(1)' : 'none', 'important');
+    });
+  }
+  function zwAutoThemeAllLogos() {
+    document.querySelectorAll('.nav-logo img, .nav-logo-link img, .zw-nav-logo img, img.nav-logo-img')
+      .forEach(function (img) {
+        if (img.complete && img.naturalWidth) zwAutoThemeLogo(img);
+        else img.addEventListener('load', function () { zwAutoThemeLogo(img); }, { once: true });
+      });
+  }
+  window.__zwAutoThemeLogos = zwAutoThemeAllLogos;
+  // Re-contrast on theme changes (dispatched by storefront-theme.js applyThemeMode).
+  window.addEventListener('zw-theme-applied', zwAutoThemeAllLogos);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', zwAutoThemeAllLogos);
+  else zwAutoThemeAllLogos();
+
   function applyBuilderConfig(cfg) {
     if (!cfg || !cfg.sections) return;
 
@@ -315,6 +373,8 @@ function showToast(msg) {
       if (logoImg && cfg.navSettings.logo_url) {
         logoImg.src = cfg.navSettings.logo_url;
         logoImg.srcset = cfg.navSettings.logo_url;
+        // Uploaded logo can be any colour — auto-invert it for the current theme.
+        zwAutoThemeLogo(logoImg);
       }
       // Navigation links are owned by nav-menu.js (reads site_settings.nav_menu —
       // e.g. Men / Women / New). The legacy navSettings.links rendering was removed

@@ -3443,7 +3443,9 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
 .zw-navitem > .zw-mega{
   position:fixed; top:var(--zw-megatop, 92px); left:0; right:0; width:100%;
   display:flex; gap:4rem; justify-content:center; padding:2.4rem 3rem 2.8rem;
-  background:var(--zw-surface, #131316);
+  /* Match the header fill exactly (was --zw-surface #131316, a lighter grey that
+     read as a different colour block below the #09090b header). */
+  background:var(--ink, #09090b);
   border-top:1px solid var(--zw-line-dark, rgba(244,241,235,.08));
   border-bottom:1px solid var(--zw-line-dark, rgba(244,241,235,.08));
   /* Negative spread keeps the shadow strictly BELOW the panel — without it the
@@ -3473,7 +3475,9 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
 }
 .zw-mega-col a:hover{ color:var(--paper, #f4f1eb); }
 body.light-mode .zw-navitem > .zw-mega{
-  background:#fff; border-color:rgba(9,9,11,.08); border-top-color:transparent; box-shadow:0 26px 38px -20px rgba(0,0,0,.18);
+  /* Match the cream header (var(--ink)=#F0EEE9), not pure white, so the panel
+     reads as a seamless extension of the header like it does in the other modes. */
+  background:var(--ink, #F0EEE9); border-color:rgba(9,9,11,.08); border-top-color:transparent; box-shadow:0 26px 38px -20px rgba(0,0,0,.18);
 }
 /* Super-light: panel is pure white like the page, with no top border line so it
    blends seamlessly into the white header (no apparent colour shift on open). */
@@ -3829,17 +3833,36 @@ body.light-mode .zw-swipe-thumb:hover,
 body.super-light-mode .zw-swipe-thumb:hover{ background:rgba(9,9,11,.8); }
 
 /* ── Unified nav logo theming ─────────────────────────────────────────────
-   The nav logo images (logo-192.png, wordmark.png) are WHITE artwork, so they
-   show as-is on dark and MUST invert to black on light / super-light. Several
-   pages themed this inconsistently (some never inverted → invisible on light;
-   some inverted in dark → invisible on dark). These !important rules unify it
-   across every page/logo variant. Footer logos (.flogo/.zwf-logo) unaffected. */
+   The nav logo class is NOT a reliable colour hint — .nav-logo, .nav-logo-link
+   and .zw-nav-logo each appear on different pages with DIFFERENT artwork. So we
+   key on the actual file, not the class:
+
+   DEFAULT (all nav logos): the winged marks (logo-192.png = opaque dark tile
+   with white wings; logo.png = white mark) read correctly on dark as-is and
+   must INVERT on light/super-light. This is also the right default for a light
+   uploaded logo.
+
+   EXCEPTION — wordmark-nav.png: BLACK "ZUWERA" text on transparent, used on the
+   wordmark pages (returns/about/account/policies/sizeguide) under all three
+   class names. It needs the OPPOSITE: INVERT to white on dark, stay black on
+   light/super-light. A previous rule gave it the default (none on dark), which
+   rendered it black-on-black — invisible — on every one of those pages.
+
+   Footer logos (.flogo/.zwf-logo) keep their own (working) rules. Logos the
+   user UPLOADS get a src that matches neither branch here; they're auto-themed
+   by measured luminance in storefront.js (zwAutoThemeLogo), whose inline
+   !important filter overrides these static defaults. */
 :is(.nav-logo,.nav-logo-link,.zw-nav-logo) img,
 img.nav-logo-img{ filter:none !important; }
 body.light-mode :is(.nav-logo,.nav-logo-link,.zw-nav-logo) img,
 body.light-mode img.nav-logo-img,
 body.super-light-mode :is(.nav-logo,.nav-logo-link,.zw-nav-logo) img,
 body.super-light-mode img.nav-logo-img{ filter:invert(1) !important; }
+
+/* Exception: the black transparent wordmark — opposite polarity, keyed on file. */
+img[src*="wordmark-nav"]{ filter:invert(1) !important; }
+body.light-mode img[src*="wordmark-nav"],
+body.super-light-mode img[src*="wordmark-nav"]{ filter:none !important; }
 
 /* ── Auto-darkened light section: content text ────────────────────────────
    storefront.js adds .zw-on-light to a section that has a light background but
