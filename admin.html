@@ -1746,14 +1746,30 @@
             super_admin:'Super Admin', manager:'Manager', finance:'Finance',
             fulfillment:'Fulfillment', content:'Content Editor', viewer:'Viewer (read-only)'
         };
+        // Preset access maps (page -> 'view'|'edit') — mirror of ROLE_PRESET_LEVELS
+        // in functions/api/_rbac.js. Drives the "preset" button in the access matrix.
+        const ZW_ROLE_PRESET_LEVELS = {
+            manager:{dashboard:'view',analytics:'view',finance:'edit',products:'edit',legacy:'edit',sizecharts:'edit',reviews:'edit',commerce:'edit',meta:'edit',receipts:'edit',shipping:'edit',returns:'edit',users:'edit',website:'edit',settings:'edit',tax:'edit',audit:'view'},
+            finance:{dashboard:'view',analytics:'view',finance:'edit',receipts:'view',tax:'edit',audit:'view'},
+            fulfillment:{dashboard:'view',products:'view',receipts:'edit',shipping:'edit',returns:'edit'},
+            content:{dashboard:'view',products:'edit',sizecharts:'edit',reviews:'edit',website:'edit',settings:'edit'}
+        };
         // Set from /api/admin-access. null = not yet resolved (pre-auth): allow
         // everything so the panel renders normally until the real role arrives.
-        let ADMIN_ME = null;         // { admin_role, permissions, profile }
-        let ADMIN_PERMS = null;      // string[] | null
+        let ADMIN_ME = null;         // { admin_role, permissions, levels, color, profile }
+        let ADMIN_PERMS = null;      // string[] | null (flat effective permissions)
+        let ADMIN_LEVELS = null;     // '*' | { page: 'view'|'edit' } | null
+        let ADMIN_COLOR = null;      // string | null
         function can(permission) {
             if (!ADMIN_PERMS) return true;              // pre-auth: don't hide anything yet
             if (ADMIN_PERMS.includes('*')) return true; // super_admin
             return ADMIN_PERMS.includes(permission);
+        }
+        // Can this staff member EDIT (not just view) a given page?
+        function canEdit(page) {
+            if (!ADMIN_LEVELS) return true;             // pre-auth
+            if (ADMIN_LEVELS === '*') return true;      // super_admin
+            return ADMIN_LEVELS[page] === 'edit';
         }
 
         const ADMIN_PAGES = [
@@ -8003,6 +8019,8 @@
                         ADMIN_PERMS = Array.isArray(serverAccess.permissions) && serverAccess.permissions.length
                             ? serverAccess.permissions
                             : (ZW_RBAC[serverAccess.admin_role] || ['*']);
+                        ADMIN_LEVELS = serverAccess.levels || (serverAccess.admin_role === 'super_admin' ? '*' : null);
+                        ADMIN_COLOR = serverAccess.color || null;
                         applyRolePermissions();
                         await checkMFAAndProceed();
                         return;
@@ -8028,6 +8046,7 @@
                 renderAdminNav();
                 setupEventListeners();
                 applyActionGates();
+                installReadOnlyGuard();
                 // Show the role in the sidebar bottom, if that area exists.
                 const badgeHost = document.querySelector('.sidebar-bottom');
                 if (badgeHost && !document.getElementById('zw-role-badge')) {
@@ -8233,6 +8252,7 @@
             if (!pageEl) { console.warn('navigateTo: no element for page', page); return; }
             pageEl.classList.add('active');
             openNavGroupForPage(page);
+            showPageReadOnlyBanner(pageEl);
 
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
             document.querySelector(`[data-page="${page}"]`)?.classList.add('active');
@@ -9910,6 +9930,8 @@
                 populateInviteRoleSelect();
                 const { data: profiles, error } = await sb.from('profiles').select('*').order('created_at', { ascending: false });
                 if (error) throw error;
+                // Index by id so the access matrix modal can read admin_role/admin_permissions.
+                window._zwProfilesById = Object.fromEntries((profiles || []).map(p => [p.id, p]));
                 
                 const customers = profiles.filter(p => p.role === 'customer');
                 const admins = profiles.filter(p => p.role === 'admin');
@@ -9940,18 +9962,19 @@
                 const userName = escapeHtml(u.full_name || 'No Name');
                 const userEmail = escapeHtml(u.email || 'N/A');
 
-                // Granular role control (staff only, super_admin only). Falls back to a
-                // static label for everyone else so the role is still visible.
+                // Granular role control (staff only). super_admins get a "Manage access"
+                // button opening the per-section matrix; everyone sees the role badge +
+                // the person's color dot. Custom overrides show a "· custom" hint.
                 let roleControl = '';
                 if (isAdminsTable) {
                     const cur = u.admin_role || 'super_admin';
-                    if (canRole) {
-                        const opts = Object.keys(ZW_ROLE_LABELS).map(r =>
-                            `<option value="${r}" ${r===cur?'selected':''}>${escapeHtml(ZW_ROLE_LABELS[r])}</option>`).join('');
-                        roleControl = `<select class="btn btn-secondary btn-sm" style="padding:4px 6px;" onchange="setAdminRole('${userId}', this.value)" ${isCurrentUser ? 'title="Changing your own role"' : ''}>${opts}</select>`;
-                    } else {
-                        roleControl = `<span class="status-badge" style="font-size:.6rem;padding:2px 6px;">${escapeHtml(ZW_ROLE_LABELS[cur] || 'Staff')}</span>`;
-                    }
+                    const color = (u.admin_permissions && u.admin_permissions.color) || '';
+                    const isCustom = !!(u.admin_permissions && u.admin_permissions.pages);
+                    const dot = color ? `<span title="${escapeAttr(color)}" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${escapeAttr(color)};margin-right:6px;vertical-align:middle;"></span>` : '';
+                    const badge = `<span class="status-badge" style="font-size:.6rem;padding:2px 6px;">${dot}${escapeHtml(ZW_ROLE_LABELS[cur] || 'Staff')}${isCustom ? ' · custom' : ''}</span>`;
+                    roleControl = canRole
+                        ? `${badge}<button class="btn btn-secondary btn-sm" onclick="openAccessModal('${userId}')">Manage access</button>`
+                        : badge;
                 }
 
                 // Promote/demote between customer and staff (default new staff = viewer).
@@ -10074,6 +10097,144 @@
                 btn.disabled = false; btn.textContent = orig;
             }
         };
+
+        // ── Per-employee access matrix (super_admin only) ────────────────────
+        // Opens a modal with a preset picker, a per-section None/View/Full grid,
+        // and a color. Saves via /api/set-admin-role which persists the override.
+        window.openAccessModal = function(userId) {
+            const u = (window._zwProfilesById || {})[userId];
+            if (!u) return;
+            const superLevels = Object.fromEntries(ADMIN_PAGES.map(p => [p.id, 'edit']));
+            const curLevels = (u.admin_permissions && u.admin_permissions.pages)
+                || (u.admin_role === 'super_admin' ? superLevels : (ZW_ROLE_PRESET_LEVELS[u.admin_role] || {}));
+            const curColor = (u.admin_permissions && u.admin_permissions.color) || ADMIN_ME_DEFAULT_COLOR;
+
+            const rows = ADMIN_PAGES.map(p => {
+                const lvl = curLevels[p.id] || 'none';
+                const opt = (v, t) => `<option value="${v}" ${lvl === v ? 'selected' : ''}>${t}</option>`;
+                return `<tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:7px 8px;font-size:.85rem;">${p.icon} ${escapeHtml(p.label)}</td>
+                    <td style="padding:7px 8px;text-align:right;">
+                      <select data-acc-page="${p.id}" style="padding:5px 8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:inherit;font-size:.8rem;">
+                        ${opt('none','No access')}${opt('view','View only')}${opt('edit','Full access')}
+                      </select></td></tr>`;
+            }).join('');
+
+            const presetOpts = Object.keys(ZW_ROLE_LABELS)
+                .map(r => `<option value="${r}" ${r === u.admin_role ? 'selected' : ''}>${escapeHtml(ZW_ROLE_LABELS[r])}</option>`).join('');
+
+            let modal = document.getElementById('accessModal');
+            if (!modal) { modal = document.createElement('div'); modal.id = 'accessModal'; document.body.appendChild(modal); }
+            modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:40px 16px;';
+            modal.innerHTML = `
+              <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;max-width:520px;width:100%;padding:22px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                  <h3 style="margin:0;font-size:1.1rem;">Access — ${escapeHtml(u.email || u.full_name || 'staff')}</h3>
+                  <button onclick="closeAccessModal()" style="background:none;border:none;color:var(--text-secondary);font-size:1.3rem;cursor:pointer;line-height:1;">×</button>
+                </div>
+                <p style="color:var(--text-secondary);font-size:.8rem;margin:0 0 16px;line-height:1.5;">Pick a preset to start, then fine-tune any section. <strong>Full access</strong> = edit; <strong>View only</strong> = read-only.</p>
+                <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap;">
+                  <div><label style="display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-secondary);margin-bottom:4px;">Preset</label>
+                    <select id="accPreset" onchange="applyAccessPreset(this.value)" style="padding:7px 10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:inherit;font-size:.85rem;">${presetOpts}</select></div>
+                  <div><label style="display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-secondary);margin-bottom:4px;">Color</label>
+                    <input type="color" id="accColor" value="${curColor}" style="width:48px;height:36px;padding:2px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;cursor:pointer;"></div>
+                </div>
+                <table style="width:100%;border-collapse:collapse;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:18px;"><tbody>${rows}</tbody></table>
+                <div style="display:flex;justify-content:space-between;gap:10px;">
+                  <button onclick="removeStaffFromModal('${escapeAttr(userId)}')" class="btn btn-secondary btn-sm">Remove staff access</button>
+                  <div style="display:flex;gap:8px;">
+                    <button onclick="closeAccessModal()" class="btn btn-secondary btn-sm">Cancel</button>
+                    <button id="accSaveBtn" onclick="saveAccessModal('${escapeAttr(userId)}')" class="btn btn-sm" style="background:var(--accent,#F891A5);color:#09090b;border:none;font-weight:600;">Save access</button>
+                  </div>
+                </div>
+              </div>`;
+        };
+        const ADMIN_ME_DEFAULT_COLOR = '#F891A5';
+        window.closeAccessModal = function() { const m = document.getElementById('accessModal'); if (m) m.remove(); };
+        window.applyAccessPreset = function(role) {
+            const superLevels = Object.fromEntries(ADMIN_PAGES.map(p => [p.id, 'edit']));
+            const levels = role === 'super_admin' ? superLevels : (ZW_ROLE_PRESET_LEVELS[role] || {});
+            document.querySelectorAll('#accessModal [data-acc-page]').forEach(sel => {
+                sel.value = levels[sel.getAttribute('data-acc-page')] || 'none';
+            });
+        };
+        window.removeStaffFromModal = function(userId) { closeAccessModal(); window.setAdminRole(userId, ''); };
+        window.saveAccessModal = async function(userId) {
+            const pages = {};
+            document.querySelectorAll('#accessModal [data-acc-page]').forEach(sel => {
+                if (sel.value !== 'none') pages[sel.getAttribute('data-acc-page')] = sel.value;
+            });
+            const color = document.getElementById('accColor')?.value || undefined;
+            const preset = document.getElementById('accPreset')?.value || 'viewer';
+            const btn = document.getElementById('accSaveBtn');
+            if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                if (!session?.access_token) throw new Error('Session expired — sign in again.');
+                const resp = await fetch('/api/set-admin-role', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: session.access_token, targetUserId: userId, adminRole: preset, adminPermissions: { pages, color } })
+                });
+                const payload = await resp.json().catch(() => ({}));
+                if (!resp.ok || !payload.success) throw new Error(payload.error || 'Could not save access.');
+                showToast('Access updated', 'success');
+                closeAccessModal();
+                loadUsers();
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+                if (btn) { btn.disabled = false; btn.textContent = 'Save access'; }
+            }
+        };
+
+        // ── Read-only enforcement (UI) ───────────────────────────────────────
+        // On a page the person can VIEW but not EDIT, block mutating button clicks
+        // and form submits (capture phase, so it survives async-rendered content),
+        // and show a read-only banner. Sensitive server actions are enforced
+        // separately in the API endpoints. Safe controls (tabs, nav, search,
+        // filters, export, pagination, close) stay usable.
+        const _RO_SAFE_TEXT = /(view|detail|open|search|filter|sort|next|prev|previous|page|close|cancel|export|download|expand|collapse|show|hide|refresh|reload|copy|back|log ?out|sign ?out)/i;
+        function _pageIsReadOnly() {
+            if (!ADMIN_LEVELS || ADMIN_LEVELS === '*') return false;
+            const pageEl = document.querySelector('.page.active');
+            if (!pageEl) return false;
+            const page = pageEl.id;
+            return can(page) && !canEdit(page);
+        }
+        function installReadOnlyGuard() {
+            if (window._zwReadOnlyGuardInstalled) return;
+            window._zwReadOnlyGuardInstalled = true;
+            const block = (e) => {
+                if (!_pageIsReadOnly()) return;
+                const t = e.target.closest('button, [role=button], input[type=submit], a.btn, .btn');
+                if (!t) return;
+                if (t.closest('#sidebarNav, .sidebar, .sidebar-bottom, #mobile-bottom-nav, #mobDrawer, .header, header')) return;
+                if (t.classList.contains('tab-button') || t.dataset.roOk) return;
+                if (_RO_SAFE_TEXT.test((t.textContent || '').trim())) return;
+                e.preventDefault(); e.stopPropagation();
+                showToast('Read-only access — you can view this section but not make changes.', 'error');
+            };
+            document.addEventListener('click', block, true);
+            document.addEventListener('submit', (e) => {
+                if (_pageIsReadOnly()) { e.preventDefault(); e.stopPropagation();
+                    showToast('Read-only access — you can view this section but not make changes.', 'error'); }
+            }, true);
+        }
+        function showPageReadOnlyBanner(pageEl) {
+            if (!pageEl) return;
+            let banner = pageEl.querySelector(':scope > .zw-ro-banner');
+            const ro = ADMIN_LEVELS && ADMIN_LEVELS !== '*' && can(pageEl.id) && !canEdit(pageEl.id);
+            if (ro) {
+                if (!banner) {
+                    banner = document.createElement('div');
+                    banner.className = 'zw-ro-banner';
+                    banner.style.cssText = 'display:flex;align-items:center;gap:8px;background:rgba(248,145,165,.12);border:1px solid var(--accent,#F891A5);color:var(--text-primary);border-radius:8px;padding:8px 12px;margin-bottom:16px;font-size:.82rem;';
+                    banner.innerHTML = '👁️ <span>You have <strong>view-only</strong> access to this section. Editing is disabled.</span>';
+                    pageEl.insertBefore(banner, pageEl.firstChild);
+                }
+            } else if (banner) {
+                banner.remove();
+            }
+        }
 
         // Products
         let _allProducts = [];
