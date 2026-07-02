@@ -1323,13 +1323,17 @@ function showToast(msg) {
       // an inline override on sections that never set color themselves.
       if (s.text_color) {
         el.style.setProperty('color', s.text_color, 'important');
+        el.classList.remove('zw-on-light');
       } else if (s.sec_bg && _zwIsLightColor(s.sec_bg)) {
         // Light section background but no text color chosen → force dark text so it
         // stays readable (otherwise a white section inherits the dark-theme light
-        // text and renders invisible white-on-white).
+        // text and renders invisible white-on-white). The zw-on-light class also
+        // darkens child text that hardcodes its own light color (e.g. product cards).
         el.style.setProperty('color', '#09090b', 'important');
+        el.classList.add('zw-on-light');
       } else {
         el.style.removeProperty('color');
+        el.classList.remove('zw-on-light');
       }
       // Universal heading-size override (opt-in). Only applied when set — when
       // blank, each section's own responsive heading size (re-rendered into the

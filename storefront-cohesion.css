@@ -3840,3 +3840,14 @@ body.light-mode :is(.nav-logo,.nav-logo-link,.zw-nav-logo) img,
 body.light-mode img.nav-logo-img,
 body.super-light-mode :is(.nav-logo,.nav-logo-link,.zw-nav-logo) img,
 body.super-light-mode img.nav-logo-img{ filter:invert(1) !important; }
+
+/* ── Auto-darkened light section: content text ────────────────────────────
+   storefront.js adds .zw-on-light to a section that has a light background but
+   no chosen text color. Darken its content text (product cards, headings,
+   labels, body) so hardcoded-light child colors don't render invisible on the
+   light background. Buttons/inputs are excluded so their own styling stands. */
+.zw-on-light :is(h1,h2,h3,h4,p,li,.pcard-name,.pcard-cat,.pcard-price,
+  .sec-head,.sec-head *,.about-label,.about-body,.about-body *,.stat-n,.stat-l,
+  .zw-eyebrow,.eyebrow,[class*="-label"],[class*="-title"]):not(button):not(a.btn):not(.btn){
+  color:#09090b !important;
+}
