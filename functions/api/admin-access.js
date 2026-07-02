@@ -144,21 +144,33 @@ async function upsertAdminProfile(user, config) {
   return Array.isArray(data) ? data[0] || payload : (data || payload);
 }
 
-// Read an existing profile (role + admin_role) via the service key so staff who
-// were granted a granular role in the DB — but aren't in the env allowlist —
-// can still sign in with least privilege.
-async function fetchProfile(userId, config) {
-  if (!looksLikeJwt(config.serviceKey)) return null;
-  const url = `${config.supabaseUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=id,email,full_name,role,admin_role`;
-  const resp = await fetch(url, {
-    headers: {
-      apikey: config.serviceKey,
-      Authorization: `Bearer ${config.serviceKey}`
+// Read an existing profile (role + admin_role) so staff who were granted a
+// granular role in the DB — but aren't in the env allowlist — can still sign in.
+// Prefer the user's OWN token (RLS "Users read own profile": auth.uid() = id) so
+// this works even when the service-role key isn't configured for this function.
+// Falls back to the service key if for some reason the self-read fails.
+async function fetchProfile(accessToken, userId, config) {
+  const select = `id,email,full_name,role,admin_role`;
+  const url = `${config.supabaseUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=${select}`;
+
+  const anonKey = config.anonKey || config.serviceKey;
+  if (anonKey) {
+    const resp = await fetch(url, { headers: { apikey: anonKey, Authorization: `Bearer ${accessToken}` } });
+    if (resp.ok) {
+      const data = await resp.json().catch(() => null);
+      const row = Array.isArray(data) ? (data[0] || null) : null;
+      if (row) return row;
     }
-  });
-  if (!resp.ok) return null;
-  const data = await resp.json().catch(() => null);
-  return Array.isArray(data) ? (data[0] || null) : null;
+  }
+
+  if (looksLikeJwt(config.serviceKey)) {
+    const resp = await fetch(url, { headers: { apikey: config.serviceKey, Authorization: `Bearer ${config.serviceKey}` } });
+    if (resp.ok) {
+      const data = await resp.json().catch(() => null);
+      return Array.isArray(data) ? (data[0] || null) : null;
+    }
+  }
+  return null;
 }
 
 export async function onRequestPost({ request, env }) {
@@ -203,7 +215,7 @@ export async function onRequestPost({ request, env }) {
       }
       adminRole = 'super_admin';
     } else {
-      const existing = await fetchProfile(user.id, config);
+      const existing = await fetchProfile(accessToken, user.id, config);
       if (!existing || existing.role !== 'admin') {
         return json({ success: false, error: 'Your account does not have admin privileges.' }, 403);
       }
