@@ -3165,6 +3165,16 @@
                         </div>
                         <button class="btn btn-secondary" id="refreshAuditBtn">Refresh</button>
                     </div>
+                    <div class="prod-filter-bar" style="gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
+                        <input id="auditSearch" type="text" placeholder="Search email, action, resource…" onkeydown="if(event.key==='Enter')loadAuditLog(false)" style="flex:1;min-width:200px;padding:7px 10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:inherit;font-size:.82rem;">
+                        <select id="auditActionFilter" class="form-input" style="width:auto;padding:6px 10px;font-size:.82rem;"><option value="">All actions</option></select>
+                        <select id="auditResourceFilter" class="form-input" style="width:auto;padding:6px 10px;font-size:.82rem;"><option value="">All resources</option></select>
+                        <input id="auditFrom" type="date" title="From date" class="form-input" style="width:auto;padding:6px 10px;font-size:.82rem;">
+                        <input id="auditTo" type="date" title="To date" class="form-input" style="width:auto;padding:6px 10px;font-size:.82rem;">
+                        <button class="btn btn-secondary btn-sm" onclick="loadAuditLog(false)">Apply</button>
+                        <button class="btn btn-secondary btn-sm" onclick="clearAuditFilters()">Clear</button>
+                        <button class="btn btn-secondary btn-sm" data-ro-ok onclick="exportAuditCSV()">⬇ Export CSV</button>
+                    </div>
                     <div id="auditStatus" style="color:var(--text-secondary);font-size:.9rem;margin-bottom:16px;"></div>
                     <table class="products-table">
                         <thead>
@@ -9710,6 +9720,55 @@
             }
         }
 
+        // Build the filtered audit query (shared by list + export). Reads the
+        // filter bar controls and applies search / action / resource / date range.
+        function _buildAuditQuery() {
+            let q = sb.from('admin_audit_log')
+                .select('created_at,admin_email,action,resource_type,resource_id,metadata')
+                .order('created_at', { ascending: false });
+            const search = (document.getElementById('auditSearch')?.value || '').trim().replace(/[%,()]/g, ' ');
+            const action = document.getElementById('auditActionFilter')?.value || '';
+            const resource = document.getElementById('auditResourceFilter')?.value || '';
+            const from = document.getElementById('auditFrom')?.value || '';
+            const to = document.getElementById('auditTo')?.value || '';
+            if (search) q = q.or(`admin_email.ilike.%${search}%,action.ilike.%${search}%,resource_type.ilike.%${search}%,resource_id.ilike.%${search}%`);
+            if (action) q = q.eq('action', action);
+            if (resource) q = q.eq('resource_type', resource);
+            if (from) q = q.gte('created_at', new Date(from + 'T00:00:00').toISOString());
+            if (to) q = q.lte('created_at', new Date(to + 'T23:59:59').toISOString());
+            return q;
+        }
+        // Fill the action / resource dropdowns from recent distinct values.
+        async function populateAuditFilters() {
+            try {
+                const { data } = await sb.from('admin_audit_log').select('action,resource_type').order('created_at', { ascending: false }).range(0, 999);
+                const uniq = (k) => [...new Set((data || []).map(r => r[k]).filter(Boolean))].sort();
+                const aSel = document.getElementById('auditActionFilter');
+                const rSel = document.getElementById('auditResourceFilter');
+                if (aSel && aSel.options.length <= 1) aSel.innerHTML = '<option value="">All actions</option>' + uniq('action').map(a => `<option>${escapeHtml(a)}</option>`).join('');
+                if (rSel && rSel.options.length <= 1) rSel.innerHTML = '<option value="">All resources</option>' + uniq('resource_type').map(a => `<option>${escapeHtml(a)}</option>`).join('');
+            } catch (_) {}
+        }
+        window.clearAuditFilters = function() {
+            ['auditSearch', 'auditFrom', 'auditTo'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+            ['auditActionFilter', 'auditResourceFilter'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+            loadAuditLog(false);
+        };
+        window.exportAuditCSV = async function() {
+            try {
+                const { data, error } = await _buildAuditQuery().range(0, 4999);
+                if (error) throw error;
+                zwExportCSV('audit-log-{date}.csv', data || [], [
+                    { label: 'When (UTC)', get: r => new Date(r.created_at).toISOString() },
+                    { label: 'Admin', get: r => r.admin_email || '' },
+                    { label: 'Action', get: r => r.action || '' },
+                    { label: 'Resource', get: r => r.resource_type || '' },
+                    { label: 'Resource ID', get: r => r.resource_id || '' },
+                    { label: 'Details', get: r => { try { return typeof r.metadata === 'string' ? r.metadata : JSON.stringify(r.metadata || {}); } catch (_) { return ''; } } }
+                ]);
+            } catch (e) { showToast('Export failed: ' + e.message, 'error'); }
+        };
+
         async function loadAuditLog(append = false) {
             const tbody = document.getElementById('auditTableBody');
             const status = document.getElementById('auditStatus');
@@ -9720,13 +9779,11 @@
                 _auditTotalLoaded = 0;
                 tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);">Loading audit events...</td></tr>';
                 if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+                populateAuditFilters();
             }
             if (status) status.textContent = '';
             try {
-                const { data, error } = await sb
-                    .from('admin_audit_log')
-                    .select('created_at,admin_email,action,resource_type,resource_id,metadata')
-                    .order('created_at', { ascending: false })
+                const { data, error } = await _buildAuditQuery()
                     .range(_auditOffset, _auditOffset + AUDIT_PAGE_SIZE - 1);
                 if (error) throw error;
                 const rows = data || [];
