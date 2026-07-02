@@ -3323,6 +3323,31 @@
                     </div>
 
                     <div id="users-admins" class="tab-content">
+                        <!-- Invite admin by email (super_admin only; hidden otherwise
+                             via applyActionGates on data-req-perm). Creates/invites the
+                             account and pre-assigns the chosen role in one step. -->
+                        <div id="inviteAdminCard" data-req-perm="role_manage"
+                             style="border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:22px;background:var(--bg-secondary);">
+                            <div style="font-weight:600;margin-bottom:4px;">Invite a team member</div>
+                            <p style="color:var(--text-secondary);font-size:.82rem;margin:0 0 14px;line-height:1.5;">
+                                Send an email invite and assign a role in one step — they don't need to be a customer first.
+                            </p>
+                            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
+                                <div style="flex:1;min-width:220px;">
+                                    <label for="inviteEmail" style="display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-secondary);margin-bottom:5px;">Email</label>
+                                    <input type="email" id="inviteEmail" placeholder="name@example.com" autocomplete="off"
+                                           style="width:100%;padding:9px 11px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:inherit;font-size:.88rem;"
+                                           onkeydown="if(event.key==='Enter'){event.preventDefault();inviteAdmin();}">
+                                </div>
+                                <div style="min-width:170px;">
+                                    <label for="inviteRole" style="display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-secondary);margin-bottom:5px;">Role</label>
+                                    <select id="inviteRole" style="width:100%;padding:9px 11px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:inherit;font-size:.88rem;"></select>
+                                </div>
+                                <button type="button" id="inviteAdminBtn" onclick="inviteAdmin()"
+                                        style="padding:9px 18px;border:none;border-radius:6px;background:var(--accent,#F891A5);color:#09090b;font-weight:600;font-size:.85rem;cursor:pointer;">Send invite</button>
+                            </div>
+                            <div id="inviteAdminMsg" style="display:none;margin-top:12px;font-size:.82rem;"></div>
+                        </div>
                         <table class="products-table">
                             <thead>
                                 <tr>
@@ -9882,6 +9907,7 @@
 
         async function loadUsers() {
             try {
+                populateInviteRoleSelect();
                 const { data: profiles, error } = await sb.from('profiles').select('*').order('created_at', { ascending: false });
                 if (error) throw error;
                 
@@ -9994,6 +10020,59 @@
         // Back-compat shim: any legacy callers of toggleUserRole route to the new flow.
         window.toggleUserRole = function(userId, newRole) {
             return window.setAdminRole(userId, newRole === 'admin' ? 'viewer' : '');
+        };
+
+        // Fill the invite-role <select> with the RBAC roles (default: viewer).
+        function populateInviteRoleSelect() {
+            const sel = document.getElementById('inviteRole');
+            if (!sel || sel.dataset.filled) return;
+            sel.innerHTML = Object.keys(ZW_ROLE_LABELS).map(r =>
+                `<option value="${r}" ${r === 'viewer' ? 'selected' : ''}>${escapeHtml(ZW_ROLE_LABELS[r])}</option>`).join('');
+            sel.dataset.filled = '1';
+        }
+
+        // Invite a new team member by email + role via the audited server endpoint.
+        window.inviteAdmin = async function() {
+            const emailEl = document.getElementById('inviteEmail');
+            const roleEl = document.getElementById('inviteRole');
+            const btn = document.getElementById('inviteAdminBtn');
+            const msg = document.getElementById('inviteAdminMsg');
+            const email = (emailEl?.value || '').trim();
+            const adminRole = roleEl?.value || 'viewer';
+
+            const showMsg = (text, ok) => {
+                if (!msg) return;
+                msg.textContent = text;
+                msg.style.color = ok ? '#4caf50' : 'var(--error)';
+                msg.style.display = 'block';
+            };
+
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showMsg('Enter a valid email address.', false);
+                return;
+            }
+            btn.disabled = true; const orig = btn.textContent; btn.textContent = 'Sending…';
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                if (!session?.access_token) throw new Error('Session expired — sign in again.');
+                const resp = await fetch('/api/invite-admin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: session.access_token, email, adminRole })
+                });
+                const payload = await resp.json().catch(() => ({}));
+                if (!resp.ok || !payload.success) throw new Error(payload.error || 'Could not send invite.');
+                const roleLabel = ZW_ROLE_LABELS[adminRole] || adminRole;
+                showMsg(payload.alreadyExisted
+                    ? `${email} already had an account — role set to ${roleLabel}.`
+                    : `Invite sent to ${email} as ${roleLabel}.`, true);
+                emailEl.value = '';
+                loadUsers();
+            } catch (err) {
+                showMsg('Error: ' + err.message, false);
+            } finally {
+                btn.disabled = false; btn.textContent = orig;
+            }
         };
 
         // Products
