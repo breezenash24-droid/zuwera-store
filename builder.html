@@ -1207,6 +1207,21 @@ async function persistTemplates(){try{const token=await getAccessToken();if(!tok
 // ── EDITOR ────────────────────────────────────────────────────────────────
 function selectSec(id){selId=id;const s=curSections().find(x=>x.id===id);if(s)openEditor(s);}
 
+// On-canvas WYSIWYG: the preview iframe posts ZW_SECTION_CLICKED when a section
+// is clicked in the canvas — select + open its editor here. Same-origin gated.
+window.addEventListener('message',function(e){
+  if(e.origin!==location.origin)return;
+  const d=e.data||{};
+  if(d.type==='ZW_SECTION_CLICKED'&&d.sectionId){
+    if(typeof secStore!=='undefined'&&secStore)return;      // homepage sections only
+    if(!curSections().some(x=>x.id===d.sectionId))return;
+    if(curTab!=='content'){lpTab('content');}
+    selectSec(d.sectionId);
+    renderLP();
+    try{const item=document.querySelector('.sec-item[data-id="'+(window.CSS&&CSS.escape?CSS.escape(d.sectionId):d.sectionId)+'"]');if(item)item.scrollIntoView({block:'nearest'});}catch(_){}
+  }
+});
+
 function openEditor(s){
   document.getElementById('editor').classList.remove('hidden');
   document.getElementById('edType').textContent=s.type;

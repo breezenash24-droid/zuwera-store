@@ -474,6 +474,9 @@ function showToast(msg) {
 
       if (!el) return;
       const s = sec.settings || {};
+      // Builder preview only: tag each section so clicking it in the canvas can
+      // select it in the builder (on-canvas WYSIWYG). No effect on the live site.
+      if (window.__ZW_BUILDER_PREVIEW__) { try { el.setAttribute('data-zw-sec', sec.id); } catch (_) {} }
       // Live site honors the scheduled visibility window; the builder preview
       // ignores it so a future-scheduled section is still editable/visible.
       // (s.visible_from / s.visible_until live in the section's settings.)
@@ -1402,6 +1405,33 @@ function showToast(msg) {
         }
       }
     });
+
+    // ── On-canvas selection (WYSIWYG) ────────────────────────────────────────
+    // In builder preview, hovering a section outlines it and clicking it tells the
+    // builder to select that section. Gated to preview mode, so the live store is
+    // never affected. Clicks are captured so a section's own links don't navigate.
+    (function initCanvasSelect() {
+      const style = document.createElement('style');
+      style.textContent = '[data-zw-sec]{cursor:pointer}[data-zw-sec].zw-hover-sec{outline:2px dashed rgba(248,145,165,.85);outline-offset:-2px}[data-zw-sec].zw-sel-sec{outline:2px solid rgba(248,145,165,1);outline-offset:-2px}';
+      document.head.appendChild(style);
+      let hovered = null;
+      document.addEventListener('mousemove', e => {
+        const el = e.target.closest ? e.target.closest('[data-zw-sec]') : null;
+        if (el === hovered) return;
+        if (hovered) hovered.classList.remove('zw-hover-sec');
+        hovered = el;
+        if (hovered) hovered.classList.add('zw-hover-sec');
+      });
+      document.addEventListener('click', e => {
+        const el = e.target.closest ? e.target.closest('[data-zw-sec]') : null;
+        if (!el) return;
+        e.preventDefault();
+        e.stopPropagation();
+        document.querySelectorAll('[data-zw-sec].zw-sel-sec').forEach(x => x.classList.remove('zw-sel-sec'));
+        el.classList.add('zw-sel-sec');
+        try { window.parent.postMessage({ type: 'ZW_SECTION_CLICKED', sectionId: el.getAttribute('data-zw-sec') }, location.origin); } catch (_) {}
+      }, true);
+    })();
 
     // Re-apply after Supabase finishes loading (bar was hidden when first apply ran, now it's visible)
     window.__zwReapplyBuilder = function() {
