@@ -3186,7 +3186,10 @@
                 <div id="products" class="page">
                     <div class="products-header">
                         <h2>Product Inventory</h2>
-                        <button class="btn btn-primary" id="addProductBtn">+ Add Product</button>
+                        <div style="display:flex;gap:8px;">
+                            <button class="btn btn-secondary" data-ro-ok onclick="exportProductsCSV()">⬇ Export CSV</button>
+                            <button class="btn btn-primary" id="addProductBtn">+ Add Product</button>
+                        </div>
                     </div>
                     <p class="zw-page-intro">All your products live here. Click <strong>+ Add Product</strong> to create a new one. Set its status to <strong>Live</strong> when it's ready for customers to buy. <strong>Draft</strong> = hidden from store. <strong>Coming Soon</strong> = shows a waitlist button.</p>
                     <!-- Back-in-stock demand (from sold-out size notify signups) -->
@@ -3208,9 +3211,23 @@
                             <option value="all">All types</option>
                         </select>
                     </div>
+                    <!-- Bulk action bar — appears when rows are selected -->
+                    <div id="prodBulkBar" style="display:none;align-items:center;gap:12px;flex-wrap:wrap;background:var(--bg-secondary);border:1px solid var(--accent,#F891A5);border-radius:8px;padding:10px 14px;margin-bottom:14px;">
+                        <strong id="prodBulkCount" style="font-size:.85rem;">0 selected</strong>
+                        <select id="prodBulkStatusSel" data-req-edit="products" onchange="prodBulkStatus(this.value)" style="padding:6px 10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:inherit;font-size:.82rem;">
+                            <option value="">Set status…</option>
+                            <option value="Draft">Draft</option>
+                            <option value="Live">Live</option>
+                            <option value="Coming Soon">Coming Soon</option>
+                            <option value="Sold Out">Sold Out</option>
+                        </select>
+                        <button class="btn btn-secondary btn-sm" data-ro-ok onclick="prodBulkExport()">⬇ Export selected</button>
+                        <button class="btn btn-secondary btn-sm" data-ro-ok onclick="prodBulkClear()" style="margin-left:auto;">Clear</button>
+                    </div>
                     <table class="products-table">
                         <thead>
                             <tr>
+                                <th style="width:34px;"><input type="checkbox" id="prodSelectAll" data-ro-ok onclick="prodToggleSelectAll(this)" title="Select all"></th>
                                 <th>Image</th>
                                 <th data-sort="sku">SKU <span class="prod-sort-arrow" id="sort-arr-sku">↕</span></th>
                                 <th data-sort="title">Title <span class="prod-sort-arrow" id="sort-arr-title">↕</span></th>
@@ -3323,6 +3340,7 @@
                     </div>
                     
                     <div id="users-customers" class="tab-content active">
+                        <div style="margin-bottom:12px;"><button class="btn btn-secondary btn-sm" data-ro-ok onclick="exportUsersCSV('customer')">⬇ Export customers CSV</button></div>
                         <table class="products-table">
                             <thead>
                                 <tr>
@@ -3364,6 +3382,7 @@
                             </div>
                             <div id="inviteAdminMsg" style="display:none;margin-top:12px;font-size:.82rem;"></div>
                         </div>
+                        <div style="margin-bottom:12px;"><button class="btn btn-secondary btn-sm" data-ro-ok onclick="exportUsersCSV('admin')">⬇ Export admins CSV</button></div>
                         <table class="products-table">
                             <thead>
                                 <tr>
@@ -6039,6 +6058,7 @@
                       <option value="highest">Highest Amount</option>
                       <option value="lowest">Lowest Amount</option>
                     </select>
+                    <button class="btn btn-secondary btn-sm" data-ro-ok onclick="exportOrdersCSV()">⬇ Export CSV</button>
                   </div>
 
                   <!-- Summary Stats -->
@@ -6068,6 +6088,20 @@
                     let _recListenersAttached = false;
                     let _allReceipts = [];
                     let _filteredReceipts = [];
+                    // Export current (filtered) orders to CSV. Defined here so it can
+                    // read the receipts-scoped arrays; uses the global zwExportCSV.
+                    window.exportOrdersCSV = function() {
+                      const rows = (_filteredReceipts && _filteredReceipts.length ? _filteredReceipts : _allReceipts) || [];
+                      window.zwExportCSV('orders-{date}.csv', rows, [
+                        { label: 'Order', get: o => String(o.stripe_payment_intent_id || o.id || '').slice(-8).toUpperCase() },
+                        { label: 'Date', get: o => (o.created_at || '').slice(0, 10) },
+                        { label: 'Customer', get: o => o.customer_name || '' },
+                        { label: 'Email', get: o => o.email || '' },
+                        { label: 'Total', get: o => Number(o.total || 0).toFixed(2) },
+                        { label: 'Status', get: o => o.status || '' },
+                        { label: 'Tracking', get: o => o.tracking_number || '' }
+                      ]);
+                    };
 
                     function recErr(msg) {
                       const el = sectionEl('rec-error');
@@ -8073,6 +8107,11 @@
                 const need = el.getAttribute('data-req-perm');
                 el.style.display = can(need) ? '' : 'none';
             });
+            // data-req-edit="<page>" hides the element unless the user can EDIT that page.
+            root.querySelectorAll('[data-req-edit]').forEach(el => {
+                const page = el.getAttribute('data-req-edit');
+                el.style.display = canEdit(page) ? '' : 'none';
+            });
         }
 
         function showAuthGate() {
@@ -9925,6 +9964,18 @@
             });
         });
 
+        const USER_CSV_COLUMNS = [
+            { label: 'Name', get: u => u.full_name || '' },
+            { label: 'Email', key: 'email' },
+            { label: 'Role', get: u => u.role === 'admin' ? (u.admin_role || 'super_admin') : 'customer' },
+            { label: 'Joined', get: u => (u.created_at || '').slice(0, 10) }
+        ];
+        window.exportUsersCSV = function(kind) {
+            const all = Object.values(window._zwProfilesById || {});
+            const rows = all.filter(u => kind === 'admin' ? u.role === 'admin' : u.role !== 'admin');
+            zwExportCSV((kind === 'admin' ? 'admins' : 'customers') + '-{date}.csv', rows, USER_CSV_COLUMNS);
+        };
+
         async function loadUsers() {
             try {
                 populateInviteRoleSelect();
@@ -10278,6 +10329,95 @@
             return list;
         }
 
+        // ── Shared CSV export (used by Products, Users, Orders) ───────────────
+        // columns: [{ label, key, get? }]. get(row) overrides key lookup.
+        window.zwToCSV = function(rows, columns) {
+            const esc = (v) => {
+                v = (v === null || v === undefined) ? '' : String(v);
+                return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+            };
+            const head = columns.map(c => esc(c.label)).join(',');
+            const body = rows.map(r => columns.map(c => esc(c.get ? c.get(r) : r[c.key])).join(',')).join('\r\n');
+            return head + '\r\n' + body;
+        };
+        window.zwExportCSV = function(filename, rows, columns) {
+            if (!rows || !rows.length) { showToast('Nothing to export', 'error'); return; }
+            // BOM so Excel reads UTF-8 correctly.
+            const blob = new Blob(['﻿' + window.zwToCSV(rows, columns)], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const stamp = new Date().toISOString().slice(0, 10);
+            a.href = url; a.download = filename.replace('{date}', stamp);
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            showToast('Exported ' + rows.length + ' row' + (rows.length !== 1 ? 's' : ''), 'success');
+        };
+
+        // ── Products: bulk selection + export ────────────────────────────────
+        function prodStockOf(p) { return (p.product_sizes || []).reduce((s, i) => s + (i.stock_quantity || 0), 0); }
+        const PRODUCT_CSV_COLUMNS = [
+            { label: 'SKU', key: 'sku' },
+            { label: 'Title', key: 'title' },
+            { label: 'Colorway', key: 'colorway' },
+            { label: 'Category', key: 'category' },
+            { label: 'Price', get: p => (Number(p.current_price) || 0).toFixed(2) },
+            { label: 'Status', get: p => p.status || 'Draft' },
+            { label: 'Stock', get: prodStockOf },
+            { label: 'Created', get: p => (p.created_at || '').slice(0, 10) }
+        ];
+        window.exportProductsCSV = function() {
+            zwExportCSV('products-{date}.csv', getFilteredSortedProducts(), PRODUCT_CSV_COLUMNS);
+        };
+        function prodSelectedIds() {
+            return [...document.querySelectorAll('.prod-row-check:checked')].map(c => c.value);
+        }
+        window.prodToggleSelectAll = function(cb) {
+            document.querySelectorAll('.prod-row-check').forEach(c => { c.checked = cb.checked; });
+            prodUpdateBulkBar();
+        };
+        window.prodOnRowCheck = function() {
+            const all = [...document.querySelectorAll('.prod-row-check')];
+            const sel = all.filter(c => c.checked);
+            const master = document.getElementById('prodSelectAll');
+            if (master) { master.checked = sel.length > 0 && sel.length === all.length; master.indeterminate = sel.length > 0 && sel.length < all.length; }
+            prodUpdateBulkBar();
+        };
+        function prodUpdateBulkBar() {
+            const bar = document.getElementById('prodBulkBar');
+            if (!bar) return;
+            const n = prodSelectedIds().length;
+            bar.style.display = n ? 'flex' : 'none';
+            const label = document.getElementById('prodBulkCount');
+            if (label) label.textContent = n + ' selected';
+        }
+        window.prodBulkClear = function() {
+            document.querySelectorAll('.prod-row-check, #prodSelectAll').forEach(c => { c.checked = false; c.indeterminate = false; });
+            prodUpdateBulkBar();
+        };
+        window.prodBulkExport = function() {
+            const ids = new Set(prodSelectedIds());
+            const rows = _allProducts.filter(p => ids.has(String(p.id)));
+            zwExportCSV('products-selected-{date}.csv', rows, PRODUCT_CSV_COLUMNS);
+        };
+        window.prodBulkStatus = async function(status) {
+            if (!status) return;
+            const ids = prodSelectedIds();
+            if (!ids.length) return;
+            if (!confirm(`Set ${ids.length} product${ids.length !== 1 ? 's' : ''} to "${status}"?`)) { const sel = document.getElementById('prodBulkStatusSel'); if (sel) sel.value = ''; return; }
+            try {
+                const { error } = await sb.from('products').update({ status }).in('id', ids);
+                if (error) throw error;
+                ids.forEach(id => { const p = _allProducts.find(p => String(p.id) === id); if (p) p.status = status; });
+                await logAdminAudit('product.bulk_status', 'products', ids.join(','), { status, count: ids.length });
+                showToast(`Updated ${ids.length} product${ids.length !== 1 ? 's' : ''} → ${status}`, 'success');
+                prodBulkClear();
+                renderProducts();
+            } catch (err) {
+                showToast('Bulk update failed: ' + err.message, 'error');
+            }
+            const sel = document.getElementById('prodBulkStatusSel'); if (sel) sel.value = '';
+        };
+
         function renderProducts() {
             displayProductsTable(getFilteredSortedProducts());
         }
@@ -10312,7 +10452,7 @@
         async function loadProducts() {
             loadRestockDemand();
             const tbody = document.getElementById('productsTableBody');
-            if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-secondary);">Loading…</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-secondary);">Loading…</td></tr>';
             try {
                 const { data: products, error } = await sb.from('products')
                     .select('*, product_images(*), product_sizes(stock_quantity)')
@@ -10324,7 +10464,7 @@
             } catch (error) {
                 console.error('Error loading products:', error);
                 showToast('Failed to load products: ' + error.message, 'error');
-                if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--error);">Failed to load products.</td></tr>';
+                if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--error);">Failed to load products.</td></tr>';
             }
         }
 
@@ -10343,7 +10483,7 @@
             }
 
             if (!products.length) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-secondary);">No products match.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-secondary);">No products match.</td></tr>';
                 return;
             }
 
@@ -10360,6 +10500,7 @@
                 const totalStock = (product.product_sizes || []).reduce((sum, i) => sum + (i.stock_quantity || 0), 0);
                 const row = document.createElement('tr');
                 row.innerHTML = `
+                    <td><input type="checkbox" class="prod-row-check" value="${productId}" data-ro-ok onclick="prodOnRowCheck()"></td>
                     <td><div class="product-image" style="${safeImg ? `background-image:url('${escapeAttr(safeImg)}');background-size:cover;background-position:center;` : 'background:var(--bg-tertiary);'}"></div></td>
                     <td><strong>${escapeHtml(product.sku || 'N/A')}</strong></td>
                     <td>${escapeHtml(product.title || 'N/A')}</td>
@@ -10385,6 +10526,8 @@
                 `;
                 tbody.appendChild(row);
             });
+            // Rows were rebuilt (all unchecked) — resync the bulk bar/select-all.
+            if (typeof prodOnRowCheck === 'function') prodOnRowCheck();
         }
 
         window.updateProductStatus = async function(productId, newStatus, selectEl) {
