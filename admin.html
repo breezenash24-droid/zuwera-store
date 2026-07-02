@@ -8098,6 +8098,7 @@
                     const nm = ADMIN_ME?.profile?.full_name || (ADMIN_ME?.profile?.email || '').split('@')[0] || 'You';
                     nameEl.textContent = '👤 ' + nm;
                     nameEl.style.display = 'block';
+                    nameEl.style.color = ADMIN_COLOR || '';   // render name in the person's color
                 }
                 const badge = document.getElementById('zw-role-badge');
                 if (badge) {
@@ -10231,6 +10232,8 @@
                 const p = await resp.json().catch(() => ({}));
                 if (!resp.ok || !p.success) throw new Error(p.error || 'Could not save color.');
                 ADMIN_COLOR = color;
+                const nameEl = document.getElementById('zw-my-name');
+                if (nameEl) nameEl.style.color = color;   // recolor the name live
                 showToast('Your color was updated', 'success');
             } catch (err) { showToast('Error: ' + err.message, 'error'); }
         };
