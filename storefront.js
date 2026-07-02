@@ -473,8 +473,10 @@ function showToast(msg) {
       }
 
       if (!el) return;
+      const s = sec.settings || {};
       // Live site honors the scheduled visibility window; the builder preview
       // ignores it so a future-scheduled section is still editable/visible.
+      // (s.visible_from / s.visible_until live in the section's settings.)
       const _inWin = window.__ZW_BUILDER_PREVIEW__ ? true : window.zwSecInWindow(s);
       el.style.display = (sec.visible && _inWin) ? '' : 'none';
 
@@ -488,8 +490,6 @@ function showToast(msg) {
       const secDataStr = JSON.stringify(sec);
       if (el._zwSecJSON === secDataStr) return;
       el._zwSecJSON = secDataStr;
-
-      const s = sec.settings || {};
 
       // Style overrides moved to the bottom of the function so they don't get erased by cssText
       if (s.anchor_id) el.id = s.anchor_id;
