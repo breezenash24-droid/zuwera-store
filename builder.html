@@ -308,7 +308,7 @@ body{display:flex;flex-direction:column}
   <div class="pv-bar">
     <span>Preview</span>
     <span style="font-size:.45rem;opacity:.4" id="autoLbl">auto-updating</span>
-    <button id="selModeBtn" class="lp-float-btn" onclick="toggleSelectMode()" style="margin-left:.5rem" title="On: click a section in the preview to edit it. Off: links and buttons work normally.">🎯 Click-to-select: Off</button>
+    <button id="selModeBtn" class="lp-float-btn" onclick="toggleSelectMode()" style="margin-left:.5rem;background:var(--sf2);border-color:rgba(255,255,255,.25);color:#f4f1eb" title="On: click a section in the preview to edit it. Off: links and buttons work normally.">🎯 Click to select: Off</button>
     <span id="pvDims" style="margin-left:auto">—</span>
   </div>
   <div class="pv-wrap">
@@ -1215,7 +1215,15 @@ function sendSelectMode(){ try{ document.getElementById('pvIframe').contentWindo
 function toggleSelectMode(){
   selectMode=!selectMode;
   const b=document.getElementById('selModeBtn');
-  if(b){ b.textContent='🎯 Click-to-select: '+(selectMode?'On':'Off'); b.classList.toggle('on',selectMode); }
+  if(b){
+    b.textContent='🎯 Click to select: '+(selectMode?'On':'Off');
+    b.classList.toggle('on',selectMode);
+    // Light up clearly when on; neutral-but-visible when off.
+    b.style.background=selectMode?'var(--ac)':'var(--sf2)';
+    b.style.color=selectMode?'#0f0f11':'#f4f1eb';
+    b.style.borderColor=selectMode?'var(--ac)':'rgba(255,255,255,.25)';
+    b.style.fontWeight=selectMode?'600':'';
+  }
   sendSelectMode();
   if(typeof toast==='function') toast(selectMode?'Click a section in the preview to edit it':'Preview links are clickable again');
 }
