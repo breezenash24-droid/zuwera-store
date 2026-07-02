@@ -10,6 +10,7 @@ const files = [
   '_routes.json',
   '404.html',
   'account.html',
+  'admin.css',
   'admin.html',
   'analytics.html',
   'apple-pay-native.js',
