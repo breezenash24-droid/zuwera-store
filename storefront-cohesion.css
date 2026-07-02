@@ -3832,6 +3832,40 @@ body.super-light-mode .zw-swipe-thumb{ background:rgba(9,9,11,.55); }
 body.light-mode .zw-swipe-thumb:hover,
 body.super-light-mode .zw-swipe-thumb:hover{ background:rgba(9,9,11,.8); }
 
+/* ── Per-device scrollbar controls (builder) ─────────────────────────────────
+   The wrap carries data-bar-lg / -md / -sm = show | hover | off (one per
+   breakpoint) and data-bar-size = thin | medium | thick, written by
+   zwApplyScrollbarPrefs. "hover" = reveal on pointer hover (desktop) OR while
+   the row is being scrolled (touch — JS adds .zw-bar-scrolling). Breakpoints
+   match the per-device grid system: desktop ≥1025, tablet 641–1024, mobile ≤640. */
+/* Hidden on a breakpoint */
+@media (min-width:1025px){ .zw-swipe-wrap[data-bar-lg="off"] > .zw-swipe-bar{ display:none !important; } }
+@media (min-width:641px) and (max-width:1024px){ .zw-swipe-wrap[data-bar-md="off"] > .zw-swipe-bar{ display:none !important; } }
+@media (max-width:640px){ .zw-swipe-wrap[data-bar-sm="off"] > .zw-swipe-bar{ display:none !important; } }
+/* Reveal mode: hidden until hover (desktop) or while scrolling (touch) */
+@media (min-width:1025px){
+  .zw-swipe-wrap.zw-has-swipe[data-bar-lg="hover"] > .zw-swipe-bar{ opacity:0; transition:opacity .25s ease; }
+  .zw-swipe-wrap.zw-has-swipe[data-bar-lg="hover"]:hover > .zw-swipe-bar,
+  .zw-swipe-wrap.zw-has-swipe[data-bar-lg="hover"]:focus-within > .zw-swipe-bar,
+  .zw-swipe-wrap.zw-has-swipe[data-bar-lg="hover"].zw-bar-scrolling > .zw-swipe-bar{ opacity:1; }
+}
+@media (min-width:641px) and (max-width:1024px){
+  .zw-swipe-wrap.zw-has-swipe[data-bar-md="hover"] > .zw-swipe-bar{ opacity:0; transition:opacity .25s ease; }
+  .zw-swipe-wrap.zw-has-swipe[data-bar-md="hover"]:hover > .zw-swipe-bar,
+  .zw-swipe-wrap.zw-has-swipe[data-bar-md="hover"].zw-bar-scrolling > .zw-swipe-bar{ opacity:1; }
+}
+@media (max-width:640px){
+  .zw-swipe-wrap.zw-has-swipe[data-bar-sm="hover"] > .zw-swipe-bar{ opacity:0; transition:opacity .25s ease; }
+  .zw-swipe-wrap.zw-has-swipe[data-bar-sm="hover"]:hover > .zw-swipe-bar,
+  .zw-swipe-wrap.zw-has-swipe[data-bar-sm="hover"].zw-bar-scrolling > .zw-swipe-bar{ opacity:1; }
+}
+/* Thickness (thin is the default 4px bar / 10px thumb; top:-3px keeps every
+   thumb vertically centred on its bar) */
+.zw-swipe-wrap[data-bar-size="medium"] > .zw-swipe-bar{ height:6px; }
+.zw-swipe-wrap[data-bar-size="medium"] > .zw-swipe-bar > .zw-swipe-thumb{ height:12px; }
+.zw-swipe-wrap[data-bar-size="thick"] > .zw-swipe-bar{ height:9px; }
+.zw-swipe-wrap[data-bar-size="thick"] > .zw-swipe-bar > .zw-swipe-thumb{ height:15px; }
+
 /* ── Unified nav logo theming ─────────────────────────────────────────────
    The nav logo class is NOT a reliable colour hint — .nav-logo, .nav-logo-link
    and .zw-nav-logo each appear on different pages with DIFFERENT artwork. So we

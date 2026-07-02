@@ -1036,10 +1036,10 @@ function renderPagesTab(container){
     ${featHtml}
     <div class="fl" style="margin-top:.35rem">Layout per device</div>
     <div class="fhint" style="margin-bottom:.35rem">“Swipe” shows one product at a time (scroll right for more); “Grid” tiles them in columns.</div>
-    ${lpLayRow('🖥️ Desktop','featured.lay_lg','featured.col_lg','featured.snap_lg',feat.lay_lg||'grid',String(feat.col_lg||3),feat.snap_lg||'smooth')}
-    ${lpLayRow('▭ Tablet','featured.lay_md','featured.col_md','featured.snap_md',feat.lay_md||'swipe',String(feat.col_md||2),feat.snap_md||'smooth')}
-    ${lpLayRow('▯ Mobile','featured.lay_sm','featured.col_sm','featured.snap_sm',feat.lay_sm||'swipe',String(feat.col_sm||2),feat.snap_sm||'smooth')}
-    <div class="tog2" style="margin-top:.3rem"><label>Reveal scrollbar on hover (desktop)</label><label class="switch"><input type="checkbox" data-lp="featured.bar_hover" ${feat.bar_hover?'checked':''}><span class="sw-sl"></span></label></div>
+    ${lpLayRow('🖥️ Desktop','featured.lay_lg','featured.col_lg','featured.snap_lg',feat.lay_lg||'grid',String(feat.col_lg||3),feat.snap_lg||'smooth','featured.bar_lg',feat.bar_lg||(feat.bar_hover?'hover':'show'))}
+    ${lpLayRow('▭ Tablet','featured.lay_md','featured.col_md','featured.snap_md',feat.lay_md||'swipe',String(feat.col_md||2),feat.snap_md||'smooth','featured.bar_md',feat.bar_md||'show')}
+    ${lpLayRow('▯ Mobile','featured.lay_sm','featured.col_sm','featured.snap_sm',feat.lay_sm||'swipe',String(feat.col_sm||2),feat.snap_sm||'smooth','featured.bar_sm',feat.bar_sm||'show')}
+    <div class="field" style="margin-top:.3rem"><label>Scrollbar thickness</label><select data-lp="featured.bar_size">${lpSelOpt(feat.bar_size||'thin',LP_BARSIZEO)}</select></div>
     <div class="fdiv"></div>
 
     <div class="tab-hd">Page Sections</div>
@@ -1315,12 +1315,14 @@ const fhd=t=>`<div class="fl" style="margin-top:.1rem">${t}</div>`;
 const PLAT_LAYO=[['grid','Grid'],['swipe','Swipe row']];
 const PLAT_COLO=[['1','1'],['2','2'],['3','3'],['4','4']];
 const PLAT_SNAPO=[['smooth','Smooth (free scroll)'],['snap','One at a time (snap)']];
+const PLAT_BARO=[['show','Always show'],['hover','On hover / while scrolling'],['off','Hidden']];
+const PLAT_BARSIZEO=[['thin','Thin'],['medium','Medium'],['thick','Thick']];
 const platFields=(g,dLg='grid',dMd='grid',dSm='swipe')=>fhd('Layout per device')
   +`<div class="fhint" style="margin-bottom:.35rem">“Swipe row” scrolls sideways with a scrollbar; “Grid” tiles in columns. “Scroll feel” = smooth free-scroll vs snapping one at a time.</div>`
-  +`<div class="fl" style="margin-top:.1rem">🖥️ Desktop</div>`+sel('lay_lg','Layout',g.lay_lg||dLg,PLAT_LAYO)+sel('col_lg','Columns (grid)',String(g.col_lg||g.columns||3),PLAT_COLO)+sel('snap_lg','Scroll feel (swipe)',g.snap_lg||'smooth',PLAT_SNAPO)
-  +`<div class="fl" style="margin-top:.1rem">▭ Tablet</div>`+sel('lay_md','Layout',g.lay_md||dMd,PLAT_LAYO)+sel('col_md','Columns (grid)',String(g.col_md||2),PLAT_COLO)+sel('snap_md','Scroll feel (swipe)',g.snap_md||'smooth',PLAT_SNAPO)
-  +`<div class="fl" style="margin-top:.1rem">▯ Mobile</div>`+sel('lay_sm','Layout',g.lay_sm||dSm,PLAT_LAYO)+sel('col_sm','Columns (grid)',String(g.col_sm||2),PLAT_COLO)+sel('snap_sm','Scroll feel (swipe)',g.snap_sm||'smooth',PLAT_SNAPO)
-  +tog2('bar_hover','Reveal scrollbar on hover (desktop)',g.bar_hover);
+  +`<div class="fl" style="margin-top:.1rem">🖥️ Desktop</div>`+sel('lay_lg','Layout',g.lay_lg||dLg,PLAT_LAYO)+sel('col_lg','Columns (grid)',String(g.col_lg||g.columns||3),PLAT_COLO)+sel('snap_lg','Scroll feel (swipe)',g.snap_lg||'smooth',PLAT_SNAPO)+sel('bar_lg','Scrollbar (swipe)',g.bar_lg||(g.bar_hover?'hover':'show'),PLAT_BARO)
+  +`<div class="fl" style="margin-top:.1rem">▭ Tablet</div>`+sel('lay_md','Layout',g.lay_md||dMd,PLAT_LAYO)+sel('col_md','Columns (grid)',String(g.col_md||2),PLAT_COLO)+sel('snap_md','Scroll feel (swipe)',g.snap_md||'smooth',PLAT_SNAPO)+sel('bar_md','Scrollbar (swipe)',g.bar_md||'show',PLAT_BARO)
+  +`<div class="fl" style="margin-top:.1rem">▯ Mobile</div>`+sel('lay_sm','Layout',g.lay_sm||dSm,PLAT_LAYO)+sel('col_sm','Columns (grid)',String(g.col_sm||2),PLAT_COLO)+sel('snap_sm','Scroll feel (swipe)',g.snap_sm||'smooth',PLAT_SNAPO)+sel('bar_sm','Scrollbar (swipe)',g.bar_sm||'show',PLAT_BARO)
+  +sel('bar_size','Scrollbar thickness',g.bar_size||'thin',PLAT_BARSIZEO);
 /* Color field with a live hex input. Both the swatch and the text box share
    data-f="${k}" so either one writes the value back to the section setting
    (syncForm reads the last [data-f], i.e. the hex box). Picking the swatch
@@ -1345,8 +1347,10 @@ const lpFontSel=(path,l,v,opts)=>`<div class="field" style="margin:-.15rem 0 .1r
 const LP_LAYO=[['grid','Grid'],['swipe','Swipe row']];
 const LP_COLO=[['1','1'],['2','2'],['3','3'],['4','4']];
 const LP_SNAPO=[['smooth','Smooth (free scroll)'],['snap','One at a time (snap)']];
+const LP_BARO=[['show','Always show'],['hover','On hover / while scrolling'],['off','Hidden']];
+const LP_BARSIZEO=[['thin','Thin'],['medium','Medium'],['thick','Thick']];
 const lpSelOpt=(v,opts)=>opts.map(([val,txt])=>`<option value="${val}"${String(v)===val?' selected':''}>${txt}</option>`).join('');
-const lpLayRow=(label,layPath,colPath,snapPath,layV,colV,snapV)=>`<div class="fl" style="margin-top:.1rem">${label}</div><div class="field"><label>Layout</label><select data-lp="${layPath}">${lpSelOpt(layV,LP_LAYO)}</select></div><div class="field"><label>Columns (grid mode)</label><select data-lp="${colPath}">${lpSelOpt(colV,LP_COLO)}</select></div><div class="field"><label>Scroll feel (swipe)</label><select data-lp="${snapPath}">${lpSelOpt(snapV,LP_SNAPO)}</select></div>`;
+const lpLayRow=(label,layPath,colPath,snapPath,layV,colV,snapV,barPath,barV)=>`<div class="fl" style="margin-top:.1rem">${label}</div><div class="field"><label>Layout</label><select data-lp="${layPath}">${lpSelOpt(layV,LP_LAYO)}</select></div><div class="field"><label>Columns (grid mode)</label><select data-lp="${colPath}">${lpSelOpt(colV,LP_COLO)}</select></div><div class="field"><label>Scroll feel (swipe)</label><select data-lp="${snapPath}">${lpSelOpt(snapV,LP_SNAPO)}</select></div>${barPath?`<div class="field"><label>Scrollbar (swipe)</label><select data-lp="${barPath}">${lpSelOpt(barV,LP_BARO)}</select></div>`:''}`;
 /* NOTE: Section padding is rendered once, by the universal "Section Style"
    block in buildForm. It used to ALSO be rendered here as sliders, but both
    wrote data-f="pad_top/pad_bot" — syncForm reads them in DOM order and the

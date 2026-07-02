@@ -153,6 +153,21 @@ function showToast(msg) {
     document.head.appendChild(l);
   }
 
+  // Per-device scrollbar prefs for a swipe row. Writes data-bar-lg/md/sm
+  // (show|hover|off) + data-bar-size (thin|medium|thick) on the .zw-swipe-wrap;
+  // the CSS in storefront-cohesion.css turns those into per-breakpoint behavior.
+  // Back-compat: the legacy boolean bar_hover meant "reveal on hover on desktop",
+  // so it maps to data-bar-lg="hover" when the new bar_lg isn't set.
+  window.zwApplyScrollbarPrefs = window.zwApplyScrollbarPrefs || function (wrap, cfg) {
+    if (!wrap || !cfg) return;
+    var m = function (v, d) { return (v === 'show' || v === 'hover' || v === 'off') ? v : d; };
+    wrap.setAttribute('data-bar-lg', m(cfg.bar_lg, cfg.bar_hover ? 'hover' : 'show'));
+    wrap.setAttribute('data-bar-md', m(cfg.bar_md, 'show'));
+    wrap.setAttribute('data-bar-sm', m(cfg.bar_sm, 'show'));
+    wrap.setAttribute('data-bar-size', (cfg.bar_size === 'medium' || cfg.bar_size === 'thick') ? cfg.bar_size : 'thin');
+    wrap.classList.remove('zw-bar-hover'); // superseded by data-bar-* attributes
+  };
+
   // Shared per-platform layout setter for a products/featured grid. Reads the
   // builder settings and writes data-lg/md/sm ("grid"|"swipe") + --col-* onto the
   // grid; the CSS applies grid or swipe per breakpoint. Global so landing.js can
@@ -174,9 +189,9 @@ function showToast(msg) {
     grid.style.setProperty('--col-md', col(cfg.col_md, 2));
     grid.style.setProperty('--col-sm', col(cfg.col_sm, 2));
     if (window.zwEnsureSwipeBar) window.zwEnsureSwipeBar(grid);
-    // Optional: hide the scrollbar until the row is hovered (desktop only).
+    // Per-device scrollbar visibility (show / reveal-on-hover / hidden) + thickness.
     const _w = grid.closest('.zw-swipe-wrap');
-    if (_w) _w.classList.toggle('zw-bar-hover', !!cfg.bar_hover);
+    if (_w) window.zwApplyScrollbarPrefs(_w, cfg);
   };
 
   // Nike-style draggable scrollbar for a swipe row. Wraps the grid in
@@ -211,6 +226,14 @@ function showToast(msg) {
     if (!grid._zwBarBound) {
       grid.addEventListener('scroll', sync, { passive: true });
       window.addEventListener('resize', sync, { passive: true });
+      // Reveal-while-scrolling for "hover" mode on touch (no pointer hover): show
+      // the bar during a scroll gesture, then fade it out ~0.9s after it settles.
+      let _barScrollT;
+      grid.addEventListener('scroll', () => {
+        wrap.classList.add('zw-bar-scrolling');
+        clearTimeout(_barScrollT);
+        _barScrollT = setTimeout(() => wrap.classList.remove('zw-bar-scrolling'), 900);
+      }, { passive: true });
       // Drag the thumb → scroll the row proportionally.
       let dragging = false, startX = 0, startLeft = 0;
       thumb.addEventListener('pointerdown', (e) => {

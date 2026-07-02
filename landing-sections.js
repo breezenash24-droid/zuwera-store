@@ -12,6 +12,19 @@
    Exposes: window.ZWLandingSections.render(hostEl, sectionsArray)
    ─────────────────────────────────────────────────────────────────────────── */
 (function () {
+  // Per-device scrollbar prefs (show|hover|off + thin|medium|thick) → data-bar-*
+  // on the .zw-swipe-wrap. Mirror of the homepage helper; back-compat maps the
+  // legacy boolean bar_hover to desktop reveal-on-hover.
+  window.zwApplyScrollbarPrefs = window.zwApplyScrollbarPrefs || function (wrap, cfg) {
+    if (!wrap || !cfg) return;
+    var m = function (v, d) { return (v === 'show' || v === 'hover' || v === 'off') ? v : d; };
+    wrap.setAttribute('data-bar-lg', m(cfg.bar_lg, cfg.bar_hover ? 'hover' : 'show'));
+    wrap.setAttribute('data-bar-md', m(cfg.bar_md, 'show'));
+    wrap.setAttribute('data-bar-sm', m(cfg.bar_sm, 'show'));
+    wrap.setAttribute('data-bar-size', (cfg.bar_size === 'medium' || cfg.bar_size === 'thick') ? cfg.bar_size : 'thin');
+    wrap.classList.remove('zw-bar-hover');
+  };
+
   // Per-device grid/swipe layout setter — mirror of the homepage helper (landing
   // pages don't load storefront.js). Writes data-lg/md/sm + --col-* + snap + hover.
   window.zwApplyPlatLayout = window.zwApplyPlatLayout || function (grid, cfg) {
@@ -31,7 +44,7 @@
     grid.style.setProperty('--col-sm', col(cfg.col_sm, 2));
     if (window.zwEnsureSwipeBar) window.zwEnsureSwipeBar(grid);
     var w = grid.closest('.zw-swipe-wrap');
-    if (w) w.classList.toggle('zw-bar-hover', !!cfg.bar_hover);
+    if (w) window.zwApplyScrollbarPrefs(w, cfg);
   };
 
   // Nike-style draggable swipe scrollbar — mirror of the homepage helper (landing
@@ -55,6 +68,13 @@
     if (!grid._zwBarBound) {
       grid.addEventListener('scroll', sync, { passive: true });
       window.addEventListener('resize', sync, { passive: true });
+      // Reveal-while-scrolling for "hover" mode on touch (see .zw-bar-scrolling CSS).
+      var _barScrollT;
+      grid.addEventListener('scroll', function () {
+        wrap.classList.add('zw-bar-scrolling');
+        clearTimeout(_barScrollT);
+        _barScrollT = setTimeout(function () { wrap.classList.remove('zw-bar-scrolling'); }, 900);
+      }, { passive: true });
       var dragging = false, startX = 0, startLeft = 0;
       thumb.addEventListener('pointerdown', function (e) { dragging = true; startX = e.clientX; startLeft = grid.scrollLeft; thumb.classList.add('zw-dragging'); try { thumb.setPointerCapture(e.pointerId); } catch (_) {} e.preventDefault(); });
       thumb.addEventListener('pointermove', function (e) { if (!dragging) return; var travel = bar.clientWidth - thumb.offsetWidth, max = grid.scrollWidth - grid.clientWidth; if (travel > 0) grid.scrollLeft = startLeft + ((e.clientX - startX) / travel) * max; });
