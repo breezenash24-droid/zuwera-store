@@ -252,6 +252,23 @@ function showToast(msg) {
     return true;
   };
 
+  // Is a CSS color string visually light? (hex #rgb/#rrggbb or rgb/rgba). Used to
+  // auto-pick readable text on a section whose background is set but text isn't.
+  function _zwIsLightColor(c) {
+    if (!c) return false;
+    c = String(c).trim();
+    var r, g, b, m;
+    if ((m = c.match(/^#([0-9a-f]{3})$/i))) {
+      r = parseInt(m[1][0] + m[1][0], 16); g = parseInt(m[1][1] + m[1][1], 16); b = parseInt(m[1][2] + m[1][2], 16);
+    } else if ((m = c.match(/^#([0-9a-f]{6})$/i))) {
+      r = parseInt(m[1].slice(0, 2), 16); g = parseInt(m[1].slice(2, 4), 16); b = parseInt(m[1].slice(4, 6), 16);
+    } else if ((m = c.match(/rgba?\(([^)]+)\)/i))) {
+      var p = m[1].split(',').map(function (x) { return parseFloat(x); }); r = p[0]; g = p[1]; b = p[2];
+    } else { return false; }
+    if ([r, g, b].some(function (x) { return isNaN(x); })) return false;
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6;   // perceived luminance
+  }
+
   function applyBuilderConfig(cfg) {
     if (!cfg || !cfg.sections) return;
 
@@ -1304,8 +1321,16 @@ function showToast(msg) {
       // Universal text color (opt-in). Sections that set color via cssText
       // (cta/banner) ship a text_color default, so the else-branch only clears
       // an inline override on sections that never set color themselves.
-      if (s.text_color) el.style.setProperty('color', s.text_color, 'important');
-      else el.style.removeProperty('color');
+      if (s.text_color) {
+        el.style.setProperty('color', s.text_color, 'important');
+      } else if (s.sec_bg && _zwIsLightColor(s.sec_bg)) {
+        // Light section background but no text color chosen → force dark text so it
+        // stays readable (otherwise a white section inherits the dark-theme light
+        // text and renders invisible white-on-white).
+        el.style.setProperty('color', '#09090b', 'important');
+      } else {
+        el.style.removeProperty('color');
+      }
       // Universal heading-size override (opt-in). Only applied when set — when
       // blank, each section's own responsive heading size (re-rendered into the
       // innerHTML on every update) stands, so there's nothing to clear.
