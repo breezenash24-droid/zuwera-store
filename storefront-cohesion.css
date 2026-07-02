@@ -3827,3 +3827,16 @@ body.light-mode .zw-swipe-thumb,
 body.super-light-mode .zw-swipe-thumb{ background:rgba(9,9,11,.55); }
 body.light-mode .zw-swipe-thumb:hover,
 body.super-light-mode .zw-swipe-thumb:hover{ background:rgba(9,9,11,.8); }
+
+/* ── Unified nav logo theming ─────────────────────────────────────────────
+   The nav logo images (logo-192.png, wordmark.png) are WHITE artwork, so they
+   show as-is on dark and MUST invert to black on light / super-light. Several
+   pages themed this inconsistently (some never inverted → invisible on light;
+   some inverted in dark → invisible on dark). These !important rules unify it
+   across every page/logo variant. Footer logos (.flogo/.zwf-logo) unaffected. */
+:is(.nav-logo,.nav-logo-link,.zw-nav-logo) img,
+img.nav-logo-img{ filter:none !important; }
+body.light-mode :is(.nav-logo,.nav-logo-link,.zw-nav-logo) img,
+body.light-mode img.nav-logo-img,
+body.super-light-mode :is(.nav-logo,.nav-logo-link,.zw-nav-logo) img,
+body.super-light-mode img.nav-logo-img{ filter:invert(1) !important; }
