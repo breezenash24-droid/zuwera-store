@@ -8,6 +8,8 @@
     "build": "node scripts/cloudflare-pages-build.js",
     "deployment-checklist": "node scripts/deployment-checklist.js",
     "checkout-cart-smoke": "node scripts/checkout-cart-smoke.js",
+    "audit:repo": "node scripts/repo-audit.js",
+    "ci": "node scripts/repo-audit.js && node scripts/deployment-checklist.js",
     "bump-cache": "node scripts/bump-cache-version.js"
   },
   "dependencies": {

@@ -36,6 +36,7 @@ const files = [
   'customer-hub.js',
   'diagnostic.html',
   'drop001.html',
+  'error-reporter.js',
   'favicon-utils.js',
   'favicon.ico',
   'google-tag.js',
