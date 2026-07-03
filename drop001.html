@@ -328,7 +328,7 @@ document.documentElement.classList.add('zw-collflash');
     /* Desktop: "Hide Filters" smoothly collapses the sidebar; the grid widens. */
     @media (min-width:761px){ .plp-layout.plp-filters-off .plp-sidebar { flex-basis:0; margin-right:0; opacity:0; transform:translateX(-10px); pointer-events:none; } }
     .plp-layout { display:flex; align-items:flex-start; }
-    .plp-sidebar { flex:0 0 190px; margin-right:2.5rem; overflow:hidden; position:sticky; top:calc(var(--zw-nav-h,54px) + var(--zw-plpbar-h,50px) + 14px); transition:top .4s ease, flex-basis .4s cubic-bezier(.4,0,.2,1), margin-right .4s cubic-bezier(.4,0,.2,1), opacity .28s ease, transform .4s cubic-bezier(.4,0,.2,1); }
+    .plp-sidebar { flex:0 0 190px; margin-right:2.5rem; overflow:hidden; position:sticky; top:calc(var(--zw-nav-h,54px) + var(--zw-plpbar-h,50px) + 14px); transition:top .4s ease, flex-basis .4s cubic-bezier(.4,0,.2,1), margin-right .4s cubic-bezier(.4,0,.2,1), opacity .3s ease, transform .4s cubic-bezier(.4,0,.2,1); }
     html.zw-nav-hidden .plp-sidebar { top:calc(var(--zw-plpbar-h,50px) + 14px); }
     .plp-main { flex:1; min-width:0; }
     .plp-sidebar-head { font-family:var(--font-mono); font-size:.58rem; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin-bottom:.7rem; }
@@ -338,26 +338,26 @@ document.documentElement.classList.add('zw-collflash');
     .plp-cat-btn.active { opacity:1; font-weight:700; text-decoration:underline; text-underline-offset:4px; }
     /* Immersive grid swap: cards fade + rise in (staggered) when filters/sort change */
     @keyframes plpCardIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-    .products-grid.plp-animate-in > a { animation:plpCardIn .46s cubic-bezier(.22,.61,.36,1) both; }
+    .products-grid.plp-animate-in > a { animation:plpCardIn .45s cubic-bezier(.22,.61,.36,1) both; }
     .products-grid.plp-animate-in > a:nth-child(1){animation-delay:0s}
     .products-grid.plp-animate-in > a:nth-child(2){animation-delay:.045s}
     .products-grid.plp-animate-in > a:nth-child(3){animation-delay:.09s}
-    .products-grid.plp-animate-in > a:nth-child(4){animation-delay:.135s}
-    .products-grid.plp-animate-in > a:nth-child(5){animation-delay:.18s}
-    .products-grid.plp-animate-in > a:nth-child(6){animation-delay:.225s}
-    .products-grid.plp-animate-in > a:nth-child(n+7){animation-delay:.27s}
+    .products-grid.plp-animate-in > a:nth-child(4){animation-delay:.15s}
+    .products-grid.plp-animate-in > a:nth-child(5){animation-delay:.2s}
+    .products-grid.plp-animate-in > a:nth-child(6){animation-delay:.2s}
+    .products-grid.plp-animate-in > a:nth-child(n+7){animation-delay:.25s}
     @media (prefers-reduced-motion: reduce){ .products-grid.plp-animate-in > a{ animation:none; } .plp-sidebar,.plp-bar{ transition:none; } }
     /* Filter count badge on the toolbar button */
     .plp-fcount{ display:inline-flex; align-items:center; justify-content:center; min-width:17px; height:17px; padding:0 4px; border-radius:999px; background:var(--white); color:var(--black); font-size:.55rem; font-weight:600; line-height:1; }
     /* Mobile filter & sort bottom-sheet modal */
     /* Kept in the layout (visibility, not display:none) so it animates BOTH ways.
        Visibility flips to hidden only after the slide-out finishes (delayed). */
-    .plp-fm{ position:fixed; inset:0; z-index:600; visibility:hidden; transition:visibility 0s linear .46s; }
+    .plp-fm{ position:fixed; inset:0; z-index:600; visibility:hidden; transition:visibility 0s linear .45s; }
     .plp-fm.open{ visibility:visible; transition-delay:0s; }
     .plp-fm::before{ content:''; position:absolute; inset:0; background:rgba(0,0,0,.55); opacity:0; transition:opacity .35s ease; }
     .plp-fm.open::before{ opacity:1; }
     .plp-fm.plp-fm-dragging::before{ transition:none; opacity:var(--zw-fm-ov,1); }   /* follow the finger */
-    .plp-fm-sheet{ position:absolute; left:0; right:0; bottom:0; max-height:86vh; display:flex; flex-direction:column; background:var(--black); border-top-left-radius:18px; border-top-right-radius:18px; transform:translateY(100%); transition:transform .42s cubic-bezier(.32,.72,0,1); will-change:transform; }
+    .plp-fm-sheet{ position:absolute; left:0; right:0; bottom:0; max-height:86vh; display:flex; flex-direction:column; background:var(--black); border-top-left-radius:18px; border-top-right-radius:18px; transform:translateY(100%); transition:transform .4s cubic-bezier(.32,.72,0,1); will-change:transform; }
     .plp-fm.open .plp-fm-sheet{ transform:translateY(0); }
     .plp-fm.plp-fm-dragging .plp-fm-sheet{ transition:none; }
     .plp-fm-grab{ width:38px; height:4px; border-radius:99px; background:var(--white); opacity:.3; margin:.55rem auto .1rem; flex-shrink:0; }
@@ -466,7 +466,7 @@ document.documentElement.classList.add('zw-collflash');
       100%{ transform: scale(1); }
     }
     .heart-btn svg.heart-pop {
-      animation: svgHeartPop .36s cubic-bezier(.36,.07,.19,.97);
+      animation: svgHeartPop .35s cubic-bezier(.36,.07,.19,.97);
     }
     @media (prefers-reduced-motion: reduce) {
       .heart-btn svg.heart-pop { animation: none; }
@@ -643,7 +643,7 @@ document.documentElement.classList.add('zw-collflash');
       width:min(1080px,94vw);max-height:min(820px,92dvh);
       background:#0f0f0f;border:1px solid rgba(244,241,235,.1);
       border-top:2px solid var(--pink);position:relative;overflow:hidden;
-      animation:collectionModalIn .22s ease;
+      animation:collectionModalIn .2s ease;
     }
     .collection-review-modal.closing .collection-review-box{animation:collectionModalOut .2s ease forwards}
     .collection-product-box{width:min(1080px,94vw);max-height:min(820px,92dvh);overflow:hidden}
@@ -686,7 +686,7 @@ document.documentElement.classList.add('zw-collflash');
     }
     .collection-review-media img{width:100%;height:100%;object-fit:cover;object-position:50% 0%;display:block}
     /* Gallery transitions matching the full product page: slide for nav, fade for colorway. */
-    .collection-review-media :is(img,video).zw-img-in{animation:colImgIn .42s cubic-bezier(.22,.61,.36,1) both}
+    .collection-review-media :is(img,video).zw-img-in{animation:colImgIn .4s cubic-bezier(.22,.61,.36,1) both}
     .collection-review-media :is(img,video).zw-slide-next{animation:colSlideNext .4s cubic-bezier(.22,.61,.36,1) both}
     .collection-review-media :is(img,video).zw-slide-prev{animation:colSlidePrev .4s cubic-bezier(.22,.61,.36,1) both}
     @keyframes colImgIn{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:scale(1)}}
@@ -802,10 +802,10 @@ document.documentElement.classList.add('zw-collflash');
         overflow-y:auto;
         overflow-x:hidden;
         -webkit-overflow-scrolling:touch;
-        animation:collectionSheetIn .42s cubic-bezier(.32,.72,0,1);
+        animation:collectionSheetIn .4s cubic-bezier(.32,.72,0,1);
       }
       .collection-review-modal.closing .collection-review-box{
-        animation:collectionSheetOut .32s cubic-bezier(.32,.72,0,1) forwards;
+        animation:collectionSheetOut .3s cubic-bezier(.32,.72,0,1) forwards;
       }
       .collection-review-close{
         position:fixed;

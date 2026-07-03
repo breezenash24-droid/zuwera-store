@@ -74,7 +74,7 @@
   margin-bottom: 0.5rem;
   border: 1px solid var(--c12);
   cursor: pointer;
-  transition: border-color 0.18s, background 0.18s;
+  transition: border-color .2s, background .2s;
   border-radius: 2px;
   background: rgba(244,241,235,0.02);
 }
