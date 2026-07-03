@@ -1,0 +1,21 @@
+# gitleaks config for the Zuwera repo.
+#
+# Extends the default ruleset, but ALLOWLISTS the public, client-side keys that
+# are intentionally shipped in browser JavaScript. These are NOT secrets — they
+# are meant to be public and appear in many files:
+#   • Supabase ANON key (a JWT; access is gated by Row Level Security)
+#   • PostHog PUBLIC project key (phc_… — designed for client use)
+#
+# Real secrets (SUPABASE_SERVICE_ROLE_KEY, STRIPE_SECRET_KEY, webhook signing
+# secrets, backup/API tokens) live ONLY in Cloudflare env vars and must never be
+# committed — the default rules still catch those.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Public client-side-safe keys (Supabase anon JWT + PostHog public project key)"
+regexes = [
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3Nx''',
+  '''phc_mCL2GmGPncq5Twg7vK6FesuQHQZVTojTxHTpc4Bwp9yT''',
+]

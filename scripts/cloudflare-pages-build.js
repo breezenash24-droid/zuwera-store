@@ -32,6 +32,7 @@ const files = [
   'CNAME',
   'commerce-admin.js',
   'commerce-checkout.js',
+  'consent.js',
   'confirm.html',
   'customer-hub.js',
   'diagnostic.html',
