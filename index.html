@@ -1599,9 +1599,8 @@ body.super-light-mode{
   --line:rgba(9,9,11,0.08);
   background:#FFFFFF;
 }
-/* Fix hardcoded dark elements */
-body.light-mode #cookie-banner{background:#F0EEE9 !important;border-top-color:rgba(9,9,11,.12) !important;color:rgba(9,9,11,.65) !important;}
-body.light-mode #cookie-banner button:last-child{color:rgba(9,9,11,.45) !important;border-color:rgba(9,9,11,.15) !important;}
+/* Cookie-banner theming is centralized in storefront-cohesion.css (a single
+   dark bar in every theme), so the old light-mode override is removed here. */
 /* Nav */
 body.light-mode nav#nav,
 body.light-mode nav#nav.scrolled{
