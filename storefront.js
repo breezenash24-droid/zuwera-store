@@ -4066,13 +4066,8 @@ function scrollToNotify() {
 }
 
 
-(function(){
-  if(!localStorage.getItem('zw_cookie_consent')){
-    document.getElementById('cookie-banner').style.display='flex';
-  }
-})();
-function acceptCookies(){try{localStorage.setItem('zw_cookie_consent','accepted');}catch(e){}document.getElementById('cookie-banner').style.display='none'}
-function declineCookies(){try{localStorage.setItem('zw_cookie_consent','declined');}catch(e){}document.getElementById('cookie-banner').style.display='none'}
+/* Cookie consent (banner + accept/decline + analytics gating) is now handled by
+   consent.js / window.zwConsent, loaded on every page. */
 
 /* â”€â”€ Modal backdrop transparency enforcer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Applies transparent background via inline setProperty (beats all stylesheets,
