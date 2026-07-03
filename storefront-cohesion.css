@@ -19,7 +19,7 @@
      --zw-motion-modal  .3s   modal/dialog open + close
      --zw-motion-slow   .35s  large/hero movements
    Don't invent new durations or cubic-beziers; legacy hardcoded values
-   (.4s/.46s/.6s/.72s + assorted beziers) should migrate to tokens whenever
+   (.4s/.45s/.6s/.72s + assorted beziers) should migrate to tokens whenever
    the code that uses them is touched. Every animation needs a
    prefers-reduced-motion: reduce escape hatch. */
 html{background:#09090b;color-scheme:dark light;text-size-adjust:100%;-webkit-text-size-adjust:100%}
@@ -127,6 +127,13 @@ body.light-mode .zw-hdr-bag:hover,body.super-light-mode .zw-hdr-bag:hover{border
   --zw-motion-panel:.25s;
   --zw-motion-modal:.3s;
   --zw-motion-slow:.35s;
+  /* Easing tokens — the canonical curves used across the UI. Pair with the
+     duration tokens above (e.g. `transition:opacity var(--zw-motion-base) var(--zw-ease)`).
+     --zw-ease = standard (Material), --zw-ease-out = decelerate/entrances,
+     --zw-ease-spring = the slight overshoot on pops. */
+  --zw-ease:cubic-bezier(.4,0,.2,1);
+  --zw-ease-out:cubic-bezier(.22,.61,.36,1);
+  --zw-ease-spring:cubic-bezier(.34,1.3,.5,1);
   --zw-space-page:clamp(1.2rem,4vw,2.5rem);
   --zw-panel-width:clamp(24rem,34vw,34rem);
   --zw-panel-wide-width:clamp(32rem,48vw,48rem);
@@ -225,7 +232,7 @@ select:focus-visible{
   text-transform:uppercase;
   text-decoration:none;
   cursor:pointer;
-  transition:background .16s ease, color .16s ease, border-color .16s ease, opacity .16s ease;
+  transition:background .15s ease, color .15s ease, border-color .15s ease, opacity .15s ease;
 }
 
 .zw-saved-item-btn:hover,
@@ -432,7 +439,7 @@ body.light-mode #zw-lang-modal{
   margin:auto !important;
   overflow-y:auto !important;
   overscroll-behavior:contain;
-  animation:zwCenteredModalIn .22s ease;
+  animation:zwCenteredModalIn .2s ease;
 }
 
 body.light-mode .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#all-reviews-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.collection-review-box){
@@ -571,7 +578,7 @@ body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel{
     margin:auto !important;
     overflow-y:auto !important;
     overscroll-behavior:contain;
-    animation:zwCenteredModalIn .22s ease;
+    animation:zwCenteredModalIn .2s ease;
   }
   body.light-mode #all-reviews-modal > .review-list-mbox{
     background:var(--zw-paper) !important;
@@ -602,7 +609,7 @@ body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel{
   margin:auto !important;
   overflow-y:auto !important;
   overscroll-behavior:contain;
-  animation:zwCenteredModalIn .22s ease;
+  animation:zwCenteredModalIn .2s ease;
 }
 
 body.light-mode #zw-lang-box{
@@ -1049,7 +1056,7 @@ body.light-mode :is(.pcard-badge,.coming-soon-badge){
 }
 
 .heart-btn.heart-pop{
-  animation:heartPop .38s cubic-bezier(.36,.07,.19,.97);
+  animation:heartPop .4s cubic-bezier(.36,.07,.19,.97);
 }
 
 @media(prefers-reduced-motion:reduce){
@@ -1111,7 +1118,7 @@ body.light-mode .heart-btn{
      bottom edge (and back down on close) instead of a small nudge + scale.
      The shared box transition above carries the transform in both directions. */
   .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox){
-    transition:transform .36s cubic-bezier(.22,.61,.36,1), opacity .2s ease !important;
+    transition:transform .35s cubic-bezier(.22,.61,.36,1), opacity .2s ease !important;
     }
   .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal):not(.open) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox){
     transform:translateY(100%) !important;
@@ -1987,7 +1994,7 @@ body.light-mode .heart-btn{
   background:currentColor !important;
   box-shadow:none !important;
   transform-origin:center !important;
-  transition:top .22s ease, transform .28s ease, opacity .18s ease !important;
+  transition:top .2s ease, transform .3s ease, opacity .2s ease !important;
 }
 
 /* Bars centered RELATIVE to the button (50% ± 3px) so they stay aligned with the
@@ -2134,7 +2141,7 @@ body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel::befor
 }
 
 #mobile-menu.zw-mobile-menu.open > .zw-mobile-menu-panel{
-  animation:zwMenuPanelIn .44s cubic-bezier(.32,.72,0,1) both !important;
+  animation:zwMenuPanelIn .45s cubic-bezier(.32,.72,0,1) both !important;
 }
 
 /* Keep visible and non-interactive during exit animation */
@@ -2143,7 +2150,7 @@ body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel::befor
   pointer-events:none !important;
 }
 #mobile-menu.zw-mobile-menu.closing > .zw-mobile-menu-panel{
-  animation:zwMenuPanelOut .34s cubic-bezier(.4,0,.6,1) both !important;
+  animation:zwMenuPanelOut .35s cubic-bezier(.4,0,.6,1) both !important;
   pointer-events:none !important;
 }
 
@@ -2281,7 +2288,7 @@ body.super-light-mode #mobile-menu .zw-mobile-menu-close{
   display:flex !important;
   align-items:center !important;
   justify-content:center !important;
-  transition:background .14s linear, border-color .14s linear, color .14s linear !important;
+  transition:background .15s linear, border-color .15s linear, color .15s linear !important;
 }
 
 body.light-mode #mobile-menu .zw-mobile-menu-close{
@@ -2777,7 +2784,7 @@ body.super-light-mode #mobile-menu.zw-mobile-menu>.zw-mobile-menu-panel{
 
 /* Panel open animation: smoother slide from the RIGHT */
 #mobile-menu.zw-mobile-menu.open>.zw-mobile-menu-panel{
-  animation:zwDrawerIn .32s cubic-bezier(0.25,0.46,0.45,0.94) both!important;
+  animation:zwDrawerIn .3s cubic-bezier(.25,.46,.45,.94) both!important;
 }
 @keyframes zwDrawerIn{
   from{transform:translateX(100%);opacity:.85}
@@ -2881,7 +2888,7 @@ body.light-mode #mobile-menu :is(#mobile-category-links,.mobile-nav-links){
   border-top:none!important;
   border-bottom:none!important;
   background:none!important;
-  transition:color .14s,background .14s!important;
+  transition:color .15s,background .15s!important;
 }
 #mobile-menu .zw-mobile-primary-link:hover,
 #mobile-menu .zw-mobile-primary-link:focus-visible{
@@ -2899,7 +2906,7 @@ body.light-mode #mobile-menu :is(#mobile-category-links,.mobile-nav-links){
   color:rgba(244,241,235,.3)!important;
   margin-left:auto!important;
   flex-shrink:0!important;
-  transition:transform .15s,color .14s!important;
+  transition:transform .15s,color .15s!important;
 }
 #mobile-menu .zw-mobile-primary-link:hover::after{
   color:rgba(244,241,235,.6)!important;
@@ -2946,7 +2953,7 @@ body.light-mode .zw-mobile-menu-secondary{
   color:rgba(244,241,235,.38)!important;
   background:transparent!important;
   border:none!important;
-  transition:color .14s,background .14s!important;
+  transition:color .15s,background .15s!important;
 }
 #mobile-menu .zw-mobile-secondary-link:hover{
   color:rgba(244,241,235,.7)!important;
@@ -3022,7 +3029,7 @@ body.light-mode .zw-mobile-bag-count{
   cursor:pointer!important;
   flex-shrink:0!important;
   text-decoration:none!important;
-  transition:color .14s!important;
+  transition:color .15s!important;
   -webkit-tap-highlight-color:transparent!important;
   -webkit-touch-callout:none!important;
   user-select:none!important;
@@ -3036,7 +3043,7 @@ body.light-mode .zw-mobile-bag-count{
   flex-shrink:0!important;
   stroke:currentColor!important;
   opacity:1!important;
-  transition:opacity .14s!important;
+  transition:opacity .15s!important;
 }
 .zw-social-btn:hover svg{opacity:.85!important;}
 body.light-mode .zw-social-btn{color:rgba(9,9,11,.38)!important;}
@@ -3096,7 +3103,7 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.18)!important;}
      (overrides the base 14px nudge + scale used on desktop). One timing/easing
      shared by all sheets — quick-add, size guide, size & fit, login, reviews. */
   .modal:not(#mobile-menu):not(#cart-modal):not(#payment-modal) > :is(.mbox,.review-mbox,.review-list-mbox,.review-dialog){
-    transition:transform .42s cubic-bezier(.32,.72,0,1), opacity .24s ease !important;
+    transition:transform .4s cubic-bezier(.32,.72,0,1), opacity .25s ease !important;
   }
   .modal:not(#mobile-menu):not(#cart-modal):not(#payment-modal):not(.open) > :is(.mbox,.review-mbox,.review-list-mbox,.review-dialog){
     transform:translateY(100%) !important;
@@ -3371,9 +3378,9 @@ body.light-mode .quick-add-gallery-arrow{background:rgba(9,9,11,.55);border-colo
 .zw-reveal{opacity:0;transform:translateY(26px);transition:opacity .7s cubic-bezier(.22,.61,.36,1),transform .7s cubic-bezier(.22,.61,.36,1);will-change:opacity,transform;}
 .zw-revealed{opacity:1;transform:none;}
 .zw-reveal[data-reveal-delay="1"]{transition-delay:.08s}
-.zw-reveal[data-reveal-delay="2"]{transition-delay:.16s}
-.zw-reveal[data-reveal-delay="3"]{transition-delay:.24s}
-.zw-reveal[data-reveal-delay="4"]{transition-delay:.32s}
+.zw-reveal[data-reveal-delay="2"]{transition-delay:.15s}
+.zw-reveal[data-reveal-delay="3"]{transition-delay:.25s}
+.zw-reveal[data-reveal-delay="4"]{transition-delay:.3s}
 @media (prefers-reduced-motion: reduce){.zw-reveal,.zw-revealed{opacity:1 !important;transform:none !important;}}
 
 /* 3) Form-error shake — add .zw-shake to a form/modal box to nudge it on a failed
@@ -3417,7 +3424,7 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
   width:20px; height:20px; flex:0 0 auto; padding:0; cursor:pointer;
   border:1px solid rgba(128,128,128,.5); border-radius:2px;   /* square, like the modal/site swatches */
   background-clip:padding-box;
-  transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  transition:transform .1s ease, box-shadow .1s ease, border-color .1s ease;
 }
 .zw-card-swatch:hover, .zw-card-swatch:focus-visible{
   transform:translateY(-1px); outline:none;
@@ -3477,14 +3484,14 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
   box-shadow:0 30px 44px -22px rgba(0,0,0,.40);
   opacity:0; visibility:hidden; pointer-events:none;
   transform:translateY(-12px);
-  transition:opacity .22s ease, transform .22s ease, visibility 0s linear .22s;
+  transition:opacity .2s ease, transform .2s ease, visibility 0s linear .2s;
   z-index:219;
 }
 /* transparent bridge so moving the cursor from the item to the panel doesn't close it */
 .zw-navitem > .zw-mega::before{ content:''; position:absolute; left:0; right:0; top:-1.6rem; height:1.6rem; }
 .zw-navitem:hover > .zw-mega, .zw-navitem:focus-within > .zw-mega{
   opacity:1; visibility:visible; pointer-events:auto; transform:translateY(0);
-  transition:opacity .22s ease, transform .22s ease;
+  transition:opacity .2s ease, transform .2s ease;
 }
 .zw-mega-col{ display:flex; flex-direction:column; gap:.7rem; min-width:150px; }
 .zw-mega-col h4{
@@ -3494,7 +3501,7 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
 .zw-mega-col a{
   font-family:var(--zw-font-head, 'Barlow Condensed', sans-serif); font-size:1.05rem; font-weight:600;
   letter-spacing:.02em; text-transform:uppercase;
-  color:rgba(244,241,235,.82); text-decoration:none; transition:color .18s; white-space:nowrap;
+  color:rgba(244,241,235,.82); text-decoration:none; transition:color .2s; white-space:nowrap;
 }
 .zw-mega-col a:hover{ color:var(--paper, #f4f1eb); }
 body.light-mode .zw-navitem > .zw-mega{

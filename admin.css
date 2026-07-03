@@ -268,7 +268,7 @@
             letter-spacing: .08em; color: var(--text-secondary); font-weight: 700; }
         .zw-sr-item {
             display: flex; align-items: center; gap: 12px;
-            padding: 11px 20px; cursor: pointer; transition: background .12s;
+            padding: 11px 20px; cursor: pointer; transition: background .1s;
             border-left: 3px solid transparent;
         }
         .zw-sr-item:hover, .zw-sr-item.zw-sr-active {
@@ -1397,7 +1397,7 @@
             font-weight: 600;
             letter-spacing: 0.02em;
             -webkit-tap-highlight-color: transparent;
-            transition: background 0.12s;
+            transition: background .1s;
         }
         .mob-drawer-item:active { background: var(--bg-primary); }
         .mob-drawer-item-icon { font-size: 1.5rem; line-height: 1; }

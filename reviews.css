@@ -116,7 +116,7 @@
   border-top: 2px solid var(--zw-accent);
   position: relative;
   padding: 3rem 3.2rem 2.6rem;
-  animation: modalIn .22s ease;
+  animation: modalIn .2s ease;
   max-width: 1200px;
   width: min(1200px, 98vw);
   max-height: 96dvh;
@@ -276,7 +276,7 @@
   padding: 0.45rem 1.1rem; border-radius: 2px; font-size: 0.82rem; font-weight: 600;
   cursor: pointer; text-transform: none; letter-spacing: 0.02em;
   border: 1px solid rgba(244,241,235,0.15); background: rgba(244,241,235,0.04);
-  color: rgba(244,241,235,0.5); transition: all 0.18s; user-select: none;
+  color: rgba(244,241,235,0.5); transition: all .2s; user-select: none;
   font-family: var(--font-body);
 }
 .review-mbox .review-radio-group input[type="radio"]:checked + label { border-color: var(--zw-accent); background: rgba(248,145,165,0.15); color: var(--zw-accent); }
@@ -318,7 +318,7 @@
   border: 1px solid rgba(244,241,235,.08);
   border-top: 2px solid var(--zw-accent);
   position: relative;
-  animation: modalIn .22s ease;
+  animation: modalIn .2s ease;
   max-width: 1400px;
   width: min(1400px, 99vw);
   max-height: 96dvh;
