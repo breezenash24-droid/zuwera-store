@@ -313,7 +313,7 @@ body{display:flex;flex-direction:column}
   </div>
   <div class="pv-wrap">
     <div class="pv-frame desk" id="pvFrame">
-      <iframe id="pvIframe" src="/index.html?builder=1" title="Preview" onload="sendSelectMode()" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+      <iframe id="pvIframe" src="/index.html?builder=1" title="Preview" onload="sendSelectMode();schedSend()" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
     </div>
   </div>
 </div>
