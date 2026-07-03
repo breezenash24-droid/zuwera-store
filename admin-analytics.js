@@ -201,9 +201,9 @@
                       orders.forEach(o => {
                         parseItems(o).forEach(item => {
                           const key = item.name || item.title || item.product_id || 'Unknown';
-                          const rev = (Number(item.price||item.amount||0)) * (Number(item.quantity||item.qty||1));
+                          const rev = itemRev(item);
                           if (!prodRev[key]) prodRev[key] = { name:key, units:0, revenue:0, orders:0 };
-                          prodRev[key].units  += Number(item.quantity||item.qty||1);
+                          prodRev[key].units  += itemQty(item);
                           prodRev[key].revenue += rev;
                           prodRev[key].orders++;
                         });
@@ -251,7 +251,7 @@
                       // Geographic distribution
                       const stateMap = {};
                       orders.forEach(o => {
-                        const state = o.shipping_state || o.state || (o.shipping_address && (typeof o.shipping_address === 'object' ? o.shipping_address.state : null)) || '';
+                        const state = o.ship_state || o.shipping_state || o.state || (o.shipping_address && (typeof o.shipping_address === 'object' ? o.shipping_address.state : null)) || '';
                         if (state && state.length <= 3) stateMap[state.toUpperCase()] = (stateMap[state.toUpperCase()]||0) + 1;
                       });
                       const stateList = Object.entries(stateMap).sort((a,b)=>b[1]-a[1]);
@@ -305,19 +305,261 @@
                       orders.forEach(o => parseItems(o).forEach(item => {
                         const key = item.name || item.title || 'Unknown';
                         if (!prodRev[key]) prodRev[key] = { units:0, revenue:0 };
-                        prodRev[key].units += Number(item.quantity||1);
-                        prodRev[key].revenue += Number(item.price||0) * Number(item.quantity||1);
+                        prodRev[key].units += itemQty(item);
+                        prodRev[key].revenue += itemRev(item);
                       }));
                       anaExportCSV(`revenue_by_product_${new Date().toISOString().slice(0,10)}.csv`,
                         ['Product','Units Sold','Revenue'],
                         Object.entries(prodRev).sort((a,b)=>b[1].revenue-a[1].revenue).map(([name,d]) => [name, d.units, d.revenue.toFixed(2)]));
                     };
 
+                    // ── Shared item helpers ──────────────────────────────────────────
+                    // Persisted order items store price as `amount` in CENTS (Stripe unit);
+                    // older/guest snapshots may carry `price` in dollars. Normalise here so
+                    // every revenue calc agrees. (function decls → hoisted, safe to use above.)
+                    function itemQty(it)  { return Number(it.quantity || it.qty || 1) || 1; }
+                    function itemUnit(it) { return it.amount != null ? (Number(it.amount) || 0) / 100 : (Number(it.price) || 0); }
+                    function itemRev(it)  { return itemUnit(it) * itemQty(it); }
+                    function itemName(it) { return it.name || it.title || it.productId || it.product_id || 'Unknown'; }
+                    function anaProdMaps() {
+                      const byId = {}, byTitle = {};
+                      _anaProds.forEach(p => { byId[p.id] = p; if (p.title) byTitle[String(p.title).toLowerCase()] = p; });
+                      return { byId, byTitle };
+                    }
+                    function itemProd(it, maps) {
+                      return maps.byId[it.productId] || maps.byId[it.product_id]
+                        || maps.byTitle[String(it.name || it.title || '').toLowerCase()] || null;
+                    }
+                    function cmpArrow(cur, prev, label) {
+                      if (!prev) return '';
+                      const pct = ((cur - prev) / prev * 100).toFixed(0);
+                      const up = cur >= prev;
+                      return `<span style="color:${up?'#10b981':'#ef4444'}">${up?'▲':'▼'} ${Math.abs(pct)}% ${label||''}</span>`;
+                    }
+                    function anaCurrencyBars(containerId, entries, color) {
+                      const c = sectionEl(containerId); if (!c) return;
+                      const max = Math.max(...entries.map(e => e.val), 1);
+                      c.innerHTML = '';
+                      entries.forEach(e => {
+                        const pct = (e.val / max) * 100;
+                        const item = document.createElement('div'); item.className = 'ana-bar-item';
+                        item.innerHTML = `<div class="ana-bar" style="height:${e.val>0?Math.max(pct,3):0}%;background:${color||'var(--accent)'}"><div class="ana-bar-val">$${Math.round(e.val).toLocaleString()}</div></div><div class="ana-bar-label">${e.label}</div>`;
+                        c.appendChild(item);
+                      });
+                    }
+
+                    // ── Live "Today" strip (period-independent) ──────────────────────
+                    function anaRenderToday() {
+                      const now = new Date();
+                      const todayStart = new Date(now); todayStart.setHours(0,0,0,0);
+                      const lwStart = new Date(todayStart.getTime() - 7*864e5);
+                      const lwEnd   = new Date(now.getTime() - 7*864e5);
+                      const tOrders  = _anaOrders.filter(o => new Date(o.created_at) >= todayStart);
+                      const lwOrders = _anaOrders.filter(o => { const d = new Date(o.created_at); return d >= lwStart && d <= lwEnd; });
+                      const tRev  = tOrders.reduce((s,o) => s + orderTotal(o), 0);
+                      const lwRev = lwOrders.reduce((s,o) => s + orderTotal(o), 0);
+                      const setT = (id,v) => { const e = sectionEl(id); if (e) e.textContent = v; };
+                      setT('ana-today-rev', `$${tRev.toFixed(2)}`);
+                      setT('ana-today-ord', tOrders.length);
+                      setT('ana-today-aov', `$${(tOrders.length ? tRev/tOrders.length : 0).toFixed(2)}`);
+                      const rc = sectionEl('ana-today-rev-cmp');
+                      if (rc) rc.innerHTML = lwOrders.length ? cmpArrow(tRev, lwRev, 'vs last wk') : '<span style="color:var(--text-secondary)">no orders last wk</span>';
+                      const oc = sectionEl('ana-today-ord-cmp');
+                      if (oc) oc.innerHTML = lwOrders.length ? cmpArrow(tOrders.length, lwOrders.length, 'vs last wk') : '';
+                      const latest = [..._anaOrders].sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).slice(0,5);
+                      const le = sectionEl('ana-today-latest');
+                      if (le) le.innerHTML = latest.length
+                        ? latest.map(o => `<div style="display:flex;justify-content:space-between;gap:.6rem;padding:.12rem 0;"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.email||'Guest'}</span><span style="color:var(--accent);white-space:nowrap;">$${orderTotal(o).toFixed(2)}</span></div>`).join('')
+                        : 'No orders yet.';
+                      const up = sectionEl('ana-today-updated');
+                      if (up) up.textContent = 'Updated ' + now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) + ' · auto-refreshes';
+                    }
+                    let _anaTodayTimer = null;
+                    function anaStartTodayAutoRefresh() {
+                      if (_anaTodayTimer) return;
+                      _anaTodayTimer = setInterval(async () => {
+                        const pg = document.getElementById('analytics');
+                        if (!pg || !pg.classList.contains('active') || document.hidden) return;
+                        try { await anaLoadOrders(); anaRenderToday(); } catch(_) {}
+                      }, 45000);
+                    }
+
+                    // ── When customers buy: day-of-week + hour-of-day (period-aware) ──
+                    function anaRenderTiming() {
+                      const orders = filteredOrders();
+                      const dow = [0,0,0,0,0,0,0];
+                      const hod = new Array(24).fill(0);
+                      orders.forEach(o => { const d = new Date(o.created_at); const t = orderTotal(o); dow[d.getDay()] += t; hod[d.getHours()] += t; });
+                      const dl = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+                      anaCurrencyBars('ana-dowChart', dl.map((l,i) => ({label:l, val:dow[i]})), '#6366f1');
+                      const c = sectionEl('ana-hodChart');
+                      if (c) {
+                        const max = Math.max(...hod, 1);
+                        c.innerHTML = hod.map((v,h) => {
+                          const intensity = v / max;
+                          const bg = v > 0 ? `rgba(16,185,129,${(0.18 + intensity*0.82).toFixed(2)})` : 'var(--bg-tertiary,#1a1a1e)';
+                          const lbl = (h % 3 === 0) ? String(h) : '';
+                          return `<div title="${h}:00 – $${Math.round(v).toLocaleString()}" style="flex:1;min-width:0;">
+                            <div style="height:${Math.max(6, Math.round(intensity*64))}px;background:${bg};border-radius:2px;"></div>
+                            <div style="text-align:center;font-size:.6rem;color:var(--text-secondary);margin-top:2px;height:12px;">${lbl}</div>
+                          </div>`;
+                        }).join('');
+                      }
+                    }
+
+                    // ── New vs returning revenue (period-aware; first order = all-time) ──
+                    function anaRenderCohorts() {
+                      const el = sectionEl('ana-cohortSplit'); if (!el) return;
+                      const orders = filteredOrders();
+                      if (!orders.length) { el.innerHTML = '<span style="color:var(--text-secondary)">No orders in this period.</span>'; return; }
+                      const first = {};
+                      _anaOrders.forEach(o => { const e = (o.email||'').toLowerCase(); if (!e) return; const d = +new Date(o.created_at); if (first[e] == null || d < first[e]) first[e] = d; });
+                      let newRev = 0, retRev = 0, newN = 0, retN = 0;
+                      orders.forEach(o => {
+                        const e = (o.email||'').toLowerCase(); const t = orderTotal(o); const d = +new Date(o.created_at);
+                        const isNew = !e || first[e] == null || d <= first[e];
+                        if (isNew) { newRev += t; newN++; } else { retRev += t; retN++; }
+                      });
+                      const tot = (newRev + retRev) || 1;
+                      const nPct = newRev/tot*100, rPct = retRev/tot*100;
+                      el.innerHTML = `
+                        <div style="display:flex;height:14px;border-radius:7px;overflow:hidden;margin-bottom:.9rem;">
+                          <div style="width:${nPct}%;background:#3b82f6;" title="New"></div>
+                          <div style="width:${rPct}%;background:#10b981;" title="Returning"></div>
+                        </div>
+                        <div class="ana-stat-row"><span class="ana-stat-label"><span style="color:#3b82f6">●</span> New customers</span><span class="ana-stat-val">$${newRev.toFixed(2)} · ${nPct.toFixed(0)}%</span></div>
+                        <div class="ana-stat-row"><span class="ana-stat-label"><span style="color:#10b981">●</span> Returning</span><span class="ana-stat-val">$${retRev.toFixed(2)} · ${rPct.toFixed(0)}%</span></div>
+                        <div class="ana-stat-row"><span class="ana-stat-label">Orders (new / returning)</span><span class="ana-stat-val">${newN} / ${retN}</span></div>`;
+                    }
+
+                    // ── Full-price vs sale revenue (item price paid vs product MSRP) ──
+                    function anaRenderDiscount() {
+                      const el = sectionEl('ana-discountSplit'); if (!el) return;
+                      const orders = filteredOrders(); const maps = anaProdMaps();
+                      let fullRev = 0, saleRev = 0, saleUnits = 0, discSum = 0, anyMsrp = false;
+                      orders.forEach(o => parseItems(o).forEach(it => {
+                        const unit = itemUnit(it), qty = itemQty(it), rev = unit*qty;
+                        const p = itemProd(it, maps); const msrp = p ? Number(p.msrp)||0 : 0;
+                        if (msrp > 0) {
+                          anyMsrp = true;
+                          if (unit < msrp*0.995) { saleRev += rev; saleUnits += qty; discSum += ((msrp-unit)/msrp)*qty; }
+                          else fullRev += rev;
+                        } else fullRev += rev;
+                      }));
+                      const tot = fullRev + saleRev;
+                      if (!tot) { el.innerHTML = '<span style="color:var(--text-secondary)">No sales in this period.</span>'; return; }
+                      const salePct = saleRev/tot*100, fullPct = fullRev/tot*100;
+                      const avgDisc = saleUnits ? discSum/saleUnits*100 : 0;
+                      el.innerHTML = `
+                        <div style="display:flex;height:14px;border-radius:7px;overflow:hidden;margin-bottom:.9rem;">
+                          <div style="width:${fullPct}%;background:#10b981;" title="Full price"></div>
+                          <div style="width:${salePct}%;background:#f59e0b;" title="Sale"></div>
+                        </div>
+                        <div class="ana-stat-row"><span class="ana-stat-label"><span style="color:#10b981">●</span> Full-price revenue</span><span class="ana-stat-val">$${fullRev.toFixed(2)} · ${fullPct.toFixed(0)}%</span></div>
+                        <div class="ana-stat-row"><span class="ana-stat-label"><span style="color:#f59e0b">●</span> Sale revenue</span><span class="ana-stat-val">$${saleRev.toFixed(2)} · ${salePct.toFixed(0)}%</span></div>
+                        <div class="ana-stat-row"><span class="ana-stat-label">Avg discount depth (sale items)</span><span class="ana-stat-val">${avgDisc.toFixed(1)}%</span></div>
+                        ${anyMsrp ? '' : '<div style="font-size:.72rem;color:var(--text-secondary);margin-top:.5rem;">No MSRP set on sold products — all counted as full price.</div>'}`;
+                    }
+
+                    // ── Revenue by category (item → product.category) ────────────────
+                    function anaRenderCategory() {
+                      const el = sectionEl('ana-categoryTable'); if (!el) return;
+                      const orders = filteredOrders(); const maps = anaProdMaps();
+                      const cat = {};
+                      orders.forEach(o => parseItems(o).forEach(it => {
+                        const p = itemProd(it, maps); const c = (p && p.category) ? p.category : 'Uncategorized';
+                        if (!cat[c]) cat[c] = { cat:c, rev:0, units:0 };
+                        cat[c].rev += itemRev(it); cat[c].units += itemQty(it);
+                      }));
+                      const list = Object.values(cat).sort((a,b) => b.rev - a.rev);
+                      if (!list.length) { el.innerHTML = '<p style="color:var(--text-secondary)">No sales in this period.</p>'; return; }
+                      const max = list[0].rev || 1;
+                      el.innerHTML = `<table><thead><tr><th>Category</th><th>Revenue</th><th>Units</th><th style="width:180px"></th></tr></thead><tbody>
+                        ${list.map(r => `<tr><td style="font-weight:600">${r.cat}</td><td style="color:var(--accent)">$${r.rev.toFixed(2)}</td><td>${r.units}</td>
+                          <td><div style="height:6px;background:var(--bg-tertiary,#1a1a1e);border-radius:3px;"><div style="height:100%;width:${(r.rev/max*100).toFixed(1)}%;background:var(--accent);border-radius:3px;"></div></div></td></tr>`).join('')}
+                      </tbody></table>`;
+                    }
+
+                    // ── Sell-through velocity (units/day + days of stock left) ────────
+                    function anaComputeVelocity() {
+                      const orders = filteredOrders(); const maps = anaProdMaps();
+                      const sold = {};
+                      orders.forEach(o => parseItems(o).forEach(it => {
+                        const p = itemProd(it, maps); const key = p ? p.id : (it.productId || it.name || '?');
+                        if (!sold[key]) sold[key] = { units:0, rev:0 };
+                        sold[key].units += itemQty(it); sold[key].rev += itemRev(it);
+                      }));
+                      const days = _anaPeriod === 'all' ? null : parseInt(_anaPeriod);
+                      const now = Date.now();
+                      const rows = [];
+                      _anaProds.forEach(p => {
+                        const s = sold[p.id]; if (!s || !s.units) return;
+                        const stock = (p.product_sizes||[]).reduce((a,x) => a + (x.stock_quantity||0), 0);
+                        const baseDays = days || Math.max(1, (now - new Date(p.created_at||now)) / 864e5);
+                        const vel = s.units / baseDays;
+                        const daysLeft = vel > 0 ? stock / vel : Infinity;
+                        rows.push({ title:p.title, units:s.units, rev:s.rev, stock, vel, daysLeft });
+                      });
+                      rows.sort((a,b) => b.vel - a.vel);
+                      return rows;
+                    }
+                    function anaRenderVelocity() {
+                      const el = sectionEl('ana-velocityTable'); if (!el) return;
+                      const rows = anaComputeVelocity();
+                      if (!rows.length) { el.innerHTML = '<p style="color:var(--text-secondary)">No units sold in this period.</p>'; return; }
+                      const fmtLeft = d => !isFinite(d) ? '—' : d > 365 ? '>1yr' : d >= 1 ? Math.round(d)+'d' : '<1d';
+                      el.innerHTML = `<table><thead><tr><th>Product</th><th>Units sold</th><th>Units/day</th><th>Stock left</th><th>Days of stock</th></tr></thead><tbody>
+                        ${rows.slice(0,20).map(r => {
+                          const risk = isFinite(r.daysLeft) && r.daysLeft < 14 && r.stock > 0;
+                          const gone = r.stock <= 0;
+                          return `<tr>
+                            <td style="font-weight:600">${r.title}</td>
+                            <td>${r.units}</td>
+                            <td>${r.vel.toFixed(2)}</td>
+                            <td>${gone ? '<span style="color:#ef4444;font-weight:600">0</span>' : r.stock}</td>
+                            <td>${gone ? '<span style="color:#ef4444;font-weight:600">Out</span>' : `<span style="${risk?'color:#f59e0b;font-weight:600':''}">${fmtLeft(r.daysLeft)}</span>`}</td>
+                          </tr>`;
+                        }).join('')}
+                      </tbody></table>`;
+                    }
+                    window.anaExportVelocity = function() {
+                      const rows = anaComputeVelocity();
+                      anaExportCSV(`sell_through_${_anaPeriod}_${new Date().toISOString().slice(0,10)}.csv`,
+                        ['Product','Units Sold','Units/Day','Stock Left','Days of Stock'],
+                        rows.map(r => [r.title, r.units, r.vel.toFixed(2), r.stock, isFinite(r.daysLeft) ? Math.round(r.daysLeft) : 'inf']));
+                    };
+
+                    // ── Frequently bought together (product-pair co-occurrence) ──────
+                    function anaRenderAffinity() {
+                      const el = sectionEl('ana-affinityTable'); if (!el) return;
+                      const orders = filteredOrders();
+                      const pairs = {};
+                      orders.forEach(o => {
+                        const keys = [...new Set(parseItems(o).map(itemName))];
+                        for (let i=0;i<keys.length;i++) for (let j=i+1;j<keys.length;j++) {
+                          const a = keys[i], b = keys[j];
+                          const k = a < b ? a+' ||| '+b : b+' ||| '+a;
+                          pairs[k] = (pairs[k]||0) + 1;
+                        }
+                      });
+                      const list = Object.entries(pairs).sort((a,b) => b[1]-a[1]).slice(0,10);
+                      if (!list.length) { el.innerHTML = '<p style="color:var(--text-secondary)">Not enough multi-product orders yet.</p>'; return; }
+                      el.innerHTML = `<table><thead><tr><th>Product pair</th><th>Bought together</th></tr></thead><tbody>
+                        ${list.map(([k,n]) => { const [a,b] = k.split(' ||| '); return `<tr><td><strong>${a}</strong> <span style="color:var(--text-secondary)">+</span> <strong>${b}</strong></td><td>${n}×</td></tr>`; }).join('')}
+                      </tbody></table>`;
+                    }
+
                     // Re-run all period-dependent views without refetching
                     function anaRefreshViews() {
                       anaUpdateOrders();
                       anaUpdateCharts();
                       anaUpdateInvStats();
+                      anaRenderTiming();
+                      anaRenderCohorts();
+                      anaRenderDiscount();
+                      anaRenderCategory();
+                      anaRenderVelocity();
+                      anaRenderAffinity();
                     }
 
                     function anaUpdateCharts() {
@@ -693,6 +935,9 @@
                         await Promise.all([anaLoadOrders(), anaLoadEngagement()]);
                         anaUpdateCards(); anaUpdateOrders(); anaUpdateCharts();
                         anaUpdatePrices(); anaUpdateInvStats(); anaRenderInventory(); anaRenderCatalog();
+                        anaRenderTiming(); anaRenderCohorts(); anaRenderDiscount();
+                        anaRenderCategory(); anaRenderVelocity(); anaRenderAffinity();
+                        anaRenderToday(); anaStartTodayAutoRefresh();
                         await anaUpdateReviews();
                         _anaLoaded=true;
                       } catch(e) { anaErr('Failed to load analytics: '+e.message); }
