@@ -50,7 +50,10 @@
   function build() {
     var b = document.createElement('div');
     b.id = 'cookie-banner';
-    b.setAttribute('role', 'dialog');
+    // role="region" (NOT "dialog") on purpose: a cookie bar is a non-blocking
+    // notice, and modal-lock.js scroll-locks the page for any visible
+    // [role="dialog"]. This bar must let the visitor scroll + click while it's up.
+    b.setAttribute('role', 'region');
     b.setAttribute('aria-label', 'Cookie consent');
     b.style.cssText = 'display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;padding:1rem 2rem;font-size:.8rem;line-height:1.5;background:#0f0f0f;color:rgba(244,241,235,.72);border-top:1px solid rgba(244,241,235,.12);align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;font-family:var(--fb,var(--font-body,sans-serif))';
     b.innerHTML =
