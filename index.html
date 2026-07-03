@@ -31,9 +31,11 @@
     if(f.css){var s=document.createElement('style');s.textContent=f.css;document.head.appendChild(s);}
   }
 }catch(_){}})()</script>
-<script>/* NAV FLASH PREVENTION: if a custom header nav is cached, hide the static
-   fallback links until nav-menu.js renders the real ones, so the old items don't flash. */
-try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.length){document.documentElement.classList.add('zw-customnav');setTimeout(function(){document.documentElement.classList.add('zw-nav-ready');},3000);}}catch(_){}</script>
+<script>/* NAV FLASH PREVENTION: the fallback header links are hidden by CSS
+   (html:not(.zw-nav-ready) #nav-category-links) until nav-menu.js settles, so the
+   old items never flash before the real Men/Women/New menu — even on a first /
+   cleared-cache load. The 3s timeout is a safety net if nav-menu.js can't load. */
+try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.length)document.documentElement.classList.add('zw-customnav');}catch(_){}setTimeout(function(){try{document.documentElement.classList.add('zw-nav-ready');}catch(_){}},3000);</script>
 <meta name="zuwera-deployment" content="2026-05-14-v2-supabase-timeout">
 <title>ZUWERA - For Those Who Dream</title>
 <meta name="description" content="Bold athletic sportswear. Release 001 launching September 20, 2026.">

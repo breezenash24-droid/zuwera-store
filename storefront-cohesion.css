@@ -3576,10 +3576,13 @@ body.super-light-mode .zw-navitem > .zw-mega > .zw-mega-col:first-child > a{ col
 .zw-mnav-cat:hover, .zw-mnav-cat:active{ opacity:1; border-color:var(--zw-accent, #F891A5); }
 body.light-mode .zw-mnav-group{ border-top-color:rgba(9,9,11,.12); }
 body.light-mode .zw-mnav-cat{ border-color:rgba(9,9,11,.2); }
-/* No-flash: when a custom nav is cached (html.zw-customnav set synchronously in
-   <head>), hide the static fallback links until nav-menu.js renders the real nav
-   and sets .zw-nav-ready. visibility (not display) keeps the layout stable. */
-html.zw-customnav:not(.zw-nav-ready) #nav-category-links{ visibility:hidden; }
+/* No-flash: hide the static fallback nav links until nav-menu.js has SETTLED
+   (rendered the real menu, or the server confirmed there's no custom menu) and
+   added .zw-nav-ready. Applies on every load — not just when a nav is cached —
+   so a first/cleared-cache visit no longer flashes the fallback (Jackets/T-Shirts)
+   before the real menu (Men/Women/New). visibility (not display) keeps layout
+   stable; a safety timeout in nav-menu.js + <head> guarantees it always reveals. */
+html:not(.zw-nav-ready) #nav-category-links{ visibility:hidden; }
 
 /* ──────────────────────────────────────────────────────────────────────────
    BUILDER: HERO CAROUSEL
