@@ -183,10 +183,16 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
    positioned (storefront.js removes .zw-pb-pending). The fallbacks below make
    sure the cover can never get stuck if that script is slow or fails. */
 (function(){try{
-  if(localStorage.getItem('zw_pb_active')!=='1') return;
   var h=document.documentElement;
+  // Always hold the boot cover over the homepage while the builder layout
+  // positions, so the static default sections never flash — including on a FIRST
+  // / cleared-cache visit (no zw_pb_active yet). On that first visit the eventual
+  // theme isn't known, so show a plain WHITE cover; on a cached reload keep the
+  // themed cover (matches the theme, so the reveal is seamless).
+  var cached=localStorage.getItem('zw_pb_active')==='1';
   h.classList.add('zw-pb-pending');
-  var clear=function(){h.classList.remove('zw-pb-pending');};
+  if(!cached) h.classList.add('zw-boot-white');
+  var clear=function(){h.classList.remove('zw-pb-pending');h.classList.remove('zw-boot-white');};
   window.addEventListener('load',function(){setTimeout(clear,900);});
   setTimeout(clear,4000);
 }catch(_){}})();
@@ -453,6 +459,9 @@ html.zw-hide-static-hero .hero{display:none!important}
 body.light-mode #zw-boot{background:#F0EEE9}
 body.super-light-mode #zw-boot{background:#FFFFFF}
 html.zw-pb-pending #zw-boot{opacity:1;pointer-events:auto}
+/* First / cleared-cache visit: plain white cover (theme not known yet) so the
+   old static layout never shows through before the builder layout positions. */
+html.zw-boot-white #zw-boot{background:#FFFFFF!important}
 .hero-bg{
   position:absolute;inset:0;
   background:radial-gradient(ellipse 80% 60% at 65% 40%, rgba(248,145,165,.08) 0%, transparent 65%),
