@@ -844,16 +844,24 @@
 
 
   <script>
-    // Tab switching
+    // Tab switching. Also driven by the URL hash so a deep link like
+    // /policies.html#privacy (e.g. from the cookie banner) opens that tab.
+    function activateTab(name) {
+      const btn = document.querySelector('.tab-btn[data-tab="' + name + '"]');
+      if (!btn) return false;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      const panel = document.getElementById('tab-' + name);
+      if (panel) panel.classList.add('active');
+      return true;
+    }
     document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
-        const panel = document.getElementById('tab-' + btn.dataset.tab);
-        if (panel) panel.classList.add('active');
-      });
+      btn.addEventListener('click', () => activateTab(btn.dataset.tab));
     });
+    // Open the tab named in the URL hash on load + whenever the hash changes.
+    (function () { const h = (location.hash || '').replace('#', '').trim(); if (h) activateTab(h); })();
+    window.addEventListener('hashchange', () => { const h = (location.hash || '').replace('#', '').trim(); if (h) activateTab(h); });
 
     function attachFaqListeners() {
       document.querySelectorAll('.faq-question').forEach(q => {
