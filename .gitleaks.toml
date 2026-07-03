@@ -13,7 +13,7 @@
 [extend]
 useDefault = true
 
-[[allowlist]]
+[allowlist]
 description = "Public client-side-safe keys (Supabase anon JWT + PostHog public project key)"
 regexes = [
   '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3Nx''',
