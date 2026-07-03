@@ -1125,6 +1125,25 @@ function showToast(msg) {
           (function initCarousel() {
              const track = el.querySelector('.zw-hc-track');
              const slideEls = Array.from(el.querySelectorAll('.zw-hc-slide'));
+             // Words + image together: hide each slide's text (.zw-hc-await) until
+             // its media has loaded, so the caption doesn't paint before the image.
+             // Runs synchronously (before paint), so there's no text flash; a 3s
+             // safety per slide guarantees the text can never stay hidden.
+             slideEls.forEach(function (slide) {
+               if (!slide.querySelector('.zw-hc-content')) return;
+               slide.classList.add('zw-hc-await');
+               const reveal = function () { slide.classList.remove('zw-hc-await'); };
+               const img = slide.querySelector('.zw-hc-media img, img.zw-hc-media');
+               const vid = slide.querySelector('video.zw-hc-media');
+               if (img) {
+                 if (img.complete && img.naturalWidth) reveal();
+                 else { img.addEventListener('load', reveal, { once: true }); img.addEventListener('error', reveal, { once: true }); }
+               } else if (vid) {
+                 if (vid.readyState >= 2) reveal();
+                 else { vid.addEventListener('loadeddata', reveal, { once: true }); vid.addEventListener('error', reveal, { once: true }); }
+               } else { reveal(); }
+               setTimeout(reveal, 3000);
+             });
              const dots = Array.from(el.querySelectorAll('.zw-hc-dot'));
              const btnPrev = el.querySelector('.zw-hc-prev');
              const btnNext = el.querySelector('.zw-hc-next');
