@@ -477,7 +477,30 @@ body.super-light-mode #payment-modal #pay-submit{ background:#09090b !important;
 
 body.super-light-mode #payment-success{ background:#FFFFFF !important; }
 
-body.super-light-mode #cookie-banner{ background:#FFFFFF !important; border-top-color:rgba(9,9,11,.1) !important; color:rgba(9,9,11,.65) !important; }
+/* Cookie consent bar — one consistent dark bar in EVERY theme. It used to flip
+   to a washed-out cream (#F0EEE9) in light mode and white in super-light, and it
+   was inconsistent across pages. Force the dark treatment + fixed button colors
+   so it reads as an intentional bar (and the Accept button never goes dark-on-dark
+   in light mode, where var(--paper) would flip). */
+#cookie-banner,
+body.light-mode #cookie-banner,
+body.super-light-mode #cookie-banner{
+  background:#0f0f0f !important;
+  color:rgba(244,241,235,.72) !important;
+  border-top:1px solid rgba(244,241,235,.12) !important;
+}
+#cookie-banner a{ color:#f4f1eb !important; }
+/* Accept = filled light button; Decline = ghost — fixed so both read on the dark bar. */
+#cookie-banner button:first-child,
+body.light-mode #cookie-banner button:first-child,
+body.super-light-mode #cookie-banner button:first-child{
+  background:#f4f1eb !important; color:#09090b !important; border:none !important;
+}
+#cookie-banner button:last-child,
+body.light-mode #cookie-banner button:last-child,
+body.super-light-mode #cookie-banner button:last-child{
+  background:transparent !important; color:rgba(244,241,235,.62) !important; border:1px solid rgba(244,241,235,.22) !important;
+}
 
 body.super-light-mode #toast{ background:#FFFFFF !important; color:#09090b !important; border-color:rgba(9,9,11,.12) !important; }
 
