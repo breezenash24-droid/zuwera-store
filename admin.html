@@ -733,6 +733,18 @@
 
                 <!-- Audit Log Page -->
                 <div id="audit" class="page">
+                    <!-- Recent Pull Requests (public GitHub repo, client-side fetch) -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:22px;">
+                        <div class="products-header" style="margin-bottom:12px;">
+                            <div>
+                                <h2 style="font-size:1.05rem;">Recent Pull Requests</h2>
+                                <p style="color:var(--text-secondary);font-size:.85rem;margin-top:6px;">Latest code changes from the GitHub repo, newest first.</p>
+                            </div>
+                            <button class="btn btn-secondary btn-sm" id="refreshPrsBtn" onclick="loadRecentPRs(true)">Refresh</button>
+                        </div>
+                        <div id="prList" style="display:flex;flex-direction:column;gap:2px;font-size:.85rem;color:var(--text-secondary);">Loading…</div>
+                    </div>
+
                     <div class="products-header">
                         <div>
                             <h2>Admin Audit Log</h2>
@@ -3756,6 +3768,7 @@
                 loadMetaStatus();
             } else if (page === 'audit') {
                 loadAuditLog();
+                loadRecentPRs();
             }
         }
 
@@ -5161,6 +5174,53 @@
                 ]);
             } catch (e) { showToast('Export failed: ' + e.message, 'error'); }
         };
+
+        // ─── Recent Pull Requests (public repo → direct client-side fetch) ──────────
+        // No token / server proxy needed: the repo is public, so PR metadata is public.
+        // GitHub allows ~60 unauthenticated requests/hr per IP, plenty for admin use.
+        let _prsLoadedAt = 0;
+        async function loadRecentPRs(force) {
+            const host = document.getElementById('prList');
+            if (!host) return;
+            // Throttle: reuse recent result unless the Refresh button forces it.
+            if (!force && _prsLoadedAt && (Date.now() - _prsLoadedAt) < 60000 && host.dataset.ok === '1') return;
+            const e = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            const ago = iso => {
+                if (!iso) return '';
+                const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+                if (s < 60) return 'just now';
+                const m = s / 60; if (m < 60) return Math.floor(m) + 'm ago';
+                const h = m / 60; if (h < 24) return Math.floor(h) + 'h ago';
+                const d = h / 24; if (d < 30) return Math.floor(d) + 'd ago';
+                return new Date(iso).toLocaleDateString();
+            };
+            host.textContent = 'Loading…';
+            try {
+                const r = await fetch('https://api.github.com/repos/breezenash24-droid/zuwera-store/pulls?state=all&sort=updated&direction=desc&per_page=10', { headers: { Accept: 'application/vnd.github+json' } });
+                if (!r.ok) throw new Error('GitHub API ' + r.status);
+                const prs = await r.json();
+                if (!Array.isArray(prs) || !prs.length) { host.textContent = 'No pull requests found.'; host.dataset.ok = '1'; _prsLoadedAt = Date.now(); return; }
+                host.innerHTML = prs.map(p => {
+                    const state = p.merged_at ? 'merged' : (p.draft ? 'draft' : p.state); // open | closed | merged | draft
+                    const color = state === 'merged' ? '#a371f7' : state === 'open' ? '#3fb950' : state === 'draft' ? '#8b949e' : '#f85149';
+                    const when = ago(p.merged_at || p.updated_at || p.created_at);
+                    return '<a href="' + e(p.html_url) + '" target="_blank" rel="noopener noreferrer" '
+                        + 'style="display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid var(--border);color:inherit;text-decoration:none;" '
+                        + 'onmouseover="this.style.background=\'var(--bg-primary)\'" onmouseout="this.style.background=\'\'">'
+                        + '<span style="flex:0 0 auto;min-width:56px;text-align:center;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#fff;background:' + color + ';border-radius:20px;padding:3px 8px;">' + e(state) + '</span>'
+                        + '<span style="flex:1 1 auto;min-width:0;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">#' + e(p.number) + ' &nbsp;' + e(p.title) + '</span>'
+                        + '<span style="flex:0 0 auto;white-space:nowrap;color:var(--text-secondary);font-size:.78rem;">' + e(p.user && p.user.login || '') + ' · ' + when + '</span>'
+                        + '</a>';
+                }).join('');
+                const last = host.lastElementChild; if (last) last.style.borderBottom = 'none';
+                host.dataset.ok = '1';
+                _prsLoadedAt = Date.now();
+            } catch (err) {
+                host.dataset.ok = '';
+                host.innerHTML = '<span style="color:var(--text-secondary);">Could not load pull requests (' + e(err.message) + '). '
+                    + '<a href="https://github.com/breezenash24-droid/zuwera-store/pulls" target="_blank" rel="noopener noreferrer" style="color:var(--accent);">Open on GitHub →</a></span>';
+            }
+        }
 
         async function loadAuditLog(append = false) {
             const tbody = document.getElementById('auditTableBody');
