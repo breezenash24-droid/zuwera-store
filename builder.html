@@ -1729,8 +1729,19 @@ function setTheme(t){pvTheme=t;document.querySelectorAll('#thTog button').forEac
 let _sendT2;
 function schedSend(){clearTimeout(_sendT2);_sendT2=setTimeout(sendCfg,350);}
 function sendCfg(){
-  try{localStorage.setItem('_zw_builder_cfg',JSON.stringify({sections,theme:pvTheme,themeSettings,navSettings,seoSettings,_v:Date.now()+'-'+Math.random()}));}
+  const cfg={sections,theme:pvTheme,themeSettings,navSettings,seoSettings,_v:Date.now()+'-'+Math.random()};
+  // localStorage is the seed channel: it survives an iframe reload (the preview
+  // reads it on load) and reaches the iframe via its storage event / 300ms poll.
+  // A big layout can exceed the ~5MB quota, in which case setItem throws and the
+  // preview would silently go stale — so we ALSO push straight to the iframe.
+  try{localStorage.setItem('_zw_builder_cfg',JSON.stringify(cfg));}
   catch(e){showErr('localStorage: '+e.message);}
+  // Direct push: instant, and works even when localStorage is full or the poll/
+  // storage event is missed. The iframe accepts same-origin ZW_BUILDER_CONFIG.
+  try{
+    const ifr=document.getElementById('pvIframe');
+    if(ifr&&ifr.contentWindow) ifr.contentWindow.postMessage(Object.assign({type:'ZW_BUILDER_CONFIG'},cfg),location.origin);
+  }catch(e){}
 }
 
 function scrollPreviewTo(id){
