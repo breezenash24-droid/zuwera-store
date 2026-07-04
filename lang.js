@@ -316,7 +316,10 @@
     modal.setAttribute('aria-label', 'Select language');
     // Only set positioning in inline style — background/alignment live in the
     // injected stylesheet below so they can never be overwritten by JS
-    modal.style.cssText = 'display:none; position:fixed; inset:0; z-index:100000; align-items:center; justify-content:center; padding:1rem;';
+    // display:flex always — the OPEN state is gated by the .open class
+    // (opacity/visibility), same as the shared .modal system, so it can animate
+    // both in AND out. pointer-events:none while closed keeps it click-through.
+    modal.style.cssText = 'display:flex; position:fixed; inset:0; z-index:100000; align-items:center; justify-content:center; padding:1rem;';
 
     modal.innerHTML = `
       <div id="zw-lang-box" class="notranslate" translate="no" style="
@@ -390,7 +393,7 @@
       renderGrid(e.target.value.toLowerCase());
     });
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && modal.style.display === 'flex') closeModal();
+      if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
     });
 
     renderGrid();
@@ -442,7 +445,13 @@
     langModalTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     // Only set display — all background/alignment/padding comes from the injected
     // stylesheet with !important so it can't be overwritten by any JS
-    if (modal) modal.style.display = 'flex';
+    if (modal) {
+      // Double rAF: let the closed state (translateY / opacity:0) paint first,
+      // then add .open so the slide-up + fade transition actually runs.
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { modal.classList.add('open'); });
+      });
+    }
     lockLangModalScrollFallback();
     setTimeout(() => {
       const search = document.getElementById('zw-lang-search');
@@ -456,7 +465,10 @@
 
   function closeModal() {
     const modal = document.getElementById('zw-lang-modal');
-    if (modal) modal.style.display = 'none';
+    // Remove .open — the overlay fades out and the box slides down via CSS
+    // transition (visibility flips to hidden only after the fade completes, so
+    // the modal stays visible for the whole close animation).
+    if (modal) modal.classList.remove('open');
     unlockLangModalScrollFallback();
     if (langModalTrigger && langModalTrigger.isConnected) {
       window.requestAnimationFrame(() => focusWithoutScroll(langModalTrigger));
@@ -554,7 +566,10 @@
       body.light-mode .zw-mobile-socials .zw-mobile-lang-trigger {
         background: rgba(9,9,11,0.014);
       }
-      /* ── Modal overlay — all layout/visual here so inline style can't override ── */
+      /* ── Modal overlay — all layout/visual here so inline style can't override.
+         OPEN state gated by .open (opacity/visibility) exactly like the login
+         modal + shared .modal system, so it fades in AND out symmetrically. No
+         dark scrim: the site floats modals on the visible page by design. ── */
       #zw-lang-modal {
         background: transparent !important;
         backdrop-filter: none !important;
@@ -563,6 +578,36 @@
         align-items: stretch !important;
         justify-content: flex-end !important;
         padding: 0 !important;
+        /* !important on the gate: cohesion.css sets #zw-lang-modal
+           pointer-events:auto, and a full-screen closed overlay that captured
+           clicks would make the page unclickable. */
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        transition: opacity var(--zw-motion-modal, .3s) ease,
+                    visibility 0s linear var(--zw-motion-modal, .3s) !important;
+      }
+      #zw-lang-modal.open {
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        transition: opacity var(--zw-motion-modal, .3s) ease !important;
+      }
+      /* Box motion — same easing as every other modal. Desktop: gentle rise +
+         scale; mobile bottom-sheet slide is set in the @media block below. */
+      #zw-lang-box {
+        transform: translateY(14px) scale(.98);
+        opacity: 0;
+        transition: transform var(--zw-motion-modal, .3s) cubic-bezier(.32,.72,0,1),
+                    opacity var(--zw-motion-modal, .3s) ease;
+        will-change: transform;
+      }
+      #zw-lang-modal.open #zw-lang-box {
+        transform: none;
+        opacity: 1;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #zw-lang-modal, #zw-lang-box { transition: none !important; }
       }
       #zw-lang-modal[style*="display: flex"],
       #zw-lang-modal[style*="display:flex"] {
@@ -644,7 +689,13 @@
           border-left: none !important;
           border-right: none !important;
           box-shadow: 0 -8px 40px rgba(0,0,0,.28) !important;
-          animation: zwLangSheetIn .42s cubic-bezier(.32,.72,0,1) !important;
+          transform: translateY(100%) !important;
+          opacity: 1 !important;
+          transition: transform .42s cubic-bezier(.32,.72,0,1),
+                      opacity .24s ease !important;
+        }
+        #zw-lang-modal.open #zw-lang-box {
+          transform: translateY(0) !important;
         }
         #zw-lang-box::before {
           content: '';
@@ -661,10 +712,6 @@
       }
       @media (max-width: 600px) {
         #zw-lang-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
-      }
-      @keyframes zwLangSheetIn {
-        from { transform: translateY(100%); }
-        to   { transform: translateY(0); }
       }
     `;
     document.head.appendChild(style);
