@@ -4,6 +4,7 @@
   const TRACKED_SELECTORS = [
     '.modal',
     '[role="dialog"]:not(#zw-lang-modal)',
+    '#zw-lang-modal.open',
     '#payment-success',
     '#apple-pay-qr-modal',
     '#mobile-menu.open'

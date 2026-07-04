@@ -302,6 +302,41 @@
     body.style.paddingRight = '';
   }
 
+  // Prefer the shared, iOS-proof scroll lock (modal-lock.js uses body
+  // position:fixed on mobile). The html{overflow:hidden} fallback above does NOT
+  // stop iOS touch-scrolling behind the sheet. modal-lock.js tracks
+  // #zw-lang-modal.open, so refresh() locks/unlocks based on the .open class.
+  function lockLangScroll() {
+    if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh();
+    else lockLangModalScrollFallback();
+  }
+  function unlockLangScroll() {
+    if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh();
+    else unlockLangModalScrollFallback();
+  }
+
+  // Swipe-down-to-close, matching the storefront bottom sheets (zwAttachSwipeClose):
+  // dragging down >80px while the list is scrolled to the very top dismisses it.
+  function attachLangSwipeClose() {
+    const box = document.getElementById('zw-lang-box');
+    if (!box) return;
+    const scroller = document.getElementById('zw-lang-grid') || box;
+    let startY = 0, tracking = false;
+    box.addEventListener('touchstart', function (e) {
+      if (e.touches.length !== 1) { tracking = false; return; }
+      startY = e.touches[0].clientY;
+      tracking = scroller.scrollTop <= 0;
+    }, { passive: true });
+    box.addEventListener('touchmove', function () {
+      if (tracking && scroller.scrollTop > 0) tracking = false;
+    }, { passive: true });
+    box.addEventListener('touchend', function (e) {
+      if (!tracking) return; tracking = false;
+      const dy = e.changedTouches[0].clientY - startY;
+      if (dy > 80 && scroller.scrollTop <= 0) closeModal();
+    }, { passive: true });
+  }
+
   function buildModal() {
     if (document.getElementById('zw-lang-modal')) return;
 
@@ -395,6 +430,7 @@
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
     });
+    attachLangSwipeClose();
 
     renderGrid();
   }
@@ -449,10 +485,14 @@
       // Double rAF: let the closed state (translateY / opacity:0) paint first,
       // then add .open so the slide-up + fade transition actually runs.
       requestAnimationFrame(function () {
-        requestAnimationFrame(function () { modal.classList.add('open'); });
+        requestAnimationFrame(function () {
+          modal.classList.add('open');
+          lockLangScroll(); // lock AFTER .open so modal-lock.js detects the open sheet
+        });
       });
+    } else {
+      lockLangScroll();
     }
-    lockLangModalScrollFallback();
     setTimeout(() => {
       const search = document.getElementById('zw-lang-search');
       if (search) {
@@ -469,7 +509,7 @@
     // transition (visibility flips to hidden only after the fade completes, so
     // the modal stays visible for the whole close animation).
     if (modal) modal.classList.remove('open');
-    unlockLangModalScrollFallback();
+    unlockLangScroll();
     if (langModalTrigger && langModalTrigger.isConnected) {
       window.requestAnimationFrame(() => focusWithoutScroll(langModalTrigger));
     }
