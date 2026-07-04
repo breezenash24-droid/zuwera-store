@@ -165,11 +165,11 @@
            security boundary. */
         const ZW_RBAC = {
             super_admin: ['*'],
-            manager: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','commerce','meta','receipts','shipping','returns','users','website','settings','tax','audit','refund','return_process','product_write','order_write','user_manage','builder_edit','bulk_actions','export'],
+            manager: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','commerce','meta','receipts','shipping','returns','users','website','settings','tax','audit','flags','refund','return_process','product_write','order_write','user_manage','builder_edit','bulk_actions','export'],
             finance: ['dashboard','analytics','finance','receipts','tax','audit','refund','export'],
             fulfillment: ['dashboard','products','receipts','shipping','returns','order_write','return_process','product_write','bulk_actions','export'],
             content: ['dashboard','products','sizecharts','reviews','website','settings','product_write','builder_edit','export'],
-            viewer: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','commerce','meta','receipts','shipping','returns','users','website','settings','tax','audit','export']
+            viewer: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','commerce','meta','receipts','shipping','returns','users','website','settings','tax','audit','flags','export']
         };
         const ZW_ROLE_LABELS = {
             super_admin:'Super Admin', manager:'Manager', finance:'Finance',
@@ -178,7 +178,7 @@
         // Preset access maps (page -> 'view'|'edit') — mirror of ROLE_PRESET_LEVELS
         // in functions/api/_rbac.js. Drives the "preset" button in the access matrix.
         const ZW_ROLE_PRESET_LEVELS = {
-            manager:{dashboard:'view',analytics:'view',finance:'edit',products:'edit',legacy:'edit',sizecharts:'edit',reviews:'edit',commerce:'edit',meta:'edit',receipts:'edit',shipping:'edit',returns:'edit',users:'edit',website:'edit',settings:'edit',tax:'edit',audit:'view'},
+            manager:{dashboard:'view',analytics:'view',finance:'edit',products:'edit',legacy:'edit',sizecharts:'edit',reviews:'edit',commerce:'edit',meta:'edit',receipts:'edit',shipping:'edit',returns:'edit',users:'edit',website:'edit',settings:'edit',tax:'edit',audit:'view',flags:'edit'},
             finance:{dashboard:'view',analytics:'view',finance:'edit',receipts:'view',tax:'edit',audit:'view'},
             fulfillment:{dashboard:'view',products:'view',receipts:'edit',shipping:'edit',returns:'edit'},
             content:{dashboard:'view',products:'edit',sizecharts:'edit',reviews:'edit',website:'edit',settings:'edit'}
@@ -220,6 +220,7 @@
             { id:'tax',        icon:'🧮', label:'Tax',         title:'Tax',                 group:'configuration', kw:'tax rate sales tax vat state rates nexus override' },
             { id:'apis',       icon:'🔑', label:'APIs',        title:'API Status',          group:'configuration', searchLabel:'API Keys', kw:'api keys stripe shippo resend brevo cloudinary deepl cloudflare loops twilio posthog email branding integrations secrets' },
             { id:'audit',      icon:'📋', label:'Audit Log',   title:'Audit Log',           group:'configuration', kw:'history changes log activity events admin actions' },
+            { id:'flags',      icon:'🚩', label:'Feature Flags', title:'Feature Flags',     group:'configuration', kw:'feature flags rollout gradual release toggle experiment kill switch ab test canary beta launchdarkly' },
         ];
         const ADMIN_NAV_GROUPS = [
             { id:'overview',      label:'Overview' },
@@ -782,6 +783,42 @@
                     </table>
                     <div style="text-align:center;margin-top:16px;">
                         <button id="auditLoadMoreBtn" class="btn btn-secondary" style="display:none;">Load more</button>
+                    </div>
+                </div>
+
+                <!-- Feature Flags Page -->
+                <div id="flags" class="page">
+                    <div class="products-header">
+                        <div>
+                            <h2>Feature Flags</h2>
+                            <p style="color:var(--text-secondary);font-size:.85rem;margin-top:6px;max-width:660px;line-height:1.65;">
+                                Turn features on/off and roll them out gradually. Set a rollout %, and only that share of visitors sees the feature — it's sticky per visitor (raising the % only ever adds people). Gate code with <code style="background:var(--bg-secondary);padding:1px 5px;border-radius:4px;">window.zwFlag('key')</code>. Saving is live for everyone immediately — no deploy.
+                            </p>
+                        </div>
+                        <button class="btn btn-secondary" onclick="loadFeatureFlags()">Refresh</button>
+                    </div>
+
+                    <!-- Add a new flag -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:20px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+                        <label style="display:flex;flex-direction:column;gap:5px;font-size:.78rem;color:var(--text-secondary);">
+                            Flag key
+                            <input type="text" id="newFlagName" placeholder="checkout_v2" autocomplete="off"
+                                   style="width:210px;padding:8px 10px;background:var(--bg-primary,rgba(255,255,255,.04));border:1px solid var(--border);border-radius:6px;color:inherit;font-family:'IBM Plex Mono',monospace;font-size:.85rem;"
+                                   onkeydown="if(event.key==='Enter'){event.preventDefault();addFeatureFlag();}">
+                        </label>
+                        <label style="display:flex;flex-direction:column;gap:5px;font-size:.78rem;color:var(--text-secondary);flex:1;min-width:200px;">
+                            Description (optional)
+                            <input type="text" id="newFlagDesc" placeholder="New Stripe checkout flow" autocomplete="off"
+                                   style="width:100%;padding:8px 10px;background:var(--bg-primary,rgba(255,255,255,.04));border:1px solid var(--border);border-radius:6px;color:inherit;font-size:.85rem;">
+                        </label>
+                        <button onclick="addFeatureFlag()" style="padding:9px 18px;border:1px solid var(--border);border-radius:6px;background:var(--accent,#F891A5);color:#09090b;font-weight:600;font-size:.85rem;cursor:pointer;">+ Add flag</button>
+                    </div>
+
+                    <div id="flagsList"><p style="color:var(--text-secondary);text-align:center;padding:20px;">Loading…</p></div>
+
+                    <div style="margin-top:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                        <button id="flagsSaveBtn" onclick="saveFeatureFlags()" style="padding:10px 24px;border:1px solid var(--border);border-radius:6px;background:var(--accent,#F891A5);color:#09090b;font-weight:600;font-size:.9rem;cursor:pointer;">Save changes</button>
+                        <span id="flagsStatus" style="font-size:.85rem;color:var(--text-secondary);"></span>
                     </div>
                 </div>
 
@@ -3865,6 +3902,8 @@
             } else if (page === 'audit') {
                 loadAuditLog();
                 loadRecentPRs();
+            } else if (page === 'flags') {
+                loadFeatureFlags();
             }
         }
 
@@ -5364,6 +5403,133 @@
 
         document.getElementById('refreshAuditBtn')?.addEventListener('click', () => loadAuditLog(false));
         document.getElementById('auditLoadMoreBtn')?.addEventListener('click', () => loadAuditLog(true));
+
+        // ─── Feature Flags (site_settings.feature_flags → read by flags.js) ──────────
+        let _featureFlags = {};
+        function _flagVid() {
+            try { let id = localStorage.getItem('zw_vid'); if (!id) { id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2)); localStorage.setItem('zw_vid', id); } return id; } catch (_) { return 'anon'; }
+        }
+        function _flagBucket(name) {
+            const s = name + '|' + _flagVid(); let h = 0;
+            for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+            return h % 100;
+        }
+        async function loadFeatureFlags() {
+            const host = document.getElementById('flagsList');
+            if (host) host.innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:20px;">Loading…</p>';
+            try {
+                const { data } = await sb.from('site_settings').select('value').eq('key', 'feature_flags').maybeSingle();
+                let v = data && data.value;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+                _featureFlags = (v && typeof v === 'object') ? v : {};
+            } catch (_) { _featureFlags = {}; }
+            renderFeatureFlags();
+        }
+        function renderFeatureFlags() {
+            const host = document.getElementById('flagsList');
+            if (!host) return;
+            const names = Object.keys(_featureFlags).sort();
+            if (!names.length) {
+                host.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:36px 20px;border:1px dashed var(--border);border-radius:10px;line-height:1.7;">No feature flags yet.<br>Add one above (e.g. <code>checkout_v2</code>), then gate code with <code>window.zwFlag(\'checkout_v2\')</code>.</div>';
+                return;
+            }
+            host.innerHTML = names.map(name => {
+                const f = _featureFlags[name] || {};
+                const enabled = f.enabled !== false;
+                const rollout = (typeof f.rollout === 'number') ? Math.max(0, Math.min(100, f.rollout)) : 100;
+                const youIn = enabled && (rollout >= 100 || _flagBucket(name) < rollout);
+                const audience = !enabled ? 'Off — nobody' : (rollout >= 100 ? 'Everyone' : `≈${rollout}% of visitors`);
+                const audColor = !enabled ? '#f85149' : (rollout >= 100 ? '#3fb950' : '#fbbf24');
+                return `
+                <div style="background:var(--bg-secondary);border:1px solid var(--border);border-left:3px solid ${audColor};border-radius:10px;padding:16px 18px;margin-bottom:12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+                        <div style="min-width:0;flex:1;">
+                            <div style="font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.95rem;color:var(--text-primary);">${escapeHtml(name)}</div>
+                            <input type="text" value="${escapeAttr(f.description || '')}" placeholder="Description…" data-flag-desc="${escapeAttr(name)}"
+                                   style="margin-top:6px;width:100%;max-width:440px;padding:4px 8px;background:var(--bg-primary,rgba(255,255,255,.04));border:1px solid var(--border);border-radius:5px;color:var(--text-secondary);font-size:.8rem;">
+                        </div>
+                        <div style="display:flex;align-items:center;gap:14px;flex-shrink:0;">
+                            <span style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:${audColor};">${audience}</span>
+                            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:.8rem;color:var(--text-secondary);">
+                                <input type="checkbox" data-flag-enabled="${escapeAttr(name)}" ${enabled ? 'checked' : ''}> Enabled
+                            </label>
+                            <button onclick="deleteFeatureFlag('${escapeAttr(name)}')" title="Delete flag" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:1.05rem;line-height:1;padding:2px 4px;">🗑</button>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:12px;margin-top:14px;${enabled ? '' : 'opacity:.4;pointer-events:none;'}">
+                        <span style="font-size:.78rem;color:var(--text-secondary);white-space:nowrap;">Rollout</span>
+                        <input type="range" min="0" max="100" step="1" value="${rollout}" data-flag-rollout="${escapeAttr(name)}" style="flex:1;accent-color:var(--accent,#F891A5);">
+                        <span data-flag-pct="${escapeAttr(name)}" style="font-size:.82rem;font-weight:600;min-width:44px;text-align:right;">${rollout}%</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:10px;flex-wrap:wrap;">
+                        <code style="font-size:.75rem;color:var(--text-secondary);background:var(--bg-primary,rgba(255,255,255,.04));padding:3px 8px;border-radius:5px;">window.zwFlag('${escapeHtml(name)}')</code>
+                        <span style="font-size:.72rem;color:var(--text-secondary);">This browser: <strong style="color:${youIn ? '#3fb950' : '#f85149'};">${youIn ? 'sees it' : 'does not'}</strong></span>
+                    </div>
+                </div>`;
+            }).join('');
+            host.querySelectorAll('[data-flag-enabled]').forEach(el => el.addEventListener('change', e => {
+                const n = e.target.getAttribute('data-flag-enabled');
+                _featureFlags[n] = _featureFlags[n] || {}; _featureFlags[n].enabled = e.target.checked;
+                renderFeatureFlags();
+            }));
+            host.querySelectorAll('[data-flag-rollout]').forEach(el => {
+                el.addEventListener('input', e => {
+                    const n = e.target.getAttribute('data-flag-rollout');
+                    const val = parseInt(e.target.value, 10) || 0;
+                    _featureFlags[n] = _featureFlags[n] || {}; _featureFlags[n].rollout = val;
+                    const pct = host.querySelector(`[data-flag-pct="${n}"]`); if (pct) pct.textContent = val + '%';
+                });
+                el.addEventListener('change', () => renderFeatureFlags()); // refresh audience/preview on release
+            });
+            host.querySelectorAll('[data-flag-desc]').forEach(el => el.addEventListener('input', e => {
+                const n = e.target.getAttribute('data-flag-desc');
+                _featureFlags[n] = _featureFlags[n] || {}; _featureFlags[n].description = e.target.value;
+            }));
+        }
+        window.addFeatureFlag = function () {
+            const nameEl = document.getElementById('newFlagName');
+            const descEl = document.getElementById('newFlagDesc');
+            const name = (nameEl?.value || '').trim();
+            if (!name) return;
+            if (!/^[a-z][a-z0-9_]*$/.test(name)) { showToast('Flag keys are lowercase letters, numbers and underscores, starting with a letter — e.g. checkout_v2', 'error'); return; }
+            if (_featureFlags[name]) { showToast(`Flag "${name}" already exists.`, 'error'); return; }
+            _featureFlags[name] = { enabled: false, rollout: 0, description: (descEl?.value || '').trim() };
+            if (nameEl) nameEl.value = ''; if (descEl) descEl.value = '';
+            renderFeatureFlags();
+            showToast(`Added "${name}" — it's off by default. Set a rollout % and click Save.`);
+        };
+        window.deleteFeatureFlag = function (name) {
+            if (!_featureFlags[name]) return;
+            if (!confirm(`Delete feature flag "${name}"? Any code calling zwFlag('${name}') will then get false.`)) return;
+            delete _featureFlags[name];
+            renderFeatureFlags();
+        };
+        window.saveFeatureFlags = async function () {
+            const btn = document.getElementById('flagsSaveBtn');
+            const status = document.getElementById('flagsStatus');
+            const now = new Date().toISOString();
+            Object.keys(_featureFlags).forEach(n => {
+                const f = _featureFlags[n]; if (!f || typeof f !== 'object') { _featureFlags[n] = { enabled: false, rollout: 0 }; return; }
+                f.enabled = f.enabled !== false;
+                f.rollout = Math.max(0, Math.min(100, parseInt(f.rollout, 10) || 0));
+                f.updated_at = now;
+            });
+            if (btn) btn.disabled = true;
+            if (status) { status.style.color = 'var(--text-secondary)'; status.textContent = 'Saving…'; }
+            try {
+                const { error } = await sb.from('site_settings').upsert({ key: 'feature_flags', value: _featureFlags }, { onConflict: 'key' });
+                if (error) throw error;
+                try { await logAdminAudit('settings.update', 'site_settings', 'feature_flags', { flags: Object.keys(_featureFlags).length }); } catch (_) {}
+                if (status) { status.style.color = '#10b981'; status.textContent = 'Saved ✓ — live for visitors now'; }
+                showToast('Feature flags saved.');
+            } catch (e) {
+                if (status) { status.style.color = '#ef4444'; status.textContent = 'Save failed'; }
+                showToast('Could not save flags: ' + (e.message || e), 'error');
+            } finally {
+                if (btn) btn.disabled = false;
+                setTimeout(() => { if (status) status.textContent = ''; }, 3000);
+            }
+        };
 
         // Reviews
         /* ── Banned words (zw_banned_words) — backs the review profanity trigger ── */

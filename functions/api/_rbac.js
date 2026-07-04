@@ -31,7 +31,7 @@ export const ROLE_LABELS = {
 export const PAGE_IDS = [
   'dashboard', 'analytics', 'finance', 'products', 'legacy', 'sizecharts',
   'reviews', 'commerce', 'meta', 'receipts', 'shipping', 'returns', 'users',
-  'website', 'settings', 'tax', 'apis', 'audit'
+  'website', 'settings', 'tax', 'apis', 'audit', 'flags'
 ];
 
 // The action capability a page grants when set to 'edit'. Pages without an entry
@@ -56,7 +56,7 @@ export const ROLE_PRESET_LEVELS = {
   manager: {
     dashboard: V, analytics: V, finance: E, products: E, legacy: E, sizecharts: E,
     reviews: E, commerce: E, meta: E, receipts: E, shipping: E, returns: E,
-    users: E, website: E, settings: E, tax: E, audit: V
+    users: E, website: E, settings: E, tax: E, audit: V, flags: E
   },
   finance: {
     dashboard: V, analytics: V, finance: E, receipts: V, tax: E, audit: V
