@@ -47,6 +47,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/images/favicon-black-192.png?v=3">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=3">
 <script src="/favicon-utils.js?v=687e90ea" defer></script>
+<script src="/flags.js?v=1" defer></script>
 <script src="/meta-pixel.js?v=71fe06fb" defer></script>
 <script src="/google-tag.js?v=b141b2a1" defer></script>
 <script src="/supabase.min.js?v=3277b334" defer></script>
@@ -102,7 +103,7 @@
   width:100%;min-height:48px;padding:.8rem 1rem;border:1px solid rgba(244,241,235,.14);border-radius:999px;
   font-family:var(--font-body);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
   color:#f4f1eb;background:rgba(244,241,235,.03);
-  gap:.65rem;cursor:pointer;transition:border-color .18s ease, background .18s ease, color .18s ease, opacity .18s ease;
+  gap:.65rem;cursor:pointer;transition:border-color .2s ease, background .2s ease, color .2s ease, opacity .2s ease;
 }
 .wallet-chip:hover{border-color:rgba(244,241,235,.28);background:rgba(244,241,235,.06)}
 .wallet-chip:focus-visible{outline:2px solid rgba(244,241,235,.35);outline-offset:2px}
@@ -173,7 +174,7 @@
   padding: 0.45rem 1.1rem; border-radius: 20px; font-size: 0.82rem; font-weight: 600;
   cursor: pointer; text-transform: none; letter-spacing: 0.02em;
   border: 1px solid rgba(244,241,235,0.15); background: rgba(244,241,235,0.04);
-  color: rgba(244,241,235,0.5); transition: all 0.18s; user-select: none;
+  color: rgba(244,241,235,0.5); transition: all .2s; user-select: none;
   font-family:var(--font-body);
 }
 .review-radio-group input[type="radio"]:checked + label {
@@ -366,7 +367,7 @@ body.super-light-mode #bar {
   65% { transform: scale(0.87); }
   100%{ transform: scale(1); }
 }
-.heart-btn svg.heart-pop { animation: svgHeartPop .36s cubic-bezier(.36,.07,.19,.97); }
+.heart-btn svg.heart-pop { animation: svgHeartPop .35s cubic-bezier(.36,.07,.19,.97); }
 @media (prefers-reduced-motion: reduce) { .heart-btn svg.heart-pop { animation: none; } }
 body.light-mode .heart-btn { background: rgba(255,255,255,.75); border-color: rgba(9,9,11,.12); color: rgba(9,9,11,.3); }
 body.light-mode .heart-btn:hover, body.light-mode .heart-btn.active { color: var(--red); border-color: var(--red); }
@@ -378,7 +379,7 @@ body.light-mode .heart-btn:hover, body.light-mode .heart-btn.active { color: var
 .mbox {
   background:#0f0f0f; border:1px solid rgba(244,241,235,.08);
   border-top:2px solid #F891A5; padding:2.6rem 2.4rem 2.2rem;
-  width:min(420px,92vw); position:relative; animation:modalIn .22s ease;
+  width:min(420px,92vw); position:relative; animation:modalIn .2s ease;
 }
 @keyframes modalIn { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
 .mclose {
@@ -696,7 +697,7 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
   65%{transform:translateY(-1.5px) scale(.97,1.05)}
   100%{transform:translateY(0) scale(1,1)}
 }
-#cart-btn.bag-dip svg{animation:bagDip .38s cubic-bezier(.34,1.3,.5,1);transform-origin:center bottom}
+#cart-btn.bag-dip svg{animation:bagDip .4s cubic-bezier(.34,1.3,.5,1);transform-origin:center bottom}
 @media (prefers-reduced-motion: reduce){
   #cart-btn.bag-dip svg{animation:none}
 }
@@ -992,6 +993,7 @@ body.super-light-mode { background: #FFFFFF !important; }
 <script src="/posthog-init.js?v=c4b554c4" defer></script>
 <style>body.super-light-mode{background:#FFFFFF!important}body.super-light-mode .mbox{background:#FFFFFF!important}body.super-light-mode #mobile-menu{background:#FFFFFF!important}body.super-light-mode #payment-modal>div{background:#FFFFFF!important;border-color:rgba(9,9,11,.1)!important}</style>
 <script src="error-reporter.js?v=1" defer></script>
+<script src="consent.js?v=1" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to content</a>
@@ -3360,6 +3362,12 @@ function renderTags(elementId, tags, label) {
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
 function renderReviews() {
   const content = document.getElementById('reviewsContent');
+  // Pull the admin-configured "collapse reviews longer than" cutoff (defined in
+  // reviews.js) once it's loaded, then re-render so existing long reviews collapse.
+  if (!window._reviewLimitsSynced && typeof ensureReviewLimits === 'function') {
+    window._reviewLimitsSynced = true;
+    ensureReviewLimits().then(() => renderReviews());
+  }
   const safeEsc = typeof escHtml === 'function'
     ? escHtml
     : (value) => String(value ?? '')
@@ -3412,10 +3420,26 @@ function renderReviews() {
         ${editBtnHtml}
       </div>
       ${review.title ? `<p class="review-title">${safeEsc(review.title)}</p>` : ''}
-      ${review.body ? `<p class="review-body">${safeEsc(review.body)}</p>` : ''}
+      ${review.body ? ((typeof reviewNeedsCollapse === 'function' && reviewNeedsCollapse(review.body))
+        ? `<p class="review-body" data-collapsible="1">${safeEsc(reviewShort(review.body))}… </p><button type="button" class="review-more-btn" aria-expanded="false">View more</button>`
+        : `<p class="review-body">${safeEsc(review.body)}</p>`) : ''}
       ${adminResponseHtml}
     `;
     content.appendChild(reviewEl);
+    if (typeof reviewNeedsCollapse === 'function' && reviewNeedsCollapse(review.body)) {
+      const _bodyEl = reviewEl.querySelector('.review-body[data-collapsible]');
+      const _moreBtn = reviewEl.querySelector('.review-more-btn');
+      if (_bodyEl && _moreBtn) {
+        const _short = reviewShort(review.body) + '… ';
+        let _expanded = false;
+        _moreBtn.addEventListener('click', () => {
+          _expanded = !_expanded;
+          _bodyEl.textContent = _expanded ? review.body : _short; // textContent = safe, no re-escaping
+          _moreBtn.textContent = _expanded ? 'View less' : 'View more';
+          _moreBtn.setAttribute('aria-expanded', String(_expanded));
+        });
+      }
+    }
   });
 
   if (currentProduct.reviews.length > 3) {
@@ -3850,9 +3874,11 @@ window.openSizeFitModal = async function() {
   content.innerHTML = '<p class="review-modal-message">Loading fit ratings...</p>';
   modal.classList.add('open');
   // Force the bottom-sheet layout on mobile inline — beats any stacked modal CSS
-  // that was still centring it. Desktop stays a centred dialog.
+  // that was still centring it. Desktop stays a centred dialog. Uses the
+  // site-wide 900px modal breakpoint (was 600px, which left tablet widths
+  // 601-900px as a floating centred card).
   const _sfBox = modal.querySelector('.review-dialog');
-  if (window.matchMedia('(max-width:600px)').matches) {
+  if (window.matchMedia('(max-width:900px)').matches) {
     modal.style.setProperty('align-items', 'flex-end', 'important');
     modal.style.setProperty('justify-content', 'center', 'important');
     if (_sfBox) {

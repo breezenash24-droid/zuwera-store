@@ -31,9 +31,11 @@
     if(f.css){var s=document.createElement('style');s.textContent=f.css;document.head.appendChild(s);}
   }
 }catch(_){}})()</script>
-<script>/* NAV FLASH PREVENTION: if a custom header nav is cached, hide the static
-   fallback links until nav-menu.js renders the real ones, so the old items don't flash. */
-try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.length){document.documentElement.classList.add('zw-customnav');setTimeout(function(){document.documentElement.classList.add('zw-nav-ready');},3000);}}catch(_){}</script>
+<script>/* NAV FLASH PREVENTION: the fallback header links are hidden by CSS
+   (html:not(.zw-nav-ready) #nav-category-links) until nav-menu.js settles, so the
+   old items never flash before the real Men/Women/New menu — even on a first /
+   cleared-cache load. The 3s timeout is a safety net if nav-menu.js can't load. */
+try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.length)document.documentElement.classList.add('zw-customnav');}catch(_){}setTimeout(function(){try{document.documentElement.classList.add('zw-nav-ready');}catch(_){}},3000);</script>
 <meta name="zuwera-deployment" content="2026-05-14-v2-supabase-timeout">
 <title>ZUWERA - For Those Who Dream</title>
 <meta name="description" content="Bold athletic sportswear. Release 001 launching September 20, 2026.">
@@ -65,10 +67,43 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=3">
   <link rel="manifest" href="/site.webmanifest">
   <script src="/favicon-utils.js?v=687e90ea" defer></script>
+  <script src="/flags.js?v=1" defer></script>
   <script src="/meta-pixel.js?v=71fe06fb" defer></script>
   <script src="/google-tag.js?v=b141b2a1" defer></script>
-  <script src="/supabase.min.js?v=3277b334" defer></script>
-  <script src="/supabase-client.js?v=b28896db" defer></script>
+  <!-- Supabase JS SDK (~180KB) is loaded LAZILY: product data comes from the
+       REST early-fetch below, so the SDK is only needed for auth (login,
+       session, favorites, reviews). Logged-in visitors and password-recovery
+       links load it right away; everyone else loads it on idle, or the moment
+       the login modal opens (zwEnsureSupabase). Every sb consumer is null-
+       guarded, so nothing errors before it arrives. Keeps ~180KB off the
+       initial load for the logged-out majority. The ?v= refs below are kept in
+       string form so bump-cache-version.js still rewrites their hashes. -->
+  <script>
+  (function () {
+    var SB = '/supabase.min.js?v=3277b334';
+    var CL = '/supabase-client.js?v=b28896db';
+    function inject(src) {
+      return new Promise(function (res, rej) {
+        var s = document.createElement('script');
+        s.src = src; s.async = false; s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    }
+    window.zwEnsureSupabase = function () {
+      if (window.__zwSbPromise) return window.__zwSbPromise;
+      window.__zwSbPromise = inject(SB)
+        .then(function () { return inject(CL); })
+        .then(function () { try { window.dispatchEvent(new Event('zw-supabase-ready')); } catch (_) {} return window.sb; });
+      return window.__zwSbPromise;
+    };
+    var hasSession = false;
+    try { hasSession = !!localStorage.getItem('zuwera-auth'); } catch (_) {}
+    var needsAuth = /access_token=|type=recovery|error_description=/.test(location.hash || '');
+    if (hasSession || needsAuth) { window.zwEnsureSupabase(); }
+    else if ('requestIdleCallback' in window) { requestIdleCallback(function () { window.zwEnsureSupabase(); }, { timeout: 5000 }); }
+    else { setTimeout(function () { window.zwEnsureSupabase(); }, 3000); }
+  })();
+  </script>
 
 <script>
 /* Kick off data fetches as early as possible — before CSS/JS blocks parsing —
@@ -181,10 +216,16 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
    positioned (storefront.js removes .zw-pb-pending). The fallbacks below make
    sure the cover can never get stuck if that script is slow or fails. */
 (function(){try{
-  if(localStorage.getItem('zw_pb_active')!=='1') return;
   var h=document.documentElement;
+  // Always hold the boot cover over the homepage while the builder layout
+  // positions, so the static default sections never flash — including on a FIRST
+  // / cleared-cache visit (no zw_pb_active yet). On that first visit the eventual
+  // theme isn't known, so show a plain WHITE cover; on a cached reload keep the
+  // themed cover (matches the theme, so the reveal is seamless).
+  var cached=localStorage.getItem('zw_pb_active')==='1';
   h.classList.add('zw-pb-pending');
-  var clear=function(){h.classList.remove('zw-pb-pending');};
+  if(!cached) h.classList.add('zw-boot-white');
+  var clear=function(){h.classList.remove('zw-pb-pending');h.classList.remove('zw-boot-white');};
   window.addEventListener('load',function(){setTimeout(clear,900);});
   setTimeout(clear,4000);
 }catch(_){}})();
@@ -338,7 +379,7 @@ body::after{
   display:flex;align-items:center;justify-content:center;gap:1.5rem;
   font-family:var(--fm);font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;
   position:fixed;top:0;left:0;right:0;z-index:230;
-  transition:transform .28s ease, opacity .2s ease;
+  transition:transform .3s ease, opacity .2s ease;
 }
 
 .bar-sep{opacity:.25;font-size:0;line-height:1}
@@ -451,6 +492,9 @@ html.zw-hide-static-hero .hero{display:none!important}
 body.light-mode #zw-boot{background:#F0EEE9}
 body.super-light-mode #zw-boot{background:#FFFFFF}
 html.zw-pb-pending #zw-boot{opacity:1;pointer-events:auto}
+/* First / cleared-cache visit: plain white cover (theme not known yet) so the
+   old static layout never shows through before the builder layout positions. */
+html.zw-boot-white #zw-boot{background:#FFFFFF!important}
 .hero-bg{
   position:absolute;inset:0;
   background:radial-gradient(ellipse 80% 60% at 65% 40%, rgba(248,145,165,.08) 0%, transparent 65%),
@@ -683,7 +727,7 @@ html.zw-pb-pending #zw-boot{opacity:1;pointer-events:auto}
   55% {opacity:0;transform:translateY(7px)}
   100%{opacity:1;transform:translateY(0)}
 }
-.cdn.flip{animation:cdnFlip .22s ease}
+.cdn.flip{animation:cdnFlip .2s ease}
 .cdl{
   font-family:var(--fm);font-size:.5rem;letter-spacing:.2em;text-transform:uppercase;
   color:rgba(244,241,235,.22);margin-top:.5rem;display:block;
@@ -791,7 +835,7 @@ html.zw-pb-pending #zw-boot{opacity:1;pointer-events:auto}
 .heart-btn.active svg,.heart-btn.active svg path,.heart-btn.active svg circle{fill:var(--red)!important;stroke:var(--red)!important}
 .heart-btn svg{width:14px;height:14px;pointer-events:none;transform-box:fill-box;transform-origin:center}
 @keyframes svgHeartPop{0%{transform:scale(1)}35%{transform:scale(1.55)}65%{transform:scale(0.87)}100%{transform:scale(1)}}
-.heart-btn svg.heart-pop{animation:svgHeartPop .36s cubic-bezier(.36,.07,.19,.97)}
+.heart-btn svg.heart-pop{animation:svgHeartPop .35s cubic-bezier(.36,.07,.19,.97)}
 @media(prefers-reduced-motion:reduce){.heart-btn svg.heart-pop{animation:none}}
 .pcard-info{
   padding:1.4rem 1.5rem;
@@ -914,7 +958,7 @@ body.light-mode .quick-back-btn:hover{color:rgba(9,9,11,.7)}
    cream/white strip that goes stark on the dark modal or seams in super-light. */
 .quick-add-review-media{position:relative;background:var(--ink);aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:pan-y pinch-zoom}
 .quick-add-review-media img{width:100%;height:100%;object-fit:cover;object-position:center center;display:block}
-.quick-add-review-media :is(img,video).zw-img-in{animation:qaImgIn .42s cubic-bezier(.22,.61,.36,1) both}
+.quick-add-review-media :is(img,video).zw-img-in{animation:qaImgIn .4s cubic-bezier(.22,.61,.36,1) both}
 .quick-add-review-media :is(img,video).zw-slide-next{animation:qaSlideNext .4s cubic-bezier(.22,.61,.36,1) both}
 .quick-add-review-media :is(img,video).zw-slide-prev{animation:qaSlidePrev .4s cubic-bezier(.22,.61,.36,1) both}
 @keyframes qaImgIn{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:scale(1)}}
@@ -965,10 +1009,10 @@ body.light-mode .quick-add-color-dot{border-color:rgba(9,9,11,.25)}
 .quick-add-empty-option{font-family:var(--fm);font-size:.68rem;color:rgba(244,241,235,.48);margin:0}
 .quick-add-review-message{font-family:var(--fm);font-size:.68rem;letter-spacing:.06em;color:rgba(244,241,235,.5);min-height:1rem;margin:0}
 .quick-add-review-actions{display:grid;grid-template-columns:1fr 1fr;gap:.65rem}
-.quick-add-review-actions button,.quick-add-review-actions a{min-height:46px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(244,241,235,.12);background:transparent;color:rgba(244,241,235,.72);font-family:var(--fm);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer;transition:background .2s ease,color .2s ease,border-color .2s ease,opacity .2s ease,transform .12s ease}
+.quick-add-review-actions button,.quick-add-review-actions a{min-height:46px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(244,241,235,.12);background:transparent;color:rgba(244,241,235,.72);font-family:var(--fm);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer;transition:background .2s ease,color .2s ease,border-color .2s ease,opacity .2s ease,transform .1s ease}
 .quick-add-review-actions button:hover,.quick-add-review-actions a:hover{background:rgba(244,241,235,.1);color:rgba(244,241,235,.92)}
 .quick-add-review-actions button:active,.quick-add-review-actions a:active{transform:scale(.97);opacity:.82}
-.quick-add-review-actions .quick-add-review-confirm{grid-column:1/-1;background:var(--paper);color:var(--ink);border-color:var(--paper);transition:background .2s ease,color .2s ease,border-color .2s ease,transform .12s ease,opacity .2s ease}
+.quick-add-review-actions .quick-add-review-confirm{grid-column:1/-1;background:var(--paper);color:var(--ink);border-color:var(--paper);transition:background .2s ease,color .2s ease,border-color .2s ease,transform .1s ease,opacity .2s ease}
 .quick-add-review-actions .quick-add-review-confirm:hover{background:var(--paper-hover);border-color:var(--paper-hover)}
 .quick-add-review-actions .quick-add-review-confirm:active{background:var(--paper-active);border-color:var(--paper-active);transform:scale(.97)}
 .quick-add-review-actions .quick-add-review-confirm:disabled{opacity:.45;cursor:not-allowed}
@@ -1093,7 +1137,7 @@ body.light-mode .pcard-skel-img,body.light-mode .pcard-skel-line{background:rgba
   65%{transform:translateY(-1.5px) scale(.97,1.05)}
   100%{transform:translateY(0) scale(1,1)}
 }
-#cart-btn.bag-dip svg{animation:bagDip .38s cubic-bezier(.34,1.3,.5,1);transform-origin:center bottom}
+#cart-btn.bag-dip svg{animation:bagDip .4s cubic-bezier(.34,1.3,.5,1);transform-origin:center bottom}
 @media (prefers-reduced-motion: reduce){
   #cart-btn.bag-dip svg,.cc.pop{animation:none}
 }
@@ -1119,7 +1163,7 @@ body.light-mode .pcard-skel-img,body.light-mode .pcard-skel-line{background:rgba
   width:100%;min-height:48px;padding:.8rem 1rem;border:1px solid rgba(244,241,235,.14);border-radius:999px;
   font-family:var(--fm);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
   color:var(--paper);background:rgba(244,241,235,.03);
-  gap:.65rem;cursor:pointer;transition:border-color .18s ease, background .18s ease, color .18s ease, opacity .18s ease;
+  gap:.65rem;cursor:pointer;transition:border-color .2s ease, background .2s ease, color .2s ease, opacity .2s ease;
 }
 .wallet-chip:hover{border-color:rgba(244,241,235,.28);background:rgba(244,241,235,.06)}
 .wallet-chip:focus-visible{outline:2px solid rgba(244,241,235,.35);outline-offset:2px}
@@ -1138,7 +1182,7 @@ body.light-mode .pcard-skel-img,body.light-mode .pcard-skel-line{background:rgba
   padding:2.6rem 2.4rem 2.2rem;
   width:min(420px,92vw);
   position:relative;
-  animation:modalIn .22s ease;
+  animation:modalIn .2s ease;
 }
 @keyframes modalIn{
   from{opacity:0;transform:translateY(14px)}
@@ -1315,7 +1359,7 @@ body.super-light-mode .quick-add-review-modal>.mbox{background:#FFFFFF !importan
   overflow-y:auto;
   display:flex;flex-direction:column;
   position:relative;
-  animation:modalIn .22s ease;
+  animation:modalIn .2s ease;
   overscroll-behavior:contain;
   margin:auto;
 }
@@ -1426,7 +1470,7 @@ body.light-mode .ret-history-item{border-top-color:rgba(9,9,11,.07)}
   background:var(--ink);
   display:flex;flex-direction:column;
   transform:translateX(100%);
-  transition:transform .32s cubic-bezier(.4,0,.2,1);
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
   pointer-events:none;
   visibility:hidden;
   overflow:hidden;
@@ -1875,6 +1919,7 @@ body.super-light-mode{background:#FFFFFF!important}
 body.super-light-mode #mobile-menu{background:#FFFFFF!important}
 </style>
 <script src="error-reporter.js?v=1" defer></script>
+<script src="consent.js?v=1" defer></script>
 </head>
 <body>
 <!-- THEME FLASH PREVENTION (synchronous, runs the instant <body> is parsed):
@@ -2467,14 +2512,9 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
 <script src="scroll-reveal.js?v=7896153c" defer></script>
 <script src="reviews.js?v=f4055367" charset="utf-8" defer></script>
 
-<!-- Cookie Consent / GDPR -->
-<div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0f0f0f;border-top:1px solid rgba(244,241,235,.1);padding:1rem 2rem;font-family:var(--font-body);font-size:.8rem;color:rgba(244,241,235,.7);align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem">
-  <p style="margin:0;flex:1;min-width:200px">We use cookies to improve your experience. By continuing, you agree to our <a href="/policies.html" style="color:currentColor;text-decoration:underline;opacity:.8">Privacy Policy</a>.</p>
-  <div style="display:flex;gap:.5rem">
-    <button onclick="acceptCookies()" style="padding:.5rem 1.2rem;background:var(--paper);color:var(--ink);border:none;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:var(--font-body)">Accept</button>
-    <button onclick="declineCookies()" style="padding:.5rem 1.2rem;background:none;color:rgba(244,241,235,.5);border:1px solid rgba(244,241,235,.15);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:var(--font-body)">Decline</button>
-  </div>
-</div>
+<!-- Cookie consent banner is injected on every page by consent.js (window.zwConsent),
+     which also gates analytics/marketing until the visitor accepts. -->
+
 
 <script src="commerce-checkout.js?v=f884ded3" defer></script>
 <script src="customer-hub.js?v=88b0086c" defer></script>

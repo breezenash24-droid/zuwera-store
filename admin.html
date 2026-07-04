@@ -165,11 +165,11 @@
            security boundary. */
         const ZW_RBAC = {
             super_admin: ['*'],
-            manager: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','commerce','meta','receipts','shipping','returns','users','website','settings','tax','audit','refund','return_process','product_write','order_write','user_manage','builder_edit','bulk_actions','export'],
+            manager: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','commerce','meta','receipts','shipping','returns','users','website','settings','tax','audit','flags','refund','return_process','product_write','order_write','user_manage','builder_edit','bulk_actions','export'],
             finance: ['dashboard','analytics','finance','receipts','tax','audit','refund','export'],
             fulfillment: ['dashboard','products','receipts','shipping','returns','order_write','return_process','product_write','bulk_actions','export'],
             content: ['dashboard','products','sizecharts','reviews','website','settings','product_write','builder_edit','export'],
-            viewer: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','commerce','meta','receipts','shipping','returns','users','website','settings','tax','audit','export']
+            viewer: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','commerce','meta','receipts','shipping','returns','users','website','settings','tax','audit','flags','export']
         };
         const ZW_ROLE_LABELS = {
             super_admin:'Super Admin', manager:'Manager', finance:'Finance',
@@ -178,7 +178,7 @@
         // Preset access maps (page -> 'view'|'edit') — mirror of ROLE_PRESET_LEVELS
         // in functions/api/_rbac.js. Drives the "preset" button in the access matrix.
         const ZW_ROLE_PRESET_LEVELS = {
-            manager:{dashboard:'view',analytics:'view',finance:'edit',products:'edit',legacy:'edit',sizecharts:'edit',reviews:'edit',commerce:'edit',meta:'edit',receipts:'edit',shipping:'edit',returns:'edit',users:'edit',website:'edit',settings:'edit',tax:'edit',audit:'view'},
+            manager:{dashboard:'view',analytics:'view',finance:'edit',products:'edit',legacy:'edit',sizecharts:'edit',reviews:'edit',commerce:'edit',meta:'edit',receipts:'edit',shipping:'edit',returns:'edit',users:'edit',website:'edit',settings:'edit',tax:'edit',audit:'view',flags:'edit'},
             finance:{dashboard:'view',analytics:'view',finance:'edit',receipts:'view',tax:'edit',audit:'view'},
             fulfillment:{dashboard:'view',products:'view',receipts:'edit',shipping:'edit',returns:'edit'},
             content:{dashboard:'view',products:'edit',sizecharts:'edit',reviews:'edit',website:'edit',settings:'edit'}
@@ -220,6 +220,7 @@
             { id:'tax',        icon:'🧮', label:'Tax',         title:'Tax',                 group:'configuration', kw:'tax rate sales tax vat state rates nexus override' },
             { id:'apis',       icon:'🔑', label:'APIs',        title:'API Status',          group:'configuration', searchLabel:'API Keys', kw:'api keys stripe shippo resend brevo cloudinary deepl cloudflare loops twilio posthog email branding integrations secrets' },
             { id:'audit',      icon:'📋', label:'Audit Log',   title:'Audit Log',           group:'configuration', kw:'history changes log activity events admin actions' },
+            { id:'flags',      icon:'🚩', label:'Feature Flags', title:'Feature Flags',     group:'configuration', kw:'feature flags rollout gradual release toggle experiment kill switch ab test canary beta launchdarkly' },
         ];
         const ADMIN_NAV_GROUPS = [
             { id:'overview',      label:'Overview' },
@@ -733,6 +734,21 @@
 
                 <!-- Audit Log Page -->
                 <div id="audit" class="page">
+                    <!-- Recent Pull Requests + Cloudflare previews (public GitHub repo, client-side fetch) -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:22px;">
+                        <div class="products-header" style="margin-bottom:12px;">
+                            <div>
+                                <h2 style="font-size:1.05rem;">Pull Requests &amp; Previews</h2>
+                                <p style="color:var(--text-secondary);font-size:.85rem;margin-top:6px;">Open pull requests link straight to their live Cloudflare preview — review a change before it's merged.</p>
+                            </div>
+                            <div style="display:flex;gap:8px;align-items:center;">
+                                <a href="https://zuwera.store" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="text-decoration:none;">Production ↗</a>
+                                <button class="btn btn-secondary btn-sm" id="refreshPrsBtn" onclick="loadRecentPRs(true)">Refresh</button>
+                            </div>
+                        </div>
+                        <div id="prList" style="display:flex;flex-direction:column;gap:2px;font-size:.85rem;color:var(--text-secondary);">Loading…</div>
+                    </div>
+
                     <div class="products-header">
                         <div>
                             <h2>Admin Audit Log</h2>
@@ -767,6 +783,43 @@
                     </table>
                     <div style="text-align:center;margin-top:16px;">
                         <button id="auditLoadMoreBtn" class="btn btn-secondary" style="display:none;">Load more</button>
+                    </div>
+                </div>
+
+                <!-- Feature Flags Page -->
+                <div id="flags" class="page">
+                    <div class="products-header">
+                        <div>
+                            <h2>Feature Flags</h2>
+                            <p style="color:var(--text-secondary);font-size:.85rem;margin-top:6px;max-width:660px;line-height:1.65;">
+                                Turn features on/off and roll them out gradually. Set a rollout %, and only that share of visitors sees the feature — it's sticky per visitor (raising the % only ever adds people). Gate code with <code style="background:var(--bg-secondary);padding:1px 5px;border-radius:4px;">window.zwFlag('key')</code>. Saving is live for everyone immediately — no deploy.<br>
+                                <span style="opacity:.85;">Measuring: every flag is auto-reported to PostHog (break any funnel/metric down by <code style="background:var(--bg-secondary);padding:1px 5px;border-radius:4px;">$feature/key</code>, or use PostHog Experiments). Run <code style="background:var(--bg-secondary);padding:1px 5px;border-radius:4px;">supabase-feature-flags.sql</code> once and orders get stamped with the variant, so the per-flag order/revenue split shows below.</span>
+                            </p>
+                        </div>
+                        <button class="btn btn-secondary" onclick="loadFeatureFlags()">Refresh</button>
+                    </div>
+
+                    <!-- Add a new flag -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:20px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+                        <label style="display:flex;flex-direction:column;gap:5px;font-size:.78rem;color:var(--text-secondary);">
+                            Flag key
+                            <input type="text" id="newFlagName" placeholder="checkout_v2" autocomplete="off"
+                                   style="width:210px;padding:8px 10px;background:var(--bg-primary,rgba(255,255,255,.04));border:1px solid var(--border);border-radius:6px;color:inherit;font-family:'IBM Plex Mono',monospace;font-size:.85rem;"
+                                   onkeydown="if(event.key==='Enter'){event.preventDefault();addFeatureFlag();}">
+                        </label>
+                        <label style="display:flex;flex-direction:column;gap:5px;font-size:.78rem;color:var(--text-secondary);flex:1;min-width:200px;">
+                            Description (optional)
+                            <input type="text" id="newFlagDesc" placeholder="New Stripe checkout flow" autocomplete="off"
+                                   style="width:100%;padding:8px 10px;background:var(--bg-primary,rgba(255,255,255,.04));border:1px solid var(--border);border-radius:6px;color:inherit;font-size:.85rem;">
+                        </label>
+                        <button onclick="addFeatureFlag()" style="padding:9px 18px;border:1px solid var(--border);border-radius:6px;background:var(--accent,#F891A5);color:#09090b;font-weight:600;font-size:.85rem;cursor:pointer;">+ Add flag</button>
+                    </div>
+
+                    <div id="flagsList"><p style="color:var(--text-secondary);text-align:center;padding:20px;">Loading…</p></div>
+
+                    <div style="margin-top:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                        <button id="flagsSaveBtn" onclick="saveFeatureFlags()" style="padding:10px 24px;border:1px solid var(--border);border-radius:6px;background:var(--accent,#F891A5);color:#09090b;font-weight:600;font-size:.9rem;cursor:pointer;">Save changes</button>
+                        <span id="flagsStatus" style="font-size:.85rem;color:var(--text-secondary);"></span>
                     </div>
                 </div>
 
@@ -913,6 +966,38 @@
                         <div id="banned-words-list" style="display:flex;flex-wrap:wrap;gap:8px;">
                             <span style="color:var(--text-secondary);font-size:.82rem;">Loading…</span>
                         </div>
+                    </div>
+
+                    <!-- Review length limit + display cutoff — backs site_settings.review_settings,
+                         read by reviews.js on product pages. -->
+                    <div style="margin-top:34px;border-top:1px solid var(--border);padding-top:22px;">
+                        <h3 style="font-size:1.05rem;margin-bottom:6px;">✏️ Review Length &amp; Cutoff</h3>
+                        <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:14px;line-height:1.6;">
+                            Set how long a customer's review can be, and when long reviews collapse behind a “View more” link on product pages.
+                        </p>
+                        <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;max-width:640px;">
+                            <label style="display:flex;flex-direction:column;gap:5px;font-size:.8rem;color:var(--text-secondary);">
+                                Maximum review length
+                                <input type="number" id="review-max-len" min="1" step="1" value="1000"
+                                       style="width:130px;padding:8px 10px;background:var(--bg-secondary,rgba(255,255,255,.04));border:1px solid var(--border);border-radius:6px;color:inherit;font-size:.9rem;">
+                            </label>
+                            <label style="display:flex;flex-direction:column;gap:5px;font-size:.8rem;color:var(--text-secondary);">
+                                Counted in
+                                <select id="review-max-unit" class="form-input" style="width:150px;padding:8px 10px;font-size:.9rem;">
+                                    <option value="characters">Characters</option>
+                                    <option value="words">Words</option>
+                                </select>
+                            </label>
+                            <label style="display:flex;flex-direction:column;gap:5px;font-size:.8rem;color:var(--text-secondary);">
+                                Collapse reviews longer than
+                                <input type="number" id="review-preview-chars" min="0" step="10" value="320"
+                                       style="width:150px;padding:8px 10px;background:var(--bg-secondary,rgba(255,255,255,.04));border:1px solid var(--border);border-radius:6px;color:inherit;font-size:.9rem;">
+                            </label>
+                        </div>
+                        <p style="color:var(--text-secondary);font-size:.78rem;margin:10px 0 14px;">Collapse threshold is in characters. Set it to <strong>0</strong> to never collapse reviews.</p>
+                        <button type="button" onclick="saveReviewSettings()" id="review-settings-save"
+                                style="padding:9px 20px;border:1px solid var(--border);border-radius:6px;background:var(--accent,#F891A5);color:#09090b;font-weight:600;font-size:.85rem;cursor:pointer;">Save review settings</button>
+                        <span id="review-settings-status" style="margin-left:12px;font-size:.82rem;color:var(--text-secondary);"></span>
                     </div>
                 </div>
 
@@ -1066,6 +1151,20 @@
                   <div id="ana-wrap">
                     <div id="ana-error-container"></div>
 
+                    <!-- Live "Today" strip (always today, independent of the period buttons) -->
+                    <div class="ana-section" id="ana-today-section" style="margin-bottom:1.5rem;">
+                      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.6rem;margin-bottom:1rem;">
+                        <h2 style="margin-bottom:0;">Today <span style="font-size:.72rem;color:var(--text-secondary);font-weight:400;letter-spacing:0;text-transform:none;">— so far, vs the same weekday last week</span></h2>
+                        <span id="ana-today-updated" style="font-size:.72rem;color:var(--text-secondary);"></span>
+                      </div>
+                      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1.2rem;">
+                        <div><div class="ana-card-label">Revenue today</div><div class="ana-card-value" id="ana-today-rev">—</div><div class="ana-card-sub" id="ana-today-rev-cmp" style="font-size:.78rem;margin-top:.3rem;"></div></div>
+                        <div><div class="ana-card-label">Orders today</div><div class="ana-card-value" id="ana-today-ord">—</div><div class="ana-card-sub" id="ana-today-ord-cmp" style="font-size:.78rem;margin-top:.3rem;"></div></div>
+                        <div><div class="ana-card-label">Avg order today</div><div class="ana-card-value" id="ana-today-aov">—</div><div class="ana-card-sub">so far</div></div>
+                        <div><div class="ana-card-label">Latest orders</div><div id="ana-today-latest" style="font-size:.82rem;color:var(--text-secondary);margin-top:.35rem;">—</div></div>
+                      </div>
+                    </div>
+
                     <!-- Controls row -->
                     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;margin-bottom:1.5rem;">
                       <div class="ana-filter-group" id="ana-period-btns">
@@ -1075,6 +1174,12 @@
                         <button class="ana-filter-btn active" data-period="all">All Time</button>
                       </div>
                       <button id="ana-refresh-btn" onclick="anaLoadData()">↺ Refresh</button>
+                    </div>
+
+                    <!-- Traffic & Conversion (PostHog via server proxy; period-aware) -->
+                    <div id="ana-traffic" style="margin-bottom:1.8rem;">
+                      <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:1.5rem;letter-spacing:.06em;margin-bottom:1.2rem;">Traffic &amp; Conversion <span style="font-size:.72rem;color:var(--text-secondary);font-weight:400;letter-spacing:0;">— from PostHog, over the selected period</span></h2>
+                      <div id="ana-traffic-body" class="ana-loading">Loading traffic…</div>
                     </div>
 
                     <!-- Sales Overview -->
@@ -1146,6 +1251,47 @@
                         <button class="ana-export-btn" onclick="anaExportOrders()">↓ CSV</button>
                       </div>
                       <div id="ana-ordersTable" class="ana-loading">Loading orders…</div>
+                    </div>
+
+                    <!-- When customers buy (day-of-week + hour-of-day) -->
+                    <div class="ana-section">
+                      <h2>When Customers Buy</h2>
+                      <div style="font-size:.8rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin:.4rem 0 .5rem;">Revenue by day of week</div>
+                      <div class="ana-bar-chart" id="ana-dowChart" style="height:180px;"></div>
+                      <div style="font-size:.8rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin:1.6rem 0 .6rem;">Revenue by hour of day</div>
+                      <div id="ana-hodChart" style="display:flex;gap:2px;align-items:flex-end;"></div>
+                    </div>
+
+                    <!-- Revenue mix: new vs returning + full-price vs sale -->
+                    <div class="ana-stats-grid">
+                      <div class="ana-stat-card">
+                        <h3>New vs Returning Revenue</h3>
+                        <div id="ana-cohortSplit" class="ana-loading" style="padding:.5rem 0;">—</div>
+                      </div>
+                      <div class="ana-stat-card">
+                        <h3>Full-Price vs Sale Revenue</h3>
+                        <div id="ana-discountSplit" class="ana-loading" style="padding:.5rem 0;">—</div>
+                      </div>
+                    </div>
+
+                    <!-- Product performance -->
+                    <div class="ana-section">
+                      <h2>Revenue by Category</h2>
+                      <div id="ana-categoryTable" class="ana-loading">—</div>
+                    </div>
+
+                    <div class="ana-section">
+                      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem;">
+                        <h2 style="margin-bottom:0">Sell-Through Velocity</h2>
+                        <button class="ana-export-btn" onclick="anaExportVelocity()">↓ CSV</button>
+                      </div>
+                      <p style="font-size:.78rem;color:var(--text-secondary);margin:0 0 1rem;">Units sold per day and estimated days of stock remaining, over the selected period. Amber = under two weeks of stock left.</p>
+                      <div id="ana-velocityTable" class="ana-loading">—</div>
+                    </div>
+
+                    <div class="ana-section">
+                      <h2>Frequently Bought Together</h2>
+                      <div id="ana-affinityTable" class="ana-loading">—</div>
                     </div>
 
                     <!-- Inventory Overview -->
@@ -3756,6 +3902,9 @@
                 loadMetaStatus();
             } else if (page === 'audit') {
                 loadAuditLog();
+                loadRecentPRs();
+            } else if (page === 'flags') {
+                loadFeatureFlags();
             }
         }
 
@@ -5162,6 +5311,65 @@
             } catch (e) { showToast('Export failed: ' + e.message, 'error'); }
         };
 
+        // ─── Recent Pull Requests (public repo → direct client-side fetch) ──────────
+        // No token / server proxy needed: the repo is public, so PR metadata is public.
+        // GitHub allows ~60 unauthenticated requests/hr per IP, plenty for admin use.
+        let _prsLoadedAt = 0;
+        async function loadRecentPRs(force) {
+            const host = document.getElementById('prList');
+            if (!host) return;
+            // Throttle: reuse recent result unless the Refresh button forces it.
+            if (!force && _prsLoadedAt && (Date.now() - _prsLoadedAt) < 60000 && host.dataset.ok === '1') return;
+            const e = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            const ago = iso => {
+                if (!iso) return '';
+                const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+                if (s < 60) return 'just now';
+                const m = s / 60; if (m < 60) return Math.floor(m) + 'm ago';
+                const h = m / 60; if (h < 24) return Math.floor(h) + 'h ago';
+                const d = h / 24; if (d < 30) return Math.floor(d) + 'd ago';
+                return new Date(iso).toLocaleDateString();
+            };
+            host.textContent = 'Loading…';
+            try {
+                const r = await fetch('https://api.github.com/repos/breezenash24-droid/zuwera-store/pulls?state=all&sort=updated&direction=desc&per_page=10', { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+                if (!r.ok) throw new Error('GitHub API ' + r.status);
+                const prs = await r.json();
+                if (!Array.isArray(prs) || !prs.length) { host.textContent = 'No pull requests found.'; host.dataset.ok = '1'; _prsLoadedAt = Date.now(); return; }
+                // Cloudflare Pages preview branch-alias: lowercase, non-alphanumeric
+                // runs → single dash, trim, cap at 28 chars (e.g. feat/foo → feat-foo).
+                const PROJECT = 'zuwera-store';
+                const cfAlias = ref => String(ref || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 28).replace(/-+$/, '');
+                host.innerHTML = prs.map(p => {
+                    const state = p.merged_at ? 'merged' : (p.draft ? 'draft' : p.state); // open | closed | merged | draft
+                    const color = state === 'merged' ? '#a371f7' : state === 'open' ? '#3fb950' : state === 'draft' ? '#8b949e' : '#f85149';
+                    const when = ago(p.merged_at || p.updated_at || p.created_at);
+                    const ref = p.head && p.head.ref;
+                    // A live preview only exists while the PR is open (branch still present).
+                    const preview = (p.state === 'open' && ref) ? ('https://' + cfAlias(ref) + '.' + PROJECT + '.pages.dev') : '';
+                    const previewCell = preview
+                        ? '<a href="' + e(preview) + '" target="_blank" rel="noopener noreferrer" title="Open the Cloudflare preview for ' + e(ref) + '" onclick="event.stopPropagation()" '
+                            + 'style="flex:0 0 auto;white-space:nowrap;font-size:.72rem;font-weight:600;letter-spacing:.02em;color:#09090b;background:#fbbf24;border-radius:5px;padding:4px 9px;text-decoration:none;">Preview ↗</a>'
+                        : '<span style="flex:0 0 auto;white-space:nowrap;font-size:.72rem;color:var(--text-secondary);opacity:.55;padding:4px 2px;">' + (state === 'merged' ? 'merged' : 'no preview') + '</span>';
+                    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid var(--border);" '
+                        + 'onmouseover="this.style.background=\'var(--bg-primary)\'" onmouseout="this.style.background=\'\'">'
+                        + '<span style="flex:0 0 auto;min-width:56px;text-align:center;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#fff;background:' + color + ';border-radius:20px;padding:3px 8px;">' + e(state) + '</span>'
+                        + '<a href="' + e(p.html_url) + '" target="_blank" rel="noopener noreferrer" title="' + e(ref || '') + '" '
+                            + 'style="flex:1 1 auto;min-width:0;color:var(--text-primary);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">#' + e(p.number) + ' &nbsp;' + e(p.title) + '</a>'
+                        + '<span style="flex:0 0 auto;white-space:nowrap;color:var(--text-secondary);font-size:.78rem;">' + e(p.user && p.user.login || '') + ' · ' + when + '</span>'
+                        + previewCell
+                        + '</div>';
+                }).join('');
+                const last = host.lastElementChild; if (last) last.style.borderBottom = 'none';
+                host.dataset.ok = '1';
+                _prsLoadedAt = Date.now();
+            } catch (err) {
+                host.dataset.ok = '';
+                host.innerHTML = '<span style="color:var(--text-secondary);">Could not load pull requests (' + e(err.message) + '). '
+                    + '<a href="https://github.com/breezenash24-droid/zuwera-store/pulls" target="_blank" rel="noopener noreferrer" style="color:var(--accent);">Open on GitHub →</a></span>';
+            }
+        }
+
         async function loadAuditLog(append = false) {
             const tbody = document.getElementById('auditTableBody');
             const status = document.getElementById('auditStatus');
@@ -5196,6 +5404,156 @@
 
         document.getElementById('refreshAuditBtn')?.addEventListener('click', () => loadAuditLog(false));
         document.getElementById('auditLoadMoreBtn')?.addEventListener('click', () => loadAuditLog(true));
+
+        // ─── Feature Flags (site_settings.feature_flags → read by flags.js) ──────────
+        let _featureFlags = {};
+        let _flagOrders = [];
+        function _flagVid() {
+            try { let id = localStorage.getItem('zw_vid'); if (!id) { id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2)); localStorage.setItem('zw_vid', id); } return id; } catch (_) { return 'anon'; }
+        }
+        function _flagBucket(name) {
+            const s = name + '|' + _flagVid(); let h = 0;
+            for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+            return h % 100;
+        }
+        async function loadFeatureFlags() {
+            const host = document.getElementById('flagsList');
+            if (host) host.innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:20px;">Loading…</p>';
+            try {
+                const { data } = await sb.from('site_settings').select('value').eq('key', 'feature_flags').maybeSingle();
+                let v = data && data.value;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+                _featureFlags = (v && typeof v === 'object') ? v : {};
+            } catch (_) { _featureFlags = {}; }
+            // Orders stamped with flag variants (needs supabase-feature-flags.sql;
+            // empty until that column exists + purchases start flowing).
+            try {
+                const { data: ords } = await sb.from('orders').select('total,feature_flags').not('feature_flags', 'is', null).limit(3000);
+                _flagOrders = ords || [];
+            } catch (_) { _flagOrders = []; }
+            renderFeatureFlags();
+        }
+
+        // Aggregate stamped orders for one flag: count + revenue by on/off variant.
+        function flagResults(name) {
+            const r = { on: { n: 0, rev: 0 }, off: { n: 0, rev: 0 } };
+            _flagOrders.forEach(o => {
+                let ff = o.feature_flags;
+                if (typeof ff === 'string') { try { ff = JSON.parse(ff); } catch (_) { ff = null; } }
+                if (!ff || !(name in ff)) return;
+                const v = ff[name] ? 'on' : 'off';
+                r[v].n++; r[v].rev += Number(o.total) || 0;
+            });
+            return r;
+        }
+        function renderFeatureFlags() {
+            const host = document.getElementById('flagsList');
+            if (!host) return;
+            const names = Object.keys(_featureFlags).sort();
+            if (!names.length) {
+                host.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:36px 20px;border:1px dashed var(--border);border-radius:10px;line-height:1.7;">No feature flags yet.<br>Add one above (e.g. <code>checkout_v2</code>), then gate code with <code>window.zwFlag(\'checkout_v2\')</code>.</div>';
+                return;
+            }
+            host.innerHTML = names.map(name => {
+                const f = _featureFlags[name] || {};
+                const enabled = f.enabled !== false;
+                const rollout = (typeof f.rollout === 'number') ? Math.max(0, Math.min(100, f.rollout)) : 100;
+                const youIn = enabled && (rollout >= 100 || _flagBucket(name) < rollout);
+                const audience = !enabled ? 'Off — nobody' : (rollout >= 100 ? 'Everyone' : `≈${rollout}% of visitors`);
+                const audColor = !enabled ? '#f85149' : (rollout >= 100 ? '#3fb950' : '#fbbf24');
+                const res = flagResults(name);
+                const resultsHtml = (res.on.n + res.off.n) ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:.74rem;color:var(--text-secondary);">Orders since stamping — <strong style="color:#3fb950;">${res.on.n} saw it</strong> ($${res.on.rev.toFixed(2)}) · <strong style="color:#f85149;">${res.off.n} didn't</strong> ($${res.off.rev.toFixed(2)})</div>` : '';
+                return `
+                <div style="background:var(--bg-secondary);border:1px solid var(--border);border-left:3px solid ${audColor};border-radius:10px;padding:16px 18px;margin-bottom:12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+                        <div style="min-width:0;flex:1;">
+                            <div style="font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.95rem;color:var(--text-primary);">${escapeHtml(name)}</div>
+                            <input type="text" value="${escapeAttr(f.description || '')}" placeholder="Description…" data-flag-desc="${escapeAttr(name)}"
+                                   style="margin-top:6px;width:100%;max-width:440px;padding:4px 8px;background:var(--bg-primary,rgba(255,255,255,.04));border:1px solid var(--border);border-radius:5px;color:var(--text-secondary);font-size:.8rem;">
+                        </div>
+                        <div style="display:flex;align-items:center;gap:14px;flex-shrink:0;">
+                            <span style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:${audColor};">${audience}</span>
+                            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:.8rem;color:var(--text-secondary);">
+                                <input type="checkbox" data-flag-enabled="${escapeAttr(name)}" ${enabled ? 'checked' : ''}> Enabled
+                            </label>
+                            <button onclick="deleteFeatureFlag('${escapeAttr(name)}')" title="Delete flag" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:1.05rem;line-height:1;padding:2px 4px;">🗑</button>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:12px;margin-top:14px;${enabled ? '' : 'opacity:.4;pointer-events:none;'}">
+                        <span style="font-size:.78rem;color:var(--text-secondary);white-space:nowrap;">Rollout</span>
+                        <input type="range" min="0" max="100" step="1" value="${rollout}" data-flag-rollout="${escapeAttr(name)}" style="flex:1;accent-color:var(--accent,#F891A5);">
+                        <span data-flag-pct="${escapeAttr(name)}" style="font-size:.82rem;font-weight:600;min-width:44px;text-align:right;">${rollout}%</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:10px;flex-wrap:wrap;">
+                        <code style="font-size:.75rem;color:var(--text-secondary);background:var(--bg-primary,rgba(255,255,255,.04));padding:3px 8px;border-radius:5px;">window.zwFlag('${escapeHtml(name)}')</code>
+                        <span style="font-size:.72rem;color:var(--text-secondary);">This browser: <strong style="color:${youIn ? '#3fb950' : '#f85149'};">${youIn ? 'sees it' : 'does not'}</strong></span>
+                    </div>
+                    ${resultsHtml}
+                </div>`;
+            }).join('');
+            host.querySelectorAll('[data-flag-enabled]').forEach(el => el.addEventListener('change', e => {
+                const n = e.target.getAttribute('data-flag-enabled');
+                _featureFlags[n] = _featureFlags[n] || {}; _featureFlags[n].enabled = e.target.checked;
+                renderFeatureFlags();
+            }));
+            host.querySelectorAll('[data-flag-rollout]').forEach(el => {
+                el.addEventListener('input', e => {
+                    const n = e.target.getAttribute('data-flag-rollout');
+                    const val = parseInt(e.target.value, 10) || 0;
+                    _featureFlags[n] = _featureFlags[n] || {}; _featureFlags[n].rollout = val;
+                    const pct = host.querySelector(`[data-flag-pct="${n}"]`); if (pct) pct.textContent = val + '%';
+                });
+                el.addEventListener('change', () => renderFeatureFlags()); // refresh audience/preview on release
+            });
+            host.querySelectorAll('[data-flag-desc]').forEach(el => el.addEventListener('input', e => {
+                const n = e.target.getAttribute('data-flag-desc');
+                _featureFlags[n] = _featureFlags[n] || {}; _featureFlags[n].description = e.target.value;
+            }));
+        }
+        window.addFeatureFlag = function () {
+            const nameEl = document.getElementById('newFlagName');
+            const descEl = document.getElementById('newFlagDesc');
+            const name = (nameEl?.value || '').trim();
+            if (!name) return;
+            if (!/^[a-z][a-z0-9_]*$/.test(name)) { showToast('Flag keys are lowercase letters, numbers and underscores, starting with a letter — e.g. checkout_v2', 'error'); return; }
+            if (_featureFlags[name]) { showToast(`Flag "${name}" already exists.`, 'error'); return; }
+            _featureFlags[name] = { enabled: false, rollout: 0, description: (descEl?.value || '').trim() };
+            if (nameEl) nameEl.value = ''; if (descEl) descEl.value = '';
+            renderFeatureFlags();
+            showToast(`Added "${name}" — it's off by default. Set a rollout % and click Save.`);
+        };
+        window.deleteFeatureFlag = function (name) {
+            if (!_featureFlags[name]) return;
+            if (!confirm(`Delete feature flag "${name}"? Any code calling zwFlag('${name}') will then get false.`)) return;
+            delete _featureFlags[name];
+            renderFeatureFlags();
+        };
+        window.saveFeatureFlags = async function () {
+            const btn = document.getElementById('flagsSaveBtn');
+            const status = document.getElementById('flagsStatus');
+            const now = new Date().toISOString();
+            Object.keys(_featureFlags).forEach(n => {
+                const f = _featureFlags[n]; if (!f || typeof f !== 'object') { _featureFlags[n] = { enabled: false, rollout: 0 }; return; }
+                f.enabled = f.enabled !== false;
+                f.rollout = Math.max(0, Math.min(100, parseInt(f.rollout, 10) || 0));
+                f.updated_at = now;
+            });
+            if (btn) btn.disabled = true;
+            if (status) { status.style.color = 'var(--text-secondary)'; status.textContent = 'Saving…'; }
+            try {
+                const { error } = await sb.from('site_settings').upsert({ key: 'feature_flags', value: _featureFlags }, { onConflict: 'key' });
+                if (error) throw error;
+                try { await logAdminAudit('settings.update', 'site_settings', 'feature_flags', { flags: Object.keys(_featureFlags).length }); } catch (_) {}
+                if (status) { status.style.color = '#10b981'; status.textContent = 'Saved ✓ — live for visitors now'; }
+                showToast('Feature flags saved.');
+            } catch (e) {
+                if (status) { status.style.color = '#ef4444'; status.textContent = 'Save failed'; }
+                showToast('Could not save flags: ' + (e.message || e), 'error');
+            } finally {
+                if (btn) btn.disabled = false;
+                setTimeout(() => { if (status) status.textContent = ''; }, 3000);
+            }
+        };
 
         // Reviews
         /* ── Banned words (zw_banned_words) — backs the review profanity trigger ── */
@@ -5251,8 +5609,49 @@
             }
         }
 
+        // ── Review length limit + display cutoff (site_settings.review_settings) ──
+        async function loadReviewSettings() {
+            try {
+                const { data } = await sb.from('site_settings').select('value').eq('key', 'review_settings').maybeSingle();
+                let v = data && data.value;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+                v = v || {};
+                const lenEl = document.getElementById('review-max-len');
+                const unitEl = document.getElementById('review-max-unit');
+                const prevEl = document.getElementById('review-preview-chars');
+                if (lenEl)  lenEl.value  = (isFinite(+v.maxLength) && +v.maxLength > 0) ? Math.floor(+v.maxLength) : 1000;
+                if (unitEl) unitEl.value = (v.maxUnit === 'words') ? 'words' : 'characters';
+                if (prevEl) prevEl.value = (isFinite(+v.previewChars) && +v.previewChars >= 0) ? Math.floor(+v.previewChars) : 320;
+            } catch (_) {}
+        }
+
+        async function saveReviewSettings() {
+            const status = document.getElementById('review-settings-status');
+            const btn = document.getElementById('review-settings-save');
+            const maxLength    = Math.max(1, parseInt(document.getElementById('review-max-len').value, 10) || 1000);
+            const maxUnit      = document.getElementById('review-max-unit').value === 'words' ? 'words' : 'characters';
+            const previewChars = Math.max(0, parseInt(document.getElementById('review-preview-chars').value, 10) || 0);
+            if (btn) btn.disabled = true;
+            if (status) { status.style.color = 'var(--text-secondary)'; status.textContent = 'Saving…'; }
+            try {
+                const value = { maxUnit, maxLength, previewChars };
+                const { error } = await sb.from('site_settings').upsert({ key: 'review_settings', value }, { onConflict: 'key' });
+                if (error) throw error;
+                try { await logAdminAudit('settings.update', 'site_settings', 'review_settings', value); } catch (_) {}
+                if (status) { status.style.color = '#10b981'; status.textContent = 'Saved ✓'; }
+                showToast('Review settings saved.');
+            } catch (e) {
+                if (status) { status.style.color = '#ef4444'; status.textContent = 'Save failed'; }
+                showToast('Could not save review settings: ' + (e.message || e), 'error');
+            } finally {
+                if (btn) btn.disabled = false;
+                setTimeout(() => { if (status) status.textContent = ''; }, 2500);
+            }
+        }
+
         async function loadAdminReviews() {
             loadBannedWords();
+            loadReviewSettings();
             try {
                 const container = document.getElementById('reviewsContainer');
                 container.innerHTML = '<p style="text-align:center;color:var(--text-secondary);">Loading reviews...</p>';

@@ -470,6 +470,14 @@ export async function onRequestPost({ request, env }) {
 
     const body = await request.json();
     const { items, shippingRate, address = {}, promoCode = '' } = body;
+    // Compact snapshot of the visitor's active feature-flag variants (from
+    // flags.js via commerce-checkout.js). The webhook stamps it on the order so
+    // revenue/orders can be split by variant. Kept tiny for Stripe's 500-char cap.
+    let featureFlagsMeta = '';
+    try {
+      const ff = body.featureFlags;
+      if (ff && typeof ff === 'object' && Object.keys(ff).length) featureFlagsMeta = JSON.stringify(ff).slice(0, 480);
+    } catch (_) {}
 
     if (!items?.length || !address?.email) {
       return json({ error: 'Missing required fields: items and address.email' }, 400, headers);
@@ -571,6 +579,7 @@ export async function onRequestPost({ request, env }) {
           tax_rate_bps: String(Math.round(taxRate * 10000)),
           tax_amount_cents: String(taxCents),
           total_amount_cents: String(totalCents),
+          feature_flags: featureFlagsMeta,
           ship_line1: address.line1 || '',
           ship_line2: address.line2 || '',
           ship_city: address.city || '',

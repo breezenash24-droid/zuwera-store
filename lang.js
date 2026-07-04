@@ -302,6 +302,41 @@
     body.style.paddingRight = '';
   }
 
+  // Prefer the shared, iOS-proof scroll lock (modal-lock.js uses body
+  // position:fixed on mobile). The html{overflow:hidden} fallback above does NOT
+  // stop iOS touch-scrolling behind the sheet. modal-lock.js tracks
+  // #zw-lang-modal.open, so refresh() locks/unlocks based on the .open class.
+  function lockLangScroll() {
+    if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh();
+    else lockLangModalScrollFallback();
+  }
+  function unlockLangScroll() {
+    if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh();
+    else unlockLangModalScrollFallback();
+  }
+
+  // Swipe-down-to-close, matching the storefront bottom sheets (zwAttachSwipeClose):
+  // dragging down >80px while the list is scrolled to the very top dismisses it.
+  function attachLangSwipeClose() {
+    const box = document.getElementById('zw-lang-box');
+    if (!box) return;
+    const scroller = document.getElementById('zw-lang-grid') || box;
+    let startY = 0, tracking = false;
+    box.addEventListener('touchstart', function (e) {
+      if (e.touches.length !== 1) { tracking = false; return; }
+      startY = e.touches[0].clientY;
+      tracking = scroller.scrollTop <= 0;
+    }, { passive: true });
+    box.addEventListener('touchmove', function () {
+      if (tracking && scroller.scrollTop > 0) tracking = false;
+    }, { passive: true });
+    box.addEventListener('touchend', function (e) {
+      if (!tracking) return; tracking = false;
+      const dy = e.changedTouches[0].clientY - startY;
+      if (dy > 80 && scroller.scrollTop <= 0) closeModal();
+    }, { passive: true });
+  }
+
   function buildModal() {
     if (document.getElementById('zw-lang-modal')) return;
 
@@ -316,7 +351,10 @@
     modal.setAttribute('aria-label', 'Select language');
     // Only set positioning in inline style — background/alignment live in the
     // injected stylesheet below so they can never be overwritten by JS
-    modal.style.cssText = 'display:none; position:fixed; inset:0; z-index:100000; align-items:center; justify-content:center; padding:1rem;';
+    // display:flex always — the OPEN state is gated by the .open class
+    // (opacity/visibility), same as the shared .modal system, so it can animate
+    // both in AND out. pointer-events:none while closed keeps it click-through.
+    modal.style.cssText = 'display:flex; position:fixed; inset:0; z-index:100000; align-items:center; justify-content:center; padding:1rem;';
 
     modal.innerHTML = `
       <div id="zw-lang-box" class="notranslate" translate="no" style="
@@ -390,8 +428,9 @@
       renderGrid(e.target.value.toLowerCase());
     });
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && modal.style.display === 'flex') closeModal();
+      if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
     });
+    attachLangSwipeClose();
 
     renderGrid();
   }
@@ -442,8 +481,18 @@
     langModalTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     // Only set display — all background/alignment/padding comes from the injected
     // stylesheet with !important so it can't be overwritten by any JS
-    if (modal) modal.style.display = 'flex';
-    lockLangModalScrollFallback();
+    if (modal) {
+      // Double rAF: let the closed state (translateY / opacity:0) paint first,
+      // then add .open so the slide-up + fade transition actually runs.
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          modal.classList.add('open');
+          lockLangScroll(); // lock AFTER .open so modal-lock.js detects the open sheet
+        });
+      });
+    } else {
+      lockLangScroll();
+    }
     setTimeout(() => {
       const search = document.getElementById('zw-lang-search');
       if (search) {
@@ -456,8 +505,11 @@
 
   function closeModal() {
     const modal = document.getElementById('zw-lang-modal');
-    if (modal) modal.style.display = 'none';
-    unlockLangModalScrollFallback();
+    // Remove .open — the overlay fades out and the box slides down via CSS
+    // transition (visibility flips to hidden only after the fade completes, so
+    // the modal stays visible for the whole close animation).
+    if (modal) modal.classList.remove('open');
+    unlockLangScroll();
     if (langModalTrigger && langModalTrigger.isConnected) {
       window.requestAnimationFrame(() => focusWithoutScroll(langModalTrigger));
     }
@@ -554,7 +606,10 @@
       body.light-mode .zw-mobile-socials .zw-mobile-lang-trigger {
         background: rgba(9,9,11,0.014);
       }
-      /* ── Modal overlay — all layout/visual here so inline style can't override ── */
+      /* ── Modal overlay — all layout/visual here so inline style can't override.
+         OPEN state gated by .open (opacity/visibility) exactly like the login
+         modal + shared .modal system, so it fades in AND out symmetrically. No
+         dark scrim: the site floats modals on the visible page by design. ── */
       #zw-lang-modal {
         background: transparent !important;
         backdrop-filter: none !important;
@@ -563,6 +618,36 @@
         align-items: stretch !important;
         justify-content: flex-end !important;
         padding: 0 !important;
+        /* !important on the gate: cohesion.css sets #zw-lang-modal
+           pointer-events:auto, and a full-screen closed overlay that captured
+           clicks would make the page unclickable. */
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        transition: opacity var(--zw-motion-modal, .3s) ease,
+                    visibility 0s linear var(--zw-motion-modal, .3s) !important;
+      }
+      #zw-lang-modal.open {
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        transition: opacity var(--zw-motion-modal, .3s) ease !important;
+      }
+      /* Box motion — same easing as every other modal. Desktop: gentle rise +
+         scale; mobile bottom-sheet slide is set in the @media block below. */
+      #zw-lang-box {
+        transform: translateY(14px) scale(.98);
+        opacity: 0;
+        transition: transform var(--zw-motion-modal, .3s) cubic-bezier(.32,.72,0,1),
+                    opacity var(--zw-motion-modal, .3s) ease;
+        will-change: transform;
+      }
+      #zw-lang-modal.open #zw-lang-box {
+        transform: none;
+        opacity: 1;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #zw-lang-modal, #zw-lang-box { transition: none !important; }
       }
       #zw-lang-modal[style*="display: flex"],
       #zw-lang-modal[style*="display:flex"] {
@@ -631,6 +716,12 @@
          bottom edge, slides up on open). ── */
       @media (max-width: 900px) {
         #zw-lang-modal {
+          /* Bottom-anchor the sheet flush to the viewport edge (the base rule is
+             a desktop right-panel: align-items:stretch/justify-content:flex-end).
+             Without this the sheet floated with a gap under it. Matches the
+             shared .modal bottom-sheet layout. */
+          align-items: flex-end !important;
+          justify-content: center !important;
           padding: calc(1.6rem + 36px + env(safe-area-inset-top,0px)) 0 0 !important;
         }
         #zw-lang-box {
@@ -641,10 +732,19 @@
           max-height: calc(100dvh - 1.6rem - 36px - env(safe-area-inset-top,0px) - .5rem) !important;
           margin: 0 !important;
           border-radius: 1.25rem 1.25rem 0 0 !important;
+          border-top: none !important;
           border-left: none !important;
           border-right: none !important;
+          /* pad the bottom past the home indicator so the footer isn't clipped */
+          padding-bottom: env(safe-area-inset-bottom,0px) !important;
           box-shadow: 0 -8px 40px rgba(0,0,0,.28) !important;
-          animation: zwLangSheetIn .42s cubic-bezier(.32,.72,0,1) !important;
+          transform: translateY(100%) !important;
+          opacity: 1 !important;
+          transition: transform .42s cubic-bezier(.32,.72,0,1),
+                      opacity .24s ease !important;
+        }
+        #zw-lang-modal.open #zw-lang-box {
+          transform: translateY(0) !important;
         }
         #zw-lang-box::before {
           content: '';
@@ -661,10 +761,6 @@
       }
       @media (max-width: 600px) {
         #zw-lang-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
-      }
-      @keyframes zwLangSheetIn {
-        from { transform: translateY(100%); }
-        to   { transform: translateY(0); }
       }
     `;
     document.head.appendChild(style);

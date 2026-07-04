@@ -956,6 +956,25 @@
   line-height: 1.8;
 }
 
+/* "View more / View less" toggle for reviews past the admin-set cutoff */
+.review-more-btn {
+  display: inline-block;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0.3rem 0 0;
+  font-family: var(--review-body-font);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--zw-accent, #F891A5);
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.2s;
+}
+.review-more-btn:hover { opacity: 1; text-decoration: underline; }
+body.light-mode .review-more-btn { color: #b5566b; }
+
 .review-dialog--thread .review-card-body {
   font-size: 0.88rem;
   line-height: 1.68;

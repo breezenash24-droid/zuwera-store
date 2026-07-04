@@ -555,6 +555,22 @@ async function saveOrderToSupabase(pi, meta, tracking, env) {
     throw new Error('Supabase insert failed (' + resp.status + '): ' + detail);
   }
 
+  // Best-effort: stamp the buyer's active feature-flag variants onto the order so
+  // revenue/orders can be split by variant in admin. Runs AFTER the order is
+  // saved and is fully non-fatal — if the orders.feature_flags jsonb column
+  // hasn't been added yet (see supabase-feature-flags.sql), this simply no-ops
+  // and the order is unaffected.
+  try {
+    const ff = meta.feature_flags ? JSON.parse(meta.feature_flags) : null;
+    if (ff && typeof ff === 'object' && Object.keys(ff).length && env.SUPABASE_URL && serviceKey) {
+      await fetch(env.SUPABASE_URL + '/rest/v1/orders?stripe_payment_intent_id=eq.' + encodeURIComponent(pi.id), {
+        method: 'PATCH',
+        headers: { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ feature_flags: ff }),
+      });
+    }
+  } catch (_) { /* column not present / parse issue — non-fatal, order already saved */ }
+
   return true;
 }
 

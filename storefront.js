@@ -1125,6 +1125,25 @@ function showToast(msg) {
           (function initCarousel() {
              const track = el.querySelector('.zw-hc-track');
              const slideEls = Array.from(el.querySelectorAll('.zw-hc-slide'));
+             // Words + image together: hide each slide's text (.zw-hc-await) until
+             // its media has loaded, so the caption doesn't paint before the image.
+             // Runs synchronously (before paint), so there's no text flash; a 3s
+             // safety per slide guarantees the text can never stay hidden.
+             slideEls.forEach(function (slide) {
+               if (!slide.querySelector('.zw-hc-content')) return;
+               slide.classList.add('zw-hc-await');
+               const reveal = function () { slide.classList.remove('zw-hc-await'); };
+               const img = slide.querySelector('.zw-hc-media img, img.zw-hc-media');
+               const vid = slide.querySelector('video.zw-hc-media');
+               if (img) {
+                 if (img.complete && img.naturalWidth) reveal();
+                 else { img.addEventListener('load', reveal, { once: true }); img.addEventListener('error', reveal, { once: true }); }
+               } else if (vid) {
+                 if (vid.readyState >= 2) reveal();
+                 else { vid.addEventListener('loadeddata', reveal, { once: true }); vid.addEventListener('error', reveal, { once: true }); }
+               } else { reveal(); }
+               setTimeout(reveal, 3000);
+             });
              const dots = Array.from(el.querySelectorAll('.zw-hc-dot'));
              const btnPrev = el.querySelector('.zw-hc-prev');
              const btnNext = el.querySelector('.zw-hc-next');
@@ -4066,13 +4085,8 @@ function scrollToNotify() {
 }
 
 
-(function(){
-  if(!localStorage.getItem('zw_cookie_consent')){
-    document.getElementById('cookie-banner').style.display='flex';
-  }
-})();
-function acceptCookies(){try{localStorage.setItem('zw_cookie_consent','accepted');}catch(e){}document.getElementById('cookie-banner').style.display='none'}
-function declineCookies(){try{localStorage.setItem('zw_cookie_consent','declined');}catch(e){}document.getElementById('cookie-banner').style.display='none'}
+/* Cookie consent (banner + accept/decline + analytics gating) is now handled by
+   consent.js / window.zwConsent, loaded on every page. */
 
 /* â”€â”€ Modal backdrop transparency enforcer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Applies transparent background via inline setProperty (beats all stylesheets,
@@ -4136,16 +4150,25 @@ function declineCookies(){try{localStorage.setItem('zw_cookie_consent','declined
     }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-      _sb = window.sb; // supabase-client.js (deferred) has now run
+  function _bootAuth() {
+    // On most pages supabase-client.js has already run and window.sb exists →
+    // wire auth immediately. On the homepage the SDK is loaded lazily, so if
+    // it isn't up yet, wire auth when it signals `zw-supabase-ready`.
+    _sb = window.sb || null;
+    if (_sb) {
       _initAuth();
-      initReturnsModalClose();
-    });
-  } else {
-    _sb = window.sb;
-    _initAuth();
+    } else {
+      window.addEventListener('zw-supabase-ready', function() {
+        _sb = window.sb;
+        _initAuth();
+      }, { once: true });
+    }
     initReturnsModalClose();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _bootAuth);
+  } else {
+    _bootAuth();
   }
 })();
 
