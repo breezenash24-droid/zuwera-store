@@ -51,12 +51,51 @@
   }
   window.zwBucket = bucket;
 
-  window.zwFlag = function (name) {
+  // Report each flag's evaluated variant to PostHog ONCE per page (after flags
+  // have loaded) so any funnel/metric can be broken down by variant and PostHog
+  // Experiments can measure it. Routes through zwTrack + posthog.register — both
+  // consent-gated — so nothing is sent unless the visitor accepted cookies.
+  var _reported = {};
+  function reportFlag(name, result) {
+    if (!loaded || _reported[name] !== undefined) return;
+    _reported[name] = result;
+    // Exposure event (PostHog's convention; queues via zwTrack until PostHog loads).
+    try {
+      if (typeof window.zwTrack === 'function') {
+        window.zwTrack('$feature_flag_called', { $feature_flag: name, $feature_flag_response: result });
+      }
+    } catch (_) {}
+    // Super property so EVERY later event carries $feature/<name> = variant.
+    var tries = 0;
+    (function register() {
+      if (window.posthog && typeof window.posthog.register === 'function') {
+        try { var p = {}; p['$feature/' + name] = result; window.posthog.register(p); } catch (_) {}
+      } else if (tries++ < 40) { setTimeout(register, 500); } // PostHog loads late (idle + post-consent)
+    })();
+  }
+
+  function evalFlag(name) {
     var f = window.__zwFlags[name];
     if (!f || f.enabled === false) return false;
-    var r = f.rollout;
-    if (typeof r === 'number' && r < 100) return bucket(name) < r;
+    if (typeof f.rollout === 'number' && f.rollout < 100) return bucket(name) < f.rollout;
     return true; // enabled with no/100% rollout
+  }
+
+  window.zwFlag = function (name) {
+    var result = evalFlag(name);
+    reportFlag(name, result);
+    return result;
+  };
+
+  // Every defined flag evaluated for this visitor, e.g. { checkout_v2: true }.
+  // Used to stamp the order at checkout so revenue can be split by variant for
+  // ALL buyers (no consent needed). Pure — does not report to PostHog.
+  window.zwActiveFlags = function () {
+    var out = {};
+    for (var k in window.__zwFlags) {
+      if (Object.prototype.hasOwnProperty.call(window.__zwFlags, k)) out[k] = evalFlag(k);
+    }
+    return out;
   };
 
   window.zwWhenFlags = function (cb) {
