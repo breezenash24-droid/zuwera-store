@@ -792,7 +792,8 @@
                         <div>
                             <h2>Feature Flags</h2>
                             <p style="color:var(--text-secondary);font-size:.85rem;margin-top:6px;max-width:660px;line-height:1.65;">
-                                Turn features on/off and roll them out gradually. Set a rollout %, and only that share of visitors sees the feature — it's sticky per visitor (raising the % only ever adds people). Gate code with <code style="background:var(--bg-secondary);padding:1px 5px;border-radius:4px;">window.zwFlag('key')</code>. Saving is live for everyone immediately — no deploy.
+                                Turn features on/off and roll them out gradually. Set a rollout %, and only that share of visitors sees the feature — it's sticky per visitor (raising the % only ever adds people). Gate code with <code style="background:var(--bg-secondary);padding:1px 5px;border-radius:4px;">window.zwFlag('key')</code>. Saving is live for everyone immediately — no deploy.<br>
+                                <span style="opacity:.85;">Measuring: every flag is auto-reported to PostHog (break any funnel/metric down by <code style="background:var(--bg-secondary);padding:1px 5px;border-radius:4px;">$feature/key</code>, or use PostHog Experiments). Run <code style="background:var(--bg-secondary);padding:1px 5px;border-radius:4px;">supabase-feature-flags.sql</code> once and orders get stamped with the variant, so the per-flag order/revenue split shows below.</span>
                             </p>
                         </div>
                         <button class="btn btn-secondary" onclick="loadFeatureFlags()">Refresh</button>
@@ -5406,6 +5407,7 @@
 
         // ─── Feature Flags (site_settings.feature_flags → read by flags.js) ──────────
         let _featureFlags = {};
+        let _flagOrders = [];
         function _flagVid() {
             try { let id = localStorage.getItem('zw_vid'); if (!id) { id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2)); localStorage.setItem('zw_vid', id); } return id; } catch (_) { return 'anon'; }
         }
@@ -5423,7 +5425,26 @@
                 if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
                 _featureFlags = (v && typeof v === 'object') ? v : {};
             } catch (_) { _featureFlags = {}; }
+            // Orders stamped with flag variants (needs supabase-feature-flags.sql;
+            // empty until that column exists + purchases start flowing).
+            try {
+                const { data: ords } = await sb.from('orders').select('total,feature_flags').not('feature_flags', 'is', null).limit(3000);
+                _flagOrders = ords || [];
+            } catch (_) { _flagOrders = []; }
             renderFeatureFlags();
+        }
+
+        // Aggregate stamped orders for one flag: count + revenue by on/off variant.
+        function flagResults(name) {
+            const r = { on: { n: 0, rev: 0 }, off: { n: 0, rev: 0 } };
+            _flagOrders.forEach(o => {
+                let ff = o.feature_flags;
+                if (typeof ff === 'string') { try { ff = JSON.parse(ff); } catch (_) { ff = null; } }
+                if (!ff || !(name in ff)) return;
+                const v = ff[name] ? 'on' : 'off';
+                r[v].n++; r[v].rev += Number(o.total) || 0;
+            });
+            return r;
         }
         function renderFeatureFlags() {
             const host = document.getElementById('flagsList');
@@ -5440,6 +5461,8 @@
                 const youIn = enabled && (rollout >= 100 || _flagBucket(name) < rollout);
                 const audience = !enabled ? 'Off — nobody' : (rollout >= 100 ? 'Everyone' : `≈${rollout}% of visitors`);
                 const audColor = !enabled ? '#f85149' : (rollout >= 100 ? '#3fb950' : '#fbbf24');
+                const res = flagResults(name);
+                const resultsHtml = (res.on.n + res.off.n) ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:.74rem;color:var(--text-secondary);">Orders since stamping — <strong style="color:#3fb950;">${res.on.n} saw it</strong> ($${res.on.rev.toFixed(2)}) · <strong style="color:#f85149;">${res.off.n} didn't</strong> ($${res.off.rev.toFixed(2)})</div>` : '';
                 return `
                 <div style="background:var(--bg-secondary);border:1px solid var(--border);border-left:3px solid ${audColor};border-radius:10px;padding:16px 18px;margin-bottom:12px;">
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
@@ -5465,6 +5488,7 @@
                         <code style="font-size:.75rem;color:var(--text-secondary);background:var(--bg-primary,rgba(255,255,255,.04));padding:3px 8px;border-radius:5px;">window.zwFlag('${escapeHtml(name)}')</code>
                         <span style="font-size:.72rem;color:var(--text-secondary);">This browser: <strong style="color:${youIn ? '#3fb950' : '#f85149'};">${youIn ? 'sees it' : 'does not'}</strong></span>
                     </div>
+                    ${resultsHtml}
                 </div>`;
             }).join('');
             host.querySelectorAll('[data-flag-enabled]').forEach(el => el.addEventListener('change', e => {

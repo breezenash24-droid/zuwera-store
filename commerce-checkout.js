@@ -185,7 +185,8 @@
     if (typeof original !== 'function' || original.__zwPromoWrapped) return;
     const wrapped = async function (url, body) {
       const nextBody = url === '/api/create-payment-intent'
-        ? { ...(body || {}), promoCode: currentPromoCode() }
+        ? { ...(body || {}), promoCode: currentPromoCode(),
+            featureFlags: (typeof window.zwActiveFlags === 'function' ? window.zwActiveFlags() : undefined) }
         : body;
       return original.call(this, url, nextBody);
     };
