@@ -676,6 +676,12 @@
          bottom edge, slides up on open). ── */
       @media (max-width: 900px) {
         #zw-lang-modal {
+          /* Bottom-anchor the sheet flush to the viewport edge (the base rule is
+             a desktop right-panel: align-items:stretch/justify-content:flex-end).
+             Without this the sheet floated with a gap under it. Matches the
+             shared .modal bottom-sheet layout. */
+          align-items: flex-end !important;
+          justify-content: center !important;
           padding: calc(1.6rem + 36px + env(safe-area-inset-top,0px)) 0 0 !important;
         }
         #zw-lang-box {
@@ -686,8 +692,11 @@
           max-height: calc(100dvh - 1.6rem - 36px - env(safe-area-inset-top,0px) - .5rem) !important;
           margin: 0 !important;
           border-radius: 1.25rem 1.25rem 0 0 !important;
+          border-top: none !important;
           border-left: none !important;
           border-right: none !important;
+          /* pad the bottom past the home indicator so the footer isn't clipped */
+          padding-bottom: env(safe-area-inset-bottom,0px) !important;
           box-shadow: 0 -8px 40px rgba(0,0,0,.28) !important;
           transform: translateY(100%) !important;
           opacity: 1 !important;
