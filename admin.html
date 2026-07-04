@@ -733,14 +733,17 @@
 
                 <!-- Audit Log Page -->
                 <div id="audit" class="page">
-                    <!-- Recent Pull Requests (public GitHub repo, client-side fetch) -->
+                    <!-- Recent Pull Requests + Cloudflare previews (public GitHub repo, client-side fetch) -->
                     <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:22px;">
                         <div class="products-header" style="margin-bottom:12px;">
                             <div>
-                                <h2 style="font-size:1.05rem;">Recent Pull Requests</h2>
-                                <p style="color:var(--text-secondary);font-size:.85rem;margin-top:6px;">Latest code changes from the GitHub repo, newest first.</p>
+                                <h2 style="font-size:1.05rem;">Pull Requests &amp; Previews</h2>
+                                <p style="color:var(--text-secondary);font-size:.85rem;margin-top:6px;">Open pull requests link straight to their live Cloudflare preview — review a change before it's merged.</p>
                             </div>
-                            <button class="btn btn-secondary btn-sm" id="refreshPrsBtn" onclick="loadRecentPRs(true)">Refresh</button>
+                            <div style="display:flex;gap:8px;align-items:center;">
+                                <a href="https://zuwera.store" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="text-decoration:none;">Production ↗</a>
+                                <button class="btn btn-secondary btn-sm" id="refreshPrsBtn" onclick="loadRecentPRs(true)">Refresh</button>
+                            </div>
                         </div>
                         <div id="prList" style="display:flex;flex-direction:column;gap:2px;font-size:.85rem;color:var(--text-secondary);">Loading…</div>
                     </div>
@@ -5232,17 +5235,29 @@
                 if (!r.ok) throw new Error('GitHub API ' + r.status);
                 const prs = await r.json();
                 if (!Array.isArray(prs) || !prs.length) { host.textContent = 'No pull requests found.'; host.dataset.ok = '1'; _prsLoadedAt = Date.now(); return; }
+                // Cloudflare Pages preview branch-alias: lowercase, non-alphanumeric
+                // runs → single dash, trim, cap at 28 chars (e.g. feat/foo → feat-foo).
+                const PROJECT = 'zuwera-store';
+                const cfAlias = ref => String(ref || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 28).replace(/-+$/, '');
                 host.innerHTML = prs.map(p => {
                     const state = p.merged_at ? 'merged' : (p.draft ? 'draft' : p.state); // open | closed | merged | draft
                     const color = state === 'merged' ? '#a371f7' : state === 'open' ? '#3fb950' : state === 'draft' ? '#8b949e' : '#f85149';
                     const when = ago(p.merged_at || p.updated_at || p.created_at);
-                    return '<a href="' + e(p.html_url) + '" target="_blank" rel="noopener noreferrer" '
-                        + 'style="display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid var(--border);color:inherit;text-decoration:none;" '
+                    const ref = p.head && p.head.ref;
+                    // A live preview only exists while the PR is open (branch still present).
+                    const preview = (p.state === 'open' && ref) ? ('https://' + cfAlias(ref) + '.' + PROJECT + '.pages.dev') : '';
+                    const previewCell = preview
+                        ? '<a href="' + e(preview) + '" target="_blank" rel="noopener noreferrer" title="Open the Cloudflare preview for ' + e(ref) + '" onclick="event.stopPropagation()" '
+                            + 'style="flex:0 0 auto;white-space:nowrap;font-size:.72rem;font-weight:600;letter-spacing:.02em;color:#09090b;background:#fbbf24;border-radius:5px;padding:4px 9px;text-decoration:none;">Preview ↗</a>'
+                        : '<span style="flex:0 0 auto;white-space:nowrap;font-size:.72rem;color:var(--text-secondary);opacity:.55;padding:4px 2px;">' + (state === 'merged' ? 'merged' : 'no preview') + '</span>';
+                    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid var(--border);" '
                         + 'onmouseover="this.style.background=\'var(--bg-primary)\'" onmouseout="this.style.background=\'\'">'
                         + '<span style="flex:0 0 auto;min-width:56px;text-align:center;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#fff;background:' + color + ';border-radius:20px;padding:3px 8px;">' + e(state) + '</span>'
-                        + '<span style="flex:1 1 auto;min-width:0;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">#' + e(p.number) + ' &nbsp;' + e(p.title) + '</span>'
+                        + '<a href="' + e(p.html_url) + '" target="_blank" rel="noopener noreferrer" title="' + e(ref || '') + '" '
+                            + 'style="flex:1 1 auto;min-width:0;color:var(--text-primary);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">#' + e(p.number) + ' &nbsp;' + e(p.title) + '</a>'
                         + '<span style="flex:0 0 auto;white-space:nowrap;color:var(--text-secondary);font-size:.78rem;">' + e(p.user && p.user.login || '') + ' · ' + when + '</span>'
-                        + '</a>';
+                        + previewCell
+                        + '</div>';
                 }).join('');
                 const last = host.lastElementChild; if (last) last.style.borderBottom = 'none';
                 host.dataset.ok = '1';
