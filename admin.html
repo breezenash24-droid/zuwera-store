@@ -1110,6 +1110,20 @@
                   <div id="ana-wrap">
                     <div id="ana-error-container"></div>
 
+                    <!-- Live "Today" strip (always today, independent of the period buttons) -->
+                    <div class="ana-section" id="ana-today-section" style="margin-bottom:1.5rem;">
+                      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.6rem;margin-bottom:1rem;">
+                        <h2 style="margin-bottom:0;">Today <span style="font-size:.72rem;color:var(--text-secondary);font-weight:400;letter-spacing:0;text-transform:none;">— so far, vs the same weekday last week</span></h2>
+                        <span id="ana-today-updated" style="font-size:.72rem;color:var(--text-secondary);"></span>
+                      </div>
+                      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1.2rem;">
+                        <div><div class="ana-card-label">Revenue today</div><div class="ana-card-value" id="ana-today-rev">—</div><div class="ana-card-sub" id="ana-today-rev-cmp" style="font-size:.78rem;margin-top:.3rem;"></div></div>
+                        <div><div class="ana-card-label">Orders today</div><div class="ana-card-value" id="ana-today-ord">—</div><div class="ana-card-sub" id="ana-today-ord-cmp" style="font-size:.78rem;margin-top:.3rem;"></div></div>
+                        <div><div class="ana-card-label">Avg order today</div><div class="ana-card-value" id="ana-today-aov">—</div><div class="ana-card-sub">so far</div></div>
+                        <div><div class="ana-card-label">Latest orders</div><div id="ana-today-latest" style="font-size:.82rem;color:var(--text-secondary);margin-top:.35rem;">—</div></div>
+                      </div>
+                    </div>
+
                     <!-- Controls row -->
                     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;margin-bottom:1.5rem;">
                       <div class="ana-filter-group" id="ana-period-btns">
@@ -1119,6 +1133,12 @@
                         <button class="ana-filter-btn active" data-period="all">All Time</button>
                       </div>
                       <button id="ana-refresh-btn" onclick="anaLoadData()">↺ Refresh</button>
+                    </div>
+
+                    <!-- Traffic & Conversion (PostHog via server proxy; period-aware) -->
+                    <div id="ana-traffic" style="margin-bottom:1.8rem;">
+                      <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:1.5rem;letter-spacing:.06em;margin-bottom:1.2rem;">Traffic &amp; Conversion <span style="font-size:.72rem;color:var(--text-secondary);font-weight:400;letter-spacing:0;">— from PostHog, over the selected period</span></h2>
+                      <div id="ana-traffic-body" class="ana-loading">Loading traffic…</div>
                     </div>
 
                     <!-- Sales Overview -->
@@ -1190,6 +1210,47 @@
                         <button class="ana-export-btn" onclick="anaExportOrders()">↓ CSV</button>
                       </div>
                       <div id="ana-ordersTable" class="ana-loading">Loading orders…</div>
+                    </div>
+
+                    <!-- When customers buy (day-of-week + hour-of-day) -->
+                    <div class="ana-section">
+                      <h2>When Customers Buy</h2>
+                      <div style="font-size:.8rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin:.4rem 0 .5rem;">Revenue by day of week</div>
+                      <div class="ana-bar-chart" id="ana-dowChart" style="height:180px;"></div>
+                      <div style="font-size:.8rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin:1.6rem 0 .6rem;">Revenue by hour of day</div>
+                      <div id="ana-hodChart" style="display:flex;gap:2px;align-items:flex-end;"></div>
+                    </div>
+
+                    <!-- Revenue mix: new vs returning + full-price vs sale -->
+                    <div class="ana-stats-grid">
+                      <div class="ana-stat-card">
+                        <h3>New vs Returning Revenue</h3>
+                        <div id="ana-cohortSplit" class="ana-loading" style="padding:.5rem 0;">—</div>
+                      </div>
+                      <div class="ana-stat-card">
+                        <h3>Full-Price vs Sale Revenue</h3>
+                        <div id="ana-discountSplit" class="ana-loading" style="padding:.5rem 0;">—</div>
+                      </div>
+                    </div>
+
+                    <!-- Product performance -->
+                    <div class="ana-section">
+                      <h2>Revenue by Category</h2>
+                      <div id="ana-categoryTable" class="ana-loading">—</div>
+                    </div>
+
+                    <div class="ana-section">
+                      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem;">
+                        <h2 style="margin-bottom:0">Sell-Through Velocity</h2>
+                        <button class="ana-export-btn" onclick="anaExportVelocity()">↓ CSV</button>
+                      </div>
+                      <p style="font-size:.78rem;color:var(--text-secondary);margin:0 0 1rem;">Units sold per day and estimated days of stock remaining, over the selected period. Amber = under two weeks of stock left.</p>
+                      <div id="ana-velocityTable" class="ana-loading">—</div>
+                    </div>
+
+                    <div class="ana-section">
+                      <h2>Frequently Bought Together</h2>
+                      <div id="ana-affinityTable" class="ana-loading">—</div>
                     </div>
 
                     <!-- Inventory Overview -->
