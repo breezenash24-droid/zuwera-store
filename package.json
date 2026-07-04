@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "clean-css": "^5.3.3",
-    "stripe": "^16.0.0",
+    "stripe": "^22.3.0",
     "terser": "^5.48.0"
   }
 }
