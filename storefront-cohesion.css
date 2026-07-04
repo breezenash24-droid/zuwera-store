@@ -3103,7 +3103,7 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.18)!important;}
      (overrides the base 14px nudge + scale used on desktop). One timing/easing
      shared by all sheets — quick-add, size guide, size & fit, login, reviews. */
   .modal:not(#mobile-menu):not(#cart-modal):not(#payment-modal) > :is(.mbox,.review-mbox,.review-list-mbox,.review-dialog){
-    transition:transform .4s cubic-bezier(.32,.72,0,1), opacity .25s ease !important;
+    transition:transform .42s cubic-bezier(.32,.72,0,1), opacity .25s ease !important;
   }
   .modal:not(#mobile-menu):not(#cart-modal):not(#payment-modal):not(.open) > :is(.mbox,.review-mbox,.review-list-mbox,.review-dialog){
     transform:translateY(100%) !important;
