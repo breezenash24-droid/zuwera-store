@@ -13,6 +13,8 @@
     "bump-cache": "node scripts/bump-cache-version.js"
   },
   "dependencies": {
-    "stripe": "^16.0.0"
+    "clean-css": "^5.3.3",
+    "stripe": "^16.0.0",
+    "terser": "^5.48.0"
   }
 }
