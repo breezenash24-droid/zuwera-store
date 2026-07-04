@@ -4131,16 +4131,25 @@ function scrollToNotify() {
     }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-      _sb = window.sb; // supabase-client.js (deferred) has now run
+  function _bootAuth() {
+    // On most pages supabase-client.js has already run and window.sb exists →
+    // wire auth immediately. On the homepage the SDK is loaded lazily, so if
+    // it isn't up yet, wire auth when it signals `zw-supabase-ready`.
+    _sb = window.sb || null;
+    if (_sb) {
       _initAuth();
-      initReturnsModalClose();
-    });
-  } else {
-    _sb = window.sb;
-    _initAuth();
+    } else {
+      window.addEventListener('zw-supabase-ready', function() {
+        _sb = window.sb;
+        _initAuth();
+      }, { once: true });
+    }
     initReturnsModalClose();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _bootAuth);
+  } else {
+    _bootAuth();
   }
 })();
 

@@ -205,6 +205,9 @@
   }
 
   function openModal(tab) {
+    // Homepage loads the Supabase SDK lazily — start it the moment the modal
+    // opens so the client is ready by the time the user submits.
+    if (window.zwEnsureSupabase) { try { window.zwEnsureSupabase(); } catch (_) {} }
     build();
     var m = document.getElementById(MODAL_ID);
     switchTab(tab || 'signin');
@@ -240,6 +243,7 @@
     var email = (el('#zwlg-si-email') || {}).value || '';
     var pw = (el('#zwlg-si-pw') || {}).value || '';
     if (!email || !pw) { setErr('signin', 'Enter your email and password.'); return; }
+    if (!sb && window.zwEnsureSupabase) { try { sb = await window.zwEnsureSupabase(); } catch (_) {} }
     if (!sb) { setErr('signin', 'Connection unavailable — use the link below.'); return; }
     busy(btn, true, 'Login');
     try {
@@ -260,6 +264,7 @@
     var pw = (el('#zwlg-su-pw') || {}).value || '';
     if (!email || !pw) { setErr('signup', 'Enter your email and a password.'); return; }
     if (pw.length < 6) { setErr('signup', 'Password must be at least 6 characters.'); return; }
+    if (!sb && window.zwEnsureSupabase) { try { sb = await window.zwEnsureSupabase(); } catch (_) {} }
     if (!sb) { setErr('signup', 'Connection unavailable — use the link below.'); return; }
     busy(btn, true, 'Create Account');
     try {
@@ -282,6 +287,7 @@
     setErr('forgot', '');
     var email = (el('#zwlg-fp-email') || {}).value || '';
     if (!email) { setErr('forgot', 'Enter your email.'); return; }
+    if (!sb && window.zwEnsureSupabase) { try { sb = await window.zwEnsureSupabase(); } catch (_) {} }
     if (!sb) { setErr('forgot', 'Connection unavailable — use the link below.'); return; }
     busy(btn, true, 'Send Reset Link');
     try {

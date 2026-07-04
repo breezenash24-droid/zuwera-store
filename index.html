@@ -69,8 +69,40 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
   <script src="/favicon-utils.js?v=687e90ea" defer></script>
   <script src="/meta-pixel.js?v=71fe06fb" defer></script>
   <script src="/google-tag.js?v=b141b2a1" defer></script>
-  <script src="/supabase.min.js?v=3277b334" defer></script>
-  <script src="/supabase-client.js?v=b28896db" defer></script>
+  <!-- Supabase JS SDK (~180KB) is loaded LAZILY: product data comes from the
+       REST early-fetch below, so the SDK is only needed for auth (login,
+       session, favorites, reviews). Logged-in visitors and password-recovery
+       links load it right away; everyone else loads it on idle, or the moment
+       the login modal opens (zwEnsureSupabase). Every sb consumer is null-
+       guarded, so nothing errors before it arrives. Keeps ~180KB off the
+       initial load for the logged-out majority. The ?v= refs below are kept in
+       string form so bump-cache-version.js still rewrites their hashes. -->
+  <script>
+  (function () {
+    var SB = '/supabase.min.js?v=3277b334';
+    var CL = '/supabase-client.js?v=b28896db';
+    function inject(src) {
+      return new Promise(function (res, rej) {
+        var s = document.createElement('script');
+        s.src = src; s.async = false; s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    }
+    window.zwEnsureSupabase = function () {
+      if (window.__zwSbPromise) return window.__zwSbPromise;
+      window.__zwSbPromise = inject(SB)
+        .then(function () { return inject(CL); })
+        .then(function () { try { window.dispatchEvent(new Event('zw-supabase-ready')); } catch (_) {} return window.sb; });
+      return window.__zwSbPromise;
+    };
+    var hasSession = false;
+    try { hasSession = !!localStorage.getItem('zuwera-auth'); } catch (_) {}
+    var needsAuth = /access_token=|type=recovery|error_description=/.test(location.hash || '');
+    if (hasSession || needsAuth) { window.zwEnsureSupabase(); }
+    else if ('requestIdleCallback' in window) { requestIdleCallback(function () { window.zwEnsureSupabase(); }, { timeout: 5000 }); }
+    else { setTimeout(function () { window.zwEnsureSupabase(); }, 3000); }
+  })();
+  </script>
 
 <script>
 /* Kick off data fetches as early as possible — before CSS/JS blocks parsing —
