@@ -40,6 +40,7 @@ const files = [
   'error-reporter.js',
   'favicon-utils.js',
   'favicon.ico',
+  'flags.js',
   'google-tag.js',
   'hero.mp4',
   'image-utils.js',
