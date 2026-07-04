@@ -27,6 +27,15 @@
       --warning: #facc15;
       --error: #ef4444;
       --info: #3b82f6;
+      /* Semantic surface + border tints (mirror admin.css so the embed matches the shell) */
+      --success-bg: rgba(74, 222, 128, 0.12);
+      --warning-bg: rgba(250, 204, 21, 0.12);
+      --error-bg: rgba(239, 68, 68, 0.12);
+      --info-bg: rgba(59, 130, 246, 0.12);
+      --success-border: rgba(74, 222, 128, 0.35);
+      --warning-border: rgba(250, 204, 21, 0.35);
+      --error-border: rgba(239, 68, 68, 0.35);
+      --info-border: rgba(59, 130, 246, 0.35);
       /* Card gradient tokens — override in light mode below */
       --card-bg-start: #1a0f18;
       --card-bg-end: #120a14;
@@ -145,6 +154,19 @@
       --dark-bg: #fdfdfc;
       --card-border: #e0e0e0;
       --text-secondary: #666666;
+      /* Legible semantic colors on the light theme (match admin.css) */
+      --success: #15803d;
+      --warning: #b45309;
+      --error: #dc2626;
+      --info: #2563eb;
+      --success-bg: rgba(21, 128, 61, 0.10);
+      --warning-bg: rgba(180, 83, 9, 0.10);
+      --error-bg: rgba(220, 38, 38, 0.08);
+      --info-bg: rgba(37, 99, 235, 0.08);
+      --success-border: rgba(21, 128, 61, 0.30);
+      --warning-border: rgba(180, 83, 9, 0.30);
+      --error-border: rgba(220, 38, 38, 0.30);
+      --info-border: rgba(37, 99, 235, 0.30);
       /* Light mode card tokens */
       --card-bg-start: #fff5f7;
       --card-bg-end: #feeef3;
@@ -697,18 +719,20 @@
     body.embedded .container { padding: 0 !important; }
     body.embedded h1 { display: none !important; }
 
-    /* Advanced Analytics Additions */
-    .live-pulse-container { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
-    .pulse-indicator { display: inline-block; width: 12px; height: 12px; background-color: var(--error); border-radius: 50%; margin-right: 8px; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); animation: pulse 1.5s infinite; }
-    @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
-    .funnel-container { display: flex; justify-content: space-between; margin-top: 1.5rem; position: relative; gap: 4px; flex-wrap: wrap; }
-    .funnel-step { flex: 1; text-align: center; position: relative; padding: 1rem; background: var(--card-border); border-radius: 4px; min-width: 120px; }
-    @media(min-width: 768px) { .funnel-step::after { content: ''; position: absolute; top: 50%; right: -18px; transform: translateY(-50%); border-top: 18px solid transparent; border-bottom: 18px solid transparent; border-left: 18px solid var(--card-border); z-index: 1; } }
+    /* Advanced Analytics Additions — 12px radius + card treatment to match .card */
+    .live-pulse-container { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.5rem; }
+    .pulse-indicator { display: inline-block; width: 10px; height: 10px; background-color: var(--success); border-radius: 50%; margin-right: 8px; box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.6); animation: pulse 1.8s infinite; }
+    @keyframes pulse { 0% { transform: scale(0.92); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.6); } 70% { transform: scale(1); box-shadow: 0 0 0 9px rgba(74, 222, 128, 0); } 100% { transform: scale(0.92); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); } }
+    .funnel-container { display: flex; justify-content: space-between; margin-top: 0.5rem; position: relative; gap: 0.75rem; flex-wrap: wrap; }
+    .funnel-step { flex: 1; text-align: center; position: relative; padding: 1.25rem 1rem; background: linear-gradient(135deg, var(--card-bg-start) 0%, var(--card-bg-end) 100%); border: 1px solid var(--card-border-clr); border-radius: 12px; min-width: 120px; }
+    @media(min-width: 768px) { .funnel-step::after { content: ''; position: absolute; top: 50%; right: -13px; transform: translateY(-50%); border-top: 12px solid transparent; border-bottom: 12px solid transparent; border-left: 12px solid var(--card-border-clr); z-index: 1; } }
     .funnel-step:last-child::after { display: none; }
-    .funnel-value { font-size: 1.5rem; font-weight: bold; color: var(--accent); }
-    .funnel-label { font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; }
-    .funnel-rate { font-size: 0.75rem; color: var(--success); margin-top: 4px; }
-    .vip-alert { background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning); color: var(--warning); padding: 10px 15px; border-radius: 8px; display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 0.9rem; }
+    .funnel-value { font-size: 1.75rem; font-weight: 700; color: var(--accent); }
+    .funnel-label { font-size: 0.78rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+    .funnel-rate { font-size: 0.75rem; color: var(--success); margin-top: 6px; font-weight: 600; }
+    .vip-alert { background: var(--warning-bg); border: 1px solid var(--warning-border); color: var(--warning); padding: 12px 15px; border-radius: 12px; display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 0.9rem; }
+    .channel-bar-track { height: 8px; border-radius: 4px; background: var(--card-border); overflow: hidden; margin-top: 6px; }
+    .channel-bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
   </style>
 </head>
 <body>
@@ -745,25 +769,26 @@
       <div id="errorContainer"></div>
       <div id="diagnosticsBox" class="diag-box" style="display:none;"></div>
 
-      <!-- LivePulse Section -->
+      <!-- Today at a Glance — real figures from today's orders -->
       <div class="live-pulse-container">
-        <h2 style="margin: 0; display: flex; align-items: center;"><span class="pulse-indicator"></span> LivePulse Overview</h2>
-        <div style="font-size: 0.9rem; color: var(--text-secondary);">Real-time activity</div>
+        <h2 style="margin: 0; display: flex; align-items: center;"><span class="pulse-indicator"></span> Today at a Glance</h2>
+        <div style="font-size: 0.9rem; color: var(--text-secondary);" id="todayDateLabel">—</div>
       </div>
       <div class="overview-grid" style="margin-bottom: 2rem;">
-        <div class="card" style="border-color: var(--error);">
-          <div class="card-label">Active Users Right Now</div>
-          <div class="card-value mono-metric" id="activeUsersLive">0</div>
+        <div class="card">
+          <div class="card-label">Revenue Today</div>
+          <div class="card-value mono-metric" id="todayRevenue">$0.00</div>
+          <div class="card-subtitle" id="todayVsYesterday">vs $0 yesterday</div>
         </div>
         <div class="card">
-          <div class="card-label">Live Carts</div>
-          <div class="card-value mono-metric" id="liveCartsCount">0</div>
-          <div class="card-subtitle" id="liveCartValue">$0.00 in checkout</div>
+          <div class="card-label">Orders Today</div>
+          <div class="card-value mono-metric" id="todayOrders">0</div>
+          <div class="card-subtitle" id="todayAov">$0.00 avg</div>
         </div>
-        <div class="card span-2" style="grid-column: span 2;">
-           <div class="card-label">VIP Activity</div>
+        <div class="card" style="grid-column: span 2; min-width: 240px;">
+           <div class="card-label">Highlight</div>
            <div id="vipAlertContainer" style="margin-top: 10px;">
-              <div class="vip-alert">No High Rollers active currently</div>
+              <div class="vip-alert" style="background: var(--card-border); border-color: var(--card-border-clr); color: var(--text-secondary); font-weight: 500;">No orders yet today</div>
            </div>
         </div>
       </div>
@@ -805,8 +830,10 @@
       </div>
 
       <!-- Checkout Funnel & Abandonment -->
-      <h2 style="margin-top: 2.5rem; margin-bottom: 1.5rem;">Checkout Funnel & Abandonment</h2>
+      <h2 style="margin-top: 2.5rem; margin-bottom: 0.35rem;">Checkout Funnel &amp; Abandonment</h2>
+      <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem;" id="funnelSource">Unique visitors by stage · last 30 days · via PostHog</div>
       <div class="chart-section">
+        <div id="funnelNotice" style="display:none; padding: 0.75rem 1rem; border:1px solid var(--warning-border); background:var(--warning-bg); color:var(--warning); border-radius:12px; font-size:0.85rem; margin-bottom:1.25rem;"></div>
         <div class="funnel-container">
            <div class="funnel-step">
               <div class="funnel-value" id="funnelViews">--</div>
@@ -830,13 +857,14 @@
         </div>
         <div class="overview-grid" style="margin-top: 2rem; margin-bottom: 0;">
           <div class="card" style="background: var(--error-bg); border-color: var(--error-border);">
-            <div class="card-label" style="color: var(--error);">Abandoned Cart Value (24h)</div>
-            <div class="card-value" id="abandonedCartValue" style="color: var(--error);">$0.00</div>
+            <div class="card-label" style="color: var(--error);">Abandoned Checkouts (30d)</div>
+            <div class="card-value" id="abandonedCartValue" style="color: var(--error);">—</div>
+            <div class="card-subtitle" id="abandonedCartEst">began checkout, didn't buy</div>
           </div>
           <div class="card">
-            <div class="card-label">Checkout Error Rate</div>
-            <div class="card-value" id="checkoutErrorRate">0%</div>
-            <div class="card-subtitle">Card declines / Apple Pay failures</div>
+            <div class="card-label">Checkout Completion</div>
+            <div class="card-value" id="checkoutErrorRate">—</div>
+            <div class="card-subtitle">purchased ÷ began checkout</div>
           </div>
         </div>
       </div>
@@ -858,27 +886,29 @@
         <div class="card">
           <div class="card-label">Customer Lifetime Value (Avg)</div>
           <div class="card-value" id="avgLTV">$0.00</div>
+          <div class="card-subtitle" id="ltvSub">revenue ÷ unique customers</div>
         </div>
         <div class="card">
           <div class="card-label">Repeat Customer Rate</div>
           <div class="card-value" id="repeatCustomerRate">0%</div>
+          <div class="card-subtitle" id="repeatSub">bought more than once</div>
         </div>
       </div>
 
-      <!-- Traffic Attribution -->
-      <h2 style="margin-top: 2.5rem; margin-bottom: 1.5rem;">Traffic Attribution & ROI</h2>
+      <!-- Traffic & Discounts -->
+      <h2 style="margin-top: 2.5rem; margin-bottom: 0.35rem;">Traffic &amp; Discounts</h2>
+      <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem;">Where visitors come from (last 30 days) &amp; which codes get used</div>
       <div class="stats-grid">
         <div class="stat-card">
-          <div style="font-weight: 600; margin-bottom: 1rem;">Revenue by Channel (Est.)</div>
-          <div class="stat-row"><span class="stat-label">Direct / Organic</span><span class="stat-value" id="revOrganic">$0.00</span></div>
-          <div class="stat-row"><span class="stat-label">Instagram / Social</span><span class="stat-value" id="revSocial">$0.00</span></div>
-          <div class="stat-row"><span class="stat-label">Email Marketing</span><span class="stat-value" id="revEmail">$0.00</span></div>
-          <div class="stat-row"><span class="stat-label">Paid Ads (Meta)</span><span class="stat-value" id="revPaid">$0.00</span></div>
+          <div style="font-weight: 600; margin-bottom: 1rem; display:flex; justify-content:space-between; align-items:baseline;"><span>Traffic by Channel</span><span style="font-size:0.72rem; color:var(--text-secondary); font-weight:400;" id="channelTotal"></span></div>
+          <div id="channelContainer">
+             <div style="color:var(--text-secondary); font-size:0.85rem;">Loading traffic data…</div>
+          </div>
         </div>
         <div class="stat-card">
           <div style="font-weight: 600; margin-bottom: 1rem;">Top Discount Codes</div>
           <div id="topPromoContainer">
-             <div style="color:var(--text-secondary); font-size:0.85rem;">Loading promo data...</div>
+             <div style="color:var(--text-secondary); font-size:0.85rem;">Loading promo data…</div>
           </div>
         </div>
       </div>
@@ -1012,13 +1042,14 @@
           <div class="card-value" id="colorVariants">-</div>
         </div>
         <div class="card">
-          <div class="card-label">Avg Return Rate</div>
-          <div class="card-value" id="avgReturnRate">-</div>
-          <div class="card-subtitle">across all items</div>
+          <div class="card-label">Avg Items / Order</div>
+          <div class="card-value" id="avgItemsPerOrder">-</div>
+          <div class="card-subtitle">units per checkout</div>
         </div>
         <div class="card">
           <div class="card-label">Frequently Bought Together</div>
-          <div class="card-value" style="font-size: 1.2rem; margin-top: 10px; line-height: 1.2;" id="basketAnalysis">-</div>
+          <div class="card-value" style="font-size: 1.1rem; margin-top: 10px; line-height: 1.3;" id="basketAnalysis">-</div>
+          <div class="card-subtitle" id="basketSub">most common pair in one order</div>
         </div>
       </div>
 
@@ -1476,7 +1507,8 @@
     const calculateNetProfit = (revenue, forcegetShipping, alibabaCost) => Number((revenue - forcegetShipping - alibabaCost).toFixed(2));
     const getOrdersLast24h = () => (allOrders || []).filter(o => new Date(o.created_at || 0).getTime() >= (Date.now() - 86400000)).length;
     const getRemainingUnits = () => (allProducts || []).reduce((acc, p) => acc + (p.product_sizes || []).reduce((s, r) => s + (Number(r.stock_quantity) || 0), 0), 0) || 100;
-    const getRevenue = () => (allOrders || []).reduce((sum, o) => sum + ((Number(o.amount_total || o.total || 0) || 0) / 100), 0);
+    // orders.total is stored in DOLLARS (e.g. "189.10"); total_amount is a legacy fallback. Do NOT divide by 100.
+    const getRevenue = () => (allOrders || []).reduce((sum, o) => sum + (Number(o.total ?? o.total_amount ?? 0) || 0), 0);
 
     const renderGauge = (id, value, max = 100) => {
       const el = document.getElementById(id);
@@ -2546,70 +2578,204 @@
       }
     });
 
-    const updateAdvancedAnalytics = () => {
-      // LivePulse Simulation
-      const liveUsers = Math.floor(Math.random() * 25) + 5;
-      const liveCarts = Math.floor(Math.random() * 8) + 1;
-      const liveUsersEl = document.getElementById('activeUsersLive');
-      if (liveUsersEl) {
-        liveUsersEl.textContent = liveUsers;
-        document.getElementById('liveCartsCount').textContent = liveCarts;
-        document.getElementById('liveCartValue').textContent = '$' + (liveCarts * 145).toLocaleString() + '.00 in checkout';
-        if(Math.random() > 0.7) {
-          document.getElementById('vipAlertContainer').innerHTML = '<div class="vip-alert">🚨 Top 1% Spender Active (User from CA)</div>';
+    // ── Advanced analytics — REAL data only ──────────────────────────────────
+    // Sources: orders (Supabase), promotions (site_settings.commerce_config),
+    // funnel + traffic (PostHog via /api/posthog-summary). No simulated values.
+    const advEsc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    const fmtMoney0 = (n) => '$' + (Number(n) || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
+    const fmtMoney2 = (n) => '$' + (Number(n) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    const orderTotal = (o) => Number(o?.total ?? o?.total_amount ?? 0) || 0;
+    const parseItems = (o) => { try { const a = JSON.parse(o?.items || '[]'); return Array.isArray(a) ? a : []; } catch (_) { return []; } };
+    const localDay = (d) => { const x = new Date(d); return isNaN(x.getTime()) ? '' : x.getFullYear() + '-' + x.getMonth() + '-' + x.getDate(); };
+
+    // Today at a Glance — real figures from today's / yesterday's orders
+    const renderTodayGlance = () => {
+      const now = new Date();
+      const tKey = localDay(now);
+      const yKey = localDay(new Date(Date.now() - 86400000));
+      let revT = 0, ordT = 0, revY = 0, biggest = null;
+      (allOrders || []).forEach((o) => {
+        const k = localDay(o.created_at);
+        const amt = orderTotal(o);
+        if (k === tKey) { revT += amt; ordT += 1; if (!biggest || amt > orderTotal(biggest)) biggest = o; }
+        else if (k === yKey) { revY += amt; }
+      });
+      setText('todayDateLabel', now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }));
+      setText('todayRevenue', fmtMoney2(revT));
+      setText('todayOrders', String(ordT));
+      setText('todayAov', (ordT ? fmtMoney2(revT / ordT) : '$0.00') + ' avg');
+      setText('todayVsYesterday', 'vs ' + fmtMoney0(revY) + ' yesterday');
+      const vip = document.getElementById('vipAlertContainer');
+      if (vip) {
+        if (biggest) {
+          const nm = biggest.customer_name || (biggest.email || '').split('@')[0] || 'A customer';
+          const first = parseItems(biggest)[0];
+          const what = first && first.name ? ' · ' + advEsc(first.name) : '';
+          vip.innerHTML = '<div class="vip-alert">🏆 Top order today: ' + fmtMoney2(orderTotal(biggest)) + ' — ' + advEsc(nm) + what + '</div>';
+        } else {
+          vip.innerHTML = '<div class="vip-alert" style="background: var(--card-border); border-color: var(--card-border-clr); color: var(--text-secondary); font-weight: 500;">No orders yet today</div>';
         }
       }
+    };
 
-      // Funnel Calculation (from orders)
-      const purchases = allOrders.length || 0;
-      const checkouts = purchases + Math.floor(purchases * 0.4);
-      const adds = checkouts + Math.floor(checkouts * 1.5);
-      const views = adds * 4;
-      const funnelViewsEl = document.getElementById('funnelViews');
-      if (funnelViewsEl) {
-        funnelViewsEl.textContent = views.toLocaleString();
-        document.getElementById('funnelAdds').textContent = adds.toLocaleString();
-        document.getElementById('funnelAddRate').textContent = views ? Math.round((adds/views)*100) + '%' : '0%';
-        document.getElementById('funnelCheckouts').textContent = checkouts.toLocaleString();
-        document.getElementById('funnelCheckoutRate').textContent = adds ? Math.round((checkouts/adds)*100) + '%' : '0%';
-        document.getElementById('funnelPurchases').textContent = purchases.toLocaleString();
-        document.getElementById('funnelPurchaseRate').textContent = checkouts ? Math.round((purchases/checkouts)*100) + '%' : '0%';
-        
-        const abandonedValue = Math.floor(checkouts * 0.4 * 120);
-        document.getElementById('abandonedCartValue').textContent = '$' + abandonedValue.toLocaleString() + '.00';
-        document.getElementById('checkoutErrorRate').textContent = (Math.random() * 3 + 1).toFixed(1) + '%';
-      }
+    // Customer Retention & LTV — real, grouped by email (chronological first-order = "new")
+    const renderRetention = () => {
+      const sorted = [...(allOrders || [])].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      const seen = new Set();
+      const countByCust = {};
+      let newRev = 0, retRev = 0, totalRev = 0;
+      sorted.forEach((o) => {
+        const cust = String(o.email || o.user_id || '').trim().toLowerCase();
+        const amt = orderTotal(o);
+        totalRev += amt;
+        if (!cust) { newRev += amt; return; }
+        countByCust[cust] = (countByCust[cust] || 0) + 1;
+        if (seen.has(cust)) retRev += amt; else { newRev += amt; seen.add(cust); }
+      });
+      const customers = Object.keys(countByCust).length;
+      const repeat = Object.values(countByCust).filter((c) => c >= 2).length;
+      const denom = (newRev + retRev) || 1;
+      const newPct = Math.round((newRev / denom) * 100);
+      const nb = document.getElementById('newCustomerBar');
+      if (nb) { nb.style.width = newPct + '%'; const rb = document.getElementById('retCustomerBar'); if (rb) rb.style.width = (100 - newPct) + '%'; }
+      setText('newRevVal', fmtMoney0(newRev));
+      setText('retRevVal', fmtMoney0(retRev));
+      setText('avgLTV', customers ? fmtMoney2(totalRev / customers) : '$0.00');
+      setText('ltvSub', customers + ' unique customer' + (customers === 1 ? '' : 's'));
+      setText('repeatCustomerRate', customers ? (Math.round((repeat / customers) * 1000) / 10) + '%' : '0%');
+      setText('repeatSub', repeat + ' of ' + customers + ' bought again');
+    };
 
-      // LTV and Retention
-      const totalRev = getRevenue();
-      const newRev = totalRev * 0.62;
-      const retRev = totalRev * 0.38;
-      const newCustomerBarEl = document.getElementById('newCustomerBar');
-      if (newCustomerBarEl) {
-        newCustomerBarEl.style.width = '62%';
-        document.getElementById('retCustomerBar').style.width = '38%';
-        document.getElementById('newRevVal').textContent = '$' + newRev.toLocaleString(undefined, { maximumFractionDigits: 0 });
-        document.getElementById('retRevVal').textContent = '$' + retRev.toLocaleString(undefined, { maximumFractionDigits: 0 });
-        document.getElementById('avgLTV').textContent = '$' + (Math.random() * 50 + 250).toFixed(2);
-        document.getElementById('repeatCustomerRate').textContent = '28.4%';
+    // Merchandising — avg units/order + real "frequently bought together" pair
+    const renderMerchandising = () => {
+      const orders = allOrders || [];
+      let units = 0;
+      const pairCounts = {};
+      orders.forEach((o) => {
+        const names = [];
+        parseItems(o).forEach((it) => {
+          units += Number(it.quantity ?? it.qty ?? 1) || 1;
+          const nm = String(it.name || it.sku || '').trim();
+          if (nm && names.indexOf(nm) === -1) names.push(nm);
+        });
+        for (let i = 0; i < names.length; i++) {
+          for (let j = i + 1; j < names.length; j++) {
+            const key = [names[i], names[j]].sort().join(' ||| ');
+            pairCounts[key] = (pairCounts[key] || 0) + 1;
+          }
+        }
+      });
+      setText('avgItemsPerOrder', orders.length ? String(Math.round((units / orders.length) * 10) / 10) : '-');
+      const top = Object.entries(pairCounts).sort((a, b) => b[1] - a[1])[0];
+      const basket = document.getElementById('basketAnalysis');
+      if (basket) {
+        if (top) {
+          const pair = top[0].split(' ||| ');
+          basket.innerHTML = '<span style="color:var(--accent);">' + advEsc(pair[0]) + '</span> + <span style="color:var(--accent);">' + advEsc(pair[1]) + '</span>';
+          setText('basketSub', 'appeared together in ' + top[1] + ' order' + (top[1] === 1 ? '' : 's'));
+        } else {
+          basket.textContent = 'Not enough data yet';
+          setText('basketSub', 'need orders with 2+ items');
+        }
       }
+    };
 
-      // Traffic Attribution
-      const revOrganicEl = document.getElementById('revOrganic');
-      if (revOrganicEl) {
-        revOrganicEl.textContent = '$' + (totalRev * 0.4).toLocaleString(undefined, { maximumFractionDigits: 0 });
-        document.getElementById('revSocial').textContent = '$' + (totalRev * 0.3).toLocaleString(undefined, { maximumFractionDigits: 0 });
-        document.getElementById('revEmail').textContent = '$' + (totalRev * 0.15).toLocaleString(undefined, { maximumFractionDigits: 0 });
-        document.getElementById('revPaid').textContent = '$' + (totalRev * 0.15).toLocaleString(undefined, { maximumFractionDigits: 0 });
-        document.getElementById('topPromoContainer').innerHTML = '<div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span>WELCOME10</span><span class="mono-metric" style="color:var(--success);">142 uses</span></div><div style="display:flex; justify-content:space-between;"><span>VIP20</span><span class="mono-metric" style="color:var(--success);">38 uses</span></div>';
+    // Top Discount Codes — real usage counts from site_settings.commerce_config
+    const renderPromos = async () => {
+      const box = document.getElementById('topPromoContainer');
+      if (!box) return;
+      try {
+        const { data } = await sbClient.from('site_settings').select('value').eq('key', 'commerce_config').limit(1);
+        const promos = ((data && data[0] && data[0].value && data[0].value.promotions) || [])
+          .filter((p) => Number(p.usageCount || 0) > 0)
+          .sort((a, b) => Number(b.usageCount || 0) - Number(a.usageCount || 0))
+          .slice(0, 6);
+        if (!promos.length) { box.innerHTML = '<div style="color:var(--text-secondary); font-size:0.85rem;">No discount codes used yet.</div>'; return; }
+        box.innerHTML = promos.map((p) => {
+          const n = Number(p.usageCount || 0);
+          return '<div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span>' + advEsc(p.code || '—') + '</span><span class="mono-metric" style="color:var(--success);">' + n + ' use' + (n === 1 ? '' : 's') + '</span></div>';
+        }).join('');
+      } catch (e) {
+        box.innerHTML = '<div style="color:var(--text-secondary); font-size:0.85rem;">Could not load discount data.</div>';
       }
+    };
 
-      // Merchandising
-      const avgReturnRateEl = document.getElementById('avgReturnRate');
-      if (avgReturnRateEl) {
-        avgReturnRateEl.textContent = '4.2%';
-        document.getElementById('basketAnalysis').innerHTML = '<span style="color:var(--accent);">Leather Jacket</span> + <span style="color:var(--accent);">Classic Tee</span>';
+    const classifyChannel = (ref) => {
+      const r = String(ref || '').toLowerCase();
+      if (!r || r === '(direct)' || r === '$direct') return 'Direct';
+      if (/google|bing|yahoo|duckduckgo|ecosia|baidu|search/.test(r)) return 'Search';
+      if (/instagram|facebook|fb\.|tiktok|t\.co|twitter|x\.com|pinterest|snapchat|youtu|linkedin|reddit|lnkd/.test(r)) return 'Social';
+      if (/mail|gmail|outlook|newsletter|list-manage|brevo|sendinblue|loops|mailchimp/.test(r)) return 'Email';
+      return 'Referral';
+    };
+
+    // Funnel + Traffic — real, from PostHog (server-proxied). Degrades gracefully.
+    const renderTrafficAndFunnel = async () => {
+      const funnelNotice = document.getElementById('funnelNotice');
+      const channelBox = document.getElementById('channelContainer');
+      let token = '';
+      try { const { data } = await sbClient.auth.getSession(); token = (data && data.session && data.session.access_token) || ''; } catch (_) {}
+      let ph = null;
+      try {
+        const res = await fetch('/api/posthog-summary?range=30', { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+        ph = await res.json();
+      } catch (e) { ph = { ok: false, error: e && e.message }; }
+
+      const notReady = !ph || ph.ok === false || ph.configured === false;
+      if (notReady) {
+        ['funnelViews', 'funnelAdds', 'funnelCheckouts', 'funnelPurchases'].forEach((id) => setText(id, '—'));
+        ['funnelAddRate', 'funnelCheckoutRate', 'funnelPurchaseRate'].forEach((id) => setText(id, ''));
+        setText('abandonedCartValue', '—'); setText('checkoutErrorRate', '—');
+        setText('abandonedCartEst', 'needs PostHog'); setText('channelTotal', '');
+        const msg = ph && ph.configured === false
+          ? 'Connect PostHog to see real funnel & traffic — set POSTHOG_PERSONAL_API_KEY in Cloudflare Pages env.'
+          : 'PostHog data unavailable right now' + (ph && ph.error ? ': ' + ph.error : '.');
+        if (funnelNotice) { funnelNotice.style.display = 'block'; funnelNotice.textContent = msg; }
+        if (channelBox) channelBox.innerHTML = '<div style="color:var(--text-secondary); font-size:0.85rem;">' + advEsc(msg) + '</div>';
+        return;
       }
+      if (funnelNotice) funnelNotice.style.display = 'none';
+
+      const f = ph.funnel || {};
+      const viewed = Number(f.viewed || 0), added = Number(f.added || 0), checkout = Number(f.checkout || 0), purchased = Number(f.purchased || 0);
+      const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) + '%' : '0%');
+      setText('funnelViews', viewed.toLocaleString());
+      setText('funnelAdds', added.toLocaleString());
+      setText('funnelAddRate', pct(added, viewed));
+      setText('funnelCheckouts', checkout.toLocaleString());
+      setText('funnelCheckoutRate', pct(checkout, added));
+      setText('funnelPurchases', purchased.toLocaleString());
+      setText('funnelPurchaseRate', pct(purchased, checkout));
+      const abandoned = Math.max(0, checkout - purchased);
+      const aov = allOrders.length ? getRevenue() / allOrders.length : 0;
+      setText('abandonedCartValue', abandoned.toLocaleString());
+      setText('abandonedCartEst', abandoned && aov ? '≈ ' + fmtMoney0(abandoned * aov) + ' potential (AOV × abandoned)' : "began checkout, didn't buy");
+      setText('checkoutErrorRate', pct(purchased, checkout));
+
+      const refs = ph.referrers || [];
+      const chan = {};
+      let totalVis = 0;
+      refs.forEach((r) => { const c = classifyChannel(r.ref); const v = Number(r.visitors || 0); chan[c] = (chan[c] || 0) + v; totalVis += v; });
+      const order = ['Direct', 'Search', 'Social', 'Email', 'Referral'];
+      const colors = { Direct: 'var(--info)', Search: 'var(--accent)', Social: 'var(--success)', Email: 'var(--warning)', Referral: 'var(--text-secondary)' };
+      const rows = order.filter((c) => chan[c]).map((c) => {
+        const v = chan[c]; const p = totalVis ? Math.round((v / totalVis) * 100) : 0;
+        return '<div style="margin-bottom:12px;">'
+          + '<div style="display:flex; justify-content:space-between;"><span class="stat-label">' + c + '</span><span class="stat-value">' + v.toLocaleString() + ' <span style="color:var(--text-secondary); font-weight:400;">(' + p + '%)</span></span></div>'
+          + '<div class="channel-bar-track"><div class="channel-bar-fill" style="width:' + p + '%; background:' + colors[c] + ';"></div></div>'
+          + '</div>';
+      }).join('');
+      if (channelBox) channelBox.innerHTML = rows || '<div style="color:var(--text-secondary); font-size:0.85rem;">No traffic recorded in the last 30 days.</div>';
+      setText('channelTotal', totalVis ? totalVis.toLocaleString() + ' visitors' : '');
+    };
+
+    const updateAdvancedAnalytics = () => {
+      try { renderTodayGlance(); } catch (e) { console.warn('Today glance failed:', e); }
+      try { renderRetention(); } catch (e) { console.warn('Retention failed:', e); }
+      try { renderMerchandising(); } catch (e) { console.warn('Merchandising failed:', e); }
+      renderPromos().catch((e) => console.warn('Promos failed:', e));
+      renderTrafficAndFunnel().catch((e) => console.warn('Traffic/funnel failed:', e));
     };
   </script>
 </html>
