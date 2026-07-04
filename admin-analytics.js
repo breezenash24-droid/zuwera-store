@@ -549,6 +549,83 @@
                       </tbody></table>`;
                     }
 
+                    // ── Traffic & conversion (PostHog via server proxy) ──────────────
+                    function anaTrafficSetupHTML() {
+                      return `<div style="background:var(--bg-secondary);border:1px dashed var(--border-color);border-radius:8px;padding:1.4rem 1.6rem;">
+                        <div style="font-weight:600;margin-bottom:.5rem;">Connect PostHog to see traffic &amp; funnel data</div>
+                        <p style="color:var(--text-secondary);font-size:.88rem;margin:0 0 .8rem;">Visitors, sessions, top pages, referrers, devices and the view → cart → checkout → purchase funnel show up here once a PostHog personal API key is set. Data is already being collected — this only unlocks reading it.</p>
+                        <ol style="color:var(--text-secondary);font-size:.86rem;margin:0 0 .2rem 1.1rem;line-height:1.7;">
+                          <li>PostHog → <strong>Settings → Personal API keys</strong> → create a key with <em>Query Read</em> scope.</li>
+                          <li>Cloudflare Pages → your project → <strong>Settings → Variables and Secrets</strong> → add <code>POSTHOG_PERSONAL_API_KEY</code> = that key (Production + Preview).</li>
+                          <li>Redeploy. This panel fills in automatically.</li>
+                        </ol>
+                      </div>`;
+                    }
+                    function anaTrafficHTML(d) {
+                      const nf = n => Number(n||0).toLocaleString();
+                      const conv = d.funnel.visited ? (d.funnel.purchased / d.funnel.visited * 100) : 0;
+                      const steps = [
+                        { label:'Visited',        val:d.funnel.visited },
+                        { label:'Viewed product', val:d.funnel.viewed },
+                        { label:'Added to cart',  val:d.funnel.added },
+                        { label:'Checkout',       val:d.funnel.checkout },
+                        { label:'Purchased',      val:d.funnel.purchased },
+                      ];
+                      const base = steps[0].val || 1;
+                      const funnelRows = steps.map((s,i) => {
+                        const pct = s.val / base * 100;
+                        const prev = i > 0 ? steps[i-1].val : null;
+                        const drop = (prev && prev > 0) ? ((prev - s.val) / prev * 100) : null;
+                        return `<div style="margin-bottom:.6rem;">
+                          <div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:.25rem;">
+                            <span>${s.label}</span>
+                            <span style="color:var(--text-secondary)">${nf(s.val)} · ${pct.toFixed(0)}%${drop!=null?` <span style="color:#ef4444">▼${drop.toFixed(0)}%</span>`:''}</span>
+                          </div>
+                          <div style="height:10px;background:var(--bg-tertiary,#1a1a1e);border-radius:5px;overflow:hidden;"><div style="height:100%;width:${pct.toFixed(1)}%;background:var(--accent);"></div></div>
+                        </div>`;
+                      }).join('');
+                      const pagesTbl = d.topPages.length ? `<table><thead><tr><th>Page</th><th>Views</th></tr></thead><tbody>${d.topPages.map(p=>`<tr><td style="font-family:'IBM Plex Mono',monospace;font-size:.8rem;word-break:break-all;">${p.path}</td><td>${nf(p.views)}</td></tr>`).join('')}</tbody></table>` : '<p style="color:var(--text-secondary)">No page views yet.</p>';
+                      const refsTbl  = d.referrers.length ? `<table><thead><tr><th>Source</th><th>Visitors</th></tr></thead><tbody>${d.referrers.map(x=>`<tr><td style="word-break:break-all;">${x.ref}</td><td>${nf(x.visitors)}</td></tr>`).join('')}</tbody></table>` : '<p style="color:var(--text-secondary)">No referrer data yet.</p>';
+                      const devTbl   = d.devices.length ? `<table><thead><tr><th>Device</th><th>Visitors</th></tr></thead><tbody>${d.devices.map(x=>`<tr><td style="text-transform:capitalize">${x.device}</td><td>${nf(x.visitors)}</td></tr>`).join('')}</tbody></table>` : '<p style="color:var(--text-secondary)">No device data yet.</p>';
+                      return `
+                        <div class="ana-overview-grid" style="margin-bottom:1.4rem;">
+                          <div class="ana-card"><div class="ana-card-label">Visitors</div><div class="ana-card-value">${nf(d.totals.visitors)}</div></div>
+                          <div class="ana-card"><div class="ana-card-label">Pageviews</div><div class="ana-card-value">${nf(d.totals.pageviews)}</div></div>
+                          <div class="ana-card"><div class="ana-card-label">Sessions</div><div class="ana-card-value">${nf(d.totals.sessions)}</div></div>
+                          <div class="ana-card"><div class="ana-card-label">Visitor → Purchase</div><div class="ana-card-value">${conv.toFixed(1)}%</div><div class="ana-card-sub">${nf(d.funnel.purchased)} purchased</div></div>
+                        </div>
+                        <div class="ana-section" style="margin-bottom:1.4rem;">
+                          <h2>Conversion Funnel</h2>
+                          <p style="font-size:.78rem;color:var(--text-secondary);margin:-.4rem 0 1rem;">Distinct visitors who reached each step in the period.</p>
+                          ${funnelRows}
+                        </div>
+                        <div class="ana-stats-grid">
+                          <div class="ana-section" style="margin-bottom:0;"><h2>Top Pages</h2>${pagesTbl}</div>
+                          <div class="ana-section" style="margin-bottom:0;"><h2>Traffic Sources</h2>${refsTbl}</div>
+                          <div class="ana-section" style="margin-bottom:0;"><h2>Devices</h2>${devTbl}</div>
+                        </div>`;
+                    }
+                    let _anaTrafficBusy = false;
+                    async function anaLoadTraffic() {
+                      const body = sectionEl('ana-traffic-body'); if (!body) return;
+                      if (_anaTrafficBusy) return; _anaTrafficBusy = true;
+                      body.className = 'ana-loading'; body.textContent = 'Loading traffic…';
+                      const days = _anaPeriod === 'all' ? 365 : parseInt(_anaPeriod);
+                      let token = '';
+                      try { const s = await sb.auth.getSession(); token = s && s.data && s.data.session && s.data.session.access_token || ''; } catch(_) {}
+                      try {
+                        const r = await fetch(`/api/posthog-summary?range=${days}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+                        const d = await r.json().catch(() => ({}));
+                        body.className = '';
+                        if (!d.ok) { body.innerHTML = `<div class="ana-err">Traffic data unavailable: ${d.error || ('HTTP ' + r.status)}</div>`; return; }
+                        if (!d.configured) { body.innerHTML = anaTrafficSetupHTML(); return; }
+                        body.innerHTML = anaTrafficHTML(d);
+                      } catch (e) {
+                        body.className = '';
+                        body.innerHTML = `<div class="ana-err">Could not reach the analytics service: ${e.message}</div>`;
+                      } finally { _anaTrafficBusy = false; }
+                    }
+
                     // Re-run all period-dependent views without refetching
                     function anaRefreshViews() {
                       anaUpdateOrders();
@@ -560,6 +637,7 @@
                       anaRenderCategory();
                       anaRenderVelocity();
                       anaRenderAffinity();
+                      anaLoadTraffic();
                     }
 
                     function anaUpdateCharts() {
@@ -938,6 +1016,7 @@
                         anaRenderTiming(); anaRenderCohorts(); anaRenderDiscount();
                         anaRenderCategory(); anaRenderVelocity(); anaRenderAffinity();
                         anaRenderToday(); anaStartTodayAutoRefresh();
+                        anaLoadTraffic();
                         await anaUpdateReviews();
                         _anaLoaded=true;
                       } catch(e) { anaErr('Failed to load analytics: '+e.message); }

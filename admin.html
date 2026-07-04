@@ -1103,6 +1103,12 @@
                       <button id="ana-refresh-btn" onclick="anaLoadData()">↺ Refresh</button>
                     </div>
 
+                    <!-- Traffic & Conversion (PostHog via server proxy; period-aware) -->
+                    <div id="ana-traffic" style="margin-bottom:1.8rem;">
+                      <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:1.5rem;letter-spacing:.06em;margin-bottom:1.2rem;">Traffic &amp; Conversion <span style="font-size:.72rem;color:var(--text-secondary);font-weight:400;letter-spacing:0;">— from PostHog, over the selected period</span></h2>
+                      <div id="ana-traffic-body" class="ana-loading">Loading traffic…</div>
+                    </div>
+
                     <!-- Sales Overview -->
                     <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:1.5rem;letter-spacing:.06em;margin-bottom:1.2rem;">Sales Overview</h2>
                     <div class="ana-overview-grid">
