@@ -3851,9 +3851,11 @@ window.openSizeFitModal = async function() {
   content.innerHTML = '<p class="review-modal-message">Loading fit ratings...</p>';
   modal.classList.add('open');
   // Force the bottom-sheet layout on mobile inline — beats any stacked modal CSS
-  // that was still centring it. Desktop stays a centred dialog.
+  // that was still centring it. Desktop stays a centred dialog. Uses the
+  // site-wide 900px modal breakpoint (was 600px, which left tablet widths
+  // 601-900px as a floating centred card).
   const _sfBox = modal.querySelector('.review-dialog');
-  if (window.matchMedia('(max-width:600px)').matches) {
+  if (window.matchMedia('(max-width:900px)').matches) {
     modal.style.setProperty('align-items', 'flex-end', 'important');
     modal.style.setProperty('justify-content', 'center', 'important');
     if (_sfBox) {

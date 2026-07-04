@@ -692,6 +692,7 @@
           max-height: calc(100dvh - 1.6rem - 36px - env(safe-area-inset-top,0px) - .5rem) !important;
           margin: 0 !important;
           border-radius: 1.25rem 1.25rem 0 0 !important;
+          border-top: none !important;
           border-left: none !important;
           border-right: none !important;
           /* pad the bottom past the home indicator so the footer isn't clipped */

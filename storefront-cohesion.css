@@ -1227,24 +1227,26 @@ body.light-mode .heart-btn{
     border-bottom-color:var(--zw-line-light) !important;
   }
 
+  /* Bottom sheet on mobile/tablet (≤900px) — matches the Size Guide + every
+     other compact modal. Previously centred as a 620px dialog with a dark
+     top-accent border, so it floated mid-screen with a black line at the top. */
   #size-fit-modal{
-    align-items:center !important;
+    align-items:flex-end !important;
     justify-content:center !important;
-    padding:.75rem !important;
+    padding:calc(1.6rem + 36px + env(safe-area-inset-top,0px)) 0 0 !important;
   }
 
   #size-fit-modal > .review-dialog{
-    width:min(620px, calc(100vw - 1.5rem)) !important;
-    max-width:min(620px, calc(100vw - 1.5rem)) !important;
-    max-height:min(90dvh, 54rem) !important;
-    border:1px solid var(--zw-line-dark) !important;
-    border-top:2px solid var(--zw-accent) !important;
-    border-radius:var(--zw-radius-modal) !important;
+    width:100% !important;
+    max-width:100% !important;
+    max-height:calc(100dvh - 1.6rem - 36px - env(safe-area-inset-top,0px) - .5rem) !important;
+    margin:0 !important;
+    border:none !important;
+    border-radius:1.25rem 1.25rem 0 0 !important;
   }
 
   body.light-mode #size-fit-modal > .review-dialog{
-    border-color:var(--zw-line-light) !important;
-    border-top-color:var(--zw-ink) !important;
+    border:none !important;
   }
 
   .quick-add-review-modal{
