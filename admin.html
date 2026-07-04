@@ -926,6 +926,38 @@
                             <span style="color:var(--text-secondary);font-size:.82rem;">Loading…</span>
                         </div>
                     </div>
+
+                    <!-- Review length limit + display cutoff — backs site_settings.review_settings,
+                         read by reviews.js on product pages. -->
+                    <div style="margin-top:34px;border-top:1px solid var(--border);padding-top:22px;">
+                        <h3 style="font-size:1.05rem;margin-bottom:6px;">✏️ Review Length &amp; Cutoff</h3>
+                        <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:14px;line-height:1.6;">
+                            Set how long a customer's review can be, and when long reviews collapse behind a “View more” link on product pages.
+                        </p>
+                        <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;max-width:640px;">
+                            <label style="display:flex;flex-direction:column;gap:5px;font-size:.8rem;color:var(--text-secondary);">
+                                Maximum review length
+                                <input type="number" id="review-max-len" min="1" step="1" value="1000"
+                                       style="width:130px;padding:8px 10px;background:var(--bg-secondary,rgba(255,255,255,.04));border:1px solid var(--border);border-radius:6px;color:inherit;font-size:.9rem;">
+                            </label>
+                            <label style="display:flex;flex-direction:column;gap:5px;font-size:.8rem;color:var(--text-secondary);">
+                                Counted in
+                                <select id="review-max-unit" class="form-input" style="width:150px;padding:8px 10px;font-size:.9rem;">
+                                    <option value="characters">Characters</option>
+                                    <option value="words">Words</option>
+                                </select>
+                            </label>
+                            <label style="display:flex;flex-direction:column;gap:5px;font-size:.8rem;color:var(--text-secondary);">
+                                Collapse reviews longer than
+                                <input type="number" id="review-preview-chars" min="0" step="10" value="320"
+                                       style="width:150px;padding:8px 10px;background:var(--bg-secondary,rgba(255,255,255,.04));border:1px solid var(--border);border-radius:6px;color:inherit;font-size:.9rem;">
+                            </label>
+                        </div>
+                        <p style="color:var(--text-secondary);font-size:.78rem;margin:10px 0 14px;">Collapse threshold is in characters. Set it to <strong>0</strong> to never collapse reviews.</p>
+                        <button type="button" onclick="saveReviewSettings()" id="review-settings-save"
+                                style="padding:9px 20px;border:1px solid var(--border);border-radius:6px;background:var(--accent,#F891A5);color:#09090b;font-weight:600;font-size:.85rem;cursor:pointer;">Save review settings</button>
+                        <span id="review-settings-status" style="margin-left:12px;font-size:.82rem;color:var(--text-secondary);"></span>
+                    </div>
                 </div>
 
                 <!-- Users Page -->
@@ -5311,8 +5343,49 @@
             }
         }
 
+        // ── Review length limit + display cutoff (site_settings.review_settings) ──
+        async function loadReviewSettings() {
+            try {
+                const { data } = await sb.from('site_settings').select('value').eq('key', 'review_settings').maybeSingle();
+                let v = data && data.value;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+                v = v || {};
+                const lenEl = document.getElementById('review-max-len');
+                const unitEl = document.getElementById('review-max-unit');
+                const prevEl = document.getElementById('review-preview-chars');
+                if (lenEl)  lenEl.value  = (isFinite(+v.maxLength) && +v.maxLength > 0) ? Math.floor(+v.maxLength) : 1000;
+                if (unitEl) unitEl.value = (v.maxUnit === 'words') ? 'words' : 'characters';
+                if (prevEl) prevEl.value = (isFinite(+v.previewChars) && +v.previewChars >= 0) ? Math.floor(+v.previewChars) : 320;
+            } catch (_) {}
+        }
+
+        async function saveReviewSettings() {
+            const status = document.getElementById('review-settings-status');
+            const btn = document.getElementById('review-settings-save');
+            const maxLength    = Math.max(1, parseInt(document.getElementById('review-max-len').value, 10) || 1000);
+            const maxUnit      = document.getElementById('review-max-unit').value === 'words' ? 'words' : 'characters';
+            const previewChars = Math.max(0, parseInt(document.getElementById('review-preview-chars').value, 10) || 0);
+            if (btn) btn.disabled = true;
+            if (status) { status.style.color = 'var(--text-secondary)'; status.textContent = 'Saving…'; }
+            try {
+                const value = { maxUnit, maxLength, previewChars };
+                const { error } = await sb.from('site_settings').upsert({ key: 'review_settings', value }, { onConflict: 'key' });
+                if (error) throw error;
+                try { await logAdminAudit('settings.update', 'site_settings', 'review_settings', value); } catch (_) {}
+                if (status) { status.style.color = '#10b981'; status.textContent = 'Saved ✓'; }
+                showToast('Review settings saved.');
+            } catch (e) {
+                if (status) { status.style.color = '#ef4444'; status.textContent = 'Save failed'; }
+                showToast('Could not save review settings: ' + (e.message || e), 'error');
+            } finally {
+                if (btn) btn.disabled = false;
+                setTimeout(() => { if (status) status.textContent = ''; }, 2500);
+            }
+        }
+
         async function loadAdminReviews() {
             loadBannedWords();
+            loadReviewSettings();
             try {
                 const container = document.getElementById('reviewsContainer');
                 container.innerHTML = '<p style="text-align:center;color:var(--text-secondary);">Loading reviews...</p>';
