@@ -49,6 +49,7 @@
   // 'shipped' (has tracking) | 'refunded' | 'awaiting'
   function fulfillment(o) {
     if (o.status === 'refunded') return 'refunded';
+    if (o.delivery_method === 'hand_delivery') return 'hand_delivery';
     return (o.tracking_number && String(o.tracking_number).trim()) ? 'shipped' : 'awaiting';
   }
 
@@ -60,6 +61,7 @@
 
   function fulfillBadge(o) {
     const f = fulfillment(o);
+    if (f === 'hand_delivery') return `<span style="color:var(--accent);font-weight:600;font-size:12px;">🚶 Hand delivery</span>`;
     if (f === 'shipped') return `<span style="color:var(--success,#10b981);font-weight:600;font-size:12px;">● Shipped</span>`;
     if (f === 'refunded') return `<span style="color:var(--text-secondary);font-size:12px;">—</span>`;
     return `<span style="color:var(--warning,#f59e0b);font-weight:600;font-size:12px;">● Awaiting</span>`;
@@ -73,7 +75,7 @@
     try {
       const { data, error } = await sb
         .from('orders')
-        .select('id,order_number,stripe_payment_intent_id,created_at,customer_name,email,total,subtotal,shipping,tax,status,items,ship_line1,ship_line2,ship_city,ship_state,ship_zip,ship_country,shipping_provider,shipping_service,tracking_number,tracking_url,feature_flags')
+        .select('id,order_number,stripe_payment_intent_id,created_at,customer_name,email,total,subtotal,shipping,tax,status,items,ship_line1,ship_line2,ship_city,ship_state,ship_zip,ship_country,shipping_provider,shipping_service,tracking_number,tracking_url,delivery_method,feature_flags')
         .order('created_at', { ascending: false });
       if (error) throw error;
       _all = data || [];

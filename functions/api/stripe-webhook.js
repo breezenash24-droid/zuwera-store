@@ -152,14 +152,20 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
      'LOOPS_API_KEY', 'LOOPS_TRANSACTIONAL_ID'], env
   );
 
-  // Step 1: Purchase the shipping label → gets tracking number
+  // Step 1: Purchase the shipping label → gets tracking number.
+  // Hand-delivery orders are dropped off in person, so there is no label and no
+  // tracking number (the confirmation email then goes out without tracking).
   let labelData = null;
-  try {
-    labelData = await createShippingLabel(pi, meta, env);
-    console.log('Label created:', labelData?.tracking_number);
-  } catch (e) {
-    console.error('Label creation failed:', e.message);
-    // Continue — still save the order and send email without tracking
+  if (meta.delivery_method === 'hand_delivery') {
+    console.log('Hand-delivery order — skipping shipping label for', pi.id);
+  } else {
+    try {
+      labelData = await createShippingLabel(pi, meta, env);
+      console.log('Label created:', labelData?.tracking_number);
+    } catch (e) {
+      console.error('Label creation failed:', e.message);
+      // Continue — still save the order and send email without tracking
+    }
   }
 
   const tracking = {
@@ -570,6 +576,19 @@ async function saveOrderToSupabase(pi, meta, tracking, env) {
       });
     }
   } catch (_) { /* column not present / parse issue — non-fatal, order already saved */ }
+
+  // Best-effort: record hand-delivery so admin can distinguish it from mail orders.
+  // Non-fatal — if orders.delivery_method hasn't been added yet (see
+  // supabase-local-delivery.sql) this no-ops and the order is unaffected.
+  try {
+    if (meta.delivery_method === 'hand_delivery' && env.SUPABASE_URL && serviceKey) {
+      await fetch(env.SUPABASE_URL + '/rest/v1/orders?stripe_payment_intent_id=eq.' + encodeURIComponent(pi.id), {
+        method: 'PATCH',
+        headers: { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ delivery_method: 'hand_delivery' }),
+      });
+    }
+  } catch (_) { /* column not present — non-fatal, order already saved */ }
 
   return true;
 }
