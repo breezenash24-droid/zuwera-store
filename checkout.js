@@ -423,6 +423,7 @@ function updateDeliveryOptions() {
       _deliveryMethod = 'ship';
       const shipRadio = field.querySelector('input[value="ship"]');
       if (shipRadio) shipRadio.checked = true;
+      _syncDeliverySelected();
       const note = document.getElementById('delivery-hand-note');
       if (note) note.style.display = 'none';
       maybeLoadRates();
@@ -431,11 +432,19 @@ function updateDeliveryOptions() {
   }
   field.style.display = 'block';
   const lbl = document.getElementById('delivery-hand-label');
-  if (lbl) lbl.textContent = '🚶 ' + (cfg.label || 'Campus hand-delivery') + ' — Free';
+  if (lbl) lbl.textContent = (cfg.label || 'Campus hand-delivery') + ' — Free';
+  _syncDeliverySelected();
+}
+function _syncDeliverySelected() {
+  document.querySelectorAll('.co-delivery-opt').forEach((opt) => {
+    const r = opt.querySelector('input[name="delivery-method"]');
+    opt.classList.toggle('is-selected', !!(r && r.checked));
+  });
 }
 function _onDeliveryMethodChange(e) {
   const val = e.target.value === 'hand_delivery' ? 'hand_delivery' : 'ship';
   _deliveryMethod = val;
+  _syncDeliverySelected();
   const note = document.getElementById('delivery-hand-note');
   const cfg = _localDeliveryConfig();
   if (val === 'hand_delivery') {

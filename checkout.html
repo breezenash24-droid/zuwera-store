@@ -291,6 +291,26 @@
     body.light-mode .pfield input { background: rgba(9,9,11,.04); border-color: rgba(9,9,11,.16); color: #09090b; }
     body.light-mode .pfield input:focus { border-color: rgba(9,9,11,.45); }
     body.light-mode .pfield label { color: var(--sub); }
+    /* Delivery method options — match the square, bordered look of the inputs */
+    .co-delivery-hint { font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--sub); margin-bottom: .4rem; }
+    .co-delivery-opt {
+      display: flex; align-items: center; gap: .7rem;
+      width: 100%; box-sizing: border-box;
+      background: rgba(244,241,235,.04);
+      border: 1px solid var(--border2);
+      border-radius: 0;
+      padding: .78rem .9rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: border-color .2s;
+    }
+    .co-delivery-opt + .co-delivery-opt { border-top: none; }
+    .co-delivery-opt.is-selected { border-color: rgba(244,241,235,.45); }
+    .co-delivery-opt input { margin: 0; accent-color: rgba(244,241,235,.85); flex-shrink: 0; }
+    .co-delivery-note { font-size: .78rem; color: var(--sub); line-height: 1.5; margin-top: .55rem; }
+    body.light-mode .co-delivery-opt { background: rgba(9,9,11,.04); border-color: rgba(9,9,11,.16); color: #09090b; }
+    body.light-mode .co-delivery-opt.is-selected { border-color: rgba(9,9,11,.45); }
+    body.light-mode .co-delivery-opt input { accent-color: rgba(9,9,11,.8); }
 
     /* Shipping rate options */
     .rate-opt { display: flex; align-items: center; justify-content: space-between; gap: .7rem; padding: .65rem .85rem; border: 1px solid var(--border2); cursor: pointer; transition: border-color .2s, background .2s; margin-bottom: .4rem; background: rgba(244,241,235,.02); font-size: .84rem; }
@@ -513,15 +533,17 @@
       <!-- SHIPPING -->
       <div class="co-section">
         <div class="co-section-hd"><span class="co-section-label">Shipping</span></div>
-        <!-- Campus hand-delivery: only shown when the entered ZIP is on the allow-list -->
-        <div id="delivery-method-field" style="display:none;margin-bottom:.75rem;padding:.75rem .9rem;border:1px solid var(--line,rgba(244,241,235,.14));border-radius:8px">
-          <label style="display:flex;align-items:center;gap:.55rem;cursor:pointer;font-size:.88rem;margin-bottom:.45rem">
-            <input type="radio" name="delivery-method" value="ship" checked style="accent-color:var(--accent,#F891A5)"> Ship it to me
+        <!-- Campus hand-delivery: only shown once an eligible ZIP has been entered -->
+        <div id="delivery-method-field" style="display:none;margin-bottom:.8rem;">
+          <label class="co-delivery-opt is-selected">
+            <input type="radio" name="delivery-method" value="ship" checked>
+            <span>Ship it to me</span>
           </label>
-          <label style="display:flex;align-items:center;gap:.55rem;cursor:pointer;font-size:.88rem">
-            <input type="radio" name="delivery-method" value="hand_delivery" style="accent-color:var(--accent,#F891A5)"> <span id="delivery-hand-label">🚶 Campus hand-delivery — Free</span>
+          <label class="co-delivery-opt">
+            <input type="radio" name="delivery-method" value="hand_delivery">
+            <span id="delivery-hand-label">Campus hand-delivery — Free</span>
           </label>
-          <div id="delivery-hand-note" style="display:none;font-size:.75rem;color:var(--sub);margin-top:.45rem;line-height:1.5"></div>
+          <div id="delivery-hand-note" class="co-delivery-note" style="display:none"></div>
         </div>
         <div id="shipping-rates-loading" style="display:none;font-size:.8rem;color:var(--sub);letter-spacing:.04em;margin-bottom:.5rem">Fetching rates…</div>
         <div id="shipping-rates-field" style="display:none"><div id="shipping-rates-list"></div></div>
