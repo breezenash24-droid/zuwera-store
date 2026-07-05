@@ -733,6 +733,13 @@
     .vip-alert { background: var(--warning-bg); border: 1px solid var(--warning-border); color: var(--warning); padding: 12px 15px; border-radius: 12px; display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 0.9rem; }
     .channel-bar-track { height: 8px; border-radius: 4px; background: var(--card-border); overflow: hidden; margin-top: 6px; }
     .channel-bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+    /* Dashboard tabs — group the long dashboard into switchable views */
+    .dash-tabs { position: sticky; top: 0; z-index: 30; display: flex; gap: 6px; flex-wrap: wrap; padding: 12px 0; margin-bottom: 1.75rem; background: var(--black); border-bottom: 1px solid var(--card-border); }
+    .dash-tab-btn { background: transparent; border: 1px solid var(--card-border-clr); color: var(--text-secondary); padding: 8px 16px; border-radius: 999px; cursor: pointer; font-size: 0.88rem; font-family: inherit; font-weight: 600; transition: all 0.18s ease; white-space: nowrap; }
+    .dash-tab-btn:hover { border-color: var(--accent); color: var(--white); }
+    .dash-tab-btn.active { background: var(--accent); border-color: var(--accent); color: #09090b; }
+    .dash-hidden { display: none !important; }
+    @media (max-width: 640px) { .dash-tabs { gap: 5px; padding: 10px 0; } .dash-tab-btn { padding: 7px 12px; font-size: 0.8rem; } }
   </style>
 </head>
 <body>
@@ -769,8 +776,17 @@
       <div id="errorContainer"></div>
       <div id="diagnosticsBox" class="diag-box" style="display:none;"></div>
 
+      <!-- Section tabs — keeps the dashboard to one screen instead of one long scroll -->
+      <div class="dash-tabs" id="dashTabsBar">
+        <button type="button" class="dash-tab-btn" data-tab-btn="overview">💰 Overview</button>
+        <button type="button" class="dash-tab-btn" data-tab-btn="conversion">🛒 Conversion</button>
+        <button type="button" class="dash-tab-btn" data-tab-btn="orders">🧾 Orders &amp; Tax</button>
+        <button type="button" class="dash-tab-btn" data-tab-btn="catalog">👟 Catalog</button>
+        <button type="button" class="dash-tab-btn" data-tab-btn="technical">⚙️ Technical</button>
+      </div>
+
       <!-- Today at a Glance — real figures from today's orders -->
-      <div class="live-pulse-container">
+      <div class="live-pulse-container" data-tab="overview">
         <h2 style="margin: 0; display: flex; align-items: center;"><span class="pulse-indicator"></span> Today at a Glance</h2>
         <div style="font-size: 0.9rem; color: var(--text-secondary);" id="todayDateLabel">—</div>
       </div>
@@ -830,7 +846,7 @@
       </div>
 
       <!-- Checkout Funnel & Abandonment -->
-      <h2 style="margin-top: 2.5rem; margin-bottom: 0.35rem;">Checkout Funnel &amp; Abandonment</h2>
+      <h2 style="margin-top: 2.5rem; margin-bottom: 0.35rem;" data-tab="conversion">Checkout Funnel &amp; Abandonment</h2>
       <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem;" id="funnelSource">Unique visitors by stage · last 30 days · via PostHog</div>
       <div class="chart-section">
         <div id="funnelNotice" style="display:none; padding: 0.75rem 1rem; border:1px solid var(--warning-border); background:var(--warning-bg); color:var(--warning); border-radius:12px; font-size:0.85rem; margin-bottom:1.25rem;"></div>
@@ -913,7 +929,7 @@
         </div>
       </div>
 
-      <h2 style="margin-top: 2rem; margin-bottom: 1rem;">Technical Command Center</h2>
+      <h2 style="margin-top: 2rem; margin-bottom: 1rem;" data-tab="technical">Technical Command Center</h2>
       <div class="precision-grid">
         <div id="edgeMetricsNotice" class="diag-box span-12" style="display:none;"></div>
         <div class="glass-card span-3">
@@ -976,7 +992,7 @@
       </div>
 
       <!-- Recent Orders -->
-      <div class="table-section">
+      <div class="table-section" data-tab="orders">
         <h2>Recent Orders</h2>
         <div id="ordersTableContainer" class="loading">
           <div class="spinner"></div>
@@ -1013,7 +1029,7 @@
         </p>
       </div>
 
-      <h2 style="margin-top: 2.5rem; margin-bottom: 1.5rem;">Inventory & Catalog</h2>
+      <h2 style="margin-top: 2.5rem; margin-bottom: 1.5rem;" data-tab="catalog">Inventory & Catalog</h2>
       <div class="overview-grid">
         <div class="card">
           <div class="card-label">Total Products</div>
@@ -1304,8 +1320,54 @@
     const showDashboard = () => {
       authContainer.style.display = 'none';
       dashboardContainer.style.display = 'block';
+      initDashTabs();
       loadDashboardData();
     };
+
+    // ── Dashboard section tabs ───────────────────────────────────────────────
+    // Groups the dashboard's flat list of sections into switchable views so it
+    // fits on one screen. Each section's first element carries data-tab; every
+    // sibling after it inherits that group until the next data-tab marker.
+    const DASH_DEFAULT_TAB = 'overview';
+    let _dashTabsReady = false;
+    function initDashTabs() {
+      const container = document.getElementById('dashboardContainer');
+      const bar = document.getElementById('dashTabsBar');
+      if (!container || !bar) return;
+      if (!_dashTabsReady) {
+        const always = { dashTabsBar: 1, errorContainer: 1, diagnosticsBox: 1 };
+        let cur = DASH_DEFAULT_TAB;
+        Array.from(container.children).forEach((el) => {
+          if (always[el.id]) return;                 // error/diagnostics/tab-bar stay visible on every tab
+          if (el.dataset.tab) cur = el.dataset.tab;  // a section boundary
+          el.dataset.tabGroup = cur;
+        });
+        bar.addEventListener('click', (e) => {
+          const btn = e.target.closest('[data-tab-btn]');
+          if (btn) showDashTab(btn.getAttribute('data-tab-btn'));
+        });
+        _dashTabsReady = true;
+      }
+      let start = DASH_DEFAULT_TAB;
+      try { const saved = localStorage.getItem('zw_dash_tab'); if (saved) start = saved; } catch (_) {}
+      showDashTab(start);
+    }
+    function showDashTab(tab) {
+      const container = document.getElementById('dashboardContainer');
+      const bar = document.getElementById('dashTabsBar');
+      if (!container || !bar) return;
+      const btns = Array.from(bar.querySelectorAll('[data-tab-btn]'));
+      if (!btns.some((b) => b.getAttribute('data-tab-btn') === tab)) tab = DASH_DEFAULT_TAB;
+      btns.forEach((b) => b.classList.toggle('active', b.getAttribute('data-tab-btn') === tab));
+      Array.from(container.children).forEach((el) => {
+        if (!el.dataset.tabGroup) return;
+        el.classList.toggle('dash-hidden', el.dataset.tabGroup !== tab);
+      });
+      try { localStorage.setItem('zw_dash_tab', tab); } catch (_) {}
+      // Recharts' ResponsiveContainer measures its parent; nudge it to refit now the panel is visible.
+      try { window.dispatchEvent(new Event('resize')); } catch (_) {}
+      try { window.scrollTo(0, 0); } catch (_) {}
+    }
     
     const showError = (msg) => {
       const host = document.getElementById('errorContainer');
