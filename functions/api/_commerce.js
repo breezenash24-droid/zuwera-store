@@ -187,6 +187,7 @@ export function sanitizeCommerceConfig(rawConfig = {}) {
         targetProductIds: Array.isArray(promo.targetProductIds) ? promo.targetProductIds.map(String).filter(Boolean) : [],
         targetCollectionIds: Array.isArray(promo.targetCollectionIds) ? promo.targetCollectionIds.map(String).filter(Boolean) : [],
       })),
+    localDelivery: sanitizeLocalDelivery(config.localDelivery),
     integrations: config.integrations || {},
     shippingAutomation: config.shippingAutomation || {},
     customerExperience: config.customerExperience || {},
@@ -195,6 +196,22 @@ export function sanitizeCommerceConfig(rawConfig = {}) {
     subscriptions: config.subscriptions || {},
     affiliates: config.affiliates || {},
     merchandising: config.merchandising || {},
+  };
+}
+
+// Campus hand-delivery config: a ZIP allow-list that unlocks a free in-person
+// delivery option at checkout. ZIPs are normalized to 5 digits; anything else
+// is dropped so a bad value can never widen eligibility.
+export function sanitizeLocalDelivery(rawLocalDelivery = {}) {
+  const ld = rawLocalDelivery && typeof rawLocalDelivery === 'object' ? rawLocalDelivery : {};
+  const zips = Array.isArray(ld.zips)
+    ? Array.from(new Set(ld.zips.map((z) => String(z).trim()).filter((z) => /^\d{5}$/.test(z))))
+    : [];
+  return {
+    enabled: ld.enabled === true,
+    label: String(ld.label || 'Campus hand-delivery'),
+    instructions: String(ld.instructions || ''),
+    zips,
   };
 }
 

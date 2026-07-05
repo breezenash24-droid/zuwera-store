@@ -160,8 +160,44 @@
     mountCommerceStyles();
     const mount = $('commerceMount');
     if (!mount) return;
-    mount.innerHTML = renderPromotions();
+    mount.innerHTML = renderPromotions() + renderLocalDelivery();
     bindCommerceEvents();
+  }
+
+  function renderLocalDelivery() {
+    const ld = (state.config && state.config.localDelivery) || {};
+    const zips = Array.isArray(ld.zips) ? ld.zips.join(', ') : '';
+    return `
+      <div class="commerce-card" style="margin-top:16px;">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;">
+          <div>
+            <h3>🚶 Campus Hand-Delivery</h3>
+            <div class="commerce-muted">Customers whose shipping ZIP is on this list can choose free in-person delivery instead of mail. Those orders skip the shipping label and tracking email.</div>
+          </div>
+          <label style="display:flex;align-items:center;gap:7px;font-size:.78rem;color:var(--text-muted);cursor:pointer;">
+            <input type="checkbox" id="ldEnabled" ${ld.enabled ? 'checked' : ''} style="width:15px;height:15px;accent-color:var(--accent,#fff);cursor:pointer;">
+            Enabled
+          </label>
+        </div>
+        <div style="margin-top:14px;display:grid;gap:12px;">
+          <div>
+            <label class="commerce-muted" style="display:block;margin-bottom:5px;font-size:.75rem;">Eligible ZIP codes (comma or space separated, 5 digits each)</label>
+            <textarea id="ldZips" rows="2" placeholder="45219, 45220, 45221, 45222, 45223" style="width:100%;box-sizing:border-box;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text-primary);font-size:.85rem;font-family:'IBM Plex Mono',monospace;">${escapeHtml(zips)}</textarea>
+          </div>
+          <div>
+            <label class="commerce-muted" style="display:block;margin-bottom:5px;font-size:.75rem;">Option label (shown at checkout)</label>
+            <input id="ldLabel" type="text" value="${escapeAttr(ld.label || 'Campus hand-delivery')}" style="width:100%;box-sizing:border-box;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text-primary);font-size:.85rem;">
+          </div>
+          <div>
+            <label class="commerce-muted" style="display:block;margin-bottom:5px;font-size:.75rem;">Note to buyer (optional)</label>
+            <input id="ldInstructions" type="text" value="${escapeAttr(ld.instructions || '')}" placeholder="You'll be contacted to arrange a campus drop-off." style="width:100%;box-sizing:border-box;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text-primary);font-size:.85rem;">
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <button class="btn btn-secondary btn-sm" id="ldSaveBtn">Save Campus Delivery</button>
+            <span id="ldStatus" class="commerce-muted" style="font-size:.78rem;"></span>
+          </div>
+        </div>
+      </div>`;
   }
 
   function readPromotionsFromDom() {
@@ -201,6 +237,15 @@
     if ($('commercePromoList')) state.config.promotions = readPromotionsFromDom();
     const showPromoEl = $('commerceShowPromoCode');
     if (showPromoEl) state.config.show_promo_code = showPromoEl.checked;
+    const ldEnabled = $('ldEnabled');
+    if (ldEnabled) {
+      state.config.localDelivery = {
+        enabled: ldEnabled.checked,
+        label: ($('ldLabel')?.value || 'Campus hand-delivery').trim(),
+        instructions: ($('ldInstructions')?.value || '').trim(),
+        zips: Array.from(new Set(String($('ldZips')?.value || '').split(/[\s,]+/).map((s) => s.trim()).filter((z) => /^\d{5}$/.test(z)))),
+      };
+    }
   }
 
   async function saveSettings(message) {
@@ -219,6 +264,12 @@
   }
 
   function bindCommerceEvents() {
+    $('ldSaveBtn')?.addEventListener('click', async () => {
+      const st = $('ldStatus');
+      if (st) st.textContent = 'Saving…';
+      const ok = await saveSettings('Campus delivery saved.');
+      if (st) st.textContent = ok ? 'Saved.' : 'Could not save.';
+    });
     $('commerceAddPromoBtn')?.addEventListener('click', () => {
       syncFromDom();
       state.config.promotions = [

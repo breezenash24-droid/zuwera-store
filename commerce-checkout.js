@@ -186,7 +186,8 @@
     const wrapped = async function (url, body) {
       const nextBody = url === '/api/create-payment-intent'
         ? { ...(body || {}), promoCode: currentPromoCode(),
-            featureFlags: (typeof window.zwActiveFlags === 'function' ? window.zwActiveFlags() : undefined) }
+            featureFlags: (typeof window.zwActiveFlags === 'function' ? window.zwActiveFlags() : undefined),
+            deliveryMethod: (typeof window.zwDeliveryMethod === 'function' ? window.zwDeliveryMethod() : undefined) }
         : body;
       return original.call(this, url, nextBody);
     };
@@ -253,6 +254,12 @@
       renderPromoSummary();
     });
   }
+
+  // Campus hand-delivery config (ZIP allow-list) for checkout.js.
+  window.zwLocalDelivery = function () {
+    const ld = STATE.config && STATE.config.localDelivery;
+    return (ld && typeof ld === 'object') ? ld : { enabled: false, zips: [] };
+  };
 
   window.zwGetActivePromoCode = currentPromoCode;
   window.zwGetPromoDiscountCents = function (subtotalCents, shippingCents) {

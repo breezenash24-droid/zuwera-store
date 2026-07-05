@@ -513,6 +513,16 @@
       <!-- SHIPPING -->
       <div class="co-section">
         <div class="co-section-hd"><span class="co-section-label">Shipping</span></div>
+        <!-- Campus hand-delivery: only shown when the entered ZIP is on the allow-list -->
+        <div id="delivery-method-field" style="display:none;margin-bottom:.75rem;padding:.75rem .9rem;border:1px solid var(--line,rgba(244,241,235,.14));border-radius:8px">
+          <label style="display:flex;align-items:center;gap:.55rem;cursor:pointer;font-size:.88rem;margin-bottom:.45rem">
+            <input type="radio" name="delivery-method" value="ship" checked style="accent-color:var(--accent,#F891A5)"> Ship it to me
+          </label>
+          <label style="display:flex;align-items:center;gap:.55rem;cursor:pointer;font-size:.88rem">
+            <input type="radio" name="delivery-method" value="hand_delivery" style="accent-color:var(--accent,#F891A5)"> <span id="delivery-hand-label">🚶 Campus hand-delivery — Free</span>
+          </label>
+          <div id="delivery-hand-note" style="display:none;font-size:.75rem;color:var(--sub);margin-top:.45rem;line-height:1.5"></div>
+        </div>
         <div id="shipping-rates-loading" style="display:none;font-size:.8rem;color:var(--sub);letter-spacing:.04em;margin-bottom:.5rem">Fetching rates…</div>
         <div id="shipping-rates-field" style="display:none"><div id="shipping-rates-list"></div></div>
         <div id="shipping-free-row" style="display:none;align-items:center;justify-content:space-between;font-size:.9rem">
