@@ -256,6 +256,8 @@
     .pm-item-meta { font-family: var(--font-mono); font-size: .65rem; color: var(--sub); text-transform: uppercase; letter-spacing: .07em; margin-top: .3rem; display: flex; align-items: center; gap: .25rem; }
     /* Price in Barlow Condensed (NOT mono), bold — matches the storefront cards. */
     .pm-item-price { font-family: var(--font-head); font-size: 1.05rem; font-weight: 700; letter-spacing: .01em; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+    .pm-item-remove { background: none; border: none; padding: 0; margin-top: .45rem; font-family: var(--font-mono); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; color: var(--sub); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; transition: color .2s; }
+    .pm-item-remove:hover { color: var(--text); }
 
     .pm-lines { border-top: 1px solid var(--border); padding-top: .85rem; margin-top: .2rem; display: flex; flex-direction: column; gap: .4rem; margin-bottom: .9rem; }
     .pm-line { display: flex; justify-content: space-between; font-size: .9rem; color: var(--sub); font-variant-numeric: tabular-nums; }
@@ -840,7 +842,7 @@ window.zwClearPromo = function() {
     var cart = window.cartItems;
     var itemsEl = document.getElementById('pm-items');
     if (itemsEl) {
-      itemsEl.innerHTML = cart.map(function(item) {
+      itemsEl.innerHTML = cart.map(function(item, i) {
         var imgSrc = (typeof window.optimizeImage === 'function')
           ? window.optimizeImage(item.image, 160) : (item.image || '');
         var price = (parseFloat(item.price||0)*(item.quantity||1)).toFixed(2);
@@ -851,7 +853,7 @@ window.zwClearPromo = function() {
         var sizePart = item.size ? esc(item.size) : '';
         var meta = [colorPart, sizePart].filter(Boolean).join(' / ');
         var cleanTitle = esc((item.title||item.name||'').replace(/\p{Extended_Pictographic}/gu,'').replace(/\s+/g,' ').trim());
-        return '<div class="pm-item">'+imgHtml+'<div class="pm-item-info"><div class="pm-item-title">'+cleanTitle+'</div>'+(meta?'<div class="pm-item-meta" style="display:flex;align-items:center">'+meta+'</div>':'')+'<div class="pm-item-meta">Qty '+(item.quantity||1)+'</div></div><div class="pm-item-price">$'+price+'</div></div>';
+        return '<div class="pm-item">'+imgHtml+'<div class="pm-item-info"><div class="pm-item-title">'+cleanTitle+'</div>'+(meta?'<div class="pm-item-meta" style="display:flex;align-items:center">'+meta+'</div>':'')+'<div class="pm-item-meta">Qty '+(item.quantity||1)+'</div><button class="pm-item-remove" type="button" data-idx="'+i+'" aria-label="Remove item">Remove</button></div><div class="pm-item-price">$'+price+'</div></div>';
       }).join('');
     }
 
@@ -868,6 +870,28 @@ window.zwClearPromo = function() {
   }
   renderSummary();
   window._zwRenderCheckoutSummary = renderSummary;
+
+  /* ── Remove an item from the bag (mutates window.cartItems in place, which is
+        the same array checkout.js sends to /api/create-payment-intent). ── */
+  function removeItem(idx) {
+    if (isNaN(idx) || idx < 0 || idx >= window.cartItems.length) return;
+    window.cartItems.splice(idx, 1);
+    try { localStorage.setItem('cart', JSON.stringify(window.cartItems)); } catch(_) {}
+    if (!window.cartItems.length) { location.replace('/bag.html'); return; }
+    renderSummary();
+    updateSubtitle();
+    // Recompute the real totals now that the cart changed.
+    try { if (typeof maybeLoadRates === 'function') maybeLoadRates(); } catch(_) {}
+    try { if (typeof refreshTaxDisplay === 'function') refreshTaxDisplay(); } catch(_) {}
+    try { if (typeof window.zwPromoUpdateSummaryTotals === 'function') window.zwPromoUpdateSummaryTotals(); } catch(_) {}
+    try { if (typeof window.zwSyncWalletTotal === 'function') window.zwSyncWalletTotal(); } catch(_) {}
+  }
+  var itemsEl = document.getElementById('pm-items');
+  if (itemsEl) itemsEl.addEventListener('click', function(e) {
+    var btn = e.target.closest('.pm-item-remove');
+    if (!btn) return;
+    removeItem(parseInt(btn.getAttribute('data-idx'), 10));
+  });
 })();
 </script>
 
