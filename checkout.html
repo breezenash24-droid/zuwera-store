@@ -112,7 +112,7 @@
     .co-logo-wrap {
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       flex: 1;
       text-decoration: none;
     }
@@ -477,9 +477,8 @@
 
 <!-- HEADER -->
 <header class="co-header">
-  <!-- "Bag" back-link removed: the bag icon at top-right already links to
-       /bag.html. Spacer mirrors .co-header-right's 90px to keep the logo centered. -->
-  <div style="width:90px;flex-shrink:0" aria-hidden="true"></div>
+  <!-- Logo is left-aligned to match the rest of the site (storefront nav, etc.).
+       The bag icon at top-right links to /bag.html. -->
   <a href="/" class="co-logo-wrap" aria-label="Zuwera home">
     <img src="images/logo.png?v=2" alt="ZUWERA" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
     <span style="display:none;font-family:var(--font-head);font-size:1.4rem;letter-spacing:.15em">ZUWERA</span>

@@ -57,6 +57,11 @@
     function show() { nav.classList.remove(HIDDEN); }
     function hide() { nav.classList.add(HIDDEN); }
 
+    // Let other scripts pop the header back into view — e.g. add-to-bag, so the
+    // shopper sees the updated bag icon even if they'd scrolled the header away.
+    // Resets lastY so a scroll jitter doesn't immediately re-hide it.
+    window.zwRevealHeader = function () { show(); lastY = scrollY(); };
+
     function update() {
       ticking = false;
       if (mode !== 'auto-hide') { show(); return; }
