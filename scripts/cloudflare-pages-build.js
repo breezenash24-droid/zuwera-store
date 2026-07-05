@@ -14,6 +14,7 @@ const files = [
   'admin.html',
   'admin-analytics.js',
   'admin-finance.js',
+  'admin-orders.js',
   'admin-receipts.js',
   'admin-returns-ui.js',
   'admin-shipping.js',

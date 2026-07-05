@@ -30,7 +30,7 @@ export const ROLE_LABELS = {
 // Every admin page id (matches ADMIN_PAGES in admin.html).
 export const PAGE_IDS = [
   'dashboard', 'analytics', 'finance', 'products', 'legacy', 'sizecharts',
-  'reviews', 'commerce', 'meta', 'receipts', 'shipping', 'returns', 'users',
+  'reviews', 'commerce', 'meta', 'orders', 'receipts', 'shipping', 'returns', 'users',
   'website', 'settings', 'tax', 'apis', 'audit', 'flags'
 ];
 
@@ -55,14 +55,14 @@ const V = 'view', E = 'edit';
 export const ROLE_PRESET_LEVELS = {
   manager: {
     dashboard: V, analytics: V, finance: E, products: E, legacy: E, sizecharts: E,
-    reviews: E, commerce: E, meta: E, receipts: E, shipping: E, returns: E,
+    reviews: E, commerce: E, meta: E, orders: V, receipts: E, shipping: E, returns: E,
     users: E, website: E, settings: E, tax: E, audit: V, flags: E
   },
   finance: {
-    dashboard: V, analytics: V, finance: E, receipts: V, tax: E, audit: V
+    dashboard: V, analytics: V, finance: E, orders: V, receipts: V, tax: E, audit: V
   },
   fulfillment: {
-    dashboard: V, products: V, receipts: E, shipping: E, returns: E
+    dashboard: V, products: V, orders: V, receipts: E, shipping: E, returns: E
   },
   content: {
     dashboard: V, products: E, sizecharts: E, reviews: E, website: E, settings: E
