@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <script>
-/* THEME FLASH PREVENTION — runs before any CSS loads */
+/* THEME FLASH PREVENTION � runs before any CSS loads */
 (function(){try{
   var m=localStorage.getItem('zw_theme_mode');
   var h=document.documentElement;
@@ -22,8 +22,8 @@
     if(f.css){var s=document.createElement('style');s.textContent=f.css;document.head.appendChild(s);}
   }
 }catch(_){}})()</script>
-  <title>Checkout — Zuwera</title>
-  <meta name="description" content="Secure checkout — Zuwera.">
+  <title>Checkout � Zuwera</title>
+  <meta name="description" content="Secure checkout � Zuwera.">
   <meta name="color-scheme" content="dark">
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png?v=3" id="site-favicon">
@@ -81,7 +81,7 @@
     }
     body.super-light-mode { --bg: #FFFFFF; --surface: #f5f5f5; }
 
-    /* ───────────────────────────────── Header ── */
+    /* --------------------------------- Header -- */
     .co-header {
       position: sticky;
       top: 0;
@@ -148,7 +148,7 @@
     body.light-mode .co-bag-icon { border-color: rgba(9,9,11,.2); color: rgba(9,9,11,.85); }
     body.light-mode .co-bag-icon:hover { border-color: rgba(9,9,11,.5); }
 
-    /* ───────────────────────────────── Page body ── */
+    /* --------------------------------- Page body -- */
     .co-body {
       flex: 1;
       width: 100%;
@@ -157,13 +157,13 @@
       padding: 2rem 1.5rem calc(env(safe-area-inset-bottom, 0px) + 2.5rem);
     }
 
-    /* ───────────────────────────────── Two-column grid ── */
+    /* --------------------------------- Two-column grid -- */
     .co-checkout-grid { display: flex; flex-direction: column; }
     .co-form-col { width: 100%; }
     .co-summary-col { order: -1; margin-bottom: 2rem; }
     .co-sum-desktop-hd { display: none; }
 
-    /* ───────────────────────────────── Page title ── */
+    /* --------------------------------- Page title -- */
     .co-page-title {
       text-align: center;
       margin-bottom: 2rem;
@@ -183,7 +183,7 @@
       letter-spacing: .04em;
     }
 
-    /* ───────────────────────────────── Section headings ── */
+    /* --------------------------------- Section headings -- */
     .co-section {
       margin-bottom: 1.75rem;
     }
@@ -204,7 +204,7 @@
       line-height: 1;
     }
 
-    /* ───────────────────────────────── Order summary ── */
+    /* --------------------------------- Order summary -- */
     .co-summary-toggle {
       width: 100%;
       background: none;
@@ -247,22 +247,22 @@
     .pm-item-info { flex: 1; min-width: 0; }
     .pm-item-title { font-family: var(--font-head); font-size: 1.05rem; font-weight: 900; font-style: italic; letter-spacing: .04em; line-height: 1.2; text-transform: uppercase; }
     .pm-item-meta { font-family: var(--font-mono); font-size: .65rem; color: var(--sub); text-transform: uppercase; letter-spacing: .07em; margin-top: .3rem; display: flex; align-items: center; gap: .25rem; }
-    /* Price in Barlow Condensed (NOT mono), bold — matches the storefront cards. */
+    /* Price in Barlow Condensed (NOT mono), bold � matches the storefront cards. */
     .pm-item-price { font-family: var(--font-head); font-size: 1.05rem; font-weight: 700; letter-spacing: .01em; flex-shrink: 0; font-variant-numeric: tabular-nums; }
 
     .pm-lines { border-top: 1px solid var(--border); padding-top: .85rem; margin-top: .2rem; display: flex; flex-direction: column; gap: .4rem; margin-bottom: .9rem; }
     .pm-line { display: flex; justify-content: space-between; font-size: .9rem; color: var(--sub); font-variant-numeric: tabular-nums; }
-    /* Line-item labels — small muted mono uppercase to match the bag page summary */
+    /* Line-item labels � small muted mono uppercase to match the bag page summary */
     .pm-line > span:first-child { font-family: var(--font-mono); font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; opacity: .7; }
-    /* Line values (subtotal/shipping/tax) — Barlow Condensed + full-strength colour
+    /* Line values (subtotal/shipping/tax) � Barlow Condensed + full-strength colour
        so the money is legible (was muted mono inheriting --sub). */
     .pm-line > span:last-child { font-family: var(--font-head); font-weight: 600; font-size: 1rem; color: var(--text); }
     .pm-total-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 1rem; font-weight: 600; border-top: 1px solid var(--border2); padding-top: .7rem; color: var(--text); font-variant-numeric: tabular-nums; margin-bottom: 1.6rem; }
-    /* "TOTAL" label — match the bag page's brand display treatment (italic condensed) */
+    /* "TOTAL" label � match the bag page's brand display treatment (italic condensed) */
     .pm-total-row > span:first-child { font-family: var(--font-head); font-style: italic; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: 1.15rem; }
     .pm-total-row > span:last-child { font-family: var(--font-head); font-weight: 700; font-size: 1.15rem; letter-spacing: .01em; font-variant-numeric: tabular-nums; }
 
-    /* ───────────────────────────────── Form fields ── */
+    /* --------------------------------- Form fields -- */
     .pgrow { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; }
     .pfield { margin-bottom: .8rem; }
     .pfield label {
@@ -363,7 +363,7 @@
     }
     .psecure svg { flex-shrink: 0; }
 
-    /* ───────────────────────────────── Success ── */
+    /* --------------------------------- Success -- */
     #payment-success {
       display: none;
       position: fixed;
@@ -386,12 +386,12 @@
     #success-continue:hover { opacity: .82; }
     body.light-mode #success-continue { background: #09090b; color: #E8E3DC; }
 
-    /* ───────────────────────────────── Toast ── */
+    /* --------------------------------- Toast -- */
     #toast { position: fixed; bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%) translateY(10px); background: #0f0f0f; color: rgba(244,241,235,.9); padding: .5rem 1.2rem; font-size: .72rem; letter-spacing: .08em; opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; z-index: 9999; white-space: nowrap; }
     #toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
     body.light-mode #toast { background: #F0EEE9; color: #09090b; }
 
-    /* ───────────────────────────────── Mobile tweaks ── */
+    /* --------------------------------- Mobile tweaks -- */
     @media (max-width: 600px) {
       .co-body { padding: 1.25rem 1.1rem calc(env(safe-area-inset-bottom, 0px) + 2rem); }
       .co-checkout-h { font-size: 2.4rem; }
@@ -400,7 +400,7 @@
       .pgrow { grid-template-columns: 1fr !important; }
     }
 
-    /* ───────────────────────────────── Desktop two-column ── */
+    /* --------------------------------- Desktop two-column -- */
     @media (min-width: 901px) {
       .co-body { padding: 3rem 2.5rem 5rem; }
 
@@ -423,7 +423,7 @@
         margin-bottom: 0;
       }
 
-      /* Desktop summary heading — replaces mobile toggle */
+      /* Desktop summary heading � replaces mobile toggle */
       .co-sum-desktop-hd {
         display: flex;
         align-items: center;
@@ -440,7 +440,7 @@
       /* Hide the mobile toggle, always show summary body */
       .co-summary-toggle { display: none !important; }
       .co-summary-body { display: block !important; margin-bottom: 0; }
-      /* Page title — larger on desktop */
+      /* Page title � larger on desktop */
       .co-checkout-h { font-size: 3rem; }
       .co-page-title { margin-bottom: 2.5rem; text-align: left; }
     }
@@ -473,20 +473,20 @@
 <div class="co-body">
   <div class="co-checkout-grid">
 
-    <!-- ── FORM COLUMN ── -->
+    <!-- -- FORM COLUMN -- -->
     <div class="co-form-col">
 
       <!-- PAGE TITLE -->
       <div class="co-page-title">
         <h1 class="co-checkout-h">Checkout</h1>
-        <div class="co-checkout-sub" id="co-checkout-sub">Loading…</div>
+        <div class="co-checkout-sub" id="co-checkout-sub">Loading�</div>
       </div>
 
       <!-- WALLET BUTTONS -->
-      <div class="zw-test-mode-banner" data-stripe-test-banner>Test mode active — use Stripe test cards only.</div>
+      <div class="zw-test-mode-banner" data-stripe-test-banner>Test mode active � use Stripe test cards only.</div>
       <div id="payment-request-btn" style="display:none" aria-hidden="true"></div>
       <div id="wallet-methods" class="wallet-methods" aria-hidden="true"></div>
-      <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0 1.4rem;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.28)">— or pay with card —</div>
+      <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0 1.4rem;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.28)">� or pay with card �</div>
 
       <!-- CONTACT -->
       <div class="co-section">
@@ -510,13 +510,13 @@
       <!-- SHIPPING -->
       <div class="co-section">
         <div class="co-section-hd"><span class="co-section-label">Shipping</span></div>
-        <div id="shipping-rates-loading" style="display:none;font-size:.8rem;color:var(--sub);letter-spacing:.04em;margin-bottom:.5rem">Fetching rates…</div>
+        <div id="shipping-rates-loading" style="display:none;font-size:.8rem;color:var(--sub);letter-spacing:.04em;margin-bottom:.5rem">Fetching rates�</div>
         <div id="shipping-rates-field" style="display:none"><div id="shipping-rates-list"></div></div>
         <div id="shipping-free-row" style="display:none;align-items:center;justify-content:space-between;font-size:.9rem">
           <span>Standard Shipping</span>
           <span style="color:var(--text)">Free</span>
         </div>
-        <div id="shipping-placeholder" style="font-size:.88rem;color:var(--sub)">Free on orders $100+ — calculated at checkout</div>
+        <div id="shipping-placeholder" style="font-size:.88rem;color:var(--sub)">Free on orders $100+ � calculated at checkout</div>
       </div>
 
       <!-- PROMO CODE -->
@@ -542,7 +542,7 @@
 
     </div><!-- /.co-form-col -->
 
-    <!-- ── SUMMARY COLUMN ── -->
+    <!-- -- SUMMARY COLUMN -- -->
     <div class="co-summary-col">
 
       <!-- Desktop heading (hidden on mobile) -->
@@ -555,7 +555,7 @@
             In Your Bag
             <svg class="co-sum-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
           </span>
-          <span class="co-sum-toggle-right" id="pm-toggle-total">—</span>
+          <span class="co-sum-toggle-right" id="pm-toggle-total">�</span>
         </div>
       </button>
 
@@ -563,12 +563,12 @@
       <div class="co-summary-body" id="pm-summary-body">
         <div class="pm-items" id="pm-items"></div>
         <div class="pm-lines">
-          <div class="pm-line"><span>Subtotal</span><span id="pm-subtotal">—</span></div>
-          <div class="pm-line"><span>Shipping</span><span id="pm-shipping">—</span></div>
-          <div class="pm-line" id="zw-promo-row" style="display:none"><span>Discount</span><span id="zw-promo-discount" style="color:rgba(110,210,130,.9)">—</span></div>
-          <div class="pm-line"><span id="pm-tax-label">Tax</span><span id="pm-tax">—</span></div>
+          <div class="pm-line"><span>Subtotal</span><span id="pm-subtotal">�</span></div>
+          <div class="pm-line"><span>Shipping</span><span id="pm-shipping">�</span></div>
+          <div class="pm-line" id="zw-promo-row" style="display:none"><span>Discount</span><span id="zw-promo-discount" style="color:rgba(110,210,130,.9)">�</span></div>
+          <div class="pm-line"><span id="pm-tax-label">Tax</span><span id="pm-tax">�</span></div>
         </div>
-        <div class="pm-total-row"><span>Total</span><span id="pm-total">—</span></div>
+        <div class="pm-total-row"><span>Total</span><span id="pm-total">�</span></div>
       </div>
 
     </div><!-- /.co-summary-col -->
@@ -578,7 +578,7 @@
 
 <!-- SUCCESS -->
 <div id="payment-success" role="dialog" aria-modal="true" aria-label="Order confirmed">
-  <div class="success-check" aria-hidden="true">✓</div>
+  <div class="success-check" aria-hidden="true">?</div>
   <h2>Order Confirmed</h2>
   <p id="success-msg">Thank you! A confirmation has been sent to your email.</p>
   <span id="success-order"></span>
@@ -590,7 +590,7 @@
 
 <script src="/posthog-init.js?v=6ebbeafc"></script>
 <script>
-/* ── Globals expected by checkout.js / commerce-checkout.js ── */
+/* -- Globals expected by checkout.js / commerce-checkout.js -- */
 window.cartItems = [];
 window._zwActivePromo = null;
 window._shippingPolicy = { enabled: true, threshold: 100 };
@@ -633,7 +633,7 @@ window._checkoutPrefill = async function() {
     ) : null;
     if (!_coSb) return;
 
-    /* Get session — force-refresh if token is expired or within 60 s of expiry */
+    /* Get session � force-refresh if token is expired or within 60 s of expiry */
     var res = await _coSb.auth.getSession();
     var session = res.data && res.data.session;
     if (session) {
@@ -672,7 +672,7 @@ window._checkoutPrefill = async function() {
       if (emailEl && !emailEl.value.trim() && email) emailEl.value = email;
     }
 
-    /* Try cached profile first — works even with expired token */
+    /* Try cached profile first � works even with expired token */
     try {
       var cached = localStorage.getItem('zuwera-profile');
       if (cached) {
@@ -715,7 +715,7 @@ window.zwSyncWalletTotal = function() {
 
 window.zwApplyPromo = function(promo) {
   window._zwActivePromo = promo;
-  // Keep the bag↔checkout handoff in sync (and survive a checkout refresh).
+  // Keep the bag?checkout handoff in sync (and survive a checkout refresh).
   try { if (promo && promo.code) sessionStorage.setItem('zw_promo_code', promo.code); } catch(_) {}
   var row = document.getElementById('zw-promo-row');
   var discountEl = document.getElementById('zw-promo-discount');
@@ -761,7 +761,7 @@ window.zwClearPromo = function() {
   window.zwSyncWalletTotal();
 };
 
-/* ── Read cart ── */
+/* -- Read cart -- */
 (function() {
   try {
     var cart = JSON.parse(localStorage.getItem('cart') || '[]');
@@ -780,7 +780,7 @@ window.zwClearPromo = function() {
     var n = cart.reduce(function(s,i){ return s + (i.quantity||1); }, 0);
     var sub = cart.reduce(function(s,i){ return s + parseFloat(i.price||0)*(i.quantity||1); }, 0);
     var el = document.getElementById('co-checkout-sub');
-    if (el) el.textContent = n + ' item' + (n!==1?'s':'') + ' · $' + sub.toFixed(2);
+    if (el) el.textContent = n + ' item' + (n!==1?'s':'') + ' � $' + sub.toFixed(2);
     var countEl = document.getElementById('co-bag-count');
     if (countEl) countEl.textContent = n;
   }
@@ -792,7 +792,7 @@ window.zwClearPromo = function() {
   function zwColorDot(item) {
     var hex = item.colorHex || _zwColorMap[(item.colorName||'').toLowerCase().trim()] || '';
     if (!hex) return '';
-    // Older cart items may carry a bare hex ("FFFFFF") — invalid as a CSS color.
+    // Older cart items may carry a bare hex ("FFFFFF") � invalid as a CSS color.
     if (/^[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(hex)) hex = '#' + hex;
     return '<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:'+hex+';border:1px solid rgba(0,0,0,.18);margin-right:4px;vertical-align:middle;flex-shrink:0"></span>';
   }
@@ -817,12 +817,12 @@ window.zwClearPromo = function() {
 
     var policy = window._shippingPolicy || { enabled: true, threshold: 100 };
     var sub = cart.reduce(function(s,i){ return s + parseFloat(i.price||0)*(i.quantity||1); }, 0);
-    var shipping = (policy.enabled && sub >= policy.threshold) ? 'Free' : '—';
+    var shipping = (policy.enabled && sub >= policy.threshold) ? 'Free' : '�';
     var fmt = '$'+sub.toFixed(2);
     function set(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; }
     set('pm-subtotal', fmt);
     set('pm-shipping', shipping);
-    set('pm-tax', '—');
+    set('pm-tax', '�');
     set('pm-total', fmt);
     set('pm-toggle-total', fmt);
   }
@@ -873,7 +873,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (window._zwActivePromo) { window.zwClearPromo(true); return; }
       var code = (promoInput ? promoInput.value : '').trim().toUpperCase();
       if (!code) { if (promoMsg) promoMsg.textContent = 'Enter a promo code.'; return; }
-      promoBtn.disabled = true; promoBtn.textContent = '…';
+      promoBtn.disabled = true; promoBtn.textContent = '�';
       if (promoMsg) promoMsg.textContent = '';
       try {
         var r = await fetch('/api/validate-promo', {

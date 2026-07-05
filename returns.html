@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <script>
-/* THEME FLASH PREVENTION — runs before any CSS loads */
+/* THEME FLASH PREVENTION � runs before any CSS loads */
 (function(){try{
   var m=localStorage.getItem('zw_theme_mode');
   var h=document.documentElement;
@@ -23,7 +23,7 @@
   }
 }catch(_){}})()</script>
 <script>
-/* AUTH PRE-READ — synchronous session decode (same as account/bag) so the
+/* AUTH PRE-READ � synchronous session decode (same as account/bag) so the
    signed-out auth prompt can render before first paint instead of flashing
    the loading skeleton. init() remains the authority. */
 (function(){try{
@@ -48,7 +48,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#09090b">
-  <title>Returns &amp; Exchanges — Zuwera</title>
+  <title>Returns &amp; Exchanges � Zuwera</title>
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png?v=3" id="site-favicon">
   <link rel="icon" type="image/png" sizes="192x192" href="/images/favicon-black-192.png?v=3">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=3">
@@ -112,12 +112,12 @@
       font-weight: 300;
       min-height: 100vh;
       overflow-x: hidden;   /* fallback for old Safari */
-      overflow-x: clip;     /* clip horizontal overflow WITHOUT making <body> a scroll container (keeps window scroll → header auto-hide works) */
+      overflow-x: clip;     /* clip horizontal overflow WITHOUT making <body> a scroll container (keeps window scroll ? header auto-hide works) */
       display: flex;
       flex-direction: column;
     }
 
-    /* ── NAV ── */
+    /* -- NAV -- */
     .zw-nav {
       position: sticky; top: 0; z-index: 100;
       display: flex; align-items: center; justify-content: space-between;
@@ -139,7 +139,7 @@
     /* Login + Bag header styles are shared via storefront-cohesion.css
        (.zw-hdr-group / .zw-hdr-action / .zw-hdr-bag / .zw-hdr-bag-count). */
 
-    /* ── PAGE ── */
+    /* -- PAGE -- */
     .page { flex: 1; }
     .page-inner {
       max-width: 1040px;
@@ -147,7 +147,7 @@
       padding: 3rem 2rem 5rem;
     }
 
-    /* Desktop: two-pane wizard — sticky vertical step rail beside the active
+    /* Desktop: two-pane wizard � sticky vertical step rail beside the active
        step, so the flow fills the width like a real returns portal instead of
        a narrow centred column. Mobile keeps the horizontal stepper below. */
     @media (min-width: 901px) {
@@ -165,7 +165,7 @@
       .wizard-steps { grid-column: 2; min-width: 0; }
     }
 
-    /* ── PAGE HEADER ── */
+    /* -- PAGE HEADER -- */
     .page-hd { margin-bottom: 2.5rem; }
     .page-hd h1 {
       font-family: var(--fw);
@@ -176,7 +176,7 @@
     }
     .page-hd p { font-size: .78rem; color: var(--muted); line-height: 1.7; }
 
-    /* ── AUTH PROMPT ── */
+    /* -- AUTH PROMPT -- */
     .auth-prompt {
       border: 1px solid var(--border);
       padding: 3rem 2rem;
@@ -212,7 +212,7 @@
     button.btn-primary, button.btn-ghost { font-family: var(--fm); }
     button:disabled { opacity: .35; cursor: default; }
 
-    /* ── EXISTING RETURNS ── */
+    /* -- EXISTING RETURNS -- */
     .existing-section { margin-bottom: 3rem; }
     .section-label {
       font-size: .58rem; letter-spacing: .18em; text-transform: uppercase;
@@ -248,7 +248,7 @@
     .status-refunded   { color: #065f46; background: #d1fae5; }
     .status-closed     { color: #374151; background: #f3f4f6; }
 
-    /* ── additional status colors ── */
+    /* -- additional status colors -- */
     .status-received   { color: #065f46; background: #d1fae5; }
     .status-inspecting { color: #1e40af; background: #dbeafe; }
     .status-store_credit_issued { color: #065f46; background: #d1fae5; }
@@ -262,7 +262,7 @@
       border: 1px solid var(--border); padding: .15rem .55rem; color: var(--muted);
     }
 
-    /* ── Return progress tracker ── */
+    /* -- Return progress tracker -- */
     .ret-progress {
       margin: 1rem 0 .25rem;
       display: flex; align-items: flex-start; gap: 0;
@@ -299,7 +299,7 @@
     }
     .ret-step.done .ret-step-label, .ret-step.active .ret-step-label { color: var(--ret-text); }
 
-    /* ── Label / tracking panel ── */
+    /* -- Label / tracking panel -- */
     .ret-label-panel {
       margin-top: 1rem;
       border: 1px solid var(--border);
@@ -349,7 +349,7 @@
     }
     .btn-track:hover { color: var(--ret-text); border-color: var(--ret-text); }
 
-    /* ── WIZARD ── */
+    /* -- WIZARD -- */
     .wizard { }
     .wizard-header { margin-bottom: 2rem; }
     .wizard-header h2 {
@@ -390,8 +390,8 @@
       display: flex; gap: .75rem; align-items: center;
     }
 
-    /* ── STEP 1: Order cards — grid so a long order history fills the width
-           instead of stacking as one tall narrow column ── */
+    /* -- STEP 1: Order cards � grid so a long order history fills the width
+           instead of stacking as one tall narrow column -- */
     .order-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: .7rem; }
     .order-card {
       border: 1.5px solid var(--border);
@@ -426,7 +426,7 @@
     }
     .empty-state svg { margin: 0 auto .75rem; display: block; opacity: .3; }
 
-    /* ── STEP 2: Resolution cards ── */
+    /* -- STEP 2: Resolution cards -- */
     .res-cards {
       display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem;
     }
@@ -449,7 +449,7 @@
       .res-card-name { font-size: .95rem; }
     }
 
-    /* ── STEP 3: Reasons ── */
+    /* -- STEP 3: Reasons -- */
     .reason-intro { font-size: .78rem; color: var(--muted); margin-bottom: 1.2rem; line-height: 1.6; }
     .reason-chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.5rem; }
     .reason-chip {
@@ -486,7 +486,7 @@
     }
     body.light-mode .exchange-note { color: rgba(9,9,11,.7); }
 
-    /* ── STEP 4: Review ── */
+    /* -- STEP 4: Review -- */
     .review-card {
       border: 1px solid var(--border);
       background: var(--surface); margin-bottom: 1.5rem;
@@ -521,7 +521,7 @@
     .submit-status.error { color: var(--accent-red); }
     .submit-status.success { color: var(--accent-green); }
 
-    /* ── POLICY ACCORDION ── */
+    /* -- POLICY ACCORDION -- */
     .policy-section {
       border-top: 1px solid var(--border);
       max-width: 720px; margin: 0 auto;
@@ -551,7 +551,7 @@
       border: 1px solid var(--border); padding: .3rem .7rem; color: var(--muted);
     }
 
-    /* ── LOADING ── */
+    /* -- LOADING -- */
     .loading-pulse {
       display: flex; flex-direction: column; gap: .75rem; padding: 1rem 0;
     }
@@ -563,7 +563,7 @@
     .pulse-line:nth-child(3) { width: 85%; animation-delay: .1s; }
     @keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:.9} }
 
-    /* ── FOOTER ── */
+    /* -- FOOTER -- */
     footer { margin-top: auto; }
 
     @media(max-width: 600px) {
@@ -684,9 +684,9 @@ body.super-light-mode .policy-section { border-color: rgba(9,9,11,.14); }
       var r=document.getElementById('page-root');
       if(!r)return;
       r.innerHTML='<div class="auth-prompt">'+
-        '<div class="auth-prompt-icon">↩</div>'+
+        '<div class="auth-prompt-icon">?</div>'+
         '<h2>Login to continue</h2>'+
-        '<p>View your orders and start a return or exchange — all in one place.</p>'+
+        '<p>View your orders and start a return or exchange � all in one place.</p>'+
         '<div class="auth-features">'+
           '<span class="auth-feature">Free return shipping</span>'+
           '<span class="auth-feature">Prepaid labels by email</span>'+
@@ -713,7 +713,7 @@ body.super-light-mode .policy-section { border-color: rgba(9,9,11,.14); }
     </div>
     <p>We want you to love what you wear. If you're not satisfied with your Zuwera purchase, you may return eligible items within <strong>30 days of delivery</strong> for a full refund, exchange, or store credit. Items must be unworn, unwashed, and in their original condition with all tags attached.</p>
     <div class="policy-sub">How it works</div>
-    <p>Submit your request using the form above. We'll review it within 1–2 business days and email you a prepaid return shipping label. Pack your item securely and drop it off at any USPS location. Refunds are processed within 5–7 business days of receiving your return and are issued to your original payment method.</p>
+    <p>Submit your request using the form above. We'll review it within 1�2 business days and email you a prepaid return shipping label. Pack your item securely and drop it off at any USPS location. Refunds are processed within 5�7 business days of receiving your return and are issued to your original payment method.</p>
     <div class="policy-sub">Non-returnable items</div>
     <ul>
       <li>Items marked Final Sale at time of purchase</li>
@@ -773,11 +773,11 @@ body.super-light-mode .policy-section { border-color: rgba(9,9,11,.14); }
 </footer>
 
 <script>
-// ─── Config ──────────────────────────────────────────────────────────────────
+// --- Config ------------------------------------------------------------------
 // _sb set in DOMContentLoaded once supabase-client.js (deferred) has run
 let _sb = null;
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// --- Helpers -----------------------------------------------------------------
 function esc(v) {
   return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -793,14 +793,14 @@ function orderShortId(id) {
   return '#' + String(id || '').slice(-8).toUpperCase();
 }
 
-// ─── Auth ─────────────────────────────────────────────────────────────────────
+// --- Auth ---------------------------------------------------------------------
 async function getSession() {
   if (!_sb?.auth?.getSession) return null;
   const r = await _sb.auth.getSession().catch(() => null);
   return r?.data?.session || null;
 }
 
-// ─── API ──────────────────────────────────────────────────────────────────────
+// --- API ----------------------------------------------------------------------
 async function fetchHubData(session) {
   const resp = await fetch('/api/customer-hub', {
     headers: { Authorization: `Bearer ${session.access_token}` }
@@ -821,15 +821,15 @@ async function submitReturn(session, payload) {
   return data;
 }
 
-// ─── Status labels ─────────────────────────────────────────────────────────
+// --- Status labels ---------------------------------------------------------
 const STATUS_INFO = {
-  requested:            { label: 'Under Review',          cls: 'status-requested',            step: 0, next: '<strong>We\'re reviewing your request</strong> and will respond within 1–2 business days. You\'ll get an email update soon.' },
-  approved:             { label: 'Approved',              cls: 'status-approved',             step: 1, next: '<strong>Your return is approved!</strong> We\'re generating your prepaid shipping label — check your email shortly.' },
+  requested:            { label: 'Under Review',          cls: 'status-requested',            step: 0, next: '<strong>We\'re reviewing your request</strong> and will respond within 1�2 business days. You\'ll get an email update soon.' },
+  approved:             { label: 'Approved',              cls: 'status-approved',             step: 1, next: '<strong>Your return is approved!</strong> We\'re generating your prepaid shipping label � check your email shortly.' },
   label_sent:           { label: 'Label Ready',           cls: 'status-label_sent',           step: 1, next: '<strong>Action needed:</strong> Download your prepaid label, print it, attach it to your package, and drop it off at any carrier location. No postage needed.' },
-  received:             { label: 'Item Received',         cls: 'status-received',             step: 2, next: '<strong>We got your package!</strong> Our team is processing your return. You\'ll hear back within 3–5 business days.' },
+  received:             { label: 'Item Received',         cls: 'status-received',             step: 2, next: '<strong>We got your package!</strong> Our team is processing your return. You\'ll hear back within 3�5 business days.' },
   inspecting:           { label: 'Being Inspected',       cls: 'status-inspecting',           step: 2, next: '<strong>Almost there.</strong> Your item is being inspected. We\'ll update you once the inspection is complete.' },
   exchange_in_progress: { label: 'Exchange in Progress',  cls: 'status-exchange_in_progress', step: 3, next: '<strong>Your replacement is on its way.</strong> We\'ll send a shipping confirmation with tracking as soon as it ships.' },
-  refunded:             { label: 'Refunded',              cls: 'status-refunded',             step: 4, next: '<strong>Your refund has been issued.</strong> It may take 3–7 business days to appear on your statement depending on your bank.' },
+  refunded:             { label: 'Refunded',              cls: 'status-refunded',             step: 4, next: '<strong>Your refund has been issued.</strong> It may take 3�7 business days to appear on your statement depending on your bank.' },
   store_credit_issued:  { label: 'Credit Applied',        cls: 'status-store_credit_issued',  step: 4, next: '<strong>Your store credit has been applied.</strong> It\'s available to use on any future Zuwera order.' },
   completed:            { label: 'Complete',              cls: 'status-completed',            step: 4, next: 'Your return has been fully processed. Thank you for shopping with Zuwera.' },
   denied:               { label: 'Not Approved',          cls: 'status-denied',               step: -1, next: 'We weren\'t able to approve this request. If you have questions, please reply to the email we sent or <a href="mailto:orders@zuwera.store" style="color:inherit;text-decoration:underline">contact us</a>.' },
@@ -842,7 +842,7 @@ const RESOLUTION_LABELS = {
   store_credit: 'Store Credit',
 };
 
-// ─── Progress tracker helpers ─────────────────────────────────────────────────
+// --- Progress tracker helpers -------------------------------------------------
 function buildProgressSteps(resolution, currentStep) {
   // Steps depend on what the customer is getting back
   const isExchange = resolution === 'exchange';
@@ -869,7 +869,7 @@ function buildProgressSteps(resolution, currentStep) {
 
 function buildLabelPanel(r) {
   if (!r.labelUrl && !r.trackingNumber) return '';
-  const carrierLine = [r.carrier, r.service].filter(Boolean).join(' — ');
+  const carrierLine = [r.carrier, r.service].filter(Boolean).join(' � ');
   const safeLabelUrl = r.labelUrl && /^https?:\/\//i.test(r.labelUrl) ? r.labelUrl : null;
   return `<div class="ret-label-panel">
     ${safeLabelUrl ? `<div class="ret-label-row">
@@ -896,7 +896,7 @@ function buildLabelPanel(r) {
   </div>`;
 }
 
-// ─── Render existing returns ──────────────────────────────────────────────────
+// --- Render existing returns --------------------------------------------------
 function renderExistingReturns(returns) {
   if (!returns.length) return '';
   const cards = returns.map(r => {
@@ -917,7 +917,7 @@ function renderExistingReturns(returns) {
     const detailLines = [
       r.reason ? `<span>${esc(r.reason)}</span>` : '',
       r.notes  ? `<span style="color:var(--muted);">${esc(r.notes)}</span>` : '',
-    ].filter(Boolean).join(' · ');
+    ].filter(Boolean).join(' � ');
 
     return `
       <div class="return-card">
@@ -959,7 +959,7 @@ function renderExistingReturns(returns) {
     </div>`;
 }
 
-// ─── Wizard state ─────────────────────────────────────────────────────────────
+// --- Wizard state -------------------------------------------------------------
 const REASONS = [
   "Doesn't fit right",
   "Wrong size ordered",
@@ -989,8 +989,8 @@ const state = {
   submitting: false,
 };
 
-// Order items only store {sku, name, amount, quantity} — no image. Preload a
-// small sku/title → image map (catalog is tiny) so the item picker can show
+// Order items only store {sku, name, amount, quantity} � no image. Preload a
+// small sku/title ? image map (catalog is tiny) so the item picker can show
 // product thumbnails.
 let _prodImgMap = null;
 let _prodImgPromise = null;
@@ -1044,7 +1044,7 @@ function showStep(n) {
   updateStepProgress();
   updateNextBtn();
   // Re-orient at the top of the wizard (not the whole page) so the shopper
-  // keeps their place and sees the step advance — jumping to page top made
+  // keeps their place and sees the step advance � jumping to page top made
   // people lose the flow.
   const anchor = document.querySelector('.wizard-header') || document.querySelector('.wizard');
   if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1069,50 +1069,50 @@ function buildStep5Review() {
   const resolutionLabel = { return: 'Refund to original payment', exchange: 'Exchange for new item', store_credit: 'Store credit' }[state.selectedResolution] || state.selectedResolution;
   const nextSteps = {
     return: [
-      'We\'ll review your request and confirm within 1–2 business days',
+      'We\'ll review your request and confirm within 1�2 business days',
       'You\'ll receive a <strong>prepaid shipping label</strong> by email',
       'Pack your item securely and drop it off at any USPS location',
-      'Your refund will be processed within <strong>5–7 days</strong> of receiving your return',
+      'Your refund will be processed within <strong>5�7 days</strong> of receiving your return',
     ],
     exchange: [
-      'We\'ll review your request and confirm within 1–2 business days',
+      'We\'ll review your request and confirm within 1�2 business days',
       'You\'ll receive a <strong>prepaid shipping label</strong> by email',
       'Pack your item and drop it off at any USPS location',
       'We\'ll process your <strong>exchange</strong> and ship your new item',
     ],
     store_credit: [
-      'We\'ll review your request and confirm within 1–2 business days',
+      'We\'ll review your request and confirm within 1�2 business days',
       'You\'ll receive a <strong>prepaid shipping label</strong> by email',
       'Pack your item and drop it off at any USPS location',
-      '<strong>Store credit</strong> will be added to your account within 5–7 days of receipt',
+      '<strong>Store credit</strong> will be added to your account within 5�7 days of receipt',
     ],
   }[state.selectedResolution] || [];
 
   const exchangeSizeRow = (state.selectedResolution === 'exchange' && state.exchangeSize)
     ? `<div class="review-row"><div class="review-label">Exchange for</div><div class="review-value">${esc(state.exchangeSize)}</div></div>`
     : '';
-  const combinedNotes = [state.otherNotes, state.extraNotes].filter(s => s && s.trim()).map(s => s.trim()).join(' — ');
+  const combinedNotes = [state.otherNotes, state.extraNotes].filter(s => s && s.trim()).map(s => s.trim()).join(' � ');
   const notesRow = combinedNotes
     ? `<div class="review-row"><div class="review-label">Notes</div><div class="review-value">${esc(combinedNotes)}</div></div>`
     : '';
 
   const itemsRow = state.selectedItems.length
     ? `<div class="review-row"><div class="review-label">Items</div><div class="review-value">${state.selectedItems.map(i => {
-        const meta = [i.size, i.color || i.colorName].filter(Boolean).join(' · ');
-        return esc((i.name || i.title || 'Item') + (meta ? ' — ' + meta : ''));
+        const meta = [i.size, i.color || i.colorName].filter(Boolean).join(' � ');
+        return esc((i.name || i.title || 'Item') + (meta ? ' � ' + meta : ''));
       }).join('<br>')}</div></div>`
     : '';
 
   document.querySelector('.step[data-step="5"]').innerHTML = `
     <div style="margin-bottom:1.5rem">
       <h3 style="font-family:var(--fw);font-size:1.1rem;letter-spacing:.05em;margin-bottom:.3rem">Review your request</h3>
-      <p style="font-size:.75rem;color:var(--muted)">Everything look right? We'll get back to you within 1–2 business days.</p>
+      <p style="font-size:.75rem;color:var(--muted)">Everything look right? We'll get back to you within 1�2 business days.</p>
     </div>
 
     <div class="review-card">
       <div class="review-row">
         <div class="review-label">Order</div>
-        <div class="review-value">${esc(state.selectedOrderLabel)} &nbsp;·&nbsp; ${esc(state.selectedOrderDate)}${state.selectedOrderAmount ? ' &nbsp;·&nbsp; ' + esc(state.selectedOrderAmount) : ''}</div>
+        <div class="review-value">${esc(state.selectedOrderLabel)} &nbsp;�&nbsp; ${esc(state.selectedOrderDate)}${state.selectedOrderAmount ? ' &nbsp;�&nbsp; ' + esc(state.selectedOrderAmount) : ''}</div>
       </div>
       ${itemsRow}
       <div class="review-row">
@@ -1150,18 +1150,18 @@ function buildStep5Review() {
   `;
 }
 
-// ─── Submit ───────────────────────────────────────────────────────────────────
+// --- Submit -------------------------------------------------------------------
 async function handleSubmit() {
   if (state.submitting) return;
   state.submitting = true;
   const btn = document.getElementById('submit-btn');
   const statusEl = document.getElementById('submit-status');
   if (btn) btn.disabled = true;
-  if (statusEl) { statusEl.textContent = 'Submitting…'; statusEl.className = 'submit-status'; }
+  if (statusEl) { statusEl.textContent = 'Submitting�'; statusEl.className = 'submit-status'; }
 
   const reason = state.selectedReason === 'Other' && state.otherNotes.trim()
     ? state.otherNotes.trim()
-    : state.selectedReason + (state.extraNotes.trim() ? ' — ' + state.extraNotes.trim() : '');
+    : state.selectedReason + (state.extraNotes.trim() ? ' � ' + state.extraNotes.trim() : '');
 
   const exchangeNote = (state.selectedResolution === 'exchange' && state.exchangeSize)
     ? '\nExchange for: ' + state.exchangeSize
@@ -1179,7 +1179,7 @@ async function handleSubmit() {
       returnItems: state.selectedItems,
     });
     window.removeEventListener('beforeunload', _warnBeforeUnload);
-    if (statusEl) { statusEl.textContent = '✓ Request submitted!'; statusEl.className = 'submit-status success'; }
+    if (statusEl) { statusEl.textContent = '? Request submitted!'; statusEl.className = 'submit-status success'; }
     setTimeout(() => location.reload(), 3000);
   } catch(e) {
     state.submitting = false;
@@ -1190,7 +1190,7 @@ async function handleSubmit() {
 window.handleSubmit = handleSubmit;
 window.showStep = showStep;
 
-// ─── Beforeunload guard ───────────────────────────────────────────────────────
+// --- Beforeunload guard -------------------------------------------------------
 function _wizardHasData() {
   return !!(state.selectedOrderId || state.selectedResolution || state.selectedReason ||
     state.exchangeSize || state.otherNotes.trim() || state.extraNotes.trim());
@@ -1200,7 +1200,7 @@ function _warnBeforeUnload(e) {
 }
 window.addEventListener('beforeunload', _warnBeforeUnload);
 
-// ─── Render wizard ────────────────────────────────────────────────────────────
+// --- Render wizard ------------------------------------------------------------
 function renderWizard(orders) {
   _orders = orders;
   const orderCards = orders.length
@@ -1235,7 +1235,7 @@ function renderWizard(orders) {
     <div class="wizard">
       <div class="wizard-header">
         <h2>Start a Return or Exchange</h2>
-        <p>We'll walk you through it — takes less than 2 minutes.</p>
+        <p>We'll walk you through it � takes less than 2 minutes.</p>
       </div>
 
       <!-- Step progress -->
@@ -1299,17 +1299,17 @@ function renderWizard(orders) {
         <p style="font-size:.78rem;color:var(--muted);margin-bottom:1.2rem">What would you like us to do?</p>
         <div class="res-cards">
           <button class="res-card" data-value="return" onclick="selectResolution(this)">
-            <div class="res-card-icon">💳</div>
+            <div class="res-card-icon">??</div>
             <div class="res-card-name">Refund</div>
             <div class="res-card-desc">Money back to your original payment method</div>
           </button>
           <button class="res-card" data-value="exchange" onclick="selectResolution(this)">
-            <div class="res-card-icon">🔄</div>
+            <div class="res-card-icon">??</div>
             <div class="res-card-name">Exchange</div>
             <div class="res-card-desc">Swap for a different size, color, or style</div>
           </button>
           <button class="res-card" data-value="store_credit" onclick="selectResolution(this)">
-            <div class="res-card-icon">⭐</div>
+            <div class="res-card-icon">?</div>
             <div class="res-card-name">Store Credit</div>
             <div class="res-card-desc">Credit towards your next Zuwera order</div>
           </button>
@@ -1332,11 +1332,11 @@ function renderWizard(orders) {
         </div>
         <div class="step3-field" id="other-notes-field" style="display:none">
           <label>Tell us more</label>
-          <textarea id="other-notes" rows="3" maxlength="600" placeholder="Describe your reason…" oninput="state.otherNotes=this.value;updateNextBtn()"></textarea>
+          <textarea id="other-notes" rows="3" maxlength="600" placeholder="Describe your reason�" oninput="state.otherNotes=this.value;updateNextBtn()"></textarea>
         </div>
         <div class="step3-field" style="display:block">
           <label>Additional notes (optional)</label>
-          <textarea id="extra-notes" rows="2" maxlength="600" placeholder="Anything else we should know…" oninput="state.extraNotes=this.value"></textarea>
+          <textarea id="extra-notes" rows="2" maxlength="600" placeholder="Anything else we should know�" oninput="state.extraNotes=this.value"></textarea>
         </div>
         <div class="step3-field" id="exchange-size-field" style="display:none">
           <label>What size or item would you like instead? <span style="color:var(--accent-red)">*</span></label>
@@ -1359,7 +1359,7 @@ function renderWizard(orders) {
     </div>`;
 }
 
-// ─── Step interaction handlers ────────────────────────────────────────────────
+// --- Step interaction handlers ------------------------------------------------
 window.selectOrder = function(el) {
   document.querySelectorAll('.order-card').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
@@ -1382,9 +1382,9 @@ window.selectOrder = function(el) {
     } else {
       picker.innerHTML = items.map((item, idx) => {
         const name = esc((item.name || item.title || 'Item').trim());
-        const meta = [item.size, item.color || item.colorName].filter(Boolean).map(esc).join(' · ');
+        const meta = [item.size, item.color || item.colorName].filter(Boolean).map(esc).join(' � ');
         // Order items store `amount` in cents (fmtAmt divides by 100). Fall back
-        // to price/unit_price (dollars) → cents only if amount is absent.
+        // to price/unit_price (dollars) ? cents only if amount is absent.
         const amtCents = parseFloat(item.amount || 0) || Math.round(parseFloat(item.price || item.unit_price || 0) * 100);
         const priceStr = amtCents > 0 ? fmtAmt(amtCents) : '';
         const rawImg = item.image || item.product_image || item.image_url || lookupItemImage(item);
@@ -1485,13 +1485,13 @@ window.goNext = function() {
   showStep(state.step + 1);
 };
 
-// ─── Render auth prompt ───────────────────────────────────────────────────────
+// --- Render auth prompt -------------------------------------------------------
 function renderAuthPrompt() {
   return `
     <div class="auth-prompt">
-      <div class="auth-prompt-icon">↩</div>
+      <div class="auth-prompt-icon">?</div>
       <h2>Login to continue</h2>
-      <p>View your orders and start a return or exchange — all in one place.</p>
+      <p>View your orders and start a return or exchange � all in one place.</p>
       <div class="auth-features">
         <span class="auth-feature">Free return shipping</span>
         <span class="auth-feature">Prepaid labels by email</span>
@@ -1501,7 +1501,7 @@ function renderAuthPrompt() {
     </div>`;
 }
 
-// ─── Init ─────────────────────────────────────────────────────────────────────
+// --- Init ---------------------------------------------------------------------
 async function init() {
   const root = document.getElementById('page-root');
   ensureProductImages(); // preload product thumbnails for the item picker
@@ -1541,7 +1541,7 @@ async function init() {
   }
 }
 
-// ─── Policy accordion ─────────────────────────────────────────────────────────
+// --- Policy accordion ---------------------------------------------------------
 document.getElementById('policy-toggle').addEventListener('click', function() {
   const body = document.getElementById('policy-body');
   const open = body.classList.toggle('open');
