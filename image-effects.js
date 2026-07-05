@@ -19,9 +19,16 @@
   function apply(cfg) {
     try {
       var hz = (cfg && cfg.hoverZoom) || {};
-      var scale = (hz.enabled === false) ? 1 : Number(hz.scale);
-      if (!(scale >= 1 && scale <= 1.3)) scale = (hz.enabled === false) ? 1 : 1.04;
-      document.documentElement.style.setProperty('--zw-img-hover-zoom', String(scale));
+      var master = hz.enabled !== false;              // master on/off
+      var scale = Number(hz.scale);
+      if (!(scale >= 1 && scale <= 1.3)) scale = 1.04;
+      var types = (hz.types && typeof hz.types === 'object') ? hz.types : {};
+      var root = document.documentElement.style;
+      // Per-type: each defaults to ON when unset (so old configs zoom everything).
+      ['product', 'category', 'media'].forEach(function (t) {
+        var on = master && (types[t] !== false);
+        root.setProperty('--zw-zoom-' + t, String(on ? scale : 1));
+      });
     } catch (_) {}
   }
 

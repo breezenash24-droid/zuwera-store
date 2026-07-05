@@ -3,7 +3,9 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- The admin "Image Effects" control (Appearance page) stores its config in
 -- site_settings under key 'image_effects', e.g.:
---   { "hoverZoom": { "enabled": true, "scale": 1.04 } }
+--   { "hoverZoom": { "enabled": true, "scale": 1.04,
+--                    "types": { "product": true, "category": true, "media": true } } }
+--   (enabled = master switch; types is optional and missing types default to on.)
 --
 -- site_settings public-read is whitelisted per key, so the storefront loader
 -- (image-effects.js, anon key) can only read it once 'image_effects' is added to
