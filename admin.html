@@ -165,11 +165,11 @@
            security boundary. */
         const ZW_RBAC = {
             super_admin: ['*'],
-            manager: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','commerce','meta','receipts','shipping','returns','users','website','settings','tax','audit','flags','refund','return_process','product_write','order_write','user_manage','builder_edit','bulk_actions','export'],
-            finance: ['dashboard','analytics','finance','receipts','tax','audit','refund','export'],
-            fulfillment: ['dashboard','products','receipts','shipping','returns','order_write','return_process','product_write','bulk_actions','export'],
+            manager: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','refund','return_process','product_write','order_write','user_manage','builder_edit','bulk_actions','export'],
+            finance: ['dashboard','analytics','finance','orders','receipts','tax','audit','refund','export'],
+            fulfillment: ['dashboard','products','orders','receipts','shipping','returns','order_write','return_process','product_write','bulk_actions','export'],
             content: ['dashboard','products','sizecharts','reviews','website','settings','product_write','builder_edit','export'],
-            viewer: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','commerce','meta','receipts','shipping','returns','users','website','settings','tax','audit','flags','export']
+            viewer: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','export']
         };
         const ZW_ROLE_LABELS = {
             super_admin:'Super Admin', manager:'Manager', finance:'Finance',
@@ -178,9 +178,9 @@
         // Preset access maps (page -> 'view'|'edit') — mirror of ROLE_PRESET_LEVELS
         // in functions/api/_rbac.js. Drives the "preset" button in the access matrix.
         const ZW_ROLE_PRESET_LEVELS = {
-            manager:{dashboard:'view',analytics:'view',finance:'edit',products:'edit',legacy:'edit',sizecharts:'edit',reviews:'edit',commerce:'edit',meta:'edit',receipts:'edit',shipping:'edit',returns:'edit',users:'edit',website:'edit',settings:'edit',tax:'edit',audit:'view',flags:'edit'},
-            finance:{dashboard:'view',analytics:'view',finance:'edit',receipts:'view',tax:'edit',audit:'view'},
-            fulfillment:{dashboard:'view',products:'view',receipts:'edit',shipping:'edit',returns:'edit'},
+            manager:{dashboard:'view',analytics:'view',finance:'edit',products:'edit',legacy:'edit',sizecharts:'edit',reviews:'edit',commerce:'edit',meta:'edit',orders:'view',receipts:'edit',shipping:'edit',returns:'edit',users:'edit',website:'edit',settings:'edit',tax:'edit',audit:'view',flags:'edit'},
+            finance:{dashboard:'view',analytics:'view',finance:'edit',orders:'view',receipts:'view',tax:'edit',audit:'view'},
+            fulfillment:{dashboard:'view',products:'view',orders:'view',receipts:'edit',shipping:'edit',returns:'edit'},
             content:{dashboard:'view',products:'edit',sizecharts:'edit',reviews:'edit',website:'edit',settings:'edit'}
         };
         // Set from /api/admin-access. null = not yet resolved (pre-auth): allow
@@ -211,7 +211,8 @@
             { id:'reviews',    icon:'⭐', label:'Reviews',     title:'Customer Reviews',    group:'catalogue', kw:'ratings testimonials stars moderate feedback' },
             { id:'commerce',   icon:'🏷️', label:'Coupons',     title:'Coupons',             group:'marketing',     searchLabel:'Commerce / Coupons / Promotions', kw:'discount promo code voucher sale promotion loyalty' },
             { id:'meta',       icon:'📣', label:'Ads & Tracking', title:'Ads & Tracking', group:'marketing', searchLabel:'Meta / Facebook / Pixel / Conversions API / Google Ads / Analytics / GA4 / Merchant Center', kw:'facebook instagram pixel capi conversions api google ads ga4 gtag merchant center tracking utm marketing' },
-            { id:'receipts',   icon:'🧾', label:'Receipts',    title:'Receipts',            group:'operations',    mobile:'Orders', searchLabel:'Receipts / Orders', kw:'orders invoices sales transactions purchases' },
+            { id:'orders',     icon:'🛒', label:'Orders',      title:'Orders',              group:'operations',    mobile:'Orders', searchLabel:'Orders / Sales', kw:'orders sales transactions purchases fulfillment status tracking customer table awaiting shipped' },
+            { id:'receipts',   icon:'🧾', label:'Receipts',    title:'Receipts',            group:'operations',    searchLabel:'Receipts / Invoices', kw:'orders invoices sales transactions purchases receipt tracking number' },
             { id:'shipping',   icon:'🚚', label:'Shipping',    title:'Shipping',            group:'operations', kw:'fulfillment labels tracking shippo dispatch send' },
             { id:'returns',    icon:'↩',  label:'Returns',     title:'Returns & Exchanges', group:'operations', kw:'exchange refund rma return request' },
             { id:'users',      icon:'👥', label:'Users',       title:'User Management',     group:'operations', kw:'customers accounts members profiles delete user' },
@@ -1864,6 +1865,63 @@
                 </div>
 
                 <!-- Receipts Page -->
+                <div id="orders" class="page">
+                  <div class="page-header" style="margin-bottom:24px;">
+                    <h2>Orders</h2>
+                    <p class="zw-page-intro">Every order in one scannable table. Filter by status or fulfillment, search by customer, order #, state or tracking, and click any row to expand its full details. For the printable receipt view or to add a tracking number, use <strong>Receipts</strong>.</p>
+                  </div>
+
+                  <div id="ord-error" class="zw-admin-err" style="display:none;"></div>
+
+                  <!-- Summary KPIs -->
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px;">
+                    <div class="zw-card">
+                      <p class="zw-eyebrow">Orders</p>
+                      <p id="ord-kpi-count" class="zw-stat-value">—</p>
+                    </div>
+                    <div class="zw-card">
+                      <p class="zw-eyebrow">Revenue</p>
+                      <p id="ord-kpi-revenue" style="font-size:24px;font-weight:700;color:var(--accent);">—</p>
+                    </div>
+                    <div class="zw-card">
+                      <p class="zw-eyebrow">Avg Order Value</p>
+                      <p id="ord-kpi-avg" class="zw-stat-value">—</p>
+                    </div>
+                    <div class="zw-card">
+                      <p class="zw-eyebrow">Awaiting Fulfillment</p>
+                      <p id="ord-kpi-awaiting" class="zw-stat-value">—</p>
+                    </div>
+                  </div>
+
+                  <!-- Filters -->
+                  <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:center;">
+                    <input id="ord-search" type="text" placeholder="Search order #, customer, email, state, tracking…" style="flex:1;min-width:240px;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-size:13px;color:var(--text-primary);">
+                    <select id="ord-status" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-size:13px;color:var(--text-primary);cursor:pointer;">
+                      <option value="all">All statuses</option>
+                    </select>
+                    <select id="ord-fulfil" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-size:13px;color:var(--text-primary);cursor:pointer;">
+                      <option value="all">All fulfillment</option>
+                      <option value="awaiting">Awaiting</option>
+                      <option value="shipped">Shipped</option>
+                      <option value="refunded">Refunded</option>
+                    </select>
+                    <select id="ord-sort" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-size:13px;color:var(--text-primary);cursor:pointer;">
+                      <option value="newest">Newest First</option>
+                      <option value="oldest">Oldest First</option>
+                      <option value="highest">Highest Total</option>
+                      <option value="lowest">Lowest Total</option>
+                    </select>
+                    <button class="btn btn-secondary btn-sm" data-ro-ok onclick="ordersExportCSV()">⬇ Export CSV</button>
+                  </div>
+
+                  <!-- Orders Table -->
+                  <div id="ord-table-wrap">
+                    <p style="text-align:center;color:var(--text-secondary);padding:44px;font-size:13px;">Loading orders…</p>
+                  </div>
+
+                  <script src="admin-orders.js?v=1"></script>
+                </div>
+
                 <div id="receipts" class="page">
                   <div class="page-header" style="margin-bottom:24px;">
                     <h2>Receipts</h2>
@@ -3891,6 +3949,8 @@
                 if (typeof window.taxLoadData === 'function') window.taxLoadData();
             } else if (page === 'shipping') {
                 if (typeof window.shipLoadData === 'function') window.shipLoadData();
+            } else if (page === 'orders') {
+                if (typeof window.ordersLoadData === 'function') window.ordersLoadData();
             } else if (page === 'receipts') {
                 if (typeof window.receiptsLoadData === 'function') window.receiptsLoadData();
             } else if (page === 'returns') {
