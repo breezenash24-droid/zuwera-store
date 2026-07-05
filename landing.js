@@ -187,7 +187,10 @@
       mediaHtml = '<div class="lp-hero-bg"></div>'; // image applied via CSS vars (responsive mobile swap)
     }
     var heroEl = document.getElementById('lp-hero');
-    if (heroEl) {
+    if (heroEl && heroCfg.enabled === false) {
+      heroEl.style.display = 'none';   // auto hero turned off in the builder
+    } else if (heroEl) {
+      heroEl.style.display = '';
       heroEl.innerHTML =
         mediaHtml +
         '<p class="lp-hero-kicker">' + esc(heroKicker) + '</p>' +
@@ -211,11 +214,21 @@
         heroEl.style.setProperty('--lp-hero-fit-tab', tabFitEff);
         heroEl.style.setProperty('--lp-hero-img-mob', _u(heroMobImg || heroImg));
         heroEl.style.setProperty('--lp-hero-fit-mob', mobFitEff);
+        // Per-device framing (builder "viewfinder"): a focal point set in the
+        // builder becomes background-position so the subject stays in frame on the
+        // narrower tablet/mobile crops. Unset → center (no visual change).
+        var _pos = function (f) { return (f && f.x != null && f.y != null) ? (f.x + '% ' + f.y + '%') : 'center'; };
+        heroEl.style.setProperty('--lp-hero-pos-tab', _pos(heroCfg.focalTab));
+        heroEl.style.setProperty('--lp-hero-pos-mob', _pos(heroCfg.focalMob));
       }
       // Hero text color (Auto / Light / Dark) — keeps text readable over the image.
       heroEl.classList.remove('lp-hero--lighttext', 'lp-hero--darktext');
       if (heroCfg.textColor === 'light') heroEl.classList.add('lp-hero--lighttext');
       else if (heroCfg.textColor === 'dark') heroEl.classList.add('lp-hero--darktext');
+      // Title / Subtitle font overrides (Pages-tab hero font pickers).
+      if (window.ZWLandingSections && window.ZWLandingSections.applyFonts) {
+        window.ZWLandingSections.applyFonts(heroEl, heroCfg.font_head, heroCfg.font_body);
+      }
     }
     document.title = (gLabel ? gLabel + ' — Shop ' : 'Shop ') + '| ZUWERA';
 
@@ -243,7 +256,9 @@
 
     var catSec = document.getElementById('lp-cats-sec');
     var catGrid = document.getElementById('lp-cat-grid');
-    if (catGrid && catList.length) {
+    if (catCfg.enabled === false) {
+      if (catSec) catSec.hidden = true;          // category tiles turned off in the builder
+    } else if (catGrid && catList.length) {
       var hCat = document.getElementById('lp-cats-h'); if (hCat && catCfg.heading) hCat.textContent = catCfg.heading;
       var allCat = document.getElementById('lp-cats-all'); if (allCat) allCat.href = catCfg.shopAllUrl || base;
       catGrid.innerHTML = catList.map(function (c) {
@@ -260,8 +275,21 @@
       catSec.hidden = true;
     }
 
+    /* ---- BUILDER SECTIONS (Pages-tab highlights, render below the auto content) ---- */
+    try {
+      if (window.ZWLandingSections) {
+        window.ZWLandingSections.render(document.getElementById('lp-builder-sections'), cfg.sections || []);
+      }
+    } catch (e) { /* non-fatal — auto content still renders */ }
+
     /* ---- FEATURED ---- */
     var featCfg = cfg.featured || {};
+    var featSec = document.getElementById('main-content');
+    if (featCfg.enabled === false) {              // featured products turned off in the builder
+      if (featSec) featSec.style.display = 'none';
+      return;                                     // builder sections already rendered above
+    }
+    if (featSec) featSec.style.display = '';
     var pool = inGender.slice();
     var featured;
     if (featCfg.mode === 'manual' && Array.isArray(featCfg.productIds) && featCfg.productIds.length) {
@@ -278,6 +306,26 @@
     var featAll = document.getElementById('lp-feat-all'); if (featAll) featAll.href = base;
     var grid = document.getElementById('lp-feat-grid');
     if (!grid) return;
+    // Per-platform layout (grid vs one-at-a-time swipe) for desktop/tablet/mobile,
+    // set per page in the builder. Writes data-lg/md/sm + --col-* that the shared
+    // .zw-plat-grid CSS reads per breakpoint. Defaults: desktop grid, tablet +
+    // mobile swipe. (Inlined — landing pages don't load storefront.js.)
+    grid.classList.add('zw-plat-grid');
+    var _m = function (v, d) { return (v === 'swipe' || v === 'grid') ? v : d; };
+    grid.setAttribute('data-lg', _m(featCfg.lay_lg, 'grid'));
+    grid.setAttribute('data-md', _m(featCfg.lay_md, 'swipe'));
+    grid.setAttribute('data-sm', _m(featCfg.lay_sm, 'swipe'));
+    var _sn = function (v) { return v === 'snap' ? 'on' : 'off'; };
+    grid.setAttribute('data-snap-lg', _sn(featCfg.snap_lg));
+    grid.setAttribute('data-snap-md', _sn(featCfg.snap_md));
+    grid.setAttribute('data-snap-sm', _sn(featCfg.snap_sm));
+    if (window.zwEnsureSwipeBar) window.zwEnsureSwipeBar(grid);
+    var _w = grid.closest('.zw-swipe-wrap');
+    if (_w && window.zwApplyScrollbarPrefs) window.zwApplyScrollbarPrefs(_w, featCfg);
+    var _c = function (v, fb) { var n = parseInt(v, 10); return (n >= 1 && n <= 6) ? n : fb; };
+    grid.style.setProperty('--col-lg', _c(featCfg.col_lg, _c(featCfg.columns, 3)));
+    grid.style.setProperty('--col-md', _c(featCfg.col_md, 2));
+    grid.style.setProperty('--col-sm', _c(featCfg.col_sm, 2));
     if (!featured.length) {
       grid.innerHTML = '<div class="lp-empty" style="grid-column:1/-1">Nothing here yet — check back soon.</div>';
       return;
@@ -299,6 +347,8 @@
         '<p class="lp-card-price">' + esc(money(priceOf(p))) + '</p>' +
         '</a>';
     }).join('');
+    // Cards exist now — (re)evaluate the swipe scrollbar for the featured row.
+    if (window.zwEnsureSwipeBar) window.zwEnsureSwipeBar(grid);
   }
 
   function init() {
@@ -340,6 +390,20 @@
         var grid = document.getElementById('lp-feat-grid');
         if (grid) grid.innerHTML = '<div class="lp-empty" style="grid-column:1/-1">Couldn’t load products. <a href="drop001.html" style="color:inherit;text-decoration:underline">Browse the collection →</a></div>';
       });
+
+    // LIVE PREVIEW: the builder (Pages tab) postMessages its in-memory config as
+    // it's edited, so unsaved hero/category/featured/section changes render here
+    // immediately — no Save Draft needed. Same idea as the homepage's live cfg.
+    window.addEventListener('message', function (e) {
+      var d = e && e.data;
+      if (!d || d.type !== 'ZW_LANDING_PREVIEW') return;
+      if (d.slug && d.slug !== slug) return;          // a different page is being edited
+      try {
+        loadedCfg = d.cfg || loadedCfg;
+        applyPageTheme(loadedCfg);
+        buildPage(window.__zwProducts || [], gender, loadedCfg);
+      } catch (_) {}
+    });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

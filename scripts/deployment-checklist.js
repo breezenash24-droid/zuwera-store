@@ -124,7 +124,9 @@ const checks = [
   },
   {
     name: 'Mobile announcement bar uses CSS safe-area positioning',
-    pass: () => /@media\(max-width:900px\)\{[\s\S]*#bar\{[\s\S]*top:calc\(\.75rem \+ env\(safe-area-inset-top,0px\) \+ 36px \+ \.85rem\)/.test(files.index)
+    // Accept both the literal calc() and the current --zw-bar-top var (which
+    // keeps the same safe-area calc as its first-paint fallback).
+    pass: () => /@media\(max-width:900px\)\{[\s\S]*#bar\{[\s\S]*top:(?:var\(--zw-bar-top,\s*)?calc\(\.75rem \+ env\(safe-area-inset-top,0px\) \+ 36px \+ \.85rem\)/.test(files.index)
       && !/bar\.style\.top\s*=\s*nav\.offsetHeight/.test(files.index)
       && !/barEl\.style\.top\s*=\s*navEl\.offsetHeight/.test(files.index)
       && !/barEl\.style\.top\s*=\s*\(navEl \? navEl\.offsetHeight/.test(files.index),

@@ -57,7 +57,6 @@ window.__zwApplyCardMode = function (mode) {
   if (footerCopy) footerCopy.innerHTML = '&copy; 2026 Zuwera. All rights reserved.';
 })();
 
-console.log('[ZUWERA] build: 2026-05-25-v1 | full-page checkout');
 /* TOAST */
 let _toastTimer = null;
 function showToast(msg) {
@@ -154,6 +153,203 @@ function showToast(msg) {
     document.head.appendChild(l);
   }
 
+  // Per-device scrollbar prefs for a swipe row. Writes data-bar-lg/md/sm
+  // (show|hover|off) + data-bar-size (thin|medium|thick) on the .zw-swipe-wrap;
+  // the CSS in storefront-cohesion.css turns those into per-breakpoint behavior.
+  // Back-compat: the legacy boolean bar_hover meant "reveal on hover on desktop",
+  // so it maps to data-bar-lg="hover" when the new bar_lg isn't set.
+  window.zwApplyScrollbarPrefs = window.zwApplyScrollbarPrefs || function (wrap, cfg) {
+    if (!wrap || !cfg) return;
+    var m = function (v, d) { return (v === 'show' || v === 'hover' || v === 'off') ? v : d; };
+    wrap.setAttribute('data-bar-lg', m(cfg.bar_lg, cfg.bar_hover ? 'hover' : 'show'));
+    wrap.setAttribute('data-bar-md', m(cfg.bar_md, 'show'));
+    wrap.setAttribute('data-bar-sm', m(cfg.bar_sm, 'show'));
+    wrap.setAttribute('data-bar-size', (cfg.bar_size === 'medium' || cfg.bar_size === 'thick') ? cfg.bar_size : 'thin');
+    wrap.classList.remove('zw-bar-hover'); // superseded by data-bar-* attributes
+  };
+
+  // Shared per-platform layout setter for a products/featured grid. Reads the
+  // builder settings and writes data-lg/md/sm ("grid"|"swipe") + --col-* onto the
+  // grid; the CSS applies grid or swipe per breakpoint. Global so landing.js can
+  // reuse it. Defaults: desktop grid, tablet + mobile swipe (one at a time).
+  window.zwApplyPlatLayout = function (grid, cfg) {
+    if (!grid || !cfg) return;
+    grid.classList.add('zw-plat-grid');
+    const mode = (v, d) => (v === 'swipe' || v === 'grid') ? v : d;
+    grid.setAttribute('data-lg', mode(cfg.lay_lg, 'grid'));
+    grid.setAttribute('data-md', mode(cfg.lay_md, 'swipe'));
+    grid.setAttribute('data-sm', mode(cfg.lay_sm, 'swipe'));
+    // Per-device swipe scroll feel: 'snap' (one at a time) vs smooth (default).
+    const snap = (v) => v === 'snap' ? 'on' : 'off';
+    grid.setAttribute('data-snap-lg', snap(cfg.snap_lg));
+    grid.setAttribute('data-snap-md', snap(cfg.snap_md));
+    grid.setAttribute('data-snap-sm', snap(cfg.snap_sm));
+    const col = (v, fb) => { const n = parseInt(v, 10); return (n >= 1 && n <= 6) ? n : fb; };
+    grid.style.setProperty('--col-lg', col(cfg.col_lg, col(cfg.columns, 3)));
+    grid.style.setProperty('--col-md', col(cfg.col_md, 2));
+    grid.style.setProperty('--col-sm', col(cfg.col_sm, 2));
+    if (window.zwEnsureSwipeBar) window.zwEnsureSwipeBar(grid);
+    // Per-device scrollbar visibility (show / reveal-on-hover / hidden) + thickness.
+    const _w = grid.closest('.zw-swipe-wrap');
+    if (_w) window.zwApplyScrollbarPrefs(_w, cfg);
+  };
+
+  // Nike-style draggable scrollbar for a swipe row. Wraps the grid in
+  // .zw-swipe-wrap and only shows the bar when the grid is horizontally
+  // scrollable (swipe / individual-products mode); in grid mode there's no
+  // overflow so it stays hidden. Global so landing.js reuses it.
+  window.zwEnsureSwipeBar = window.zwEnsureSwipeBar || function (grid) {
+    if (!grid || !grid.parentNode) return;
+    let wrap = grid.closest('.zw-swipe-wrap');
+    if (!wrap) {
+      wrap = document.createElement('div');
+      wrap.className = 'zw-swipe-wrap';
+      grid.parentNode.insertBefore(wrap, grid);
+      wrap.appendChild(grid);
+    }
+    let bar = wrap.querySelector(':scope > .zw-swipe-bar');
+    let thumb;
+    if (!bar) {
+      bar = document.createElement('div'); bar.className = 'zw-swipe-bar';
+      thumb = document.createElement('div'); thumb.className = 'zw-swipe-thumb';
+      bar.appendChild(thumb); wrap.appendChild(bar);
+    } else { thumb = bar.querySelector('.zw-swipe-thumb'); }
+    const sync = () => {
+      const sw = grid.scrollWidth, cw = grid.clientWidth, max = sw - cw;
+      const scrollable = max > 4;
+      wrap.classList.toggle('zw-has-swipe', scrollable);
+      if (!scrollable) return;
+      const tw = Math.max((cw / sw) * 100, 8);
+      thumb.style.width = tw + '%';
+      thumb.style.left = ((max > 0 ? grid.scrollLeft / max : 0) * (100 - tw)) + '%';
+    };
+    if (!grid._zwBarBound) {
+      grid.addEventListener('scroll', sync, { passive: true });
+      window.addEventListener('resize', sync, { passive: true });
+      // Reveal-while-scrolling for "hover" mode on touch (no pointer hover): show
+      // the bar during a scroll gesture, then fade it out ~0.9s after it settles.
+      let _barScrollT;
+      grid.addEventListener('scroll', () => {
+        wrap.classList.add('zw-bar-scrolling');
+        clearTimeout(_barScrollT);
+        _barScrollT = setTimeout(() => wrap.classList.remove('zw-bar-scrolling'), 900);
+      }, { passive: true });
+      // Drag the thumb → scroll the row proportionally.
+      let dragging = false, startX = 0, startLeft = 0;
+      thumb.addEventListener('pointerdown', (e) => {
+        dragging = true; startX = e.clientX; startLeft = grid.scrollLeft;
+        thumb.classList.add('zw-dragging');
+        try { thumb.setPointerCapture(e.pointerId); } catch (_) {}
+        e.preventDefault();
+      });
+      thumb.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        const travel = bar.clientWidth - thumb.offsetWidth;
+        const max = grid.scrollWidth - grid.clientWidth;
+        if (travel > 0) grid.scrollLeft = startLeft + ((e.clientX - startX) / travel) * max;
+      });
+      const end = (e) => { if (!dragging) return; dragging = false; thumb.classList.remove('zw-dragging'); try { thumb.releasePointerCapture(e.pointerId); } catch (_) {} };
+      thumb.addEventListener('pointerup', end); thumb.addEventListener('pointercancel', end);
+      // Click the track (not the thumb) → jump toward that position.
+      bar.addEventListener('pointerdown', (e) => {
+        if (e.target === thumb) return;
+        const r = bar.getBoundingClientRect();
+        grid.scrollTo({ left: ((e.clientX - r.left) / r.width) * (grid.scrollWidth - grid.clientWidth), behavior: 'smooth' });
+      });
+      grid._zwBarBound = true;
+    }
+    requestAnimationFrame(sync); setTimeout(sync, 350);
+  };
+
+  // Windowed section visibility: a section can be scheduled to show only within
+  // a date/time window (visible_from / visible_until, the admin's datetime-local
+  // value, compared in the viewer's local time). Empty = no limit. Returns true
+  // if the section should currently show. Global so landing.js can reuse it.
+  window.zwSecInWindow = function (s) {
+    if (!s) return true;
+    try {
+      const now = Date.now();
+      if (s.visible_from) { const t = new Date(s.visible_from).getTime(); if (!isNaN(t) && now < t) return false; }
+      if (s.visible_until) { const t = new Date(s.visible_until).getTime(); if (!isNaN(t) && now > t) return false; }
+    } catch (_) {}
+    return true;
+  };
+
+  // Is a CSS color string visually light? (hex #rgb/#rrggbb or rgb/rgba). Used to
+  // auto-pick readable text on a section whose background is set but text isn't.
+  function _zwIsLightColor(c) {
+    if (!c) return false;
+    c = String(c).trim();
+    var r, g, b, m;
+    if ((m = c.match(/^#([0-9a-f]{3})$/i))) {
+      r = parseInt(m[1][0] + m[1][0], 16); g = parseInt(m[1][1] + m[1][1], 16); b = parseInt(m[1][2] + m[1][2], 16);
+    } else if ((m = c.match(/^#([0-9a-f]{6})$/i))) {
+      r = parseInt(m[1].slice(0, 2), 16); g = parseInt(m[1].slice(2, 4), 16); b = parseInt(m[1].slice(4, 6), 16);
+    } else if ((m = c.match(/rgba?\(([^)]+)\)/i))) {
+      var p = m[1].split(',').map(function (x) { return parseFloat(x); }); r = p[0]; g = p[1]; b = p[2];
+    } else { return false; }
+    if ([r, g, b].some(function (x) { return isNaN(x); })) return false;
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6;   // perceived luminance
+  }
+
+  // ── Auto-contrast an uploaded nav logo against the current theme ──────────
+  // When the user uploads their own logo it can be any colour, so a static CSS
+  // filter can't know whether to invert it. This measures the logo's opaque
+  // pixels once (cached per src) and sets an inline !important filter so the
+  // mark always contrasts with the header, re-evaluated on every theme change:
+  //   • a LIGHT mark shows as-is on dark and inverts on light,
+  //   • a DARK mark inverts on dark and shows as-is on light.
+  // Mostly-opaque images (a tile/photo logo like the default winged mark) are
+  // left to CSS — inverting those would flip the whole tile, not just a mark.
+  var _zwLogoMeta = {}; // src -> {skip} | {light:bool} | null(unmeasurable)
+  function _zwMeasureLogo(src, cb) {
+    if (_zwLogoMeta[src] !== undefined) return cb(_zwLogoMeta[src]);
+    var probe = new Image();
+    probe.crossOrigin = 'anonymous';
+    probe.onload = function () {
+      try {
+        var w = Math.min(80, probe.naturalWidth || 0), h = Math.min(80, probe.naturalHeight || 0);
+        if (!w || !h) { _zwLogoMeta[src] = null; return cb(null); }
+        var c = document.createElement('canvas'); c.width = w; c.height = h;
+        var ctx = c.getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(probe, 0, 0, w, h);
+        var d = ctx.getImageData(0, 0, w, h).data, lum = 0, opaque = 0, total = w * h;
+        for (var i = 0; i < d.length; i += 4) {
+          if (d[i + 3] < 60) continue;
+          lum += (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]); opaque++;
+        }
+        if (!opaque || opaque / total > 0.85) _zwLogoMeta[src] = { skip: true };
+        else _zwLogoMeta[src] = { light: (lum / opaque / 255) > 0.5 };
+      } catch (e) { _zwLogoMeta[src] = null; } // tainted (no CORS) → fall back to CSS
+      cb(_zwLogoMeta[src]);
+    };
+    probe.onerror = function () { _zwLogoMeta[src] = null; cb(null); };
+    probe.src = src;
+  }
+  function zwAutoThemeLogo(img) {
+    if (!img) return;
+    var src = img.currentSrc || img.src;
+    if (!src) return;
+    _zwMeasureLogo(src, function (m) {
+      if (!m || m.skip) { img.style.removeProperty('filter'); return; } // let CSS decide
+      var isLight = !!(document.body && document.body.classList.contains('light-mode'));
+      var invert = m.light ? isLight : !isLight; // dark mark inverts on dark; light mark inverts on light
+      img.style.setProperty('filter', invert ? 'invert(1)' : 'none', 'important');
+    });
+  }
+  function zwAutoThemeAllLogos() {
+    document.querySelectorAll('.nav-logo img, .nav-logo-link img, .zw-nav-logo img, img.nav-logo-img')
+      .forEach(function (img) {
+        if (img.complete && img.naturalWidth) zwAutoThemeLogo(img);
+        else img.addEventListener('load', function () { zwAutoThemeLogo(img); }, { once: true });
+      });
+  }
+  window.__zwAutoThemeLogos = zwAutoThemeAllLogos;
+  // Re-contrast on theme changes (dispatched by storefront-theme.js applyThemeMode).
+  window.addEventListener('zw-theme-applied', zwAutoThemeAllLogos);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', zwAutoThemeAllLogos);
+  else zwAutoThemeAllLogos();
+
   function applyBuilderConfig(cfg) {
     if (!cfg || !cfg.sections) return;
 
@@ -200,6 +396,8 @@ function showToast(msg) {
       if (logoImg && cfg.navSettings.logo_url) {
         logoImg.src = cfg.navSettings.logo_url;
         logoImg.srcset = cfg.navSettings.logo_url;
+        // Uploaded logo can be any colour — auto-invert it for the current theme.
+        zwAutoThemeLogo(logoImg);
       }
       // Navigation links are owned by nav-menu.js (reads site_settings.nav_menu —
       // e.g. Men / Women / New). The legacy navSettings.links rendering was removed
@@ -303,6 +501,18 @@ function showToast(msg) {
 
     const sorted = [...cfg.sections].sort((a,b)=>(a.order||0)-(b.order||0));
 
+    // Flash prevention: if this layout has no visible static hero (e.g. the top
+    // section is a hero_carousel), cache that so the synchronous <head> script on
+    // the NEXT load hides the baked-in <section class="hero"> before first paint —
+    // otherwise the old default hero flashes in before the carousel renders.
+    // Toggle the class now too (authoritative — clears it if a hero section is
+    // present, so the !important hide rule can't strand a real static hero).
+    const _hasStaticHero = sorted.some(s => s.type === 'hero' && s.visible !== false);
+    document.documentElement.classList.toggle('zw-hide-static-hero', !_hasStaticHero);
+    if (!window.__ZW_BUILDER_PREVIEW__) {
+      try { localStorage.setItem('zw_hide_static_hero', _hasStaticHero ? '' : '1'); } catch(e) {}
+    }
+
     // Section visibility & order on the DOM
     const sectionMap = {
       hero:    document.querySelector('.hero'),
@@ -322,11 +532,14 @@ function showToast(msg) {
     });
 
     sorted.forEach((sec, idx) => {
+     // Isolate each section: one section throwing must never blank the whole
+     // homepage (defaults are already hidden above). Skip + log the bad one.
+     try {
       let el = sectionMap[sec.type] || document.getElementById(sec.id);
       
       if (!el) {
         // Dynamically instantiate builder sections if they don't exist
-        if (['spacer', 'text', 'img_cta', 'image_cta', 'custom', 'html',
+        if (['spacer', 'text', 'img_cta', 'image_cta', 'custom', 'html', 'header',
              'numbers', 'press', 'faq', 'email_capture', 'logos', 'richtext',
              'split', 'cta', 'features', 'testimonials', 'banner', 'gallery', 'video', 'countdown', 'hero_carousel', 'media_grid'].includes(sec.type)) {
           el = document.createElement('div');
@@ -352,7 +565,7 @@ function showToast(msg) {
             `;
           } else if (sec.type === 'custom' || sec.type === 'html') {
             el.className = 'builder-custom-section';
-          } else if (['numbers','press','faq','email_capture','logos','richtext',
+          } else if (['numbers','press','faq','email_capture','logos','richtext','header',
                       'split','cta','features','testimonials','banner','gallery','video','countdown','hero_carousel','media_grid'].includes(sec.type)) {
             el.className = 'builder-' + sec.type.replace(/_/g,'-') + '-section';
           }
@@ -360,7 +573,15 @@ function showToast(msg) {
       }
 
       if (!el) return;
-      el.style.display = sec.visible ? '' : 'none';
+      const s = sec.settings || {};
+      // Builder preview only: tag each section so clicking it in the canvas can
+      // select it in the builder (on-canvas WYSIWYG). No effect on the live site.
+      if (window.__ZW_BUILDER_PREVIEW__) { try { el.setAttribute('data-zw-sec', sec.id); } catch (_) {} }
+      // Live site honors the scheduled visibility window; the builder preview
+      // ignores it so a future-scheduled section is still editable/visible.
+      // (s.visible_from / s.visible_until live in the section's settings.)
+      const _inWin = window.__ZW_BUILDER_PREVIEW__ ? true : window.zwSecInWindow(s);
+      el.style.display = (sec.visible && _inWin) ? '' : 'none';
 
       // Physically move the element in the DOM to enforce the correct order
       if (footer) {
@@ -372,8 +593,6 @@ function showToast(msg) {
       const secDataStr = JSON.stringify(sec);
       if (el._zwSecJSON === secDataStr) return;
       el._zwSecJSON = secDataStr;
-
-      const s = sec.settings || {};
 
       // Style overrides moved to the bottom of the function so they don't get erased by cssText
       if (s.anchor_id) el.id = s.anchor_id;
@@ -442,14 +661,36 @@ function showToast(msg) {
           const img = el.querySelector('#hero-image');
           const mobileSource = el.querySelector('#hero-mobile-source');
           if (s.image) {
-            if (img) img.src = typeof window.optimizeImage === 'function' ? window.optimizeImage(s.image, 1400) : s.image;
-            if (mobileSource) mobileSource.srcset = typeof window.optimizeImage === 'function' ? window.optimizeImage(s.image, 800) : s.image;
+            const optDesk = typeof window.optimizeImage === 'function' ? window.optimizeImage(s.image, 1400) : s.image;
+            const optMob = typeof window.optimizeImage === 'function' ? window.optimizeImage(s.image, 800) : s.image;
+            if (img) img.src = optDesk;
+            if (mobileSource) mobileSource.srcset = optMob;
+            // Cache the hero so the synchronous <head> bootstrap paints THIS image
+            // on the next load instead of the stale default/old one — otherwise the
+            // page-builder hero path (unlike the legacy settings.hero path) never
+            // updated the cache, so every load flashed old→new. Skip in the builder
+            // preview so an unpublished hero isn't cached for the real homepage.
+            if (!window.__ZW_BUILDER_PREVIEW__) {
+              window.__ZW_HERO_IMAGE = optDesk;
+              try { localStorage.setItem('zw-hero-image', s.image); } catch (e) {}
+              const preload = document.getElementById('hero-preload');
+              if (preload) preload.href = optDesk;
+            }
           } else {
             if (img) img.src = 'images/hero.jpg?v=2';
             if (mobileSource) mobileSource.srcset = 'images/hero-mobile.jpg';
           }
           // Fill (cover) vs Fit (contain) — lets a logo/graphic show whole.
           if (img) img.style.objectFit = (s.fit === 'contain') ? 'contain' : 'cover';
+          // Viewfinder framing: a focal point set in the builder becomes
+          // object-position on the tablet/mobile breakpoints (see .hero-img-wrap
+          // img CSS vars). Unset → the var falls back to center.
+          if (img) {
+            const _p = f => (f && f.x != null && f.y != null) ? (f.x + '% ' + f.y + '%') : '';
+            const _pt = _p(s.focalTab), _pm = _p(s.focalMob);
+            if (_pt) img.style.setProperty('--zwh-pos-tab', _pt); else img.style.removeProperty('--zwh-pos-tab');
+            if (_pm) img.style.setProperty('--zwh-pos-mob', _pm); else img.style.removeProperty('--zwh-pos-mob');
+          }
           break;
         }
         case 'marquee': {
@@ -509,6 +750,10 @@ function showToast(msg) {
           const secSub = el.closest('.drop-wrap')?.querySelector('.sec-head span') || el.querySelector('.sec-head span');
           if (secHead && s.title !== undefined) secHead.textContent = s.title;
           if (secSub && s.subtitle !== undefined) secSub.textContent = s.subtitle;
+          // Per-platform layout: grid vs one-at-a-time swipe for desktop/tablet/
+          // mobile, driven by data attrs + --col vars the CSS reads per breakpoint.
+          const _pgrid = document.getElementById('products-grid');
+          if (_pgrid && typeof window.zwApplyPlatLayout === 'function') window.zwApplyPlatLayout(_pgrid, s);
           // Trigger product load â€” applyBuilderConfig shows the section but doesn't populate the grid
           if (sec.visible && typeof loadProducts === 'function') setTimeout(loadProducts, 0);
           break;
@@ -539,6 +784,18 @@ function showToast(msg) {
         case 'custom':
         case 'html': {
           if (s.html !== undefined) el.innerHTML = s.html||'';
+          break;
+        }
+        case 'header': {
+          el.className = 'builder-header-section';
+          el.style.cssText = 'padding:1.4rem 2.5rem;max-width:1400px;margin:0 auto';
+          const _hl = s.show_line !== false;
+          const _above = s.line_position === 'above';
+          const _rule = _hl ? '1px solid rgba(128,128,128,.32)' : 'none';
+          el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;${_above?'border-top':'border-bottom'}:${_rule};padding:${_above?'.9rem 0 0':'0 0 .9rem'}">
+            <span style="font-family:var(--fm,var(--fb));font-size:.7rem;letter-spacing:.14em;text-transform:uppercase">${s.left||''}</span>
+            ${s.right?`<span style="font-family:var(--fm,var(--fb));font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;opacity:.45">${s.right}</span>`:''}
+          </div>`;
           break;
         }
         case 'numbers': {
@@ -592,13 +849,30 @@ function showToast(msg) {
           break;
         }
         case 'logos': {
-          el.className = 'builder-logos-section';
+          el.className = 'builder-logos-section' + (s.logo_original ? ' logo-original' : '');
           el.style.cssText = 'padding:2.5rem 2.5rem;text-align:center';
           if (s.sec_bg) el.style.background = s.sec_bg;
           const logositems = (s.items||[]);
+          const logoH = s.logo_height || 28;
+          // logo_original keeps the artwork's real colors (for light sections,
+          // e.g. a black swoosh on white). Default tints logos white for the
+          // classic dark brand-strip look.
+          const imgFilter = s.logo_original ? '' : 'filter:brightness(0) invert(1);';
+          const imgOp = s.logo_original ? '1' : '.45';
+          const spanOp = s.logo_original ? '.75' : '.35';
           el.innerHTML = `${s.heading?`<div style="font-family:var(--fm,var(--fb));font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;opacity:.35;margin-bottom:1.2rem">${s.heading}</div>`:''}
             <div style="display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:1.5rem 2.5rem">
-            ${logositems.map(it=>it.src?`<img src="${it.src}" alt="${it.alt||it.name||''}" style="height:28px;width:auto;opacity:.45;filter:brightness(0) invert(1)">`:it.name?`<span style="font-family:var(--fw);font-size:1.1rem;font-weight:700;font-style:italic;letter-spacing:.06em;text-transform:uppercase;opacity:.35">${it.name}</span>`:''  ).join('')}
+            ${logositems.map(it=>{
+               const inner = it.src
+                 ? `<img src="${it.src}" alt="${escapeHomeFavoriteHtml(it.alt||it.name||'')}" style="height:${logoH}px;width:auto;opacity:${imgOp};${imgFilter}">`
+                 : it.name
+                   ? `<span style="font-family:var(--fw);font-size:1.1rem;font-weight:700;font-style:italic;letter-spacing:.06em;text-transform:uppercase;opacity:${spanOp}">${it.name}</span>`
+                   : '';
+               if (!inner) return '';
+               return it.link
+                 ? `<a class="zw-logo-link" href="${zwSafeUrl(it.link)}" style="display:inline-flex;align-items:center;text-decoration:none;color:inherit">${inner}</a>`
+                 : inner;
+            }).join('')}
             </div>`;
           break;
         }
@@ -621,7 +895,7 @@ function showToast(msg) {
           const imgPart = s.image?`<div style="flex:1 1 400px;min-height:${s.image_height||500}px;background:url(${optSplitImg}) center/cover no-repeat"></div>`:'';
           const txtPart = `<div style="flex:1 1 400px;padding:4rem 3rem">${s.label?`<div style="font-family:var(--fm,var(--fb));font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;opacity:.5;margin-bottom:1rem">${s.label}</div>`:''}<h2 style="font-family:var(--fw);font-size:clamp(1.8rem,4vw,2.8rem);font-weight:900;font-style:italic;letter-spacing:.06em;text-transform:uppercase;line-height:1.05;margin-bottom:1.2rem">${s.heading||''}</h2><p style="opacity:.65;line-height:1.75;font-size:.95rem;margin-bottom:1.8rem">${s.body||''}</p>${s.cta_text?`<a href="${s.cta_url||'#'}" style="display:inline-block;border:1px solid currentColor;padding:.65rem 1.6rem;font-family:var(--fm,var(--fb));font-size:.65rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;color:inherit">${s.cta_text}</a>`:''}</div>`;
           const innerHTML = imgSide==='left' ? (imgPart+txtPart) : (txtPart+imgPart);
-          el.innerHTML = `<div style="display:flex;flex-wrap:wrap;align-items:center;min-height:${s.image_height||500}px;padding:0 ${px};max-width:${mw};margin:0 auto;${!isFull && s.bg_color ? 'border-radius:12px;overflow:hidden;' : ''}">${innerHTML}</div>`;
+          el.innerHTML = `<div style="display:flex;flex-wrap:wrap;align-items:center;min-height:${s.image_height||500}px;padding:0 ${px};max-width:${mw};margin:0 auto;${!isFull && (s.sec_bg||s.bg_color) ? 'border-radius:12px;overflow:hidden;' : ''}">${innerHTML}</div>`;
           break;
         }
         case 'cta': {
@@ -631,7 +905,7 @@ function showToast(msg) {
           el.innerHTML = `<div style="max-width:700px;margin:0 auto">
             ${s.heading?`<h2 style="font-family:var(--fw);font-size:clamp(2rem,6vw,3.2rem);font-weight:900;font-style:italic;letter-spacing:.08em;text-transform:uppercase;line-height:1.05;margin-bottom:1rem">${s.heading}</h2>`:''}
             ${s.subtext?`<p style="opacity:.65;line-height:1.7;margin-bottom:2rem;font-size:1rem">${s.subtext}</p>`:''}
-            ${s.btn_text?`<a href="${s.btn_url||'#'}" style="display:inline-block;background:${s.btn_style==='solid'?'currentColor':'transparent'};color:${s.btn_style==='solid'?(s.bg_color||'#09090b'):'currentColor'};border:1px solid currentColor;padding:.75rem 2rem;font-family:var(--fm,var(--fb));font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;text-decoration:none">${s.btn_text}</a>`:''}
+            ${s.btn_text?`<a href="${s.btn_url||'#'}" style="display:inline-block;background:${s.btn_style==='solid'?'currentColor':'transparent'};color:${s.btn_style==='solid'?(s.sec_bg||s.bg_color||'#09090b'):'currentColor'};border:1px solid currentColor;padding:.75rem 2rem;font-family:var(--fm,var(--fb));font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;text-decoration:none">${s.btn_text}</a>`:''}
           </div>`;
           break;
         }
@@ -680,8 +954,8 @@ function showToast(msg) {
           }
           el.innerHTML = `<div style="padding:0 ${px};max-width:${mw};margin:0 auto;">
             ${s.heading?`<h2 style="font-family:var(--fw);font-size:clamp(1.5rem,3vw,2.2rem);text-transform:uppercase;font-weight:800;font-style:italic;text-align:center;margin-bottom:2rem">${s.heading}</h2>`:''}
-            <div class="zw-mobile-scroll-grid" style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:1rem">
-            ${gimgs.map(img=>`${img.link?`<a href="${img.link}"`:'<div'} style="aspect-ratio:${aspect};overflow:hidden;display:block"><img src="${typeof window.optimizeImage==='function'?window.optimizeImage(img.src, 1200):img.src}" alt="${img.alt||''}" style="width:100%;height:100%;object-fit:cover;transition:transform .4s ease" loading="lazy" fetchpriority="low" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">${img.link?'</a>':'</div>'}`).join('')}
+            <div class="zw-plat-grid" style="gap:1rem">
+            ${gimgs.map(img=>`${img.link?`<a href="${img.link}"`:'<div'} style="aspect-ratio:${aspect};overflow:hidden;display:block"><img src="${typeof window.optimizeImage==='function'?window.optimizeImage(img.src, 1200):img.src}" alt="${escapeHomeFavoriteHtml(img.alt||'')}" style="width:100%;height:100%;object-fit:cover;transition:transform .4s ease" loading="lazy" fetchpriority="low" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">${img.link?'</a>':'</div>'}`).join('')}
             </div>
           </div>`;
           break;
@@ -748,6 +1022,10 @@ function showToast(msg) {
         }
         case 'hero_carousel': {
           el.querySelectorAll('video').forEach(v => { v.pause(); v.removeAttribute('src'); v.load(); });
+          // Kill any loop/observer from a previous render of this section, or they
+          // pile up (builder re-renders on every edit) and thrash the main thread.
+          if (el._zwHcRaf) { cancelAnimationFrame(el._zwHcRaf); el._zwHcRaf = null; }
+          if (el._zwHcObs) { try { el._zwHcObs.disconnect(); } catch (_) {} el._zwHcObs = null; }
           el.className = 'builder-hero-carousel-section';
           const hMap = { full:'100vh', tall:'75vh', half:'50vh', short:'40vh' };
           el.style.cssText = `position:relative; overflow:hidden; width:100%; height:${hMap[s.height]||'100vh'}; background:${s.sec_bg||'#09090b'};`;
@@ -760,6 +1038,20 @@ function showToast(msg) {
 
           let slidesHtml = '';
           let dotsHtml = '';
+          // Indicator style: 'dots' (white pill of dots, default) or 'lines'
+          // (segmented bars). Both reuse the .zw-hc-dot class so the carousel
+          // JS wires clicks/active-state identically; CSS swaps the shape.
+          const indStyle = s.indicator_style === 'lines' ? 'lines' : 'dots';
+          // Per-slide framing: base = center focal_y% (desktop, unchanged); the
+          // viewfinder adds per-device object-position via CSS vars applied on the
+          // tablet/mobile breakpoints (see .zw-hc-media CSS). Unset → base.
+          const _hasXY = (x, y) => x != null && x !== '' && y != null && y !== '';
+          const posVars = (sl) => {
+             let v = `--zwh-pos:center ${sl.focal_y ?? 50}%;`;
+             if (_hasXY(sl.focalTab_x, sl.focalTab_y)) v += `--zwh-pos-tab:${sl.focalTab_x}% ${sl.focalTab_y}%;`;
+             if (_hasXY(sl.focalMob_x, sl.focalMob_y)) v += `--zwh-pos-mob:${sl.focalMob_x}% ${sl.focalMob_y}%;`;
+             return v;
+          };
           slides.forEach((sl, i) => {
              const active = i === 0 ? ' active' : '';
              
@@ -769,14 +1061,24 @@ function showToast(msg) {
                 const auto = (i === 0 && s.autoplay !== false) ? ' autoplay' : '';
                 const vidMode = sl.video_duration_mode || 'full';
                 const loopAttr = (vidMode === 'full') ? '' : ' loop';
-                mediaHtml = `<video class="zw-hc-media" src="${sl.media_url||''}" poster="${sl.video_poster||''}" playsinline${loopAttr} muted${auto} style="object-position:center ${sl.focal_y??50}%"></video>`;
+                // Preload so a non-first slide shows its first frame immediately
+                // instead of a black box while waiting to be navigated to.
+                const vidPreload = i === 0 ? 'auto' : 'metadata';
+                mediaHtml = `<video class="zw-hc-media" src="${sl.media_url||''}" poster="${sl.video_poster||''}" playsinline${loopAttr} muted${auto} preload="${vidPreload}" style="${posVars(sl)}"></video>`;
              } else {
-                const lazy = i === 0 ? 'fetchpriority="high"' : 'loading="lazy"';
+                // Carousel slides are a small, known set that will be shown within
+                // seconds — NEVER lazy-load them (a lazy slide in a translateX
+                // carousel sits off-screen and never loads until navigated to,
+                // showing blank). Load all eagerly: first at high priority (LCP),
+                // the rest at low priority so they don't fight the hero.
+                const loadAttr = i === 0 ? 'fetchpriority="high"' : 'loading="eager" fetchpriority="low"';
                 const optDesktop = typeof window.optimizeImage === 'function' ? window.optimizeImage(sl.media_url, 1400) : sl.media_url;
                 const optMobile = typeof window.optimizeImage === 'function' ? window.optimizeImage(sl.media_url_mobile, 800) : sl.media_url_mobile;
-                mediaHtml = `<picture class="zw-hc-media">
+                // Fallback: if the Cloudinary-optimized URL fails, drop to the raw
+                // uploaded URL so a slide is never left blank (fb flag stops loops).
+                mediaHtml = `<picture class="zw-hc-media" style="${posVars(sl)}">
                    ${sl.media_url_mobile ? `<source media="(max-width:768px)" srcset="${optMobile||''}">` : ''}
-                   <img src="${optDesktop||''}" alt="" style="object-position:center ${sl.focal_y??50}%" ${lazy} decoding="async">
+                   <img src="${optDesktop||''}" alt="" ${loadAttr} decoding="async" data-raw="${sl.media_url||''}" onerror="var i=this;if(!i.dataset.fb&&i.dataset.raw){i.dataset.fb=1;var p=i.parentNode;if(p){var ss=p.querySelectorAll('source');for(var k=0;k<ss.length;k++)ss[k].removeAttribute('srcset');}i.src=i.dataset.raw;}">
                 </picture>`;
              }
 
@@ -793,7 +1095,7 @@ function showToast(msg) {
                 ${sl.watch_btn ? `<button class="zw-hc-watch" onclick="openWatchModal('${sl.watch_url||''}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> ${sl.watch_label||'Watch'}</button>` : ''}
              </div>`;
              
-             dotsHtml += `<button class="zw-hc-dot${active}" data-index="${i}" aria-label="Slide ${i+1}"></button>`;
+             dotsHtml += `<button class="zw-hc-dot${indStyle==='lines'?' zw-hc-line':''}${active}" data-index="${i}" aria-label="Slide ${i+1}"></button>`;
           });
 
           el.innerHTML = `
@@ -802,10 +1104,10 @@ function showToast(msg) {
           </div>
           <div class="zw-hc-controls">
              <div></div>
-             ${(s.show_dots !== false && slides.length > 1) ? `<div class="zw-hc-dots">${dotsHtml}</div>` : '<div></div>'}
+             ${(s.show_dots !== false && slides.length > 1) ? `<div class="zw-hc-dots${indStyle==='lines'?' zw-hc-dots--lines':''}">${dotsHtml}</div>` : '<div></div>'}
              <div class="zw-hc-nav">
-                ${s.show_pause !== false ? `<div class="zw-hc-pause-wrap">
-                  <svg class="zw-hc-progress-svg"><circle cx="20" cy="20" r="18" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/><circle class="zw-hc-progress-ring" cx="20" cy="20" r="18" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="113" stroke-dashoffset="113"/></svg>
+                ${(s.show_pause !== false && slides.length > 1) ? `<div class="zw-hc-pause-wrap">
+                  <svg class="zw-hc-progress-svg"><circle cx="20" cy="20" r="18" fill="none" stroke="rgba(0,0,0,0.12)" stroke-width="2"/><circle class="zw-hc-progress-ring" cx="20" cy="20" r="18" fill="none" stroke="#111" stroke-width="2" stroke-dasharray="113" stroke-dashoffset="113"/></svg>
                   <button class="zw-hc-pause" aria-label="Pause/Play"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg></button>
                 </div>` : ''}
                 ${(s.show_arrows !== false && slides.length > 1) ? `
@@ -823,17 +1125,43 @@ function showToast(msg) {
           (function initCarousel() {
              const track = el.querySelector('.zw-hc-track');
              const slideEls = Array.from(el.querySelectorAll('.zw-hc-slide'));
+             // Words + image together: hide each slide's text (.zw-hc-await) until
+             // its media has loaded, so the caption doesn't paint before the image.
+             // Runs synchronously (before paint), so there's no text flash; a 3s
+             // safety per slide guarantees the text can never stay hidden.
+             slideEls.forEach(function (slide) {
+               if (!slide.querySelector('.zw-hc-content')) return;
+               slide.classList.add('zw-hc-await');
+               const reveal = function () { slide.classList.remove('zw-hc-await'); };
+               const img = slide.querySelector('.zw-hc-media img, img.zw-hc-media');
+               const vid = slide.querySelector('video.zw-hc-media');
+               if (img) {
+                 if (img.complete && img.naturalWidth) reveal();
+                 else { img.addEventListener('load', reveal, { once: true }); img.addEventListener('error', reveal, { once: true }); }
+               } else if (vid) {
+                 if (vid.readyState >= 2) reveal();
+                 else { vid.addEventListener('loadeddata', reveal, { once: true }); vid.addEventListener('error', reveal, { once: true }); }
+               } else { reveal(); }
+               setTimeout(reveal, 3000);
+             });
              const dots = Array.from(el.querySelectorAll('.zw-hc-dot'));
              const btnPrev = el.querySelector('.zw-hc-prev');
              const btnNext = el.querySelector('.zw-hc-next');
              const btnPause = el.querySelector('.zw-hc-pause');
              if(!track || slideEls.length === 0) return;
 
+             // The 'slide' transition is a horizontal flex row (each slide flex:0 0
+             // 100%); it only moves if we translate the track. Without this the 2nd+
+             // slides sit off-screen forever and never appear. (Fade uses opacity.)
+             const isSlideTrans = track.classList.contains('zw-hc-trans-slide');
+             const applyTrack = () => { if(isSlideTrans) track.style.transform = `translateX(-${curIdx * 100}%)`; };
+
              let curIdx = 0;
              let isPaused = false;
              let elapsed = 0;
              let lastTick = Date.now();
              let rafId = null;
+             applyTrack();
              const progressRing = el.querySelector('.zw-hc-progress-ring');
              const circumference = 113; // 2 * PI * 18
              
@@ -863,7 +1191,8 @@ function showToast(msg) {
                 curIdx = newIdx;
                 slideEls[curIdx].classList.add('active');
                 if(dots[curIdx]) dots[curIdx].classList.add('active');
-                
+                applyTrack();
+
                 const newVid = slideEls[curIdx].querySelector('video');
                 if(newVid && !isPaused) { newVid.currentTime = 0; newVid.play().catch(()=>{}); }
                 
@@ -875,9 +1204,9 @@ function showToast(msg) {
              const next = () => update(curIdx + 1);
              const prev = () => update(curIdx - 1);
              
-             if(btnPrev) btnPrev.onclick = () => { isPaused=false; updatePauseIcon(); prev(); };
-             if(btnNext) btnNext.onclick = () => { isPaused=false; updatePauseIcon(); next(); };
-             dots.forEach(d => d.onclick = () => { isPaused=false; updatePauseIcon(); update(parseInt(d.dataset.index)); });
+             if(btnPrev) btnPrev.onclick = () => { isPaused=false; updatePauseIcon(); prev(); startLoop(); };
+             if(btnNext) btnNext.onclick = () => { isPaused=false; updatePauseIcon(); next(); startLoop(); };
+             dots.forEach(d => d.onclick = () => { isPaused=false; updatePauseIcon(); update(parseInt(d.dataset.index)); startLoop(); });
              
              const updatePauseIcon = () => {
                 if(!btnPause) return;
@@ -899,17 +1228,23 @@ function showToast(msg) {
                    } else {
                       lastTick = Date.now(); // prevent jumping elapsed time
                       if(vid) vid.play().catch(()=>{});
+                      startLoop();
                    }
                 };
              }
              
+             let visible = true;
+             const stopLoop = () => { if(rafId != null){ cancelAnimationFrame(rafId); rafId = null; el._zwHcRaf = null; } };
              const tick = () => {
-                rafId = requestAnimationFrame(tick);
+                // Bail out of the loop entirely (don't re-request) when nothing needs
+                // animating — paused, single slide, autoplay off, or scrolled out of
+                // view. Previously this rAF ran forever at 60fps even off-screen,
+                // which is what made scrolling feel glitchy.
+                if(isPaused || !autoplay || slideEls.length <= 1 || !visible){ rafId = null; el._zwHcRaf = null; return; }
+                rafId = requestAnimationFrame(tick); el._zwHcRaf = rafId;
                 const now = Date.now();
                 const dt = now - lastTick;
                 lastTick = now;
-                
-                if(isPaused || !autoplay || slideEls.length <= 1) return;
 
                 const curSlide = slideEls[curIdx];
                 const isVideoModeFull = curSlide.dataset.videoMode === 'full';
@@ -929,7 +1264,24 @@ function showToast(msg) {
                    if (elapsed >= slideDur) next();
                 }
              };
-             rafId = requestAnimationFrame(tick);
+             const startLoop = () => {
+                if(rafId == null && visible && !isPaused && autoplay && slideEls.length > 1){
+                   lastTick = Date.now();
+                   rafId = requestAnimationFrame(tick);
+                   el._zwHcRaf = rafId;
+                }
+             };
+             startLoop();
+             // Suspend the loop while the carousel is off-screen so it can't compete
+             // with the rest of the page's scrolling/paint work.
+             if('IntersectionObserver' in window){
+                const obs = new IntersectionObserver((entries) => {
+                   visible = entries[0].isIntersecting;
+                   if(visible) startLoop(); else stopLoop();
+                }, { threshold: 0 });
+                obs.observe(el);
+                el._zwHcObs = obs;
+             }
 
              // Bind 'ended' event on all video slides set to 'full' duration mode
              // This is far more reliable than polling vid.ended in rAF
@@ -958,6 +1310,7 @@ function showToast(msg) {
                    isPaused = false;
                    updatePauseIcon();
                    if(diff > 0) next(); else prev();
+                   startLoop();
                 }
              };
 
@@ -985,16 +1338,10 @@ function showToast(msg) {
           const aspectMap = { square:'1/1', portrait:'3/4', wide:'16/9', auto:'auto' };
           const aspect = aspectMap[s.aspect||'portrait'] || '3/4';
           
-          let trackClass = 'zw-mg-track';
-          let trackStyle = '';
-          
-          if (layout === 'grid') {
-             trackClass += ' zw-mg-grid zw-mobile-scroll-grid';
-             trackStyle = `display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap:${gap};`;
-          } else {
-             trackClass += ' zw-mg-scroll';
-             trackStyle = `display:flex; gap:${gap}; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:1rem; scrollbar-width:none;`;
-          }
+          // Layout is driven by the per-device zw-plat-grid system (grid vs swipe,
+          // columns, scroll feel) applied after render via zwApplyPlatLayout.
+          let trackClass = 'zw-mg-track zw-plat-grid';
+          let trackStyle = `gap:${gap};`;
 
           let cardsHtml = '';
           cards.forEach(cd => {
@@ -1012,19 +1359,38 @@ function showToast(msg) {
                 mediaHtml = `<img src="${optImg||''}" alt="" class="zw-mg-media" style="${ht}" loading="lazy" decoding="async">`;
              }
              
-             const labelHtml = cd.label ? `<p class="zw-mg-label zw-mg-label-${pos}">${cd.label}</p>` : '';
+             // Adidas-style card content: a chip label, description and CTA button.
+             // Overlay modes lay them over the image (with a gradient scrim);
+             // "below" mode stacks them under the image (World-Cup-grid style).
+             const _e = (v) => typeof escapeHomeFavoriteHtml === 'function' ? escapeHomeFavoriteHtml(v || '') : (v || '');
+             const _arrow = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+             const _label = cd.label ? _e(cd.label) : '';
+             const _sub = cd.sublabel ? _e(cd.sublabel) : '';
+             const _cta = cd.cta_text ? _e(cd.cta_text) : '';
+             const isOverlay = pos.indexOf('overlay') === 0;
              const watchHtml = cd.watch_btn ? `<button class="zw-mg-watch" onclick="event.preventDefault(); openWatchModal('${cd.watch_url||''}')"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> ${cd.watch_label||'Watch'}</button>` : '';
 
-             const cardStyle = layout === 'scroll' ? `flex:0 0 auto; width:min(85vw, 360px); scroll-snap-align:start; position:relative;` : `position:relative; display:block; text-decoration:none; color:inherit;`;
-             
+             let overlayHtml = '';
+             if (isOverlay && (_label || _sub || _cta)) {
+                const opos = pos.replace('overlay-', '');
+                const chipCls = cd.label_boxed === false ? 'zw-mg-chip zw-mg-chip--plain' : 'zw-mg-chip';
+                overlayHtml = `<div class="zw-mg-scrim"></div><div class="zw-mg-ov zw-mg-ov-${opos}">${_label ? `<span class="${chipCls}">${_label}</span>` : ''}${_sub ? `<p class="zw-mg-ovsub">${_sub}</p>` : ''}${_cta ? `<span class="zw-mg-btn">${_cta}${_arrow}</span>` : ''}</div>`;
+             }
+             let belowHtml = '';
+             if (!isOverlay && (_label || _sub || _cta)) {
+                belowHtml = `<div class="zw-mg-below">${_label ? `<p class="zw-mg-h">${_label}</p>` : ''}${_sub ? `<p class="zw-mg-desc">${_sub}</p>` : ''}${_cta ? `<span class="zw-mg-link">${_cta}${_arrow}</span>` : ''}</div>`;
+             }
+
+             const cardStyle = `position:relative; display:block; text-decoration:none; color:inherit;`;
+
              cardsHtml += `
              <${tag}${href} class="zw-mg-card" style="${cardStyle}">
                 <div class="zw-mg-media-wrap" style="position:relative; overflow:hidden;">
                    ${mediaHtml}
-                   ${pos.includes('overlay') ? labelHtml : ''}
+                   ${overlayHtml}
                    ${watchHtml}
                 </div>
-                ${pos === 'below' ? labelHtml : ''}
+                ${belowHtml}
              </${tag}>`;
           });
           
@@ -1040,6 +1406,11 @@ function showToast(msg) {
         }
       }
 
+      // Any section that rendered a .zw-plat-grid (gallery, media grid) gets the
+      // per-device grid/swipe layout + scroll feel + scrollbar, same as products.
+      const _plg = el.querySelector('.zw-plat-grid');
+      if (_plg && window.zwApplyPlatLayout) window.zwApplyPlatLayout(_plg, s);
+
       // Per-section style overrides.
       // Use !important so a chosen section background reliably beats the
       // light/super-light mode rules (e.g. .drop-wrap { background:var(--ink) }),
@@ -1048,7 +1419,33 @@ function showToast(msg) {
       else el.style.removeProperty('background'); // clear when unset so mode bg returns
       if (s.pad_top) el.style.paddingTop = s.pad_top + 'px';
       if (s.pad_bot) el.style.paddingBottom = s.pad_bot + 'px';
-      
+
+      // Universal text color (opt-in). Sections that set color via cssText
+      // (cta/banner) ship a text_color default, so the else-branch only clears
+      // an inline override on sections that never set color themselves.
+      if (s.text_color) {
+        el.style.setProperty('color', s.text_color, 'important');
+        el.classList.remove('zw-on-light');
+      } else if (s.sec_bg && _zwIsLightColor(s.sec_bg)) {
+        // Light section background but no text color chosen → force dark text so it
+        // stays readable (otherwise a white section inherits the dark-theme light
+        // text and renders invisible white-on-white). The zw-on-light class also
+        // darkens child text that hardcodes its own light color (e.g. product cards).
+        el.style.setProperty('color', '#09090b', 'important');
+        el.classList.add('zw-on-light');
+      } else {
+        el.style.removeProperty('color');
+        el.classList.remove('zw-on-light');
+      }
+      // Universal heading-size override (opt-in). Only applied when set — when
+      // blank, each section's own responsive heading size (re-rendered into the
+      // innerHTML on every update) stands, so there's nothing to clear.
+      if (s.heading_size) {
+        el.querySelectorAll('h1,h2,[data-builder-heading]').forEach(function (hEl) {
+          hEl.style.setProperty('font-size', s.heading_size, 'important');
+        });
+      }
+
       if (s.font_head_override && _FONT_STACKS[s.font_head_override]) {
         el.style.setProperty('--zw-font-head', _FONT_STACKS[s.font_head_override]);
         el.style.setProperty('--fw', _FONT_STACKS[s.font_head_override]);
@@ -1066,7 +1463,19 @@ function showToast(msg) {
         el.style.removeProperty('--zw-font-body');
         el.style.removeProperty('--fb');
       }
+     } catch (_secErr) {
+       try { console.warn('[storefront] section render failed — skipped:', sec && sec.type, sec && sec.id, _secErr); } catch (_) {}
+     }
     });
+
+    // Layout is now positioned. Cache that a builder layout is active so the next
+    // reload can hold a boot cover over the content while it reflows, then reveal
+    // here (rAF so the browser commits the final positions first) — no visible
+    // jump. Skip caching in the builder preview.
+    if (!window.__ZW_BUILDER_PREVIEW__) {
+      try { localStorage.setItem('zw_pb_active', '1'); } catch(e) {}
+    }
+    requestAnimationFrame(() => document.documentElement.classList.remove('zw-pb-pending'));
   }
 
   // URL param is the most reliable check â€” doesn't depend on iframe context
@@ -1112,6 +1521,14 @@ function showToast(msg) {
       if (e.data && e.data.type === 'ZW_BUILDER_CONFIG') {
         applyBuilderConfig(e.data);
       }
+      if (e.data && e.data.type === 'ZW_SELECT_MODE') {
+        window.__zwSelectMode = !!e.data.on;
+        document.body.classList.toggle('zw-select-mode', window.__zwSelectMode);
+        if (!window.__zwSelectMode) {
+          document.querySelectorAll('[data-zw-sec].zw-hover-sec, [data-zw-sec].zw-sel-sec')
+            .forEach(x => x.classList.remove('zw-hover-sec', 'zw-sel-sec'));
+        }
+      }
       if (e.data && e.data.type === 'ZW_SCROLL_TO_SECTION') {
         const secId = e.data.sectionId;
         const sectionMap = {
@@ -1127,6 +1544,38 @@ function showToast(msg) {
         }
       }
     });
+
+    // ── On-canvas selection (WYSIWYG) ────────────────────────────────────────
+    // In builder preview, hovering a section outlines it and clicking it tells the
+    // builder to select that section. Gated to preview mode, so the live store is
+    // never affected. Clicks are captured so a section's own links don't navigate.
+    // Off by default so the preview behaves like the real site (links/buttons
+    // work). The builder toggles it via ZW_SELECT_MODE.
+    window.__zwSelectMode = false;
+    (function initCanvasSelect() {
+      const style = document.createElement('style');
+      style.textContent = 'body.zw-select-mode [data-zw-sec]{cursor:pointer}[data-zw-sec].zw-hover-sec{outline:2px dashed rgba(248,145,165,.85);outline-offset:-2px}[data-zw-sec].zw-sel-sec{outline:2px solid rgba(248,145,165,1);outline-offset:-2px}';
+      document.head.appendChild(style);
+      let hovered = null;
+      document.addEventListener('mousemove', e => {
+        if (!window.__zwSelectMode) { if (hovered) { hovered.classList.remove('zw-hover-sec'); hovered = null; } return; }
+        const el = e.target.closest ? e.target.closest('[data-zw-sec]') : null;
+        if (el === hovered) return;
+        if (hovered) hovered.classList.remove('zw-hover-sec');
+        hovered = el;
+        if (hovered) hovered.classList.add('zw-hover-sec');
+      });
+      document.addEventListener('click', e => {
+        if (!window.__zwSelectMode) return;   // pass through — links work normally
+        const el = e.target.closest ? e.target.closest('[data-zw-sec]') : null;
+        if (!el) return;
+        e.preventDefault();
+        e.stopPropagation();
+        document.querySelectorAll('[data-zw-sec].zw-sel-sec').forEach(x => x.classList.remove('zw-sel-sec'));
+        el.classList.add('zw-sel-sec');
+        try { window.parent.postMessage({ type: 'ZW_SECTION_CLICKED', sectionId: el.getAttribute('data-zw-sec') }, location.origin); } catch (_) {}
+      }, true);
+    })();
 
     // Re-apply after Supabase finishes loading (bar was hidden when first apply ran, now it's visible)
     window.__zwReapplyBuilder = function() {
@@ -1170,12 +1619,32 @@ function setAnnouncementBarLayout(barEl, navEl, isVisible) {
     // (e.g. left behind after a resize across the breakpoint) and drop the spacer.
     if (navEl) navEl.style.top = '';
     if (spacerEl) spacerEl.style.height = '0';
+    // Position the fixed bar flush under the nav by measuring the nav's REAL
+    // height (safe-area + padding + button all vary by device) and feeding it to
+    // --zw-bar-top. The old CSS-only formula drifted from the actual nav height,
+    // leaving the bar "floating" with a gap below the header.
+    if (navEl) {
+      const navH = Math.round(navEl.getBoundingClientRect().height);
+      if (navH) document.documentElement.style.setProperty('--zw-bar-top', navH + 'px');
+    }
   } else {
+    document.documentElement.style.removeProperty('--zw-bar-top');
     const barH = (barEl && isVisible) ? barEl.offsetHeight : 0;
     if (navEl) navEl.style.top = barH + 'px';
     if (spacerEl) spacerEl.style.height = isVisible ? barH + 'px' : '0';
   }
 }
+
+// Keep the mobile bar flush under the nav across resize / orientation changes by
+// re-measuring the nav height into --zw-bar-top (mobile only, no desktop effects).
+function zwSyncMobileBarTop() {
+  if (!window.matchMedia('(max-width:900px)').matches) { document.documentElement.style.removeProperty('--zw-bar-top'); return; }
+  const navEl = document.getElementById('nav');
+  if (navEl) { const h = Math.round(navEl.getBoundingClientRect().height); if (h) document.documentElement.style.setProperty('--zw-bar-top', h + 'px'); }
+}
+window.addEventListener('resize', zwSyncMobileBarTop, { passive: true });
+if (document.readyState !== 'loading') zwSyncMobileBarTop();
+else document.addEventListener('DOMContentLoaded', zwSyncMobileBarTop);
 
 function applyAnnouncementBar(mode, msgText) {
   const barEl = document.getElementById('bar');
@@ -1446,14 +1915,20 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
           }
         }
         if (h.image) {
+          // Resize the hero through Cloudinary (raw user uploads can be multi-MB
+          // phone photos — the biggest LCP/scroll-jank offender). Relative bundled
+          // defaults pass through untouched. localStorage keeps the RAW url so the
+          // next load's early bootstrap can re-optimize for that viewport.
+          const optDesk = typeof window.optimizeImage === 'function' ? window.optimizeImage(h.image, 1400) : h.image;
+          const optMob = typeof window.optimizeImage === 'function' ? window.optimizeImage(h.image, 800) : h.image;
           const el = document.getElementById('hero-image');
-          if (el) el.src = h.image;
+          if (el) el.src = optDesk;
           const mobileSource = document.getElementById('hero-mobile-source');
-          if (mobileSource) mobileSource.srcset = h.image;
-          window.__ZW_HERO_IMAGE = h.image;
+          if (mobileSource) mobileSource.srcset = optMob;
+          window.__ZW_HERO_IMAGE = optDesk;
           try { localStorage.setItem('zw-hero-image', h.image); } catch (e) {}
           const preload = document.getElementById('hero-preload');
-          if (preload) preload.href = h.image;
+          if (preload) preload.href = optDesk;
         }
       }
     }
@@ -1863,7 +2338,6 @@ async function loadAllCardReviewSummaries(cardMap) {
   const pids = Object.keys(cardMap);
   if (!pids.length) return;
   try {
-    const idList = pids.map(id => `"${id}"`).join(',');
     const resp = await Promise.race([
       fetch(
         `${SUPABASE_URL}/rest/v1/reviews?product_id=in.(${pids.join(',')})&select=product_id,rating`,
@@ -1977,7 +2451,7 @@ function renderProductCards(products, grid) {
     }
     const _cardImgSrc = firstImg && typeof window.optimizeImage === 'function' ? window.optimizeImage(firstImg, 600) : firstImg;
     const imgHtml = firstImg
-      ? `<img src="${_cardImgSrc}" alt="${productName}" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:top center">`
+      ? `<img src="${_cardImgSrc}" alt="${escapeHomeFavoriteHtml(productName)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:top center">`
       : `<div class="pcard-img-placeholder">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l2-5h4l1 3h4l1-3h4l2 5v11H3V9z"/></svg>
             <p>Image Coming Soon</p>
@@ -2016,7 +2490,7 @@ function renderProductCards(products, grid) {
             <span id="avg-${domId}" style="${_revCache[p.id] && _revCache[p.id].count > 0 ? '' : 'display:none'}">${_revCache[p.id] && _revCache[p.id].count > 0 ? zwStarsMarkup(_revCache[p.id].avg) : ''}</span>
             <span id="cnt-${domId}">${_revCache[p.id] ? zwReviewCountText(_revCache[p.id].count, _revCache[p.id].avg) : ''}</span>
           </button>
-          ${isLive && window.innerWidth > 900 ? `<button type="button" class="pcard-add-btn" data-quick-add="${quickAddPayload}"><span class="pcard-add-desktop-label">Add to Bag</span></button>` : ''}
+          ${isLive ? `<button type="button" class="pcard-add-btn" data-quick-add="${quickAddPayload}"><span class="pcard-add-desktop-label">Add to Bag</span></button>` : ''}
           ${hasSwatches ? zwCardSwatchRow(p, quickAddPayload, firstImg) : ''}
         </div>
         ${isLive ? `<div class="quick-size-panel" id="qsp-${domId}">
@@ -2034,6 +2508,9 @@ function renderProductCards(products, grid) {
 
   // Re-init hearts for dynamically loaded cards
   if (typeof refreshHearts === 'function') refreshHearts();
+  // Now that the cards exist, (re)evaluate the swipe scrollbar — its visibility
+  // depends on the grid's real scroll width, which is only known once populated.
+  if (window.zwEnsureSwipeBar) window.zwEnsureSwipeBar(grid);
   // Load all review summaries in ONE batched request instead of N separate fetches
   const _reviewCardMap = {};
   renderList.forEach(p => { _reviewCardMap[p.id] = p.unique_id || p.id; });
@@ -2703,6 +3180,9 @@ function pulseBagTarget() {
 }
 
 function animateAddToBag(sourceEl, imageSrc) {
+  // If the header was scrolled away, pop it back so the shopper sees the bag
+  // update (and the pulse below happens on-screen, not off the top).
+  if (typeof window.zwRevealHeader === 'function') window.zwRevealHeader();
   // Add-to-bag acknowledgment: the bag icon "drop-in dip" (it dips and
   // squashes as if the item landed in it) plus the count-badge pop. The
   // (sourceEl, imageSrc) signature is kept so all call sites stay valid;
@@ -3608,13 +4088,8 @@ function scrollToNotify() {
 }
 
 
-(function(){
-  if(!localStorage.getItem('zw_cookie_consent')){
-    document.getElementById('cookie-banner').style.display='flex';
-  }
-})();
-function acceptCookies(){try{localStorage.setItem('zw_cookie_consent','accepted');}catch(e){}document.getElementById('cookie-banner').style.display='none'}
-function declineCookies(){try{localStorage.setItem('zw_cookie_consent','declined');}catch(e){}document.getElementById('cookie-banner').style.display='none'}
+/* Cookie consent (banner + accept/decline + analytics gating) is now handled by
+   consent.js / window.zwConsent, loaded on every page. */
 
 /* â”€â”€ Modal backdrop transparency enforcer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Applies transparent background via inline setProperty (beats all stylesheets,
@@ -3678,16 +4153,25 @@ function declineCookies(){try{localStorage.setItem('zw_cookie_consent','declined
     }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-      _sb = window.sb; // supabase-client.js (deferred) has now run
+  function _bootAuth() {
+    // On most pages supabase-client.js has already run and window.sb exists →
+    // wire auth immediately. On the homepage the SDK is loaded lazily, so if
+    // it isn't up yet, wire auth when it signals `zw-supabase-ready`.
+    _sb = window.sb || null;
+    if (_sb) {
       _initAuth();
-      initReturnsModalClose();
-    });
-  } else {
-    _sb = window.sb;
-    _initAuth();
+    } else {
+      window.addEventListener('zw-supabase-ready', function() {
+        _sb = window.sb;
+        _initAuth();
+      }, { once: true });
+    }
     initReturnsModalClose();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _bootAuth);
+  } else {
+    _bootAuth();
   }
 })();
 

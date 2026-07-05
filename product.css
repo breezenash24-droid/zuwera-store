@@ -115,15 +115,15 @@
 }
 
 /* Colorway switch / first paint: soft fade + settle. */
-.main-image.zw-img-in { animation: zwMainImgIn 0.42s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+.main-image.zw-img-in { animation: zwMainImgIn .4s cubic-bezier(.22,.61,.36,1) both; }
 @keyframes zwMainImgIn {
   from { opacity: 0; transform: scale(1.04); }
   to   { opacity: 1; transform: scale(1); }
 }
 /* Photo navigation (swipe / arrows / thumbnails): directional carousel slide.
    New photo slides in from the side you're navigating toward. */
-.main-image.zw-slide-next { animation: zwSlideNext 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
-.main-image.zw-slide-prev { animation: zwSlidePrev 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+.main-image.zw-slide-next { animation: zwSlideNext 0.4s cubic-bezier(.22,.61,.36,1) both; }
+.main-image.zw-slide-prev { animation: zwSlidePrev 0.4s cubic-bezier(.22,.61,.36,1) both; }
 @keyframes zwSlideNext {
   from { opacity: 0.3; transform: translateX(32%); }
   to   { opacity: 1;   transform: translateX(0); }
@@ -561,7 +561,7 @@
 
 .accordion-header svg {
   flex-shrink: 0;
-  transition: transform 0.4s cubic-bezier(.4, 0, .2, 1);
+  transition: transform 0.4s cubic-bezier(.4,0,.2,1);
 }
 
 .accordion-header.open svg {
@@ -571,7 +571,7 @@
 .accordion-body {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.4s cubic-bezier(.4, 0, .2, 1);
+  transition: max-height 0.4s cubic-bezier(.4,0,.2,1);
   color: var(--c65);
 }
 

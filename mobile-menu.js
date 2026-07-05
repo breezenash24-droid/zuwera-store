@@ -11,6 +11,24 @@
   var previousHtmlOverscroll = '';
   var lockedScrollY = 0;
 
+  // Stop history-driven scroll restoration from fighting our manual restore.
+  // Opening the menu pushState()s a history entry while the body is locked at
+  // the top (position:fixed → document scroll snaps to 0), so the browser
+  // records scrollY=0 for that entry. Closing calls history.back(), and with
+  // the default 'auto' restoration the browser snaps the page back to that
+  // recorded 0 — overriding the scroll-lock's scrollTo(savedY) and jumping you
+  // to the very top. 'manual' hands restoration to us; we flip back to 'auto'
+  // on pagehide so normal cross-page back/forward still restores scroll.
+  // (drop001 already did this locally; doing it here fixes every page at once.)
+  try {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+      window.addEventListener('pagehide', function () {
+        try { window.history.scrollRestoration = 'auto'; } catch (_) {}
+      });
+    }
+  } catch (_) {}
+
   function menu() {
     return document.getElementById('mobile-menu');
   }
@@ -159,14 +177,23 @@
     if (!el) return false;
     if (!el.classList.contains('open')) return false;
     el.classList.remove('open');
+    el.classList.add('closing');
     el.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('zw-mobile-menu-open');
     document.documentElement.classList.remove('zw-mobile-menu-open');
     setButtonState(false);
-    syncScrollLock();
-    if (window.history.state && window.history.state.zwMenu) {
-      window.history.back();
+    var panel = el.querySelector('.zw-mobile-menu-panel');
+    var done = false;
+    function finish() {
+      if (done) return; done = true;
+      el.classList.remove('closing');
+      syncScrollLock();
+      if (window.history.state && window.history.state.zwMenu) {
+        window.history.back();
+      }
     }
+    if (panel) panel.addEventListener('animationend', finish, { once: true });
+    setTimeout(finish, 400);
     return false;
   };
 

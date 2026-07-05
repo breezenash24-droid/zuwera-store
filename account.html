@@ -65,7 +65,7 @@
   <script src="/google-tag.js?v=b141b2a1" defer></script>
   <script src="/supabase.min.js?v=3277b334" defer></script>
   <script src="/supabase-client.js?v=b28896db" defer></script>
-  <script src="quick-add-modal.js?v=95f47ca5" defer></script>
+  <script src="quick-add-modal.js?v=3370ca5f" defer></script>
   <meta name="robots" content="noindex, nofollow">
   <meta name="description" content="Manage your Zuwera account, orders, and saved items.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -367,7 +367,7 @@
     .order-track-btn {
       display: inline-block; border: 1px solid rgba(244,241,235,.2); color: rgba(244,241,235,.7);
       padding: .4rem .9rem; font-size: .56rem; letter-spacing: .1em; text-transform: uppercase;
-      font-family: var(--fm); transition: all .18s; text-decoration: none;
+      font-family: var(--fm); transition: all .2s; text-decoration: none;
     }
     .order-track-btn:hover { border-color: var(--paper); color: var(--paper); }
     body.light-mode .order-track-btn { border-color: rgba(9,9,11,.2); color: rgba(9,9,11,.65); }
@@ -565,7 +565,7 @@
     .ret-item-chk {
       width: 16px; height: 16px; flex-shrink: 0; border-radius: 3px;
       border: 1.5px solid rgba(244,241,235,.3);
-      display: flex; align-items: center; justify-content: center; transition: all .12s;
+      display: flex; align-items: center; justify-content: center; transition: all .1s;
     }
     body.light-mode .ret-item-chk { border-color: rgba(9,9,11,.3); }
     .ret-item-chk.checked { background: rgba(244,241,235,.9); border-color: rgba(244,241,235,.9); }
@@ -629,7 +629,7 @@
     .ret-track-btn {
       display: inline-block; border: 1px solid rgba(244,241,235,.2); color: rgba(244,241,235,.7);
       padding: .4rem .9rem; font-size: .56rem; letter-spacing: .1em; text-transform: uppercase;
-      font-family: var(--fm); transition: all .18s; text-decoration: none;
+      font-family: var(--fm); transition: all .2s; text-decoration: none;
     }
     .ret-track-btn:hover { border-color: var(--paper); color: var(--paper); }
     body.light-mode .ret-track-btn { border-color: rgba(9,9,11,.2); color: rgba(9,9,11,.65); }
@@ -667,19 +667,20 @@
       #saved-list { grid-template-columns: repeat(2, 1fr); gap: .8rem; }
     }
   </style>
-<link rel="stylesheet" href="storefront-cohesion.css?v=421bca1c">
+<link rel="stylesheet" href="storefront-cohesion.css?v=1ddba8e7">
 <script src="header-scroll.js?v=4a734678" defer></script>
-<link rel="stylesheet" href="quick-add-modal.css?v=ef537725">
+<link rel="stylesheet" href="quick-add-modal.css?v=7bec1bc6">
 <style>
   #toast { position:fixed; bottom:calc(1.5rem + env(safe-area-inset-bottom, 0px)); left:50%; transform:translateX(-50%) translateY(10px); background:#0f0f0f; color:rgba(244,241,235,.9); padding:.5rem 1.2rem; font-size:.72rem; letter-spacing:.08em; opacity:0; transition:opacity .3s, transform .3s; pointer-events:none; z-index:9999; white-space:nowrap; }
   #toast.on { opacity:1; transform:translateX(-50%) translateY(0); }
   body.light-mode #toast { background:#F0EEE9; color:#09090b; }
   body.super-light-mode #toast { background:#FFFFFF; color:#09090b; }
 </style>
-<script src="mobile-menu.js?v=251b10fb" defer></script>
+<script src="mobile-menu.js?v=0b991fea" defer></script>
 <script>try{var _t=localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
-<script src="/posthog-init.js?v=6ebbeafc" defer></script>
+<script src="/posthog-init.js?v=c4b554c4" defer></script>
 <style>body.super-light-mode{background:#FFFFFF!important}</style>
+<script src="consent.js?v=1" defer></script>
 </head>
 <body>
 <script>(function(){try{var m=localStorage.getItem('zw_theme_mode');if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
@@ -1894,9 +1895,9 @@ async function init() {
 
 document.addEventListener('DOMContentLoaded', function() { _sb = window.sb; init(); });
 </script>
-<script src="storefront-theme.js?v=5762e141" defer></script>
-<script src="lang.js?v=5a87b132" defer></script>
-<script src="zw-login.js?v=d30a7000" defer></script>
+<script src="storefront-theme.js?v=76af5324" defer></script>
+<script src="lang.js?v=756ddb26" defer></script>
+<script src="zw-login.js?v=8ffae84d" defer></script>
 <script src="/nav-menu.js?v=2abb3b12" defer></script>
 </body>
 </html>

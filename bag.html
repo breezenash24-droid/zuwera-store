@@ -77,13 +77,14 @@ html.zw-authed #account-btn{display:inline-flex!important}
        refresh the heading font is ready on first paint and never swaps from a
        fallback. The preconnect + preload above keep the cold-cache cost small. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
-  <link rel="stylesheet" href="base.css?v=76b6ce45">
-  <link rel="stylesheet" href="nav.css?v=e1e6dc8e">
-  <link rel="stylesheet" href="cart.css?v=43a9e1fb">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=421bca1c">
+  <link rel="stylesheet" href="base.css?v=aad39d07">
+  <link rel="stylesheet" href="nav.css?v=4ce8ae68">
+  <link rel="stylesheet" href="cart.css?v=a76741b3">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=1ddba8e7">
 <script src="header-scroll.js?v=4a734678" defer></script>
-  <link rel="stylesheet" href="quick-add-modal.css?v=ef537725">
+  <link rel="stylesheet" href="quick-add-modal.css?v=7bec1bc6">
   <script src="/favicon-utils.js?v=687e90ea" defer></script>
+  <script src="/flags.js?v=1" defer></script>
   <script src="/meta-pixel.js?v=71fe06fb" defer></script>
   <script src="/google-tag.js?v=b141b2a1" defer></script>
   <script src="/supabase.min.js?v=3277b334" defer></script>
@@ -155,7 +156,7 @@ html.zw-authed #account-btn{display:inline-flex!important}
     @media (max-width: 900px) { .bag-main { padding-top: 4rem; } }
 
     /* ── Auth modal classes (auth.js uses .auth-tab / .auth-panel) ── */
-    .auth-tab  { background:none; border:none; color:rgba(244,241,235,.35); font-family:var(--font-body); font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; cursor:pointer; padding:.3rem .6rem; border-bottom:2px solid transparent; transition:.18s; }
+    .auth-tab  { background:none; border:none; color:rgba(244,241,235,.35); font-family:var(--font-body); font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; cursor:pointer; padding:.3rem .6rem; border-bottom:2px solid transparent; transition:.2s; }
     .auth-tab.active { color:rgba(244,241,235,.9); border-bottom-color:rgba(244,241,235,.5); }
     .auth-panel { display:none; }
     .auth-panel.active { display:block; }
@@ -165,13 +166,13 @@ html.zw-authed #account-btn{display:inline-flex!important}
     body.light-mode .atabs { border-bottom-color:rgba(9,9,11,.08); }
 
     /* ── Modals ── */
-    .modal { display:none; position:fixed; inset:0; z-index:500; background:rgba(9,9,11,.75); backdrop-filter:none; -webkit-backdrop-filter:none; align-items:center; justify-content:center; padding:1.5rem; overflow-y:auto; }
+    .modal { display:none; position:fixed; inset:0; z-index:500; background:transparent; backdrop-filter:none; -webkit-backdrop-filter:none; align-items:center; justify-content:center; padding:1.5rem; overflow-y:auto; }
     .modal.open { display:flex; }
     #auth-modal { z-index:600; }
     @keyframes modalIn { from { opacity:0; transform:translateY(10px) scale(.98); } to { opacity:1; transform:none; } }
 
     /* ── Modal box ── */
-    .mbox { background:#0f0f0f; border:1px solid rgba(244,241,235,.08); border-top:2px solid #9b8b6e; padding:2.6rem 2.4rem 2.2rem; width:min(420px,92vw); position:relative; animation:modalIn .22s ease; }
+    .mbox { background:#0f0f0f; border:1px solid rgba(244,241,235,.08); border-top:2px solid #9b8b6e; padding:2.6rem 2.4rem 2.2rem; width:min(420px,92vw); position:relative; animation:modalIn .2s ease; }
     .mclose { position:absolute; top:1.1rem; right:1.2rem; background:rgba(244,241,235,.05); border:1px solid rgba(244,241,235,.08); color:inherit; width:28px; height:28px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:1rem; border-radius:4px; }
     .mclose:hover { background:rgba(244,241,235,.1); }
     .mtitle { font-size:1.5rem; font-family:var(--font-head); letter-spacing:.1em; margin-bottom:.3rem; }
@@ -180,10 +181,10 @@ html.zw-authed #account-btn{display:inline-flex!important}
     .auth-brand img { display:block; width:132px; height:36px; object-fit:cover; object-position:center; opacity:.9; }
     .fgroup { margin-bottom:1rem; }
     .fgroup label { display:block; font-size:.62rem; letter-spacing:.12em; text-transform:uppercase; color:rgba(244,241,235,.35); margin-bottom:.4rem; }
-    .fgroup input { width:100%; background:rgba(244,241,235,.04); border:1px solid rgba(244,241,235,.1); color:inherit; padding:.65rem .8rem; font-family:var(--font-body); font-size:1rem; outline:none; transition:border-color .18s; }
+    .fgroup input { width:100%; background:rgba(244,241,235,.04); border:1px solid rgba(244,241,235,.1); color:inherit; padding:.65rem .8rem; font-family:var(--font-body); font-size:1rem; outline:none; transition:border-color .2s; }
     .fgroup input:focus { border-color:rgba(244,241,235,.3); }
     .ferr { color:#e07060; font-size:.7rem; min-height:1rem; margin-bottom:.5rem; }
-    .auth-submit-btn { width:100%; background:rgba(244,241,235,.9); color:#09090b; border:none; padding:.85rem; font-family:var(--font-body); font-size:.78rem; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; margin-top:.5rem; transition:opacity .18s; }
+    .auth-submit-btn { width:100%; background:rgba(244,241,235,.9); color:#09090b; border:none; padding:.85rem; font-family:var(--font-body); font-size:.78rem; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; margin-top:.5rem; transition:opacity .2s; }
     .auth-submit-btn:hover { opacity:.82; }
     .alink { text-align:center; font-size:.7rem; color:rgba(244,241,235,.3); margin-top:1rem; }
     .alink a,.alink button { color:rgba(244,241,235,.55); cursor:pointer; text-decoration:underline; background:none; border:none; font:inherit; padding:0; }
@@ -203,7 +204,7 @@ html.zw-authed #account-btn{display:inline-flex!important}
 
     /* ── Payment modal ── */
     #payment-modal { background:none; backdrop-filter:none; -webkit-backdrop-filter:none; align-items:center; padding:1.5rem; }
-    .pbox { background:#0f0f0f; border:1px solid rgba(244,241,235,.1); padding:0; width:min(1040px,calc(100vw - 3rem)); max-height:94dvh; overflow:hidden; position:relative; animation:modalIn .22s ease; display:flex; flex-direction:column; }
+    .pbox { background:#0f0f0f; border:1px solid rgba(244,241,235,.1); padding:0; width:min(1040px,calc(100vw - 3rem)); max-height:94dvh; overflow:hidden; position:relative; animation:modalIn .2s ease; display:flex; flex-direction:column; }
     .pbox .mclose { position:absolute; top:.85rem; right:.85rem; z-index:20; }
 
     /* Two-column grid — fills box height, each side scrolls independently */
@@ -240,17 +241,17 @@ html.zw-authed #account-btn{display:inline-flex!important}
     .pgrow { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; }
     .pfield { margin-bottom:.9rem; }
     .pfield label { display:block; font-size:.62rem; letter-spacing:.12em; text-transform:uppercase; color:rgba(244,241,235,.35); margin-bottom:.35rem; }
-    .pfield input { width:100%; background:rgba(244,241,235,.04); border:1px solid rgba(244,241,235,.1); color:inherit; padding:.6rem .75rem; font-family:var(--font-body); font-size:1rem; outline:none; transition:border-color .18s; }
+    .pfield input { width:100%; background:rgba(244,241,235,.04); border:1px solid rgba(244,241,235,.1); color:inherit; padding:.6rem .75rem; font-family:var(--font-body); font-size:1rem; outline:none; transition:border-color .2s; }
     .pfield input:focus { border-color:rgba(244,241,235,.35); }
-    #stripe-card-element { background:rgba(244,241,235,.04); border:1px solid rgba(244,241,235,.1); padding:.75rem; transition:border-color .18s; }
+    #stripe-card-element { background:rgba(244,241,235,.04); border:1px solid rgba(244,241,235,.1); padding:.75rem; transition:border-color .2s; }
     #stripe-card-element.StripeElement--focus { border-color:rgba(244,241,235,.35); }
     #stripe-card-element.StripeElement--invalid { border-color:#e07060; }
     #pay-error { color:#e07060; font-size:.72rem; min-height:1rem; margin:.4rem 0; }
-    #pay-submit { width:100%; background:rgba(244,241,235,.9); color:#09090b; border:none; padding:.9rem; font-family:var(--font-body); font-size:.78rem; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; margin-top:.5rem; transition:opacity .18s; display:flex; align-items:center; justify-content:center; gap:.4rem; }
+    #pay-submit { width:100%; background:rgba(244,241,235,.9); color:#09090b; border:none; padding:.9rem; font-family:var(--font-body); font-size:.78rem; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; margin-top:.5rem; transition:opacity .2s; display:flex; align-items:center; justify-content:center; gap:.4rem; }
     #pay-submit:hover { opacity:.82; }
     #pay-submit:disabled { opacity:.45; cursor:not-allowed; }
     .psecure { font-size:.62rem; color:rgba(244,241,235,.25); letter-spacing:.08em; text-align:center; margin-top:.7rem; }
-    .rate-opt { display:flex; align-items:center; justify-content:space-between; gap:.7rem; padding:.6rem .75rem; border:1px solid rgba(244,241,235,.1); cursor:pointer; transition:border-color .18s, background .18s; margin-bottom:.4rem; background:rgba(244,241,235,.02); font-size:.82rem; }
+    .rate-opt { display:flex; align-items:center; justify-content:space-between; gap:.7rem; padding:.6rem .75rem; border:1px solid rgba(244,241,235,.1); cursor:pointer; transition:border-color .2s, background .2s; margin-bottom:.4rem; background:rgba(244,241,235,.02); font-size:.82rem; }
     .rate-opt:hover { border-color:rgba(244,241,235,.3); background:rgba(244,241,235,.04); }
     .rate-opt.selected { border-color:rgba(244,241,235,.5); background:rgba(244,241,235,.06); }
     .rate-meta { font-size:.68rem; color:rgba(244,241,235,.4); margin-top:.15rem; }
@@ -319,7 +320,7 @@ html.zw-authed #account-btn{display:inline-flex!important}
     #payment-success h2 { font-family:var(--font-head); font-size:2.5rem; letter-spacing:.1em; margin-bottom:.6rem; }
     #payment-success p { color:rgba(244,241,235,.45); font-size:.9rem; margin-bottom:1.5rem; max-width:340px; line-height:1.8; }
     #success-order { font-size:.75rem; letter-spacing:.2em; color:rgba(244,241,235,.25) !important; }
-    #success-continue { background:rgba(244,241,235,.9); color:#09090b; border:none; padding:.9rem 2.5rem; font-family:var(--font-body); font-size:.78rem; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; transition:opacity .18s; }
+    #success-continue { background:rgba(244,241,235,.9); color:#09090b; border:none; padding:.9rem 2.5rem; font-family:var(--font-body); font-size:.78rem; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; transition:opacity .2s; }
     #success-continue:hover { opacity:.82; }
     body.light-mode #payment-success { background:#F0EEE9; }
     body.light-mode .success-check { border-color:rgba(9,9,11,.2); }
@@ -339,7 +340,7 @@ html.zw-authed #account-btn{display:inline-flex!important}
     /* Promo block inside the payment modal right panel */
     #zw-promo-shell { margin-bottom:.9rem; }
     #zw-promo-shell .pm-promo-row { display:flex; gap:.5rem; align-items:stretch; }
-    #zw-promo-input { flex:1; background:rgba(244,241,235,.04); border:1px solid rgba(244,241,235,.1); color:inherit; padding:.6rem .75rem; font-family:var(--font-body); font-size:.75rem; letter-spacing:.1em; text-transform:uppercase; outline:none; transition:border-color .18s; min-width:0; }
+    #zw-promo-input { flex:1; background:rgba(244,241,235,.04); border:1px solid rgba(244,241,235,.1); color:inherit; padding:.6rem .75rem; font-family:var(--font-body); font-size:.75rem; letter-spacing:.1em; text-transform:uppercase; outline:none; transition:border-color .2s; min-width:0; }
     #zw-promo-input:focus { border-color:rgba(244,241,235,.35); }
     #zw-promo-apply { border:1px solid rgba(244,241,235,.2); background:transparent; color:inherit; padding:.6rem 1rem; font-family:var(--font-body); font-size:.65rem; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; white-space:nowrap; flex-shrink:0; transition:border-color .2s,opacity .2s; }
     #zw-promo-apply:hover { border-color:rgba(244,241,235,.5); }
@@ -350,10 +351,10 @@ html.zw-authed #account-btn{display:inline-flex!important}
     body.light-mode #zw-promo-apply:hover { border-color:rgba(9,9,11,.5); }
     body.light-mode #zw-promo-message { color:rgba(9,9,11,.48); }
 </style>
-  <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=29023607">
-  <script src="mobile-menu.js?v=251b10fb" defer></script>
+  <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=d7cd202c">
+  <script src="mobile-menu.js?v=0b991fea" defer></script>
 <script>try{var _t=localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
-<script src="/posthog-init.js?v=6ebbeafc" defer></script>
+<script src="/posthog-init.js?v=c4b554c4" defer></script>
 <style>
 body.light-mode .zw-fav-size-picker{background:#F0EEE9!important;border-color:rgba(9,9,11,.14)!important;}
 body.light-mode .zw-fav-size-picker button{color:rgba(9,9,11,.8)!important;border-color:rgba(9,9,11,.18)!important;}
@@ -361,6 +362,8 @@ body.light-mode .zw-fav-size-picker button:disabled{color:rgba(9,9,11,.28)!impor
 body.super-light-mode .zw-fav-size-picker{background:#FFFFFF!important;border-color:rgba(9,9,11,.12)!important;}
 </style>
 <style>body.super-light-mode .mbox{background:#FFFFFF!important;border-color:rgba(9,9,11,.1)!important;border-top-color:#09090b!important;color:#09090b!important}body.super-light-mode .pbox{background:#FFFFFF!important;border-color:rgba(9,9,11,.08)!important;color:#09090b!important}body.super-light-mode .pmob-hd{background:#FFFFFF!important;border-bottom-color:rgba(9,9,11,.08)!important}body.super-light-mode #payment-modal{background:#FFFFFF!important}body.super-light-mode #payment-success{background:#FFFFFF!important}body.super-light-mode #toast{background:#FFFFFF!important;color:#09090b!important}</style>
+<script src="error-reporter.js?v=1" defer></script>
+<script src="consent.js?v=1" defer></script>
 </head>
 <body>
 <script>(function(){try{var m=localStorage.getItem('zw_theme_mode');if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
@@ -1188,9 +1191,9 @@ window.__zwOpenAuth = function(tab) {
 };
 </script>
 
-<script src="image-utils.js?v=6eef467b"></script>
-<script src="quick-add-modal.js?v=95f47ca5" defer></script>
-<script src="auth.js?v=7be42027" defer></script>
+<script src="image-utils.js?v=e6f0ec04"></script>
+<script src="quick-add-modal.js?v=3370ca5f" defer></script>
+<script src="auth.js?v=2aa0fcc3" defer></script>
 <script>
 /* ── Saved items visibility + member pricing: flip as soon as auth state is known ── */
 (function() {

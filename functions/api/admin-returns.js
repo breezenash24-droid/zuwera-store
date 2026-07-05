@@ -8,6 +8,7 @@ import {
   upsertTimelineEntry,
   verifyAdmin,
 } from './_commerce.js';
+import { permsHave } from './_rbac.js';
 
 function orderTotal(order = {}) {
   return Number(order.total || order.total_amount || 0);
@@ -99,11 +100,14 @@ function enrichRequests(requests = [], orders = [], profiles = []) {
   });
 }
 
-async function requireAdmin(request, env) {
+async function requireAdmin(request, env, permission = 'returns') {
   const authHeader = request.headers.get('Authorization') || '';
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
   const admin = await verifyAdmin(env, token);
   if (!admin) throw new Error('Not authorized');
+  if (permission && !permsHave(admin.permissions, permission)) {
+    throw new Error('Your role does not have permission for this action.');
+  }
   return admin;
 }
 
@@ -131,7 +135,7 @@ export async function onRequestGet({ request, env }) {
 
 export async function onRequestPost({ request, env }) {
   try {
-    const admin = await requireAdmin(request, env);
+    const admin = await requireAdmin(request, env, 'return_process');
     const body = await request.json().catch(() => ({}));
     const action = String(body.action || '').trim();
     if (action !== 'update_return') {

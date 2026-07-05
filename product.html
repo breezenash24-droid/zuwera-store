@@ -47,6 +47,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/images/favicon-black-192.png?v=3">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=3">
 <script src="/favicon-utils.js?v=687e90ea" defer></script>
+<script src="/flags.js?v=1" defer></script>
 <script src="/meta-pixel.js?v=71fe06fb" defer></script>
 <script src="/google-tag.js?v=b141b2a1" defer></script>
 <script src="/supabase.min.js?v=3277b334" defer></script>
@@ -67,18 +68,19 @@
 
 <!-- Stylesheets -->
 <link rel="stylesheet" href="base.css">
-<link rel="stylesheet" href="nav.css?v=e1e6dc8e">
-<link rel="stylesheet" href="product.css?v=7d7c29cc">
-<link rel="stylesheet" href="cart.css?v=43a9e1fb">
+<link rel="stylesheet" href="nav.css?v=4ce8ae68">
+<link rel="stylesheet" href="product.css?v=8df2c93f">
+<link rel="stylesheet" href="cart.css?v=a76741b3">
 <!-- reviews.css styles only below-the-fold review content + hidden review
      modals, so load it non-render-blocking (matches index.html). reviews-vibe.css
      stays blocking — it also styles the above-the-fold .product-fit-actions. -->
-<link rel="preload" href="reviews.css?v=cf5b3ca4" as="style" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="reviews.css?v=cf5b3ca4"></noscript>
-<link rel="stylesheet" href="reviews-vibe.css?v=e999845e">
-<link rel="stylesheet" href="storefront-cohesion.css?v=421bca1c">
+<link rel="preload" href="reviews.css?v=393c2a97" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="reviews.css?v=393c2a97"></noscript>
+<link rel="stylesheet" href="reviews-vibe.css?v=8580381c">
+<link rel="stylesheet" href="storefront-cohesion.css?v=1ddba8e7">
 <script src="header-scroll.js?v=4a734678" defer></script>
-<link rel="stylesheet" href="storefront-mobile-rebuild.css?v=29023607">
+<script src="image-effects.js?v=1" defer></script>
+<link rel="stylesheet" href="storefront-mobile-rebuild.css?v=d7cd202c">
 
 <script src="/stripe-client-config.js?v=c262166e" defer></script>
 <script src="/checkout-tax.js?v=b12c4e5f" defer></script>
@@ -102,7 +104,7 @@
   width:100%;min-height:48px;padding:.8rem 1rem;border:1px solid rgba(244,241,235,.14);border-radius:999px;
   font-family:var(--font-body);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
   color:#f4f1eb;background:rgba(244,241,235,.03);
-  gap:.65rem;cursor:pointer;transition:border-color .18s ease, background .18s ease, color .18s ease, opacity .18s ease;
+  gap:.65rem;cursor:pointer;transition:border-color .2s ease, background .2s ease, color .2s ease, opacity .2s ease;
 }
 .wallet-chip:hover{border-color:rgba(244,241,235,.28);background:rgba(244,241,235,.06)}
 .wallet-chip:focus-visible{outline:2px solid rgba(244,241,235,.35);outline-offset:2px}
@@ -173,7 +175,7 @@
   padding: 0.45rem 1.1rem; border-radius: 20px; font-size: 0.82rem; font-weight: 600;
   cursor: pointer; text-transform: none; letter-spacing: 0.02em;
   border: 1px solid rgba(244,241,235,0.15); background: rgba(244,241,235,0.04);
-  color: rgba(244,241,235,0.5); transition: all 0.18s; user-select: none;
+  color: rgba(244,241,235,0.5); transition: all .2s; user-select: none;
   font-family:var(--font-body);
 }
 .review-radio-group input[type="radio"]:checked + label {
@@ -366,7 +368,7 @@ body.super-light-mode #bar {
   65% { transform: scale(0.87); }
   100%{ transform: scale(1); }
 }
-.heart-btn svg.heart-pop { animation: svgHeartPop .36s cubic-bezier(.36,.07,.19,.97); }
+.heart-btn svg.heart-pop { animation: svgHeartPop .35s cubic-bezier(.36,.07,.19,.97); }
 @media (prefers-reduced-motion: reduce) { .heart-btn svg.heart-pop { animation: none; } }
 body.light-mode .heart-btn { background: rgba(255,255,255,.75); border-color: rgba(9,9,11,.12); color: rgba(9,9,11,.3); }
 body.light-mode .heart-btn:hover, body.light-mode .heart-btn.active { color: var(--red); border-color: var(--red); }
@@ -378,7 +380,7 @@ body.light-mode .heart-btn:hover, body.light-mode .heart-btn.active { color: var
 .mbox {
   background:#0f0f0f; border:1px solid rgba(244,241,235,.08);
   border-top:2px solid #F891A5; padding:2.6rem 2.4rem 2.2rem;
-  width:min(420px,92vw); position:relative; animation:modalIn .22s ease;
+  width:min(420px,92vw); position:relative; animation:modalIn .2s ease;
 }
 @keyframes modalIn { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
 .mclose {
@@ -579,8 +581,8 @@ body.light-mode #toast { background: #09090b; color: #E8E3DC; }
 }
 #toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* Mobile Menu Overlay */
-#mobile-menu { background: rgba(9,9,11,0.98); }
+/* Mobile Menu Overlay — backdrop transparency owned by storefront-cohesion.css
+   (always transparent); the old opaque #mobile-menu background was removed. */
 .mobile-nav-links { display: flex; flex-direction: column; gap: 2.5rem; text-align: center; }
 .mobile-nav-link { font-family: var(--fm); font-size: 1.2rem; color: rgba(244,241,235,.78); letter-spacing: 0.22em; text-transform: uppercase; text-decoration: none; transition: color 0.2s; }
 .mobile-nav-link:hover { color: #f4f1eb; }
@@ -696,7 +698,7 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
   65%{transform:translateY(-1.5px) scale(.97,1.05)}
   100%{transform:translateY(0) scale(1,1)}
 }
-#cart-btn.bag-dip svg{animation:bagDip .38s cubic-bezier(.34,1.3,.5,1);transform-origin:center bottom}
+#cart-btn.bag-dip svg{animation:bagDip .4s cubic-bezier(.34,1.3,.5,1);transform-origin:center bottom}
 @media (prefers-reduced-motion: reduce){
   #cart-btn.bag-dip svg{animation:none}
 }
@@ -984,13 +986,15 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
 }
 body.super-light-mode { background: #FFFFFF !important; }
 </style>
-<script src="image-utils.js?v=6eef467b" defer></script>
-<script src="mobile-menu.js?v=251b10fb" defer></script>
+<script src="image-utils.js?v=e6f0ec04" defer></script>
+<script src="mobile-menu.js?v=0b991fea" defer></script>
 
 <!-- PostHog analytics -->
 <script>try{var _t=localStorage.getItem('zw_theme_mode');document.documentElement.style.background=_t==='light'?'#F0EEE9':_t==='super-light'?'#FFFFFF':'#09090b';var _f=localStorage.getItem('zw_fonts');if(_f){_f=JSON.parse(_f);var _r=document.documentElement;if(_f.vars)Object.keys(_f.vars).forEach(function(k){_r.style.setProperty(k,_f.vars[k])});if(_f.urls)_f.urls.forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l)});if(_f.css){var _s=document.createElement('style');_s.textContent=_f.css;document.head.appendChild(_s)}}}catch(_){}</script>
-<script src="/posthog-init.js?v=6ebbeafc" defer></script>
+<script src="/posthog-init.js?v=c4b554c4" defer></script>
 <style>body.super-light-mode{background:#FFFFFF!important}body.super-light-mode .mbox{background:#FFFFFF!important}body.super-light-mode #mobile-menu{background:#FFFFFF!important}body.super-light-mode #payment-modal>div{background:#FFFFFF!important;border-color:rgba(9,9,11,.1)!important}</style>
+<script src="error-reporter.js?v=1" defer></script>
+<script src="consent.js?v=1" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to content</a>
@@ -1011,7 +1015,7 @@ body.super-light-mode { background: #FFFFFF !important; }
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
 <nav class="nav">
   <a href="/" class="nav-logo-link" aria-label="Back to Zuwera home">
-    <img src="images/logo-192.png" srcset="images/logo-192.png 192w, images/logo.png?v=2 2000w" sizes="60px" alt="ZUWERA" class="nav-logo-img" width="60" height="60" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
+    <img src="images/logo.png?v=2" alt="ZUWERA" class="nav-logo-img" width="60" height="60" onerror="this.style.display='none';this.parentElement.textContent='ZUWERA'">
   </a>
   <div class="nav-right">
     <button class="nbtn" id="login-btn">Login</button>
@@ -1498,7 +1502,7 @@ body.super-light-mode { background: #FFFFFF !important; }
 <!-- supabase.min.js now loaded deferred from <head> -->
 <!-- Turnstile invisible widget (shared across all forms on this page) -->
 <div id="zw-ts-widget" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;" aria-hidden="true"></div>
-<script src="auth.js?v=7be42027" defer></script>
+<script src="auth.js?v=2aa0fcc3" defer></script>
 <script>
 
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
@@ -3359,6 +3363,12 @@ function renderTags(elementId, tags, label) {
 // ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â
 function renderReviews() {
   const content = document.getElementById('reviewsContent');
+  // Pull the admin-configured "collapse reviews longer than" cutoff (defined in
+  // reviews.js) once it's loaded, then re-render so existing long reviews collapse.
+  if (!window._reviewLimitsSynced && typeof ensureReviewLimits === 'function') {
+    window._reviewLimitsSynced = true;
+    ensureReviewLimits().then(() => renderReviews());
+  }
   const safeEsc = typeof escHtml === 'function'
     ? escHtml
     : (value) => String(value ?? '')
@@ -3411,10 +3421,26 @@ function renderReviews() {
         ${editBtnHtml}
       </div>
       ${review.title ? `<p class="review-title">${safeEsc(review.title)}</p>` : ''}
-      ${review.body ? `<p class="review-body">${safeEsc(review.body)}</p>` : ''}
+      ${review.body ? ((typeof reviewNeedsCollapse === 'function' && reviewNeedsCollapse(review.body))
+        ? `<p class="review-body" data-collapsible="1">${safeEsc(reviewShort(review.body))}… </p><button type="button" class="review-more-btn" aria-expanded="false">View more</button>`
+        : `<p class="review-body">${safeEsc(review.body)}</p>`) : ''}
       ${adminResponseHtml}
     `;
     content.appendChild(reviewEl);
+    if (typeof reviewNeedsCollapse === 'function' && reviewNeedsCollapse(review.body)) {
+      const _bodyEl = reviewEl.querySelector('.review-body[data-collapsible]');
+      const _moreBtn = reviewEl.querySelector('.review-more-btn');
+      if (_bodyEl && _moreBtn) {
+        const _short = reviewShort(review.body) + '… ';
+        let _expanded = false;
+        _moreBtn.addEventListener('click', () => {
+          _expanded = !_expanded;
+          _bodyEl.textContent = _expanded ? review.body : _short; // textContent = safe, no re-escaping
+          _moreBtn.textContent = _expanded ? 'View less' : 'View more';
+          _moreBtn.setAttribute('aria-expanded', String(_expanded));
+        });
+      }
+    }
   });
 
   if (currentProduct.reviews.length > 3) {
@@ -3478,6 +3504,9 @@ function pulseBagTarget() {
 }
 
 function animateAddToBag(sourceEl, imageSrc) {
+  // If the header was scrolled away, pop it back so the shopper sees the bag
+  // update (and the pulse below happens on-screen, not off the top).
+  if (typeof window.zwRevealHeader === 'function') window.zwRevealHeader();
   // Add-to-bag acknowledgment: the bag icon "drop-in dip" (it dips and
   // squashes as if the item landed in it). Signature kept so all call sites
   // stay valid; prefers-reduced-motion is honored in CSS.
@@ -3849,9 +3878,11 @@ window.openSizeFitModal = async function() {
   content.innerHTML = '<p class="review-modal-message">Loading fit ratings...</p>';
   modal.classList.add('open');
   // Force the bottom-sheet layout on mobile inline — beats any stacked modal CSS
-  // that was still centring it. Desktop stays a centred dialog.
+  // that was still centring it. Desktop stays a centred dialog. Uses the
+  // site-wide 900px modal breakpoint (was 600px, which left tablet widths
+  // 601-900px as a floating centred card).
   const _sfBox = modal.querySelector('.review-dialog');
-  if (window.matchMedia('(max-width:600px)').matches) {
+  if (window.matchMedia('(max-width:900px)').matches) {
     modal.style.setProperty('align-items', 'flex-end', 'important');
     modal.style.setProperty('justify-content', 'center', 'important');
     if (_sfBox) {
@@ -4160,7 +4191,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
 <!-- ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â -->
 <div id="payment-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title" aria-hidden="true">
   <div style="max-width:480px;margin:3rem auto;background:#0f0f0f;border:1px solid rgba(244,241,235,.08);padding:2.5rem 2rem;position:relative">
-    <button class="mclose" style="position:absolute;top:1rem;right:1.2rem" id="payment-close" aria-label="Close checkout">&#215;</button>
+    <button class="mclose" style="position:absolute;top:.9rem;right:.9rem" id="payment-close" aria-label="Close checkout">&#215;</button>
     <h2 id="payment-modal-title" style="font-family:var(--font-head);font-size:1.4rem;letter-spacing:.12em;margin-bottom:.3rem">Secure Checkout</h2>
     <p style="font-size:.7rem;color:rgba(244,241,235,.3);letter-spacing:.08em;margin-bottom:1.5rem">Powered by Stripe - 256-bit SSL encryption</p>
     <div class="zw-test-mode-banner" data-stripe-test-banner>Test checkout mode is active. Use Stripe test cards only; real cards will not be charged.</div>
@@ -4876,7 +4907,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
   }
 })();
 </script>
-<script src="zw-login.js?v=d30a7000" defer></script>
+<script src="zw-login.js?v=8ffae84d" defer></script>
 <script>
 /* The product page's own auth modal (auth.js #auth-modal) freezes the page on
    open. Route every openAuthModal caller — the Login button, "save product",

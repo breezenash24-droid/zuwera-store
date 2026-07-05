@@ -13,7 +13,7 @@
      position:absolute, anchored to the content top, so it scrolled away.
      margin-bottom keeps it overlapping the corner instead of taking its own row. */
   .quick-add-product-box>.mclose{
-    position:sticky;top:.9rem;right:auto;margin:0 .9rem -30px auto;z-index:40;
+    position:sticky;top:.9rem;right:auto;margin:0 .9rem -44px auto;z-index:40;
   }
 }
 .quick-add-product-layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr)}
@@ -23,7 +23,7 @@
    here (a foreground token) is what painted dark bars in light themes. */
 .quick-add-review-media{position:relative;background:var(--ink);aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:pan-y pinch-zoom}
 .quick-add-review-media img{width:100%;height:100%;object-fit:cover;object-position:center center;display:block}
-.quick-add-review-media :is(img,video).zw-img-in{animation:qaImgIn .42s cubic-bezier(.22,.61,.36,1) both}
+.quick-add-review-media :is(img,video).zw-img-in{animation:qaImgIn .4s cubic-bezier(.22,.61,.36,1) both}
 .quick-add-review-media :is(img,video).zw-slide-next{animation:qaSlideNext .4s cubic-bezier(.22,.61,.36,1) both}
 .quick-add-review-media :is(img,video).zw-slide-prev{animation:qaSlidePrev .4s cubic-bezier(.22,.61,.36,1) both}
 @keyframes qaImgIn{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:scale(1)}}
@@ -74,10 +74,10 @@ body.light-mode .quick-add-color-dot{border-color:rgba(9,9,11,.25)}
 .quick-add-empty-option{font-family:var(--fm);font-size:.68rem;color:rgba(244,241,235,.48);margin:0}
 .quick-add-review-message{font-family:var(--fm);font-size:.68rem;letter-spacing:.06em;color:rgba(244,241,235,.5);min-height:1rem;margin:0}
 .quick-add-review-actions{display:grid;grid-template-columns:1fr 1fr;gap:.65rem}
-.quick-add-review-actions button,.quick-add-review-actions a{min-height:46px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(244,241,235,.12);background:transparent;color:rgba(244,241,235,.72);font-family:var(--fm);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer;transition:background .2s ease,color .2s ease,border-color .2s ease,opacity .2s ease,transform .12s ease}
+.quick-add-review-actions button,.quick-add-review-actions a{min-height:46px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(244,241,235,.12);background:transparent;color:rgba(244,241,235,.72);font-family:var(--fm);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer;transition:background .2s ease,color .2s ease,border-color .2s ease,opacity .2s ease,transform .1s ease}
 .quick-add-review-actions button:hover,.quick-add-review-actions a:hover{background:rgba(244,241,235,.1);color:rgba(244,241,235,.92)}
 .quick-add-review-actions button:active,.quick-add-review-actions a:active{transform:scale(.97);opacity:.82}
-.quick-add-review-actions .quick-add-review-confirm{grid-column:1/-1;background:var(--paper);color:var(--ink);border-color:var(--paper);transition:background .2s ease,color .2s ease,border-color .2s ease,transform .12s ease,opacity .2s ease}
+.quick-add-review-actions .quick-add-review-confirm{grid-column:1/-1;background:var(--paper);color:var(--ink);border-color:var(--paper);transition:background .2s ease,color .2s ease,border-color .2s ease,transform .1s ease,opacity .2s ease}
 .quick-add-review-actions .quick-add-review-confirm:hover{background:var(--paper-hover);border-color:var(--paper-hover)}
 .quick-add-review-actions .quick-add-review-confirm:active{background:var(--paper-active);border-color:var(--paper-active);transform:scale(.97)}
 .quick-add-review-actions .quick-add-review-confirm:disabled{opacity:.45;cursor:not-allowed}

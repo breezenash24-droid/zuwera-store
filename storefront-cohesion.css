@@ -19,7 +19,7 @@
      --zw-motion-modal  .3s   modal/dialog open + close
      --zw-motion-slow   .35s  large/hero movements
    Don't invent new durations or cubic-beziers; legacy hardcoded values
-   (.4s/.46s/.6s/.72s + assorted beziers) should migrate to tokens whenever
+   (.4s/.45s/.6s/.72s + assorted beziers) should migrate to tokens whenever
    the code that uses them is touched. Every animation needs a
    prefers-reduced-motion: reduce escape hatch. */
 html{background:#09090b;color-scheme:dark light;text-size-adjust:100%;-webkit-text-size-adjust:100%}
@@ -127,6 +127,13 @@ body.light-mode .zw-hdr-bag:hover,body.super-light-mode .zw-hdr-bag:hover{border
   --zw-motion-panel:.25s;
   --zw-motion-modal:.3s;
   --zw-motion-slow:.35s;
+  /* Easing tokens — the canonical curves used across the UI. Pair with the
+     duration tokens above (e.g. `transition:opacity var(--zw-motion-base) var(--zw-ease)`).
+     --zw-ease = standard (Material), --zw-ease-out = decelerate/entrances,
+     --zw-ease-spring = the slight overshoot on pops. */
+  --zw-ease:cubic-bezier(.4,0,.2,1);
+  --zw-ease-out:cubic-bezier(.22,.61,.36,1);
+  --zw-ease-spring:cubic-bezier(.34,1.3,.5,1);
   --zw-space-page:clamp(1.2rem,4vw,2.5rem);
   --zw-panel-width:clamp(24rem,34vw,34rem);
   --zw-panel-wide-width:clamp(32rem,48vw,48rem);
@@ -225,7 +232,7 @@ select:focus-visible{
   text-transform:uppercase;
   text-decoration:none;
   cursor:pointer;
-  transition:background .16s ease, color .16s ease, border-color .16s ease, opacity .16s ease;
+  transition:background .15s ease, color .15s ease, border-color .15s ease, opacity .15s ease;
 }
 
 .zw-saved-item-btn:hover,
@@ -398,7 +405,7 @@ body.light-mode #zw-lang-modal{
   transition:opacity var(--zw-motion-modal) ease;
 }
 .modal:not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.review-dialog,.cbox){
-  transition:transform var(--zw-motion-modal) cubic-bezier(.32,.72,.34,1),
+  transition:transform var(--zw-motion-modal) cubic-bezier(.32,.72,0,1),
              opacity var(--zw-motion-modal) ease;
 }
 /* Closed box: fade out + slide down 14px + ease back to 98% scale, so the
@@ -432,7 +439,7 @@ body.light-mode #zw-lang-modal{
   margin:auto !important;
   overflow-y:auto !important;
   overscroll-behavior:contain;
-  animation:zwCenteredModalIn .22s ease;
+  animation:zwCenteredModalIn .2s ease;
 }
 
 body.light-mode .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#all-reviews-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.collection-review-box){
@@ -477,7 +484,30 @@ body.super-light-mode #payment-modal #pay-submit{ background:#09090b !important;
 
 body.super-light-mode #payment-success{ background:#FFFFFF !important; }
 
-body.super-light-mode #cookie-banner{ background:#FFFFFF !important; border-top-color:rgba(9,9,11,.1) !important; color:rgba(9,9,11,.65) !important; }
+/* Cookie consent bar — one consistent dark bar in EVERY theme. It used to flip
+   to a washed-out cream (#F0EEE9) in light mode and white in super-light, and it
+   was inconsistent across pages. Force the dark treatment + fixed button colors
+   so it reads as an intentional bar (and the Accept button never goes dark-on-dark
+   in light mode, where var(--paper) would flip). */
+#cookie-banner,
+body.light-mode #cookie-banner,
+body.super-light-mode #cookie-banner{
+  background:#0f0f0f !important;
+  color:rgba(244,241,235,.72) !important;
+  border-top:1px solid rgba(244,241,235,.12) !important;
+}
+#cookie-banner a{ color:#f4f1eb !important; }
+/* Accept = filled light button; Decline = ghost — fixed so both read on the dark bar. */
+#cookie-banner button:first-child,
+body.light-mode #cookie-banner button:first-child,
+body.super-light-mode #cookie-banner button:first-child{
+  background:#f4f1eb !important; color:#09090b !important; border:none !important;
+}
+#cookie-banner button:last-child,
+body.light-mode #cookie-banner button:last-child,
+body.super-light-mode #cookie-banner button:last-child{
+  background:transparent !important; color:rgba(244,241,235,.62) !important; border:1px solid rgba(244,241,235,.22) !important;
+}
 
 body.super-light-mode #toast{ background:#FFFFFF !important; color:#09090b !important; border-color:rgba(9,9,11,.12) !important; }
 
@@ -548,7 +578,7 @@ body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel{
     margin:auto !important;
     overflow-y:auto !important;
     overscroll-behavior:contain;
-    animation:zwCenteredModalIn .22s ease;
+    animation:zwCenteredModalIn .2s ease;
   }
   body.light-mode #all-reviews-modal > .review-list-mbox{
     background:var(--zw-paper) !important;
@@ -579,7 +609,7 @@ body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel{
   margin:auto !important;
   overflow-y:auto !important;
   overscroll-behavior:contain;
-  animation:zwCenteredModalIn .22s ease;
+  animation:zwCenteredModalIn .2s ease;
 }
 
 body.light-mode #zw-lang-box{
@@ -649,6 +679,18 @@ body.super-light-mode #zw-lang-box{
 #auth-modal > .mbox,
 #account-modal > .mbox{
   padding:2rem 1.6rem 1.8rem !important;
+}
+
+/* Auth + account modals keep a fixed dialog width on desktop
+   (var(--zw-panel-width) above), but on mobile/tablet they must match the
+   bottom-sheet width every other compact modal uses — otherwise they float
+   as a small centered card instead of an edge-to-edge sheet. */
+@media(max-width:900px){
+  #auth-modal > .mbox,
+  #account-modal > .mbox{
+    width:100% !important;
+    max-width:100% !important;
+  }
 }
 
 #review-modal > .review-mbox{
@@ -738,6 +780,13 @@ body.light-mode #zw-lang-close{
   background:rgba(9,9,11,.05) !important;
   border-color:rgba(9,9,11,.1) !important;
   color:var(--zw-ink) !important;
+}
+
+/* On compact widths the language close shrinks to 38px like every other modal
+   close (.mclose/.collection-review-close get this from the redesign block;
+   #zw-lang-close is a separate system so it needs its own match here). */
+@media(max-width:900px){
+  #zw-lang-close{ width:38px !important; height:38px !important; }
 }
 
 .pbox .mclose{
@@ -912,6 +961,17 @@ body.light-mode :is(.pcard-img,.product-img){
   height:100% !important;
   object-fit:cover !important;
   object-position:center !important;
+  transition:transform .5s ease;
+}
+/* Hover zoom on product cards (homepage .pcard + collection .product-card),
+   driven by the admin Image Effects → "Product cards" toggle. image-effects.js
+   sets --zw-zoom-product (1 = off, default 1.04). The image wrappers already
+   have overflow:hidden, so the zoom clips cleanly. */
+:is(.pcard,.product-card):hover :is(.pcard-img,.product-img) img{
+  transform:scale(var(--zw-zoom-product, 1.04)) !important;
+}
+@media (prefers-reduced-motion: reduce){
+  :is(.pcard,.product-card):hover :is(.pcard-img,.product-img) img{ transform:none !important; }
 }
 
 :is(.pcard-info,.product-info){
@@ -1007,7 +1067,7 @@ body.light-mode :is(.pcard-badge,.coming-soon-badge){
 }
 
 .heart-btn.heart-pop{
-  animation:heartPop .38s cubic-bezier(.36,.07,.19,.97);
+  animation:heartPop .4s cubic-bezier(.36,.07,.19,.97);
 }
 
 @media(prefers-reduced-motion:reduce){
@@ -1069,7 +1129,7 @@ body.light-mode .heart-btn{
      bottom edge (and back down on close) instead of a small nudge + scale.
      The shared box transition above carries the transform in both directions. */
   .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox){
-    transition:transform .36s cubic-bezier(.22,.61,.36,1), opacity .2s ease !important;
+    transition:transform .35s cubic-bezier(.22,.61,.36,1), opacity .2s ease !important;
     }
   .modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(.quick-add-review-modal):not(.modal--guide):not(.modal--review):not(#auth-modal):not(#account-modal):not(#all-reviews-modal):not(#review-modal):not(.open) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox){
     transform:translateY(100%) !important;
@@ -1178,24 +1238,26 @@ body.light-mode .heart-btn{
     border-bottom-color:var(--zw-line-light) !important;
   }
 
+  /* Bottom sheet on mobile/tablet (≤900px) — matches the Size Guide + every
+     other compact modal. Previously centred as a 620px dialog with a dark
+     top-accent border, so it floated mid-screen with a black line at the top. */
   #size-fit-modal{
-    align-items:center !important;
+    align-items:flex-end !important;
     justify-content:center !important;
-    padding:.75rem !important;
+    padding:calc(1.6rem + 36px + env(safe-area-inset-top,0px)) 0 0 !important;
   }
 
   #size-fit-modal > .review-dialog{
-    width:min(620px, calc(100vw - 1.5rem)) !important;
-    max-width:min(620px, calc(100vw - 1.5rem)) !important;
-    max-height:min(90dvh, 54rem) !important;
-    border:1px solid var(--zw-line-dark) !important;
-    border-top:2px solid var(--zw-accent) !important;
-    border-radius:var(--zw-radius-modal) !important;
+    width:100% !important;
+    max-width:100% !important;
+    max-height:calc(100dvh - 1.6rem - 36px - env(safe-area-inset-top,0px) - .5rem) !important;
+    margin:0 !important;
+    border:none !important;
+    border-radius:1.25rem 1.25rem 0 0 !important;
   }
 
   body.light-mode #size-fit-modal > .review-dialog{
-    border-color:var(--zw-line-light) !important;
-    border-top-color:var(--zw-ink) !important;
+    border:none !important;
   }
 
   .quick-add-review-modal{
@@ -1945,7 +2007,7 @@ body.light-mode .heart-btn{
   background:currentColor !important;
   box-shadow:none !important;
   transform-origin:center !important;
-  transition:top .22s ease, transform .28s ease, opacity .18s ease !important;
+  transition:top .2s ease, transform .3s ease, opacity .2s ease !important;
 }
 
 /* Bars centered RELATIVE to the button (50% ± 3px) so they stay aligned with the
@@ -2083,15 +2145,45 @@ body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel::befor
   box-shadow:none !important;
   text-align:left !important;
   isolation:isolate;
+  /* Promote to its own compositor layer so the full-width slide stays on the
+     GPU — no sub-pixel jitter or paint passes during the animation. */
+  will-change:transform !important;
+  backface-visibility:hidden !important;
+  -webkit-backface-visibility:hidden !important;
+  transform:translateZ(0);
 }
 
 #mobile-menu.zw-mobile-menu.open > .zw-mobile-menu-panel{
-  animation:zwMenuPanelIn .26s cubic-bezier(.4,0,.2,1) both !important;
+  animation:zwMenuPanelIn .45s cubic-bezier(.32,.72,0,1) both !important;
 }
 
+/* Keep visible and non-interactive during exit animation */
+#mobile-menu.zw-mobile-menu.closing{
+  display:flex !important;
+  pointer-events:none !important;
+}
+#mobile-menu.zw-mobile-menu.closing > .zw-mobile-menu-panel{
+  animation:zwMenuPanelOut .35s cubic-bezier(.4,0,.6,1) both !important;
+  pointer-events:none !important;
+}
+
+/* Pure-transform slide (no opacity): the panel is a full-width opaque drawer,
+   so fading it would let the page bleed through mid-slide (double-exposure)
+   and add a paint pass. translateZ(0) keeps the resting state on the GPU. */
 @keyframes zwMenuPanelIn{
-  from{opacity:0;transform:translateX(1.5rem)}
-  to{opacity:1;transform:translateX(0)}
+  from{transform:translate3d(100%,0,0)}
+  to{transform:translate3d(0,0,0)}
+}
+@keyframes zwMenuPanelOut{
+  from{transform:translate3d(0,0,0)}
+  to{transform:translate3d(100%,0,0)}
+}
+
+@media (prefers-reduced-motion: reduce){
+  #mobile-menu.zw-mobile-menu.open > .zw-mobile-menu-panel,
+  #mobile-menu.zw-mobile-menu.closing > .zw-mobile-menu-panel{
+    animation-duration:.01ms !important;
+  }
 }
 
 html.zw-mobile-menu-open,
@@ -2209,7 +2301,7 @@ body.super-light-mode #mobile-menu .zw-mobile-menu-close{
   display:flex !important;
   align-items:center !important;
   justify-content:center !important;
-  transition:background .14s linear, border-color .14s linear, color .14s linear !important;
+  transition:background .15s linear, border-color .15s linear, color .15s linear !important;
 }
 
 body.light-mode #mobile-menu .zw-mobile-menu-close{
@@ -2705,7 +2797,7 @@ body.super-light-mode #mobile-menu.zw-mobile-menu>.zw-mobile-menu-panel{
 
 /* Panel open animation: smoother slide from the RIGHT */
 #mobile-menu.zw-mobile-menu.open>.zw-mobile-menu-panel{
-  animation:zwDrawerIn .32s cubic-bezier(0.25,0.46,0.45,0.94) both!important;
+  animation:zwDrawerIn .3s cubic-bezier(.25,.46,.45,.94) both!important;
 }
 @keyframes zwDrawerIn{
   from{transform:translateX(100%);opacity:.85}
@@ -2809,7 +2901,7 @@ body.light-mode #mobile-menu :is(#mobile-category-links,.mobile-nav-links){
   border-top:none!important;
   border-bottom:none!important;
   background:none!important;
-  transition:color .14s,background .14s!important;
+  transition:color .15s,background .15s!important;
 }
 #mobile-menu .zw-mobile-primary-link:hover,
 #mobile-menu .zw-mobile-primary-link:focus-visible{
@@ -2827,7 +2919,7 @@ body.light-mode #mobile-menu :is(#mobile-category-links,.mobile-nav-links){
   color:rgba(244,241,235,.3)!important;
   margin-left:auto!important;
   flex-shrink:0!important;
-  transition:transform .15s,color .14s!important;
+  transition:transform .15s,color .15s!important;
 }
 #mobile-menu .zw-mobile-primary-link:hover::after{
   color:rgba(244,241,235,.6)!important;
@@ -2874,7 +2966,7 @@ body.light-mode .zw-mobile-menu-secondary{
   color:rgba(244,241,235,.38)!important;
   background:transparent!important;
   border:none!important;
-  transition:color .14s,background .14s!important;
+  transition:color .15s,background .15s!important;
 }
 #mobile-menu .zw-mobile-secondary-link:hover{
   color:rgba(244,241,235,.7)!important;
@@ -2950,7 +3042,7 @@ body.light-mode .zw-mobile-bag-count{
   cursor:pointer!important;
   flex-shrink:0!important;
   text-decoration:none!important;
-  transition:color .14s!important;
+  transition:color .15s!important;
   -webkit-tap-highlight-color:transparent!important;
   -webkit-touch-callout:none!important;
   user-select:none!important;
@@ -2964,7 +3056,7 @@ body.light-mode .zw-mobile-bag-count{
   flex-shrink:0!important;
   stroke:currentColor!important;
   opacity:1!important;
-  transition:opacity .14s!important;
+  transition:opacity .15s!important;
 }
 .zw-social-btn:hover svg{opacity:.85!important;}
 body.light-mode .zw-social-btn{color:rgba(9,9,11,.38)!important;}
@@ -3024,7 +3116,7 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.18)!important;}
      (overrides the base 14px nudge + scale used on desktop). One timing/easing
      shared by all sheets — quick-add, size guide, size & fit, login, reviews. */
   .modal:not(#mobile-menu):not(#cart-modal):not(#payment-modal) > :is(.mbox,.review-mbox,.review-list-mbox,.review-dialog){
-    transition:transform .42s cubic-bezier(.32,.72,0,1), opacity .24s ease !important;
+    transition:transform .42s cubic-bezier(.32,.72,0,1), opacity .25s ease !important;
   }
   .modal:not(#mobile-menu):not(#cart-modal):not(#payment-modal):not(.open) > :is(.mbox,.review-mbox,.review-list-mbox,.review-dialog){
     transform:translateY(100%) !important;
@@ -3106,6 +3198,27 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.18)!important;}
   .collection-review-close::before,.collection-review-close::after{
     width:14px !important;
   }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   CLEAR MODAL BACKDROPS (user request) — every modal floats on a fully
+   transparent, un-blurred backdrop, consistently across all three themes and
+   every page. The card itself keeps its own solid background + shadow; only the
+   overlay behind it is cleared. The nav drawer (#mobile-menu) is excluded — it
+   keeps its own dimmed backdrop.
+   ───────────────────────────────────────────────────────────────────────── */
+.modal:not(#mobile-menu):not(#payment-modal):not(#cart-modal),
+.quick-add-review-modal,
+.collection-review-modal,
+body.light-mode .modal:not(#mobile-menu):not(#payment-modal):not(#cart-modal),
+body.light-mode .quick-add-review-modal,
+body.light-mode .collection-review-modal,
+body.super-light-mode .modal:not(#mobile-menu):not(#payment-modal):not(#cart-modal),
+body.super-light-mode .quick-add-review-modal,
+body.super-light-mode .collection-review-modal{
+  background:transparent !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
 }
 
 /* ── Desktop light/super-light explicit overrides ── */
@@ -3299,9 +3412,9 @@ body.light-mode .quick-add-gallery-arrow{background:rgba(9,9,11,.55);border-colo
 .zw-reveal{opacity:0;transform:translateY(26px);transition:opacity .7s cubic-bezier(.22,.61,.36,1),transform .7s cubic-bezier(.22,.61,.36,1);will-change:opacity,transform;}
 .zw-revealed{opacity:1;transform:none;}
 .zw-reveal[data-reveal-delay="1"]{transition-delay:.08s}
-.zw-reveal[data-reveal-delay="2"]{transition-delay:.16s}
-.zw-reveal[data-reveal-delay="3"]{transition-delay:.24s}
-.zw-reveal[data-reveal-delay="4"]{transition-delay:.32s}
+.zw-reveal[data-reveal-delay="2"]{transition-delay:.15s}
+.zw-reveal[data-reveal-delay="3"]{transition-delay:.25s}
+.zw-reveal[data-reveal-delay="4"]{transition-delay:.3s}
 @media (prefers-reduced-motion: reduce){.zw-reveal,.zw-revealed{opacity:1 !important;transform:none !important;}}
 
 /* 3) Form-error shake — add .zw-shake to a form/modal box to nudge it on a failed
@@ -3345,7 +3458,7 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
   width:20px; height:20px; flex:0 0 auto; padding:0; cursor:pointer;
   border:1px solid rgba(128,128,128,.5); border-radius:2px;   /* square, like the modal/site swatches */
   background-clip:padding-box;
-  transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  transition:transform .1s ease, box-shadow .1s ease, border-color .1s ease;
 }
 .zw-card-swatch:hover, .zw-card-swatch:focus-visible{
   transform:translateY(-1px); outline:none;
@@ -3380,7 +3493,7 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
    index/landing keep their own inline .nav-center (their later inline rule wins);
    this flex-centers the injected one. Hidden on mobile (hamburger handles nav). */
 .nav-center{ flex:1 1 auto; min-width:0; display:flex; align-items:center; justify-content:center; gap:2.2rem; }
-.nav-link{ font-family:var(--zw-font-head,'Barlow Condensed',sans-serif); font-size:1.45rem; font-weight:900; letter-spacing:.02em; text-transform:uppercase; line-height:1; color:inherit; text-decoration:none; opacity:.92; white-space:nowrap; background:none; border:none; cursor:pointer; }
+.nav-link{ font-family:var(--zw-font-head,'Barlow Condensed',sans-serif); font-size:1.7rem; font-weight:900; letter-spacing:.02em; text-transform:uppercase; line-height:1; color:inherit; text-decoration:none; opacity:.92; white-space:nowrap; background:none; border:none; cursor:pointer; display:inline-flex; align-items:center; padding:.6rem .7rem; margin:-.6rem 0; }
 .nav-link:hover{ opacity:1; }
 @media (max-width:900px){ .nav-center{ display:none !important; } }
 
@@ -3394,7 +3507,9 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
 .zw-navitem > .zw-mega{
   position:fixed; top:var(--zw-megatop, 92px); left:0; right:0; width:100%;
   display:flex; gap:4rem; justify-content:center; padding:2.4rem 3rem 2.8rem;
-  background:var(--zw-surface, #131316);
+  /* Match the header fill exactly (was --zw-surface #131316, a lighter grey that
+     read as a different colour block below the #09090b header). */
+  background:var(--ink, #09090b);
   border-top:1px solid var(--zw-line-dark, rgba(244,241,235,.08));
   border-bottom:1px solid var(--zw-line-dark, rgba(244,241,235,.08));
   /* Negative spread keeps the shadow strictly BELOW the panel — without it the
@@ -3403,14 +3518,14 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
   box-shadow:0 30px 44px -22px rgba(0,0,0,.40);
   opacity:0; visibility:hidden; pointer-events:none;
   transform:translateY(-12px);
-  transition:opacity .22s ease, transform .22s ease, visibility 0s linear .22s;
+  transition:opacity .2s ease, transform .2s ease, visibility 0s linear .2s;
   z-index:219;
 }
 /* transparent bridge so moving the cursor from the item to the panel doesn't close it */
 .zw-navitem > .zw-mega::before{ content:''; position:absolute; left:0; right:0; top:-1.6rem; height:1.6rem; }
 .zw-navitem:hover > .zw-mega, .zw-navitem:focus-within > .zw-mega{
   opacity:1; visibility:visible; pointer-events:auto; transform:translateY(0);
-  transition:opacity .22s ease, transform .22s ease;
+  transition:opacity .2s ease, transform .2s ease;
 }
 .zw-mega-col{ display:flex; flex-direction:column; gap:.7rem; min-width:150px; }
 .zw-mega-col h4{
@@ -3420,11 +3535,13 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
 .zw-mega-col a{
   font-family:var(--zw-font-head, 'Barlow Condensed', sans-serif); font-size:1.05rem; font-weight:600;
   letter-spacing:.02em; text-transform:uppercase;
-  color:rgba(244,241,235,.82); text-decoration:none; transition:color .18s; white-space:nowrap;
+  color:rgba(244,241,235,.82); text-decoration:none; transition:color .2s; white-space:nowrap;
 }
 .zw-mega-col a:hover{ color:var(--paper, #f4f1eb); }
 body.light-mode .zw-navitem > .zw-mega{
-  background:#fff; border-color:rgba(9,9,11,.08); border-top-color:transparent; box-shadow:0 26px 38px -20px rgba(0,0,0,.18);
+  /* Match the cream header (var(--ink)=#F0EEE9), not pure white, so the panel
+     reads as a seamless extension of the header like it does in the other modes. */
+  background:var(--ink, #F0EEE9); border-color:rgba(9,9,11,.08); border-top-color:transparent; box-shadow:0 26px 38px -20px rgba(0,0,0,.18);
 }
 /* Super-light: panel is pure white like the page, with no top border line so it
    blends seamlessly into the white header (no apparent colour shift on open). */
@@ -3500,10 +3617,13 @@ body.super-light-mode .zw-navitem > .zw-mega > .zw-mega-col:first-child > a{ col
 .zw-mnav-cat:hover, .zw-mnav-cat:active{ opacity:1; border-color:var(--zw-accent, #F891A5); }
 body.light-mode .zw-mnav-group{ border-top-color:rgba(9,9,11,.12); }
 body.light-mode .zw-mnav-cat{ border-color:rgba(9,9,11,.2); }
-/* No-flash: when a custom nav is cached (html.zw-customnav set synchronously in
-   <head>), hide the static fallback links until nav-menu.js renders the real nav
-   and sets .zw-nav-ready. visibility (not display) keeps the layout stable. */
-html.zw-customnav:not(.zw-nav-ready) #nav-category-links{ visibility:hidden; }
+/* No-flash: hide the static fallback nav links until nav-menu.js has SETTLED
+   (rendered the real menu, or the server confirmed there's no custom menu) and
+   added .zw-nav-ready. Applies on every load — not just when a nav is cached —
+   so a first/cleared-cache visit no longer flashes the fallback (Jackets/T-Shirts)
+   before the real menu (Men/Women/New). visibility (not display) keeps layout
+   stable; a safety timeout in nav-menu.js + <head> guarantees it always reveals. */
+html:not(.zw-nav-ready) #nav-category-links{ visibility:hidden; }
 
 /* ──────────────────────────────────────────────────────────────────────────
    BUILDER: HERO CAROUSEL
@@ -3518,17 +3638,33 @@ html.zw-customnav:not(.zw-nav-ready) #nav-category-links{ visibility:hidden; }
 
 .zw-hc-media { display:block; width:100%; height:100%; object-fit:cover; }
 picture.zw-hc-media img { display:block; width:100%; height:100%; object-fit:cover; }
+/* Carousel slide framing (viewfinder): object-position from per-slide CSS vars.
+   Base --zwh-pos = center focal_y% (desktop); tablet/mobile override when set.
+   Vars are set inline on the <video> / <picture> (inherited by the inner img). */
+video.zw-hc-media, picture.zw-hc-media img { object-position: var(--zwh-pos, center 50%); }
+@media (min-width:641px) and (max-width:1024px){
+  video.zw-hc-media, picture.zw-hc-media img { object-position: var(--zwh-pos-tab, var(--zwh-pos, center 50%)); }
+}
+@media (max-width:640px){
+  video.zw-hc-media, picture.zw-hc-media img { object-position: var(--zwh-pos-mob, var(--zwh-pos, center 50%)); }
+}
 .zw-hc-overlay { position:absolute; inset:0; background:#000; pointer-events:none; z-index:1; }
 
 .zw-hc-content { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:2rem; z-index:2; color:#fff; }
+/* Words + image together: a hero-carousel slide's text stays hidden until its
+   media has loaded (storefront.js toggles .zw-hc-await per slide), so the caption
+   never paints on a blank slide before the picture arrives. Reveal fades in as the
+   image appears; a safety timeout in the JS guarantees it never stays hidden. */
+.zw-hc-content { transition: opacity .3s ease; }
+.zw-hc-slide.zw-hc-await .zw-hc-content { opacity: 0; transition: none; }
 .zw-hc-eyebrow { font-family:var(--fw); font-size:clamp(.9rem,2vw,1.3rem); font-weight:900; font-style:italic; letter-spacing:.12em; margin-bottom:.5rem; text-shadow:0 2px 8px rgba(0,0,0,.3); }
 .zw-hc-heading { font-family:var(--fw); font-size:clamp(2.5rem,8vw,5.5rem); font-weight:var(--zw-fw-head, 900); font-style:var(--zw-fst-head, italic); text-transform:uppercase; line-height:.95; letter-spacing:.04em; margin-bottom:1rem; text-shadow:0 2px 8px rgba(0,0,0,.3); }
 .zw-hc-subtext { font-family:var(--fb); font-size:clamp(.95rem,2vw,1.1rem); opacity:.85; max-width:600px; margin-bottom:2rem; line-height:1.6; text-shadow:0 1px 4px rgba(0,0,0,.3); }
-.zw-hc-cta { display:inline-block; padding:.85rem 2.2rem; font-family:var(--fm); font-size:.7rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase; text-decoration:none; transition:all .2s; border-radius:30px; }
-.zw-hc-cta.btn-solid { background:#fff; color:#000; border:1px solid #fff; }
-.zw-hc-cta.btn-solid:hover { background:transparent; color:#fff; }
+.zw-hc-cta { display:inline-block; padding:.85rem 2.2rem; font-family:var(--fm); font-size:.7rem; font-weight:700; letter-spacing:.16em; text-transform:uppercase; text-decoration:none; transition:all .2s; border-radius:var(--zw-radius-control, 0); }
+.zw-hc-cta.btn-solid { background:var(--paper); color:var(--ink); border:1px solid var(--paper); }
+.zw-hc-cta.btn-solid:hover { background:transparent; color:var(--paper); }
 .zw-hc-cta.btn-outline { background:transparent; color:currentColor; border:1px solid currentColor; }
-.zw-hc-cta.btn-outline:hover { background:currentColor; color:#000; }
+.zw-hc-cta.btn-outline:hover { background:currentColor; color:var(--ink); }
 .zw-hc-cta.btn-ghost { background:transparent; color:currentColor; border:none; padding-left:0; padding-right:0; text-decoration:underline; text-underline-offset:4px; }
 
 .zw-hc-controls { position:absolute; bottom:2.5rem; left:2.5rem; right:2.5rem; display:grid; grid-template-columns: 1fr auto 1fr; align-items:center; z-index:5; pointer-events:none; }
@@ -3537,22 +3673,50 @@ picture.zw-hc-media img { display:block; width:100%; height:100%; object-fit:cov
 .zw-hc-dot { width:6px; height:6px; border-radius:50%; border:none; background:#a0a0a0; cursor:pointer; transition:all .3s ease; padding:0; }
 .zw-hc-dot:hover { background:#666; }
 .zw-hc-dot.active { background:#111; transform:scale(1.2); }
+
+/* "Lines" indicator style — segmented bars sitting directly over the media
+   (no white pill), active segment filled, inactive translucent. */
+.zw-hc-dots--lines { background:transparent; box-shadow:none; padding:0; gap:.4rem; }
+.zw-hc-line { width:26px; height:3px; border-radius:2px; background:rgba(255,255,255,.45); transition:background .3s ease; }
+.zw-hc-line:hover { background:rgba(255,255,255,.7); }
+.zw-hc-line.active { background:#2b6fff; transform:none; }
+@media (max-width: 768px) { .zw-hc-line { width:20px; } }
+
+/* Clickable logos (logos section) — lift + full opacity on hover so a
+   product/page link reads as interactive. */
+.builder-logos-section .zw-logo-link img,
+.builder-logos-section .zw-logo-link span { transition:opacity .2s ease, transform .2s ease; }
+.builder-logos-section .zw-logo-link:hover img,
+.builder-logos-section .zw-logo-link:hover span { opacity:1 !important; transform:translateY(-1px); }
 .zw-hc-nav { display:flex; gap:.5rem; justify-content:flex-end; }
 .zw-hc-pause-wrap { position:relative; width:36px; height:36px; display:inline-block; }
 .zw-hc-progress-svg { position:absolute; top:-2px; left:-2px; width:40px; height:40px; pointer-events:none; transform:rotate(-90deg); }
 .zw-hc-progress-ring { transition:stroke-dashoffset 0.1s linear; }
-.zw-hc-pause { width:100%; height:100%; border-radius:50%; border:none; background:rgba(0,0,0,.3); color:#fff; cursor:pointer; backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; transition:all .2s; margin:0; padding:0; }
-.zw-hc-pause:hover { background:rgba(255,255,255,.2); }
-.zw-hc-prev, .zw-hc-next { width:36px; height:36px; border-radius:50%; border:1px solid rgba(255,255,255,.2); background:rgba(0,0,0,.3); color:#fff; cursor:pointer; backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; transition:all .2s; }
-.zw-hc-prev:hover, .zw-hc-next:hover { background:rgba(255,255,255,.2); border-color:rgba(255,255,255,.4); }
+.zw-hc-pause { width:100%; height:100%; border-radius:50%; border:none; background:#fff; color:#111; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,.15); display:flex; align-items:center; justify-content:center; transition:all .2s; margin:0; padding:0; }
+.zw-hc-pause:hover { background:#f0f0f0; }
+.zw-hc-prev, .zw-hc-next { width:36px; height:36px; border-radius:50%; border:none; background:#fff; color:#111; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,.15); display:flex; align-items:center; justify-content:center; transition:all .2s; }
+.zw-hc-prev:hover, .zw-hc-next:hover { background:#f0f0f0; transform:scale(1.05); }
 
-.zw-hc-watch { position:absolute; bottom:2.5rem; left:2.5rem; z-index:5; background:rgba(255,255,255,.92); color:#09090b; border:none; padding:.75rem 1.6rem; border-radius:30px; font-family:var(--fm); font-size:.7rem; font-weight:700; letter-spacing:.08em; cursor:pointer; display:flex; align-items:center; gap:.5rem; transition:all .2s; }
-.zw-hc-watch:hover { background:#fff; transform:scale(1.03); }
+.zw-hc-watch { position:absolute; bottom:2.5rem; left:2.5rem; z-index:5; background:rgba(255,255,255,.92); color:var(--ink); border:none; padding:.75rem 1.6rem; border-radius:var(--zw-radius-control, 0); font-family:var(--fm); font-size:.7rem; font-weight:700; letter-spacing:.16em; cursor:pointer; display:flex; align-items:center; gap:.5rem; transition:all .2s; }
+.zw-hc-watch:hover { background:var(--paper); transform:scale(1.03); }
 
 @media (max-width: 768px) {
   .zw-hc-controls { right:1rem; left:1rem; bottom:1.5rem; }
   .zw-hc-watch { left:1rem; bottom:1.5rem; padding:.6rem 1.2rem; }
   .zw-hc-content { padding:1.5rem; }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   BUILDER: HERO SECTION VIEWFINDER FRAMING
+   Focal point (set per device in the builder) → object-position on the
+   tablet/mobile breakpoints. Unset → the var chain falls back to center.
+────────────────────────────────────────────────────────────────────────── */
+.builder-hero-section img { object-position: var(--zwh-pos, 50% 50%); }
+@media (min-width:641px) and (max-width:1024px){
+  .builder-hero-section img { object-position: var(--zwh-pos-tab, var(--zwh-pos, 50% 50%)); }
+}
+@media (max-width:640px){
+  .builder-hero-section img { object-position: var(--zwh-pos-mob, var(--zwh-pos, 50% 50%)); }
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -3562,14 +3726,47 @@ picture.zw-hc-media img { display:block; width:100%; height:100%; object-fit:cov
 .zw-mg-heading { font-family:var(--fw); font-size:clamp(1.6rem,4vw,2.4rem); letter-spacing:.08em; text-transform:uppercase; font-weight:var(--zw-fw-head, 900); font-style:var(--zw-fst-head, italic); margin-bottom:2rem; }
 .zw-mg-media-wrap { position:relative; overflow:hidden; }
 .zw-mg-media { display:block; width:100%; object-fit:cover; transition:transform .5s ease; }
-.zw-mg-card:hover .zw-mg-media { transform:scale(1.03); }
+.zw-mg-card:hover .zw-mg-media { transform:scale(var(--zw-zoom-media, 1.03)); }
 
 .zw-mg-label { font-family:var(--fm,var(--fb)); font-size:.9rem; font-weight:600; text-transform:uppercase; letter-spacing:.04em; margin-top:.8rem; }
 .zw-mg-label-overlay-bottom { position:absolute; bottom:1.5rem; left:1.5rem; right:1.5rem; margin:0; color:#fff; text-shadow:0 1px 4px rgba(0,0,0,.5); z-index:2; }
 .zw-mg-label-overlay-center { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; margin:0; color:#fff; text-shadow:0 2px 8px rgba(0,0,0,.5); z-index:2; font-size:clamp(1.2rem, 3vw, 2rem); font-family:var(--fw); font-style:italic; }
 
-.zw-mg-watch { position:absolute; bottom:1rem; right:1rem; z-index:3; background:rgba(255,255,255,.92); color:#09090b; border:none; padding:.5rem 1rem; border-radius:20px; font-family:var(--fm); font-size:.65rem; font-weight:700; letter-spacing:.06em; cursor:pointer; display:flex; align-items:center; gap:.4rem; transition:all .2s; }
-.zw-mg-watch:hover { background:#fff; transform:scale(1.03); }
+.zw-mg-watch { position:absolute; bottom:1rem; right:1rem; z-index:3; background:rgba(255,255,255,.92); color:var(--ink); border:none; padding:.5rem 1rem; border-radius:var(--zw-radius-control, 0); font-family:var(--fm); font-size:.65rem; font-weight:700; letter-spacing:.16em; cursor:pointer; display:flex; align-items:center; gap:.4rem; transition:all .2s; }
+.zw-mg-watch:hover { background:var(--paper); transform:scale(1.03); }
+
+/* ── Adidas-style overlay cards ──────────────────────────────────────────────
+   Chip label + description + CTA button, over a gradient scrim for readability
+   (overlay modes) or stacked below the image (below mode). */
+.zw-mg-scrim { position:absolute; inset:0; z-index:1; pointer-events:none;
+  background:linear-gradient(to top, rgba(0,0,0,.6) 0%, rgba(0,0,0,.15) 42%, transparent 72%); }
+.zw-mg-ov { position:absolute; z-index:2; display:flex; flex-direction:column;
+  align-items:flex-start; gap:.65rem; padding:clamp(1rem,2.5vw,1.6rem); }
+.zw-mg-ov-bottom { left:0; right:0; bottom:0; }
+.zw-mg-ov-top { left:0; right:0; top:0; }
+.zw-mg-ov-center { inset:0; align-items:center; justify-content:center; text-align:center; }
+.zw-mg-chip { display:inline-block; background:#fff; color:#09090b;
+  font-family:var(--fm,var(--fb)); font-size:.72rem; font-weight:700; letter-spacing:.12em;
+  text-transform:uppercase; padding:.42rem .72rem; line-height:1; }
+/* Plain (no box) label — just text on the image, with a shadow for readability. */
+.zw-mg-chip--plain { background:transparent; color:#fff; padding:0; font-size:.95rem;
+  letter-spacing:.14em; text-shadow:0 2px 10px rgba(0,0,0,.6); }
+.zw-mg-ovsub { margin:0; color:#fff; font-family:var(--fb); font-size:.95rem; line-height:1.4;
+  max-width:36ch; text-shadow:0 1px 5px rgba(0,0,0,.55); }
+.zw-mg-ov-center .zw-mg-ovsub { margin-left:auto; margin-right:auto; }
+.zw-mg-btn { display:inline-flex; align-items:center; gap:.55rem; background:#fff; color:#09090b;
+  font-family:var(--fm,var(--fb)); font-size:.66rem; font-weight:700; letter-spacing:.14em;
+  text-transform:uppercase; padding:.72rem 1.15rem; margin-top:.15rem; transition:background .2s; }
+.zw-mg-card:hover .zw-mg-btn { background:var(--paper,#f4f1eb); }
+/* Below-image content (World-Cup-grid style) */
+.zw-mg-below { padding:.95rem .15rem 0; }
+.zw-mg-h { margin:0 0 .3rem; font-family:var(--fw); font-weight:700; text-transform:uppercase;
+  letter-spacing:.03em; font-size:1.02rem; line-height:1.15; }
+.zw-mg-desc { margin:0 0 .55rem; font-family:var(--fb); font-size:.92rem; opacity:.72; line-height:1.45; }
+.zw-mg-link { display:inline-flex; align-items:center; gap:.45rem; font-family:var(--fm,var(--fb));
+  font-size:.66rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+  border-bottom:1.5px solid currentColor; padding-bottom:2px; }
+.zw-mg-card:hover .zw-mg-link { opacity:.7; }
 
 /* Hide scrollbars for the horizontal scroll layout */
 .zw-mg-scroll::-webkit-scrollbar { display:none; }
@@ -3596,4 +3793,191 @@ picture.zw-hc-media img { display:block; width:100%; height:100%; object-fit:cov
     flex: 0 0 75vw !important;
     scroll-snap-align: center !important;
   }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   MOBILE MENU BACKDROP — fully transparent on every page AND every theme.
+   The drawer is a right-hand panel (.zw-mobile-menu-panel) that carries its own
+   solid surface + shadow; the overlay container itself must never paint a fill.
+   Earlier rules left it inconsistent: dark mode showed a 52% black scrim
+   (rgba(0,0,0,.52)), while light/super-light mode painted an OPAQUE --zw-paper/
+   white fill (higher-specificity body.light-mode rules) that hid the page
+   entirely. This single late rule outranks all of them (and any per-page inline
+   #mobile-menu background) so the area behind the drawer is always see-through.
+   Placed last so source-order tie-breaks resolve in its favour. */
+#mobile-menu.zw-mobile-menu,
+body.light-mode #mobile-menu.zw-mobile-menu,
+body.super-light-mode #mobile-menu.zw-mobile-menu{
+  background:transparent !important;
+}
+
+/* ── PER-PLATFORM PRODUCTS LAYOUT ────────────────────────────────────────────
+   The products section (homepage) and featured section (landing) can each be set
+   — per page, in the builder — to a column grid OR a one-at-a-time swipe row,
+   independently for desktop / tablet / mobile.
+     data-lg / data-md / data-sm = "grid" | "swipe"
+     --col-lg / --col-md / --col-sm = number of columns in grid mode
+   Rules are !important so they win over the grids' own ID-based CSS. */
+.zw-plat-grid { display:grid; gap:1.5rem; }
+.zw-plat-grid[data-lg="swipe"]::-webkit-scrollbar,
+.zw-plat-grid[data-md="swipe"]::-webkit-scrollbar,
+.zw-plat-grid[data-sm="swipe"]::-webkit-scrollbar { display:none !important; }
+
+/* Desktop */
+@media (min-width:1025px){
+  .zw-plat-grid[data-lg="grid"]{ display:grid !important;
+    grid-template-columns:repeat(var(--col-lg,3), minmax(0,1fr)) !important; gap:1.5rem !important; overflow:visible !important; }
+  .zw-plat-grid[data-lg="swipe"]{ display:flex !important; flex-wrap:nowrap !important; overflow-x:auto !important;
+    scroll-snap-type:none !important; gap:1.25rem !important; padding-bottom:1rem !important; scrollbar-width:none !important; }
+  .zw-plat-grid[data-lg="swipe"] > *{ flex:0 0 clamp(280px, 30%, 360px) !important; width:auto !important;
+    min-width:0 !important; max-width:none !important; scroll-snap-align:none !important; margin:0 !important; }
+}
+/* Tablet */
+@media (min-width:641px) and (max-width:1024px){
+  .zw-plat-grid[data-md="grid"]{ display:grid !important;
+    grid-template-columns:repeat(var(--col-md,2), minmax(0,1fr)) !important; gap:1.1rem !important; overflow:visible !important; margin:0 !important; padding:0 !important; }
+  .zw-plat-grid[data-md="swipe"]{ display:flex !important; flex-wrap:nowrap !important; overflow-x:auto !important; overflow-y:visible !important;
+    scroll-snap-type:none !important; grid-template-columns:none !important; gap:1rem !important;
+    margin-left:calc(50% - 50vw) !important; margin-right:calc(50% - 50vw) !important; padding:0 9vw 1.2rem !important;
+    scrollbar-width:none !important; -webkit-overflow-scrolling:touch !important; }
+  .zw-plat-grid[data-md="swipe"] > *{ flex:0 0 62vw !important; width:62vw !important; min-width:0 !important; max-width:none !important; scroll-snap-align:none !important; margin:0 !important; }
+}
+/* Mobile */
+@media (max-width:640px){
+  .zw-plat-grid[data-sm="grid"]{ display:grid !important;
+    grid-template-columns:repeat(var(--col-sm,2), minmax(0,1fr)) !important; gap:.9rem !important; overflow:visible !important; margin:0 !important; padding:0 !important; }
+  .zw-plat-grid[data-sm="swipe"]{ display:flex !important; flex-wrap:nowrap !important; overflow-x:auto !important; overflow-y:visible !important;
+    scroll-snap-type:none !important; grid-template-columns:none !important; gap:1rem !important;
+    margin-left:calc(50% - 50vw) !important; margin-right:calc(50% - 50vw) !important; padding:0 9vw 1.2rem !important;
+    scrollbar-width:none !important; -webkit-overflow-scrolling:touch !important; }
+  .zw-plat-grid[data-sm="swipe"] > *{ flex:0 0 82vw !important; width:82vw !important; min-width:0 !important; max-width:none !important; scroll-snap-align:none !important; margin:0 !important; }
+}
+/* Per-device swipe scroll mode: default is smooth/free (scroll-snap-type:none in
+   the swipe rules above, with small multi-card widths). When the builder sets
+   data-snap-lg/md/sm="on", the row becomes a real "one at a time" carousel: cards
+   grow to ~one-per-view (with a peek of the next) AND snap so each swipe/scroll
+   settles on a single product. Higher specificity than the base swipe rule so it
+   wins when enabled. */
+@media (min-width:1025px){
+  .zw-plat-grid[data-lg="swipe"][data-snap-lg="on"]{ scroll-snap-type:x mandatory !important; }
+  .zw-plat-grid[data-lg="swipe"][data-snap-lg="on"] > *{ flex:0 0 66% !important; width:66% !important; scroll-snap-align:center !important; }
+}
+@media (min-width:641px) and (max-width:1024px){
+  .zw-plat-grid[data-md="swipe"][data-snap-md="on"]{ scroll-snap-type:x mandatory !important; }
+  .zw-plat-grid[data-md="swipe"][data-snap-md="on"] > *{ flex:0 0 80vw !important; width:80vw !important; scroll-snap-align:center !important; }
+}
+@media (max-width:640px){
+  .zw-plat-grid[data-sm="swipe"][data-snap-sm="on"]{ scroll-snap-type:x mandatory !important; }
+  .zw-plat-grid[data-sm="swipe"][data-snap-sm="on"] > *{ flex:0 0 86vw !important; width:86vw !important; scroll-snap-align:center !important; }
+}
+
+/* ── Swipe scrollbar for products/featured rows ──────────────────────────────
+   A Nike-style draggable scrollbar shown ONLY when the grid is actually a
+   horizontal swipe row (scrollWidth > clientWidth — i.e. "individual products"
+   mode). In grid mode ("products with rows") there's no horizontal overflow, so
+   JS never adds .zw-has-swipe and the bar stays hidden. Wrapped in .zw-swipe-wrap. */
+.zw-swipe-wrap{ position:relative; }
+.zw-swipe-bar{
+  display:none; position:relative; height:4px; border-radius:99px; cursor:pointer;
+  width:min(760px, 92%); margin:1.5rem auto 0; touch-action:none;
+  background:rgba(244,241,235,.16);
+}
+.zw-swipe-wrap.zw-has-swipe > .zw-swipe-bar{ display:block; }
+/* Reveal-on-hover (desktop only): when .zw-bar-hover is set, the bar keeps its
+   space (no layout shift) but fades in only while the product row is hovered or
+   focused. Gated to hover-capable devices so touch always shows the bar. */
+@media (hover:hover){
+  .zw-swipe-wrap.zw-has-swipe.zw-bar-hover > .zw-swipe-bar{ opacity:0; transition:opacity .25s ease; }
+  .zw-swipe-wrap.zw-has-swipe.zw-bar-hover:hover > .zw-swipe-bar,
+  .zw-swipe-wrap.zw-has-swipe.zw-bar-hover:focus-within > .zw-swipe-bar{ opacity:1; }
+}
+.zw-swipe-thumb{
+  position:absolute; top:-3px; left:0; height:10px; min-width:26px; border-radius:99px;
+  background:rgba(244,241,235,.6); cursor:grab; transition:background .2s ease;
+}
+.zw-swipe-thumb:hover{ background:rgba(244,241,235,.85); }
+.zw-swipe-thumb.zw-dragging{ cursor:grabbing; background:rgba(244,241,235,.95); }
+/* Light themes: dark bar on light background */
+body.light-mode .zw-swipe-bar,
+body.super-light-mode .zw-swipe-bar{ background:rgba(9,9,11,.12); }
+body.light-mode .zw-swipe-thumb,
+body.super-light-mode .zw-swipe-thumb{ background:rgba(9,9,11,.55); }
+body.light-mode .zw-swipe-thumb:hover,
+body.super-light-mode .zw-swipe-thumb:hover{ background:rgba(9,9,11,.8); }
+
+/* ── Per-device scrollbar controls (builder) ─────────────────────────────────
+   The wrap carries data-bar-lg / -md / -sm = show | hover | off (one per
+   breakpoint) and data-bar-size = thin | medium | thick, written by
+   zwApplyScrollbarPrefs. "hover" = reveal on pointer hover (desktop) OR while
+   the row is being scrolled (touch — JS adds .zw-bar-scrolling). Breakpoints
+   match the per-device grid system: desktop ≥1025, tablet 641–1024, mobile ≤640. */
+/* Hidden on a breakpoint */
+@media (min-width:1025px){ .zw-swipe-wrap[data-bar-lg="off"] > .zw-swipe-bar{ display:none !important; } }
+@media (min-width:641px) and (max-width:1024px){ .zw-swipe-wrap[data-bar-md="off"] > .zw-swipe-bar{ display:none !important; } }
+@media (max-width:640px){ .zw-swipe-wrap[data-bar-sm="off"] > .zw-swipe-bar{ display:none !important; } }
+/* Reveal mode: hidden until hover (desktop) or while scrolling (touch) */
+@media (min-width:1025px){
+  .zw-swipe-wrap.zw-has-swipe[data-bar-lg="hover"] > .zw-swipe-bar{ opacity:0; transition:opacity .25s ease; }
+  .zw-swipe-wrap.zw-has-swipe[data-bar-lg="hover"]:hover > .zw-swipe-bar,
+  .zw-swipe-wrap.zw-has-swipe[data-bar-lg="hover"]:focus-within > .zw-swipe-bar,
+  .zw-swipe-wrap.zw-has-swipe[data-bar-lg="hover"].zw-bar-scrolling > .zw-swipe-bar{ opacity:1; }
+}
+@media (min-width:641px) and (max-width:1024px){
+  .zw-swipe-wrap.zw-has-swipe[data-bar-md="hover"] > .zw-swipe-bar{ opacity:0; transition:opacity .25s ease; }
+  .zw-swipe-wrap.zw-has-swipe[data-bar-md="hover"]:hover > .zw-swipe-bar,
+  .zw-swipe-wrap.zw-has-swipe[data-bar-md="hover"].zw-bar-scrolling > .zw-swipe-bar{ opacity:1; }
+}
+@media (max-width:640px){
+  .zw-swipe-wrap.zw-has-swipe[data-bar-sm="hover"] > .zw-swipe-bar{ opacity:0; transition:opacity .25s ease; }
+  .zw-swipe-wrap.zw-has-swipe[data-bar-sm="hover"]:hover > .zw-swipe-bar,
+  .zw-swipe-wrap.zw-has-swipe[data-bar-sm="hover"].zw-bar-scrolling > .zw-swipe-bar{ opacity:1; }
+}
+/* Thickness (thin is the default 4px bar / 10px thumb; top:-3px keeps every
+   thumb vertically centred on its bar) */
+.zw-swipe-wrap[data-bar-size="medium"] > .zw-swipe-bar{ height:6px; }
+.zw-swipe-wrap[data-bar-size="medium"] > .zw-swipe-bar > .zw-swipe-thumb{ height:12px; }
+.zw-swipe-wrap[data-bar-size="thick"] > .zw-swipe-bar{ height:9px; }
+.zw-swipe-wrap[data-bar-size="thick"] > .zw-swipe-bar > .zw-swipe-thumb{ height:15px; }
+
+/* ── Unified nav logo theming ─────────────────────────────────────────────
+   The nav logo class is NOT a reliable colour hint — .nav-logo, .nav-logo-link
+   and .zw-nav-logo each appear on different pages with DIFFERENT artwork. So we
+   key on the actual file, not the class:
+
+   DEFAULT (all nav logos): the winged marks (logo-192.png = opaque dark tile
+   with white wings; logo.png = white mark) read correctly on dark as-is and
+   must INVERT on light/super-light. This is also the right default for a light
+   uploaded logo.
+
+   EXCEPTION — wordmark-nav.png: BLACK "ZUWERA" text on transparent, used on the
+   wordmark pages (returns/about/account/policies/sizeguide) under all three
+   class names. It needs the OPPOSITE: INVERT to white on dark, stay black on
+   light/super-light. A previous rule gave it the default (none on dark), which
+   rendered it black-on-black — invisible — on every one of those pages.
+
+   Footer logos (.flogo/.zwf-logo) keep their own (working) rules. Logos the
+   user UPLOADS get a src that matches neither branch here; they're auto-themed
+   by measured luminance in storefront.js (zwAutoThemeLogo), whose inline
+   !important filter overrides these static defaults. */
+:is(.nav-logo,.nav-logo-link,.zw-nav-logo) img,
+img.nav-logo-img{ filter:none !important; }
+body.light-mode :is(.nav-logo,.nav-logo-link,.zw-nav-logo) img,
+body.light-mode img.nav-logo-img,
+body.super-light-mode :is(.nav-logo,.nav-logo-link,.zw-nav-logo) img,
+body.super-light-mode img.nav-logo-img{ filter:invert(1) !important; }
+
+/* Exception: the black transparent wordmark — opposite polarity, keyed on file. */
+img[src*="wordmark-nav"]{ filter:invert(1) !important; }
+body.light-mode img[src*="wordmark-nav"],
+body.super-light-mode img[src*="wordmark-nav"]{ filter:none !important; }
+
+/* ── Auto-darkened light section: content text ────────────────────────────
+   storefront.js adds .zw-on-light to a section that has a light background but
+   no chosen text color. Darken its content text (product cards, headings,
+   labels, body) so hardcoded-light child colors don't render invisible on the
+   light background. Buttons/inputs are excluded so their own styling stands. */
+.zw-on-light :is(h1,h2,h3,h4,p,li,.pcard-name,.pcard-cat,.pcard-price,
+  .sec-head,.sec-head *,.about-label,.about-body,.about-body *,.stat-n,.stat-l,
+  .zw-eyebrow,.eyebrow,[class*="-label"],[class*="-title"]):not(button):not(a.btn):not(.btn){
+  color:#09090b !important;
 }
