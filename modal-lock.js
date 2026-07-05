@@ -122,15 +122,16 @@
 
     const root = document.documentElement;
     const body = document.body;
+    
+    // Exit early if already unlocked and the DOM doesn't have stranded lock styles.
+    // This prevents an infinite MutationObserver loop where unlockScroll() mutates
+    // styles, triggering the observer, which calls refresh() -> unlockScroll().
+    const needsRescue = root.style.overflow === 'hidden' || body.style.position === 'fixed' || root.dataset.scrollLocked === 'true';
+    if (!locked && !needsRescue) return;
+
     const wasLocked = locked;
     const restoreY = lockedScrollY;
 
-    // Always clear the lock styles when asked to unlock — even if `locked` is
-    // already false. Three different mechanisms can pin the body (this module,
-    // the base.css :has(.modal.open) rule, and inline body.style.overflow in
-    // the page handlers); a desynced `locked` flag must never be able to strand
-    // body{position:fixed}/overflow:hidden, which body.style.overflow='' alone
-    // cannot undo and which leaves the page scroll-frozen (clicks still work).
     locked = false;
 
     delete root.dataset.scrollLocked;
