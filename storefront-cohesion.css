@@ -961,6 +961,17 @@ body.light-mode :is(.pcard-img,.product-img){
   height:100% !important;
   object-fit:cover !important;
   object-position:center !important;
+  transition:transform .5s ease;
+}
+/* Hover zoom on product cards (homepage .pcard + collection .product-card),
+   driven by the admin Image Effects → "Product cards" toggle. image-effects.js
+   sets --zw-zoom-product (1 = off, default 1.04). The image wrappers already
+   have overflow:hidden, so the zoom clips cleanly. */
+:is(.pcard,.product-card):hover :is(.pcard-img,.product-img) img{
+  transform:scale(var(--zw-zoom-product, 1.04)) !important;
+}
+@media (prefers-reduced-motion: reduce){
+  :is(.pcard,.product-card):hover :is(.pcard-img,.product-img) img{ transform:none !important; }
 }
 
 :is(.pcard-info,.product-info){
