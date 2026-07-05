@@ -1719,7 +1719,7 @@
                             var el = document.getElementById('headerOverrideList');
                             if (!el || el.dataset.built) return;
                             el.dataset.built = '1';
-                            var pages = [['home','Home'],['drop001','Collection (Release 001)'],['product','Product'],['bag','Bag'],['account','Account'],['returns','Returns'],['policies','Policies'],['sizeguide','Size Guide'],['about','About']];
+                            var pages = [['home','Home'],['drop001','Collection (Release 001)'],['product','Product'],['bag','Bag'],['checkout','Checkout'],['account','Account'],['returns','Returns'],['policies','Policies'],['sizeguide','Size Guide'],['about','About']];
                             el.innerHTML = pages.map(function(p){
                                 return '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--border);">'
                                     + '<span style="font-size:.85rem;color:var(--text-primary);">'+p[1]+'</span>'

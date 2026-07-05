@@ -22,8 +22,9 @@
 
   // Header element varies by page: <nav id="nav"> (home/bag), <header class="nav">
   // (collection/policies/size guide), <nav class="nav"> (product), <nav class="zw-nav">
-  // (account/returns/about). Match them all (but never the in-modal mobile menu nav).
-  function getNav() { return document.querySelector('nav#nav, header.nav, nav.nav, nav.zw-nav'); }
+  // (account/returns/about), <header class="co-header"> (checkout). Match them all
+  // (but never the in-modal mobile menu nav).
+  function getNav() { return document.querySelector('nav#nav, header.nav, nav.nav, nav.zw-nav, header.co-header'); }
 
   // Page identity = filename without ".html" ("/" or "/index.html" → "home").
   function pageKey() {
