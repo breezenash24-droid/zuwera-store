@@ -43,6 +43,7 @@ const files = [
   'flags.js',
   'google-tag.js',
   'hero.mp4',
+  'image-effects.js',
   'image-utils.js',
   'index.html',
   'lang.js',
