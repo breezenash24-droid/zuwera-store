@@ -59,8 +59,15 @@
 
     // Let other scripts pop the header back into view — e.g. add-to-bag, so the
     // shopper sees the updated bag icon even if they'd scrolled the header away.
-    // Resets lastY so a scroll jitter doesn't immediately re-hide it.
-    window.zwRevealHeader = function () { show(); lastY = scrollY(); };
+    // Resets lastY so a scroll jitter doesn't immediately re-hide it. Returns true
+    // if the header WAS hidden, so callers can wait for the ~0.35s slide-in before
+    // playing their own animation.
+    window.zwRevealHeader = function () {
+      var wasHidden = nav.classList.contains(HIDDEN);
+      show();
+      lastY = scrollY();
+      return wasHidden;
+    };
 
     function update() {
       ticking = false;

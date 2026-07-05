@@ -3181,13 +3181,14 @@ function pulseBagTarget() {
 
 function animateAddToBag(sourceEl, imageSrc) {
   // If the header was scrolled away, pop it back so the shopper sees the bag
-  // update (and the pulse below happens on-screen, not off the top).
-  if (typeof window.zwRevealHeader === 'function') window.zwRevealHeader();
+  // update. When it was hidden, let it finish sliding in (~0.35s) BEFORE the bag
+  // pulse, so the two happen in sequence rather than on top of each other.
+  var wasHidden = (typeof window.zwRevealHeader === 'function') && window.zwRevealHeader();
   // Add-to-bag acknowledgment: the bag icon "drop-in dip" (it dips and
-  // squashes as if the item landed in it) plus the count-badge pop. The
-  // (sourceEl, imageSrc) signature is kept so all call sites stay valid;
+  // squashes as if the item landed in it) plus the count-badge pop.
   // prefers-reduced-motion is honored in CSS.
-  pulseBagTarget();
+  if (wasHidden) window.setTimeout(pulseBagTarget, 380);
+  else pulseBagTarget();
 }
 
 let _cartFavRenderVer = 0;
