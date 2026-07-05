@@ -327,7 +327,7 @@ function maybeLoadRates() {
   clearTimeout(ratesFetchTimeout);
   ratesFetchTimeout = setTimeout(() => {
     if (_pay.ratesField)   _pay.ratesField.style.display   = 'none';
-    if (_pay.ratesLoading) _pay.ratesLoading.style.display = 'block';
+    // No loading text — the rate fetch is sub-second; just show nothing until it resolves.
     ratesFetchPromise = doFetchRates(zip, state).catch(err => {
       console.error('Rate fetch error:', err);
       // Show fallback rate so user isn't stuck with no shipping option
