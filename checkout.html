@@ -39,6 +39,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
   <script src="/supabase.min.js?v=3277b334" defer></script>
   <script src="/favicon-utils.js?v=687e90ea" defer></script>
+  <script src="/header-scroll.js?v=4a734678" defer></script>
   <script src="/flags.js?v=1" defer></script>
   <script src="/meta-pixel.js?v=71fe06fb" defer></script>
   <script src="/google-tag.js?v=b141b2a1" defer></script>
@@ -93,7 +94,12 @@
       padding: calc(env(safe-area-inset-top, 0px) + .55rem) 1.25rem .55rem;
       background: var(--bg);
       border-bottom: 1px solid var(--border);
+      transition: transform .35s cubic-bezier(.22,.61,.36,1);
     }
+    /* Auto-hide (admin: Header Scroll Behavior → Checkout). header-scroll.js
+       toggles .zw-nav-hidden by scroll direction; reduced-motion keeps it shown. */
+    .co-header.zw-nav-hidden { transform: translateY(-110%); }
+    @media (prefers-reduced-motion: reduce) { .co-header.zw-nav-hidden { transform: none; } }
     .co-back {
       display: flex;
       align-items: center;
