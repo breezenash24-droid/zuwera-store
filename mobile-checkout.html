@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex">
   <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#F0EEE9" media="(prefers-color-scheme: light)">
-  <title>Pay with Apple Pay — Zuwera</title>
+  <title>Pay with Apple Pay � Zuwera</title>
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png?v=3" id="site-favicon">
   <link rel="icon" type="image/png" sizes="192x192" href="/images/favicon-black-192.png?v=3">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=3">
@@ -53,7 +53,7 @@
       padding-bottom: env(safe-area-inset-bottom);
     }
 
-    /* ── Header ── */
+    /* -- Header -- */
     .mc-header {
       display: flex;
       align-items: center;
@@ -76,7 +76,7 @@
       object-position: center;
     }
 
-    /* ── Main ── */
+    /* -- Main -- */
     .mc-main {
       flex: 1;
       width: 100%;
@@ -85,7 +85,7 @@
       padding: 1.5rem 1.25rem 2rem;
     }
 
-    /* ── States ── */
+    /* -- States -- */
     #state-loading, #state-checkout, #state-success, #state-unsupported {
       display: none;
     }
@@ -120,7 +120,7 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Section headings ── */
+    /* -- Section headings -- */
     .mc-section-label {
       font-size: .65rem;
       letter-spacing: .12em;
@@ -129,7 +129,7 @@
       margin-bottom: .9rem;
     }
 
-    /* ── Order summary ── */
+    /* -- Order summary -- */
     .mc-items {
       list-style: none;
       border: 1px solid var(--border);
@@ -165,7 +165,7 @@
       padding-top: .15rem;
     }
 
-    /* ── Totals ── */
+    /* -- Totals -- */
     .mc-totals {
       border: 1px solid var(--border);
       border-radius: 2px;
@@ -188,12 +188,12 @@
       padding-top: .7rem;
     }
 
-    /* ── Payment request button ── */
+    /* -- Payment request button -- */
     .mc-pay-section { margin-bottom: 1.5rem; }
     #pr-button-wrap { display: none; }
     #pr-button { min-height: 52px; border-radius: 8px; }
 
-    /* ── Locked badge ── */
+    /* -- Locked badge -- */
     .mc-secure {
       display: flex;
       align-items: center;
@@ -207,7 +207,7 @@
     }
     .mc-secure svg { width: 12px; height: 12px; flex-shrink: 0; }
 
-    /* ── Error banner ── */
+    /* -- Error banner -- */
     #mc-error {
       display: none;
       background: rgba(192,57,43,.12);
@@ -220,7 +220,7 @@
     }
     #mc-error.visible { display: block; }
 
-    /* ── Success ── */
+    /* -- Success -- */
     .mc-success {
       display: flex;
       flex-direction: column;
@@ -280,7 +280,7 @@
       margin-top: .5rem;
     }
 
-    /* ── Unsupported ── */
+    /* -- Unsupported -- */
     .mc-unsupported {
       display: flex;
       flex-direction: column;
@@ -352,7 +352,7 @@
     <div id="state-loading" class="active" role="status" aria-live="polite" aria-label="Loading checkout">
       <div class="mc-spinner">
         <div class="mc-spinner-ring" aria-hidden="true"></div>
-        <span class="mc-spinner-text">Loading checkout…</span>
+        <span class="mc-spinner-text">Loading checkout�</span>
       </div>
     </div>
 
@@ -362,10 +362,10 @@
       <ul class="mc-items" id="mc-items-list"></ul>
 
       <div class="mc-totals">
-        <div class="mc-total-row"><span>Subtotal</span><span id="mc-subtotal">—</span></div>
-        <div class="mc-total-row"><span>Shipping</span><span id="mc-shipping">—</span></div>
-        <div class="mc-total-row"><span>Tax (8%)</span><span id="mc-tax">—</span></div>
-        <div class="mc-total-row grand"><span>Total</span><span id="mc-total">—</span></div>
+        <div class="mc-total-row"><span>Subtotal</span><span id="mc-subtotal">�</span></div>
+        <div class="mc-total-row"><span>Shipping</span><span id="mc-shipping">�</span></div>
+        <div class="mc-total-row"><span>Tax (8%)</span><span id="mc-tax">�</span></div>
+        <div class="mc-total-row grand"><span>Total</span><span id="mc-total">�</span></div>
       </div>
 
       <div class="mc-pay-section">
@@ -403,7 +403,7 @@
         <p id="unsupported-msg">Apple Pay requires Safari on an iPhone or Mac with Apple Pay configured. Open this link in Safari, or return to the store to check out another way.</p>
         <div class="mc-unsupported-actions">
           <a href="https://zuwera.store" class="primary">Return to Store</a>
-          <a href="https://support.apple.com/en-us/HT204506" target="_blank" rel="noopener noreferrer">How to set up Apple Pay →</a>
+          <a href="https://support.apple.com/en-us/HT204506" target="_blank" rel="noopener noreferrer">How to set up Apple Pay ?</a>
         </div>
       </div>
     </div>
@@ -433,7 +433,7 @@
       return '$' + (cents / 100).toFixed(2);
     }
 
-    // ── Parse cart from URL ──────────────────────────────────────────
+    // -- Parse cart from URL ------------------------------------------
     function parseCart() {
       try {
         const params = new URLSearchParams(window.location.search);
@@ -462,7 +462,7 @@
       };
     }
 
-    // ── Render order summary ─────────────────────────────────────────
+    // -- Render order summary -----------------------------------------
     function calculateTotals(items, stateCode = '') {
       const subtotalCents = Math.round(items.reduce((s, i) => s + (i.price * (i.quantity || 1) * 100), 0));
       const shippingCents = subtotalCents / 100 >= FREE_SHIP_THRESHOLD ? 0 : SHIP_RATE_CENTS;
@@ -478,12 +478,12 @@
     function renderSummary(items, stateCode = '') {
       const list = document.getElementById('mc-items-list');
       list.innerHTML = items.map(item => {
-        const meta = [item.size, item.colorName].filter(Boolean).join(' · ');
+        const meta = [item.size, item.colorName].filter(Boolean).join(' � ');
         const lineTotal = (item.price * (item.quantity || 1)).toFixed(2);
         return `
           <li class="mc-item">
             <div class="mc-item-info">
-              <div class="mc-item-name">${escHtml(item.name)}${item.quantity > 1 ? ` <span style="color:var(--sub);font-weight:400;">×${item.quantity}</span>` : ''}</div>
+              <div class="mc-item-name">${escHtml(item.name)}${item.quantity > 1 ? ` <span style="color:var(--sub);font-weight:400;">�${item.quantity}</span>` : ''}</div>
               ${meta ? `<div class="mc-item-meta">${escHtml(meta)}</div>` : ''}
             </div>
             <div class="mc-item-price">$${lineTotal}</div>
@@ -505,7 +505,7 @@
       return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
-    // ── Stripe checkout ──────────────────────────────────────────────
+    // -- Stripe checkout ----------------------------------------------
     async function initCheckout(items, totals) {
       const stripeKey = await window.zwGetStripePublishableKey();
       const stripe = Stripe(stripeKey);
@@ -649,7 +649,7 @@
       });
     }
 
-    // ── Boot ─────────────────────────────────────────────────────────
+    // -- Boot ---------------------------------------------------------
     (function boot() {
       showState('state-loading');
 

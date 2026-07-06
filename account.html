@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <script>
-/* THEME FLASH PREVENTION — runs before any CSS loads */
+/* THEME FLASH PREVENTION � runs before any CSS loads */
 (function(){try{
   var m=localStorage.getItem('zw_theme_mode');
   var h=document.documentElement;
@@ -23,7 +23,7 @@
   }
 }catch(_){}})()</script>
 <script>
-/* AUTH PRE-PAINT — decode the Supabase session synchronously (same decoder as
+/* AUTH PRE-PAINT � decode the Supabase session synchronously (same decoder as
    bag/index) and reveal the right section before first paint. Without this the
    page is blank until the async getSession() resolves. init() remains the
    authority: if the pre-read guessed wrong it removes #zw-acct-prepaint. */
@@ -54,7 +54,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#09090b">
-  <title>My Account — Zuwera</title>
+  <title>My Account � Zuwera</title>
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png?v=3" id="site-favicon">
   <link rel="icon" type="image/png" sizes="192x192" href="/images/favicon-black-192.png?v=3">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=3">
@@ -107,7 +107,7 @@
       font-weight: 300;
       min-height: 100vh;
       overflow-x: hidden;   /* fallback for old Safari */
-      overflow-x: clip;     /* clip horizontal overflow WITHOUT making <body> a scroll container (keeps window scroll → header auto-hide works) */
+      overflow-x: clip;     /* clip horizontal overflow WITHOUT making <body> a scroll container (keeps window scroll ? header auto-hide works) */
       display: flex;
       flex-direction: column;
     }
@@ -125,7 +125,7 @@
       --a-input-focus: rgba(9,9,11,.35);
     }
 
-    /* ── NAV ── */
+    /* -- NAV -- */
     .zw-nav {
       position: sticky; top: 0; z-index: 100;
       display: flex; align-items: center; justify-content: space-between;
@@ -158,8 +158,8 @@
     /* Login + Bag header styles are shared via storefront-cohesion.css
        (.zw-hdr-group / .zw-hdr-action / .zw-hdr-bag / .zw-hdr-bag-count). */
 
-    /* ── PAGE LAYOUT — two-pane dashboard: sticky identity+nav rail beside a
-          wide content column (was an 860px single column adrift in margins) ── */
+    /* -- PAGE LAYOUT � two-pane dashboard: sticky identity+nav rail beside a
+          wide content column (was an 860px single column adrift in margins) -- */
     .page-wrap {
       flex: 1; max-width: 1200px; margin: 0 auto; width: 100%; padding: 3rem 2.5rem 5rem;
     }
@@ -184,7 +184,7 @@
     }
     body.light-mode .page-hd-meta { color: rgba(9,9,11,.45); }
 
-    /* ── TABS — vertical nav in the rail ── */
+    /* -- TABS � vertical nav in the rail -- */
     .acct-tabs {
       display: flex; flex-direction: column; gap: .1rem;
     }
@@ -200,11 +200,11 @@
     body.light-mode .acct-tab:hover { color: rgba(9,9,11,.7); background: rgba(9,9,11,.03); }
     body.light-mode .acct-tab.active { color: #09090b; border-left-color: #09090b; background: rgba(9,9,11,.04); }
 
-    /* ── PANELS ── */
+    /* -- PANELS -- */
     .acct-panel { display: none; }
     .acct-panel.active { display: block; }
 
-    /* ── SHARED CARD / FIELD STYLES ── */
+    /* -- SHARED CARD / FIELD STYLES -- */
     .zw-card {
       border: 1px solid rgba(244,241,235,.08); padding: 1.6rem;
       background: rgba(244,241,235,.02); margin-bottom: 1rem;
@@ -273,7 +273,7 @@
     .zw-loading { font-family: var(--fm); font-size: .72rem; color: rgba(244,241,235,.3); padding: 1.5rem 0; }
     body.light-mode .zw-loading { color: rgba(9,9,11,.3); }
 
-    /* ── ORDERS ── */
+    /* -- ORDERS -- */
     .order-card {
       border: 1px solid var(--a-border); background: var(--a-surface);
       padding: 1.2rem 1.35rem; margin-bottom: .65rem;
@@ -337,7 +337,7 @@
       .order-timeline { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem .5rem; }
     }
 
-    /* ── ORDER DETAIL ROWS ── */
+    /* -- ORDER DETAIL ROWS -- */
     .ord-item-list { display: flex; flex-direction: column; margin: .65rem 0 0; border-top: 1px solid rgba(244,241,235,.06); }
     body.light-mode .ord-item-list { border-top-color: rgba(9,9,11,.07); }
     .ord-item-row {
@@ -362,7 +362,7 @@
     .ord-item-more { font-size: .62rem; color: rgba(244,241,235,.3); font-family: var(--fm); padding: .45rem 0; }
     body.light-mode .ord-item-more { color: rgba(9,9,11,.35); }
 
-    /* ── ORDER TRACKING ROW ── */
+    /* -- ORDER TRACKING ROW -- */
     .order-track-row { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .65rem; align-items: center; }
     .order-track-btn {
       display: inline-block; border: 1px solid rgba(244,241,235,.2); color: rgba(244,241,235,.7);
@@ -375,7 +375,7 @@
     .order-track-num { font-size: .65rem; color: rgba(244,241,235,.45); font-family: var(--fm); letter-spacing: .04em; }
     body.light-mode .order-track-num { color: rgba(9,9,11,.5); }
 
-    /* ── ORDER NEXT STEPS ── */
+    /* -- ORDER NEXT STEPS -- */
     .order-next {
       margin-top: .75rem; padding: .65rem .8rem;
       background: rgba(244,241,235,.025); border-left: 2px solid rgba(244,241,235,.12);
@@ -388,7 +388,7 @@
     }
     body.light-mode .order-next strong { color: rgba(9,9,11,.75); }
 
-    /* ── ORDER FOOTER ── */
+    /* -- ORDER FOOTER -- */
     .order-footer {
       display: flex; align-items: flex-end; justify-content: space-between;
       margin-top: .85rem; padding-top: .75rem; border-top: 1px solid rgba(244,241,235,.06);
@@ -412,7 +412,7 @@
     body.light-mode .order-return-link { color: rgba(9,9,11,.4); border-bottom-color: rgba(9,9,11,.18); }
     body.light-mode .order-return-link:hover { color: #09090b; border-bottom-color: rgba(9,9,11,.5); }
 
-    /* ── TAB COUNT BADGE ── */
+    /* -- TAB COUNT BADGE -- */
     .tab-count {
       display: inline-flex; align-items: center; justify-content: center;
       min-width: 16px; height: 16px; padding: 0 .3rem; border-radius: 8px;
@@ -423,7 +423,7 @@
     body.light-mode .tab-count { background: rgba(9,9,11,.08); }
     body.light-mode .acct-tab.active .tab-count { background: rgba(9,9,11,.18); }
 
-    /* ── EMPTY STATE ── */
+    /* -- EMPTY STATE -- */
     .empty-state { padding: 2.5rem 1rem; text-align: center; }
     .empty-state-dash { font-family: var(--fw); font-size: 2rem; color: rgba(244,241,235,.12); line-height: 1; margin-bottom: .75rem; }
     body.light-mode .empty-state-dash { color: rgba(9,9,11,.1); }
@@ -437,7 +437,7 @@
     .empty-state-link:hover { color: var(--paper); border-color: rgba(244,241,235,.4); }
     body.light-mode .empty-state-link:hover { color: #09090b; border-color: rgba(9,9,11,.4); }
 
-    /* ── ORDER ITEMS ── */
+    /* -- ORDER ITEMS -- */
     .order-items-row { display: flex; flex-wrap: wrap; gap: .4rem; margin: .6rem 0 .35rem; }
     .order-item-chip {
       display: flex; align-items: center; gap: .5rem;
@@ -469,8 +469,8 @@
     body.light-mode .order-item-meta { color: rgba(9,9,11,.45); }
     body.light-mode .order-item-more { color: rgba(9,9,11,.35); }
 
-    /* ── FAVS — product-card grid (uses the panel width instead of one
-           thin full-width strip per item) ── */
+    /* -- FAVS � product-card grid (uses the panel width instead of one
+           thin full-width strip per item) -- */
     #saved-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 1.1rem; }
     .fav-card {
       display: flex; flex-direction: column;
@@ -507,7 +507,7 @@
     body.light-mode .fav-rm { color: rgba(9,9,11,.35); }
     body.light-mode .fav-rm:hover { color: rgba(9,9,11,.8); }
 
-    /* ── ADDRESS CARD ── */
+    /* -- ADDRESS CARD -- */
     .addr-card {
       border: 1px solid rgba(244,241,235,.08); padding: 1rem; margin-bottom: .6rem;
     }
@@ -515,7 +515,7 @@
     .addr-meta { font-size: .72rem; color: rgba(244,241,235,.5); line-height: 1.6; margin-top: .3rem; }
     body.light-mode .addr-meta { color: rgba(9,9,11,.5); }
 
-    /* ── LOGOUT BAR ── */
+    /* -- LOGOUT BAR -- */
     /* In the rail: stacked, with a subtle top divider */
     .logout-bar {
       padding: 1.2rem .25rem 0; margin-top: .2rem; border-top: 1px solid rgba(244,241,235,.08);
@@ -526,7 +526,7 @@
     body.light-mode .logout-bar p { color: rgba(9,9,11,.35); }
     .logout-bar .zw-btn { width: 100%; text-align: center; justify-content: center; }
 
-    /* ── AUTH WALL ── */
+    /* -- AUTH WALL -- */
     .auth-wall {
       border: 1px solid rgba(244,241,235,.08); padding: 3rem 2rem; text-align: center; margin: 2rem 0;
     }
@@ -542,7 +542,7 @@
     body.light-mode .auth-wall-btn { background: #09090b; border-color: #09090b; color: #f4f1eb; }
     body.light-mode .auth-wall-btn:hover { background: #1a1a1a; border-color: #1a1a1a; }
 
-    /* ── RETURNS TAB ── */
+    /* -- RETURNS TAB -- */
     .ret-form-stack { display: flex; flex-direction: column; gap: .9rem; }
 
     .ret-item-row {
@@ -637,7 +637,7 @@
     .ret-track-num { font-size: .65rem; color: rgba(244,241,235,.45); font-family: var(--fm); letter-spacing: .04em; }
     body.light-mode .ret-track-num { color: rgba(9,9,11,.5); }
 
-    /* ── FOOTER ── */
+    /* -- FOOTER -- */
     footer { margin-top: auto; }
     @media(max-width: 900px) {
       .zw-nav { padding: calc(0.55rem + env(safe-area-inset-top, 0px)) 1.2rem 0.8rem; justify-content: flex-end; }
@@ -769,7 +769,7 @@
         </div>
       </div>
     <script>
-    /* Greeting prefill from the pre-paint session — avoids the "My Account" →
+    /* Greeting prefill from the pre-paint session � avoids the "My Account" ?
        "Hey, Name." swap once init() resolves. init() re-sets these anyway. */
     (function(){try{
       var u=window.__zwSessionUser;if(!u)return;
@@ -779,7 +779,7 @@
       var h1=document.querySelector('.page-hd h1');
       if(h1&&first)h1.textContent='Hey, '+first+'.';
       var em=document.getElementById('acct-email-display');
-      if(em)em.textContent=name?name+' · '+(u.email||''):(u.email||'');
+      if(em)em.textContent=name?name+' � '+(u.email||''):(u.email||'');
     }catch(_){}})()
     </script>
 
@@ -801,13 +801,13 @@
 
     <!-- ORDERS -->
     <div class="acct-panel active" id="panel-orders">
-      <div class="zw-loading" id="orders-loading" role="status" aria-live="polite">Loading your orders…</div>
+      <div class="zw-loading" id="orders-loading" role="status" aria-live="polite">Loading your orders�</div>
       <div id="orders-empty" style="display:none">
         <div class="empty-state">
-          <div class="empty-state-dash">—</div>
+          <div class="empty-state-dash">�</div>
           <div class="empty-state-title">No Orders Yet</div>
           <div class="empty-state-desc">When you place your first order it'll appear here with real-time tracking.</div>
-          <a href="/drop001.html" class="empty-state-link">Browse Release 001 →</a>
+          <a href="/drop001.html" class="empty-state-link">Browse Release 001 ?</a>
         </div>
       </div>
       <div id="orders-list"></div>
@@ -815,13 +815,13 @@
 
     <!-- SAVED ITEMS -->
     <div class="acct-panel" id="panel-saved">
-      <div class="zw-loading" id="saved-loading" role="status" aria-live="polite">Loading saved items…</div>
+      <div class="zw-loading" id="saved-loading" role="status" aria-live="polite">Loading saved items�</div>
       <div id="saved-empty" style="display:none">
         <div class="empty-state">
-          <div class="empty-state-dash">—</div>
+          <div class="empty-state-dash">�</div>
           <div class="empty-state-title">Nothing Saved Yet</div>
           <div class="empty-state-desc">Tap the heart on any product to save it here for later.</div>
-          <a href="/drop001.html" class="empty-state-link">Browse Release 001 →</a>
+          <a href="/drop001.html" class="empty-state-link">Browse Release 001 ?</a>
         </div>
       </div>
       <div id="saved-list"></div>
@@ -829,13 +829,13 @@
 
     <!-- RETURNS -->
     <div class="acct-panel" id="panel-returns">
-      <div class="zw-loading" id="returns-loading" role="status" aria-live="polite">Loading returns portal…</div>
+      <div class="zw-loading" id="returns-loading" role="status" aria-live="polite">Loading returns portal�</div>
       <div id="returns-content"></div>
     </div>
 
     <!-- PROFILE -->
     <div class="acct-panel" id="panel-profile">
-      <div class="zw-loading" id="profile-loading" role="status" aria-live="polite">Loading your profile…</div>
+      <div class="zw-loading" id="profile-loading" role="status" aria-live="polite">Loading your profile�</div>
       <div id="profile-content"></div>
     </div>
 
@@ -929,7 +929,7 @@ function itemMetaHtml(size, colorName, qty) {
   if (size) parts.push(escHtml(size));
   if (colorName) parts.push(colorSwatch(colorName) + escHtml(colorName));
   if (qty > 1) parts.push(`Qty ${qty}`);
-  return parts.join(' · ');
+  return parts.join(' � ');
 }
 
 function orderNextSteps(order) {
@@ -937,7 +937,7 @@ function orderNextSteps(order) {
   const status = String(order?.status || '').toLowerCase();
   const s = fulfillment || status;
   const hasTracking = Boolean(order?.commerce?.trackingNumber || order?.tracking_number);
-  if (/cancel/.test(s)) return { title: 'Cancelled', body: 'This order has been cancelled. Any charge will be refunded within 5–10 business days.' };
+  if (/cancel/.test(s)) return { title: 'Cancelled', body: 'This order has been cancelled. Any charge will be refunded within 5�10 business days.' };
   if (/delivered|completed/.test(s) || order?.delivered_at || order?.commerce?.deliveredAt) return { title: 'Delivered', body: 'Your order was delivered. We hope you love it. If anything isn\'t right, hit <em>Start a Return</em> below.' };
   if (hasTracking || /shipped|fulfil/.test(s)) return { title: 'On Its Way', body: 'Your order has shipped. Use the tracking link below to follow it in real time.' };
   if (/pack|process/.test(s)) return { title: 'Being Packed', body: 'Your order is being packed and will ship very soon. A tracking number will be emailed to you when it leaves our hands.' };
@@ -967,7 +967,7 @@ function orderTimelineHtml(order, returnRequests = []) {
   return `<div class="order-timeline">${states.map((step, idx) => `<div class="order-step${step.done ? ' done' : ''}${idx === firstOpen ? ' current' : ''}">${escHtml(step.label)}</div>`).join('')}</div>`;
 }
 
-/* ── SESSION ── */
+/* -- SESSION -- */
 async function getSession() {
   if (!_sb?.auth?.getSession) return null;
   const r = await _sb.auth.getSession().catch(() => null);
@@ -982,7 +982,7 @@ async function getSession() {
   return session;
 }
 
-/* ── HUB API ── */
+/* -- HUB API -- */
 async function fetchHub() {
   const session = await getSession();
   if (!session?.access_token) return null;
@@ -1007,7 +1007,7 @@ async function postHub(action, payload) {
   return data;
 }
 
-/* ── TABS ── */
+/* -- TABS -- */
 function switchTab(tab) {
   document.querySelectorAll('.acct-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   document.querySelectorAll('.acct-panel').forEach(p => p.classList.remove('active'));
@@ -1026,7 +1026,7 @@ document.querySelectorAll('.acct-tab').forEach(b => {
   b.addEventListener('click', () => switchTab(b.dataset.tab));
 });
 
-/* ── ORDERS ── */
+/* -- ORDERS -- */
 async function fetchProductImageMap() {
   if (!_sb) return { imgs: {}, ids: {} };
   try {
@@ -1102,7 +1102,7 @@ async function loadOrders() {
         : /cancel|refund|return/.test(statusStr) ? ' status-cancelled'
         : '';
 
-      // Items — full detail rows
+      // Items � full detail rows
       let itemsHtml = '';
       let itemCount = 0;
       try {
@@ -1147,8 +1147,8 @@ async function loadOrders() {
         || buildTrackingUrl(carrier, tracking);
       const trackRow = (tracking || safeTrackUrl) ? `
         <div class="order-track-row">
-          ${tracking ? `<span class="order-track-num">${escHtml(carrier ? carrier + ' · ' + tracking : tracking)}</span>` : ''}
-          ${safeTrackUrl ? `<a href="${escHtml(safeTrackUrl)}" target="_blank" rel="noopener" class="order-track-btn">Track Shipment →</a>` : ''}
+          ${tracking ? `<span class="order-track-num">${escHtml(carrier ? carrier + ' � ' + tracking : tracking)}</span>` : ''}
+          ${safeTrackUrl ? `<a href="${escHtml(safeTrackUrl)}" target="_blank" rel="noopener" class="order-track-btn">Track Shipment ?</a>` : ''}
         </div>` : '';
 
       // Next steps
@@ -1171,7 +1171,7 @@ async function loadOrders() {
       const hasReturn = returnRequests.some(r => String(r.orderId || r.order_id || '') === String(o.id || ''));
       const returnAction = hasReturn
         ? `<span class="order-track-num">Return requested</span>`
-        : `<button class="order-return-link" onclick="switchTab('returns')">Start a Return →</button>`;
+        : `<button class="order-return-link" onclick="switchTab('returns')">Start a Return ?</button>`;
       const footer = `<div class="order-footer">${addrHtml}<div style="padding-bottom:.05rem">${returnAction}</div></div>`;
 
       return `
@@ -1179,7 +1179,7 @@ async function loadOrders() {
           <div class="order-card-head">
             <div>
               <div class="order-id">Order #${escHtml(String(o.id||'').slice(-8).toUpperCase())}</div>
-              <div class="order-meta">${new Date(o.created_at).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})}${itemCount ? ` · ${itemCount} item${itemCount !== 1 ? 's' : ''}` : ''}</div>
+              <div class="order-meta">${new Date(o.created_at).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})}${itemCount ? ` � ${itemCount} item${itemCount !== 1 ? 's' : ''}` : ''}</div>
             </div>
             <div class="order-card-head-right">
               <span class="order-status${statusColorClass}">${escHtml(statusLabel)}</span>
@@ -1198,7 +1198,7 @@ async function loadOrders() {
   }
 }
 
-/* ── SAVED ITEMS ── */
+/* -- SAVED ITEMS -- */
 async function loadSaved() {
   const loading = document.getElementById('saved-loading');
   const empty = document.getElementById('saved-empty');
@@ -1245,7 +1245,7 @@ async function loadSaved() {
           <div class="fav-card-actions">
             <button class="zw-btn primary" style="font-size:.55rem;padding:.55rem 1rem;" onclick="acctAddToBag('${pid}', this)">Add to Bag</button>
             <div class="fav-card-secondary">
-              <a href="${href}" class="zw-btn" style="font-size:.52rem;padding:.45rem .8rem;">View →</a>
+              <a href="${href}" class="zw-btn" style="font-size:.52rem;padding:.45rem .8rem;">View ?</a>
               <button class="fav-rm" onclick="removeFav('${pid}')" title="Remove from saved">Remove</button>
             </div>
           </div>
@@ -1258,9 +1258,9 @@ async function loadSaved() {
 
 let _savedRows = {};
 
-/* Open the shared Quick-Add modal (size/color/images) for a saved item —
+/* Open the shared Quick-Add modal (size/color/images) for a saved item �
    same experience as the bag page. quick-add-modal.js provides
-   window.quickAddToCart; on ≤900px it routes to the product page instead. */
+   window.quickAddToCart; on =900px it routes to the product page instead. */
 function acctAddToBag(productId, btn) {
   const f = _savedRows[productId];
   if (!f || typeof window.quickAddToCart !== 'function') {
@@ -1298,7 +1298,7 @@ async function removeFav(productId) {
   }
 }
 
-/* ── RETURNS ── */
+/* -- RETURNS -- */
 async function loadReturns() {
   const loading = document.getElementById('returns-loading');
   const content = document.getElementById('returns-content');
@@ -1347,8 +1347,8 @@ function retResolutionLabel(r) {
 function retNextSteps(r, userEmail) {
   const s = String(r.status || '').toLowerCase();
   const email = r.customerEmail || userEmail || 'your email';
-  if (/request/.test(s)) return { title: 'Under Review', body: 'We\'ve received your request and will respond within 1–3 business days.' };
-  if (/approv/.test(s)) return { title: 'Approved', body: 'Your return is approved. We\'re preparing your prepaid shipping label — you\'ll receive an email shortly.' };
+  if (/request/.test(s)) return { title: 'Under Review', body: 'We\'ve received your request and will respond within 1�3 business days.' };
+  if (/approv/.test(s)) return { title: 'Approved', body: 'Your return is approved. We\'re preparing your prepaid shipping label � you\'ll receive an email shortly.' };
   if (/label/.test(s)) return { title: 'Label Ready', body: `Your prepaid return label was sent to <strong style="font-style:normal">${escHtml(email)}</strong>. Print it, attach it to your package, and drop off at any ${escHtml(r.carrier || 'carrier')} location.` };
   if (/complet/.test(s)) return { title: 'Complete', body: 'Your return has been received and processed. Thank you.' };
   if (/deny|denied|reject/.test(s)) return { title: 'Not Approved', body: 'Unfortunately this return request wasn\'t approved. Contact us if you have questions.' };
@@ -1389,7 +1389,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
   const requests = Array.isArray(payload?.returns) ? payload.returns : [];
   const userEmail = _session?.user?.email || '';
 
-  // Build lookup: orderId → order
+  // Build lookup: orderId ? order
   const orderMap = {};
   orders.forEach(o => { if (o.id) orderMap[String(o.id)] = o; });
 
@@ -1398,7 +1398,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
     const dt = new Date(o.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     let itemCount = 0;
     try { itemCount = JSON.parse(o.items || '[]').length; } catch(_) {}
-    const label = `#${id.slice(-8).toUpperCase()} — ${dt}${itemCount ? ` · ${itemCount} item${itemCount !== 1 ? 's' : ''}` : ''}`;
+    const label = `#${id.slice(-8).toUpperCase()} � ${dt}${itemCount ? ` � ${itemCount} item${itemCount !== 1 ? 's' : ''}` : ''}`;
     return `<option value="${escHtml(id)}">${escHtml(label)}</option>`;
   }).join('');
 
@@ -1421,8 +1421,8 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
     const trackingRow = (r.trackingNumber || safeLabel || safeTrack) ? `
       <div class="ret-tracking-row">
         ${r.trackingNumber ? `<span class="ret-track-num">${escHtml(r.carrier || '')} ${escHtml(r.trackingNumber)}</span>` : ''}
-        ${safeLabel ? `<a href="${escHtml(safeLabel)}" target="_blank" rel="noopener" class="ret-track-btn">Download Label →</a>` : ''}
-        ${safeTrack ? `<a href="${escHtml(safeTrack)}" target="_blank" rel="noopener" class="ret-track-btn">Track Return →</a>` : ''}
+        ${safeLabel ? `<a href="${escHtml(safeLabel)}" target="_blank" rel="noopener" class="ret-track-btn">Download Label ?</a>` : ''}
+        ${safeTrack ? `<a href="${escHtml(safeTrack)}" target="_blank" rel="noopener" class="ret-track-btn">Track Return ?</a>` : ''}
       </div>` : '';
 
     const nextHtml = next ? `
@@ -1436,7 +1436,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
         <div class="ret-card-head">
           <div>
             <div class="ret-id">${escHtml(r.orderLabel || '#' + String(r.orderId || '').slice(-8).toUpperCase())}</div>
-            <div class="ret-meta">${escHtml(resLbl)} · ${escHtml(r.reason || '')} · ${escHtml(dt)}</div>
+            <div class="ret-meta">${escHtml(resLbl)} � ${escHtml(r.reason || '')} � ${escHtml(dt)}</div>
           </div>
           <div class="ret-card-head-right">
             <span class="ret-status ${statusCls}">${escHtml(statusLbl)}</span>
@@ -1452,7 +1452,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
     <div class="ret-form-stack">
       <div class="zw-card">
         <div class="zw-card-title">Start a Return or Exchange</div>
-        <div class="zw-card-meta">Submit a request — your team will review and process within 1–3 business days.</div>
+        <div class="zw-card-meta">Submit a request � your team will review and process within 1�3 business days.</div>
       </div>
       <div class="zw-card">
         <div class="zw-field">
@@ -1471,7 +1471,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
           </div>
           <div class="zw-field">
             <label>Reason</label>
-            <input id="ret-reason" type="text" placeholder="Wrong size, damaged item…">
+            <input id="ret-reason" type="text" placeholder="Wrong size, damaged item�">
           </div>
         </div>
         <div class="zw-field">
@@ -1490,7 +1490,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
     </div>
   `;
 
-  // Item selection state for the new return form — Map<idx, {...item, returnQty}>
+  // Item selection state for the new return form � Map<idx, {...item, returnQty}>
   let _retSelectedItems = new Map();
 
   function showItemPicker(orderId) {
@@ -1504,7 +1504,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
 
     picker.style.display = 'block';
     picker.innerHTML = `
-      <div style="font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.35);margin-bottom:.5rem;font-family:var(--fm);">Items in this order — select which to return</div>
+      <div style="font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.35);margin-bottom:.5rem;font-family:var(--fm);">Items in this order � select which to return</div>
       <div style="display:flex;flex-direction:column;gap:.4rem;" id="ret-item-list">
         ${items.map((item, idx) => {
           const name = escHtml((item.name || item.title || 'Item').trim());
@@ -1583,7 +1583,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
     const picker = document.getElementById('ret-item-picker');
     const allItems = (picker?._items || []).map(it => ({...it, returnQty: it.quantity || 1}));
     const returnItems = _retSelectedItems.size > 0 ? Array.from(_retSelectedItems.values()) : allItems;
-    if (statusEl) statusEl.textContent = 'Submitting…';
+    if (statusEl) statusEl.textContent = 'Submitting�';
     try {
       const selOrderEl = document.getElementById('ret-order');
       await postHub('submit_return', {
@@ -1606,7 +1606,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
   });
 }
 
-/* ── PROFILE ── */
+/* -- PROFILE -- */
 function renderAddressCards(addresses) {
   return addresses.length ? addresses.map((addr, idx) => `
     <div class="addr-card" id="addr-card-${idx}">
@@ -1730,9 +1730,9 @@ async function saveProfile() {
   if (btn?.disabled) return;
   if (btn) btn.disabled = true;
   const statusEl = document.getElementById('prof-status');
-  if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.style.color = ''; }
+  if (statusEl) { statusEl.textContent = 'Saving�'; statusEl.style.color = ''; }
 
-  /* ── Save ── */
+  /* -- Save -- */
   try {
     const newName = document.getElementById('prof-name')?.value?.trim() || '';
     if (newName && newName !== (_session?.user?.user_metadata?.full_name || '')) {
@@ -1762,7 +1762,7 @@ async function saveProfile() {
       addresses,
     });
 
-    /* ── Update UI immediately using the server-confirmed profile ── */
+    /* -- Update UI immediately using the server-confirmed profile -- */
     if (savedData?.profile) {
       _hubPayload = _hubPayload ? { ..._hubPayload, profile: savedData.profile } : { profile: savedData.profile };
       try { localStorage.setItem('zuwera-profile', JSON.stringify(savedData.profile)); } catch(_) {}
@@ -1776,7 +1776,7 @@ async function saveProfile() {
   if (statusEl) { statusEl.textContent = 'Saved!'; statusEl.style.color = '#22c55e'; }
   if (btn) btn.disabled = false;
 
-  /* ── Targeted in-place update — no full re-render, no second API call ── */
+  /* -- Targeted in-place update � no full re-render, no second API call -- */
   const savedAddrs = Array.isArray(_hubPayload?.profile?.savedAddresses) ? _hubPayload.profile.savedAddresses : [];
   const addrList = document.getElementById('prof-addresses-list');
   if (addrList) {
@@ -1812,7 +1812,7 @@ async function deleteAddress(idx) {
 async function deleteAllProfileData() {
   if (!confirm('Permanently delete all your saved addresses and preferences? This cannot be undone.')) return;
   const statusEl = document.getElementById('prof-delete-status');
-  if (statusEl) statusEl.textContent = 'Deleting…';
+  if (statusEl) statusEl.textContent = 'Deleting�';
   try {
     await postHub('delete_profile_data', {});
     _hubPayload = null;
@@ -1826,7 +1826,7 @@ async function deleteAllProfileData() {
   }
 }
 
-/* ── SIGN OUT ── */
+/* -- SIGN OUT -- */
 async function signOut() {
   if (_sb) await _sb.auth.signOut().catch(() => {});
   window.location.href = '/';
@@ -1834,7 +1834,7 @@ async function signOut() {
 
 document.getElementById('signout-btn').addEventListener('click', signOut);
 
-/* ── INIT ── */
+/* -- INIT -- */
 async function init() {
   try {
     _session = await getSession();
@@ -1858,7 +1858,7 @@ async function init() {
     const h1 = document.querySelector('.page-hd h1');
     if (h1) h1.textContent = firstName ? `Hey, ${firstName}.` : 'My Account';
     const emailEl = document.getElementById('acct-email-display');
-    if (emailEl) emailEl.textContent = name ? `${name} · ${email}` : email;
+    if (emailEl) emailEl.textContent = name ? `${name} � ${email}` : email;
     const signedInEl = document.getElementById('acct-signed-in-as');
     if (signedInEl) signedInEl.textContent = `Signed in as ${email}`;
 

@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <script>
-/* AUTH PRE-READ — synchronous session decode (same as account/bag/returns) so
+/* AUTH PRE-READ � synchronous session decode (same as account/bag/returns) so
    the header can show Account instead of Login without a flash. */
 (function(){try{
   var _b=null,_ck={},_i;
@@ -25,7 +25,7 @@
 }catch(_){}})()
 </script>
 <script>
-/* THEME FLASH PREVENTION — runs before any CSS loads */
+/* THEME FLASH PREVENTION � runs before any CSS loads */
 (function(){try{
   var m=localStorage.getItem('zw_theme_mode');
   var h=document.documentElement;
@@ -74,7 +74,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Render-blocking on purpose (same as bag/checkout): woff2 files are cached
-       immutable, so on refresh — and inside the product-page modal iframe — the
+       immutable, so on refresh � and inside the product-page modal iframe � the
        headings paint in the real font with no swap. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
   <link rel="stylesheet" href="storefront-cohesion.css?v=1ddba8e7">
@@ -118,7 +118,7 @@
       overflow-x: hidden;
     }
 
-    /* ────── NAV ────── */
+    /* ------ NAV ------ */
     .nav {
       position: fixed;
       top: 0; left: 0; right: 0;
@@ -159,7 +159,7 @@
     /* Login + Bag header styles are shared via storefront-cohesion.css
        (.zw-hdr-group / .zw-hdr-action / .zw-hdr-bag / .zw-hdr-bag-count). */
 
-    /* ────── PAGE ────── */
+    /* ------ PAGE ------ */
     .page-wrap {
       max-width: 1200px;
       margin: 0 auto;
@@ -180,7 +180,7 @@
       margin-bottom: 2.5rem;
     }
 
-    /* ────── HERO BAND (title + size finder side-by-side) ────── */
+    /* ------ HERO BAND (title + size finder side-by-side) ------ */
     .guide-hero {
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
@@ -201,7 +201,7 @@
       margin-bottom: 0;
     }
     /* Lay the finder's fields out two-up on desktop so the card stays compact
-       and balances the title block — otherwise the revealed measurement inputs
+       and balances the title block � otherwise the revealed measurement inputs
        (men/women/kids show 4-6) stack into a tower beside a short title. */
     @media (min-width: 981px) {
       .guide-hero .calc-grid {
@@ -267,7 +267,7 @@
     }
     /* The focused-guide note is intentionally kept hidden (the modal title
        already names the guide). It is never populated, so don't force it
-       visible — doing so rendered an empty bordered box above "Find My Size". */
+       visible � doing so rendered an empty bordered box above "Find My Size". */
     body.embed-mode.embed-focused .focused-guide-note[hidden] {
       display: none;
     }
@@ -275,7 +275,7 @@
       display: none;
     }
 
-    /* ────── CALCULATOR SECTION ────── */
+    /* ------ CALCULATOR SECTION ------ */
     .calculator {
       background: rgba(244, 241, 235, 0.02);
       border: 1px solid var(--border);
@@ -414,7 +414,7 @@
       line-height: 1.6;
     }
 
-    /* ────── CATEGORY TABS ────── */
+    /* ------ CATEGORY TABS ------ */
     .tabs-nav {
       display: flex;
       gap: 0;
@@ -455,7 +455,7 @@
     }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    /* ────── MEASUREMENT HIGHLIGHT ────── */
+    /* ------ MEASUREMENT HIGHLIGHT ------ */
     .highlight-card {
       background: rgba(248, 145, 165, 0.06);
       border: 1px solid var(--accent);
@@ -500,7 +500,7 @@
       color: var(--accent);
     }
 
-    /* ────── TABLES ────── */
+    /* ------ TABLES ------ */
     .table-section h2 {
       font-family:var(--font-head);
       font-size: 1.3rem;
@@ -582,7 +582,7 @@
   padding-left: 2.5rem; /* Balances the 2.5rem right-padding from the arrow icon */
 }
 
-    /* ────── HOW TO MEASURE ────── */
+    /* ------ HOW TO MEASURE ------ */
     .how-to-measure {
       margin: 3rem 0;
     }
@@ -647,7 +647,7 @@
       margin-bottom: 0;
     }
 
-    /* ────── FABRIC TECH ────── */
+    /* ------ FABRIC TECH ------ */
     .tech-card {
       background: rgba(244, 241, 235, 0.02);
       border: 1px solid var(--border);
@@ -687,7 +687,7 @@
       line-height: 1.6;
     }
 
-    /* ────── LOADING ────── */
+    /* ------ LOADING ------ */
     .loading {
       display: inline-block;
       color: var(--muted);
@@ -697,7 +697,7 @@
 
     footer{margin-top:4rem}
 
-    /* ────── COOKIE CONSENT ────── */
+    /* ------ COOKIE CONSENT ------ */
     .cookie-consent {
       position: fixed;
       bottom: 0;
@@ -757,7 +757,7 @@
       background: #f0758a;
     }
 
-    /* ────── RESPONSIVE ────── */
+    /* ------ RESPONSIVE ------ */
     @media (max-width: 760px) {
       .nav { padding: 0.8rem 1.2rem; padding-top: calc(0.55rem + env(safe-area-inset-top)); }
       .nav-actions .nav-back { display: none; }
@@ -814,7 +814,7 @@
       .tech-guide-grid { grid-template-columns: 1fr; }
     }
 
-    /* ────── LIGHT MODE ────── */
+    /* ------ LIGHT MODE ------ */
     body.light-mode {
       --bg: #F0EEE9;
       --text: #09090b;
@@ -974,7 +974,7 @@
       <div class="guide-hero-intro">
         <h1 class="page-title">Size &<br>Fit Guide</h1>
         <p class="page-subtitle">Find your perfect fit</p>
-        <p class="guide-lede">Enter your measurements for an instant size recommendation — or browse the full charts by category below.</p>
+        <p class="guide-lede">Enter your measurements for an instant size recommendation � or browse the full charts by category below.</p>
         <div id="focused-guide-note" class="focused-guide-note" hidden></div>
       </div>
 
@@ -1134,7 +1134,7 @@
 
       <div class="table-section mb-section" data-guide-cat="bottoms">
         <h2>Men's Bottoms Size Chart</h2>
-        <p class="mb-note">Body measurements — not garment dimensions. Find your size below; on a phone, swipe the table sideways to see every column.</p>
+        <p class="mb-note">Body measurements � not garment dimensions. Find your size below; on a phone, swipe the table sideways to see every column.</p>
         <div class="table-wrap">
           <table id="table-mens-bottoms">
             <thead>
@@ -1205,7 +1205,7 @@
 
       <div class="table-section mb-section" data-guide-cat="bottoms">
         <h2>Women's Bottoms Size Chart</h2>
-        <p class="mb-note">Body measurements — not garment dimensions. Use the IN / CM switch above to change units.</p>
+        <p class="mb-note">Body measurements � not garment dimensions. Use the IN / CM switch above to change units.</p>
         <p class="mb-subcap">Sizes XXS&ndash;XXL</p>
         <div class="table-wrap">
           <table id="table-womens-bottoms">
@@ -1434,11 +1434,11 @@
   </div>
 
   <script>
-    // ────── SUPABASE CONFIG ──────
+    // ------ SUPABASE CONFIG ------
     const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 
-    // ────── FALLBACK DATA ──────
+    // ------ FALLBACK DATA ------
     const fallbackData = {
       men_tops: [
         { size_label: 'XS', chest_in: '31.5-35', waist_in: '26-29', hips_in: '32.5-35' },
@@ -1543,16 +1543,16 @@
         { size_label: 'L/XL', head_circ_in: '23.5-24.75', head_circ_cm: '60-63' }
       ],
       socks: [
-        { size_label: 'XS',  us_mens: null,       us_womens: null,        us_kids: '13C – 3Y', uk: null,          eu: '31 – 35' },
-        { size_label: 'S',   us_mens: null,       us_womens: '4 – 6',    us_kids: '3Y – 5Y',  uk: '2 – 5',       eu: '34 – 38' },
-        { size_label: 'M',   us_mens: '6 – 8',   us_womens: '6 – 10',   us_kids: '5Y – 7Y',  uk: '5 – 8',       eu: '38 – 42' },
-        { size_label: 'L',   us_mens: '8 – 12',  us_womens: '10 – 13',  us_kids: null,        uk: '8 – 11',      eu: '42 – 46' },
-        { size_label: 'XL',  us_mens: '12 – 15', us_womens: null,        us_kids: null,        uk: '11 – 14.5',   eu: '46 – 50' },
-        { size_label: '2XL', us_mens: '15 – 18', us_womens: null,        us_kids: null,        uk: '14.5 – 17',   eu: '50 – 53' }
+        { size_label: 'XS',  us_mens: null,       us_womens: null,        us_kids: '13C � 3Y', uk: null,          eu: '31 � 35' },
+        { size_label: 'S',   us_mens: null,       us_womens: '4 � 6',    us_kids: '3Y � 5Y',  uk: '2 � 5',       eu: '34 � 38' },
+        { size_label: 'M',   us_mens: '6 � 8',   us_womens: '6 � 10',   us_kids: '5Y � 7Y',  uk: '5 � 8',       eu: '38 � 42' },
+        { size_label: 'L',   us_mens: '8 � 12',  us_womens: '10 � 13',  us_kids: null,        uk: '8 � 11',      eu: '42 � 46' },
+        { size_label: 'XL',  us_mens: '12 � 15', us_womens: null,        us_kids: null,        uk: '11 � 14.5',   eu: '46 � 50' },
+        { size_label: '2XL', us_mens: '15 � 18', us_womens: null,        us_kids: null,        uk: '14.5 � 17',   eu: '50 � 53' }
       ]
     };
 
-    // ────── STATE ──────
+    // ------ STATE ------
     let sizeChartData = { ...fallbackData };
     let recommendedSize = null;
     let currentTab = 'mens';
@@ -1560,18 +1560,18 @@
     
     // Default fallback technologies just in case Supabase errors out
     const fallbackTechDict = {
-      "Aero-PRO™": { focus: "Sweat evaporation and breathability.", level: "Standard Performance.", opt: "Light to moderate sweat output.", best: "Daily physical activity, gym sessions, and steady-state training.", desc: "High-wicking capillary fibers designed to pull moisture away from the skin for consistent dryness and comfort." },
-      "Aero-ULTRA™": { focus: "Sweat evaporation and breathability.", level: "Pinnacle Performance.", opt: "Heavy to extreme sweat output.", best: "High-intensity racing, elite competition, and maximum exertion.", desc: "A near-zero moisture retention weave with accelerated evaporation tech to keep the garment featherweight during peak output." },
-      "Hydro-PRO™": { focus: "Rain, mist, and liquid deflection.", level: "Variable Protection.", opt: "Light rain, mist, and road spray.", best: "Unpredictable weather, morning runs, and outdoor commuting.", desc: "A durable water-repellent (DWR) shield that causes liquid to bead off the surface while maintaining fabric softness." },
-      "Hydro-ULTRA™": { focus: "Rain, mist, and liquid deflection.", level: "Absolute Protection.", opt: "Heavy downpours and high-velocity exposure.", best: "Storm conditions, extreme trail hiking, and all-day outdoor exposure.", desc: "100% waterproof, seam-sealed membrane technology that blocks external water while allowing internal vapor to escape." },
-      "Thermo-PRO™": { focus: "Heat retention and cold-weather insulation.", level: "Active Insulation.", opt: "Cool to cold temperatures (40°F – 60°F).", best: "Layering, outdoor winter training, and warm-ups.", desc: "Breathable thermal micro-fibers that trap body heat during movement without causing overheating." },
-      "Thermo-ULTRA™": { focus: "Heat retention and cold-weather insulation.", level: "Extreme Insulation.", opt: "Sub-zero and freezing temperatures (Below 32°F).", best: "Static warmth, winter expeditions, and extreme cold-weather protection.", desc: "High-density heat-lock technology designed to maintain core temperature in the harshest environments." },
-      "Storm-PRO™": { focus: "Wind-blocking and heavy elemental resistance.", level: "Wind Resistance.", opt: "Moderate wind and transitional weather.", best: "Cycling, running in gusty conditions, and everyday outerwear.", desc: "High-density weave engineered to deflect wind chill while remaining flexible and quiet." },
-      "Storm-ULTRA™": { focus: "Wind-blocking and heavy elemental resistance.", level: "Total Element Block.", opt: "Gale-force winds and brutal mountain conditions.", best: "Summiting, heavy winter storms, and high-altitude performance.", desc: "An impenetrable technical barrier that creates a zero-permeability micro-climate for the athlete." }
+      "Aero-PRO�": { focus: "Sweat evaporation and breathability.", level: "Standard Performance.", opt: "Light to moderate sweat output.", best: "Daily physical activity, gym sessions, and steady-state training.", desc: "High-wicking capillary fibers designed to pull moisture away from the skin for consistent dryness and comfort." },
+      "Aero-ULTRA�": { focus: "Sweat evaporation and breathability.", level: "Pinnacle Performance.", opt: "Heavy to extreme sweat output.", best: "High-intensity racing, elite competition, and maximum exertion.", desc: "A near-zero moisture retention weave with accelerated evaporation tech to keep the garment featherweight during peak output." },
+      "Hydro-PRO�": { focus: "Rain, mist, and liquid deflection.", level: "Variable Protection.", opt: "Light rain, mist, and road spray.", best: "Unpredictable weather, morning runs, and outdoor commuting.", desc: "A durable water-repellent (DWR) shield that causes liquid to bead off the surface while maintaining fabric softness." },
+      "Hydro-ULTRA�": { focus: "Rain, mist, and liquid deflection.", level: "Absolute Protection.", opt: "Heavy downpours and high-velocity exposure.", best: "Storm conditions, extreme trail hiking, and all-day outdoor exposure.", desc: "100% waterproof, seam-sealed membrane technology that blocks external water while allowing internal vapor to escape." },
+      "Thermo-PRO�": { focus: "Heat retention and cold-weather insulation.", level: "Active Insulation.", opt: "Cool to cold temperatures (40�F � 60�F).", best: "Layering, outdoor winter training, and warm-ups.", desc: "Breathable thermal micro-fibers that trap body heat during movement without causing overheating." },
+      "Thermo-ULTRA�": { focus: "Heat retention and cold-weather insulation.", level: "Extreme Insulation.", opt: "Sub-zero and freezing temperatures (Below 32�F).", best: "Static warmth, winter expeditions, and extreme cold-weather protection.", desc: "High-density heat-lock technology designed to maintain core temperature in the harshest environments." },
+      "Storm-PRO�": { focus: "Wind-blocking and heavy elemental resistance.", level: "Wind Resistance.", opt: "Moderate wind and transitional weather.", best: "Cycling, running in gusty conditions, and everyday outerwear.", desc: "High-density weave engineered to deflect wind chill while remaining flexible and quiet." },
+      "Storm-ULTRA�": { focus: "Wind-blocking and heavy elemental resistance.", level: "Total Element Block.", opt: "Gale-force winds and brutal mountain conditions.", best: "Summiting, heavy winter storms, and high-altitude performance.", desc: "An impenetrable technical barrier that creates a zero-permeability micro-climate for the athlete." }
     };
     let siteTechs = null;
 
-    // ────── COOKIE CONSENT ──────
+    // ------ COOKIE CONSENT ------
     function initCookieConsent() {
       const cookieConsent = document.getElementById('cookieConsent');
       const cookieAccept = document.getElementById('cookieAccept');
@@ -1593,7 +1593,7 @@
       });
     }
 
-    // ────── FETCH SIZE CHARTS ──────
+    // ------ FETCH SIZE CHARTS ------
     async function fetchSizeCharts() {
       // Paint the charts immediately from the bundled fallback data so they
       // appear without waiting on this request; we re-render with live data
@@ -1707,7 +1707,7 @@
       });
     }
 
-    // ────── RENDER TABLES ──────
+    // ------ RENDER TABLES ------
     function renderAllTables() {
       renderTable('mens', sizeChartData.men_tops, ['size_label', 'chest_in', 'waist_in', 'hips_in']);
       renderBottomsTable();
@@ -1732,15 +1732,15 @@
       );
       headerRow.innerHTML = '<th>Size</th>' + sizes.map(s => `<th>${s.size_label}</th>`).join('');
       const metrics = [
-        { label: 'US – Men\'s',   field: 'us_mens' },
-        { label: 'US – Women\'s', field: 'us_womens' },
-        { label: 'US – Kids',     field: 'us_kids' },
+        { label: 'US � Men\'s',   field: 'us_mens' },
+        { label: 'US � Women\'s', field: 'us_womens' },
+        { label: 'US � Kids',     field: 'us_kids' },
         { label: 'UK',            field: 'uk' },
         { label: 'EU',            field: 'eu' }
       ];
       tbody.innerHTML = metrics.map(m =>
         `<tr><td style="font-weight:500;white-space:nowrap;">${m.label}</td>${
-          sizes.map(s => `<td>${s[m.field] || '—'}</td>`).join('')
+          sizes.map(s => `<td>${s[m.field] || '�'}</td>`).join('')
         }</tr>`
       ).join('');
     }
@@ -1758,7 +1758,7 @@
 
         columns.forEach((col, idx) => {
           const td = document.createElement('td');
-          td.textContent = unitCell(row, col) || '—';
+          td.textContent = unitCell(row, col) || '�';
           tr.appendChild(td);
         });
 
@@ -1766,8 +1766,8 @@
       });
     }
 
-    // ── Unit conversion (IN ⇄ CM) shared by every measurement chart ──
-    // Convert an inches value/range string to cm (e.g. "31.5-35" → "80-89").
+    // -- Unit conversion (IN ? CM) shared by every measurement chart --
+    // Convert an inches value/range string to cm (e.g. "31.5-35" ? "80-89").
     function toCm(v){
       if (v == null) return v;
       return String(v).replace(/\d+(\.\d+)?/g, function(n){ return String(Math.round(parseFloat(n) * 2.54)); });
@@ -1788,7 +1788,7 @@
         th.textContent = th.dataset.unitLabel + ' (' + chartUnit + ')';
       });
     }
-    // The IN/CM switch only applies to tabs with convertible measurements — hide
+    // The IN/CM switch only applies to tabs with convertible measurements � hide
     // it on Socks (shoe sizes), Sports Bras (band/cup) and Fabric Tech.
     function updateUnitBarVisibility(){
       const bar = document.querySelector('.unit-bar');
@@ -1804,7 +1804,7 @@
       const data = sizeChartData.men_bottoms || [];
       tbody.innerHTML = data.map(row => {
         const hl = (recommendedSize && sizeLabelsMatch(row.size_label, recommendedSize) && currentTab === 'mens') ? ' class="highlighted"' : '';
-        return `<tr${hl}><td>${row.size_label}</td><td>${unitCell(row,'waist_in')||'—'}</td><td>${unitCell(row,'hip_in')||'—'}</td><td>${unitCell(row,'height_in')||'—'}</td></tr>`;
+        return `<tr${hl}><td>${row.size_label}</td><td>${unitCell(row,'waist_in')||'�'}</td><td>${unitCell(row,'hip_in')||'�'}</td><td>${unitCell(row,'height_in')||'�'}</td></tr>`;
       }).join('');
     }
     function setupChartUnitToggle() {
@@ -1855,12 +1855,12 @@
           tr.classList.add('highlighted');
         }
         const circ = chartUnit === 'cm' ? row.head_circ_cm : row.head_circ_in;
-        tr.innerHTML = `<td>${row.size_label}</td><td>${circ || '—'}</td>`;
+        tr.innerHTML = `<td>${row.size_label}</td><td>${circ || '�'}</td>`;
         tbody.appendChild(tr);
       });
     }
 
-    // ────── CALCULATOR ──────
+    // ------ CALCULATOR ------
     function setupCalculator() {
       const genderSelect = document.getElementById('calcGender');
       const categorySelect = document.getElementById('calcCategory');
@@ -2219,7 +2219,7 @@
       return labels[key] || key;
     }
 
-    // ────── TAB SWITCHING ──────
+    // ------ TAB SWITCHING ------
     function setupTabs() {
       document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', e => {
@@ -2441,7 +2441,7 @@
       const focusedHeading = getFocusedGuideHeading(context);
       const lockSingleTab = context.hasExplicitGender || ['kids', 'sports_bras', 'hats'].includes(context.tabId);
 
-      // Streamline: show only the chart that matches the product's category — a
+      // Streamline: show only the chart that matches the product's category � a
       // sweatpant (bottoms) shows just the Bottoms chart, not Tops + Underwear too.
       const wantCat = ({ bottoms: 'bottoms', underwear: 'underwear', tops: 'tops' })[context.calcCategory];
       let matchedSection = null;
@@ -2459,14 +2459,14 @@
       }
 
       // The modal's own title already names the guide (e.g. "Sweatpant Size
-      // Guide"), so the "Focused on …" box just repeated it — keep it hidden.
+      // Guide"), so the "Focused on �" box just repeated it � keep it hidden.
       if (note) note.hidden = true;
 
       if (tabsNav) {
         tabsNav.classList.toggle('tabs-nav--hidden', lockSingleTab);
       }
 
-      // Calculator title stays the generic "Find My Size" — the modal title
+      // Calculator title stays the generic "Find My Size" � the modal title
       // already says which product's guide this is.
 
       if (genderField && (context.hasExplicitGender || ['kids', 'sports_bras', 'hats'].includes(context.tabId))) {
@@ -2511,7 +2511,7 @@
       if (typeof updateCalculatorFields === 'function') updateCalculatorFields();
     }
 
-    // Re-apply only the recommended-size highlight, no reload — called by the
+    // Re-apply only the recommended-size highlight, no reload � called by the
     // parent page when the (warm) size guide modal is reused with a new size.
     window.__zwApplyGuideSize = function(size) {
       try {
@@ -2532,7 +2532,7 @@
       } catch (e) {}
     };
 
-    // ────── INIT ──────
+    // ------ INIT ------
     function init() {
       if (!isEmbedMode()) initCookieConsent();
       fetchSizeCharts();
@@ -2547,8 +2547,8 @@
   </script>
 
   <!-- Language selector -->
-  <script src="modal-lock.js?v=4360c283"></script>
-<script src="lang.js?v=756ddb26" defer></script>
+  <script src="modal-lock.js?v=d1fe635d"></script>
+<script src="lang.js?v=5a87b132" defer></script>
 <script src="/supabase.min.js?v=3277b334" defer></script>
 <script src="/supabase-client.js?v=b28896db" defer></script>
 <script src="zw-login.js?v=8ffae84d" defer></script>
