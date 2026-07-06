@@ -32,6 +32,10 @@
   if(m==='super-light'||m==='light'){
     var bg=m==='super-light'?'#FFFFFF':'#F0EEE9';
     h.style.background=bg;h.style.colorScheme='light';
+    var mt=document.querySelector('meta[name="theme-color"]');
+    if(mt) mt.setAttribute('content',bg);
+    var cs=document.querySelector('meta[name="color-scheme"]');
+    if(cs) cs.setAttribute('content','light');
     var st=document.createElement('style');
     st.textContent='body{background:'+bg+'!important}html::before{background:'+bg+'!important}';
     document.head.appendChild(st);
@@ -55,7 +59,7 @@ document.documentElement.classList.add('zw-collflash');
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="color-scheme" content="dark">
-  <meta name="theme-color" content="#09090b">
+  <meta name="theme-color" content="#09090b" id="zw-theme-meta">
   <title>Release 001 Collection � Athletic Sportswear | ZUWERA</title>
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png?v=3" id="site-favicon">
   <link rel="icon" type="image/png" sizes="192x192" href="/images/favicon-black-192.png?v=3">
