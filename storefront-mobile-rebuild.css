@@ -74,7 +74,7 @@
     position:absolute;
     top:0;left:0;right:0;
     height:env(safe-area-inset-top,0px);
-    background:#09090b !important; /* solid opaque dark safe-area block */
+    background:var(--zw-notch-bar,#09090b) !important; /* solid opaque safe-area block, uses CSS var for first-load theme */
     z-index:-1;
     display:block !important;
   }
