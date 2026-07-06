@@ -1,0 +1,20 @@
+version: 2
+updates:
+  # npm dependencies (stripe SDK, etc.) — weekly security + version PRs.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+    commit-message:
+      prefix: deps
+
+  # Keep the GitHub Actions we use (checkout, setup-node, gitleaks) current.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [ci]
+    commit-message:
+      prefix: ci

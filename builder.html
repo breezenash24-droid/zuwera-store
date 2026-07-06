@@ -20,13 +20,13 @@ body{display:flex;flex-direction:column}
 .tlogo{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-weight:900;font-size:1.1rem;color:#f4f1eb;text-decoration:none;flex-shrink:0}
 .tsep{width:1px;height:18px;background:var(--bd);flex-shrink:0}
 .ttitle{font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;color:var(--mu);flex:1;white-space:nowrap}
-.tbtn{border:none;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.09em;text-transform:uppercase;padding:.42rem .8rem;border-radius:3px;transition:.13s;flex-shrink:0;white-space:nowrap}
+.tbtn{border:none;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.09em;text-transform:uppercase;padding:.42rem .8rem;border-radius:3px;transition:.15s;flex-shrink:0;white-space:nowrap}
 .tbtn-ghost{background:transparent;border:1px solid var(--bd);color:var(--mu)}
 .tbtn-ghost:hover{border-color:rgba(255,255,255,.22);color:#f4f1eb}
 .tbtn-solid{background:#f4f1eb;color:#0f0f11;font-weight:600}
 .tbtn-solid:hover{opacity:.88}
 .tog{display:flex;gap:1px;background:var(--sf2);padding:2px;border-radius:3px;flex-shrink:0}
-.tog button{background:none;border:none;color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.51rem;letter-spacing:.05em;text-transform:uppercase;padding:.2rem .5rem;cursor:pointer;border-radius:2px;transition:.12s;white-space:nowrap}
+.tog button{background:none;border:none;color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.51rem;letter-spacing:.05em;text-transform:uppercase;padding:.2rem .5rem;cursor:pointer;border-radius:2px;transition:.1s;white-space:nowrap}
 .tog button.on{background:var(--sf);color:#f4f1eb;box-shadow:0 1px 3px rgba(0,0,0,.4)}
 #tstatus{font-family:'IBM Plex Mono',monospace;font-size:.52rem;letter-spacing:.09em;color:var(--mu);white-space:nowrap;flex-shrink:0;min-width:100px;text-align:right}
 .dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--mu);margin-right:.28rem;vertical-align:middle;transition:background .3s}
@@ -45,7 +45,7 @@ body{display:flex;flex-direction:column}
 .more-tog button{flex:1}
 /* Design sub-tabs (Appearance | Navigation) */
 .design-subtabs{display:flex;gap:.3rem;padding:.6rem .7rem .2rem}
-.dsub{flex:1;background:var(--sf2);border:1px solid var(--bd);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;padding:.4rem;cursor:pointer;border-radius:3px;transition:.12s}
+.dsub{flex:1;background:var(--sf2);border:1px solid var(--bd);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;padding:.4rem;cursor:pointer;border-radius:3px;transition:.1s}
 .dsub.on{background:var(--ac);color:#0f0f11;border-color:var(--ac);font-weight:600}
 
 .layout{display:flex;flex:1;overflow:hidden}
@@ -53,7 +53,7 @@ body{display:flex;flex-direction:column}
 /* ── LEFT PANEL (tabs) ── */
 .lp{width:260px;flex-shrink:0;background:var(--sf);border-right:1px solid var(--bd);display:flex;flex-direction:column;min-height:0}
 .lp-tabs{display:flex;border-bottom:1px solid var(--bd);flex-shrink:0}
-.lp-tab{flex:1;background:none;border:none;color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;padding:.62rem .2rem;cursor:pointer;transition:.12s;border-bottom:2px solid transparent;white-space:nowrap}
+.lp-tab{flex:1;background:none;border:none;color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;padding:.62rem .2rem;cursor:pointer;transition:.1s;border-bottom:2px solid transparent;white-space:nowrap}
 .lp-tab.on{color:#f4f1eb;border-bottom-color:var(--ac)}
 .lp-tab:hover:not(.on){color:rgba(244,241,235,.7)}
 .lp-content{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-height:0}
@@ -61,7 +61,7 @@ body{display:flex;flex-direction:column}
 .lp-bar{display:flex;align-items:center;gap:.45rem;padding:.32rem .5rem;border-bottom:1px solid var(--bd);flex-shrink:0;background:var(--sf2)}
 .lp-grip{color:var(--mu);opacity:.35;font-size:.72rem;line-height:1;display:none}
 .lp-bar-title{font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.14em;text-transform:uppercase;color:var(--mu);flex:1;white-space:nowrap}
-.lp-float-btn{background:transparent;border:1px solid var(--bd);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.08em;text-transform:uppercase;padding:.26rem .55rem;cursor:pointer;border-radius:2px;transition:.12s;white-space:nowrap}
+.lp-float-btn{background:transparent;border:1px solid var(--bd);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.08em;text-transform:uppercase;padding:.26rem .55rem;cursor:pointer;border-radius:2px;transition:.1s;white-space:nowrap}
 .lp-float-btn:hover{border-color:var(--ac);color:var(--ac)}
 .lp.float{position:fixed;top:64px;left:24px;width:320px;height:72vh;z-index:400;border:1px solid var(--bd);border-radius:9px;box-shadow:0 18px 52px rgba(0,0,0,.62);resize:both;overflow:hidden}
 .lp.float .lp-bar{cursor:grab}
@@ -70,7 +70,7 @@ body{display:flex;flex-direction:column}
 
 /* ── SECTIONS TAB ── */
 .sec-search-wrap{padding:.4rem .6rem .35rem;border-bottom:1px solid var(--bd);flex-shrink:0}
-.sec-search{width:100%;background:var(--sf2);border:1px solid var(--bd);color:#f4f1eb;font-family:'IBM Plex Mono',monospace;font-size:.58rem;padding:.3rem .5rem;outline:none;border-radius:2px;transition:border-color .13s}
+.sec-search{width:100%;background:var(--sf2);border:1px solid var(--bd);color:#f4f1eb;font-family:'IBM Plex Mono',monospace;font-size:.58rem;padding:.3rem .5rem;outline:none;border-radius:2px;transition:border-color .15s}
 .sec-search:focus{border-color:rgba(255,255,255,.25)}
 .sec-list{flex:1;overflow-y:auto;padding:.28rem}
 .sec-item{display:flex;align-items:center;gap:.38rem;padding:.38rem .48rem;border-radius:3px;cursor:pointer;transition:background .1s;border:1px solid transparent;margin-bottom:2px;user-select:none}
@@ -85,27 +85,27 @@ body{display:flex;flex-direction:column}
 .sec-tp{font-family:'IBM Plex Mono',monospace;font-size:.44rem;letter-spacing:.09em;color:var(--mu);text-transform:uppercase}
 .sec-acts{display:flex;gap:1px;opacity:0;transition:opacity .1s;flex-shrink:0}
 .sec-item:hover .sec-acts{opacity:1}
-.sec-act{background:none;border:none;cursor:pointer;font-size:.62rem;color:var(--mu);padding:2px 3px;border-radius:2px;line-height:1;transition:.11s}
+.sec-act{background:none;border:none;cursor:pointer;font-size:.62rem;color:var(--mu);padding:2px 3px;border-radius:2px;line-height:1;transition:.1s}
 .sec-act:hover{color:#f4f1eb;background:rgba(255,255,255,.07)}
 .sec-act.danger:hover{color:#e07060}
-.vis-btn{background:none;border:none;cursor:pointer;font-size:.62rem;color:#f4f1eb;opacity:.3;transition:.11s;padding:0;line-height:1;flex-shrink:0}
+.vis-btn{background:none;border:none;cursor:pointer;font-size:.62rem;color:#f4f1eb;opacity:.3;transition:.1s;padding:0;line-height:1;flex-shrink:0}
 .vis-btn:hover{opacity:1}
 .lp-footer{padding:.5rem .7rem;border-top:1px solid var(--bd);flex-shrink:0}
-.add-btn{width:100%;background:transparent;border:1px dashed rgba(255,255,255,.13);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.52rem;letter-spacing:.09em;text-transform:uppercase;padding:.44rem;cursor:pointer;border-radius:2px;transition:.12s}
+.add-btn{width:100%;background:transparent;border:1px dashed rgba(255,255,255,.13);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.52rem;letter-spacing:.09em;text-transform:uppercase;padding:.44rem;cursor:pointer;border-radius:2px;transition:.1s}
 .add-btn:hover{border-color:var(--ac);color:var(--ac)}
 
 /* ── THEME/NAV/HISTORY TABS ── */
 .tab-pane{padding:.7rem .8rem;display:flex;flex-direction:column;gap:.7rem}
 .tab-hd{font-family:'IBM Plex Mono',monospace;font-size:.54rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ac);margin-bottom:.1rem}
-.hist-item{background:var(--sf2);border:1px solid var(--bd);border-radius:3px;padding:.5rem .65rem;display:flex;align-items:center;gap:.6rem;cursor:pointer;transition:border-color .12s}
+.hist-item{background:var(--sf2);border:1px solid var(--bd);border-radius:3px;padding:.5rem .65rem;display:flex;align-items:center;gap:.6rem;cursor:pointer;transition:border-color .1s}
 .hist-item:hover{border-color:rgba(255,255,255,.2)}
 .hist-ts{font-family:'IBM Plex Mono',monospace;font-size:.52rem;color:var(--mu);flex:1}
 .hist-lbl{font-size:.65rem;font-weight:500}
-.hist-restore{background:transparent;border:1px solid var(--bd);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.48rem;letter-spacing:.1em;text-transform:uppercase;padding:.22rem .5rem;cursor:pointer;border-radius:2px;transition:.12s;white-space:nowrap}
+.hist-restore{background:transparent;border:1px solid var(--bd);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.48rem;letter-spacing:.1em;text-transform:uppercase;padding:.22rem .5rem;cursor:pointer;border-radius:2px;transition:.1s;white-space:nowrap}
 .hist-restore:hover{border-color:var(--ac);color:var(--ac)}
 .tmpl-item{background:var(--sf2);border:1px solid var(--bd);border-radius:3px;padding:.5rem .65rem;display:flex;align-items:center;gap:.5rem}
 .tmpl-name{flex:1;font-size:.68rem;font-weight:500}
-.tmpl-btn{background:transparent;border:1px solid var(--bd);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.46rem;letter-spacing:.08em;text-transform:uppercase;padding:.2rem .45rem;cursor:pointer;border-radius:2px;transition:.12s}
+.tmpl-btn{background:transparent;border:1px solid var(--bd);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.46rem;letter-spacing:.08em;text-transform:uppercase;padding:.2rem .45rem;cursor:pointer;border-radius:2px;transition:.1s}
 .tmpl-btn:hover{border-color:rgba(255,255,255,.2);color:#f4f1eb}
 .tmpl-btn.danger:hover{border-color:#e07060;color:#e07060}
 
@@ -115,14 +115,14 @@ body{display:flex;flex-direction:column}
 .ed-hd{padding:.52rem .8rem .42rem;border-bottom:1px solid var(--bd);display:flex;align-items:flex-start;gap:.42rem;flex-shrink:0}
 .ed-tp{font-family:'IBM Plex Mono',monospace;font-size:.47rem;letter-spacing:.13em;text-transform:uppercase;color:var(--ac)}
 .ed-nm{font-size:.68rem;font-weight:600;letter-spacing:.02em}
-.ed-x{background:none;border:none;color:var(--mu);cursor:pointer;font-size:1.05rem;line-height:1;padding:0;margin-left:auto;flex-shrink:0;transition:.11s}
+.ed-x{background:none;border:none;color:var(--mu);cursor:pointer;font-size:1.05rem;line-height:1;padding:0;margin-left:auto;flex-shrink:0;transition:.1s}
 .ed-x:hover{color:#f4f1eb}
 .ed-body{flex:1;overflow-y:auto;padding:.65rem .8rem;display:flex;flex-direction:column;gap:.65rem}
 
 /* ── FIELDS ── */
 .field{display:flex;flex-direction:column;gap:.22rem}
 .field label,.fl{font-family:'IBM Plex Mono',monospace;font-size:.48rem;letter-spacing:.13em;text-transform:uppercase;color:var(--mu)}
-.field input,.field textarea,.field select{background:var(--sf2);border:1px solid var(--bd);color:#f4f1eb;font-family:'Barlow',sans-serif;font-size:.72rem;padding:.36rem .5rem;outline:none;transition:border-color .12s;border-radius:2px;width:100%}
+.field input,.field textarea,.field select{background:var(--sf2);border:1px solid var(--bd);color:#f4f1eb;font-family:'Barlow',sans-serif;font-size:.72rem;padding:.36rem .5rem;outline:none;transition:border-color .1s;border-radius:2px;width:100%}
 .field input:focus,.field textarea:focus,.field select:focus{border-color:rgba(255,255,255,.26)}
 .field textarea{resize:vertical;min-height:54px;line-height:1.5}
 .field input[type=color]{height:30px;padding:2px 4px;cursor:pointer}
@@ -133,8 +133,8 @@ body{display:flex;flex-direction:column}
 .tog2 label{font-family:'IBM Plex Mono',monospace;font-size:.48rem;letter-spacing:.13em;text-transform:uppercase;color:var(--mu)}
 .switch{position:relative;width:28px;height:15px;flex-shrink:0}
 .switch input{opacity:0;width:0;height:0;position:absolute}
-.sw-sl{position:absolute;inset:0;background:var(--sf2);border:1px solid var(--bd);border-radius:8px;cursor:pointer;transition:.13s}
-.sw-sl::before{content:'';position:absolute;width:9px;height:9px;left:2px;top:2px;background:var(--mu);border-radius:50%;transition:.13s}
+.sw-sl{position:absolute;inset:0;background:var(--sf2);border:1px solid var(--bd);border-radius:8px;cursor:pointer;transition:.15s}
+.sw-sl::before{content:'';position:absolute;width:9px;height:9px;left:2px;top:2px;background:var(--mu);border-radius:50%;transition:.15s}
 .switch input:checked+.sw-sl{background:var(--ac);border-color:var(--ac)}
 .switch input:checked+.sw-sl::before{transform:translateX(13px);background:#fff}
 .fhint{font-size:.56rem;color:var(--mu);line-height:1.5}
@@ -143,27 +143,30 @@ body{display:flex;flex-direction:column}
 .flist-item{background:var(--bg);border:1px solid var(--bd);border-radius:2px;padding:.42rem .5rem;margin-bottom:.28rem}
 .flist-item-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:.35rem}
 .flist-item-lbl{font-family:'IBM Plex Mono',monospace;font-size:.46rem;letter-spacing:.11em;text-transform:uppercase;color:var(--mu)}
-.flist-rm{background:none;border:none;cursor:pointer;color:rgba(224,112,96,.5);font-size:.6rem;padding:0;line-height:1;transition:.11s}
+.flist-rm{background:none;border:none;cursor:pointer;color:rgba(224,112,96,.5);font-size:.6rem;padding:0;line-height:1;transition:.1s}
 .flist-rm:hover{color:rgba(224,112,96,.9)}
-.add-item-btn{background:transparent;border:1px dashed rgba(255,255,255,.11);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.48rem;letter-spacing:.09em;text-transform:uppercase;padding:.28rem;cursor:pointer;border-radius:2px;width:100%;transition:.11s;margin-top:.18rem}
+.flist-acts{display:flex;align-items:center;gap:.45rem}
+.flist-mv{background:none;border:none;cursor:pointer;color:var(--mu);font-size:.6rem;padding:0;line-height:1;transition:.1s}
+.flist-mv:hover{color:var(--ac)}
+.add-item-btn{background:transparent;border:1px dashed rgba(255,255,255,.11);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.48rem;letter-spacing:.09em;text-transform:uppercase;padding:.28rem;cursor:pointer;border-radius:2px;width:100%;transition:.1s;margin-top:.18rem}
 .add-item-btn:hover{border-color:var(--ac);color:var(--ac)}
-.del-sec{background:transparent;border:1px solid rgba(224,112,96,.18);color:rgba(224,112,96,.5);font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.09em;text-transform:uppercase;padding:.36rem;cursor:pointer;width:100%;border-radius:2px;transition:.12s;margin-top:.18rem}
+.del-sec{background:transparent;border:1px solid rgba(224,112,96,.18);color:rgba(224,112,96,.5);font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.09em;text-transform:uppercase;padding:.36rem;cursor:pointer;width:100%;border-radius:2px;transition:.1s;margin-top:.18rem}
 .del-sec:hover{border-color:rgba(224,112,96,.6);color:rgba(224,112,96,.9)}
-.apply-btn{width:100%;background:var(--ac);color:#0f0f11;border:none;font-family:'IBM Plex Mono',monospace;font-size:.56rem;letter-spacing:.11em;text-transform:uppercase;padding:.46rem;cursor:pointer;border-radius:2px;font-weight:600;transition:.12s;margin-top:.12rem}
+.apply-btn{width:100%;background:var(--ac);color:#0f0f11;border:none;font-family:'IBM Plex Mono',monospace;font-size:.56rem;letter-spacing:.11em;text-transform:uppercase;padding:.46rem;cursor:pointer;border-radius:2px;font-weight:600;transition:.1s;margin-top:.12rem}
 .apply-btn:hover{opacity:.88}
-.img-btn{background:var(--sf2);border:1px solid var(--bd);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.07em;text-transform:uppercase;padding:.24rem .52rem;cursor:pointer;border-radius:2px;transition:.12s}
+.img-btn{background:var(--sf2);border:1px solid var(--bd);color:var(--mu);font-family:'IBM Plex Mono',monospace;font-size:.5rem;letter-spacing:.07em;text-transform:uppercase;padding:.24rem .52rem;cursor:pointer;border-radius:2px;transition:.1s}
 .img-btn:hover{border-color:rgba(255,255,255,.2);color:#f4f1eb}
 .range-row{display:flex;align-items:center;gap:.45rem}
 .range-val{font-family:'IBM Plex Mono',monospace;font-size:.56rem;color:var(--mu);min-width:2.2rem;text-align:right;flex-shrink:0}
 .rte-bar{display:flex;gap:2px;margin-bottom:.28rem;flex-wrap:wrap}
-.rte-btn{background:var(--sf2);border:1px solid var(--bd);color:var(--mu);cursor:pointer;font-size:.68rem;padding:.18rem .38rem;border-radius:2px;transition:.12s;font-family:serif;line-height:1.2}
+.rte-btn{background:var(--sf2);border:1px solid var(--bd);color:var(--mu);cursor:pointer;font-size:.68rem;padding:.18rem .38rem;border-radius:2px;transition:.1s;font-family:serif;line-height:1.2}
 .rte-btn:hover{color:#f4f1eb;border-color:rgba(255,255,255,.2)}
 .pad-grid{display:grid;grid-template-columns:1fr 1fr;gap:.38rem}
 .nav-link-item{background:var(--bg);border:1px solid var(--bd);border-radius:2px;padding:.4rem .5rem;display:flex;align-items:center;gap:.4rem;margin-bottom:.25rem}
 .nav-link-drag{color:var(--mu);cursor:grab;font-size:.6rem;opacity:.3}
 .nav-link-txt{flex:1;background:var(--sf2);border:1px solid var(--bd);color:#f4f1eb;font-family:'Barlow',sans-serif;font-size:.72rem;padding:.3rem .45rem;border-radius:2px;outline:none}
 .nav-link-url{flex:1;background:var(--sf2);border:1px solid var(--bd);color:#f4f1eb;font-family:'IBM Plex Mono',monospace;font-size:.6rem;padding:.3rem .45rem;border-radius:2px;outline:none}
-.nav-link-rm{background:none;border:none;cursor:pointer;color:rgba(224,112,96,.5);font-size:.7rem;padding:0;transition:.11s}
+.nav-link-rm{background:none;border:none;cursor:pointer;color:rgba(224,112,96,.5);font-size:.7rem;padding:0;transition:.1s}
 .nav-link-rm:hover{color:rgba(224,112,96,.9)}
 
 /* ── PREVIEW ── */
@@ -183,17 +186,17 @@ body{display:flex;flex-direction:column}
 .mbox-hd{padding:.72rem .9rem;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--sf);z-index:1}
 .mbox-hd h3{font-size:.72rem;font-weight:600;letter-spacing:.04em}
 .mbox-hd p{font-size:.56rem;color:var(--mu);margin-top:.12rem}
-.mx{background:none;border:none;color:var(--mu);cursor:pointer;font-size:1.1rem;line-height:1;transition:.11s}
+.mx{background:none;border:none;color:var(--mu);cursor:pointer;font-size:1.1rem;line-height:1;transition:.1s}
 .mx:hover{color:#f4f1eb}
 .mbox-body{padding:.75rem;display:grid;grid-template-columns:repeat(3,1fr);gap:.45rem}
-.sc{background:var(--sf2);border:1px solid var(--bd);padding:.7rem .6rem;border-radius:3px;cursor:pointer;text-align:center;transition:.12s}
+.sc{background:var(--sf2);border:1px solid var(--bd);padding:.7rem .6rem;border-radius:3px;cursor:pointer;text-align:center;transition:.1s}
 .sc:hover{border-color:var(--ac);background:rgba(248,145,165,.05)}
 .sc-ico{font-size:1.2rem;margin-bottom:.32rem}
 .sc-nm{font-size:.62rem;font-weight:600;letter-spacing:.02em;margin-bottom:.14rem}
 .sc-ds{font-size:.54rem;color:var(--mu);line-height:1.4}
 .sc-cat{grid-column:1/-1;font-family:'IBM Plex Mono',monospace;font-size:.48rem;letter-spacing:.17em;text-transform:uppercase;color:var(--mu);padding:.45rem .18rem .18rem;border-bottom:1px solid var(--bd);margin-bottom:.18rem}
 .media-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.4rem;padding:.75rem}
-.media-thumb{position:relative;aspect-ratio:1;background:var(--sf2);border:1px solid var(--bd);border-radius:2px;overflow:hidden;cursor:pointer;transition:border-color .12s}
+.media-thumb{position:relative;aspect-ratio:1;background:var(--sf2);border:1px solid var(--bd);border-radius:2px;overflow:hidden;cursor:pointer;transition:border-color .1s}
 .media-thumb:hover{border-color:var(--ac)}
 .media-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .media-thumb-lbl{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.65);font-family:'IBM Plex Mono',monospace;font-size:.42rem;color:rgba(255,255,255,.75);padding:.2rem .3rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -206,7 +209,7 @@ body{display:flex;flex-direction:column}
 #imgZoom .iz-hint{position:fixed;top:14px;left:0;right:0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.55rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.55);pointer-events:none}
 
 /* ── OVERLAYS ── */
-#toast{position:fixed;bottom:1.1rem;left:50%;transform:translateX(-50%) translateY(6px);background:var(--sf);border:1px solid var(--bd);color:#f4f1eb;padding:.35rem .85rem;font-family:'IBM Plex Mono',monospace;font-size:.56rem;letter-spacing:.09em;opacity:0;transition:.17s;pointer-events:none;z-index:300;border-radius:2px;white-space:nowrap}
+#toast{position:fixed;bottom:1.1rem;left:50%;transform:translateX(-50%) translateY(6px);background:var(--sf);border:1px solid var(--bd);color:#f4f1eb;padding:.35rem .85rem;font-family:'IBM Plex Mono',monospace;font-size:.56rem;letter-spacing:.09em;opacity:0;transition:.15s;pointer-events:none;z-index:300;border-radius:2px;white-space:nowrap}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 #toast.ok{border-color:#6fcf6f;color:#6fcf6f}
 #toast.err{border-color:#e07060;color:#e07060}
@@ -249,9 +252,11 @@ body{display:flex;flex-direction:column}
       </div>
       <div class="more-div"></div>
       <button class="more-item" onclick="window.open('/','_blank')">🌐 View live site</button>
+      <button class="more-item" onclick="copyHomepageDraftLink()">🔗 Copy homepage draft link</button>
       <button class="more-item" onclick="showQrModal()">📱 Preview on phone (QR)</button>
       <button class="more-item" onclick="lpTab('history')">🕘 Version history</button>
       <button class="more-item" onclick="lpTab('templates')">🗂 Templates</button>
+      <button class="more-item" onclick="openSchedulePublish()">⏰ Schedule publish…</button>
       <div class="more-div"></div>
       <button class="more-item" onclick="exportCfg()">⬇ Export backup (JSON)</button>
       <button class="more-item" onclick="importCfg()">⬆ Import backup (JSON)</button>
@@ -303,11 +308,12 @@ body{display:flex;flex-direction:column}
   <div class="pv-bar">
     <span>Preview</span>
     <span style="font-size:.45rem;opacity:.4" id="autoLbl">auto-updating</span>
+    <button id="selModeBtn" class="lp-float-btn" onclick="toggleSelectMode()" style="margin-left:.5rem;background:var(--sf2);border-color:rgba(255,255,255,.25);color:#f4f1eb" title="On: click a section in the preview to edit it. Off: links and buttons work normally.">🎯 Click to select: Off</button>
     <span id="pvDims" style="margin-left:auto">—</span>
   </div>
   <div class="pv-wrap">
     <div class="pv-frame desk" id="pvFrame">
-      <iframe id="pvIframe" src="/index.html?builder=1" title="Preview" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+      <iframe id="pvIframe" src="/index.html?builder=1" title="Preview" onload="sendSelectMode();schedSend()" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
     </div>
   </div>
 </div>
@@ -493,8 +499,9 @@ const TYPES={
   img_cta:{icon:'🖼',cat:'layout',desc:'Image with overlay button'},
   html:{icon:'</>',cat:'layout',desc:'Raw HTML block (advanced)'},
   richtext:{icon:'📄',cat:'layout',desc:'Long-form rich text block'},
+  header:{icon:'▭',cat:'layout',desc:'Label + right note with a divider line (add/remove anywhere)'},
   hero_carousel:{icon:'🎠',cat:'store',desc:'Full-screen hero carousel with slides, video, arrows & dots'},
-  media_grid:{icon:'🖼️',cat:'marketing',desc:'Image/video grid or scrollable row with CTAs'},
+  media_grid:{icon:'🖼️',cat:'marketing',desc:'Collection / category tiles — grid or scroll-right row, overlays & CTAs'},
 };
 
 const SECT_DEFS={
@@ -502,12 +509,12 @@ const SECT_DEFS={
   marquee:{items:'ZUWERA, RELEASE 001, FOR THOSE WHO DREAM, SEP 20 2026',speed:'normal',pad_top:0,pad_bot:0},
   about:{label:'About Zuwera',heading:'Built For\nMovement.',body:'Bold, athletic, and designed for those who dream big.\n\nRelease 001 is the beginning.',stats:[{value:'001',label:'First Release'},{value:'2026',label:'Launching'},{value:'3',label:'Styles'}],pad_top:0,pad_bot:0},
   release:{eyebrow:'Zuwera Release 001',title:'Release\n001',notify_on:true,notify_label:'Get Early Access',launch_date:'2026-09-20',pad_top:0,pad_bot:0},
-  products:{title:'Release 001',subtitle:'Releasing 09 / 20 / 2026',columns:2,pad_top:0,pad_bot:0},
+  products:{title:'Release 001',subtitle:'Releasing 09 / 20 / 2026',columns:2,lay_lg:'grid',col_lg:3,lay_md:'swipe',col_md:2,lay_sm:'swipe',col_sm:2,pad_top:0,pad_bot:0},
   split:{image:'',image_side:'left',image_height:'500',label:'',heading:'',body:'',cta_text:'',cta_url:'',bg_color:'',pad_top:0,pad_bot:0},
   cta:{heading:'Ready to Move?',subtext:'Discover the first drop from Zuwera.',btn_text:'Shop Now',btn_url:'/drop001.html',btn_style:'solid',bg_color:'#09090b',text_color:'#f4f1eb',align:'center',pad_top:0,pad_bot:0},
   features:{heading:'Why Zuwera',items:[{icon:'⚡',title:'Performance',desc:'Built for movement.'},{icon:'🎯',title:'Precision',desc:'Every stitch placed with purpose.'},{icon:'🌍',title:'For Everyone',desc:'Sizes for all.'}],pad_top:0,pad_bot:0},
   testimonials:{heading:'What They Say',items:[{quote:'Best jacket I\'ve owned.',author:'Alex M.',rating:5},{quote:'Quality is unreal.',author:'Jordan P.',rating:5}],pad_top:0,pad_bot:0},
-  banner:{text:'Free shipping on orders $100+',link_text:'Shop now →',link_url:'/drop001.html',bg_color:'#09090b',text_color:'#f4f1eb',pad_top:0,pad_bot:0},
+  banner:{text:'Free shipping on orders $100+',link_text:'Shop now →',link_url:'/drop001.html',sec_bg:'#09090b',text_color:'#f4f1eb',pad_top:0,pad_bot:0},
   gallery:{heading:'',images:[{src:'',alt:'',link:''}],columns:3,aspect:'square',pad_top:0,pad_bot:0},
   video:{url:'',autoplay:false,muted:true,controls:true,caption:'',pad_top:0,pad_bot:0},
   countdown:{heading:'Launching In',launch_date:'2026-09-20T00:00:00',show_labels:true,align:'center',pad_top:0,pad_bot:0},
@@ -515,14 +522,15 @@ const SECT_DEFS={
   press:{heading:'As Seen In',items:[{name:'GQ'},{name:'Complex'},{name:'Highsnobiety'},{name:'Sole Collector'}],pad_top:0,pad_bot:0},
   faq:{heading:'Questions, Answered',items:[{q:'When does Release 001 drop?',a:'September 20, 2026.'},{q:'What sizes are available?',a:'XS through 3XL.'},{q:'Do you ship internationally?',a:'Yes — worldwide.'}],pad_top:0,pad_bot:0},
   email_capture:{heading:'Be First To Know',subtext:'Join the waitlist for exclusive early access.',placeholder:'your@email.com',btn_text:'Join Waitlist',bg_color:'',pad_top:0,pad_bot:0},
-  logos:{heading:'',items:[{name:'Nike'},{name:'Adidas'},{name:'Puma'}],pad_top:0,pad_bot:0},
+  logos:{heading:'',items:[{name:'Nike',src:'',alt:'',link:''},{name:'Adidas',src:'',alt:'',link:''},{name:'Puma',src:'',alt:'',link:''}],logo_original:false,logo_height:28,pad_top:0,pad_bot:0},
   spacer:{height:'md'},
   text:{heading:'',heading_size:'2rem',body:'',cta_text:'',cta_url:'',align:'left',pad_top:0,pad_bot:0},
   img_cta:{image:'',alt:'',btn_on:true,btn_text:'Shop Now',btn_url:'/drop001.html',btn_position:'center',pad_top:0,pad_bot:0},
   html:{html:'',pad_top:0,pad_bot:0},
   richtext:{content:'Write your content here...',align:'left',pad_top:0,pad_bot:0},
-  hero_carousel:{height:'full',autoplay:true,autoplay_interval:5000,show_arrows:true,show_dots:true,show_pause:true,transition:'fade',loop:true,slides:[{media_type:'image',media_url:'',media_url_mobile:'',video_poster:'',focal_y:50,eyebrow:'',heading:'YOUR HEADLINE',subtext:'Supporting copy here.',text_align:'center',text_color:'#ffffff',overlay_opacity:30,cta_text:'Shop Now',cta_url:'/drop001.html',cta_style:'solid',watch_btn:false,watch_url:'',watch_label:'Watch'}],pad_top:0,pad_bot:0},
-  media_grid:{heading:'',layout:'grid',columns:3,gap:'md',aspect:'portrait',card_height:'',cards:[{media_type:'image',media_url:'',video_poster:'',label:'',label_position:'below',link_url:'',watch_btn:false,watch_url:'',watch_label:'Watch'}],pad_top:0,pad_bot:0},
+  header:{left:'Section Title',right:'',show_line:true,line_position:'below',pad_top:0,pad_bot:0},
+  hero_carousel:{height:'full',autoplay:true,autoplay_interval:5000,show_arrows:true,show_dots:true,indicator_style:'dots',show_pause:true,transition:'fade',loop:true,slides:[{media_type:'image',media_url:'',media_url_mobile:'',video_poster:'',focal_y:50,eyebrow:'',heading:'YOUR HEADLINE',subtext:'Supporting copy here.',text_align:'center',text_color:'#ffffff',overlay_opacity:30,cta_text:'Shop Now',cta_url:'/drop001.html',cta_style:'solid',watch_btn:false,watch_url:'',watch_label:'Watch'}],pad_top:0,pad_bot:0},
+  media_grid:{heading:'',layout:'grid',columns:3,gap:'md',aspect:'portrait',card_height:'',cards:[{media_type:'image',media_url:'',video_poster:'',label:'',sublabel:'',cta_text:'',label_position:'below',label_boxed:true,link_url:'',watch_btn:false,watch_url:'',watch_label:'Watch'}],pad_top:0,pad_bot:0},
 };
 
 const DEFAULT_SECTIONS=['hero','marquee','about','release','products'].map((t,i)=>({id:t,type:t,label:t.charAt(0).toUpperCase()+t.slice(1).replace('_',' '),visible:true,order:i,settings:{...SECT_DEFS[t]}}));
@@ -658,9 +666,9 @@ function setDesignSub(s){designSub=s;renderLP();}
 function lpTab(name){
   curTab=name;
   document.querySelectorAll('.lp-tab').forEach(t=>t.classList.toggle('on',t.id==='tab-'+name));
-  // "Add Section" footer only on the Content tab
+  // "Add Section" footer only on the Content tab (Pages tab has its own button)
   document.getElementById('lpFooter').style.display=name==='content'?'':'none';
-  if(name!=='content')closeEd();
+  closeEd();   // any open section editor belongs to the tab we're leaving
   closeMore();
   renderLP();
   syncPreviewFrame();
@@ -672,7 +680,29 @@ function renderDesignTab(container){
   if(designSub==='nav')renderNavTab(sub); else renderThemeTab(sub);
 }
 
+// ── SECTION EDITING CONTEXT ───────────────────────────────────────────────
+// The SAME section system (SECT_DEFS/buildForm/openEditor/addSec/…) edits BOTH
+// the homepage sections (global `sections`, Content tab) and a landing page's
+// own sections (landingPages[slug].sections, Pages tab). secStore=null →
+// homepage; secStore=<landing cfg obj> → that page's sections. renderLP() sets
+// it from curTab so every helper reads/writes the right array, and so the
+// homepage's autosave/undo/live-preview never touch landing data (separate
+// dirty flags + persistence).
+let secStore=null;
+function curSections(){ return secStore ? (Array.isArray(secStore.sections)?secStore.sections:(secStore.sections=[])) : sections; }
+function setCurSections(a){ if(secStore) secStore.sections=a; else sections=a; }
+function curApply(){ if(secStore) markLpDirty(); else schedSend(); }
+let _lpSendT;
+function schedLandingPreview(){ clearTimeout(_lpSendT); _lpSendT=setTimeout(sendLandingCfg,250); }
+function sendLandingCfg(){
+  const f=document.getElementById('pvIframe'); if(!f||!f.contentWindow)return;
+  try{ f.contentWindow.postMessage({type:'ZW_LANDING_PREVIEW',slug:landingSlug,cfg:lpCfg()}, location.origin); }catch(_){}
+}
+function curDirty(){ if(secStore) markLpDirty(); else markDirty(); }
+function curPushUndo(){ if(!secStore) pushUndo(); }   // undo is homepage-only
+
 function renderLP(){
+  secStore = (curTab==='pages') ? lpCfg() : null;
   const el=document.getElementById('lpContent');
   if(curTab==='content'||curTab==='sections'){renderSidebar(el);}
   else if(curTab==='design'){renderDesignTab(el);}
@@ -688,7 +718,7 @@ function renderLP(){
 // ── SECTIONS TAB ──────────────────────────────────────────────────────────
 function renderSidebar(container){
   const q=(document.getElementById('secQuery')||{value:''}).value.toLowerCase();
-  let sorted=[...sections].sort((a,b)=>(a.order||0)-(b.order||0));
+  let sorted=[...curSections()].sort((a,b)=>(a.order||0)-(b.order||0));
   if(q)sorted=sorted.filter(s=>s.label.toLowerCase().includes(q)||s.type.includes(q));
   container.innerHTML=`<div class="sec-search-wrap"><input class="sec-search" id="secQuery" placeholder="Search sections…" value="${q}" oninput="renderLP()"></div><div class="sec-list" id="secListEl"></div>`;
   const list=container.querySelector('#secListEl');
@@ -711,10 +741,10 @@ function renderSidebar(container){
   });
 }
 
-function toggleVis(id){pushUndo();const s=sections.find(x=>x.id===id);if(s){s.visible=!s.visible;markDirty();renderLP();schedSend();if(selId===id)openEditor(s);}}
-function reorder(fromId,toId){if(fromId===toId)return;pushUndo();const sorted=[...sections].sort((a,b)=>(a.order||0)-(b.order||0));const fi=sorted.findIndex(x=>x.id===fromId),ti=sorted.findIndex(x=>x.id===toId);if(fi<0||ti<0)return;const[m]=sorted.splice(fi,1);sorted.splice(ti,0,m);sorted.forEach((x,i)=>{const sec=sections.find(y=>y.id===x.id);if(sec)sec.order=i;});markDirty();renderLP();schedSend();}
-function dupSec(id){pushUndo();const src=sections.find(s=>s.id===id);if(!src)return;const maxOrd=Math.max(...sections.map(s=>s.order||0),-1);const dup={...clone(src),id:src.type+'-'+Date.now(),order:maxOrd+1,label:src.label+' (Copy)'};sections.push(dup);markDirty();renderLP();selectSec(dup.id);schedSend();toast('Duplicated');}
-function removeSec(id){if(!confirm('Remove section?'))return;pushUndo();sections=sections.filter(s=>s.id!==id);if(selId===id)closeEd();markDirty();renderLP();schedSend();}
+function toggleVis(id){curPushUndo();const s=curSections().find(x=>x.id===id);if(s){s.visible=!s.visible;curDirty();renderLP();curApply();if(selId===id)openEditor(s);}}
+function reorder(fromId,toId){if(fromId===toId)return;curPushUndo();const arr=curSections();const sorted=[...arr].sort((a,b)=>(a.order||0)-(b.order||0));const fi=sorted.findIndex(x=>x.id===fromId),ti=sorted.findIndex(x=>x.id===toId);if(fi<0||ti<0)return;const[m]=sorted.splice(fi,1);sorted.splice(ti,0,m);sorted.forEach((x,i)=>{const sec=arr.find(y=>y.id===x.id);if(sec)sec.order=i;});curDirty();renderLP();curApply();}
+function dupSec(id){curPushUndo();const arr=curSections();const src=arr.find(s=>s.id===id);if(!src)return;const maxOrd=Math.max(...arr.map(s=>s.order||0),-1);const dup={...clone(src),id:src.type+'-'+Date.now(),order:maxOrd+1,label:src.label+' (Copy)'};arr.push(dup);curDirty();renderLP();selectSec(dup.id);curApply();toast('Duplicated');}
+function removeSec(id){if(!confirm('Remove section?'))return;curPushUndo();setCurSections(curSections().filter(s=>s.id!==id));if(selId===id)closeEd();curDirty();renderLP();curApply();}
 
 // ── THEME TAB ─────────────────────────────────────────────────────────────
 function renderThemeTab(container){
@@ -805,9 +835,9 @@ function lpPageFilter(){return landingSlug.indexOf('tag:')===0?{type:'tag',value
 function lpMatchFilter(p){const f=lpPageFilter();return f.type==='tag'?lpMatchTag(p,f.value):lpMatchGender(p,f.value);}
 function lpScopeName(){const f=lpPageFilter();return String(f.value||'').replace(/\b\w/g,c=>c.toUpperCase());}
 function lpPageLabel(slug){return slug.indexOf('tag:')===0?('Tag: '+slug.slice(4).replace(/\b\w/g,c=>c.toUpperCase())):(slug.charAt(0).toUpperCase()+slug.slice(1));}
-function lpCfg(){let c=landingPages[landingSlug];if(!c||typeof c!=='object'){c={};landingPages[landingSlug]=c;}c.hero=c.hero||{};c.categories=c.categories||{};c.featured=c.featured||{};return c;}
+function lpCfg(){let c=landingPages[landingSlug];if(!c||typeof c!=='object'){c={};landingPages[landingSlug]=c;}c.hero=c.hero||{};c.categories=c.categories||{};c.featured=c.featured||{};if(!Array.isArray(c.sections))c.sections=[];return c;}
 function lpSetPath(path,val){const c=lpCfg();const parts=path.split('.');let o=c;for(let i=0;i<parts.length-1;i++){o[parts[i]]=o[parts[i]]||{};o=o[parts[i]];}o[parts[parts.length-1]]=val;markLpDirty();}
-let _lpDirty=false; function markLpDirty(){_lpDirty=true;const b=document.getElementById('lpSaveHint');if(b)b.textContent='Unsaved changes';}
+let _lpDirty=false; function markLpDirty(){_lpDirty=true;const b=document.getElementById('lpSaveHint');if(b)b.textContent='Unsaved changes';schedLandingPreview();}
 function lpGenderProducts(){return (landingProducts||[]).filter(p=>lpMatchFilter(p));}
 function lpAvailCats(){const seen={},list=[];lpGenderProducts().forEach(p=>{const c=String(p.subtitle||'').trim();if(!c||seen[c.toLowerCase()])return;seen[c.toLowerCase()]=true;list.push(c);});return list;}
 function lpOrderedCats(){const avail=lpAvailCats();const byLow={};avail.forEach(a=>byLow[a.toLowerCase()]=a);const order=Array.isArray(lpCfg().categories.order)?lpCfg().categories.order:[];const inOrder=[],placed={};order.forEach(c=>{const a=byLow[String(c).toLowerCase()];if(a&&!placed[a.toLowerCase()]){inOrder.push(a);placed[a.toLowerCase()]=true;}});const rest=avail.filter(a=>!placed[a.toLowerCase()]).sort((a,b)=>lpCatRank(a)-lpCatRank(b)||a.localeCompare(b));return inOrder.concat(rest);}
@@ -817,10 +847,112 @@ function lpCatMove(idx,dir){const ord=lpOrderedCats();const j=idx+dir;if(j<0||j>
 function lpFeatToggle(id){const f=lpCfg().featured;f.productIds=f.productIds||[];const i=f.productIds.findIndex(x=>String(x)===String(id));if(i>=0)f.productIds.splice(i,1);else f.productIds.push(id);markLpDirty();renderLP();}
 function lpFeatChecked(id){const ids=lpCfg().featured.productIds||[];return ids.some(x=>String(x)===String(id));}
 function lpSetMode(v){lpSetPath('featured.mode',v);renderLP();}
-function landingSelect(slug){landingSlug=slug;renderLP();if(curTab==='pages')reloadLandingPreview();}
+function landingSelect(slug){landingSlug=slug;closeEd();renderLP();if(curTab==='pages')reloadLandingPreview();}
 function landingAddSlug(){const el=document.getElementById('lpNewSlug');if(!el)return;const s=String(el.value||'').trim().toLowerCase().replace(/[^a-z0-9-]/g,'');if(!s)return;landingPages[s]=landingPages[s]||{};landingSlug=s;renderLP();}
 function landingLoadProducts(){if(landingProducts||landingProductsLoading)return;landingProductsLoading=true;try{const sb=getSb();if(!sb){landingProducts=[];landingProductsLoading=false;return;}sb.from('products').select('id,title,gender,subtitle,tags,status,sort_order').order('sort_order',{ascending:true}).then(r=>{landingProducts=(r&&r.data)||[];landingProductsLoading=false;if(curTab==='pages')renderLP();},()=>{landingProducts=[];landingProductsLoading=false;if(curTab==='pages')renderLP();});}catch(_){landingProducts=[];landingProductsLoading=false;}}
 
+// ── HERO VIEWFINDER ───────────────────────────────────────────────────────
+// Draggable tablet/mobile framing, shared by the auto landing hero and the
+// Hero section block (Content + Pages). Each frame shows the device's image,
+// cropped to that device's aspect ratio; dragging sets a focal point {x,y}%.
+// buildVfFrames is the shared renderer; each caller supplies get/set + image.
+function buildVfFrames(host,devices){
+  if(!host)return;
+  host.innerHTML='';
+  devices.forEach(dev=>{
+    const img=dev.img||'',fit=dev.fit||'cover';
+    const wrap=document.createElement('div');wrap.style.cssText='flex:0 0 auto;text-align:center';
+    const bw=dev.w,bh=Math.round(bw*dev.ratio[1]/dev.ratio[0]);
+    const box=document.createElement('div');
+    box.style.cssText=`position:relative;width:${bw}px;height:${bh}px;border:1px solid var(--bd);border-radius:3px;overflow:hidden;background:var(--sf2);cursor:${img&&fit!=='contain'?'grab':'default'};touch-action:none;margin:0 auto`;
+    if(img){
+      const f=dev.get()||{x:50,y:50};
+      // Video slides frame against the moving clip (muted/looping); images use an
+      // <img>. object-position works the same on both.
+      const im=document.createElement(dev.isVideo?'video':'img');im.src=img;
+      if(dev.isVideo){im.muted=true;im.autoplay=true;im.loop=true;im.playsInline=true;im.setAttribute('playsinline','');if(dev.poster)im.poster=dev.poster;}
+      else{im.draggable=false;}
+      im.style.cssText=`width:100%;height:100%;object-fit:${fit};object-position:${f.x}% ${f.y}%;pointer-events:none;user-select:none;background:#000`;
+      im.onerror=()=>{box.style.cursor='default';box.innerHTML='<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.55rem;opacity:.5">'+(dev.isVideo?'Video':'Image')+' not loading</div>';};
+      box.appendChild(im);
+      if(fit==='contain'){
+        // "Fit" shows the whole image, so there's nothing to reframe.
+        const note=document.createElement('div');
+        note.style.cssText='position:absolute;left:0;right:0;bottom:0;font-size:.5rem;background:rgba(0,0,0,.55);color:#fff;padding:2px 4px';
+        note.textContent='Whole image (Fit)';box.appendChild(note);
+      }else{
+        const dot=document.createElement('div');
+        dot.style.cssText=`position:absolute;width:15px;height:15px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.55),0 1px 4px rgba(0,0,0,.7);transform:translate(-50%,-50%);left:${f.x}%;top:${f.y}%;pointer-events:none`;
+        box.appendChild(dot);
+        const apply=(x,y)=>{x=Math.max(0,Math.min(100,x));y=Math.max(0,Math.min(100,y));
+          im.style.objectPosition=x+'% '+y+'%';dot.style.left=x+'%';dot.style.top=y+'%';
+          dev.set(Math.round(x),Math.round(y));};
+        const toPct=e=>{const r=box.getBoundingClientRect();return [ (e.clientX-r.left)/r.width*100, (e.clientY-r.top)/r.height*100 ];};
+        let dragging=false;
+        box.addEventListener('pointerdown',e=>{dragging=true;try{box.setPointerCapture(e.pointerId);}catch(_){}box.style.cursor='grabbing';const p=toPct(e);apply(p[0],p[1]);});
+        box.addEventListener('pointermove',e=>{if(!dragging)return;const p=toPct(e);apply(p[0],p[1]);});
+        const end=e=>{if(!dragging)return;dragging=false;box.style.cursor='grab';try{box.releasePointerCapture(e.pointerId);}catch(_){}};
+        box.addEventListener('pointerup',end);box.addEventListener('pointercancel',end);
+        box.addEventListener('dblclick',()=>apply(50,50));box.title='Drag to frame · double-click to re-center';
+      }
+    }else{
+      box.innerHTML='<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.55rem;opacity:.5;padding:.5rem;text-align:center;line-height:1.3">Add a hero image to frame it</div>';
+    }
+    const cap=document.createElement('div');
+    cap.style.cssText='font-size:.55rem;opacity:.75;margin-top:.3rem;letter-spacing:.08em;text-transform:uppercase';
+    cap.textContent=dev.label+' · '+dev.ratio[0]+':'+dev.ratio[1];
+    wrap.appendChild(box);wrap.appendChild(cap);host.appendChild(wrap);
+  });
+}
+// Auto landing hero (Pages tab) — uses per-device images; writes to lpCfg().hero.
+function initHeroViewfinders(){
+  const host=document.getElementById('lpHeroVF');if(!host)return;
+  const h=(lpCfg()&&lpCfg().hero)||{};
+  buildVfFrames(host,[
+    {label:'Tablet',ratio:[4,3],w:192,img:h.tabletImage||h.mobileImage||h.image,fit:h.tabletFit||h.mobileFit||h.fit||'cover',
+      get:()=>h.focalTab,set:(x,y)=>lpSetPath('hero.focalTab',{x,y})},
+    {label:'Mobile',ratio:[9,16],w:116,img:h.mobileImage||h.image,fit:h.mobileFit||h.fit||'cover',
+      get:()=>h.focalMob,set:(x,y)=>lpSetPath('hero.focalMob',{x,y})}
+  ]);
+}
+// Hero section block (Content + Pages) — one image; each device its own focal
+// point in s.settings.focalTab / .focalMob. curDirty+curApply refresh the preview.
+function initSectionViewfinder(s){
+  const host=document.getElementById('secHeroVF');if(!host||!s)return;
+  const g=s.settings||(s.settings={});
+  const commit=(key,x,y)=>{g[key]={x,y};curDirty();curApply();};
+  buildVfFrames(host,[
+    {label:'Tablet',ratio:[4,3],w:192,img:g.image,fit:g.fit||'cover',
+      get:()=>g.focalTab,set:(x,y)=>commit('focalTab',x,y)},
+    {label:'Mobile',ratio:[9,16],w:116,img:g.image,fit:g.fit||'cover',
+      get:()=>g.focalMob,set:(x,y)=>commit('focalMob',x,y)}
+  ]);
+}
+// Hero carousel — one viewfinder per slide (image OR video). Framing is stored as
+// flat data-f fields (focalTab_x/y, focalMob_x/y) so syncForm — which rebuilds the
+// slides array from the DOM — persists them. Dragging writes those hidden inputs
+// then syncs, so the value survives the next rebuild.
+function initCarouselViewfinders(s){
+  const g=s.settings||{};const slides=g.slides||[];
+  slides.forEach((sl,i)=>{
+    const host=document.getElementById('hcVF_'+i);if(!host)return;
+    const media=sl.media_url||'';
+    const isVideo=sl.media_type==='video'||/\.(mp4|webm|mov|m4v|ogv)(\?.*)?$/i.test(media);
+    const item=host.closest('[data-arr-item]');
+    const num=v=>{const n=parseFloat(v);return isNaN(n)?null:n;};
+    const getF=(dev)=>{const x=num(sl[dev+'_x']),y=num(sl[dev+'_y']);return (x!=null&&y!=null)?{x,y}:{x:50,y:num(sl.focal_y)??50};};
+    const setF=(dev,x,y)=>{
+      if(item){const ix=item.querySelector('[data-f="'+dev+'_x"]');if(ix)ix.value=x;const iy=item.querySelector('[data-f="'+dev+'_y"]');if(iy)iy.value=y;}
+      syncForm(s);curApply();
+    };
+    buildVfFrames(host,[
+      {label:'Tablet',ratio:[4,3],w:180,img:media,isVideo,poster:sl.video_poster||'',fit:'cover',
+        get:()=>getF('focalTab'),set:(x,y)=>setF('focalTab',x,y)},
+      {label:'Mobile',ratio:[9,16],w:110,img:media,isVideo,poster:sl.video_poster||'',fit:'cover',
+        get:()=>getF('focalMob'),set:(x,y)=>setF('focalMob',x,y)}
+    ]);
+  });
+}
 function renderPagesTab(container){
   landingLoadProducts();
   const cfg=lpCfg();const h=cfg.hero,cat=cfg.categories,feat=cfg.featured;
@@ -869,9 +1001,13 @@ function renderPagesTab(container){
     <div class="fdiv"></div>
 
     <div class="tab-hd">Hero</div>
+    <div class="tog2"><label>Show hero at top</label><label class="switch"><input type="checkbox" data-lp="hero.enabled" ${h.enabled!==false?'checked':''}><span class="sw-sl"></span></label></div>
+    <div class="fhint" style="margin-bottom:.4rem">Turn this off to drop the auto hero and build your own with a Hero block in Page Sections (e.g. below the products).</div>
     <div class="field"><label>Kicker (small text above title)</label><input data-lp="hero.kicker" value="${he(h.kicker||'')}" placeholder="Zuwera"></div>
     <div class="field"><label>Title</label><input data-lp="hero.title" value="${he(h.title||'')}" placeholder="${he(lpScopeName())}"></div>
+    ${lpFontSel('hero.font_head','Title font',h.font_head||'',FOPT_HEAD)}
     <div class="field"><label>Subtitle</label><textarea data-lp="hero.subtitle" rows="2" style="font-family:inherit;font-size:.68rem" placeholder="Auto tagline…">${he(h.subtitle||'')}</textarea></div>
+    ${lpFontSel('hero.font_body','Subtitle font',h.font_body||'',FOPT_BODY)}
     <div class="field"><label>Button text</label><input data-lp="hero.ctaText" value="${he(h.ctaText||'')}" placeholder="Shop all ${he(lpScopeName())}"></div>
     <div class="field"><label>Button link</label><input data-lp="hero.ctaUrl" value="${he(h.ctaUrl||'')}" placeholder="drop001.html?gender=…"></div>
     <div class="field"><label>Hero image</label>${heroImg}<input data-lp="hero.image" data-f="__lpHero" id="lpHeroImg" value="${he(h.image||'')}" placeholder="Auto: first product image"><div style="display:flex;gap:.3rem;margin-top:.25rem"><button type="button" class="img-btn" onclick="openMedia('__lpHero')">📁 Browse</button></div></div>
@@ -881,31 +1017,57 @@ function renderPagesTab(container){
     <div class="field"><label>Mobile hero fit</label><select data-lp="hero.mobileFit"><option value=""${!h.mobileFit?' selected':''}>Same as desktop</option><option value="cover"${h.mobileFit==='cover'?' selected':''}>Fill — crop to fill</option><option value="contain"${h.mobileFit==='contain'?' selected':''}>Fit — show the whole image</option></select></div>
     <div class="field"><label>Tablet hero image (optional — 641–1024px)</label>${heroTabImg}<input data-lp="hero.tabletImage" data-f="__lpHeroTab" id="lpHeroTabImg" value="${he(h.tabletImage||'')}" placeholder="Defaults to the mobile image"><div style="display:flex;gap:.3rem;margin-top:.25rem"><button type="button" class="img-btn" onclick="openMedia('__lpHeroTab')">📁 Browse</button></div><div class="fhint" style="margin-top:.2rem">Leave blank and tablets reuse the mobile image (then the desktop image if there's no mobile one).</div></div>
     <div class="field"><label>Tablet hero fit</label><select data-lp="hero.tabletFit"><option value=""${!h.tabletFit?' selected':''}>Same as mobile/desktop</option><option value="cover"${h.tabletFit==='cover'?' selected':''}>Fill — crop to fill</option><option value="contain"${h.tabletFit==='contain'?' selected':''}>Fit — show the whole image</option></select></div>
+    <div class="fdiv"></div>
+    <div class="fl" style="margin-top:.1rem">Viewfinder — tablet &amp; mobile framing</div>
+    <div class="fhint" style="margin-bottom:.45rem">Drag inside a frame to choose what stays visible on that device. Applies to the “Fill” crop of whichever image that device uses (tablet/mobile image if set, otherwise the desktop hero). Reset to re-center.</div>
+    <div id="lpHeroVF" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-start;margin-bottom:.4rem"></div>
     <div class="field"><label>Hero text color</label><select data-lp="hero.textColor"><option value=""${!h.textColor?' selected':''}>Auto — match theme</option><option value="light"${h.textColor==='light'?' selected':''}>Light — white (for dark images)</option><option value="dark"${h.textColor==='dark'?' selected':''}>Dark — black (for light images)</option></select></div>
     <div class="fdiv"></div>
 
     <div class="tab-hd">Shop by Category</div>
+    <div class="tog2"><label>Show category tiles</label><label class="switch"><input type="checkbox" data-lp="categories.enabled" ${cat.enabled!==false?'checked':''}><span class="sw-sl"></span></label></div>
     <div class="field"><label>Section heading</label><input data-lp="categories.heading" value="${he(cat.heading||'')}" placeholder="Shop by category"></div>
     ${catHtml}
     <div class="fdiv"></div>
 
     <div class="tab-hd">Featured</div>
+    <div class="tog2"><label>Show featured products</label><label class="switch"><input type="checkbox" data-lp="featured.enabled" ${feat.enabled!==false?'checked':''}><span class="sw-sl"></span></label></div>
     <div class="field"><label>Section heading</label><input data-lp="featured.heading" value="${he(feat.heading||'')}" placeholder="Featured"></div>
     ${featHtml}
+    <div class="fl" style="margin-top:.35rem">Layout per device</div>
+    <div class="fhint" style="margin-bottom:.35rem">“Swipe” shows one product at a time (scroll right for more); “Grid” tiles them in columns.</div>
+    ${lpLayRow('🖥️ Desktop','featured.lay_lg','featured.col_lg','featured.snap_lg',feat.lay_lg||'grid',String(feat.col_lg||3),feat.snap_lg||'smooth','featured.bar_lg',feat.bar_lg||(feat.bar_hover?'hover':'show'))}
+    ${lpLayRow('▭ Tablet','featured.lay_md','featured.col_md','featured.snap_md',feat.lay_md||'swipe',String(feat.col_md||2),feat.snap_md||'smooth','featured.bar_md',feat.bar_md||'show')}
+    ${lpLayRow('▯ Mobile','featured.lay_sm','featured.col_sm','featured.snap_sm',feat.lay_sm||'swipe',String(feat.col_sm||2),feat.snap_sm||'smooth','featured.bar_sm',feat.bar_sm||'show')}
+    <div class="field" style="margin-top:.3rem"><label>Scrollbar thickness</label><select data-lp="featured.bar_size">${lpSelOpt(feat.bar_size||'thin',LP_BARSIZEO)}</select></div>
     <div class="fdiv"></div>
 
-    <div style="display:flex;gap:.3rem;align-items:center;flex-wrap:wrap">
-      <button onclick="landingSavePreview()" class="add-item-btn">👁 Save draft &amp; preview</button>
-      <button onclick="saveLandingPages(false)" class="apply-btn">💾 Save Draft</button>
-      <button onclick="saveLandingPages(true)" class="apply-btn">🚀 Publish</button>
-    </div>
-    <div class="fhint" id="lpSaveHint" style="margin-top:.4rem">${_lpDirty?'Unsaved changes':'Saved'}</div>
+    <div class="tab-hd">Page Sections</div>
+    <div class="fhint" style="margin-bottom:.45rem">Build category highlights with the same blocks as the homepage — carousels, media grids, galleries, CTAs and more. These render <b>below</b> the auto Hero / Categories / Featured, and apply to this page (gender or tag) only. Use “Save draft &amp; preview” to see them.</div>
+    <div id="lpSectionsHost"></div>
+    <button class="add-item-btn" style="margin-top:.45rem" onclick="openLib()">+ Add Section</button>
+    <div class="fdiv"></div>
+
+    <button onclick="landingSavePreview()" class="add-item-btn">↗ Save draft &amp; open full preview</button>
+    <button onclick="copyLandingDraftLink()" class="add-item-btn" style="margin-top:.3rem">🔗 Copy shareable draft link</button>
+    <div class="fhint" style="margin-top:.2rem">Saves the draft and copies a preview link for this page you can send to anyone for feedback — it shows the draft, not the live site.</div>
+    <div class="fhint" style="margin-top:.4rem"><b>Save Draft</b> and <b>Publish</b> are in the top bar ↑ — on the Pages tab they apply to this page. The preview on the right updates live as you edit.</div>
+    <div class="fhint" id="lpSaveHint" style="margin-top:.2rem">${_lpDirty?'Unsaved changes':'Saved'}</div>
   </div>`;
 
   container.querySelectorAll('[data-lp]').forEach(el=>{
-    const sync=()=>lpSetPath(el.dataset.lp,el.value);
+    const sync=()=>lpSetPath(el.dataset.lp, el.type==='checkbox'?el.checked:el.value);
     el.addEventListener('input',sync); el.addEventListener('change',sync);
   });
+  // Hero viewfinder: build the draggable tablet/mobile frames, and rebuild them
+  // whenever a hero image or fit changes (Browse dispatches 'change' on these).
+  ['lpHeroImg','lpHeroMobImg','lpHeroTabImg'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('change',initHeroViewfinders);});
+  container.querySelectorAll('[data-lp="hero.fit"],[data-lp="hero.mobileFit"],[data-lp="hero.tabletFit"]').forEach(el=>el.addEventListener('change',initHeroViewfinders));
+  initHeroViewfinders();
+  // Render this landing page's builder sections (secStore is set to lpCfg() by
+  // renderLP, so addSec/dupSec/etc. all operate on landingPages[slug].sections).
+  const secHost=document.getElementById('lpSectionsHost');
+  if(secHost)renderSidebar(secHost);
 }
 
 async function saveLandingPages(pub){
@@ -919,11 +1081,19 @@ async function saveLandingPages(pub){
   }catch(e){showErr(e.message);}
 }
 async function landingSavePreview(){await saveLandingPages(false);window.open(landingPreviewUrl(),'_blank');}
+// Shareable draft link (landing pages): save the draft, then copy an absolute
+// preview URL. landing_pages drafts are public-readable, so anyone can open it.
+async function copyLandingDraftLink(){
+  try{ await saveLandingPages(false); }catch(_){}
+  const url = location.origin + landingPreviewUrl();
+  try{ await navigator.clipboard.writeText(url); toast('Draft link copied 🔗','ok'); }
+  catch(_){ try{ prompt('Copy this shareable draft link:', url); }catch(__){ toast(url); } }
+}
 
 // Inline preview of the landing page being edited (Pages tab). The preview reads
 // the saved DRAFT (preview=1), so it refreshes after each "Save Draft".
 function landingPreviewUrl(){ var s=landingSlug||'men'; if(s.indexOf('tag:')===0) return '/landing.html?tag='+encodeURIComponent(s.slice(4))+'&preview=1'; return '/landing.html?page='+encodeURIComponent(s)+'&preview=1'; }
-function reloadLandingPreview(){ const f=document.getElementById('pvIframe'); if(f) f.src=landingPreviewUrl()+'&_cb='+Date.now(); }
+function reloadLandingPreview(){ const f=document.getElementById('pvIframe'); if(!f)return; f.onload=function(){ setTimeout(sendLandingCfg,120); }; f.src=landingPreviewUrl()+'&_cb='+Date.now(); }
 function syncPreviewFrame(){
   const f=document.getElementById('pvIframe'); if(!f) return;
   if(curTab==='pages'){ reloadLandingPreview(); }
@@ -1036,7 +1206,42 @@ async function deleteTemplate(i){templates.splice(i,1);await persistTemplates();
 async function persistTemplates(){try{const token=await getAccessToken();if(!token)throw new Error('Session expired');await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:token,key:'builder_templates',value:{list:templates}})});}catch(e){showErr(e.message);}}
 
 // ── EDITOR ────────────────────────────────────────────────────────────────
-function selectSec(id){selId=id;const s=sections.find(x=>x.id===id);if(s)openEditor(s);}
+function selectSec(id){selId=id;const s=curSections().find(x=>x.id===id);if(s)openEditor(s);}
+
+// Click-to-select mode (default OFF so preview links/buttons work normally).
+// When ON, clicking a section in the canvas selects it for editing.
+let selectMode=false;
+function sendSelectMode(){ try{ document.getElementById('pvIframe').contentWindow.postMessage({type:'ZW_SELECT_MODE',on:selectMode}, location.origin); }catch(_){} }
+function toggleSelectMode(){
+  selectMode=!selectMode;
+  const b=document.getElementById('selModeBtn');
+  if(b){
+    b.textContent='🎯 Click to select: '+(selectMode?'On':'Off');
+    b.classList.toggle('on',selectMode);
+    // Light up clearly when on; neutral-but-visible when off.
+    b.style.background=selectMode?'var(--ac)':'var(--sf2)';
+    b.style.color=selectMode?'#0f0f11':'#f4f1eb';
+    b.style.borderColor=selectMode?'var(--ac)':'rgba(255,255,255,.25)';
+    b.style.fontWeight=selectMode?'600':'';
+  }
+  sendSelectMode();
+  if(typeof toast==='function') toast(selectMode?'Click a section in the preview to edit it':'Preview links are clickable again');
+}
+
+// On-canvas WYSIWYG: the preview iframe posts ZW_SECTION_CLICKED when a section
+// is clicked in the canvas — select + open its editor here. Same-origin gated.
+window.addEventListener('message',function(e){
+  if(e.origin!==location.origin)return;
+  const d=e.data||{};
+  if(d.type==='ZW_SECTION_CLICKED'&&d.sectionId){
+    if(typeof secStore!=='undefined'&&secStore)return;      // homepage sections only
+    if(!curSections().some(x=>x.id===d.sectionId))return;
+    if(curTab!=='content'){lpTab('content');}
+    selectSec(d.sectionId);
+    renderLP();
+    try{const item=document.querySelector('.sec-item[data-id="'+(window.CSS&&CSS.escape?CSS.escape(d.sectionId):d.sectionId)+'"]');if(item)item.scrollIntoView({block:'nearest'});}catch(_){}
+  }
+});
 
 function openEditor(s){
   document.getElementById('editor').classList.remove('hidden');
@@ -1045,14 +1250,26 @@ function openEditor(s){
   const body=document.getElementById('edBody');
   body.innerHTML=buildForm(s);
   body.querySelectorAll('input,textarea,select').forEach(el=>{
-    el.addEventListener('input',()=>{syncForm(s);schedSend();});
-    el.addEventListener('change',()=>{syncForm(s);schedSend();});
+    el.addEventListener('input',()=>{syncForm(s);curApply();});
+    el.addEventListener('change',()=>{syncForm(s);curApply();});
   });
   body.querySelectorAll('.img-btn[data-pick]').forEach(b=>b.addEventListener('click',()=>openMedia(b.dataset.pick)));
   body.querySelectorAll('input[type=range]').forEach(r=>{
     const d=body.querySelector(`[data-range-disp="${r.dataset.f}"]`);
     if(d){d.textContent=r.value+(r.dataset.unit||'');r.addEventListener('input',()=>d.textContent=r.value+(r.dataset.unit||''));}
   });
+  // Hero section viewfinder: build the tablet/mobile frames and rebuild them when
+  // the image or fit changes (Browse dispatches 'change' on the image field).
+  if(s.type==='hero'){
+    initSectionViewfinder(s);
+    body.querySelectorAll('[data-f="image"],[data-f="fit"]').forEach(el=>el.addEventListener('change',()=>initSectionViewfinder(s)));
+  }
+  if(s.type==='hero_carousel'){
+    initCarouselViewfinders(s);
+    // Rebuild a slide's frames when its media URL or type changes (Browse
+    // dispatches 'change'). syncForm runs first, so s.settings is fresh.
+    body.querySelectorAll('[data-arr="slides"] [data-f="media_url"],[data-arr="slides"] [data-f="media_type"]').forEach(el=>el.addEventListener('change',()=>initCarouselViewfinders(s)));
+  }
 }
 
 function closeEd(){selId=null;document.getElementById('editor').classList.add('hidden');renderLP();}
@@ -1071,19 +1288,41 @@ function syncForm(s){
     s.settings[key]=items;
   });
   const nm=body.querySelector('[data-section-label]');if(nm){s.label=nm.value;document.getElementById('edName').textContent=nm.value;}
-  markDirty();
+  curDirty();
 }
 
 // ── FORM HELPERS ──────────────────────────────────────────────────────────
 const he=v=>String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const f=(k,l,v='',type='text',ph='')=>`<div class="field"><label>${l}</label><input type="${type}" data-f="${k}" value="${he(v)}" placeholder="${ph}"></div>`;
+// Inline font picker: a heading/title field gets a "Heading Font" select right
+// under it; a body/subtext/content field gets a "Body Font" select. _curG is the
+// section being edited (set at the top of buildForm) so each picker shows its
+// current value. This puts font control next to the text it styles instead of in
+// a separate block. (font_head_override / font_body_override stay section-level.)
+let _curG={};
+const HEAD_KEYS={heading:1,title:1}, BODY_KEYS={body:1,subtext:1,content:1};
+const fontFor=k=>HEAD_KEYS[k]?hfont(_curG):(BODY_KEYS[k]?bfont(_curG):'');
+const f=(k,l,v='',type='text',ph='')=>`<div class="field"><label>${l}</label><input type="${type}" data-f="${k}" value="${he(v)}" placeholder="${ph}"></div>`+fontFor(k);
 const f2=(k,l,v='')=>`<div class="field"><label>${l}</label><input data-k="${k}" value="${he(v)}"></div>`;
-const ta=(k,l,v='',ph='')=>`<div class="field"><label>${l}</label><textarea data-f="${k}" placeholder="${ph}">${he(v)}</textarea></div>`;
+const ta=(k,l,v='',ph='')=>`<div class="field"><label>${l}</label><textarea data-f="${k}" placeholder="${ph}">${he(v)}</textarea></div>`+fontFor(k);
 const sel=(k,l,v,opts)=>`<div class="field"><label>${l}</label><select data-f="${k}">${opts.map(([val,txt])=>`<option value="${val}"${v===val?' selected':''}>${txt}</option>`).join('')}</select></div>`;
 const sel2=(k,l,v,opts)=>`<div class="field"><label>${l}</label><select data-k="${k}">${opts.map(([val,txt])=>`<option value="${val}"${v===val?' selected':''}>${txt}</option>`).join('')}</select></div>`;
 const tog2=(k,l,checked)=>`<div class="tog2"><label>${l}</label><label class="switch"><input type="checkbox" data-f="${k}" ${checked?'checked':''}><span class="sw-sl"></span></label></div>`;
 const fdiv=()=>'<div class="fdiv"></div>';
 const fhd=t=>`<div class="fl" style="margin-top:.1rem">${t}</div>`;
+// Reusable per-device layout controls (Grid vs Swipe row, columns, scroll feel,
+// reveal-scrollbar-on-hover) for any section that renders a grid/row of cards or
+// images. Writes the data-f keys the renderers pass to window.zwApplyPlatLayout.
+const PLAT_LAYO=[['grid','Grid'],['swipe','Swipe row']];
+const PLAT_COLO=[['1','1'],['2','2'],['3','3'],['4','4']];
+const PLAT_SNAPO=[['smooth','Smooth (free scroll)'],['snap','One at a time (snap)']];
+const PLAT_BARO=[['show','Always show'],['hover','On hover / while scrolling'],['off','Hidden']];
+const PLAT_BARSIZEO=[['thin','Thin'],['medium','Medium'],['thick','Thick']];
+const platFields=(g,dLg='grid',dMd='grid',dSm='swipe')=>fhd('Layout per device')
+  +`<div class="fhint" style="margin-bottom:.35rem">“Swipe row” scrolls sideways with a scrollbar; “Grid” tiles in columns. “Scroll feel” = smooth free-scroll vs snapping one at a time.</div>`
+  +`<div class="fl" style="margin-top:.1rem">🖥️ Desktop</div>`+sel('lay_lg','Layout',g.lay_lg||dLg,PLAT_LAYO)+sel('col_lg','Columns (grid)',String(g.col_lg||g.columns||3),PLAT_COLO)+sel('snap_lg','Scroll feel (swipe)',g.snap_lg||'smooth',PLAT_SNAPO)+sel('bar_lg','Scrollbar (swipe)',g.bar_lg||(g.bar_hover?'hover':'show'),PLAT_BARO)
+  +`<div class="fl" style="margin-top:.1rem">▭ Tablet</div>`+sel('lay_md','Layout',g.lay_md||dMd,PLAT_LAYO)+sel('col_md','Columns (grid)',String(g.col_md||2),PLAT_COLO)+sel('snap_md','Scroll feel (swipe)',g.snap_md||'smooth',PLAT_SNAPO)+sel('bar_md','Scrollbar (swipe)',g.bar_md||'show',PLAT_BARO)
+  +`<div class="fl" style="margin-top:.1rem">▯ Mobile</div>`+sel('lay_sm','Layout',g.lay_sm||dSm,PLAT_LAYO)+sel('col_sm','Columns (grid)',String(g.col_sm||2),PLAT_COLO)+sel('snap_sm','Scroll feel (swipe)',g.snap_sm||'smooth',PLAT_SNAPO)+sel('bar_sm','Scrollbar (swipe)',g.bar_sm||'show',PLAT_BARO)
+  +sel('bar_size','Scrollbar thickness',g.bar_size||'thin',PLAT_BARSIZEO);
 /* Color field with a live hex input. Both the swatch and the text box share
    data-f="${k}" so either one writes the value back to the section setting
    (syncForm reads the last [data-f], i.e. the hex box). Picking the swatch
@@ -1092,47 +1331,112 @@ const fhd=t=>`<div class="fl" style="margin-top:.1rem">${t}</div>`;
 const colorF=(k,l,v='')=>`<div class="field"><label>${l}</label><div style="display:flex;gap:.35rem;align-items:center"><input type="color" data-f="${k}" value="${v||'#09090b'}" oninput="this.nextElementSibling.value=this.value"><input type="text" data-f="${k}" value="${he(v)}" placeholder="#hex or blank" style="flex:1" oninput="const x=this.value.trim();if(/^#[0-9a-f]{6}$/i.test(x))this.previousElementSibling.value=x"></div></div>`;
 const colorF2=(k,l,v='')=>`<div class="field"><label>${l}</label><div style="display:flex;gap:.35rem;align-items:center"><input type="color" data-k="${k}" value="${v||'#09090b'}" oninput="this.nextElementSibling.value=this.value"><input type="text" data-k="${k}" value="${he(v)}" placeholder="#hex" style="flex:1" oninput="if(/^#[0-9a-f]{6}$/i.test(this.value.trim()))this.previousElementSibling.value=this.value.trim()"></div></div>`;
 const rangeF=(k,l,v,min,max,unit='')=>`<div class="field"><label>${l}</label><div class="range-row"><input type="range" data-f="${k}" data-unit="${unit}" min="${min}" max="${max}" value="${v}" style="flex:1"><span class="range-val" data-range-disp="${k}">${v}${unit}</span></div></div>`;
-const padF=g=>`<div class="fdiv"></div>${fhd('Typography Override')}
-${sel('font_head_override','Heading Font',g.font_head_override||'',[['','Use Global Theme'],['barlow-condensed','Barlow Condensed'],['oswald','Oswald'],['bebas-neue','Bebas Neue'],['anton','Anton'],['league-gothic','League Gothic'],['michroma','Michroma'],['montserrat','Montserrat'],['syne','Syne'],['archivo-black','Archivo Black'],['teko','Teko'],['righteous','Righteous'],['playfair-display','Playfair Display'],['cinzel','Cinzel'],['futura','Futura'],['futura-100-bold','Futura 100 Bold'],['futura-100-bold-oblique','Futura 100 Bold Oblique']])}
-${sel('font_body_override','Body Font',g.font_body_override||'',[['','Use Global Theme'],['barlow','Barlow'],['inter','Inter'],['dm-sans','DM Sans'],['outfit','Outfit'],['manrope','Manrope'],['poppins','Poppins'],['lato','Lato'],['roboto','Roboto'],['work-sans','Work Sans'],['mulish','Mulish'],['futura','Futura'],['futura-100-bold','Futura 100 Bold'],['futura-100-bold-oblique','Futura 100 Bold Oblique']])}
-<div class="fdiv"></div>${fhd('Section Padding')}<div class="pad-grid">${rangeF('pad_top','Top Padding',g.pad_top||0,0,200,'px')}${rangeF('pad_bot','Bottom Padding',g.pad_bot||0,0,200,'px')}</div>`;
+// Font pickers now live INLINE next to the text they affect (hfont after a
+// heading field, bfont after a body field) instead of a separate "Typography
+// Override" block. padF is kept as a no-op so the existing `+padF(g)` tails
+// don't need touching. Section-level keys: font_head_override / font_body_override.
+const FOPT_HEAD=[['','Use Global Theme (default)'],['barlow-condensed','Barlow Condensed'],['oswald','Oswald'],['bebas-neue','Bebas Neue'],['anton','Anton'],['league-gothic','League Gothic'],['michroma','Michroma'],['montserrat','Montserrat'],['syne','Syne'],['archivo-black','Archivo Black'],['teko','Teko'],['righteous','Righteous'],['playfair-display','Playfair Display'],['cinzel','Cinzel'],['futura','Futura'],['futura-100-bold','Futura 100 Bold'],['futura-100-bold-oblique','Futura 100 Bold Oblique']];
+const FOPT_BODY=[['','Use Global Theme (default)'],['barlow','Barlow'],['inter','Inter'],['dm-sans','DM Sans'],['outfit','Outfit'],['manrope','Manrope'],['poppins','Poppins'],['lato','Lato'],['roboto','Roboto'],['work-sans','Work Sans'],['mulish','Mulish'],['futura','Futura'],['futura-100-bold','Futura 100 Bold'],['futura-100-bold-oblique','Futura 100 Bold Oblique']];
+const fontSelInline=(k,l,v,opts)=>`<div class="field" style="margin:-.15rem 0 .1rem .9rem"><label style="opacity:.7">↳ ${l}</label><select data-f="${k}">${opts.map(([val,txt])=>`<option value="${val}"${v===val?' selected':''}>${txt}</option>`).join('')}</select></div>`;
+const hfont=g=>fontSelInline('font_head_override','Font for this heading',g.font_head_override||'',FOPT_HEAD);
+const bfont=g=>fontSelInline('font_body_override','Font for this text',g.font_body_override||'',FOPT_BODY);
+const padF=g=>'';
+// data-lp variant (Pages tab auto-hero etc.) — same inline look, writes to the landing config.
+const lpFontSel=(path,l,v,opts)=>`<div class="field" style="margin:-.15rem 0 .1rem .9rem"><label style="opacity:.7">↳ ${l}</label><select data-lp="${path}">${opts.map(([val,txt])=>`<option value="${val}"${v===val?' selected':''}>${txt}</option>`).join('')}</select></div>`;
+// Per-device layout row for the Pages featured section (Grid vs Swipe + columns).
+const LP_LAYO=[['grid','Grid'],['swipe','Swipe row']];
+const LP_COLO=[['1','1'],['2','2'],['3','3'],['4','4']];
+const LP_SNAPO=[['smooth','Smooth (free scroll)'],['snap','One at a time (snap)']];
+const LP_BARO=[['show','Always show'],['hover','On hover / while scrolling'],['off','Hidden']];
+const LP_BARSIZEO=[['thin','Thin'],['medium','Medium'],['thick','Thick']];
+const lpSelOpt=(v,opts)=>opts.map(([val,txt])=>`<option value="${val}"${String(v)===val?' selected':''}>${txt}</option>`).join('');
+const lpLayRow=(label,layPath,colPath,snapPath,layV,colV,snapV,barPath,barV)=>`<div class="fl" style="margin-top:.1rem">${label}</div><div class="field"><label>Layout</label><select data-lp="${layPath}">${lpSelOpt(layV,LP_LAYO)}</select></div><div class="field"><label>Columns (grid mode)</label><select data-lp="${colPath}">${lpSelOpt(colV,LP_COLO)}</select></div><div class="field"><label>Scroll feel (swipe)</label><select data-lp="${snapPath}">${lpSelOpt(snapV,LP_SNAPO)}</select></div>${barPath?`<div class="field"><label>Scrollbar (swipe)</label><select data-lp="${barPath}">${lpSelOpt(barV,LP_BARO)}</select></div>`:''}`;
+/* NOTE: Section padding is rendered once, by the universal "Section Style"
+   block in buildForm. It used to ALSO be rendered here as sliders, but both
+   wrote data-f="pad_top/pad_bot" — syncForm reads them in DOM order and the
+   later (number) input clobbered the slider, so dragging did nothing. */
 const bgF=(k,g)=>`${colorF(k,'Section Background Color',g[k]||'')} <div class="fhint">Leave blank for default site background</div>`;
 const imgField=(key,lbl,val='')=>{
   const prev=val?`<img data-preview="${key}" src="${he(val)}" style="width:100%;height:70px;object-fit:cover;border:1px solid var(--bd);border-radius:2px;margin-bottom:.25rem;display:block">`:`<div data-preview="${key}" style="display:none"></div>`;
   return `<div class="field"><label>${lbl}</label>${prev}<input type="text" data-f="${key}" value="${he(val)}" placeholder="/images/hero.jpg?v=2 or https://..."><div style="display:flex;gap:.3rem;margin-top:.25rem"><button type="button" class="img-btn" data-pick="${key}">📁 Browse</button></div></div>`;
 };
-const arrField=(key,itemLbl,items,fieldDefs)=>`<div class="flist" data-arr="${key}">${items.map((item,i)=>`<div data-arr-item style="background:var(--bg);border:1px solid var(--bd);border-radius:2px;padding:.38rem .48rem;margin-bottom:.25rem"><div class="flist-item-hd"><span class="flist-item-lbl">${itemLbl} ${i+1}</span><button class="flist-rm" onclick="removeArrItem(this,'${key}')">✕</button></div>${fieldDefs.map(([k,l,type])=>`<div class="field" style="margin-top:.28rem"><label>${l}</label><${type==='textarea'?`textarea data-f="${k}"`:(`input type="${type}" data-f="${k}"`)} ${type==='textarea'?'':'value="'+he(item[k]||'')+'"'}>${type==='textarea'?he(item[k]||''):''}${type==='textarea'?'</textarea>':'>'}</div>`).join('')}</div>`).join('')}</div><button class="add-item-btn" onclick="addArrItem('${key}')">+ Add ${itemLbl}</button>`;
+const arrField=(key,itemLbl,items,fieldDefs)=>`<div class="flist" data-arr="${key}">${items.map((item,i)=>`<div data-arr-item style="background:var(--bg);border:1px solid var(--bd);border-radius:2px;padding:.38rem .48rem;margin-bottom:.25rem"><div class="flist-item-hd"><span class="flist-item-lbl">${itemLbl} ${i+1}</span><span class="flist-acts"><button class="flist-mv" onclick="moveArrItem(this,-1)" title="Move up">↑</button><button class="flist-mv" onclick="moveArrItem(this,1)" title="Move down">↓</button><button class="flist-mv" onclick="dupArrItem(this)" title="Duplicate">⎘</button><button class="flist-rm" onclick="removeArrItem(this,'${key}')">✕</button></span></div>${fieldDefs.map(([k,l,type])=>{
+  if(type==='image'){const pid=key+'.'+i+'.'+k;return `<div class="field" style="margin-top:.28rem"><label>${l}</label><div style="display:flex;gap:.3rem;align-items:center"><input type="text" id="${pid}" data-f="${k}" value="${he(item[k]||'')}" placeholder="Upload or paste URL" style="flex:1"><button type="button" class="img-btn" data-pick="${pid}">📁</button></div></div>`;}
+  if(type==='textarea')return `<div class="field" style="margin-top:.28rem"><label>${l}</label><textarea data-f="${k}">${he(item[k]||'')}</textarea></div>`;
+  return `<div class="field" style="margin-top:.28rem"><label>${l}</label><input type="${type}" data-f="${k}" value="${he(item[k]||'')}"></div>`;
+}).join('')}</div>`).join('')}</div><button class="add-item-btn" onclick="addArrItem('${key}')">+ Add ${itemLbl}</button>`;
 
-window.removeArrItem=function(btn,key){const item=btn.closest('[data-arr-item]');if(item){item.remove();const s=sections.find(x=>x.id===selId);if(s)syncForm(s);}};
-window.addArrItem=function(key){const s=sections.find(x=>x.id===selId);if(!s)return;if(!s.settings[key])s.settings[key]=[];const first=s.settings[key][0]||{};const def={};Object.keys(first).forEach(k=>def[k]='');s.settings[key].push(def);openEditor(s);toast('Item added');};
+window.removeArrItem=function(btn,key){const item=btn.closest('[data-arr-item]');if(item){item.remove();const s=curSections().find(x=>x.id===selId);if(s){syncForm(s);curApply();}}};
+window.addArrItem=function(key){
+  const s=curSections().find(x=>x.id===selId);if(!s)return;
+  if(!s.settings[key])s.settings[key]=[];
+  // Seed the new item from the type's default template (if any) so structural
+  // defaults survive — e.g. a new carousel slide keeps focal_y:50,
+  // overlay_opacity:30, media_type:'image'. Fall back to a blank-keyed copy of
+  // the existing first item when there's no template.
+  const tmpl=(SECT_DEFS[s.type]&&Array.isArray(SECT_DEFS[s.type][key])&&SECT_DEFS[s.type][key][0])||null;
+  let def;
+  if(tmpl){def=clone(tmpl);}
+  else{const first=s.settings[key][0]||{};def={};Object.keys(first).forEach(k=>def[k]='');}
+  s.settings[key].push(def);
+  openEditor(s);curApply();toast('Item added');
+};
+// Reorder an array item up (dir=-1) or down (dir=1). syncForm rebuilds the
+// array from DOM order, so swapping the [data-arr-item] nodes and re-syncing is
+// all that's needed — works for generic lists AND hand-built slides/cards.
+window.moveArrItem=function(btn,dir){
+  const item=btn.closest('[data-arr-item]');if(!item)return;
+  const sib=dir<0?item.previousElementSibling:item.nextElementSibling;
+  if(!sib||!(sib.matches&&sib.matches('[data-arr-item]')))return;
+  if(dir<0)item.parentNode.insertBefore(item,sib);
+  else item.parentNode.insertBefore(sib,item);
+  const s=curSections().find(x=>x.id===selId);
+  if(s){syncForm(s);openEditor(s);curApply();}
+};
+// Duplicate an array item (slide, card, stat, FAQ, etc.) right after itself.
+// syncForm captures live edits first, then we deep-clone by DOM index.
+window.dupArrItem=function(btn){
+  const item=btn.closest('[data-arr-item]'),cont=btn.closest('[data-arr]');
+  if(!item||!cont)return;
+  const key=cont.dataset.arr,s=curSections().find(x=>x.id===selId);
+  if(!s)return;
+  syncForm(s);
+  const idx=Array.prototype.indexOf.call(cont.querySelectorAll('[data-arr-item]'),item);
+  const arr=s.settings[key]||[];
+  if(idx<0||!arr[idx])return;
+  arr.splice(idx+1,0,clone(arr[idx]));
+  openEditor(s);curApply();toast('Item duplicated');
+};
 
 function buildForm(s){
   const g=s.settings||{};
+  _curG=g;   // so the inline font pickers (fontFor) read this section's overrides
   let h=`<div class="field"><label>Section Label</label><input data-section-label value="${he(s.label)}"></div>`;
   switch(s.type){
-    case 'hero': h+=imgField('image','Background Image',g.image)+sel('fit','Image Fit',g.fit||'cover',[['cover','Fill — crop to fill (photos)'],['contain','Fit — show whole image (logos)']])+fdiv()+fhd('Layout')+sel('text_align','Alignment',g.text_align||'left',[['left','Left'],['center','Center'],['right','Right']])+rangeF('overlay_opacity','Image Overlay Darkness',g.overlay_opacity??40,0,90,'%')+colorF('bg_color','Background Color (no image)',g.bg_color)+fdiv()+fhd('Content')+ta('kicker','Kicker',g.kicker)+tog2('show_kicker','Show Kicker',g.show_kicker!==false)+ta('heading','Heading (↵=line break)',g.heading)+ta('subtext','Subtext',g.subtext)+tog2('show_subtext','Show Subtext',g.show_subtext!==false)+fdiv()+fhd('Primary Button')+f('cta1_text','Text',g.cta1_text)+f('cta1_url','URL / #anchor',g.cta1_url)+sel('cta1_style','Style',g.cta1_style||'outline',[['outline','Outlined'],['solid','Solid'],['ghost','Ghost']])+fdiv()+fhd('Secondary Button')+tog2('cta2_on','Show',g.cta2_on)+f('cta2_text','Text',g.cta2_text)+f('cta2_url','URL',g.cta2_url)+fdiv()+fhd('Image Overlay Button')+tog2('img_btn_on','Show',g.img_btn_on)+f('img_btn_text','Text',g.img_btn_text)+f('img_btn_url','URL',g.img_btn_url)+padF(g);break;
-    case 'marquee': h+=`<div class="field"><label>Items (comma-separated)</label><textarea data-f="items" placeholder="ZUWERA, RELEASE 001, ...">${he(g.items)}</textarea><span class="fhint">Separate with commas</span></div>`+sel('speed','Speed',g.speed||'normal',[['slow','Slow'],['normal','Normal'],['fast','Fast']])+padF(g);break;
+    case 'hero': h+=imgField('image','Background Image',g.image)+sel('fit','Image Fit',g.fit||'cover',[['cover','Fill — crop to fill (photos)'],['contain','Fit — show whole image (logos)']])+`<div class="fl" style="margin-top:.35rem">Viewfinder — tablet &amp; mobile framing</div><div class="fhint" style="margin-bottom:.4rem">Drag inside a frame to choose what stays visible on that device (applies to the “Fill” crop). Double-click to re-center.</div><div id="secHeroVF" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-start;margin-bottom:.4rem"></div>`+fdiv()+fhd('Layout')+sel('text_align','Alignment',g.text_align||'left',[['left','Left'],['center','Center'],['right','Right']])+rangeF('overlay_opacity','Image Overlay Darkness',g.overlay_opacity??40,0,90,'%')+fdiv()+fhd('Content')+ta('kicker','Kicker',g.kicker)+tog2('show_kicker','Show Kicker',g.show_kicker!==false)+ta('heading','Heading (↵=line break)',g.heading)+ta('subtext','Subtext',g.subtext)+tog2('show_subtext','Show Subtext',g.show_subtext!==false)+fdiv()+fhd('Primary Button')+f('cta1_text','Text',g.cta1_text)+f('cta1_url','URL / #anchor',g.cta1_url)+sel('cta1_style','Style',g.cta1_style||'outline',[['outline','Outlined'],['solid','Solid'],['ghost','Ghost']])+fdiv()+fhd('Secondary Button')+tog2('cta2_on','Show',g.cta2_on)+f('cta2_text','Text',g.cta2_text)+f('cta2_url','URL',g.cta2_url)+fdiv()+fhd('Image Overlay Button')+tog2('img_btn_on','Show',g.img_btn_on)+f('img_btn_text','Text',g.img_btn_text)+f('img_btn_url','URL',g.img_btn_url)+padF(g);break;
+    case 'marquee': h+=`<div class="field"><label>Items (comma-separated)</label><textarea data-f="items" placeholder="ZUWERA, RELEASE 001, ...">${he(g.items)}</textarea><span class="fhint">Separate with commas</span></div>`+hfont(g)+sel('speed','Speed',g.speed||'normal',[['slow','Slow'],['normal','Normal'],['fast','Fast']])+padF(g);break;
     case 'about': h+=f('label','Eyebrow Label',g.label)+ta('heading','Heading',g.heading)+ta('body','Body (↵↵=paragraph)',g.body)+fdiv()+fhd('Stats')+arrField('stats','Stat',g.stats||[],[['value','Number','text'],['label','Label','text']])+padF(g);break;
     case 'release': h+=f('eyebrow','Eyebrow',g.eyebrow)+ta('title','Title (↵=line break)',g.title)+f('launch_date','Launch Date',g.launch_date,'date')+fdiv()+tog2('notify_on','Show Notify Form',g.notify_on)+f('notify_label','Form Label',g.notify_label)+padF(g);break;
-    case 'products': h+=f('title','Section Title',g.title)+f('subtitle','Subtitle',g.subtitle)+sel('columns','Columns',String(g.columns||2),[['2','2 Columns'],['3','3 Columns'],['4','4 Columns']])+padF(g);break;
-    case 'split': h+=imgField('image','Image',g.image)+sel('image_side','Image Side',g.image_side||'left',[['left','Image Left'],['right','Image Right']])+sel('layout_width','Section Width',g.layout_width||'full',[['full','Full Bleed (Edge to Edge)'],['1400','Contained - Wide (1400px)'],['1200','Contained - Standard (1200px)'],['1000','Contained - Narrow (1000px)'],['800','Contained - Slim (800px)']])+f('image_height','Image Height (px)',g.image_height,'number')+colorF('bg_color','Background Color',g.bg_color)+fdiv()+f('label','Eyebrow',g.label)+ta('heading','Heading',g.heading)+ta('body','Body',g.body)+fdiv()+f('cta_text','Button Text',g.cta_text)+f('cta_url','Button URL',g.cta_url)+padF(g);break;
-    case 'cta': h+=colorF('bg_color','Background Color',g.bg_color||'#09090b')+colorF('text_color','Text Color',g.text_color||'#f4f1eb')+fdiv()+ta('heading','Heading',g.heading)+ta('subtext','Subtext',g.subtext)+fdiv()+f('btn_text','Button Text',g.btn_text)+f('btn_url','Button URL',g.btn_url)+sel('btn_style','Button Style',g.btn_style||'solid',[['solid','Solid'],['outline','Outlined'],['ghost','Ghost']])+sel('align','Alignment',g.align||'center',[['center','Center'],['left','Left'],['right','Right']])+padF(g);break;
+    case 'products': h+=f('title','Section Title',g.title)+f('subtitle','Subtitle',g.subtitle)+fdiv()+platFields(g,'grid','swipe','swipe')+padF(g);break;
+    case 'split': h+=imgField('image','Image',g.image)+sel('image_side','Image Side',g.image_side||'left',[['left','Image Left'],['right','Image Right']])+sel('layout_width','Section Width',g.layout_width||'full',[['full','Full Bleed (Edge to Edge)'],['1400','Contained - Wide (1400px)'],['1200','Contained - Standard (1200px)'],['1000','Contained - Narrow (1000px)'],['800','Contained - Slim (800px)']])+f('image_height','Image Height (px)',g.image_height,'number')+fdiv()+f('label','Eyebrow',g.label)+ta('heading','Heading',g.heading)+ta('body','Body',g.body)+fdiv()+f('cta_text','Button Text',g.cta_text)+f('cta_url','Button URL',g.cta_url)+padF(g);break;
+    case 'cta': h+=ta('heading','Heading',g.heading)+ta('subtext','Subtext',g.subtext)+fdiv()+f('btn_text','Button Text',g.btn_text)+f('btn_url','Button URL',g.btn_url)+sel('btn_style','Button Style',g.btn_style||'solid',[['solid','Solid'],['outline','Outlined'],['ghost','Ghost']])+sel('align','Alignment',g.align||'center',[['center','Center'],['left','Left'],['right','Right']])+padF(g);break;
     case 'features': h+=f('heading','Section Heading',g.heading)+fdiv()+arrField('items','Feature',g.items||[],[['icon','Icon/Emoji','text'],['title','Title','text'],['desc','Description','textarea']])+padF(g);break;
     case 'testimonials': h+=f('heading','Heading',g.heading)+fdiv()+arrField('items','Review',g.items||[],[['quote','Quote','textarea'],['author','Author','text'],['rating','Rating (1–5)','number']])+padF(g);break;
-    case 'banner': h+=colorF('bg_color','Background',g.bg_color||'#09090b')+colorF('text_color','Text Color',g.text_color||'#f4f1eb')+f('text','Banner Text',g.text)+fdiv()+f('link_text','Link Text',g.link_text)+f('link_url','Link URL',g.link_url)+padF(g);break;
-    case 'gallery': h+=f('heading','Section Heading',g.heading)+sel('layout_width','Section Width',g.layout_width||'full',[['full','Full Bleed (Edge to Edge)'],['1400','Contained - Wide (1400px)'],['1200','Contained - Standard (1200px)'],['1000','Contained - Narrow (1000px)'],['800','Contained - Slim (800px)']])+sel('columns','Columns',String(g.columns||3),[['2','2'],['3','3'],['4','4']])+sel('aspect','Aspect Ratio',g.aspect||'square',[['square','Square'],['portrait','Portrait 3:4'],['wide','Wide 16:9']])+fdiv()+arrField('images','Image',g.images||[],[['src','Image URL','text'],['alt','Alt Text','text'],['link','Link (optional)','text']])+padF(g);break;
+    case 'banner': h+=f('text','Banner Text',g.text)+fdiv()+f('link_text','Link Text',g.link_text)+f('link_url','Link URL',g.link_url)+padF(g);break;
+    case 'gallery': h+=f('heading','Section Heading',g.heading)+sel('layout_width','Section Width',g.layout_width||'full',[['full','Full Bleed (Edge to Edge)'],['1400','Contained - Wide (1400px)'],['1200','Contained - Standard (1200px)'],['1000','Contained - Narrow (1000px)'],['800','Contained - Slim (800px)']])+sel('aspect','Aspect Ratio',g.aspect||'square',[['square','Square'],['portrait','Portrait 3:4'],['wide','Wide 16:9']])+fdiv()+platFields(g,'grid','grid','swipe')+fdiv()+arrField('images','Image',g.images||[],[['src','Image (upload or URL)','image'],['alt','Alt Text','text'],['link','Link (optional)','text']])+padF(g);break;
     case 'video': h+=`<div class="field"><label>Video URL</label><input data-f="url" value="${he(g.url)}" placeholder="YouTube or Vimeo URL"><span class="fhint">Paste a YouTube or Vimeo URL</span></div>`+f('caption','Caption (optional)',g.caption)+tog2('controls','Show Controls',g.controls!==false)+tog2('autoplay','Autoplay',g.autoplay)+tog2('muted','Muted',g.muted!==false)+padF(g);break;
     case 'countdown': h+=f('heading','Heading',g.heading)+`<div class="field"><label>Launch Date & Time</label><input type="datetime-local" data-f="launch_date" value="${he(g.launch_date)}"></div>`+sel('align','Alignment',g.align||'center',[['center','Center'],['left','Left']])+tog2('show_labels','Show Unit Labels',g.show_labels!==false)+padF(g);break;
     case 'spacer': h+=sel('height','Height',g.height||'md',[['xs','XS (1rem)'],['sm','SM (2rem)'],['md','MD (4rem)'],['lg','LG (8rem)'],['xl','XL (12rem)']]);break;
-    case 'text': h+=f('heading','Heading (optional)',g.heading)+f('heading_size','Heading Size',g.heading_size||'2rem')+ta('body','Body',g.body)+sel('align','Alignment',g.align||'left',[['left','Left'],['center','Center'],['right','Right']])+fdiv()+f('cta_text','Button Text (optional)',g.cta_text)+f('cta_url','Button URL',g.cta_url)+padF(g);break;
+    case 'text': h+=f('heading','Heading (optional)',g.heading)+ta('body','Body',g.body)+sel('align','Alignment',g.align||'left',[['left','Left'],['center','Center'],['right','Right']])+fdiv()+f('cta_text','Button Text (optional)',g.cta_text)+f('cta_url','Button URL',g.cta_url)+padF(g);break;
     case 'img_cta': h+=imgField('image','Image',g.image)+f('alt','Alt Text',g.alt)+fdiv()+tog2('btn_on','Show Button',g.btn_on)+f('btn_text','Button Text',g.btn_text)+f('btn_url','Button URL',g.btn_url)+sel('btn_position','Button Position',g.btn_position||'center',[['center','Center'],['bottom-left','Bottom Left'],['bottom-right','Bottom Right'],['top-right','Top Right']])+padF(g);break;
     case 'html': h+=`<div class="field"><label>HTML</label><textarea data-f="html" style="min-height:120px;font-size:.6rem;font-family:'IBM Plex Mono',monospace" placeholder="<div>...</div>">${he(g.html)}</textarea><span class="fhint" style="color:#e07060">⚠ Raw HTML — use carefully.</span></div>`;break;
+    case 'header': h+=f('left','Left Label',g.left)+f('right','Right Note (optional)',g.right)+tog2('show_line','Show Divider Line',g.show_line!==false)+sel('line_position','Line Position',g.line_position||'below',[['below','Line Below Text'],['above','Line Above Text']]);break;
     case 'numbers': h+=f('heading','Section Heading',g.heading)+fdiv()+arrField('items','Stat',g.items||[],[['value','Value / Number','text'],['label','Label','text']])+padF(g);break;
     case 'press': h+=f('heading','Label (e.g. "As Seen In")',g.heading)+fdiv()+arrField('items','Publication',g.items||[],[['name','Publication Name','text']])+padF(g);break;
     case 'faq': h+=f('heading','Section Heading',g.heading)+fdiv()+arrField('items','FAQ Item',g.items||[],[['q','Question','text'],['a','Answer','textarea']])+padF(g);break;
-    case 'email_capture': h+=f('heading','Heading',g.heading)+f('subtext','Subtext',g.subtext)+f('placeholder','Input Placeholder',g.placeholder)+f('btn_text','Button Text',g.btn_text)+colorF('bg_color','Background Color',g.bg_color||'')+padF(g);break;
-    case 'logos': h+=f('heading','Label (optional)',g.heading)+fdiv()+arrField('items','Logo',g.items||[],[['name','Brand Name','text'],['src','Logo Image URL (optional)','text'],['alt','Alt Text','text']])+padF(g);break;
-    case 'richtext': h+=`<div class="field"><label>Content</label><textarea data-f="content" style="min-height:140px;line-height:1.6" placeholder="Write your content here...">${he(g.content)}</textarea></div>`+sel('align','Text Alignment',g.align||'left',[['left','Left'],['center','Center'],['right','Right']])+padF(g);break;
+    case 'email_capture': h+=f('heading','Heading',g.heading)+f('subtext','Subtext',g.subtext)+f('placeholder','Input Placeholder',g.placeholder)+f('btn_text','Button Text',g.btn_text)+padF(g);break;
+    case 'logos': h+=f('heading','Label (optional)',g.heading)+f('logo_height','Logo Height (px)',g.logo_height||28,'number')+tog2('logo_original','Keep original logo colors',g.logo_original)+fdiv()+arrField('items','Logo',g.items||[],[['name','Brand Name','text'],['src','Logo Image (upload or URL)','image'],['alt','Alt Text','text'],['link','Link → product / page (optional)','text']])+`<div class="fhint">Upload a logo (or paste a URL), then add a Link to make it clickable — point it at a product page or image.</div>`+padF(g);break;
+    case 'richtext': h+=`<div class="field"><label>Content</label><textarea data-f="content" style="min-height:140px;line-height:1.6" placeholder="Write your content here...">${he(g.content)}</textarea></div>`+bfont(g)+sel('align','Text Alignment',g.align||'left',[['left','Left'],['center','Center'],['right','Right']])+padF(g);break;
     case 'hero_carousel': {
       h+=fhd('Carousel Settings')
         +sel('height','Slide Height',g.height||'full',[['full','Full Screen (100vh)'],['tall','Tall (75vh)'],['half','Half (50vh)'],['short','Short (40vh)']])
@@ -1140,20 +1444,26 @@ function buildForm(s){
         +tog2('autoplay','Autoplay',g.autoplay!==false)
         +f('autoplay_interval','Interval (ms)',g.autoplay_interval||5000,'number')
         +tog2('show_arrows','Show Arrows',g.show_arrows!==false)
-        +tog2('show_dots','Show Dots',g.show_dots!==false)
+        +tog2('show_dots','Show Indicators',g.show_dots!==false)
+        +sel('indicator_style','Indicator Style',g.indicator_style||'dots',[['dots','Dots (pill)'],['lines','Lines (bars)']])
         +tog2('show_pause','Show Pause Button',g.show_pause!==false)
         +tog2('loop','Loop Slides',g.loop!==false)
+        +fdiv()+fhd('Slide Fonts')+hfont(g)+bfont(g)
         +fdiv()+fhd('Slides');
       const slides=g.slides||[];
       h+=`<div class="flist" data-arr="slides">${slides.map((sl,i)=>`<div data-arr-item style="background:var(--bg);border:1px solid var(--bd);border-radius:4px;padding:.55rem .6rem;margin-bottom:.4rem">
-        <div class="flist-item-hd"><span class="flist-item-lbl">Slide ${i+1}</span><button class="flist-rm" onclick="removeArrItem(this,'slides')">✕</button></div>
+        <div class="flist-item-hd"><span class="flist-item-lbl">Slide ${i+1}</span><span class="flist-acts"><button class="flist-mv" onclick="moveArrItem(this,-1)" title="Move up">↑</button><button class="flist-mv" onclick="moveArrItem(this,1)" title="Move down">↓</button><button class="flist-mv" onclick="dupArrItem(this)" title="Duplicate">⎘</button><button class="flist-rm" onclick="removeArrItem(this,'slides')">✕</button></span></div>
         <div class="field" style="margin-top:.3rem"><label>Media Type</label><select data-f="media_type"><option value="image"${sl.media_type==='image'?' selected':''}>Image</option><option value="video"${sl.media_type==='video'?' selected':''}>Video</option></select></div>
         <div class="field"><label>Media URL</label><div style="display:flex;gap:.3rem;align-items:center"><input type="text" id="slides.${i}.media_url" data-f="media_url" value="${he(sl.media_url)}" placeholder="/images/hero.jpg" style="flex:1"><button type="button" class="img-btn" data-pick="slides.${i}.media_url">📁</button></div></div>
         <div class="field"><label>Mobile Media URL (optional)</label><input type="text" data-f="media_url_mobile" value="${he(sl.media_url_mobile)}" placeholder="Mobile-specific image"></div>
         <div class="field"><label>Video Poster</label><input type="text" data-f="video_poster" value="${he(sl.video_poster)}" placeholder="Poster frame for videos"></div>
         <div class="field"><label>Slide Duration (ms)</label><input type="number" data-f="duration" value="${sl.duration||''}" placeholder="e.g. 5000 (leave blank for default)"></div>
         <div class="field" style="${sl.media_type==='video'?'':'display:none'}"><label>Video Duration Mode</label><select data-f="video_duration_mode"><option value="full"${sl.video_duration_mode==='full'?' selected':''}>Wait for video to finish</option><option value="custom"${sl.video_duration_mode==='custom'?' selected':''}>Use Slide Duration</option></select></div>
-        ${rangeF('focal_y','Vertical Focal Point',sl.focal_y??50,0,100,'%')}
+        ${rangeF('focal_y','Vertical Focal Point (desktop)',sl.focal_y??50,0,100,'%')}
+        <div class="fl" style="margin-top:.25rem">Viewfinder — tablet &amp; mobile framing</div>
+        <div class="fhint" style="margin-bottom:.35rem">Drag to choose what stays visible on each device (works for images &amp; videos). Double-click a frame to re-center.</div>
+        <input type="hidden" data-f="focalTab_x" value="${sl.focalTab_x??''}"><input type="hidden" data-f="focalTab_y" value="${sl.focalTab_y??''}"><input type="hidden" data-f="focalMob_x" value="${sl.focalMob_x??''}"><input type="hidden" data-f="focalMob_y" value="${sl.focalMob_y??''}">
+        <div id="hcVF_${i}" style="display:flex;gap:.8rem;flex-wrap:wrap;align-items:flex-start;margin-top:.3rem"></div>
         <div class="fdiv"></div>
         <div class="field"><label>Eyebrow</label><input type="text" data-f="eyebrow" value="${he(sl.eyebrow)}" placeholder="Small text above heading"></div>
         <div class="field"><label>Heading (↵=line break)</label><textarea data-f="heading" rows="2">${he(sl.heading)}</textarea></div>
@@ -1180,22 +1490,25 @@ function buildForm(s){
       h+=fhd('Grid Settings')
         +f('heading','Section Heading',g.heading)
         +sel('layout_width','Section Width',g.layout_width||'full',[['full','Full Bleed (Edge to Edge)'],['1400','Contained - Wide (1400px)'],['1200','Contained - Standard (1200px)'],['1000','Contained - Narrow (1000px)'],['800','Contained - Slim (800px)']])
-        +sel('layout','Layout',g.layout||'grid',[['grid','Static Grid'],['scroll','Horizontal Scroll']])
-        +sel('columns','Columns (grid mode)',String(g.columns||3),[['1','1'],['2','2'],['3','3'],['4','4']])
         +sel('gap','Gap Between Cards',g.gap||'md',[['none','None'],['xs','XS'],['sm','Small'],['md','Medium'],['lg','Large']])
         +sel('aspect','Aspect Ratio',g.aspect||'portrait',[['square','Square (1:1)'],['portrait','Portrait (3:4)'],['wide','Wide (16:9)'],['auto','Auto']])
         +f('card_height','Card Height (optional)',g.card_height,'text','e.g. 500px')
+        +fdiv()+platFields(g,'grid','grid','swipe')
         +fdiv()+fhd('Cards');
       const cards=g.cards||[];
       h+=`<div class="flist" data-arr="cards">${cards.map((cd,i)=>`<div data-arr-item style="background:var(--bg);border:1px solid var(--bd);border-radius:4px;padding:.55rem .6rem;margin-bottom:.4rem">
-        <div class="flist-item-hd"><span class="flist-item-lbl">Card ${i+1}</span><button class="flist-rm" onclick="removeArrItem(this,'cards')">✕</button></div>
+        <div class="flist-item-hd"><span class="flist-item-lbl">Card ${i+1}</span><span class="flist-acts"><button class="flist-mv" onclick="moveArrItem(this,-1)" title="Move up">↑</button><button class="flist-mv" onclick="moveArrItem(this,1)" title="Move down">↓</button><button class="flist-mv" onclick="dupArrItem(this)" title="Duplicate">⎘</button><button class="flist-rm" onclick="removeArrItem(this,'cards')">✕</button></span></div>
         <div class="field" style="margin-top:.3rem"><label>Media Type</label><select data-f="media_type"><option value="image"${cd.media_type==='image'?' selected':''}>Image</option><option value="video"${cd.media_type==='video'?' selected':''}>Video</option></select></div>
         <div class="field"><label>Media URL</label><div style="display:flex;gap:.3rem;align-items:center"><input type="text" id="cards.${i}.media_url" data-f="media_url" value="${he(cd.media_url)}" placeholder="/images/photo.jpg" style="flex:1"><button type="button" class="img-btn" data-pick="cards.${i}.media_url">📁</button></div></div>
         <div class="field"><label>Video Poster</label><input type="text" data-f="video_poster" value="${he(cd.video_poster)}" placeholder="Poster for video cards"></div>
         <div class="fdiv"></div>
-        <div class="field"><label>Label / CTA Text</label><input type="text" data-f="label" value="${he(cd.label)}" placeholder="Shop Lifestyle"></div>
-        <div class="field"><label>Label Position</label><select data-f="label_position"><option value="below"${(cd.label_position||'below')==='below'?' selected':''}>Below Image</option><option value="overlay-bottom"${cd.label_position==='overlay-bottom'?' selected':''}>Overlay Bottom</option><option value="overlay-center"${cd.label_position==='overlay-center'?' selected':''}>Overlay Center</option></select></div>
-        <div class="field"><label>Link URL</label><input type="text" data-f="link_url" value="${he(cd.link_url)}" placeholder="/drop001.html?category=..."></div>
+        <div class="field"><label>Label / Title</label><input type="text" data-f="label" value="${he(cd.label)}" placeholder="e.g. Sportswear"></div>
+        <div class="field"><label>Description (optional)</label><input type="text" data-f="sublabel" value="${he(cd.sublabel)}" placeholder="e.g. From the pitch to the street."></div>
+        <div class="field"><label>Button Text (optional)</label><input type="text" data-f="cta_text" value="${he(cd.cta_text)}" placeholder="e.g. Shop Now"></div>
+        <div class="field"><label>Text Placement</label><select data-f="label_position"><option value="below"${(cd.label_position||'below')==='below'?' selected':''}>Below Image (title + description under)</option><option value="overlay-bottom"${cd.label_position==='overlay-bottom'?' selected':''}>Overlay — Bottom Left</option><option value="overlay-top"${cd.label_position==='overlay-top'?' selected':''}>Overlay — Top Left</option><option value="overlay-center"${cd.label_position==='overlay-center'?' selected':''}>Overlay — Center</option></select></div>
+        <div class="tog2"><label>Label in a box</label><label class="switch"><input type="checkbox" data-f="label_boxed" ${cd.label_boxed!==false?'checked':''}><span class="sw-sl"></span></label></div>
+        <div class="fhint" style="margin:-.15rem 0 .3rem">On for a solid rectangle behind the label; off for plain text on the image (overlay placements only).</div>
+        <div class="field"><label>Link URL (whole card + button)</label><input type="text" data-f="link_url" value="${he(cd.link_url)}" placeholder="/drop001.html?category=..."></div>
         <div class="fdiv"></div>
         <div class="fl" style="margin-top:.1rem">Watch Button</div>
         <div class="tog2"><label>Show Watch Button</label><label class="switch"><input type="checkbox" data-f="watch_btn" ${cd.watch_btn?'checked':''}><span class="sw-sl"></span></label></div>
@@ -1211,20 +1524,28 @@ function buildForm(s){
   // ── Universal Section Style controls (appended to every section editor)
   h+=`<div class="fdiv"></div>
 <div class="tab-hd" style="margin-top:.2rem;font-size:.55rem;">Section Style</div>
-${colorF('sec_bg','Background',g.sec_bg||'')}
+${colorF('sec_bg','Background',g.sec_bg||g.bg_color||'')}
 <div class="fhint" style="margin-top:-.3rem">Leave blank for default background</div>
+${colorF('text_color','Text Color',g.text_color||'')}
+<div class="fhint" style="margin-top:-.3rem">Leave blank to inherit the page text color</div>
+<div class="field"><label>Heading Size</label><input type="text" data-f="heading_size" value="${he(g.heading_size||'')}" placeholder="blank = default · e.g. 2.5rem, 48px, clamp(2rem,5vw,3rem)"></div>
 <div class="frow">
   <div class="field"><label>Top Padding (px)</label><input type="number" data-f="pad_top" value="${g.pad_top||''}" placeholder="0" min="0"></div>
   <div class="field"><label>Bottom Padding (px)</label><input type="number" data-f="pad_bot" value="${g.pad_bot||''}" placeholder="0" min="0"></div>
 </div>
 <div class="tog2"><label>Hide on Mobile</label><label class="switch"><input type="checkbox" data-f="hide_mobile" ${g.hide_mobile?'checked':''}><span class="sw-sl"></span></label></div>
 <div class="tog2"><label>Hide on Desktop</label><label class="switch"><input type="checkbox" data-f="hide_desktop" ${g.hide_desktop?'checked':''}><span class="sw-sl"></span></label></div>
-<div class="field"><label>Anchor ID (for #links)</label><input data-f="anchor_id" value="${he(g.anchor_id||'')}" placeholder="e.g. about"></div>`;
+<div class="field"><label>Anchor ID (for #links)</label><input data-f="anchor_id" value="${he(g.anchor_id||'')}" placeholder="e.g. about"></div>
+<div class="fdiv"></div>
+<div class="fl">⏱ Schedule visibility (optional)</div>
+<div class="fhint" style="margin-bottom:.3rem">Show this section only within a date/time window (uses the shopper's local time). Leave blank for always on. For an exact site-wide launch, use “Schedule publish” in the top bar instead.</div>
+<div class="field"><label>Show from</label><input type="datetime-local" data-f="visible_from" value="${he(g.visible_from||'')}"></div>
+<div class="field"><label>Show until</label><input type="datetime-local" data-f="visible_until" value="${he(g.visible_until||'')}"></div>`;
   h+=`${fdiv()}<button class="apply-btn" onclick="manualApply()">▶ Apply to Preview</button><button class="del-sec" onclick="removeSec('${s.id}')">🗑 Remove Section</button>`;
   return h;
 }
 
-function manualApply(){const s=sections.find(x=>x.id===selId);if(s){syncForm(s);sendCfg();toast('Applied to preview');}}
+function manualApply(){const s=curSections().find(x=>x.id===selId);if(!s)return;syncForm(s);if(secStore){saveLandingPages(false);}else{sendCfg();toast('Applied to preview');}}
 
 // ── MEDIA LIBRARY ─────────────────────────────────────────────────────────
 const SITE_IMGS=[{label:'Hero',src:'/images/hero.jpg?v=2'},{label:'Hero Mobile',src:'/images/hero-mobile.jpg'},{label:'OG Image',src:'/images/og-image.jpg'},{label:'Logo',src:'/images/logo.png?v=2'},{label:'Wordmark',src:'/images/wordmark.png'}];
@@ -1272,13 +1593,63 @@ function applyMedia(src){
 }
 window.applyMediaUrl=function(url){applyMedia(url);};
 
+// Decode a file to an ImageBitmap (fast path) or HTMLImageElement (fallback).
+function loadBitmapForCompress(file){
+  if(window.createImageBitmap){
+    return createImageBitmap(file).catch(()=>loadImgEl(file));
+  }
+  return loadImgEl(file);
+}
+function loadImgEl(file){
+  return new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{ resolve(img); setTimeout(()=>URL.revokeObjectURL(url),0); };
+    img.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error('decode failed')); };
+    img.src=url;
+  });
+}
+// Downscale + re-encode large raster photos before upload. Raw 2–4 MB phone/
+// export images are the main reason heroes & cards feel slow: even with the
+// Cloudinary layer, the first transform must download the full original. Cap the
+// long edge at 2000px (the site never displays wider than 1400) and re-encode to
+// WebP — usually a 10–20× shrink with no visible loss. Always falls back to the
+// original on anything unexpected so an upload never breaks.
+async function compressImage(file){
+  try{
+    const type=(file.type||'').toLowerCase();
+    if(!/^image\//.test(type) || type==='image/gif' || type==='image/svg+xml') return file;
+    const MAX=2000, Q=0.82;
+    const bmp=await loadBitmapForCompress(file);
+    const w=bmp.width||bmp.naturalWidth, h=bmp.height||bmp.naturalHeight;
+    if(!w||!h) return file;
+    const scale=Math.min(1, MAX/Math.max(w,h));
+    const tw=Math.max(1,Math.round(w*scale)), th=Math.max(1,Math.round(h*scale));
+    const canvas=document.createElement('canvas');
+    canvas.width=tw; canvas.height=th;
+    canvas.getContext('2d').drawImage(bmp,0,0,tw,th);
+    if(bmp.close) bmp.close();
+    let blob=await new Promise(r=>canvas.toBlob(r,'image/webp',Q));
+    if(!blob) blob=await new Promise(r=>canvas.toBlob(r,'image/jpeg',Q));
+    if(!blob || blob.size>=file.size) return file; // no win — keep original
+    const base=(file.name||'image').replace(/\.[^.]+$/,'');
+    return new File([blob], base+(blob.type==='image/webp'?'.webp':'.jpg'), {type:blob.type});
+  }catch(_){ return file; }
+}
+
 async function uploadFromMedia(input){
-  const file=input.files[0];if(!file)return;
+  let file=input.files[0];if(!file)return;
   // Hero videos should be short, compressed web clips — warn on heavy files.
   if(/^video\//.test(file.type||'') && file.size>15*1024*1024){
     if(!confirm('This video is '+(file.size/1048576).toFixed(1)+' MB. Large videos slow the page on first load — aim for a short, compressed clip (ideally under ~10 MB). Upload anyway?'))return;
   }
   try{
+    // Shrink heavy photos client-side so the stored master is small (fast first
+    // load + fast Cloudinary transforms). Videos/GIFs/SVGs pass through untouched.
+    const origSize=file.size;
+    const compressed=await compressImage(file);
+    const didShrink=compressed!==file;
+    file=compressed;
     // Storage RLS requires profiles.role='admin', which the builder JWT doesn't
     // satisfy directly. Upload through the server endpoint (service role) instead
     // — same trust model as Save/Publish — so it always works for the builder.
@@ -1290,7 +1661,8 @@ async function uploadFromMedia(input){
     const res=await fetch('/api/upload-image',{method:'POST',body:fd});
     let out={}; try{ out=await res.json(); }catch(_){}
     if(!res.ok||!out.url)throw new Error(out.error||('HTTP '+res.status));
-    applyMedia(out.url);toast('Uploaded','ok');
+    applyMedia(out.url);
+    toast(didShrink ? ('Compressed '+(origSize/1048576).toFixed(1)+'MB → '+Math.round(file.size/1024)+'KB') : 'Uploaded','ok');
   }catch(e){
     // Don't silently fall back to a blob: URL — it can't load once saved/published.
     showErr('Upload failed: '+((e&&e.message)||e||'unknown')+'. Try again, or paste an image URL instead.');
@@ -1298,11 +1670,17 @@ async function uploadFromMedia(input){
 }
 
 // ── LIBRARY ───────────────────────────────────────────────────────────────
+// Section types bound to the homepage template (they update existing index.html
+// markup / load the drop grid) — these can't render on a landing page, so they
+// stay hidden from the Pages-tab palette. `hero` IS allowed: a hero section is
+// how you place a hero below the products (turn off the auto hero if you don't
+// want it at the top too).
+const HOMEPAGE_ONLY_TYPES=['products','release'];
 function openLib(){
   const cats={store:'Store Sections',marketing:'Marketing & Content',layout:'Layout Blocks'};
   let html='';
   Object.entries(cats).forEach(([cat,catLabel])=>{
-    const types=Object.entries(TYPES).filter(([,t])=>t.cat===cat);
+    const types=Object.entries(TYPES).filter(([type,t])=>t.cat===cat && !(secStore && HOMEPAGE_ONLY_TYPES.includes(type)));
     if(!types.length)return;
     html+=`<div class="sc-cat">${catLabel}</div>`;
     html+=types.map(([type,d])=>`<div class="sc" onclick="addSec('${type}')"><div class="sc-ico">${d.icon}</div><div class="sc-nm">${type.replace(/_/g,' ')}</div><div class="sc-ds">${d.desc}</div></div>`).join('');
@@ -1313,11 +1691,12 @@ function openLib(){
 function closeLib(){document.getElementById('libModal').classList.remove('open');}
 
 function addSec(type){
-  closeLib();pushUndo();
+  closeLib();curPushUndo();
   const id=type+'-'+Date.now();
-  const maxOrd=Math.max(...sections.map(s=>s.order||0),-1);
-  sections.push({id,type,label:type.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),visible:true,order:maxOrd+1,settings:{...SECT_DEFS[type]||{}}});
-  markDirty();renderLP();selectSec(id);schedSend();toast('Section added');
+  const arr=curSections();
+  const maxOrd=Math.max(...arr.map(s=>s.order||0),-1);
+  arr.push({id,type,label:type.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),visible:true,order:maxOrd+1,settings:{...SECT_DEFS[type]||{}}});
+  curDirty();renderLP();selectSec(id);curApply();toast('Section added');
 }
 
 // ── PREVIEW ───────────────────────────────────────────────────────────────
@@ -1350,8 +1729,19 @@ function setTheme(t){pvTheme=t;document.querySelectorAll('#thTog button').forEac
 let _sendT2;
 function schedSend(){clearTimeout(_sendT2);_sendT2=setTimeout(sendCfg,350);}
 function sendCfg(){
-  try{localStorage.setItem('_zw_builder_cfg',JSON.stringify({sections,theme:pvTheme,themeSettings,navSettings,seoSettings,_v:Date.now()+'-'+Math.random()}));}
+  const cfg={sections,theme:pvTheme,themeSettings,navSettings,seoSettings,_v:Date.now()+'-'+Math.random()};
+  // localStorage is the seed channel: it survives an iframe reload (the preview
+  // reads it on load) and reaches the iframe via its storage event / 300ms poll.
+  // A big layout can exceed the ~5MB quota, in which case setItem throws and the
+  // preview would silently go stale — so we ALSO push straight to the iframe.
+  try{localStorage.setItem('_zw_builder_cfg',JSON.stringify(cfg));}
   catch(e){showErr('localStorage: '+e.message);}
+  // Direct push: instant, and works even when localStorage is full or the poll/
+  // storage event is missed. The iframe accepts same-origin ZW_BUILDER_CONFIG.
+  try{
+    const ifr=document.getElementById('pvIframe');
+    if(ifr&&ifr.contentWindow) ifr.contentWindow.postMessage(Object.assign({type:'ZW_BUILDER_CONFIG'},cfg),location.origin);
+  }catch(e){}
 }
 
 function scrollPreviewTo(id){
@@ -1360,8 +1750,8 @@ function scrollPreviewTo(id){
 
 // ── UNDO / REDO ───────────────────────────────────────────────────────────
 function pushUndo(){if(undoStack.length>25)undoStack.shift();undoStack.push(clone(sections));redoStack=[];}
-function undo(){if(!undoStack.length){toast('Nothing to undo');return;}redoStack.push(clone(sections));sections=undoStack.pop();markDirty();if(selId&&!sections.find(s=>s.id===selId))closeEd();else if(selId){const s=sections.find(x=>x.id===selId);if(s)openEditor(s);}renderLP();sendCfg();toast('Undone');}
-function redo(){if(!redoStack.length){toast('Nothing to redo');return;}undoStack.push(clone(sections));sections=redoStack.pop();markDirty();renderLP();sendCfg();toast('Redone');}
+function undo(){if(secStore)return;if(!undoStack.length){toast('Nothing to undo');return;}redoStack.push(clone(sections));sections=undoStack.pop();markDirty();if(selId&&!sections.find(s=>s.id===selId))closeEd();else if(selId){const s=sections.find(x=>x.id===selId);if(s)openEditor(s);}renderLP();sendCfg();toast('Undone');}
+function redo(){if(secStore)return;if(!redoStack.length){toast('Nothing to redo');return;}undoStack.push(clone(sections));sections=redoStack.pop();markDirty();renderLP();sendCfg();toast('Redone');}
 
 // ── EXPORT / IMPORT ───────────────────────────────────────────────────────
 function exportCfg(){
@@ -1395,6 +1785,9 @@ function importCfg(){
 // ── SAVE / PUBLISH / REVERT ───────────────────────────────────────────────
 async function saveDraft(auto=false){
   if(auto&&!dirty)return;
+  // Manual Save Draft on the Pages tab saves the LANDING draft (the page you're
+  // editing); the 60s autosave stays homepage-only (guarded by `dirty` above).
+  if(!auto && curTab==='pages'){ await saveLandingPages(false); return; }
   status('Saving…');dotCls('y');
   const ok=await saveToSupa('page_builder',{sections,theme:pvTheme,themeSettings,navSettings,seoSettings},false);
   if(ok){lastSaved=clone(sections);status('Saved · '+new Date().toLocaleTimeString());dotCls('g');if(!auto)toast('Draft saved','ok');}
@@ -1402,10 +1795,88 @@ async function saveDraft(auto=false){
   setTimeout(()=>dotCls(''),3000);
 }
 
+// Shareable homepage draft link. Needs the page_builder draft to be public-read
+// (RLS) — run the ALTER POLICY provided. Saves the draft first so it's current.
+async function copyHomepageDraftLink(){
+  try{document.getElementById('moreMenu').hidden=true;}catch(_){}
+  try{ await saveDraft(true); }catch(_){}
+  const url=location.origin+'/?builder=1';
+  try{ await navigator.clipboard.writeText(url); toast('Homepage draft link copied 🔗','ok'); }
+  catch(_){ try{ prompt('Copy this homepage draft link:',url); }catch(__){ toast(url); } }
+}
+// ── SCHEDULED PUBLISH ─────────────────────────────────────────────────────
+// Snapshots the current homepage draft + a publish time into site_settings
+// (key scheduled_publish); a Supabase pg_cron job promotes it to the live
+// page_builder_published when due. See the SQL you ran in the Supabase editor.
+async function openSchedulePublish(){
+  try{document.getElementById('moreMenu').hidden=true;}catch(_){}
+  let pending=null;
+  try{const sb=getSb();if(sb){const r=await sb.from('site_settings').select('value').eq('key','scheduled_publish').maybeSingle();pending=(r&&r.data&&r.data.value)||null;}}catch(_){}
+  const old=document.getElementById('schedOverlay');if(old)old.remove();
+  const ov=document.createElement('div');ov.id='schedOverlay';
+  ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:1rem';
+  const pendingHtml=(pending&&pending.publish_at)?`<div style="background:rgba(248,145,165,.12);border:1px solid rgba(248,145,165,.4);border-radius:6px;padding:.6rem .7rem;margin-bottom:.8rem;font-size:.72rem">⏰ Scheduled for <b>${new Date(pending.publish_at).toLocaleString()}</b><br><button onclick="cancelScheduledPublish()" style="margin-top:.45rem;background:none;border:1px solid var(--bd);color:#e07060;border-radius:4px;padding:.25rem .6rem;cursor:pointer;font-size:.62rem">Cancel this schedule</button></div>`:'';
+  ov.innerHTML=`<div style="background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:1.2rem;max-width:360px;width:100%;color:#f4f1eb">
+    <div style="font-family:'Barlow Condensed';font-weight:900;font-style:italic;text-transform:uppercase;font-size:1.1rem;letter-spacing:.04em;margin-bottom:.3rem">Schedule Publish</div>
+    <div style="font-size:.72rem;opacity:.7;margin-bottom:.8rem">Auto-publish the current homepage draft at a chosen time (your local time). The draft is snapshotted now, so later edits won't change what goes live.</div>
+    ${pendingHtml}
+    <label style="font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;opacity:.7">Publish at</label>
+    <input id="schedWhen" type="datetime-local" style="width:100%;margin:.3rem 0 .9rem;padding:.5rem;background:var(--bg);border:1px solid var(--bd);color:#f4f1eb;border-radius:5px">
+    <div style="display:flex;gap:.5rem;justify-content:flex-end">
+      <button onclick="document.getElementById('schedOverlay').remove()" style="background:none;border:1px solid var(--bd);color:#f4f1eb;border-radius:5px;padding:.45rem .9rem;cursor:pointer;font-size:.72rem">Close</button>
+      <button onclick="schedulePublish()" style="background:#f4f1eb;color:#09090b;border:none;border-radius:5px;padding:.45rem .9rem;cursor:pointer;font-weight:600;font-size:.72rem">Schedule</button>
+    </div>
+  </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+async function schedulePublish(){
+  const el=document.getElementById('schedWhen');
+  if(!el||!el.value){showErr('Pick a date & time');return;}
+  const dt=new Date(el.value);
+  if(isNaN(dt.getTime())){showErr('Invalid date/time');return;}
+  if(dt.getTime()<=Date.now()){showErr('Pick a time in the future');return;}
+  const snapshot={sections:clone(sections),theme:pvTheme,themeSettings,navSettings,seoSettings,updated_at:new Date().toISOString(),published:true};
+  const rec={publish_at:dt.toISOString(),target_key:'page_builder_published',value:snapshot};
+  try{
+    const token=await getAccessToken();if(!token)throw new Error('Session expired');
+    await saveDraft(true).catch(()=>{});
+    const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:token,key:'scheduled_publish',value:rec})});
+    if(!res.ok)throw new Error(await res.text());
+    toast('Scheduled to publish '+dt.toLocaleString(),'ok');
+    const ov=document.getElementById('schedOverlay');if(ov)ov.remove();
+  }catch(e){showErr(e.message);}
+}
+async function cancelScheduledPublish(){
+  try{
+    const token=await getAccessToken();if(!token)throw new Error('Session expired');
+    // The save API upserts (no delete): overwrite with a no-publish_at record the
+    // cron ignores, which effectively cancels it.
+    const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:token,key:'scheduled_publish',value:{cancelled:true}})});
+    if(!res.ok)throw new Error(await res.text());
+    toast('Schedule cancelled','ok');
+    const ov=document.getElementById('schedOverlay');if(ov)ov.remove();
+  }catch(e){showErr(e.message);}
+}
+
 async function publishPage(){
+  // On the Pages tab the top Publish publishes the LANDING page you're viewing
+  // (not the homepage) — otherwise landing edits silently never go live.
+  if(curTab==='pages'){ await saveLandingPages(true); return; }
   status('Publishing…');dotCls('y');
   const ok=await saveToSupa('page_builder',{sections,theme:pvTheme,themeSettings,navSettings,seoSettings},true);
   if(ok){lastSaved=clone(sections);dirty=false;status('Published ✓');dotCls('g');toast('Published! Changes are live.','ok');
+    // Warm the homepage hero flash-prevention cache (same origin) so the admin's
+    // next homepage visit paints correctly via the synchronous <head> bootstrap:
+    //  • zw-hero-image  → the static hero image (when a hero section exists)
+    //  • zw_hide_static_hero → '1' when the layout is carousel-led (no hero
+    //    section), so the <head> hides the baked-in static hero before paint.
+    try{
+      const _hero=sections.find(s=>s&&s.type==='hero'&&s.visible!==false);
+      const _hi=_hero&&_hero.settings&&_hero.settings.image;if(_hi)localStorage.setItem('zw-hero-image',_hi);
+      localStorage.setItem('zw_hide_static_hero',_hero?'':'1');
+      localStorage.setItem('zw_pb_active','1');
+    }catch(_){}
     // save snapshot on publish
     versionHistory.push({ts:new Date().toISOString(),label:'Published',sections:clone(sections)});
     if(versionHistory.length>15)versionHistory.shift();

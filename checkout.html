@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <script>
-/* THEME FLASH PREVENTION — runs before any CSS loads */
+/* THEME FLASH PREVENTION ï¿½ runs before any CSS loads */
 (function(){try{
   var m=localStorage.getItem('zw_theme_mode');
   var h=document.documentElement;
@@ -22,8 +22,8 @@
     if(f.css){var s=document.createElement('style');s.textContent=f.css;document.head.appendChild(s);}
   }
 }catch(_){}})()</script>
-  <title>Checkout — Zuwera</title>
-  <meta name="description" content="Secure checkout — Zuwera.">
+  <title>Checkout ï¿½ Zuwera</title>
+  <meta name="description" content="Secure checkout ï¿½ Zuwera.">
   <meta name="color-scheme" content="dark">
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png?v=3" id="site-favicon">
@@ -39,6 +39,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
   <script src="/supabase.min.js?v=3277b334" defer></script>
   <script src="/favicon-utils.js?v=687e90ea" defer></script>
+  <script src="/header-scroll.js?v=4a734678" defer></script>
+  <script src="/flags.js?v=1" defer></script>
   <script src="/meta-pixel.js?v=71fe06fb" defer></script>
   <script src="/google-tag.js?v=b141b2a1" defer></script>
   <script src="/stripe-client-config.js?v=c262166e" defer></script>
@@ -92,7 +94,12 @@
       padding: calc(env(safe-area-inset-top, 0px) + .55rem) 1.25rem .55rem;
       background: var(--bg);
       border-bottom: 1px solid var(--border);
+      transition: transform .35s cubic-bezier(.22,.61,.36,1);
     }
+    /* Auto-hide (admin: Header Scroll Behavior â†’ Checkout). header-scroll.js
+       toggles .zw-nav-hidden by scroll direction; reduced-motion keeps it shown. */
+    .co-header.zw-nav-hidden { transform: translateY(-110%); }
+    @media (prefers-reduced-motion: reduce) { .co-header.zw-nav-hidden { transform: none; } }
     .co-back {
       display: flex;
       align-items: center;
@@ -103,7 +110,7 @@
       text-transform: uppercase;
       color: var(--sub);
       text-decoration: none;
-      transition: color .18s;
+      transition: color .2s;
       width: 90px;
       flex-shrink: 0;
     }
@@ -111,7 +118,7 @@
     .co-logo-wrap {
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       flex: 1;
       text-decoration: none;
     }
@@ -232,7 +239,7 @@
       letter-spacing: .14em;
       text-transform: uppercase;
     }
-    .co-sum-chevron { transition: transform .22s; flex-shrink: 0; }
+    .co-sum-chevron { transition: transform .2s; flex-shrink: 0; }
     .co-summary-toggle[aria-expanded="true"] .co-sum-chevron { transform: rotate(180deg); }
     .co-sum-toggle-right { font-size: .92rem; font-weight: 600; flex-shrink: 0; }
 
@@ -247,18 +254,20 @@
     .pm-item-info { flex: 1; min-width: 0; }
     .pm-item-title { font-family: var(--font-head); font-size: 1.05rem; font-weight: 900; font-style: italic; letter-spacing: .04em; line-height: 1.2; text-transform: uppercase; }
     .pm-item-meta { font-family: var(--font-mono); font-size: .65rem; color: var(--sub); text-transform: uppercase; letter-spacing: .07em; margin-top: .3rem; display: flex; align-items: center; gap: .25rem; }
-    /* Price in Barlow Condensed (NOT mono), bold — matches the storefront cards. */
+    /* Price in Barlow Condensed (NOT mono), bold ï¿½ matches the storefront cards. */
     .pm-item-price { font-family: var(--font-head); font-size: 1.05rem; font-weight: 700; letter-spacing: .01em; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+    .pm-item-remove { background: none; border: none; padding: 0; margin-top: .45rem; font-family: var(--font-mono); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; color: var(--sub); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; transition: color .2s; }
+    .pm-item-remove:hover { color: var(--text); }
 
     .pm-lines { border-top: 1px solid var(--border); padding-top: .85rem; margin-top: .2rem; display: flex; flex-direction: column; gap: .4rem; margin-bottom: .9rem; }
     .pm-line { display: flex; justify-content: space-between; font-size: .9rem; color: var(--sub); font-variant-numeric: tabular-nums; }
-    /* Line-item labels — small muted mono uppercase to match the bag page summary */
+    /* Line-item labels ï¿½ small muted mono uppercase to match the bag page summary */
     .pm-line > span:first-child { font-family: var(--font-mono); font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; opacity: .7; }
-    /* Line values (subtotal/shipping/tax) — Barlow Condensed + full-strength colour
+    /* Line values (subtotal/shipping/tax) ï¿½ Barlow Condensed + full-strength colour
        so the money is legible (was muted mono inheriting --sub). */
     .pm-line > span:last-child { font-family: var(--font-head); font-weight: 600; font-size: 1rem; color: var(--text); }
     .pm-total-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 1rem; font-weight: 600; border-top: 1px solid var(--border2); padding-top: .7rem; color: var(--text); font-variant-numeric: tabular-nums; margin-bottom: 1.6rem; }
-    /* "TOTAL" label — match the bag page's brand display treatment (italic condensed) */
+    /* "TOTAL" label ï¿½ match the bag page's brand display treatment (italic condensed) */
     .pm-total-row > span:first-child { font-family: var(--font-head); font-style: italic; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: 1.15rem; }
     .pm-total-row > span:last-child { font-family: var(--font-head); font-weight: 700; font-size: 1.15rem; letter-spacing: .01em; font-variant-numeric: tabular-nums; }
 
@@ -282,7 +291,7 @@
       font-family: var(--font-body);
       font-size: 1rem;
       outline: none;
-      transition: border-color .18s;
+      transition: border-color .2s;
       -webkit-appearance: none;
       border-radius: 0;
     }
@@ -290,9 +299,29 @@
     body.light-mode .pfield input { background: rgba(9,9,11,.04); border-color: rgba(9,9,11,.16); color: #09090b; }
     body.light-mode .pfield input:focus { border-color: rgba(9,9,11,.45); }
     body.light-mode .pfield label { color: var(--sub); }
+    /* Delivery method options â€” match the square, bordered look of the inputs */
+    .co-delivery-hint { font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--sub); margin-bottom: .4rem; }
+    .co-delivery-opt {
+      display: flex; align-items: center; gap: .7rem;
+      width: 100%; box-sizing: border-box;
+      background: rgba(244,241,235,.04);
+      border: 1px solid var(--border2);
+      border-radius: 0;
+      padding: .78rem .9rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: border-color .2s;
+    }
+    .co-delivery-opt + .co-delivery-opt { border-top: none; }
+    .co-delivery-opt.is-selected { border-color: rgba(244,241,235,.45); }
+    .co-delivery-opt input { margin: 0; accent-color: rgba(244,241,235,.85); flex-shrink: 0; }
+    .co-delivery-note { font-size: .78rem; color: var(--sub); line-height: 1.5; margin-top: .55rem; }
+    body.light-mode .co-delivery-opt { background: rgba(9,9,11,.04); border-color: rgba(9,9,11,.16); color: #09090b; }
+    body.light-mode .co-delivery-opt.is-selected { border-color: rgba(9,9,11,.45); }
+    body.light-mode .co-delivery-opt input { accent-color: rgba(9,9,11,.8); }
 
     /* Shipping rate options */
-    .rate-opt { display: flex; align-items: center; justify-content: space-between; gap: .7rem; padding: .65rem .85rem; border: 1px solid var(--border2); cursor: pointer; transition: border-color .18s, background .18s; margin-bottom: .4rem; background: rgba(244,241,235,.02); font-size: .84rem; }
+    .rate-opt { display: flex; align-items: center; justify-content: space-between; gap: .7rem; padding: .65rem .85rem; border: 1px solid var(--border2); cursor: pointer; transition: border-color .2s, background .2s; margin-bottom: .4rem; background: rgba(244,241,235,.02); font-size: .84rem; }
     .rate-opt:hover { border-color: rgba(244,241,235,.35); background: rgba(244,241,235,.04); }
     .rate-opt.selected { border-color: rgba(244,241,235,.6); background: rgba(244,241,235,.07); }
     .rate-meta { font-size: .78rem; color: var(--sub); margin-top: .15rem; }
@@ -300,7 +329,7 @@
     body.light-mode .rate-opt.selected { border-color: rgba(9,9,11,.55); }
 
     /* Stripe card */
-    #stripe-card-element { background: rgba(244,241,235,.04); border: 1px solid var(--border2); padding: .8rem .85rem; transition: border-color .18s; }
+    #stripe-card-element { background: rgba(244,241,235,.04); border: 1px solid var(--border2); padding: .8rem .85rem; transition: border-color .2s; }
     #stripe-card-element.StripeElement--focus { border-color: rgba(244,241,235,.45); }
     #stripe-card-element.StripeElement--invalid { border-color: #e07060; }
     body.light-mode #stripe-card-element { background: #f4f1eb; border-color: rgba(9,9,11,.28); }
@@ -318,7 +347,7 @@
     /* Promo */
     #zw-promo-shell { margin-bottom: .9rem; }
     #zw-promo-shell .pm-promo-row { display: flex; gap: .5rem; align-items: stretch; }
-    #zw-promo-input { flex: 1; background: rgba(244,241,235,.04); border: 1px solid var(--border2); color: inherit; padding: .72rem .9rem; font-family: var(--font-body); font-size: .9rem; letter-spacing: .08em; text-transform: uppercase; outline: none; transition: border-color .18s; min-width: 0; }
+    #zw-promo-input { flex: 1; background: rgba(244,241,235,.04); border: 1px solid var(--border2); color: inherit; padding: .72rem .9rem; font-family: var(--font-body); font-size: .9rem; letter-spacing: .08em; text-transform: uppercase; outline: none; transition: border-color .2s; min-width: 0; }
     #zw-promo-input:focus { border-color: rgba(244,241,235,.45); }
     #zw-promo-apply { border: 1px solid rgba(244,241,235,.22); background: transparent; color: inherit; padding: .72rem 1.2rem; font-family: var(--font-body); font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: border-color .2s; }
     #zw-promo-apply:hover { border-color: rgba(244,241,235,.5); }
@@ -340,7 +369,7 @@
       text-transform: uppercase;
       cursor: pointer;
       margin-top: .5rem;
-      transition: opacity .18s;
+      transition: opacity .2s;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -382,7 +411,7 @@
     #payment-success h2 { font-family: var(--font-head); font-size: 2.5rem; letter-spacing: .1em; margin-bottom: .6rem; }
     #payment-success p { color: var(--sub); font-size: .9rem; margin-bottom: 1.5rem; max-width: 340px; line-height: 1.8; }
     #success-order { font-size: .75rem; letter-spacing: .2em; color: var(--dim) !important; }
-    #success-continue { background: rgba(244,241,235,.9); color: #09090b; border: none; padding: .9rem 2.5rem; font-family: var(--font-body); font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; transition: opacity .18s; margin-top: 1rem; }
+    #success-continue { background: rgba(244,241,235,.9); color: #09090b; border: none; padding: .9rem 2.5rem; font-family: var(--font-body); font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; transition: opacity .2s; margin-top: 1rem; }
     #success-continue:hover { opacity: .82; }
     body.light-mode #success-continue { background: #09090b; color: #E8E3DC; }
 
@@ -423,7 +452,7 @@
         margin-bottom: 0;
       }
 
-      /* Desktop summary heading — replaces mobile toggle */
+      /* Desktop summary heading ï¿½ replaces mobile toggle */
       .co-sum-desktop-hd {
         display: flex;
         align-items: center;
@@ -440,12 +469,14 @@
       /* Hide the mobile toggle, always show summary body */
       .co-summary-toggle { display: none !important; }
       .co-summary-body { display: block !important; margin-bottom: 0; }
-      /* Page title — larger on desktop */
+      /* Page title ï¿½ larger on desktop */
       .co-checkout-h { font-size: 3rem; }
       .co-page-title { margin-bottom: 2.5rem; text-align: left; }
     }
   </style>
 <style>body.super-light-mode{background:#FFFFFF!important;--bg:#FFFFFF}body.super-light-mode #toast{background:#FFFFFF!important;color:#09090b!important}</style>
+<script src="error-reporter.js?v=1" defer></script>
+<script src="consent.js?v=1" defer></script>
 </head>
 <body>
 <script>(function(){try{var m=localStorage.getItem('zw_theme_mode');if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
@@ -454,9 +485,8 @@
 
 <!-- HEADER -->
 <header class="co-header">
-  <!-- "Bag" back-link removed: the bag icon at top-right already links to
-       /bag.html. Spacer mirrors .co-header-right's 90px to keep the logo centered. -->
-  <div style="width:90px;flex-shrink:0" aria-hidden="true"></div>
+  <!-- Logo is left-aligned to match the rest of the site (storefront nav, etc.).
+       The bag icon at top-right links to /bag.html. -->
   <a href="/" class="co-logo-wrap" aria-label="Zuwera home">
     <img src="images/logo.png?v=2" alt="ZUWERA" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
     <span style="display:none;font-family:var(--font-head);font-size:1.4rem;letter-spacing:.15em">ZUWERA</span>
@@ -479,14 +509,14 @@
       <!-- PAGE TITLE -->
       <div class="co-page-title">
         <h1 class="co-checkout-h">Checkout</h1>
-        <div class="co-checkout-sub" id="co-checkout-sub">Loading…</div>
+        <div class="co-checkout-sub" id="co-checkout-sub">Loadingï¿½</div>
       </div>
 
       <!-- WALLET BUTTONS -->
-      <div class="zw-test-mode-banner" data-stripe-test-banner>Test mode active — use Stripe test cards only.</div>
+      <div class="zw-test-mode-banner" data-stripe-test-banner>Test mode active ï¿½ use Stripe test cards only.</div>
       <div id="payment-request-btn" style="display:none" aria-hidden="true"></div>
       <div id="wallet-methods" class="wallet-methods" aria-hidden="true"></div>
-      <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0 1.4rem;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.28)">— or pay with card —</div>
+      <div id="pay-divider" style="display:none;text-align:center;margin:.8rem 0 1.4rem;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(244,241,235,.28)">ï¿½ or pay with card ï¿½</div>
 
       <!-- CONTACT -->
       <div class="co-section">
@@ -510,13 +540,13 @@
       <!-- SHIPPING -->
       <div class="co-section">
         <div class="co-section-hd"><span class="co-section-label">Shipping</span></div>
-        <div id="shipping-rates-loading" style="display:none;font-size:.8rem;color:var(--sub);letter-spacing:.04em;margin-bottom:.5rem">Fetching rates…</div>
+        <div id="shipping-rates-loading" style="display:none;font-size:.8rem;color:var(--sub);letter-spacing:.04em;margin-bottom:.5rem">Fetching ratesï¿½</div>
         <div id="shipping-rates-field" style="display:none"><div id="shipping-rates-list"></div></div>
         <div id="shipping-free-row" style="display:none;align-items:center;justify-content:space-between;font-size:.9rem">
           <span>Standard Shipping</span>
           <span style="color:var(--text)">Free</span>
         </div>
-        <div id="shipping-placeholder" style="font-size:.88rem;color:var(--sub)">Free on orders $100+ — calculated at checkout</div>
+        <div id="shipping-placeholder" style="font-size:.88rem;color:var(--sub)">Free on orders $100+ ï¿½ calculated at checkout</div>
       </div>
 
       <!-- PROMO CODE -->
@@ -555,7 +585,7 @@
             In Your Bag
             <svg class="co-sum-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
           </span>
-          <span class="co-sum-toggle-right" id="pm-toggle-total">—</span>
+          <span class="co-sum-toggle-right" id="pm-toggle-total">ï¿½</span>
         </div>
       </button>
 
@@ -563,12 +593,12 @@
       <div class="co-summary-body" id="pm-summary-body">
         <div class="pm-items" id="pm-items"></div>
         <div class="pm-lines">
-          <div class="pm-line"><span>Subtotal</span><span id="pm-subtotal">—</span></div>
-          <div class="pm-line"><span>Shipping</span><span id="pm-shipping">—</span></div>
-          <div class="pm-line" id="zw-promo-row" style="display:none"><span>Discount</span><span id="zw-promo-discount" style="color:rgba(110,210,130,.9)">—</span></div>
-          <div class="pm-line"><span id="pm-tax-label">Tax</span><span id="pm-tax">—</span></div>
+          <div class="pm-line"><span>Subtotal</span><span id="pm-subtotal">ï¿½</span></div>
+          <div class="pm-line"><span>Shipping</span><span id="pm-shipping">ï¿½</span></div>
+          <div class="pm-line" id="zw-promo-row" style="display:none"><span>Discount</span><span id="zw-promo-discount" style="color:rgba(110,210,130,.9)">ï¿½</span></div>
+          <div class="pm-line"><span id="pm-tax-label">Tax</span><span id="pm-tax">ï¿½</span></div>
         </div>
-        <div class="pm-total-row"><span>Total</span><span id="pm-total">—</span></div>
+        <div class="pm-total-row"><span>Total</span><span id="pm-total">ï¿½</span></div>
       </div>
 
     </div><!-- /.co-summary-col -->
@@ -588,7 +618,7 @@
 <!-- auth-modal stub (auth.js may reference this ID) -->
 <div id="auth-modal" style="display:none" aria-hidden="true"></div>
 
-<script src="/posthog-init.js?v=6ebbeafc"></script>
+<script src="/posthog-init.js?v=c4b554c4"></script>
 <script>
 /* -- Globals expected by checkout.js / commerce-checkout.js -- */
 window.cartItems = [];
@@ -633,7 +663,7 @@ window._checkoutPrefill = async function() {
     ) : null;
     if (!_coSb) return;
 
-    /* Get session — force-refresh if token is expired or within 60 s of expiry */
+    /* Get session ï¿½ force-refresh if token is expired or within 60 s of expiry */
     var res = await _coSb.auth.getSession();
     var session = res.data && res.data.session;
     if (session) {
@@ -672,7 +702,7 @@ window._checkoutPrefill = async function() {
       if (emailEl && !emailEl.value.trim() && email) emailEl.value = email;
     }
 
-    /* Try cached profile first — works even with expired token */
+    /* Try cached profile first ï¿½ works even with expired token */
     try {
       var cached = localStorage.getItem('zuwera-profile');
       if (cached) {
@@ -780,7 +810,7 @@ window.zwClearPromo = function() {
     var n = cart.reduce(function(s,i){ return s + (i.quantity||1); }, 0);
     var sub = cart.reduce(function(s,i){ return s + parseFloat(i.price||0)*(i.quantity||1); }, 0);
     var el = document.getElementById('co-checkout-sub');
-    if (el) el.textContent = n + ' item' + (n!==1?'s':'') + ' · $' + sub.toFixed(2);
+    if (el) el.textContent = n + ' item' + (n!==1?'s':'') + ' ï¿½ $' + sub.toFixed(2);
     var countEl = document.getElementById('co-bag-count');
     if (countEl) countEl.textContent = n;
   }
@@ -792,7 +822,7 @@ window.zwClearPromo = function() {
   function zwColorDot(item) {
     var hex = item.colorHex || _zwColorMap[(item.colorName||'').toLowerCase().trim()] || '';
     if (!hex) return '';
-    // Older cart items may carry a bare hex ("FFFFFF") — invalid as a CSS color.
+    // Older cart items may carry a bare hex ("FFFFFF") ï¿½ invalid as a CSS color.
     if (/^[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(hex)) hex = '#' + hex;
     return '<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:'+hex+';border:1px solid rgba(0,0,0,.18);margin-right:4px;vertical-align:middle;flex-shrink:0"></span>';
   }
@@ -800,7 +830,7 @@ window.zwClearPromo = function() {
     var cart = window.cartItems;
     var itemsEl = document.getElementById('pm-items');
     if (itemsEl) {
-      itemsEl.innerHTML = cart.map(function(item) {
+      itemsEl.innerHTML = cart.map(function(item, i) {
         var imgSrc = (typeof window.optimizeImage === 'function')
           ? window.optimizeImage(item.image, 160) : (item.image || '');
         var price = (parseFloat(item.price||0)*(item.quantity||1)).toFixed(2);
@@ -811,27 +841,49 @@ window.zwClearPromo = function() {
         var sizePart = item.size ? esc(item.size) : '';
         var meta = [colorPart, sizePart].filter(Boolean).join(' / ');
         var cleanTitle = esc((item.title||item.name||'').replace(/\p{Extended_Pictographic}/gu,'').replace(/\s+/g,' ').trim());
-        return '<div class="pm-item">'+imgHtml+'<div class="pm-item-info"><div class="pm-item-title">'+cleanTitle+'</div>'+(meta?'<div class="pm-item-meta" style="display:flex;align-items:center">'+meta+'</div>':'')+'<div class="pm-item-meta">Qty '+(item.quantity||1)+'</div></div><div class="pm-item-price">$'+price+'</div></div>';
+        return '<div class="pm-item">'+imgHtml+'<div class="pm-item-info"><div class="pm-item-title">'+cleanTitle+'</div>'+(meta?'<div class="pm-item-meta" style="display:flex;align-items:center">'+meta+'</div>':'')+'<div class="pm-item-meta">Qty '+(item.quantity||1)+'</div><button class="pm-item-remove" type="button" data-idx="'+i+'" aria-label="Remove item">Remove</button></div><div class="pm-item-price">$'+price+'</div></div>';
       }).join('');
     }
 
     var policy = window._shippingPolicy || { enabled: true, threshold: 100 };
     var sub = cart.reduce(function(s,i){ return s + parseFloat(i.price||0)*(i.quantity||1); }, 0);
-    var shipping = (policy.enabled && sub >= policy.threshold) ? 'Free' : '—';
+    var shipping = (policy.enabled && sub >= policy.threshold) ? 'Free' : 'ï¿½';
     var fmt = '$'+sub.toFixed(2);
     function set(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; }
     set('pm-subtotal', fmt);
     set('pm-shipping', shipping);
-    set('pm-tax', '—');
+    set('pm-tax', 'ï¿½');
     set('pm-total', fmt);
     set('pm-toggle-total', fmt);
   }
   renderSummary();
   window._zwRenderCheckoutSummary = renderSummary;
+
+  /* â”€â”€ Remove an item from the bag (mutates window.cartItems in place, which is
+        the same array checkout.js sends to /api/create-payment-intent). â”€â”€ */
+  function removeItem(idx) {
+    if (isNaN(idx) || idx < 0 || idx >= window.cartItems.length) return;
+    window.cartItems.splice(idx, 1);
+    try { localStorage.setItem('cart', JSON.stringify(window.cartItems)); } catch(_) {}
+    if (!window.cartItems.length) { location.replace('/bag.html'); return; }
+    renderSummary();
+    updateSubtitle();
+    // Recompute the real totals now that the cart changed.
+    try { if (typeof maybeLoadRates === 'function') maybeLoadRates(); } catch(_) {}
+    try { if (typeof refreshTaxDisplay === 'function') refreshTaxDisplay(); } catch(_) {}
+    try { if (typeof window.zwPromoUpdateSummaryTotals === 'function') window.zwPromoUpdateSummaryTotals(); } catch(_) {}
+    try { if (typeof window.zwSyncWalletTotal === 'function') window.zwSyncWalletTotal(); } catch(_) {}
+  }
+  var itemsEl = document.getElementById('pm-items');
+  if (itemsEl) itemsEl.addEventListener('click', function(e) {
+    var btn = e.target.closest('.pm-item-remove');
+    if (!btn) return;
+    removeItem(parseInt(btn.getAttribute('data-idx'), 10));
+  });
 })();
 </script>
 
-<script src="image-utils.js?v=6eef467b"></script>
+<script src="image-utils.js?v=e6f0ec04"></script>
 <script src="checkout.js?v=9bc5d7aa" defer></script>
 <script src="commerce-checkout.js?v=f884ded3" defer></script>
 
@@ -873,7 +925,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (window._zwActivePromo) { window.zwClearPromo(true); return; }
       var code = (promoInput ? promoInput.value : '').trim().toUpperCase();
       if (!code) { if (promoMsg) promoMsg.textContent = 'Enter a promo code.'; return; }
-      promoBtn.disabled = true; promoBtn.textContent = '…';
+      promoBtn.disabled = true; promoBtn.textContent = 'ï¿½';
       if (promoMsg) promoMsg.textContent = '';
       try {
         var r = await fetch('/api/validate-promo', {
@@ -951,7 +1003,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<script src="storefront-theme.js?v=5762e141" defer></script>
-<script src="lang.js?v=5a87b132" defer></script>
+<script src="storefront-theme.js?v=76af5324" defer></script>
+<script src="lang.js?v=756ddb26" defer></script>
 </body>
 </html>

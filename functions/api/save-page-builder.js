@@ -4,9 +4,11 @@
  * Supports multiple keys: page_builder, builder_theme, builder_nav, builder_history, builder_templates
  */
 
+import { resolvePerms, permsHave } from './_rbac.js';
+
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
-const ALLOWED_KEYS = ['page_builder','builder_theme','builder_nav','builder_history','builder_templates','page_builder_published','landing_pages','landing_pages_published'];
+const ALLOWED_KEYS = ['page_builder','builder_theme','builder_nav','builder_history','builder_templates','page_builder_published','landing_pages','landing_pages_published','scheduled_publish'];
 
 function cors(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -46,10 +48,29 @@ export async function onRequestPost({ request, env }) {
       headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + accessToken },
     });
     if (!userRes.ok) return cors({ error: 'Invalid or expired session' }, 401);
+    const authUser = await userRes.json().catch(() => null);
+    if (!authUser?.id) return cors({ error: 'Invalid or expired session' }, 401);
 
     // Get service role key
     const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || env.SUPABASE_SERVICE_ROLE;
     if (!serviceKey) return cors({ error: 'Server not configured — add SUPABASE_SERVICE_ROLE_KEY env var' }, 500);
+
+    // Authorize: must be an admin whose role can edit the builder.
+    // (Previously this endpoint only checked the session was valid — any
+    // logged-in customer could overwrite the homepage. RBAC closes that.)
+    const profRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(authUser.id)}&select=role,admin_role,admin_permissions&limit=1`,
+      { headers: { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey } }
+    );
+    const profRows = profRes.ok ? await profRes.json().catch(() => []) : [];
+    const prof = Array.isArray(profRows) ? profRows[0] : null;
+    if (!prof || prof.role !== 'admin') {
+      return cors({ error: 'Your account does not have admin privileges.' }, 403);
+    }
+    const perms = resolvePerms({ admin_role: prof.admin_role || 'super_admin', admin_permissions: prof.admin_permissions });
+    if (!permsHave(perms, 'builder_edit')) {
+      return cors({ error: 'Your role does not have permission to edit pages.' }, 403);
+    }
 
     // Build value from body (strip meta fields).
     // If the body has an explicit 'value' key (used by theme/nav/history/templates saves)

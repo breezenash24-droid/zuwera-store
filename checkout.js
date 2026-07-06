@@ -313,7 +313,13 @@ async function doFetchRates(zip, state) {
   }
 }
 
+// 'ship' (mail, default) or 'hand_delivery' (free in-person campus delivery).
+let _deliveryMethod = 'ship';
+window.zwDeliveryMethod = () => _deliveryMethod;
+
 function maybeLoadRates() {
+  // Hand-delivery is free and needs no shipping rate — never fetch/overwrite it.
+  if (_deliveryMethod === 'hand_delivery') { updateCartSummaryShipping(0); return; }
   const zip   = (_pay.zipInput?.value   || '').trim();
   const state = (_pay.stateInput?.value || '').trim();
   if (zip.length < 5 || state.length < 2) return;
@@ -321,7 +327,7 @@ function maybeLoadRates() {
   clearTimeout(ratesFetchTimeout);
   ratesFetchTimeout = setTimeout(() => {
     if (_pay.ratesField)   _pay.ratesField.style.display   = 'none';
-    if (_pay.ratesLoading) _pay.ratesLoading.style.display = 'block';
+    // No loading text — the rate fetch is sub-second; just show nothing until it resolves.
     ratesFetchPromise = doFetchRates(zip, state).catch(err => {
       console.error('Rate fetch error:', err);
       // Show fallback rate so user isn't stuck with no shipping option
@@ -390,8 +396,71 @@ function refreshTaxDisplay() {
   if (pmToggleTot)  pmToggleTot.textContent  = `$${total.toFixed(2)}`;
 }
 
-_pay.zipInput?.addEventListener('input', () => { maybeLoadRates(); if ((_pay.zipInput?.value || '').length >= 5) refreshTaxDisplay(); });
+_pay.zipInput?.addEventListener('input', () => { updateDeliveryOptions(); maybeLoadRates(); if ((_pay.zipInput?.value || '').length >= 5) refreshTaxDisplay(); });
 _pay.stateInput?.addEventListener('input', () => { maybeLoadRates(); refreshTaxDisplay(); });
+
+// ===================== CAMPUS HAND-DELIVERY =====================
+// Reveal a free in-person delivery option when the ZIP is on the admin-managed
+// allow-list (config comes from /api/commerce-config via commerce-checkout.js).
+function _localDeliveryConfig() {
+  try {
+    const cfg = (typeof window.zwLocalDelivery === 'function') ? window.zwLocalDelivery() : null;
+    return (cfg && typeof cfg === 'object') ? cfg : { enabled: false, zips: [] };
+  } catch (_) { return { enabled: false, zips: [] }; }
+}
+function _zipEligibleForHandDelivery() {
+  const cfg = _localDeliveryConfig();
+  const zip = (_pay.zipInput?.value || '').trim().slice(0, 5);
+  return !!(cfg.enabled && Array.isArray(cfg.zips) && cfg.zips.includes(zip));
+}
+function updateDeliveryOptions() {
+  const field = document.getElementById('delivery-method-field');
+  if (!field) return;
+  const cfg = _localDeliveryConfig();
+  if (!_zipEligibleForHandDelivery()) {
+    field.style.display = 'none';
+    if (_deliveryMethod === 'hand_delivery') {        // ZIP changed to an ineligible one
+      _deliveryMethod = 'ship';
+      const shipRadio = field.querySelector('input[value="ship"]');
+      if (shipRadio) shipRadio.checked = true;
+      _syncDeliverySelected();
+      const note = document.getElementById('delivery-hand-note');
+      if (note) note.style.display = 'none';
+      maybeLoadRates();
+    }
+    return;
+  }
+  field.style.display = 'block';
+  const lbl = document.getElementById('delivery-hand-label');
+  if (lbl) lbl.textContent = (cfg.label || 'Campus hand-delivery') + ' — Free';
+  _syncDeliverySelected();
+}
+function _syncDeliverySelected() {
+  document.querySelectorAll('.co-delivery-opt').forEach((opt) => {
+    const r = opt.querySelector('input[name="delivery-method"]');
+    opt.classList.toggle('is-selected', !!(r && r.checked));
+  });
+}
+function _onDeliveryMethodChange(e) {
+  const val = e.target.value === 'hand_delivery' ? 'hand_delivery' : 'ship';
+  _deliveryMethod = val;
+  _syncDeliverySelected();
+  const note = document.getElementById('delivery-hand-note');
+  const cfg = _localDeliveryConfig();
+  if (val === 'hand_delivery') {
+    if (note) {
+      note.textContent = cfg.instructions || "You'll be contacted to arrange a campus drop-off. No package will be mailed.";
+      note.style.display = 'block';
+    }
+    updateCartSummaryShipping(0);                     // free
+  } else {
+    if (note) note.style.display = 'none';
+    maybeLoadRates();                                 // recompute mail shipping
+  }
+}
+document.querySelectorAll('input[name="delivery-method"]').forEach((r) => r.addEventListener('change', _onDeliveryMethodChange));
+// Re-check once the commerce config has had time to load (covers autocompleted ZIPs).
+setTimeout(updateDeliveryOptions, 1500);
 
 // ===================== PAYMENT MODAL CLOSE =====================
 document.getElementById('payment-close')?.addEventListener('click', () => {

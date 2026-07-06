@@ -37,6 +37,61 @@ const _reviewCache = {};
 const _domIdToPid = {};
 const REVIEW_META_SEPARATOR = ' \u00b7 ';
 
+// \u2500\u2500 Review length limit + display cutoff \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// Admin-configurable via site_settings.review_settings; sensible defaults apply
+// until (and if) that's set. maxUnit: 'characters' | 'words'. previewChars is
+// the "View more" collapse threshold (0 = never collapse).
+let _reviewLimits = { maxUnit: 'characters', maxLength: 1000, previewChars: 320 };
+let _reviewLimitsLoaded = false;
+
+function reviewLen(str) {
+  str = String(str || '');
+  return _reviewLimits.maxUnit === 'words'
+    ? (str.trim() ? str.trim().split(/\s+/).length : 0)
+    : str.length;
+}
+function reviewCounterText(str) {
+  return reviewLen(str) + ' / ' + _reviewLimits.maxLength + (_reviewLimits.maxUnit === 'words' ? ' words' : '');
+}
+function applyReviewLimitsToForm() {
+  const ta = document.getElementById('review-body-input');
+  const c = document.getElementById('review-char-count');
+  if (ta) {
+    // Hard cap only in character mode; word mode is enforced on submit.
+    if (_reviewLimits.maxUnit === 'characters') ta.setAttribute('maxlength', String(_reviewLimits.maxLength));
+    else ta.removeAttribute('maxlength');
+  }
+  if (ta && c) c.textContent = reviewCounterText(ta.value || '');
+}
+async function ensureReviewLimits() {
+  if (_reviewLimitsLoaded || !window.sb) { applyReviewLimitsToForm(); return _reviewLimits; }
+  try {
+    const { data } = await window.sb.from('site_settings').select('value').eq('key', 'review_settings').maybeSingle();
+    let v = data && data.value;
+    if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+    if (v && typeof v === 'object') {
+      if (v.maxUnit === 'words' || v.maxUnit === 'characters') _reviewLimits.maxUnit = v.maxUnit;
+      if (isFinite(+v.maxLength) && +v.maxLength > 0) _reviewLimits.maxLength = Math.floor(+v.maxLength);
+      if (isFinite(+v.previewChars) && +v.previewChars >= 0) _reviewLimits.previewChars = Math.floor(+v.previewChars);
+    }
+    _reviewLimitsLoaded = true;
+  } catch (_) {}
+  applyReviewLimitsToForm();
+  return _reviewLimits;
+}
+// Long-review display cutoff ("View more"). A small grace margin avoids
+// collapsing reviews that are only a few characters over the threshold.
+function reviewNeedsCollapse(body) {
+  return _reviewLimits.previewChars > 0 && !!body && body.length > _reviewLimits.previewChars + 24;
+}
+function reviewShort(body) {
+  const max = _reviewLimits.previewChars;
+  let cut = String(body).slice(0, max);
+  const sp = cut.lastIndexOf(' ');
+  if (sp > max * 0.6) cut = cut.slice(0, sp); // don't cut mid-word when avoidable
+  return cut.replace(/\s+$/, '');
+}
+
 function rememberReviewContext(pid, domId, productName) {
   const resolvedDomId = domId || pid;
   _domIdToPid[resolvedDomId] = pid;
@@ -272,7 +327,8 @@ window.openAllReviewsModal = async function(pid, domId, productName) {
 
   try {
     const reviews = await withTimeout(loadReviews(pid), 8000, 'Reviews request');
-  
+    await ensureReviewLimits();
+
     let user = null;
     if (typeof currentUser !== 'undefined' && currentUser) user = currentUser;
     else if (typeof _user !== 'undefined' && _user) user = _user;
@@ -323,10 +379,26 @@ window.openAllReviewsModal = async function(pid, domId, productName) {
         ${metaHtml}
       </div>
       ${review.title ? `<p class="review-card-title">${escHtml(review.title)}</p>` : ''}
-      ${review.body ? `<p class="review-card-body">${escHtml(review.body)}</p>` : ''}
+      ${review.body ? (reviewNeedsCollapse(review.body)
+        ? `<p class="review-card-body" data-collapsible="1">${escHtml(reviewShort(review.body))}… </p><button type="button" class="review-more-btn" aria-expanded="false">View more</button>`
+        : `<p class="review-card-body">${escHtml(review.body)}</p>`) : ''}
       ${adminResponseHtml}
     `;
       list.appendChild(reviewEl);
+      if (reviewNeedsCollapse(review.body)) {
+        const _bodyEl = reviewEl.querySelector('.review-card-body[data-collapsible]');
+        const _moreBtn = reviewEl.querySelector('.review-more-btn');
+        if (_bodyEl && _moreBtn) {
+          const _short = reviewShort(review.body) + '… ';
+          let _expanded = false;
+          _moreBtn.addEventListener('click', () => {
+            _expanded = !_expanded;
+            _bodyEl.textContent = _expanded ? review.body : _short; // textContent = safe, no escaping needed
+            _moreBtn.textContent = _expanded ? 'View less' : 'View more';
+            _moreBtn.setAttribute('aria-expanded', String(_expanded));
+          });
+        }
+      }
       if (canEditReview) {
         const _editBtn = reviewEl.querySelector('.review-edit-btn');
         if (_editBtn) _editBtn.addEventListener('click', () => {
@@ -491,16 +563,20 @@ const STAR_RATING_LABELS = { 1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'Great', 5: 'Ex
     const c = document.createElement('p');
     c.id = 'review-char-count';
     c.style.cssText = 'font-family:var(--fm,var(--font-mono,monospace));font-size:.6rem;letter-spacing:.08em;text-align:right;margin:.3rem 0 .5rem;opacity:.45;';
-    c.textContent = '0 / 1000';
+    c.textContent = reviewCounterText('');
     ta.insertAdjacentElement('afterend', c);
-    ta.addEventListener('input', () => { c.textContent = ta.value.length + ' / 1000'; });
+    ta.addEventListener('input', () => {
+      c.textContent = reviewCounterText(ta.value);
+      c.style.color = reviewLen(ta.value) > _reviewLimits.maxLength ? '#ef4444' : '';
+    });
+    ensureReviewLimits(); // pull the admin-configured max once sb is ready
   }
 })();
 
 function syncReviewCharCount() {
   const ta = document.getElementById('review-body-input');
   const c = document.getElementById('review-char-count');
-  if (ta && c) c.textContent = ta.value.length + ' / 1000';
+  if (ta && c) c.textContent = reviewCounterText(ta.value);
 }
 
 function updateStarRatingLabel(val) {
@@ -551,6 +627,14 @@ async function submitReview() {
 
   if (!_reviewRating)        { errEl.textContent = 'Please select a star rating.'; return; }
   if (!_reviewProductId)     { errEl.textContent = 'No product selected.'; return; }
+
+  // Enforce the admin-configured maximum length before we try to save.
+  await ensureReviewLimits();
+  if (reviewLen(body) > _reviewLimits.maxLength) {
+    errEl.textContent = 'Your review is too long — keep it under ' + _reviewLimits.maxLength +
+      (_reviewLimits.maxUnit === 'words' ? ' words.' : ' characters.');
+    return;
+  }
 
   let user = null;
   if (window.sb) {

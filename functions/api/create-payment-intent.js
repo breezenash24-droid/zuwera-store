@@ -425,9 +425,31 @@ function getExpectedParcelWeight(catalogItems) {
   return totalWeight > 0 ? totalWeight.toFixed(2) : (0.5 + totalItems * 0.5).toFixed(1);
 }
 
-async function resolveShipping({ shippingRate, address, subtotalCents, catalogItems, env }) {
+async function getLocalDeliveryConfig(env) {
+  try {
+    const config = sanitizeCommerceConfig(await getSetting(env, 'commerce_config', {}));
+    return config.localDelivery || { enabled: false, zips: [] };
+  } catch (_) {
+    return { enabled: false, zips: [] };
+  }
+}
+
+async function resolveShipping({ shippingRate, address, subtotalCents, catalogItems, env, deliveryMethod }) {
   const policy = getShippingPolicy(env);
   const qualifiesFree = subtotalCents >= policy.thresholdCents;
+
+  // Campus hand-delivery: free shipping, but ONLY when the order's ZIP is on the
+  // admin-managed allow-list. Server-authoritative — a forged deliveryMethod can
+  // never unlock free shipping for a normal mail order.
+  if (deliveryMethod === 'hand_delivery') {
+    const ld = await getLocalDeliveryConfig(env);
+    const zip = String(address?.zip || '').trim().slice(0, 5);
+    if (ld.enabled && Array.isArray(ld.zips) && ld.zips.includes(zip)) {
+      return { qualifiesFree, handDelivery: true, signedRate: null, actualShippingCents: 0, shippingCents: 0, provider: '', servicelevel: '', rateObjectId: '' };
+    }
+    // Not eligible → fall through and charge normal shipping (ignore the flag).
+  }
+
   const signedRate = await verifySignedRateToken(shippingRate, address, env, getExpectedParcelWeight(catalogItems || []));
   const rateAmountCents = signedRate ? toCents(signedRate.amount) : 0;
 
@@ -449,6 +471,7 @@ async function resolveShipping({ shippingRate, address, subtotalCents, catalogIt
 
   return {
     qualifiesFree,
+    handDelivery: false,
     signedRate,
     actualShippingCents,
     shippingCents,
@@ -469,7 +492,15 @@ export async function onRequestPost({ request, env }) {
     if (!env.STRIPE_SECRET_KEY) return json({ error: 'Stripe is not configured.' }, 500, headers);
 
     const body = await request.json();
-    const { items, shippingRate, address = {}, promoCode = '' } = body;
+    const { items, shippingRate, address = {}, promoCode = '', deliveryMethod = '' } = body;
+    // Compact snapshot of the visitor's active feature-flag variants (from
+    // flags.js via commerce-checkout.js). The webhook stamps it on the order so
+    // revenue/orders can be split by variant. Kept tiny for Stripe's 500-char cap.
+    let featureFlagsMeta = '';
+    try {
+      const ff = body.featureFlags;
+      if (ff && typeof ff === 'object' && Object.keys(ff).length) featureFlagsMeta = JSON.stringify(ff).slice(0, 480);
+    } catch (_) {}
 
     if (!items?.length || !address?.email) {
       return json({ error: 'Missing required fields: items and address.email' }, 400, headers);
@@ -479,7 +510,7 @@ export async function onRequestPost({ request, env }) {
     const isMember = Boolean(verifiedUser?.id);
     const catalogItems = await resolveCatalogItems(items, env, isMember);
     const subtotalCents = catalogItems.reduce((sum, item) => sum + item.amount * item.quantity, 0);
-    const shipping = await resolveShipping({ shippingRate, address, subtotalCents, catalogItems, env });
+    const shipping = await resolveShipping({ shippingRate, address, subtotalCents, catalogItems, env, deliveryMethod });
     const promotion = await getPromotionForCode(env, promoCode);
     const normalizedPromoCode = promotion ? normalizePromoCode(promotion.code) : normalizePromoCode(promoCode);
     const discountCents = computePromotionDiscount(promotion, subtotalCents, shipping.shippingCents, catalogItems);
@@ -566,11 +597,13 @@ export async function onRequestPost({ request, env }) {
           shipping_rate_object_id: shipping.rateObjectId,
           actual_shipping_cost_cents: String(shipping.actualShippingCents),
           charged_shipping_cents: String(shipping.shippingCents),
-          free_shipping: String(shipping.qualifiesFree),
+          free_shipping: String(shipping.qualifiesFree || shipping.handDelivery),
+          delivery_method: shipping.handDelivery ? 'hand_delivery' : 'ship',
           tax_state: taxStateCode,
           tax_rate_bps: String(Math.round(taxRate * 10000)),
           tax_amount_cents: String(taxCents),
           total_amount_cents: String(totalCents),
+          feature_flags: featureFlagsMeta,
           ship_line1: address.line1 || '',
           ship_line2: address.line2 || '',
           ship_city: address.city || '',

@@ -40,17 +40,21 @@
       'background:#0f0f0f;color:#f4f1eb;border:1px solid rgba(244,241,235,.08);border-top:2px solid #F891A5;',
       'box-shadow:0 28px 90px rgba(0,0,0,.28);',
       'padding:2.6rem 2.4rem 2.2rem;font-family:"Barlow",sans-serif;',
-      'transform:translateY(14px);opacity:0;transition:transform .28s cubic-bezier(.32,.72,.34,1),opacity .28s ease;}',
+      'transform:translateY(14px) scale(.98);opacity:0;transition:transform .3s cubic-bezier(.32,.72,0,1),opacity .3s ease;}',
     '#zwlg-modal.open .zwlg-box{transform:none;opacity:1;}',
-    // Mobile: bottom sheet — matches the storefront modal redesign (rounded top,
-    // drag handle, slides up from the bottom edge).
-    '@media(max-width:600px){',
+    // Mobile + tablet: bottom sheet — matches the storefront modal redesign
+    // (rounded top, drag handle, slides up from the bottom edge). Uses the
+    // site-wide 900px compact breakpoint so tablet widths (601-900px) get the
+    // sheet too, instead of the centered desktop card.
+    '@media(max-width:900px){',
       '#zwlg-modal{align-items:flex-end;padding:0;}',
       '#zwlg-modal .zwlg-box{width:100%;max-width:100%;max-height:92dvh;border-radius:1.25rem 1.25rem 0 0;border-top:none;border-left:none;border-right:none;padding:2.4rem 1.4rem calc(1.8rem + env(safe-area-inset-bottom,0px));transform:translateY(100%);opacity:1;box-shadow:0 -8px 40px rgba(0,0,0,.28);transition:transform .42s cubic-bezier(.32,.72,0,1),opacity .24s ease;}',
       '#zwlg-modal.open .zwlg-box{transform:translateY(0);}',
       '#zwlg-modal .zwlg-box::before{content:"";display:block;width:36px;height:4px;border-radius:2px;background:rgba(244,241,235,.18);margin:-1.4rem auto 1.2rem;}',
+      // Close button matches the site standard (44px desktop → 38px on compact).
+      '#zwlg-modal .zwlg-close{width:38px;height:38px;}',
     '}',
-    '#zwlg-modal .zwlg-close{position:absolute;top:.9rem;right:.9rem;width:30px;height:30px;display:flex;',
+    '#zwlg-modal .zwlg-close{position:absolute;top:.9rem;right:.9rem;width:44px;height:44px;display:flex;',
       'align-items:center;justify-content:center;background:rgba(244,241,235,.05);border:1px solid rgba(244,241,235,.08);',
       'color:#f4f1eb;font-size:1rem;line-height:1;opacity:.45;cursor:pointer;transition:opacity .2s,background .2s;}',
     '#zwlg-modal .zwlg-close:hover{opacity:1;background:rgba(244,241,235,.1);}',
@@ -201,6 +205,9 @@
   }
 
   function openModal(tab) {
+    // Homepage loads the Supabase SDK lazily — start it the moment the modal
+    // opens so the client is ready by the time the user submits.
+    if (window.zwEnsureSupabase) { try { window.zwEnsureSupabase(); } catch (_) {} }
     build();
     var m = document.getElementById(MODAL_ID);
     switchTab(tab || 'signin');
@@ -236,6 +243,7 @@
     var email = (el('#zwlg-si-email') || {}).value || '';
     var pw = (el('#zwlg-si-pw') || {}).value || '';
     if (!email || !pw) { setErr('signin', 'Enter your email and password.'); return; }
+    if (!sb && window.zwEnsureSupabase) { try { sb = await window.zwEnsureSupabase(); } catch (_) {} }
     if (!sb) { setErr('signin', 'Connection unavailable — use the link below.'); return; }
     busy(btn, true, 'Login');
     try {
@@ -256,6 +264,7 @@
     var pw = (el('#zwlg-su-pw') || {}).value || '';
     if (!email || !pw) { setErr('signup', 'Enter your email and a password.'); return; }
     if (pw.length < 6) { setErr('signup', 'Password must be at least 6 characters.'); return; }
+    if (!sb && window.zwEnsureSupabase) { try { sb = await window.zwEnsureSupabase(); } catch (_) {} }
     if (!sb) { setErr('signup', 'Connection unavailable — use the link below.'); return; }
     busy(btn, true, 'Create Account');
     try {
@@ -278,6 +287,7 @@
     setErr('forgot', '');
     var email = (el('#zwlg-fp-email') || {}).value || '';
     if (!email) { setErr('forgot', 'Enter your email.'); return; }
+    if (!sb && window.zwEnsureSupabase) { try { sb = await window.zwEnsureSupabase(); } catch (_) {} }
     if (!sb) { setErr('forgot', 'Connection unavailable — use the link below.'); return; }
     busy(btn, true, 'Send Reset Link');
     try {

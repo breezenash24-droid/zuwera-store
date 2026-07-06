@@ -31,9 +31,11 @@
     if(f.css){var s=document.createElement('style');s.textContent=f.css;document.head.appendChild(s);}
   }
 }catch(_){}})()</script>
-<script>/* NAV FLASH PREVENTION: if a custom header nav is cached, hide the static
-   fallback links until nav-menu.js renders the real ones, so the old items don't flash. */
-try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.length){document.documentElement.classList.add('zw-customnav');setTimeout(function(){document.documentElement.classList.add('zw-nav-ready');},3000);}}catch(_){}</script>
+<script>/* NAV FLASH PREVENTION: the fallback header links are hidden by CSS
+   (html:not(.zw-nav-ready) #nav-category-links) until nav-menu.js settles, so the
+   old items never flash before the real Men/Women/New menu — even on a first /
+   cleared-cache load. The 3s timeout is a safety net if nav-menu.js can't load. */
+try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.length)document.documentElement.classList.add('zw-customnav');}catch(_){}setTimeout(function(){try{document.documentElement.classList.add('zw-nav-ready');}catch(_){}},3000);</script>
 <meta name="zuwera-deployment" content="2026-05-14-v2-supabase-timeout">
 <title>ZUWERA - For Those Who Dream</title>
 <meta name="description" content="Bold athletic sportswear. Release 001 launching September 20, 2026.">
@@ -65,10 +67,43 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=3">
   <link rel="manifest" href="/site.webmanifest">
   <script src="/favicon-utils.js?v=687e90ea" defer></script>
+  <script src="/flags.js?v=1" defer></script>
   <script src="/meta-pixel.js?v=71fe06fb" defer></script>
   <script src="/google-tag.js?v=b141b2a1" defer></script>
-  <script src="/supabase.min.js?v=3277b334" defer></script>
-  <script src="/supabase-client.js?v=b28896db" defer></script>
+  <!-- Supabase JS SDK (~180KB) is loaded LAZILY: product data comes from the
+       REST early-fetch below, so the SDK is only needed for auth (login,
+       session, favorites, reviews). Logged-in visitors and password-recovery
+       links load it right away; everyone else loads it on idle, or the moment
+       the login modal opens (zwEnsureSupabase). Every sb consumer is null-
+       guarded, so nothing errors before it arrives. Keeps ~180KB off the
+       initial load for the logged-out majority. The ?v= refs below are kept in
+       string form so bump-cache-version.js still rewrites their hashes. -->
+  <script>
+  (function () {
+    var SB = '/supabase.min.js?v=3277b334';
+    var CL = '/supabase-client.js?v=b28896db';
+    function inject(src) {
+      return new Promise(function (res, rej) {
+        var s = document.createElement('script');
+        s.src = src; s.async = false; s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    }
+    window.zwEnsureSupabase = function () {
+      if (window.__zwSbPromise) return window.__zwSbPromise;
+      window.__zwSbPromise = inject(SB)
+        .then(function () { return inject(CL); })
+        .then(function () { try { window.dispatchEvent(new Event('zw-supabase-ready')); } catch (_) {} return window.sb; });
+      return window.__zwSbPromise;
+    };
+    var hasSession = false;
+    try { hasSession = !!localStorage.getItem('zuwera-auth'); } catch (_) {}
+    var needsAuth = /access_token=|type=recovery|error_description=/.test(location.hash || '');
+    if (hasSession || needsAuth) { window.zwEnsureSupabase(); }
+    else if ('requestIdleCallback' in window) { requestIdleCallback(function () { window.zwEnsureSupabase(); }, { timeout: 5000 }); }
+    else { setTimeout(function () { window.zwEnsureSupabase(); }, 3000); }
+  })();
+  </script>
 
 <script>
 /* Kick off data fetches as early as possible — before CSS/JS blocks parsing —
@@ -174,19 +209,67 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
      before it even finishes parsing the rest of the HTML. This is the
      single biggest LCP (Largest Contentful Paint) improvement. -->
 <script>
+/* BOOT COVER: on a page-builder homepage the static default sections paint,
+   then storefront.js reorders everything (inserting the carousel at the top) — a
+   full reflow that "jumps" on reload. If the last render cached that a builder
+   layout is active, hold a themed cover over the content until the layout is
+   positioned (storefront.js removes .zw-pb-pending). The fallbacks below make
+   sure the cover can never get stuck if that script is slow or fails. */
+(function(){try{
+  var h=document.documentElement;
+  // Always hold the boot cover over the homepage while the builder layout
+  // positions, so the static default sections never flash — including on a FIRST
+  // / cleared-cache visit (no zw_pb_active yet). On that first visit the eventual
+  // theme isn't known, so show a plain WHITE cover; on a cached reload keep the
+  // themed cover (matches the theme, so the reveal is seamless).
+  var cached=localStorage.getItem('zw_pb_active')==='1';
+  h.classList.add('zw-pb-pending');
+  if(!cached) h.classList.add('zw-boot-white');
+  var clear=function(){h.classList.remove('zw-pb-pending');h.classList.remove('zw-boot-white');};
+  window.addEventListener('load',function(){setTimeout(clear,900);});
+  setTimeout(clear,4000);
+}catch(_){}})();
+</script>
+<script>
 (function() {
+  // Carousel-led layouts have no static hero. If the last render cached that,
+  // hide the baked-in <section class="hero"> synchronously (before first paint)
+  // and skip its high-priority preload — otherwise the old default hero flashes
+  // in before storefront.js renders the carousel over it.
+  try {
+    if (localStorage.getItem('zw_hide_static_hero') === '1') {
+      document.documentElement.classList.add('zw-hide-static-hero');
+      return;
+    }
+  } catch (e) {}
   var isMobileHero = window.matchMedia && window.matchMedia('(max-width: 760px)').matches;
+  // Mini optimizeImage(): this runs in <head> before image-utils.js (deferred) is
+  // available, so we replicate its Cloudinary transform inline. Mirrors the real
+  // one in image-utils.js — keep the cloud name / caps in sync. User-uploaded
+  // heroes (absolute URLs) get resized; the bundled relative defaults are left raw.
+  function zwOpt(url, width){
+    var v = String(url || '').trim();
+    if(!v || /^(data:|blob:)/i.test(v)) return v;
+    if(v.indexOf('//') === 0) v = location.protocol + v;
+    else if(v.charAt(0) === '/' && location.protocol !== 'file:') v = location.origin + v;
+    if(!/^https?:\/\//i.test(v) || v.indexOf('cloudinary.com') !== -1) return v;
+    var vw = window.innerWidth || 0, cap = 1400;
+    if(vw && vw <= 520) cap = 760; else if(vw && vw <= 900) cap = 1000;
+    var w = Math.max(120, Math.min(Math.round(width || 800), cap));
+    return 'https://res.cloudinary.com/dubg4loah/image/fetch/f_auto,q_auto:eco,w_' + w + '/' + encodeURI(v);
+  }
   var heroSrc = isMobileHero ? 'images/hero-mobile.jpg' : 'images/hero.jpg?v=2';
   try {
     var savedHero = localStorage.getItem('zw-hero-image');
     if (savedHero) heroSrc = savedHero;
   } catch (e) {}
-  window.__ZW_HERO_IMAGE = heroSrc;
+  var optimized = zwOpt(heroSrc, isMobileHero ? 800 : 1400);
+  window.__ZW_HERO_IMAGE = optimized;
   var preload = document.createElement('link');
   preload.id = 'hero-preload';
   preload.rel = 'preload';
   preload.as = 'image';
-  preload.href = heroSrc;
+  preload.href = optimized;
   preload.fetchPriority = 'high';
   document.head.appendChild(preload);
 })();
@@ -205,17 +288,18 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
   <!-- Render-blocking on purpose (same as bag/checkout/sizeguide): woff2 files
        are cached immutable, so on every repeat view the real font is ready at
        first paint with no fallback swap. Preconnects keep cold-cache cost small. -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
-  <link rel="preload" href="reviews.css?v=cf5b3ca4" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link rel="stylesheet" href="reviews.css?v=cf5b3ca4"></noscript>
-  <link rel="stylesheet" href="storefront-cohesion.css?v=421bca1c">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
+  <link rel="preload" href="reviews.css?v=393c2a97" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="reviews.css?v=393c2a97"></noscript>
+  <link rel="stylesheet" href="storefront-cohesion.css?v=1ddba8e7">
 <script src="header-scroll.js?v=4a734678" defer></script>
-  <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=29023607">
+<script src="image-effects.js?v=1" defer></script>
+  <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=d7cd202c">
 <!-- Quick-add modal module MUST load before storefront.js: the grid wiring in
      storefront.js calls window.quickAddToCart, which this module provides. -->
-<script src="quick-add-modal.js?v=95f47ca5" defer></script>
-<script src="image-utils.js?v=6eef467b" defer></script>
-<script src="storefront.js?v=4252a622" defer></script>
+<script src="quick-add-modal.js?v=3370ca5f" defer></script>
+<script src="image-utils.js?v=e6f0ec04" defer></script>
+<script src="storefront.js?v=672eea45" defer></script>
 <script src="/stripe-client-config.js?v=c262166e" defer></script>
 <script src="/checkout-tax.js?v=b12c4e5f" defer></script>
 
@@ -224,7 +308,7 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-DCVWDZ8ZBC');</script>
 
 <!-- PostHog analytics -->
-<script src="/posthog-init.js?v=6ebbeafc" defer></script>
+<script src="/posthog-init.js?v=c4b554c4" defer></script>
 
 <!-- PWA -->
 <meta name="color-scheme" content="dark">
@@ -296,7 +380,7 @@ body::after{
   display:flex;align-items:center;justify-content:center;gap:1.5rem;
   font-family:var(--fm);font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;
   position:fixed;top:0;left:0;right:0;z-index:230;
-  transition:transform .28s ease, opacity .2s ease;
+  transition:transform .3s ease, opacity .2s ease;
 }
 
 .bar-sep{opacity:.25;font-size:0;line-height:1}
@@ -332,9 +416,12 @@ nav#nav.scrolled{
   display:flex;align-items:center;gap:2.4rem;
 }
 .nav-link{
-  font-family:var(--fw,'Barlow Condensed',sans-serif);font-size:1.45rem;font-weight:900;font-style:normal;
+  font-family:var(--fw,'Barlow Condensed',sans-serif);font-size:1.7rem;font-weight:900;font-style:normal;
   letter-spacing:.02em;text-transform:uppercase;line-height:1;
   color:#f4f1eb;text-decoration:none;transition:color .2s;opacity:.92;
+  /* Bigger click/tap target — padding makes the hitbox extend well beyond the
+     glyphs. Negative vertical margin keeps the taller box from growing the nav. */
+  display:inline-flex;align-items:center;padding:.6rem .7rem;margin:-.6rem 0;
 }
 .nav-link:hover{color:var(--paper);opacity:1}
 .nav-right{display:flex;align-items:center;gap:.4rem}
@@ -371,7 +458,8 @@ nav#nav.scrolled{
 .hamburger-btn { display:none; background:none; border:none; color:var(--paper) !important; cursor:pointer; -webkit-appearance:none; appearance:none; padding:0; -webkit-tap-highlight-color: transparent; }
 .hamburger-btn svg { stroke: var(--paper) !important; }
 body.light-mode .hamburger-btn svg { stroke: #09090b !important; }
-#mobile-menu { background: rgba(9,9,11,0.98); }
+/* Backdrop transparency is owned by storefront-cohesion.css (always transparent);
+   the old opaque #mobile-menu background was removed so the page shows through. */
 #mobile-menu a { font-family: var(--fm); font-size: 1.2rem; color: rgba(244,241,235,.78); letter-spacing: 0.22em; text-transform: uppercase; text-decoration: none; transition: color 0.2s; }
 #mobile-menu a:hover { color: var(--paper); }
 body.light-mode #mobile-menu {
@@ -393,6 +481,21 @@ body.light-mode #mobile-menu-close { color:#09090b !important; }
   position:relative;overflow:hidden;
   padding-top:80px;
 }
+/* Carousel-led layouts: the <head> flag hides the static hero before first
+   paint so the old default hero never flashes in ahead of the carousel. */
+html.zw-hide-static-hero .hero{display:none!important}
+
+/* Boot cover — themed layer that hides the page-builder reflow on reload. Below
+   the fixed nav (z 220) / bar (z 230) so the header stays visible ("loading"),
+   above all content. Painted opaque immediately when html.zw-pb-pending is set,
+   then faded out by storefront.js once the layout is positioned. */
+#zw-boot{position:fixed;inset:0;z-index:210;background:#09090b;opacity:0;pointer-events:none;transition:opacity .4s ease}
+body.light-mode #zw-boot{background:#F0EEE9}
+body.super-light-mode #zw-boot{background:#FFFFFF}
+html.zw-pb-pending #zw-boot{opacity:1;pointer-events:auto}
+/* First / cleared-cache visit: plain white cover (theme not known yet) so the
+   old static layout never shows through before the builder layout positions. */
+html.zw-boot-white #zw-boot{background:#FFFFFF!important}
 .hero-bg{
   position:absolute;inset:0;
   background:radial-gradient(ellipse 80% 60% at 65% 40%, rgba(248,145,165,.08) 0%, transparent 65%),
@@ -404,7 +507,16 @@ body.light-mode #mobile-menu-close { color:#09090b !important; }
 }
 .hero-img-wrap picture,
 .hero-img-wrap img{
-  width:100%;height:100%;object-fit:cover;object-position:center center;
+  width:100%;height:100%;object-fit:cover;
+  /* Viewfinder framing: object-position is driven by CSS vars the builder sets
+     per breakpoint (tablet/mobile focal point). Unset → center. */
+  object-position:var(--zwh-pos,center center);
+}
+@media (min-width:641px) and (max-width:1024px){
+  .hero-img-wrap img{ object-position:var(--zwh-pos-tab,var(--zwh-pos,center center)); }
+}
+@media (max-width:640px){
+  .hero-img-wrap img{ object-position:var(--zwh-pos-mob,var(--zwh-pos,center center)); }
 }
 .hero-img-wrap picture{display:block}
 .hero-img-wrap img{
@@ -616,7 +728,7 @@ body.light-mode #mobile-menu-close { color:#09090b !important; }
   55% {opacity:0;transform:translateY(7px)}
   100%{opacity:1;transform:translateY(0)}
 }
-.cdn.flip{animation:cdnFlip .22s ease}
+.cdn.flip{animation:cdnFlip .2s ease}
 .cdl{
   font-family:var(--fm);font-size:.5rem;letter-spacing:.2em;text-transform:uppercase;
   color:rgba(244,241,235,.22);margin-top:.5rem;display:block;
@@ -724,7 +836,7 @@ body.light-mode #mobile-menu-close { color:#09090b !important; }
 .heart-btn.active svg,.heart-btn.active svg path,.heart-btn.active svg circle{fill:var(--red)!important;stroke:var(--red)!important}
 .heart-btn svg{width:14px;height:14px;pointer-events:none;transform-box:fill-box;transform-origin:center}
 @keyframes svgHeartPop{0%{transform:scale(1)}35%{transform:scale(1.55)}65%{transform:scale(0.87)}100%{transform:scale(1)}}
-.heart-btn svg.heart-pop{animation:svgHeartPop .36s cubic-bezier(.36,.07,.19,.97)}
+.heart-btn svg.heart-pop{animation:svgHeartPop .35s cubic-bezier(.36,.07,.19,.97)}
 @media(prefers-reduced-motion:reduce){.heart-btn svg.heart-pop{animation:none}}
 .pcard-info{
   padding:1.4rem 1.5rem;
@@ -847,7 +959,7 @@ body.light-mode .quick-back-btn:hover{color:rgba(9,9,11,.7)}
    cream/white strip that goes stark on the dark modal or seams in super-light. */
 .quick-add-review-media{position:relative;background:var(--ink);aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:pan-y pinch-zoom}
 .quick-add-review-media img{width:100%;height:100%;object-fit:cover;object-position:center center;display:block}
-.quick-add-review-media :is(img,video).zw-img-in{animation:qaImgIn .42s cubic-bezier(.22,.61,.36,1) both}
+.quick-add-review-media :is(img,video).zw-img-in{animation:qaImgIn .4s cubic-bezier(.22,.61,.36,1) both}
 .quick-add-review-media :is(img,video).zw-slide-next{animation:qaSlideNext .4s cubic-bezier(.22,.61,.36,1) both}
 .quick-add-review-media :is(img,video).zw-slide-prev{animation:qaSlidePrev .4s cubic-bezier(.22,.61,.36,1) both}
 @keyframes qaImgIn{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:scale(1)}}
@@ -898,10 +1010,10 @@ body.light-mode .quick-add-color-dot{border-color:rgba(9,9,11,.25)}
 .quick-add-empty-option{font-family:var(--fm);font-size:.68rem;color:rgba(244,241,235,.48);margin:0}
 .quick-add-review-message{font-family:var(--fm);font-size:.68rem;letter-spacing:.06em;color:rgba(244,241,235,.5);min-height:1rem;margin:0}
 .quick-add-review-actions{display:grid;grid-template-columns:1fr 1fr;gap:.65rem}
-.quick-add-review-actions button,.quick-add-review-actions a{min-height:46px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(244,241,235,.12);background:transparent;color:rgba(244,241,235,.72);font-family:var(--fm);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer;transition:background .2s ease,color .2s ease,border-color .2s ease,opacity .2s ease,transform .12s ease}
+.quick-add-review-actions button,.quick-add-review-actions a{min-height:46px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(244,241,235,.12);background:transparent;color:rgba(244,241,235,.72);font-family:var(--fm);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer;transition:background .2s ease,color .2s ease,border-color .2s ease,opacity .2s ease,transform .1s ease}
 .quick-add-review-actions button:hover,.quick-add-review-actions a:hover{background:rgba(244,241,235,.1);color:rgba(244,241,235,.92)}
 .quick-add-review-actions button:active,.quick-add-review-actions a:active{transform:scale(.97);opacity:.82}
-.quick-add-review-actions .quick-add-review-confirm{grid-column:1/-1;background:var(--paper);color:var(--ink);border-color:var(--paper);transition:background .2s ease,color .2s ease,border-color .2s ease,transform .12s ease,opacity .2s ease}
+.quick-add-review-actions .quick-add-review-confirm{grid-column:1/-1;background:var(--paper);color:var(--ink);border-color:var(--paper);transition:background .2s ease,color .2s ease,border-color .2s ease,transform .1s ease,opacity .2s ease}
 .quick-add-review-actions .quick-add-review-confirm:hover{background:var(--paper-hover);border-color:var(--paper-hover)}
 .quick-add-review-actions .quick-add-review-confirm:active{background:var(--paper-active);border-color:var(--paper-active);transform:scale(.97)}
 .quick-add-review-actions .quick-add-review-confirm:disabled{opacity:.45;cursor:not-allowed}
@@ -1026,7 +1138,7 @@ body.light-mode .pcard-skel-img,body.light-mode .pcard-skel-line{background:rgba
   65%{transform:translateY(-1.5px) scale(.97,1.05)}
   100%{transform:translateY(0) scale(1,1)}
 }
-#cart-btn.bag-dip svg{animation:bagDip .38s cubic-bezier(.34,1.3,.5,1);transform-origin:center bottom}
+#cart-btn.bag-dip svg{animation:bagDip .4s cubic-bezier(.34,1.3,.5,1);transform-origin:center bottom}
 @media (prefers-reduced-motion: reduce){
   #cart-btn.bag-dip svg,.cc.pop{animation:none}
 }
@@ -1052,7 +1164,7 @@ body.light-mode .pcard-skel-img,body.light-mode .pcard-skel-line{background:rgba
   width:100%;min-height:48px;padding:.8rem 1rem;border:1px solid rgba(244,241,235,.14);border-radius:999px;
   font-family:var(--fm);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
   color:var(--paper);background:rgba(244,241,235,.03);
-  gap:.65rem;cursor:pointer;transition:border-color .18s ease, background .18s ease, color .18s ease, opacity .18s ease;
+  gap:.65rem;cursor:pointer;transition:border-color .2s ease, background .2s ease, color .2s ease, opacity .2s ease;
 }
 .wallet-chip:hover{border-color:rgba(244,241,235,.28);background:rgba(244,241,235,.06)}
 .wallet-chip:focus-visible{outline:2px solid rgba(244,241,235,.35);outline-offset:2px}
@@ -1071,7 +1183,7 @@ body.light-mode .pcard-skel-img,body.light-mode .pcard-skel-line{background:rgba
   padding:2.6rem 2.4rem 2.2rem;
   width:min(420px,92vw);
   position:relative;
-  animation:modalIn .22s ease;
+  animation:modalIn .2s ease;
 }
 @keyframes modalIn{
   from{opacity:0;transform:translateY(14px)}
@@ -1248,7 +1360,7 @@ body.super-light-mode .quick-add-review-modal>.mbox{background:#FFFFFF !importan
   overflow-y:auto;
   display:flex;flex-direction:column;
   position:relative;
-  animation:modalIn .22s ease;
+  animation:modalIn .2s ease;
   overscroll-behavior:contain;
   margin:auto;
 }
@@ -1359,7 +1471,7 @@ body.light-mode .ret-history-item{border-top-color:rgba(9,9,11,.07)}
   background:var(--ink);
   display:flex;flex-direction:column;
   transform:translateX(100%);
-  transition:transform .32s cubic-bezier(.4,0,.2,1);
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
   pointer-events:none;
   visibility:hidden;
   overflow:hidden;
@@ -1532,9 +1644,8 @@ body.super-light-mode{
   --line:rgba(9,9,11,0.08);
   background:#FFFFFF;
 }
-/* Fix hardcoded dark elements */
-body.light-mode #cookie-banner{background:#F0EEE9 !important;border-top-color:rgba(9,9,11,.12) !important;color:rgba(9,9,11,.65) !important;}
-body.light-mode #cookie-banner button:last-child{color:rgba(9,9,11,.45) !important;border-color:rgba(9,9,11,.15) !important;}
+/* Cookie-banner theming is centralized in storefront-cohesion.css (a single
+   dark bar in every theme), so the old light-mode override is removed here. */
 /* Nav */
 body.light-mode nav#nav,
 body.light-mode nav#nav.scrolled{
@@ -1733,9 +1844,9 @@ body.light-mode::after{opacity:0.15}
 
 
 </style>
-  <link rel="preload" href="reviews-vibe.css?v=e999845e" as="style" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="reviews-vibe.css?v=e999845e"></noscript>
-<script src="image-utils.js?v=6eef467b" defer></script>
-<script src="mobile-menu.js?v=251b10fb" defer></script>
+  <link rel="preload" href="reviews-vibe.css?v=8580381c" as="style" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="reviews-vibe.css?v=8580381c"></noscript>
+<script src="image-utils.js?v=e6f0ec04" defer></script>
+<script src="mobile-menu.js?v=0b991fea" defer></script>
 <!-- theme flash prevention moved to top of <head> -->
 <style>
 /* The iOS safe-area cover is MOBILE-ONLY. On desktop env=0, but its
@@ -1754,12 +1865,29 @@ body.light-mode::after{opacity:0.15}
   /* Bar: flush below nav, GPU-composited to prevent iOS Safari repaint flicker.
      Nav no longer reflows on scroll, so the scrolled bar top is identical. */
   #bar{
-    top:calc(.75rem + env(safe-area-inset-top,0px) + 36px + .85rem)!important;
+    /* --zw-bar-top is set by JS to the nav's measured height so the bar sits
+       flush (no floating gap); the calc() is a first-paint fallback. */
+    top:var(--zw-bar-top, calc(.75rem + env(safe-area-inset-top,0px) + 36px + .85rem))!important;
     transform:translate3d(0,0,0)!important;
     -webkit-transform:translate3d(0,0,0)!important;
+    /* Keep the message on ONE compact line instead of wrapping to two. */
+    padding:.4rem 1rem!important;
+    gap:0!important;
+    letter-spacing:.1em!important;
+    font-size:.55rem!important;
+    white-space:nowrap;
+    overflow:hidden;
+  }
+  /* Drop the decorative ✦ flourishes on mobile — they add width and clutter. */
+  #bar .bar-sep{ display:none!important; }
+  #bar #announcementText{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    min-width:0;
   }
   body:has(nav#nav.scrolled) #bar{
-    top:calc(.75rem + env(safe-area-inset-top,0px) + 36px + .85rem)!important;
+    top:var(--zw-bar-top, calc(.75rem + env(safe-area-inset-top,0px) + 36px + .85rem))!important;
     transform:translate3d(0,0,0)!important;
     -webkit-transform:translate3d(0,0,0)!important;
   }
@@ -1791,6 +1919,8 @@ body.light-mode::after{opacity:0.15}
 body.super-light-mode{background:#FFFFFF!important}
 body.super-light-mode #mobile-menu{background:#FFFFFF!important}
 </style>
+<script src="error-reporter.js?v=1" defer></script>
+<script src="consent.js?v=1" defer></script>
 </head>
 <body>
 <!-- THEME FLASH PREVENTION (synchronous, runs the instant <body> is parsed):
@@ -1798,6 +1928,11 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
      hero, sections etc. render in light mode instead of flashing dark until
      deferred storefront.js applies the class. Mirrors what drop001/account do. -->
 <script>(function(){try{var m=localStorage.getItem('zw_homepage_theme_mode')||localStorage.getItem('zw_theme_mode');if(m==='light')document.body.classList.add('light-mode');else if(m==='super-light')document.body.classList.add('light-mode','super-light-mode');}catch(_){}})()</script>
+<!-- Boot cover: themed layer held over the content on a page-builder reload while
+     storefront.js reflows the layout, so the reflow doesn't visibly "jump". Shown
+     only when html.zw-pb-pending (set synchronously in <head>); faded out by
+     storefront.js once the layout is positioned. Sits below the fixed nav/bar. -->
+<div id="zw-boot" aria-hidden="true"></div>
 <!-- iOS safe-area cover: composited opaque layer that doesn't lag during momentum
      scroll (the nav itself does, which is what bleeds). Themed to match the nav so
      it's seamless, sized to the status-bar strip only — adds no header height. -->
@@ -1821,7 +1956,7 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
 <!-- NAV -->
 <nav id="nav">
   <a href="/" class="nav-logo">
-    <img src="images/logo-192.png" srcset="images/logo-192.png 192w, images/logo.png?v=2 2000w" sizes="60px" width="60" height="60" alt="ZUWERA" decoding="async" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+    <img src="images/logo.png?v=2" width="60" height="60" alt="ZUWERA" decoding="async" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
     <span style="display:none">ZUWERA</span>
   </a>
   <div class="nav-center" id="nav-category-links">
@@ -1880,7 +2015,12 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
   <div class="hero-bg"></div>
   <div class="hero-img-wrap">
     <picture>
-      <source id="hero-mobile-source" media="(max-width: 760px)" srcset="images/hero-mobile.jpg">
+      <!-- srcset intentionally omitted: the head preload already fetched the
+           Cloudinary-optimized mobile URL, and the inline script below sets this
+           source's srcset to that same URL synchronously before paint. Leaving a
+           raw srcset here made the preload scanner also fetch the unoptimized
+           images/hero-mobile.jpg — a wasted second download on mobile. -->
+      <source id="hero-mobile-source" media="(max-width: 760px)">
       <img id="hero-image" src="images/hero.jpg?v=2" width="4288" height="2848" alt="" role="presentation" fetchpriority="high" decoding="async">
     </picture>
     <script>
@@ -1995,7 +2135,7 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
       <h2>Release 001</h2>
       <span>Releasing 09 / 20 / 2026</span>
     </div>
-    <div class="pgrid zw-mobile-scroll-grid" id="products-grid">
+    <div class="pgrid zw-plat-grid" id="products-grid" data-lg="grid" data-md="swipe" data-sm="swipe">
       <!-- Products loaded dynamically from Supabase -->
       <div class="pcard" style="opacity:.3;text-align:center;padding:3rem">Loading products...</div>
     </div>
@@ -2368,19 +2508,14 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
 <!-- Language selector -->
 <script src="modal-lock.js?v=d1fe635d" defer></script>
 <script>window.__zwSkipThemeFetch=true;</script>
-<script src="storefront-theme.js?v=5762e141" defer></script>
-<script src="lang.js?v=5a87b132" defer></script>
+<script src="storefront-theme.js?v=76af5324" defer></script>
+<script src="lang.js?v=756ddb26" defer></script>
 <script src="scroll-reveal.js?v=7896153c" defer></script>
-<script src="reviews.js?v=c18cb695" charset="utf-8" defer></script>
+<script src="reviews.js?v=f4055367" charset="utf-8" defer></script>
 
-<!-- Cookie Consent / GDPR -->
-<div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0f0f0f;border-top:1px solid rgba(244,241,235,.1);padding:1rem 2rem;font-family:var(--font-body);font-size:.8rem;color:rgba(244,241,235,.7);align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem">
-  <p style="margin:0;flex:1;min-width:200px">We use cookies to improve your experience. By continuing, you agree to our <a href="/policies.html" style="color:currentColor;text-decoration:underline;opacity:.8">Privacy Policy</a>.</p>
-  <div style="display:flex;gap:.5rem">
-    <button onclick="acceptCookies()" style="padding:.5rem 1.2rem;background:var(--paper);color:var(--ink);border:none;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:var(--font-body)">Accept</button>
-    <button onclick="declineCookies()" style="padding:.5rem 1.2rem;background:none;color:rgba(244,241,235,.5);border:1px solid rgba(244,241,235,.15);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:var(--font-body)">Decline</button>
-  </div>
-</div>
+<!-- Cookie consent banner is injected on every page by consent.js (window.zwConsent),
+     which also gates analytics/marketing until the visitor accepts. -->
+
 
 <script src="commerce-checkout.js?v=f884ded3" defer></script>
 <script src="customer-hub.js?v=88b0086c" defer></script>
@@ -2404,7 +2539,7 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
   // refreshCheckoutCardTheme()
 })();
 </script>
-<script src="zw-login.js?v=d30a7000" defer></script>
+<script src="zw-login.js?v=8ffae84d" defer></script>
 <script>
 /* Use the shared zw-login modal so every page's login is identical. storefront.js
    exposes a global openAuth() (called by the login button via __zwOpenAuth, and

@@ -126,38 +126,24 @@
     padding-inline:var(--zw-mobile-gutter) !important;
   }
 
-  :is(.pgrid,.products-grid,.products-grid.two-items){
+  /* The homepage product grid on mobile/tablet is a one-at-a-time horizontal
+     swipe — handled in the @media (max-width:1024px) block at the end of this
+     file. (It used to be a 2-column grid that stacked into a long list; users
+     asked to swipe through products one at a time and scroll right for more.)
+     Collection/PLP grids (.products-grid) keep their own 2-up layout. */
+  :is(.products-grid,.products-grid.two-items){
     display:grid !important;
     grid-template-columns:repeat(2, minmax(0, 1fr)) !important;
     gap:var(--zw-mobile-card-gap) !important;
     overflow:visible !important;
     padding:0 !important;
     scroll-snap-type:none !important;
-    scroll-padding-inline:0 !important;
-    scrollbar-width:auto !important;
-    -ms-overflow-style:auto !important;
   }
-
-  :is(.pgrid,.products-grid,.products-grid.two-items)::-webkit-scrollbar{
-    display:none !important;
-  }
-
-  :is(.pgrid .pcard,.products-grid > a,.products-grid .product-card,.products-grid .pcard){
+  :is(.products-grid > a,.products-grid .product-card,.products-grid .pcard){
     flex:none !important;
     width:auto !important;
     min-width:0 !important;
     max-width:none !important;
-  }
-
-  .pgrid.single-item{
-    display:grid !important;
-    grid-template-columns:1fr !important;
-  }
-
-  .pgrid.single-item .pcard{
-    max-width:none !important;
-    width:auto !important;
-    margin:0 !important;
   }
 
   :is(.pcard-info,.product-info){

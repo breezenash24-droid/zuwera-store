@@ -22,8 +22,9 @@
 
   // Header element varies by page: <nav id="nav"> (home/bag), <header class="nav">
   // (collection/policies/size guide), <nav class="nav"> (product), <nav class="zw-nav">
-  // (account/returns/about). Match them all (but never the in-modal mobile menu nav).
-  function getNav() { return document.querySelector('nav#nav, header.nav, nav.nav, nav.zw-nav'); }
+  // (account/returns/about), <header class="co-header"> (checkout). Match them all
+  // (but never the in-modal mobile menu nav).
+  function getNav() { return document.querySelector('nav#nav, header.nav, nav.nav, nav.zw-nav, header.co-header'); }
 
   // Page identity = filename without ".html" ("/" or "/index.html" → "home").
   function pageKey() {
@@ -56,6 +57,11 @@
 
     function show() { nav.classList.remove(HIDDEN); }
     function hide() { nav.classList.add(HIDDEN); }
+
+    // Let other scripts pop the header back into view — e.g. add-to-bag, so the
+    // shopper sees the updated bag icon even if they'd scrolled the header away.
+    // Resets lastY so a scroll jitter doesn't immediately re-hide it.
+    window.zwRevealHeader = function () { show(); lastY = scrollY(); };
 
     function update() {
       ticking = false;

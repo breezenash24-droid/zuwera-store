@@ -72,6 +72,7 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
   <meta name="description" content="Shop Zuwera by category. Browse the latest athletic sportswear and find your next piece.">
   <meta name="robots" content="index, follow">
   <script src="/favicon-utils.js?v=687e90ea" defer></script>
+  <script src="/flags.js?v=1" defer></script>
   <script src="/meta-pixel.js?v=71fe06fb" defer></script>
   <script src="/google-tag.js?v=b141b2a1" defer></script>
   <script src="/supabase.min.js?v=3277b334" defer></script>
@@ -81,9 +82,10 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://qfgnrsifcwdubkolsgsq.supabase.co" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
-  <link rel="stylesheet" href="storefront-cohesion.css?v=421bca1c">
+  <link rel="stylesheet" href="storefront-cohesion.css?v=3413eaa1">
   <script src="header-scroll.js?v=4a734678" defer></script>
-  <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=29023607">
+  <script src="image-effects.js?v=1" defer></script>
+  <link rel="stylesheet" href="storefront-mobile-rebuild.css?v=d7cd202c">
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -108,7 +110,7 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
     .nav-logo{ display:flex; align-items:center; text-decoration:none; }
     .nav-logo img{ height:36px; width:auto; display:block; transition:filter .35s; filter:none; }
     .nav-center{ position:absolute; left:0; right:0; margin:0 auto; width:fit-content; display:flex; align-items:center; gap:2.4rem; }
-    .nav-link{ font-family:var(--fw,'Barlow Condensed',sans-serif); font-size:1.45rem; font-weight:900; font-style:normal; letter-spacing:.02em; text-transform:uppercase; line-height:1; color:#f4f1eb; opacity:.92; text-decoration:none; transition:color .2s,opacity .2s; background:none; border:none; cursor:pointer; }
+    .nav-link{ font-family:var(--fw,'Barlow Condensed',sans-serif); font-size:1.7rem; font-weight:900; font-style:normal; letter-spacing:.02em; text-transform:uppercase; line-height:1; color:#f4f1eb; opacity:.92; text-decoration:none; transition:color .2s,opacity .2s; background:none; border:none; cursor:pointer; display:inline-flex; align-items:center; padding:.6rem .7rem; margin:-.6rem 0; }
     .nav-link:hover{ color:var(--white); opacity:1; }
     .nav-right{ display:flex; align-items:center; gap:.4rem; }
     body.light-mode nav#nav{ background:#F0EEE9; }
@@ -146,13 +148,13 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
     @media (max-width:640px){
       .lp-hero{ min-height:74vh; padding:7rem 1.4rem 2.4rem; }
       .lp-hero::after{ background:linear-gradient(180deg,rgba(9,9,11,.04) 0%,rgba(9,9,11,.32) 46%,rgba(9,9,11,.84) 100%); }
-      .lp-hero-bg{ background-image:var(--lp-hero-img-mob,var(--lp-hero-img)); background-size:var(--lp-hero-fit-mob,var(--lp-hero-fit,cover)); }
+      .lp-hero-bg{ background-image:var(--lp-hero-img-mob,var(--lp-hero-img)); background-size:var(--lp-hero-fit-mob,var(--lp-hero-fit,cover)); background-position:var(--lp-hero-pos-mob,center); }
       .lp-hero-sub{ font-size:.98rem; }
     }
     /* Tablet hero: optional tablet image/fit, falling back to the mobile image
        (then the desktop one) — the JS resolves the chain into these vars. */
     @media (min-width:641px) and (max-width:1024px){
-      .lp-hero-bg{ background-image:var(--lp-hero-img-tab,var(--lp-hero-img)); background-size:var(--lp-hero-fit-tab,var(--lp-hero-fit,cover)); }
+      .lp-hero-bg{ background-image:var(--lp-hero-img-tab,var(--lp-hero-img)); background-size:var(--lp-hero-fit-tab,var(--lp-hero-fit,cover)); background-position:var(--lp-hero-pos-tab,center); }
     }
 
     /* SECTION HEADINGS */
@@ -166,7 +168,7 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
     .lp-cat-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:1rem; }
     .lp-cat-tile{ position:relative; display:block; aspect-ratio:4/5; overflow:hidden; background:#161619; text-decoration:none; color:#fff; }
     .lp-cat-tile img{ width:100%; height:100%; object-fit:cover; transition:transform .5s ease; }
-    .lp-cat-tile:hover img{ transform:scale(1.05); }
+    .lp-cat-tile:hover img{ transform:scale(var(--zw-zoom-category, 1.05)); }
     .lp-cat-tile::after{ content:''; position:absolute; inset:0; background:linear-gradient(180deg,transparent 45%,rgba(0,0,0,.62) 100%); }
     .lp-cat-ph{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; opacity:.25; }
     .lp-cat-label{ position:absolute; left:1.1rem; bottom:1rem; z-index:2; font-family:var(--fw); font-weight:900; font-style:italic; text-transform:uppercase; letter-spacing:.03em; font-size:1.3rem; display:flex; align-items:center; gap:.5rem; }
@@ -190,7 +192,7 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
     .lp-card{ text-decoration:none; color:inherit; display:block; }
     .lp-card-img{ position:relative; aspect-ratio:4/5; overflow:hidden; background:#161619; }
     .lp-card-img img{ width:100%; height:100%; object-fit:cover; transition:transform .5s ease; }
-    .lp-card:hover .lp-card-img img{ transform:scale(1.04); }
+    .lp-card:hover .lp-card-img img{ transform:scale(var(--zw-zoom-product, 1.04)); }
     .lp-card-ph{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; opacity:.25; }
     .lp-card-badge{ position:absolute; top:.7rem; left:.7rem; font-family:var(--fm); font-size:.55rem; letter-spacing:.14em; text-transform:uppercase; background:rgba(9,9,11,.78); color:#fff; padding:.32rem .55rem; }
     .lp-card-name{ font-family:var(--fw); font-weight:900; font-style:italic; font-size:1.15rem; letter-spacing:.02em; line-height:1.05; text-transform:uppercase; margin:.7rem 0 .2rem; }
@@ -213,6 +215,7 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
     body.super-light-mode .lp-hero::after{ background:none; }
     body.super-light-mode .lp-cat-tile,body.super-light-mode .lp-card-img{ background:#f1f0ec; }
   </style>
+<script src="consent.js?v=1" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to content</a>
@@ -240,7 +243,7 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
 
   <nav id="nav">
     <a href="/" class="nav-logo" aria-label="Back to Zuwera home">
-      <img src="images/logo-192.png" srcset="images/logo-192.png 192w, images/logo.png?v=2 2000w" sizes="60px" width="60" height="60" alt="ZUWERA" decoding="async">
+      <img src="images/logo.png?v=2" width="60" height="60" alt="ZUWERA" decoding="async">
     </a>
     <div class="nav-center" id="nav-category-links"></div>
     <div class="nav-right">
@@ -313,10 +316,13 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
         <h2 id="lp-feat-h">Featured</h2>
         <a id="lp-feat-all" href="drop001.html">Shop all →</a>
       </div>
-      <div class="lp-feat-grid" id="lp-feat-grid">
+      <div class="lp-feat-grid zw-plat-grid" id="lp-feat-grid" data-lg="grid" data-md="swipe" data-sm="swipe">
         <div class="lp-empty lp-skel" style="grid-column:1/-1">Loading…</div>
       </div>
     </section>
+
+    <!-- BUILDER SECTIONS (Pages tab) — category highlights below the auto content -->
+    <div id="lp-builder-sections"></div>
   </main>
 
   <footer class="zw-footer">
@@ -371,6 +377,7 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
   <script src="auth.js?v=7be42027" defer></script>
   <script src="zw-login.js?v=d30a7000" defer></script>
   <script src="/nav-menu.js?v=2abb3b12" defer></script>
-  <script src="landing.js?v=52813114" defer></script>
+  <script src="landing-sections.js?v=83f45a67" defer></script>
+  <script src="landing.js?v=909d6837" defer></script>
 </body>
 </html>

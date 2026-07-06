@@ -25,6 +25,7 @@
 
   var navCfg = null;   // array of raw items
   var tax = null;      // { byGender:{men:{Jackets:true,…},…}, tags:{…} }
+  var _navSettled = false; // has the server nav_menu fetch resolved (or timed out)?
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
@@ -178,16 +179,23 @@
   }
 
   function render() {
-    // Reveal the nav once we've settled (custom rendered OR confirmed none),
-    // clearing the no-flash hide set in <head>.
+    // Reveal the nav once we've settled, clearing the no-flash hide
+    // (html:not(.zw-nav-ready) #nav-category-links).
     function ready() { document.documentElement.classList.add('zw-nav-ready'); }
-    if (!Array.isArray(navCfg) || !navCfg.length) { ready(); return; }
-    window.__zwCustomNavApplied = true;
-    var items = resolveAll();
-    renderDesktop(items);
-    renderMobile(items);
-    ready();
-    setMegaTop();
+    if (Array.isArray(navCfg) && navCfg.length) {
+      window.__zwCustomNavApplied = true;
+      var items = resolveAll();
+      renderDesktop(items);
+      renderMobile(items);
+      ready();
+      setMegaTop();
+      return;
+    }
+    // No custom nav. Keep the built-in fallback links HIDDEN until the server has
+    // confirmed there's genuinely no custom menu — otherwise a first (uncached)
+    // load flashes the fallback and then swaps to the real menu. _navSettled is
+    // set once the fetch resolves/fails or the safety timeout fires.
+    if (_navSettled) ready();
   }
 
   // Mobile accordion toggle (delegated).
@@ -206,6 +214,10 @@
     navCfg = cacheGet('zw_nav_menu');
     var t = cacheGet('zw_nav_tax');
     if (t) tax = t;
+    // If a custom nav is cached, it renders now (no flash). If not, render() holds
+    // the fallback hidden until the fetch below settles. Safety net so the nav is
+    // never stuck hidden on a slow/failed fetch:
+    setTimeout(function () { if (!_navSettled) { _navSettled = true; render(); } }, 3000);
     render();
     var _mt = 0;
     function _onMt() { if (_mt) return; _mt = (window.requestAnimationFrame || setTimeout)(function () { _mt = 0; setMegaTop(); }); }
@@ -225,8 +237,9 @@
           if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) {} }
           navCfg = Array.isArray(v) ? v : [];
           try { localStorage.setItem('zw_nav_menu', JSON.stringify(navCfg)); } catch (_) {}
+          _navSettled = true;
           render();
-        }).catch(function () {});
+        }).catch(function () { _navSettled = true; render(); });
       fetch(SB + 'products?select=gender,subtitle,tags&status=neq.Legacy&status=neq.Draft', { headers: H })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (products) {

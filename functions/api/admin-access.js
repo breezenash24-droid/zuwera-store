@@ -1,3 +1,5 @@
+import { resolvePerms, levelMapFor } from './_rbac.js';
+
 // Admin emails are configured via the ADMIN_EMAILS environment variable (comma-separated).
 const DEFAULT_ADMIN_EMAILS = [];
 
@@ -111,6 +113,7 @@ async function fetchUser(accessToken, config) {
   return resp.json();
 }
 
+// Env-allowlisted accounts are the store owners: always super_admin.
 async function upsertAdminProfile(user, config) {
   const serviceKey = config.serviceKey;
   const emails = collectEmails(user);
@@ -118,7 +121,8 @@ async function upsertAdminProfile(user, config) {
     id: user.id,
     email: emails[0] || user.email || null,
     full_name: user?.user_metadata?.full_name || null,
-    role: 'admin'
+    role: 'admin',
+    admin_role: 'super_admin'
   };
 
   const resp = await fetch(`${config.supabaseUrl}/rest/v1/profiles?on_conflict=id`, {
@@ -138,6 +142,35 @@ async function upsertAdminProfile(user, config) {
 
   const data = await resp.json().catch(() => null);
   return Array.isArray(data) ? data[0] || payload : (data || payload);
+}
+
+// Read an existing profile (role + admin_role) so staff who were granted a
+// granular role in the DB — but aren't in the env allowlist — can still sign in.
+// Prefer the user's OWN token (RLS "Users read own profile": auth.uid() = id) so
+// this works even when the service-role key isn't configured for this function.
+// Falls back to the service key if for some reason the self-read fails.
+async function fetchProfile(accessToken, userId, config) {
+  const select = `id,email,full_name,role,admin_role,admin_permissions`;
+  const url = `${config.supabaseUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=${select}`;
+
+  const anonKey = config.anonKey || config.serviceKey;
+  if (anonKey) {
+    const resp = await fetch(url, { headers: { apikey: anonKey, Authorization: `Bearer ${accessToken}` } });
+    if (resp.ok) {
+      const data = await resp.json().catch(() => null);
+      const row = Array.isArray(data) ? (data[0] || null) : null;
+      if (row) return row;
+    }
+  }
+
+  if (looksLikeJwt(config.serviceKey)) {
+    const resp = await fetch(url, { headers: { apikey: config.serviceKey, Authorization: `Bearer ${config.serviceKey}` } });
+    if (resp.ok) {
+      const data = await resp.json().catch(() => null);
+      return Array.isArray(data) ? (data[0] || null) : null;
+    }
+  }
+  return null;
 }
 
 export async function onRequestPost({ request, env }) {
@@ -163,21 +196,48 @@ export async function onRequestPost({ request, env }) {
       return json({ success: false, error: 'Unable to verify account.' }, 401);
     }
 
-    if (!isAllowedAdmin(user, env)) {
-      return json({ success: false, error: 'Your account does not have admin privileges.' }, 403);
-    }
+    const envAdmin = isAllowedAdmin(user, env);
 
-    // Profile upsert requires the service role key — skip gracefully if not configured.
-    let profile = { id: user.id, email: user.email, role: 'admin' };
-    if (looksLikeJwt(config.serviceKey)) {
-      try {
-        profile = await upsertAdminProfile(user, config);
-      } catch (_) {
-        // non-fatal — user is still an admin, profile just won't be updated
+    // Resolve the effective staff role.
+    //  - Env-allowlisted accounts (store owners) are always super_admin.
+    //  - Otherwise, a DB profile with role='admin' AND a granular admin_role
+    //    grants scoped access (added by a super_admin from the Users page).
+    let profile = { id: user.id, email: user.email, role: 'admin', admin_role: 'super_admin' };
+    let adminRole = 'super_admin';
+
+    if (envAdmin) {
+      if (looksLikeJwt(config.serviceKey)) {
+        try {
+          profile = await upsertAdminProfile(user, config);
+        } catch (_) {
+          // non-fatal — user is still a super_admin, profile just won't be updated
+        }
       }
+      adminRole = 'super_admin';
+    } else {
+      const existing = await fetchProfile(accessToken, user.id, config);
+      if (!existing || existing.role !== 'admin') {
+        return json({ success: false, error: 'Your account does not have admin privileges.' }, 403);
+      }
+      // Grandfather existing admins with no granular role yet as super_admin
+      // (matches verifyAdmin's fallback) so RBAC rollout never silently locks out
+      // someone who already had access. A super_admin can downgrade them in Users.
+      profile = existing;
+      adminRole = existing.admin_role || 'super_admin';
     }
 
-    return json({ success: true, role: 'admin', profile, recoveredFromSwappedEnv: config.recoveredFromSwappedEnv });
+    // Effective permissions from role preset + any per-user override matrix.
+    const resolveInput = { admin_role: adminRole, admin_permissions: profile.admin_permissions };
+    return json({
+      success: true,
+      role: 'admin',
+      admin_role: adminRole,
+      permissions: resolvePerms(resolveInput),
+      levels: adminRole === 'super_admin' ? '*' : levelMapFor(resolveInput),
+      color: profile.admin_permissions?.color || null,
+      profile,
+      recoveredFromSwappedEnv: config.recoveredFromSwappedEnv
+    });
   } catch (err) {
     return json({ success: false, error: err.message || 'Admin access failed.' }, 500);
   }

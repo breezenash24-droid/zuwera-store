@@ -1,3 +1,5 @@
+import { resolvePerms, permsHave } from './_rbac.js';
+
 export function json(body, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(body), {
     status,
@@ -102,10 +104,25 @@ export async function verifyUser(env, accessToken) {
 export async function verifyAdmin(env, accessToken) {
   const user = await verifyUser(env, accessToken);
   if (!user?.id) return null;
-  const rows = await supabaseSelect(env, `profiles?select=id,email,role,full_name&id=eq.${encodeURIComponent(user.id)}&limit=1`);
+  const rows = await supabaseSelect(env, `profiles?select=id,email,role,full_name,admin_role,admin_permissions&id=eq.${encodeURIComponent(user.id)}&limit=1`);
   const profile = rows?.[0] || null;
   if (!profile || profile.role !== 'admin') return null;
-  return { ...user, profile };
+  // admin_role may be null on stores that haven't run supabase-rbac.sql yet —
+  // treat that as super_admin so RBAC rollout never locks the owner out.
+  const adminRole = profile.admin_role || 'super_admin';
+  // Effective flat permission list from role preset + per-user overrides.
+  const permissions = resolvePerms({ admin_role: adminRole, admin_permissions: profile.admin_permissions });
+  return { ...user, profile, admin_role: adminRole, permissions };
+}
+
+// Like verifyAdmin, but also requires the person to hold `permission`
+// (resolved from their role preset + per-user access overrides).
+// Returns the admin object on success, or null if unauthenticated / not permitted.
+export async function verifyAdminCan(env, accessToken, permission) {
+  const admin = await verifyAdmin(env, accessToken);
+  if (!admin) return null;
+  if (!permsHave(admin.permissions, permission)) return null;
+  return admin;
 }
 
 export async function getOrdersForUser(env, userId, userEmail = '') {
@@ -170,6 +187,7 @@ export function sanitizeCommerceConfig(rawConfig = {}) {
         targetProductIds: Array.isArray(promo.targetProductIds) ? promo.targetProductIds.map(String).filter(Boolean) : [],
         targetCollectionIds: Array.isArray(promo.targetCollectionIds) ? promo.targetCollectionIds.map(String).filter(Boolean) : [],
       })),
+    localDelivery: sanitizeLocalDelivery(config.localDelivery),
     integrations: config.integrations || {},
     shippingAutomation: config.shippingAutomation || {},
     customerExperience: config.customerExperience || {},
@@ -178,6 +196,22 @@ export function sanitizeCommerceConfig(rawConfig = {}) {
     subscriptions: config.subscriptions || {},
     affiliates: config.affiliates || {},
     merchandising: config.merchandising || {},
+  };
+}
+
+// Campus hand-delivery config: a ZIP allow-list that unlocks a free in-person
+// delivery option at checkout. ZIPs are normalized to 5 digits; anything else
+// is dropped so a bad value can never widen eligibility.
+export function sanitizeLocalDelivery(rawLocalDelivery = {}) {
+  const ld = rawLocalDelivery && typeof rawLocalDelivery === 'object' ? rawLocalDelivery : {};
+  const zips = Array.isArray(ld.zips)
+    ? Array.from(new Set(ld.zips.map((z) => String(z).trim()).filter((z) => /^\d{5}$/.test(z))))
+    : [];
+  return {
+    enabled: ld.enabled === true,
+    label: String(ld.label || 'Campus hand-delivery'),
+    instructions: String(ld.instructions || ''),
+    zips,
   };
 }
 

@@ -116,7 +116,7 @@
   border-top: 2px solid var(--zw-accent);
   position: relative;
   padding: 3rem 3.2rem 2.6rem;
-  animation: modalIn .22s ease;
+  animation: modalIn .2s ease;
   max-width: 1200px;
   width: min(1200px, 98vw);
   max-height: 96dvh;
@@ -276,7 +276,7 @@
   padding: 0.45rem 1.1rem; border-radius: 2px; font-size: 0.82rem; font-weight: 600;
   cursor: pointer; text-transform: none; letter-spacing: 0.02em;
   border: 1px solid rgba(244,241,235,0.15); background: rgba(244,241,235,0.04);
-  color: rgba(244,241,235,0.5); transition: all 0.18s; user-select: none;
+  color: rgba(244,241,235,0.5); transition: all .2s; user-select: none;
   font-family: var(--font-body);
 }
 .review-mbox .review-radio-group input[type="radio"]:checked + label { border-color: var(--zw-accent); background: rgba(248,145,165,0.15); color: var(--zw-accent); }
@@ -318,7 +318,7 @@
   border: 1px solid rgba(244,241,235,.08);
   border-top: 2px solid var(--zw-accent);
   position: relative;
-  animation: modalIn .22s ease;
+  animation: modalIn .2s ease;
   max-width: 1400px;
   width: min(1400px, 99vw);
   max-height: 96dvh;
@@ -339,8 +339,8 @@
   position: absolute;
   top: 1rem;
   right: 1.2rem;
-  width: 30px;
-  height: 30px;
+  width: 44px;       /* match the site-standard close size (.mclose) */
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -349,6 +349,10 @@
   color: #f4f1eb;
   font-size: 1rem;
   cursor: pointer;
+}
+@media (max-width: 900px) {
+  /* Shrink to the site-standard compact close size (matches .mclose at ≤900px). */
+  .review-list-close { width: 38px; height: 38px; }
 }
 @media (min-width: 901px) {
   /* Pin the close so it stays visible while the reviews list scrolls — it was
@@ -359,10 +363,10 @@
      stylesheet order. */
   .review-list-mbox > .review-list-close {
     position: sticky;
-    top: 1rem;
+    top: .9rem;                /* match the standard .9rem desktop close offset */
     right: auto;
     margin-left: auto;
-    margin-bottom: -30px;
+    margin-bottom: -44px;      /* = button height, so it fully overlaps the corner */
     z-index: 5;
   }
 }
@@ -664,3 +668,9 @@ body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba
   .review-list-translate { width: 100% !important; }
 }
 
+
+/* Light/super-light: review toggle + count sit on the product card (theme bg),
+   so their hardcoded light color goes invisible on light backgrounds. */
+body.light-mode .review-toggle-btn, body.super-light-mode .review-toggle-btn{ color:rgba(9,9,11,.55); }
+body.light-mode .review-toggle-btn:hover, body.super-light-mode .review-toggle-btn:hover{ color:rgba(9,9,11,.85); }
+body.light-mode .review-count, body.super-light-mode .review-count{ color:rgba(9,9,11,.42); }
