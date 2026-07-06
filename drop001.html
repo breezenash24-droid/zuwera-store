@@ -1459,6 +1459,8 @@ function updateCountdown() {
       function plpCategoryList(){
         const seen = {}, cats = [];
         (_allProducts || []).forEach(function(p){
+          const status = (p.status || '').toLowerCase();
+          if (status === 'legacy' || status === 'archived' || status === 'draft') return;
           if (!(productMatchesGender(p, requestedGender) && productMatchesTag(p, requestedTag))) return;
           const c = categoryLabelFromProduct(p);
           if (c && !seen[c.toLowerCase()]) { seen[c.toLowerCase()] = true; cats.push(c); }
