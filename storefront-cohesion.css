@@ -1471,7 +1471,7 @@ body.light-mode .heart-btn{
     /* Standardized clearance/height for EVERY page (this lives in cohesion, which
        all pages load). Matches storefront-mobile-rebuild.css exactly, so the
        header is the same size whether or not a page also loads mobile-rebuild. */
-    padding:max(env(safe-area-inset-top,0px) - 48px,14px) var(--zw-mobile-gutter,1.1rem) 0 !important;
+    padding:max(env(safe-area-inset-top,0px) - 48px,16px) var(--zw-mobile-gutter,1.1rem) 0 !important;
     /* Flex row, vertically centered: logo on the left, actions on the right, both
        on the same centerline so the header reads symmetrically. */
     display:flex !important;
@@ -1520,7 +1520,7 @@ body.light-mode .heart-btn{
   /* All nav logo images default to 38px (the square icon mark). */
   :is(nav#nav,.nav,header.nav) :is(.nav-logo,.nav-logo-link) img,
   :is(nav#nav,.nav,header.nav) .nav-logo-img{
-    height:38px !important;
+    height:44px !important;
     width:auto !important;
   }
   /* The WIDE wordmark image is matched by its SRC (not class) — some pages put
@@ -1528,7 +1528,7 @@ body.light-mode .heart-btn{
      icons. Matching wordmark-*.png only ever hits the wordmark. ~113x22 native,
      so a small height keeps it from blowing across the header. */
   :is(nav#nav,.nav,header.nav) img[src*="wordmark"]{
-    height:24px !important;
+    height:28px !important;
     width:auto !important;
   }
 
