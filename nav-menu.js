@@ -102,8 +102,9 @@
       // tag-filtered PLP.
       var tagName = item.tag || label;
       var tlanding = item.url || ('landing.html?tag=' + encodeURIComponent(tagName));
+      if (!tax) return { label: label, url: tlanding, columns: [] };
       var tset = (tax && tax.byTag && tax.byTag[String(tagName).toLowerCase()]) || null;
-      if (!tset) return { label: label, url: tlanding, columns: [] };
+      if (!tset) return null; // no products for this tag -> hide it
       var tbase = 'drop001.html?tag=' + encodeURIComponent(tagName);
       var tcats = Object.keys(tset).sort(function (a, b) { return a.localeCompare(b); });
       var tcolumns = [];
