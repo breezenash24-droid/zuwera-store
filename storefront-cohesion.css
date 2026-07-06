@@ -3981,3 +3981,12 @@ body.super-light-mode img[src*="wordmark-nav"]{ filter:none !important; }
   .zw-eyebrow,.eyebrow,[class*="-label"],[class*="-title"]):not(button):not(a.btn):not(.btn){
   color:#09090b !important;
 }
+
+@media (max-width: 900px) {
+  :is(nav#nav,.nav,header.nav) :is(.nav-logo,.nav-logo-link) img,
+  :is(nav#nav,.nav,header.nav) .nav-logo-img,
+  .co-logo-wrap img, .mc-logo img, .brand img { height: 48.4px !important; }
+  :is(nav#nav,.nav,header.nav) img[src*="wordmark"],
+  .zw-nav-logo img { height: 30.8px !important; }
+  .brand img { width: 167.2px !important; }
+}
