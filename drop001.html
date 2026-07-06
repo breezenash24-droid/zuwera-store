@@ -1459,6 +1459,8 @@ function updateCountdown() {
       function plpCategoryList(){
         const seen = {}, cats = [];
         (_allProducts || []).forEach(function(p){
+          const status = (p.status || '').toLowerCase();
+          if (status === 'legacy' || status === 'archived' || status === 'draft') return;
           if (!(productMatchesGender(p, requestedGender) && productMatchesTag(p, requestedTag))) return;
           const c = categoryLabelFromProduct(p);
           if (c && !seen[c.toLowerCase()]) { seen[c.toLowerCase()] = true; cats.push(c); }
@@ -1813,6 +1815,8 @@ function updateCountdown() {
       function renderProducts(productsList) {
         if (productsList && productsList.length) _allProducts = productsList;
         const filteredProducts = (productsList || []).filter(function (p) {
+          const status = (p.status || '').toLowerCase();
+          if (status === 'legacy' || status === 'archived' || status === 'draft') return false;
           if (activeCategory && categoryLabelFromProduct(p).toLowerCase() !== activeCategory.toLowerCase()) return false;
           return productMatchesGender(p, requestedGender) && productMatchesTag(p, requestedTag);
         });

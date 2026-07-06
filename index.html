@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#09090b" id="zw-theme-meta">
 <script>
 /* THEME FLASH PREVENTION — runs synchronously before any CSS loads.
    Sets the correct background directly on <html> as an inline style so it
@@ -17,6 +18,8 @@
   var h=document.documentElement;
   if(m==='super-light'||m==='light'){
     var bg=m==='super-light'?'#FFFFFF':'#F0EEE9';
+    var mt=document.getElementById('zw-theme-meta');
+    if(mt) mt.content=bg;
     h.style.background=bg;
     h.style.colorScheme='light';
     var st=document.createElement('style');
@@ -312,7 +315,6 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
 
 <!-- PWA -->
 <meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#09090b">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
