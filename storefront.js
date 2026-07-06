@@ -2287,8 +2287,16 @@ async function _doLoadProducts() {
     sessionStorage.setItem('zw_home_products', newCache);
     if (!usedCache || newCache !== prevCache) {
       if (normalizedProducts.length === 0) {
-        grid.innerHTML = '<div class="pcard" style="opacity:.3;text-align:center;padding:3rem">No products yet.</div>';
+        grid.innerHTML = '';
+        const sec = grid.closest('.products-section');
+        if (sec) sec.style.display = 'none';
+        const nav = document.getElementById('category-nav');
+        if (nav) nav.style.display = 'none';
       } else {
+        const sec = grid.closest('.products-section');
+        if (sec) sec.style.display = '';
+        const nav = document.getElementById('category-nav');
+        if (nav) nav.style.display = '';
         renderCategoryNavigation(normalizedProducts);
         renderProductCards(normalizedProducts, grid);
       }
