@@ -25,7 +25,7 @@
 html{background:#09090b;color-scheme:dark light;text-size-adjust:100%;-webkit-text-size-adjust:100%}
 html:has(body.light-mode){background:#F0EEE9;color-scheme:light}
 html:has(body.super-light-mode){background:#FFFFFF;color-scheme:light}
-html::before{content:'';position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:#09090b;z-index:9990;pointer-events:none}
+html::before{content:'';position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:var(--zw-notch-bar,#09090b);z-index:9990;pointer-events:none}
 html:has(body.light-mode)::before{background:#F0EEE9}
 html:has(body.super-light-mode)::before{background:#FFFFFF}
 /* Reserve the scrollbar's gutter at all times. When a modal scroll-lock hides

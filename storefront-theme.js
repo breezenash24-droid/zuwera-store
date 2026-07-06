@@ -1,13 +1,11 @@
 (function() {
   'use strict';
 
-  // iPhone notch bar: immediately set color from localStorage to minimize theme FOUC
+  // Immediately set notch bar color from localStorage to minimize theme FOUC
   try {
-    if (/iPhone/.test(navigator.userAgent)) {
       var _nm = localStorage.getItem('zw_theme_mode') || 'dark';
       document.documentElement.style.setProperty('--zw-notch-bar',
         _nm === 'super-light' ? '#FFFFFF' : _nm === 'light' ? '#F0EEE9' : '#09090b');
-    }
   } catch(_) {}
 
   var SUPABASE_URL = window.SUPABASE_URL || window.SUPA_URL || 'https://qfgnrsifcwdubkolsgsq.supabase.co';
@@ -22,9 +20,7 @@
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', color);
     document.documentElement.style.backgroundColor = color;
-    if (/iPhone/.test(navigator.userAgent)) {
-      document.documentElement.style.setProperty('--zw-notch-bar', color);
-    }
+    document.documentElement.style.setProperty('--zw-notch-bar', color);
     try {
       // Don't persist while inside the builder preview iframe — the preview shares
       // localStorage with the live homepage (same origin), so remembering a
