@@ -1784,6 +1784,7 @@ async function _doLoadProducts() {
 
   try {
     const headers = { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}` };
+    const fetchOpts = { headers, cache: 'no-store' };
     // Consume the early-fetch response exactly once, then clear it immediately
     // so any concurrent/subsequent call does a fresh fetch instead.
     const earlyFetch = window.__zwProductsEarlyFetch;
@@ -1792,16 +1793,14 @@ async function _doLoadProducts() {
     const productsResp = await Promise.race([
       earlyFetch || fetch(
         `${SUPABASE_URL}/rest/v1/products?select=*,product_images(*),color_variants(*)&status=neq.Legacy&status=neq.Draft&order=sort_order.asc`,
-        { headers }
+        fetchOpts
       ),
       _timeout
     ]);
     if (!productsResp.ok) throw new Error(`HTTP ${productsResp.status}`);
-    const products = await productsResp.json();
-    if (!Array.isArray(products) || products.length === 0) {
-      if (!usedCache) grid.innerHTML = '<div class="pcard" style="opacity:.3;text-align:center;padding:3rem">No products yet.</div>';
-      return;
-    }
+    let products = await productsResp.json();
+    if (!Array.isArray(products)) products = [];
+    
     const normalizedProducts = products.map((product) => ({
       ...product,
       product_images: (product.product_images || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)),
@@ -1812,8 +1811,12 @@ async function _doLoadProducts() {
     const newCache = JSON.stringify(normalizedProducts);
     sessionStorage.setItem('zw_home_products', newCache);
     if (!usedCache || newCache !== prevCache) {
-      renderCategoryNavigation(normalizedProducts);
-      renderProductCards(normalizedProducts, grid);
+      if (normalizedProducts.length === 0) {
+        grid.innerHTML = '<div class="pcard" style="opacity:.3;text-align:center;padding:3rem">No products yet.</div>';
+      } else {
+        renderCategoryNavigation(normalizedProducts);
+        renderProductCards(normalizedProducts, grid);
+      }
     }
   } catch(e) {
     console.error('loadProducts error:', e);

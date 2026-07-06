@@ -124,10 +124,10 @@ async function loadProducts(gridSelector = '#products-grid') {
       }));
     }
 
-    let renderList = data;
+    let renderList = data.filter(p => p.status !== 'Legacy' && p.status !== 'Archived');
     // If only 1 product, show its different images as separate cards
-    if (data.length === 1 && data[0].product_images && data[0].product_images.length > 1) {
-      const p = data[0];
+    if (renderList.length === 1 && renderList[0].product_images && renderList[0].product_images.length > 1) {
+      const p = renderList[0];
       let allImages = [...p.product_images].sort((a, b) => a.sort_order - b.sort_order);
       if (p.image_url && !allImages.some(img => img.image_url === p.image_url)) {
         allImages.unshift({ image_url: p.image_url, sort_order: -1 });

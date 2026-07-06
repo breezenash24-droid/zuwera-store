@@ -79,7 +79,7 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
   var h={headers:{apikey:ANON,Authorization:'Bearer '+ANON},cache:'no-store'};
   window.__zwProductsEarlyFetch=fetch(
     SUPA+'/rest/v1/products?select=*,product_images(*),color_variants(*)&status=neq.Legacy&status=neq.Draft&order=sort_order.asc',
-    {headers:{apikey:ANON,Authorization:'Bearer '+ANON}}
+    h
   );
   /* site_settings early fetch — builder config, theme, brand all arrive before
      storefront.js even begins executing, eliminating the settings-apply flash. */
