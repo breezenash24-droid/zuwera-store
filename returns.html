@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <script>
-/* THEME FLASH PREVENTION — runs before any CSS loads */
+/* THEME FLASH PREVENTION â€” runs before any CSS loads */
 (function(){try{
   var m=localStorage.getItem('zw_theme_mode');
   var h=document.documentElement;
@@ -23,7 +23,7 @@
   }
 }catch(_){}})()</script>
 <script>
-/* AUTH PRE-READ — synchronous session decode (same as account/bag) so the
+/* AUTH PRE-READ â€” synchronous session decode (same as account/bag) so the
    signed-out auth prompt can render before first paint instead of flashing
    the loading skeleton. init() remains the authority. */
 (function(){try{
@@ -48,7 +48,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#09090b">
-  <title>Returns &amp; Exchanges — Zuwera</title>
+  <title>Returns &amp; Exchanges â€” Zuwera</title>
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png?v=3" id="site-favicon">
   <link rel="icon" type="image/png" sizes="192x192" href="/images/favicon-black-192.png?v=3">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=3">
@@ -126,7 +126,7 @@
       border-bottom: 1px solid var(--border);
       backdrop-filter: blur(8px);
     }
-    .zw-nav-logo img { height: 41px; width: auto; transition: opacity .2s; filter: invert(1); }
+    .zw-nav-logo img { height: 28px; width: auto; transition: opacity .2s; filter: invert(1); }
     body.light-mode .zw-nav-logo img { filter: none; }
     .zw-nav-logo { font-family: var(--fw); font-size: 1.35rem; letter-spacing: .18em; opacity: .9; transition: opacity .2s; }
     .zw-nav-logo:hover { opacity: 1; }
@@ -147,7 +147,7 @@
       padding: 3rem 2rem 5rem;
     }
 
-    /* Desktop: two-pane wizard — sticky vertical step rail beside the active
+    /* Desktop: two-pane wizard â€” sticky vertical step rail beside the active
        step, so the flow fills the width like a real returns portal instead of
        a narrow centred column. Mobile keeps the horizontal stepper below. */
     @media (min-width: 901px) {
@@ -390,7 +390,7 @@
       display: flex; gap: .75rem; align-items: center;
     }
 
-    /* -- STEP 1: Order cards — grid so a long order history fills the width
+    /* -- STEP 1: Order cards â€” grid so a long order history fills the width
            instead of stacking as one tall narrow column -- */
     .order-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: .7rem; }
     .order-card {
@@ -687,7 +687,7 @@ body.super-light-mode .policy-section { border-color: rgba(9,9,11,.14); }
       r.innerHTML='<div class="auth-prompt">'+
         '<div class="auth-prompt-icon">?</div>'+
         '<h2>Login to continue</h2>'+
-        '<p>View your orders and start a return or exchange — all in one place.</p>'+
+        '<p>View your orders and start a return or exchange â€” all in one place.</p>'+
         '<div class="auth-features">'+
           '<span class="auth-feature">Free return shipping</span>'+
           '<span class="auth-feature">Prepaid labels by email</span>'+
@@ -714,7 +714,7 @@ body.super-light-mode .policy-section { border-color: rgba(9,9,11,.14); }
     </div>
     <p>We want you to love what you wear. If you're not satisfied with your Zuwera purchase, you may return eligible items within <strong>30 days of delivery</strong> for a full refund, exchange, or store credit. Items must be unworn, unwashed, and in their original condition with all tags attached.</p>
     <div class="policy-sub">How it works</div>
-    <p>Submit your request using the form above. We'll review it within 1–2 business days and email you a prepaid return shipping label. Pack your item securely and drop it off at any USPS location. Refunds are processed within 5–7 business days of receiving your return and are issued to your original payment method.</p>
+    <p>Submit your request using the form above. We'll review it within 1â€“2 business days and email you a prepaid return shipping label. Pack your item securely and drop it off at any USPS location. Refunds are processed within 5â€“7 business days of receiving your return and are issued to your original payment method.</p>
     <div class="policy-sub">Non-returnable items</div>
     <ul>
       <li>Items marked Final Sale at time of purchase</li>
@@ -824,13 +824,13 @@ async function submitReturn(session, payload) {
 
 // --- Status labels ---------------------------------------------------------
 const STATUS_INFO = {
-  requested:            { label: 'Under Review',          cls: 'status-requested',            step: 0, next: '<strong>We\'re reviewing your request</strong> and will respond within 1–2 business days. You\'ll get an email update soon.' },
-  approved:             { label: 'Approved',              cls: 'status-approved',             step: 1, next: '<strong>Your return is approved!</strong> We\'re generating your prepaid shipping label — check your email shortly.' },
+  requested:            { label: 'Under Review',          cls: 'status-requested',            step: 0, next: '<strong>We\'re reviewing your request</strong> and will respond within 1â€“2 business days. You\'ll get an email update soon.' },
+  approved:             { label: 'Approved',              cls: 'status-approved',             step: 1, next: '<strong>Your return is approved!</strong> We\'re generating your prepaid shipping label â€” check your email shortly.' },
   label_sent:           { label: 'Label Ready',           cls: 'status-label_sent',           step: 1, next: '<strong>Action needed:</strong> Download your prepaid label, print it, attach it to your package, and drop it off at any carrier location. No postage needed.' },
-  received:             { label: 'Item Received',         cls: 'status-received',             step: 2, next: '<strong>We got your package!</strong> Our team is processing your return. You\'ll hear back within 3–5 business days.' },
+  received:             { label: 'Item Received',         cls: 'status-received',             step: 2, next: '<strong>We got your package!</strong> Our team is processing your return. You\'ll hear back within 3â€“5 business days.' },
   inspecting:           { label: 'Being Inspected',       cls: 'status-inspecting',           step: 2, next: '<strong>Almost there.</strong> Your item is being inspected. We\'ll update you once the inspection is complete.' },
   exchange_in_progress: { label: 'Exchange in Progress',  cls: 'status-exchange_in_progress', step: 3, next: '<strong>Your replacement is on its way.</strong> We\'ll send a shipping confirmation with tracking as soon as it ships.' },
-  refunded:             { label: 'Refunded',              cls: 'status-refunded',             step: 4, next: '<strong>Your refund has been issued.</strong> It may take 3–7 business days to appear on your statement depending on your bank.' },
+  refunded:             { label: 'Refunded',              cls: 'status-refunded',             step: 4, next: '<strong>Your refund has been issued.</strong> It may take 3â€“7 business days to appear on your statement depending on your bank.' },
   store_credit_issued:  { label: 'Credit Applied',        cls: 'status-store_credit_issued',  step: 4, next: '<strong>Your store credit has been applied.</strong> It\'s available to use on any future Zuwera order.' },
   completed:            { label: 'Complete',              cls: 'status-completed',            step: 4, next: 'Your return has been fully processed. Thank you for shopping with Zuwera.' },
   denied:               { label: 'Not Approved',          cls: 'status-denied',               step: -1, next: 'We weren\'t able to approve this request. If you have questions, please reply to the email we sent or <a href="mailto:orders@zuwera.store" style="color:inherit;text-decoration:underline">contact us</a>.' },
@@ -870,7 +870,7 @@ function buildProgressSteps(resolution, currentStep) {
 
 function buildLabelPanel(r) {
   if (!r.labelUrl && !r.trackingNumber) return '';
-  const carrierLine = [r.carrier, r.service].filter(Boolean).join(' — ');
+  const carrierLine = [r.carrier, r.service].filter(Boolean).join(' â€” ');
   const safeLabelUrl = r.labelUrl && /^https?:\/\//i.test(r.labelUrl) ? r.labelUrl : null;
   return `<div class="ret-label-panel">
     ${safeLabelUrl ? `<div class="ret-label-row">
@@ -918,7 +918,7 @@ function renderExistingReturns(returns) {
     const detailLines = [
       r.reason ? `<span>${esc(r.reason)}</span>` : '',
       r.notes  ? `<span style="color:var(--muted);">${esc(r.notes)}</span>` : '',
-    ].filter(Boolean).join(' · ');
+    ].filter(Boolean).join(' Â· ');
 
     return `
       <div class="return-card">
@@ -990,7 +990,7 @@ const state = {
   submitting: false,
 };
 
-// Order items only store {sku, name, amount, quantity} — no image. Preload a
+// Order items only store {sku, name, amount, quantity} â€” no image. Preload a
 // small sku/title ? image map (catalog is tiny) so the item picker can show
 // product thumbnails.
 let _prodImgMap = null;
@@ -1045,7 +1045,7 @@ function showStep(n) {
   updateStepProgress();
   updateNextBtn();
   // Re-orient at the top of the wizard (not the whole page) so the shopper
-  // keeps their place and sees the step advance — jumping to page top made
+  // keeps their place and sees the step advance â€” jumping to page top made
   // people lose the flow.
   const anchor = document.querySelector('.wizard-header') || document.querySelector('.wizard');
   if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1070,50 +1070,50 @@ function buildStep5Review() {
   const resolutionLabel = { return: 'Refund to original payment', exchange: 'Exchange for new item', store_credit: 'Store credit' }[state.selectedResolution] || state.selectedResolution;
   const nextSteps = {
     return: [
-      'We\'ll review your request and confirm within 1–2 business days',
+      'We\'ll review your request and confirm within 1â€“2 business days',
       'You\'ll receive a <strong>prepaid shipping label</strong> by email',
       'Pack your item securely and drop it off at any USPS location',
-      'Your refund will be processed within <strong>5–7 days</strong> of receiving your return',
+      'Your refund will be processed within <strong>5â€“7 days</strong> of receiving your return',
     ],
     exchange: [
-      'We\'ll review your request and confirm within 1–2 business days',
+      'We\'ll review your request and confirm within 1â€“2 business days',
       'You\'ll receive a <strong>prepaid shipping label</strong> by email',
       'Pack your item and drop it off at any USPS location',
       'We\'ll process your <strong>exchange</strong> and ship your new item',
     ],
     store_credit: [
-      'We\'ll review your request and confirm within 1–2 business days',
+      'We\'ll review your request and confirm within 1â€“2 business days',
       'You\'ll receive a <strong>prepaid shipping label</strong> by email',
       'Pack your item and drop it off at any USPS location',
-      '<strong>Store credit</strong> will be added to your account within 5–7 days of receipt',
+      '<strong>Store credit</strong> will be added to your account within 5â€“7 days of receipt',
     ],
   }[state.selectedResolution] || [];
 
   const exchangeSizeRow = (state.selectedResolution === 'exchange' && state.exchangeSize)
     ? `<div class="review-row"><div class="review-label">Exchange for</div><div class="review-value">${esc(state.exchangeSize)}</div></div>`
     : '';
-  const combinedNotes = [state.otherNotes, state.extraNotes].filter(s => s && s.trim()).map(s => s.trim()).join(' — ');
+  const combinedNotes = [state.otherNotes, state.extraNotes].filter(s => s && s.trim()).map(s => s.trim()).join(' â€” ');
   const notesRow = combinedNotes
     ? `<div class="review-row"><div class="review-label">Notes</div><div class="review-value">${esc(combinedNotes)}</div></div>`
     : '';
 
   const itemsRow = state.selectedItems.length
     ? `<div class="review-row"><div class="review-label">Items</div><div class="review-value">${state.selectedItems.map(i => {
-        const meta = [i.size, i.color || i.colorName].filter(Boolean).join(' · ');
-        return esc((i.name || i.title || 'Item') + (meta ? ' — ' + meta : ''));
+        const meta = [i.size, i.color || i.colorName].filter(Boolean).join(' Â· ');
+        return esc((i.name || i.title || 'Item') + (meta ? ' â€” ' + meta : ''));
       }).join('<br>')}</div></div>`
     : '';
 
   document.querySelector('.step[data-step="5"]').innerHTML = `
     <div style="margin-bottom:1.5rem">
       <h3 style="font-family:var(--fw);font-size:1.1rem;letter-spacing:.05em;margin-bottom:.3rem">Review your request</h3>
-      <p style="font-size:.75rem;color:var(--muted)">Everything look right? We'll get back to you within 1–2 business days.</p>
+      <p style="font-size:.75rem;color:var(--muted)">Everything look right? We'll get back to you within 1â€“2 business days.</p>
     </div>
 
     <div class="review-card">
       <div class="review-row">
         <div class="review-label">Order</div>
-        <div class="review-value">${esc(state.selectedOrderLabel)} &nbsp;·&nbsp; ${esc(state.selectedOrderDate)}${state.selectedOrderAmount ? ' &nbsp;·&nbsp; ' + esc(state.selectedOrderAmount) : ''}</div>
+        <div class="review-value">${esc(state.selectedOrderLabel)} &nbsp;Â·&nbsp; ${esc(state.selectedOrderDate)}${state.selectedOrderAmount ? ' &nbsp;Â·&nbsp; ' + esc(state.selectedOrderAmount) : ''}</div>
       </div>
       ${itemsRow}
       <div class="review-row">
@@ -1158,11 +1158,11 @@ async function handleSubmit() {
   const btn = document.getElementById('submit-btn');
   const statusEl = document.getElementById('submit-status');
   if (btn) btn.disabled = true;
-  if (statusEl) { statusEl.textContent = 'Submitting…'; statusEl.className = 'submit-status'; }
+  if (statusEl) { statusEl.textContent = 'Submittingâ€¦'; statusEl.className = 'submit-status'; }
 
   const reason = state.selectedReason === 'Other' && state.otherNotes.trim()
     ? state.otherNotes.trim()
-    : state.selectedReason + (state.extraNotes.trim() ? ' — ' + state.extraNotes.trim() : '');
+    : state.selectedReason + (state.extraNotes.trim() ? ' â€” ' + state.extraNotes.trim() : '');
 
   const exchangeNote = (state.selectedResolution === 'exchange' && state.exchangeSize)
     ? '\nExchange for: ' + state.exchangeSize
@@ -1236,7 +1236,7 @@ function renderWizard(orders) {
     <div class="wizard">
       <div class="wizard-header">
         <h2>Start a Return or Exchange</h2>
-        <p>We'll walk you through it — takes less than 2 minutes.</p>
+        <p>We'll walk you through it â€” takes less than 2 minutes.</p>
       </div>
 
       <!-- Step progress -->
@@ -1333,11 +1333,11 @@ function renderWizard(orders) {
         </div>
         <div class="step3-field" id="other-notes-field" style="display:none">
           <label>Tell us more</label>
-          <textarea id="other-notes" rows="3" maxlength="600" placeholder="Describe your reason…" oninput="state.otherNotes=this.value;updateNextBtn()"></textarea>
+          <textarea id="other-notes" rows="3" maxlength="600" placeholder="Describe your reasonâ€¦" oninput="state.otherNotes=this.value;updateNextBtn()"></textarea>
         </div>
         <div class="step3-field" style="display:block">
           <label>Additional notes (optional)</label>
-          <textarea id="extra-notes" rows="2" maxlength="600" placeholder="Anything else we should know…" oninput="state.extraNotes=this.value"></textarea>
+          <textarea id="extra-notes" rows="2" maxlength="600" placeholder="Anything else we should knowâ€¦" oninput="state.extraNotes=this.value"></textarea>
         </div>
         <div class="step3-field" id="exchange-size-field" style="display:none">
           <label>What size or item would you like instead? <span style="color:var(--accent-red)">*</span></label>
@@ -1383,7 +1383,7 @@ window.selectOrder = function(el) {
     } else {
       picker.innerHTML = items.map((item, idx) => {
         const name = esc((item.name || item.title || 'Item').trim());
-        const meta = [item.size, item.color || item.colorName].filter(Boolean).map(esc).join(' · ');
+        const meta = [item.size, item.color || item.colorName].filter(Boolean).map(esc).join(' Â· ');
         // Order items store `amount` in cents (fmtAmt divides by 100). Fall back
         // to price/unit_price (dollars) ? cents only if amount is absent.
         const amtCents = parseFloat(item.amount || 0) || Math.round(parseFloat(item.price || item.unit_price || 0) * 100);
@@ -1492,7 +1492,7 @@ function renderAuthPrompt() {
     <div class="auth-prompt">
       <div class="auth-prompt-icon">?</div>
       <h2>Login to continue</h2>
-      <p>View your orders and start a return or exchange — all in one place.</p>
+      <p>View your orders and start a return or exchange â€” all in one place.</p>
       <div class="auth-features">
         <span class="auth-feature">Free return shipping</span>
         <span class="auth-feature">Prepaid labels by email</span>

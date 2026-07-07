@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <script>
-/* THEME FLASH PREVENTION — runs before any CSS loads */
+/* THEME FLASH PREVENTION â€” runs before any CSS loads */
 (function(){try{
   var m=localStorage.getItem('zw_theme_mode');
   var h=document.documentElement;
@@ -23,7 +23,7 @@
   }
 }catch(_){}})()</script>
 <script>
-/* AUTH PRE-PAINT — decode the Supabase session synchronously (same decoder as
+/* AUTH PRE-PAINT â€” decode the Supabase session synchronously (same decoder as
    bag/index) and reveal the right section before first paint. Without this the
    page is blank until the async getSession() resolves. init() remains the
    authority: if the pre-read guessed wrong it removes #zw-acct-prepaint. */
@@ -54,7 +54,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#09090b">
-  <title>My Account — Zuwera</title>
+  <title>My Account â€” Zuwera</title>
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png?v=3" id="site-favicon">
   <link rel="icon" type="image/png" sizes="192x192" href="/images/favicon-black-192.png?v=3">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=3">
@@ -138,7 +138,7 @@
     body.super-light-mode .zw-nav { background: #FFFFFF; }
     .zw-nav-logo { font-family: var(--fw); font-size: 1.35rem; letter-spacing: .18em; opacity: .85; transition: opacity .2s; }
     .zw-nav-logo:hover { opacity: 1; }
-    .zw-nav-logo img { height: 41px; width: auto; transition: filter .35s; filter: invert(1); }
+    .zw-nav-logo img { height: 28px; width: auto; transition: filter .35s; filter: invert(1); }
     body.light-mode .zw-nav-logo img { filter: none; }
     .zw-nav-back {
       font-family: var(--fm); font-size: .6rem; letter-spacing: .14em; text-transform: uppercase;
@@ -158,7 +158,7 @@
     /* Login + Bag header styles are shared via storefront-cohesion.css
        (.zw-hdr-group / .zw-hdr-action / .zw-hdr-bag / .zw-hdr-bag-count). */
 
-    /* -- PAGE LAYOUT — two-pane dashboard: sticky identity+nav rail beside a
+    /* -- PAGE LAYOUT â€” two-pane dashboard: sticky identity+nav rail beside a
           wide content column (was an 860px single column adrift in margins) -- */
     .page-wrap {
       flex: 1; max-width: 1200px; margin: 0 auto; width: 100%; padding: 3rem 2.5rem 5rem;
@@ -184,7 +184,7 @@
     }
     body.light-mode .page-hd-meta { color: rgba(9,9,11,.45); }
 
-    /* -- TABS — vertical nav in the rail -- */
+    /* -- TABS â€” vertical nav in the rail -- */
     .acct-tabs {
       display: flex; flex-direction: column; gap: .1rem;
     }
@@ -469,7 +469,7 @@
     body.light-mode .order-item-meta { color: rgba(9,9,11,.45); }
     body.light-mode .order-item-more { color: rgba(9,9,11,.35); }
 
-    /* -- FAVS — product-card grid (uses the panel width instead of one
+    /* -- FAVS â€” product-card grid (uses the panel width instead of one
            thin full-width strip per item) -- */
     #saved-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 1.1rem; }
     .fav-card {
@@ -769,7 +769,7 @@
         </div>
       </div>
     <script>
-    /* Greeting prefill from the pre-paint session — avoids the "My Account" ?
+    /* Greeting prefill from the pre-paint session â€” avoids the "My Account" ?
        "Hey, Name." swap once init() resolves. init() re-sets these anyway. */
     (function(){try{
       var u=window.__zwSessionUser;if(!u)return;
@@ -779,7 +779,7 @@
       var h1=document.querySelector('.page-hd h1');
       if(h1&&first)h1.textContent='Hey, '+first+'.';
       var em=document.getElementById('acct-email-display');
-      if(em)em.textContent=name?name+' · '+(u.email||''):(u.email||'');
+      if(em)em.textContent=name?name+' Â· '+(u.email||''):(u.email||'');
     }catch(_){}})()
     </script>
 
@@ -801,10 +801,10 @@
 
     <!-- ORDERS -->
     <div class="acct-panel active" id="panel-orders">
-      <div class="zw-loading" id="orders-loading" role="status" aria-live="polite">Loading your orders…</div>
+      <div class="zw-loading" id="orders-loading" role="status" aria-live="polite">Loading your ordersâ€¦</div>
       <div id="orders-empty" style="display:none">
         <div class="empty-state">
-          <div class="empty-state-dash">—</div>
+          <div class="empty-state-dash">â€”</div>
           <div class="empty-state-title">No Orders Yet</div>
           <div class="empty-state-desc">When you place your first order it'll appear here with real-time tracking.</div>
           <a href="/drop001.html" class="empty-state-link">Browse Release 001 ?</a>
@@ -815,10 +815,10 @@
 
     <!-- SAVED ITEMS -->
     <div class="acct-panel" id="panel-saved">
-      <div class="zw-loading" id="saved-loading" role="status" aria-live="polite">Loading saved items…</div>
+      <div class="zw-loading" id="saved-loading" role="status" aria-live="polite">Loading saved itemsâ€¦</div>
       <div id="saved-empty" style="display:none">
         <div class="empty-state">
-          <div class="empty-state-dash">—</div>
+          <div class="empty-state-dash">â€”</div>
           <div class="empty-state-title">Nothing Saved Yet</div>
           <div class="empty-state-desc">Tap the heart on any product to save it here for later.</div>
           <a href="/drop001.html" class="empty-state-link">Browse Release 001 ?</a>
@@ -829,13 +829,13 @@
 
     <!-- RETURNS -->
     <div class="acct-panel" id="panel-returns">
-      <div class="zw-loading" id="returns-loading" role="status" aria-live="polite">Loading returns portal…</div>
+      <div class="zw-loading" id="returns-loading" role="status" aria-live="polite">Loading returns portalâ€¦</div>
       <div id="returns-content"></div>
     </div>
 
     <!-- PROFILE -->
     <div class="acct-panel" id="panel-profile">
-      <div class="zw-loading" id="profile-loading" role="status" aria-live="polite">Loading your profile…</div>
+      <div class="zw-loading" id="profile-loading" role="status" aria-live="polite">Loading your profileâ€¦</div>
       <div id="profile-content"></div>
     </div>
 
@@ -929,7 +929,7 @@ function itemMetaHtml(size, colorName, qty) {
   if (size) parts.push(escHtml(size));
   if (colorName) parts.push(colorSwatch(colorName) + escHtml(colorName));
   if (qty > 1) parts.push(`Qty ${qty}`);
-  return parts.join(' · ');
+  return parts.join(' Â· ');
 }
 
 function orderNextSteps(order) {
@@ -937,7 +937,7 @@ function orderNextSteps(order) {
   const status = String(order?.status || '').toLowerCase();
   const s = fulfillment || status;
   const hasTracking = Boolean(order?.commerce?.trackingNumber || order?.tracking_number);
-  if (/cancel/.test(s)) return { title: 'Cancelled', body: 'This order has been cancelled. Any charge will be refunded within 5–10 business days.' };
+  if (/cancel/.test(s)) return { title: 'Cancelled', body: 'This order has been cancelled. Any charge will be refunded within 5â€“10 business days.' };
   if (/delivered|completed/.test(s) || order?.delivered_at || order?.commerce?.deliveredAt) return { title: 'Delivered', body: 'Your order was delivered. We hope you love it. If anything isn\'t right, hit <em>Start a Return</em> below.' };
   if (hasTracking || /shipped|fulfil/.test(s)) return { title: 'On Its Way', body: 'Your order has shipped. Use the tracking link below to follow it in real time.' };
   if (/pack|process/.test(s)) return { title: 'Being Packed', body: 'Your order is being packed and will ship very soon. A tracking number will be emailed to you when it leaves our hands.' };
@@ -1102,7 +1102,7 @@ async function loadOrders() {
         : /cancel|refund|return/.test(statusStr) ? ' status-cancelled'
         : '';
 
-      // Items — full detail rows
+      // Items â€” full detail rows
       let itemsHtml = '';
       let itemCount = 0;
       try {
@@ -1147,7 +1147,7 @@ async function loadOrders() {
         || buildTrackingUrl(carrier, tracking);
       const trackRow = (tracking || safeTrackUrl) ? `
         <div class="order-track-row">
-          ${tracking ? `<span class="order-track-num">${escHtml(carrier ? carrier + ' · ' + tracking : tracking)}</span>` : ''}
+          ${tracking ? `<span class="order-track-num">${escHtml(carrier ? carrier + ' Â· ' + tracking : tracking)}</span>` : ''}
           ${safeTrackUrl ? `<a href="${escHtml(safeTrackUrl)}" target="_blank" rel="noopener" class="order-track-btn">Track Shipment ?</a>` : ''}
         </div>` : '';
 
@@ -1179,7 +1179,7 @@ async function loadOrders() {
           <div class="order-card-head">
             <div>
               <div class="order-id">Order #${escHtml(String(o.id||'').slice(-8).toUpperCase())}</div>
-              <div class="order-meta">${new Date(o.created_at).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})}${itemCount ? ` · ${itemCount} item${itemCount !== 1 ? 's' : ''}` : ''}</div>
+              <div class="order-meta">${new Date(o.created_at).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})}${itemCount ? ` Â· ${itemCount} item${itemCount !== 1 ? 's' : ''}` : ''}</div>
             </div>
             <div class="order-card-head-right">
               <span class="order-status${statusColorClass}">${escHtml(statusLabel)}</span>
@@ -1258,7 +1258,7 @@ async function loadSaved() {
 
 let _savedRows = {};
 
-/* Open the shared Quick-Add modal (size/color/images) for a saved item —
+/* Open the shared Quick-Add modal (size/color/images) for a saved item â€”
    same experience as the bag page. quick-add-modal.js provides
    window.quickAddToCart; on =900px it routes to the product page instead. */
 function acctAddToBag(productId, btn) {
@@ -1347,8 +1347,8 @@ function retResolutionLabel(r) {
 function retNextSteps(r, userEmail) {
   const s = String(r.status || '').toLowerCase();
   const email = r.customerEmail || userEmail || 'your email';
-  if (/request/.test(s)) return { title: 'Under Review', body: 'We\'ve received your request and will respond within 1–3 business days.' };
-  if (/approv/.test(s)) return { title: 'Approved', body: 'Your return is approved. We\'re preparing your prepaid shipping label — you\'ll receive an email shortly.' };
+  if (/request/.test(s)) return { title: 'Under Review', body: 'We\'ve received your request and will respond within 1â€“3 business days.' };
+  if (/approv/.test(s)) return { title: 'Approved', body: 'Your return is approved. We\'re preparing your prepaid shipping label â€” you\'ll receive an email shortly.' };
   if (/label/.test(s)) return { title: 'Label Ready', body: `Your prepaid return label was sent to <strong style="font-style:normal">${escHtml(email)}</strong>. Print it, attach it to your package, and drop off at any ${escHtml(r.carrier || 'carrier')} location.` };
   if (/complet/.test(s)) return { title: 'Complete', body: 'Your return has been received and processed. Thank you.' };
   if (/deny|denied|reject/.test(s)) return { title: 'Not Approved', body: 'Unfortunately this return request wasn\'t approved. Contact us if you have questions.' };
@@ -1398,7 +1398,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
     const dt = new Date(o.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     let itemCount = 0;
     try { itemCount = JSON.parse(o.items || '[]').length; } catch(_) {}
-    const label = `#${id.slice(-8).toUpperCase()} — ${dt}${itemCount ? ` · ${itemCount} item${itemCount !== 1 ? 's' : ''}` : ''}`;
+    const label = `#${id.slice(-8).toUpperCase()} â€” ${dt}${itemCount ? ` Â· ${itemCount} item${itemCount !== 1 ? 's' : ''}` : ''}`;
     return `<option value="${escHtml(id)}">${escHtml(label)}</option>`;
   }).join('');
 
@@ -1436,7 +1436,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
         <div class="ret-card-head">
           <div>
             <div class="ret-id">${escHtml(r.orderLabel || '#' + String(r.orderId || '').slice(-8).toUpperCase())}</div>
-            <div class="ret-meta">${escHtml(resLbl)} · ${escHtml(r.reason || '')} · ${escHtml(dt)}</div>
+            <div class="ret-meta">${escHtml(resLbl)} Â· ${escHtml(r.reason || '')} Â· ${escHtml(dt)}</div>
           </div>
           <div class="ret-card-head-right">
             <span class="ret-status ${statusCls}">${escHtml(statusLbl)}</span>
@@ -1452,7 +1452,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
     <div class="ret-form-stack">
       <div class="zw-card">
         <div class="zw-card-title">Start a Return or Exchange</div>
-        <div class="zw-card-meta">Submit a request — your team will review and process within 1–3 business days.</div>
+        <div class="zw-card-meta">Submit a request â€” your team will review and process within 1â€“3 business days.</div>
       </div>
       <div class="zw-card">
         <div class="zw-field">
@@ -1471,7 +1471,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
           </div>
           <div class="zw-field">
             <label>Reason</label>
-            <input id="ret-reason" type="text" placeholder="Wrong size, damaged item…">
+            <input id="ret-reason" type="text" placeholder="Wrong size, damaged itemâ€¦">
           </div>
         </div>
         <div class="zw-field">
@@ -1490,7 +1490,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
     </div>
   `;
 
-  // Item selection state for the new return form — Map<idx, {...item, returnQty}>
+  // Item selection state for the new return form â€” Map<idx, {...item, returnQty}>
   let _retSelectedItems = new Map();
 
   function showItemPicker(orderId) {
@@ -1504,7 +1504,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
 
     picker.style.display = 'block';
     picker.innerHTML = `
-      <div style="font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.35);margin-bottom:.5rem;font-family:var(--fm);">Items in this order — select which to return</div>
+      <div style="font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(244,241,235,.35);margin-bottom:.5rem;font-family:var(--fm);">Items in this order â€” select which to return</div>
       <div style="display:flex;flex-direction:column;gap:.4rem;" id="ret-item-list">
         ${items.map((item, idx) => {
           const name = escHtml((item.name || item.title || 'Item').trim());
@@ -1583,7 +1583,7 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
     const picker = document.getElementById('ret-item-picker');
     const allItems = (picker?._items || []).map(it => ({...it, returnQty: it.quantity || 1}));
     const returnItems = _retSelectedItems.size > 0 ? Array.from(_retSelectedItems.values()) : allItems;
-    if (statusEl) statusEl.textContent = 'Submitting…';
+    if (statusEl) statusEl.textContent = 'Submittingâ€¦';
     try {
       const selOrderEl = document.getElementById('ret-order');
       await postHub('submit_return', {
@@ -1730,7 +1730,7 @@ async function saveProfile() {
   if (btn?.disabled) return;
   if (btn) btn.disabled = true;
   const statusEl = document.getElementById('prof-status');
-  if (statusEl) { statusEl.textContent = 'Saving…'; statusEl.style.color = ''; }
+  if (statusEl) { statusEl.textContent = 'Savingâ€¦'; statusEl.style.color = ''; }
 
   /* -- Save -- */
   try {
@@ -1776,7 +1776,7 @@ async function saveProfile() {
   if (statusEl) { statusEl.textContent = 'Saved!'; statusEl.style.color = '#22c55e'; }
   if (btn) btn.disabled = false;
 
-  /* -- Targeted in-place update — no full re-render, no second API call -- */
+  /* -- Targeted in-place update â€” no full re-render, no second API call -- */
   const savedAddrs = Array.isArray(_hubPayload?.profile?.savedAddresses) ? _hubPayload.profile.savedAddresses : [];
   const addrList = document.getElementById('prof-addresses-list');
   if (addrList) {
@@ -1812,7 +1812,7 @@ async function deleteAddress(idx) {
 async function deleteAllProfileData() {
   if (!confirm('Permanently delete all your saved addresses and preferences? This cannot be undone.')) return;
   const statusEl = document.getElementById('prof-delete-status');
-  if (statusEl) statusEl.textContent = 'Deleting…';
+  if (statusEl) statusEl.textContent = 'Deletingâ€¦';
   try {
     await postHub('delete_profile_data', {});
     _hubPayload = null;
@@ -1858,7 +1858,7 @@ async function init() {
     const h1 = document.querySelector('.page-hd h1');
     if (h1) h1.textContent = firstName ? `Hey, ${firstName}.` : 'My Account';
     const emailEl = document.getElementById('acct-email-display');
-    if (emailEl) emailEl.textContent = name ? `${name} · ${email}` : email;
+    if (emailEl) emailEl.textContent = name ? `${name} Â· ${email}` : email;
     const signedInEl = document.getElementById('acct-signed-in-as');
     if (signedInEl) signedInEl.textContent = `Signed in as ${email}`;
 
