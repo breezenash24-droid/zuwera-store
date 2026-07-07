@@ -3752,6 +3752,7 @@
             {icon:'✉️',main:'Email Logo & Sender (BIMI)',sub:'APIs · Email Branding',kw:'email logo brand_logo_url from address sender bimi avatar profile picture resend brevo',page:'apis'},
             {icon:'💳',main:'Stripe Keys',sub:'APIs',kw:'stripe payment secret key checkout',page:'apis'},
             {icon:'📦',main:'Shippo (shipping API)',sub:'APIs',kw:'shippo shipping api label tracking return address',page:'apis'},
+            {icon:'🚚',main:'Veeqo (shipping rates)',sub:'APIs',kw:'veeqo shipping api usps rates label amazon shipping backup free tier',page:'apis'},
             {icon:'☁️',main:'Cloudinary',sub:'APIs',kw:'cloudinary image cdn upload',page:'apis'},
             {icon:'🌍',main:'DeepL (translation)',sub:'APIs',kw:'deepl translation translate language',page:'apis'},
             {icon:'📨',main:'Email (Loops / Resend / Brevo)',sub:'APIs',kw:'loops resend brevo email marketing newsletter transactional',page:'apis'},
@@ -3897,6 +3898,13 @@
                     { name: 'SHIPPO_FROM_COUNTRY', label: 'Return Country', type: 'text', placeholder: 'US' },
                     { name: 'SHIPPO_FROM_EMAIL', label: 'Return Email', type: 'email', placeholder: 'orders@zuwera.store' },
                     { name: 'SHIPPO_FROM_PHONE', label: 'Return Phone (required by Shippo)', type: 'text', placeholder: '+12125551234' },
+                ]
+            },
+            veeqo: {
+                label: 'Veeqo',
+                keys: [
+                    { name: 'VEEQO_API_KEY', label: 'API Key', type: 'password', placeholder: 'Veeqo → Settings → Users → Refresh API Key' },
+                    { name: 'SHIPPO_FREE_LIMIT', label: 'Shippo free labels / month (switch to Veeqo after)', type: 'text', placeholder: '30' },
                 ]
             },
             deepl: {
@@ -4056,6 +4064,7 @@
                     renderApiCard('🗄️', 'Supabase',             s.supabase,   buildSupabaseRows,     null,          'https://supabase.com/dashboard'),
                     renderApiCard('💳', 'Stripe',                s.stripe,     buildStripeRows,       'stripe',      'https://dashboard.stripe.com'),
                     renderApiCard('📦', 'Shippo',                s.shippo,     buildShippoRows,       'shippo',      'https://goshippo.com'),
+                    renderApiCard('🚚', 'Veeqo (USPS backup)',   s.veeqo,      buildVeeqoRows,        'veeqo',       'https://app.veeqo.com'),
                     renderApiCard('🌍', 'DeepL (Translation)',   s.deepl,      buildDeepLRows,        'deepl',       'https://www.deepl.com/pro-account/usage'),
                     renderApiCard('📣', 'Loops (Marketing)',      s.loops,      buildLoopsRows,        'loops',       'https://app.loops.so'),
                     renderApiCard('💬', 'Twilio (SMS)',           s.twilio,     buildTwilioRows,       'twilio',      'https://console.twilio.com'),
@@ -4214,6 +4223,9 @@
             if (!s.ok) return `<p class="api-note" style="color:var(--error);">Connection failed: ${s.error || 'Unknown error'}</p><p class="api-note">Check your SHIPPO_API_KEY starts with <code>shippo_live_</code>. Update it using the edit button below.</p>`;
             let rows = apiRow('Plan', s.plan || 'Starter');
             if (s.totalShipments !== null) rows += apiRow('Total shipments', s.totalShipments.toLocaleString());
+            if (s.freeTier) rows += apiRow('Free-tier labels this month',
+                `${s.freeTier.used} / ${s.freeTier.limit}` +
+                (s.freeTier.exhausted ? ' — <strong style="color:var(--warning)">using Veeqo</strong>' : ` (${s.freeTier.remaining} left before Veeqo)`));
             if (s.note) rows += `<p class="api-note">${s.note}</p>`;
             rows += `
               <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
@@ -4221,6 +4233,14 @@
                 <button class="btn btn-secondary" style="font-size:.75rem;padding:6px 12px;" onclick="testShippoWebhook('delivered')">▶ Test: Delivered email</button>
               </div>
               <div id="shippo-test-result" style="display:none;margin-top:10px;font-size:.8rem;padding:10px;border-radius:6px;"></div>`;
+            return rows;
+        }
+
+        function buildVeeqoRows(s) {
+            if (!s.ok && s.configured === false) return `<p class="api-note" style="color:var(--warning);">VEEQO_API_KEY not set. Veeqo is optional — add it below to rate-shop USPS against Shippo and take over once Shippo's free tier is used up. Requires <strong>Amazon Shipping V2</strong> enabled in your Veeqo account.</p>`;
+            if (!s.ok) return `<p class="api-note" style="color:var(--error);">Connection failed: ${s.error || 'Unknown error'}</p><p class="api-note">Check your <code>VEEQO_API_KEY</code> (Veeqo → Settings → Users → Refresh API Key). Update it below.</p>`;
+            let rows = apiRow('Status', 'Connected');
+            if (s.note) rows += `<p class="api-note">${s.note}</p>`;
             return rows;
         }
 
