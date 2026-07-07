@@ -6,6 +6,8 @@
  */
 
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
+import { veeqoGetRates, veeqoKey } from './_veeqo.js';
+import { getShippoMonthlyCount, shippoFreeLimit } from './_shipping-usage.js';
 
 const CORS = (env) => ({
   'Access-Control-Allow-Origin': env.SITE_URL || 'https://zuwera.store',
@@ -137,6 +139,8 @@ async function signRate(rate, address, env, parcel) {
     currency: String(rate.currency || 'USD').toUpperCase(),
     provider: rate.provider || '',
     servicelevel: rate.servicelevel || '',
+    source: rate.source || 'shippo',                  // which API booked this rate
+    remoteShipmentId: rate.remoteShipmentId || '',    // Veeqo: needed to buy the label
     zip: normalizeAddressPart(address.zip),
     state: normalizeAddressPart(address.state),
     country: normalizeAddressPart(address.country || 'US'),
@@ -150,50 +154,15 @@ async function signRate(rate, address, env, parcel) {
   return `${body}.${sig}`;
 }
 
-export async function onRequestOptions({ env }) {
-  return new Response(null, { status: 204, headers: CORS(env) });
-}
+const USPS_PROVIDERS = new Set(['USPS', 'usps']);
 
-export async function onRequestPost({ request, env }) {
-  const headers = CORS(env);
-
+// Fetch + normalize Shippo rates (no signing yet). Returns [] on any error so a
+// Shippo outage/misconfig can't break checkout when Veeqo is available.
+async function fetchShippoRates({ env, fromAddress, address, parcel }) {
   try {
-    if (!env.SHIPPO_API_KEY) {
-      return json({ error: 'Shipping rates are not configured.' }, 500, headers);
-    }
-
-    const { address, parcel: customParcel, totalItems: itemCount, totalWeightLb, items = [] } = await request.json();
-
-    if (!address?.zip || !address?.country) {
-      return json({ error: 'address.zip and address.country are required' }, 400, headers);
-    }
-
-    const parcelSummary = await resolveParcelSummary({ items, itemCount, totalWeightLb, env });
-    const parcel = customParcel || buildParcel(parcelSummary.totalItems, parcelSummary.totalWeightLb);
-
-    // Read from-address from Supabase site_settings (admin panel) first, env vars as fallback
-    const fromKeys = ['SHIPPO_FROM_NAME','SHIPPO_FROM_STREET1','SHIPPO_FROM_STREET2',
-                      'SHIPPO_FROM_CITY','SHIPPO_FROM_STATE','SHIPPO_FROM_ZIP',
-                      'SHIPPO_FROM_COUNTRY','SHIPPO_FROM_EMAIL','SHIPPO_FROM_PHONE'];
-    const settingsCache = await fetchSiteSettings(fromKeys, env);
-    const rs = (key, fallback = '') => resolveSetting(key, env, settingsCache) || fallback;
-    const fromAddress = {
-      name:    rs('SHIPPO_FROM_NAME', 'Zuwera'),
-      street1: rs('SHIPPO_FROM_STREET1'),
-      city:    rs('SHIPPO_FROM_CITY'),
-      state:   rs('SHIPPO_FROM_STATE'),
-      zip:     rs('SHIPPO_FROM_ZIP'),
-      country: rs('SHIPPO_FROM_COUNTRY', 'US'),
-      email:   rs('SHIPPO_FROM_EMAIL', 'orders@zuwera.store'),
-      phone:   rs('SHIPPO_FROM_PHONE'),
-    };
-
     const resp = await fetch('https://api.goshippo.com/shipments/', {
       method: 'POST',
-      headers: {
-        Authorization: 'ShippoToken ' + env.SHIPPO_API_KEY,
-        'Content-Type': 'application/json',
-      },
+      headers: { Authorization: 'ShippoToken ' + env.SHIPPO_API_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         address_from: fromAddress,
         address_to: {
@@ -208,34 +177,115 @@ export async function onRequestPost({ request, env }) {
         async: false,
       }),
     });
+    if (!resp.ok) { console.error('Shippo error:', await resp.text().catch(() => '')); return []; }
+    const data = await resp.json();
+    return (data.rates || []).map((r) => ({
+      source: 'shippo',
+      objectId: r.object_id,
+      provider: r.provider,
+      servicelevel: r.servicelevel?.name,
+      amount: r.amount,
+      currency: r.currency,
+      days: r.estimated_days,
+    }));
+  } catch (e) {
+    console.error('Shippo rates fetch failed:', e.message);
+    return [];
+  }
+}
 
-    if (!resp.ok) {
-      const detail = await resp.text();
-      console.error('Shippo error:', detail);
-      return json({ error: 'Shippo API error' }, 502, headers);
+// Dedupe rates across providers by carrier+service, keeping the cheapest.
+// On an exact price tie, prefer Shippo (per requirement).
+function mergeCheapestPerService(rates) {
+  const byKey = new Map();
+  for (const r of rates) {
+    if (!r || !r.amount) continue;
+    const key = String(r.provider || '').toUpperCase() + '|' + String(r.servicelevel || '').toUpperCase();
+    const cur = byKey.get(key);
+    if (!cur) { byKey.set(key, r); continue; }
+    const a = parseFloat(r.amount), b = parseFloat(cur.amount);
+    if (a < b || (a === b && r.source === 'shippo' && cur.source !== 'shippo')) byKey.set(key, r);
+  }
+  return [...byKey.values()];
+}
+
+// USPS first (primary method), then cheapest.
+function sortRates(rates) {
+  return rates.sort((a, b) => {
+    const aUsps = USPS_PROVIDERS.has(a.provider) ? 0 : 1;
+    const bUsps = USPS_PROVIDERS.has(b.provider) ? 0 : 1;
+    if (aUsps !== bUsps) return aUsps - bUsps;
+    return parseFloat(a.amount) - parseFloat(b.amount);
+  });
+}
+
+export async function onRequestOptions({ env }) {
+  return new Response(null, { status: 204, headers: CORS(env) });
+}
+
+export async function onRequestPost({ request, env }) {
+  const headers = CORS(env);
+
+  try {
+    const { address, parcel: customParcel, totalItems: itemCount, totalWeightLb, items = [] } = await request.json();
+
+    if (!address?.zip || !address?.country) {
+      return json({ error: 'address.zip and address.country are required' }, 400, headers);
     }
 
-    const data = await resp.json();
-    const USPS_PROVIDERS = new Set(['USPS', 'usps']);
-    const rates = await Promise.all((data.rates || [])
-      .map((r) => ({
-        objectId: r.object_id,
-        provider: r.provider,
-        servicelevel: r.servicelevel?.name,
-        amount: r.amount,
-        currency: r.currency,
-        days: r.estimated_days,
-      }))
-      .sort((a, b) => {
-        const aUsps = USPS_PROVIDERS.has(a.provider) ? 0 : 1;
-        const bUsps = USPS_PROVIDERS.has(b.provider) ? 0 : 1;
-        if (aUsps !== bUsps) return aUsps - bUsps;
-        return parseFloat(a.amount) - parseFloat(b.amount);
-      })
-      .map(async (rate) => ({
+    const parcelSummary = await resolveParcelSummary({ items, itemCount, totalWeightLb, env });
+    const parcel = customParcel || buildParcel(parcelSummary.totalItems, parcelSummary.totalWeightLb);
+
+    // Read from-address from Supabase site_settings (admin panel) first, env vars as fallback
+    const fromKeys = ['SHIPPO_FROM_NAME','SHIPPO_FROM_STREET1','SHIPPO_FROM_STREET2',
+                      'SHIPPO_FROM_CITY','SHIPPO_FROM_STATE','SHIPPO_FROM_ZIP',
+                      'SHIPPO_FROM_COUNTRY','SHIPPO_FROM_EMAIL','SHIPPO_FROM_PHONE',
+                      'VEEQO_API_KEY','SHIPPO_FREE_LIMIT'];
+    const settingsCache = await fetchSiteSettings(fromKeys, env);
+    const rs = (key, fallback = '') => resolveSetting(key, env, settingsCache) || fallback;
+    const fromAddress = {
+      name:    rs('SHIPPO_FROM_NAME', 'Zuwera'),
+      street1: rs('SHIPPO_FROM_STREET1'),
+      city:    rs('SHIPPO_FROM_CITY'),
+      state:   rs('SHIPPO_FROM_STATE'),
+      zip:     rs('SHIPPO_FROM_ZIP'),
+      country: rs('SHIPPO_FROM_COUNTRY', 'US'),
+      email:   rs('SHIPPO_FROM_EMAIL', 'orders@zuwera.store'),
+      phone:   rs('SHIPPO_FROM_PHONE'),
+    };
+
+    // ── Provider selection (USPS stays primary via sortRates below) ──────
+    // Under the Shippo free-tier limit: query BOTH sources and keep the cheaper
+    // rate per service (exact tie -> Shippo). At/over the limit: Veeqo only,
+    // falling back to Shippo if Veeqo returns nothing so checkout never loses
+    // its rates.
+    const shippoCount = await getShippoMonthlyCount(env);
+    const limit = shippoFreeLimit(env, settingsCache);
+    const veeqoConfigured = !!veeqoKey(env, settingsCache);
+    const toAddr = {
+      name: address.name, line1: address.line1, city: address.city,
+      state: address.state, zip: address.zip, country: address.country || 'US',
+    };
+
+    const [shippoRates, veeqoRates] = await Promise.all([
+      env.SHIPPO_API_KEY ? fetchShippoRates({ env, fromAddress, address, parcel }) : Promise.resolve([]),
+      veeqoConfigured ? veeqoGetRates({ env, from: fromAddress, to: toAddr, parcel, settingsCache }) : Promise.resolve([]),
+    ]);
+
+    const pool = (shippoCount < limit)
+      ? [...shippoRates, ...veeqoRates]
+      : (veeqoRates.length ? veeqoRates : shippoRates);
+
+    if (!pool.length) {
+      return json({ error: 'No shipping rates available' }, 502, headers);
+    }
+
+    const rates = await Promise.all(
+      sortRates(mergeCheapestPerService(pool)).map(async (rate) => ({
         ...rate,
         rateToken: await signRate(rate, address, env, parcel),
-      })));
+      }))
+    );
 
     return json({ rates }, 200, headers);
   } catch (e) {

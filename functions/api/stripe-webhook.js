@@ -23,6 +23,8 @@ import Stripe from 'stripe';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { loopsFallback } from './_email.js';
 import { buildUserData, sendCapiEvents } from './_capi.js';
+import { veeqoBookShipment } from './_veeqo.js';
+import { incrementShippoMonthlyCount } from './_shipping-usage.js';
 
 // Fallback service-level token map if rate object ID is unavailable
 const SERVICE_TOKEN_MAP = {
@@ -182,7 +184,10 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
           metadata: {
             tracking_number: tracking.number,
             tracking_url:    tracking.url,
-            label_url:       tracking.label,
+            // Veeqo labels come back as a large base64 data URL — too big for
+            // Stripe metadata (500-char cap). Only store real hosted URLs here;
+            // the full label is always saved on the order row in Supabase.
+            label_url:       (tracking.label && tracking.label.length <= 480) ? tracking.label : '',
           },
         })
       : Promise.resolve(null),
@@ -265,6 +270,17 @@ async function sendPurchaseEvent(pi, meta, env) {
 // ─── Create shipping label ─────────────────────────────────────────────────────
 
 async function createShippingLabel(pi, meta, env) {
+  // Veeqo-sourced rate → book via Veeqo (label returned as a base64 data URL).
+  if (meta.shipping_source === 'veeqo') {
+    const cache = await fetchSiteSettings(['VEEQO_API_KEY'], env);
+    return await veeqoBookShipment({
+      env,
+      rateId: meta.shipping_rate_object_id,
+      remoteShipmentId: meta.veeqo_remote_shipment_id,
+      settingsCache: cache,
+    });
+  }
+
   if (!env.SHIPPO_API_KEY) throw new Error('SHIPPO_API_KEY not set');
 
   const rateObjectId = meta.shipping_rate_object_id;
@@ -335,6 +351,9 @@ async function createShippingLabel(pi, meta, env) {
   if (data.status !== 'SUCCESS') {
     throw new Error('Shippo label failed: ' + JSON.stringify(data.messages || data));
   }
+
+  // Count this Shippo label against the monthly free tier (non-fatal).
+  await incrementShippoMonthlyCount(env);
 
   return data; // { tracking_number, tracking_url_provider, label_url, ... }
 }
