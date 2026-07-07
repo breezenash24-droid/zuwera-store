@@ -3981,3 +3981,14 @@ body.super-light-mode img[src*="wordmark-nav"]{ filter:none !important; }
   .zw-eyebrow,.eyebrow,[class*="-label"],[class*="-title"]):not(button):not(a.btn):not(.btn){
   color:#09090b !important;
 }
+
+
+/* Header logos differ by page (tall square emblem on browse/checkout, shorter
+   wide wordmark on info/account pages). Pin the logo cell to a consistent
+   height and center the image so every header BAR is the same height, whatever
+   logo it holds. Emblem = 46px fills it; wordmark = 28px centers in it. */
+.nav-logo, .nav-logo-link, .zw-nav-logo {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+}
