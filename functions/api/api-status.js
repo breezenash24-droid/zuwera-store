@@ -16,6 +16,8 @@
  */
 
 import { fetchSiteSettings, resolveSetting, maskKey, ALLOWED_KEYS } from './_settings.js';
+import { getShippoMonthlyCount, shippoFreeLimit, shippoMonthKey } from './_shipping-usage.js';
+import { veeqoKey } from './_veeqo.js';
 
 function json(body) {
   return new Response(JSON.stringify(body), {
@@ -214,12 +216,40 @@ async function checkShippo(env, cache) {
     if (shipResp.ok) {
       try { const d = await shipResp.json(); totalShipments = d.count ?? null; } catch (_) {}
     }
+    // Free-tier usage this month (labels bought via Shippo) + how many are left
+    // before checkout switches to Veeqo.
+    const limit = shippoFreeLimit(env, cache);
+    const used  = await getShippoMonthlyCount(env);
     return {
       ok: true,
       keyActive: true,
       plan: 'Starter (pay-per-label)',
       totalShipments,
-      note: 'Shippo Starter is free — you only pay when a label is purchased. No monthly quota limits.',
+      freeTier: {
+        month: shippoMonthKey(),
+        limit,
+        used,
+        remaining: Math.max(0, limit - used),
+        exhausted: used >= limit,
+      },
+      note: `Free-tier labels this month: ${used}/${limit}. ${used >= limit ? 'Exhausted — checkout is using Veeqo.' : `${Math.max(0, limit - used)} left before switching to Veeqo.`}`,
+    };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
+async function checkVeeqo(env, cache) {
+  const key = veeqoKey(env, cache);
+  if (!key) return { ok: false, configured: false, optional: true, error: 'VEEQO_API_KEY not set' };
+  try {
+    // Lightweight auth check against the Veeqo API. Only a 401/403 means a bad
+    // key; other statuses (e.g. endpoint differences) still count as reachable
+    // so we don't show a false "invalid" — real validation happens at checkout.
+    const resp = await withTimeout(fetch('https://api.veeqo.com/current_user', { headers: { 'x-api-key': key } }));
+    if (resp.status === 401 || resp.status === 403) return { ok: false, keyActive: false, error: `HTTP ${resp.status} — key may be invalid` };
+    return {
+      ok: true,
+      keyActive: true,
+      note: 'Veeqo (Amazon-owned, free) provides USPS rates via Amazon Shipping V2. Used to rate-shop against Shippo and as the fallback once Shippo’s free tier is used up. Requires Amazon Shipping V2 enabled in Veeqo.',
     };
   } catch (e) { return { ok: false, error: e.message }; }
 }
@@ -337,7 +367,7 @@ export async function onRequestGet({ env }) {
   const cache     = await fetchSiteSettings(cacheKeys, env);
 
   // Run all service checks in parallel
-  const [cloudinary, resend, brevo, supabase, stripe, shippo, cloudflare, deepl, loops, twilio, posthog] =
+  const [cloudinary, resend, brevo, supabase, stripe, shippo, veeqo, cloudflare, deepl, loops, twilio, posthog] =
     await Promise.allSettled([
       checkCloudinary(env, cache),
       checkResend(env, cache),
@@ -345,6 +375,7 @@ export async function onRequestGet({ env }) {
       checkSupabase(env),          // always uses env for bootstrap keys
       checkStripe(env, cache),
       checkShippo(env, cache),
+      checkVeeqo(env, cache),
       checkCloudflare(env, cache),
       checkDeepL(env, cache),
       checkLoops(env, cache),
@@ -373,6 +404,7 @@ export async function onRequestGet({ env }) {
       supabase:   unwrap(supabase),
       stripe:     unwrap(stripe),
       shippo:     unwrap(shippo),
+      veeqo:      unwrap(veeqo),
       cloudflare: unwrap(cloudflare),
       deepl:      unwrap(deepl),
       loops:      unwrap(loops),
