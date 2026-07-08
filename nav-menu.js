@@ -172,10 +172,16 @@
 
   // The full-width mega panel drops from just under the header — measure where
   // that is (varies with the announcement bar / nav height) into --zw-megatop.
+  var _megaTopVal = '';
   function setMegaTop() {
     try {
       var nav = document.querySelector('nav#nav, header.nav, nav.nav, nav.zw-nav');
-      if (nav) document.documentElement.style.setProperty('--zw-megatop', Math.max(0, Math.round(nav.getBoundingClientRect().bottom)) + 'px');
+      if (!nav) return;
+      // floor, not round: a fractional header bottom must never round UP past the
+      // real edge (the panel sits below the header in z, so a sub-pixel overlap is
+      // invisible but a sub-pixel gap shows a hairline of the page behind).
+      var v = Math.max(0, Math.floor(nav.getBoundingClientRect().bottom)) + 'px';
+      if (v !== _megaTopVal) { _megaTopVal = v; document.documentElement.style.setProperty('--zw-megatop', v); }
     } catch (_) {}
   }
 
@@ -224,10 +230,24 @@
     function _onMt() { if (_mt) return; _mt = (window.requestAnimationFrame || setTimeout)(function () { _mt = 0; setMegaTop(); }); }
     window.addEventListener('resize', _onMt, { passive: true });
     window.addEventListener('scroll', _onMt, { passive: true, capture: true });
-    // Re-measure right as a nav item is hovered, so the mega panel always drops
-    // from the CURRENT header bottom (the homepage shifts the nav down once the
-    // announcement bar lays out — a stale value let the panel overlap the header).
-    document.addEventListener('mouseover', function (e) { if (e.target.closest && e.target.closest('.zw-navitem')) setMegaTop(); }, { passive: true });
+    // While a nav item (or its open panel) is hovered/focused, keep --zw-megatop
+    // glued to the header EVERY FRAME. A one-shot measure at hover/scroll time
+    // goes stale: the header keeps animating for ~350ms after the last scroll
+    // event (.scrolled padding shrink, announcement-bar offset, auto-hide slide),
+    // so a wheel scroll with the mouse resting on the item left the open panel
+    // floating a few px below the header — a sliver of the page showed through.
+    var _glue = 0;
+    function _glueLoop() {
+      setMegaTop();
+      var open = false;
+      try { open = !!document.querySelector('.zw-navitem:hover, .zw-navitem:focus-within'); } catch (_) {}
+      _glue = open ? (window.requestAnimationFrame || setTimeout)(_glueLoop) : 0;
+    }
+    function _glueStart(e) {
+      if (e.target.closest && e.target.closest('.zw-navitem') && !_glue) _glue = (window.requestAnimationFrame || setTimeout)(_glueLoop);
+    }
+    document.addEventListener('mouseover', _glueStart, { passive: true });
+    document.addEventListener('focusin', _glueStart);
     setTimeout(setMegaTop, 450); setTimeout(setMegaTop, 1300);
     // Refresh nav config + product taxonomy from the server.
     try {
