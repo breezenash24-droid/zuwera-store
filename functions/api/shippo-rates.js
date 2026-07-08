@@ -194,6 +194,38 @@ async function fetchShippoRates({ env, fromAddress, address, parcel }) {
   }
 }
 
+// Services that can't carry apparel. Media Mail / Bound Printed Matter /
+// Library Mail are legally restricted to books & printed matter (a clothing
+// package can be held, returned, or surcharged) — and since checkout silently
+// takes the CHEAPEST USPS rate, Veeqo's $3.95 Bound Printed Matter was about to
+// become the store's default shipping method. "Tender to <carrier> only" rates
+// require dropping the package at that carrier's facility, which doesn't fit
+// the pickup workflow. Tested against the RAW name (cleanServiceName strips
+// the "(Tender to FedEx only)" parenthetical this matches on).
+const EXCLUDED_SERVICE_RE = /media mail|bound printed|library mail|tender to/i;
+
+// Normalize a service name for display + dedupe. The two providers spell the
+// same service differently — "Priority Mail" vs "Priority Mail®", "Ground
+// Advantage" vs "Ground Advantage (1 - 70 lb)" — so exact-name dedupe kept
+// both and checkout looked glitched with same-price duplicates. Stripping
+// marks/parentheticals also makes the webhook's SERVICE_TOKEN_MAP fallback
+// (exact names like "Priority Mail") match Veeqo-sourced services.
+function cleanServiceName(name) {
+  return String(name || '')
+    .replace(/[®™]/g, '')
+    .replace(/\s*\([^)]*\)/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Drop unusable services, then normalize names (exclusion first — it matches
+// text inside the parentheticals that cleaning removes). Exported for tests.
+export function filterAndCleanRates(rates) {
+  return rates
+    .filter((r) => r && !EXCLUDED_SERVICE_RE.test(String(r.servicelevel || '')))
+    .map((r) => ({ ...r, servicelevel: cleanServiceName(r.servicelevel) }));
+}
+
 // Dedupe rates across providers by carrier+service, keeping the cheapest.
 // On an exact price tie, prefer Shippo (per requirement).
 function mergeCheapestPerService(rates) {
@@ -281,7 +313,7 @@ export async function onRequestPost({ request, env }) {
     }
 
     const rates = await Promise.all(
-      sortRates(mergeCheapestPerService(pool)).map(async (rate) => ({
+      sortRates(mergeCheapestPerService(filterAndCleanRates(pool))).map(async (rate) => ({
         ...rate,
         rateToken: await signRate(rate, address, env, parcel),
       }))
