@@ -71,3 +71,48 @@ export async function incrementShippoMonthlyCount(env) {
     console.error('incrementShippoMonthlyCount failed:', e.message);
   }
 }
+
+/**
+ * Record a failed shipping-label purchase so the admin dashboard can raise a
+ * flashing alert (a decline of the card on the Shippo/Veeqo account otherwise
+ * fails silently — the order saves without tracking and nobody notices).
+ *
+ * Stored in site_settings.label_failures as a capped array of small entries.
+ * site_settings is PUBLICLY READABLE, so no PII goes in here — only the order
+ * number, provider source, a truncated error string, and a timestamp. The admin
+ * (who has site_settings write access via RLS) clears entries from the dashboard.
+ * Non-fatal — never throws.
+ */
+export async function recordLabelFailure(env, { order, pi, source, error }) {
+  const c = sb(env);
+  if (!c) return;
+  const KEY = 'label_failures';
+  try {
+    const resp = await fetch(
+      `${c.url}/rest/v1/site_settings?key=eq.${KEY}&select=value`,
+      { headers: c.headers }
+    );
+    const rows = resp.ok ? await resp.json().catch(() => []) : [];
+    let list = rows && rows[0] && rows[0].value;
+    if (typeof list === 'string') { try { list = JSON.parse(list); } catch (_) { list = []; } }
+    if (!Array.isArray(list)) list = [];
+
+    list.push({
+      order: String(order || '').slice(0, 24),
+      pi: String(pi || '').slice(0, 40),
+      source: String(source || 'shippo').slice(0, 12),
+      error: String(error || 'unknown').slice(0, 180),
+      at: new Date().toISOString(),
+    });
+    // Keep the 20 most recent so the row never grows unbounded.
+    list = list.slice(-20);
+
+    await fetch(`${c.url}/rest/v1/site_settings?on_conflict=key`, {
+      method: 'POST',
+      headers: { ...c.headers, Prefer: 'resolution=merge-duplicates' },
+      body: JSON.stringify({ key: KEY, value: list }),
+    });
+  } catch (e) {
+    console.error('recordLabelFailure failed:', e.message);
+  }
+}
