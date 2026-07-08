@@ -82,8 +82,13 @@
             <div style="font-size:2.2rem; margin-bottom:12px;">🔐</div>
             <h2 style="font-family:'Barlow Condensed',sans-serif; font-size:2rem; margin-bottom:8px; letter-spacing:1px;">Two-Factor Auth</h2>
             <p style="color:var(--text-secondary); font-size:0.88rem; margin-bottom:24px; line-height:1.5;">Enter the 6-digit code from your authenticator app.</p>
-            <input type="text" id="mfaChallengeCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="000000" class="form-input" style="text-align:center; font-size:1.6rem; letter-spacing:0.4em; margin-bottom:16px;">
-            <button id="mfaChallengeBtn" class="btn btn-primary" style="width:100%;" onclick="submitMFAChallenge()">Verify</button>
+            <!-- A real <form> is required for password managers (iCloud Passwords,
+                 1Password, …) to recognize the field and offer the saved
+                 verification code — a bare input in a div gets no autofill. -->
+            <form onsubmit="event.preventDefault(); submitMFAChallenge();">
+                <input type="text" id="mfaChallengeCode" name="one-time-code" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="000000" class="form-input" style="text-align:center; font-size:1.6rem; letter-spacing:0.4em; margin-bottom:16px;">
+                <button id="mfaChallengeBtn" type="submit" class="btn btn-primary" style="width:100%;">Verify</button>
+            </form>
             <div id="mfaChallengeError" style="color:var(--error); margin-top:12px; font-size:0.85rem; display:none;"></div>
             <button onclick="logout()" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:0.82rem;margin-top:18px;text-decoration:underline;display:block;width:100%;">Sign out</button>
         </div>
@@ -99,8 +104,10 @@
                 <code id="mfaSecret" style="font-size:0.72rem; word-break:break-all; color:var(--text-primary); background:var(--bg-primary); padding:8px 12px; border-radius:6px; display:block; margin-top:8px; line-height:1.6;"></code>
             </details>
             <p style="color:var(--text-secondary); font-size:0.85rem; margin-bottom:10px;">Enter the 6-digit code from your app to confirm:</p>
-            <input type="text" id="mfaEnrollCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="000000" class="form-input" style="text-align:center; font-size:1.6rem; letter-spacing:0.4em; margin-bottom:16px;">
-            <button id="mfaEnrollBtn" class="btn btn-primary" style="width:100%;" onclick="submitMFAEnroll()">Enable Two-Factor Authentication</button>
+            <form onsubmit="event.preventDefault(); submitMFAEnroll();">
+                <input type="text" id="mfaEnrollCode" name="one-time-code" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="000000" class="form-input" style="text-align:center; font-size:1.6rem; letter-spacing:0.4em; margin-bottom:16px;">
+                <button id="mfaEnrollBtn" type="submit" class="btn btn-primary" style="width:100%;">Enable Two-Factor Authentication</button>
+            </form>
             <div id="mfaEnrollError" style="color:var(--error); margin-top:12px; font-size:0.85rem; display:none;"></div>
             <button onclick="logout()" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:0.82rem;margin-top:18px;text-decoration:underline;display:block;width:100%;">Sign out</button>
         </div>
