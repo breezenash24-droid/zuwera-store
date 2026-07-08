@@ -181,18 +181,25 @@
   }
 
   function wrapGlobalPost() {
-    const original = window.post;
-    if (typeof original !== 'function' || original.__zwPromoWrapped) return;
-    const wrapped = async function (url, body) {
-      const nextBody = url === '/api/create-payment-intent'
-        ? { ...(body || {}), promoCode: currentPromoCode(),
-            featureFlags: (typeof window.zwActiveFlags === 'function' ? window.zwActiveFlags() : undefined),
-            deliveryMethod: (typeof window.zwDeliveryMethod === 'function' ? window.zwDeliveryMethod() : undefined) }
-        : body;
-      return original.call(this, url, nextBody);
-    };
-    wrapped.__zwPromoWrapped = true;
-    window.post = wrapped;
+    // Wrap BOTH checkout POST helpers: bag.html's inline `post` AND checkout.js's
+    // global `postJSON` (the one that actually sends /api/create-payment-intent).
+    // The original wrapper only covered `post`, which checkout.html doesn't even
+    // define — so promoCode/featureFlags/deliveryMethod were never injected on
+    // the card-payment path and campus hand-delivery charged normal shipping.
+    ['post', 'postJSON'].forEach((name) => {
+      const original = window[name];
+      if (typeof original !== 'function' || original.__zwPromoWrapped) return;
+      const wrapped = async function (url, body) {
+        const nextBody = url === '/api/create-payment-intent'
+          ? { ...(body || {}), promoCode: currentPromoCode(),
+              featureFlags: (typeof window.zwActiveFlags === 'function' ? window.zwActiveFlags() : undefined),
+              deliveryMethod: (typeof window.zwDeliveryMethod === 'function' ? window.zwDeliveryMethod() : undefined) }
+          : body;
+        return original.call(this, url, nextBody);
+      };
+      wrapped.__zwPromoWrapped = true;
+      window[name] = wrapped;
+    });
   }
 
   function wrapWalletHelpers() {
