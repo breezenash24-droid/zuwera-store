@@ -287,7 +287,12 @@ export async function onRequestPost({ request, env }) {
       }))
     );
 
-    return json({ rates }, 200, headers);
+    // Pre-merge per-provider counts, so a silently dead feed is visible (the
+    // dedupe can legitimately drop every rate from one source, making the
+    // merged list alone ambiguous about whether both providers answered).
+    const sources = { shippo: shippoRates.length, veeqo: veeqoRates.length };
+
+    return json({ rates, sources }, 200, headers);
   } catch (e) {
     console.error('shippo-rates error:', e);
     return json({ error: e.message }, 500, headers);
