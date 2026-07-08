@@ -370,6 +370,26 @@
     z-index: 5;
   }
 }
+/* Keep the reviews-list close visible even when it (sticky) scrolls over the
+   black "Write a review" bar. The shared .mclose sets a near-transparent
+   background in light themes (rgba(9,9,11,.05)/.08 !important) with a dark
+   glyph, so on black the × vanished. Force a SOLID opaque chip per theme —
+   higher specificity + !important to beat .mclose. */
+.review-list-mbox > .review-list-close {
+  background: #202024 !important;
+  border-color: rgba(244,241,235,0.2) !important;
+  color: #f4f1eb !important;
+}
+body.light-mode .review-list-mbox > .review-list-close {
+  background: #F0EEE9 !important;
+  border-color: rgba(9,9,11,0.2) !important;
+  color: #09090b !important;
+}
+body.super-light-mode .review-list-mbox > .review-list-close {
+  background: #FFFFFF !important;
+  border-color: rgba(9,9,11,0.2) !important;
+  color: #09090b !important;
+}
 .review-list-write-btn { margin-bottom: 1.5rem; }
 .review-list-select {
   flex: 1;
