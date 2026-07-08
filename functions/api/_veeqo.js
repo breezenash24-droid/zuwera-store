@@ -80,13 +80,15 @@ function estDaysFromDate(deliveryDate) {
  * @param to    { name, line1, line2, city, state, zip, country, phone }
  * @param parcel Shippo-style parcel { weight, mass_unit, length, width, height, distance_unit }
  */
-export async function veeqoGetRates({ env, from, to, parcel, settingsCache }) {
-  const key = veeqoKey(env, settingsCache);
-  if (!key) return [];
-
-  const body = {
+// Shared rates-request body. The docs mark customer_reference optional, but the
+// live API rejects requests without one (shipment.customer_reference_missing) —
+// always send a generated quote reference (no order number exists yet at
+// checkout-quote time; the booking later reuses this shipment by id).
+function veeqoRatesBody(from, to, parcel) {
+  return {
     from_address: veeqoAddr(from, 'Zuwera'),
     to_address: veeqoAddr(to, 'Customer'),
+    customer_reference: 'ZW-QUOTE-' + Date.now().toString(36).toUpperCase(),
     parcels: [{
       weight: parseFloat(parcel.weight) || 1,
       weight_unit: parcel.mass_unit || 'lb',
@@ -96,6 +98,13 @@ export async function veeqoGetRates({ env, from, to, parcel, settingsCache }) {
       dimension_unit: parcel.distance_unit || 'in',
     }],
   };
+}
+
+export async function veeqoGetRates({ env, from, to, parcel, settingsCache }) {
+  const key = veeqoKey(env, settingsCache);
+  if (!key) return [];
+
+  const body = veeqoRatesBody(from, to, parcel);
 
   let data;
   try {
@@ -144,18 +153,7 @@ export async function veeqoDiagnose({ env, from, to, parcel, settingsCache }) {
   const key = veeqoKey(env, settingsCache);
   if (!key) return { configured: false };
 
-  const body = {
-    from_address: veeqoAddr(from, 'Zuwera'),
-    to_address: veeqoAddr(to, 'Customer'),
-    parcels: [{
-      weight: parseFloat(parcel.weight) || 1,
-      weight_unit: parcel.mass_unit || 'lb',
-      length: parseFloat(parcel.length) || undefined,
-      width: parseFloat(parcel.width) || undefined,
-      height: parseFloat(parcel.height) || undefined,
-      dimension_unit: parcel.distance_unit || 'in',
-    }],
-  };
+  const body = veeqoRatesBody(from, to, parcel);
 
   try {
     const resp = await fetch(VEEQO_BASE + '/shipping/api/v1/rates', {
