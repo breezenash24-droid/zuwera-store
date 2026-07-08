@@ -17,7 +17,7 @@
 
 import { fetchSiteSettings, resolveSetting, maskKey, ALLOWED_KEYS } from './_settings.js';
 import { getShippoMonthlyCount, shippoFreeLimit, shippoMonthKey } from './_shipping-usage.js';
-import { veeqoKey, veeqoGetRates } from './_veeqo.js';
+import { veeqoKey, veeqoDiagnose } from './_veeqo.js';
 import { verifyAdmin } from './_commerce.js';
 
 function json(body, status = 200) {
@@ -266,17 +266,19 @@ async function checkVeeqo(env, cache) {
     };
     if (from.street1 && from.city && from.zip) {
       try {
-        const quotes = await withTimeout(veeqoGetRates({
+        const diag = await withTimeout(veeqoDiagnose({
           env,
           from,
           to: { name: from.name, line1: from.street1, city: from.city, state: from.state, zip: from.zip, country: from.country },
           parcel: { weight: '1', mass_unit: 'lb', length: '12', width: '10', height: '4', distance_unit: 'in' },
           settingsCache: cache,
         }), 8000);
-        rateFeed = { quotes: quotes.length, live: quotes.length > 0 };
+        rateFeed = { quotes: diag.quotesReturned || 0, live: (diag.quotesReturned || 0) > 0, diag };
       } catch (e) {
         rateFeed = { quotes: 0, live: false, error: e.message };
       }
+    } else {
+      rateFeed = { quotes: 0, live: false, error: 'SHIPPO_FROM_* address incomplete — probe skipped' };
     }
 
     return {

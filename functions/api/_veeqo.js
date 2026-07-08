@@ -95,7 +95,7 @@ export async function veeqoGetRates({ env, from, to, parcel, settingsCache }) {
     return [];
   }
 
-  const remoteShipmentId = data.remote_shipment_id || '';
+  const topShipmentId = data.remote_shipment_id || '';
   const quotes = Array.isArray(data.quotes) ? data.quotes : [];
 
   return quotes.map((q) => {
@@ -104,7 +104,8 @@ export async function veeqoGetRates({ env, from, to, parcel, settingsCache }) {
     return {
       source: 'veeqo',
       objectId: q.rate_id,                 // the rate identifier used for booking
-      remoteShipmentId,
+      // Some response shapes carry the shipment id per-quote instead of top-level.
+      remoteShipmentId: topShipmentId || q.remote_shipment_id || '',
       provider: carrierFromService(service),
       servicelevel: service.replace(/^USPS\s+/i, '').trim() || service,
       amount: amount != null ? String(amount) : '',
@@ -112,6 +113,64 @@ export async function veeqoGetRates({ env, from, to, parcel, settingsCache }) {
       days: estDaysFromDate(q.delivery_date),
     };
   }).filter((r) => r.objectId && r.amount && r.remoteShipmentId);
+}
+
+/**
+ * Diagnostic rate probe for the admin API-status card: same request as
+ * veeqoGetRates but returns WHAT VEEQO SAID instead of failing soft — HTTP
+ * status, quote count, response shape, and a truncated error/body preview.
+ * No secrets in the output (admin-gated endpoint, but keep it clean anyway).
+ */
+export async function veeqoDiagnose({ env, from, to, parcel, settingsCache }) {
+  const key = veeqoKey(env, settingsCache);
+  if (!key) return { configured: false };
+
+  const addr = (a, fallbackName) => ({
+    name: a.name || fallbackName,
+    phone: a.phone || '0000000000',
+    line1: a.line1 || a.street1 || '',
+    line2: a.line2 || a.street2 || '',
+    town: a.city || '',
+    county: a.state || '',
+    postcode: a.zip || '',
+    country_code: String(a.country || 'US').toUpperCase(),
+  });
+  const body = {
+    from_address: addr(from, 'Zuwera'),
+    to_address: addr(to, 'Customer'),
+    parcels: [{
+      weight: parseFloat(parcel.weight) || 1,
+      weight_unit: parcel.mass_unit || 'lb',
+      length: parseFloat(parcel.length) || undefined,
+      width: parseFloat(parcel.width) || undefined,
+      height: parseFloat(parcel.height) || undefined,
+      dimension_unit: parcel.distance_unit || 'in',
+    }],
+  };
+
+  try {
+    const resp = await fetch(VEEQO_BASE + '/shipping/api/v1/rates', {
+      method: 'POST',
+      headers: { 'x-api-key': key, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const text = await resp.text().catch(() => '');
+    let data = null;
+    try { data = JSON.parse(text); } catch (_) {}
+    const quotes = Array.isArray(data?.quotes) ? data.quotes : [];
+    return {
+      configured: true,
+      httpStatus: resp.status,
+      quotesReturned: quotes.length,
+      hasRemoteShipmentId: !!(data && (data.remote_shipment_id || quotes.some(q => q.remote_shipment_id))),
+      responseKeys: data && typeof data === 'object' ? Object.keys(data).slice(0, 10) : null,
+      firstQuoteKeys: quotes[0] ? Object.keys(quotes[0]).slice(0, 12) : null,
+      // On errors / empty results, show what Veeqo actually said (truncated).
+      bodyPreview: (!resp.ok || quotes.length === 0) ? String(text || '').slice(0, 400) : null,
+    };
+  } catch (e) {
+    return { configured: true, httpStatus: 0, quotesReturned: 0, error: String(e.message || e).slice(0, 200) };
+  }
 }
 
 /**
