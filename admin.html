@@ -4257,6 +4257,17 @@
                     ? `<strong style="color:#4ade80;">Live</strong> — ${s.rateFeed.quotes} quote${s.rateFeed.quotes !== 1 ? 's' : ''} on test request`
                     : `<strong style="color:var(--warning);">Not returning quotes</strong>`);
                 if (!s.rateFeed.live) rows += `<p class="api-note" style="color:var(--warning);">Key is valid but the rate request returned 0 quotes — checkout is silently falling back to Shippo only. In Veeqo, connect <strong>Amazon Shipping (Buy Shipping V2)</strong> as a carrier and set a warehouse ship-from address.</p>`;
+                // Raw diagnostics from the probe — what Veeqo actually answered.
+                const d = s.rateFeed.diag;
+                if (d && !s.rateFeed.live) {
+                    const escD = (v) => String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                    let detail = `HTTP ${escD(d.httpStatus)} · quotes: ${escD(d.quotesReturned)}`;
+                    if (d.responseKeys)  detail += ` · response keys: ${escD(d.responseKeys.join(', '))}`;
+                    if (d.firstQuoteKeys) detail += ` · quote keys: ${escD(d.firstQuoteKeys.join(', '))}`;
+                    if (d.error)         detail += ` · ${escD(d.error)}`;
+                    rows += `<p class="api-note" style="font-family:monospace;font-size:.68rem;word-break:break-all;">${detail}</p>`;
+                    if (d.bodyPreview) rows += `<p class="api-note" style="font-family:monospace;font-size:.68rem;word-break:break-all;background:var(--bg-primary);padding:8px;border-radius:6px;">Veeqo said: ${escD(d.bodyPreview)}</p>`;
+                }
             }
             if (s.note) rows += `<p class="api-note">${s.note}</p>`;
             return rows;
