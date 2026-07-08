@@ -33,6 +33,36 @@ function carrierFromService(serviceName) {
   return 'USPS';
 }
 
+// Veeqo strictly requires ISO-2 country codes ("US"); Shippo happens to accept
+// full names like "United States", so a full name saved in the admin's
+// SHIPPO_FROM_COUNTRY setting silently killed ONLY the Veeqo feed
+// ({"message":"Country code UNITED STATES cannot be found"}).
+const COUNTRY_NAME_TO_ISO2 = {
+  'UNITED STATES': 'US', 'UNITED STATES OF AMERICA': 'US', 'USA': 'US', 'U.S.': 'US', 'U.S.A.': 'US', 'AMERICA': 'US',
+  'UNITED KINGDOM': 'GB', 'GREAT BRITAIN': 'GB', 'UK': 'GB', 'ENGLAND': 'GB',
+  'CANADA': 'CA', 'MEXICO': 'MX', 'AUSTRALIA': 'AU', 'GERMANY': 'DE', 'FRANCE': 'FR',
+};
+function iso2Country(value) {
+  const v = String(value || '').trim().toUpperCase();
+  if (!v) return 'US';
+  if (/^[A-Z]{2}$/.test(v)) return v;
+  return COUNTRY_NAME_TO_ISO2[v] || 'US';
+}
+
+// Shared Shippo-style → Veeqo address mapper (rates + diagnostics).
+function veeqoAddr(a, fallbackName) {
+  return {
+    name: a.name || fallbackName,
+    phone: a.phone || '0000000000',
+    line1: a.line1 || a.street1 || '',
+    line2: a.line2 || a.street2 || '',
+    town: a.city || '',
+    county: a.state || '',
+    postcode: a.zip || '',
+    country_code: iso2Country(a.country),
+  };
+}
+
 function estDaysFromDate(deliveryDate) {
   if (!deliveryDate) return null;
   const d = new Date(deliveryDate).getTime();
@@ -54,20 +84,9 @@ export async function veeqoGetRates({ env, from, to, parcel, settingsCache }) {
   const key = veeqoKey(env, settingsCache);
   if (!key) return [];
 
-  const addr = (a, fallbackName) => ({
-    name: a.name || fallbackName,
-    phone: a.phone || '0000000000',
-    line1: a.line1 || a.street1 || '',
-    line2: a.line2 || a.street2 || '',
-    town: a.city || '',
-    county: a.state || '',
-    postcode: a.zip || '',
-    country_code: String(a.country || 'US').toUpperCase(),
-  });
-
   const body = {
-    from_address: addr(from, 'Zuwera'),
-    to_address: addr(to, 'Customer'),
+    from_address: veeqoAddr(from, 'Zuwera'),
+    to_address: veeqoAddr(to, 'Customer'),
     parcels: [{
       weight: parseFloat(parcel.weight) || 1,
       weight_unit: parcel.mass_unit || 'lb',
@@ -125,19 +144,9 @@ export async function veeqoDiagnose({ env, from, to, parcel, settingsCache }) {
   const key = veeqoKey(env, settingsCache);
   if (!key) return { configured: false };
 
-  const addr = (a, fallbackName) => ({
-    name: a.name || fallbackName,
-    phone: a.phone || '0000000000',
-    line1: a.line1 || a.street1 || '',
-    line2: a.line2 || a.street2 || '',
-    town: a.city || '',
-    county: a.state || '',
-    postcode: a.zip || '',
-    country_code: String(a.country || 'US').toUpperCase(),
-  });
   const body = {
-    from_address: addr(from, 'Zuwera'),
-    to_address: addr(to, 'Customer'),
+    from_address: veeqoAddr(from, 'Zuwera'),
+    to_address: veeqoAddr(to, 'Customer'),
     parcels: [{
       weight: parseFloat(parcel.weight) || 1,
       weight_unit: parcel.mass_unit || 'lb',
