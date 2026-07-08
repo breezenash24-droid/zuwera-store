@@ -3988,7 +3988,7 @@ body.super-light-mode img[src*="wordmark-nav"]{ filter:none !important; }
    height and center the image so every header BAR is the same height, whatever
    logo it holds. Emblem = 46px fills it; wordmark = 28px centers in it. */
 .nav-logo, .nav-logo-link, .zw-nav-logo {
-  min-height: 46px;
+  min-height: 50px;
   display: flex;
   align-items: center;
 }
