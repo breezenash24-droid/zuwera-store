@@ -4534,9 +4534,46 @@
             document.getElementById('alerts-panel').classList.toggle('collapsed');
         }
 
+        // Acknowledge shipping-label purchase failures: clears the
+        // site_settings.label_failures list (admin has RLS write access) and
+        // refreshes the dashboard so the flashing banner goes away.
+        async function clearLabelFailures() {
+            if (!confirm('Mark all shipping-label failures as resolved? Make sure the affected orders have labels (or you\'ve fixed the Shippo/Veeqo payment method).')) return;
+            try {
+                const { error } = await sb.from('site_settings').upsert({ key: 'label_failures', value: [] }, { onConflict: 'key' });
+                if (error) throw error;
+                loadDashboard();
+            } catch (e) {
+                alert('Could not clear label failures: ' + (e.message || e));
+            }
+        }
+
         // ─── Warnings computation ─────────────────────────────────────────────
-        function computeWarnings({ products, sizeRows, orders }) {
-            const warnings = []; // { sev: 'critical'|'warning'|'info', icon, label, detail, action }
+        function computeWarnings({ products, sizeRows, orders, labelFailures }) {
+            const warnings = []; // { sev: 'critical'|'warning'|'info', icon, label, detail, action, flash? }
+
+            // ── 0. Shipping-label purchase failures (likely a declined card on the
+            //       Shippo/Veeqo account). Written by the stripe-webhook into
+            //       site_settings.label_failures. An entry is auto-resolved once its
+            //       order has a tracking number (label was bought manually); the rest
+            //       flash on the dashboard until dismissed.
+            const trackedOrders = new Set((orders || []).filter(o => o.tracking_number).map(o => String(o.order_number || '')));
+            const fourteenDays = 14 * 24 * 60 * 60 * 1000;
+            const activeLabelFails = (labelFailures || []).filter(f => {
+                if (!f || !f.at) return false;
+                if (Date.now() - new Date(f.at).getTime() > fourteenDays) return false;
+                return !(f.order && trackedOrders.has(String(f.order)));
+            });
+            if (activeLabelFails.length > 0) {
+                const latest = activeLabelFails[activeLabelFails.length - 1];
+                const names = activeLabelFails.slice(-3).map(f => `#${f.order || '?'} (${f.source || 'shippo'})`).reverse();
+                warnings.push({
+                    sev: 'critical', icon: '💳', flash: true,
+                    label: `${activeLabelFails.length} shipping label${activeLabelFails.length !== 1 ? 's' : ''} FAILED to purchase — check your ${[...new Set(activeLabelFails.map(f => f.source === 'veeqo' ? 'Veeqo' : 'Shippo'))].join(' & ')} payment method`,
+                    detail: `${names.join(' · ')}${activeLabelFails.length > 3 ? ` · +${activeLabelFails.length - 3} more` : ''} — latest error: ${String(latest.error || 'unknown').slice(0, 120)}. These orders were paid but have no label; buy labels manually or fix the card and re-buy.`,
+                    action: `<a onclick="navigateTo('receipts')">Go to Receipts →</a> &nbsp; <a onclick="clearLabelFailures()">Mark resolved ✓</a>`
+                });
+            }
 
             // ── 1. Low stock ──────────────────────────────────────────────────
             const stockByProduct = {};
@@ -4687,7 +4724,7 @@
             const critical = warnings.filter(w => w.sev === 'critical');
             for (const w of critical) {
                 const div = document.createElement('div');
-                div.className = `dash-banner sev-${w.sev}`;
+                div.className = `dash-banner sev-${w.sev}${w.flash ? ' flash' : ''}`;
                 div.innerHTML = `
                     <span class="dash-banner-icon">${w.icon}</span>
                     <span class="dash-banner-body">
@@ -4729,6 +4766,7 @@
                     { data: sizeRows },
                     { data: orders },
                     returnsPayload,
+                    { data: labelFailRows },
                 ] = await Promise.all([
                     sb.from('products').select('id, title, status, low_stock_threshold, sku'),
                     sb.from('product_sizes').select('product_id, stock_quantity, size'),
@@ -4738,7 +4776,13 @@
                             .then(r => r.ok ? r.json().catch(() => ({})) : {})
                             .catch(() => ({}))
                         : Promise.resolve({}),
+                    sb.from('site_settings').select('value').eq('key', 'label_failures'),
                 ]);
+                const labelFailures = (() => {
+                    let v = labelFailRows?.[0]?.value;
+                    if (typeof v === 'string') { try { v = JSON.parse(v); } catch { v = []; } }
+                    return Array.isArray(v) ? v : [];
+                })();
 
                 const returns = Array.isArray(returnsPayload?.requests) ? returnsPayload.requests : [];
 
@@ -4881,7 +4925,7 @@
                 document.getElementById('dash-returns-ready').textContent   = readyReturns.length;
 
                 // ── Warnings ───────────────────────────────────────────────────
-                const warnings = computeWarnings({ products, sizeRows, orders });
+                const warnings = computeWarnings({ products, sizeRows, orders, labelFailures });
                 renderWarnings(warnings);
 
                 // ── Feeds ──────────────────────────────────────────────────────

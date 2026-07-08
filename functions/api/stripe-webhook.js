@@ -24,7 +24,7 @@ import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { loopsFallback } from './_email.js';
 import { buildUserData, sendCapiEvents } from './_capi.js';
 import { veeqoBookShipment } from './_veeqo.js';
-import { incrementShippoMonthlyCount } from './_shipping-usage.js';
+import { incrementShippoMonthlyCount, recordLabelFailure } from './_shipping-usage.js';
 
 // Fallback service-level token map if rate object ID is unavailable
 const SERVICE_TOKEN_MAP = {
@@ -166,7 +166,15 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
       console.log('Label created:', labelData?.tracking_number);
     } catch (e) {
       console.error('Label creation failed:', e.message);
-      // Continue — still save the order and send email without tracking
+      // Surface it on the admin dashboard (a declined card on the Shippo/Veeqo
+      // account would otherwise fail silently), then continue — still save the
+      // order and send the email without tracking.
+      await recordLabelFailure(env, {
+        order: meta.order_number,
+        pi: pi.id,
+        source: meta.shipping_source || 'shippo',
+        error: e.message,
+      });
     }
   }
 
