@@ -4038,9 +4038,12 @@
             loadingEl.textContent   = 'Checking all services…';
 
             try {
-                const resp = await fetch('/api/api-status');
+                const { data: { session } } = await sb.auth.getSession();
+                const resp = await fetch('/api/api-status', {
+                    headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
+                });
                 const data = await resp.json();
-                if (!data.ok) throw new Error('API status endpoint failed');
+                if (!data.ok) throw new Error(data.error || 'API status endpoint failed');
 
                 const s = data.services || {};
                 _maskedKeys = data.maskedKeys || {};
@@ -4240,6 +4243,14 @@
             if (!s.ok && s.configured === false) return `<p class="api-note" style="color:var(--warning);">Optional — add <code>VEEQO_API_KEY</code> below to rate-shop USPS against Shippo and take over once Shippo's free tier is used up. Requires <strong>Amazon Shipping V2</strong> enabled in your Veeqo account.</p>`;
             if (!s.ok) return `<p class="api-note" style="color:var(--error);">Connection failed: ${s.error || 'Unknown error'}</p><p class="api-note">Check your <code>VEEQO_API_KEY</code> (Veeqo → Settings → Users → Refresh API Key). Update it below.</p>`;
             let rows = apiRow('Status', 'Connected');
+            // Live rate-feed probe: a valid key can still return 0 quotes when
+            // Amazon Shipping isn't connected as a carrier in Veeqo.
+            if (s.rateFeed) {
+                rows += apiRow('Rate feed', s.rateFeed.live
+                    ? `<strong style="color:#4ade80;">Live</strong> — ${s.rateFeed.quotes} quote${s.rateFeed.quotes !== 1 ? 's' : ''} on test request`
+                    : `<strong style="color:var(--warning);">Not returning quotes</strong>`);
+                if (!s.rateFeed.live) rows += `<p class="api-note" style="color:var(--warning);">Key is valid but the rate request returned 0 quotes — checkout is silently falling back to Shippo only. In Veeqo, connect <strong>Amazon Shipping (Buy Shipping V2)</strong> as a carrier and set a warehouse ship-from address.</p>`;
+            }
             if (s.note) rows += `<p class="api-note">${s.note}</p>`;
             return rows;
         }
