@@ -2,13 +2,17 @@
 # https://developers.cloudflare.com/pages/configuration/headers/
 # (Netlify also supports this file format, so it works on both platforms.)
 
+# CSP strategy: script-src is ENFORCED (hosts enumerated from code inventory +
+# /api/csp-report data in error_log, source='csp'). The wider default-src policy
+# stays Report-Only until its directives are validated the same way — promote a
+# directive into the enforced header only after the reports for it go quiet.
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: payment=(*)
   X-Frame-Options: SAMEORIGIN
-  Content-Security-Policy: frame-ancestors 'self'; object-src 'none'; base-uri 'self'; upgrade-insecure-requests
-  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://*.stripe.com https://www.googletagmanager.com https://connect.facebook.net https://*.posthog.com https://static.cloudflareinsights.com; connect-src 'self' https://*.supabase.co https://api.stripe.com https://*.posthog.com https://www.google-analytics.com https://*.facebook.com https://cloudflareinsights.com https://api.github.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; frame-src 'self' https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; report-uri /api/csp-report
+  Content-Security-Policy: script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://*.stripe.com https://challenges.cloudflare.com https://www.googletagmanager.com https://connect.facebook.net https://*.posthog.com https://static.cloudflareinsights.com https://unpkg.com https://cdn.jsdelivr.net https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com https://www.gstatic.com; frame-ancestors 'self'; object-src 'none'; base-uri 'self'; upgrade-insecure-requests; report-uri /api/csp-report
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://*.stripe.com https://challenges.cloudflare.com https://www.googletagmanager.com https://connect.facebook.net https://*.posthog.com https://static.cloudflareinsights.com https://unpkg.com https://cdn.jsdelivr.net https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com https://www.gstatic.com; connect-src 'self' https://*.supabase.co https://api.stripe.com https://*.posthog.com https://*.google-analytics.com https://analytics.google.com https://www.google.com https://*.doubleclick.net https://*.googleadservices.com https://www.googletagmanager.com https://translate.googleapis.com https://translate-pa.googleapis.com https://*.facebook.com https://cloudflareinsights.com https://api.github.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://challenges.cloudflare.com https://www.facebook.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; report-uri /api/csp-report
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   Cache-Control: no-cache, must-revalidate
 
