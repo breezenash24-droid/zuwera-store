@@ -279,6 +279,40 @@
           '</div>';
         return true;
       }
+      case 'color_block': {
+        el.className = 'builder-color-block-section';
+        var cbBg = s.bg_color || '#1f2937';
+        var cbLight = (function (c) { // small luminance check (mirrors storefront _zwIsLightColor)
+          var m = String(c || '').trim().match(/^#([0-9a-f]{6})$/i);
+          if (!m) return false;
+          var r = parseInt(m[1].slice(0, 2), 16), g = parseInt(m[1].slice(2, 4), 16), b = parseInt(m[1].slice(4, 6), 16);
+          return (0.2126 * r + 0.7152 * g + 0.0722 * b) > 150;
+        })(cbBg);
+        var cbTxt = s.text_color || (cbLight ? '#09090b' : '#f4f1eb');
+        var cbW = s.width || 'full';
+        var cbBlockW = cbW === 'full' ? '100%' : (cbW === 'half' ? '50%' : cbW + 'px');
+        var cbMar = ({ left: '0 auto 0 0', right: '0 0 0 auto' })[s.block_align] || '0 auto';
+        var cbPad = ({ sm: '2.5rem 1.5rem', md: '4rem 2.5rem', lg: '6rem 3rem', xl: '8rem 3.5rem' })[s.inner_pad || 'md'] || '4rem 2.5rem';
+        var cbAlign = s.content_align || 'center';
+        var cbJust = cbAlign === 'left' ? 'flex-start' : (cbAlign === 'right' ? 'flex-end' : 'center');
+        el.style.cssText = 'padding:0 ' + ((cbW === 'full' || cbW === 'half') ? '0' : '2.5rem') + ';margin-top:' + (parseInt(s.gap_top) || 0) + 'px;margin-bottom:' + (parseInt(s.gap_bot) || 0) + 'px';
+        var cbEsc = function (v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
+        var cbBtnHtml = (Array.isArray(s.buttons) ? s.buttons : []).filter(function (b) { return b && b.text; }).map(function (b) {
+          var st = b.style || 'solid';
+          var css = 'display:inline-block;padding:.75rem 2rem;font-family:var(--fm,var(--fb));font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;';
+          if (st === 'solid') css += 'background:' + cbTxt + ';color:' + cbBg + ';border:1px solid ' + cbTxt + ';';
+          else if (st === 'outline') css += 'background:transparent;color:inherit;border:1px solid currentColor;';
+          else css += 'background:transparent;color:inherit;border:none;text-decoration:underline;text-underline-offset:4px;';
+          return '<a href="' + cbEsc(safeUrl(b.url)) + '" style="' + css + '">' + cbEsc(b.text) + '</a>';
+        }).join('');
+        el.innerHTML = '<div style="background:' + cbBg + ';color:' + cbTxt + ';max-width:' + cbBlockW + ';margin:' + cbMar + ';padding:' + cbPad + ';border-radius:' + (parseInt(s.radius) || 0) + 'px;' + (s.min_height ? 'min-height:' + parseInt(s.min_height) + 'px;' : '') + 'text-align:' + cbAlign + ';display:flex;flex-direction:column;justify-content:center">' +
+          (s.eyebrow ? '<div style="font-family:var(--fm,var(--fb));font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;opacity:.65;margin-bottom:1rem">' + s.eyebrow + '</div>' : '') +
+          (s.heading ? '<h2 style="font-family:var(--fw);font-size:clamp(1.8rem,5vw,2.8rem);font-weight:900;font-style:italic;letter-spacing:.06em;text-transform:uppercase;line-height:1.05;margin:0 0 1rem">' + String(s.heading).replace(/\n/g, '<br>') + '</h2>' : '') +
+          (s.body ? '<p style="opacity:.75;line-height:1.75;font-size:1rem;margin:0 0 ' + (cbBtnHtml ? '1.8rem' : '0') + ';white-space:pre-line;font-family:var(--fb)">' + s.body + '</p>' : '') +
+          (cbBtnHtml ? '<div style="display:flex;gap:.8rem;flex-wrap:wrap;justify-content:' + cbJust + '">' + cbBtnHtml + '</div>' : '') +
+          '</div>';
+        return true;
+      }
       case 'banner': {
         el.className = 'builder-banner-section';
         el.style.cssText = 'padding:1.5rem 2.5rem;text-align:center;background:' + (s.bg_color || s.sec_bg || '#09090b') + ';color:' + (s.text_color || '#f4f1eb');
