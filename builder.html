@@ -2033,7 +2033,7 @@ function openLayouts(){
     <div id="lyList" style="overflow-y:auto;flex:1;margin:0 -.25rem;padding:0 .25rem"></div>
     <div style="display:flex;gap:.5rem;margin-top:.9rem;flex-wrap:wrap">
       <button onclick="lyNew(true)" style="flex:1;background:#f4f1eb;color:#09090b;border:none;border-radius:5px;padding:.5rem .7rem;cursor:pointer;font-weight:600;font-size:.68rem;white-space:nowrap">＋ Save current design as layout</button>
-      <button onclick="lyNew(false)" style="background:none;border:1px solid var(--bd);color:#f4f1eb;border-radius:5px;padding:.5rem .7rem;cursor:pointer;font-size:.68rem;white-space:nowrap">＋ New (starter)</button>
+      <button onclick="lyNew(false)" style="background:none;border:1px solid var(--bd);color:#f4f1eb;border-radius:5px;padding:.5rem .7rem;cursor:pointer;font-size:.68rem;white-space:nowrap" title="Start a blank page and build it with + Add Section">＋ New (blank)</button>
       <button onclick="document.getElementById('lyOverlay').remove()" style="background:none;border:1px solid var(--bd);color:#f4f1eb;border-radius:5px;padding:.5rem .7rem;cursor:pointer;font-size:.68rem">Close</button>
     </div>
   </div>`;
@@ -2072,7 +2072,9 @@ async function lyNew(fromCurrent){
   if(!name||!name.trim())return;
   const id='ly'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
   const now=new Date().toISOString();
-  const data=fromCurrent?layoutsSnapshot():{sections:clone(DEFAULT_SECTIONS),theme:pvTheme,themeSettings:clone(themeSettings||{}),navSettings:clone(navSettings||{links:[]}),seoSettings:{}};
+  // A brand-new layout starts BLANK (just header/footer) — build it up with
+  // "+ Add Section". (It used to seed the default sample homepage sections.)
+  const data=fromCurrent?layoutsSnapshot():{sections:[],theme:pvTheme,themeSettings:clone(themeSettings||{}),navSettings:clone(navSettings||{links:[]}),seoSettings:{}};
   layouts.list.push({id,name:name.trim(),created_at:now,updated_at:now,data});
   // "Save current design as layout" works like Save As: the NEW layout becomes
   // the one you're editing, so further edits/autosaves flow into IT. (It used
@@ -2082,8 +2084,8 @@ async function lyNew(fromCurrent){
   if(fromCurrent)layouts.currentId=id;
   const ok=await persistLayouts();
   renderLayouts();updateLyBtn();
-  if(ok)toast('Layout “'+name.trim()+'” saved'+(fromCurrent?' — you\'re now editing it':''),'ok');
-  // A new starter layout opens right away (like a new document), so edits go
+  if(ok)toast('Layout “'+name.trim()+'” saved'+(fromCurrent?' — you\'re now editing it':' — blank page, use + Add Section'),'ok');
+  // A new blank layout opens right away (like a new document), so edits go
   // into it instead of the previously open layout. lyOpen keeps its own
   // safety confirm when there are unsaved edits not stored in any layout.
   if(!fromCurrent)await lyOpen(id);
