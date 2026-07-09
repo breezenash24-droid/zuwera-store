@@ -1433,6 +1433,30 @@
 
                   <div id="ship-error" class="zw-admin-err" style="display:none;"></div>
 
+                  <!-- Checkout shipping option: preview live rates + pin which ONE
+                       service checkout offers (site_settings.shipping_preferred_service,
+                       enforced server-side in /api/shippo-rates). -->
+                  <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:24px;">
+                    <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Checkout Shipping Option</p>
+                    <p style="font-size:.82rem;color:var(--text-secondary);line-height:1.6;margin-bottom:14px;">
+                      Checkout shows customers exactly <strong>one</strong> shipping option. Preview the live rates for a test address below, then choose which service is offered.
+                      "Cheapest available" adapts per address; pinning a specific service uses it whenever it's quoted (falling back to cheapest when it isn't).
+                    </p>
+                    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px;">
+                      <div><label style="display:block;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:4px;">Test ZIP</label>
+                        <input id="shipopt-zip" type="text" value="45219" maxlength="5" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;color:var(--text-primary);width:90px;"></div>
+                      <div><label style="display:block;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:4px;">State</label>
+                        <input id="shipopt-state" type="text" value="OH" maxlength="2" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;color:var(--text-primary);width:60px;text-transform:uppercase;"></div>
+                      <button class="btn btn-secondary" style="font-size:.78rem;padding:8px 14px;" onclick="previewShippingRates()">Preview live rates</button>
+                      <span id="shipopt-loading" style="display:none;font-size:.78rem;color:var(--text-secondary);">Fetching rates…</span>
+                    </div>
+                    <div id="shipopt-list" style="display:flex;flex-direction:column;gap:0;"></div>
+                    <div style="margin-top:14px;display:flex;gap:10px;align-items:center;">
+                      <button class="btn btn-primary" style="font-size:.78rem;padding:8px 16px;" onclick="saveShippingOption()">Save checkout option</button>
+                      <span id="shipopt-status" style="font-size:.8rem;color:var(--text-secondary);"></span>
+                    </div>
+                  </div>
+
                   <!-- Aggregate KPI cards -->
                   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px;">
                     <div class="zw-card">
@@ -3675,6 +3699,7 @@
                 if (typeof window.taxLoadData === 'function') window.taxLoadData();
             } else if (page === 'shipping') {
                 if (typeof window.shipLoadData === 'function') window.shipLoadData();
+                loadShippingOptionCard();
             } else if (page === 'orders') {
                 if (typeof window.ordersLoadData === 'function') window.ordersLoadData();
             } else if (page === 'receipts') {
@@ -4561,6 +4586,111 @@
         // ─── Alerts panel toggle ───────────────────────────────────────────────
         function toggleAlertsPanel() {
             document.getElementById('alerts-panel').classList.toggle('collapsed');
+        }
+
+        // ─── Checkout shipping option (Shipping page card) ─────────────────────
+        // Preview live rates for a test address and pin which ONE service the
+        // checkout offers. Stored in site_settings.shipping_preferred_service as
+        // {mode:'cheapest'} or {provider, servicelevel}; /api/shippo-rates
+        // enforces it server-side (allRates:true bypasses for this preview).
+        let _shipOptRates = [];   // last previewed rates
+        let _shipOptPref  = null; // current saved preference object
+
+        async function loadShippingOptionCard() {
+            try {
+                const { data } = await sb.from('site_settings').select('value').eq('key', 'shipping_preferred_service');
+                let v = data?.[0]?.value;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch { v = null; } }
+                _shipOptPref = (v && typeof v === 'object' && v.servicelevel) ? v : null;
+            } catch (_) { _shipOptPref = null; }
+            renderShippingOptionList();
+        }
+
+        function _shipOptEsc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+        function renderShippingOptionList() {
+            const list = document.getElementById('shipopt-list');
+            if (!list) return;
+            const rowStyle = (i) => `display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);${i > 0 ? 'border-top:none;' : 'border-radius:8px 8px 0 0;'}font-size:.85rem;cursor:pointer;`;
+            let html = `
+              <label style="${rowStyle(0)}">
+                <input type="radio" name="shipopt-choice" value="auto" ${_shipOptPref ? '' : 'checked'}>
+                <span style="flex:1;"><strong>Cheapest available</strong> <span style="color:var(--text-secondary);">— automatic (USPS first), adapts to each address</span></span>
+              </label>`;
+            html += _shipOptRates.map((r, i) => {
+                const isSel = _shipOptPref &&
+                    String(_shipOptPref.servicelevel || '').toUpperCase() === String(r.servicelevel || '').toUpperCase() &&
+                    String(_shipOptPref.provider || '').toUpperCase() === String(r.provider || '').toUpperCase();
+                const eta = r.days ? ` · ${Number(r.days) === 1 ? 'next day' : r.days + ' days'}` : '';
+                return `
+              <label style="${rowStyle(i + 1)}">
+                <input type="radio" name="shipopt-choice" value="${i}" ${isSel ? 'checked' : ''}>
+                <span style="flex:1;">${_shipOptEsc(r.provider)} <strong>${_shipOptEsc(r.servicelevel)}</strong><span style="color:var(--text-secondary);">${eta} · via ${_shipOptEsc(r.source || 'shippo')}</span></span>
+                <span style="font-weight:700;">$${parseFloat(r.amount).toFixed(2)}</span>
+              </label>`;
+            }).join('');
+            // Saved-but-not-in-preview service still needs to be visible/selectable.
+            if (_shipOptPref && !_shipOptRates.some((r) =>
+                String(r.servicelevel || '').toUpperCase() === String(_shipOptPref.servicelevel || '').toUpperCase() &&
+                String(r.provider || '').toUpperCase() === String(_shipOptPref.provider || '').toUpperCase())) {
+                html += `
+              <label style="${rowStyle(1)}">
+                <input type="radio" name="shipopt-choice" value="saved" checked>
+                <span style="flex:1;"><strong>${_shipOptEsc(_shipOptPref.provider)} ${_shipOptEsc(_shipOptPref.servicelevel)}</strong> <span style="color:var(--text-secondary);">— currently saved (preview rates to see its price)</span></span>
+              </label>`;
+            }
+            list.innerHTML = html;
+            const last = list.lastElementChild; if (last) last.style.borderRadius = '0 0 8px 8px';
+        }
+
+        async function previewShippingRates() {
+            const zip = (document.getElementById('shipopt-zip')?.value || '').trim();
+            const state = (document.getElementById('shipopt-state')?.value || '').trim().toUpperCase();
+            const loading = document.getElementById('shipopt-loading');
+            const status = document.getElementById('shipopt-status');
+            if (!/^\d{5}$/.test(zip) || state.length !== 2) { if (status) status.textContent = 'Enter a 5-digit ZIP and 2-letter state.'; return; }
+            if (loading) loading.style.display = 'inline';
+            if (status) status.textContent = '';
+            try {
+                const resp = await fetch('/api/shippo-rates', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ allRates: true, totalItems: 1, address: { name: 'Rate Preview', line1: '1 Main St', city: 'Preview', state, zip, country: 'US' } }),
+                });
+                const data = await resp.json();
+                if (!Array.isArray(data.rates) || !data.rates.length) throw new Error(data.error || 'No rates returned');
+                _shipOptRates = data.rates;
+                renderShippingOptionList();
+                if (status && data.sources) status.textContent = `Live: ${data.rates.length} services (Shippo ${data.sources.shippo} · Veeqo ${data.sources.veeqo} pre-merge).`;
+            } catch (e) {
+                if (status) status.textContent = 'Rate preview failed: ' + (e.message || e);
+            } finally {
+                if (loading) loading.style.display = 'none';
+            }
+        }
+
+        async function saveShippingOption() {
+            const status = document.getElementById('shipopt-status');
+            const sel = document.querySelector('input[name="shipopt-choice"]:checked');
+            if (!sel) return;
+            let value;
+            if (sel.value === 'auto') value = { mode: 'cheapest' };
+            else if (sel.value === 'saved') value = _shipOptPref;   // unchanged
+            else {
+                const r = _shipOptRates[parseInt(sel.value, 10)];
+                if (!r) return;
+                value = { provider: r.provider || '', servicelevel: r.servicelevel || '' };
+            }
+            try {
+                const { error } = await sb.from('site_settings').upsert({ key: 'shipping_preferred_service', value }, { onConflict: 'key' });
+                if (error) throw error;
+                _shipOptPref = value.servicelevel ? value : null;
+                if (status) status.textContent = value.servicelevel
+                    ? `Saved — checkout now offers ${value.provider} ${value.servicelevel} (cheapest fallback when unavailable).`
+                    : 'Saved — checkout offers the cheapest available option.';
+                renderShippingOptionList();
+            } catch (e) {
+                if (status) status.textContent = 'Save failed: ' + (e.message || e);
+            }
         }
 
         // Acknowledge shipping-label purchase failures: clears the

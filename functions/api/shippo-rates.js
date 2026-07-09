@@ -259,7 +259,7 @@ export async function onRequestPost({ request, env }) {
   const headers = CORS(env);
 
   try {
-    const { address, parcel: customParcel, totalItems: itemCount, totalWeightLb, items = [] } = await request.json();
+    const { address, parcel: customParcel, totalItems: itemCount, totalWeightLb, items = [], allRates = false } = await request.json();
 
     if (!address?.zip || !address?.country) {
       return json({ error: 'address.zip and address.country are required' }, 400, headers);
@@ -272,7 +272,7 @@ export async function onRequestPost({ request, env }) {
     const fromKeys = ['SHIPPO_FROM_NAME','SHIPPO_FROM_STREET1','SHIPPO_FROM_STREET2',
                       'SHIPPO_FROM_CITY','SHIPPO_FROM_STATE','SHIPPO_FROM_ZIP',
                       'SHIPPO_FROM_COUNTRY','SHIPPO_FROM_EMAIL','SHIPPO_FROM_PHONE',
-                      'VEEQO_API_KEY','SHIPPO_FREE_LIMIT'];
+                      'VEEQO_API_KEY','SHIPPO_FREE_LIMIT','shipping_preferred_service'];
     const settingsCache = await fetchSiteSettings(fromKeys, env);
     const rs = (key, fallback = '') => resolveSetting(key, env, settingsCache) || fallback;
     const fromAddress = {
@@ -312,8 +312,30 @@ export async function onRequestPost({ request, env }) {
       return json({ error: 'No shipping rates available' }, 502, headers);
     }
 
+    let usable = sortRates(mergeCheapestPerService(filterAndCleanRates(pool)));
+
+    // ── Admin-chosen checkout option ──────────────────────────────────────
+    // Checkout shows exactly ONE shipping option. site_settings
+    // `shipping_preferred_service` = {provider, servicelevel} pins a specific
+    // service; {mode:"cheapest"} / absent keeps the automatic USPS-cheapest.
+    // If the pinned service isn't quoted for this address, fall back to the
+    // full sorted list so checkout never loses shipping. `allRates: true`
+    // (admin rate-preview) bypasses the pin so every option stays visible.
+    if (!allRates) {
+      let pref = settingsCache.shipping_preferred_service;
+      if (typeof pref === 'string') { try { pref = JSON.parse(pref); } catch (_) { pref = null; } }
+      if (pref && typeof pref === 'object' && pref.servicelevel) {
+        const want = String(pref.servicelevel).toUpperCase();
+        const wantProv = String(pref.provider || '').toUpperCase();
+        const match = usable.find((r) =>
+          String(r.servicelevel || '').toUpperCase() === want &&
+          (!wantProv || String(r.provider || '').toUpperCase() === wantProv));
+        if (match) usable = [match];
+      }
+    }
+
     const rates = await Promise.all(
-      sortRates(mergeCheapestPerService(filterAndCleanRates(pool))).map(async (rate) => ({
+      usable.map(async (rate) => ({
         ...rate,
         rateToken: await signRate(rate, address, env, parcel),
       }))
