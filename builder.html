@@ -239,6 +239,7 @@ body{display:flex;flex-direction:column}
   <div class="tsep"></div>
   <button class="tbtn tbtn-ghost" onclick="undo()" title="Undo (Ctrl+Z)">↩ Undo</button>
   <button class="tbtn tbtn-ghost" onclick="redo()" title="Redo (Ctrl+Y)">↪ Redo</button>
+  <button class="tbtn tbtn-ghost" id="lyBtn" onclick="openLayouts()" title="Saved page layouts — edit inactive designs & choose which is live">🗂 Layouts</button>
   <button class="tbtn tbtn-ghost" onclick="saveDraft()" title="Save a private draft">💾 Save Draft</button>
   <button class="tbtn tbtn-solid" onclick="publishPage()" title="Make your changes live">🚀 Publish</button>
   <div class="more-wrap">
@@ -254,6 +255,7 @@ body{display:flex;flex-direction:column}
       <button class="more-item" onclick="window.open('/','_blank')">🌐 View live site</button>
       <button class="more-item" onclick="copyHomepageDraftLink()">🔗 Copy homepage draft link</button>
       <button class="more-item" onclick="showQrModal()">📱 Preview on phone (QR)</button>
+      <button class="more-item" onclick="openLayouts()">🗂 Page layouts…</button>
       <button class="more-item" onclick="lpTab('history')">🕘 Version history</button>
       <button class="more-item" onclick="lpTab('templates')">🗂 Templates</button>
       <button class="more-item" onclick="openSchedulePublish()">⏰ Schedule publish…</button>
@@ -541,6 +543,10 @@ const DEFAULT_SECTIONS=['hero','marquee','about','release','products'].map((t,i)
 let sections=[],themeSettings={},navSettings={links:[]},seoSettings={},lastSaved=null;
 let landingPages={},landingSlug='men',landingProducts=null,landingProductsLoading=false;
 let undoStack=[],redoStack=[],versionHistory=[],templates=[];
+// Saved page layouts: independent full-page saves. `activeId` = the one that's
+// live on the site; `currentId` = the one open in the editor. Editing a
+// non-active layout never touches page_builder_published until Set Live/Publish.
+let layouts={list:[],activeId:null,currentId:null};
 let selId=null,pvMode='desk',pvTheme='dark',dirty=false,curTab='content';
 let _imgKey=null,_tt,_sendT,_autosaveT;
 
@@ -556,7 +562,7 @@ let _imgKey=null,_tt,_sendT,_autosaveT;
     const sb=getSb();
     if(sb){
       // Load all builder settings with a 5s timeout per query group
-      const[pd,th,nv,hist,tmpl,pub,lpDraft,lpPub]=await withTimeout(Promise.all([
+      const[pd,th,nv,hist,tmpl,pub,lpDraft,lpPub,lyRow]=await withTimeout(Promise.all([
         sb.from('site_settings').select('value').eq('key','page_builder').maybeSingle(),
         sb.from('site_settings').select('value').eq('key','builder_theme').maybeSingle(),
         sb.from('site_settings').select('value').eq('key','builder_nav').maybeSingle(),
@@ -565,7 +571,12 @@ let _imgKey=null,_tt,_sendT,_autosaveT;
         sb.from('site_settings').select('value').eq('key','page_builder_published').maybeSingle(),
         sb.from('site_settings').select('value').eq('key','landing_pages').maybeSingle(),
         sb.from('site_settings').select('value').eq('key','landing_pages_published').maybeSingle(),
+        sb.from('site_settings').select('value').eq('key','builder_layouts').maybeSingle(),
       ]), 5000);
+      { // Saved layouts (multiple homepage designs; one live, others inactive)
+        const lv=lyRow?.data?.value;
+        if(lv&&Array.isArray(lv.list))layouts={list:lv.list,activeId:lv.activeId||null,currentId:lv.currentId||null};
+      }
       { // Landing pages: prefer draft, fall back to published; strip save-meta keys
         const lpRaw = (lpDraft?.data?.value) || (lpPub?.data?.value) || {};
         const lpClean = {...lpRaw}; delete lpClean.updated_at; delete lpClean.published;
@@ -609,6 +620,7 @@ let _imgKey=null,_tt,_sendT,_autosaveT;
   }
   lastSaved=clone(sections);
   renderLP();  // always called — sections will show even if DB was unavailable
+  updateLyBtn();  // show which saved layout (if any) is open in the editor
   setPvMode('desk');
   document.getElementById('pvIframe').addEventListener('load',sendCfg);
   setInterval(()=>{if(dirty)saveDraft(true);},60000);
@@ -1821,7 +1833,7 @@ async function saveDraft(auto=false){
   if(!auto && curTab==='pages'){ await saveLandingPages(false); return; }
   status('Saving…');dotCls('y');
   const ok=await saveToSupa('page_builder',{sections,theme:pvTheme,themeSettings,navSettings,seoSettings},false);
-  if(ok){lastSaved=clone(sections);status('Saved · '+new Date().toLocaleTimeString());dotCls('g');if(!auto)toast('Draft saved','ok');}
+  if(ok){lastSaved=clone(sections);status('Saved · '+new Date().toLocaleTimeString());dotCls('g');if(!auto)toast('Draft saved','ok');lyStashCurrent();}
   else{dotCls('r');if(!auto)toast('Save failed','err');}
   setTimeout(()=>dotCls(''),3000);
 }
@@ -1890,10 +1902,17 @@ async function cancelScheduledPublish(){
   }catch(e){showErr(e.message);}
 }
 
-async function publishPage(){
+async function publishPage(skipLayoutGuard){
   // On the Pages tab the top Publish publishes the LANDING page you're viewing
   // (not the homepage) — otherwise landing edits silently never go live.
   if(curTab==='pages'){ await saveLandingPages(true); return; }
+  // Layout guard: publishing while editing a NON-live layout replaces the live
+  // homepage with this design — make sure that's intentional. (Set Live in the
+  // Layouts modal already confirmed, so it passes skipLayoutGuard=true.)
+  if(skipLayoutGuard!==true&&layouts.currentId&&layouts.activeId&&layouts.currentId!==layouts.activeId){
+    const cur=layouts.list.find(x=>x.id===layouts.currentId),act=layouts.list.find(x=>x.id===layouts.activeId);
+    if(!confirm(`You're editing “${cur?cur.name:'this layout'}”, but “${act?act.name:'another layout'}” is currently live.\n\nPublishing will REPLACE the live homepage with this design and make it the active layout. Continue?`))return;
+  }
   status('Publishing…');dotCls('y');
   const ok=await saveToSupa('page_builder',{sections,theme:pvTheme,themeSettings,navSettings,seoSettings},true);
   if(ok){lastSaved=clone(sections);dirty=false;status('Published ✓');dotCls('g');toast('Published! Changes are live.','ok');
@@ -1908,6 +1927,8 @@ async function publishPage(){
       localStorage.setItem('zw_hide_static_hero',_hero?'':'1');
       localStorage.setItem('zw_pb_active','1');
     }catch(_){}
+    // The published design becomes the ACTIVE layout (if one is open).
+    if(layouts.currentId){lyStashCurrent(true);layouts.activeId=layouts.currentId;persistLayouts();}
     // save snapshot on publish
     versionHistory.push({ts:new Date().toISOString(),label:'Published',sections:clone(sections)});
     if(versionHistory.length>15)versionHistory.shift();
@@ -1925,6 +1946,146 @@ async function saveToSupa(key,extra,pub){
     if(!res.ok){const j=await res.json().catch(()=>({}));throw new Error(j.error||'HTTP '+res.status);}
     dirty=false;return true;
   }catch(e){showErr(e.message);return false;}
+}
+
+// ── SAVED PAGE LAYOUTS ────────────────────────────────────────────────────
+// Multiple independent full-page saves (sections + theme + nav + SEO). One is
+// "active" (live on the site); the rest are inactive drafts you can open and
+// edit freely — the live homepage only changes on Publish / Set Live.
+function layoutsSnapshot(){return {sections:clone(sections),theme:pvTheme,themeSettings:clone(themeSettings||{}),navSettings:clone(navSettings||{links:[]}),seoSettings:clone(seoSettings||{})};}
+async function persistLayouts(){
+  try{
+    const token=await getAccessToken();if(!token)return false;
+    const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:token,key:'builder_layouts',value:layouts})});
+    return res.ok;
+  }catch(_){return false;}
+}
+// Snapshot the editor into the layout that's open, so its slot never goes stale.
+function lyStashCurrent(skipPersist){
+  if(!layouts.currentId)return;
+  const cur=layouts.list.find(x=>x.id===layouts.currentId);
+  if(!cur){layouts.currentId=null;return;}
+  cur.data=layoutsSnapshot();cur.updated_at=new Date().toISOString();
+  if(!skipPersist)persistLayouts();
+}
+function updateLyBtn(){
+  const b=document.getElementById('lyBtn');if(!b)return;
+  const cur=layouts.list.find(x=>x.id===layouts.currentId);
+  b.textContent=cur?('🗂 '+(cur.name.length>18?cur.name.slice(0,17)+'…':cur.name)):'🗂 Layouts';
+}
+function openLayouts(){
+  try{closeMore();}catch(_){}
+  const old=document.getElementById('lyOverlay');if(old)old.remove();
+  const ov=document.createElement('div');ov.id='lyOverlay';
+  ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:1rem';
+  ov.innerHTML=`<div style="background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:1.2rem;max-width:460px;width:100%;color:#f4f1eb;max-height:82vh;display:flex;flex-direction:column">
+    <div style="font-family:'Barlow Condensed';font-weight:900;font-style:italic;text-transform:uppercase;font-size:1.1rem;letter-spacing:.04em;margin-bottom:.3rem">Page Layouts</div>
+    <div style="font-size:.7rem;opacity:.7;margin-bottom:.8rem;line-height:1.5">Save several complete homepage designs and switch between them. Only the <b style="color:#7ee29a">● Live</b> one shows on the site — open any other layout to redesign the whole page without shoppers seeing a thing, then <b>Set Live</b> when it's ready.</div>
+    <div id="lyList" style="overflow-y:auto;flex:1;margin:0 -.25rem;padding:0 .25rem"></div>
+    <div style="display:flex;gap:.5rem;margin-top:.9rem;flex-wrap:wrap">
+      <button onclick="lyNew(true)" style="flex:1;background:#f4f1eb;color:#09090b;border:none;border-radius:5px;padding:.5rem .7rem;cursor:pointer;font-weight:600;font-size:.68rem;white-space:nowrap">＋ Save current design as layout</button>
+      <button onclick="lyNew(false)" style="background:none;border:1px solid var(--bd);color:#f4f1eb;border-radius:5px;padding:.5rem .7rem;cursor:pointer;font-size:.68rem;white-space:nowrap">＋ New (starter)</button>
+      <button onclick="document.getElementById('lyOverlay').remove()" style="background:none;border:1px solid var(--bd);color:#f4f1eb;border-radius:5px;padding:.5rem .7rem;cursor:pointer;font-size:.68rem">Close</button>
+    </div>
+  </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+  renderLayouts();
+}
+function renderLayouts(){
+  const host=document.getElementById('lyList');if(!host)return;
+  if(!layouts.list.length){
+    host.innerHTML='<div style="border:1px dashed var(--bd);border-radius:6px;padding:1rem;text-align:center;font-size:.7rem;opacity:.55">No saved layouts yet.<br>Start by saving your current design as the first layout.</div>';
+    return;
+  }
+  host.innerHTML=layouts.list.map(l=>{
+    const isLive=l.id===layouts.activeId, isCur=l.id===layouts.currentId;
+    const badges=(isLive?'<span style="color:#7ee29a;font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;margin-left:.45rem">● Live</span>':'')
+      +(isCur?'<span style="color:#8ab4f8;font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;margin-left:.45rem">✎ Editing</span>':'');
+    const when=l.updated_at?new Date(l.updated_at).toLocaleString():'';
+    const btn='background:none;border:1px solid var(--bd);color:#f4f1eb;border-radius:4px;padding:.28rem .55rem;cursor:pointer;font-size:.62rem;white-space:nowrap';
+    return `<div style="border:1px solid ${isLive?'rgba(126,226,154,.45)':'var(--bd)'};border-radius:6px;padding:.6rem .65rem;margin-bottom:.45rem;background:${isCur?'rgba(138,180,248,.07)':'var(--bg)'}">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:.5rem">
+        <div style="min-width:0"><b style="font-size:.78rem">${he(l.name)}</b>${badges}<div style="font-size:.58rem;opacity:.45;margin-top:.15rem">Updated ${when}</div></div>
+      </div>
+      <div style="display:flex;gap:.35rem;margin-top:.5rem;flex-wrap:wrap">
+        ${isCur?'':`<button style="${btn}" onclick="lyOpen('${l.id}')">Open &amp; edit</button>`}
+        ${isLive?'':`<button style="${btn};border-color:rgba(126,226,154,.5);color:#7ee29a" onclick="lySetLive('${l.id}')">Set Live</button>`}
+        <button style="${btn}" onclick="lyRename('${l.id}')" title="Rename">✎</button>
+        <button style="${btn}" onclick="lyDup('${l.id}')" title="Duplicate">⎘</button>
+        <button style="${btn};color:#e07060" onclick="lyDelete('${l.id}')" title="Delete">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function lyNew(fromCurrent){
+  const name=prompt('Name this layout:',fromCurrent?'My design':'New layout');
+  if(!name||!name.trim())return;
+  const id='ly'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  const now=new Date().toISOString();
+  const data=fromCurrent?layoutsSnapshot():{sections:clone(DEFAULT_SECTIONS),theme:pvTheme,themeSettings:clone(themeSettings||{}),navSettings:clone(navSettings||{links:[]}),seoSettings:{}};
+  layouts.list.push({id,name:name.trim(),created_at:now,updated_at:now,data});
+  // Saving the design you're looking at "adopts" it as the open layout.
+  if(fromCurrent&&!layouts.currentId)layouts.currentId=id;
+  await persistLayouts();
+  renderLayouts();updateLyBtn();
+  toast('Layout “'+name.trim()+'” saved','ok');
+}
+async function lyOpen(id,force){
+  const l=layouts.list.find(x=>x.id===id);if(!l)return;
+  if(layouts.currentId===id){if(!force)toast('Already editing this layout');return;}
+  if(layouts.currentId){
+    lyStashCurrent(true); // keep the layout you're leaving up to date — no edits lost
+  }else if(dirty&&!force&&!confirm('Your current edits aren\'t stored in any layout.\n\nOpening a layout will replace them in the editor. Cancel and use “Save current design as layout” first if you want to keep them.')){
+    return;
+  }
+  const d=l.data||{};
+  sections=(Array.isArray(d.sections)?d.sections:clone(DEFAULT_SECTIONS)).map(s=>({...s,settings:{...SECT_DEFS[s.type],...(s.settings||{})}}));
+  themeSettings=clone(d.themeSettings||{});
+  navSettings=clone(d.navSettings||{links:[]});
+  seoSettings=clone(d.seoSettings||{});
+  if(d.theme)setTheme(d.theme);
+  layouts.currentId=id;
+  undoStack=[];redoStack=[];selId=null;closeEd();
+  lastSaved=clone(sections);
+  renderLP();sendCfg();
+  // Sync the working draft so a reload re-opens this layout (live site untouched).
+  dirty=true;await saveDraft(true);
+  await persistLayouts();
+  renderLayouts();updateLyBtn();
+  toast('Now editing “'+l.name+'”'+(id===layouts.activeId?' (live layout)':' — inactive, the site won\'t change until you publish'),'ok');
+}
+async function lySetLive(id){
+  const l=layouts.list.find(x=>x.id===id);if(!l)return;
+  if(!confirm('Make “'+l.name+'” the LIVE homepage?\n\nShoppers will see this design immediately.'))return;
+  if(layouts.currentId!==id)await lyOpen(id,true);
+  await publishPage(true); // sets activeId + stores the snapshot (see publishPage)
+  renderLayouts();updateLyBtn();
+}
+async function lyRename(id){
+  const l=layouts.list.find(x=>x.id===id);if(!l)return;
+  const name=prompt('Rename layout:',l.name);
+  if(!name||!name.trim())return;
+  l.name=name.trim();l.updated_at=new Date().toISOString();
+  await persistLayouts();renderLayouts();updateLyBtn();
+}
+async function lyDup(id){
+  const l=layouts.list.find(x=>x.id===id);if(!l)return;
+  const now=new Date().toISOString();
+  const copy={id:'ly'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:l.name+' copy',created_at:now,updated_at:now,data:clone(l.data||{})};
+  layouts.list.splice(layouts.list.indexOf(l)+1,0,copy);
+  await persistLayouts();renderLayouts();
+  toast('Layout duplicated','ok');
+}
+async function lyDelete(id){
+  const l=layouts.list.find(x=>x.id===id);if(!l)return;
+  const extra=id===layouts.activeId?'\n\nThis layout is LIVE — deleting the save won\'t change the live site, but you\'ll lose the ability to re-edit it as a layout.':'';
+  if(!confirm('Delete layout “'+l.name+'”? This can\'t be undone.'+extra))return;
+  layouts.list=layouts.list.filter(x=>x.id!==id);
+  if(layouts.activeId===id)layouts.activeId=null;
+  if(layouts.currentId===id)layouts.currentId=null;
+  await persistLayouts();renderLayouts();updateLyBtn();
+  toast('Layout deleted','ok');
 }
 
 function revertChanges(){
