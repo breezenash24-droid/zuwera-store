@@ -526,7 +526,7 @@ const SECT_DEFS={
   faq:{heading:'Questions, Answered',items:[{q:'When does Release 001 drop?',a:'September 20, 2026.'},{q:'What sizes are available?',a:'XS through 3XL.'},{q:'Do you ship internationally?',a:'Yes — worldwide.'}],pad_top:0,pad_bot:0},
   email_capture:{heading:'Be First To Know',subtext:'Join the waitlist for exclusive early access.',placeholder:'your@email.com',btn_text:'Join Waitlist',bg_color:'',pad_top:0,pad_bot:0},
   logos:{heading:'',items:[{name:'Nike',src:'',alt:'',link:''},{name:'Adidas',src:'',alt:'',link:''},{name:'Puma',src:'',alt:'',link:''}],logo_original:false,logo_height:28,pad_top:0,pad_bot:0},
-  color_block:{bg_color:'#1f2937',width:'full',block_align:'center',radius:0,min_height:'',inner_pad:'md',gap_top:0,gap_bot:0,content_align:'center',eyebrow:'',heading:'Your Headline',body:'',buttons:[{text:'Shop Now',url:'/drop001.html',style:'solid'}],pad_top:0,pad_bot:0},
+  color_block:{bg_color:'#1f2937',width:'full',height:'auto',block_align:'center',radius:0,min_height:'',inner_pad:'md',gap_top:0,gap_bot:0,content_align:'center',eyebrow:'',heading:'Your Headline',body:'',buttons:[{text:'Shop Now',url:'/drop001.html',style:'solid'}],pad_top:0,pad_bot:0},
   spacer:{height:'md'},
   text:{heading:'',heading_size:'2rem',body:'',cta_text:'',cta_url:'',align:'left',pad_top:0,pad_bot:0},
   img_cta:{image:'',alt:'',btn_on:true,btn_text:'Shop Now',btn_url:'/drop001.html',btn_position:'center',pad_top:0,pad_bot:0},
@@ -1446,7 +1446,9 @@ function buildForm(s){
         +sel('width','Block Width',g.width||'full',[['full','Full Width (edge to edge)'],['half','Half Width (50%)'],['1400','Contained — Wide (1400px)'],['1200','Contained — Standard (1200px)'],['1000','Contained — Narrow (1000px)'],['800','Contained — Slim (800px)'],['600','Contained — Extra Slim (600px)']])
         +sel('block_align','Block Placement (when not full width)',g.block_align||'center',[['left','Left'],['center','Center'],['right','Right']])
         +f('radius','Corner Rounding (px)',g.radius||0,'number')
+        +sel('height','Block Height',g.height||'auto',[['auto','Auto (fits content)'],['short','Short (40% of screen)'],['half','Half Screen (50%)'],['tall','Tall (75% of screen)'],['full','Full Page (100% of screen)']])
         +f('min_height','Minimum Height (px, optional)',g.min_height,'number')
+        +`<div class="fhint">Block Height presets size the block against the screen; the px value below only applies on “Auto”.</div>`
         +fdiv()+fhd('Spacing')
         +`<div class="frow"><div class="field"><label>Space Above (px)</label><input type="number" data-f="gap_top" value="${g.gap_top||''}" placeholder="0" min="0"></div><div class="field"><label>Space Below (px)</label><input type="number" data-f="gap_bot" value="${g.gap_bot||''}" placeholder="0" min="0"></div></div>`
         +`<div class="fhint">Distance from the sections above/below — set this on each color block to control how close blocks sit to each other (0 = touching).</div>`
