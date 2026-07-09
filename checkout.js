@@ -321,7 +321,20 @@ async function doFetchRates(zip, state) {
   if (_deliveryMethod === 'hand_delivery') { updateCartSummaryShipping(0); return; }
 
   if (data.rates?.length) {
-    if (_pay.ratesField) _pay.ratesField.style.display = 'none';   // single option — nothing to pick
+    // A picker appears ONLY when the admin pinned multiple services (the
+    // server flags that with pinned:true). Auto/cheapest mode and single pins
+    // stay a silent single option. Free-shipping orders never show it — the
+    // customer pays $0 either way, and an open picker would let them choose an
+    // expensive express label the store eats.
+    const usableRates = usableShippingRates(data.rates);
+    if (data.pinned && usableRates.length > 1 && !qualifiesFree) {
+      // Default = the first pinned option (admin's order), matching the
+      // pre-checked radio — not the USPS-first pick used in silent mode.
+      selectedShippingRate = usableRates[0];
+      renderPinnedRateChoices(usableRates);
+    } else if (_pay.ratesField) {
+      _pay.ratesField.style.display = 'none';
+    }
     updateCartSummaryShipping(qualifiesFree ? 0 : parseFloat(selectedShippingRate.amount));
   } else if (!qualifiesFree) {
     // Show standard fallback rate so the customer knows what they'll pay
@@ -329,17 +342,50 @@ async function doFetchRates(zip, state) {
   }
 }
 
-// ── Single shipping option ─────────────────────────────────────────
-// Checkout shows exactly ONE shipping option; the admin Shipping page decides
-// which (site_settings.shipping_preferred_service, enforced server-side — a
-// pinned service comes back as a one-rate list). This picks the first USABLE
-// rate as belt-and-suspenders: apparel can't ship on printed-matter services,
-// and "tender to carrier" rates need a facility drop-off.
+// ── Shipping options ───────────────────────────────────────────────
+// The admin Shipping page decides what checkout offers
+// (site_settings.shipping_preferred_service, enforced server-side): automatic
+// cheapest (single, silent), one pinned service (single, silent), or several
+// pinned services (radio choice, first = default). The restricted-service
+// exclusion stays as belt-and-suspenders: apparel can't ship on printed-matter
+// services, and "tender to carrier" rates need a facility drop-off.
+function usableShippingRates(rates) {
+  return (rates || []).filter((r) => !/media mail|bound printed|library mail|tender to/i.test(String(r.servicelevel || '')));
+}
 function pickShippingRate(rates) {
-  const usable = (rates || []).filter((r) => !/media mail|bound printed|library mail|tender to/i.test(String(r.servicelevel || '')));
+  const usable = usableShippingRates(rates);
   const usps = usable.filter((r) => String(r.provider || '').toUpperCase() === 'USPS');
   const pool = usps.length ? usps : usable;  // safety: never lose checkout if USPS is missing
   return pool[0] || null;                    // server sorts USPS-first, then cheapest
+}
+function _escRate(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function renderPinnedRateChoices(options) {
+  if (!_pay.ratesField || !_pay.ratesList) return;
+  _pay.ratesList.innerHTML = options.map((r, i) => {
+    // ETA only when the provider returned one (Veeqo quotes often don't).
+    const eta = r.days ? ` · ${Number(r.days) === 1 ? 'next day' : r.days + ' days'}` : '';
+    const carrier = String(r.provider || '');
+    let service = String(r.servicelevel || 'Shipping');
+    if (!service.toUpperCase().startsWith(carrier.toUpperCase())) service = (carrier + ' ' + service).trim();
+    return `
+      <label class="zw-rate-opt" style="display:flex;align-items:center;gap:.6rem;padding:.62rem .8rem;border:1px solid rgba(128,128,128,.35);cursor:pointer;font-size:.85rem;${i > 0 ? 'border-top:none;' : ''}">
+        <input type="radio" name="shipping-rate-choice" value="${i}" ${i === 0 ? 'checked' : ''} style="margin:0;flex-shrink:0;">
+        <span style="flex:1;min-width:0;">${_escRate(service)}<span style="opacity:.55;">${eta}</span></span>
+        <span style="font-weight:700;white-space:nowrap;">$${parseFloat(r.amount).toFixed(2)}</span>
+      </label>`;
+  }).join('');
+  _pay.ratesField.style.display = 'block';
+
+  _pay.ratesList.querySelectorAll('input[name="shipping-rate-choice"]').forEach((radio) => {
+    radio.addEventListener('change', () => {
+      const rate = options[parseInt(radio.value, 10)];
+      if (!rate) return;
+      selectedShippingRate = rate;
+      if (_deliveryMethod !== 'hand_delivery') updateCartSummaryShipping(parseFloat(rate.amount));
+    });
+  });
 }
 
 // 'ship' (mail, default) or 'hand_delivery' (free in-person campus delivery).

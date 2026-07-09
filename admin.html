@@ -1439,8 +1439,9 @@
                   <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:24px;">
                     <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;">Checkout Shipping Option</p>
                     <p style="font-size:.82rem;color:var(--text-secondary);line-height:1.6;margin-bottom:14px;">
-                      Checkout shows customers exactly <strong>one</strong> shipping option. Preview the live rates for a test address below, then choose which service is offered.
-                      "Cheapest available" adapts per address; pinning a specific service uses it whenever it's quoted (falling back to cheapest when it isn't).
+                      Choose which shipping service(s) checkout offers. Preview the live rates for a test address below, then check one or more.
+                      <strong>One</strong> service = shown silently as the shipping cost; <strong>several</strong> = the customer picks between them (first checked = default).
+                      "Cheapest available" adapts per address automatically; pinned services fall back to cheapest when an address can't be quoted.
                     </p>
                     <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px;">
                       <div><label style="display:block;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:4px;">Test ZIP</label>
@@ -4588,25 +4589,41 @@
             document.getElementById('alerts-panel').classList.toggle('collapsed');
         }
 
-        // ─── Checkout shipping option (Shipping page card) ─────────────────────
-        // Preview live rates for a test address and pin which ONE service the
+        // ─── Checkout shipping options (Shipping page card) ────────────────────
+        // Preview live rates for a test address and pin which service(s) the
         // checkout offers. Stored in site_settings.shipping_preferred_service as
-        // {mode:'cheapest'} or {provider, servicelevel}; /api/shippo-rates
-        // enforces it server-side (allRates:true bypasses for this preview).
-        let _shipOptRates = [];   // last previewed rates
-        let _shipOptPref  = null; // current saved preference object
+        // {mode:'cheapest'} or {services:[{provider,servicelevel},…]} (legacy
+        // single {provider,servicelevel} still read); /api/shippo-rates enforces
+        // it server-side (allRates:true bypasses for this preview). One pinned
+        // service = silent single option at checkout; several = customer picker.
+        let _shipOptRates = [];      // last previewed rates
+        let _shipOptServices = [];   // currently saved pinned services ([] = cheapest/auto)
 
         async function loadShippingOptionCard() {
             try {
                 const { data } = await sb.from('site_settings').select('value').eq('key', 'shipping_preferred_service');
                 let v = data?.[0]?.value;
                 if (typeof v === 'string') { try { v = JSON.parse(v); } catch { v = null; } }
-                _shipOptPref = (v && typeof v === 'object' && v.servicelevel) ? v : null;
-            } catch (_) { _shipOptPref = null; }
+                if (Array.isArray(v?.services)) _shipOptServices = v.services.filter((s) => s && s.servicelevel);
+                else if (v && typeof v === 'object' && v.servicelevel) _shipOptServices = [v];   // legacy shape
+                else _shipOptServices = [];
+            } catch (_) { _shipOptServices = []; }
             renderShippingOptionList();
         }
 
         function _shipOptEsc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+        function _shipOptMatches(svc, r) {
+            return String(svc.servicelevel || '').toUpperCase() === String(r.servicelevel || '').toUpperCase() &&
+                   String(svc.provider || '').toUpperCase() === String(r.provider || '').toUpperCase();
+        }
+        // "Cheapest available" is exclusive with pinned services — checking it
+        // unchecks every service, and checking any service unchecks it.
+        function shipOptToggle(el) {
+            const boxes = [...document.querySelectorAll('input[name="shipopt-choice"]')];
+            if (el.value === 'auto' && el.checked) boxes.forEach((b) => { if (b.value !== 'auto') b.checked = false; });
+            if (el.value !== 'auto' && el.checked) { const auto = boxes.find((b) => b.value === 'auto'); if (auto) auto.checked = false; }
+            if (!boxes.some((b) => b.checked)) { const auto = boxes.find((b) => b.value === 'auto'); if (auto) auto.checked = true; }
+        }
 
         function renderShippingOptionList() {
             const list = document.getElementById('shipopt-list');
@@ -4614,31 +4631,28 @@
             const rowStyle = (i) => `display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);${i > 0 ? 'border-top:none;' : 'border-radius:8px 8px 0 0;'}font-size:.85rem;cursor:pointer;`;
             let html = `
               <label style="${rowStyle(0)}">
-                <input type="radio" name="shipopt-choice" value="auto" ${_shipOptPref ? '' : 'checked'}>
+                <input type="checkbox" name="shipopt-choice" value="auto" onchange="shipOptToggle(this)" ${_shipOptServices.length ? '' : 'checked'}>
                 <span style="flex:1;"><strong>Cheapest available</strong> <span style="color:var(--text-secondary);">— automatic (USPS first), adapts to each address</span></span>
               </label>`;
             html += _shipOptRates.map((r, i) => {
-                const isSel = _shipOptPref &&
-                    String(_shipOptPref.servicelevel || '').toUpperCase() === String(r.servicelevel || '').toUpperCase() &&
-                    String(_shipOptPref.provider || '').toUpperCase() === String(r.provider || '').toUpperCase();
+                const isSel = _shipOptServices.some((s) => _shipOptMatches(s, r));
                 const eta = r.days ? ` · ${Number(r.days) === 1 ? 'next day' : r.days + ' days'}` : '';
                 return `
               <label style="${rowStyle(i + 1)}">
-                <input type="radio" name="shipopt-choice" value="${i}" ${isSel ? 'checked' : ''}>
+                <input type="checkbox" name="shipopt-choice" value="${i}" onchange="shipOptToggle(this)" ${isSel ? 'checked' : ''}>
                 <span style="flex:1;">${_shipOptEsc(r.provider)} <strong>${_shipOptEsc(r.servicelevel)}</strong><span style="color:var(--text-secondary);">${eta} · via ${_shipOptEsc(r.source || 'shippo')}</span></span>
                 <span style="font-weight:700;">$${parseFloat(r.amount).toFixed(2)}</span>
               </label>`;
             }).join('');
-            // Saved-but-not-in-preview service still needs to be visible/selectable.
-            if (_shipOptPref && !_shipOptRates.some((r) =>
-                String(r.servicelevel || '').toUpperCase() === String(_shipOptPref.servicelevel || '').toUpperCase() &&
-                String(r.provider || '').toUpperCase() === String(_shipOptPref.provider || '').toUpperCase())) {
+            // Saved-but-not-in-preview services still need to be visible/keepable.
+            _shipOptServices.forEach((svc, k) => {
+                if (_shipOptRates.some((r) => _shipOptMatches(svc, r))) return;
                 html += `
               <label style="${rowStyle(1)}">
-                <input type="radio" name="shipopt-choice" value="saved" checked>
-                <span style="flex:1;"><strong>${_shipOptEsc(_shipOptPref.provider)} ${_shipOptEsc(_shipOptPref.servicelevel)}</strong> <span style="color:var(--text-secondary);">— currently saved (preview rates to see its price)</span></span>
+                <input type="checkbox" name="shipopt-choice" value="saved-${k}" onchange="shipOptToggle(this)" checked>
+                <span style="flex:1;"><strong>${_shipOptEsc(svc.provider)} ${_shipOptEsc(svc.servicelevel)}</strong> <span style="color:var(--text-secondary);">— currently saved (preview rates to see its price)</span></span>
               </label>`;
-            }
+            });
             list.innerHTML = html;
             const last = list.lastElementChild; if (last) last.style.borderRadius = '0 0 8px 8px';
         }
@@ -4670,22 +4684,25 @@
 
         async function saveShippingOption() {
             const status = document.getElementById('shipopt-status');
-            const sel = document.querySelector('input[name="shipopt-choice"]:checked');
-            if (!sel) return;
-            let value;
-            if (sel.value === 'auto') value = { mode: 'cheapest' };
-            else if (sel.value === 'saved') value = _shipOptPref;   // unchanged
-            else {
-                const r = _shipOptRates[parseInt(sel.value, 10)];
-                if (!r) return;
-                value = { provider: r.provider || '', servicelevel: r.servicelevel || '' };
+            const checked = [...document.querySelectorAll('input[name="shipopt-choice"]:checked')];
+            const services = [];
+            for (const el of checked) {
+                if (el.value === 'auto') continue;
+                if (el.value.startsWith('saved-')) {
+                    const svc = _shipOptServices[parseInt(el.value.slice(6), 10)];
+                    if (svc) services.push({ provider: svc.provider || '', servicelevel: svc.servicelevel || '' });
+                } else {
+                    const r = _shipOptRates[parseInt(el.value, 10)];
+                    if (r) services.push({ provider: r.provider || '', servicelevel: r.servicelevel || '' });
+                }
             }
+            const value = services.length ? { services } : { mode: 'cheapest' };
             try {
                 const { error } = await sb.from('site_settings').upsert({ key: 'shipping_preferred_service', value }, { onConflict: 'key' });
                 if (error) throw error;
-                _shipOptPref = value.servicelevel ? value : null;
-                if (status) status.textContent = value.servicelevel
-                    ? `Saved — checkout now offers ${value.provider} ${value.servicelevel} (cheapest fallback when unavailable).`
+                _shipOptServices = services;
+                if (status) status.textContent = services.length
+                    ? `Saved — checkout offers ${services.map((s) => s.provider + ' ' + s.servicelevel).join(' + ')}${services.length > 1 ? ' as a customer choice' : ''} (cheapest fallback when unavailable).`
                     : 'Saved — checkout offers the cheapest available option.';
                 renderShippingOptionList();
             } catch (e) {

@@ -314,24 +314,35 @@ export async function onRequestPost({ request, env }) {
 
     let usable = sortRates(mergeCheapestPerService(filterAndCleanRates(pool)));
 
-    // ── Admin-chosen checkout option ──────────────────────────────────────
-    // Checkout shows exactly ONE shipping option. site_settings
-    // `shipping_preferred_service` = {provider, servicelevel} pins a specific
-    // service; {mode:"cheapest"} / absent keeps the automatic USPS-cheapest.
-    // If the pinned service isn't quoted for this address, fall back to the
-    // full sorted list so checkout never loses shipping. `allRates: true`
-    // (admin rate-preview) bypasses the pin so every option stays visible.
+    // ── Admin-chosen checkout options ─────────────────────────────────────
+    // site_settings `shipping_preferred_service` pins which service(s) the
+    // checkout offers:
+    //   {services:[{provider,servicelevel},…]}  — one or MORE pinned options
+    //   {provider,servicelevel}                 — legacy single-pin shape
+    //   {mode:"cheapest"} / absent              — automatic USPS-cheapest
+    // Pinned rates come back in the pinned order; `pinned:true` tells checkout
+    // to render a picker when there's more than one. If NONE of the pinned
+    // services are quoted for this address, fall back to the full sorted list
+    // so checkout never loses shipping. `allRates: true` (admin rate-preview)
+    // bypasses the pin so every option stays visible.
+    let pinned = false;
     if (!allRates) {
       let pref = settingsCache.shipping_preferred_service;
       if (typeof pref === 'string') { try { pref = JSON.parse(pref); } catch (_) { pref = null; } }
-      if (pref && typeof pref === 'object' && pref.servicelevel) {
-        const want = String(pref.servicelevel).toUpperCase();
-        const wantProv = String(pref.provider || '').toUpperCase();
-        const match = usable.find((r) =>
-          String(r.servicelevel || '').toUpperCase() === want &&
-          (!wantProv || String(r.provider || '').toUpperCase() === wantProv));
-        if (match) usable = [match];
-      }
+      const services = Array.isArray(pref?.services)
+        ? pref.services
+        : (pref && typeof pref === 'object' && pref.servicelevel ? [pref] : []);
+      const matches = services
+        .filter((s) => s && s.servicelevel)
+        .map((s) => {
+          const want = String(s.servicelevel).toUpperCase();
+          const wantProv = String(s.provider || '').toUpperCase();
+          return usable.find((r) =>
+            String(r.servicelevel || '').toUpperCase() === want &&
+            (!wantProv || String(r.provider || '').toUpperCase() === wantProv));
+        })
+        .filter(Boolean);
+      if (matches.length) { usable = [...new Set(matches)]; pinned = true; }
     }
 
     const rates = await Promise.all(
@@ -346,7 +357,7 @@ export async function onRequestPost({ request, env }) {
     // merged list alone ambiguous about whether both providers answered).
     const sources = { shippo: shippoRates.length, veeqo: veeqoRates.length };
 
-    return json({ rates, sources }, 200, headers);
+    return json({ rates, sources, pinned }, 200, headers);
   } catch (e) {
     console.error('shippo-rates error:', e);
     return json({ error: e.message }, 500, headers);
