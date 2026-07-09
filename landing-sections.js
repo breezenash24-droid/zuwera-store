@@ -295,6 +295,8 @@
         var cbPad = ({ sm: '2.5rem 1.5rem', md: '4rem 2.5rem', lg: '6rem 3rem', xl: '8rem 3.5rem' })[s.inner_pad || 'md'] || '4rem 2.5rem';
         var cbAlign = s.content_align || 'center';
         var cbJust = cbAlign === 'left' ? 'flex-start' : (cbAlign === 'right' ? 'flex-end' : 'center');
+        // Height preset (screen-relative) wins; the px min_height only applies on "auto".
+        var cbMinH = ({ short: '40vh', half: '50vh', tall: '75vh', full: '100vh' })[s.height] || (s.min_height ? parseInt(s.min_height) + 'px' : '');
         el.style.cssText = 'padding:0 ' + ((cbW === 'full' || cbW === 'half') ? '0' : '2.5rem') + ';margin-top:' + (parseInt(s.gap_top) || 0) + 'px;margin-bottom:' + (parseInt(s.gap_bot) || 0) + 'px';
         var cbEsc = function (v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
         var cbBtnHtml = (Array.isArray(s.buttons) ? s.buttons : []).filter(function (b) { return b && b.text; }).map(function (b) {
@@ -305,7 +307,7 @@
           else css += 'background:transparent;color:inherit;border:none;text-decoration:underline;text-underline-offset:4px;';
           return '<a href="' + cbEsc(safeUrl(b.url)) + '" style="' + css + '">' + cbEsc(b.text) + '</a>';
         }).join('');
-        el.innerHTML = '<div style="background:' + cbBg + ';color:' + cbTxt + ';max-width:' + cbBlockW + ';margin:' + cbMar + ';padding:' + cbPad + ';border-radius:' + (parseInt(s.radius) || 0) + 'px;' + (s.min_height ? 'min-height:' + parseInt(s.min_height) + 'px;' : '') + 'text-align:' + cbAlign + ';display:flex;flex-direction:column;justify-content:center">' +
+        el.innerHTML = '<div style="background:' + cbBg + ';color:' + cbTxt + ';max-width:' + cbBlockW + ';margin:' + cbMar + ';padding:' + cbPad + ';border-radius:' + (parseInt(s.radius) || 0) + 'px;' + (cbMinH ? 'min-height:' + cbMinH + ';' : '') + 'text-align:' + cbAlign + ';display:flex;flex-direction:column;justify-content:center">' +
           (s.eyebrow ? '<div style="font-family:var(--fm,var(--fb));font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;opacity:.65;margin-bottom:1rem">' + s.eyebrow + '</div>' : '') +
           (s.heading ? '<h2 style="font-family:var(--fw);font-size:clamp(1.8rem,5vw,2.8rem);font-weight:900;font-style:italic;letter-spacing:.06em;text-transform:uppercase;line-height:1.05;margin:0 0 1rem">' + String(s.heading).replace(/\n/g, '<br>') + '</h2>' : '') +
           (s.body ? '<p style="opacity:.75;line-height:1.75;font-size:1rem;margin:0 0 ' + (cbBtnHtml ? '1.8rem' : '0') + ';white-space:pre-line;font-family:var(--fb)">' + s.body + '</p>' : '') +
