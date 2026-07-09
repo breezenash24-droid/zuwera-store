@@ -134,6 +134,87 @@ async function getCheckoutAuthPayload() {
   };
 }
 
+// ===================== LIVE CATALOG REPRICE =====================
+// Cart items snapshot their price at add-to-bag time, so an admin price change
+// left stale numbers in already-filled bags. Display-only inconsistency — the
+// server always re-prices from the catalog at payment time — but the bag and
+// the charge could disagree. On page load, pull the CURRENT catalog prices for
+// everything in the cart, update the stored cart, and re-render whichever page
+// (bag or checkout) we're on. Fails soft: any error leaves the cart untouched.
+(function refreshCartCatalogPrices() {
+  const SB_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
+  const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+
+  function isLoggedIn() {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        if (/^sb-.*-auth-token$/.test(localStorage.key(i))) return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  async function run() {
+    let cart;
+    try { cart = JSON.parse(localStorage.getItem('cart') || '[]'); } catch (_) { return; }
+    if (!Array.isArray(cart) || !cart.length) return;
+
+    const ids = [...new Set(cart.map((i) => String(i.productId || '').trim())
+      .filter((v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)))];
+    const skus = [...new Set(cart.map((i) => String(i.sku || '').trim())
+      .filter((v) => v && /^[\w-]+$/.test(v)))];
+    if (!ids.length && !skus.length) return;
+
+    const H = { apikey: SB_ANON, Authorization: 'Bearer ' + SB_ANON };
+    const sel = 'select=id,sku,current_price,member_price';   // products has no bare `price` column
+    const fetches = [];
+    if (ids.length)  fetches.push(fetch(`${SB_URL}/rest/v1/products?${sel}&id=in.(${ids.join(',')})`, { headers: H }).then((r) => r.ok ? r.json() : []).catch(() => []));
+    if (skus.length) fetches.push(fetch(`${SB_URL}/rest/v1/products?${sel}&sku=in.(${skus.join(',')})`, { headers: H }).then((r) => r.ok ? r.json() : []).catch(() => []));
+    const rows = (await Promise.all(fetches)).flat();
+    if (!rows.length) return;
+
+    const byId  = new Map(rows.map((p) => [String(p.id), p]));
+    const bySku = new Map(rows.filter((p) => p.sku).map((p) => [String(p.sku), p]));
+    const member = isLoggedIn();
+
+    let changed = false;
+    for (const item of cart) {
+      const p = byId.get(String(item.productId || '')) || bySku.get(String(item.sku || ''));
+      if (!p) continue;   // product deleted — server rejects it at payment; leave display as-is
+      const regular = parseFloat(p.current_price);
+      const memberPrice = parseFloat(p.member_price);
+      if (!(regular > 0)) continue;
+      const next = (member && memberPrice > 0 && memberPrice < regular) ? memberPrice : regular;
+      if (parseFloat(item.regularPrice) !== regular) { item.regularPrice = regular; changed = true; }
+      if (memberPrice > 0 && parseFloat(item.memberPrice) !== memberPrice) { item.memberPrice = memberPrice; changed = true; }
+      if (parseFloat(item.price) !== next) { item.price = String(next); changed = true; }
+    }
+    if (!changed) return;
+
+    try { localStorage.setItem('cart', JSON.stringify(cart)); } catch (_) {}
+    // Sync the in-memory array the pages render from (same objects the payment
+    // call sends — mutate matching entries, don't swap the array).
+    if (Array.isArray(window.cartItems)) {
+      window.cartItems.forEach((it) => {
+        const src = cart.find((c) =>
+          String(c.productId || '') === String(it.productId || '') &&
+          String(c.size || '') === String(it.size || '') &&
+          String(c.colorName || '') === String(it.colorName || ''));
+        if (src) { it.price = src.price; it.regularPrice = src.regularPrice; it.memberPrice = src.memberPrice; }
+      });
+    }
+    // Re-render whichever page hosts us + downstream totals.
+    try { if (typeof renderCart === 'function') renderCart(); } catch (_) {}
+    try { if (typeof window._zwRenderCheckoutSummary === 'function') window._zwRenderCheckoutSummary(); } catch (_) {}
+    try { if (typeof refreshTaxDisplay === 'function') refreshTaxDisplay(); } catch (_) {}
+    try { if (typeof window.zwPromoUpdateSummaryTotals === 'function') window.zwPromoUpdateSummaryTotals(); } catch (_) {}
+    try { if (typeof window.zwSyncWalletTotal === 'function') window.zwSyncWalletTotal(); } catch (_) {}
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { run().catch(() => {}); });
+  else run().catch(() => {});
+})();
+
 // ── Cache payment DOM refs once ───────────────────────────────────
 const _pay = {
   errEl:     document.getElementById('pay-error'),
