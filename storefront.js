@@ -541,7 +541,7 @@ function showToast(msg) {
         // Dynamically instantiate builder sections if they don't exist
         if (['spacer', 'text', 'img_cta', 'image_cta', 'custom', 'html', 'header',
              'numbers', 'press', 'faq', 'email_capture', 'logos', 'richtext',
-             'split', 'cta', 'features', 'testimonials', 'banner', 'gallery', 'video', 'countdown', 'hero_carousel', 'media_grid'].includes(sec.type)) {
+             'split', 'cta', 'features', 'testimonials', 'banner', 'gallery', 'video', 'countdown', 'hero_carousel', 'media_grid', 'color_block'].includes(sec.type)) {
           el = document.createElement('div');
           el.id = sec.id;
           if (sec.type === 'spacer') {
@@ -566,7 +566,7 @@ function showToast(msg) {
           } else if (sec.type === 'custom' || sec.type === 'html') {
             el.className = 'builder-custom-section';
           } else if (['numbers','press','faq','email_capture','logos','richtext','header',
-                      'split','cta','features','testimonials','banner','gallery','video','countdown','hero_carousel','media_grid'].includes(sec.type)) {
+                      'split','cta','features','testimonials','banner','gallery','video','countdown','hero_carousel','media_grid','color_block'].includes(sec.type)) {
             el.className = 'builder-' + sec.type.replace(/_/g,'-') + '-section';
           }
         }
@@ -896,6 +896,37 @@ function showToast(msg) {
           const txtPart = `<div style="flex:1 1 400px;padding:4rem 3rem">${s.label?`<div style="font-family:var(--fm,var(--fb));font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;opacity:.5;margin-bottom:1rem">${s.label}</div>`:''}<h2 style="font-family:var(--fw);font-size:clamp(1.8rem,4vw,2.8rem);font-weight:900;font-style:italic;letter-spacing:.06em;text-transform:uppercase;line-height:1.05;margin-bottom:1.2rem">${s.heading||''}</h2><p style="opacity:.65;line-height:1.75;font-size:.95rem;margin-bottom:1.8rem">${s.body||''}</p>${s.cta_text?`<a href="${s.cta_url||'#'}" style="display:inline-block;border:1px solid currentColor;padding:.65rem 1.6rem;font-family:var(--fm,var(--fb));font-size:.65rem;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;color:inherit">${s.cta_text}</a>`:''}</div>`;
           const innerHTML = imgSide==='left' ? (imgPart+txtPart) : (txtPart+imgPart);
           el.innerHTML = `<div style="display:flex;flex-wrap:wrap;align-items:center;min-height:${s.image_height||500}px;padding:0 ${px};max-width:${mw};margin:0 auto;${!isFull && (s.sec_bg||s.bg_color) ? 'border-radius:12px;overflow:hidden;' : ''}">${innerHTML}</div>`;
+          break;
+        }
+        case 'color_block': {
+          el.className = 'builder-color-block-section';
+          const cbBg = s.bg_color || '#1f2937';
+          // Auto-contrast: explicit text_color wins; otherwise pick dark/light
+          // text from the block color so text never disappears into it.
+          const cbTxt = s.text_color || (_zwIsLightColor(cbBg) ? '#09090b' : '#f4f1eb');
+          const cbW = s.width || 'full';
+          const cbBlockW = cbW === 'full' ? '100%' : (cbW === 'half' ? '50%' : cbW + 'px');
+          const cbMar = ({left:'0 auto 0 0', right:'0 0 0 auto'})[s.block_align] || '0 auto';
+          const cbPad = ({sm:'2.5rem 1.5rem', md:'4rem 2.5rem', lg:'6rem 3rem', xl:'8rem 3.5rem'})[s.inner_pad || 'md'] || '4rem 2.5rem';
+          const cbAlign = s.content_align || 'center';
+          const cbJust = cbAlign === 'left' ? 'flex-start' : (cbAlign === 'right' ? 'flex-end' : 'center');
+          // gap_top/gap_bot = the space between this block and its neighbors.
+          el.style.cssText = `padding:0 ${(cbW === 'full' || cbW === 'half') ? '0' : '2.5rem'};margin-top:${parseInt(s.gap_top) || 0}px;margin-bottom:${parseInt(s.gap_bot) || 0}px`;
+          const cbBtns = (Array.isArray(s.buttons) ? s.buttons : []).filter(b => b && b.text);
+          const cbBtnHtml = cbBtns.map(b => {
+            const st = b.style || 'solid';
+            let css = 'display:inline-block;padding:.75rem 2rem;font-family:var(--fm,var(--fb));font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;';
+            if (st === 'solid') css += `background:${cbTxt};color:${cbBg};border:1px solid ${cbTxt};`;
+            else if (st === 'outline') css += 'background:transparent;color:inherit;border:1px solid currentColor;';
+            else css += 'background:transparent;color:inherit;border:none;text-decoration:underline;text-underline-offset:4px;';
+            return `<a href="${escapeHomeFavoriteHtml(zwSafeUrl(b.url))}" style="${css}">${escapeHomeFavoriteHtml(b.text)}</a>`;
+          }).join('');
+          el.innerHTML = `<div style="background:${cbBg};color:${cbTxt};max-width:${cbBlockW};margin:${cbMar};padding:${cbPad};border-radius:${parseInt(s.radius) || 0}px;${s.min_height ? `min-height:${parseInt(s.min_height)}px;` : ''}text-align:${cbAlign};display:flex;flex-direction:column;justify-content:center">
+            ${s.eyebrow ? `<div style="font-family:var(--fm,var(--fb));font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;opacity:.65;margin-bottom:1rem">${s.eyebrow}</div>` : ''}
+            ${s.heading ? `<h2 style="font-family:var(--fw);font-size:clamp(1.8rem,5vw,2.8rem);font-weight:900;font-style:italic;letter-spacing:.06em;text-transform:uppercase;line-height:1.05;margin:0 0 1rem">${(s.heading || '').replace(/\n/g,'<br>')}</h2>` : ''}
+            ${s.body ? `<p style="opacity:.75;line-height:1.75;font-size:1rem;margin:0 0 ${cbBtnHtml ? '1.8rem' : '0'};white-space:pre-line;font-family:var(--fb)">${s.body}</p>` : ''}
+            ${cbBtnHtml ? `<div style="display:flex;gap:.8rem;flex-wrap:wrap;justify-content:${cbJust}">${cbBtnHtml}</div>` : ''}
+          </div>`;
           break;
         }
         case 'cta': {

@@ -496,6 +496,7 @@ const TYPES={
   faq:{icon:'❓',cat:'marketing',desc:'FAQ accordion'},
   email_capture:{icon:'✉️',cat:'marketing',desc:'Dedicated email / waitlist signup'},
   logos:{icon:'🏷️',cat:'marketing',desc:'Partner or press logo strip'},
+  color_block:{icon:'🎨',cat:'layout',desc:'Solid color block — full/half width, text & buttons'},
   spacer:{icon:'↕️',cat:'layout',desc:'Empty vertical space'},
   text:{icon:'✍️',cat:'layout',desc:'Heading + body + optional CTA'},
   img_cta:{icon:'🖼',cat:'layout',desc:'Image with overlay button'},
@@ -525,6 +526,7 @@ const SECT_DEFS={
   faq:{heading:'Questions, Answered',items:[{q:'When does Release 001 drop?',a:'September 20, 2026.'},{q:'What sizes are available?',a:'XS through 3XL.'},{q:'Do you ship internationally?',a:'Yes — worldwide.'}],pad_top:0,pad_bot:0},
   email_capture:{heading:'Be First To Know',subtext:'Join the waitlist for exclusive early access.',placeholder:'your@email.com',btn_text:'Join Waitlist',bg_color:'',pad_top:0,pad_bot:0},
   logos:{heading:'',items:[{name:'Nike',src:'',alt:'',link:''},{name:'Adidas',src:'',alt:'',link:''},{name:'Puma',src:'',alt:'',link:''}],logo_original:false,logo_height:28,pad_top:0,pad_bot:0},
+  color_block:{bg_color:'#1f2937',width:'full',block_align:'center',radius:0,min_height:'',inner_pad:'md',gap_top:0,gap_bot:0,content_align:'center',eyebrow:'',heading:'Your Headline',body:'',buttons:[{text:'Shop Now',url:'/drop001.html',style:'solid'}],pad_top:0,pad_bot:0},
   spacer:{height:'md'},
   text:{heading:'',heading_size:'2rem',body:'',cta_text:'',cta_url:'',align:'left',pad_top:0,pad_bot:0},
   img_cta:{image:'',alt:'',btn_on:true,btn_text:'Shop Now',btn_url:'/drop001.html',btn_position:'center',pad_top:0,pad_bot:0},
@@ -1438,6 +1440,35 @@ function buildForm(s){
     case 'gallery': h+=f('heading','Section Heading',g.heading)+sel('layout_width','Section Width',g.layout_width||'full',[['full','Full Bleed (Edge to Edge)'],['1400','Contained - Wide (1400px)'],['1200','Contained - Standard (1200px)'],['1000','Contained - Narrow (1000px)'],['800','Contained - Slim (800px)']])+sel('aspect','Aspect Ratio',g.aspect||'square',[['square','Square'],['portrait','Portrait 3:4'],['wide','Wide 16:9']])+fdiv()+platFields(g,'grid','grid','swipe')+fdiv()+arrField('images','Image',g.images||[],[['src','Image (upload or URL)','image'],['alt','Alt Text','text'],['link','Link (optional)','text']])+padF(g);break;
     case 'video': h+=`<div class="field"><label>Video URL</label><input data-f="url" value="${he(g.url)}" placeholder="YouTube or Vimeo URL"><span class="fhint">Paste a YouTube or Vimeo URL</span></div>`+f('caption','Caption (optional)',g.caption)+tog2('controls','Show Controls',g.controls!==false)+tog2('autoplay','Autoplay',g.autoplay)+tog2('muted','Muted',g.muted!==false)+padF(g);break;
     case 'countdown': h+=f('heading','Heading',g.heading)+`<div class="field"><label>Launch Date & Time</label><input type="datetime-local" data-f="launch_date" value="${he(g.launch_date)}"></div>`+sel('align','Alignment',g.align||'center',[['center','Center'],['left','Left']])+tog2('show_labels','Show Unit Labels',g.show_labels!==false)+padF(g);break;
+    case 'color_block': {
+      h+=fhd('Color & Shape')
+        +colorF('bg_color','Block Color',g.bg_color||'#1f2937')
+        +sel('width','Block Width',g.width||'full',[['full','Full Width (edge to edge)'],['half','Half Width (50%)'],['1400','Contained — Wide (1400px)'],['1200','Contained — Standard (1200px)'],['1000','Contained — Narrow (1000px)'],['800','Contained — Slim (800px)'],['600','Contained — Extra Slim (600px)']])
+        +sel('block_align','Block Placement (when not full width)',g.block_align||'center',[['left','Left'],['center','Center'],['right','Right']])
+        +f('radius','Corner Rounding (px)',g.radius||0,'number')
+        +f('min_height','Minimum Height (px, optional)',g.min_height,'number')
+        +fdiv()+fhd('Spacing')
+        +`<div class="frow"><div class="field"><label>Space Above (px)</label><input type="number" data-f="gap_top" value="${g.gap_top||''}" placeholder="0" min="0"></div><div class="field"><label>Space Below (px)</label><input type="number" data-f="gap_bot" value="${g.gap_bot||''}" placeholder="0" min="0"></div></div>`
+        +`<div class="fhint">Distance from the sections above/below — set this on each color block to control how close blocks sit to each other (0 = touching).</div>`
+        +sel('inner_pad','Inside Padding',g.inner_pad||'md',[['sm','Compact'],['md','Standard'],['lg','Roomy'],['xl','Extra Roomy']])
+        +fdiv()+fhd('Text')
+        +f('eyebrow','Eyebrow (small label, optional)',g.eyebrow)
+        +ta('heading','Heading (↵=line break)',g.heading)
+        +ta('body','Body Text (↵↵=paragraph)',g.body)
+        +sel('content_align','Text Alignment',g.content_align||'center',[['left','Left'],['center','Center'],['right','Right']])
+        +`<div class="fhint">Text color comes from “Text Color” in the Section Style block below — leave it blank for automatic contrast against the block color.</div>`
+        +fdiv()+fhd('Buttons');
+      const cbBtns=g.buttons||[];
+      h+=`<div class="flist" data-arr="buttons">${cbBtns.map((b,i)=>`<div data-arr-item style="background:var(--bg);border:1px solid var(--bd);border-radius:4px;padding:.55rem .6rem;margin-bottom:.4rem">
+        <div class="flist-item-hd"><span class="flist-item-lbl">Button ${i+1}</span><span class="flist-acts"><button class="flist-mv" onclick="moveArrItem(this,-1)" title="Move up">↑</button><button class="flist-mv" onclick="moveArrItem(this,1)" title="Move down">↓</button><button class="flist-mv" onclick="dupArrItem(this)" title="Duplicate">⎘</button><button class="flist-rm" onclick="removeArrItem(this,'buttons')">✕</button></span></div>
+        <div class="field" style="margin-top:.3rem"><label>Text</label><input type="text" data-f="text" value="${he(b.text)}" placeholder="Shop Now"></div>
+        <div class="field"><label>Leads To (URL / #anchor)</label><input type="text" data-f="url" value="${he(b.url)}" placeholder="/drop001.html or #notify"></div>
+        <div class="field"><label>Style</label><select data-f="style"><option value="solid"${(b.style||'solid')==='solid'?' selected':''}>Solid</option><option value="outline"${b.style==='outline'?' selected':''}>Outlined</option><option value="ghost"${b.style==='ghost'?' selected':''}>Ghost (underline link)</option></select></div>
+      </div>`).join('')}</div>
+      <button class="add-item-btn" onclick="addArrItem('buttons')">+ Add Button</button>`;
+      h+=padF(g);
+      break;
+    }
     case 'spacer': h+=sel('height','Height',g.height||'md',[['xs','XS (1rem)'],['sm','SM (2rem)'],['md','MD (4rem)'],['lg','LG (8rem)'],['xl','XL (12rem)']]);break;
     case 'text': h+=f('heading','Heading (optional)',g.heading)+ta('body','Body',g.body)+sel('align','Alignment',g.align||'left',[['left','Left'],['center','Center'],['right','Right']])+fdiv()+f('cta_text','Button Text (optional)',g.cta_text)+f('cta_url','Button URL',g.cta_url)+padF(g);break;
     case 'img_cta': h+=imgField('image','Image',g.image)+f('alt','Alt Text',g.alt)+fdiv()+tog2('btn_on','Show Button',g.btn_on)+f('btn_text','Button Text',g.btn_text)+f('btn_url','Button URL',g.btn_url)+sel('btn_position','Button Position',g.btn_position||'center',[['center','Center'],['bottom-left','Bottom Left'],['bottom-right','Bottom Right'],['top-right','Top Right']])+padF(g);break;
@@ -1536,7 +1567,7 @@ function buildForm(s){
   // ── Universal Section Style controls (appended to every section editor)
   h+=`<div class="fdiv"></div>
 <div class="tab-hd" style="margin-top:.2rem;font-size:.55rem;">Section Style</div>
-${colorF('sec_bg','Background',g.sec_bg||g.bg_color||'')}
+${colorF('sec_bg','Background',g.sec_bg||(s.type==='color_block'?'':g.bg_color)||'')}
 <div class="fhint" style="margin-top:-.3rem">Leave blank for default background</div>
 ${colorF('text_color','Text Color',g.text_color||'')}
 <div class="fhint" style="margin-top:-.3rem">Leave blank to inherit the page text color</div>
