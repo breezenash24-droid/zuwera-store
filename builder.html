@@ -427,6 +427,24 @@ async function getAccessToken(){
   return null;
 }
 
+// Read a site_settings key WITH the admin token attached. The getSb() client
+// usually has no session of its own (the builder is authorized via the
+// zw_builder_token handed over from admin.html), so sb.from() reads run as
+// anon and RLS's public-read key whitelist hides admin-only keys like
+// builder_layouts / builder_history — they saved fine (service-key API) but
+// silently read back as empty. Returns the value, null if the row doesn't
+// exist, or undefined when the read itself failed (auth/network).
+async function fetchSettingAuthed(key){
+  try{
+    const token=await getAccessToken();
+    const r=await fetch(`${SUPA_URL}/rest/v1/site_settings?key=eq.${encodeURIComponent(key)}&select=value&limit=1`,
+      {headers:{apikey:SUPA_ANON,Authorization:'Bearer '+(token||SUPA_ANON)}});
+    if(!r.ok)return undefined;
+    const rows=await r.json();
+    return (Array.isArray(rows)&&rows[0])?rows[0].value:null;
+  }catch(_){return undefined;}
+}
+
 // ── AUTH ──────────────────────────────────────────────────────────────────
 (async function authCheck(){
   document.querySelector('.layout').style.display='none';
@@ -547,6 +565,7 @@ let undoStack=[],redoStack=[],versionHistory=[],templates=[];
 // live on the site; `currentId` = the one open in the editor. Editing a
 // non-active layout never touches page_builder_published until Set Live/Publish.
 let layouts={list:[],activeId:null,currentId:null};
+let _lyReadFailed=false; // init couldn't read builder_layouts — merge before any overwrite
 let selId=null,pvMode='desk',pvTheme='dark',dirty=false,curTab='content';
 let _imgKey=null,_tt,_sendT,_autosaveT;
 
@@ -562,7 +581,10 @@ let _imgKey=null,_tt,_sendT,_autosaveT;
     const sb=getSb();
     if(sb){
       // Load all builder settings with a 5s timeout per query group
-      const[pd,th,nv,hist,tmpl,pub,lpDraft,lpPub,lyRow]=await withTimeout(Promise.all([
+      // Admin-only keys (builder_history/templates/layouts) are NOT in the RLS
+      // public-read whitelist, so they're fetched with the admin token instead
+      // of the (anon) sb client — see fetchSettingAuthed.
+      const[pd,th,nv,hist,tmpl,pub,lpDraft,lpPub,histV,tmplV,lyV,pdV]=await withTimeout(Promise.all([
         sb.from('site_settings').select('value').eq('key','page_builder').maybeSingle(),
         sb.from('site_settings').select('value').eq('key','builder_theme').maybeSingle(),
         sb.from('site_settings').select('value').eq('key','builder_nav').maybeSingle(),
@@ -571,18 +593,24 @@ let _imgKey=null,_tt,_sendT,_autosaveT;
         sb.from('site_settings').select('value').eq('key','page_builder_published').maybeSingle(),
         sb.from('site_settings').select('value').eq('key','landing_pages').maybeSingle(),
         sb.from('site_settings').select('value').eq('key','landing_pages_published').maybeSingle(),
-        sb.from('site_settings').select('value').eq('key','builder_layouts').maybeSingle(),
+        fetchSettingAuthed('builder_history'),
+        fetchSettingAuthed('builder_templates'),
+        fetchSettingAuthed('builder_layouts'),
+        fetchSettingAuthed('page_builder'),
       ]), 5000);
       { // Saved layouts (multiple homepage designs; one live, others inactive)
-        const lv=lyRow?.data?.value;
-        if(lv&&Array.isArray(lv.list))layouts={list:lv.list,activeId:lv.activeId||null,currentId:lv.currentId||null};
+        if(lyV===undefined)_lyReadFailed=true; // couldn't read — persistLayouts will re-check before overwriting
+        if(lyV&&Array.isArray(lyV.list))layouts={list:lyV.list,activeId:lyV.activeId||null,currentId:lyV.currentId||null};
       }
       { // Landing pages: prefer draft, fall back to published; strip save-meta keys
         const lpRaw = (lpDraft?.data?.value) || (lpPub?.data?.value) || {};
         const lpClean = {...lpRaw}; delete lpClean.updated_at; delete lpClean.published;
         landingPages = lpClean;
       }
-      const activeData = pd?.data?.value || pub?.data?.value;
+      // Draft first (authed read — the draft key is RLS-hidden from anon, so the
+      // old anon read silently fell back to the published page on every refresh),
+      // then anon draft (if ever whitelisted), then published.
+      const activeData = pdV || pd?.data?.value || pub?.data?.value;
       if(activeData?.sections){
         sections=activeData.sections.map(s=>({...s,settings:{...SECT_DEFS[s.type],...(s.settings||{})}}));
       } else {
@@ -608,8 +636,12 @@ let _imgKey=null,_tt,_sendT,_autosaveT;
       if(activeData?.seoSettings){
         seoSettings=activeData.seoSettings;
       }
-      if(hist?.data?.value?.versions)versionHistory=hist.data.value.versions;
-      if(tmpl?.data?.value?.list)templates=tmpl.data.value.list;
+      // Prefer the authed reads; keep the old anon reads as fallback in case the
+      // keys are ever added to the public whitelist.
+      if(histV?.versions)versionHistory=histV.versions;
+      else if(hist?.data?.value?.versions)versionHistory=hist.data.value.versions;
+      if(tmplV?.list)templates=tmplV.list;
+      else if(tmpl?.data?.value?.list)templates=tmpl.data.value.list;
       status('Loaded · '+new Date().toLocaleTimeString());
     }else throw new Error('no client');
   }catch(e){
@@ -1957,6 +1989,20 @@ async function saveToSupa(key,extra,pub){
 function layoutsSnapshot(){return {sections:clone(sections),theme:pvTheme,themeSettings:clone(themeSettings||{}),navSettings:clone(navSettings||{links:[]}),seoSettings:clone(seoSettings||{})};}
 async function persistLayouts(){
   try{
+    // If startup couldn't read the saved layouts, re-read now and merge before
+    // writing — otherwise a fresh empty list would overwrite (destroy) the
+    // layouts already stored in the DB.
+    if(_lyReadFailed){
+      const v=await fetchSettingAuthed('builder_layouts');
+      if(v===undefined)throw new Error('can\'t reach saved layouts — not overwriting them');
+      if(v&&Array.isArray(v.list)){
+        const have=new Set(layouts.list.map(x=>x.id));
+        v.list.forEach(l=>{if(l&&!have.has(l.id))layouts.list.push(l);});
+        if(!layouts.activeId&&v.activeId)layouts.activeId=v.activeId;
+        renderLayouts();
+      }
+      _lyReadFailed=false;
+    }
     const token=await getAccessToken();if(!token)throw new Error('Session expired — re-open the builder from admin');
     const res=await fetch('/api/save-page-builder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accessToken:token,key:'builder_layouts',value:layouts})});
     if(!res.ok){const j=await res.json().catch(()=>({}));throw new Error(j.error||('HTTP '+res.status));}
