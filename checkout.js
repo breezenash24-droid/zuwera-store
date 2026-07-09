@@ -197,8 +197,9 @@ function initPaymentRequest(subtotalCents) {
           zip: addr.postalCode, country: addr.country,
         },
       });
-      // Silently store the cheapest rate for fulfillment — customer pays $0 shipping.
-      if (data.rates?.length) selectedShippingRate = data.rates[0];
+      // Silently store the curated Standard rate for fulfillment — customer
+      // pays $0 shipping. (Not raw rates[0]: that can be a restricted service.)
+      if (data.rates?.length) selectedShippingRate = pickTwoShippingOptions(data.rates)[0] || data.rates[0];
       prTaxCents = window.ZWCheckoutTax ? window.ZWCheckoutTax.taxCents(prSubtotalCents, addr.region || '', addr.postalCode || '') : 0;
       ev.updateWith({
         status: 'success',
@@ -306,8 +307,9 @@ async function doFetchRates(zip, state) {
   if (data.rates?.length) {
     // Keep the rate stored even during hand-delivery (harmless — the server
     // ignores it for eligible hand-delivery orders, and it's ready if the
-    // shopper switches back to mail).
-    selectedShippingRate = data.rates[0];
+    // shopper switches back to mail). Use the curated Standard pick, NOT raw
+    // rates[0] — the raw cheapest can be a restricted service (Media Mail).
+    selectedShippingRate = pickTwoShippingOptions(data.rates)[0] || data.rates[0];
   } else if (data.error) {
     console.error('Shippo rates error:', data.error);
   }
@@ -328,27 +330,50 @@ async function doFetchRates(zip, state) {
 }
 
 // ── Shipping-method picker ─────────────────────────────────────────
-// Renders the merged Shippo/Veeqo rates as radio options so the shopper can
-// choose speed (Ground vs Priority vs Express). The cheapest USPS option stays
-// pre-selected, so orders that never touch the picker behave exactly as before.
+// Exactly TWO curated choices, both USPS (store requirement — no carrier soup):
+//   • Standard — the cheapest USPS rate (identical to the old silent auto-pick,
+//     so orders that never touch the picker behave exactly as before).
+//   • Express  — the cheapest USPS rate that's actually FASTER than Standard
+//     (by ETA when the provider returned one, else by Express/overnight name).
 // Hidden for free-shipping orders: the customer pays $0 either way, and an
 // open picker would let them pick a $40 Express label the store eats.
 function _escRate(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+function pickTwoShippingOptions(rates) {
+  // Belt-and-suspenders mirror of the server-side exclusion: apparel can't ship
+  // on printed-matter services, and "tender to carrier" needs a facility drop-off.
+  const usable = rates.filter((r) => !/media mail|bound printed|library mail|tender to/i.test(String(r.servicelevel || '')));
+  const usps = usable.filter((r) => String(r.provider || '').toUpperCase() === 'USPS');
+  const pool = usps.length ? usps : usable;  // safety: never lose checkout if USPS is missing
+  const std = pool[0];                       // server sorts USPS-first, then cheapest
+  if (!std) return [];
+  const byPrice = (a, b) => parseFloat(a.amount) - parseFloat(b.amount);
+  const premium =
+    pool.filter((r) => r !== std && Number(r.days) > 0 && Number(std.days) > 0 && Number(r.days) < Number(std.days)).sort(byPrice)[0] ||
+    pool.filter((r) => r !== std && /express|overnight|next\s*day/i.test(String(r.servicelevel || ''))).sort(byPrice)[0] ||
+    null;
+  return premium ? [std, premium] : [std];
+}
 function renderRateOptions(rates, qualifiesFree) {
   if (!_pay.ratesField || !_pay.ratesList) return;
-  if (qualifiesFree || rates.length < 2) { _pay.ratesField.style.display = 'none'; return; }
+  if (qualifiesFree || !rates.length) { _pay.ratesField.style.display = 'none'; return; }
 
-  _pay.ratesList.innerHTML = rates.map((r, i) => {
+  const options = pickTwoShippingOptions(rates);
+  if (options.length < 2) { _pay.ratesField.style.display = 'none'; return; }
+
+  _pay.ratesList.innerHTML = options.map((r, i) => {
     // ETA only when the provider returned one (Veeqo quotes often don't).
-    const eta = r.days ? ` · ${r.days === 1 ? 'next day' : r.days + ' days'}` : '';
-    const carrier = _escRate(r.provider || '');
-    const service = _escRate(r.servicelevel || 'Shipping');
+    const eta = r.days ? ` · ${Number(r.days) === 1 ? 'next day' : r.days + ' days'}` : '';
+    const carrier = String(r.provider || '');
+    let service = String(r.servicelevel || 'Shipping');
+    // Veeqo service names often already start with the carrier ("UPS Ground") —
+    // don't print "UPS UPS Ground".
+    if (!service.toUpperCase().startsWith(carrier.toUpperCase())) service = (carrier + ' ' + service).trim();
     return `
       <label class="zw-rate-opt" style="display:flex;align-items:center;gap:.6rem;padding:.62rem .8rem;border:1px solid rgba(128,128,128,.35);cursor:pointer;font-size:.85rem;${i > 0 ? 'border-top:none;' : ''}">
         <input type="radio" name="shipping-rate-choice" value="${i}" ${i === 0 ? 'checked' : ''} style="margin:0;flex-shrink:0;">
-        <span style="flex:1;min-width:0;">${carrier} ${service}<span style="opacity:.55;">${eta}</span></span>
+        <span style="flex:1;min-width:0;"><strong>${i === 0 ? 'Standard' : 'Express'}</strong> <span style="opacity:.55;">— ${_escRate(service)}${eta}</span></span>
         <span style="font-weight:700;white-space:nowrap;">$${parseFloat(r.amount).toFixed(2)}</span>
       </label>`;
   }).join('');
@@ -356,7 +381,7 @@ function renderRateOptions(rates, qualifiesFree) {
 
   _pay.ratesList.querySelectorAll('input[name="shipping-rate-choice"]').forEach((radio) => {
     radio.addEventListener('change', () => {
-      const rate = rates[parseInt(radio.value, 10)];
+      const rate = options[parseInt(radio.value, 10)];
       if (!rate) return;
       selectedShippingRate = rate;
       if (_deliveryMethod !== 'hand_delivery') updateCartSummaryShipping(parseFloat(rate.amount));
