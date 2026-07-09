@@ -304,13 +304,64 @@ async function doFetchRates(zip, state) {
   const qualifiesFree = policy.enabled && subtotal >= policy.threshold;
 
   if (data.rates?.length) {
+    // Keep the rate stored even during hand-delivery (harmless — the server
+    // ignores it for eligible hand-delivery orders, and it's ready if the
+    // shopper switches back to mail).
     selectedShippingRate = data.rates[0];
-    updateCartSummaryShipping(qualifiesFree ? 0 : parseFloat(data.rates[0].amount));
-  } else {
-    if (data.error) console.error('Shippo rates error:', data.error);
-    // Show standard fallback rate so the customer knows what they'll pay
-    if (!qualifiesFree) updateCartSummaryShipping(policy.standardRate || 8);
+  } else if (data.error) {
+    console.error('Shippo rates error:', data.error);
   }
+
+  // RACE GUARD: this fetch was debounced ~600ms + network, so the shopper may
+  // have picked "Campus hand-delivery — Free" while it was in flight. A late
+  // resolution must never overwrite the $0 summary with a mail rate (it made
+  // hand-delivery orders DISPLAY a shipping charge).
+  if (_deliveryMethod === 'hand_delivery') { updateCartSummaryShipping(0); return; }
+
+  if (data.rates?.length) {
+    renderRateOptions(data.rates, qualifiesFree);
+    updateCartSummaryShipping(qualifiesFree ? 0 : parseFloat(selectedShippingRate.amount));
+  } else if (!qualifiesFree) {
+    // Show standard fallback rate so the customer knows what they'll pay
+    updateCartSummaryShipping(policy.standardRate || 8);
+  }
+}
+
+// ── Shipping-method picker ─────────────────────────────────────────
+// Renders the merged Shippo/Veeqo rates as radio options so the shopper can
+// choose speed (Ground vs Priority vs Express). The cheapest USPS option stays
+// pre-selected, so orders that never touch the picker behave exactly as before.
+// Hidden for free-shipping orders: the customer pays $0 either way, and an
+// open picker would let them pick a $40 Express label the store eats.
+function _escRate(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function renderRateOptions(rates, qualifiesFree) {
+  if (!_pay.ratesField || !_pay.ratesList) return;
+  if (qualifiesFree || rates.length < 2) { _pay.ratesField.style.display = 'none'; return; }
+
+  _pay.ratesList.innerHTML = rates.map((r, i) => {
+    // ETA only when the provider returned one (Veeqo quotes often don't).
+    const eta = r.days ? ` · ${r.days === 1 ? 'next day' : r.days + ' days'}` : '';
+    const carrier = _escRate(r.provider || '');
+    const service = _escRate(r.servicelevel || 'Shipping');
+    return `
+      <label class="zw-rate-opt" style="display:flex;align-items:center;gap:.6rem;padding:.62rem .8rem;border:1px solid rgba(128,128,128,.35);cursor:pointer;font-size:.85rem;${i > 0 ? 'border-top:none;' : ''}">
+        <input type="radio" name="shipping-rate-choice" value="${i}" ${i === 0 ? 'checked' : ''} style="margin:0;flex-shrink:0;">
+        <span style="flex:1;min-width:0;">${carrier} ${service}<span style="opacity:.55;">${eta}</span></span>
+        <span style="font-weight:700;white-space:nowrap;">$${parseFloat(r.amount).toFixed(2)}</span>
+      </label>`;
+  }).join('');
+  _pay.ratesField.style.display = 'block';
+
+  _pay.ratesList.querySelectorAll('input[name="shipping-rate-choice"]').forEach((radio) => {
+    radio.addEventListener('change', () => {
+      const rate = rates[parseInt(radio.value, 10)];
+      if (!rate) return;
+      selectedShippingRate = rate;
+      if (_deliveryMethod !== 'hand_delivery') updateCartSummaryShipping(parseFloat(rate.amount));
+    });
+  });
 }
 
 // 'ship' (mail, default) or 'hand_delivery' (free in-person campus delivery).
@@ -330,12 +381,16 @@ function maybeLoadRates() {
     // No loading text — the rate fetch is sub-second; just show nothing until it resolves.
     ratesFetchPromise = doFetchRates(zip, state).catch(err => {
       console.error('Rate fetch error:', err);
+      // Same race guard as the success path: never overwrite a hand-delivery $0.
+      if (_deliveryMethod === 'hand_delivery') { updateCartSummaryShipping(0); return; }
       // Show fallback rate so user isn't stuck with no shipping option
       const fallback = (window._shippingPolicy?.standardRate) || 8;
       updateCartSummaryShipping(fallback);
-      if (_pay.ratesField) {
+      // Write into the inner list, NOT the field — replacing the field's HTML
+      // would destroy the #shipping-rates-list node the picker renders into.
+      if (_pay.ratesField && _pay.ratesList) {
         _pay.ratesField.style.display = 'block';
-        _pay.ratesField.innerHTML = `<p style="font-size:.78rem;color:rgba(244,241,235,.5);margin:.4rem 0">Standard shipping: $${fallback.toFixed(2)}</p>`;
+        _pay.ratesList.innerHTML = `<p style="font-size:.78rem;color:rgba(244,241,235,.5);margin:.4rem 0">Standard shipping: $${fallback.toFixed(2)}</p>`;
       }
     }).finally(() => {
       if (_pay.ratesLoading) _pay.ratesLoading.style.display = 'none';
@@ -452,6 +507,7 @@ function _onDeliveryMethodChange(e) {
       note.textContent = cfg.instructions || "You'll be contacted to arrange a campus drop-off. No package will be mailed.";
       note.style.display = 'block';
     }
+    if (_pay.ratesField) _pay.ratesField.style.display = 'none';  // no mail options needed
     updateCartSummaryShipping(0);                     // free
   } else {
     if (note) note.style.display = 'none';
