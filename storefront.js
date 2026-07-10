@@ -1568,6 +1568,11 @@ function showToast(msg) {
             .forEach(x => x.classList.remove('zw-hover-sec', 'zw-sel-sec'));
         }
       }
+      if (e.data && e.data.type === 'ZW_TEXT_EDIT_MODE') {
+        window.__zwTextEditMode = !!e.data.on;
+        document.body.classList.toggle('zw-text-edit', window.__zwTextEditMode);
+        if (!window.__zwTextEditMode && window.__zwCancelInlineEdit) window.__zwCancelInlineEdit();
+      }
       if (e.data && e.data.type === 'ZW_SCROLL_TO_SECTION') {
         const secId = e.data.sectionId;
         const sectionMap = {
@@ -1614,6 +1619,112 @@ function showToast(msg) {
         el.classList.add('zw-sel-sec');
         try { window.parent.postMessage({ type: 'ZW_SECTION_CLICKED', sectionId: el.getAttribute('data-zw-sec') }, location.origin); } catch (_) {}
       }, true);
+    })();
+
+    // ── On-canvas inline TEXT editing (WYSIWYG) ──────────────────────────────
+    // In builder preview + text-edit mode, click any text to edit it in place and
+    // change its font. On commit we post the old→new text to the builder, which
+    // maps it back to the section-settings field that held it (no per-renderer
+    // tagging needed). Gated to preview mode; the live store is untouched.
+    window.__zwTextEditMode = false;
+    (function initInlineTextEdit() {
+      var EDITABLE = /^(H[1-6]|P|SPAN|A|LI|BLOCKQUOTE|SUMMARY|STRONG|EM|DIV|BUTTON)$/;
+      var FONTS_HEAD = [['','Default font'],['barlow-condensed','Barlow Condensed'],['oswald','Oswald'],['bebas-neue','Bebas Neue'],['anton','Anton'],['league-gothic','League Gothic'],['michroma','Michroma'],['montserrat','Montserrat'],['syne','Syne'],['archivo-black','Archivo Black'],['teko','Teko'],['righteous','Righteous'],['playfair-display','Playfair Display'],['cinzel','Cinzel'],['futura','Futura']];
+      var FONTS_BODY = [['','Default font'],['barlow','Barlow'],['inter','Inter'],['dm-sans','DM Sans'],['outfit','Outfit'],['manrope','Manrope'],['poppins','Poppins'],['lato','Lato'],['roboto','Roboto'],['work-sans','Work Sans'],['mulish','Mulish'],['futura','Futura']];
+      var st = document.createElement('style');
+      st.textContent =
+        'body.zw-text-edit [data-zw-sec] :is(h1,h2,h3,h4,h5,h6,p,span,a,li,blockquote,summary){cursor:text}'
+      + 'body.zw-text-edit .zw-ite-hi{outline:2px dashed rgba(248,145,165,.7);outline-offset:2px;border-radius:2px}'
+      + 'body.zw-text-edit [contenteditable="true"]{outline:2px solid rgba(248,145,165,.95);outline-offset:2px;border-radius:2px;cursor:text}'
+      + '#zw-ite-bar{position:fixed;z-index:2147483000;background:#141416;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:.4rem .5rem;display:flex;gap:.45rem;align-items:center;box-shadow:0 8px 26px rgba(0,0,0,.55);font-family:system-ui,-apple-system,sans-serif}'
+      + '#zw-ite-bar label{color:#9a9a9a;font-size:.56rem;letter-spacing:.1em;text-transform:uppercase}'
+      + '#zw-ite-bar select{background:#000;color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:5px;font-size:.72rem;padding:.28rem .4rem;max-width:160px}'
+      + '#zw-ite-bar button{background:#f4f1eb;color:#111;border:none;border-radius:5px;font-size:.7rem;font-weight:600;padding:.32rem .62rem;cursor:pointer}';
+      document.head.appendChild(st);
+
+      var editing = null, origText = '', secOf = '', bar = null, hovered = null;
+      function opts(list){ return list.map(function(o){ return '<option value="'+o[0]+'">'+o[1]+'</option>'; }).join(''); }
+      function isHeading(el){ return /^H[1-6]$/.test(el.tagName); }
+      function txt(el){ return (el.innerText || '').replace(/ /g,' ').replace(/[ \t]+\n/g,'\n').replace(/\s+$/,''); }
+
+      function placeBar(el){
+        if (!bar) return;
+        var r = el.getBoundingClientRect();
+        var top = r.top - bar.offsetHeight - 8; if (top < 6) top = r.bottom + 8;
+        var left = r.left; if (left + bar.offsetWidth > window.innerWidth - 6) left = window.innerWidth - 6 - bar.offsetWidth;
+        bar.style.top = Math.max(6, top) + 'px'; bar.style.left = Math.max(6, left) + 'px';
+      }
+      function showBar(el){
+        hideBar();
+        var head = isHeading(el);
+        bar = document.createElement('div'); bar.id = 'zw-ite-bar';
+        bar.innerHTML = '<label>Font</label><select data-role="font">' + opts(head ? FONTS_HEAD : FONTS_BODY) + '</select><button data-role="done">Done</button>';
+        document.body.appendChild(bar);
+        placeBar(el);
+        bar.addEventListener('mousedown', function(ev){ ev.preventDefault(); }); // don't blur the field
+        bar.querySelector('[data-role="font"]').addEventListener('change', function(ev){
+          try { window.parent.postMessage({ type: 'ZW_INLINE_FONT', sectionId: secOf, which: head ? 'head' : 'body', value: ev.target.value }, location.origin); } catch (_) {}
+        });
+        bar.querySelector('[data-role="done"]').addEventListener('click', function(){ commit(); });
+      }
+      function hideBar(){ if (bar) { bar.remove(); bar = null; } }
+
+      function commit(){
+        if (!editing) return;
+        var el = editing, sec = secOf, nt = txt(el);
+        el.contentEditable = 'false'; editing = null; hideBar();
+        if (nt !== origText && sec) {
+          try { window.parent.postMessage({ type: 'ZW_INLINE_TEXT', sectionId: sec, oldText: origText, newText: nt }, location.origin); } catch (_) {}
+        }
+      }
+      function cancel(){
+        if (!editing) return;
+        editing.innerText = origText; editing.contentEditable = 'false'; editing = null; hideBar();
+      }
+      window.__zwCancelInlineEdit = function(){ cancel(); if (hovered) { hovered.classList.remove('zw-ite-hi'); hovered = null; } };
+
+      document.addEventListener('mousemove', function(e){
+        if (!window.__zwTextEditMode || editing) { if (hovered) { hovered.classList.remove('zw-ite-hi'); hovered = null; } return; }
+        var sec = e.target.closest && e.target.closest('[data-zw-sec]');
+        var el = sec ? e.target : null;
+        var ok = el && EDITABLE.test(el.tagName) && (el.textContent || '').trim() &&
+                 !(el.querySelector && el.querySelector('h1,h2,h3,h4,h5,h6,p,a,button,li,span'));
+        var t = ok ? el : null;
+        if (t === hovered) return;
+        if (hovered) hovered.classList.remove('zw-ite-hi');
+        hovered = t; if (hovered) hovered.classList.add('zw-ite-hi');
+      });
+
+      document.addEventListener('click', function(e){
+        if (!window.__zwTextEditMode) return;
+        var sec = e.target.closest && e.target.closest('[data-zw-sec]');
+        if (!sec) return;
+        e.preventDefault(); e.stopPropagation();
+        var el = e.target;
+        if (editing === el) return;
+        if (editing) commit();
+        if (!EDITABLE.test(el.tagName) || !(el.textContent || '').trim()) return;
+        if (el.querySelector && el.querySelector('h1,h2,h3,h4,h5,h6,p,a,button,li,span')) return; // container, not a leaf
+        if (hovered) { hovered.classList.remove('zw-ite-hi'); hovered = null; }
+        editing = el; secOf = sec.getAttribute('data-zw-sec'); origText = txt(el);
+        el.contentEditable = 'true'; el.focus();
+        showBar(el);
+      }, true);
+
+      document.addEventListener('keydown', function(e){
+        if (!editing) return;
+        if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+        else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commit(); }
+      }, true);
+
+      document.addEventListener('blur', function(e){
+        if (editing && e.target === editing) {
+          setTimeout(function(){ if (editing && document.activeElement !== editing && (!bar || !bar.contains(document.activeElement))) commit(); }, 60);
+        }
+      }, true);
+
+      window.addEventListener('scroll', function(){ if (editing) placeBar(editing); }, { passive: true });
+      window.addEventListener('resize', function(){ if (editing) placeBar(editing); });
     })();
 
     // Re-apply after Supabase finishes loading (bar was hidden when first apply ran, now it's visible)
