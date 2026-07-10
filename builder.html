@@ -311,11 +311,12 @@ body{display:flex;flex-direction:column}
     <span>Preview</span>
     <span style="font-size:.45rem;opacity:.4" id="autoLbl">auto-updating</span>
     <button id="selModeBtn" class="lp-float-btn" onclick="toggleSelectMode()" style="margin-left:.5rem;background:var(--sf2);border-color:rgba(255,255,255,.25);color:#f4f1eb" title="On: click a section in the preview to edit it. Off: links and buttons work normally.">🎯 Click to select: Off</button>
+    <button id="textEditBtn" class="lp-float-btn" onclick="toggleTextEdit()" style="margin-left:.4rem;background:var(--sf2);border-color:rgba(255,255,255,.25);color:#f4f1eb" title="On: click any text in the preview to edit it in place and change its font. Off: preview behaves normally.">✏️ Edit text: Off</button>
     <span id="pvDims" style="margin-left:auto">—</span>
   </div>
   <div class="pv-wrap">
     <div class="pv-frame desk" id="pvFrame">
-      <iframe id="pvIframe" src="/index.html?builder=1" title="Preview" onload="sendSelectMode();schedSend()" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+      <iframe id="pvIframe" src="/index.html?builder=1" title="Preview" onload="sendSelectMode();sendTextEditMode();schedSend()" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
     </div>
   </div>
 </div>
@@ -1274,11 +1275,53 @@ function toggleSelectMode(){
   if(typeof toast==='function') toast(selectMode?'Click a section in the preview to edit it':'Preview links are clickable again');
 }
 
+// ── Inline text editing on the canvas ─────────────────────────────────────
+// When ON, clicking any text in the preview makes it editable in place and
+// shows a font picker. The preview posts the old→new text; we find the section
+// setting that held that text and update it (works for every section type).
+let textEditMode=false;
+function sendTextEditMode(){ try{ document.getElementById('pvIframe').contentWindow.postMessage({type:'ZW_TEXT_EDIT_MODE',on:textEditMode}, location.origin); }catch(_){} }
+function _styleModeBtn(b,on){ if(!b)return; b.classList.toggle('on',on); b.style.background=on?'var(--ac)':'var(--sf2)'; b.style.color=on?'#0f0f11':'#f4f1eb'; b.style.borderColor=on?'var(--ac)':'rgba(255,255,255,.25)'; b.style.fontWeight=on?'600':''; }
+function toggleTextEdit(){
+  textEditMode=!textEditMode;
+  // Text-edit and click-to-select fight over clicks — keep only one on.
+  if(textEditMode&&selectMode){ selectMode=false; const sb=document.getElementById('selModeBtn'); if(sb)sb.textContent='🎯 Click to select: Off'; _styleModeBtn(sb,false); sendSelectMode(); }
+  const b=document.getElementById('textEditBtn');
+  if(b){ b.textContent='✏️ Edit text: '+(textEditMode?'On':'Off'); _styleModeBtn(b,textEditMode); }
+  sendTextEditMode();
+  if(typeof toast==='function') toast(textEditMode?'Click any text in the preview to edit it':'Text editing off');
+}
+// Keep the select toggle from leaving text-edit on (mutual exclusion both ways).
+(function(){ const _origToggleSel=window.toggleSelectMode; window.toggleSelectMode=function(){ if(!selectMode&&textEditMode){ textEditMode=false; const b=document.getElementById('textEditBtn'); if(b){b.textContent='✏️ Edit text: Off';_styleModeBtn(b,false);} sendTextEditMode(); } return _origToggleSel.apply(this,arguments); }; })();
+
+function _zwNormText(s){ return String(s==null?'':s).replace(/\r\n/g,'\n').replace(/ /g,' ').trim(); }
+function applyInlineText(secId,oldText,newText){
+  const s=curSections().find(x=>x.id===secId); if(!s||!s.settings)return;
+  const target=_zwNormText(oldText); if(!target)return;
+  const g=s.settings; let done=false;
+  // 1) top-level string fields
+  for(const k of Object.keys(g)){ if(typeof g[k]==='string'&&_zwNormText(g[k])===target){ g[k]=newText; done=true; break; } }
+  // 2) string props inside arrays of objects (buttons, items, stats, slides, cards…)
+  if(!done){ for(const k of Object.keys(g)){ if(Array.isArray(g[k])){ for(const it of g[k]){ if(it&&typeof it==='object'){ for(const kk of Object.keys(it)){ if(typeof it[kk]==='string'&&_zwNormText(it[kk])===target){ it[kk]=newText; done=true; break; } } } if(done)break; } } if(done)break; } }
+  if(!done)return;            // couldn't map the text back to a field — ignore
+  curApply(); curDirty();
+  if(selId===secId){ const cur=curSections().find(x=>x.id===secId); if(cur)openEditor(cur); }
+}
+function applyInlineFont(secId,which,value){
+  const s=curSections().find(x=>x.id===secId); if(!s||!s.settings)return;
+  s.settings[which==='head'?'font_head_override':'font_body_override']=value||'';
+  curApply(); curDirty();
+  if(selId===secId){ const cur=curSections().find(x=>x.id===secId); if(cur)openEditor(cur); }
+  if(typeof toast==='function') toast('Font updated','ok');
+}
+
 // On-canvas WYSIWYG: the preview iframe posts ZW_SECTION_CLICKED when a section
 // is clicked in the canvas — select + open its editor here. Same-origin gated.
 window.addEventListener('message',function(e){
   if(e.origin!==location.origin)return;
   const d=e.data||{};
+  if(d.type==='ZW_INLINE_TEXT'&&d.sectionId){ applyInlineText(d.sectionId,d.oldText,d.newText); return; }
+  if(d.type==='ZW_INLINE_FONT'&&d.sectionId){ applyInlineFont(d.sectionId,d.which,d.value); return; }
   if(d.type==='ZW_SECTION_CLICKED'&&d.sectionId){
     if(typeof secStore!=='undefined'&&secStore)return;      // homepage sections only
     if(!curSections().some(x=>x.id===d.sectionId))return;
