@@ -916,6 +916,12 @@ function showToast(msg) {
           const cbPad = ({sm:'2.5rem 1.5rem', md:'4rem 2.5rem', lg:'6rem 3rem', xl:'8rem 3.5rem'})[s.inner_pad || 'md'] || '4rem 2.5rem';
           const cbAlign = s.content_align || 'center';
           const cbJust = cbAlign === 'left' ? 'flex-start' : (cbAlign === 'right' ? 'flex-end' : 'center');
+          // Vertical position of the content within a tall block (top/center/bottom).
+          const cbVJust = ({top:'flex-start', center:'center', bottom:'flex-end'})[s.content_valign] || 'center';
+          // Button row alignment — independent of text (so left text can host a
+          // centered button). Falls back to following the text alignment.
+          const cbBtnA = s.btn_align || cbAlign;
+          const cbBtnJust = cbBtnA === 'left' ? 'flex-start' : (cbBtnA === 'right' ? 'flex-end' : 'center');
           // Height preset (screen-relative) wins; the px min_height only applies on "auto".
           const cbMinH = ({short:'40vh', half:'50vh', tall:'75vh', full:'100vh'})[s.height] || (s.min_height ? parseInt(s.min_height) + 'px' : '');
           // gap_top/gap_bot = the space between this block and its neighbors.
@@ -938,12 +944,12 @@ function showToast(msg) {
             const img = `<img src="${escapeHomeFavoriteHtml(l.src)}" alt="${escapeHomeFavoriteHtml(l.alt || '')}" style="height:${cbLogoH}px;width:auto;${cbLogoFilter}" loading="lazy">`;
             return l.link ? `<a href="${escapeHomeFavoriteHtml(zwSafeUrl(l.link))}" style="display:inline-flex;align-items:center;text-decoration:none">${img}</a>` : img;
           }).join('');
-          el.innerHTML = `<div style="background:${cbBg};color:${cbTxt};max-width:${cbBlockW};margin:${cbMar};padding:${cbPad};border-radius:${parseInt(s.radius) || 0}px;${cbMinH ? `min-height:${cbMinH};` : ''}text-align:${cbAlign};display:flex;flex-direction:column;justify-content:center">
+          el.innerHTML = `<div style="background:${cbBg};color:${cbTxt};max-width:${cbBlockW};margin:${cbMar};padding:${cbPad};border-radius:${parseInt(s.radius) || 0}px;${cbMinH ? `min-height:${cbMinH};` : ''}text-align:${cbAlign};display:flex;flex-direction:column;justify-content:${cbVJust}">
             ${s.eyebrow ? `<div style="font-family:var(--fm,var(--fb));font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;opacity:.65;margin-bottom:1rem">${s.eyebrow}</div>` : ''}
             ${s.heading ? `<h2 style="font-family:var(--fw);font-size:clamp(1.8rem,5vw,2.8rem);font-weight:900;font-style:italic;letter-spacing:.06em;text-transform:uppercase;line-height:1.05;margin:0 0 1rem">${(s.heading || '').replace(/\n/g,'<br>')}</h2>` : ''}
             ${s.body ? `<p style="opacity:.75;line-height:1.75;font-size:1rem;margin:0 0 ${(cbBtnHtml || cbLogosHtml) ? '1.8rem' : '0'};white-space:pre-line;font-family:var(--fb)">${s.body}</p>` : ''}
-            ${cbBtnHtml ? `<div style="display:flex;gap:.8rem;flex-wrap:wrap;justify-content:${cbJust}">${cbBtnHtml}</div>` : ''}
-            ${cbLogosHtml ? `<div style="display:flex;gap:1.5rem 2.5rem;flex-wrap:wrap;align-items:center;justify-content:${cbJust};margin-top:${cbBtnHtml ? '1.8rem' : '0'}">${cbLogosHtml}</div>` : ''}
+            ${cbBtnHtml ? `<div style="display:flex;gap:.8rem;flex-wrap:wrap;justify-content:${cbBtnJust}">${cbBtnHtml}</div>` : ''}
+            ${cbLogosHtml ? `<div style="display:flex;gap:1.5rem 2.5rem;flex-wrap:wrap;align-items:center;justify-content:${cbBtnJust};margin-top:${cbBtnHtml ? '1.8rem' : '0'}">${cbLogosHtml}</div>` : ''}
           </div>`;
           break;
         }
@@ -1490,8 +1496,14 @@ function showToast(msg) {
       // blank, each section's own responsive heading size (re-rendered into the
       // innerHTML on every update) stands, so there's nothing to clear.
       if (s.heading_size) {
-        el.querySelectorAll('h1,h2,[data-builder-heading]').forEach(function (hEl) {
+        el.querySelectorAll('h1,h2,h3,[data-builder-heading]').forEach(function (hEl) {
           hEl.style.setProperty('font-size', s.heading_size, 'important');
+        });
+      }
+      // Universal body/paragraph-size override (opt-in), mirrors heading_size.
+      if (s.body_size) {
+        el.querySelectorAll('p,[data-builder-body]').forEach(function (pEl) {
+          pEl.style.setProperty('font-size', s.body_size, 'important');
         });
       }
 

@@ -157,7 +157,8 @@
     if (s.pad_top) el.style.paddingTop = s.pad_top + 'px';
     if (s.pad_bot) el.style.paddingBottom = s.pad_bot + 'px';
     if (s.text_color) el.style.setProperty('color', s.text_color, 'important');
-    if (s.heading_size) el.querySelectorAll('h1,h2,[data-builder-heading]').forEach(function (h) { h.style.setProperty('font-size', s.heading_size, 'important'); });
+    if (s.heading_size) el.querySelectorAll('h1,h2,h3,[data-builder-heading]').forEach(function (h) { h.style.setProperty('font-size', s.heading_size, 'important'); });
+    if (s.body_size) el.querySelectorAll('p,[data-builder-body]').forEach(function (p) { p.style.setProperty('font-size', s.body_size, 'important'); });
     var idSel = s.anchor_id || secId;
     if (s.hide_mobile) addHideStyle('zw-lp-mh-' + idSel, '@media(max-width:900px){#' + idSel + '{display:none!important;}}');
     if (s.hide_desktop) addHideStyle('zw-lp-dh-' + idSel, '@media(min-width:901px){#' + idSel + '{display:none!important;}}');
@@ -295,6 +296,9 @@
         var cbPad = ({ sm: '2.5rem 1.5rem', md: '4rem 2.5rem', lg: '6rem 3rem', xl: '8rem 3.5rem' })[s.inner_pad || 'md'] || '4rem 2.5rem';
         var cbAlign = s.content_align || 'center';
         var cbJust = cbAlign === 'left' ? 'flex-start' : (cbAlign === 'right' ? 'flex-end' : 'center');
+        var cbVJust = ({ top: 'flex-start', center: 'center', bottom: 'flex-end' })[s.content_valign] || 'center';
+        var cbBtnA = s.btn_align || cbAlign;
+        var cbBtnJust = cbBtnA === 'left' ? 'flex-start' : (cbBtnA === 'right' ? 'flex-end' : 'center');
         // Height preset (screen-relative) wins; the px min_height only applies on "auto".
         var cbMinH = ({ short: '40vh', half: '50vh', tall: '75vh', full: '100vh' })[s.height] || (s.min_height ? parseInt(s.min_height) + 'px' : '');
         el.style.cssText = 'padding:0 ' + ((cbW === 'full' || cbW === 'half') ? '0' : '2.5rem') + ';margin-top:' + (parseInt(s.gap_top) || 0) + 'px;margin-bottom:' + (parseInt(s.gap_bot) || 0) + 'px';
@@ -315,12 +319,12 @@
           var img = '<img src="' + cbEsc(l.src) + '" alt="' + cbEsc(l.alt || '') + '" style="height:' + cbLogoH + 'px;width:auto;' + cbLogoFilter + '" loading="lazy">';
           return l.link ? '<a href="' + cbEsc(safeUrl(l.link)) + '" style="display:inline-flex;align-items:center;text-decoration:none">' + img + '</a>' : img;
         }).join('');
-        el.innerHTML = '<div style="background:' + cbBg + ';color:' + cbTxt + ';max-width:' + cbBlockW + ';margin:' + cbMar + ';padding:' + cbPad + ';border-radius:' + (parseInt(s.radius) || 0) + 'px;' + (cbMinH ? 'min-height:' + cbMinH + ';' : '') + 'text-align:' + cbAlign + ';display:flex;flex-direction:column;justify-content:center">' +
+        el.innerHTML = '<div style="background:' + cbBg + ';color:' + cbTxt + ';max-width:' + cbBlockW + ';margin:' + cbMar + ';padding:' + cbPad + ';border-radius:' + (parseInt(s.radius) || 0) + 'px;' + (cbMinH ? 'min-height:' + cbMinH + ';' : '') + 'text-align:' + cbAlign + ';display:flex;flex-direction:column;justify-content:' + cbVJust + '">' +
           (s.eyebrow ? '<div style="font-family:var(--fm,var(--fb));font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;opacity:.65;margin-bottom:1rem">' + s.eyebrow + '</div>' : '') +
           (s.heading ? '<h2 style="font-family:var(--fw);font-size:clamp(1.8rem,5vw,2.8rem);font-weight:900;font-style:italic;letter-spacing:.06em;text-transform:uppercase;line-height:1.05;margin:0 0 1rem">' + String(s.heading).replace(/\n/g, '<br>') + '</h2>' : '') +
           (s.body ? '<p style="opacity:.75;line-height:1.75;font-size:1rem;margin:0 0 ' + ((cbBtnHtml || cbLogosHtml) ? '1.8rem' : '0') + ';white-space:pre-line;font-family:var(--fb)">' + s.body + '</p>' : '') +
-          (cbBtnHtml ? '<div style="display:flex;gap:.8rem;flex-wrap:wrap;justify-content:' + cbJust + '">' + cbBtnHtml + '</div>' : '') +
-          (cbLogosHtml ? '<div style="display:flex;gap:1.5rem 2.5rem;flex-wrap:wrap;align-items:center;justify-content:' + cbJust + ';margin-top:' + (cbBtnHtml ? '1.8rem' : '0') + '">' + cbLogosHtml + '</div>' : '') +
+          (cbBtnHtml ? '<div style="display:flex;gap:.8rem;flex-wrap:wrap;justify-content:' + cbBtnJust + '">' + cbBtnHtml + '</div>' : '') +
+          (cbLogosHtml ? '<div style="display:flex;gap:1.5rem 2.5rem;flex-wrap:wrap;align-items:center;justify-content:' + cbBtnJust + ';margin-top:' + (cbBtnHtml ? '1.8rem' : '0') + '">' + cbLogosHtml + '</div>' : '') +
           '</div>';
         return true;
       }
