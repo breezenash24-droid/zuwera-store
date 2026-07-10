@@ -940,16 +940,21 @@ function showToast(msg) {
           const cbLogos = (Array.isArray(s.logos) ? s.logos : []).filter(l => l && l.src);
           const cbLogoH = parseInt(s.logo_height) || 34;
           const cbBlockLight = _zwIsLightColor(cbBg);
-          // Logo color handling: auto = recolor transparent logos to contrast;
-          // blend = drop a solid black/white background via blend mode (screen on
-          // dark blocks kills black, multiply on light kills white); original = none.
+          // Logo color handling. Default "auto" BLENDS the logo onto the block
+          // (screen drops a black background on dark blocks, multiply drops a white
+          // one on light blocks) — this handles both transparent logos AND logos
+          // exported with a solid black/white background (the common "white wordmark
+          // on black" file) without turning them into a solid box. "recolor" is the
+          // old force-to-one-color filter; "original" leaves them untouched. ('blend'
+          // is kept as an alias for auto, for anything saved under the old name.)
           const cbLogoAdjust = s.logo_adjust || (s.logo_original ? 'original' : 'auto');
+          const cbLogoBlend = (cbLogoAdjust === 'auto' || cbLogoAdjust === 'blend' || cbLogoAdjust === '');
           let cbLogoImgFx = '';
-          if (cbLogoAdjust === 'auto') cbLogoImgFx = cbBlockLight ? 'filter:brightness(0);' : 'filter:brightness(0) invert(1);';
-          else if (cbLogoAdjust === 'blend') cbLogoImgFx = cbBlockLight ? 'mix-blend-mode:multiply;' : 'mix-blend-mode:screen;';
+          if (cbLogoBlend) cbLogoImgFx = cbBlockLight ? 'mix-blend-mode:multiply;' : 'mix-blend-mode:screen;';
+          else if (cbLogoAdjust === 'recolor') cbLogoImgFx = cbBlockLight ? 'filter:brightness(0);' : 'filter:brightness(0) invert(1);';
           // For blend, paint the row with the block color so the blend's backdrop is
           // guaranteed (works even inside the positioned/transformed content wrapper).
-          const cbLogoRowBg = cbLogoAdjust === 'blend' ? `background:${cbBg};` : '';
+          const cbLogoRowBg = cbLogoBlend ? `background:${cbBg};` : '';
           const cbLogosHtml = cbLogos.map(l => {
             const img = `<img src="${escapeHomeFavoriteHtml(l.src)}" alt="${escapeHomeFavoriteHtml(l.alt || '')}" style="height:${cbLogoH}px;width:auto;${cbLogoImgFx}" loading="lazy">`;
             return l.link ? `<a href="${escapeHomeFavoriteHtml(zwSafeUrl(l.link))}" style="display:inline-flex;align-items:center;text-decoration:none">${img}</a>` : img;

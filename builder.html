@@ -1586,9 +1586,9 @@ function buildForm(s){
       <button class="add-item-btn" onclick="addArrItem('buttons')">+ Add Button</button>`;
       h+=fdiv()+fhd('Logos')
         +f('logo_height','Logo Height (px)',g.logo_height||34,'number')
-        +sel('logo_adjust','Logo Color Handling',g.logo_adjust||(g.logo_original?'original':'auto'),[['auto','Auto — recolor to contrast (transparent logos)'],['blend','Blend out background (logo has a solid black/white background)'],['original','Keep original colors']])
+        +sel('logo_adjust','Logo Color Handling',(g.logo_adjust==='blend'?'auto':g.logo_adjust)||(g.logo_original?'original':'auto'),[['auto','Auto — fit logo to the block (recommended)'],['recolor','Force to one flat color (simple transparent logos)'],['original','Keep original colors']])
         +arrField('logos','Logo',g.logos||[],[['src','Logo Image (upload or URL)','image'],['alt','Alt Text','text'],['link','Link → product / page (optional)','text']])
-        +`<div class="fhint"><b>Auto</b>: for transparent logos — recolors them to contrast with the block. <b>Blend out background</b>: use when your logo file has a solid <b>black or white</b> background (like a white wordmark on black) — it makes that background disappear into the block. <b>Keep original</b>: no change. Add a Link to any logo to make it clickable.</div>`;
+        +`<div class="fhint"><b>Auto</b> (recommended): blends the logo onto the block — it drops a solid <b>black or white</b> background (like a white wordmark on black) and suits transparent logos too. <b>Force to one flat color</b>: paints a simple transparent logo a single contrasting color. <b>Keep original</b>: no change. Add a Link to any logo to make it clickable.</div>`;
       h+=padF(g);
       break;
     }
