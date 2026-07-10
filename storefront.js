@@ -526,8 +526,14 @@ function showToast(msg) {
     Object.values(sectionMap).forEach(el => {
       if (el) el.style.display = 'none';
     });
-    // Hide all previously added dynamic builder sections
-    document.querySelectorAll('.builder-spacer, .builder-text-section, .builder-image-cta-section, .builder-custom-section').forEach(el => {
+    // Hide ALL previously added dynamic builder sections. Every dynamic section
+    // gets a "builder-…" class (builder-cta-section, builder-hero-carousel-section,
+    // builder-media-grid-section, …), so match the prefix generically — the old
+    // hand-kept 4-class list missed newer types, leaving sections from the
+    // previous config on screen when the new config no longer contains them
+    // (e.g. a blank layout still showed the old carousel/media grid).
+    // (div-scoped: <body> carries a 'builder-preview' class and must not match.)
+    document.querySelectorAll('div[class^="builder-"], div[class*=" builder-"]').forEach(el => {
       el.style.display = 'none';
     });
 
