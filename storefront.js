@@ -1643,7 +1643,15 @@ function showToast(msg) {
       document.head.appendChild(st);
 
       var editing = null, origText = '', secOf = '', bar = null, hovered = null;
-      function opts(list){ return list.map(function(o){ return '<option value="'+o[0]+'">'+o[1]+'</option>'; }).join(''); }
+      function opts(list, cur){ return list.map(function(o){ return '<option value="'+o[0]+'"'+(o[0]===cur?' selected':'')+'>'+o[1]+'</option>'; }).join(''); }
+      // Reverse-map the section's current --zw-font-* CSS var back to a font key
+      // so the dropdown opens showing the font that's actually applied.
+      function currentFontKey(el, head){
+        var secEl = el.closest && el.closest('[data-zw-sec]');
+        var v = secEl ? (secEl.style.getPropertyValue(head ? '--zw-font-head' : '--zw-font-body') || '').trim() : '';
+        if (v) { for (var k in _FONT_STACKS) { if (_FONT_STACKS[k] === v) return k; } }
+        return '';
+      }
       function isHeading(el){ return /^H[1-6]$/.test(el.tagName); }
       function txt(el){ return (el.innerText || '').replace(/ /g,' ').replace(/[ \t]+\n/g,'\n').replace(/\s+$/,''); }
 
@@ -1658,14 +1666,19 @@ function showToast(msg) {
         hideBar();
         var head = isHeading(el);
         bar = document.createElement('div'); bar.id = 'zw-ite-bar';
-        bar.innerHTML = '<label>Font</label><select data-role="font">' + opts(head ? FONTS_HEAD : FONTS_BODY) + '</select><button data-role="done">Done</button>';
+        bar.innerHTML = '<label>Font</label><select data-role="font">' + opts(head ? FONTS_HEAD : FONTS_BODY, currentFontKey(el, head)) + '</select><button data-role="done">Done</button>';
         document.body.appendChild(bar);
         placeBar(el);
-        bar.addEventListener('mousedown', function(ev){ ev.preventDefault(); }); // don't blur the field
+        // Keep focus in the text field when clicking the toolbar's chrome (label/
+        // empty space), but DON'T preventDefault on the <select>/<button> — doing
+        // so stops the native font dropdown from ever opening (the previous bug).
+        // The blur handler's "focus is inside the bar" guard still prevents a
+        // premature commit while the dropdown is open.
+        bar.addEventListener('mousedown', function(ev){ if (!ev.target.closest('select,button,option,input')) ev.preventDefault(); });
         bar.querySelector('[data-role="font"]').addEventListener('change', function(ev){
           try { window.parent.postMessage({ type: 'ZW_INLINE_FONT', sectionId: secOf, which: head ? 'head' : 'body', value: ev.target.value }, location.origin); } catch (_) {}
         });
-        bar.querySelector('[data-role="done"]').addEventListener('click', function(){ commit(); });
+        bar.querySelector('[data-role="done"]').addEventListener('mousedown', function(ev){ ev.preventDefault(); commit(); });
       }
       function hideBar(){ if (bar) { bar.remove(); bar = null; } }
 
