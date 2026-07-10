@@ -939,9 +939,19 @@ function showToast(msg) {
           // white; on a light block, darken — unless "keep original colors".
           const cbLogos = (Array.isArray(s.logos) ? s.logos : []).filter(l => l && l.src);
           const cbLogoH = parseInt(s.logo_height) || 34;
-          const cbLogoFilter = s.logo_original ? '' : (_zwIsLightColor(cbBg) ? 'filter:brightness(0);' : 'filter:brightness(0) invert(1);');
+          const cbBlockLight = _zwIsLightColor(cbBg);
+          // Logo color handling: auto = recolor transparent logos to contrast;
+          // blend = drop a solid black/white background via blend mode (screen on
+          // dark blocks kills black, multiply on light kills white); original = none.
+          const cbLogoAdjust = s.logo_adjust || (s.logo_original ? 'original' : 'auto');
+          let cbLogoImgFx = '';
+          if (cbLogoAdjust === 'auto') cbLogoImgFx = cbBlockLight ? 'filter:brightness(0);' : 'filter:brightness(0) invert(1);';
+          else if (cbLogoAdjust === 'blend') cbLogoImgFx = cbBlockLight ? 'mix-blend-mode:multiply;' : 'mix-blend-mode:screen;';
+          // For blend, paint the row with the block color so the blend's backdrop is
+          // guaranteed (works even inside the positioned/transformed content wrapper).
+          const cbLogoRowBg = cbLogoAdjust === 'blend' ? `background:${cbBg};` : '';
           const cbLogosHtml = cbLogos.map(l => {
-            const img = `<img src="${escapeHomeFavoriteHtml(l.src)}" alt="${escapeHomeFavoriteHtml(l.alt || '')}" style="height:${cbLogoH}px;width:auto;${cbLogoFilter}" loading="lazy">`;
+            const img = `<img src="${escapeHomeFavoriteHtml(l.src)}" alt="${escapeHomeFavoriteHtml(l.alt || '')}" style="height:${cbLogoH}px;width:auto;${cbLogoImgFx}" loading="lazy">`;
             return l.link ? `<a href="${escapeHomeFavoriteHtml(zwSafeUrl(l.link))}" style="display:inline-flex;align-items:center;text-decoration:none">${img}</a>` : img;
           }).join('');
           // Free X/Y position of the content (0–100%). Falls back to the legacy
@@ -954,7 +964,7 @@ function showToast(msg) {
           + `${s.heading ? `<h2 style="font-family:var(--fw);font-size:clamp(1.8rem,5vw,2.8rem);font-weight:900;font-style:italic;letter-spacing:.06em;text-transform:uppercase;line-height:1.05;margin:0 0 1rem">${(s.heading || '').replace(/\n/g,'<br>')}</h2>` : ''}`
           + `${s.body ? `<p style="opacity:.75;line-height:1.75;font-size:1rem;margin:0 0 ${(cbBtnHtml || cbLogosHtml) ? '1.8rem' : '0'};white-space:pre-line;font-family:var(--fb)">${s.body}</p>` : ''}`
           + `${cbBtnHtml ? `<div style="display:flex;gap:.8rem;flex-wrap:wrap;justify-content:${cbBtnJust}">${cbBtnHtml}</div>` : ''}`
-          + `${cbLogosHtml ? `<div style="display:flex;gap:1.5rem 2.5rem;flex-wrap:wrap;align-items:center;justify-content:${cbBtnJust};margin-top:${cbBtnHtml ? '1.8rem' : '0'}">${cbLogosHtml}</div>` : ''}`;
+          + `${cbLogosHtml ? `<div style="display:flex;gap:1.5rem 2.5rem;flex-wrap:wrap;align-items:center;justify-content:${cbBtnJust};margin-top:${cbBtnHtml ? '1.8rem' : '0'};${cbLogoRowBg}">${cbLogosHtml}</div>` : ''}`;
           if (cbMinH) {
             // Tall block: content is absolutely placed so it can be dragged / offset
             // anywhere. data-cb-content is the drag handle (builder preview only).
