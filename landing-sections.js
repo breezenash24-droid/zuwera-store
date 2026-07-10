@@ -315,10 +315,11 @@
         var cbLogos = (Array.isArray(s.logos) ? s.logos : []).filter(function (l) { return l && l.src; });
         var cbLogoH = parseInt(s.logo_height) || 34;
         var cbLogoAdjust = s.logo_adjust || (s.logo_original ? 'original' : 'auto');
+        var cbLogoBlend = (cbLogoAdjust === 'auto' || cbLogoAdjust === 'blend' || cbLogoAdjust === '');
         var cbLogoImgFx = '';
-        if (cbLogoAdjust === 'auto') cbLogoImgFx = cbLight ? 'filter:brightness(0);' : 'filter:brightness(0) invert(1);';
-        else if (cbLogoAdjust === 'blend') cbLogoImgFx = cbLight ? 'mix-blend-mode:multiply;' : 'mix-blend-mode:screen;';
-        var cbLogoRowBg = cbLogoAdjust === 'blend' ? 'background:' + cbBg + ';' : '';
+        if (cbLogoBlend) cbLogoImgFx = cbLight ? 'mix-blend-mode:multiply;' : 'mix-blend-mode:screen;';
+        else if (cbLogoAdjust === 'recolor') cbLogoImgFx = cbLight ? 'filter:brightness(0);' : 'filter:brightness(0) invert(1);';
+        var cbLogoRowBg = cbLogoBlend ? 'background:' + cbBg + ';' : '';
         var cbLogosHtml = cbLogos.map(function (l) {
           var img = '<img src="' + cbEsc(l.src) + '" alt="' + cbEsc(l.alt || '') + '" style="height:' + cbLogoH + 'px;width:auto;' + cbLogoImgFx + '" loading="lazy">';
           return l.link ? '<a href="' + cbEsc(safeUrl(l.link)) + '" style="display:inline-flex;align-items:center;text-decoration:none">' + img + '</a>' : img;
