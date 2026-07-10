@@ -312,11 +312,12 @@ body{display:flex;flex-direction:column}
     <span style="font-size:.45rem;opacity:.4" id="autoLbl">auto-updating</span>
     <button id="selModeBtn" class="lp-float-btn" onclick="toggleSelectMode()" style="margin-left:.5rem;background:var(--sf2);border-color:rgba(255,255,255,.25);color:#f4f1eb" title="On: click a section in the preview to edit it. Off: links and buttons work normally.">🎯 Click to select: Off</button>
     <button id="textEditBtn" class="lp-float-btn" onclick="toggleTextEdit()" style="margin-left:.4rem;background:var(--sf2);border-color:rgba(255,255,255,.25);color:#f4f1eb" title="On: click any text in the preview to edit it in place and change its font. Off: preview behaves normally.">✏️ Edit text: Off</button>
+    <button id="moveModeBtn" class="lp-float-btn" onclick="toggleMoveMode()" style="margin-left:.4rem;background:var(--sf2);border-color:rgba(255,255,255,.25);color:#f4f1eb" title="On: drag a color block's content around inside the block (snaps to center). Off: preview behaves normally.">✥ Move: Off</button>
     <span id="pvDims" style="margin-left:auto">—</span>
   </div>
   <div class="pv-wrap">
     <div class="pv-frame desk" id="pvFrame">
-      <iframe id="pvIframe" src="/index.html?builder=1" title="Preview" onload="sendSelectMode();sendTextEditMode();schedSend()" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+      <iframe id="pvIframe" src="/index.html?builder=1" title="Preview" onload="sendSelectMode();sendTextEditMode();sendMoveMode();schedSend()" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
     </div>
   </div>
 </div>
@@ -545,7 +546,7 @@ const SECT_DEFS={
   faq:{heading:'Questions, Answered',items:[{q:'When does Release 001 drop?',a:'September 20, 2026.'},{q:'What sizes are available?',a:'XS through 3XL.'},{q:'Do you ship internationally?',a:'Yes — worldwide.'}],pad_top:0,pad_bot:0},
   email_capture:{heading:'Be First To Know',subtext:'Join the waitlist for exclusive early access.',placeholder:'your@email.com',btn_text:'Join Waitlist',bg_color:'',pad_top:0,pad_bot:0},
   logos:{heading:'',items:[{name:'Nike',src:'',alt:'',link:''},{name:'Adidas',src:'',alt:'',link:''},{name:'Puma',src:'',alt:'',link:''}],logo_original:false,logo_height:28,pad_top:0,pad_bot:0},
-  color_block:{bg_color:'#1f2937',width:'full',height:'auto',block_align:'center',radius:0,min_height:'',inner_pad:'md',gap_top:0,gap_bot:0,content_align:'center',content_valign:'center',eyebrow:'',heading:'Your Headline',body:'',buttons:[{text:'Shop Now',url:'/drop001.html',style:'solid'}],btn_align:'',logos:[],logo_height:34,logo_original:false,pad_top:0,pad_bot:0},
+  color_block:{bg_color:'#1f2937',width:'full',height:'auto',block_align:'center',radius:0,min_height:'',inner_pad:'md',gap_top:0,gap_bot:0,content_align:'center',content_valign:'center',pos_x:50,pos_y:50,eyebrow:'',heading:'Your Headline',body:'',buttons:[{text:'Shop Now',url:'/drop001.html',style:'solid'}],btn_align:'',logos:[],logo_height:34,logo_original:false,pad_top:0,pad_bot:0},
   spacer:{height:'md'},
   text:{heading:'',heading_size:'2rem',body:'',cta_text:'',cta_url:'',align:'left',pad_top:0,pad_bot:0},
   img_cta:{image:'',alt:'',btn_on:true,btn_text:'Shop Now',btn_url:'/drop001.html',btn_position:'center',pad_top:0,pad_bot:0},
@@ -1284,15 +1285,18 @@ function sendTextEditMode(){ try{ document.getElementById('pvIframe').contentWin
 function _styleModeBtn(b,on){ if(!b)return; b.classList.toggle('on',on); b.style.background=on?'var(--ac)':'var(--sf2)'; b.style.color=on?'#0f0f11':'#f4f1eb'; b.style.borderColor=on?'var(--ac)':'rgba(255,255,255,.25)'; b.style.fontWeight=on?'600':''; }
 function toggleTextEdit(){
   textEditMode=!textEditMode;
-  // Text-edit and click-to-select fight over clicks — keep only one on.
-  if(textEditMode&&selectMode){ selectMode=false; const sb=document.getElementById('selModeBtn'); if(sb)sb.textContent='🎯 Click to select: Off'; _styleModeBtn(sb,false); sendSelectMode(); }
+  // Only one canvas-click mode at a time.
+  if(textEditMode){
+    if(selectMode){ selectMode=false; const sb=document.getElementById('selModeBtn'); if(sb)sb.textContent='🎯 Click to select: Off'; _styleModeBtn(sb,false); sendSelectMode(); }
+    if(moveMode){ moveMode=false; const mb=document.getElementById('moveModeBtn'); if(mb)mb.textContent='✥ Move: Off'; _styleModeBtn(mb,false); sendMoveMode(); }
+  }
   const b=document.getElementById('textEditBtn');
   if(b){ b.textContent='✏️ Edit text: '+(textEditMode?'On':'Off'); _styleModeBtn(b,textEditMode); }
   sendTextEditMode();
   if(typeof toast==='function') toast(textEditMode?'Click any text in the preview to edit it':'Text editing off');
 }
 // Keep the select toggle from leaving text-edit on (mutual exclusion both ways).
-(function(){ const _origToggleSel=window.toggleSelectMode; window.toggleSelectMode=function(){ if(!selectMode&&textEditMode){ textEditMode=false; const b=document.getElementById('textEditBtn'); if(b){b.textContent='✏️ Edit text: Off';_styleModeBtn(b,false);} sendTextEditMode(); } return _origToggleSel.apply(this,arguments); }; })();
+(function(){ const _origToggleSel=window.toggleSelectMode; window.toggleSelectMode=function(){ if(!selectMode){ if(textEditMode){ textEditMode=false; const b=document.getElementById('textEditBtn'); if(b){b.textContent='✏️ Edit text: Off';_styleModeBtn(b,false);} sendTextEditMode(); } if(moveMode){ moveMode=false; const mb=document.getElementById('moveModeBtn'); if(mb){mb.textContent='✥ Move: Off';_styleModeBtn(mb,false);} sendMoveMode(); } } return _origToggleSel.apply(this,arguments); }; })();
 
 function _zwNormText(s){ return String(s==null?'':s).replace(/\r\n/g,'\n').replace(/ /g,' ').trim(); }
 function applyInlineText(secId,oldText,newText){
@@ -1315,11 +1319,35 @@ function applyInlineFont(secId,which,value){
   if(typeof toast==='function') toast('Font updated','ok');
 }
 
+// ── Drag-to-position color block content on the canvas ────────────────────
+let moveMode=false;
+function sendMoveMode(){ try{ document.getElementById('pvIframe').contentWindow.postMessage({type:'ZW_MOVE_MODE',on:moveMode}, location.origin); }catch(_){} }
+function toggleMoveMode(){
+  moveMode=!moveMode;
+  // Only one canvas-click mode at a time.
+  if(moveMode){
+    if(selectMode){ selectMode=false; const sb=document.getElementById('selModeBtn'); if(sb)sb.textContent='🎯 Click to select: Off'; _styleModeBtn(sb,false); sendSelectMode(); }
+    if(textEditMode){ textEditMode=false; const tb=document.getElementById('textEditBtn'); if(tb)tb.textContent='✏️ Edit text: Off'; _styleModeBtn(tb,false); sendTextEditMode(); }
+  }
+  const b=document.getElementById('moveModeBtn');
+  if(b){ b.textContent='✥ Move: '+(moveMode?'On':'Off'); _styleModeBtn(b,moveMode); }
+  sendMoveMode();
+  if(typeof toast==='function') toast(moveMode?'Drag a color block’s content to move it (snaps to center)':'Move mode off','ok');
+}
+function applyMovePos(secId,posX,posY){
+  const s=curSections().find(x=>x.id===secId); if(!s||!s.settings)return;
+  s.settings.pos_x=Math.max(0,Math.min(100,Math.round(posX)));
+  s.settings.pos_y=Math.max(0,Math.min(100,Math.round(posY)));
+  curApply(); curDirty();
+  if(selId===secId){ const cur=curSections().find(x=>x.id===secId); if(cur)openEditor(cur); }
+}
+
 // On-canvas WYSIWYG: the preview iframe posts ZW_SECTION_CLICKED when a section
 // is clicked in the canvas — select + open its editor here. Same-origin gated.
 window.addEventListener('message',function(e){
   if(e.origin!==location.origin)return;
   const d=e.data||{};
+  if(d.type==='ZW_MOVE_POS'&&d.sectionId){ applyMovePos(d.sectionId,d.pos_x,d.pos_y); return; }
   if(d.type==='ZW_INLINE_TEXT'&&d.sectionId){ applyInlineText(d.sectionId,d.oldText,d.newText); return; }
   if(d.type==='ZW_INLINE_FONT'&&d.sectionId){ applyInlineFont(d.sectionId,d.which,d.value); return; }
   if(d.type==='ZW_SECTION_CLICKED'&&d.sectionId){
@@ -1532,9 +1560,11 @@ function buildForm(s){
         +f('eyebrow','Eyebrow (small label, optional)',g.eyebrow)
         +ta('heading','Heading (↵=line break)',g.heading)
         +ta('body','Body Text (↵↵=paragraph)',g.body)
-        +sel('content_align','Text Alignment (left / right)',g.content_align||'center',[['left','Left'],['center','Center'],['right','Right']])
-        +sel('content_valign','Vertical Position (up / down — for tall blocks)',g.content_valign||'center',[['top','Top'],['center','Center'],['bottom','Bottom']])
-        +`<div class="fhint">Vertical position only shifts things when the Block Height makes the block taller than its content. Text color comes from “Text Color” in the Section Style block below.</div>`
+        +sel('content_align','Text Alignment (how lines of text align)',g.content_align||'center',[['left','Left'],['center','Center'],['right','Right']])
+        +fdiv()+fhd('Content Position (for tall blocks)')
+        +rangeF('pos_x','Left ↔ Right',g.pos_x??50,0,100,'%')
+        +rangeF('pos_y','Up ↕ Down',g.pos_y??50,0,100,'%')
+        +`<div class="fhint">Turn on <b>✥ Move</b> in the preview bar and <b>drag the content</b> with your mouse — it snaps to the middle so it won’t end up slightly off-center. Or use these sliders for exact placement (50% = centered). Only applies when a <b>Block Height</b> is set (otherwise the block just hugs its content).</div>`
         +fdiv()+fhd('Buttons')
         +sel('btn_align','Button Position',g.btn_align||'',[['','Follow text alignment'],['left','Left'],['center','Center'],['right','Right']]);
       const cbBtns=g.buttons||[];

@@ -944,13 +944,28 @@ function showToast(msg) {
             const img = `<img src="${escapeHomeFavoriteHtml(l.src)}" alt="${escapeHomeFavoriteHtml(l.alt || '')}" style="height:${cbLogoH}px;width:auto;${cbLogoFilter}" loading="lazy">`;
             return l.link ? `<a href="${escapeHomeFavoriteHtml(zwSafeUrl(l.link))}" style="display:inline-flex;align-items:center;text-decoration:none">${img}</a>` : img;
           }).join('');
-          el.innerHTML = `<div style="background:${cbBg};color:${cbTxt};max-width:${cbBlockW};margin:${cbMar};padding:${cbPad};border-radius:${parseInt(s.radius) || 0}px;${cbMinH ? `min-height:${cbMinH};` : ''}text-align:${cbAlign};display:flex;flex-direction:column;justify-content:${cbVJust}">
-            ${s.eyebrow ? `<div style="font-family:var(--fm,var(--fb));font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;opacity:.65;margin-bottom:1rem">${s.eyebrow}</div>` : ''}
-            ${s.heading ? `<h2 style="font-family:var(--fw);font-size:clamp(1.8rem,5vw,2.8rem);font-weight:900;font-style:italic;letter-spacing:.06em;text-transform:uppercase;line-height:1.05;margin:0 0 1rem">${(s.heading || '').replace(/\n/g,'<br>')}</h2>` : ''}
-            ${s.body ? `<p style="opacity:.75;line-height:1.75;font-size:1rem;margin:0 0 ${(cbBtnHtml || cbLogosHtml) ? '1.8rem' : '0'};white-space:pre-line;font-family:var(--fb)">${s.body}</p>` : ''}
-            ${cbBtnHtml ? `<div style="display:flex;gap:.8rem;flex-wrap:wrap;justify-content:${cbBtnJust}">${cbBtnHtml}</div>` : ''}
-            ${cbLogosHtml ? `<div style="display:flex;gap:1.5rem 2.5rem;flex-wrap:wrap;align-items:center;justify-content:${cbBtnJust};margin-top:${cbBtnHtml ? '1.8rem' : '0'}">${cbLogosHtml}</div>` : ''}
-          </div>`;
+          // Free X/Y position of the content (0–100%). Falls back to the legacy
+          // content_valign preset for pos_y on older blocks; x defaults to center.
+          const cbPosX = (s.pos_x == null || s.pos_x === '') ? 50 : Math.max(0, Math.min(100, parseFloat(s.pos_x)));
+          const cbPosY = (s.pos_y == null || s.pos_y === '') ? (({top:0, center:50, bottom:100})[s.content_valign] ?? 50) : Math.max(0, Math.min(100, parseFloat(s.pos_y)));
+          const cbRad = parseInt(s.radius) || 0;
+          const cbInner =
+            `${s.eyebrow ? `<div style="font-family:var(--fm,var(--fb));font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;opacity:.65;margin-bottom:1rem">${s.eyebrow}</div>` : ''}`
+          + `${s.heading ? `<h2 style="font-family:var(--fw);font-size:clamp(1.8rem,5vw,2.8rem);font-weight:900;font-style:italic;letter-spacing:.06em;text-transform:uppercase;line-height:1.05;margin:0 0 1rem">${(s.heading || '').replace(/\n/g,'<br>')}</h2>` : ''}`
+          + `${s.body ? `<p style="opacity:.75;line-height:1.75;font-size:1rem;margin:0 0 ${(cbBtnHtml || cbLogosHtml) ? '1.8rem' : '0'};white-space:pre-line;font-family:var(--fb)">${s.body}</p>` : ''}`
+          + `${cbBtnHtml ? `<div style="display:flex;gap:.8rem;flex-wrap:wrap;justify-content:${cbBtnJust}">${cbBtnHtml}</div>` : ''}`
+          + `${cbLogosHtml ? `<div style="display:flex;gap:1.5rem 2.5rem;flex-wrap:wrap;align-items:center;justify-content:${cbBtnJust};margin-top:${cbBtnHtml ? '1.8rem' : '0'}">${cbLogosHtml}</div>` : ''}`;
+          if (cbMinH) {
+            // Tall block: content is absolutely placed so it can be dragged / offset
+            // anywhere. data-cb-content is the drag handle (builder preview only).
+            el.innerHTML = `<div style="position:relative;background:${cbBg};color:${cbTxt};max-width:${cbBlockW};margin:${cbMar};border-radius:${cbRad}px;min-height:${cbMinH}">`
+              + `<div style="position:absolute;inset:${cbPad}">`
+              + `<div data-cb-content style="position:absolute;left:${cbPosX}%;top:${cbPosY}%;transform:translate(-${cbPosX}%,-${cbPosY}%);max-width:100%;text-align:${cbAlign}">${cbInner}</div>`
+              + `</div></div>`;
+          } else {
+            // Auto height: block hugs its content — normal flow, no free positioning.
+            el.innerHTML = `<div style="background:${cbBg};color:${cbTxt};max-width:${cbBlockW};margin:${cbMar};padding:${cbPad};border-radius:${cbRad}px;text-align:${cbAlign};display:flex;flex-direction:column;justify-content:center">${cbInner}</div>`;
+          }
           break;
         }
         case 'cta': {
@@ -1595,6 +1610,11 @@ function showToast(msg) {
         document.body.classList.toggle('zw-text-edit', window.__zwTextEditMode);
         if (!window.__zwTextEditMode && window.__zwCancelInlineEdit) window.__zwCancelInlineEdit();
       }
+      if (e.data && e.data.type === 'ZW_MOVE_MODE') {
+        window.__zwMoveMode = !!e.data.on;
+        document.body.classList.toggle('zw-move-mode', window.__zwMoveMode);
+        if (!window.__zwMoveMode && window.__zwHideMoveGuides) window.__zwHideMoveGuides();
+      }
       if (e.data && e.data.type === 'ZW_SCROLL_TO_SECTION') {
         const secId = e.data.sectionId;
         const sectionMap = {
@@ -1760,6 +1780,63 @@ function showToast(msg) {
 
       window.addEventListener('scroll', function(){ if (editing) placeBar(editing); }, { passive: true });
       window.addEventListener('resize', function(){ if (editing) placeBar(editing); });
+    })();
+
+    // ── Drag-to-position color block content (WYSIWYG) ───────────────────────
+    // In move mode, drag a color block's [data-cb-content] anywhere inside its
+    // padded area. Center snap guides appear so it lands exactly centered. On
+    // drop we post the new pos_x/pos_y % to the builder. Preview-only.
+    window.__zwMoveMode = false;
+    (function initColorBlockDrag() {
+      var SNAP = 3.5; // % within which we snap to a guide line (center/edges)
+      var st = document.createElement('style');
+      st.textContent =
+        'body.zw-move-mode [data-cb-content]{cursor:move;outline:2px dashed rgba(248,145,165,.65);outline-offset:6px;border-radius:3px}'
+      + 'body.zw-move-mode [data-cb-content] a{pointer-events:none}'
+      + '.zw-move-guide{position:fixed;z-index:2147483000;background:rgba(248,145,165,.95);box-shadow:0 0 0 1px rgba(0,0,0,.25);pointer-events:none;display:none}';
+      document.head.appendChild(st);
+      var vg = document.createElement('div'); vg.className = 'zw-move-guide'; // vertical center line
+      var hg = document.createElement('div'); hg.className = 'zw-move-guide'; // horizontal center line
+      document.body.appendChild(vg); document.body.appendChild(hg);
+      window.__zwHideMoveGuides = function(){ vg.style.display = hg.style.display = 'none'; };
+
+      var dragging = null, box = null, secId = '', px = 50, py = 50;
+      function clamp(n){ return Math.max(0, Math.min(100, n)); }
+
+      document.addEventListener('mousedown', function(e){
+        if (!window.__zwMoveMode) return;
+        var content = e.target.closest && e.target.closest('[data-cb-content]');
+        if (!content) return;
+        var sec = content.closest('[data-zw-sec]');
+        if (!sec) return;
+        e.preventDefault(); e.stopPropagation();
+        dragging = content;
+        box = content.parentElement.getBoundingClientRect(); // the padded reference area
+        secId = sec.getAttribute('data-zw-sec');
+        document.body.style.userSelect = 'none';
+      }, true);
+
+      document.addEventListener('mousemove', function(e){
+        if (!dragging || !box) return;
+        px = clamp((e.clientX - box.left) / box.width * 100);
+        py = clamp((e.clientY - box.top) / box.height * 100);
+        // Snap to center (and edges) + show guides.
+        var snapV = Math.abs(px - 50) <= SNAP; if (snapV) px = 50; else if (px <= SNAP) px = 0; else if (px >= 100 - SNAP) px = 100;
+        var snapH = Math.abs(py - 50) <= SNAP; if (snapH) py = 50; else if (py <= SNAP) py = 0; else if (py >= 100 - SNAP) py = 100;
+        dragging.style.left = px + '%'; dragging.style.top = py + '%';
+        dragging.style.transform = 'translate(-' + px + '%,-' + py + '%)';
+        if (snapV) { vg.style.display = 'block'; vg.style.left = (box.left + box.width / 2 - 1) + 'px'; vg.style.top = box.top + 'px'; vg.style.width = '2px'; vg.style.height = box.height + 'px'; }
+        else vg.style.display = 'none';
+        if (snapH) { hg.style.display = 'block'; hg.style.top = (box.top + box.height / 2 - 1) + 'px'; hg.style.left = box.left + 'px'; hg.style.height = '2px'; hg.style.width = box.width + 'px'; }
+        else hg.style.display = 'none';
+      });
+
+      document.addEventListener('mouseup', function(){
+        if (!dragging) return;
+        dragging = null; box = null; document.body.style.userSelect = '';
+        window.__zwHideMoveGuides();
+        try { window.parent.postMessage({ type: 'ZW_MOVE_POS', sectionId: secId, pos_x: px, pos_y: py }, location.origin); } catch (_) {}
+      });
     })();
 
     // Re-apply after Supabase finishes loading (bar was hidden when first apply ran, now it's visible)
