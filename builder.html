@@ -544,7 +544,7 @@ const SECT_DEFS={
   faq:{heading:'Questions, Answered',items:[{q:'When does Release 001 drop?',a:'September 20, 2026.'},{q:'What sizes are available?',a:'XS through 3XL.'},{q:'Do you ship internationally?',a:'Yes — worldwide.'}],pad_top:0,pad_bot:0},
   email_capture:{heading:'Be First To Know',subtext:'Join the waitlist for exclusive early access.',placeholder:'your@email.com',btn_text:'Join Waitlist',bg_color:'',pad_top:0,pad_bot:0},
   logos:{heading:'',items:[{name:'Nike',src:'',alt:'',link:''},{name:'Adidas',src:'',alt:'',link:''},{name:'Puma',src:'',alt:'',link:''}],logo_original:false,logo_height:28,pad_top:0,pad_bot:0},
-  color_block:{bg_color:'#1f2937',width:'full',height:'auto',block_align:'center',radius:0,min_height:'',inner_pad:'md',gap_top:0,gap_bot:0,content_align:'center',eyebrow:'',heading:'Your Headline',body:'',buttons:[{text:'Shop Now',url:'/drop001.html',style:'solid'}],pad_top:0,pad_bot:0},
+  color_block:{bg_color:'#1f2937',width:'full',height:'auto',block_align:'center',radius:0,min_height:'',inner_pad:'md',gap_top:0,gap_bot:0,content_align:'center',eyebrow:'',heading:'Your Headline',body:'',buttons:[{text:'Shop Now',url:'/drop001.html',style:'solid'}],logos:[],logo_height:34,logo_original:false,pad_top:0,pad_bot:0},
   spacer:{height:'md'},
   text:{heading:'',heading_size:'2rem',body:'',cta_text:'',cta_url:'',align:'left',pad_top:0,pad_bot:0},
   img_cta:{image:'',alt:'',btn_on:true,btn_text:'Shop Now',btn_url:'/drop001.html',btn_position:'center',pad_top:0,pad_bot:0},
@@ -1500,6 +1500,11 @@ function buildForm(s){
         <div class="field"><label>Style</label><select data-f="style"><option value="solid"${(b.style||'solid')==='solid'?' selected':''}>Solid</option><option value="outline"${b.style==='outline'?' selected':''}>Outlined</option><option value="ghost"${b.style==='ghost'?' selected':''}>Ghost (underline link)</option></select></div>
       </div>`).join('')}</div>
       <button class="add-item-btn" onclick="addArrItem('buttons')">+ Add Button</button>`;
+      h+=fdiv()+fhd('Logos')
+        +f('logo_height','Logo Height (px)',g.logo_height||34,'number')
+        +tog2('logo_original','Keep original logo colors',g.logo_original)
+        +arrField('logos','Logo',g.logos||[],[['src','Logo Image (upload or URL)','image'],['alt','Alt Text','text'],['link','Link → product / page (optional)','text']])
+        +`<div class="fhint">Logos show in a row below the buttons. Add a Link to any logo to make it clickable. On a dark block they’re auto-lightened (turn on “Keep original colors” to preserve full-color logos).</div>`;
       h+=padF(g);
       break;
     }
