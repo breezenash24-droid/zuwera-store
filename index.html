@@ -234,6 +234,17 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
 }catch(_){}})();
 </script>
 <script>
+/* Synchronously hide the static default sections (marquee/about/release/products)
+   that the last-rendered builder layout omitted, BEFORE first paint — mirrors the
+   hero's zw-hide-static-hero. storefront.js caches the omitted types; without this
+   they flash in (e.g. the products grid) before storefront.js runs and hides them. */
+(function(){try{
+  var hidden=(localStorage.getItem('zw_pb_hidden_defaults')||'').split(',');
+  var h=document.documentElement;
+  for(var i=0;i<hidden.length;i++){ if(hidden[i]) h.classList.add('zw-hs-'+hidden[i]); }
+}catch(_){}})();
+</script>
+<script>
 (function() {
   // Carousel-led layouts have no static hero. If the last render cached that,
   // hide the baked-in <section class="hero"> synchronously (before first paint)
@@ -486,6 +497,17 @@ body.light-mode #mobile-menu-close { color:#09090b !important; }
 /* Carousel-led layouts: the <head> flag hides the static hero before first
    paint so the old default hero never flashes in ahead of the carousel. */
 html.zw-hide-static-hero .hero{display:none!important}
+/* Pre-paint hide of default sections omitted by the active builder layout (set
+   synchronously in <head> from the zw_pb_hidden_defaults cache; storefront.js
+   re-confirms on load). .products-section is targeted directly so it's hidden
+   whether or not it's still nested in .drop-wrap; .drop-inner hides the release
+   content while keeping a nested products grid that the layout DID want; when
+   BOTH release and products are omitted the whole .drop-wrap goes. */
+html.zw-hs-marquee .marquee{display:none!important}
+html.zw-hs-about .section-about{display:none!important}
+html.zw-hs-products .products-section{display:none!important}
+html.zw-hs-release .drop-inner{display:none!important}
+html.zw-hs-release.zw-hs-products .drop-wrap{display:none!important}
 
 /* Boot cover — themed layer that hides the page-builder reflow on reload. Below
    the fixed nav (z 220) / bar (z 230) so the header stays visible ("loading"),

@@ -350,6 +350,23 @@ function showToast(msg) {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', zwAutoThemeAllLogos);
   else zwAutoThemeAllLogos();
 
+  // Pad the layout's top section (tagged data-zw-top-offset) down by the fixed
+  // header's height so the header doesn't cover it. Measured live so it tracks the
+  // announcement bar toggling and viewport/orientation changes.
+  function zwApplyTopOffset() {
+    const el = document.querySelector('[data-zw-top-offset]');
+    if (!el) return;
+    let bottom = 0;
+    const nav = document.getElementById('nav');
+    const bar = document.getElementById('bar');
+    if (nav) { const r = nav.getBoundingClientRect(); if (r.height) bottom = Math.max(bottom, r.bottom); }
+    if (bar && bar.offsetParent !== null) { const r = bar.getBoundingClientRect(); if (r.height) bottom = Math.max(bottom, r.bottom); }
+    el.style.paddingTop = bottom > 0 ? Math.ceil(bottom) + 'px' : '';
+  }
+  window.__zwApplyTopOffset = zwApplyTopOffset;
+  window.addEventListener('resize', () => { try { zwApplyTopOffset(); } catch (_) {} }, { passive: true });
+  window.addEventListener('load', () => { try { zwApplyTopOffset(); } catch (_) {} });
+
   function applyBuilderConfig(cfg) {
     if (!cfg || !cfg.sections) return;
 
@@ -538,6 +555,19 @@ function showToast(msg) {
     // and all). Record whether this layout actually wants the products grid so
     // loadProducts leaves it hidden when the layout doesn't include one.
     window.__zwLayoutHasProducts = _cfgTypes.has('products');
+    // Flash prevention for the OTHER static default sections (marquee/about/
+    // release/products) — mirrors the hero's zw-hide-static-hero. Cache which ones
+    // this layout omits (and toggle the class now, authoritatively) so the
+    // synchronous <head> script hides them BEFORE first paint on the next load;
+    // otherwise they flash in (e.g. the products grid) before this JS runs.
+    {
+      const _defs = ['marquee', 'about', 'release', 'products'];
+      const _absent = _defs.filter(t => !_cfgTypes.has(t));
+      _defs.forEach(t => document.documentElement.classList.toggle('zw-hs-' + t, _absent.includes(t)));
+      if (!window.__ZW_BUILDER_PREVIEW__) {
+        try { localStorage.setItem('zw_pb_hidden_defaults', _absent.join(',')); } catch (e) {}
+      }
+    }
     // Hide ALL previously added dynamic builder sections. Every dynamic section
     // gets a "builder-…" class (builder-cta-section, builder-hero-carousel-section,
     // builder-media-grid-section, …), so match the prefix generically — the old
@@ -1577,6 +1607,25 @@ function showToast(msg) {
      }
     });
 
+    // Header offset: the header is position:fixed. A hero/hero_carousel is designed
+    // to sit full-bleed under it, but any OTHER first section (e.g. a color block)
+    // would have its top covered. Tag the top visible section so the header doesn't
+    // overlap it; zwApplyTopOffset() pads it down by the header height (and keeps it
+    // updated on resize / when the announcement bar toggles).
+    try {
+      document.querySelectorAll('[data-zw-top-offset]').forEach(el => { el.style.removeProperty('padding-top'); el.removeAttribute('data-zw-top-offset'); });
+      const _firstVis = sorted.find(s => s.visible !== false && (window.__ZW_BUILDER_PREVIEW__ || window.zwSecInWindow(s.settings || {})));
+      if (_firstVis && !['hero', 'hero_carousel'].includes(_firstVis.type)) {
+        const _topEl = sectionMap[_firstVis.type] || document.getElementById(_firstVis.id);
+        if (_topEl) {
+          _topEl.setAttribute('data-zw-top-offset', '');
+          zwApplyTopOffset();
+          requestAnimationFrame(zwApplyTopOffset);
+          setTimeout(zwApplyTopOffset, 600);
+        }
+      }
+    } catch (_) {}
+
     // Layout is now positioned. Cache that a builder layout is active so the next
     // reload can hold a boot cover over the content while it reflows, then reveal
     // here (rAF so the browser commits the final positions first) — no visible
@@ -1928,6 +1977,9 @@ function setAnnouncementBarLayout(barEl, navEl, isVisible) {
     if (navEl) navEl.style.top = barH + 'px';
     if (spacerEl) spacerEl.style.height = isVisible ? barH + 'px' : '0';
   }
+  // The header height just changed (bar shown/hidden, nav repositioned) — re-pad
+  // the builder layout's top section so it stays clear of the header.
+  try { if (window.__zwApplyTopOffset) window.__zwApplyTopOffset(); } catch (_) {}
 }
 
 // Keep the mobile bar flush under the nav across resize / orientation changes by
@@ -2156,6 +2208,13 @@ window._shippingPolicy = { enabled: true, threshold: 100, standardRate: 8 };
         const themeMode = val.theme === 'light' ? 'light' : val.theme === 'super-light' ? 'super-light' : 'dark';
         try { localStorage.setItem('zw_homepage_theme_mode', themeMode); } catch(e) {}
       }
+    }
+    // No builder layout is active (default homepage, or the layout was reverted):
+    // clear the pre-paint hide cache + classes so stale entries from a previous
+    // layout can't leave the default homepage's sections hidden.
+    if (!window.__ZW_BUILDER_PREVIEW__ && !window.__zwPageBuilderActive) {
+      try { localStorage.removeItem('zw_pb_hidden_defaults'); } catch (e) {}
+      ['marquee', 'about', 'release', 'products'].forEach(t => document.documentElement.classList.remove('zw-hs-' + t));
     }
 
     // 3. theme — site_settings.theme (the admin appearance toggle) is the source
