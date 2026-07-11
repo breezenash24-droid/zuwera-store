@@ -1579,10 +1579,10 @@ function buildForm(s){
         +ta('heading','Heading (↵=line break)',g.heading)
         +ta('body','Body Text (↵↵=paragraph)',g.body)
         +sel('content_align','Text Alignment (how lines of text align)',g.content_align||'center',[['left','Left'],['center','Center'],['right','Right']])
-        +fdiv()+fhd('Content Position (for tall blocks)')
+        +fdiv()+fhd('Content Position — move the text &amp; logo')
         +rangeF('pos_x','Left ↔ Right',g.pos_x??50,0,100,'%')
         +rangeF('pos_y','Up ↕ Down',g.pos_y??50,0,100,'%')
-        +`<div class="fhint">Turn on <b>✥ Move</b> in the preview bar and <b>drag the content</b> with your mouse — it snaps to the middle so it won’t end up slightly off-center. Or use these sliders for exact placement (50% = centered). Only applies when a <b>Block Height</b> is set (otherwise the block just hugs its content).</div>`
+        +`<div class="fhint">Move the block’s text &amp; logo anywhere: drag them with your mouse (turn on <b>✥ Move</b> in the preview bar — it snaps to the middle so it won’t end up off-center), or use these sliders for exact placement (50% = centered). Moving off-center gives the block room automatically; set a <b>Block Height</b> above for more space to work with.</div>`
         +fdiv()+fhd('Buttons')
         +sel('btn_align','Button Position',g.btn_align||'',[['','Follow text alignment'],['left','Left'],['center','Center'],['right','Right']]);
       const cbBtns=g.buttons||[];

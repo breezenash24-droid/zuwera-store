@@ -976,16 +976,22 @@ function showToast(msg) {
           const cbPosX = (s.pos_x == null || s.pos_x === '') ? 50 : Math.max(0, Math.min(100, parseFloat(s.pos_x)));
           const cbPosY = (s.pos_y == null || s.pos_y === '') ? (({top:0, center:50, bottom:100})[s.content_valign] ?? 50) : Math.max(0, Math.min(100, parseFloat(s.pos_y)));
           const cbRad = parseInt(s.radius) || 0;
+          // Free positioning (drag / X-Y sliders) needs the block to be taller than
+          // its content. If the admin moved the content off-center but didn't set a
+          // Block Height, give it a sensible default so the move actually shows —
+          // otherwise the sliders/drag appear to do nothing on an Auto block.
+          const cbHasCustomPos = (cbPosX !== 50 || cbPosY !== 50);
+          const cbEffH = cbMinH || (cbHasCustomPos ? '60vh' : '');
           const cbInner =
             `${s.eyebrow ? `<div style="font-family:var(--fm,var(--fb));font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;opacity:.65;margin-bottom:1rem">${s.eyebrow}</div>` : ''}`
           + `${s.heading ? `<h2 style="font-family:var(--fw);font-size:clamp(1.8rem,5vw,2.8rem);font-weight:900;font-style:italic;letter-spacing:.06em;text-transform:uppercase;line-height:1.05;margin:0 0 1rem">${(s.heading || '').replace(/\n/g,'<br>')}</h2>` : ''}`
           + `${s.body ? `<p style="opacity:.75;line-height:1.75;font-size:1rem;margin:0 0 ${(cbBtnHtml || cbLogosHtml) ? '1.8rem' : '0'};white-space:pre-line;font-family:var(--fb)">${s.body}</p>` : ''}`
           + `${cbBtnHtml ? `<div style="display:flex;gap:.8rem;flex-wrap:wrap;justify-content:${cbBtnJust}">${cbBtnHtml}</div>` : ''}`
           + `${cbLogosHtml ? `<div style="display:flex;gap:1.5rem 2.5rem;flex-wrap:wrap;align-items:center;justify-content:${cbBtnJust};margin-top:${cbBtnHtml ? '1.8rem' : '0'};${cbLogoRowBg}">${cbLogosHtml}</div>` : ''}`;
-          if (cbMinH) {
+          if (cbEffH) {
             // Tall block: content is absolutely placed so it can be dragged / offset
             // anywhere. data-cb-content is the drag handle (builder preview only).
-            el.innerHTML = `<div style="position:relative;background:${cbBg};color:${cbTxt};max-width:${cbBlockW};margin:${cbMar};border-radius:${cbRad}px;min-height:${cbMinH}">`
+            el.innerHTML = `<div style="position:relative;background:${cbBg};color:${cbTxt};max-width:${cbBlockW};margin:${cbMar};border-radius:${cbRad}px;min-height:${cbEffH}">`
               + `<div style="position:absolute;inset:${cbPad}">`
               + `<div data-cb-content style="position:absolute;left:${cbPosX}%;top:${cbPosY}%;transform:translate(-${cbPosX}%,-${cbPosY}%);max-width:100%;text-align:${cbAlign}">${cbInner}</div>`
               + `</div></div>`;
