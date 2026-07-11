@@ -555,19 +555,6 @@ function showToast(msg) {
     // and all). Record whether this layout actually wants the products grid so
     // loadProducts leaves it hidden when the layout doesn't include one.
     window.__zwLayoutHasProducts = _cfgTypes.has('products');
-    // Flash prevention for the OTHER static default sections (marquee/about/
-    // release/products) — mirrors the hero's zw-hide-static-hero. Cache which ones
-    // this layout omits (and toggle the class now, authoritatively) so the
-    // synchronous <head> script hides them BEFORE first paint on the next load;
-    // otherwise they flash in (e.g. the products grid) before this JS runs.
-    {
-      const _defs = ['marquee', 'about', 'release', 'products'];
-      const _absent = _defs.filter(t => !_cfgTypes.has(t));
-      _defs.forEach(t => document.documentElement.classList.toggle('zw-hs-' + t, _absent.includes(t)));
-      if (!window.__ZW_BUILDER_PREVIEW__) {
-        try { localStorage.setItem('zw_pb_hidden_defaults', _absent.join(',')); } catch (e) {}
-      }
-    }
     // Hide ALL previously added dynamic builder sections. Every dynamic section
     // gets a "builder-…" class (builder-cta-section, builder-hero-carousel-section,
     // builder-media-grid-section, …), so match the prefix generically — the old
@@ -1006,16 +993,22 @@ function showToast(msg) {
           const cbPosX = (s.pos_x == null || s.pos_x === '') ? 50 : Math.max(0, Math.min(100, parseFloat(s.pos_x)));
           const cbPosY = (s.pos_y == null || s.pos_y === '') ? (({top:0, center:50, bottom:100})[s.content_valign] ?? 50) : Math.max(0, Math.min(100, parseFloat(s.pos_y)));
           const cbRad = parseInt(s.radius) || 0;
+          // Free positioning (drag / X-Y sliders) needs the block to be taller than
+          // its content. If the admin moved the content off-center but didn't set a
+          // Block Height, give it a sensible default so the move actually shows —
+          // otherwise the sliders/drag appear to do nothing on an Auto block.
+          const cbHasCustomPos = (cbPosX !== 50 || cbPosY !== 50);
+          const cbEffH = cbMinH || (cbHasCustomPos ? '60vh' : '');
           const cbInner =
             `${s.eyebrow ? `<div style="font-family:var(--fm,var(--fb));font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;opacity:.65;margin-bottom:1rem">${s.eyebrow}</div>` : ''}`
           + `${s.heading ? `<h2 style="font-family:var(--fw);font-size:clamp(1.8rem,5vw,2.8rem);font-weight:900;font-style:italic;letter-spacing:.06em;text-transform:uppercase;line-height:1.05;margin:0 0 1rem">${(s.heading || '').replace(/\n/g,'<br>')}</h2>` : ''}`
           + `${s.body ? `<p style="opacity:.75;line-height:1.75;font-size:1rem;margin:0 0 ${(cbBtnHtml || cbLogosHtml) ? '1.8rem' : '0'};white-space:pre-line;font-family:var(--fb)">${s.body}</p>` : ''}`
           + `${cbBtnHtml ? `<div style="display:flex;gap:.8rem;flex-wrap:wrap;justify-content:${cbBtnJust}">${cbBtnHtml}</div>` : ''}`
           + `${cbLogosHtml ? `<div style="display:flex;gap:1.5rem 2.5rem;flex-wrap:wrap;align-items:center;justify-content:${cbBtnJust};margin-top:${cbBtnHtml ? '1.8rem' : '0'};${cbLogoRowBg}">${cbLogosHtml}</div>` : ''}`;
-          if (cbMinH) {
+          if (cbEffH) {
             // Tall block: content is absolutely placed so it can be dragged / offset
             // anywhere. data-cb-content is the drag handle (builder preview only).
-            el.innerHTML = `<div style="position:relative;background:${cbBg};color:${cbTxt};max-width:${cbBlockW};margin:${cbMar};border-radius:${cbRad}px;min-height:${cbMinH}">`
+            el.innerHTML = `<div style="position:relative;background:${cbBg};color:${cbTxt};max-width:${cbBlockW};margin:${cbMar};border-radius:${cbRad}px;min-height:${cbEffH}">`
               + `<div style="position:absolute;inset:${cbPad}">`
               + `<div data-cb-content style="position:absolute;left:${cbPosX}%;top:${cbPosY}%;transform:translate(-${cbPosX}%,-${cbPosY}%);max-width:100%;text-align:${cbAlign}">${cbInner}</div>`
               + `</div></div>`;
@@ -3538,13 +3531,14 @@ function pulseBagTarget() {
 
 function animateAddToBag(sourceEl, imageSrc) {
   // If the header was scrolled away, pop it back so the shopper sees the bag
-  // update (and the pulse below happens on-screen, not off the top).
-  if (typeof window.zwRevealHeader === 'function') window.zwRevealHeader();
+  // update. When it was hidden, let it finish sliding in (~0.35s) BEFORE the bag
+  // pulse, so the two happen in sequence rather than on top of each other.
+  var wasHidden = (typeof window.zwRevealHeader === 'function') && window.zwRevealHeader();
   // Add-to-bag acknowledgment: the bag icon "drop-in dip" (it dips and
-  // squashes as if the item landed in it) plus the count-badge pop. The
-  // (sourceEl, imageSrc) signature is kept so all call sites stay valid;
+  // squashes as if the item landed in it) plus the count-badge pop.
   // prefers-reduced-motion is honored in CSS.
-  pulseBagTarget();
+  if (wasHidden) window.setTimeout(pulseBagTarget, 380);
+  else pulseBagTarget();
 }
 
 let _cartFavRenderVer = 0;
