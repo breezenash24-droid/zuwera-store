@@ -527,7 +527,7 @@ function showToast(msg) {
     // default whose type IS in the layout gets a plain hide and is re-shown by the
     // render loop below. setProperty(...,'') also clears any !important left from a
     // previous apply (builder preview re-runs this on every edit).
-    const _cfgTypes = new Set(sorted.map(s => s && s.type));
+    const _cfgTypes = new Set(sorted.map(s => s.type));  // entries are non-null (sorted by s.order above)
     Object.entries(sectionMap).forEach(([type, el]) => {
       if (!el) return;
       el.style.setProperty('display', 'none', _cfgTypes.has(type) ? '' : 'important');
@@ -2590,8 +2590,9 @@ async function _doLoadProducts() {
         if (sec && _showProducts) sec.style.display = '';
         const nav = document.getElementById('category-nav');
         if (nav && _showProducts) nav.style.display = '';
-        renderCategoryNavigation(normalizedProducts);
-        renderProductCards(normalizedProducts, grid);
+        renderCategoryNavigation(normalizedProducts); // header category menu — independent of the homepage grid
+        // Skip populating the (force-hidden) grid when the layout has no products section.
+        if (_showProducts) renderProductCards(normalizedProducts, grid);
       }
     }
   } catch(e) {
