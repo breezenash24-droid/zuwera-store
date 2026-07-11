@@ -522,9 +522,19 @@ function showToast(msg) {
       products:document.querySelector('.products-section')
     };
 
-    // Hide all default sections first
-    Object.values(sectionMap).forEach(el => {
-      if (el) el.style.display = 'none';
+    // Hide all default sections first. A default whose type is NOT in this layout
+    // is hidden with !important so nothing can re-show it — a late async product
+    // load (loadProducts populates .products-section on every homepage visit), a
+    // CSS rule, or a reflow. This enforces "the homepage shows ONLY what the
+    // layout explicitly includes" (fixes a stray product appearing when the
+    // layout has no products section). A default whose type IS in the layout gets
+    // a plain hide and is re-shown by the render loop below.
+    const _cfgTypes = new Set(sorted.map(s => s && s.type));
+    Object.entries(sectionMap).forEach(([type, el]) => {
+      if (!el) return;
+      el.style.removeProperty('display');
+      if (_cfgTypes.has(type)) el.style.display = 'none';
+      else el.style.setProperty('display', 'none', 'important');
     });
     // Hide ALL previously added dynamic builder sections. Every dynamic section
     // gets a "builder-…" class (builder-cta-section, builder-hero-carousel-section,
