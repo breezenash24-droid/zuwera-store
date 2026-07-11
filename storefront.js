@@ -372,6 +372,19 @@ function showToast(msg) {
   window.__zwApplyTopOffset = zwApplyTopOffset;
   window.addEventListener('resize', () => { try { zwApplyTopOffset(); } catch (_) {} }, { passive: true });
   window.addEventListener('load', () => { try { zwApplyTopOffset(); } catch (_) {} });
+  // The header (nav#nav) auto-hides on scroll via an animated CSS transform
+  // (header-scroll.js toggles .zw-nav-hidden, storefront-cohesion.css transitions
+  // it over .35s), and the announcement bar's OWN scroll-hide can fire on the same
+  // scroll tick — so a re-measure triggered mid-transition can read nav's IN-FLIGHT
+  // position and freeze a wrong (too-large or too-small) padding that then sticks
+  // once the animation settles, e.g. showing a gap after scrolling back up. Re-sync
+  // once each relevant transition actually finishes so the padding always matches
+  // the header's final, settled position.
+  window.addEventListener('transitionend', (e) => {
+    if (e.target && e.target.id && (e.target.id === 'nav' || e.target.id === 'bar' || e.target.id === 'bar-spacer')) {
+      try { zwApplyTopOffset(); } catch (_) {}
+    }
+  }, true);
 
   function applyBuilderConfig(cfg) {
     if (!cfg || !cfg.sections) return;
