@@ -538,6 +538,19 @@ function showToast(msg) {
     // and all). Record whether this layout actually wants the products grid so
     // loadProducts leaves it hidden when the layout doesn't include one.
     window.__zwLayoutHasProducts = _cfgTypes.has('products');
+    // Flash prevention for the OTHER static default sections (marquee/about/
+    // release/products) — mirrors the hero's zw-hide-static-hero. Cache which ones
+    // this layout omits (and toggle the class now, authoritatively) so the
+    // synchronous <head> script hides them BEFORE first paint on the next load;
+    // otherwise they flash in (e.g. the products grid) before this JS runs.
+    {
+      const _defs = ['marquee', 'about', 'release', 'products'];
+      const _absent = _defs.filter(t => !_cfgTypes.has(t));
+      _defs.forEach(t => document.documentElement.classList.toggle('zw-hs-' + t, _absent.includes(t)));
+      if (!window.__ZW_BUILDER_PREVIEW__) {
+        try { localStorage.setItem('zw_pb_hidden_defaults', _absent.join(',')); } catch (e) {}
+      }
+    }
     // Hide ALL previously added dynamic builder sections. Every dynamic section
     // gets a "builder-…" class (builder-cta-section, builder-hero-carousel-section,
     // builder-media-grid-section, …), so match the prefix generically — the old
