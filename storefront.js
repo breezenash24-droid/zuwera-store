@@ -350,18 +350,24 @@ function showToast(msg) {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', zwAutoThemeAllLogos);
   else zwAutoThemeAllLogos();
 
-  // Pad the layout's top section (tagged data-zw-top-offset) down by the fixed
-  // header's height so the header doesn't cover it. Measured live so it tracks the
-  // announcement bar toggling and viewport/orientation changes.
+  // Pad the layout's top section (tagged data-zw-top-offset) down just enough that
+  // the fixed header no longer overlaps it. Measures the ACTUAL overlap — header
+  // bottom minus the section's own natural top — rather than the header's raw
+  // height: #bar-spacer already reserves space in normal flow for the announcement
+  // bar, so blindly padding by the header's full viewport height double-counts the
+  // bar and leaves a visible gap. Reset any prior padding first so the "natural
+  // top" measurement isn't inflated by padding from an earlier call.
   function zwApplyTopOffset() {
     const el = document.querySelector('[data-zw-top-offset]');
     if (!el) return;
-    let bottom = 0;
+    el.style.paddingTop = '';
+    let headerBottom = 0;
     const nav = document.getElementById('nav');
     const bar = document.getElementById('bar');
-    if (nav) { const r = nav.getBoundingClientRect(); if (r.height) bottom = Math.max(bottom, r.bottom); }
-    if (bar && bar.offsetParent !== null) { const r = bar.getBoundingClientRect(); if (r.height) bottom = Math.max(bottom, r.bottom); }
-    el.style.paddingTop = bottom > 0 ? Math.ceil(bottom) + 'px' : '';
+    if (nav) { const r = nav.getBoundingClientRect(); if (r.height) headerBottom = Math.max(headerBottom, r.bottom); }
+    if (bar && bar.offsetParent !== null) { const r = bar.getBoundingClientRect(); if (r.height) headerBottom = Math.max(headerBottom, r.bottom); }
+    const gap = headerBottom - el.getBoundingClientRect().top;
+    if (gap > 0) el.style.paddingTop = Math.ceil(gap) + 'px';
   }
   window.__zwApplyTopOffset = zwApplyTopOffset;
   window.addEventListener('resize', () => { try { zwApplyTopOffset(); } catch (_) {} }, { passive: true });
