@@ -523,19 +523,21 @@ function showToast(msg) {
     };
 
     // Hide all default sections first. A default whose type is NOT in this layout
-    // is hidden with !important so nothing can re-show it — a late async product
-    // load (loadProducts populates .products-section on every homepage visit), a
-    // CSS rule, or a reflow. This enforces "the homepage shows ONLY what the
-    // layout explicitly includes" (fixes a stray product appearing when the
-    // layout has no products section). A default whose type IS in the layout gets
-    // a plain hide and is re-shown by the render loop below.
+    // is hidden with !important so a stray CSS rule or reflow can't re-show it; a
+    // default whose type IS in the layout gets a plain hide and is re-shown by the
+    // render loop below. setProperty(...,'') also clears any !important left from a
+    // previous apply (builder preview re-runs this on every edit).
     const _cfgTypes = new Set(sorted.map(s => s && s.type));
     Object.entries(sectionMap).forEach(([type, el]) => {
       if (!el) return;
-      el.style.removeProperty('display');
-      if (_cfgTypes.has(type)) el.style.display = 'none';
-      else el.style.setProperty('display', 'none', 'important');
+      el.style.setProperty('display', 'none', _cfgTypes.has(type) ? '' : 'important');
     });
+    // The REAL guard for the stray-product bug: loadProducts() runs on every
+    // homepage visit and does `productsSection.style.display = ''` whenever the DB
+    // has products — a plain assignment that wipes the inline hide above (priority
+    // and all). Record whether this layout actually wants the products grid so
+    // loadProducts leaves it hidden when the layout doesn't include one.
+    window.__zwLayoutHasProducts = _cfgTypes.has('products');
     // Hide ALL previously added dynamic builder sections. Every dynamic section
     // gets a "builder-…" class (builder-cta-section, builder-hero-carousel-section,
     // builder-media-grid-section, …), so match the prefix generically — the old
@@ -2580,10 +2582,14 @@ async function _doLoadProducts() {
         const nav = document.getElementById('category-nav');
         if (nav) nav.style.display = 'none';
       } else {
+        // Don't un-hide the products grid when the active page-builder layout
+        // doesn't include a products section (applyBuilderConfig set the flag);
+        // otherwise this un-hides the section it deliberately hid → stray product.
+        const _showProducts = window.__zwLayoutHasProducts !== false;
         const sec = grid.closest('.products-section');
-        if (sec) sec.style.display = '';
+        if (sec && _showProducts) sec.style.display = '';
         const nav = document.getElementById('category-nav');
-        if (nav) nav.style.display = '';
+        if (nav && _showProducts) nav.style.display = '';
         renderCategoryNavigation(normalizedProducts);
         renderProductCards(normalizedProducts, grid);
       }
