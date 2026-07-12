@@ -807,7 +807,7 @@
           <div class="empty-state-dash">—</div>
           <div class="empty-state-title">No Orders Yet</div>
           <div class="empty-state-desc">When you place your first order it'll appear here with real-time tracking.</div>
-          <a href="/drop001.html" class="empty-state-link">Browse Release 001 ?</a>
+          <a href="/drop001.html" class="empty-state-link">Browse Release 001 →</a>
         </div>
       </div>
       <div id="orders-list"></div>
@@ -821,7 +821,7 @@
           <div class="empty-state-dash">—</div>
           <div class="empty-state-title">Nothing Saved Yet</div>
           <div class="empty-state-desc">Tap the heart on any product to save it here for later.</div>
-          <a href="/drop001.html" class="empty-state-link">Browse Release 001 ?</a>
+          <a href="/drop001.html" class="empty-state-link">Browse Release 001 →</a>
         </div>
       </div>
       <div id="saved-list"></div>
@@ -1148,7 +1148,7 @@ async function loadOrders() {
       const trackRow = (tracking || safeTrackUrl) ? `
         <div class="order-track-row">
           ${tracking ? `<span class="order-track-num">${escHtml(carrier ? carrier + ' · ' + tracking : tracking)}</span>` : ''}
-          ${safeTrackUrl ? `<a href="${escHtml(safeTrackUrl)}" target="_blank" rel="noopener" class="order-track-btn">Track Shipment ?</a>` : ''}
+          ${safeTrackUrl ? `<a href="${escHtml(safeTrackUrl)}" target="_blank" rel="noopener" class="order-track-btn">Track Shipment →</a>` : ''}
         </div>` : '';
 
       // Next steps
@@ -1171,7 +1171,7 @@ async function loadOrders() {
       const hasReturn = returnRequests.some(r => String(r.orderId || r.order_id || '') === String(o.id || ''));
       const returnAction = hasReturn
         ? `<span class="order-track-num">Return requested</span>`
-        : `<button class="order-return-link" onclick="switchTab('returns')">Start a Return ?</button>`;
+        : `<button class="order-return-link" onclick="switchTab('returns')">Start a Return →</button>`;
       const footer = `<div class="order-footer">${addrHtml}<div style="padding-bottom:.05rem">${returnAction}</div></div>`;
 
       return `
@@ -1245,7 +1245,7 @@ async function loadSaved() {
           <div class="fav-card-actions">
             <button class="zw-btn primary" style="font-size:.55rem;padding:.55rem 1rem;" onclick="acctAddToBag('${pid}', this)">Add to Bag</button>
             <div class="fav-card-secondary">
-              <a href="${href}" class="zw-btn" style="font-size:.52rem;padding:.45rem .8rem;">View ?</a>
+              <a href="${href}" class="zw-btn" style="font-size:.52rem;padding:.45rem .8rem;">View →</a>
               <button class="fav-rm" onclick="removeFav('${pid}')" title="Remove from saved">Remove</button>
             </div>
           </div>
@@ -1421,8 +1421,8 @@ function renderReturnsContent(payload, productImgMap = {}, productIdMap = {}) {
     const trackingRow = (r.trackingNumber || safeLabel || safeTrack) ? `
       <div class="ret-tracking-row">
         ${r.trackingNumber ? `<span class="ret-track-num">${escHtml(r.carrier || '')} ${escHtml(r.trackingNumber)}</span>` : ''}
-        ${safeLabel ? `<a href="${escHtml(safeLabel)}" target="_blank" rel="noopener" class="ret-track-btn">Download Label ?</a>` : ''}
-        ${safeTrack ? `<a href="${escHtml(safeTrack)}" target="_blank" rel="noopener" class="ret-track-btn">Track Return ?</a>` : ''}
+        ${safeLabel ? `<a href="${escHtml(safeLabel)}" target="_blank" rel="noopener" class="ret-track-btn">Download Label →</a>` : ''}
+        ${safeTrack ? `<a href="${escHtml(safeTrack)}" target="_blank" rel="noopener" class="ret-track-btn">Track Return →</a>` : ''}
       </div>` : '';
 
     const nextHtml = next ? `
