@@ -214,7 +214,7 @@ function showToast(msg) {
       thumb = document.createElement('div'); thumb.className = 'zw-swipe-thumb';
       bar.appendChild(thumb); wrap.appendChild(bar);
     } else { thumb = bar.querySelector('.zw-swipe-thumb'); }
-    const sync = () => {
+    const syncNow = () => {
       const sw = grid.scrollWidth, cw = grid.clientWidth, max = sw - cw;
       const scrollable = max > 4;
       wrap.classList.toggle('zw-has-swipe', scrollable);
@@ -223,6 +223,10 @@ function showToast(msg) {
       thumb.style.width = tw + '%';
       thumb.style.left = ((max > 0 ? grid.scrollLeft / max : 0) * (100 - tw)) + '%';
     };
+    // Batch the width/left writes to one per frame: they're layout-affecting, and
+    // a fast horizontal scroll fires far more than 60 scroll events/sec.
+    let _syncRaf = null;
+    const sync = () => { if (_syncRaf != null) return; _syncRaf = requestAnimationFrame(() => { _syncRaf = null; syncNow(); }); };
     if (!grid._zwBarBound) {
       grid.addEventListener('scroll', sync, { passive: true });
       window.addEventListener('resize', sync, { passive: true });
@@ -3076,12 +3080,21 @@ function togglePwd(id, btn) {
   }
 }
 
+// Nudge the auth modal box on a failed submit — same gesture zw-login.js already
+// uses on the secondary-page login, now shared by the homepage auth modal too
+// (reuses the zwShake keyframe in storefront-cohesion.css; reduced-motion safe).
+function zwShakeAuth() {
+  const box = document.querySelector('#auth-modal .mbox');
+  if (!box) return;
+  box.classList.remove('zw-shake'); void box.offsetWidth; box.classList.add('zw-shake');
+}
+
 document.getElementById('signin-submit').addEventListener('click', async () => {
   const email = document.getElementById('signin-email').value.trim();
   const pass = document.getElementById('signin-password').value;
   const err = document.getElementById('signin-error');
   err.textContent = '';
-  if (!email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
+  if (!email || !pass) { err.textContent = 'Please fill in all fields.'; zwShakeAuth(); return; }
   setDisabled('signin-submit', true, 'Login');
   const runSignIn = async (captchaToken) => {
     if (_sb) {
@@ -3090,6 +3103,7 @@ document.getElementById('signin-submit').addEventListener('click', async () => {
       if (error) {
         err.textContent = error.message === 'Email not confirmed' ? 'Please check your email and verify your account.' : error.message;
         setDisabled('signin-submit', false, 'Login');
+        zwShakeAuth();
         return;
       }
     }
@@ -3109,8 +3123,8 @@ document.getElementById('signup-submit').addEventListener('click', async () => {
   const suc = document.getElementById('signup-success');
   err.textContent = '';
   if (suc) suc.style.display = 'none';
-  if (!name || !email || !pass) { err.textContent = 'Please fill in all fields.'; return; }
-  if (pass.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
+  if (!name || !email || !pass) { err.textContent = 'Please fill in all fields.'; zwShakeAuth(); return; }
+  if (pass.length < 6) { err.textContent = 'Password must be at least 6 characters.'; zwShakeAuth(); return; }
   setDisabled('signup-submit', true, 'Create Account');
   const runSignUp = async (captchaToken) => {
     if (_sb) {
@@ -3123,6 +3137,7 @@ document.getElementById('signup-submit').addEventListener('click', async () => {
       if (error) {
         err.textContent = error.message;
         setDisabled('signup-submit', false, 'Create Account');
+        zwShakeAuth();
         return;
       }
       if (typeof gtag === 'function') gtag('event', 'sign_up', { method: 'Email' });
@@ -3144,7 +3159,7 @@ document.getElementById('forgot-submit').addEventListener('click', async () => {
   const email = document.getElementById('forgot-email').value.trim();
   const err = document.getElementById('forgot-error'), suc = document.getElementById('forgot-success');
   err.textContent = ''; suc.style.display = 'none';
-  if (!email) { err.textContent = 'Please enter your email.'; return; }
+  if (!email) { err.textContent = 'Please enter your email.'; zwShakeAuth(); return; }
   setDisabled('forgot-submit', true, 'Send Reset Link');
   const runForgot = async (captchaToken) => {
     if (_sb) {
@@ -3154,6 +3169,7 @@ document.getElementById('forgot-submit').addEventListener('click', async () => {
       if (error) {
         err.textContent = error.message;
         setDisabled('forgot-submit', false, 'Send Reset Link');
+        zwShakeAuth();
         return;
       }
     }

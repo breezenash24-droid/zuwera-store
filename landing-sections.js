@@ -57,7 +57,7 @@
     var bar = wrap.querySelector(':scope > .zw-swipe-bar'), thumb;
     if (!bar) { bar = document.createElement('div'); bar.className = 'zw-swipe-bar'; thumb = document.createElement('div'); thumb.className = 'zw-swipe-thumb'; bar.appendChild(thumb); wrap.appendChild(bar); }
     else { thumb = bar.querySelector('.zw-swipe-thumb'); }
-    var sync = function () {
+    var syncNow = function () {
       var sw = grid.scrollWidth, cw = grid.clientWidth, max = sw - cw, scrollable = max > 4;
       wrap.classList.toggle('zw-has-swipe', scrollable);
       if (!scrollable) return;
@@ -65,6 +65,9 @@
       thumb.style.width = tw + '%';
       thumb.style.left = ((max > 0 ? grid.scrollLeft / max : 0) * (100 - tw)) + '%';
     };
+    // Batch the layout-affecting width/left writes to one per frame (mirror of storefront.js).
+    var _syncRaf = null;
+    var sync = function () { if (_syncRaf != null) return; _syncRaf = requestAnimationFrame(function () { _syncRaf = null; syncNow(); }); };
     if (!grid._zwBarBound) {
       grid.addEventListener('scroll', sync, { passive: true });
       window.addEventListener('resize', sync, { passive: true });
@@ -660,19 +663,34 @@
     track.addEventListener('touchend', function (e) { tex = e.changedTouches[0].screenX; var diff = tsx - tex; if (Math.abs(diff) > 50) { isPaused = false; updatePauseIcon(); if (diff > 0) next(); else prev(); startLoop(); } }, { passive: true });
   }
 
+  function ensureCountdownKeyframes() {
+    if (document.getElementById('zw-lp-cd-kf')) return;
+    var st = document.createElement('style'); st.id = 'zw-lp-cd-kf';
+    st.textContent = '@keyframes zwLpCdFlip{0%{opacity:1;transform:translateY(0)}30%{opacity:0;transform:translateY(-6px)}55%{opacity:0;transform:translateY(7px)}100%{opacity:1;transform:translateY(0)}}.cd-n.zw-cd-flip{animation:zwLpCdFlip .2s ease}';
+    document.head.appendChild(st);
+  }
   function startCountdown(el, s, secId) {
     var target = s.launch_date ? new Date(s.launch_date) : null;
     var cdEl = document.getElementById('lp-cd-' + secId);
     if (!target || !cdEl) return;
+    ensureCountdownKeyframes();
     var nums = cdEl.querySelectorAll('.cd-n');
     function pad(n) { return String(n).padStart(2, '0'); }
+    // Flip a digit only when its value actually changes — mirrors the homepage
+    // countdown (index.html setUnit), so seconds flip each tick and larger units
+    // only on rollover instead of re-animating every second.
+    function setNum(node, val) {
+      if (!node || node.textContent === val) return;
+      node.textContent = val;
+      node.classList.remove('zw-cd-flip'); void node.offsetWidth; node.classList.add('zw-cd-flip');
+    }
     function t() {
       var diff = target - Date.now();
-      if (diff <= 0) { nums.forEach(function (n) { n.textContent = '00'; }); return; }
-      if (nums[0]) nums[0].textContent = pad(Math.floor(diff / 864e5));
-      if (nums[1]) nums[1].textContent = pad(Math.floor((diff % 864e5) / 36e5));
-      if (nums[2]) nums[2].textContent = pad(Math.floor((diff % 36e5) / 6e4));
-      if (nums[3]) nums[3].textContent = pad(Math.floor((diff % 6e4) / 1e3));
+      if (diff <= 0) { nums.forEach(function (n) { setNum(n, '00'); }); return; }
+      if (nums[0]) setNum(nums[0], pad(Math.floor(diff / 864e5)));
+      if (nums[1]) setNum(nums[1], pad(Math.floor((diff % 864e5) / 36e5)));
+      if (nums[2]) setNum(nums[2], pad(Math.floor((diff % 36e5) / 6e4)));
+      if (nums[3]) setNum(nums[3], pad(Math.floor((diff % 6e4) / 1e3)));
     }
     t(); setInterval(t, 1000);
   }
