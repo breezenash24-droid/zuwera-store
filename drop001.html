@@ -1127,7 +1127,7 @@ document.documentElement.classList.add('zw-collflash');
       <button onclick="notifyMe()">Notify Me</button>
     </div>
     <p class="notify-note">Be first to know when Release 001 goes live. No spam, ever.</p>
-    <p class="notify-success" id="notify-success">? You're on the list.</p>
+    <p class="notify-success" id="notify-success">✓ You're on the list.</p>
   </section>
 
   <!-- PRODUCTS GRID -->
@@ -1965,7 +1965,7 @@ function updateCountdown() {
                   <p class="product-price">${productPrice ? '$' + Number(productPrice).toFixed(2) : 'Price TBA'}</p>
                   ${isLowStock ? `<span class="stock-badge-low">Low Stock</span>` : ''}
                   ${!isLive
-                    ? `<span class="product-notify" onclick="scrollToNotify(event)">Notify Me When Live ?</span>`
+                    ? `<span class="product-notify" onclick="scrollToNotify(event)">Notify Me When Live →</span>`
                     : isSoldOut
                       ? `<span class="product-notify" style="opacity:.55">Sold Out</span>`
                       : (hasSwatches ? zwColSwatchRow(p, quickAddPayload, originalImg) : '')
