@@ -238,7 +238,11 @@ document.documentElement.classList.add('zw-collflash');
       font-size: clamp(2.5rem, 6vw, 4rem);
       letter-spacing: 0.05em;
       line-height: 1;
+      will-change: transform, opacity;
     }
+    /* Digit flip on value change — mirrors the homepage hero countdown. */
+    @keyframes cdFlip{0%{opacity:1;transform:translateY(0)}30%{opacity:0;transform:translateY(-6px)}55%{opacity:0;transform:translateY(7px)}100%{opacity:1;transform:translateY(0)}}
+    .countdown-num.flip{animation:cdFlip .2s ease}
     .countdown-label {
       font-size: 0.62rem;
       letter-spacing: 0.2em;
@@ -468,8 +472,8 @@ document.documentElement.classList.add('zw-collflash');
     }
     @keyframes svgHeartPop {
       0%  { transform: scale(1); }
-      35% { transform: scale(1.55); }
-      65% { transform: scale(0.87); }
+      35% { transform: scale(1.42); }
+      65% { transform: scale(0.88); }
       100%{ transform: scale(1); }
     }
     .heart-btn svg.heart-pop {
@@ -1378,10 +1382,13 @@ function updateCountdown() {
       const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const mins  = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const secs  = Math.floor((diff % (1000 * 60)) / 1000);
-      document.getElementById('cd-days').textContent  = String(days).padStart(2,'0');
-      document.getElementById('cd-hours').textContent = String(hours).padStart(2,'0');
-      document.getElementById('cd-mins').textContent  = String(mins).padStart(2,'0');
-      document.getElementById('cd-secs').textContent  = String(secs).padStart(2,'0');
+      // Flip a digit only when its value changes (mirrors the homepage countdown).
+      const setCd = (id, n) => {
+        const node = document.getElementById(id); if (!node) return;
+        const val = String(n).padStart(2, '0'); if (node.textContent === val) return;
+        node.textContent = val; node.classList.remove('flip'); void node.offsetWidth; node.classList.add('flip');
+      };
+      setCd('cd-days', days); setCd('cd-hours', hours); setCd('cd-mins', mins); setCd('cd-secs', secs);
     }
 
     updateCountdown();

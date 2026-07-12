@@ -240,6 +240,12 @@ body{display:flex;flex-direction:column}
 .kb-row{display:grid;grid-template-columns:1fr 1fr;gap:.3rem .8rem;margin-bottom:.3rem}
 .kb-key{font-family:'IBM Plex Mono',monospace;font-size:.56rem;background:var(--sf2);border:1px solid var(--bd);border-radius:2px;padding:.2rem .45rem;display:inline-block}
 .kb-desc{font-size:.62rem;color:var(--mu);align-self:center}
+/* Reduced-motion: the builder is a standalone tool that doesn't load
+   storefront-cohesion.css, so the sitewide guard never reaches it — honor the OS
+   preference here too (mirrors storefront-cohesion.css:3399). */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; scroll-behavior:auto !important; }
+}
 </style>
 </head>
 <body>
