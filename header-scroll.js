@@ -47,6 +47,24 @@
     return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
   }
 
+  // The announcement bar (#bar, index/product only) has its OWN independent
+  // scroll-hide (storefront.js), so without coordination the header and bar can
+  // hide in either order depending on their separate thresholds — the header was
+  // observed disappearing BEFORE the bar, which reads as broken (a promo bar
+  // floating alone with nothing below it). The header should instead follow the
+  // bar: stay shown for as long as the bar is, and only start its own auto-hide
+  // once the bar has actually hidden. Queries live DOM state (not a flag from
+  // storefront.js) so it works regardless of script load order, and resolves to
+  // "not visible" on every page without a bar (no behavior change there).
+  function barIsVisible() {
+    var bar = document.getElementById('bar');
+    if (!bar) return false;
+    var cs = window.getComputedStyle(bar);
+    if (cs.display === 'none') return false;
+    if (parseFloat(cs.opacity) === 0) return false;
+    return true;
+  }
+
   function init() {
     var nav = getNav();
     if (!nav) return;
@@ -77,6 +95,9 @@
       if (document.body.dataset.scrollLocked || window.__zwScrollLocking || window.__zwScrollRestoring) return;
       var y = scrollY();
       if (y <= REVEAL_AT) { show(); lastY = y; return; }
+      // Follow the announcement bar: don't hide the header while the bar is still
+      // showing — only the bar's own scroll-hide is allowed to fire first.
+      if (barIsVisible()) { show(); lastY = y; return; }
       var dy = y - lastY;
       if (Math.abs(dy) < THRESH) return;
       if (dy > 0) hide(); else show();   // down → hide, up → reveal
