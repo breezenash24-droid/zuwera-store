@@ -1813,6 +1813,30 @@ const optimizeImage = window.optimizeImage || ((url) => url);
 // reflects live inventory (e.g. right after an admin stock edit).
 window.addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); });
 
+// Live stock without a manual refresh: when the visitor returns to this tab (e.g.
+// after you edited stock in the admin in another tab), re-fetch this product's sizes
+// and re-render availability. The fetch is already no-store; this just re-triggers it
+// on tab focus. Throttled, and a no-op if the product changed meanwhile.
+let _zwStockRefreshAt = 0;
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState !== 'visible') return;
+  if (!currentProduct || !currentProduct.id) return;
+  if (Date.now() - _zwStockRefreshAt < 4000) return;
+  _zwStockRefreshAt = Date.now();
+  const pid = String(currentProduct.id);
+  try {
+    const resp = await fetch(`${_PROD_SB_URL}/rest/v1/product_sizes?select=*&product_id=eq.${encodeURIComponent(pid)}`, {
+      headers: { apikey: _PROD_SB_KEY, Authorization: `Bearer ${_PROD_SB_KEY}` },
+      cache: 'no-store'
+    });
+    if (!resp.ok) return;
+    const rows = await resp.json();
+    if (!currentProduct || String(currentProduct.id) !== pid) return; // navigated away meanwhile
+    currentProduct.inventory = (Array.isArray(rows) ? rows : []).filter(r => String(r.product_id) === pid);
+    if (typeof renderSizes === 'function') renderSizes();
+  } catch (_) {}
+});
+
 let currentProduct = null;
 let selectedSize = null;
 let selectedColor = null;
