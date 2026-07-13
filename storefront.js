@@ -1617,21 +1617,30 @@ function showToast(msg) {
      }
     });
 
-    // Header offset: the header is position:fixed. Sections that paint their OWN
-    // full-bleed background (hero, hero_carousel, color_block, banner) sit correctly
-    // under it — their coloured area runs up behind the header and their content is
-    // centred/positioned within, so they need no offset. Padding those would only
-    // add top padding to a transparent section wrapper and expose a strip of page
-    // background above the coloured block — a visible white gap (reported). Only
-    // offset a first section that renders on the PAGE background, where the fixed
-    // header would otherwise hide its top content with nothing behind it.
+    // Header offset: the header is position:fixed. hero / hero_carousel are designed
+    // to sit full-bleed UNDER it, so they're never offset. Every other first section
+    // is padded down so the header doesn't cover its top content — the header stays a
+    // clean bar with the section beginning right at its bottom edge.
+    //
+    // A color_block's outer wrapper is transparent (its colour lives on an inner div),
+    // so the offset padding could expose a strip of white page background if the header
+    // height is ever momentarily over-measured (e.g. the announcement bar counted while
+    // it's mid-hide). To make that impossible for a full-width block, we paint the
+    // wrapper with the block's own colour: the padded strip then reads as the block
+    // colour (and is covered by the opaque header anyway) — never white. banner already
+    // sets its own background, so it's safe without extra handling.
     try {
       document.querySelectorAll('[data-zw-top-offset]').forEach(el => { el.style.removeProperty('padding-top'); el.removeAttribute('data-zw-top-offset'); });
-      const _fullBleedBg = ['hero', 'hero_carousel', 'color_block', 'banner'];
+      const _noOffset = ['hero', 'hero_carousel'];
       const _firstVis = sorted.find(s => s.visible !== false && (window.__ZW_BUILDER_PREVIEW__ || window.zwSecInWindow(s.settings || {})));
-      if (_firstVis && !_fullBleedBg.includes(_firstVis.type)) {
+      if (_firstVis && !_noOffset.includes(_firstVis.type)) {
         const _topEl = sectionMap[_firstVis.type] || document.getElementById(_firstVis.id);
         if (_topEl) {
+          if (_firstVis.type === 'color_block') {
+            const _g = _firstVis.settings || {};
+            const _cbFull = !_g.width || _g.width === 'full';
+            _topEl.style.background = _cbFull ? (_g.bg_color || '#1f2937') : '';
+          }
           _topEl.setAttribute('data-zw-top-offset', '');
           zwApplyTopOffset();
           requestAnimationFrame(zwApplyTopOffset);
