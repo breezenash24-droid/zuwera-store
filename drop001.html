@@ -1774,7 +1774,7 @@ function updateCountdown() {
         const [productsResp, imagesResp, sizesResp, colorsResp] = await Promise.all([
           fetch(`${SUPABASE_URL}/rest/v1/products?select=*&order=sort_order.asc`, { headers }),
           fetch(`${SUPABASE_URL}/rest/v1/product_images?select=*&order=sort_order.asc`, { headers }),
-          fetch(`${SUPABASE_URL}/rest/v1/product_sizes?select=product_id,stock_quantity`, { headers }),
+          fetch(`${SUPABASE_URL}/rest/v1/product_sizes?select=product_id,stock_quantity`, { headers, cache: 'no-store' }),
           fetch(`${SUPABASE_URL}/rest/v1/color_variants?select=*&order=sort_order.asc`, { headers })
         ]);
         if (!productsResp.ok) throw new Error(`HTTP ${productsResp.status}`);
