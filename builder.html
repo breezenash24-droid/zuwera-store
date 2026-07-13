@@ -527,6 +527,7 @@ const TYPES={
   about:{icon:'ℹ️',cat:'store',desc:'Brand story with stats'},
   release:{icon:'🚀',cat:'store',desc:'Drop countdown + notify form'},
   products:{icon:'👕',cat:'store',desc:'Products grid from collection'},
+  recently_viewed:{icon:'🕘',cat:'store',desc:'Recently viewed — each visitor\'s last-viewed products, auto-filled'},
   split:{icon:'◧',cat:'marketing',desc:'Image + text side by side'},
   cta:{icon:'📣',cat:'marketing',desc:'Centered call-to-action banner'},
   features:{icon:'⊞',cat:'marketing',desc:'Feature / icon grid'},
@@ -557,6 +558,7 @@ const SECT_DEFS={
   about:{label:'About Zuwera',heading:'Built For\nMovement.',body:'Bold, athletic, and designed for those who dream big.\n\nRelease 001 is the beginning.',stats:[{value:'001',label:'First Release'},{value:'2026',label:'Launching'},{value:'3',label:'Styles'}],pad_top:0,pad_bot:0},
   release:{eyebrow:'Zuwera Release 001',title:'Release\n001',notify_on:true,notify_label:'Get Early Access',launch_date:'2026-09-20',pad_top:0,pad_bot:0},
   products:{title:'Release 001',subtitle:'Releasing 09 / 20 / 2026',columns:2,lay_lg:'grid',col_lg:3,lay_md:'swipe',col_md:2,lay_sm:'swipe',col_sm:2,pad_top:0,pad_bot:0},
+  recently_viewed:{heading:'Recently Viewed',count:5,show_time:false,pad_top:0,pad_bot:0},
   split:{image:'',image_side:'left',image_height:'500',label:'',heading:'',body:'',cta_text:'',cta_url:'',bg_color:'',pad_top:0,pad_bot:0},
   cta:{heading:'Ready to Move?',subtext:'Discover the first drop from Zuwera.',btn_text:'Shop Now',btn_url:'/drop001.html',btn_style:'solid',bg_color:'#09090b',text_color:'#f4f1eb',align:'center',pad_top:0,pad_bot:0},
   features:{heading:'Why Zuwera',items:[{icon:'⚡',title:'Performance',desc:'Built for movement.'},{icon:'🎯',title:'Precision',desc:'Every stitch placed with purpose.'},{icon:'🌍',title:'For Everyone',desc:'Sizes for all.'}],pad_top:0,pad_bot:0},
@@ -1559,6 +1561,7 @@ function buildForm(s){
     case 'about': h+=f('label','Eyebrow Label',g.label)+ta('heading','Heading',g.heading)+ta('body','Body (↵↵=paragraph)',g.body)+fdiv()+fhd('Stats')+arrField('stats','Stat',g.stats||[],[['value','Number','text'],['label','Label','text']])+padF(g);break;
     case 'release': h+=f('eyebrow','Eyebrow',g.eyebrow)+ta('title','Title (↵=line break)',g.title)+f('launch_date','Launch Date',g.launch_date,'date')+fdiv()+tog2('notify_on','Show Notify Form',g.notify_on)+f('notify_label','Form Label',g.notify_label)+padF(g);break;
     case 'products': h+=f('title','Section Title',g.title)+f('subtitle','Subtitle',g.subtitle)+fdiv()+platFields(g,'grid','swipe','swipe')+padF(g);break;
+    case 'recently_viewed': h+=f('heading','Section Title',g.heading)+rangeF('count','How many products to show',g.count??5,1,12,'')+tog2('show_time','Show time each product was viewed',g.show_time)+`<div class="fhint">Auto-fills with each visitor's most recently viewed products. Hidden for anyone who hasn't viewed at least 2.</div>`+padF(g);break;
     case 'split': h+=imgField('image','Image',g.image)+sel('image_side','Image Side',g.image_side||'left',[['left','Image Left'],['right','Image Right']])+sel('layout_width','Section Width',g.layout_width||'full',[['full','Full Bleed (Edge to Edge)'],['1400','Contained - Wide (1400px)'],['1200','Contained - Standard (1200px)'],['1000','Contained - Narrow (1000px)'],['800','Contained - Slim (800px)']])+f('image_height','Image Height (px)',g.image_height,'number')+fdiv()+f('label','Eyebrow',g.label)+ta('heading','Heading',g.heading)+ta('body','Body',g.body)+fdiv()+f('cta_text','Button Text',g.cta_text)+f('cta_url','Button URL',g.cta_url)+padF(g);break;
     case 'cta': h+=ta('heading','Heading',g.heading)+ta('subtext','Subtext',g.subtext)+fdiv()+f('btn_text','Button Text',g.btn_text)+f('btn_url','Button URL',g.btn_url)+sel('btn_style','Button Style',g.btn_style||'solid',[['solid','Solid'],['outline','Outlined'],['ghost','Ghost']])+sel('align','Alignment',g.align||'center',[['center','Center'],['left','Left'],['right','Right']])+padF(g);break;
     case 'features': h+=f('heading','Section Heading',g.heading)+fdiv()+arrField('items','Feature',g.items||[],[['icon','Icon/Emoji','text'],['title','Title','text'],['desc','Description','textarea']])+padF(g);break;
@@ -1869,7 +1872,7 @@ async function uploadFromMedia(input){
 // stay hidden from the Pages-tab palette. `hero` IS allowed: a hero section is
 // how you place a hero below the products (turn off the auto hero if you don't
 // want it at the top too).
-const HOMEPAGE_ONLY_TYPES=['products','release'];
+const HOMEPAGE_ONLY_TYPES=['products','release','recently_viewed'];
 function openLib(){
   const cats={store:'Store Sections',marketing:'Marketing & Content',layout:'Layout Blocks'};
   let html='';

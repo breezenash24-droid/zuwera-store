@@ -612,7 +612,7 @@ function showToast(msg) {
         // Dynamically instantiate builder sections if they don't exist
         if (['spacer', 'text', 'img_cta', 'image_cta', 'custom', 'html', 'header',
              'numbers', 'press', 'faq', 'email_capture', 'logos', 'richtext',
-             'split', 'cta', 'features', 'testimonials', 'banner', 'gallery', 'video', 'countdown', 'hero_carousel', 'media_grid', 'color_block'].includes(sec.type)) {
+             'split', 'cta', 'features', 'testimonials', 'banner', 'gallery', 'video', 'countdown', 'hero_carousel', 'media_grid', 'color_block', 'recently_viewed'].includes(sec.type)) {
           el = document.createElement('div');
           el.id = sec.id;
           if (sec.type === 'spacer') {
@@ -637,7 +637,7 @@ function showToast(msg) {
           } else if (sec.type === 'custom' || sec.type === 'html') {
             el.className = 'builder-custom-section';
           } else if (['numbers','press','faq','email_capture','logos','richtext','header',
-                      'split','cta','features','testimonials','banner','gallery','video','countdown','hero_carousel','media_grid','color_block'].includes(sec.type)) {
+                      'split','cta','features','testimonials','banner','gallery','video','countdown','hero_carousel','media_grid','color_block','recently_viewed'].includes(sec.type)) {
             el.className = 'builder-' + sec.type.replace(/_/g,'-') + '-section';
           }
         }
@@ -1091,6 +1091,25 @@ function showToast(msg) {
           el.className = 'builder-banner-section';
           el.style.cssText = `padding:1.5rem 2.5rem;text-align:center;background:${s.bg_color||s.sec_bg||'#09090b'};color:${s.text_color||'#f4f1eb'}`;
           el.innerHTML = `<span style="font-family:var(--fm,var(--fb));font-size:.8rem;letter-spacing:.12em;text-transform:uppercase">${s.text||''}</span>${s.link_text?` <a href="${escapeHomeFavoriteHtml(zwSafeUrl(s.link_url))}" style="color:inherit;margin-left:.75rem;text-decoration:underline;font-family:var(--fm,var(--fb));font-size:.8rem;letter-spacing:.12em;text-transform:uppercase">${s.link_text}</a>`:''}`;
+          break;
+        }
+        case 'recently_viewed': {
+          // The data + card rendering live in storefront-features.js (per-visitor
+          // localStorage history). Here we just place the container where the admin
+          // positioned it and hand it the settings. In the builder preview there's no
+          // real visitor history, so show a labelled placeholder instead.
+          el.className = 'builder-recently-viewed-section';
+          el.style.cssText = `padding-top:${parseInt(s.pad_top) || 0}px;padding-bottom:${parseInt(s.pad_bot) || 0}px`;
+          const _rvN = Math.max(1, Math.min(12, parseInt(s.count) || 5));
+          if (window.__ZW_BUILDER_PREVIEW__) {
+            el.innerHTML = `<div style="max-width:1400px;margin:0 auto;padding:2rem clamp(1rem,4vw,2.5rem)">`
+              + `<h2 style="font-family:var(--fw);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.06em;font-size:clamp(1.1rem,3vw,1.6rem);margin:0 0 1rem">${escapeHomeFavoriteHtml(s.heading || 'Recently Viewed')}</h2>`
+              + `<div style="border:1px dashed currentColor;opacity:.45;border-radius:8px;padding:2.2rem 1rem;text-align:center;font-family:var(--fm,var(--fb));font-size:.68rem;letter-spacing:.12em;text-transform:uppercase">🕘 Shows each visitor the last ${_rvN} product${_rvN === 1 ? '' : 's'} they viewed${s.show_time ? ' · with time spent' : ''}</div></div>`;
+          } else if (typeof window.zwRenderRecentlyViewed === 'function') {
+            window.zwRenderRecentlyViewed(el, { count: _rvN, show_time: s.show_time === true, heading: s.heading });
+          } else {
+            el.style.display = 'none';
+          }
           break;
         }
         case 'gallery': {
