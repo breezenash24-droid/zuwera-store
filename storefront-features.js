@@ -71,6 +71,32 @@
       + '</div></a>';
   }
 
+  // Same card, but using the site's REAL product-card text classes (.pcard-name /
+  // .pcard-cat / .pcard-price) so the fonts/sizes/colours match the homepage grid
+  // EXACTLY (including light-mode overrides). Used by the on-page strips
+  // (recently-viewed, recommendations) — NOT the search overlay, whose cream panel
+  // needs its own dark text.
+  function timeCaption(p) {
+    var ms = Number(p && p.ms) || 0;
+    if (ms < 3000) return '';
+    var s = Math.round(ms / 1000);
+    var label = s < 60 ? (s + 's') : (Math.round(s / 60) + ' min');
+    return '<p class="zwf-rv-time">Viewed for ' + label + '</p>';
+  }
+  function pcardCard(p, showTime) {
+    var img = imgOf(p);
+    return '<a class="zwf-card zwf-card--pcard" href="' + esc(hrefOf(p)) + '">'
+      + '<div class="zwf-card-img">'
+      + (img ? '<img src="' + esc(img) + '" alt="' + esc(nameOf(p)) + '" loading="lazy" decoding="async">' : '')
+      + '</div>'
+      + '<div class="zwf-card-info">'
+      + '<p class="zwf-pc-name">' + esc(nameOf(p)) + '</p>'
+      + (typeOf(p) ? '<p class="zwf-pc-cat">' + esc(typeOf(p)) + '</p>' : '')
+      + '<p class="zwf-pc-price">' + money(priceOf(p)) + '</p>'
+      + (showTime ? timeCaption(p) : '')
+      + '</div></a>';
+  }
+
   // Catalog: fetched once, memoized. Falls back to the homepage's session cache.
   var _catalog = null, _catalogPromise = null;
   function catalog() {
@@ -129,6 +155,14 @@
       '.zwf-card-name{font-family:var(--fw,inherit);font-weight:700;font-size:.9rem;letter-spacing:.02em;margin:0 0 .15rem;line-height:1.2}',
       '.zwf-card-type{font-family:var(--fm,var(--fb,inherit));font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;opacity:.55;margin:0 0 .3rem}',
       '.zwf-card-price{font-family:var(--fb,inherit);font-size:.85rem;opacity:.85;margin:0}',
+      /* on-page strip cards (recently-viewed / recommendations) — match the real
+         .pcard text EXACTLY (font/size/weight/style/tracking); colour adapts to the
+         page theme via inherit + opacity so it works on light and dark. */
+      '.zwf-pc-name{font-family:var(--fw,inherit);font-weight:700;font-style:italic;font-size:1.4rem;letter-spacing:.03em;line-height:1.1;margin:0 0 .3rem;color:inherit}',
+      '.zwf-pc-cat{font-family:var(--fm,var(--fb,inherit));font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;font-weight:500;opacity:.6;margin:0 0 .35rem}',
+      '.zwf-pc-price{font-family:var(--fw,inherit);font-size:1.05rem;font-weight:700;letter-spacing:.01em;opacity:.95;margin:0}',
+      '.zwf-rv-time{font-family:var(--fm,var(--fb,inherit));font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;opacity:.45;margin:.35rem 0 0}',
+      '.zwf-strip{scroll-margin-top:96px}',
       '@media(prefers-reduced-motion:reduce){.zwf-card-img img{transition:none}.zwf-card:hover .zwf-card-img img{transform:none}}',
 
       /* search launcher — inherits .nbtn look from the nav */
@@ -314,20 +348,63 @@
 
   var RV_KEY = 'zw_recently_viewed';
   function rvGet() { try { return JSON.parse(localStorage.getItem(RV_KEY) || '[]') || []; } catch (_) { return []; } }
+  function rvSave(list) { try { localStorage.setItem(RV_KEY, JSON.stringify(list.slice(0, 12))); } catch (_) {} }
   function rvRecord(p) {
     if (!p || !p.id) return;
-    var list = rvGet().filter(function (x) { return x.id !== p.id; });
-    list.unshift({ id: p.id, title: nameOf(p), subtitle: typeOf(p), price: priceOf(p), image_url: imgOf(p), sku: p.sku || '', ts: Date.now() });
-    try { localStorage.setItem(RV_KEY, JSON.stringify(list.slice(0, 12))); } catch (_) {}
+    var prev = rvGet(), existing = null;
+    var list = prev.filter(function (x) { if (x.id === p.id) { existing = x; return false; } return true; });
+    list.unshift({ id: p.id, title: nameOf(p), subtitle: typeOf(p), price: priceOf(p), image_url: imgOf(p), sku: p.sku || '', ts: Date.now(), ms: (existing && existing.ms) || 0 });
+    rvSave(list);
   }
-  function renderRecentlyViewed(excludeId) {
-    var list = rvGet().filter(function (x) { return x.id !== excludeId; }).slice(0, 10);
-    if (list.length < 2) return; // not worth a row for 0–1 items
+  // Accumulate how long this visitor looked at the product (for the optional
+  // "Viewed for …" caption). Saved on tab-hide / page-leave.
+  function rvTrackDwell(p) {
+    if (!p || !p.id) return;
+    var start = Date.now(), done = false;
+    function flush() {
+      if (done) return; done = true;
+      var ms = Date.now() - start;
+      var list = rvGet();
+      for (var i = 0; i < list.length; i++) { if (list[i].id === p.id) { list[i].ms = (Number(list[i].ms) || 0) + ms; break; } }
+      rvSave(list);
+    }
+    window.addEventListener('pagehide', flush, { once: true });
+    document.addEventListener('visibilitychange', function onVis() {
+      if (document.visibilityState === 'hidden') { flush(); document.removeEventListener('visibilitychange', onVis); }
+    });
+  }
+  // Render the "recently viewed" row. opts: { count, show_time, heading, excludeId,
+  // container }. With a container it fills it in place (used by the builder section);
+  // without one it inserts a strip before the footer (used on the product page).
+  // Returns the element, or null when there's nothing worth showing.
+  function renderRecentlyViewed(excludeId, opts) {
+    opts = opts || {};
+    var count = Math.max(1, Math.min(24, parseInt(opts.count, 10) || 5));
+    var list = rvGet().filter(function (x) { return x.id !== (opts.excludeId != null ? opts.excludeId : excludeId); }).slice(0, count);
+    if (list.length < 2) return null; // not worth a row for 0–1 items
     ensureStyles();
-    var sec = strip('Recently viewed', list.map(card).join(''));
+    var showTime = opts.show_time === true;
+    var heading = opts.heading != null ? opts.heading : 'Recently viewed';
+    var rowHtml = list.map(function (p) { return pcardCard(p, showTime); }).join('');
+    if (opts.container) {
+      opts.container.classList.add('zwf-strip');
+      opts.container.setAttribute('data-zwf', 'recently-viewed');
+      opts.container.innerHTML = '<div class="zwf-strip-inner">'
+        + (heading ? '<h2 class="zwf-strip-title">' + esc(heading) + '</h2>' : '')
+        + '<div class="zwf-row">' + rowHtml + '</div></div>';
+      return opts.container;
+    }
+    var sec = strip(heading, rowHtml);
     sec.setAttribute('data-zwf', 'recently-viewed');
     insertBeforeFooter(sec);
+    return sec;
   }
+  // Exposed so the homepage builder's "Recently Viewed" section can render into its
+  // own placed container (position, count, and time toggle all controlled there).
+  window.zwRenderRecentlyViewed = function (container, opts) {
+    opts = opts || {};
+    return renderRecentlyViewed(opts.excludeId != null ? opts.excludeId : null, Object.assign({ container: container }, opts));
+  };
 
   /* ───────────────────── feature: recommendations ───────────────────── */
 
@@ -356,7 +433,7 @@
       var rel = pickRelated(all, current, 8);
       if (rel.length < 2) return;
       ensureStyles();
-      var sec = strip('You may also like', rel.map(card).join(''));
+      var sec = strip('You may also like', rel.map(function (p) { return pcardCard(p, false); }).join(''));
       sec.setAttribute('data-zwf', 'recommendations');
       insertBeforeFooter(sec);
     });
@@ -538,7 +615,7 @@
     var onPdp = /\/product(\.html|\/)/i.test(location.pathname) || !!document.querySelector('.product-detail, #product-detail, .size-section');
     if (wantPdp && (onPdp || window.__zwCurrentProduct)) {
       onProduct(function (p) {
-        if (wantRV) rvRecord(p);
+        if (wantRV) { rvRecord(p); rvTrackDwell(p); }
         if (wantLowStock) initLowStock(p);
         if (wantFit) initFitFinder(p);
         if (wantRec) renderRecommendations(p);
