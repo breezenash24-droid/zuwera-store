@@ -76,7 +76,7 @@
   function catalog() {
     if (_catalog) return Promise.resolve(_catalog);
     if (_catalogPromise) return _catalogPromise;
-    _catalogPromise = fetch(SUPA + '/rest/v1/products?select=id,title,subtitle,gender,colorway,material_composition,category,tags,current_price,member_price,msrp,sku,image_url,status,sort_order&order=sort_order.asc.nullslast', {
+    _catalogPromise = fetch(SUPA + '/rest/v1/products?select=id,title,subtitle,gender,colorway,material_composition,category,tags,current_price,member_price,msrp,sku,image_url,status,sort_order,low_stock_threshold&order=sort_order.asc.nullslast', {
       headers: { apikey: ANON, Authorization: 'Bearer ' + ANON }
     })
       .then(function (r) { return r.ok ? r.json() : []; })
@@ -154,11 +154,9 @@
       '.zwf-empty{padding:3rem 1rem;text-align:center;opacity:.55;font-family:var(--fb,inherit)}',
       '@media(prefers-reduced-motion:reduce){.zwf-search,.zwf-search-panel{transition:none}}',
 
-      /* low-stock urgency (product page) */
-      '.zwf-lowstock{display:flex;align-items:center;gap:.55rem;margin:1.1rem 0 0;font-family:var(--fm,var(--fb,inherit));font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:#d64545}',
-      '.zwf-lowstock .zwf-dot{width:7px;height:7px;border-radius:50%;background:#e05252;box-shadow:0 0 0 0 rgba(224,82,82,.5);animation:zwfPulse 1.8s infinite}',
-      '@keyframes zwfPulse{0%{box-shadow:0 0 0 0 rgba(224,82,82,.5)}70%{box-shadow:0 0 0 7px rgba(224,82,82,0)}100%{box-shadow:0 0 0 0 rgba(224,82,82,0)}}',
-      '@media(prefers-reduced-motion:reduce){.zwf-lowstock .zwf-dot{animation:none}}',
+      /* low-stock chip on homepage product cards (the collection page + product page
+         already show their own stock cues, so this only targets .pcard grids) */
+      '.zwf-lowstock-badge{position:absolute;top:.8rem;left:.8rem;z-index:2;pointer-events:none;background:#e05252;color:#fff;font-family:var(--fm,var(--fb,inherit));font-size:.55rem;font-weight:700;letter-spacing:.11em;text-transform:uppercase;padding:.3rem .5rem;border-radius:3px;box-shadow:0 2px 8px rgba(0,0,0,.18)}',
 
       /* fit-finder trigger (next to size guide) */
       '.zwf-fit-btn{background:none;border:none;cursor:pointer;font-family:var(--fm,var(--fb,inherit));font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:inherit;opacity:.7;text-decoration:underline;text-underline-offset:3px;padding:0;margin-left:1.1rem}',
@@ -362,22 +360,67 @@
     });
   }
 
-  /* ───────────────────── feature: low-stock urgency ───────────────────── */
+  /* ───────────────────── feature: low-stock (homepage cards) ─────────────────────
+     The product page and the collection page (drop001) already show their own
+     low-stock / sold-out cues, so this only adds a "Low Stock" chip to the HOMEPAGE
+     .pcard grid (collection cards use .product-card and are left untouched — no
+     duplication). Stock is summed from one batched product_sizes fetch (no-store). */
 
-  function initLowStock(p) {
-    var inv = Array.isArray(p.inventory) ? p.inventory : [];
-    if (!inv.length) return;
-    var total = inv.reduce(function (s, x) { return s + (parseInt(x.stock_quantity, 10) || 0); }, 0);
-    if (total <= 0) return; // fully sold out — belongs to back-in-stock, not urgency
-    var threshold = parseInt(p.low_stock_threshold, 10) || 10;
-    if (total > threshold) return; // healthy stock — no false urgency
-    var host = document.querySelector('.size-section');
-    if (!host || host.querySelector('.zwf-lowstock')) return;
+  var _stockTotalsPromise = null;
+  function stockTotals() {
+    if (_stockTotalsPromise) return _stockTotalsPromise;
+    _stockTotalsPromise = fetch(SUPA + '/rest/v1/product_sizes?select=product_id,stock_quantity', {
+      headers: { apikey: ANON, Authorization: 'Bearer ' + ANON }, cache: 'no-store'
+    })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (rows) {
+        var t = {};
+        (rows || []).forEach(function (row) { t[row.product_id] = (t[row.product_id] || 0) + (parseInt(row.stock_quantity, 10) || 0); });
+        return t;
+      })
+      .catch(function () { return {}; });
+    return _stockTotalsPromise;
+  }
+
+  function initLowStock() {
     ensureStyles();
-    var line = document.createElement('div');
-    line.className = 'zwf-lowstock';
-    line.innerHTML = '<span class="zwf-dot"></span> Only ' + total + ' left — almost gone';
-    host.appendChild(line);
+    Promise.all([stockTotals(), catalog()]).then(function (res) {
+      var totals = res[0], cat = res[1];
+      var threshOf = {};
+      cat.forEach(function (p) { threshOf[p.id] = parseInt(p.low_stock_threshold, 10) || 10; });
+      var low = {}; // product_id -> true when 0 < stock <= threshold
+      Object.keys(totals).forEach(function (pid) {
+        var t = totals[pid];
+        if (t > 0 && t <= (threshOf[pid] || 10)) low[pid] = true;
+      });
+
+      function decorate() {
+        var cards = document.querySelectorAll('.pcard');
+        for (var i = 0; i < cards.length; i++) {
+          var card = cards[i];
+          if (card.querySelector('.zwf-lowstock-badge')) continue;
+          var heart = card.querySelector('.heart-btn[data-product-id]');
+          var pid = heart && heart.getAttribute('data-product-id');
+          if (!pid || !low[pid]) continue;
+          var wrap = card.querySelector('.pcard-img') || card;
+          var b = document.createElement('span');
+          b.className = 'zwf-lowstock-badge';
+          b.textContent = 'Low Stock';
+          wrap.appendChild(b);
+        }
+      }
+
+      decorate();
+      // Homepage cards render from cache then re-render on fresh data (and on
+      // category switches); re-decorate on those. childList only (no subtree) so
+      // appending our own chip inside a card doesn't retrigger the observer.
+      var first = document.querySelector('.pcard');
+      var grid = (first && first.parentElement) || document.querySelector('.products-grid, #products-grid');
+      if (grid) { try { new MutationObserver(decorate).observe(grid, { childList: true }); } catch (_) {} }
+      // A couple of late passes in case the grid populates after us.
+      setTimeout(decorate, 800);
+      setTimeout(decorate, 2000);
+    });
   }
 
   /* ───────────────────── feature: fit finder ───────────────────── */
@@ -533,13 +576,13 @@
 
     if (wantSearch) initSearch();
     if (wantSupport) initSupport();
+    if (wantLowStock) initLowStock(); // decorates homepage .pcard grids; no-op elsewhere
 
-    var wantPdp = wantRV || wantRec || wantLowStock || wantFit;
+    var wantPdp = wantRV || wantRec || wantFit;
     var onPdp = /\/product(\.html|\/)/i.test(location.pathname) || !!document.querySelector('.product-detail, #product-detail, .size-section');
     if (wantPdp && (onPdp || window.__zwCurrentProduct)) {
       onProduct(function (p) {
         if (wantRV) rvRecord(p);
-        if (wantLowStock) initLowStock(p);
         if (wantFit) initFitFinder(p);
         if (wantRec) renderRecommendations(p);
         if (wantRV) renderRecentlyViewed(p.id);
