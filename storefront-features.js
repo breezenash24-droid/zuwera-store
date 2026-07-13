@@ -401,9 +401,16 @@
   }
   // Exposed so the homepage builder's "Recently Viewed" section can render into its
   // own placed container (position, count, and time toggle all controlled there).
+  // Defers until flags load and respects the feature_recently_viewed master switch;
+  // hides the placed container when off or when there's nothing to show.
   window.zwRenderRecentlyViewed = function (container, opts) {
     opts = opts || {};
-    return renderRecentlyViewed(opts.excludeId != null ? opts.excludeId : null, Object.assign({ container: container }, opts));
+    function go() {
+      if (window.zwFlag && !window.zwFlag('feature_recently_viewed')) { container.style.display = 'none'; return; }
+      var done = renderRecentlyViewed(opts.excludeId != null ? opts.excludeId : null, Object.assign({ container: container }, opts));
+      if (!done) container.style.display = 'none';
+    }
+    if (typeof window.zwWhenFlags === 'function') window.zwWhenFlags(go); else go();
   };
 
   /* ───────────────────── feature: recommendations ───────────────────── */
@@ -621,9 +628,10 @@
         if (wantRec) renderRecommendations(p);
         if (wantRV) renderRecentlyViewed(p.id);
       });
-    } else if (wantRV && isHome()) {
-      renderRecentlyViewed(null);
     }
+    // Homepage placement is controlled by the builder's "Recently Viewed" section
+    // (storefront.js calls window.zwRenderRecentlyViewed into the container the admin
+    // positions) — so there is no auto-insert on the homepage anymore.
   }
 
   if (typeof window.zwWhenFlags === 'function') window.zwWhenFlags(init);
