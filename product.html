@@ -48,6 +48,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=3">
 <script src="/favicon-utils.js?v=687e90ea" defer></script>
 <script src="/flags.js?v=1" defer></script>
+<script src="/storefront-features.js?v=1" defer></script>
 <script src="/meta-pixel.js?v=71fe06fb" defer></script>
 <script src="/google-tag.js?v=b141b2a1" defer></script>
 <script src="/supabase.min.js?v=3277b334" defer></script>
@@ -2385,6 +2386,12 @@ async function loadProduct() {
   currentProduct.colors   = colors;
   currentProduct.inventory = inventory;
   currentProduct.reviews  = [];
+  // Announce the loaded product to opt-in storefront features (storefront-features.js:
+  // recently-viewed + recommendations). Guarded so it never affects the PDP itself.
+  try {
+    window.__zwCurrentProduct = currentProduct;
+    window.dispatchEvent(new CustomEvent('zw-product-loaded', { detail: currentProduct }));
+  } catch (_) {}
   imagesPromise.then((imagesData) => {
     if (!currentProduct || String(currentProduct.id) !== strictProductId) return;
     const seenImageUrls = new Set();

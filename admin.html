@@ -5427,6 +5427,16 @@
         // ─── Feature Flags (site_settings.feature_flags → read by flags.js) ──────────
         let _featureFlags = {};
         let _flagOrders = [];
+        // Curated storefront-feature toggles. These always appear here (off by
+        // default) so every shipped customer-facing feature has a ready control —
+        // no need to type a flag key. Flipping one on + Save makes it live; until
+        // then storefront code (zwFlag) sees false and the feature stays hidden.
+        // Extended as new feature batches ship.
+        const ZW_FEATURE_REGISTRY = [
+            { key: 'feature_search',          desc: 'Product search — a magnifier in the header opens instant search across your catalog.' },
+            { key: 'feature_recently_viewed', desc: 'Recently viewed — a “recently viewed” row on the homepage and product pages (per visitor).' },
+            { key: 'feature_recommendations', desc: 'You may also like — related-product recommendations on product pages.' },
+        ];
         function _flagVid() {
             try { let id = localStorage.getItem('zw_vid'); if (!id) { id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2)); localStorage.setItem('zw_vid', id); } return id; } catch (_) { return 'anon'; }
         }
@@ -5444,6 +5454,12 @@
                 if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
                 _featureFlags = (v && typeof v === 'object') ? v : {};
             } catch (_) { _featureFlags = {}; }
+            // Ensure every curated storefront-feature toggle exists (off) so you can
+            // control it here even before it's ever been saved.
+            ZW_FEATURE_REGISTRY.forEach(f => {
+                if (!_featureFlags[f.key]) _featureFlags[f.key] = { enabled: false, rollout: 0, description: f.desc };
+                else if (!_featureFlags[f.key].description) _featureFlags[f.key].description = f.desc;
+            });
             // Orders stamped with flag variants (needs supabase-feature-flags.sql;
             // empty until that column exists + purchases start flowing).
             try {
