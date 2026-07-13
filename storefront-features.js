@@ -152,7 +152,50 @@
       '@media(min-width:900px){.zwf-search-grid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}}',
       '.zwf-search .zwf-card-name,.zwf-search .zwf-card-price{color:var(--ink,#09090b)}',
       '.zwf-empty{padding:3rem 1rem;text-align:center;opacity:.55;font-family:var(--fb,inherit)}',
-      '@media(prefers-reduced-motion:reduce){.zwf-search,.zwf-search-panel{transition:none}}'
+      '@media(prefers-reduced-motion:reduce){.zwf-search,.zwf-search-panel{transition:none}}',
+
+      /* low-stock urgency (product page) */
+      '.zwf-lowstock{display:flex;align-items:center;gap:.55rem;margin:1.1rem 0 0;font-family:var(--fm,var(--fb,inherit));font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:#d64545}',
+      '.zwf-lowstock .zwf-dot{width:7px;height:7px;border-radius:50%;background:#e05252;box-shadow:0 0 0 0 rgba(224,82,82,.5);animation:zwfPulse 1.8s infinite}',
+      '@keyframes zwfPulse{0%{box-shadow:0 0 0 0 rgba(224,82,82,.5)}70%{box-shadow:0 0 0 7px rgba(224,82,82,0)}100%{box-shadow:0 0 0 0 rgba(224,82,82,0)}}',
+      '@media(prefers-reduced-motion:reduce){.zwf-lowstock .zwf-dot{animation:none}}',
+
+      /* fit-finder trigger (next to size guide) */
+      '.zwf-fit-btn{background:none;border:none;cursor:pointer;font-family:var(--fm,var(--fb,inherit));font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:inherit;opacity:.7;text-decoration:underline;text-underline-offset:3px;padding:0;margin-left:1.1rem}',
+      '.zwf-fit-btn:hover{opacity:1}',
+
+      /* shared modal (fit finder) — cream panel that reads on both themes */
+      '.zwf-modal{position:fixed;inset:0;z-index:4100;display:flex;align-items:center;justify-content:center;padding:1.2rem;background:rgba(9,9,11,.55);opacity:0;pointer-events:none;transition:opacity .22s ease}',
+      '.zwf-modal.open{opacity:1;pointer-events:auto}',
+      '.zwf-modal-box{position:relative;background:var(--paper,#f4f1eb);color:var(--ink,#09090b);width:100%;max-width:440px;border-radius:4px;padding:2rem 1.8rem;max-height:90vh;overflow-y:auto;transform:translateY(10px);transition:transform .26s cubic-bezier(.2,.7,.2,1)}',
+      '.zwf-modal.open .zwf-modal-box{transform:none}',
+      '.zwf-modal-x{position:absolute;top:.9rem;right:1.1rem;background:none;border:none;font-size:1.5rem;line-height:1;cursor:pointer;color:inherit;opacity:.5}',
+      '.zwf-modal-x:hover{opacity:1}',
+      '.zwf-modal-title{font-family:var(--fw,inherit);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.04em;font-size:1.35rem;margin:0 0 .3rem}',
+      '.zwf-modal-sub{font-family:var(--fb,inherit);font-size:.85rem;opacity:.6;margin:0 0 1.4rem;line-height:1.5}',
+      '.zwf-field{margin-bottom:1.05rem}',
+      '.zwf-field label{display:block;font-family:var(--fm,inherit);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;opacity:.6;margin-bottom:.45rem}',
+      '.zwf-field input,.zwf-field select{width:100%;padding:.7rem .8rem;background:rgba(9,9,11,.04);border:1px solid rgba(9,9,11,.16);border-radius:3px;color:inherit;font-family:var(--fb,inherit);font-size:.95rem;outline:none}',
+      '.zwf-seg{display:flex;gap:.5rem}',
+      '.zwf-seg button{flex:1;padding:.6rem .3rem;background:rgba(9,9,11,.04);border:1px solid rgba(9,9,11,.16);border-radius:3px;color:inherit;font-family:var(--fm,inherit);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}',
+      '.zwf-seg button.on{background:var(--ink,#09090b);color:var(--paper,#f4f1eb);border-color:var(--ink,#09090b)}',
+      '.zwf-btn{width:100%;padding:.9rem;background:var(--ink,#09090b);color:var(--paper,#f4f1eb);border:none;border-radius:3px;font-family:var(--fm,inherit);font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;margin-top:.5rem}',
+      '.zwf-btn:hover{opacity:.9}',
+      '.zwf-result{text-align:center;padding:.6rem 0 .2rem}',
+      '.zwf-result-size{font-family:var(--fw,inherit);font-weight:900;font-style:italic;font-size:3.2rem;line-height:1;margin:.3rem 0}',
+      '.zwf-result-note{font-family:var(--fb,inherit);font-size:.82rem;opacity:.6;margin:.2rem 0 1.4rem;line-height:1.5}',
+
+      /* support widget (floating) */
+      '.zwf-support{position:fixed;right:20px;bottom:20px;z-index:900;display:flex;flex-direction:column;align-items:flex-end;gap:12px}',
+      '.zwf-support-fab{display:inline-flex;align-items:center;gap:.5rem;background:var(--ink,#09090b);color:var(--paper,#f4f1eb);border:none;border-radius:100px;padding:.7rem 1.1rem;font-family:var(--fm,inherit);font-size:.64rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.22)}',
+      '.zwf-support-fab svg{width:16px;height:16px}',
+      '.zwf-support-panel{background:var(--paper,#f4f1eb);color:var(--ink,#09090b);width:250px;border-radius:10px;padding:1.2rem;box-shadow:0 12px 40px rgba(0,0,0,.28);opacity:0;transform:translateY(8px) scale(.98);transform-origin:bottom right;pointer-events:none;transition:opacity .2s ease,transform .2s ease}',
+      '.zwf-support.open .zwf-support-panel{opacity:1;transform:none;pointer-events:auto}',
+      '.zwf-support-panel h4{font-family:var(--fw,inherit);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.03em;font-size:1.05rem;margin:0 0 .2rem}',
+      '.zwf-support-panel p{font-family:var(--fb,inherit);font-size:.78rem;opacity:.6;margin:0 0 .9rem;line-height:1.5}',
+      '.zwf-support-panel a{display:block;padding:.55rem .7rem;margin:0 -.7rem;border-radius:5px;text-decoration:none;color:inherit;font-family:var(--fm,inherit);font-size:.7rem;letter-spacing:.05em}',
+      '.zwf-support-panel a:hover{background:rgba(9,9,11,.07)}',
+      '@media(prefers-reduced-motion:reduce){.zwf-modal,.zwf-modal-box,.zwf-support-panel{transition:none}}'
     ].join('');
     var s = document.createElement('style');
     s.id = 'zwf-styles';
@@ -319,6 +362,144 @@
     });
   }
 
+  /* ───────────────────── feature: low-stock urgency ───────────────────── */
+
+  function initLowStock(p) {
+    var inv = Array.isArray(p.inventory) ? p.inventory : [];
+    if (!inv.length) return;
+    var total = inv.reduce(function (s, x) { return s + (parseInt(x.stock_quantity, 10) || 0); }, 0);
+    if (total <= 0) return; // fully sold out — belongs to back-in-stock, not urgency
+    var threshold = parseInt(p.low_stock_threshold, 10) || 10;
+    if (total > threshold) return; // healthy stock — no false urgency
+    var host = document.querySelector('.size-section');
+    if (!host || host.querySelector('.zwf-lowstock')) return;
+    ensureStyles();
+    var line = document.createElement('div');
+    line.className = 'zwf-lowstock';
+    line.innerHTML = '<span class="zwf-dot"></span> Only ' + total + ' left — almost gone';
+    host.appendChild(line);
+  }
+
+  /* ───────────────────── feature: fit finder ───────────────────── */
+
+  // Honest starting-point heuristic (weight-led, height-nudged, fit-adjusted) —
+  // snapped to a size the product actually offers. Never presented as a guarantee.
+  function fitRecommend(heightIn, weightLb, fit, sizes) {
+    var order = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+    var w = weightLb || 0;
+    var idx = w < 120 ? 0 : w < 140 ? 1 : w < 165 ? 2 : w < 190 ? 3 : w < 220 ? 4 : w < 250 ? 5 : 6;
+    if (heightIn >= 74) idx++; else if (heightIn && heightIn <= 64) idx--;
+    if (fit === 'relaxed') idx++; else if (fit === 'snug') idx--;
+    idx = Math.max(0, Math.min(order.length - 1, idx));
+    var rec = order[idx];
+    if (sizes && sizes.length) {
+      var up = sizes.map(function (s) { return String(s).toUpperCase(); });
+      if (up.indexOf(rec) === -1) {
+        for (var d = 1; d < order.length; d++) {
+          var lo = order[idx - d], hi = order[idx + d];
+          if (lo && up.indexOf(lo) !== -1) { rec = lo; break; }
+          if (hi && up.indexOf(hi) !== -1) { rec = hi; break; }
+        }
+      }
+    }
+    return rec;
+  }
+
+  function initFitFinder(p) {
+    var header = document.querySelector('.size-header');
+    if (!header || header.querySelector('.zwf-fit-btn')) return;
+    ensureStyles();
+    var sizes = (Array.isArray(p.inventory) ? p.inventory : []).map(function (x) { return x.size; }).filter(Boolean);
+    sizes = sizes.filter(function (s, i) { return sizes.indexOf(s) === i; });
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'zwf-fit-btn'; btn.textContent = 'Find your size';
+    btn.addEventListener('click', function () { openFitFinder(sizes); });
+    header.appendChild(btn);
+  }
+
+  var _fitModal = null, _fitState = { fit: 'true' }, _fitSizes = [];
+  var FORM_HTML =
+    '<div class="zwf-modal-box">'
+    + '<button class="zwf-modal-x" type="button" aria-label="Close">×</button>'
+    + '<div class="zwf-fit-body"></div>'
+    + '</div>';
+
+  function fitFormMarkup() {
+    return '<h3 class="zwf-modal-title">Find your size</h3>'
+      + '<p class="zwf-modal-sub">Answer three quick questions for a starting point. Still unsure? Check the size guide.</p>'
+      + '<div class="zwf-field"><label>Height</label><select class="zwf-h">'
+      + ['Under 5′0', '5′0–5′3', '5′4–5′7', '5′8–5′11', '6′0–6′3', '6′4 +']
+        .map(function (t, i) { return '<option value="' + [62, 64, 67, 70, 73, 76][i] + '"' + (i === 2 ? ' selected' : '') + '>' + t + '</option>'; }).join('')
+      + '</select></div>'
+      + '<div class="zwf-field"><label>Weight (lb)</label><input class="zwf-w" type="number" inputmode="numeric" min="70" max="400" placeholder="e.g. 160"></div>'
+      + '<div class="zwf-field"><label>Preferred fit</label><div class="zwf-seg">'
+      + [['snug', 'Snug'], ['true', 'True to size'], ['relaxed', 'Relaxed']]
+        .map(function (o) { return '<button type="button" data-fit="' + o[0] + '"' + (o[0] === _fitState.fit ? ' class="on"' : '') + '>' + o[1] + '</button>'; }).join('')
+      + '</div></div>'
+      + '<button class="zwf-btn zwf-fit-go" type="button">See my size</button>';
+  }
+
+  function openFitFinder(sizes) {
+    _fitSizes = sizes || [];
+    if (!_fitModal) {
+      _fitModal = document.createElement('div');
+      _fitModal.className = 'zwf-modal';
+      _fitModal.innerHTML = FORM_HTML;
+      document.body.appendChild(_fitModal);
+      _fitModal.addEventListener('click', function (e) { if (e.target === _fitModal) closeFit(); });
+      _fitModal.querySelector('.zwf-modal-x').addEventListener('click', closeFit);
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && _fitModal.classList.contains('open')) closeFit(); });
+    }
+    var body = _fitModal.querySelector('.zwf-fit-body');
+    _fitState = { fit: 'true' };
+    body.innerHTML = fitFormMarkup();
+    body.querySelectorAll('.zwf-seg button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        _fitState.fit = b.getAttribute('data-fit');
+        body.querySelectorAll('.zwf-seg button').forEach(function (x) { x.classList.remove('on'); });
+        b.classList.add('on');
+      });
+    });
+    body.querySelector('.zwf-fit-go').addEventListener('click', function () {
+      var h = parseInt(body.querySelector('.zwf-h').value, 10) || 0;
+      var w = parseInt(body.querySelector('.zwf-w').value, 10) || 0;
+      if (!w) { body.querySelector('.zwf-w').focus(); return; }
+      var rec = fitRecommend(h, w, _fitState.fit, _fitSizes);
+      body.innerHTML = '<div class="zwf-result"><h3 class="zwf-modal-title">Your size</h3>'
+        + '<div class="zwf-result-size">' + esc(rec) + '</div>'
+        + '<p class="zwf-result-note">A starting point based on your answers — fit varies by cut. Check the size guide if you’re between sizes.</p>'
+        + '<button class="zwf-btn zwf-fit-again" type="button">Start over</button></div>';
+      body.querySelector('.zwf-fit-again').addEventListener('click', function () { openFitFinder(_fitSizes); });
+    });
+    requestAnimationFrame(function () { _fitModal.classList.add('open'); });
+  }
+  function closeFit() { if (_fitModal) _fitModal.classList.remove('open'); }
+
+  /* ───────────────────── feature: support widget ───────────────────── */
+
+  var CHAT_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>';
+
+  function initSupport() {
+    if (document.querySelector('.zwf-support')) return;
+    ensureStyles();
+    var wrap = document.createElement('div');
+    wrap.className = 'zwf-support';
+    wrap.innerHTML =
+      '<div class="zwf-support-panel" role="dialog" aria-label="Help">'
+      + '<h4>Need help?</h4><p>We usually reply within 24 hours.</p>'
+      + '<a href="mailto:nasirubreeze@zuwera.store">✉︎  Email us</a>'
+      + '<a href="/account.html#orders">📦  Track my order</a>'
+      + '<a href="/returns.html">↩︎  Returns &amp; exchanges</a>'
+      + '<a href="/policies.html">❔  Shipping &amp; FAQ</a>'
+      + '</div>'
+      + '<button class="zwf-support-fab" type="button" aria-label="Help">' + CHAT_SVG + 'Help</button>';
+    document.body.appendChild(wrap);
+    wrap.querySelector('.zwf-support-fab').addEventListener('click', function (e) {
+      e.stopPropagation(); wrap.classList.toggle('open');
+    });
+    document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) wrap.classList.remove('open'); });
+  }
+
   /* ───────────────────────── page wiring ───────────────────────── */
 
   function isHome() {
@@ -345,14 +526,21 @@
     var wantSearch = f('feature_search');
     var wantRV = f('feature_recently_viewed');
     var wantRec = f('feature_recommendations');
-    if (!wantSearch && !wantRV && !wantRec) return;
+    var wantLowStock = f('feature_low_stock');
+    var wantFit = f('feature_fit_finder');
+    var wantSupport = f('feature_support_widget');
+    if (!(wantSearch || wantRV || wantRec || wantLowStock || wantFit || wantSupport)) return;
 
     if (wantSearch) initSearch();
+    if (wantSupport) initSupport();
 
-    var onPdp = /\/product(\.html|\/)/i.test(location.pathname) || !!document.querySelector('.product-detail, #product-detail');
-    if (onPdp || window.__zwCurrentProduct) {
+    var wantPdp = wantRV || wantRec || wantLowStock || wantFit;
+    var onPdp = /\/product(\.html|\/)/i.test(location.pathname) || !!document.querySelector('.product-detail, #product-detail, .size-section');
+    if (wantPdp && (onPdp || window.__zwCurrentProduct)) {
       onProduct(function (p) {
         if (wantRV) rvRecord(p);
+        if (wantLowStock) initLowStock(p);
+        if (wantFit) initFitFinder(p);
         if (wantRec) renderRecommendations(p);
         if (wantRV) renderRecentlyViewed(p.id);
       });
