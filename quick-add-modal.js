@@ -402,7 +402,9 @@
       var encodedId = encodeURIComponent(productId);
       var results = await Promise.all([
         fetch(SUPABASE_URL + '/rest/v1/color_variants?select=id,color_name,hex_color,variant_sku&product_id=eq.' + encodedId + '&order=sort_order.asc', { headers: headers }),
-        fetch(SUPABASE_URL + '/rest/v1/product_sizes?select=size,stock_quantity&product_id=eq.' + encodedId + '&order=created_at.asc', { headers: headers }),
+        // no-store: the mini quick-add modal's per-size stock must reflect an admin
+        // stock edit immediately — never a cached "previous" quantity.
+        fetch(SUPABASE_URL + '/rest/v1/product_sizes?select=size,stock_quantity&product_id=eq.' + encodedId + '&order=created_at.asc', { headers: headers, cache: 'no-store' }),
         fetch(SUPABASE_URL + '/rest/v1/product_images?select=image_url,alt_text,sort_order,color_variant_id,media_type&product_id=eq.' + encodedId + '&order=sort_order.asc', { headers: headers })
       ]);
       var colors = results[0].ok ? await results[0].json() : [];

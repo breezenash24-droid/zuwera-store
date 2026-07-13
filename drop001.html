@@ -1774,7 +1774,7 @@ function updateCountdown() {
         const [productsResp, imagesResp, sizesResp, colorsResp] = await Promise.all([
           fetch(`${SUPABASE_URL}/rest/v1/products?select=*&order=sort_order.asc`, { headers }),
           fetch(`${SUPABASE_URL}/rest/v1/product_images?select=*&order=sort_order.asc`, { headers }),
-          fetch(`${SUPABASE_URL}/rest/v1/product_sizes?select=product_id,stock_quantity`, { headers }),
+          fetch(`${SUPABASE_URL}/rest/v1/product_sizes?select=product_id,stock_quantity`, { headers, cache: 'no-store' }),
           fetch(`${SUPABASE_URL}/rest/v1/color_variants?select=*&order=sort_order.asc`, { headers })
         ]);
         if (!productsResp.ok) throw new Error(`HTTP ${productsResp.status}`);
@@ -2085,7 +2085,7 @@ function updateCountdown() {
       var encodedId = encodeURIComponent(productId);
       var results = await Promise.all([
         fetch(_colSB_URL + '/rest/v1/color_variants?select=id,color_name,hex_color,variant_sku&product_id=eq.' + encodedId + '&order=sort_order.asc', { headers: headers }),
-        fetch(_colSB_URL + '/rest/v1/product_sizes?select=size,stock_quantity&product_id=eq.' + encodedId + '&order=created_at.asc', { headers: headers }),
+        fetch(_colSB_URL + '/rest/v1/product_sizes?select=size,stock_quantity&product_id=eq.' + encodedId + '&order=created_at.asc', { headers: headers, cache: 'no-store' }),
         fetch(_colSB_URL + '/rest/v1/product_images?select=image_url,alt_text,sort_order,color_variant_id,media_type&product_id=eq.' + encodedId + '&order=sort_order.asc', { headers: headers })
       ]);
       var colors = results[0].ok ? await results[0].json() : [];
