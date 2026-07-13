@@ -8430,7 +8430,12 @@
                     country_of_origin: document.getElementById('countryOfOrigin').value,
                     care_instructions: document.getElementById('careInstructions').value,
                     drop_number: document.getElementById('dropNumber').value,
-                    status: publish ? document.getElementById('productStatus').value : 'Draft',
+                    // "Save Draft" must not unpublish an already-live product: keep its
+                    // current status when editing an existing one; only brand-new products
+                    // default to Draft. To actually change status, use the dropdown + Publish.
+                    status: publish
+                        ? document.getElementById('productStatus').value
+                        : (currentProduct && currentProduct.status ? currentProduct.status : 'Draft'),
                     sort_order: document.getElementById('sortOrder').value ? parseInt(document.getElementById('sortOrder').value) : null,
                     low_stock_threshold: parseInt(document.getElementById('lowStockThreshold').value) || 10,
                     image_url: imageUrls[0] || null,
