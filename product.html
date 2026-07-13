@@ -3566,6 +3566,13 @@ async function loadRelatedProducts() {
 let _restockSize = null;
 
 function openRestockPanel(size) {
+  // Back-in-stock master switch (Admin → Feature Flags → feature_back_in_stock).
+  // Permissive: only suppressed when EXPLICITLY disabled, so the prompt keeps
+  // working if flags haven't loaded yet or the toggle was never touched.
+  try {
+    const _bis = window.__zwFlags && window.__zwFlags.feature_back_in_stock;
+    if (_bis && _bis.enabled === false) return;
+  } catch (_) {}
   _restockSize = size;
   const panel = document.getElementById('restock-panel');
   const label = document.getElementById('restock-label');

@@ -108,6 +108,17 @@ export async function onRequestPost({ request, env }) {
     const key = serviceKey(env);
     if (!env.SUPABASE_URL || !key) return json({ ok: false, error: 'Supabase not configured' }, 500, cors(env));
 
+    // Master switch: skip sending when Back in Stock is explicitly turned off in
+    // Admin → Feature Flags (feature_back_in_stock). Permissive — only an explicit
+    // enabled:false suppresses it, so the feature keeps working by default.
+    try {
+      const ffRows = await sbSelect(env, key, `site_settings?select=value&key=eq.feature_flags&limit=1`);
+      let flags = ffRows && ffRows[0] && ffRows[0].value;
+      if (typeof flags === 'string') { try { flags = JSON.parse(flags); } catch (_) { flags = null; } }
+      const bis = flags && flags.feature_back_in_stock;
+      if (bis && bis.enabled === false) return json({ ok: true, notified: 0, disabled: true }, 200, cors(env));
+    } catch (_) { /* on any error, fall through and send (fail-open) */ }
+
     const pid = encodeURIComponent(productId);
 
     // 1. Which sizes are back in stock now?

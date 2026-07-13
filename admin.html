@@ -5439,6 +5439,9 @@
             { key: 'feature_low_stock',       desc: 'Low-stock urgency — an “only N left” line on product pages when real stock is at/below the product’s low-stock threshold.' },
             { key: 'feature_fit_finder',      desc: 'Fit finder — a “Find your size” quiz next to the size guide that recommends a size.' },
             { key: 'feature_support_widget',  desc: 'Support widget — a floating Help button (email us, track order, returns, FAQ).' },
+            // Back in stock is an EXISTING live feature, so it defaults ON. Turn OFF to
+            // hide the "notify me" prompt on sold-out sizes AND stop the restock emails.
+            { key: 'feature_back_in_stock',   desc: 'Back in stock — the “notify me when it’s back” prompt on sold-out sizes + the auto-email to the waitlist when you restock a size. On by default.', enabled: true, rollout: 100 },
         ];
         function _flagVid() {
             try { let id = localStorage.getItem('zw_vid'); if (!id) { id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2)); localStorage.setItem('zw_vid', id); } return id; } catch (_) { return 'anon'; }
@@ -5460,7 +5463,9 @@
             // Ensure every curated storefront-feature toggle exists (off) so you can
             // control it here even before it's ever been saved.
             ZW_FEATURE_REGISTRY.forEach(f => {
-                if (!_featureFlags[f.key]) _featureFlags[f.key] = { enabled: false, rollout: 0, description: f.desc };
+                // Most curated flags default OFF; a few (existing live features like
+                // back-in-stock) declare enabled/rollout so they show ON out of the box.
+                if (!_featureFlags[f.key]) _featureFlags[f.key] = { enabled: f.enabled === true, rollout: (typeof f.rollout === 'number' ? f.rollout : 0), description: f.desc };
                 else if (!_featureFlags[f.key].description) _featureFlags[f.key].description = f.desc;
             });
             // Orders stamped with flag variants (needs supabase-feature-flags.sql;
