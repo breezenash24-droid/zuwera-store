@@ -3396,11 +3396,13 @@ async function getHomeFavoriteDetail(productId, favorite) {
   try {
     const headers = { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` };
     const encodedId = encodeURIComponent(normalizedProductId);
+    // no-store on the size fetch: the quick-add panel's sold-out/stock state must be
+    // live so an admin stock edit shows immediately (never a cached "previous" value).
     const [productResp, imagesResp, colorsResp, sizesResp] = await Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/products?select=*&id=eq.${encodedId}&limit=1`, { headers }),
       fetch(`${SUPABASE_URL}/rest/v1/product_images?select=*&product_id=eq.${encodedId}&order=sort_order.asc`, { headers }),
       fetch(`${SUPABASE_URL}/rest/v1/color_variants?select=*&product_id=eq.${encodedId}&order=sort_order.asc`, { headers }),
-      fetch(`${SUPABASE_URL}/rest/v1/product_sizes?select=*&product_id=eq.${encodedId}`, { headers })
+      fetch(`${SUPABASE_URL}/rest/v1/product_sizes?select=*&product_id=eq.${encodedId}`, { headers, cache: 'no-store' })
     ]);
     const productRows = productResp.ok ? await productResp.json() : [];
     const product = Array.isArray(productRows) ? productRows[0] : null;
