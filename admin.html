@@ -8532,6 +8532,24 @@
                     if (error) throw error;
                 }
 
+                // Back-in-stock: if a size shoppers were waiting on is now in stock,
+                // email the waitlist. Best-effort and fire-and-forget — never blocks
+                // or fails the product save. The endpoint is idempotent (it deletes
+                // requests once emailed) so calling it on every save is safe.
+                try {
+                    const { data: { session } } = await sb.auth.getSession();
+                    const at = session && session.access_token;
+                    if (at && productId) {
+                        fetch('/api/notify-restock', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ productId, accessToken: at }),
+                        }).then(r => r.json()).then(res => {
+                            if (res && res.notified > 0) showToast(`Emailed ${res.notified} customer${res.notified === 1 ? '' : 's'} that a size is back in stock.`);
+                        }).catch(() => {});
+                    }
+                } catch (_) {}
+
                 // Suggest Sold Out if all stock is zero and status is Live
                 const totalSavedStock = uniqueSizeEntries.reduce((s, e) => s + (e.stock_quantity || 0), 0);
                 if (productData.status === 'Live' && uniqueSizeEntries.length > 0 && totalSavedStock === 0) {
