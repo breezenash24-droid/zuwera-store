@@ -965,29 +965,59 @@
                         <button class="btn btn-primary" onclick="journalEdit(null)">+ New Post</button>
                     </div>
                     <p class="zw-page-intro">Write stories, drop notes, and lookbook posts. Published posts appear at <strong>/journal</strong>. Drafts stay private.</p>
+                    <!-- Page appearance (site_settings.journal_settings) -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px">
+                        <h3 style="margin:0 0 4px;font-size:1rem">Page appearance</h3>
+                        <p style="margin:0 0 16px;font-size:.82rem;color:var(--text-secondary)">Controls the header of your <strong>/journal</strong> page. Leave a field blank to hide it.</p>
+                        <div style="text-align:center;padding:24px 12px;margin-bottom:16px;border:1px dashed var(--border);border-radius:10px">
+                            <div id="jra-prev-label" style="font-size:.6rem;letter-spacing:.26em;text-transform:uppercase;opacity:.55;margin-bottom:10px">The Journal</div>
+                            <div id="jra-prev-title" style="font-weight:900;font-style:italic;text-transform:uppercase;font-size:2.1rem;line-height:1">Field Notes</div>
+                            <div id="jra-prev-sub" style="opacity:.6;font-size:.85rem;margin-top:10px">Stories, drops, and the thinking behind Zuwera.</div>
+                        </div>
+                        <div class="form-group"><label class="form-label">Eyebrow label</label><input type="text" id="jra-label" class="form-input" placeholder="The Journal" oninput="journalPreview()"></div>
+                        <div class="form-group"><label class="form-label">Title / name</label><input type="text" id="jra-title" class="form-input" placeholder="Field Notes" oninput="journalPreview()"></div>
+                        <div class="form-group"><label class="form-label">Subtitle</label><input type="text" id="jra-sub" class="form-input" placeholder="Stories, drops, and the thinking behind Zuwera." oninput="journalPreview()"></div>
+                        <div class="form-group"><label class="form-label">Heading font</label>
+                            <select id="jra-font" class="form-input" onchange="journalPreview()">
+                                <option value="">Default (Barlow Condensed)</option>
+                                <option value="anton">Anton</option>
+                                <option value="bebas">Bebas Neue</option>
+                                <option value="oswald">Oswald</option>
+                                <option value="archivo">Archivo Black</option>
+                                <option value="playfair">Playfair Display</option>
+                                <option value="space">Space Grotesk</option>
+                                <option value="syne">Syne</option>
+                                <option value="unbounded">Unbounded</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" id="jra-save-btn" onclick="journalSaveAppearance()">Save appearance</button>
+                    </div>
+
+                    <!-- Post editor -->
                     <div id="journalEditor" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px">
                         <input type="hidden" id="jp-id">
-                        <div class="form-row"><label>Title</label><input type="text" id="jp-title" placeholder="Post title" oninput="journalAutoSlug()"></div>
-                        <div class="form-row"><label>URL slug</label><input type="text" id="jp-slug" placeholder="auto-from-title"><span class="zw-hint" style="font-size:.72rem;color:var(--text-secondary)">Lives at /journal.html?slug=<span id="jp-slug-preview"></span></span></div>
-                        <div class="form-row"><label>Excerpt (short summary for the list)</label><textarea id="jp-excerpt" rows="2" placeholder="One or two sentences…"></textarea></div>
-                        <div class="form-row"><label>Cover image</label>
+                        <div class="form-group"><label class="form-label">Title</label><input type="text" id="jp-title" class="form-input" placeholder="Post title" oninput="journalAutoSlug()"></div>
+                        <div class="form-group"><label class="form-label">URL slug</label><input type="text" id="jp-slug" class="form-input" placeholder="auto-from-title"><span style="display:block;font-size:.72rem;color:var(--text-secondary);margin-top:4px">Lives at /journal.html?slug=<span id="jp-slug-preview"></span></span></div>
+                        <div class="form-group"><label class="form-label">Excerpt <span style="opacity:.55;font-weight:400">(short summary for the list &mdash; optional)</span></label><textarea id="jp-excerpt" class="form-input" rows="2" style="resize:vertical" placeholder="One or two sentences"></textarea></div>
+                        <div class="form-group"><label class="form-label">Cover image <span style="opacity:.55;font-weight:400">(optional)</span></label>
                             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-                                <input type="text" id="jp-cover" placeholder="https://… (or upload →)" style="flex:1;min-width:200px">
+                                <input type="text" id="jp-cover" class="form-input" placeholder="Paste an image URL, or use Upload" style="flex:1;min-width:220px">
                                 <input type="file" id="jp-cover-file" accept="image/*" style="display:none" onchange="journalUploadCover(this)">
-                                <button class="btn btn-secondary btn-sm" type="button" onclick="document.getElementById('jp-cover-file').click()">Upload</button>
+                                <button class="btn btn-secondary" type="button" onclick="document.getElementById('jp-cover-file').click()">Upload</button>
+                                <button class="btn btn-secondary" type="button" onclick="journalClearCover()">Clear</button>
                             </div>
                             <img id="jp-cover-preview" style="display:none;max-width:220px;margin-top:10px;border-radius:6px">
                         </div>
-                        <div class="form-row"><label>Body</label><textarea id="jp-body" rows="12" placeholder="Write your post… (leave a blank line between paragraphs)"></textarea></div>
-                        <div class="form-row"><label>Status</label>
-                            <select id="jp-status"><option value="draft">Draft (private)</option><option value="published">Published (public)</option></select>
+                        <div class="form-group"><label class="form-label">Body</label><textarea id="jp-body" class="form-input" rows="12" style="resize:vertical;line-height:1.6" placeholder="Write your post. Leave a blank line between paragraphs."></textarea></div>
+                        <div class="form-group"><label class="form-label">Status</label>
+                            <select id="jp-status" class="form-input"><option value="draft">Draft (private)</option><option value="published">Published (public)</option></select>
                         </div>
                         <div style="display:flex;gap:10px;margin-top:6px">
-                            <button class="btn btn-primary" onclick="journalSave()" id="jp-save-btn">Save</button>
+                            <button class="btn btn-primary" id="jp-save-btn" onclick="journalSave()">Save</button>
                             <button class="btn btn-secondary" onclick="document.getElementById('journalEditor').style.display='none'">Cancel</button>
                         </div>
                     </div>
-                    <div id="journalList"></div>
+                                        <div id="journalList"></div>
                 </div>
 
                 <!-- Reviews Page -->
@@ -5541,6 +5571,7 @@
             return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
         }
         async function loadJournalAdmin() {
+            journalLoadAppearance();
             const host = document.getElementById('journalList');
             if (!host) return;
             host.innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:20px;">Loading…</p>';
@@ -5656,6 +5687,72 @@
         window.loadJournalAdmin = loadJournalAdmin; window.journalEdit = journalEdit;
         window.journalAutoSlug = journalAutoSlug; window.journalUploadCover = journalUploadCover;
         window.journalSave = journalSave; window.journalDelete = journalDelete;
+
+        // ─── Journal page appearance (site_settings.journal_settings) ────────────────
+        const JR_ADMIN_FONTS = {
+            '':          { family: "'Barlow Condensed', sans-serif", url: null },
+            anton:       { family: "'Anton', sans-serif",          url: 'https://fonts.googleapis.com/css2?family=Anton&display=swap' },
+            bebas:       { family: "'Bebas Neue', sans-serif",     url: 'https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap' },
+            oswald:      { family: "'Oswald', sans-serif",         url: 'https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&display=swap' },
+            archivo:     { family: "'Archivo Black', sans-serif",  url: 'https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap' },
+            playfair:    { family: "'Playfair Display', serif",    url: 'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900&display=swap' },
+            space:       { family: "'Space Grotesk', sans-serif",  url: 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap' },
+            syne:        { family: "'Syne', sans-serif",           url: 'https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap' },
+            unbounded:   { family: "'Unbounded', sans-serif",      url: 'https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&display=swap' },
+        };
+        const _jrFontLoaded = {};
+        function journalLoadFont(key) {
+            const f = JR_ADMIN_FONTS[key];
+            if (!f || !f.url || _jrFontLoaded[key]) return;
+            _jrFontLoaded[key] = true;
+            const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = f.url; document.head.appendChild(l);
+        }
+        function journalPreview() {
+            const g = id => document.getElementById(id);
+            const label = g('jra-label').value, title = g('jra-title').value, sub = g('jra-sub').value, font = g('jra-font').value;
+            const lp = g('jra-prev-label'), tp = g('jra-prev-title'), sp = g('jra-prev-sub');
+            if (!lp) return;
+            lp.textContent = label || 'The Journal'; lp.style.opacity = label ? '.55' : '.25';
+            tp.textContent = title || 'Field Notes';
+            sp.textContent = sub || 'Stories, drops, and the thinking behind Zuwera.'; sp.style.opacity = sub ? '.6' : '.3';
+            journalLoadFont(font);
+            tp.style.fontFamily = (JR_ADMIN_FONTS[font] || JR_ADMIN_FONTS['']).family;
+            tp.style.fontStyle = font ? 'normal' : 'italic';
+        }
+        function journalClearCover() {
+            document.getElementById('jp-cover').value = '';
+            const prev = document.getElementById('jp-cover-preview'); if (prev) { prev.style.display = 'none'; prev.src = ''; }
+        }
+        async function journalLoadAppearance() {
+            try {
+                const cfg = await fetch('/api/journal-config', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
+                if (!cfg || !document.getElementById('jra-label')) return;
+                document.getElementById('jra-label').value = cfg.label != null ? cfg.label : '';
+                document.getElementById('jra-title').value = cfg.title != null ? cfg.title : '';
+                document.getElementById('jra-sub').value   = cfg.subtitle != null ? cfg.subtitle : '';
+                document.getElementById('jra-font').value  = cfg.heading_font || '';
+                journalPreview();
+            } catch (_) {}
+        }
+        async function journalSaveAppearance() {
+            const value = {
+                label: document.getElementById('jra-label').value.trim(),
+                title: document.getElementById('jra-title').value.trim(),
+                subtitle: document.getElementById('jra-sub').value.trim(),
+                heading_font: document.getElementById('jra-font').value,
+            };
+            const btn = document.getElementById('jra-save-btn'); const t = btn.textContent;
+            btn.disabled = true; btn.textContent = 'Saving…';
+            try {
+                const { error } = await sb.from('site_settings').upsert({ key: 'journal_settings', value }, { onConflict: 'key' });
+                if (error) throw error;
+                try { await logAdminAudit('settings.update', 'site_settings', 'journal_settings', value); } catch (_) {}
+                showToast('Appearance saved ✓');
+            } catch (e) { showToast('Save failed: ' + ((e && e.message) || 'error'), 'error'); }
+            btn.disabled = false; btn.textContent = t;
+        }
+        window.journalPreview = journalPreview; window.journalClearCover = journalClearCover;
+        window.journalSaveAppearance = journalSaveAppearance;
 
         // ─── Feature Flags (site_settings.feature_flags → read by flags.js) ──────────
         let _featureFlags = {};
