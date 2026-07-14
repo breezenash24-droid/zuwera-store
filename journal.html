@@ -325,6 +325,7 @@
   .jr-sub{font-family:var(--fb);opacity:.65;max-width:46ch;margin:0 auto;line-height:1.6}
   .jr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:2.2rem}
   .jr-card{display:block;text-decoration:none;color:inherit}
+  .jr-card--text{border-top:1px solid var(--border,rgba(128,128,128,.25));padding-top:1.15rem}
   .jr-card-img{aspect-ratio:16/10;background:rgba(128,128,128,.12);border-radius:6px;overflow:hidden;margin-bottom:1rem}
   .jr-card-img img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.7,.2,1)}
   .jr-card:hover .jr-card-img img{transform:scale(1.04)}
@@ -343,9 +344,9 @@
 </style>
 <main class="page zw-journal">
   <section class="jr-hero" data-reveal>
-    <p class="jr-label">The Journal</p>
-    <h1 class="jr-h1">Field Notes</h1>
-    <p class="jr-sub">Stories, drops, and the thinking behind Zuwera.</p>
+    <p class="jr-label" id="jr-label">The Journal</p>
+    <h1 class="jr-h1" id="jr-h1">Field Notes</h1>
+    <p class="jr-sub" id="jr-sub">Stories, drops, and the thinking behind Zuwera.</p>
   </section>
   <div id="jr-list" class="jr-grid"></div>
   <article id="jr-post" class="jr-post" style="display:none"></article>
@@ -408,12 +409,36 @@
   function paras(body){ return String(body||'').replace(/\r\n/g,'\n').split(/\n{2,}/).map(function(p){return p.trim();}).filter(Boolean).map(function(p){ return '<p>'+esc(p).replace(/\n/g,'<br>')+'</p>'; }).join(''); }
   function api(path){ return fetch(SUPABASE_URL + '/rest/v1/' + path, { headers: { apikey: SUPABASE_ANON, Authorization: 'Bearer ' + SUPABASE_ANON } }).then(function(r){ return r.ok ? r.json() : []; }).catch(function(){ return []; }); }
 
+  var JR_FONTS={
+    '':{family:"'Barlow Condensed'",url:null},
+    'anton':{family:"'Anton'",url:'https://fonts.googleapis.com/css2?family=Anton&display=swap'},
+    'bebas':{family:"'Bebas Neue'",url:'https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap'},
+    'oswald':{family:"'Oswald'",url:'https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&display=swap'},
+    'archivo':{family:"'Archivo Black'",url:'https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap'},
+    'playfair':{family:"'Playfair Display'",url:'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900&display=swap'},
+    'space':{family:"'Space Grotesk'",url:'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap'},
+    'syne':{family:"'Syne'",url:'https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap'},
+    'unbounded':{family:"'Unbounded'",url:'https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&display=swap'}
+  };
+  function applyHeadingFont(key){
+    var m=JR_FONTS[key]; if(!m||!m.url) return;
+    var l=document.createElement('link'); l.rel='stylesheet'; l.href=m.url; document.head.appendChild(l);
+    var st=document.createElement('style'); st.textContent='.jr-h1,.jr-post-title,.jr-card-title{font-family:'+m.family+' !important;font-style:normal}'; document.head.appendChild(st);
+  }
+  function applyJournalConfig(cfg){
+    if(!cfg) return;
+    var lab=document.getElementById('jr-label'), h1=document.getElementById('jr-h1'), sub=document.getElementById('jr-sub');
+    if(lab){ if(cfg.label&&String(cfg.label).trim()){ lab.textContent=cfg.label; lab.style.display=''; } else lab.style.display='none'; }
+    if(h1&&cfg.title&&String(cfg.title).trim()) h1.textContent=cfg.title;
+    if(sub){ if(cfg.subtitle&&String(cfg.subtitle).trim()){ sub.textContent=cfg.subtitle; sub.style.display=''; } else sub.style.display='none'; }
+    applyHeadingFont(cfg.heading_font);
+  }
   function renderList(posts){
     if (!posts.length){ document.getElementById('jr-empty').style.display='block'; return; }
     document.getElementById('jr-list').innerHTML = posts.map(function(p){
       var date = fmtDate(p.published_at || p.created_at);
-      return '<a class="jr-card" href="/journal.html?slug=' + encodeURIComponent(p.slug) + '">'
-        + '<div class="jr-card-img">' + (p.cover_image ? '<img src="'+esc(p.cover_image)+'" alt="'+esc(p.title)+'" loading="lazy">' : '') + '</div>'
+      return '<a class="jr-card' + (p.cover_image ? '' : ' jr-card--text') + '" href="/journal.html?slug=' + encodeURIComponent(p.slug) + '">'
+        + (p.cover_image ? '<div class="jr-card-img"><img src="'+esc(p.cover_image)+'" alt="'+esc(p.title)+'" loading="lazy"></div>' : '')
         + '<h2 class="jr-card-title">' + esc(p.title) + '</h2>'
         + (p.excerpt ? '<p class="jr-card-excerpt">' + esc(p.excerpt) + '</p>' : '')
         + (date ? '<p class="jr-card-date">' + date + '</p>' : '')
@@ -441,6 +466,7 @@
         else if (row.key==='brand' && v && v.favicon){ if (window.__zwApplyFavicon) window.__zwApplyFavicon(v.favicon); }
       });
     } catch(_){}
+    try { var cfg = await fetch('/api/journal-config', { cache:'no-store' }).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;}); applyJournalConfig(cfg); } catch(_){}
     var slug = new URLSearchParams(location.search).get('slug');
     if (slug) {
       var rows = await api('journal_posts?select=*&status=eq.published&slug=eq.' + encodeURIComponent(slug) + '&limit=1');
