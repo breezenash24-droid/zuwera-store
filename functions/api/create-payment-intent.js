@@ -309,13 +309,21 @@ async function fetchProductByFilter(env, filterKey, filterValue) {
 async function fetchSizeStockQty(env, productId, size, colorName) {
   const headers = catalogHeaders(env);
   if (!headers || !productId || !size) return null;
-  let url = `${env.SUPABASE_URL}/rest/v1/product_sizes?select=stock_quantity&product_id=eq.${encodeURIComponent(productId)}&size=eq.${encodeURIComponent(size)}`;
-  if (colorName) url += `&color_name=eq.${encodeURIComponent(colorName)}`;
-  url += '&limit=1';
-  const resp = await fetch(url, { headers }).catch(() => null);
-  if (!resp || !resp.ok) return null;
-  const rows = await resp.json().catch(() => []);
-  if (!Array.isArray(rows) || !rows.length) return null;
+  const base = `${env.SUPABASE_URL}/rest/v1/product_sizes?select=stock_quantity&product_id=eq.${encodeURIComponent(productId)}&size=eq.${encodeURIComponent(size)}`;
+  const q = async (url) => {
+    const resp = await fetch(url, { headers, cache: 'no-store' }).catch(() => null);
+    if (!resp || !resp.ok) return null;
+    const rows = await resp.json().catch(() => []);
+    return Array.isArray(rows) && rows.length ? rows : null;
+  };
+  // Try an exact colour match first; if none exists, fall back to the product+size
+  // row regardless of colour. Stock is saved color-agnostically (color_name NULL),
+  // so without this fallback the colour filter matches nothing → returns null →
+  // the stock guard is skipped and a sold-out item can be oversold. Mirrors the
+  // decrement_stock RPC's fallback so availability and decrement stay consistent.
+  let rows = colorName ? await q(`${base}&color_name=eq.${encodeURIComponent(colorName)}&limit=1`) : null;
+  if (!rows) rows = await q(`${base}&order=created_at.asc&limit=1`);
+  if (!rows) return null;
   const qty = rows[0]?.stock_quantity;
   return typeof qty === 'number' ? qty : null;
 }
