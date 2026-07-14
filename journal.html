@@ -255,6 +255,7 @@
 <script src="/posthog-init.js?v=6ebbeafc" defer></script>
 <style>body.super-light-mode{background:#FFFFFF!important;--bg:#FFFFFF}</style>
 <script src="consent.js?v=1" defer></script>
+<script>/* JOURNAL CONFIG FLASH PREVENTION - applies last-known label/title/fonts before paint */try{var _jc=JSON.parse(localStorage.getItem('zw_journal_cfg')||'null');if(_jc){window.__zwJournalCfg=_jc;var _h=document.head;function _jl(u){if(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;_h.appendChild(l);}}_jl(_jc.hu);_jl(_jc.bu);var _css='';if(_jc.hf)_css+='.jr-h1,.jr-post-title,.jr-card-title{font-family:'+_jc.hf+' !important;font-style:normal}';if(_jc.bf)_css+='.jr-label,.jr-sub,.jr-card-excerpt,.jr-card-date,.jr-post-body,.jr-post-date,.jr-back{font-family:'+_jc.bf+' !important}';if(_css){var _s=document.createElement('style');_s.textContent=_css;_h.appendChild(_s);}}}catch(_){}</script>
 </head>
 <body>
 <script>(function(){try{var m=localStorage.getItem('zw_theme_mode');if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
@@ -348,6 +349,7 @@
     <h1 class="jr-h1" id="jr-h1">Field Notes</h1>
     <p class="jr-sub" id="jr-sub">Stories, drops, and the thinking behind Zuwera.</p>
   </section>
+  <script>try{var _c=window.__zwJournalCfg;if(_c){var _L=document.getElementById('jr-label'),_T=document.getElementById('jr-h1'),_S=document.getElementById('jr-sub');if(_L){if(_c.l&&(''+_c.l).trim()){_L.textContent=_c.l;}else{_L.style.display='none';}}if(_T&&_c.t&&(''+_c.t).trim())_T.textContent=_c.t;if(_S){if(_c.s&&(''+_c.s).trim()){_S.textContent=_c.s;}else{_S.style.display='none';}}}}catch(_){}</script>
   <div id="jr-list" class="jr-grid"></div>
   <article id="jr-post" class="jr-post" style="display:none"></article>
   <p id="jr-empty" class="jr-empty" style="display:none">No stories yet — check back soon.</p>
@@ -449,6 +451,7 @@
     if(sub){ if(cfg.subtitle&&String(cfg.subtitle).trim()){ sub.textContent=cfg.subtitle; sub.style.display=''; } else sub.style.display='none'; }
     applyHeadingFont(cfg.heading_font);
     applyBodyFont(cfg.body_font);
+    try{var _hm=JR_FONTS[cfg.heading_font]||{},_bm=JR_BODY_FONTS[cfg.body_font]||{};localStorage.setItem('zw_journal_cfg',JSON.stringify({l:cfg.label,t:cfg.title,s:cfg.subtitle,hf:_hm.url?_hm.family:'',hu:_hm.url||'',bf:_bm.url?_bm.family:'',bu:_bm.url||''}));}catch(_){}
   }
   function renderList(posts){
     if (!posts.length){ document.getElementById('jr-empty').style.display='block'; return; }
@@ -475,6 +478,7 @@
     try { document.title = p.title + ' — Zuwera'; } catch(_){}
   }
   async function loadJournal(){
+    var cfgP = fetch('/api/journal-config', { cache:'no-store' }).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
     try {
       var s = await api('site_settings?select=key,value&key=in.(theme,brand)');
       (s||[]).forEach(function(row){
@@ -483,7 +487,7 @@
         else if (row.key==='brand' && v && v.favicon){ if (window.__zwApplyFavicon) window.__zwApplyFavicon(v.favicon); }
       });
     } catch(_){}
-    try { var cfg = await fetch('/api/journal-config', { cache:'no-store' }).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;}); applyJournalConfig(cfg); } catch(_){}
+    try { applyJournalConfig(await cfgP); } catch(_){}
     var slug = new URLSearchParams(location.search).get('slug');
     if (slug) {
       var rows = await api('journal_posts?select=*&status=eq.published&slug=eq.' + encodeURIComponent(slug) + '&limit=1');

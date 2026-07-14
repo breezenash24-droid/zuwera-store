@@ -5774,6 +5774,16 @@
             try {
                 const { error } = await sb.from('site_settings').upsert({ key: 'journal_settings', value }, { onConflict: 'key' });
                 if (error) throw error;
+                // Prime the storefront's flash-prevention cache (same origin) so
+                // /journal paints the new label/title/fonts with no flash.
+                try {
+                    const _hm = JR_ADMIN_FONTS[value.heading_font] || {}, _bm = JR_ADMIN_BODY_FONTS[value.body_font] || {};
+                    localStorage.setItem('zw_journal_cfg', JSON.stringify({
+                        l: value.label, t: value.title, s: value.subtitle,
+                        hf: _hm.url ? _hm.family : '', hu: _hm.url || '',
+                        bf: _bm.url ? _bm.family : '', bu: _bm.url || '',
+                    }));
+                } catch (_) {}
                 try { await logAdminAudit('settings.update', 'site_settings', 'journal_settings', value); } catch (_) {}
                 showToast('Appearance saved ✓');
             } catch (e) { showToast('Save failed: ' + ((e && e.message) || 'error'), 'error'); }
