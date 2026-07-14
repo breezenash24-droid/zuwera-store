@@ -19,6 +19,7 @@ const DEFAULTS = {
   title: 'Field Notes',
   subtitle: 'Stories, drops, and the thinking behind Zuwera.',
   heading_font: '',
+  body_font: '',
 };
 
 export async function onRequestOptions({ env }) {
@@ -49,6 +50,7 @@ export async function onRequestGet({ env }) {
       title: (v.title != null && String(v.title).trim()) ? String(v.title) : DEFAULTS.title,
       subtitle: v.subtitle != null ? String(v.subtitle) : DEFAULTS.subtitle,
       heading_font: String(v.heading_font || ''),
+      body_font: String(v.body_font || ''),
     }, 200, cors(env));
   } catch (e) {
     return json(DEFAULTS, 200, cors(env));
