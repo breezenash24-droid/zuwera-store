@@ -405,10 +405,7 @@
   var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
   function esc(v){ return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function fmtDate(s){ try { return new Date(s).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}); } catch(_){ return ''; } }
-  function paras(body){ return String(body||'').split(/
-s*
-/).map(function(p){return p.trim();}).filter(Boolean).map(function(p){ return '<p>'+esc(p).replace(/?
-/g,'<br>')+'</p>'; }).join(''); }
+  function paras(body){ return String(body||'').replace(/\r\n/g,'\n').split(/\n{2,}/).map(function(p){return p.trim();}).filter(Boolean).map(function(p){ return '<p>'+esc(p).replace(/\n/g,'<br>')+'</p>'; }).join(''); }
   function api(path){ return fetch(SUPABASE_URL + '/rest/v1/' + path, { headers: { apikey: SUPABASE_ANON, Authorization: 'Bearer ' + SUPABASE_ANON } }).then(function(r){ return r.ok ? r.json() : []; }).catch(function(){ return []; }); }
 
   function renderList(posts){
@@ -455,6 +452,7 @@ s*
     }
   }
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', loadJournal); else loadJournal();
+})();
 </script>
 <script src="/nav-menu.js?v=2abb3b12" defer></script>
 </body>
