@@ -457,7 +457,7 @@
     applyHeadingFont(cfg.heading_font);
     applyBodyFont(cfg.body_font);
     applyAspect(cfg.aspect);
-    try{var _hm=JR_FONTS[cfg.heading_font]||{},_bm=JR_BODY_FONTS[cfg.body_font]||{};localStorage.setItem('zw_journal_cfg',JSON.stringify({l:cfg.label,t:cfg.title,s:cfg.subtitle,hf:_hm.url?_hm.family:'',hu:_hm.url||'',bf:_bm.url?_bm.family:'',bu:_bm.url||'',ar:cfg.aspect||''}));}catch(_){}
+    try{var _hm=JR_FONTS[cfg.heading_font]||{},_bm=JR_BODY_FONTS[cfg.body_font]||{};localStorage.setItem('zw_journal_cfg',JSON.stringify({l:cfg.label,t:cfg.title,s:cfg.subtitle,hf:_hm.url?_hm.family:'',hu:_hm.url||'',bf:_bm.url?_bm.family:'',bu:_bm.url||'',ar:cfg.aspect||'',fl:cfg.show_footer_link!==false}));}catch(_){}
   }
   function renderList(posts){
     if (!posts.length){ document.getElementById('jr-empty').style.display='block'; return; }

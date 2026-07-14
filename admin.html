@@ -1016,6 +1016,10 @@
                                 <option value="natural">Natural (original size)</option>
                             </select>
                         </div>
+                        <div class="form-group" style="display:flex;align-items:center;gap:10px">
+                            <input type="checkbox" id="jra-footer" style="width:auto;margin:0" checked>
+                            <label class="form-label" for="jra-footer" style="margin:0;cursor:pointer">Show the &ldquo;Journal&rdquo; link in the site footer</label>
+                        </div>
                         <button class="btn btn-primary" id="jra-save-btn" onclick="journalSaveAppearance()">Save appearance</button>
                     </div>
 
@@ -5774,6 +5778,7 @@
                 document.getElementById('jra-font').value  = cfg.heading_font || '';
                 document.getElementById('jra-bodyfont').value = cfg.body_font || '';
                 document.getElementById('jra-aspect').value = cfg.aspect || '';
+                document.getElementById('jra-footer').checked = cfg.show_footer_link !== false;
                 journalPreview();
             } catch (_) {}
         }
@@ -5785,6 +5790,7 @@
                 heading_font: document.getElementById('jra-font').value,
                 body_font: document.getElementById('jra-bodyfont').value,
                 aspect: document.getElementById('jra-aspect').value,
+                show_footer_link: document.getElementById('jra-footer').checked,
             };
             const btn = document.getElementById('jra-save-btn'); const t = btn.textContent;
             btn.disabled = true; btn.textContent = 'Saving…';
@@ -5799,7 +5805,7 @@
                         l: value.label, t: value.title, s: value.subtitle,
                         hf: _hm.url ? _hm.family : '', hu: _hm.url || '',
                         bf: _bm.url ? _bm.family : '', bu: _bm.url || '',
-                        ar: value.aspect || '',
+                        ar: value.aspect || '', fl: value.show_footer_link !== false,
                     }));
                 } catch (_) {}
                 try { await logAdminAudit('settings.update', 'site_settings', 'journal_settings', value); } catch (_) {}

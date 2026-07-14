@@ -21,7 +21,15 @@ const DEFAULTS = {
   heading_font: '',
   body_font: '',
   aspect: '',
+  show_footer_link: true,
 };
+
+// Short cache so the footer-link check (run on every page via nav-menu.js)
+// mostly serves from the browser cache instead of a Supabase read each time.
+// /journal's own fetch uses cache:'no-store', so it always gets fresh values.
+function hdr(env) {
+  return { ...cors(env), 'Cache-Control': 'public, max-age=120' };
+}
 
 export async function onRequestOptions({ env }) {
   return new Response(null, { status: 204, headers: cors(env) });
@@ -30,14 +38,14 @@ export async function onRequestOptions({ env }) {
 export async function onRequestGet({ env }) {
   try {
     const key = serviceKey(env);
-    if (!env.SUPABASE_URL || !key) return json(DEFAULTS, 200, cors(env));
+    if (!env.SUPABASE_URL || !key) return json(DEFAULTS, 200, hdr(env));
 
     const r = await fetch(
       `${env.SUPABASE_URL}/rest/v1/site_settings?select=value&key=eq.journal_settings&limit=1`,
       { headers: { apikey: key, Authorization: 'Bearer ' + key }, cache: 'no-store' }
     );
     const rows = r.ok ? await r.json() : [];
-    if (!rows || !rows.length) return json(DEFAULTS, 200, cors(env));
+    if (!rows || !rows.length) return json(DEFAULTS, 200, hdr(env));
 
     let v = rows[0] && rows[0].value;
     if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = {}; } }
@@ -53,8 +61,9 @@ export async function onRequestGet({ env }) {
       heading_font: String(v.heading_font || ''),
       body_font: String(v.body_font || ''),
       aspect: String(v.aspect || ''),
-    }, 200, cors(env));
+      show_footer_link: v.show_footer_link !== false,
+    }, 200, hdr(env));
   } catch (e) {
-    return json(DEFAULTS, 200, cors(env));
+    return json(DEFAULTS, 200, hdr(env));
   }
 }
