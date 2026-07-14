@@ -24,11 +24,10 @@ const DEFAULTS = {
   show_footer_link: true,
 };
 
-// Short cache so the footer-link check (run on every page via nav-menu.js)
-// mostly serves from the browser cache instead of a Supabase read each time.
-// /journal's own fetch uses cache:'no-store', so it always gets fresh values.
+// No cache header on purpose: callers (nav-menu.js, /journal) fetch with
+// cache:'no-store' and a stale value would wrongly re-show/hide the footer link.
 function hdr(env) {
-  return { ...cors(env), 'Cache-Control': 'public, max-age=120' };
+  return cors(env);
 }
 
 export async function onRequestOptions({ env }) {

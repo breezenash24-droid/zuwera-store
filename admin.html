@@ -1016,9 +1016,11 @@
                                 <option value="natural">Natural (original size)</option>
                             </select>
                         </div>
-                        <div class="form-group" style="display:flex;align-items:center;gap:10px">
-                            <input type="checkbox" id="jra-footer" style="width:auto;margin:0" checked>
-                            <label class="form-label" for="jra-footer" style="margin:0;cursor:pointer">Show the &ldquo;Journal&rdquo; link in the site footer</label>
+                        <div class="form-group"><label class="form-label">Footer link</label>
+                            <label for="jra-footer" style="display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--border);border-radius:8px;cursor:pointer">
+                                <input type="checkbox" id="jra-footer" style="width:22px;height:22px;flex-shrink:0;margin:0;accent-color:var(--accent,#F891A5);cursor:pointer" checked>
+                                <span style="font-size:.92rem;line-height:1.45">Show the &ldquo;Journal&rdquo; link in the site footer<br><span style="opacity:.55;font-size:.82rem">Uncheck to remove it from the footer and mobile menu across the whole site.</span></span>
+                            </label>
                         </div>
                         <button class="btn btn-primary" id="jra-save-btn" onclick="journalSaveAppearance()">Save appearance</button>
                     </div>

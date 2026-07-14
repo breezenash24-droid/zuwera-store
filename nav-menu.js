@@ -287,21 +287,28 @@
     var links = document.querySelectorAll('a[href="/journal.html"], a[href="journal.html"]');
     for (var i = 0; i < links.length; i++) links[i].style.display = (show === false) ? 'none' : '';
   }
-  try {
-    var c = JSON.parse(localStorage.getItem('zw_journal_cfg') || 'null');
-    if (c && c.fl === false) apply(false);
-  } catch (_) {}
-  fetch('/api/journal-config')
-    .then(function (r) { return r.ok ? r.json() : null; })
-    .then(function (cfg) {
-      if (!cfg) return;
-      var show = cfg.show_footer_link !== false;
-      try {
-        var o = JSON.parse(localStorage.getItem('zw_journal_cfg') || '{}') || {};
-        o.fl = show;
-        localStorage.setItem('zw_journal_cfg', JSON.stringify(o));
-      } catch (_) {}
-      apply(show);
-    })
-    .catch(function () {});
+  function run() {
+    // Instant from the shared cache (no flash for returning visitors).
+    try {
+      var c = JSON.parse(localStorage.getItem('zw_journal_cfg') || 'null');
+      if (c && typeof c.fl === 'boolean') apply(c.fl);
+    } catch (_) {}
+    // Authoritative refresh — no-store so a stale HTTP-cached response can't
+    // re-show a link the admin just hid.
+    fetch('/api/journal-config', { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (cfg) {
+        if (!cfg) return;
+        var show = cfg.show_footer_link !== false;
+        try {
+          var o = JSON.parse(localStorage.getItem('zw_journal_cfg') || '{}') || {};
+          o.fl = show;
+          localStorage.setItem('zw_journal_cfg', JSON.stringify(o));
+        } catch (_) {}
+        apply(show);
+      })
+      .catch(function () {});
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
 })();
