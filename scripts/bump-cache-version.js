@@ -15,24 +15,14 @@ const crypto = require('crypto');
 
 const root = path.resolve(__dirname, '..');
 
-const htmlFiles = [
-  '404.html',
-  'account.html',
-  'admin.html',
-  'analytics.html',
-  'bag.html',
-  'builder.html',
-  'checkout.html',
-  'confirm.html',
-  'diagnostic.html',
-  'drop001.html',
-  'index.html',
-  'mobile-checkout.html',
-  'policies.html',
-  'product.html',
-  'returns.html',
-  'sizeguide.html',
-];
+// Every .html file in the repo root. Previously this was a hardcoded list that
+// silently missed pages (landing.html, journal.html, about.html) — those stayed
+// pinned to stale asset hashes, so browsers kept serving cached old JS/CSS on
+// them. Globbing the root means new pages are always covered.
+const htmlFiles = fs
+  .readdirSync(root)
+  .filter((f) => f.endsWith('.html') && fs.statSync(path.join(root, f)).isFile())
+  .sort();
 
 function contentHash(filePath) {
   try {
