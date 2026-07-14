@@ -20,6 +20,7 @@ const DEFAULTS = {
   subtitle: 'Stories, drops, and the thinking behind Zuwera.',
   heading_font: '',
   body_font: '',
+  aspect: '',
 };
 
 export async function onRequestOptions({ env }) {
@@ -51,6 +52,7 @@ export async function onRequestGet({ env }) {
       subtitle: v.subtitle != null ? String(v.subtitle) : DEFAULTS.subtitle,
       heading_font: String(v.heading_font || ''),
       body_font: String(v.body_font || ''),
+      aspect: String(v.aspect || ''),
     }, 200, cors(env));
   } catch (e) {
     return json(DEFAULTS, 200, cors(env));

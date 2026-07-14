@@ -973,6 +973,7 @@
                             <div id="jra-prev-label" style="font-size:.6rem;letter-spacing:.26em;text-transform:uppercase;opacity:.55;margin-bottom:10px">The Journal</div>
                             <div id="jra-prev-title" style="font-weight:900;font-style:italic;text-transform:uppercase;font-size:2.1rem;line-height:1">Field Notes</div>
                             <div id="jra-prev-sub" style="opacity:.6;font-size:.85rem;margin-top:10px">Stories, drops, and the thinking behind Zuwera.</div>
+                            <div id="jra-prev-img" style="margin:16px auto 0;width:170px;aspect-ratio:16/10;background:var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.52rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-secondary)">image</div>
                         </div>
                         <div class="form-group"><label class="form-label">Eyebrow label</label><input type="text" id="jra-label" class="form-input" placeholder="The Journal" oninput="journalPreview()"></div>
                         <div class="form-group"><label class="form-label">Title / name</label><input type="text" id="jra-title" class="form-input" placeholder="Field Notes" oninput="journalPreview()"></div>
@@ -1001,6 +1002,18 @@
                                 <option value="lora">Lora (serif)</option>
                                 <option value="sourceserif">Source Serif (serif)</option>
                                 <option value="ibmplex">IBM Plex Sans</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label class="form-label">Image aspect ratio <span style="opacity:.55;font-weight:400">(cover &amp; list images)</span></label>
+                            <select id="jra-aspect" class="form-input" onchange="journalPreview()">
+                                <option value="">Default (16:10)</option>
+                                <option value="16/9">16 : 9 (wide)</option>
+                                <option value="3/2">3 : 2</option>
+                                <option value="4/3">4 : 3</option>
+                                <option value="1/1">1 : 1 (square)</option>
+                                <option value="4/5">4 : 5 (portrait)</option>
+                                <option value="3/4">3 : 4 (portrait)</option>
+                                <option value="natural">Natural (original size)</option>
                             </select>
                         </div>
                         <button class="btn btn-primary" id="jra-save-btn" onclick="journalSaveAppearance()">Save appearance</button>
@@ -5744,6 +5757,8 @@
             tp.style.fontStyle = font ? 'normal' : 'italic';
             const bfam = (JR_ADMIN_BODY_FONTS[bodyfont] || {}).family || '';
             lp.style.fontFamily = bfam; sp.style.fontFamily = bfam;
+            const aspect = g('jra-aspect').value, ip = g('jra-prev-img');
+            if (ip) { ip.style.aspectRatio = (aspect && aspect !== 'natural') ? aspect.replace('/', ' / ') : '16 / 10'; ip.textContent = aspect === 'natural' ? 'natural size' : 'image'; }
         }
         function journalClearCover() {
             document.getElementById('jp-cover').value = '';
@@ -5758,6 +5773,7 @@
                 document.getElementById('jra-sub').value   = cfg.subtitle != null ? cfg.subtitle : '';
                 document.getElementById('jra-font').value  = cfg.heading_font || '';
                 document.getElementById('jra-bodyfont').value = cfg.body_font || '';
+                document.getElementById('jra-aspect').value = cfg.aspect || '';
                 journalPreview();
             } catch (_) {}
         }
@@ -5768,6 +5784,7 @@
                 subtitle: document.getElementById('jra-sub').value.trim(),
                 heading_font: document.getElementById('jra-font').value,
                 body_font: document.getElementById('jra-bodyfont').value,
+                aspect: document.getElementById('jra-aspect').value,
             };
             const btn = document.getElementById('jra-save-btn'); const t = btn.textContent;
             btn.disabled = true; btn.textContent = 'Saving…';
@@ -5782,6 +5799,7 @@
                         l: value.label, t: value.title, s: value.subtitle,
                         hf: _hm.url ? _hm.family : '', hu: _hm.url || '',
                         bf: _bm.url ? _bm.family : '', bu: _bm.url || '',
+                        ar: value.aspect || '',
                     }));
                 } catch (_) {}
                 try { await logAdminAudit('settings.update', 'site_settings', 'journal_settings', value); } catch (_) {}
