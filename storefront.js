@@ -4513,11 +4513,19 @@ async function zwHomeNewsletterSubmit() {
   if (input) input.style.borderColor = '';
   const form = document.getElementById('nl-form');
   const success = document.getElementById('nl-success');
+  // Persist server-side (service-role) so it reliably lands in the admin list.
+  try {
+    const resp = await fetch('/api/subscribe', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, source: 'newsletter_footer_home' }),
+    });
+    const j = await resp.json().catch(() => ({}));
+    if (!j || !j.ok) { if (input) input.style.borderColor = '#e07060'; return; }
+  } catch (_) { if (input) input.style.borderColor = '#e07060'; return; }
   if (form) form.style.display = 'none';
   if (success) success.style.display = 'block';
   if (typeof gtag === 'function') gtag('event', 'generate_lead', { content_name: 'newsletter', source: 'home_footer' });
   if (window.zwPixel) zwPixel.lead('newsletter');
-  if (_sb) { try { await _sb.from('waitlist').upsert({ email, source: 'newsletter_footer_home' }); } catch(_) {} }
 }
 
 /* SCROLL TO NOTIFY */

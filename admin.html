@@ -172,11 +172,11 @@
            security boundary. */
         const ZW_RBAC = {
             super_admin: ['*'],
-            manager: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','journal','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','refund','return_process','product_write','order_write','user_manage','builder_edit','bulk_actions','export'],
+            manager: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','journal','subscribers','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','refund','return_process','product_write','order_write','user_manage','builder_edit','bulk_actions','export'],
             finance: ['dashboard','analytics','finance','orders','receipts','tax','audit','refund','export'],
             fulfillment: ['dashboard','products','orders','receipts','shipping','returns','order_write','return_process','product_write','bulk_actions','export'],
             content: ['dashboard','products','sizecharts','reviews','questions','journal','website','settings','product_write','builder_edit','export'],
-            viewer: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','journal','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','export']
+            viewer: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','journal','subscribers','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','export']
         };
         const ZW_ROLE_LABELS = {
             super_admin:'Super Admin', manager:'Manager', finance:'Finance',
@@ -185,7 +185,7 @@
         // Preset access maps (page -> 'view'|'edit') — mirror of ROLE_PRESET_LEVELS
         // in functions/api/_rbac.js. Drives the "preset" button in the access matrix.
         const ZW_ROLE_PRESET_LEVELS = {
-            manager:{dashboard:'view',analytics:'view',finance:'edit',products:'edit',legacy:'edit',sizecharts:'edit',reviews:'edit',questions:'edit',journal:'edit',commerce:'edit',meta:'edit',orders:'view',receipts:'edit',shipping:'edit',returns:'edit',users:'edit',website:'edit',settings:'edit',tax:'edit',audit:'view',flags:'edit'},
+            manager:{dashboard:'view',analytics:'view',finance:'edit',products:'edit',legacy:'edit',sizecharts:'edit',reviews:'edit',questions:'edit',journal:'edit',subscribers:'edit',commerce:'edit',meta:'edit',orders:'view',receipts:'edit',shipping:'edit',returns:'edit',users:'edit',website:'edit',settings:'edit',tax:'edit',audit:'view',flags:'edit'},
             finance:{dashboard:'view',analytics:'view',finance:'edit',orders:'view',receipts:'view',tax:'edit',audit:'view'},
             fulfillment:{dashboard:'view',products:'view',orders:'view',receipts:'edit',shipping:'edit',returns:'edit'},
             content:{dashboard:'view',products:'edit',sizecharts:'edit',reviews:'edit',questions:'edit',journal:'edit',website:'edit',settings:'edit'}
@@ -218,6 +218,7 @@
             { id:'reviews',    icon:'⭐', label:'Reviews',     title:'Customer Reviews',    group:'catalogue', kw:'ratings testimonials stars moderate feedback' },
             { id:'questions',  icon:'❓', label:'Q&A',         title:'Product Q&A',         group:'catalogue', kw:'questions answers product qa moderate ask reply' },
             { id:'journal',    icon:'📓', label:'Journal',     title:'Journal',             group:'storefront', kw:'blog journal posts articles lookbook content editorial stories news' },
+            { id:'subscribers',icon:'📧', label:'Subscribers', title:'Newsletter Subscribers', group:'marketing', searchLabel:'Newsletter / Email list / Subscribers', kw:'newsletter subscribers email list mailing signups stay in the loop marketing send journal' },
             { id:'commerce',   icon:'🏷️', label:'Coupons',     title:'Coupons',             group:'marketing',     searchLabel:'Commerce / Coupons / Promotions', kw:'discount promo code voucher sale promotion loyalty' },
             { id:'meta',       icon:'📣', label:'Ads & Tracking', title:'Ads & Tracking', group:'marketing', searchLabel:'Meta / Facebook / Pixel / Conversions API / Google Ads / Analytics / GA4 / Merchant Center', kw:'facebook instagram pixel capi conversions api google ads ga4 gtag merchant center tracking utm marketing' },
             { id:'orders',     icon:'🛒', label:'Orders',      title:'Orders',              group:'operations',    mobile:'Orders', searchLabel:'Orders / Sales', kw:'orders sales transactions purchases fulfillment status tracking customer table awaiting shipped' },
@@ -1050,6 +1051,20 @@
                         </div>
                     </div>
                                         <div id="journalList"></div>
+                </div>
+
+                <!-- Newsletter Subscribers Page -->
+                <div id="subscribers" class="page">
+                    <div class="products-header">
+                        <h2>Newsletter Subscribers</h2>
+                        <div style="display:flex;gap:10px">
+                            <button class="btn btn-secondary" onclick="exportSubscribers()">Export CSV</button>
+                            <button class="btn btn-secondary" onclick="loadSubscribers()">Refresh</button>
+                        </div>
+                    </div>
+                    <p class="zw-page-intro">Everyone who signed up via the &ldquo;Stay in the loop&rdquo; form. Send a journal post to this list from <strong>Admin &rarr; Journal</strong> (each published post has an <strong>Email to subscribers</strong> button).</p>
+                    <div id="subStats" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px"></div>
+                    <div id="subscribersList"></div>
                 </div>
 
                 <!-- Reviews Page -->
@@ -3827,6 +3842,8 @@
                 loadQuestions();
             } else if (page === 'journal') {
                 loadJournalAdmin();
+            } else if (page === 'subscribers') {
+                loadSubscribers();
             }
         }
 
@@ -5633,6 +5650,7 @@
                         <div style="font-weight:600;font-size:.95rem;">${escapeHtml(p.title || 'Untitled')}</div>
                         <div style="font-size:.72rem;color:var(--text-secondary);">${pub ? '<span style="color:#3fb950;font-weight:700;">PUBLISHED</span>' : '<span style="font-weight:700;">DRAFT</span>'}${when ? ' · ' + when : ''}${pub ? ` · <a href="/journal.html?slug=${encodeURIComponent(p.slug)}" target="_blank" style="color:var(--accent,#F891A5);">view ↗</a>` : ''}</div>
                     </div>
+                    ${pub ? `<button onclick="journalSendEmail('${escapeAttr(p.id)}')" style="padding:7px 14px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--accent,#F891A5);font-size:.8rem;cursor:pointer;">✉ Email to subscribers</button>` : ''}
                     <button onclick="journalEdit('${escapeAttr(p.id)}')" style="padding:7px 14px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text-primary);font-size:.8rem;cursor:pointer;">Edit</button>
                     <button onclick="journalDelete('${escapeAttr(p.id)}')" style="padding:7px 12px;border:1px solid rgba(248,81,73,.4);border-radius:6px;background:none;color:#f85149;font-size:.8rem;cursor:pointer;">Delete</button>
                 </div>`;
@@ -5817,6 +5835,107 @@
         }
         window.journalPreview = journalPreview; window.journalClearCover = journalClearCover;
         window.journalSaveAppearance = journalSaveAppearance;
+
+        // ─── Send a journal post to newsletter subscribers ───────────────────────────
+        async function journalSendEmail(id) {
+            const post = (_journalPosts || []).find(x => String(x.id) === String(id));
+            const title = post ? post.title : 'this post';
+            if (!confirm('Email "' + (title || 'this post') + '" to all newsletter subscribers?\n\nThis sends a real email to everyone on your list.')) return;
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                showToast('Sending…');
+                const resp = await fetch('/api/send-journal', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: session && session.access_token, postId: id })
+                });
+                const j = await resp.json();
+                if (j && j.ok) {
+                    if (!j.of) showToast('No subscribers yet — nobody to email.', 'error');
+                    else showToast('Sent to ' + j.sent + ' of ' + j.of + ' subscriber' + (j.of === 1 ? '' : 's') + ' ✓');
+                } else { showToast((j && j.error) || 'Send failed', 'error'); }
+            } catch (e) { showToast('Send failed', 'error'); }
+        }
+        window.journalSendEmail = journalSendEmail;
+
+        // ─── Newsletter Subscribers ──────────────────────────────────────────────────
+        let _subscribers = [];
+        async function loadSubscribers() {
+            const host = document.getElementById('subscribersList');
+            if (!host) return;
+            host.innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:20px;">Loading…</p>';
+            document.getElementById('subStats').innerHTML = '';
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                const resp = await fetch('/api/newsletter-admin', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: session && session.access_token, action: 'list' })
+                });
+                const j = await resp.json();
+                if (!j || !j.ok) { host.innerHTML = `<p style="color:#ef4444">Could not load: ${escapeHtml((j && j.error) || 'error')}</p>`; return; }
+                _subscribers = j.subscribers || [];
+                renderSubscribers(j);
+            } catch (e) { host.innerHTML = '<p style="color:#ef4444">Could not load subscribers.</p>'; }
+        }
+        function subStatCard(label, value) {
+            return `<div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:14px 20px;min-width:120px">
+                <div style="font-size:1.6rem;font-weight:800;line-height:1">${value}</div>
+                <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-secondary);margin-top:4px">${label}</div>
+            </div>`;
+        }
+        function renderSubscribers(data) {
+            const stats = document.getElementById('subStats');
+            stats.innerHTML = subStatCard('Subscribed', data.subscribed || 0)
+                + subStatCard('Unsubscribed', (data.total || 0) - (data.subscribed || 0))
+                + subStatCard('Total', data.total || 0);
+            const host = document.getElementById('subscribersList');
+            const rows = _subscribers;
+            if (!rows.length) { host.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:36px 20px;border:1px dashed var(--border);border-radius:10px;">No subscribers yet. They\'ll appear here when people sign up via the footer &ldquo;Stay in the loop&rdquo; form.</div>'; return; }
+            host.innerHTML = `<div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px">
+                <table style="width:100%;border-collapse:collapse;font-size:.88rem">
+                    <thead><tr style="text-align:left;color:var(--text-secondary);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">
+                        <th style="padding:12px 16px">Email</th><th style="padding:12px 16px">Status</th><th style="padding:12px 16px">Source</th><th style="padding:12px 16px">Joined</th><th style="padding:12px 16px"></th>
+                    </tr></thead>
+                    <tbody>${rows.map(subRow).join('')}</tbody>
+                </table></div>`;
+        }
+        function subRow(s) {
+            const on = s.status === 'subscribed';
+            const when = s.created_at ? new Date(s.created_at).toLocaleDateString() : '';
+            return `<tr style="border-top:1px solid var(--border)">
+                <td style="padding:11px 16px">${escapeHtml(s.email)}</td>
+                <td style="padding:11px 16px"><span style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:${on ? '#3fb950' : '#9ca3af'}">${on ? 'Subscribed' : 'Unsubscribed'}</span></td>
+                <td style="padding:11px 16px;color:var(--text-secondary)">${escapeHtml(s.source || '—')}</td>
+                <td style="padding:11px 16px;color:var(--text-secondary)">${when}</td>
+                <td style="padding:11px 16px;text-align:right"><button onclick="subscriberDelete('${escapeAttr(s.id)}')" style="padding:5px 12px;border:1px solid rgba(248,81,73,.4);border-radius:6px;background:none;color:#f85149;font-size:.76rem;cursor:pointer">Delete</button></td>
+            </tr>`;
+        }
+        async function subscriberDelete(id) {
+            if (!confirm('Delete this subscriber permanently?')) return;
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                const resp = await fetch('/api/newsletter-admin', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: session && session.access_token, action: 'delete', id })
+                });
+                const j = await resp.json();
+                if (j && j.ok) { showToast('Deleted ✓'); loadSubscribers(); }
+                else { showToast((j && j.error) || 'Delete failed', 'error'); }
+            } catch (e) { showToast('Delete failed', 'error'); }
+        }
+        function exportSubscribers() {
+            if (!_subscribers.length) { showToast('No subscribers to export.', 'error'); return; }
+            const header = 'email,status,source,joined\n';
+            const csv = header + _subscribers.map(s =>
+                [s.email, s.status, s.source || '', s.created_at || ''].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')
+            ).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'zuwera-subscribers-' + new Date().toISOString().slice(0, 10) + '.csv';
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+        window.loadSubscribers = loadSubscribers; window.subscriberDelete = subscriberDelete; window.exportSubscribers = exportSubscribers;
 
         // ─── Feature Flags (site_settings.feature_flags → read by flags.js) ──────────
         let _featureFlags = {};
