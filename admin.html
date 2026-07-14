@@ -172,11 +172,11 @@
            security boundary. */
         const ZW_RBAC = {
             super_admin: ['*'],
-            manager: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','refund','return_process','product_write','order_write','user_manage','builder_edit','bulk_actions','export'],
+            manager: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','journal','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','refund','return_process','product_write','order_write','user_manage','builder_edit','bulk_actions','export'],
             finance: ['dashboard','analytics','finance','orders','receipts','tax','audit','refund','export'],
             fulfillment: ['dashboard','products','orders','receipts','shipping','returns','order_write','return_process','product_write','bulk_actions','export'],
-            content: ['dashboard','products','sizecharts','reviews','questions','website','settings','product_write','builder_edit','export'],
-            viewer: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','export']
+            content: ['dashboard','products','sizecharts','reviews','questions','journal','website','settings','product_write','builder_edit','export'],
+            viewer: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','journal','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','export']
         };
         const ZW_ROLE_LABELS = {
             super_admin:'Super Admin', manager:'Manager', finance:'Finance',
@@ -185,10 +185,10 @@
         // Preset access maps (page -> 'view'|'edit') — mirror of ROLE_PRESET_LEVELS
         // in functions/api/_rbac.js. Drives the "preset" button in the access matrix.
         const ZW_ROLE_PRESET_LEVELS = {
-            manager:{dashboard:'view',analytics:'view',finance:'edit',products:'edit',legacy:'edit',sizecharts:'edit',reviews:'edit',questions:'edit',commerce:'edit',meta:'edit',orders:'view',receipts:'edit',shipping:'edit',returns:'edit',users:'edit',website:'edit',settings:'edit',tax:'edit',audit:'view',flags:'edit'},
+            manager:{dashboard:'view',analytics:'view',finance:'edit',products:'edit',legacy:'edit',sizecharts:'edit',reviews:'edit',questions:'edit',journal:'edit',commerce:'edit',meta:'edit',orders:'view',receipts:'edit',shipping:'edit',returns:'edit',users:'edit',website:'edit',settings:'edit',tax:'edit',audit:'view',flags:'edit'},
             finance:{dashboard:'view',analytics:'view',finance:'edit',orders:'view',receipts:'view',tax:'edit',audit:'view'},
             fulfillment:{dashboard:'view',products:'view',orders:'view',receipts:'edit',shipping:'edit',returns:'edit'},
-            content:{dashboard:'view',products:'edit',sizecharts:'edit',reviews:'edit',questions:'edit',website:'edit',settings:'edit'}
+            content:{dashboard:'view',products:'edit',sizecharts:'edit',reviews:'edit',questions:'edit',journal:'edit',website:'edit',settings:'edit'}
         };
         // Set from /api/admin-access. null = not yet resolved (pre-auth): allow
         // everything so the panel renders normally until the real role arrives.
@@ -217,6 +217,7 @@
             { id:'sizecharts', icon:'📏', label:'Size Charts', title:'Size Charts',         group:'catalogue', kw:'size guide measurements fit chart sizing' },
             { id:'reviews',    icon:'⭐', label:'Reviews',     title:'Customer Reviews',    group:'catalogue', kw:'ratings testimonials stars moderate feedback' },
             { id:'questions',  icon:'❓', label:'Q&A',         title:'Product Q&A',         group:'catalogue', kw:'questions answers product qa moderate ask reply' },
+            { id:'journal',    icon:'📓', label:'Journal',     title:'Journal',             group:'storefront', kw:'blog journal posts articles lookbook content editorial stories news' },
             { id:'commerce',   icon:'🏷️', label:'Coupons',     title:'Coupons',             group:'marketing',     searchLabel:'Commerce / Coupons / Promotions', kw:'discount promo code voucher sale promotion loyalty' },
             { id:'meta',       icon:'📣', label:'Ads & Tracking', title:'Ads & Tracking', group:'marketing', searchLabel:'Meta / Facebook / Pixel / Conversions API / Google Ads / Analytics / GA4 / Merchant Center', kw:'facebook instagram pixel capi conversions api google ads ga4 gtag merchant center tracking utm marketing' },
             { id:'orders',     icon:'🛒', label:'Orders',      title:'Orders',              group:'operations',    mobile:'Orders', searchLabel:'Orders / Sales', kw:'orders sales transactions purchases fulfillment status tracking customer table awaiting shipped' },
@@ -955,6 +956,38 @@
                     </div>
                     <p class="zw-page-intro">Questions customers ask on product pages land here as <strong>pending</strong>. Answer one to publish the question + answer publicly, or hide/delete it. Turn the feature on in <strong>Feature Flags → feature_qa</strong>.</p>
                     <div id="qaAdminList"></div>
+                </div>
+
+                <!-- Journal Page -->
+                <div id="journal" class="page">
+                    <div class="products-header">
+                        <h2>Journal</h2>
+                        <button class="btn btn-primary" onclick="journalEdit(null)">+ New Post</button>
+                    </div>
+                    <p class="zw-page-intro">Write stories, drop notes, and lookbook posts. Published posts appear at <strong>/journal</strong>. Drafts stay private.</p>
+                    <div id="journalEditor" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px">
+                        <input type="hidden" id="jp-id">
+                        <div class="form-row"><label>Title</label><input type="text" id="jp-title" placeholder="Post title" oninput="journalAutoSlug()"></div>
+                        <div class="form-row"><label>URL slug</label><input type="text" id="jp-slug" placeholder="auto-from-title"><span class="zw-hint" style="font-size:.72rem;color:var(--text-secondary)">Lives at /journal.html?slug=<span id="jp-slug-preview"></span></span></div>
+                        <div class="form-row"><label>Excerpt (short summary for the list)</label><textarea id="jp-excerpt" rows="2" placeholder="One or two sentences…"></textarea></div>
+                        <div class="form-row"><label>Cover image</label>
+                            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                                <input type="text" id="jp-cover" placeholder="https://… (or upload →)" style="flex:1;min-width:200px">
+                                <input type="file" id="jp-cover-file" accept="image/*" style="display:none" onchange="journalUploadCover(this)">
+                                <button class="btn btn-secondary btn-sm" type="button" onclick="document.getElementById('jp-cover-file').click()">Upload</button>
+                            </div>
+                            <img id="jp-cover-preview" style="display:none;max-width:220px;margin-top:10px;border-radius:6px">
+                        </div>
+                        <div class="form-row"><label>Body</label><textarea id="jp-body" rows="12" placeholder="Write your post… (leave a blank line between paragraphs)"></textarea></div>
+                        <div class="form-row"><label>Status</label>
+                            <select id="jp-status"><option value="draft">Draft (private)</option><option value="published">Published (public)</option></select>
+                        </div>
+                        <div style="display:flex;gap:10px;margin-top:6px">
+                            <button class="btn btn-primary" onclick="journalSave()" id="jp-save-btn">Save</button>
+                            <button class="btn btn-secondary" onclick="document.getElementById('journalEditor').style.display='none'">Cancel</button>
+                        </div>
+                    </div>
+                    <div id="journalList"></div>
                 </div>
 
                 <!-- Reviews Page -->
@@ -3730,6 +3763,8 @@
                 loadFeatureFlags();
             } else if (page === 'questions') {
                 loadQuestions();
+            } else if (page === 'journal') {
+                loadJournalAdmin();
             }
         }
 
@@ -5499,6 +5534,128 @@
             } catch (e) { showToast('Update failed', 'error'); }
         }
         window.loadQuestions = loadQuestions; window.qaAction = qaAction;
+
+        // ─── Journal (journal_posts → shown at /journal) ─────────────────────────────
+        let _journalPosts = [];
+        function journalSlugify(s) {
+            return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
+        }
+        async function loadJournalAdmin() {
+            const host = document.getElementById('journalList');
+            if (!host) return;
+            host.innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:20px;">Loading…</p>';
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                const resp = await fetch('/api/journal-admin', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: session && session.access_token, action: 'list' })
+                });
+                const j = await resp.json();
+                if (!j || !j.ok) { host.innerHTML = `<p style="color:#ef4444">Could not load: ${escapeHtml((j && j.error) || 'error')}</p>`; return; }
+                _journalPosts = j.posts || [];
+                renderJournalAdmin(_journalPosts);
+            } catch (e) { host.innerHTML = '<p style="color:#ef4444">Could not load journal posts.</p>'; }
+        }
+        function renderJournalAdmin(posts) {
+            const host = document.getElementById('journalList');
+            if (!host) return;
+            if (!posts.length) { host.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:36px 20px;border:1px dashed var(--border);border-radius:10px;">No posts yet. Click <strong>+ New Post</strong> to write your first story.</div>'; return; }
+            host.innerHTML = posts.map(p => {
+                const pub = p.status === 'published';
+                const color = pub ? '#3fb950' : '#9ca3af';
+                const when = (p.published_at || p.created_at) ? new Date(p.published_at || p.created_at).toLocaleDateString() : '';
+                return `<div style="display:flex;gap:14px;align-items:center;background:var(--bg-secondary);border:1px solid var(--border);border-left:3px solid ${color};border-radius:10px;padding:12px 16px;margin-bottom:10px;">
+                    ${p.cover_image ? `<img src="${escapeAttr(p.cover_image)}" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:6px;flex-shrink:0;">` : '<div style="width:56px;height:56px;border-radius:6px;background:var(--border);flex-shrink:0;"></div>'}
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:600;font-size:.95rem;">${escapeHtml(p.title || 'Untitled')}</div>
+                        <div style="font-size:.72rem;color:var(--text-secondary);">${pub ? '<span style="color:#3fb950;font-weight:700;">PUBLISHED</span>' : '<span style="font-weight:700;">DRAFT</span>'}${when ? ' · ' + when : ''}${pub ? ` · <a href="/journal.html?slug=${encodeURIComponent(p.slug)}" target="_blank" style="color:var(--accent,#F891A5);">view ↗</a>` : ''}</div>
+                    </div>
+                    <button onclick="journalEdit('${escapeAttr(p.id)}')" style="padding:7px 14px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text-primary);font-size:.8rem;cursor:pointer;">Edit</button>
+                    <button onclick="journalDelete('${escapeAttr(p.id)}')" style="padding:7px 12px;border:1px solid rgba(248,81,73,.4);border-radius:6px;background:none;color:#f85149;font-size:.8rem;cursor:pointer;">Delete</button>
+                </div>`;
+            }).join('');
+        }
+        function journalEdit(id) {
+            const p = id ? _journalPosts.find(x => String(x.id) === String(id)) : null;
+            document.getElementById('jp-id').value = p ? p.id : '';
+            document.getElementById('jp-title').value = p ? (p.title || '') : '';
+            document.getElementById('jp-slug').value = p ? (p.slug || '') : '';
+            document.getElementById('jp-excerpt').value = p ? (p.excerpt || '') : '';
+            document.getElementById('jp-cover').value = p ? (p.cover_image || '') : '';
+            document.getElementById('jp-body').value = p ? (p.body || '') : '';
+            document.getElementById('jp-status').value = p && p.status === 'published' ? 'published' : 'draft';
+            document.getElementById('jp-save-btn').textContent = p ? 'Save changes' : 'Create post';
+            const prev = document.getElementById('jp-cover-preview');
+            if (p && p.cover_image) { prev.src = p.cover_image; prev.style.display = 'block'; } else { prev.style.display = 'none'; }
+            document.getElementById('jp-slug-preview').textContent = p ? (p.slug || '') : '';
+            document.getElementById('journalEditor').style.display = 'block';
+            document.getElementById('jp-title').focus();
+        }
+        function journalAutoSlug() {
+            // Only auto-derive the slug for NEW posts — never rewrite a live URL.
+            if (document.getElementById('jp-id').value) { return; }
+            const slug = journalSlugify(document.getElementById('jp-title').value);
+            document.getElementById('jp-slug').value = slug;
+            document.getElementById('jp-slug-preview').textContent = slug;
+        }
+        async function journalUploadCover(input) {
+            const file = input && input.files && input.files[0];
+            if (!file) return;
+            try {
+                showToast('Uploading image…');
+                const url = await uploadProductImageToR2(file);
+                if (url) {
+                    document.getElementById('jp-cover').value = url;
+                    const prev = document.getElementById('jp-cover-preview');
+                    prev.src = url; prev.style.display = 'block';
+                    showToast('Image uploaded ✓');
+                } else { showToast('Upload failed', 'error'); }
+            } catch (e) { showToast('Upload failed', 'error'); }
+            input.value = '';
+        }
+        async function journalSave() {
+            const post = {
+                id: document.getElementById('jp-id').value || null,
+                title: document.getElementById('jp-title').value.trim(),
+                slug: document.getElementById('jp-slug').value.trim(),
+                excerpt: document.getElementById('jp-excerpt').value.trim(),
+                cover_image: document.getElementById('jp-cover').value.trim(),
+                body: document.getElementById('jp-body').value,
+                status: document.getElementById('jp-status').value === 'published' ? 'published' : 'draft',
+            };
+            if (!post.title) { showToast('Give the post a title first.', 'error'); return; }
+            // Preserve the original published_at when editing.
+            if (post.id) { const orig = _journalPosts.find(x => String(x.id) === String(post.id)); if (orig && orig.published_at) post.published_at = orig.published_at; }
+            const btn = document.getElementById('jp-save-btn');
+            const label = btn.textContent; btn.disabled = true; btn.textContent = 'Saving…';
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                const resp = await fetch('/api/journal-admin', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: session && session.access_token, action: 'save', post })
+                });
+                const j = await resp.json();
+                if (j && j.ok) { showToast('Saved ✓'); document.getElementById('journalEditor').style.display = 'none'; loadJournalAdmin(); }
+                else { showToast((j && j.error) || 'Save failed', 'error'); }
+            } catch (e) { showToast('Save failed', 'error'); }
+            btn.disabled = false; btn.textContent = label;
+        }
+        async function journalDelete(id) {
+            if (!confirm('Delete this post permanently?')) return;
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                const resp = await fetch('/api/journal-admin', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: session && session.access_token, action: 'delete', id })
+                });
+                const j = await resp.json();
+                if (j && j.ok) { showToast('Deleted ✓'); loadJournalAdmin(); }
+                else { showToast((j && j.error) || 'Delete failed', 'error'); }
+            } catch (e) { showToast('Delete failed', 'error'); }
+        }
+        window.loadJournalAdmin = loadJournalAdmin; window.journalEdit = journalEdit;
+        window.journalAutoSlug = journalAutoSlug; window.journalUploadCover = journalUploadCover;
+        window.journalSave = journalSave; window.journalDelete = journalDelete;
 
         // ─── Feature Flags (site_settings.feature_flags → read by flags.js) ──────────
         let _featureFlags = {};

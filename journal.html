@@ -47,18 +47,18 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#09090b">
-  <title>About — Zuwera</title>
+  <title>Journal — Zuwera</title>
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png?v=3" id="site-favicon">
   <link rel="icon" type="image/png" sizes="192x192" href="/images/favicon-black-192.png?v=3">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png?v=3">
   <link rel="manifest" href="/site.webmanifest">
-  <link rel="canonical" href="https://zuwera.store/about.html">
+  <link rel="canonical" href="https://zuwera.store/journal.html">
   <script src="/favicon-utils.js?v=687e90ea" defer></script>
   <script src="/meta-pixel.js?v=71fe06fb" defer></script>
   <script src="/google-tag.js?v=b141b2a1" defer></script>
   <script src="/supabase.min.js?v=3277b334" defer></script>
   <script src="/supabase-client.js?v=b28896db" defer></script>
-  <meta name="description" content="The story behind Zuwera — sportswear built for the relentless. Bold, athletic, and designed for those who dream big.">
+  <meta name="description" content="The Zuwera Journal — stories, drops, and the thinking behind the brand. Sportswear built for the relentless.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,700;1,900&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500;600&display=swap">
@@ -304,7 +304,6 @@
         <a href="drop001.html?category=Sweatpants" class="mobile-nav-link zw-mobile-primary-link">Sweatpants</a>
         <a href="drop001.html?category=Socks" class="mobile-nav-link zw-mobile-primary-link">Socks</a>
         <a href="about.html" class="mobile-nav-link zw-mobile-primary-link">About</a>
-        <a href="journal.html" class="mobile-nav-link zw-mobile-primary-link">Journal</a>
       </div>
       <div class="zw-mobile-menu-secondary">
         <a href="account.html" class="zw-mobile-secondary-link">Account</a>
@@ -318,39 +317,39 @@
 </div>
 
 <!-- MAIN -->
-<main class="page">
-  <section class="about-hero">
-    <p class="about-label" id="about-label">About Zuwera</p>
-    <h1 class="about-h1" id="about-heading">Built For<br>Movement.</h1>
-    <div class="about-grid">
-      <div class="about-body" id="about-body">
-        <p>Bold, athletic, and designed for those who dream big. Zuwera is sportswear built for the relentless — those who push past limits and never stop.</p>
-        <p>Release 001 is the beginning. A collection of jackets crafted for those who move with purpose and style.</p>
-      </div>
-      <div class="about-side">
-        <a href="drop001.html" class="about-cta" id="about-cta-primary">
-          <span class="about-cta-label">Shop Release 001</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </a>
-        <div class="about-stats" id="about-stats">
-          <div class="about-stat"><div class="stat-n">001</div><div class="stat-l">First Release</div></div>
-          <div class="about-stat"><div class="stat-n">2026</div><div class="stat-l">Launching</div></div>
-          <div class="about-stat"><div class="stat-n">3</div><div class="stat-l">Styles</div></div>
-        </div>
-      </div>
-    </div>
+<style>
+  .zw-journal{max-width:1100px;margin:0 auto;padding:clamp(2rem,6vw,5rem) clamp(1rem,4vw,2.5rem)}
+  .jr-hero{text-align:center;margin-bottom:clamp(2rem,5vw,3.5rem)}
+  .jr-label{font-family:var(--fm,monospace);font-size:.7rem;letter-spacing:.28em;text-transform:uppercase;opacity:.55;margin:0 0 1rem}
+  .jr-h1{font-family:var(--fw);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.02em;font-size:clamp(2.4rem,7vw,4rem);line-height:.95;margin:0 0 .8rem}
+  .jr-sub{font-family:var(--fb);opacity:.65;max-width:46ch;margin:0 auto;line-height:1.6}
+  .jr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:2.2rem}
+  .jr-card{display:block;text-decoration:none;color:inherit}
+  .jr-card-img{aspect-ratio:16/10;background:rgba(128,128,128,.12);border-radius:6px;overflow:hidden;margin-bottom:1rem}
+  .jr-card-img img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.7,.2,1)}
+  .jr-card:hover .jr-card-img img{transform:scale(1.04)}
+  .jr-card-title{font-family:var(--fw);font-weight:800;font-style:italic;text-transform:uppercase;letter-spacing:.03em;font-size:1.4rem;line-height:1.1;margin:0 0 .4rem}
+  .jr-card-excerpt{font-family:var(--fb);opacity:.65;font-size:.92rem;line-height:1.55;margin:0 0 .5rem}
+  .jr-card-date{font-family:var(--fm,monospace);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;opacity:.45}
+  .jr-post{max-width:760px;margin:0 auto}
+  .jr-back{display:inline-block;font-family:var(--fm,monospace);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;opacity:.6;text-decoration:none;color:inherit;margin-bottom:1.6rem}
+  .jr-back:hover{opacity:1}
+  .jr-post-cover{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px;margin-bottom:1.8rem;display:block}
+  .jr-post-title{font-family:var(--fw);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.02em;font-size:clamp(2rem,5vw,3rem);line-height:1;margin:0 0 .6rem}
+  .jr-post-date{font-family:var(--fm,monospace);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;opacity:.45;margin:0 0 2rem}
+  .jr-post-body{font-family:var(--fb);font-size:1.05rem;line-height:1.8;opacity:.9}
+  .jr-post-body p{margin:0 0 1.3rem}
+  .jr-empty{text-align:center;opacity:.5;font-family:var(--fb);padding:3rem 0}
+</style>
+<main class="page zw-journal">
+  <section class="jr-hero" data-reveal>
+    <p class="jr-label">The Journal</p>
+    <h1 class="jr-h1">Field Notes</h1>
+    <p class="jr-sub">Stories, drops, and the thinking behind Zuwera.</p>
   </section>
-
-  <section class="about-closing" data-reveal>
-    <div>
-      <h2 id="about-closing-heading">For Those<br>Who Dream.</h2>
-      <p id="about-closing-text">Join the movement — be first to the next release.</p>
-    </div>
-    <a href="drop001.html" class="about-cta" id="about-cta-closing" style="margin-bottom:0">
-      <span class="about-cta-label">Explore the Collection</span>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-    </a>
-  </section>
+  <div id="jr-list" class="jr-grid"></div>
+  <article id="jr-post" class="jr-post" style="display:none"></article>
+  <p id="jr-empty" class="jr-empty" style="display:none">No stories yet — check back soon.</p>
 </main>
 
 <!-- FOOTER -->
@@ -375,7 +374,6 @@
       <summary class="zwf-col-head">Company<svg class="zwf-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
       <div class="zwf-col-links">
         <a href="/about.html">About</a>
-        <a href="/journal.html">Journal</a>
         <a href="/account.html">Account</a>
       </div>
     </details>
@@ -399,88 +397,61 @@
 </footer>
 
 <script>
-/* ── About page content: admin-editable via site_settings key="about_page" ──
-   The HTML above holds the defaults so the page renders fully with no JS / no
-   row. When a row exists, we override label / heading / body / stats. Also
-   applies the saved theme + brand favicon (same as the other content pages). */
+/* ── Journal: lists published posts from journal_posts (RLS: only 'published'
+   rows are readable by anon). Shows a single post when ?slug=… is present. Also
+   applies the saved theme + brand favicon, like the other content pages. */
 (function () {
-  function esc(v){ return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  // Heading keeps line breaks; body splits blank-line-separated paragraphs.
-  function nl2br(v){ return esc(v).replace(/\r?\n/g,'<br>'); }
-
-  function applyAbout(val){
-    if (!val || typeof val !== 'object') return;
-    if (val.label != null && String(val.label).trim()) {
-      var l = document.getElementById('about-label'); if (l) l.textContent = String(val.label);
-    }
-    if (val.heading != null && String(val.heading).trim()) {
-      var h = document.getElementById('about-heading'); if (h) h.innerHTML = nl2br(val.heading);
-    }
-    if (val.body != null && String(val.body).trim()) {
-      var paras = String(val.body).split(/\n\s*\n/).map(function(p){ return p.trim(); }).filter(Boolean);
-      var b = document.getElementById('about-body');
-      if (b && paras.length) b.innerHTML = paras.map(function(p){ return '<p>' + nl2br(p) + '</p>'; }).join('');
-    }
-    if (Array.isArray(val.stats) && val.stats.length) {
-      var s = document.getElementById('about-stats');
-      if (s) s.innerHTML = val.stats.slice(0, 12).map(function(st){
-        return '<div class="about-stat"><div class="stat-n">' + esc(st && st.n) + '</div><div class="stat-l">' + esc(st && st.l) + '</div></div>';
-      }).join('');
-    }
-    // Primary (hero) button label + link.
-    if (val.primary_cta && typeof val.primary_cta === 'object') {
-      var pc = document.getElementById('about-cta-primary');
-      if (pc) {
-        var pl = pc.querySelector('.about-cta-label');
-        if (pl && String(val.primary_cta.label || '').trim()) pl.textContent = String(val.primary_cta.label);
-        if (String(val.primary_cta.href || '').trim()) pc.setAttribute('href', String(val.primary_cta.href));
-      }
-    }
-    // Closing band: heading, subtext, button label + link.
-    if (val.closing && typeof val.closing === 'object') {
-      if (String(val.closing.heading || '').trim()) {
-        var ch = document.getElementById('about-closing-heading'); if (ch) ch.innerHTML = nl2br(val.closing.heading);
-      }
-      if (String(val.closing.text || '').trim()) {
-        var ct = document.getElementById('about-closing-text'); if (ct) ct.textContent = String(val.closing.text);
-      }
-      var cc = document.getElementById('about-cta-closing');
-      if (cc) {
-        var cl = cc.querySelector('.about-cta-label');
-        if (cl && String(val.closing.cta_label || '').trim()) cl.textContent = String(val.closing.cta_label);
-        if (String(val.closing.cta_href || '').trim()) cc.setAttribute('href', String(val.closing.cta_href));
-      }
-    }
-  }
-
   var SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
   var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
+  function esc(v){ return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function fmtDate(s){ try { return new Date(s).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}); } catch(_){ return ''; } }
+  function paras(body){ return String(body||'').replace(/\r\n/g,'\n').split(/\n{2,}/).map(function(p){return p.trim();}).filter(Boolean).map(function(p){ return '<p>'+esc(p).replace(/\n/g,'<br>')+'</p>'; }).join(''); }
+  function api(path){ return fetch(SUPABASE_URL + '/rest/v1/' + path, { headers: { apikey: SUPABASE_ANON, Authorization: 'Bearer ' + SUPABASE_ANON } }).then(function(r){ return r.ok ? r.json() : []; }).catch(function(){ return []; }); }
 
-  async function loadAbout(){
-    try {
-      var rows = null;
-      if (window.sb && window.sb.from) {
-        var res = await window.sb.from('site_settings').select('key,value').in('key', ['about_page','theme','brand']);
-        rows = res && res.data;
-      } else {
-        var resp = await fetch(SUPABASE_URL + '/rest/v1/site_settings?select=key,value&key=in.(about_page,theme,brand)', { headers: { apikey: SUPABASE_ANON, Authorization: 'Bearer ' + SUPABASE_ANON } });
-        if (resp.ok) rows = await resp.json();
-      }
-      (rows || []).forEach(function(row){
-        var v = (typeof row.value === 'string') ? (function(){ try { return JSON.parse(row.value); } catch(_) { return row.value; } })() : row.value;
-        if (row.key === 'about_page') applyAbout(v);
-        else if (row.key === 'theme') {
-          var mode = v && v.mode === 'light' ? 'light' : v && v.mode === 'super-light' ? 'super-light' : 'dark';
-          if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode);
-        } else if (row.key === 'brand') {
-          if (v && v.favicon) { if (window.__zwApplyFavicon) window.__zwApplyFavicon(v.favicon); else { var lk = document.querySelector('link[rel="icon"]'); if (lk) lk.href = v.favicon; } }
-        }
-      });
-    } catch (_) {}
+  function renderList(posts){
+    if (!posts.length){ document.getElementById('jr-empty').style.display='block'; return; }
+    document.getElementById('jr-list').innerHTML = posts.map(function(p){
+      var date = fmtDate(p.published_at || p.created_at);
+      return '<a class="jr-card" href="/journal.html?slug=' + encodeURIComponent(p.slug) + '">'
+        + '<div class="jr-card-img">' + (p.cover_image ? '<img src="'+esc(p.cover_image)+'" alt="'+esc(p.title)+'" loading="lazy">' : '') + '</div>'
+        + '<h2 class="jr-card-title">' + esc(p.title) + '</h2>'
+        + (p.excerpt ? '<p class="jr-card-excerpt">' + esc(p.excerpt) + '</p>' : '')
+        + (date ? '<p class="jr-card-date">' + date + '</p>' : '')
+        + '</a>';
+    }).join('');
   }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadAbout);
-  else loadAbout();
+  function renderPost(p){
+    document.getElementById('jr-list').style.display='none';
+    var hero = document.querySelector('.jr-hero'); if (hero) hero.style.display='none';
+    var el = document.getElementById('jr-post'); el.style.display='block';
+    var date = fmtDate(p.published_at || p.created_at);
+    el.innerHTML = '<a class="jr-back" href="/journal.html">&larr; All stories</a>'
+      + (p.cover_image ? '<img class="jr-post-cover" src="'+esc(p.cover_image)+'" alt="'+esc(p.title)+'">' : '')
+      + '<h1 class="jr-post-title">' + esc(p.title) + '</h1>'
+      + (date ? '<p class="jr-post-date">' + date + '</p>' : '')
+      + '<div class="jr-post-body">' + paras(p.body) + '</div>';
+    try { document.title = p.title + ' — Zuwera'; } catch(_){}
+  }
+  async function loadJournal(){
+    try {
+      var s = await api('site_settings?select=key,value&key=in.(theme,brand)');
+      (s||[]).forEach(function(row){
+        var v = (typeof row.value==='string') ? (function(){try{return JSON.parse(row.value);}catch(_){return row.value;}})() : row.value;
+        if (row.key==='theme'){ var mode = v && v.mode==='light'?'light':v && v.mode==='super-light'?'super-light':'dark'; if (window.__zwApplyAdminTheme) window.__zwApplyAdminTheme(mode); }
+        else if (row.key==='brand' && v && v.favicon){ if (window.__zwApplyFavicon) window.__zwApplyFavicon(v.favicon); }
+      });
+    } catch(_){}
+    var slug = new URLSearchParams(location.search).get('slug');
+    if (slug) {
+      var rows = await api('journal_posts?select=*&status=eq.published&slug=eq.' + encodeURIComponent(slug) + '&limit=1');
+      if (rows && rows[0]) renderPost(rows[0]);
+      else { var e=document.getElementById('jr-empty'); e.textContent='Story not found.'; e.style.display='block'; document.getElementById('jr-list').style.display='none'; var h=document.querySelector('.jr-hero'); if(h) h.style.display='none'; }
+    } else {
+      var posts = await api('journal_posts?select=id,title,slug,excerpt,cover_image,published_at,created_at&status=eq.published&order=published_at.desc.nullslast&limit=50');
+      renderList(posts || []);
+    }
+  }
+  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', loadJournal); else loadJournal();
 })();
 </script>
 <script src="/nav-menu.js?v=2abb3b12" defer></script>
