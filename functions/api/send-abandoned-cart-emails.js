@@ -1,0 +1,126 @@
+/**
+ * Cloudflare Pages Function: POST /api/send-abandoned-cart-emails
+ *
+ * Scheduled job (trigger it hourly from an external cron, same pattern as
+ * backup-export). Finds carts abandoned > 1h ago that weren't recovered or already
+ * emailed, sends a "you left something behind" email, and marks them emailed.
+ *
+ * Auth: shared secret in the `x-cron-token` header (or ?token=) compared to the
+ * ABANDONED_CART_TOKEN function secret. With no secret set, it rejects everything.
+ * Respects the feature_abandoned_cart flag (off → no sends). Reuses the same email
+ * providers (Resend → Brevo → Loops) as the other transactional emails.
+ */
+
+import { json } from './_commerce.js';
+import { fetchSiteSettings, resolveSetting } from './_settings.js';
+import { loopsFallback } from './_email.js';
+
+const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
+
+function serviceKey(env) {
+  return env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || env.SUPABASE_ANON_KEY || '';
+}
+function esc(v) {
+  return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function money(cents) { const n = (Number(cents) || 0) / 100; return '$' + (Number.isInteger(n) ? n : n.toFixed(2)); }
+
+async function sendEmail({ to, subject, html, fromEmail, resendKey, brevoKey, env, cache }) {
+  if (resendKey) {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST', headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: `Zuwera <${fromEmail}>`, to: [to], reply_to: 'orders@zuwera.store', subject, html }),
+    });
+    if (r.ok) return { provider: 'resend' };
+  }
+  if (brevoKey) {
+    const r = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST', headers: { 'api-key': brevoKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sender: { name: 'Zuwera', email: fromEmail }, to: [{ email: to }], replyTo: { email: 'orders@zuwera.store' }, subject, htmlContent: html }),
+    });
+    if (r.ok) return { provider: 'brevo' };
+  }
+  const loops = await loopsFallback({ env, cache, to, subject, html });
+  if (loops.ok) return { provider: 'loops' };
+  throw new Error('No email provider configured.');
+}
+
+function buildEmail({ items, url, logoUrl }) {
+  const rows = (items || []).slice(0, 8).map((i) => {
+    const variant = [i.color, i.size].filter(Boolean).join(' · ');
+    const img = i.image
+      ? `<td width="64" style="padding:0 12px 0 0"><img src="${esc(i.image)}" width="56" style="width:56px;border-radius:4px;display:block"></td>` : '';
+    return `<tr>${img}<td style="padding:8px 0;font-family:Arial,sans-serif;color:#f4f1eb;font-size:14px;vertical-align:middle">
+        <strong>${esc(i.title)}</strong>${variant ? `<br><span style="color:#9c988f;font-size:12px">${esc(variant)}</span>` : ''}${i.qty > 1 ? ` <span style="color:#9c988f">× ${i.qty}</span>` : ''}
+      </td><td align="right" style="font-family:Arial,sans-serif;color:#cfcbc2;font-size:14px;white-space:nowrap;vertical-align:middle">${money((i.price || 0) * 100)}</td></tr>`;
+  }).join('');
+  return `<!doctype html><html><body style="margin:0;background:#0b0b0d;font-family:Arial,Helvetica,sans-serif;color:#f4f1eb">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0b0b0d"><tr><td align="center" style="padding:32px 16px">
+      <table role="presentation" width="460" cellpadding="0" cellspacing="0" style="max-width:460px;width:100%">
+        <tr><td align="center" style="padding:0 0 26px"><img src="${esc(logoUrl)}" alt="ZUWERA" width="120" style="max-width:120px"></td></tr>
+        <tr><td style="font-size:24px;font-weight:800;font-style:italic;text-transform:uppercase;letter-spacing:.02em;text-align:center;padding:0 0 6px">You left something behind</td></tr>
+        <tr><td style="font-size:15px;line-height:1.6;color:#cfcbc2;text-align:center;padding:0 8px 24px">Your bag is still here — grab your picks before they sell out.</td></tr>
+        <tr><td style="padding:0 0 24px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid rgba(244,241,235,.12);border-bottom:1px solid rgba(244,241,235,.12)">${rows}</table></td></tr>
+        <tr><td align="center" style="padding:0 0 30px"><a href="${esc(url)}" style="display:inline-block;background:#f4f1eb;color:#0b0b0d;text-decoration:none;font-weight:700;font-size:13px;letter-spacing:.14em;text-transform:uppercase;padding:14px 36px;border-radius:3px">Return to your bag</a></td></tr>
+        <tr><td style="font-size:11px;color:#726e66;line-height:1.6;text-align:center;border-top:1px solid rgba(244,241,235,.1);padding:18px 0 0">You're receiving this because you started a checkout at zuwera.store. If this wasn't you, ignore this email.</td></tr>
+      </table>
+    </td></tr></table></body></html>`;
+}
+
+export async function onRequestPost({ request, env }) {
+  try {
+    const expected = env.ABANDONED_CART_TOKEN || '';
+    const url = new URL(request.url);
+    const provided = request.headers.get('x-cron-token') || url.searchParams.get('token') || '';
+    if (!expected || provided !== expected) return json({ ok: false, error: 'unauthorized' }, 401);
+
+    const key = serviceKey(env);
+    if (!env.SUPABASE_URL || !key) return json({ ok: false, error: 'not configured' }, 500);
+    const H = { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' };
+
+    // Master switch: feature_abandoned_cart off → no sends.
+    const ff = await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?select=value&key=eq.feature_flags&limit=1`, { headers: H })
+      .then((r) => (r.ok ? r.json() : [])).catch(() => []);
+    let flags = ff && ff[0] && ff[0].value;
+    if (typeof flags === 'string') { try { flags = JSON.parse(flags); } catch (_) { flags = null; } }
+    const flag = flags && flags.feature_abandoned_cart;
+    if (flag && flag.enabled === false) return json({ ok: true, sent: 0, disabled: true }, 200);
+
+    // Delay before nudging (minutes) — override with ABANDONED_CART_DELAY_MIN.
+    const delayMin = Math.max(15, parseInt(env.ABANDONED_CART_DELAY_MIN, 10) || 60);
+    const cutoff = new Date(Date.now() - delayMin * 60 * 1000).toISOString();
+    const rows = await fetch(`${env.SUPABASE_URL}/rest/v1/abandoned_carts`
+      + `?select=id,email,cart,item_count&recovered_at=is.null&emailed_at=is.null&item_count=gt.0`
+      + `&updated_at=lt.${encodeURIComponent(cutoff)}&order=updated_at.asc&limit=100`, { headers: H })
+      .then((r) => (r.ok ? r.json() : [])).catch(() => []);
+    if (!rows.length) return json({ ok: true, sent: 0 }, 200);
+
+    const cache = await fetchSiteSettings(['RESEND_API_KEY', 'BREVO_API_KEY', 'EMAIL_FROM', 'BRAND_LOGO_URL', 'LOOPS_API_KEY', 'LOOPS_TRANSACTIONAL_ID'], env);
+    const resendKey = resolveSetting('RESEND_API_KEY', env, cache);
+    const brevoKey = resolveSetting('BREVO_API_KEY', env, cache);
+    if (!resendKey && !brevoKey && !resolveSetting('LOOPS_API_KEY', env, cache)) {
+      return json({ ok: false, error: 'No email provider configured (RESEND_API_KEY or BREVO_API_KEY).' }, 500);
+    }
+    const fromEmail = resolveSetting('EMAIL_FROM', env, cache) || 'orders@zuwera.store';
+    const logoUrl = resolveSetting('BRAND_LOGO_URL', env, cache) || LOGO_FALLBACK;
+
+    const sent = [];
+    for (const row of rows) {
+      try {
+        const html = buildEmail({ items: row.cart || [], url: 'https://zuwera.store/bag.html', logoUrl });
+        await sendEmail({ to: row.email, subject: 'You left something in your bag', html, fromEmail, resendKey, brevoKey, env, cache });
+        sent.push(row.id);
+      } catch (_) { /* leave un-emailed for the next run */ }
+    }
+    if (sent.length) {
+      const list = sent.map((id) => encodeURIComponent(id)).join(',');
+      await fetch(`${env.SUPABASE_URL}/rest/v1/abandoned_carts?id=in.(${list})`, {
+        method: 'PATCH', headers: { ...H, Prefer: 'return=minimal' }, body: JSON.stringify({ emailed_at: new Date().toISOString() }),
+      });
+    }
+    return json({ ok: true, sent: sent.length, of: rows.length }, 200);
+  } catch (e) {
+    console.error('[send-abandoned-cart-emails]', e && e.message);
+    return json({ ok: false, error: (e && e.message) || 'failed' }, 500);
+  }
+}

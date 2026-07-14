@@ -773,3 +773,32 @@ async function homeNotifyMe() {
   document.querySelector('.notify-note').style.display = 'none';
   document.getElementById('home-notify-success').style.display = 'block';
 }
+
+/* ── Abandoned-cart capture ──────────────────────────────────────────────────
+   When the shopper enters their email at checkout, remember their email + cart so
+   /api/abandoned-cart can trigger a recovery email if they don't complete. Purely
+   additive + fire-and-forget — it never touches or blocks the payment flow. */
+(function () {
+  function attach() {
+    var el = document.getElementById('pay-email');
+    if (!el || el.dataset.zwAcHooked) return;
+    el.dataset.zwAcHooked = '1';
+    var last = '';
+    el.addEventListener('blur', function () {
+      var email = (el.value || '').trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+      var cart; try { cart = JSON.parse(localStorage.getItem('cart') || '[]'); } catch (_) { cart = []; }
+      if (!Array.isArray(cart) || !cart.length) return;
+      var sig = email + '|' + cart.length;
+      if (sig === last) return; last = sig;
+      try {
+        fetch('/api/abandoned-cart', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true,
+          body: JSON.stringify({ email: email, cart: cart })
+        }).catch(function () {});
+      } catch (_) {}
+    });
+  }
+  if (document.readyState !== 'loading') attach();
+  else document.addEventListener('DOMContentLoaded', attach);
+})();

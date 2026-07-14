@@ -186,6 +186,20 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
 
   await saveOrderToSupabase(pi, meta, tracking, env);
 
+  // Abandoned-cart: this shopper completed checkout, so mark their saved cart
+  // recovered — no recovery email should go out. Best-effort, never blocks.
+  try {
+    const _svc = getSupabaseServiceKey(env);
+    const _acEmail = String(meta.customer_email || '').trim().toLowerCase();
+    if (_svc && env.SUPABASE_URL && _acEmail) {
+      fetch(`${env.SUPABASE_URL}/rest/v1/abandoned_carts?email=eq.${encodeURIComponent(_acEmail)}`, {
+        method: 'PATCH',
+        headers: { apikey: _svc, Authorization: 'Bearer ' + _svc, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ recovered_at: new Date().toISOString() }),
+      }).catch(() => {});
+    }
+  } catch (_) {}
+
   const [stripeUpdateResult, emailResult, invResult, promoResult, capiResult] = await Promise.allSettled([
     tracking.number
       ? stripe.paymentIntents.update(pi.id, {
