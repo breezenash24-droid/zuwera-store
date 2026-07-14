@@ -5801,6 +5801,7 @@
             // hide the "notify me" prompt on sold-out sizes AND stop the restock emails.
             { key: 'feature_back_in_stock',   desc: 'Back in stock — the “notify me when it’s back” prompt on sold-out sizes + the auto-email to the waitlist when you restock a size. On by default.', enabled: true, rollout: 100 },
             { key: 'feature_qa',              desc: 'Product Q&A — a Questions & Answers section on product pages. Customers ask; you answer/publish in Admin → Q&A.' },
+            { key: 'feature_abandoned_cart',  desc: 'Abandoned-cart recovery — emails shoppers who started checkout (entered their email) but didn’t buy. Kill-switch for the scheduled recovery emails (needs the hourly cron + ABANDONED_CART_TOKEN set up). On by default.', enabled: true, rollout: 100 },
         ];
         function _flagVid() {
             try { let id = localStorage.getItem('zw_vid'); if (!id) { id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2)); localStorage.setItem('zw_vid', id); } return id; } catch (_) { return 'anon'; }
