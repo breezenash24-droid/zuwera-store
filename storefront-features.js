@@ -627,6 +627,92 @@
     document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) wrap.classList.remove('open'); });
   }
 
+  /* ───────────────────── feature: product Q&A ───────────────────── */
+
+  function ensureQAStyles() {
+    if (document.getElementById('zwf-qa-styles')) return;
+    var css = [
+      '.zwf-qa .zwf-strip-inner{max-width:820px}',
+      '.zwf-qa-list{display:flex;flex-direction:column;gap:1rem;margin-bottom:2rem}',
+      '.zwf-qa-item{border-bottom:1px solid rgba(128,128,128,.18);padding-bottom:1rem}',
+      '.zwf-qa-q,.zwf-qa-a{display:flex;gap:.6rem;margin:0 0 .4rem;font-family:var(--fb,inherit);font-size:.95rem;line-height:1.55}',
+      '.zwf-qa-q{font-weight:600}.zwf-qa-a{opacity:.8}',
+      '.zwf-qa-q b,.zwf-qa-a b{flex:0 0 1.1rem;font-family:var(--fw,inherit);font-weight:900;font-style:italic}',
+      '.zwf-qa-a b{opacity:.5}',
+      '.zwf-qa-empty{opacity:.55;font-family:var(--fb,inherit);margin:0 0 2rem}',
+      '.zwf-qa-form{border-top:1px solid rgba(128,128,128,.18);padding-top:1.4rem}',
+      '.zwf-qa-label{display:block;font-family:var(--fm,var(--fb,inherit));font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;opacity:.6;margin-bottom:.5rem}',
+      '.zwf-qa-input,.zwf-qa-name{width:100%;background:rgba(128,128,128,.08);border:1px solid rgba(128,128,128,.25);color:inherit;font-family:var(--fb,inherit);font-size:.95rem;padding:.7rem .8rem;border-radius:3px;outline:none;box-sizing:border-box}',
+      '.zwf-qa-input{margin-bottom:.6rem;resize:vertical}',
+      '.zwf-qa-row{display:flex;gap:.6rem;flex-wrap:wrap}',
+      '.zwf-qa-name{flex:1;min-width:160px}',
+      '.zwf-qa-submit{background:var(--ink,#09090b);color:var(--paper,#f4f1eb);border:none;border-radius:3px;padding:.7rem 1.4rem;font-family:var(--fm,inherit);font-size:.68rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;white-space:nowrap}',
+      '.zwf-qa-submit:disabled{opacity:.6;cursor:default}',
+      '.zwf-qa-msg{font-family:var(--fb,inherit);font-size:.82rem;margin:.6rem 0 0;min-height:1rem}',
+      '.zwf-qa-msg.err{color:#d64545}',
+      '.zwf-qa-thanks{font-family:var(--fb,inherit);font-size:.95rem;opacity:.85;margin:0}'
+    ].join('');
+    var s = document.createElement('style'); s.id = 'zwf-qa-styles'; s.textContent = css;
+    document.head.appendChild(s);
+  }
+
+  function initQA(p) {
+    if (!p || !p.id || document.querySelector('.zwf-qa')) return;
+    var pid = String(p.id);
+    fetch(SUPA + '/rest/v1/product_questions?select=question,answer,asker_name&product_id=eq.' + encodeURIComponent(pid) + '&status=eq.published&order=answered_at.desc.nullslast&limit=25', {
+      headers: { apikey: ANON, Authorization: 'Bearer ' + ANON }, cache: 'no-store'
+    })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (rows) { renderQA(pid, rows || []); })
+      .catch(function () { renderQA(pid, []); });
+  }
+
+  function renderQA(pid, rows) {
+    if (document.querySelector('.zwf-qa')) return;
+    ensureStyles(); ensureQAStyles();
+    var list = rows.length
+      ? rows.map(function (q) {
+          return '<div class="zwf-qa-item"><p class="zwf-qa-q"><b>Q</b>' + esc(q.question) + '</p>'
+            + (q.answer ? '<p class="zwf-qa-a"><b>A</b>' + esc(q.answer) + '</p>' : '') + '</div>';
+        }).join('')
+      : '<p class="zwf-qa-empty">No questions yet — be the first to ask.</p>';
+    var sec = document.createElement('section');
+    sec.className = 'zwf-strip zwf-qa';
+    sec.setAttribute('data-zwf', 'qa');
+    sec.innerHTML = '<div class="zwf-strip-inner">'
+      + '<h2 class="zwf-strip-title">Questions &amp; Answers</h2>'
+      + '<div class="zwf-qa-list">' + list + '</div>'
+      + '<form class="zwf-qa-form">'
+      + '<label class="zwf-qa-label" for="zwf-qa-input">Ask a question</label>'
+      + '<textarea class="zwf-qa-input" id="zwf-qa-input" rows="2" maxlength="1000" placeholder="e.g. How does this fit? Is the fabric breathable?"></textarea>'
+      + '<div class="zwf-qa-row"><input class="zwf-qa-name" type="text" maxlength="60" placeholder="Your name (optional)">'
+      + '<button type="submit" class="zwf-qa-submit">Submit question</button></div>'
+      + '<p class="zwf-qa-msg" aria-live="polite"></p>'
+      + '</form></div>';
+    insertBeforeFooter(sec);
+    sec.querySelector('.zwf-qa-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var form = e.currentTarget;
+      var input = sec.querySelector('.zwf-qa-input');
+      var nameEl = sec.querySelector('.zwf-qa-name');
+      var msg = sec.querySelector('.zwf-qa-msg');
+      var btn = sec.querySelector('.zwf-qa-submit');
+      var question = (input.value || '').trim();
+      if (question.length < 3) { msg.textContent = 'Please enter a question.'; msg.className = 'zwf-qa-msg err'; return; }
+      btn.disabled = true; btn.textContent = 'Sending…';
+      fetch(SUPA + '/rest/v1/product_questions', {
+        method: 'POST',
+        headers: { apikey: ANON, Authorization: 'Bearer ' + ANON, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ product_id: pid, question: question, asker_name: (nameEl.value || '').trim() || null, status: 'pending' })
+      }).then(function (r) {
+        if (r.ok) { form.innerHTML = '<p class="zwf-qa-thanks">Thanks! Your question was submitted — it\'ll appear here once our team answers it.</p>'; }
+        else { msg.textContent = 'Could not submit — please try again.'; msg.className = 'zwf-qa-msg err'; btn.disabled = false; btn.textContent = 'Submit question'; }
+      }).catch(function () {
+        msg.textContent = 'Could not submit — please try again.'; msg.className = 'zwf-qa-msg err'; btn.disabled = false; btn.textContent = 'Submit question';
+      });
+    });
+  }
+
   /* ───────────────────────── page wiring ───────────────────────── */
 
   function isHome() {
@@ -656,19 +742,21 @@
     var wantLowStock = f('feature_low_stock');
     var wantFit = f('feature_fit_finder');
     var wantSupport = f('feature_support_widget');
-    if (!(wantSearch || wantRV || wantRec || wantLowStock || wantFit || wantSupport)) return;
+    var wantQA = f('feature_qa');
+    if (!(wantSearch || wantRV || wantRec || wantLowStock || wantFit || wantSupport || wantQA)) return;
 
     if (wantSearch) initSearch();
     if (wantSupport) initSupport();
     if (wantLowStock) initLowStock(); // decorates homepage .pcard grids; no-op elsewhere
 
-    var wantPdp = wantRV || wantRec || wantFit;
+    var wantPdp = wantRV || wantRec || wantFit || wantQA;
     var onPdp = /\/product(\.html|\/)/i.test(location.pathname) || !!document.querySelector('.product-detail, #product-detail, .size-section');
     if (wantPdp && (onPdp || window.__zwCurrentProduct)) {
       onProduct(function (p) {
         if (wantRV) { rvRecord(p); rvTrackDwell(p); }
         if (wantFit) initFitFinder(p);
         if (wantRec) renderRecommendations(p);
+        if (wantQA) initQA(p);
         if (wantRV) renderRecentlyViewed(p.id);
       });
     }

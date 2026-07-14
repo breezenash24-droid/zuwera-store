@@ -172,11 +172,11 @@
            security boundary. */
         const ZW_RBAC = {
             super_admin: ['*'],
-            manager: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','refund','return_process','product_write','order_write','user_manage','builder_edit','bulk_actions','export'],
+            manager: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','refund','return_process','product_write','order_write','user_manage','builder_edit','bulk_actions','export'],
             finance: ['dashboard','analytics','finance','orders','receipts','tax','audit','refund','export'],
             fulfillment: ['dashboard','products','orders','receipts','shipping','returns','order_write','return_process','product_write','bulk_actions','export'],
-            content: ['dashboard','products','sizecharts','reviews','website','settings','product_write','builder_edit','export'],
-            viewer: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','export']
+            content: ['dashboard','products','sizecharts','reviews','questions','website','settings','product_write','builder_edit','export'],
+            viewer: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','export']
         };
         const ZW_ROLE_LABELS = {
             super_admin:'Super Admin', manager:'Manager', finance:'Finance',
@@ -185,10 +185,10 @@
         // Preset access maps (page -> 'view'|'edit') — mirror of ROLE_PRESET_LEVELS
         // in functions/api/_rbac.js. Drives the "preset" button in the access matrix.
         const ZW_ROLE_PRESET_LEVELS = {
-            manager:{dashboard:'view',analytics:'view',finance:'edit',products:'edit',legacy:'edit',sizecharts:'edit',reviews:'edit',commerce:'edit',meta:'edit',orders:'view',receipts:'edit',shipping:'edit',returns:'edit',users:'edit',website:'edit',settings:'edit',tax:'edit',audit:'view',flags:'edit'},
+            manager:{dashboard:'view',analytics:'view',finance:'edit',products:'edit',legacy:'edit',sizecharts:'edit',reviews:'edit',questions:'edit',commerce:'edit',meta:'edit',orders:'view',receipts:'edit',shipping:'edit',returns:'edit',users:'edit',website:'edit',settings:'edit',tax:'edit',audit:'view',flags:'edit'},
             finance:{dashboard:'view',analytics:'view',finance:'edit',orders:'view',receipts:'view',tax:'edit',audit:'view'},
             fulfillment:{dashboard:'view',products:'view',orders:'view',receipts:'edit',shipping:'edit',returns:'edit'},
-            content:{dashboard:'view',products:'edit',sizecharts:'edit',reviews:'edit',website:'edit',settings:'edit'}
+            content:{dashboard:'view',products:'edit',sizecharts:'edit',reviews:'edit',questions:'edit',website:'edit',settings:'edit'}
         };
         // Set from /api/admin-access. null = not yet resolved (pre-auth): allow
         // everything so the panel renders normally until the real role arrives.
@@ -216,6 +216,7 @@
             { id:'legacy',     icon:'📦', label:'Legacy',      title:'Legacy Products',     group:'catalogue',     searchLabel:'Legacy Products', kw:'old archived products' },
             { id:'sizecharts', icon:'📏', label:'Size Charts', title:'Size Charts',         group:'catalogue', kw:'size guide measurements fit chart sizing' },
             { id:'reviews',    icon:'⭐', label:'Reviews',     title:'Customer Reviews',    group:'catalogue', kw:'ratings testimonials stars moderate feedback' },
+            { id:'questions',  icon:'❓', label:'Q&A',         title:'Product Q&A',         group:'catalogue', kw:'questions answers product qa moderate ask reply' },
             { id:'commerce',   icon:'🏷️', label:'Coupons',     title:'Coupons',             group:'marketing',     searchLabel:'Commerce / Coupons / Promotions', kw:'discount promo code voucher sale promotion loyalty' },
             { id:'meta',       icon:'📣', label:'Ads & Tracking', title:'Ads & Tracking', group:'marketing', searchLabel:'Meta / Facebook / Pixel / Conversions API / Google Ads / Analytics / GA4 / Merchant Center', kw:'facebook instagram pixel capi conversions api google ads ga4 gtag merchant center tracking utm marketing' },
             { id:'orders',     icon:'🛒', label:'Orders',      title:'Orders',              group:'operations',    mobile:'Orders', searchLabel:'Orders / Sales', kw:'orders sales transactions purchases fulfillment status tracking customer table awaiting shipped' },
@@ -944,6 +945,16 @@
                         <tbody id="sizeChartTableBody">
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Product Q&A Page -->
+                <div id="questions" class="page">
+                    <div class="products-header">
+                        <h2>Product Q&amp;A</h2>
+                        <button class="btn btn-secondary" onclick="loadQuestions()">Refresh</button>
+                    </div>
+                    <p class="zw-page-intro">Questions customers ask on product pages land here as <strong>pending</strong>. Answer one to publish the question + answer publicly, or hide/delete it. Turn the feature on in <strong>Feature Flags → feature_qa</strong>.</p>
+                    <div id="qaAdminList"></div>
                 </div>
 
                 <!-- Reviews Page -->
@@ -3717,6 +3728,8 @@
                 loadRecentPRs();
             } else if (page === 'flags') {
                 loadFeatureFlags();
+            } else if (page === 'questions') {
+                loadQuestions();
             }
         }
 
@@ -5424,6 +5437,69 @@
         document.getElementById('refreshAuditBtn')?.addEventListener('click', () => loadAuditLog(false));
         document.getElementById('auditLoadMoreBtn')?.addEventListener('click', () => loadAuditLog(true));
 
+        // ─── Product Q&A moderation (product_questions via /api/product-questions) ───
+        async function loadQuestions() {
+            const host = document.getElementById('qaAdminList');
+            if (!host) return;
+            host.innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:20px;">Loading…</p>';
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                const resp = await fetch('/api/product-questions', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: session && session.access_token, action: 'list' })
+                });
+                const j = await resp.json();
+                if (!j || !j.ok) { host.innerHTML = `<p style="color:#ef4444">Could not load: ${escapeHtml((j && j.error) || 'error')}</p>`; return; }
+                renderQuestionsAdmin(j.questions || []);
+            } catch (e) { host.innerHTML = '<p style="color:#ef4444">Could not load questions.</p>'; }
+        }
+        function renderQuestionsAdmin(qs) {
+            const host = document.getElementById('qaAdminList');
+            if (!host) return;
+            if (!qs.length) { host.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:36px 20px;border:1px dashed var(--border);border-radius:10px;">No questions yet.</div>'; return; }
+            const pending = qs.filter(q => q.status === 'pending');
+            const others = qs.filter(q => q.status !== 'pending');
+            const card = (q) => {
+                const title = (q.products && q.products.title) || 'Product';
+                const color = q.status === 'pending' ? '#fbbf24' : (q.status === 'published' ? '#3fb950' : '#9ca3af');
+                const when = q.created_at ? new Date(q.created_at).toLocaleDateString() : '';
+                return `<div style="background:var(--bg-secondary);border:1px solid var(--border);border-left:3px solid ${color};border-radius:10px;padding:16px 18px;margin-bottom:12px;">
+                    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline;">
+                        <strong style="font-size:.95rem;">${escapeHtml(title)}</strong>
+                        <span style="font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:${color};">${escapeHtml(q.status)}${when ? ' · ' + when : ''}</span>
+                    </div>
+                    <p style="margin:8px 0 4px;font-size:.95rem;"><strong>Q:</strong> ${escapeHtml(q.question)}</p>
+                    ${q.asker_name ? `<p style="font-size:.72rem;color:var(--text-secondary);margin:0 0 8px;">— ${escapeHtml(q.asker_name)}</p>` : '<div style="height:6px"></div>'}
+                    <textarea data-qa-answer="${escapeAttr(q.id)}" placeholder="Write an answer — this publishes the question + answer publicly…" style="width:100%;min-height:56px;padding:8px 10px;background:var(--bg-primary,rgba(255,255,255,.04));border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:.85rem;margin-bottom:8px;box-sizing:border-box;">${escapeHtml(q.answer || '')}</textarea>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <button onclick="qaAction('${escapeAttr(q.id)}','answer')" style="padding:7px 14px;border:none;border-radius:6px;background:var(--accent,#F891A5);color:#09090b;font-weight:600;font-size:.8rem;cursor:pointer;">Answer &amp; Publish</button>
+                        ${q.status === 'published' ? `<button onclick="qaAction('${escapeAttr(q.id)}','hide')" style="padding:7px 14px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text-secondary);font-size:.8rem;cursor:pointer;">Hide</button>` : (q.answer ? `<button onclick="qaAction('${escapeAttr(q.id)}','publish')" style="padding:7px 14px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text-secondary);font-size:.8rem;cursor:pointer;">Publish</button>` : '')}
+                        <button onclick="qaAction('${escapeAttr(q.id)}','delete')" style="padding:7px 14px;border:1px solid rgba(248,81,73,.4);border-radius:6px;background:none;color:#f85149;font-size:.8rem;cursor:pointer;margin-left:auto;">Delete</button>
+                    </div>
+                </div>`;
+            };
+            host.innerHTML = (pending.length ? `<h3 style="font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin:0 0 10px;">Pending (${pending.length})</h3>` + pending.map(card).join('') : '')
+                + (others.length ? `<h3 style="font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin:${pending.length ? '20px' : '0'} 0 10px;">Answered / hidden</h3>` + others.map(card).join('') : '');
+        }
+        async function qaAction(id, action) {
+            if (action === 'delete' && !confirm('Delete this question permanently?')) return;
+            const payload = { id, action };
+            if (action === 'answer') {
+                const ta = document.querySelector(`[data-qa-answer="${id}"]`);
+                payload.answer = ta ? ta.value.trim() : '';
+                if (!payload.answer) { showToast('Write an answer first.', 'error'); return; }
+            }
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                payload.accessToken = session && session.access_token;
+                const resp = await fetch('/api/product-questions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const j = await resp.json();
+                if (j && j.ok) { showToast('Updated ✓'); loadQuestions(); }
+                else { showToast((j && j.error) || 'Update failed', 'error'); }
+            } catch (e) { showToast('Update failed', 'error'); }
+        }
+        window.loadQuestions = loadQuestions; window.qaAction = qaAction;
+
         // ─── Feature Flags (site_settings.feature_flags → read by flags.js) ──────────
         let _featureFlags = {};
         let _flagOrders = [];
@@ -5442,6 +5518,7 @@
             // Back in stock is an EXISTING live feature, so it defaults ON. Turn OFF to
             // hide the "notify me" prompt on sold-out sizes AND stop the restock emails.
             { key: 'feature_back_in_stock',   desc: 'Back in stock — the “notify me when it’s back” prompt on sold-out sizes + the auto-email to the waitlist when you restock a size. On by default.', enabled: true, rollout: 100 },
+            { key: 'feature_qa',              desc: 'Product Q&A — a Questions & Answers section on product pages. Customers ask; you answer/publish in Admin → Q&A.' },
         ];
         function _flagVid() {
             try { let id = localStorage.getItem('zw_vid'); if (!id) { id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2)); localStorage.setItem('zw_vid', id); } return id; } catch (_) { return 'anon'; }
