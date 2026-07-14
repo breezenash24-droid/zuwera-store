@@ -275,3 +275,33 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
+
+/* ── Journal footer link toggle ──────────────────────────────────────────────
+   Hides the footer + mobile "Journal" link when the admin turns it off
+   (site_settings.journal_settings.show_footer_link, exposed via
+   /api/journal-config). Applies instantly from the shared cache, then refreshes
+   from the server so first-time visitors and changes are picked up. Only exact
+   /journal.html links are touched, so content links (…?slug=) are unaffected. */
+(function () {
+  function apply(show) {
+    var links = document.querySelectorAll('a[href="/journal.html"], a[href="journal.html"]');
+    for (var i = 0; i < links.length; i++) links[i].style.display = (show === false) ? 'none' : '';
+  }
+  try {
+    var c = JSON.parse(localStorage.getItem('zw_journal_cfg') || 'null');
+    if (c && c.fl === false) apply(false);
+  } catch (_) {}
+  fetch('/api/journal-config')
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (cfg) {
+      if (!cfg) return;
+      var show = cfg.show_footer_link !== false;
+      try {
+        var o = JSON.parse(localStorage.getItem('zw_journal_cfg') || '{}') || {};
+        o.fl = show;
+        localStorage.setItem('zw_journal_cfg', JSON.stringify(o));
+      } catch (_) {}
+      apply(show);
+    })
+    .catch(function () {});
+})();
