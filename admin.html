@@ -8527,13 +8527,19 @@
                 const seenKeys = new Set();
                 const uniqueSizeEntries = [];
                 for (const entry of stockEntries) {
-                    // product_sizes only tracks size + stock_quantity; color is managed in color_variants
-                    const key = normalizeSizeKey(entry.size);
+                    // Store stock PER COLOUR: one row per (size, colour) so each colour
+                    // tracks its own stock and can sell out independently. Dedupe on the
+                    // size+colour pair. color_name null = a product with no colour
+                    // variants (a single "Stock" column). color_hex mirrors the variant.
+                    const colorKey = entry.color_name || '__nocolor__';
+                    const key = normalizeSizeKey(entry.size) + '|' + colorKey;
                     if (seenKeys.has(key)) continue;
                     seenKeys.add(key);
                     uniqueSizeEntries.push({
                         product_id: productId,
                         size: entry.size,
+                        color_name: entry.color_name || null,
+                        color_hex: entry.color_name ? (colorHexMap[entry.color_name.trim()] || null) : null,
                         stock_quantity: entry.stock_quantity
                     });
                 }

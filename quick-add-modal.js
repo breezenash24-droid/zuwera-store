@@ -115,13 +115,31 @@
     return urls;
   }
 
-  function quickAddSizeEntries(sizeRows) {
+  function quickAddSizeEntries(sizeRows, colorName) {
+    var rows = Array.isArray(sizeRows) ? sizeRows : [];
+    // Per-colour stock: for each size use the selected colour's rows, falling back to
+    // colour-agnostic rows (color_name null) for legacy products; with no colour, use
+    // the null rows if present else sum across colours.
+    var order = [];
     var sizeMap = {};
-    (Array.isArray(sizeRows) ? sizeRows : []).forEach(function (row) {
+    rows.forEach(function (row) {
       if (!row || !row.size) return;
-      sizeMap[row.size] = (sizeMap[row.size] || 0) + (Number(row.stock_quantity) || 0);
+      if (!(row.size in sizeMap)) { sizeMap[row.size] = 0; order.push(row.size); }
     });
-    var entries = Object.entries(sizeMap);
+    order.forEach(function (size) {
+      var forSize = rows.filter(function (r) { return r && r.size === size; });
+      var use;
+      if (colorName) {
+        var c = forSize.filter(function (r) { return r.color_name === colorName; });
+        var n = forSize.filter(function (r) { return !r.color_name; });
+        use = c.length ? c : (n.length ? n : []);
+      } else {
+        var nn = forSize.filter(function (r) { return !r.color_name; });
+        use = nn.length ? nn : forSize;
+      }
+      sizeMap[size] = use.reduce(function (s, r) { return s + (Number(r.stock_quantity) || 0); }, 0);
+    });
+    var entries = order.map(function (s) { return [s, sizeMap[s]]; });
     return entries.length ? entries : [['One Size', 1]];
   }
 
@@ -252,6 +270,12 @@
   }
 
   function quickAddRenderOptions(item) {
+    // Per-colour sizes: ensure a colour is chosen, then (re)compute size availability
+    // for it. Recomputed each render, so switching colour updates the sold-out states.
+    if (!item.selectedColor && Array.isArray(item.colors) && item.colors.length) item.selectedColor = item.colors[0];
+    if (Array.isArray(item.sizeRows)) {
+      item.sizes = quickAddSizeEntries(item.sizeRows, (item.selectedColor && item.selectedColor.color_name) || null);
+    }
     var colorWrap = document.getElementById('quick-add-review-colors');
     var sizeWrap = document.getElementById('quick-add-review-sizes');
     var message = document.getElementById('quick-add-review-message');
@@ -404,7 +428,7 @@
         fetch(SUPABASE_URL + '/rest/v1/color_variants?select=id,color_name,hex_color,variant_sku&product_id=eq.' + encodedId + '&order=sort_order.asc', { headers: headers }),
         // no-store: the mini quick-add modal's per-size stock must reflect an admin
         // stock edit immediately — never a cached "previous" quantity.
-        fetch(SUPABASE_URL + '/rest/v1/product_sizes?select=size,stock_quantity&product_id=eq.' + encodedId + '&order=created_at.asc', { headers: headers, cache: 'no-store' }),
+        fetch(SUPABASE_URL + '/rest/v1/product_sizes?select=size,stock_quantity,color_name&product_id=eq.' + encodedId + '&order=created_at.asc', { headers: headers, cache: 'no-store' }),
         fetch(SUPABASE_URL + '/rest/v1/product_images?select=image_url,alt_text,sort_order,color_variant_id,media_type&product_id=eq.' + encodedId + '&order=sort_order.asc', { headers: headers })
       ]);
       var colors = results[0].ok ? await results[0].json() : [];
@@ -417,6 +441,7 @@
       modalItem.image = images[0] || productImage || '';
       modalItem.images = images;
       modalItem.colors = Array.isArray(colors) ? colors : [];
+      modalItem.sizeRows = Array.isArray(sizeRows) ? sizeRows : [];
       modalItem.sizes = sizeEntries;
       // Preselect a color when opened from a grid swatch click (openQuickAddReviewModal
       // then recomputes the gallery for it). Falls back to first color if no match.
