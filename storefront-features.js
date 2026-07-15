@@ -374,6 +374,15 @@
     _overlay.addEventListener('click', function (e) { if (e.target === _overlay) closeSearch(); });
     var clearBtn = _overlay.querySelector('.zwf-search-clear');
     clearBtn.addEventListener('click', function () { _input.value = ''; clearBtn.hidden = true; runSearch(); _input.focus(); });
+    // Enter → the full catalogue, filtered. The panel is a peek; this is the
+    // "show me everything" escape hatch.
+    _input.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      var q = (_input.value || '').trim();
+      if (!q) return;
+      e.preventDefault();
+      location.assign('/drop001.html?q=' + encodeURIComponent(q));
+    });
     _input.addEventListener('input', function () { clearBtn.hidden = !_input.value; });
     _input.addEventListener('input', debounce(runSearch, 120));
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && _overlay && _overlay.classList.contains('open')) closeSearch(); });
@@ -473,7 +482,10 @@
 
   var ARROW_SVG = '<svg class="zwf-sr-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
   function searchRow(p) {
-    var meta = [p.category || p.subtitle || '', p.current_price != null ? '$' + p.current_price : ''].filter(Boolean).join(' · ');
+    // subtitle is the human label ("Jackets"); the category column holds internal
+    // codes (MOT / UOT), which is what shoppers were being shown. The product
+    // cards and the collection page both use subtitle — match them.
+    var meta = [p.subtitle || p.category || '', p.current_price != null ? '$' + p.current_price : ''].filter(Boolean).join(' · ');
     return '<a class="zwf-sr" href="' + esc(hrefOf(p)) + '">' + ARROW_SVG
       + '<span class="zwf-sr-nm">' + esc(p.title || 'Product') + '</span>'
       + (meta ? '<span class="zwf-sr-meta">' + esc(meta) + '</span>' : '')
