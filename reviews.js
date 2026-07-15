@@ -31,6 +31,8 @@ let _reviewProductName = null;
 let _reviewRating      = 0;
 let _reviewIdToEdit    = null;
 let _activeReviewDomId = null;
+let _reviewPhotos      = [];     // photo URLs attached to the review being written
+const MAX_REVIEW_PHOTOS = 4;
 
 // Cache of loaded reviews per product to avoid redundant DB calls
 const _reviewCache = {};
@@ -382,9 +384,11 @@ window.openAllReviewsModal = async function(pid, domId, productName) {
       ${review.body ? (reviewNeedsCollapse(review.body)
         ? `<p class="review-card-body" data-collapsible="1">${escHtml(reviewShort(review.body))}… </p><button type="button" class="review-more-btn" aria-expanded="false">View more</button>`
         : `<p class="review-card-body">${escHtml(review.body)}</p>`) : ''}
+      ${Array.isArray(review.photos) && review.photos.length ? `<div class="review-card-photos">${review.photos.map(u => `<img src="${escHtml(u)}" data-full="${escHtml(u)}" alt="review photo" loading="lazy">`).join('')}</div>` : ''}
       ${adminResponseHtml}
     `;
       list.appendChild(reviewEl);
+      reviewEl.querySelectorAll('.review-card-photos img').forEach((img) => img.addEventListener('click', () => zwReviewLightbox(img.dataset.full)));
       if (reviewNeedsCollapse(review.body)) {
         const _bodyEl = reviewEl.querySelector('.review-card-body[data-collapsible]');
         const _moreBtn = reviewEl.querySelector('.review-more-btn');
@@ -447,6 +451,8 @@ function openReviewForm(pid, pname) {
   if (document.querySelector('input[name="reviewRecommend"][value="yes"]')) document.querySelector('input[name="reviewRecommend"][value="yes"]').checked = true;
 
   setStarSelection(0);
+  _reviewPhotos = [];
+  renderReviewPhotoThumbs();
   syncReviewCharCount();
   const errReset = document.getElementById('review-error');
   if (errReset) errReset.style.color = '';
@@ -505,6 +511,8 @@ function openEditReviewForm(id, rating, pid) {
   if (resolvedProductName) _reviewProductName = resolvedProductName;
   _reviewIdToEdit = id;
   _reviewRating = rating;
+  _reviewPhotos = Array.isArray(review && review.photos) ? review.photos.slice() : [];
+  renderReviewPhotoThumbs();
 
   const productLabel = document.getElementById('review-product-label');
   if (productLabel) productLabel.textContent = resolvedProductName;
@@ -613,6 +621,95 @@ document.querySelectorAll('#star-selector button').forEach(btn => {
 });
 
 // -- Submit review ----------------------------------------------------
+// ── Review photos (optional; uploaded via /api/upload-review-photo) ──────────
+function renderReviewPhotoThumbs() {
+  const strip = document.getElementById('review-photo-strip');
+  if (!strip) return;
+  strip.innerHTML = _reviewPhotos.map((url) =>
+    `<div class="rvp-thumb"><img src="${escHtml(url)}" alt="review photo"><button type="button" class="rvp-remove" data-url="${escHtml(url)}" aria-label="Remove photo">&times;</button></div>`
+  ).join('');
+  strip.querySelectorAll('.rvp-remove').forEach((b) => b.addEventListener('click', () => zwReviewPhotoRemove(b.dataset.url)));
+  const addBtn = document.getElementById('review-photo-add');
+  if (addBtn) addBtn.style.display = _reviewPhotos.length >= MAX_REVIEW_PHOTOS ? 'none' : '';
+}
+function zwReviewPhotoRemove(url) {
+  _reviewPhotos = _reviewPhotos.filter((u) => u !== url);
+  renderReviewPhotoThumbs();
+}
+async function zwReviewPhotoUpload(input) {
+  const files = Array.from(input.files || []);
+  input.value = '';
+  if (!files.length) return;
+  let token = null;
+  if (window.sb) { const { data } = await window.sb.auth.getSession(); token = data && data.session && data.session.access_token || null; }
+  const status = document.getElementById('review-photo-status');
+  if (!token) { if (status) status.textContent = 'Please sign in to add photos.'; return; }
+  for (const file of files) {
+    if (_reviewPhotos.length >= MAX_REVIEW_PHOTOS) break;
+    if (status) status.textContent = 'Uploading…';
+    try {
+      const fd = new FormData();
+      fd.append('accessToken', token);
+      fd.append('file', file);
+      const resp = await fetch('/api/upload-review-photo', { method: 'POST', body: fd });
+      const j = await resp.json();
+      if (j && j.url) { _reviewPhotos.push(j.url); renderReviewPhotoThumbs(); if (status) status.textContent = ''; }
+      else if (status) { status.textContent = (j && j.error) || 'Upload failed.'; }
+    } catch (_) { if (status) status.textContent = 'Upload failed.'; }
+  }
+}
+window.zwReviewPhotoUpload = zwReviewPhotoUpload;
+
+function injectReviewPhotoStyles() {
+  if (document.getElementById('review-photo-styles')) return;
+  const s = document.createElement('style');
+  s.id = 'review-photo-styles';
+  s.textContent =
+    '.review-photo-wrap{margin:14px 0}' +
+    '.review-photo-label{display:block;font-size:.8rem;margin-bottom:8px}' +
+    '.review-photo-strip{display:flex;flex-wrap:wrap;gap:8px}' +
+    '.rvp-thumb{position:relative;width:60px;height:60px;border-radius:6px;overflow:hidden}' +
+    '.rvp-thumb img{width:100%;height:100%;object-fit:cover;display:block}' +
+    '.rvp-remove{position:absolute;top:2px;right:2px;width:18px;height:18px;line-height:16px;border:none;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:14px;cursor:pointer;padding:0}' +
+    '.review-photo-add{display:inline-block;margin-top:8px;font-size:.8rem;padding:7px 12px;border:1px dashed currentColor;border-radius:6px;cursor:pointer;opacity:.8}' +
+    '.review-photo-add:hover{opacity:1}' +
+    '.review-photo-status{font-size:.75rem;opacity:.7;margin-top:6px;min-height:1em}' +
+    '.review-card-photos{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 2px}' +
+    '.review-card-photos img{width:64px;height:64px;object-fit:cover;border-radius:6px;cursor:pointer;transition:opacity .15s}' +
+    '.review-card-photos img:hover{opacity:.85}' +
+    '.rvp-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;z-index:100000;cursor:zoom-out}' +
+    '.rvp-lightbox img{max-width:92vw;max-height:92vh;border-radius:6px}';
+  document.head.appendChild(s);
+}
+(function injectReviewPhotoUI() {
+  function inject() {
+    const body = document.getElementById('review-body-input');
+    if (!body || document.getElementById('review-photo-strip')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'review-photo-wrap';
+    wrap.innerHTML =
+      '<label class="review-photo-label">Add photos <span style="opacity:.6;font-weight:400">(optional)</span></label>' +
+      '<div id="review-photo-strip" class="review-photo-strip"></div>' +
+      '<label id="review-photo-add" class="review-photo-add">+ Add photo' +
+      '<input type="file" accept="image/*" multiple style="display:none" onchange="zwReviewPhotoUpload(this)"></label>' +
+      '<div id="review-photo-status" class="review-photo-status"></div>';
+    body.insertAdjacentElement('afterend', wrap);
+    injectReviewPhotoStyles();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', inject);
+  else inject();
+})();
+function zwReviewLightbox(url) {
+  const ov = document.createElement('div');
+  ov.className = 'rvp-lightbox';
+  const img = document.createElement('img');
+  img.src = url; img.alt = 'review photo';
+  ov.appendChild(img);
+  ov.addEventListener('click', () => ov.remove());
+  document.body.appendChild(ov);
+}
+window.zwReviewLightbox = zwReviewLightbox;
+
 async function submitReview() {
   const errEl  = document.getElementById('review-error');
   const btn    = document.getElementById('review-submit-btn');
@@ -665,6 +762,7 @@ async function submitReview() {
     const res = await window.sb.from('reviews').update({
       rating: _reviewRating,
       body:   body || null,
+      photos: _reviewPhotos.length ? _reviewPhotos.slice() : null,
       fit_rating: fit ? parseInt(fit) : null,
       comfort_rating: comfort ? parseInt(comfort) : null,
       recommend: recommend === 'yes' ? true : (recommend === 'no' ? false : null)
@@ -677,6 +775,7 @@ async function submitReview() {
       rating:        _reviewRating,
       body:          body || null,
       reviewer_name: reviewerName,
+      photos: _reviewPhotos.length ? _reviewPhotos.slice() : null,
       fit_rating: fit ? parseInt(fit) : null,
       comfort_rating: comfort ? parseInt(comfort) : null,
       recommend: recommend === 'yes' ? true : (recommend === 'no' ? false : null)
