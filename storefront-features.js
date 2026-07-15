@@ -187,6 +187,18 @@
       '.zwf-bag.open{pointer-events:auto}',
       '.zwf-bag-panel{background:var(--zw-page,#fff);color:var(--zw-ink,#09090b);width:100%;max-height:min(76vh,620px);display:flex;flex-direction:column;overflow:hidden;transform:translate3d(0,-101%,0);will-change:transform;transition:transform .44s cubic-bezier(.32,.72,0,1);box-shadow:0 22px 48px rgba(0,0,0,.18)}',
       '.zwf-bag.open .zwf-bag-panel{transform:translate3d(0,0,0)}',
+      /* A parked panel must not cast a shadow. Both panels sit at -101%, so their
+         bottom edge is a few px ABOVE the overlay — but the shadow (offset 22,
+         blur 48) reaches ~46px past that edge, straight into the overlay's
+         visible area. overflow:hidden clips the panel, not the shadow it throws
+         below itself. Measured on the homepage: a 43px dark band under the header
+         (86 -> 129), painted permanently once the bag had been opened once. It
+         read as a dim strip, and as a "gap" between header and panel — while the
+         geometry measured flush (-0.40px). .zw-mega hit this too; its fix note is
+         "negative spread keeps the shadow strictly BELOW the panel", but negative
+         spread alone doesn't save the parked case (still bleeds to ~113), so the
+         shadow only exists while open. */
+      '.zwf-bag:not(.open) .zwf-bag-panel,.zwf-search:not(.open) .zwf-search-panel{box-shadow:none}',
       '.zwf-bag-inner{overflow-y:auto;padding:clamp(1.2rem,3vw,2rem) clamp(1rem,4vw,2.5rem) clamp(1.6rem,4vw,2.4rem);max-width:1100px;margin:0 auto;width:100%}',
       '.zwf-bag-hd{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.2rem}',
       '.zwf-bag-hd h2{font-family:var(--fw,inherit);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.03em;font-size:clamp(1.3rem,3vw,1.9rem);margin:0}',
