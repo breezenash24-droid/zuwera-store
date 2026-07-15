@@ -393,13 +393,26 @@
     return document.querySelector('nav#nav, nav.nav, header.nav, nav.zw-nav');
   }
   function isDesktop() { return window.matchMedia('(min-width:900px)').matches; }
-  // Sit the panel flush under the header. Measured rather than hardcoded: the
-  // header shrinks when search opens and its height differs per page.
+
+  // Where a panel's top edge goes: flush under the header. Measured rather than
+  // hardcoded — the header shrinks when a panel opens and its height differs per
+  // page (index stacks a fixed announcement bar above the nav; drop001 doesn't).
+  //
+  // floor, NOT round: at fractional browser zoom the header's bottom lands on a
+  // sub-pixel (e.g. 96.6). Rounding up starts the panel below the header and
+  // leaves a hairline of page showing through — visible on one page and not
+  // another purely because their heights round differently. Flooring can only
+  // overlap by <1px, and panels paint at z-index 989 over the nav's 220, so an
+  // overlap is invisible. Both panels share this so they can't drift apart.
+  function headerBottom() {
+    var h = headerEl();
+    return h ? Math.max(0, Math.floor(h.getBoundingClientRect().bottom)) : 0;
+  }
+
   function syncSearchTop() {
     if (!_overlay) return;
     if (!isDesktop()) { _overlay.style.top = '0px'; return; }
-    var h = headerEl();
-    _overlay.style.top = h ? Math.max(0, Math.round(h.getBoundingClientRect().bottom)) + 'px' : '0px';
+    _overlay.style.top = headerBottom() + 'px';
   }
 
   // The old lock used body{position:fixed} unconditionally. modal-lock.js spells
@@ -1186,8 +1199,12 @@
       var u = window.__zwSessionUser;
       return { name: (u.user_metadata && u.user_metadata.full_name) || (u.email || '').split('@')[0] || 'Account' };
     }
+    // Read index's own signed-in marker (updateNav() in storefront.js adds .show
+    // to #account-btn), NOT visibility: zwf-bagpanel-on display:none's this very
+    // button, so an offsetParent check reads every signed-in visitor as signed
+    // out — the panel offered "Sign in" to people who were already signed in.
     var ab = document.getElementById('account-btn');
-    if (ab && ab.offsetParent !== null) return { name: (ab.textContent || 'Account').trim() };
+    if (ab && ab.classList.contains('show')) return { name: (ab.textContent || 'Account').trim() };
     var hl = document.getElementById('hdr-login');
     if (hl && /account\.html/.test(hl.getAttribute('href') || '')) return { name: (hl.textContent || 'Account').trim() };
     return null;
@@ -1197,7 +1214,9 @@
     orders: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
     saves:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>',
     acct:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M6.7 19a5.5 5.5 0 0 1 10.6 0"/></svg>',
-    help:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 1 1 4 2.8c-.7.3-1.1 1-1.1 1.7v.5"/><line x1="12" y1="17.5" x2="12" y2="17.5"/></svg>',
+    // linecap=round is load-bearing: the dot under the question mark is a
+    // zero-length line, which renders nothing under the default butt cap.
+    help:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 1 1 4 2.8c-.7.3-1.1 1-1.1 1.7v.5"/><line x1="12" y1="17.5" x2="12" y2="17.5"/></svg>',
   };
 
   function buildBagPanel() {
@@ -1248,8 +1267,7 @@
   function syncBagTop() {
     if (!_bagOverlay) return;
     if (!isDesktop()) { _bagOverlay.style.top = '0px'; return; }
-    var h = headerEl();
-    _bagOverlay.style.top = h ? Math.max(0, Math.round(h.getBoundingClientRect().bottom)) + 'px' : '0px';
+    _bagOverlay.style.top = headerBottom() + 'px';
   }
 
   function openBag() {
