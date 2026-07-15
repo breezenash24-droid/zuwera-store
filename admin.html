@@ -6726,6 +6726,7 @@
             { key: 'feature_abandoned_cart',  desc: 'Abandoned-cart recovery — emails shoppers who started checkout (entered their email) but didn’t buy. Kill-switch for the scheduled recovery emails (needs the hourly cron + ABANDONED_CART_TOKEN set up). On by default.', enabled: true, rollout: 100 },
             { key: 'feature_review_requests', desc: 'Review-request emails — a few days after an order, emails the customer asking them to review what they bought (with a photo). Kill-switch for the scheduled emails (needs the daily cron + REVIEW_REQUEST_TOKEN set up).' },
             { key: 'feature_bundles',         desc: 'Bundles — a “complete the set” row on product pages showing the other pieces in a set you build in Admin → Bundles (plus the set’s promo code, if you give it one).' },
+            { key: 'feature_bag_panel',       desc: 'Bag panel — clicking the bag opens a panel under the header (what’s in the bag, Review bag, account + support) instead of jumping to the bag page. Also hides the separate account button, since account moves into the panel. On by default — turn it off to go back to the bag page.', enabled: true, rollout: 100 },
         ];
         function _flagVid() {
             try { let id = localStorage.getItem('zw_vid'); if (!id) { id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2)); localStorage.setItem('zw_vid', id); } return id; } catch (_) { return 'anon'; }
