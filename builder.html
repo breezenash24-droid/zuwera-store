@@ -763,24 +763,33 @@ function lpTab(name){
    never appearing. more_from_release is rendered by the product page itself, so it
    always sits first and can only be hidden. */
 const PDP_BLOCK_META = {
-  more_from_release: { label:'More from this release', tp:'always first',    icon:'🧺', flag:null, fixed:true },
-  bundle:            { label:'Complete the set',       tp:'bundle',          icon:'🎁', flag:'feature_bundles' },
-  recently_viewed:   { label:'Recently viewed',        tp:'recently_viewed', icon:'🕘', flag:'feature_recently_viewed' },
-  recommendations:   { label:'You may also like',      tp:'recommendations', icon:'✨', flag:'feature_recommendations' },
-  qa:                { label:'Questions & answers',    tp:'q_and_a',         icon:'❓', flag:'feature_qa' },
+  more_from_release: { label:'More from this release', tp:'always first',    icon:'🧺', flag:null, fixed:true, desc:'Other pieces from the same drop' },
+  bundle:            { label:'Complete the set',       tp:'bundle',          icon:'🎁', flag:'feature_bundles', desc:'The other pieces in a bundle this product is part of' },
+  recently_viewed:   { label:'Recently viewed',        tp:'recently_viewed', icon:'🕘', flag:'feature_recently_viewed', desc:'What this shopper looked at before' },
+  recommendations:   { label:'You may also like',      tp:'recommendations', icon:'✨', flag:'feature_recommendations', desc:'Similar products' },
+  qa:                { label:'Questions & answers',    tp:'q_and_a',         icon:'❓', flag:'feature_qa', desc:'Customer questions you have answered' },
+  // Optional extras: gallery-only, so shipping a new one never makes it appear
+  // on a live store uninvited. No feature flag — being in the layout IS the switch.
+  new_arrivals:      { label:'New arrivals',           tp:'new_arrivals',    icon:'🆕', flag:null, desc:'Your newest products' },
+  journal:           { label:'From the journal',       tp:'journal',         icon:'📓', flag:null, desc:'Latest published journal posts' },
+  newsletter:        { label:'Newsletter signup',      tp:'newsletter',      icon:'✉️', flag:null, desc:'“Stay in the loop” — signups land in Subscribers' },
 };
+// What a store shows before anyone touches this tab.
 const PDP_ORDER_DEFAULT = ['more_from_release','bundle','recently_viewed','recommendations','qa'];
 let pdpCfg = null, pdpFlags = null;
 
+// A saved layout is taken literally so REMOVALS STICK. This used to append any
+// missing block, which made delete impossible — it came straight back on reload.
+// No saved layout at all → the default five.
 function pdpNormalize(v){
   const saved = (v && Array.isArray(v.sections)) ? v.sections : null;
+  if(!saved) return PDP_ORDER_DEFAULT.map(id=>({ id, on:true }));
   const out = [], seen = [];
-  (saved||[]).forEach(s=>{
+  saved.forEach(s=>{
     const id = s && String(s.id||'');
-    if(!PDP_ORDER_DEFAULT.includes(id) || seen.includes(id)) return;
+    if(!PDP_BLOCK_META[id] || seen.includes(id)) return;
     seen.push(id); out.push({ id, on: s.on !== false });
   });
-  PDP_ORDER_DEFAULT.forEach(id=>{ if(!seen.includes(id)) out.push({ id, on:true }); });
   return out;
 }
 
@@ -804,15 +813,22 @@ async function renderProductTab(container){
 }
 
 function paintProductTab(container){
+  const inLayout = pdpCfg.map(s=>s.id);
+  const available = Object.keys(PDP_BLOCK_META).filter(id=>inLayout.indexOf(id)<0);
   container.innerHTML = `<div class="tab-pane">
     <div class="tab-hd">Under the product</div>
-    <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">Everything that stacks below a product page. Click the eye to hide a block, drag to reorder. Fewer blocks = a calmer page.</div>
+    <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">Everything that stacks below a product page. Eye hides a block, ✕ removes it, drag to reorder. Fewer blocks = a calmer page.</div>
     <div class="sec-list" id="pdpList" style="padding:0;overflow:visible"></div>
+    ${available.length ? `<div class="tab-hd" style="margin-top:.4rem">Add a block</div>
+      <div class="sec-list" id="pdpLib" style="padding:0;overflow:visible"></div>` : ''}
     <button onclick="pdpSave()" class="apply-btn" id="pdpSaveBtn">💾 Save Product Layout</button>
     <div id="pdpMsg" style="font-size:.58rem;color:var(--mu);min-height:1em"></div>
     <button onclick="pdpReset()" class="tbtn tbtn-ghost" style="align-self:flex-start">Reset to default</button>
   </div>`;
   const list = container.querySelector('#pdpList');
+  if(!pdpCfg.length){
+    list.innerHTML = '<div style="font-size:.6rem;color:var(--mu);padding:.6rem;border:1px dashed var(--bd);border-radius:3px">Nothing under the product. Add a block below.</div>';
+  }
   pdpCfg.forEach(s=>{
     const m = PDP_BLOCK_META[s.id] || { label:s.id, tp:s.id, icon:'📦' };
     const flagOff = m.flag && !(pdpFlags[m.flag] && pdpFlags[m.flag].enabled);
@@ -826,9 +842,13 @@ function paintProductTab(container){
         <div class="sec-nm">${m.label}</div>
         <div class="sec-tp"${flagOff?' style="color:#f0a020"':''}>${flagOff?'off in feature flags':m.tp}</div>
       </div>
+      <div class="sec-acts"><button class="sec-act danger" data-action="del" title="Remove from the page">✕</button></div>
       <button class="vis-btn" data-action="vis" title="${s.on?'Hide':'Show'}" style="opacity:${s.on?.75:.3}">${s.on?'👁':'🙈'}</button>`;
     d.querySelector('[data-action="vis"]').addEventListener('click',e=>{
       e.stopPropagation(); s.on = !s.on; paintProductTab(container); syncPreviewFrame();
+    });
+    d.querySelector('[data-action="del"]').addEventListener('click',e=>{
+      e.stopPropagation(); pdpRemove(s.id);
     });
     // Click the row → jump the preview to that block, like selecting a section does.
     d.addEventListener('click',e=>{
@@ -845,6 +865,38 @@ function paintProductTab(container){
     }
     list.appendChild(d);
   });
+
+  // Gallery of blocks not currently on the page — same row vocabulary, plus a +.
+  const lib = container.querySelector('#pdpLib');
+  if(lib) available.forEach(id=>{
+    const m = PDP_BLOCK_META[id];
+    const d = document.createElement('div');
+    d.className = 'sec-item';
+    d.style.cursor = 'pointer';
+    d.title = m.desc || '';
+    d.innerHTML = `<span class="drag-h" style="cursor:pointer">+</span>
+      <span class="sec-ico">${m.icon}</span>
+      <div style="flex:1;min-width:0">
+        <div class="sec-nm">${m.label}</div>
+        <div class="sec-tp">${m.desc||m.tp}</div>
+      </div>`;
+    d.addEventListener('click',()=>pdpAdd(id));
+    lib.appendChild(d);
+  });
+}
+
+function pdpAdd(id){
+  if(!PDP_BLOCK_META[id] || pdpCfg.some(s=>s.id===id)) return;
+  // more_from_release is rendered first by the page itself — keep that true.
+  if(id==='more_from_release') pdpCfg.unshift({ id, on:true });
+  else pdpCfg.push({ id, on:true });
+  paintProductTab(document.getElementById('lpContent'));
+  scrollPreviewToPdp(id);
+}
+function pdpRemove(id){
+  pdpCfg = pdpCfg.filter(s=>s.id!==id);
+  paintProductTab(document.getElementById('lpContent'));
+  syncPreviewFrame();
 }
 
 // 'More from this release' is rendered by the product page itself, so it can't be

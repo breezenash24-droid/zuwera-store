@@ -11,18 +11,33 @@
 
 import { cors, json } from './_commerce.js';
 
-// Every block that can appear under a product, in the order they ship by default.
-// `more_from_release` is rendered by product.html itself and always sits first;
-// the rest are injected by storefront-features.js in this order.
-export const PDP_BLOCKS = ['more_from_release', 'bundle', 'recently_viewed', 'recommendations', 'qa'];
+// Every block that CAN appear under a product. `more_from_release` is rendered by
+// product.html itself and always sits first; the rest are injected by
+// storefront-features.js in whatever order the layout says.
+export const PDP_BLOCKS = [
+  'more_from_release', 'bundle', 'recently_viewed', 'recommendations', 'qa',
+  // Optional extras — offered in the builder's gallery, NOT in the default
+  // layout, so adding one here can never make a block appear on a live store
+  // that didn't ask for it.
+  'new_arrivals', 'journal', 'newsletter',
+];
 
-const DEFAULTS = { sections: PDP_BLOCKS.map((id) => ({ id, on: true })) };
+// What a store gets before anyone touches the Product tab: the original five.
+const DEFAULT_LAYOUT = ['more_from_release', 'bundle', 'recently_viewed', 'recommendations', 'qa'];
+
+const DEFAULTS = { sections: DEFAULT_LAYOUT.map((id) => ({ id, on: true })) };
 
 function serviceKey(env) {
   return env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || env.SUPABASE_ANON_KEY || '';
 }
 
-/** Lenient: unknown ids dropped, missing ones appended, so a stale save can't hide a block forever. */
+/**
+ * A saved layout is taken literally: a block that isn't in it was removed in the
+ * builder and stays gone (it's re-addable from the gallery). Earlier this
+ * appended anything missing, which meant "delete" couldn't work — the block
+ * reappeared on the next read. Unknown ids are dropped so a retired block can't
+ * break the page. No saved layout at all → the default five.
+ */
 export function parsePdpConfig(v) {
   const saved = (v && Array.isArray(v.sections)) ? v.sections : null;
   if (!saved) return { sections: DEFAULTS.sections.map((s) => ({ ...s })) };
@@ -34,7 +49,6 @@ export function parsePdpConfig(v) {
     seen.push(id);
     out.push({ id, on: s.on !== false });
   });
-  PDP_BLOCKS.forEach((id) => { if (!seen.includes(id)) out.push({ id, on: true }); });
   return { sections: out };
 }
 

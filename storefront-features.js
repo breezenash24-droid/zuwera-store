@@ -102,7 +102,7 @@
   function catalog() {
     if (_catalog) return Promise.resolve(_catalog);
     if (_catalogPromise) return _catalogPromise;
-    _catalogPromise = fetch(SUPA + '/rest/v1/products?select=id,title,subtitle,gender,colorway,material_composition,category,tags,current_price,member_price,msrp,sku,image_url,status,sort_order,low_stock_threshold&order=sort_order.asc.nullslast', {
+    _catalogPromise = fetch(SUPA + '/rest/v1/products?select=id,title,subtitle,gender,colorway,material_composition,category,tags,current_price,member_price,msrp,sku,image_url,status,sort_order,low_stock_threshold,created_at&order=sort_order.asc.nullslast', {
       headers: { apikey: ANON, Authorization: 'Bearer ' + ANON }
     })
       .then(function (r) { return r.ok ? r.json() : []; })
@@ -170,10 +170,17 @@
       '.zwf-search-btn svg{width:20px;height:20px;display:block}',
 
       /* search overlay — deliberate cream "spotlight" panel that reads on both themes */
-      '.zwf-search{position:fixed;inset:0;z-index:990;display:flex;flex-direction:column;background:rgba(9,9,11,.42);opacity:0;pointer-events:none;transition:opacity .22s ease;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}',
-      '.zwf-search.open{opacity:1;pointer-events:auto}',
-      '.zwf-search-panel{background:var(--ink,#09090b);color:var(--paper,#f4f1eb);width:100%;max-height:min(72vh,560px);display:flex;flex-direction:column;transform:translateY(-100%);transition:transform .34s cubic-bezier(.22,.61,.36,1);box-shadow:0 22px 48px rgba(0,0,0,.22)}',
-      '.zwf-search.open .zwf-search-panel{transform:translateY(0)}',
+      /* No dim, no blur: a full-viewport backdrop-filter repaints every frame and
+         is the main thing that makes this animation stutter. The overlay is just
+         an invisible click-catcher, clipped so the panel can hide above it. It
+         doesn't fade either — one moving thing (the panel) reads smoother than a
+         slide and a cross-fade fighting each other. */
+      '.zwf-search{position:fixed;inset:0;z-index:990;display:flex;flex-direction:column;background:transparent;pointer-events:none;overflow:hidden}',
+      '.zwf-search.open{pointer-events:auto}',
+      /* translate3d + will-change keeps this on the compositor — no layout or
+         paint per frame, so it stays at 60fps. */
+      '.zwf-search-panel{background:var(--ink,#09090b);color:var(--paper,#f4f1eb);width:100%;max-height:min(72vh,560px);display:flex;flex-direction:column;transform:translate3d(0,-101%,0);will-change:transform;transition:transform .44s cubic-bezier(.32,.72,0,1);box-shadow:0 22px 48px rgba(0,0,0,.22)}',
+      '.zwf-search.open .zwf-search-panel{transform:translate3d(0,0,0)}',
       '.zwf-search-bar{display:flex;align-items:center;gap:.9rem;padding:1.1rem clamp(1rem,4vw,2.5rem);border-bottom:1px solid var(--line,rgba(128,128,128,.2))}',
       '.zwf-search-bar svg{width:22px;height:22px;flex:0 0 auto;opacity:.6}',
       '.zwf-search-input{flex:1;background:none;border:none;outline:none;color:inherit;font-family:var(--fw,inherit);font-weight:700;font-size:clamp(1.1rem,3vw,1.7rem);letter-spacing:.02em}',
@@ -372,6 +379,20 @@
     }
   }
 
+  // The header shrinks over ~350ms. Re-measure every frame while it moves so the
+  // panel stays glued to it — sampling at a couple of timeouts instead left the
+  // panel hanging in a gap and snapping into place at the end.
+  var _trackRaf = 0;
+  function trackHeader(ms) {
+    var until = (window.performance ? performance.now() : Date.now()) + (ms || 520);
+    cancelAnimationFrame(_trackRaf);
+    (function step() {
+      syncSearchTop();
+      var now = window.performance ? performance.now() : Date.now();
+      if (now < until) _trackRaf = requestAnimationFrame(step);
+    })();
+  }
+
   function openSearch() {
     buildOverlay();
     catalog(); // warm the cache
@@ -379,9 +400,7 @@
     document.body.classList.add('zwf-searching');   // shrinks the header
     syncSearchTop();
     requestAnimationFrame(function () { _overlay.classList.add('open'); _input.focus(); });
-    // Re-measure as the header's shrink transition settles, and on resize.
-    setTimeout(syncSearchTop, 60);
-    setTimeout(syncSearchTop, 380);
+    trackHeader();
     window.addEventListener('resize', syncSearchTop);
   }
 
@@ -391,6 +410,9 @@
     document.body.classList.remove('zwf-searching');
     window.removeEventListener('resize', syncSearchTop);
     unlockScroll();
+    // Keep tracking on the way out too: the header grows back while the panel
+    // slides up, and they should move together.
+    trackHeader();
   }
 
   function runSearch() {
@@ -597,6 +619,101 @@
         titleEl.insertAdjacentElement('afterend', meta);
       }
       insertBeforeFooter(sec);
+    });
+  }
+
+  /* ── optional block: new arrivals ──────────────────────────────────────────
+     Newest products by created_at (falls back to the admin's sort order when a
+     row has no timestamp), excluding the one being viewed. */
+  function renderNewArrivals(current) {
+    catalog().then(function (all) {
+      var list = all.filter(function (p) { return !current || String(p.id) !== String(current.id); });
+      var dated = list.filter(function (p) { return p.created_at; });
+      if (dated.length >= 2) {
+        dated.sort(function (a, b) { return new Date(b.created_at) - new Date(a.created_at); });
+        list = dated;
+      }
+      list = list.slice(0, 8);
+      if (list.length < 2) return;
+      ensureStyles();
+      var sec = strip('New arrivals', list.map(function (p) { return pcardCard(p, false); }).join(''));
+      sec.setAttribute('data-zwf', 'new-arrivals');
+      insertBeforeFooter(sec);
+    });
+  }
+
+  /* ── optional block: from the journal ──────────────────────────────────────
+     Latest published posts (RLS only exposes published rows). Silent when there
+     are none, so an empty journal never leaves a bare heading. */
+  function renderJournalRow() {
+    fetch(SUPA + '/rest/v1/journal_posts?select=title,slug,excerpt,cover_image,published_at&status=eq.published&order=published_at.desc.nullslast&limit=6', {
+      headers: { apikey: ANON, Authorization: 'Bearer ' + ANON }
+    })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .catch(function () { return []; })
+      .then(function (posts) {
+        if (!posts || !posts.length) return;
+        ensureStyles();
+        var cards = posts.map(function (p) {
+          var date = p.published_at ? new Date(p.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+          return '<a class="zwf-card zwf-card--pcard" href="/journal.html?slug=' + encodeURIComponent(p.slug) + '">'
+            + '<div class="zwf-card-img">' + (p.cover_image ? '<img src="' + esc(p.cover_image) + '" alt="' + esc(p.title) + '" loading="lazy" decoding="async">' : '') + '</div>'
+            + '<div class="zwf-card-info">'
+            + '<p class="zwf-pc-name">' + esc(p.title) + '</p>'
+            + (date ? '<p class="zwf-pc-cat">' + esc(date) + '</p>' : '')
+            + '</div></a>';
+        }).join('');
+        var sec = strip('From the journal', cards);
+        sec.setAttribute('data-zwf', 'journal');
+        insertBeforeFooter(sec);
+      });
+  }
+
+  /* ── optional block: newsletter signup ─────────────────────────────────────
+     Same capture endpoint as the footer form, so signups land in Admin →
+     Subscribers with a source that says where they came from. */
+  var _nlStyled = false;
+  function ensureNewsletterStyles() {
+    if (_nlStyled) return; _nlStyled = true;
+    var st = document.createElement('style');
+    st.textContent = '.zwf-nl{max-width:1400px;margin:0 auto;padding:2.5rem clamp(1rem,4vw,2.5rem)}'
+      + '.zwf-nl-box{border:1px solid var(--line,rgba(128,128,128,.22));border-radius:6px;padding:clamp(1.4rem,4vw,2.2rem);display:flex;flex-wrap:wrap;align-items:center;gap:1rem;justify-content:space-between}'
+      + '.zwf-nl-copy{flex:1;min-width:240px}'
+      + '.zwf-nl-copy h3{font-family:var(--fw,inherit);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.04em;font-size:1.2rem;margin:0 0 .25rem}'
+      + '.zwf-nl-copy p{font-family:var(--fb,inherit);font-size:.85rem;opacity:.6;margin:0}'
+      + '.zwf-nl-form{display:flex;gap:.5rem;flex:1;min-width:260px;max-width:420px}'
+      + '.zwf-nl-form input{flex:1;background:none;border:1px solid var(--line,rgba(128,128,128,.3));border-radius:3px;color:inherit;padding:.7rem .8rem;font-family:var(--fb,inherit);font-size:.9rem;outline:none}'
+      + '.zwf-nl-form button{border:none;border-radius:3px;background:currentColor;padding:.7rem 1.1rem;cursor:pointer;font-family:var(--fm,inherit);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700}'
+      + '.zwf-nl-form button span{color:var(--zw-page,#fff);mix-blend-mode:difference}'
+      + '.zwf-nl-done{font-family:var(--fm,inherit);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;opacity:.75}';
+    document.head.appendChild(st);
+  }
+  function renderNewsletterBlock() {
+    ensureStyles(); ensureNewsletterStyles();
+    var sec = document.createElement('section');
+    sec.className = 'zwf-nl';
+    sec.setAttribute('data-zwf', 'newsletter');
+    sec.innerHTML = '<div class="zwf-nl-box">'
+      + '<div class="zwf-nl-copy"><h3>Stay in the loop</h3><p>Drops, restocks and the occasional story. No spam.</p></div>'
+      + '<form class="zwf-nl-form"><input type="email" required autocomplete="email" placeholder="your@email.com" aria-label="Email address">'
+      + '<button type="submit"><span>Subscribe</span></button></form></div>';
+    insertBeforeFooter(sec);
+    var form = sec.querySelector('form');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var input = form.querySelector('input');
+      var email = (input.value || '').trim();
+      if (!email || email.indexOf('@') === -1) { input.focus(); return; }
+      fetch('/api/subscribe', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, source: 'product_page' })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j && j.ok) form.outerHTML = '<p class="zwf-nl-done">&#10003; You\'re on the list.</p>';
+          else input.style.borderColor = '#e05252';
+        })
+        .catch(function () { input.style.borderColor = '#e05252'; });
     });
   }
 
@@ -900,13 +1017,17 @@
     var wantSupport = f('feature_support_widget');
     var wantQA = f('feature_qa');
     var wantBundles = f('feature_bundles');
-    if (!(wantSearch || wantRV || wantRec || wantLowStock || wantFit || wantSupport || wantQA || wantBundles)) return;
+    // NB: no early return on "nothing flagged" — the product page still needs to
+    // apply its builder layout, which can contain unflagged optional blocks.
 
     if (wantSearch) initSearch();
     if (wantSupport) initSupport();
     if (wantLowStock) initLowStock(); // decorates homepage .pcard grids; no-op elsewhere
 
-    var wantPdp = wantRV || wantRec || wantFit || wantQA || wantBundles;
+    // The optional blocks (new arrivals / journal / newsletter) have no flag of
+    // their own — they're on when the builder's Product layout includes them — so
+    // the product-page runner must start even if every flagged feature is off.
+    var wantPdp = true;
     var onPdp = /\/product(\.html|\/)/i.test(location.pathname) || !!document.querySelector('.product-detail, #product-detail, .size-section');
     if (wantPdp && (onPdp || window.__zwCurrentProduct)) {
       onProduct(function (p) {
@@ -923,6 +1044,11 @@
           recently_viewed: function () { if (wantRV) renderRecentlyViewed(p.id); },
           recommendations: function () { if (wantRec) renderRecommendations(p); },
           qa: function () { if (wantQA) initQA(p); },
+          // Optional blocks — added from the builder's Product tab, so they carry
+          // no separate feature flag: being in the layout IS the switch.
+          new_arrivals: function () { renderNewArrivals(p); },
+          journal: function () { renderJournalRow(); },
+          newsletter: function () { renderNewsletterBlock(); },
         };
         fetch('/api/product-page-config')
           .then(function (r) { return r.ok ? r.json() : null; })
@@ -956,6 +1082,9 @@
       recently_viewed: '[data-zwf="recently-viewed"]',
       recommendations: '[data-zwf="recommendations"]',
       qa: '[data-zwf="qa"]',
+      new_arrivals: '[data-zwf="new-arrivals"]',
+      journal: '[data-zwf="journal"]',
+      newsletter: '[data-zwf="newsletter"]',
     };
     function flash(el) {
       el.style.transition = 'outline-color .25s';
