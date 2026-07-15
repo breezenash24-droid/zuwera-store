@@ -444,6 +444,67 @@
     });
   }
 
+  /* ─────────────────────── feature: bundles ("complete the set") ───────────────────
+     Admin-defined sets (bundles table; anon reads active rows only). On a product
+     page that belongs to a set, show the set's other pieces plus the set's promo
+     code when one is configured. The code goes through the existing promo path,
+     which is recomputed server-side at payment time — nothing here touches pricing. */
+
+  var _bundlesPromise = null;
+  function fetchBundles() {
+    if (_bundlesPromise) return _bundlesPromise;
+    _bundlesPromise = fetch(SUPA + '/rest/v1/bundles?select=id,name,blurb,product_ids,promo_code&active=eq.true&order=sort_order.asc', {
+      headers: { apikey: ANON, Authorization: 'Bearer ' + ANON }
+    }).then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; });
+    return _bundlesPromise;
+  }
+
+  var _bundleStyled = false;
+  function ensureBundleStyles() {
+    if (_bundleStyled) return;
+    _bundleStyled = true;
+    var s = document.createElement('style');
+    s.textContent = '.zwf-bundle-meta{margin:-4px 0 16px}'
+      + '.zwf-bundle-blurb{margin:0;font-size:.9rem;opacity:.7;line-height:1.55;max-width:60ch}'
+      + '.zwf-bundle-promo{margin:8px 0 0;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;opacity:.85}'
+      + '.zwf-bundle-promo strong{letter-spacing:.14em;border-bottom:1px dashed currentColor;padding-bottom:1px}';
+    document.head.appendChild(s);
+  }
+
+  function renderBundle(current) {
+    if (!current) return;
+    Promise.all([fetchBundles(), catalog()]).then(function (res) {
+      var bundles = res[0] || [], all = res[1] || [];
+      var cid = String(current.id);
+      var b = null;
+      for (var i = 0; i < bundles.length; i++) {
+        var ids = (bundles[i].product_ids || []).map(String);
+        if (ids.indexOf(cid) >= 0) { b = bundles[i]; break; }
+      }
+      if (!b) return;
+      var others = (b.product_ids || []).map(String)
+        .filter(function (id) { return id !== cid; })
+        .map(function (id) { var m = null; all.forEach(function (p) { if (String(p.id) === id) m = p; }); return m; })
+        .filter(Boolean);
+      if (!others.length) return;
+
+      ensureStyles();
+      ensureBundleStyles();
+      var sec = strip(b.name || 'Complete the set', others.map(function (p) { return pcardCard(p, false); }).join(''));
+      sec.setAttribute('data-zwf', 'bundle');
+      var titleEl = sec.querySelector('.zwf-strip-title');
+      var metaHtml = (b.blurb ? '<p class="zwf-bundle-blurb">' + esc(b.blurb) + '</p>' : '')
+        + (b.promo_code ? '<p class="zwf-bundle-promo">Use code <strong>' + esc(b.promo_code) + '</strong> at checkout</p>' : '');
+      if (titleEl && metaHtml) {
+        var meta = document.createElement('div');
+        meta.className = 'zwf-bundle-meta';
+        meta.innerHTML = metaHtml;
+        titleEl.insertAdjacentElement('afterend', meta);
+      }
+      insertBeforeFooter(sec);
+    });
+  }
+
   /* ───────────────────── feature: low-stock (homepage cards) ─────────────────────
      The product page and the collection page (drop001) already show their own
      low-stock / sold-out cues, so this only adds a "Low Stock" chip to the HOMEPAGE
@@ -743,18 +804,20 @@
     var wantFit = f('feature_fit_finder');
     var wantSupport = f('feature_support_widget');
     var wantQA = f('feature_qa');
-    if (!(wantSearch || wantRV || wantRec || wantLowStock || wantFit || wantSupport || wantQA)) return;
+    var wantBundles = f('feature_bundles');
+    if (!(wantSearch || wantRV || wantRec || wantLowStock || wantFit || wantSupport || wantQA || wantBundles)) return;
 
     if (wantSearch) initSearch();
     if (wantSupport) initSupport();
     if (wantLowStock) initLowStock(); // decorates homepage .pcard grids; no-op elsewhere
 
-    var wantPdp = wantRV || wantRec || wantFit || wantQA;
+    var wantPdp = wantRV || wantRec || wantFit || wantQA || wantBundles;
     var onPdp = /\/product(\.html|\/)/i.test(location.pathname) || !!document.querySelector('.product-detail, #product-detail, .size-section');
     if (wantPdp && (onPdp || window.__zwCurrentProduct)) {
       onProduct(function (p) {
         if (wantRV) { rvRecord(p); rvTrackDwell(p); }
         if (wantFit) initFitFinder(p);
+        if (wantBundles) renderBundle(p);
         if (wantRec) renderRecommendations(p);
         if (wantQA) initQA(p);
         if (wantRV) renderRecentlyViewed(p.id);

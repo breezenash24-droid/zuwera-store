@@ -30,7 +30,7 @@ export const ROLE_LABELS = {
 // Every admin page id (matches ADMIN_PAGES in admin.html).
 export const PAGE_IDS = [
   'dashboard', 'analytics', 'finance', 'products', 'legacy', 'sizecharts',
-  'reviews', 'questions', 'journal', 'subscribers', 'emails', 'commerce', 'meta', 'orders', 'receipts', 'shipping', 'returns', 'users',
+  'reviews', 'questions', 'bundles', 'journal', 'subscribers', 'emails', 'commerce', 'meta', 'orders', 'receipts', 'shipping', 'returns', 'users',
   'website', 'settings', 'tax', 'apis', 'audit', 'flags'
 ];
 
@@ -40,6 +40,7 @@ export const PAGE_WRITE_PERM = {
   products: 'product_write', legacy: 'product_write', sizecharts: 'product_write',
   reviews: 'review_write',
   questions: 'review_write',
+  bundles: 'product_write',
   journal: 'builder_edit',
   subscribers: 'builder_edit',
   emails: 'builder_edit',
@@ -59,7 +60,7 @@ const V = 'view', E = 'edit';
 export const ROLE_PRESET_LEVELS = {
   manager: {
     dashboard: V, analytics: V, finance: E, products: E, legacy: E, sizecharts: E,
-    reviews: E, questions: E, journal: E, subscribers: E, emails: E, commerce: E, meta: E, orders: V, receipts: E, shipping: E, returns: E,
+    reviews: E, questions: E, bundles: E, journal: E, subscribers: E, emails: E, commerce: E, meta: E, orders: V, receipts: E, shipping: E, returns: E,
     users: E, website: E, settings: E, tax: E, audit: V, flags: E
   },
   finance: {
@@ -69,7 +70,7 @@ export const ROLE_PRESET_LEVELS = {
     dashboard: V, products: V, orders: V, receipts: E, shipping: E, returns: E
   },
   content: {
-    dashboard: V, products: E, sizecharts: E, reviews: E, questions: E, journal: E, website: E, settings: E
+    dashboard: V, products: E, sizecharts: E, reviews: E, questions: E, bundles: E, journal: E, website: E, settings: E
   },
   viewer: Object.fromEntries(PAGE_IDS.map(p => [p, V]))
 };

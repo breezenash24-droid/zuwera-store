@@ -172,11 +172,11 @@
            security boundary. */
         const ZW_RBAC = {
             super_admin: ['*'],
-            manager: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','journal','subscribers','emails','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','refund','return_process','product_write','order_write','user_manage','builder_edit','bulk_actions','export'],
+            manager: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','bundles','journal','subscribers','emails','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','refund','return_process','product_write','order_write','user_manage','builder_edit','bulk_actions','export'],
             finance: ['dashboard','analytics','finance','orders','receipts','tax','audit','refund','export'],
             fulfillment: ['dashboard','products','orders','receipts','shipping','returns','order_write','return_process','product_write','bulk_actions','export'],
-            content: ['dashboard','products','sizecharts','reviews','questions','journal','website','settings','product_write','builder_edit','export'],
-            viewer: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','journal','subscribers','emails','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','export']
+            content: ['dashboard','products','sizecharts','reviews','questions','bundles','journal','website','settings','product_write','builder_edit','export'],
+            viewer: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','bundles','journal','subscribers','emails','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','export']
         };
         const ZW_ROLE_LABELS = {
             super_admin:'Super Admin', manager:'Manager', finance:'Finance',
@@ -185,10 +185,10 @@
         // Preset access maps (page -> 'view'|'edit') — mirror of ROLE_PRESET_LEVELS
         // in functions/api/_rbac.js. Drives the "preset" button in the access matrix.
         const ZW_ROLE_PRESET_LEVELS = {
-            manager:{dashboard:'view',analytics:'view',finance:'edit',products:'edit',legacy:'edit',sizecharts:'edit',reviews:'edit',questions:'edit',journal:'edit',subscribers:'edit',emails:'edit',commerce:'edit',meta:'edit',orders:'view',receipts:'edit',shipping:'edit',returns:'edit',users:'edit',website:'edit',settings:'edit',tax:'edit',audit:'view',flags:'edit'},
+            manager:{dashboard:'view',analytics:'view',finance:'edit',products:'edit',legacy:'edit',sizecharts:'edit',reviews:'edit',questions:'edit',bundles:'edit',journal:'edit',subscribers:'edit',emails:'edit',commerce:'edit',meta:'edit',orders:'view',receipts:'edit',shipping:'edit',returns:'edit',users:'edit',website:'edit',settings:'edit',tax:'edit',audit:'view',flags:'edit'},
             finance:{dashboard:'view',analytics:'view',finance:'edit',orders:'view',receipts:'view',tax:'edit',audit:'view'},
             fulfillment:{dashboard:'view',products:'view',orders:'view',receipts:'edit',shipping:'edit',returns:'edit'},
-            content:{dashboard:'view',products:'edit',sizecharts:'edit',reviews:'edit',questions:'edit',journal:'edit',website:'edit',settings:'edit'}
+            content:{dashboard:'view',products:'edit',sizecharts:'edit',reviews:'edit',questions:'edit',bundles:'edit',journal:'edit',website:'edit',settings:'edit'}
         };
         // Set from /api/admin-access. null = not yet resolved (pre-auth): allow
         // everything so the panel renders normally until the real role arrives.
@@ -217,6 +217,7 @@
             { id:'sizecharts', icon:'📏', label:'Size Charts', title:'Size Charts',         group:'catalogue', kw:'size guide measurements fit chart sizing' },
             { id:'reviews',    icon:'⭐', label:'Reviews',     title:'Customer Reviews',    group:'catalogue', kw:'ratings testimonials stars moderate feedback' },
             { id:'questions',  icon:'❓', label:'Q&A',         title:'Product Q&A',         group:'catalogue', kw:'questions answers product qa moderate ask reply' },
+            { id:'bundles',    icon:'🎁', label:'Bundles',     title:'Bundles',             group:'catalogue', searchLabel:'Bundles / Sets / Complete the look', kw:'bundle set combo complete the look shop the set frequently bought together upsell aov' },
             { id:'journal',    icon:'📓', label:'Journal',     title:'Journal',             group:'storefront', kw:'blog journal posts articles lookbook content editorial stories news' },
             { id:'subscribers',icon:'📧', label:'Subscribers', title:'Newsletter Subscribers', group:'marketing', searchLabel:'Newsletter / Email list / Subscribers', kw:'newsletter subscribers email list mailing signups stay in the loop marketing send journal' },
             { id:'emails',     icon:'✉️', label:'Emails',      title:'Email Activity',      group:'marketing', searchLabel:'Email activity / log / automated emails / send delays', kw:'email log activity sent review request abandoned cart journal delay days timing automated marketing history' },
@@ -961,6 +962,35 @@
                 </div>
 
                 <!-- Journal Page -->
+                <!-- Bundles Page -->
+                <div id="bundles" class="page">
+                    <div class="products-header">
+                        <h2>Bundles</h2>
+                        <button class="btn btn-primary" onclick="bundleEdit(null)">+ New Bundle</button>
+                    </div>
+                    <p class="zw-page-intro">Group pieces that go together. On any product in a set, shoppers see a <strong>&ldquo;complete the set&rdquo;</strong> row with the other pieces — a simple way to lift order value. Give the set a <strong>promo code</strong> (from <strong>Coupons</strong>) and it's shown as the set's offer. Turn the row on in <strong>Feature Flags &rarr; feature_bundles</strong>.</p>
+                    <div id="bundleEditor" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px">
+                        <input type="hidden" id="bn-id">
+                        <div class="form-group"><label class="form-label">Set name</label><input type="text" id="bn-name" class="form-input" placeholder="e.g. The Training Set"></div>
+                        <div class="form-group"><label class="form-label">Blurb <span style="opacity:.55;font-weight:400">(optional)</span></label><input type="text" id="bn-blurb" class="form-input" placeholder="One line shown under the heading"></div>
+                        <div class="form-group"><label class="form-label">Promo code <span style="opacity:.55;font-weight:400">(optional — create it in Coupons first)</span></label><input type="text" id="bn-promo" class="form-input" placeholder="e.g. SET10" style="text-transform:uppercase"></div>
+                        <div class="form-group"><label class="form-label">Products in this set</label>
+                            <div id="bn-products" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:10px"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="bn-active" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer">
+                                <input type="checkbox" id="bn-active" checked style="width:20px;height:20px;margin:0;accent-color:var(--accent,#F891A5);cursor:pointer">
+                                <span style="font-size:.9rem">Active <span style="opacity:.55">— uncheck to hide this set from product pages</span></span>
+                            </label>
+                        </div>
+                        <div style="display:flex;gap:10px">
+                            <button class="btn btn-primary" id="bn-save-btn" onclick="bundleSave()">Save</button>
+                            <button class="btn btn-secondary" onclick="document.getElementById('bundleEditor').style.display='none'">Cancel</button>
+                        </div>
+                    </div>
+                    <div id="bundlesList"></div>
+                </div>
+
                 <div id="journal" class="page">
                     <div class="products-header">
                         <h2>Journal</h2>
@@ -3881,6 +3911,8 @@
                 loadFeatureFlags();
             } else if (page === 'questions') {
                 loadQuestions();
+            } else if (page === 'bundles') {
+                loadBundlesAdmin();
             } else if (page === 'journal') {
                 loadJournalAdmin();
             } else if (page === 'subscribers') {
@@ -5657,6 +5689,104 @@
         }
         window.loadQuestions = loadQuestions; window.qaAction = qaAction;
 
+        // ─── Bundles (bundles table → "complete the set" row on product pages) ──────
+        let _bundles = [], _bundleProducts = [];
+        async function loadBundlesAdmin() {
+            const host = document.getElementById('bundlesList');
+            if (!host) return;
+            host.innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:20px;">Loading…</p>';
+            try {
+                const [bRes, pRes] = await Promise.all([
+                    sb.from('bundles').select('*').order('sort_order', { ascending: true }),
+                    sb.from('products').select('id,title,sku,status').order('title', { ascending: true }),
+                ]);
+                if (bRes.error) throw bRes.error;
+                _bundles = bRes.data || [];
+                _bundleProducts = (pRes.data || []).filter(p => p.status !== 'Legacy' && p.status !== 'Archived');
+                renderBundlesAdmin();
+            } catch (e) {
+                host.innerHTML = `<p style="color:#ef4444">Could not load bundles: ${escapeHtml((e && e.message) || 'error')}</p>`;
+            }
+        }
+        function bundleProductNames(ids) {
+            return (ids || []).map(id => {
+                const p = _bundleProducts.find(x => String(x.id) === String(id));
+                return p ? p.title : null;
+            }).filter(Boolean);
+        }
+        function renderBundlesAdmin() {
+            const host = document.getElementById('bundlesList');
+            if (!host) return;
+            if (!_bundles.length) { host.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:36px 20px;border:1px dashed var(--border);border-radius:10px;">No sets yet. Click <strong>+ New Bundle</strong> to group products that go together.</div>'; return; }
+            host.innerHTML = _bundles.map(b => {
+                const names = bundleProductNames(b.product_ids);
+                const color = b.active ? '#3fb950' : '#9ca3af';
+                return `<div style="display:flex;gap:14px;align-items:center;background:var(--bg-secondary);border:1px solid var(--border);border-left:3px solid ${color};border-radius:10px;padding:12px 16px;margin-bottom:10px;">
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:600;font-size:.95rem;">${escapeHtml(b.name || 'Untitled set')} ${b.active ? '' : '<span style="font-size:.68rem;font-weight:700;color:#9ca3af;letter-spacing:.05em;">· INACTIVE</span>'}</div>
+                        <div style="font-size:.74rem;color:var(--text-secondary);margin-top:2px;">${names.length} product${names.length === 1 ? '' : 's'}${names.length ? ' · ' + escapeHtml(names.join(', ')) : ''}${b.promo_code ? ' · code <strong>' + escapeHtml(b.promo_code) + '</strong>' : ''}</div>
+                    </div>
+                    <button onclick="bundleEdit('${escapeAttr(b.id)}')" style="padding:7px 14px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text-primary);font-size:.8rem;cursor:pointer;">Edit</button>
+                    <button onclick="bundleDelete('${escapeAttr(b.id)}')" style="padding:7px 12px;border:1px solid rgba(248,81,73,.4);border-radius:6px;background:none;color:#f85149;font-size:.8rem;cursor:pointer;">Delete</button>
+                </div>`;
+            }).join('');
+        }
+        async function bundleEdit(id) {
+            if (!_bundleProducts.length) await loadBundlesAdmin();
+            const b = id ? _bundles.find(x => String(x.id) === String(id)) : null;
+            const ids = (b && b.product_ids ? b.product_ids : []).map(String);
+            document.getElementById('bn-id').value = b ? b.id : '';
+            document.getElementById('bn-name').value = b ? (b.name || '') : '';
+            document.getElementById('bn-blurb').value = b ? (b.blurb || '') : '';
+            document.getElementById('bn-promo').value = b ? (b.promo_code || '') : '';
+            document.getElementById('bn-active').checked = b ? b.active !== false : true;
+            document.getElementById('bn-save-btn').textContent = b ? 'Save changes' : 'Create set';
+            document.getElementById('bn-products').innerHTML = _bundleProducts.map(p => `
+                <label style="display:flex;align-items:center;gap:10px;padding:6px 4px;cursor:pointer;font-size:.87rem">
+                    <input type="checkbox" class="bn-p" value="${escapeAttr(p.id)}" ${ids.indexOf(String(p.id)) >= 0 ? 'checked' : ''} style="width:16px;height:16px;margin:0;accent-color:var(--accent,#F891A5);cursor:pointer">
+                    <span>${escapeHtml(p.title || 'Untitled')} <span style="color:var(--text-secondary)">${escapeHtml(p.sku || '')}</span></span>
+                </label>`).join('') || '<p style="color:var(--text-secondary);font-size:.85rem">No products yet.</p>';
+            document.getElementById('bundleEditor').style.display = 'block';
+            document.getElementById('bn-name').focus();
+        }
+        async function bundleSave() {
+            const picked = Array.from(document.querySelectorAll('.bn-p:checked')).map(el => el.value);
+            const row = {
+                name: document.getElementById('bn-name').value.trim(),
+                blurb: document.getElementById('bn-blurb').value.trim() || null,
+                promo_code: document.getElementById('bn-promo').value.trim().toUpperCase() || null,
+                product_ids: picked,
+                active: document.getElementById('bn-active').checked,
+                updated_at: new Date().toISOString(),
+            };
+            if (!row.name) { showToast('Give the set a name first.', 'error'); return; }
+            if (picked.length < 2) { showToast('Pick at least 2 products — a set needs more than one piece.', 'error'); return; }
+            const id = document.getElementById('bn-id').value;
+            const btn = document.getElementById('bn-save-btn'); const label = btn.textContent;
+            btn.disabled = true; btn.textContent = 'Saving…';
+            try {
+                const res = id ? await sb.from('bundles').update(row).eq('id', id) : await sb.from('bundles').insert(row);
+                if (res.error) throw res.error;
+                try { await logAdminAudit(id ? 'bundle.update' : 'bundle.create', 'bundles', id || row.name, { name: row.name, products: picked.length }); } catch (_) {}
+                showToast('Saved ✓');
+                document.getElementById('bundleEditor').style.display = 'none';
+                loadBundlesAdmin();
+            } catch (e) { showToast('Save failed: ' + ((e && e.message) || 'error'), 'error'); }
+            btn.disabled = false; btn.textContent = label;
+        }
+        async function bundleDelete(id) {
+            if (!confirm('Delete this set? The products themselves are not affected.')) return;
+            try {
+                const { error } = await sb.from('bundles').delete().eq('id', id);
+                if (error) throw error;
+                try { await logAdminAudit('bundle.delete', 'bundles', id, {}); } catch (_) {}
+                showToast('Deleted ✓');
+                loadBundlesAdmin();
+            } catch (e) { showToast('Delete failed: ' + ((e && e.message) || 'error'), 'error'); }
+        }
+        window.loadBundlesAdmin = loadBundlesAdmin; window.bundleEdit = bundleEdit;
+        window.bundleSave = bundleSave; window.bundleDelete = bundleDelete;
+
         // ─── Journal (journal_posts → shown at /journal) ─────────────────────────────
         let _journalPosts = [];
         function journalSlugify(s) {
@@ -6138,6 +6268,7 @@
             { key: 'feature_qa',              desc: 'Product Q&A — a Questions & Answers section on product pages. Customers ask; you answer/publish in Admin → Q&A.' },
             { key: 'feature_abandoned_cart',  desc: 'Abandoned-cart recovery — emails shoppers who started checkout (entered their email) but didn’t buy. Kill-switch for the scheduled recovery emails (needs the hourly cron + ABANDONED_CART_TOKEN set up). On by default.', enabled: true, rollout: 100 },
             { key: 'feature_review_requests', desc: 'Review-request emails — a few days after an order, emails the customer asking them to review what they bought (with a photo). Kill-switch for the scheduled emails (needs the daily cron + REVIEW_REQUEST_TOKEN set up).' },
+            { key: 'feature_bundles',         desc: 'Bundles — a “complete the set” row on product pages showing the other pieces in a set you build in Admin → Bundles (plus the set’s promo code, if you give it one).' },
         ];
         function _flagVid() {
             try { let id = localStorage.getItem('zw_vid'); if (!id) { id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2)); localStorage.setItem('zw_vid', id); } return id; } catch (_) { return 'anon'; }
