@@ -403,15 +403,22 @@
   // hardcoded — the header shrinks when a panel opens and its height differs per
   // page (index stacks a fixed announcement bar above the nav; drop001 doesn't).
   //
-  // floor, NOT round: at fractional browser zoom the header's bottom lands on a
-  // sub-pixel (e.g. 96.6). Rounding up starts the panel below the header and
-  // leaves a hairline of page showing through — visible on one page and not
-  // another purely because their heights round differently. Flooring can only
-  // overlap by <1px, and panels paint at z-index 989 over the nav's 220, so an
-  // overlap is invisible. Both panels share this so they can't drift apart.
+  // Deliberately overlap the header's bottom edge by a pixel.
+  //
+  // rect.bottom is a border-box measurement, so it sits UNDER nav#nav's
+  // border-bottom (1px). Landing the panel exactly there leaves the sub-pixel
+  // remainder of that border peeking out as a hairline — measured on the
+  // homepage: nav.bottom 87.4, panel 87, so 0.6px of border still showed. It
+  // surfaces only on pages with an announcement bar because the bar offsets the
+  // nav (top:27px), which changes where the bottom edge lands between pixels.
+  //
+  // floor() gets us to the edge; it can't cover a border inside it. Panels paint
+  // at z-index 989 over the nav's 220, so eating that last pixel is free and the
+  // seam goes away on every page. Both panels share this so they can't drift.
   function headerBottom() {
     var h = headerEl();
-    return h ? Math.max(0, Math.floor(h.getBoundingClientRect().bottom)) : 0;
+    if (!h) return 0;
+    return Math.max(0, Math.floor(h.getBoundingClientRect().bottom) - 1);
   }
 
   function syncSearchTop() {
