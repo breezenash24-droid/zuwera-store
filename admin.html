@@ -968,7 +968,8 @@
                         <h2>Bundles</h2>
                         <button class="btn btn-primary" onclick="bundleEdit(null)">+ New Bundle</button>
                     </div>
-                    <p class="zw-page-intro">Group pieces that go together. On any product in a set, shoppers see a <strong>&ldquo;complete the set&rdquo;</strong> row with the other pieces — a simple way to lift order value. Give the set a <strong>promo code</strong> (from <strong>Coupons</strong>) and it's shown as the set's offer. Turn the row on in <strong>Feature Flags &rarr; feature_bundles</strong>.</p>
+                    <p class="zw-page-intro">Group pieces that go together. On any product in a set, shoppers see a <strong>&ldquo;complete the set&rdquo;</strong> row with the other pieces — a simple way to lift order value. Turn the row on in <strong>Feature Flags &rarr; feature_bundles</strong>.</p>
+                    <p class="zw-page-intro" style="margin-top:-6px">Give the set a <strong>promo code</strong> and saving locks that code to <em>only</em> this set's products — it still lives in <strong>Coupons</strong> (edit the discount there), but it can't be spent on anything else. Create the code in Coupons first.</p>
                     <div id="bundleEditor" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px">
                         <input type="hidden" id="bn-id">
                         <div class="form-group"><label class="form-label">Set name</label><input type="text" id="bn-name" class="form-input" placeholder="e.g. The Training Set"></div>
@@ -5749,12 +5750,34 @@
             document.getElementById('bundleEditor').style.display = 'block';
             document.getElementById('bn-name').focus();
         }
+        // Same rule the server uses (normalizePromoCode in _commerce.js), so
+        // "SET 10" typed here matches the coupon saved as SET10.
+        function bundleNormalizeCode(v) {
+            return String(v || '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+        }
+        // Lock the set's coupon to the set's products, so the code can't be spent
+        // on anything else. Uses the promo system's own targetProductIds, which
+        // create-payment-intent already honours — no pricing logic here.
+        async function bundleSyncPromoTargets(code, productIds) {
+            const { data: rows, error } = await sb.from('site_settings').select('value').eq('key', 'commerce_config').limit(1);
+            if (error) throw error;
+            const cfg = (rows && rows[0] && rows[0].value) || {};
+            const promos = Array.isArray(cfg.promotions) ? cfg.promotions : [];
+            const idx = promos.findIndex(p => bundleNormalizeCode(p && p.code) === code);
+            if (idx < 0) return false;
+            promos[idx].targetProductIds = productIds.slice();
+            cfg.promotions = promos;
+            const { error: sErr } = await sb.from('site_settings').upsert({ key: 'commerce_config', value: cfg }, { onConflict: 'key' });
+            if (sErr) throw sErr;
+            return true;
+        }
         async function bundleSave() {
             const picked = Array.from(document.querySelectorAll('.bn-p:checked')).map(el => el.value);
+            const code = bundleNormalizeCode(document.getElementById('bn-promo').value);
             const row = {
                 name: document.getElementById('bn-name').value.trim(),
                 blurb: document.getElementById('bn-blurb').value.trim() || null,
-                promo_code: document.getElementById('bn-promo').value.trim().toUpperCase() || null,
+                promo_code: code || null,
                 product_ids: picked,
                 active: document.getElementById('bn-active').checked,
                 updated_at: new Date().toISOString(),
@@ -5768,7 +5791,17 @@
                 const res = id ? await sb.from('bundles').update(row).eq('id', id) : await sb.from('bundles').insert(row);
                 if (res.error) throw res.error;
                 try { await logAdminAudit(id ? 'bundle.update' : 'bundle.create', 'bundles', id || row.name, { name: row.name, products: picked.length }); } catch (_) {}
-                showToast('Saved ✓');
+                let msg = 'Saved ✓';
+                if (code) {
+                    try {
+                        const found = await bundleSyncPromoTargets(code, picked);
+                        msg = found
+                            ? `Saved ✓ — ${code} now only works on this set's products.`
+                            : `Saved, but there's no coupon "${code}" yet. Create it in Coupons and save this set again to lock it to these products.`;
+                        if (!found) showToast(msg, 'error');
+                    } catch (_) { msg = 'Saved ✓ — but could not lock the coupon to this set. Check Coupons.'; }
+                }
+                if (!code || msg.startsWith('Saved ✓')) showToast(msg);
                 document.getElementById('bundleEditor').style.display = 'none';
                 loadBundlesAdmin();
             } catch (e) { showToast('Save failed: ' + ((e && e.message) || 'error'), 'error'); }
