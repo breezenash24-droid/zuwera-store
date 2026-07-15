@@ -1038,12 +1038,22 @@
                         <button class="btn btn-primary" onclick="bundleEdit(null)">+ New Bundle</button>
                     </div>
                     <p class="zw-page-intro">Group pieces that go together. On any product in a set, shoppers see a <strong>&ldquo;complete the set&rdquo;</strong> row with the other pieces — a simple way to lift order value. Turn the row on in <strong>Feature Flags &rarr; feature_bundles</strong>.</p>
-                    <p class="zw-page-intro" style="margin-top:-6px">Give the set a <strong>promo code</strong> and saving locks that code to <em>only</em> this set's products — it still lives in <strong>Coupons</strong> (edit the discount there), but it can't be spent on anything else. Create the code in Coupons first.</p>
+                    <p class="zw-page-intro" style="margin-top:-6px">Add an <strong>offer</strong> by picking one of your coupons — or creating one right here. Either way, saving locks that code to <em>only</em> this set's products, so it can't be spent on anything else. It still lives in <strong>Coupons</strong> if you want to change the discount later.</p>
                     <div id="bundleEditor" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px">
                         <input type="hidden" id="bn-id">
                         <div class="form-group"><label class="form-label">Set name</label><input type="text" id="bn-name" class="form-input" placeholder="e.g. The Training Set"></div>
                         <div class="form-group"><label class="form-label">Blurb <span style="opacity:.55;font-weight:400">(optional)</span></label><input type="text" id="bn-blurb" class="form-input" placeholder="One line shown under the heading"></div>
-                        <div class="form-group"><label class="form-label">Promo code <span style="opacity:.55;font-weight:400">(optional — create it in Coupons first)</span></label><input type="text" id="bn-promo" class="form-input" placeholder="e.g. SET10" style="text-transform:uppercase"></div>
+                        <div class="form-group"><label class="form-label">Offer <span style="opacity:.55;font-weight:400">(optional)</span></label>
+                            <select id="bn-promo" class="form-input" onchange="bundlePromoModeChanged()"></select>
+                            <div id="bn-promo-new" style="display:none;margin-top:10px;padding:14px;border:1px dashed var(--border);border-radius:8px">
+                                <div style="display:flex;gap:10px;flex-wrap:wrap">
+                                    <div class="form-group" style="flex:1;min-width:130px;margin-bottom:8px"><label class="form-label">Code</label><input type="text" id="bn-new-code" class="form-input" placeholder="SET10" style="text-transform:uppercase"></div>
+                                    <div class="form-group" style="flex:1;min-width:120px;margin-bottom:8px"><label class="form-label">Type</label><select id="bn-new-type" class="form-input"><option value="percent">% off</option><option value="fixed">$ off</option></select></div>
+                                    <div class="form-group" style="flex:1;min-width:110px;margin-bottom:8px"><label class="form-label">Amount</label><input type="number" id="bn-new-value" class="form-input" min="1" step="1" value="10"></div>
+                                </div>
+                                <p style="font-size:.76rem;color:var(--text-secondary);margin:0">It'll be created in <strong>Coupons</strong> and locked to this set's products when you save — no need to go set it up first.</p>
+                            </div>
+                        </div>
                         <div class="form-group"><label class="form-label">Products in this set</label>
                             <div id="bn-products" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:10px"></div>
                         </div>
@@ -5984,7 +5994,7 @@
         window.referralSaveSettings = referralSaveSettings; window.referralPreview = referralPreview;
 
         // ─── Bundles (bundles table → "complete the set" row on product pages) ──────
-        let _bundles = [], _bundleProducts = [], _liveCouponCodes = [];
+        let _bundles = [], _bundleProducts = [], _liveCouponCodes = [], _liveCoupons = [];
         async function loadBundlesAdmin() {
             const host = document.getElementById('bundlesList');
             if (!host) return;
@@ -6002,9 +6012,8 @@
                 // at a code that was never created (or has since been deleted).
                 let cfg = cRes && cRes.data && cRes.data[0] && cRes.data[0].value;
                 if (typeof cfg === 'string') { try { cfg = JSON.parse(cfg); } catch (_) { cfg = null; } }
-                _liveCouponCodes = ((cfg && cfg.promotions) || [])
-                    .filter(p => p && p.active !== false)
-                    .map(p => bundleNormalizeCode(p.code)).filter(Boolean);
+                _liveCoupons = ((cfg && cfg.promotions) || []).filter(p => p && p.active !== false && bundleNormalizeCode(p.code));
+                _liveCouponCodes = _liveCoupons.map(p => bundleNormalizeCode(p.code));
                 renderBundlesAdmin();
             } catch (e) {
                 host.innerHTML = `<p style="color:#ef4444">Could not load bundles: ${escapeHtml((e && e.message) || 'error')}</p>`;
@@ -6041,7 +6050,25 @@
             document.getElementById('bn-id').value = b ? b.id : '';
             document.getElementById('bn-name').value = b ? (b.name || '') : '';
             document.getElementById('bn-blurb').value = b ? (b.blurb || '') : '';
-            document.getElementById('bn-promo').value = b ? (b.promo_code || '') : '';
+            // Offer picker: link an existing coupon, create one inline, or none.
+            const cur = b ? bundleNormalizeCode(b.promo_code) : '';
+            const opts = ['<option value="">— No offer —</option>'];
+            _liveCoupons.forEach(p => {
+                const c = bundleNormalizeCode(p.code);
+                const amt = String(p.type) === 'fixed' ? `$${p.value} off` : `${p.value}% off`;
+                opts.push(`<option value="${escapeAttr(c)}" ${c === cur ? 'selected' : ''}>${escapeHtml(c)} — ${escapeHtml(amt)}</option>`);
+            });
+            // A set pointing at a coupon that no longer exists: keep it selectable
+            // so saving doesn't silently drop it, but say it's broken.
+            if (cur && _liveCouponCodes.indexOf(cur) < 0) {
+                opts.push(`<option value="${escapeAttr(cur)}" selected>${escapeHtml(cur)} — ⚠ no such coupon</option>`);
+            }
+            opts.push('<option value="__new__">+ Create a new coupon…</option>');
+            document.getElementById('bn-promo').innerHTML = opts.join('');
+            document.getElementById('bn-promo-new').style.display = 'none';
+            document.getElementById('bn-new-code').value = '';
+            document.getElementById('bn-new-value').value = 10;
+            document.getElementById('bn-new-type').value = 'percent';
             document.getElementById('bn-active').checked = b ? b.active !== false : true;
             document.getElementById('bn-save-btn').textContent = b ? 'Save changes' : 'Create set';
             document.getElementById('bn-products').innerHTML = _bundleProducts.map(p => `
@@ -6073,9 +6100,41 @@
             if (sErr) throw sErr;
             return true;
         }
+        function bundlePromoModeChanged() {
+            const isNew = document.getElementById('bn-promo').value === '__new__';
+            document.getElementById('bn-promo-new').style.display = isNew ? 'block' : 'none';
+            if (isNew) document.getElementById('bn-new-code').focus();
+        }
+        // Create the coupon the admin sketched inline, already scoped to this set.
+        async function bundleCreateCoupon(code, productIds) {
+            const type = document.getElementById('bn-new-type').value === 'fixed' ? 'fixed' : 'percent';
+            const value = Number(document.getElementById('bn-new-value').value) || 0;
+            if (value <= 0) throw new Error('Give the new coupon an amount above 0.');
+            const { data: rows, error } = await sb.from('site_settings').select('value').eq('key', 'commerce_config').limit(1);
+            if (error) throw error;
+            const cfg = (rows && rows[0] && rows[0].value) || {};
+            const promos = Array.isArray(cfg.promotions) ? cfg.promotions : [];
+            if (promos.some(p => bundleNormalizeCode(p && p.code) === code)) {
+                throw new Error(`A coupon called ${code} already exists — pick it from the list instead.`);
+            }
+            promos.push({
+                code, label: 'Bundle offer', description: '',
+                type, value, minSubtotal: 0, active: true,
+                expirationDate: '', maxUsage: null, usageCount: 0,
+                targetProductIds: productIds.slice(), targetCollectionIds: [],
+            });
+            cfg.promotions = promos;
+            const { error: sErr } = await sb.from('site_settings').upsert({ key: 'commerce_config', value: cfg }, { onConflict: 'key' });
+            if (sErr) throw sErr;
+        }
         async function bundleSave() {
             const picked = Array.from(document.querySelectorAll('.bn-p:checked')).map(el => el.value);
-            const code = bundleNormalizeCode(document.getElementById('bn-promo').value);
+            const sel = document.getElementById('bn-promo').value;
+            const creating = sel === '__new__';
+            const code = creating
+                ? bundleNormalizeCode(document.getElementById('bn-new-code').value)
+                : bundleNormalizeCode(sel);
+            if (creating && !code) { showToast('Give the new coupon a code.', 'error'); return; }
             const row = {
                 name: document.getElementById('bn-name').value.trim(),
                 blurb: document.getElementById('bn-blurb').value.trim() || null,
@@ -6096,14 +6155,22 @@
                 let msg = 'Saved ✓';
                 if (code) {
                     try {
-                        const found = await bundleSyncPromoTargets(code, picked);
-                        msg = found
-                            ? `Saved ✓ — ${code} now only works on this set's products.`
-                            : `Saved, but there's no coupon "${code}" yet. Create it in Coupons and save this set again to lock it to these products.`;
-                        if (!found) showToast(msg, 'error');
-                    } catch (_) { msg = 'Saved ✓ — but could not lock the coupon to this set. Check Coupons.'; }
+                        if (creating) {
+                            await bundleCreateCoupon(code, picked);
+                            msg = `Saved ✓ — created ${code} and locked it to this set's products.`;
+                        } else {
+                            const found = await bundleSyncPromoTargets(code, picked);
+                            msg = found
+                                ? `Saved ✓ — ${code} now only works on this set's products.`
+                                : `Saved, but the coupon "${code}" no longer exists, so shoppers won't see an offer.`;
+                            if (!found) showToast(msg, 'error');
+                        }
+                    } catch (e) {
+                        msg = 'Saved ✓ — but the offer wasn\'t set up: ' + ((e && e.message) || 'check Coupons.');
+                        showToast(msg, 'error');
+                    }
                 }
-                if (!code || msg.startsWith('Saved ✓')) showToast(msg);
+                if (msg.startsWith('Saved ✓')) showToast(msg);
                 document.getElementById('bundleEditor').style.display = 'none';
                 loadBundlesAdmin();
             } catch (e) { showToast('Save failed: ' + ((e && e.message) || 'error'), 'error'); }
@@ -6121,6 +6188,7 @@
         }
         window.loadBundlesAdmin = loadBundlesAdmin; window.bundleEdit = bundleEdit;
         window.bundleSave = bundleSave; window.bundleDelete = bundleDelete;
+        window.bundlePromoModeChanged = bundlePromoModeChanged;
 
         // ─── Journal (journal_posts → shown at /journal) ─────────────────────────────
         let _journalPosts = [];
