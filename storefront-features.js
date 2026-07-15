@@ -258,16 +258,31 @@
   function initSearch() {
     ensureStyles();
 
-    // Launcher — inject into the nav's right actions, before the cart button.
+    // Launcher — sits immediately before the bag, whichever header this page uses.
+    // Three variants exist: index/product wrap actions in .nav-right with a
+    // #cart-btn; everything else groups them in .zw-hdr-group with a .zw-hdr-bag.
+    // Only .nav-right was handled before, so the icon silently never appeared on
+    // the .zw-hdr-group pages (drop001 included, despite loading this module).
+    var host = null, before = null, cls = 'nbtn';
     var navRight = document.querySelector('.nav-right');
-    if (navRight && !navRight.querySelector('.zwf-search-btn')) {
+    var cart = navRight && navRight.querySelector('#cart-btn');
+    if (navRight && cart) {
+      host = navRight; before = cart;                       // index, product
+    } else {
+      var group = document.querySelector('.zw-hdr-group');
+      if (group) {
+        host = group; before = group.querySelector('.zw-hdr-bag'); cls = 'zw-hdr-action';
+      } else if (navRight) {
+        host = navRight;                                    // bag: no bag icon to sit before
+      }
+    }
+    if (host && !document.querySelector('.zwf-search-btn')) {
       var btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'nbtn zwf-search-btn';
+      btn.className = cls + ' zwf-search-btn';
       btn.setAttribute('aria-label', 'Search');
       btn.innerHTML = SEARCH_SVG;
-      var cart = navRight.querySelector('#cart-btn');
-      if (cart) navRight.insertBefore(btn, cart); else navRight.appendChild(btn);
+      if (before) host.insertBefore(btn, before); else host.appendChild(btn);
       btn.addEventListener('click', openSearch);
     }
 

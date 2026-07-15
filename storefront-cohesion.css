@@ -3492,7 +3492,17 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
    lack it (product/collection/about/etc.) so MEN/WOMEN/NEW show everywhere.
    index/landing keep their own inline .nav-center (their later inline rule wins);
    this flex-centers the injected one. Hidden on mobile (hamburger handles nav). */
-.nav-center{ flex:1 1 auto; min-width:0; display:flex; align-items:center; justify-content:center; gap:2.2rem; }
+/* Nav links are centred on the PAGE, not in the gap between the logo and the
+   action icons. `flex:1` centred them in whatever space was left over, so the
+   links only looked centred while the logo and the icon cluster happened to be
+   the same width — add or drop one icon and they drift. Absolute + auto margins
+   pins them to the real centre on every header (all of which are fixed/sticky,
+   so they're valid containing blocks, and all justify-content:space-between, so
+   the logo and icons still hold the edges without this in the flow).
+   No transform, deliberately: a transform would make this a containing block for
+   the fixed mega-menu and trap it at this width instead of full-bleed. Matches
+   what index/landing already did locally. */
+.nav-center{ position:absolute; left:0; right:0; margin:0 auto; width:fit-content; display:flex; align-items:center; justify-content:center; gap:2.4rem; }
 .nav-link{ font-family:var(--zw-font-head,'Barlow Condensed',sans-serif); font-size:1.7rem; font-weight:900; letter-spacing:.02em; text-transform:uppercase; line-height:1; color:inherit; text-decoration:none; opacity:.92; white-space:nowrap; background:none; border:none; cursor:pointer; display:inline-flex; align-items:center; padding:.6rem .7rem; margin:-.6rem 0; }
 .nav-link:hover{ opacity:1; }
 @media (max-width:900px){ .nav-center{ display:none !important; } }
