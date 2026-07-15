@@ -710,6 +710,22 @@ function zwReviewLightbox(url) {
 }
 window.zwReviewLightbox = zwReviewLightbox;
 
+// Deep link from the review-request email: /product/…?review=1 opens the form.
+(function reviewDeepLink() {
+  try {
+    if (new URLSearchParams(location.search).get('review') !== '1') return;
+    let opened = false;
+    function tryOpen() {
+      if (opened) return;
+      const p = window.__zwCurrentProduct || (typeof currentProduct !== 'undefined' ? currentProduct : null);
+      if (p && p.id && typeof openReviewForm === 'function') { opened = true; openReviewForm(p.id, p.title || p.name || ''); }
+    }
+    window.addEventListener('zw-product-loaded', tryOpen);
+    let tries = 0;
+    const iv = setInterval(() => { tryOpen(); if (opened || ++tries > 24) clearInterval(iv); }, 300);
+  } catch (_) {}
+})();
+
 async function submitReview() {
   const errEl  = document.getElementById('review-error');
   const btn    = document.getElementById('review-submit-btn');
