@@ -1262,17 +1262,25 @@
   function initBagPanel() {
     ensureStyles();
     document.body.classList.add('zwf-bagpanel-on');   // hides the header account button
-    // Both header systems: #cart-btn (index/product) and .zw-hdr-bag (the rest).
-    var triggers = document.querySelectorAll('#cart-btn, .zw-hdr-bag');
-    Array.prototype.forEach.call(triggers, function (t) {
-      t.addEventListener('click', function (e) {
-        // Let modified clicks (new tab) and the bag page itself behave normally.
-        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
-        if (/\/bag(\.html)?$/.test(location.pathname)) return;
-        e.preventDefault();
-        if (_bagOverlay && _bagOverlay.classList.contains('open')) closeBag(); else openBag();
-      });
-    });
+
+    // The bag is wired three different ways:
+    //   index    — inline onclick → window.__zwOpenCart() → location.assign('/bag.html')
+    //   product  — a click listener → goToBagPage()
+    //   the rest — a plain <a href="bag.html">
+    // The first two navigate PROGRAMMATICALLY, so preventDefault() on a listener
+    // of our own can't stop them — we were racing them and losing, which is why
+    // clicking the bag still jumped to the page. Intercepting in the capture
+    // phase on document runs before all three, and stopping propagation there
+    // means none of them ever fire. One hook, no per-page special-casing.
+    document.addEventListener('click', function (e) {
+      var t = e.target && e.target.closest && e.target.closest('#cart-btn, .zw-hdr-bag');
+      if (!t) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;  // new-tab still works
+      if (/\/bag(\.html)?$/.test(location.pathname)) return;               // already on the bag page
+      e.preventDefault();
+      e.stopPropagation();
+      if (_bagOverlay && _bagOverlay.classList.contains('open')) closeBag(); else openBag();
+    }, true);
   }
 
   /* ── Builder preview: jump to a block ──────────────────────────────────────
