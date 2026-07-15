@@ -1059,6 +1059,7 @@
                     <div class="products-header">
                         <h2>Newsletter Subscribers</h2>
                         <div style="display:flex;gap:10px">
+                            <button class="btn btn-primary" onclick="openSendNewsletter()">&#9993; Send newsletter</button>
                             <button class="btn btn-secondary" onclick="exportSubscribers()">Export CSV</button>
                             <button class="btn btn-secondary" onclick="loadSubscribers()">Refresh</button>
                         </div>
@@ -1072,7 +1073,10 @@
                 <div id="emails" class="page">
                     <div class="products-header">
                         <h2>Email Activity</h2>
-                        <button class="btn btn-secondary" onclick="loadEmailActivity()">Refresh</button>
+                        <div style="display:flex;gap:10px">
+                            <button class="btn btn-primary" onclick="openSendNewsletter()">&#9993; Send newsletter</button>
+                            <button class="btn btn-secondary" onclick="loadEmailActivity()">Refresh</button>
+                        </div>
                     </div>
                     <p class="zw-page-intro">Everything the store sends automatically — review requests, abandoned-cart nudges, and journal emails — is logged here, and you control the timing below.</p>
 
@@ -1103,7 +1107,7 @@
                     <div class="products-header">
                         <h2>Customer Reviews</h2>
                     </div>
-                    <p class="zw-page-intro">Customer reviews submitted through your site appear here. You can approve or remove them before they show on product pages.</p>
+                    <p class="zw-page-intro">Every review customers leave, grouped by product — open one to read it, reply as Zuwera, delete it, or remove a photo (<strong>&#128247;</strong> shows how many photos a product's reviews have). Reviews containing a <strong>banned word</strong> are rejected automatically. Photos go live as soon as they're posted; turn on approval below if you'd rather vet each one first.</p>
                     <div id="reviewsContainer">
                         <p style="text-align:center;color:var(--text-secondary);">Loading reviews...</p>
                     </div>
@@ -5876,9 +5880,9 @@
         window.journalSaveAppearance = journalSaveAppearance;
 
         // ─── Send a journal post to newsletter subscribers ───────────────────────────
-        async function journalSendEmail(id) {
-            const post = (_journalPosts || []).find(x => String(x.id) === String(id));
-            const title = post ? post.title : 'this post';
+        // Shared by the per-post button (Journal) and the "Send newsletter"
+        // picker (Subscribers / Emails pages).
+        async function sendJournalToSubscribers(id, title) {
             if (!confirm('Email "' + (title || 'this post') + '" to all newsletter subscribers?\n\nThis sends a real email to everyone on your list.')) return;
             try {
                 const { data: { session } } = await sb.auth.getSession();
@@ -5894,7 +5898,73 @@
                 } else { showToast((j && j.error) || 'Send failed', 'error'); }
             } catch (e) { showToast('Send failed', 'error'); }
         }
+        async function journalSendEmail(id) {
+            const post = (_journalPosts || []).find(x => String(x.id) === String(id));
+            return sendJournalToSubscribers(id, post ? post.title : 'this post');
+        }
         window.journalSendEmail = journalSendEmail;
+
+        // Pick a published journal post and email it to the whole list. Available
+        // from the Subscribers and Emails pages so you don't have to hunt for the
+        // post in the Journal page.
+        async function openSendNewsletter() {
+            let posts = [], subCount = null;
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                const token = session && session.access_token;
+                const [pRes, sRes] = await Promise.all([
+                    fetch('/api/journal-admin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accessToken: token, action: 'list' }) }).then(r => r.json()).catch(() => null),
+                    fetch('/api/newsletter-admin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accessToken: token, action: 'list' }) }).then(r => r.json()).catch(() => null),
+                ]);
+                posts = ((pRes && pRes.posts) || []).filter(p => p.status === 'published');
+                subCount = (sRes && sRes.ok) ? sRes.subscribed : null;
+            } catch (_) { showToast('Could not load journal posts.', 'error'); return; }
+
+            if (!posts.length) { showToast('No published journal posts yet — write and publish one first.', 'error'); return; }
+            if (subCount === 0) { showToast('No subscribers yet — nobody to send to.', 'error'); return; }
+
+            const ov = document.createElement('div');
+            ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:99999;padding:20px';
+            ov.innerHTML = `<div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:22px;max-width:480px;width:100%">
+                <h3 style="margin:0 0 6px;font-size:1.1rem">Send newsletter</h3>
+                <p style="margin:0 0 16px;font-size:.84rem;color:var(--text-secondary)">Emails a published journal post to ${subCount == null ? 'your subscribers' : (subCount + ' subscriber' + (subCount === 1 ? '' : 's'))}.</p>
+                <div class="form-group"><label class="form-label">Journal post</label>
+                    <select id="snl-post" class="form-input">${posts.map(p => `<option value="${escapeAttr(p.id)}">${escapeHtml(p.title || 'Untitled')}</option>`).join('')}</select>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:18px">
+                    <button class="btn btn-primary" id="snl-send">Send to subscribers</button>
+                    <button class="btn btn-secondary" id="snl-cancel">Cancel</button>
+                </div>
+            </div>`;
+            document.body.appendChild(ov);
+            const close = () => ov.remove();
+            ov.addEventListener('click', (e) => { if (e.target === ov) close(); });
+            ov.querySelector('#snl-cancel').onclick = close;
+            ov.querySelector('#snl-send').onclick = () => {
+                const sel = ov.querySelector('#snl-post');
+                const id = sel.value;
+                const title = sel.options[sel.selectedIndex].text;
+                close();
+                sendJournalToSubscribers(id, title);
+            };
+        }
+        window.openSendNewsletter = openSendNewsletter;
+
+        // View a review photo inline instead of punting the admin to a new tab.
+        function adminPhotoLightbox(url) {
+            const ov = document.createElement('div');
+            ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;z-index:100000;cursor:zoom-out;padding:24px';
+            const img = document.createElement('img');
+            img.src = url; img.alt = 'review photo';
+            img.style.cssText = 'max-width:92vw;max-height:92vh;border-radius:6px';
+            ov.appendChild(img);
+            const close = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
+            const onKey = (e) => { if (e.key === 'Escape') close(); };
+            ov.addEventListener('click', close);
+            document.addEventListener('keydown', onKey);
+            document.body.appendChild(ov);
+        }
+        window.adminPhotoLightbox = adminPhotoLightbox;
 
         // ─── Newsletter Subscribers ──────────────────────────────────────────────────
         let _subscribers = [];
@@ -6359,7 +6429,13 @@
                     const avg = (group.reviews.reduce((sum, r) => sum + r.rating, 0) / group.reviews.length).toFixed(1);
                     const productTitle = escapeHtml(group.product.title || 'Unknown Product');
                     const productSku = escapeHtml(group.product.sku || '');
-                    
+                    // Surface photo counts on the collapsed header so you can see at a
+                    // glance which products have photos to look at (and vet, if the
+                    // approval gate is on) without opening every product.
+                    const photoCount = group.reviews.reduce((n, r) => n + (Array.isArray(r.photos) ? r.photos.length : 0), 0);
+                    const pendingCount = _photoApprovalOn
+                        ? group.reviews.filter(r => Array.isArray(r.photos) && r.photos.length && !r.photos_approved).length : 0;
+
                     let html = `
                         <details class="review-product-accordion">
                             <summary>
@@ -6367,6 +6443,8 @@
                                 <div class="review-summary-stats">
                                     <span class="rating">⭐ ${avg}</span>
                                     <span>${group.reviews.length} Review${group.reviews.length !== 1 ? 's' : ''}</span>
+                                    ${photoCount ? `<span title="${photoCount} photo${photoCount !== 1 ? 's' : ''} across these reviews" style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;background:var(--border);font-size:.76rem;">&#128247; ${photoCount}</span>` : ''}
+                                    ${pendingCount ? `<span title="${pendingCount} review${pendingCount !== 1 ? 's' : ''} with photos awaiting your approval" style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;background:rgba(240,160,32,.16);color:#f0a020;font-weight:700;font-size:.72rem;">${pendingCount} pending</span>` : ''}
                                 </div>
                             </summary>
                             <div class="review-table-wrapper">
@@ -6407,7 +6485,7 @@
                                     ${r.admin_response ? `<div style="margin-top: 8px; padding: 8px; background: var(--admin-res-bg, rgba(248,145,165,0.1)); border-left: 2px solid var(--admin-res-text, var(--accent)); border-radius: 4px;"><strong style="color: var(--admin-res-text, var(--accent)); font-size: 0.8rem;">Zuwera Team</strong><p style="margin-top: 4px; font-size: 0.8rem; color: var(--admin-res-text, var(--text-secondary)); white-space: normal;">${displayAdminResponse}</p></div>` : ''}
                                     ${Array.isArray(r.photos) && r.photos.length ? `<div style="margin-top:10px">
                                         <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:${!_photoApprovalOn ? 'var(--text-secondary)' : (r.photos_approved ? '#3fb950' : '#f0a020')};margin-bottom:6px">${r.photos.length} photo${r.photos.length > 1 ? 's' : ''}${_photoApprovalOn ? (r.photos_approved ? ' · Approved (public)' : ' · Pending — hidden from shoppers') : ''}</div>
-                                        <div style="display:flex;gap:9px;flex-wrap:wrap">${r.photos.map((u, idx) => `<div style="position:relative"><img src="${escapeAttr(u)}" title="Open full size" style="width:54px;height:54px;object-fit:cover;border-radius:5px;cursor:pointer;${_photoApprovalOn && !r.photos_approved ? 'outline:2px solid #f0a020;outline-offset:-1px' : ''}" onclick="window.open('${escapeAttr(u)}','_blank')"><button title="Remove this photo" onclick="reviewPhotoRemove('${r.id}',${idx})" style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;border:none;background:#f85149;color:#fff;font-size:13px;line-height:1;cursor:pointer;padding:0">&times;</button></div>`).join('')}</div>
+                                        <div style="display:flex;gap:9px;flex-wrap:wrap">${r.photos.map((u, idx) => `<div style="position:relative"><img src="${escapeAttr(u)}" title="Click to view" style="width:54px;height:54px;object-fit:cover;border-radius:5px;cursor:zoom-in;${_photoApprovalOn && !r.photos_approved ? 'outline:2px solid #f0a020;outline-offset:-1px' : ''}" onclick="adminPhotoLightbox('${escapeAttr(u)}')"><button title="Remove this photo" onclick="reviewPhotoRemove('${r.id}',${idx})" style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;border:none;background:#f85149;color:#fff;font-size:13px;line-height:1;cursor:pointer;padding:0">&times;</button></div>`).join('')}</div>
                                         ${_photoApprovalOn && !r.photos_approved ? `<button onclick="reviewApprovePhotos('${r.id}')" style="margin-top:9px;padding:6px 14px;border:none;border-radius:6px;background:#3fb950;color:#09090b;font-weight:600;font-size:.78rem;cursor:pointer">&#10003; Approve photos</button>` : ''}
                                     </div>` : ''}
                                 </td>
