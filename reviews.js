@@ -45,6 +45,9 @@ const REVIEW_META_SEPARATOR = ' \u00b7 ';
 // the "View more" collapse threshold (0 = never collapse).
 let _reviewLimits = { maxUnit: 'characters', maxLength: 1000, previewChars: 320 };
 let _reviewLimitsLoaded = false;
+// When true (default), a review's photos stay hidden on the storefront until an
+// admin approves them (review_settings.photoApproval). Admin can turn this off.
+let _reviewPhotoApproval = true;
 
 function reviewLen(str) {
   str = String(str || '');
@@ -75,6 +78,7 @@ async function ensureReviewLimits() {
       if (v.maxUnit === 'words' || v.maxUnit === 'characters') _reviewLimits.maxUnit = v.maxUnit;
       if (isFinite(+v.maxLength) && +v.maxLength > 0) _reviewLimits.maxLength = Math.floor(+v.maxLength);
       if (isFinite(+v.previewChars) && +v.previewChars >= 0) _reviewLimits.previewChars = Math.floor(+v.previewChars);
+      _reviewPhotoApproval = v.photoApproval !== false;
     }
     _reviewLimitsLoaded = true;
   } catch (_) {}
@@ -384,7 +388,7 @@ window.openAllReviewsModal = async function(pid, domId, productName) {
       ${review.body ? (reviewNeedsCollapse(review.body)
         ? `<p class="review-card-body" data-collapsible="1">${escHtml(reviewShort(review.body))}… </p><button type="button" class="review-more-btn" aria-expanded="false">View more</button>`
         : `<p class="review-card-body">${escHtml(review.body)}</p>`) : ''}
-      ${Array.isArray(review.photos) && review.photos.length ? `<div class="review-card-photos">${review.photos.map(u => `<img src="${escHtml(u)}" data-full="${escHtml(u)}" alt="review photo" loading="lazy">`).join('')}</div>` : ''}
+      ${Array.isArray(review.photos) && review.photos.length && (!_reviewPhotoApproval || review.photos_approved) ? `<div class="review-card-photos">${review.photos.map(u => `<img src="${escHtml(u)}" data-full="${escHtml(u)}" alt="review photo" loading="lazy">`).join('')}</div>` : ''}
       ${adminResponseHtml}
     `;
       list.appendChild(reviewEl);

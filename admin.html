@@ -1124,6 +1124,12 @@
                             </label>
                         </div>
                         <p style="color:var(--text-secondary);font-size:.78rem;margin:10px 0 14px;">Collapse threshold is in characters. Set it to <strong>0</strong> to never collapse reviews.</p>
+                        <div style="border-top:1px solid var(--border);padding-top:16px;margin:4px 0 16px;max-width:640px;">
+                            <label style="display:flex;align-items:flex-start;gap:11px;cursor:pointer;">
+                                <input type="checkbox" id="review-photo-approval" checked style="width:18px;height:18px;margin-top:2px;flex-shrink:0;accent-color:var(--accent,#F891A5);cursor:pointer;">
+                                <span style="font-size:.86rem;line-height:1.5;">Require my approval before review photos show publicly<br><span style="color:var(--text-secondary);font-size:.8rem;">Recommended. Customer photos stay hidden on product pages until you approve them in <strong>Reviews</strong> below — so nothing inappropriate can go live. Uncheck to show photos immediately.</span></span>
+                            </label>
+                        </div>
                         <button type="button" onclick="saveReviewSettings()" id="review-settings-save"
                                 style="padding:9px 20px;border:1px solid var(--border);border-radius:6px;background:var(--accent,#F891A5);color:#09090b;font-weight:600;font-size:.85rem;cursor:pointer;">Save review settings</button>
                         <span id="review-settings-status" style="margin-left:12px;font-size:.82rem;color:var(--text-secondary);"></span>
@@ -6180,6 +6186,8 @@
                 if (lenEl)  lenEl.value  = (isFinite(+v.maxLength) && +v.maxLength > 0) ? Math.floor(+v.maxLength) : 1000;
                 if (unitEl) unitEl.value = (v.maxUnit === 'words') ? 'words' : 'characters';
                 if (prevEl) prevEl.value = (isFinite(+v.previewChars) && +v.previewChars >= 0) ? Math.floor(+v.previewChars) : 320;
+                const apprEl = document.getElementById('review-photo-approval');
+                if (apprEl) apprEl.checked = v.photoApproval !== false;
             } catch (_) {}
         }
 
@@ -6189,10 +6197,11 @@
             const maxLength    = Math.max(1, parseInt(document.getElementById('review-max-len').value, 10) || 1000);
             const maxUnit      = document.getElementById('review-max-unit').value === 'words' ? 'words' : 'characters';
             const previewChars = Math.max(0, parseInt(document.getElementById('review-preview-chars').value, 10) || 0);
+            const photoApproval = !!(document.getElementById('review-photo-approval') || {}).checked;
             if (btn) btn.disabled = true;
             if (status) { status.style.color = 'var(--text-secondary)'; status.textContent = 'Saving…'; }
             try {
-                const value = { maxUnit, maxLength, previewChars };
+                const value = { maxUnit, maxLength, previewChars, photoApproval };
                 const { error } = await sb.from('site_settings').upsert({ key: 'review_settings', value }, { onConflict: 'key' });
                 if (error) throw error;
                 try { await logAdminAudit('settings.update', 'site_settings', 'review_settings', value); } catch (_) {}
@@ -6289,7 +6298,11 @@
                                 <td style="max-width: 250px;">
                                     <div style="overflow: hidden; text-overflow: ellipsis; white-space: normal;">${displayBody}</div>
                                     ${r.admin_response ? `<div style="margin-top: 8px; padding: 8px; background: var(--admin-res-bg, rgba(248,145,165,0.1)); border-left: 2px solid var(--admin-res-text, var(--accent)); border-radius: 4px;"><strong style="color: var(--admin-res-text, var(--accent)); font-size: 0.8rem;">Zuwera Team</strong><p style="margin-top: 4px; font-size: 0.8rem; color: var(--admin-res-text, var(--text-secondary)); white-space: normal;">${displayAdminResponse}</p></div>` : ''}
-                                    ${Array.isArray(r.photos) && r.photos.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${r.photos.map(u => `<img src="${escapeAttr(u)}" title="Open full size" style="width:46px;height:46px;object-fit:cover;border-radius:4px;cursor:pointer" onclick="window.open('${escapeAttr(u)}','_blank')">`).join('')}</div>` : ''}
+                                    ${Array.isArray(r.photos) && r.photos.length ? `<div style="margin-top:10px">
+                                        <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:${r.photos_approved ? '#3fb950' : '#f0a020'};margin-bottom:6px">${r.photos.length} photo${r.photos.length > 1 ? 's' : ''} · ${r.photos_approved ? 'Approved (public)' : 'Pending — hidden from shoppers'}</div>
+                                        <div style="display:flex;gap:9px;flex-wrap:wrap">${r.photos.map((u, idx) => `<div style="position:relative"><img src="${escapeAttr(u)}" title="Open full size" style="width:54px;height:54px;object-fit:cover;border-radius:5px;cursor:pointer;${r.photos_approved ? '' : 'outline:2px solid #f0a020;outline-offset:-1px'}" onclick="window.open('${escapeAttr(u)}','_blank')"><button title="Remove this photo" onclick="reviewPhotoRemove('${r.id}',${idx})" style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;border:none;background:#f85149;color:#fff;font-size:13px;line-height:1;cursor:pointer;padding:0">&times;</button></div>`).join('')}</div>
+                                        ${!r.photos_approved ? `<button onclick="reviewApprovePhotos('${r.id}')" style="margin-top:9px;padding:6px 14px;border:none;border-radius:6px;background:#3fb950;color:#09090b;font-weight:600;font-size:.78rem;cursor:pointer">&#10003; Approve photos</button>` : ''}
+                                    </div>` : ''}
                                 </td>
                                 <td>
                                     <div class="action-buttons">
@@ -6331,6 +6344,38 @@
                 } catch (err) {
                     showToast('Error deleting review: ' + err.message, 'error');
                 }
+            }
+        };
+
+        // Remove a single photo from a review (moderation) — admin RLS lets us
+        // update any review; the photos array is re-fetched fresh to avoid races.
+        window.reviewPhotoRemove = async function(id, idx) {
+            if (!confirm('Remove this photo from the review? This cannot be undone.')) return;
+            try {
+                const { data, error: selErr } = await sb.from('reviews').select('photos').eq('id', id).maybeSingle();
+                if (selErr) throw selErr;
+                const photos = Array.isArray(data && data.photos) ? data.photos.slice() : [];
+                photos.splice(idx, 1);
+                const { error } = await sb.from('reviews').update({ photos }).eq('id', id);
+                if (error) throw error;
+                try { await logAdminAudit('review.photo_remove', 'reviews', id); } catch (_) {}
+                showToast('Photo removed', 'success');
+                loadAdminReviews();
+            } catch (err) {
+                showToast('Could not remove photo: ' + (err.message || err), 'error');
+            }
+        };
+        // Approve a review's photos so they show publicly (guard trigger only
+        // lets an admin set photos_approved = true).
+        window.reviewApprovePhotos = async function(id) {
+            try {
+                const { error } = await sb.from('reviews').update({ photos_approved: true }).eq('id', id);
+                if (error) throw error;
+                try { await logAdminAudit('review.photos_approve', 'reviews', id); } catch (_) {}
+                showToast('Photos approved — now visible to shoppers', 'success');
+                loadAdminReviews();
+            } catch (err) {
+                showToast('Could not approve: ' + (err.message || err), 'error');
             }
         };
 
