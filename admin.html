@@ -172,10 +172,10 @@
            security boundary. */
         const ZW_RBAC = {
             super_admin: ['*'],
-            manager: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','bundles','journal','subscribers','emails','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','refund','return_process','product_write','order_write','user_manage','builder_edit','bulk_actions','export'],
+            manager: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','bundles','loyalty','journal','subscribers','emails','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','refund','return_process','product_write','order_write','user_manage','builder_edit','bulk_actions','export'],
             finance: ['dashboard','analytics','finance','orders','receipts','tax','audit','refund','export'],
             fulfillment: ['dashboard','products','orders','receipts','shipping','returns','order_write','return_process','product_write','bulk_actions','export'],
-            content: ['dashboard','products','sizecharts','reviews','questions','bundles','journal','website','settings','product_write','builder_edit','export'],
+            content: ['dashboard','products','sizecharts','reviews','questions','bundles','loyalty','journal','website','settings','product_write','builder_edit','export'],
             viewer: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','bundles','journal','subscribers','emails','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','export']
         };
         const ZW_ROLE_LABELS = {
@@ -185,7 +185,7 @@
         // Preset access maps (page -> 'view'|'edit') — mirror of ROLE_PRESET_LEVELS
         // in functions/api/_rbac.js. Drives the "preset" button in the access matrix.
         const ZW_ROLE_PRESET_LEVELS = {
-            manager:{dashboard:'view',analytics:'view',finance:'edit',products:'edit',legacy:'edit',sizecharts:'edit',reviews:'edit',questions:'edit',bundles:'edit',journal:'edit',subscribers:'edit',emails:'edit',commerce:'edit',meta:'edit',orders:'view',receipts:'edit',shipping:'edit',returns:'edit',users:'edit',website:'edit',settings:'edit',tax:'edit',audit:'view',flags:'edit'},
+            manager:{dashboard:'view',analytics:'view',finance:'edit',products:'edit',legacy:'edit',sizecharts:'edit',reviews:'edit',questions:'edit',bundles:'edit',loyalty:'edit',journal:'edit',subscribers:'edit',emails:'edit',commerce:'edit',meta:'edit',orders:'view',receipts:'edit',shipping:'edit',returns:'edit',users:'edit',website:'edit',settings:'edit',tax:'edit',audit:'view',flags:'edit'},
             finance:{dashboard:'view',analytics:'view',finance:'edit',orders:'view',receipts:'view',tax:'edit',audit:'view'},
             fulfillment:{dashboard:'view',products:'view',orders:'view',receipts:'edit',shipping:'edit',returns:'edit'},
             content:{dashboard:'view',products:'edit',sizecharts:'edit',reviews:'edit',questions:'edit',bundles:'edit',journal:'edit',website:'edit',settings:'edit'}
@@ -217,6 +217,7 @@
             { id:'sizecharts', icon:'📏', label:'Size Charts', title:'Size Charts',         group:'catalogue', kw:'size guide measurements fit chart sizing' },
             { id:'reviews',    icon:'⭐', label:'Reviews',     title:'Customer Reviews',    group:'catalogue', kw:'ratings testimonials stars moderate feedback' },
             { id:'questions',  icon:'❓', label:'Q&A',         title:'Product Q&A',         group:'catalogue', kw:'questions answers product qa moderate ask reply' },
+            { id:'loyalty',    icon:'⭐', label:'Loyalty',     title:'Loyalty',             group:'marketing', searchLabel:'Loyalty / Points / Rewards', kw:'loyalty points rewards perks repeat customers retention redeem' },
             { id:'bundles',    icon:'🎁', label:'Bundles',     title:'Bundles',             group:'catalogue', searchLabel:'Bundles / Sets / Complete the look', kw:'bundle set combo complete the look shop the set frequently bought together upsell aov' },
             { id:'journal',    icon:'📓', label:'Journal',     title:'Journal',             group:'storefront', kw:'blog journal posts articles lookbook content editorial stories news' },
             { id:'subscribers',icon:'📧', label:'Subscribers', title:'Newsletter Subscribers', group:'marketing', searchLabel:'Newsletter / Email list / Subscribers', kw:'newsletter subscribers email list mailing signups stay in the loop marketing send journal' },
@@ -962,6 +963,32 @@
                 </div>
 
                 <!-- Journal Page -->
+                <!-- Loyalty Page -->
+                <div id="loyalty" class="page">
+                    <div class="products-header">
+                        <h2>Loyalty</h2>
+                        <button class="btn btn-secondary" onclick="loadLoyaltyAdmin()">Refresh</button>
+                    </div>
+                    <p class="zw-page-intro">Signed-in shoppers earn points on every order and swap them for money off. Redeeming mints a <strong>single-use coupon</strong> that runs through your normal promo path — it never changes how anything is priced. Guests don't earn (there's no account to credit).</p>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:22px;max-width:680px">
+                        <div class="form-group">
+                            <label for="ly-enabled" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer">
+                                <input type="checkbox" id="ly-enabled" style="width:20px;height:20px;margin:0;accent-color:var(--accent,#F891A5);cursor:pointer">
+                                <span style="font-size:.92rem">Run a rewards programme <span style="opacity:.55">— off by default. When off, nobody earns and the Rewards tab stays hidden.</span></span>
+                            </label>
+                        </div>
+                        <div style="display:flex;gap:14px;flex-wrap:wrap">
+                            <div class="form-group" style="flex:1;min-width:150px"><label class="form-label">Points per $1 spent</label><input type="number" id="ly-per-dollar" class="form-input" min="0.1" step="0.1" value="1"></div>
+                            <div class="form-group" style="flex:1;min-width:150px"><label class="form-label">Points to redeem</label><input type="number" id="ly-redeem-points" class="form-input" min="1" step="1" value="100"></div>
+                            <div class="form-group" style="flex:1;min-width:150px"><label class="form-label">Reward value ($)</label><input type="number" id="ly-redeem-value" class="form-input" min="1" step="1" value="5"></div>
+                        </div>
+                        <p id="ly-preview" style="font-size:.82rem;color:var(--text-secondary);margin:0 0 14px"></p>
+                        <button class="btn btn-primary" id="ly-save-btn" onclick="loyaltySaveSettings()">Save rewards settings</button>
+                    </div>
+                    <h3 style="font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin:0 0 10px">Members</h3>
+                    <div id="loyaltyMembers"></div>
+                </div>
+
                 <!-- Bundles Page -->
                 <div id="bundles" class="page">
                     <div class="products-header">
@@ -3912,6 +3939,8 @@
                 loadFeatureFlags();
             } else if (page === 'questions') {
                 loadQuestions();
+            } else if (page === 'loyalty') {
+                loadLoyaltyAdmin();
             } else if (page === 'bundles') {
                 loadBundlesAdmin();
             } else if (page === 'journal') {
@@ -5689,6 +5718,82 @@
             } catch (e) { showToast('Update failed', 'error'); }
         }
         window.loadQuestions = loadQuestions; window.qaAction = qaAction;
+
+        // ─── Loyalty (loyalty_ledger + site_settings.loyalty_settings) ──────────────
+        function loyaltyPreview() {
+            const per = Number(document.getElementById('ly-per-dollar').value) || 1;
+            const pts = Number(document.getElementById('ly-redeem-points').value) || 100;
+            const val = Number(document.getElementById('ly-redeem-value').value) || 5;
+            const spend = (pts / per).toFixed(2);
+            const back = ((val / (pts / per)) * 100).toFixed(1);
+            document.getElementById('ly-preview').textContent =
+                `A shopper spends $${spend} to earn ${pts} points, then gets $${val} off — about ${back}% back.`;
+        }
+        async function loadLoyaltyAdmin() {
+            ['ly-per-dollar', 'ly-redeem-points', 'ly-redeem-value'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && !el._lyBound) { el._lyBound = true; el.addEventListener('input', loyaltyPreview); }
+            });
+            try {
+                const { data: rows } = await sb.from('site_settings').select('value').eq('key', 'loyalty_settings').limit(1);
+                let v = rows && rows[0] && rows[0].value;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+                v = v || {};
+                document.getElementById('ly-enabled').checked = v.enabled === true;
+                document.getElementById('ly-per-dollar').value = Number(v.pointsPerDollar) > 0 ? v.pointsPerDollar : 1;
+                document.getElementById('ly-redeem-points').value = Number(v.redeemPoints) > 0 ? v.redeemPoints : 100;
+                document.getElementById('ly-redeem-value').value = Number(v.redeemValue) > 0 ? v.redeemValue : 5;
+            } catch (_) {}
+            loyaltyPreview();
+            loadLoyaltyMembers();
+        }
+        async function loadLoyaltyMembers() {
+            const host = document.getElementById('loyaltyMembers');
+            if (!host) return;
+            host.innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:20px;">Loading…</p>';
+            try {
+                // Admins can read the whole ledger (RLS: own rows OR admin).
+                const { data, error } = await sb.from('loyalty_ledger').select('user_id,points,reason,created_at').order('created_at', { ascending: false }).limit(2000);
+                if (error) throw error;
+                const rows = data || [];
+                if (!rows.length) { host.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:32px 20px;border:1px dashed var(--border);border-radius:10px;">No points yet. They start accruing once a signed-in shopper orders.</div>'; return; }
+                const bal = {};
+                rows.forEach(r => { bal[r.user_id] = (bal[r.user_id] || 0) + (parseInt(r.points, 10) || 0); });
+                const members = Object.keys(bal).map(uid => ({ uid, points: bal[uid] })).sort((a, b) => b.points - a.points);
+                const totalOut = members.reduce((n, m) => n + Math.max(0, m.points), 0);
+                host.innerHTML = `<p style="font-size:.8rem;color:var(--text-secondary);margin:0 0 10px">${members.length} member${members.length === 1 ? '' : 's'} · ${totalOut} points outstanding</p>
+                    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px">
+                    <table style="width:100%;border-collapse:collapse;font-size:.86rem">
+                        <thead><tr style="text-align:left;color:var(--text-secondary);font-size:.7rem;text-transform:uppercase;letter-spacing:.05em">
+                            <th style="padding:11px 16px">Customer</th><th style="padding:11px 16px">Balance</th>
+                        </tr></thead>
+                        <tbody>${members.map(m => `<tr style="border-top:1px solid var(--border)">
+                            <td style="padding:10px 16px;font-family:monospace;font-size:.76rem;color:var(--text-secondary)">${escapeHtml(m.uid)}</td>
+                            <td style="padding:10px 16px;font-weight:700">${m.points}</td>
+                        </tr>`).join('')}</tbody>
+                    </table></div>`;
+            } catch (e) {
+                host.innerHTML = `<p style="color:#ef4444">Could not load members: ${escapeHtml((e && e.message) || 'error')}</p>`;
+            }
+        }
+        async function loyaltySaveSettings() {
+            const value = {
+                enabled: document.getElementById('ly-enabled').checked,
+                pointsPerDollar: Number(document.getElementById('ly-per-dollar').value) || 1,
+                redeemPoints: Math.max(1, Math.floor(Number(document.getElementById('ly-redeem-points').value) || 100)),
+                redeemValue: Number(document.getElementById('ly-redeem-value').value) || 5,
+            };
+            const btn = document.getElementById('ly-save-btn'); const label = btn.textContent;
+            btn.disabled = true; btn.textContent = 'Saving…';
+            try {
+                const { error } = await sb.from('site_settings').upsert({ key: 'loyalty_settings', value }, { onConflict: 'key' });
+                if (error) throw error;
+                try { await logAdminAudit('settings.update', 'site_settings', 'loyalty_settings', value); } catch (_) {}
+                showToast('Rewards settings saved ✓');
+            } catch (e) { showToast('Save failed: ' + ((e && e.message) || 'error'), 'error'); }
+            btn.disabled = false; btn.textContent = label;
+        }
+        window.loadLoyaltyAdmin = loadLoyaltyAdmin; window.loyaltySaveSettings = loyaltySaveSettings;
 
         // ─── Bundles (bundles table → "complete the set" row on product pages) ──────
         let _bundles = [], _bundleProducts = [];
