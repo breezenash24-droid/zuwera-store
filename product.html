@@ -3579,6 +3579,14 @@ function animateAddToBag(sourceEl, imageSrc) {
 async function loadRelatedProducts() {
   try {
     if (!window.sb || !currentProduct?.id) return;
+    // Honour the Page Builder's Product tab — this block can be switched off
+    // there. Any hiccup reading the config leaves it visible (fail open), since
+    // it's decorative either way.
+    try {
+      const cfg = await fetch('/api/product-page-config').then(r => r.ok ? r.json() : null).catch(() => null);
+      const row = cfg && Array.isArray(cfg.sections) && cfg.sections.find(s => s && s.id === 'more_from_release');
+      if (row && row.on === false) return;
+    } catch (_) {}
     const { data } = await window.sb
       .from('products')
       .select('id,title,current_price,product_images(image_url,sort_order)')
