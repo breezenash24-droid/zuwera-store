@@ -200,7 +200,7 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
     }
   } catch (_) {}
 
-  const [stripeUpdateResult, emailResult, invResult, promoResult, capiResult] = await Promise.allSettled([
+  const [stripeUpdateResult, emailResult, invResult, promoResult, capiResult, loyaltyResult] = await Promise.allSettled([
     tracking.number
       ? stripe.paymentIntents.update(pi.id, {
           metadata: {
@@ -225,6 +225,10 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
     // Mirror the browser Purchase pixel server-side (survives ad blockers;
     // deduped against the browser event by event_id = purchase_<pi.id>).
     sendPurchaseEvent(pi, meta, env),
+
+    // Credit loyalty points (signed-in shoppers only). Non-fatal by design —
+    // a points failure must never affect the order.
+    awardLoyaltyPoints(pi, meta, env),
   ]);
 
   if (stripeUpdateResult.status === 'rejected') console.error('Stripe metadata update failed:', stripeUpdateResult.reason);
@@ -232,6 +236,35 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
   if (invResult.status       === 'rejected') console.error('Inventory decrement failed:',     invResult.reason);
   if (promoResult.status     === 'rejected') console.error('Promo usage increment failed:',   promoResult.reason);
   if (capiResult.status      === 'rejected') console.error('CAPI Purchase failed:',           capiResult.reason);
+  if (loyaltyResult.status   === 'rejected') console.error('Loyalty points failed:',          loyaltyResult.reason);
+}
+
+// Credit points for a purchase. Guests (no user_id) earn nothing — there's no
+// account to credit. Rules live in site_settings.loyalty_settings.
+async function awardLoyaltyPoints(pi, meta, env) {
+  const serviceKey = getSupabaseServiceKey(env);
+  if (!env.SUPABASE_URL || !serviceKey) return;
+  const userId = String(meta.user_id || '').trim();
+  if (!userId) return;
+
+  const H = { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey, 'Content-Type': 'application/json' };
+  const rows = await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?select=value&key=eq.loyalty_settings&limit=1`, { headers: H })
+    .then((r) => (r.ok ? r.json() : [])).catch(() => []);
+  let v = rows && rows[0] && rows[0].value;
+  if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+  v = v || {};
+  if (v.enabled !== true) return;
+
+  const perDollar = Number(v.pointsPerDollar) > 0 ? Number(v.pointsPerDollar) : 1;
+  const subtotalCents = parseInt(meta.subtotal_amount_cents || '0', 10) || 0;
+  const points = Math.floor((subtotalCents / 100) * perDollar);
+  if (points <= 0) return;
+
+  const res = await fetch(`${env.SUPABASE_URL}/rest/v1/loyalty_ledger`, {
+    method: 'POST', headers: { ...H, Prefer: 'return=minimal' },
+    body: JSON.stringify({ user_id: userId, points, reason: 'purchase', order_id: pi.id }),
+  });
+  if (!res.ok) throw new Error('loyalty_ledger insert failed: ' + (await res.text().catch(() => '')));
 }
 
 // ─── Meta Conversions API: server-side Purchase ────────────────────────────────
