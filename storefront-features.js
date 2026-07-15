@@ -843,10 +843,29 @@
       onProduct(function (p) {
         if (wantRV) { rvRecord(p); rvTrackDwell(p); }
         if (wantFit) initFitFinder(p);
-        if (wantBundles) renderBundle(p);
-        if (wantRec) renderRecommendations(p);
-        if (wantQA) initQA(p);
-        if (wantRV) renderRecentlyViewed(p.id);
+        // Layout comes from the Page Builder's Product tab: which blocks show and
+        // in what order. A block still needs its feature flag on — the flag is the
+        // global switch, this is just the page's arrangement. If the config can't
+        // be read we fall back to the default order, so the page never loses
+        // content because of a settings hiccup.
+        var DEFAULT_PDP = [{ id: 'bundle', on: true }, { id: 'recently_viewed', on: true }, { id: 'recommendations', on: true }, { id: 'qa', on: true }];
+        var run = {
+          bundle: function () { if (wantBundles) renderBundle(p); },
+          recently_viewed: function () { if (wantRV) renderRecentlyViewed(p.id); },
+          recommendations: function () { if (wantRec) renderRecommendations(p); },
+          qa: function () { if (wantQA) initQA(p); },
+        };
+        fetch('/api/product-page-config')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .catch(function () { return null; })
+          .then(function (cfg) {
+            var list = (cfg && Array.isArray(cfg.sections) && cfg.sections.length) ? cfg.sections : DEFAULT_PDP;
+            list.forEach(function (s) {
+              if (!s || s.on === false) return;
+              var fn = run[s.id];
+              if (fn) fn();
+            });
+          });
       });
     }
     // Homepage placement is controlled by the builder's "Recently Viewed" section
