@@ -210,11 +210,27 @@
       '.zwf-search-bar{display:flex;align-items:center;gap:.9rem;padding:1.1rem clamp(1rem,4vw,2.5rem);border-bottom:1px solid var(--line,rgba(128,128,128,.2))}',
       '.zwf-search-bar svg{width:22px;height:22px;flex:0 0 auto;opacity:.6}',
       '.zwf-search-input{flex:1;background:none;border:none;outline:none;color:inherit;font-family:var(--fw,inherit);font-weight:700;font-size:clamp(1.1rem,3vw,1.7rem);letter-spacing:.02em}',
+      /* storefront-cohesion.css gives every focused input a 2px accent ring.
+         On a field that's auto-focused the moment the panel opens it's pure
+         noise — the caret already says where you are. Killed here only. */
+      '.zwf-search-input:focus,.zwf-search-input:focus-visible{outline:none!important;box-shadow:none!important}',
+      '.zwf-search-input::-webkit-search-cancel-button,.zwf-search-input::-webkit-search-decoration{-webkit-appearance:none;appearance:none}',
       '.zwf-search-input::placeholder{color:currentColor;opacity:.38}',
-      '.zwf-search-close{background:none;border:1px solid var(--line,rgba(128,128,128,.35));color:inherit;border-radius:100px;padding:.35rem .8rem;cursor:pointer;font-family:var(--fm,inherit);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;opacity:.75}',
-      '.zwf-search-close:hover{background:var(--line,rgba(128,128,128,.14));opacity:1}',
-      '.zwf-search-results{overflow-y:auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 2.4rem}',
+      /* Our own clear button: the native type=search one renders in the UA's own
+         blue, which appears nowhere else on the site. */
+      '.zwf-search-clear{background:none;border:none;padding:.3rem;margin:0;cursor:pointer;color:inherit;display:inline-flex;align-items:center;justify-content:center;opacity:.45;transition:opacity .15s}',
+      '.zwf-search-clear:hover{opacity:.9}',
+      '.zwf-search-clear svg{width:17px;height:17px;display:block}',
+      '.zwf-search-results{overflow-y:auto;overscroll-behavior:contain;padding:1.4rem clamp(1rem,4vw,2.5rem) 2.4rem}',
       '.zwf-search-meta{font-family:var(--fm,inherit);font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;opacity:.5;margin:0 0 1.1rem}',
+      /* Text rows, Apple-style — a name and a price read faster than a wall of
+         thumbnails when you're mid-keystroke. */
+      '.zwf-sr{display:flex;align-items:center;gap:.85rem;padding:.72rem .2rem;text-decoration:none;color:inherit;border-bottom:1px solid var(--line,rgba(128,128,128,.14))}',
+      '.zwf-sr:last-child{border-bottom:none}',
+      '.zwf-sr:hover{opacity:.62}',
+      '.zwf-sr-arrow{width:13px;height:13px;flex-shrink:0;opacity:.4}',
+      '.zwf-sr-nm{font-family:var(--fb,inherit);font-size:1rem;font-weight:500}',
+      '.zwf-sr-meta{margin-left:auto;font-family:var(--fm,inherit);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;opacity:.5;white-space:nowrap}',
       '.zwf-search-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1.1rem}',
       '@media(min-width:900px){.zwf-search-grid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}}',
       '.zwf-search .zwf-card-name,.zwf-search .zwf-card-price{color:inherit}',
@@ -278,6 +294,8 @@
   /* ───────────────────────── feature: product search ───────────────────────── */
 
   var SEARCH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>';
+  // Ours, so it inherits the page's ink instead of the browser's blue.
+  var CLEAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
 
   function scoreProduct(p, tokens) {
     var hay = [nameOf(p), p.subtitle, p.gender, p.colorway, p.category,
@@ -344,8 +362,8 @@
     _overlay.innerHTML =
       '<div class="zwf-search-panel">'
       + '<div class="zwf-search-bar">' + SEARCH_SVG
-      + '<input class="zwf-search-input" type="search" autocomplete="off" spellcheck="false" placeholder="Search products…" aria-label="Search products">'
-      + '<button class="zwf-search-close" type="button">Close</button>'
+      + '<input class="zwf-search-input" type="text" autocomplete="off" spellcheck="false" placeholder="Search products…" aria-label="Search products">'
+      + '<button class="zwf-search-clear" type="button" aria-label="Clear search" hidden>' + CLEAR_SVG + '</button>'
       + '</div>'
       + '<div class="zwf-search-results"></div>'
       + '</div>';
@@ -354,7 +372,9 @@
     _results = _overlay.querySelector('.zwf-search-results');
 
     _overlay.addEventListener('click', function (e) { if (e.target === _overlay) closeSearch(); });
-    _overlay.querySelector('.zwf-search-close').addEventListener('click', closeSearch);
+    var clearBtn = _overlay.querySelector('.zwf-search-clear');
+    clearBtn.addEventListener('click', function () { _input.value = ''; clearBtn.hidden = true; runSearch(); _input.focus(); });
+    _input.addEventListener('input', function () { clearBtn.hidden = !_input.value; });
     _input.addEventListener('input', debounce(runSearch, 120));
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && _overlay && _overlay.classList.contains('open')) closeSearch(); });
     _results.innerHTML = '<p class="zwf-empty">Start typing to search the collection.</p>';
@@ -420,14 +440,23 @@
     })();
   }
 
+  // Scrolling the page dismisses the panel, so there's nothing to hunt for. That
+  // only works if the page can actually scroll — the old scroll lock is exactly
+  // what forced a Close button to exist.
+  var _openScrollY = 0;
+  function onSearchScroll() {
+    if (Math.abs((window.scrollY || 0) - _openScrollY) > 12) closeSearch();
+  }
+
   function openSearch() {
     buildOverlay();
     catalog(); // warm the cache
-    lockScroll();
     document.body.classList.add('zwf-searching');   // shrinks the header
     syncSearchTop();
     requestAnimationFrame(function () { _overlay.classList.add('open'); _input.focus(); });
-    trackHeader();
+    trackHeader(syncSearchTop);
+    _openScrollY = window.scrollY || 0;
+    window.addEventListener('scroll', onSearchScroll, { passive: true });
     window.addEventListener('resize', syncSearchTop);
   }
 
@@ -435,11 +464,20 @@
     if (!_overlay) return;
     _overlay.classList.remove('open');
     document.body.classList.remove('zwf-searching');
+    window.removeEventListener('scroll', onSearchScroll);
     window.removeEventListener('resize', syncSearchTop);
-    unlockScroll();
     // Keep tracking on the way out too: the header grows back while the panel
     // slides up, and they should move together.
-    trackHeader();
+    trackHeader(syncSearchTop);
+  }
+
+  var ARROW_SVG = '<svg class="zwf-sr-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
+  function searchRow(p) {
+    var meta = [p.category || p.subtitle || '', p.current_price != null ? '$' + p.current_price : ''].filter(Boolean).join(' · ');
+    return '<a class="zwf-sr" href="' + esc(hrefOf(p)) + '">' + ARROW_SVG
+      + '<span class="zwf-sr-nm">' + esc(p.title || 'Product') + '</span>'
+      + (meta ? '<span class="zwf-sr-meta">' + esc(meta) + '</span>' : '')
+      + '</a>';
   }
 
   function runSearch() {
@@ -456,7 +494,7 @@
         return;
       }
       _results.innerHTML = '<p class="zwf-search-meta">' + hits.length + ' result' + (hits.length === 1 ? '' : 's') + '</p>'
-        + '<div class="zwf-search-grid">' + hits.map(function (x) { return card(x.p); }).join('') + '</div>';
+        + hits.map(function (x) { return searchRow(x.p); }).join('');
     });
   }
 
