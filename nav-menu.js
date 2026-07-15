@@ -276,6 +276,19 @@
   else init();
 })();
 
+/* ── Referral link capture ───────────────────────────────────────────────────
+   A friend's link looks like /?ref=CODE. Remember the code so checkout can
+   prefill it in the promo box (commerce-checkout.js). Purely a convenience —
+   the code is still validated server-side like any other promo. */
+(function () {
+  try {
+    var ref = new URLSearchParams(location.search).get('ref');
+    if (!ref) return;
+    ref = String(ref).trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 20);
+    if (ref) localStorage.setItem('zw_ref', ref);
+  } catch (_) {}
+})();
+
 /* ── Journal footer link toggle ──────────────────────────────────────────────
    Hides the footer + mobile "Journal" link when the admin turns it off
    (site_settings.journal_settings.show_footer_link, exposed via

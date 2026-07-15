@@ -1127,6 +1127,7 @@ async function loadRewards() {
         r.minOrderToEarn > 0 ? ` Orders under $${r.minOrderToEarn} don't earn.` : ''}${
         r.rewardMinSubtotal > 0 ? ` Rewards need a $${r.rewardMinSubtotal} order to use.` : ''}</p>
     </div>
+    <div id="rw-referral"></div>
     ${(r.history && r.history.length) ? `<div class="rw-history"><h3 class="rw-history-title">History</h3>${r.history.map(h => `
       <div class="rw-row">
         <span>${escHtml(rewardsReasonLabel(h))}</span>
@@ -1135,6 +1136,47 @@ async function loadRewards() {
 
   host.querySelectorAll('.rw-tier:not([disabled])').forEach(b => {
     b.addEventListener('click', () => redeemRewards(Number(b.dataset.points), b));
+  });
+  loadReferral(label);
+}
+
+/* -- REFER A FRIEND -- */
+async function loadReferral(pointsLabel) {
+  const host = document.getElementById('rw-referral');
+  if (!host) return;
+  let r = null;
+  try {
+    const { data } = await _sb.auth.getSession();
+    const token = data && data.session && data.session.access_token;
+    if (!token) return;
+    r = await fetch('/api/referral', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken: token, action: 'get' })
+    }).then(x => x.json());
+  } catch (_) { return; }
+  if (!r || !r.ok || !r.enabled || !r.code) return;
+
+  const off = r.friendType === 'fixed' ? `$${r.friendValue} off` : `${r.friendValue}% off`;
+  host.innerHTML = `
+    <div class="rw-card" style="margin-top:22px">
+      <h3 class="rw-history-title" style="text-align:center">Refer a friend</h3>
+      <p class="rw-hint">Give a friend <strong>${escHtml(off)}</strong>${r.friendMinSubtotal > 0 ? ` on orders over $${r.friendMinSubtotal}` : ''} — you get <strong>${r.referrerPoints} ${escHtml(pointsLabel)}</strong> when they order.</p>
+      <div class="rw-code-box" style="margin-top:0">Your code<br><strong>${escHtml(r.code)}</strong></div>
+      <button class="rw-tier" id="rw-copy" style="margin-top:10px;justify-content:center">
+        <span class="rw-tier-val" style="font-size:.74rem;letter-spacing:.14em;text-transform:uppercase">Copy your link</span>
+      </button>
+      ${r.referrals > 0 ? `<p class="rw-earn">${r.referrals} friend${r.referrals === 1 ? '' : 's'} ordered · ${r.pointsEarned} ${escHtml(pointsLabel)} earned</p>` : ''}
+    </div>`;
+
+  const copy = document.getElementById('rw-copy');
+  if (copy) copy.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(r.link);
+      copy.querySelector('.rw-tier-val').textContent = 'Copied ✓';
+      setTimeout(() => { const el = copy.querySelector('.rw-tier-val'); if (el) el.textContent = 'Copy your link'; }, 1800);
+    } catch (_) {
+      if (typeof showToast === 'function') showToast(r.link);
+    }
   });
 }
 async function redeemRewards(points, btn) {

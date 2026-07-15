@@ -1002,6 +1002,30 @@
                         <p id="ly-preview" style="font-size:.82rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.6"></p>
                         <button class="btn btn-primary" id="ly-save-btn" onclick="loyaltySaveSettings()">Save rewards settings</button>
                     </div>
+                    <h3 style="font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin:0 0 10px">Refer a friend</h3>
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:22px;max-width:680px">
+                        <p style="font-size:.82rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.6">Each signed-in shopper gets their own code to share. Their friend gets a discount; when that friend's order comes through, the referrer is paid in ${'points'} automatically. Codes are created the first time someone opens Refer a Friend, so your Coupons list only grows for people who actually share.</p>
+                        <div class="form-group">
+                            <label for="rf-enabled" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer">
+                                <input type="checkbox" id="rf-enabled" style="width:20px;height:20px;margin:0;accent-color:var(--accent,#F891A5);cursor:pointer">
+                                <span style="font-size:.92rem">Let shoppers refer friends <span style="opacity:.55">— needs the rewards programme above switched on, since referrers are paid in points.</span></span>
+                            </label>
+                        </div>
+                        <div style="display:flex;gap:14px;flex-wrap:wrap">
+                            <div class="form-group" style="flex:1;min-width:150px"><label class="form-label">Friend gets</label>
+                                <select id="rf-type" class="form-input"><option value="percent">% off</option><option value="fixed">$ off</option></select>
+                            </div>
+                            <div class="form-group" style="flex:1;min-width:120px"><label class="form-label">Amount</label><input type="number" id="rf-value" class="form-input" min="1" step="1" value="10"></div>
+                            <div class="form-group" style="flex:1;min-width:150px"><label class="form-label">Friend's min order ($)</label><input type="number" id="rf-min" class="form-input" min="0" step="1" value="0"></div>
+                        </div>
+                        <div style="display:flex;gap:14px;flex-wrap:wrap">
+                            <div class="form-group" style="flex:1;min-width:170px"><label class="form-label">Referrer earns (points)</label><input type="number" id="rf-points" class="form-input" min="1" step="1" value="100"></div>
+                            <div class="form-group" style="flex:1;min-width:170px"><label class="form-label">Max uses per code <span style="opacity:.55;font-weight:400">(0 = unlimited)</span></label><input type="number" id="rf-max-uses" class="form-input" min="0" step="1" value="25"></div>
+                        </div>
+                        <p id="rf-preview" style="font-size:.82rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.6"></p>
+                        <button class="btn btn-primary" id="rf-save-btn" onclick="referralSaveSettings()">Save referral settings</button>
+                    </div>
+
                     <h3 style="font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin:0 0 10px">Members</h3>
                     <div id="loyaltyMembers"></div>
                 </div>
@@ -5806,6 +5830,7 @@
                 tiers.sort((a, b) => (a.points || 0) - (b.points || 0)).forEach(t => host.appendChild(loyaltyTierRow({ points: t.points || 100, value: t.value || 5 })));
             } catch (_) {}
             loyaltyPreview();
+            loadReferralSettings();
             loadLoyaltyMembers();
         }
         async function loadLoyaltyMembers() {
@@ -5869,6 +5894,64 @@
         }
         window.loadLoyaltyAdmin = loadLoyaltyAdmin; window.loyaltySaveSettings = loyaltySaveSettings;
         window.loyaltyAddTier = loyaltyAddTier; window.loyaltyPreview = loyaltyPreview;
+
+        // ─── Referrals (referral_codes + site_settings.referral_settings) ───────────
+        function referralPreview() {
+            const type = document.getElementById('rf-type').value;
+            const val = Number(document.getElementById('rf-value').value) || 0;
+            const min = Number(document.getElementById('rf-min').value) || 0;
+            const pts = Number(document.getElementById('rf-points').value) || 0;
+            const maxU = Number(document.getElementById('rf-max-uses').value) || 0;
+            const label = (document.getElementById('ly-label').value || 'points');
+            const off = type === 'fixed' ? `$${val} off` : `${val}% off`;
+            const bits = [`A friend gets ${off}${min > 0 ? ` on orders over $${min}` : ''}; the referrer earns ${pts} ${label} once that friend's order goes through.`];
+            bits.push(maxU > 0 ? `Each code works up to ${maxU} time${maxU === 1 ? '' : 's'}.` : 'Codes have no usage cap — anyone with the code can keep using it.');
+            document.getElementById('rf-preview').textContent = bits.join(' ');
+        }
+        async function loadReferralSettings() {
+            ['rf-type', 'rf-value', 'rf-min', 'rf-points', 'rf-max-uses'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && !el._rfBound) { el._rfBound = true; el.addEventListener('input', referralPreview); el.addEventListener('change', referralPreview); }
+            });
+            try {
+                const { data: rows } = await sb.from('site_settings').select('value').eq('key', 'referral_settings').limit(1);
+                let v = rows && rows[0] && rows[0].value;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+                v = v || {};
+                document.getElementById('rf-enabled').checked = v.enabled === true;
+                document.getElementById('rf-type').value = v.friendType === 'fixed' ? 'fixed' : 'percent';
+                document.getElementById('rf-value').value = Number(v.friendValue) > 0 ? v.friendValue : 10;
+                document.getElementById('rf-min').value = Number(v.friendMinSubtotal) > 0 ? v.friendMinSubtotal : 0;
+                document.getElementById('rf-points').value = Number(v.referrerPoints) > 0 ? v.referrerPoints : 100;
+                document.getElementById('rf-max-uses').value = Number(v.maxUsesPerCode) >= 0 && v.maxUsesPerCode !== undefined ? v.maxUsesPerCode : 25;
+            } catch (_) {}
+            referralPreview();
+        }
+        async function referralSaveSettings() {
+            const enabled = document.getElementById('rf-enabled').checked;
+            if (enabled && !document.getElementById('ly-enabled').checked) {
+                showToast('Switch the rewards programme on first — referrers are paid in points.', 'error');
+                return;
+            }
+            const value = {
+                enabled,
+                friendType: document.getElementById('rf-type').value === 'fixed' ? 'fixed' : 'percent',
+                friendValue: Number(document.getElementById('rf-value').value) || 10,
+                friendMinSubtotal: Math.max(0, Number(document.getElementById('rf-min').value) || 0),
+                referrerPoints: Math.max(1, Math.floor(Number(document.getElementById('rf-points').value) || 100)),
+                maxUsesPerCode: Math.max(0, Math.floor(Number(document.getElementById('rf-max-uses').value) || 0)),
+            };
+            const btn = document.getElementById('rf-save-btn'); const label = btn.textContent;
+            btn.disabled = true; btn.textContent = 'Saving…';
+            try {
+                const { error } = await sb.from('site_settings').upsert({ key: 'referral_settings', value }, { onConflict: 'key' });
+                if (error) throw error;
+                try { await logAdminAudit('settings.update', 'site_settings', 'referral_settings', value); } catch (_) {}
+                showToast('Referral settings saved ✓');
+            } catch (e) { showToast('Save failed: ' + ((e && e.message) || 'error'), 'error'); }
+            btn.disabled = false; btn.textContent = label;
+        }
+        window.referralSaveSettings = referralSaveSettings; window.referralPreview = referralPreview;
 
         // ─── Bundles (bundles table → "complete the set" row on product pages) ──────
         let _bundles = [], _bundleProducts = [];
