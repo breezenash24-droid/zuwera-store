@@ -170,23 +170,30 @@
       '.zwf-search-btn svg{width:20px;height:20px;display:block}',
 
       /* search overlay — deliberate cream "spotlight" panel that reads on both themes */
-      '.zwf-search{position:fixed;inset:0;z-index:4000;display:flex;flex-direction:column;background:rgba(9,9,11,.55);opacity:0;pointer-events:none;transition:opacity .22s ease}',
+      '.zwf-search{position:fixed;inset:0;z-index:990;display:flex;flex-direction:column;background:rgba(9,9,11,.42);opacity:0;pointer-events:none;transition:opacity .22s ease;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}',
       '.zwf-search.open{opacity:1;pointer-events:auto}',
-      '.zwf-search-panel{background:var(--paper,#f4f1eb);color:var(--ink,#09090b);width:100%;max-height:88vh;display:flex;flex-direction:column;transform:translateY(-14px);transition:transform .26s cubic-bezier(.2,.7,.2,1)}',
+      '.zwf-search-panel{background:var(--ink,#09090b);color:var(--paper,#f4f1eb);width:100%;max-height:min(72vh,560px);display:flex;flex-direction:column;transform:translateY(-100%);transition:transform .34s cubic-bezier(.22,.61,.36,1);box-shadow:0 22px 48px rgba(0,0,0,.22)}',
       '.zwf-search.open .zwf-search-panel{transform:translateY(0)}',
-      '.zwf-search-bar{display:flex;align-items:center;gap:.9rem;padding:1.1rem clamp(1rem,4vw,2.5rem);border-bottom:1px solid rgba(9,9,11,.12)}',
+      '.zwf-search-bar{display:flex;align-items:center;gap:.9rem;padding:1.1rem clamp(1rem,4vw,2.5rem);border-bottom:1px solid var(--line,rgba(128,128,128,.2))}',
       '.zwf-search-bar svg{width:22px;height:22px;flex:0 0 auto;opacity:.6}',
       '.zwf-search-input{flex:1;background:none;border:none;outline:none;color:inherit;font-family:var(--fw,inherit);font-weight:700;font-size:clamp(1.1rem,3vw,1.7rem);letter-spacing:.02em}',
-      '.zwf-search-input::placeholder{color:rgba(9,9,11,.35)}',
-      '.zwf-search-close{background:none;border:1px solid rgba(9,9,11,.2);color:inherit;border-radius:100px;padding:.35rem .8rem;cursor:pointer;font-family:var(--fm,inherit);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase}',
-      '.zwf-search-close:hover{background:rgba(9,9,11,.06)}',
+      '.zwf-search-input::placeholder{color:currentColor;opacity:.38}',
+      '.zwf-search-close{background:none;border:1px solid var(--line,rgba(128,128,128,.35));color:inherit;border-radius:100px;padding:.35rem .8rem;cursor:pointer;font-family:var(--fm,inherit);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;opacity:.75}',
+      '.zwf-search-close:hover{background:var(--line,rgba(128,128,128,.14));opacity:1}',
       '.zwf-search-results{overflow-y:auto;padding:1.4rem clamp(1rem,4vw,2.5rem) 2.4rem}',
       '.zwf-search-meta{font-family:var(--fm,inherit);font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;opacity:.5;margin:0 0 1.1rem}',
       '.zwf-search-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1.1rem}',
       '@media(min-width:900px){.zwf-search-grid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}}',
-      '.zwf-search .zwf-card-name,.zwf-search .zwf-card-price{color:var(--ink,#09090b)}',
+      '.zwf-search .zwf-card-name,.zwf-search .zwf-card-price{color:inherit}',
       '.zwf-empty{padding:3rem 1rem;text-align:center;opacity:.55;font-family:var(--fb,inherit)}',
       '@media(prefers-reduced-motion:reduce){.zwf-search,.zwf-search-panel{transition:none}}',
+      /* Apple-ish: the panel slides out from beneath the header, which stays put
+         and shrinks slightly. The overlay's top is set in JS to the header's
+         measured bottom, so the header is never covered and stays clickable. */
+      'body.zwf-searching :is(nav#nav,nav.nav,header.nav,nav.zw-nav){padding-top:.3rem!important;padding-bottom:.3rem!important}',
+      'body.zwf-searching :is(.nav-logo,.zw-nav-logo) img{transform:scale(.86);transition:transform .34s cubic-bezier(.22,.61,.36,1)}',
+      '.zwf-search-panel{overflow:hidden}',
+      '@media(max-width:899px){.zwf-search-panel{max-height:100%}}',
 
       /* low-stock chip on homepage product cards (the collection page + product page
          already show their own stock cues, so this only targets .pcard grids) */
@@ -199,7 +206,7 @@
       /* shared modal (fit finder) — cream panel that reads on both themes */
       '.zwf-modal{position:fixed;inset:0;z-index:4100;display:flex;align-items:center;justify-content:center;padding:1.2rem;background:rgba(9,9,11,.55);opacity:0;pointer-events:none;transition:opacity .22s ease}',
       '.zwf-modal.open{opacity:1;pointer-events:auto}',
-      '.zwf-modal-box{position:relative;background:var(--paper,#f4f1eb);color:var(--ink,#09090b);width:100%;max-width:440px;border-radius:4px;padding:2rem 1.8rem;max-height:90vh;overflow-y:auto;transform:translateY(10px);transition:transform .26s cubic-bezier(.2,.7,.2,1)}',
+      '.zwf-modal-box{position:relative;background:#f4f1eb;color:#09090b;width:100%;max-width:440px;border-radius:4px;padding:2rem 1.8rem;max-height:90vh;overflow-y:auto;transform:translateY(10px);transition:transform .26s cubic-bezier(.2,.7,.2,1)}',
       '.zwf-modal.open .zwf-modal-box{transform:none}',
       '.zwf-modal-x{position:absolute;top:.9rem;right:1.1rem;background:none;border:none;font-size:1.5rem;line-height:1;cursor:pointer;color:inherit;opacity:.5}',
       '.zwf-modal-x:hover{opacity:1}',
@@ -221,7 +228,7 @@
       '.zwf-support{position:fixed;right:20px;bottom:20px;z-index:900;display:flex;flex-direction:column;align-items:flex-end;gap:12px}',
       '.zwf-support-fab{display:inline-flex;align-items:center;gap:.5rem;background:var(--ink,#09090b);color:var(--paper,#f4f1eb);border:none;border-radius:100px;padding:.7rem 1.1rem;font-family:var(--fm,inherit);font-size:.64rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.22)}',
       '.zwf-support-fab svg{width:16px;height:16px}',
-      '.zwf-support-panel{background:var(--paper,#f4f1eb);color:var(--ink,#09090b);width:250px;border-radius:10px;padding:1.2rem;box-shadow:0 12px 40px rgba(0,0,0,.28);opacity:0;transform:translateY(8px) scale(.98);transform-origin:bottom right;pointer-events:none;transition:opacity .2s ease,transform .2s ease}',
+      '.zwf-support-panel{background:#f4f1eb;color:#09090b;width:250px;border-radius:10px;padding:1.2rem;box-shadow:0 12px 40px rgba(0,0,0,.28);opacity:0;transform:translateY(8px) scale(.98);transform-origin:bottom right;pointer-events:none;transition:opacity .2s ease,transform .2s ease}',
       '.zwf-support.open .zwf-support-panel{opacity:1;transform:none;pointer-events:auto}',
       '.zwf-support-panel h4{font-family:var(--fw,inherit);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.03em;font-size:1.05rem;margin:0 0 .2rem}',
       '.zwf-support-panel p{font-family:var(--fb,inherit);font-size:.78rem;opacity:.6;margin:0 0 .9rem;line-height:1.5}',
@@ -320,23 +327,70 @@
     _results.innerHTML = '<p class="zwf-empty">Start typing to search the collection.</p>';
   }
 
+  function headerEl() {
+    return document.querySelector('nav#nav, nav.nav, header.nav, nav.zw-nav');
+  }
+  function isDesktop() { return window.matchMedia('(min-width:900px)').matches; }
+  // Sit the panel flush under the header. Measured rather than hardcoded: the
+  // header shrinks when search opens and its height differs per page.
+  function syncSearchTop() {
+    if (!_overlay) return;
+    if (!isDesktop()) { _overlay.style.top = '0px'; return; }
+    var h = headerEl();
+    _overlay.style.top = h ? Math.max(0, Math.round(h.getBoundingClientRect().bottom)) + 'px' : '0px';
+  }
+
+  // The old lock used body{position:fixed} unconditionally. modal-lock.js spells
+  // out why that's wrong: it breaks position:sticky — and journal/about/account/
+  // returns all have sticky headers, which now matters because the header stays
+  // visible. Desktop → overflow:hidden (freezes scroll, sticky intact);
+  // mobile → the position:fixed dance, which iOS still needs.
+  var _lockedRoot = false, _padded = false;
+  function lockScroll() {
+    if (isDesktop()) {
+      var sw = window.innerWidth - document.documentElement.clientWidth;
+      if (sw > 0) { document.documentElement.style.paddingRight = sw + 'px'; _padded = true; }
+      document.documentElement.style.overflow = 'hidden';
+      _lockedRoot = true;
+    } else {
+      _scrollY = window.scrollY || 0;
+      document.body.style.top = '-' + _scrollY + 'px';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+    }
+  }
+  function unlockScroll() {
+    if (_lockedRoot) {
+      document.documentElement.style.overflow = '';
+      if (_padded) { document.documentElement.style.paddingRight = ''; _padded = false; }
+      _lockedRoot = false;
+    } else {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      window.scrollTo(0, _scrollY);
+    }
+  }
+
   function openSearch() {
     buildOverlay();
     catalog(); // warm the cache
-    _scrollY = window.scrollY || 0;
-    document.body.style.top = '-' + _scrollY + 'px';
-    document.body.style.position = 'fixed';
-    document.body.style.width = '100%';
+    lockScroll();
+    document.body.classList.add('zwf-searching');   // shrinks the header
+    syncSearchTop();
     requestAnimationFrame(function () { _overlay.classList.add('open'); _input.focus(); });
+    // Re-measure as the header's shrink transition settles, and on resize.
+    setTimeout(syncSearchTop, 60);
+    setTimeout(syncSearchTop, 380);
+    window.addEventListener('resize', syncSearchTop);
   }
 
   function closeSearch() {
     if (!_overlay) return;
     _overlay.classList.remove('open');
-    document.body.style.position = '';
-    document.body.style.top = '';
-    document.body.style.width = '';
-    window.scrollTo(0, _scrollY);
+    document.body.classList.remove('zwf-searching');
+    window.removeEventListener('resize', syncSearchTop);
+    unlockScroll();
   }
 
   function runSearch() {
