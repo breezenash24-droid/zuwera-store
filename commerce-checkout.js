@@ -64,6 +64,17 @@
       <div id="zw-promo-message" style="font-family:var(--fm,inherit);font-size:.62rem;color:rgba(244,241,235,.5);letter-spacing:.03em;min-height:.9rem;"></div>
     `;
 
+    // Arrived from a friend's referral link (?ref=CODE)? Prefill their code so
+    // the shopper doesn't have to remember it. It's still validated server-side
+    // like any other promo — this only saves typing.
+    try {
+      const ref = localStorage.getItem('zw_ref');
+      if (ref) {
+        const input = shell.querySelector('#zw-promo-input');
+        if (input && !input.value) input.value = ref;
+      }
+    } catch (_) {}
+
     const summary = host.closest('.cart-summary') || document.querySelector('.cart-summary');
     const totalRow = host.querySelector('.stotal, .total')
       || summary?.querySelector('.stotal, .summary-row.total, .total');

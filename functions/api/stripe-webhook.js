@@ -200,7 +200,7 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
     }
   } catch (_) {}
 
-  const [stripeUpdateResult, emailResult, invResult, promoResult, capiResult, loyaltyResult] = await Promise.allSettled([
+  const [stripeUpdateResult, emailResult, invResult, promoResult, capiResult, loyaltyResult, referralResult] = await Promise.allSettled([
     tracking.number
       ? stripe.paymentIntents.update(pi.id, {
           metadata: {
@@ -229,6 +229,9 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
     // Credit loyalty points (signed-in shoppers only). Non-fatal by design —
     // a points failure must never affect the order.
     awardLoyaltyPoints(pi, meta, env),
+
+    // If the order used someone's referral code, pay the referrer.
+    creditReferrer(pi, meta, env),
   ]);
 
   if (stripeUpdateResult.status === 'rejected') console.error('Stripe metadata update failed:', stripeUpdateResult.reason);
@@ -237,6 +240,47 @@ async function handleSuccessfulPayment(pi, meta, env, stripe) {
   if (promoResult.status     === 'rejected') console.error('Promo usage increment failed:',   promoResult.reason);
   if (capiResult.status      === 'rejected') console.error('CAPI Purchase failed:',           capiResult.reason);
   if (loyaltyResult.status   === 'rejected') console.error('Loyalty points failed:',          loyaltyResult.reason);
+  if (referralResult.status  === 'rejected') console.error('Referral credit failed:',         referralResult.reason);
+}
+
+// Pay the referrer when an order used their code. Guards: no self-referral, and
+// one credit per order (Stripe can retry a webhook).
+async function creditReferrer(pi, meta, env) {
+  const serviceKey = getSupabaseServiceKey(env);
+  if (!env.SUPABASE_URL || !serviceKey) return;
+  const code = String(meta.discount_code || '').trim();
+  if (!code) return;
+
+  const H = { apikey: serviceKey, Authorization: 'Bearer ' + serviceKey, 'Content-Type': 'application/json' };
+
+  const settingsRows = await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?select=value&key=eq.referral_settings&limit=1`, { headers: H })
+    .then((r) => (r.ok ? r.json() : [])).catch(() => []);
+  let s = settingsRows && settingsRows[0] && settingsRows[0].value;
+  if (typeof s === 'string') { try { s = JSON.parse(s); } catch (_) { s = null; } }
+  s = s || {};
+  if (s.enabled !== true) return;
+  const points = Math.floor(Number(s.referrerPoints) > 0 ? Number(s.referrerPoints) : 0);
+  if (points <= 0) return;
+
+  // Is this code somebody's referral code?
+  const owners = await fetch(`${env.SUPABASE_URL}/rest/v1/referral_codes?select=user_id&code=eq.${encodeURIComponent(code)}&limit=1`, { headers: H })
+    .then((r) => (r.ok ? r.json() : [])).catch(() => []);
+  const referrerId = owners && owners[0] && owners[0].user_id;
+  if (!referrerId) return;
+
+  // Don't pay someone for referring themselves.
+  if (String(meta.user_id || '').trim() === String(referrerId)) return;
+
+  // Already credited for this order? (webhook retries)
+  const dupe = await fetch(`${env.SUPABASE_URL}/rest/v1/loyalty_ledger?select=id&user_id=eq.${encodeURIComponent(referrerId)}&reason=eq.referral&order_id=eq.${encodeURIComponent(pi.id)}&limit=1`, { headers: H })
+    .then((r) => (r.ok ? r.json() : [])).catch(() => []);
+  if (dupe && dupe.length) return;
+
+  const res = await fetch(`${env.SUPABASE_URL}/rest/v1/loyalty_ledger`, {
+    method: 'POST', headers: { ...H, Prefer: 'return=minimal' },
+    body: JSON.stringify({ user_id: referrerId, points, reason: 'referral', order_id: pi.id, promo_code: code }),
+  });
+  if (!res.ok) throw new Error('referral credit insert failed: ' + (await res.text().catch(() => '')));
 }
 
 // Credit points for a purchase. Guests (no user_id) earn nothing — there's no
