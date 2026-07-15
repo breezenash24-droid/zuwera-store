@@ -752,20 +752,22 @@ function lpTab(name){
 /* ── PRODUCT TAB ────────────────────────────────────────────────────────────
    The stack of blocks under a product (related products, recently viewed,
    recommendations, Q&A…) had no controls — it was whatever happened to be
-   switched on, in a fixed order. This makes it a list you can reorder and turn
-   off, saved to site_settings.product_page and read by the storefront via
-   /api/product-page-config.
+   switched on, in a fixed order. This makes it a list you can reorder and hide,
+   saved to site_settings.product_page and read via /api/product-page-config.
 
-   Each block also has a global feature flag (Admin → Feature Flags). A flag that
-   is off wins — so we surface that here rather than letting a block look
-   "on" but never appear. `more_from_release` is rendered by the product page
-   itself, so it always sits first and only takes a visibility toggle. */
+   Deliberately mirrors the Content tab: .sec-item rows, drag to reorder, eye to
+   hide — so it reads as the same tool rather than a bolted-on form.
+
+   Each block also has a global feature flag (Admin → Feature Flags), and the flag
+   wins — so a block whose flag is off says so here instead of looking enabled and
+   never appearing. more_from_release is rendered by the product page itself, so it
+   always sits first and can only be hidden. */
 const PDP_BLOCK_META = {
-  more_from_release: { label:'More from this release', hint:'Other pieces from the same drop', flag:null, fixed:true },
-  bundle:            { label:'Complete the set',       hint:'The other pieces in a bundle this product belongs to', flag:'feature_bundles' },
-  recently_viewed:   { label:'Recently viewed',        hint:'What this shopper looked at before', flag:'feature_recently_viewed' },
-  recommendations:   { label:'You may also like',      hint:'Similar products', flag:'feature_recommendations' },
-  qa:                { label:'Questions & answers',    hint:'Customer questions you have answered', flag:'feature_qa' },
+  more_from_release: { label:'More from this release', tp:'always first',    icon:'🧺', flag:null, fixed:true },
+  bundle:            { label:'Complete the set',       tp:'bundle',          icon:'🎁', flag:'feature_bundles' },
+  recently_viewed:   { label:'Recently viewed',        tp:'recently_viewed', icon:'🕘', flag:'feature_recently_viewed' },
+  recommendations:   { label:'You may also like',      tp:'recommendations', icon:'✨', flag:'feature_recommendations' },
+  qa:                { label:'Questions & answers',    tp:'q_and_a',         icon:'❓', flag:'feature_qa' },
 };
 const PDP_ORDER_DEFAULT = ['more_from_release','bundle','recently_viewed','recommendations','qa'];
 let pdpCfg = null, pdpFlags = null;
@@ -783,7 +785,7 @@ function pdpNormalize(v){
 }
 
 async function renderProductTab(container){
-  container.innerHTML='<div class="tab-pane"><div class="tab-hd">Under the product</div><div style="opacity:.6;font-size:.72rem;padding:0 0 .6rem">Loading…</div></div>';
+  container.innerHTML = '<div class="tab-pane"><div class="tab-hd">Under the product</div><div style="font-size:.6rem;color:var(--mu)">Loading…</div></div>';
   if(!pdpCfg){
     try{
       const [cfgRes, flagRes] = await Promise.all([
@@ -793,50 +795,61 @@ async function renderProductTab(container){
       let v = cfgRes && cfgRes.data && cfgRes.data.value;
       if(typeof v==='string'){ try{ v=JSON.parse(v); }catch(_){ v=null; } }
       pdpCfg = pdpNormalize(v);
-      let f = flagRes && flagRes.data && flagRes.data.value;
-      if(typeof f==='string'){ try{ f=JSON.parse(f); }catch(_){ f=null; } }
-      pdpFlags = f || {};
+      let fl = flagRes && flagRes.data && flagRes.data.value;
+      if(typeof fl==='string'){ try{ fl=JSON.parse(fl); }catch(_){ fl=null; } }
+      pdpFlags = fl || {};
     }catch(_){ pdpCfg = pdpNormalize(null); pdpFlags = {}; }
   }
   paintProductTab(container);
 }
 
 function paintProductTab(container){
-  const rows = pdpCfg.map((s,i)=>{
-    const m = PDP_BLOCK_META[s.id] || { label:s.id, hint:'' };
-    const flagOff = m.flag && !(pdpFlags[m.flag] && pdpFlags[m.flag].enabled);
-    return `<div class="pdp-row" style="display:flex;align-items:center;gap:.6rem;padding:.55rem .6rem;border:1px solid rgba(244,241,235,.12);border-radius:6px;margin-bottom:.4rem;${s.on?'':'opacity:.5'}">
-      <div style="display:flex;flex-direction:column;gap:2px">
-        <button onclick="pdpMove(${i},-1)" ${i===0||m.fixed?'disabled':''} title="Move up" style="background:none;border:none;color:inherit;cursor:pointer;opacity:${i===0||m.fixed?.25:.7};font-size:.6rem;line-height:1;padding:1px">&#9650;</button>
-        <button onclick="pdpMove(${i},1)" ${i===pdpCfg.length-1||m.fixed?'disabled':''} title="Move down" style="background:none;border:none;color:inherit;cursor:pointer;opacity:${i===pdpCfg.length-1||m.fixed?.25:.7};font-size:.6rem;line-height:1;padding:1px">&#9660;</button>
-      </div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:.78rem;font-weight:600">${m.label}</div>
-        <div style="font-size:.66rem;opacity:.55">${m.hint}${m.fixed?' · always first':''}</div>
-        ${flagOff?`<div style="font-size:.64rem;color:#f0a020;margin-top:2px">Off in Feature Flags — won't show even if ticked here</div>`:''}
-      </div>
-      <label style="display:flex;align-items:center;gap:.35rem;cursor:pointer;font-size:.66rem;opacity:.8">
-        <input type="checkbox" ${s.on?'checked':''} onchange="pdpToggle(${i},this.checked)" style="cursor:pointer">
-        Show
-      </label>
-    </div>`;
-  }).join('');
-  container.innerHTML=`<div class="tab-pane">
+  container.innerHTML = `<div class="tab-pane">
     <div class="tab-hd">Under the product</div>
-    <div style="font-size:.68rem;opacity:.6;line-height:1.5;padding:0 0 .7rem">Everything that stacks below a product page. Untick what you don't want, drag the order with the arrows. Fewer blocks = a calmer page.</div>
-    ${rows}
-    <div style="display:flex;gap:.5rem;margin-top:.7rem">
-      <button class="lp-btn on" onclick="pdpSave()" id="pdpSaveBtn">Save</button>
-      <button class="lp-btn" onclick="pdpReset()">Reset</button>
-    </div>
-    <div id="pdpMsg" style="font-size:.66rem;opacity:.7;margin-top:.5rem;min-height:1em"></div>
+    <div style="font-size:.6rem;line-height:1.6;color:var(--mu)">Everything that stacks below a product page. Click the eye to hide a block, drag to reorder. Fewer blocks = a calmer page.</div>
+    <div class="sec-list" id="pdpList" style="padding:0;overflow:visible"></div>
+    <button onclick="pdpSave()" class="apply-btn" id="pdpSaveBtn">💾 Save Product Layout</button>
+    <div id="pdpMsg" style="font-size:.58rem;color:var(--mu);min-height:1em"></div>
+    <button onclick="pdpReset()" class="tbtn tbtn-ghost" style="align-self:flex-start">Reset to default</button>
   </div>`;
+  const list = container.querySelector('#pdpList');
+  pdpCfg.forEach(s=>{
+    const m = PDP_BLOCK_META[s.id] || { label:s.id, tp:s.id, icon:'📦' };
+    const flagOff = m.flag && !(pdpFlags[m.flag] && pdpFlags[m.flag].enabled);
+    const d = document.createElement('div');
+    d.className = 'sec-item' + (s.on ? '' : ' hidden-sec');
+    d.dataset.id = s.id;
+    d.draggable = !m.fixed;
+    d.innerHTML = `<span class="drag-h" title="${m.fixed?'Always first':'Drag to reorder'}" style="cursor:${m.fixed?'default':'grab'}">${m.fixed?'│':'⠿'}</span>
+      <span class="sec-ico">${m.icon}</span>
+      <div style="flex:1;min-width:0">
+        <div class="sec-nm">${m.label}</div>
+        <div class="sec-tp"${flagOff?' style="color:#f0a020"':''}>${flagOff?'off in feature flags':m.tp}</div>
+      </div>
+      <button class="vis-btn" data-action="vis" title="${s.on?'Hide':'Show'}" style="opacity:${s.on?.75:.3}">${s.on?'👁':'🙈'}</button>`;
+    d.querySelector('[data-action="vis"]').addEventListener('click',e=>{
+      e.stopPropagation(); s.on = !s.on; paintProductTab(container); syncPreviewFrame();
+    });
+    if(!m.fixed){
+      d.addEventListener('dragstart',e=>{ e.dataTransfer.setData('text/plain', s.id); d.style.opacity='.4'; });
+      d.addEventListener('dragend',()=>{ d.style.opacity=''; });
+      d.addEventListener('dragover',e=>{ e.preventDefault(); d.classList.add('drag-over'); });
+      d.addEventListener('dragleave',()=>d.classList.remove('drag-over'));
+      d.addEventListener('drop',e=>{ e.preventDefault(); d.classList.remove('drag-over'); pdpReorder(e.dataTransfer.getData('text/plain'), s.id); });
+    }
+    list.appendChild(d);
+  });
 }
-function pdpToggle(i,on){ pdpCfg[i].on=!!on; paintProductTab(document.getElementById('lpContent')); syncPreviewFrame(); }
-function pdpMove(i,dir){
-  const j=i+dir; if(j<0||j>=pdpCfg.length) return;
-  if(PDP_BLOCK_META[pdpCfg[i].id]?.fixed || PDP_BLOCK_META[pdpCfg[j].id]?.fixed) return;
-  const t=pdpCfg[i]; pdpCfg[i]=pdpCfg[j]; pdpCfg[j]=t;
+
+// 'More from this release' is rendered by the product page itself, so it can't be
+// moved out of first place — refuse rather than pretend.
+function pdpReorder(fromId, toId){
+  if(fromId===toId) return;
+  if((PDP_BLOCK_META[fromId]||{}).fixed || (PDP_BLOCK_META[toId]||{}).fixed) return;
+  const fi = pdpCfg.findIndex(x=>x.id===fromId), ti = pdpCfg.findIndex(x=>x.id===toId);
+  if(fi<0||ti<0) return;
+  const it = pdpCfg.splice(fi,1)[0];
+  pdpCfg.splice(ti,0,it);
   paintProductTab(document.getElementById('lpContent'));
 }
 function pdpReset(){ pdpCfg = pdpNormalize(null); paintProductTab(document.getElementById('lpContent')); }
@@ -850,8 +863,8 @@ async function pdpSave(){
     const j=await res.json().catch(()=>({}));
     if(!res.ok||j.error) throw new Error(j.error||'Save failed');
     if(msg) msg.textContent='Saved — live on product pages.';
-  }catch(e){ if(msg) msg.textContent=e.message||'Save failed'; showErr&&showErr(e.message); }
-  if(btn){ btn.disabled=false; btn.textContent='Save'; }
+  }catch(e){ if(msg) msg.textContent=e.message||'Save failed'; if(typeof showErr==='function') showErr(e.message); }
+  if(btn){ btn.disabled=false; btn.textContent='💾 Save Product Layout'; }
 }
 
 function renderDesignTab(container){
