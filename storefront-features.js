@@ -181,6 +181,32 @@
          paint per frame, so it stays at 60fps. */
       '.zwf-search-panel{background:var(--ink,#09090b);color:var(--paper,#f4f1eb);width:100%;max-height:min(72vh,560px);display:flex;flex-direction:column;transform:translate3d(0,-101%,0);will-change:transform;transition:transform .44s cubic-bezier(.32,.72,0,1);box-shadow:0 22px 48px rgba(0,0,0,.22)}',
       '.zwf-search.open .zwf-search-panel{transform:translate3d(0,0,0)}',
+      /* ── bag panel ── shares the search panel's mechanics: no dim, no blur,
+         compositor-only slide, clipped so it hides above. */
+      '.zwf-bag{position:fixed;inset:0;z-index:989;display:flex;flex-direction:column;background:transparent;pointer-events:none;overflow:hidden}',
+      '.zwf-bag.open{pointer-events:auto}',
+      '.zwf-bag-panel{background:var(--zw-page,#fff);color:var(--zw-ink,#09090b);width:100%;max-height:min(76vh,620px);display:flex;flex-direction:column;overflow:hidden;transform:translate3d(0,-101%,0);will-change:transform;transition:transform .44s cubic-bezier(.32,.72,0,1);box-shadow:0 22px 48px rgba(0,0,0,.18)}',
+      '.zwf-bag.open .zwf-bag-panel{transform:translate3d(0,0,0)}',
+      '.zwf-bag-inner{overflow-y:auto;padding:clamp(1.2rem,3vw,2rem) clamp(1rem,4vw,2.5rem) clamp(1.6rem,4vw,2.4rem);max-width:1100px;margin:0 auto;width:100%}',
+      '.zwf-bag-hd{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.2rem}',
+      '.zwf-bag-hd h2{font-family:var(--fw,inherit);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.03em;font-size:clamp(1.3rem,3vw,1.9rem);margin:0}',
+      '.zwf-bag-review{border:none;border-radius:100px;background:var(--zw-ink,#09090b);color:var(--zw-page,#fff);padding:.72rem 1.5rem;cursor:pointer;font-family:var(--fm,inherit);font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap}',
+      '.zwf-bag-review:hover{opacity:.85}',
+      '.zwf-bag-items{display:flex;flex-direction:column;gap:.9rem;margin-bottom:1.6rem}',
+      '.zwf-bag-item{display:flex;align-items:center;gap:1rem;text-decoration:none;color:inherit}',
+      '.zwf-bag-thumb{width:62px;height:62px;border-radius:6px;object-fit:cover;background:rgba(128,128,128,.12);flex-shrink:0}',
+      '.zwf-bag-nm{font-family:var(--fb,inherit);font-size:.92rem;font-weight:500}',
+      '.zwf-bag-meta{font-family:var(--fm,inherit);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;opacity:.5;margin-top:2px}',
+      '.zwf-bag-price{margin-left:auto;font-family:var(--fb,inherit);font-size:.9rem;font-weight:600;white-space:nowrap}',
+      '.zwf-bag-empty{font-family:var(--fb,inherit);opacity:.55;font-size:.95rem;margin:0 0 1.6rem}',
+      '.zwf-bag-links{border-top:1px solid rgba(128,128,128,.22);padding-top:1.1rem}',
+      '.zwf-bag-links h3{font-family:var(--fb,inherit);font-size:.9rem;font-weight:400;opacity:.55;margin:0 0 .7rem}',
+      '.zwf-bag-link{display:flex;align-items:center;gap:.7rem;padding:.5rem 0;text-decoration:none;color:inherit;font-family:var(--fb,inherit);font-size:.95rem}',
+      '.zwf-bag-link:hover{opacity:.65}',
+      '.zwf-bag-link svg{width:17px;height:17px;opacity:.55;flex-shrink:0}',
+      /* The account button moves INTO this panel, so hide the header one while
+         the feature is on (both header systems). */
+      'body.zwf-bagpanel-on :is(#login-btn,#account-btn,#hdr-login){display:none!important}',
       '.zwf-search-bar{display:flex;align-items:center;gap:.9rem;padding:1.1rem clamp(1rem,4vw,2.5rem);border-bottom:1px solid var(--line,rgba(128,128,128,.2))}',
       '.zwf-search-bar svg{width:22px;height:22px;flex:0 0 auto;opacity:.6}',
       '.zwf-search-input{flex:1;background:none;border:none;outline:none;color:inherit;font-family:var(--fw,inherit);font-weight:700;font-size:clamp(1.1rem,3vw,1.7rem);letter-spacing:.02em}',
@@ -383,11 +409,12 @@
   // panel stays glued to it — sampling at a couple of timeouts instead left the
   // panel hanging in a gap and snapping into place at the end.
   var _trackRaf = 0;
-  function trackHeader(ms) {
+  function trackHeader(sync, ms) {
+    var fn = typeof sync === 'function' ? sync : syncSearchTop;
     var until = (window.performance ? performance.now() : Date.now()) + (ms || 520);
     cancelAnimationFrame(_trackRaf);
     (function step() {
-      syncSearchTop();
+      fn();
       var now = window.performance ? performance.now() : Date.now();
       if (now < until) _trackRaf = requestAnimationFrame(step);
     })();
@@ -1017,11 +1044,13 @@
     var wantSupport = f('feature_support_widget');
     var wantQA = f('feature_qa');
     var wantBundles = f('feature_bundles');
+    var wantBagPanel = f('feature_bag_panel');
     // NB: no early return on "nothing flagged" — the product page still needs to
     // apply its builder layout, which can contain unflagged optional blocks.
 
     if (wantSearch) initSearch();
     if (wantSupport) initSupport();
+    if (wantBagPanel) initBagPanel();
     if (wantLowStock) initLowStock(); // decorates homepage .pcard grids; no-op elsewhere
 
     // The optional blocks (new arrivals / journal / newsletter) have no flag of
@@ -1066,6 +1095,132 @@
     // Homepage placement is controlled by the builder's "Recently Viewed" section
     // (storefront.js calls window.zwRenderRecentlyViewed into the container the admin
     // positions) — so there is no auto-insert on the homepage anymore.
+  }
+
+  /* ─────────────────────────── feature: bag panel ───────────────────────────
+     Clicking the bag opened bag.html. This opens a panel under the header
+     instead: what's in the bag, Review Bag, and the account/support links that
+     used to sit as a separate header button — so the header loses a control
+     rather than gaining one.
+
+     Reuses the search panel's mechanics deliberately: no dim, no blur,
+     compositor-only slide, and it tracks the header while that shrinks. */
+
+  var _bagOverlay = null, _bagPanel = null;
+
+  function bagCart() {
+    try { return JSON.parse(localStorage.getItem('cart') || '[]') || []; } catch (_) { return []; }
+  }
+  function bagMoney(n) {
+    var v = Number(n) || 0;
+    return '$' + (Number.isInteger(v) ? v : v.toFixed(2));
+  }
+  // Two header systems, two ways to tell. __zwSessionUser is the pre-read some
+  // pages do; elsewhere the visible account button is the signal.
+  function bagUser() {
+    if (window.__zwSessionUser) {
+      var u = window.__zwSessionUser;
+      return { name: (u.user_metadata && u.user_metadata.full_name) || (u.email || '').split('@')[0] || 'Account' };
+    }
+    var ab = document.getElementById('account-btn');
+    if (ab && ab.offsetParent !== null) return { name: (ab.textContent || 'Account').trim() };
+    var hl = document.getElementById('hdr-login');
+    if (hl && /account\.html/.test(hl.getAttribute('href') || '')) return { name: (hl.textContent || 'Account').trim() };
+    return null;
+  }
+
+  var ICON = {
+    orders: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
+    saves:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>',
+    acct:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M6.7 19a5.5 5.5 0 0 1 10.6 0"/></svg>',
+    help:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 1 1 4 2.8c-.7.3-1.1 1-1.1 1.7v.5"/><line x1="12" y1="17.5" x2="12" y2="17.5"/></svg>',
+  };
+
+  function buildBagPanel() {
+    if (_bagOverlay) return;
+    ensureStyles();
+    _bagOverlay = document.createElement('div');
+    _bagOverlay.className = 'zwf-bag';
+    _bagOverlay.innerHTML = '<div class="zwf-bag-panel"><div class="zwf-bag-inner"></div></div>';
+    document.body.appendChild(_bagOverlay);
+    _bagPanel = _bagOverlay.querySelector('.zwf-bag-inner');
+    _bagOverlay.addEventListener('click', function (e) { if (e.target === _bagOverlay) closeBag(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && _bagOverlay.classList.contains('open')) closeBag();
+    });
+  }
+
+  function renderBagPanel() {
+    var cart = bagCart();
+    var user = bagUser();
+    var total = cart.reduce(function (n, i) { return n + (Number(i.price) || 0) * (Number(i.quantity) || 1); }, 0);
+
+    var items = cart.length ? '<div class="zwf-bag-items">' + cart.slice(0, 6).map(function (i) {
+      var meta = [i.color, i.size].filter(Boolean).join(' · ');
+      var qty = (Number(i.quantity) || 1) > 1 ? ' × ' + i.quantity : '';
+      return '<a class="zwf-bag-item" href="/bag.html">'
+        + '<img class="zwf-bag-thumb" src="' + esc(i.image || '') + '" alt="" loading="lazy">'
+        + '<div><div class="zwf-bag-nm">' + esc(i.title || 'Item') + '</div>'
+        + (meta || qty ? '<div class="zwf-bag-meta">' + esc(meta) + qty + '</div>' : '') + '</div>'
+        + '<div class="zwf-bag-price">' + bagMoney((Number(i.price) || 0) * (Number(i.quantity) || 1)) + '</div></a>';
+    }).join('') + (cart.length > 6 ? '<a class="zwf-bag-meta" style="text-decoration:none;color:inherit" href="/bag.html">+ ' + (cart.length - 6) + ' more</a>' : '') + '</div>'
+      : '<p class="zwf-bag-empty">Your bag is empty.</p>';
+
+    var links = user
+      ? '<a class="zwf-bag-link" href="/account.html#orders">' + ICON.orders + 'Orders</a>'
+        + '<a class="zwf-bag-link" href="/account.html#saved">' + ICON.saves + 'Your saves</a>'
+        + '<a class="zwf-bag-link" href="/account.html#profile">' + ICON.acct + 'Account</a>'
+      : '<a class="zwf-bag-link" href="/?auth=signin&next=' + encodeURIComponent(location.pathname) + '">' + ICON.acct + 'Sign in</a>';
+
+    _bagPanel.innerHTML = '<div class="zwf-bag-hd"><h2>Bag' + (cart.length ? ' · ' + bagMoney(total) : '') + '</h2>'
+      + '<a class="zwf-bag-review" href="/bag.html">' + (cart.length ? 'Review bag' : 'Start shopping') + '</a></div>'
+      + items
+      + '<div class="zwf-bag-links"><h3>' + (user ? esc(user.name) : 'My profile') + '</h3>'
+      + links
+      + '<a class="zwf-bag-link" href="mailto:nasirubreeze@zuwera.store">' + ICON.help + 'Support</a>'
+      + '</div>';
+  }
+
+  function syncBagTop() {
+    if (!_bagOverlay) return;
+    if (!isDesktop()) { _bagOverlay.style.top = '0px'; return; }
+    var h = headerEl();
+    _bagOverlay.style.top = h ? Math.max(0, Math.round(h.getBoundingClientRect().bottom)) + 'px' : '0px';
+  }
+
+  function openBag() {
+    buildBagPanel();
+    renderBagPanel();
+    lockScroll();
+    document.body.classList.add('zwf-searching');   // same header shrink as search
+    syncBagTop();
+    requestAnimationFrame(function () { _bagOverlay.classList.add('open'); });
+    trackHeader(syncBagTop);
+    window.addEventListener('resize', syncBagTop);
+  }
+  function closeBag() {
+    if (!_bagOverlay) return;
+    _bagOverlay.classList.remove('open');
+    document.body.classList.remove('zwf-searching');
+    window.removeEventListener('resize', syncBagTop);
+    unlockScroll();
+    trackHeader(syncBagTop);
+  }
+
+  function initBagPanel() {
+    ensureStyles();
+    document.body.classList.add('zwf-bagpanel-on');   // hides the header account button
+    // Both header systems: #cart-btn (index/product) and .zw-hdr-bag (the rest).
+    var triggers = document.querySelectorAll('#cart-btn, .zw-hdr-bag');
+    Array.prototype.forEach.call(triggers, function (t) {
+      t.addEventListener('click', function (e) {
+        // Let modified clicks (new tab) and the bag page itself behave normally.
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+        if (/\/bag(\.html)?$/.test(location.pathname)) return;
+        e.preventDefault();
+        if (_bagOverlay && _bagOverlay.classList.contains('open')) closeBag(); else openBag();
+      });
+    });
   }
 
   /* ── Builder preview: jump to a block ──────────────────────────────────────
