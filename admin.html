@@ -1022,7 +1022,8 @@
                             <div class="form-group" style="flex:1;min-width:170px"><label class="form-label">Referrer earns (points)</label><input type="number" id="rf-points" class="form-input" min="1" step="1" value="100"></div>
                             <div class="form-group" style="flex:1;min-width:170px"><label class="form-label">Max uses per code <span style="opacity:.55;font-weight:400">(0 = unlimited)</span></label><input type="number" id="rf-max-uses" class="form-input" min="0" step="1" value="25"></div>
                         </div>
-                        <p id="rf-preview" style="font-size:.82rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.6"></p>
+                        <p id="rf-preview" style="font-size:.82rem;color:var(--text-secondary);margin:0 0 6px;line-height:1.6"></p>
+                        <p style="font-size:.76rem;color:var(--text-secondary);margin:0 0 14px;opacity:.8">Change these any time — saving also updates codes people have already shared, so everyone's on the same terms. Points already paid out aren't clawed back.</p>
                         <button class="btn btn-primary" id="rf-save-btn" onclick="referralSaveSettings()">Save referral settings</button>
                     </div>
 
@@ -5927,6 +5928,31 @@
             } catch (_) {}
             referralPreview();
         }
+        // Re-point every code that's already out there at the new terms, so
+        // changing the amount actually means what it says instead of only
+        // applying to codes minted from now on. The code itself and its
+        // usageCount are preserved — only the terms change.
+        async function referralSyncExistingCodes(value) {
+            const { data: rows, error } = await sb.from('site_settings').select('value').eq('key', 'commerce_config').limit(1);
+            if (error) throw error;
+            const cfg = (rows && rows[0] && rows[0].value) || {};
+            const promos = Array.isArray(cfg.promotions) ? cfg.promotions : [];
+            let n = 0;
+            promos.forEach(p => {
+                if (!p || String(p.label || '') !== 'Referral') return;
+                p.type = value.friendType;
+                p.value = value.friendValue;
+                p.minSubtotal = value.friendMinSubtotal || 0;
+                p.maxUsage = value.maxUsesPerCode > 0 ? value.maxUsesPerCode : null;
+                p.description = 'A friend sent you ' + (value.friendType === 'fixed' ? '$' + value.friendValue + ' off' : value.friendValue + '% off');
+                n++;
+            });
+            if (!n) return 0;
+            cfg.promotions = promos;
+            const { error: sErr } = await sb.from('site_settings').upsert({ key: 'commerce_config', value: cfg }, { onConflict: 'key' });
+            if (sErr) throw sErr;
+            return n;
+        }
         async function referralSaveSettings() {
             const enabled = document.getElementById('rf-enabled').checked;
             if (enabled && !document.getElementById('ly-enabled').checked) {
@@ -5946,8 +5972,12 @@
             try {
                 const { error } = await sb.from('site_settings').upsert({ key: 'referral_settings', value }, { onConflict: 'key' });
                 if (error) throw error;
-                try { await logAdminAudit('settings.update', 'site_settings', 'referral_settings', value); } catch (_) {}
-                showToast('Referral settings saved ✓');
+                let synced = 0;
+                try { synced = await referralSyncExistingCodes(value); } catch (_) { /* settings still saved */ }
+                try { await logAdminAudit('settings.update', 'site_settings', 'referral_settings', { ...value, syncedCodes: synced }); } catch (_) {}
+                showToast(synced
+                    ? `Referral settings saved ✓ — ${synced} code${synced === 1 ? '' : 's'} already shared updated too.`
+                    : 'Referral settings saved ✓');
             } catch (e) { showToast('Save failed: ' + ((e && e.message) || 'error'), 'error'); }
             btn.disabled = false; btn.textContent = label;
         }
