@@ -1107,7 +1107,7 @@
                     <div class="products-header">
                         <h2>Customer Reviews</h2>
                     </div>
-                    <p class="zw-page-intro">Customer reviews submitted through your site appear here. You can approve or remove them before they show on product pages.</p>
+                    <p class="zw-page-intro">Every review customers leave, grouped by product — open one to read it, reply as Zuwera, delete it, or remove a photo (<strong>&#128247;</strong> shows how many photos a product's reviews have). Reviews containing a <strong>banned word</strong> are rejected automatically. Photos go live as soon as they're posted; turn on approval below if you'd rather vet each one first.</p>
                     <div id="reviewsContainer">
                         <p style="text-align:center;color:var(--text-secondary);">Loading reviews...</p>
                     </div>
@@ -6429,7 +6429,13 @@
                     const avg = (group.reviews.reduce((sum, r) => sum + r.rating, 0) / group.reviews.length).toFixed(1);
                     const productTitle = escapeHtml(group.product.title || 'Unknown Product');
                     const productSku = escapeHtml(group.product.sku || '');
-                    
+                    // Surface photo counts on the collapsed header so you can see at a
+                    // glance which products have photos to look at (and vet, if the
+                    // approval gate is on) without opening every product.
+                    const photoCount = group.reviews.reduce((n, r) => n + (Array.isArray(r.photos) ? r.photos.length : 0), 0);
+                    const pendingCount = _photoApprovalOn
+                        ? group.reviews.filter(r => Array.isArray(r.photos) && r.photos.length && !r.photos_approved).length : 0;
+
                     let html = `
                         <details class="review-product-accordion">
                             <summary>
@@ -6437,6 +6443,8 @@
                                 <div class="review-summary-stats">
                                     <span class="rating">⭐ ${avg}</span>
                                     <span>${group.reviews.length} Review${group.reviews.length !== 1 ? 's' : ''}</span>
+                                    ${photoCount ? `<span title="${photoCount} photo${photoCount !== 1 ? 's' : ''} across these reviews" style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;background:var(--border);font-size:.76rem;">&#128247; ${photoCount}</span>` : ''}
+                                    ${pendingCount ? `<span title="${pendingCount} review${pendingCount !== 1 ? 's' : ''} with photos awaiting your approval" style="display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;background:rgba(240,160,32,.16);color:#f0a020;font-weight:700;font-size:.72rem;">${pendingCount} pending</span>` : ''}
                                 </div>
                             </summary>
                             <div class="review-table-wrapper">
