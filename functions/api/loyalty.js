@@ -3,14 +3,14 @@
  *
  * Points balance + redemption for the Rewards tab on /account.
  *
- * Redeeming does NOT touch pricing: it mints a single-use promo code into the
- * existing commerce_config.promotions list (maxUsage: 1), so the discount runs
- * through the same server-recomputed promo path as every other coupon. That
- * single-use cap is only meaningful because sanitizeCommerceConfig now preserves
- * maxUsage/usageCount (see PR #145) — without it a reward code was reusable.
+ * Redeeming does NOT touch pricing: it mints a single-use coupon into the
+ * existing commerce_config.promotions list, so the discount runs through the
+ * same server-recomputed promo path as every other code. The single-use cap
+ * (and any expiry the admin sets on reward codes) only actually holds because
+ * sanitizeCommerceConfig preserves maxUsage/usageCount/expirationDate — see #145.
  *
- * Body: { accessToken, action }
- *   action: 'balance' | 'redeem'
+ * Body: { accessToken, action, points? }
+ *   action: 'balance' | 'redeem'   (redeem takes the chosen tier's `points`)
  */
 
 import { cors, json } from './_commerce.js';
@@ -18,25 +18,51 @@ import { cors, json } from './_commerce.js';
 const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
 
-const DEFAULTS = { enabled: false, pointsPerDollar: 1, redeemPoints: 100, redeemValue: 5 };
+const FALLBACK_TIER = { points: 100, value: 5 };
 
 function serviceKey(env) {
   return env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || env.SUPABASE_ANON_KEY || '';
 }
 
-export async function loyaltySettings(env, H) {
+/**
+ * Normalise site_settings.loyalty_settings into a full config. Kept lenient so a
+ * half-filled or legacy (single redeemPoints/redeemValue) row still works.
+ */
+export function parseLoyaltySettings(v) {
+  v = v || {};
+  const pos = (x, d) => (Number(x) > 0 ? Number(x) : d);
+  const nonNeg = (x, d) => (Number.isFinite(Number(x)) && Number(x) >= 0 ? Number(x) : d);
+
+  let tiers = Array.isArray(v.tiers) && v.tiers.length ? v.tiers : null;
+  if (!tiers) {
+    // Legacy shape: a single redeemPoints → redeemValue pair.
+    tiers = [{ points: pos(v.redeemPoints, FALLBACK_TIER.points), value: pos(v.redeemValue, FALLBACK_TIER.value) }];
+  }
+  tiers = tiers
+    .map((t) => ({ points: Math.floor(pos(t && t.points, 0)), value: pos(t && t.value, 0) }))
+    .filter((t) => t.points > 0 && t.value > 0)
+    .sort((a, b) => a.points - b.points)
+    .slice(0, 6);
+  if (!tiers.length) tiers = [{ ...FALLBACK_TIER }];
+
+  return {
+    enabled: v.enabled === true,
+    programName: String(v.programName || 'Rewards').slice(0, 40),
+    pointsLabel: String(v.pointsLabel || 'points').slice(0, 20),
+    pointsPerDollar: pos(v.pointsPerDollar, 1),
+    minOrderToEarn: nonNeg(v.minOrderToEarn, 0),
+    tiers,
+    rewardExpiryDays: Math.floor(nonNeg(v.rewardExpiryDays, 0)),
+    rewardMinSubtotal: nonNeg(v.rewardMinSubtotal, 0),
+  };
+}
+
+async function readSettings(env, H) {
   const rows = await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?select=value&key=eq.loyalty_settings&limit=1`, { headers: H, cache: 'no-store' })
     .then((r) => (r.ok ? r.json() : [])).catch(() => []);
   let v = rows && rows[0] && rows[0].value;
   if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
-  v = v || {};
-  const num = (x, d) => (Number(x) > 0 ? Number(x) : d);
-  return {
-    enabled: v.enabled === true,
-    pointsPerDollar: num(v.pointsPerDollar, DEFAULTS.pointsPerDollar),
-    redeemPoints: Math.floor(num(v.redeemPoints, DEFAULTS.redeemPoints)),
-    redeemValue: num(v.redeemValue, DEFAULTS.redeemValue),
-  };
+  return parseLoyaltySettings(v);
 }
 
 async function balanceOf(env, H, userId) {
@@ -47,35 +73,41 @@ async function balanceOf(env, H, userId) {
 
 function randomCode() {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no look-alikes
-  let s = '';
   const buf = new Uint8Array(6);
   crypto.getRandomValues(buf);
+  let s = '';
   for (let i = 0; i < 6; i++) s += alphabet[buf[i] % alphabet.length];
   return 'ZW' + s;
 }
 
 // Add a single-use fixed-amount promo to commerce_config.promotions.
-async function mintRewardCode(env, H, valueDollars) {
+async function mintRewardCode(env, H, { value, expiryDays, minSubtotal }) {
   const rows = await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?select=value&key=eq.commerce_config&limit=1`, { headers: H, cache: 'no-store' })
     .then((r) => (r.ok ? r.json() : [])).catch(() => []);
   const cfg = (rows && rows[0] && rows[0].value) || {};
   const promos = Array.isArray(cfg.promotions) ? cfg.promotions : [];
 
-  let code = randomCode();
   const taken = new Set(promos.map((p) => String((p && p.code) || '').toUpperCase()));
+  let code = randomCode();
   let guard = 0;
   while (taken.has(code) && guard++ < 10) code = randomCode();
+
+  let expirationDate = '';
+  if (expiryDays > 0) {
+    const d = new Date(Date.now() + expiryDays * 86400000);
+    expirationDate = d.toISOString().slice(0, 10); // YYYY-MM-DD, as the checks expect
+  }
 
   promos.push({
     code,
     label: 'Loyalty reward',
-    description: `Your reward — $${valueDollars} off`,
+    description: `Your reward — $${value} off`,
     type: 'fixed',
-    value: valueDollars,
-    minSubtotal: 0,
+    value,
+    minSubtotal: minSubtotal || 0,
     active: true,
-    expirationDate: '',
-    maxUsage: 1,      // enforced now that sanitizeCommerceConfig keeps this field
+    expirationDate,
+    maxUsage: 1,
     usageCount: 0,
     targetProductIds: [],
     targetCollectionIds: [],
@@ -86,7 +118,7 @@ async function mintRewardCode(env, H, valueDollars) {
     method: 'PATCH', headers: { ...H, Prefer: 'return=minimal' }, body: JSON.stringify({ value: cfg }),
   });
   if (!r.ok) throw new Error('Could not create your reward code.');
-  return code;
+  return { code, expirationDate };
 }
 
 export async function onRequestOptions({ env }) {
@@ -111,11 +143,11 @@ export async function onRequestPost({ request, env }) {
     if (!env.SUPABASE_URL || !key) return json({ ok: false, error: 'not configured' }, 500, cors(env));
     const H = { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' };
 
-    const settings = await loyaltySettings(env, H);
+    const s = await readSettings(env, H);
     const action = String(body.action || 'balance');
 
     if (action === 'balance') {
-      if (!settings.enabled) return json({ ok: true, enabled: false }, 200, cors(env));
+      if (!s.enabled) return json({ ok: true, enabled: false }, 200, cors(env));
       const [balance, history] = await Promise.all([
         balanceOf(env, H, userId),
         fetch(`${env.SUPABASE_URL}/rest/v1/loyalty_ledger?select=points,reason,promo_code,created_at&user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc&limit=20`, { headers: H, cache: 'no-store' })
@@ -123,33 +155,44 @@ export async function onRequestPost({ request, env }) {
       ]);
       return json({
         ok: true, enabled: true, balance,
-        pointsPerDollar: settings.pointsPerDollar,
-        redeemPoints: settings.redeemPoints,
-        redeemValue: settings.redeemValue,
-        canRedeem: balance >= settings.redeemPoints,
+        programName: s.programName,
+        pointsLabel: s.pointsLabel,
+        pointsPerDollar: s.pointsPerDollar,
+        minOrderToEarn: s.minOrderToEarn,
+        rewardExpiryDays: s.rewardExpiryDays,
+        rewardMinSubtotal: s.rewardMinSubtotal,
+        tiers: s.tiers.map((t) => ({ ...t, canRedeem: balance >= t.points })),
         history: history || [],
       }, 200, cors(env));
     }
 
     if (action === 'redeem') {
-      if (!settings.enabled) return json({ ok: false, error: 'Rewards are not available right now.' }, 400, cors(env));
+      if (!s.enabled) return json({ ok: false, error: 'Rewards are not available right now.' }, 400, cors(env));
+
+      // Redeem the tier the shopper picked; default to the cheapest.
+      const wanted = Math.floor(Number(body.points) || 0);
+      const tier = wanted > 0 ? s.tiers.find((t) => t.points === wanted) : s.tiers[0];
+      if (!tier) return json({ ok: false, error: 'That reward is no longer available.' }, 400, cors(env));
+
       const balance = await balanceOf(env, H, userId);
-      if (balance < settings.redeemPoints) {
-        return json({ ok: false, error: `You need ${settings.redeemPoints} points to redeem — you have ${balance}.` }, 400, cors(env));
+      if (balance < tier.points) {
+        return json({ ok: false, error: `You need ${tier.points} ${s.pointsLabel} for that reward — you have ${balance}.` }, 400, cors(env));
       }
 
-      // Spend the points first, then mint. If minting fails, hand them back so a
+      // Spend first, then mint. If minting fails, hand the points back so a
       // failure can never silently eat someone's balance.
       const spendRes = await fetch(`${env.SUPABASE_URL}/rest/v1/loyalty_ledger`, {
         method: 'POST', headers: { ...H, Prefer: 'return=representation' },
-        body: JSON.stringify({ user_id: userId, points: -settings.redeemPoints, reason: 'redeem' }),
+        body: JSON.stringify({ user_id: userId, points: -tier.points, reason: 'redeem' }),
       });
       if (!spendRes.ok) return json({ ok: false, error: 'Could not redeem right now.' }, 500, cors(env));
       const spendRow = (await spendRes.json().catch(() => []))[0];
 
-      let code;
+      let minted;
       try {
-        code = await mintRewardCode(env, H, settings.redeemValue);
+        minted = await mintRewardCode(env, H, {
+          value: tier.value, expiryDays: s.rewardExpiryDays, minSubtotal: s.rewardMinSubtotal,
+        });
       } catch (e) {
         if (spendRow && spendRow.id) {
           await fetch(`${env.SUPABASE_URL}/rest/v1/loyalty_ledger?id=eq.${encodeURIComponent(spendRow.id)}`, {
@@ -161,11 +204,15 @@ export async function onRequestPost({ request, env }) {
 
       if (spendRow && spendRow.id) {
         await fetch(`${env.SUPABASE_URL}/rest/v1/loyalty_ledger?id=eq.${encodeURIComponent(spendRow.id)}`, {
-          method: 'PATCH', headers: { ...H, Prefer: 'return=minimal' }, body: JSON.stringify({ promo_code: code }),
+          method: 'PATCH', headers: { ...H, Prefer: 'return=minimal' }, body: JSON.stringify({ promo_code: minted.code }),
         }).catch(() => {});
       }
 
-      return json({ ok: true, code, value: settings.redeemValue, balance: balance - settings.redeemPoints }, 200, cors(env));
+      return json({
+        ok: true, code: minted.code, value: tier.value,
+        expiresOn: minted.expirationDate || '', minSubtotal: s.rewardMinSubtotal,
+        balance: balance - tier.points,
+      }, 200, cors(env));
     }
 
     return json({ ok: false, error: 'Unknown action' }, 400, cors(env));

@@ -978,11 +978,28 @@
                             </label>
                         </div>
                         <div style="display:flex;gap:14px;flex-wrap:wrap">
-                            <div class="form-group" style="flex:1;min-width:150px"><label class="form-label">Points per $1 spent</label><input type="number" id="ly-per-dollar" class="form-input" min="0.1" step="0.1" value="1"></div>
-                            <div class="form-group" style="flex:1;min-width:150px"><label class="form-label">Points to redeem</label><input type="number" id="ly-redeem-points" class="form-input" min="1" step="1" value="100"></div>
-                            <div class="form-group" style="flex:1;min-width:150px"><label class="form-label">Reward value ($)</label><input type="number" id="ly-redeem-value" class="form-input" min="1" step="1" value="5"></div>
+                            <div class="form-group" style="flex:1;min-width:170px"><label class="form-label">Programme name</label><input type="text" id="ly-name" class="form-input" placeholder="Rewards" maxlength="40"></div>
+                            <div class="form-group" style="flex:1;min-width:170px"><label class="form-label">Call points… <span style="opacity:.55;font-weight:400">(e.g. points, credits)</span></label><input type="text" id="ly-label" class="form-input" placeholder="points" maxlength="20"></div>
                         </div>
-                        <p id="ly-preview" style="font-size:.82rem;color:var(--text-secondary);margin:0 0 14px"></p>
+
+                        <h4 style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin:6px 0 10px">Earning</h4>
+                        <div style="display:flex;gap:14px;flex-wrap:wrap">
+                            <div class="form-group" style="flex:1;min-width:170px"><label class="form-label">Points per $1 spent</label><input type="number" id="ly-per-dollar" class="form-input" min="0.1" step="0.1" value="1"></div>
+                            <div class="form-group" style="flex:1;min-width:170px"><label class="form-label">Minimum order to earn ($) <span style="opacity:.55;font-weight:400">(0 = any)</span></label><input type="number" id="ly-min-order" class="form-input" min="0" step="1" value="0"></div>
+                        </div>
+
+                        <h4 style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin:6px 0 6px">Rewards shoppers can pick</h4>
+                        <p style="font-size:.78rem;color:var(--text-secondary);margin:0 0 10px">Add as many as you like — shoppers choose whichever they can afford. Bigger tiers usually give better value.</p>
+                        <div id="ly-tiers"></div>
+                        <button class="btn btn-secondary btn-sm" type="button" onclick="loyaltyAddTier()" style="margin-bottom:16px">+ Add reward</button>
+
+                        <h4 style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin:6px 0 10px">Reward code rules</h4>
+                        <div style="display:flex;gap:14px;flex-wrap:wrap">
+                            <div class="form-group" style="flex:1;min-width:170px"><label class="form-label">Code expires after (days) <span style="opacity:.55;font-weight:400">(0 = never)</span></label><input type="number" id="ly-expiry-days" class="form-input" min="0" step="1" value="0"></div>
+                            <div class="form-group" style="flex:1;min-width:170px"><label class="form-label">Minimum order to use ($) <span style="opacity:.55;font-weight:400">(0 = any)</span></label><input type="number" id="ly-reward-min" class="form-input" min="0" step="1" value="0"></div>
+                        </div>
+
+                        <p id="ly-preview" style="font-size:.82rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.6"></p>
                         <button class="btn btn-primary" id="ly-save-btn" onclick="loyaltySaveSettings()">Save rewards settings</button>
                     </div>
                     <h3 style="font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-secondary);margin:0 0 10px">Members</h3>
@@ -5720,17 +5737,52 @@
         window.loadQuestions = loadQuestions; window.qaAction = qaAction;
 
         // ─── Loyalty (loyalty_ledger + site_settings.loyalty_settings) ──────────────
+        function loyaltyReadTiers() {
+            return Array.from(document.querySelectorAll('#ly-tiers .ly-tier')).map(row => ({
+                points: Math.floor(Number(row.querySelector('[data-t="points"]').value) || 0),
+                value: Number(row.querySelector('[data-t="value"]').value) || 0,
+            })).filter(t => t.points > 0 && t.value > 0);
+        }
+        function loyaltyTierRow(t) {
+            const row = document.createElement('div');
+            row.className = 'ly-tier';
+            row.style.cssText = 'display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap';
+            row.innerHTML = `
+                <input type="number" data-t="points" class="form-input" min="1" step="1" value="${t.points}" style="width:120px" placeholder="points">
+                <span style="font-size:.82rem;color:var(--text-secondary)">${escapeHtml(document.getElementById('ly-label').value || 'points')} &rarr; $</span>
+                <input type="number" data-t="value" class="form-input" min="1" step="1" value="${t.value}" style="width:110px" placeholder="off">
+                <span style="font-size:.82rem;color:var(--text-secondary)">off</span>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="this.closest('.ly-tier').remove();loyaltyPreview()">Remove</button>`;
+            row.querySelectorAll('input').forEach(i => i.addEventListener('input', loyaltyPreview));
+            return row;
+        }
+        function loyaltyAddTier(t) {
+            document.getElementById('ly-tiers').appendChild(loyaltyTierRow(t && t.points ? t : { points: 100, value: 5 }));
+            loyaltyPreview();
+        }
         function loyaltyPreview() {
             const per = Number(document.getElementById('ly-per-dollar').value) || 1;
-            const pts = Number(document.getElementById('ly-redeem-points').value) || 100;
-            const val = Number(document.getElementById('ly-redeem-value').value) || 5;
-            const spend = (pts / per).toFixed(2);
-            const back = ((val / (pts / per)) * 100).toFixed(1);
-            document.getElementById('ly-preview').textContent =
-                `A shopper spends $${spend} to earn ${pts} points, then gets $${val} off — about ${back}% back.`;
+            const label = document.getElementById('ly-label').value || 'points';
+            const minOrder = Number(document.getElementById('ly-min-order').value) || 0;
+            const expDays = Number(document.getElementById('ly-expiry-days').value) || 0;
+            const rMin = Number(document.getElementById('ly-reward-min').value) || 0;
+            const tiers = loyaltyReadTiers().sort((a, b) => a.points - b.points);
+            const el = document.getElementById('ly-preview');
+            if (!tiers.length) { el.textContent = 'Add at least one reward so shoppers have something to redeem.'; return; }
+            const lines = tiers.map(t => {
+                const spend = (t.points / per).toFixed(2);
+                const back = ((t.value / (t.points / per)) * 100).toFixed(1);
+                return `• Spend $${spend} → ${t.points} ${label} → $${t.value} off (~${back}% back)`;
+            });
+            const extras = [];
+            if (minOrder > 0) extras.push(`Orders under $${minOrder} earn nothing.`);
+            if (expDays > 0) extras.push(`Reward codes expire ${expDays} day${expDays === 1 ? '' : 's'} after redeeming.`);
+            if (rMin > 0) extras.push(`Reward codes need a $${rMin} order to use.`);
+            el.textContent = lines.join('\n') + (extras.length ? '\n' + extras.join(' ') : '');
+            el.style.whiteSpace = 'pre-line';
         }
         async function loadLoyaltyAdmin() {
-            ['ly-per-dollar', 'ly-redeem-points', 'ly-redeem-value'].forEach(id => {
+            ['ly-per-dollar', 'ly-min-order', 'ly-expiry-days', 'ly-reward-min', 'ly-label'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el && !el._lyBound) { el._lyBound = true; el.addEventListener('input', loyaltyPreview); }
             });
@@ -5740,9 +5792,18 @@
                 if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
                 v = v || {};
                 document.getElementById('ly-enabled').checked = v.enabled === true;
+                document.getElementById('ly-name').value = v.programName || 'Rewards';
+                document.getElementById('ly-label').value = v.pointsLabel || 'points';
                 document.getElementById('ly-per-dollar').value = Number(v.pointsPerDollar) > 0 ? v.pointsPerDollar : 1;
-                document.getElementById('ly-redeem-points').value = Number(v.redeemPoints) > 0 ? v.redeemPoints : 100;
-                document.getElementById('ly-redeem-value').value = Number(v.redeemValue) > 0 ? v.redeemValue : 5;
+                document.getElementById('ly-min-order').value = Number(v.minOrderToEarn) > 0 ? v.minOrderToEarn : 0;
+                document.getElementById('ly-expiry-days').value = Number(v.rewardExpiryDays) > 0 ? v.rewardExpiryDays : 0;
+                document.getElementById('ly-reward-min').value = Number(v.rewardMinSubtotal) > 0 ? v.rewardMinSubtotal : 0;
+                // Tiers, falling back to the old single redeemPoints/redeemValue pair.
+                let tiers = Array.isArray(v.tiers) && v.tiers.length ? v.tiers : null;
+                if (!tiers) tiers = [{ points: Number(v.redeemPoints) > 0 ? v.redeemPoints : 100, value: Number(v.redeemValue) > 0 ? v.redeemValue : 5 }];
+                const host = document.getElementById('ly-tiers');
+                host.innerHTML = '';
+                tiers.sort((a, b) => (a.points || 0) - (b.points || 0)).forEach(t => host.appendChild(loyaltyTierRow({ points: t.points || 100, value: t.value || 5 })));
             } catch (_) {}
             loyaltyPreview();
             loadLoyaltyMembers();
@@ -5777,11 +5838,24 @@
             }
         }
         async function loyaltySaveSettings() {
+            const tiers = loyaltyReadTiers().sort((a, b) => a.points - b.points).slice(0, 6);
+            if (document.getElementById('ly-enabled').checked && !tiers.length) {
+                showToast('Add at least one reward before switching the programme on.', 'error');
+                return;
+            }
             const value = {
                 enabled: document.getElementById('ly-enabled').checked,
+                programName: (document.getElementById('ly-name').value || 'Rewards').trim().slice(0, 40),
+                pointsLabel: (document.getElementById('ly-label').value || 'points').trim().slice(0, 20),
                 pointsPerDollar: Number(document.getElementById('ly-per-dollar').value) || 1,
-                redeemPoints: Math.max(1, Math.floor(Number(document.getElementById('ly-redeem-points').value) || 100)),
-                redeemValue: Number(document.getElementById('ly-redeem-value').value) || 5,
+                minOrderToEarn: Math.max(0, Number(document.getElementById('ly-min-order').value) || 0),
+                tiers,
+                rewardExpiryDays: Math.max(0, Math.floor(Number(document.getElementById('ly-expiry-days').value) || 0)),
+                rewardMinSubtotal: Math.max(0, Number(document.getElementById('ly-reward-min').value) || 0),
+                // Keep the legacy pair in sync so anything still reading the old
+                // shape sees the cheapest tier.
+                redeemPoints: tiers.length ? tiers[0].points : 100,
+                redeemValue: tiers.length ? tiers[0].value : 5,
             };
             const btn = document.getElementById('ly-save-btn'); const label = btn.textContent;
             btn.disabled = true; btn.textContent = 'Saving…';
@@ -5794,6 +5868,7 @@
             btn.disabled = false; btn.textContent = label;
         }
         window.loadLoyaltyAdmin = loadLoyaltyAdmin; window.loyaltySaveSettings = loyaltySaveSettings;
+        window.loyaltyAddTier = loyaltyAddTier; window.loyaltyPreview = loyaltyPreview;
 
         // ─── Bundles (bundles table → "complete the set" row on product pages) ──────
         let _bundles = [], _bundleProducts = [];
