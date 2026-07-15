@@ -219,6 +219,11 @@
       /* Our own clear button: the native type=search one renders in the UA's own
          blue, which appears nowhere else on the site. */
       '.zwf-search-clear{background:none;border:none;padding:.3rem;margin:0;cursor:pointer;color:inherit;display:inline-flex;align-items:center;justify-content:center;opacity:.45;transition:opacity .15s}',
+      // [hidden] is only a UA display:none, so the display above beat it and the
+      // button sat there permanently — clicking it on an empty field cleared
+      // nothing, which read as a close button that does not work. It may only
+      // appear when there is something to clear.
+      '.zwf-search-clear[hidden]{display:none}',
       '.zwf-search-clear:hover{opacity:.9}',
       '.zwf-search-clear svg{width:17px;height:17px;display:block}',
       '.zwf-search-results{overflow-y:auto;overscroll-behavior:contain;padding:1.4rem clamp(1rem,4vw,2.5rem) 2.4rem}',
@@ -415,10 +420,43 @@
     _overlay.style.top = headerBottom() + 'px';
   }
 
-  // No scroll lock lives here on purpose. Scrolling past a panel is how you
-  // dismiss it, so freezing the page would remove the only way out and force a
-  // Close button back. The old lockScroll()/unlockScroll() pair is deleted rather
-  // than left unused: calling it again would silently break scroll-to-dismiss.
+  // The page must not move behind an open panel, but a scroll gesture is still
+  // how you dismiss one. Both are possible because the two are different things:
+  // the page is frozen, and the *gesture* (wheel/touchmove) is read directly.
+  // A plain scroll listener cannot do this — once the page is locked there is no
+  // scroll event left to hear.
+  //
+  // The lock uses overflow:hidden rather than body{position:fixed}: modal-lock.js
+  // spells out why the latter is wrong — it breaks position:sticky, and
+  // journal/about/account/returns all have sticky headers, which matters here
+  // because the header stays visible behind the panel. iOS still needs the fixed
+  // dance, hence the mobile branch.
+  var _lockedRoot = false, _padded = false, _scrollY = 0;
+  function lockScroll() {
+    if (isDesktop()) {
+      var sw = window.innerWidth - document.documentElement.clientWidth;
+      if (sw > 0) { document.documentElement.style.paddingRight = sw + 'px'; _padded = true; }
+      document.documentElement.style.overflow = 'hidden';
+      _lockedRoot = true;
+    } else {
+      _scrollY = window.scrollY || 0;
+      document.body.style.top = '-' + _scrollY + 'px';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+    }
+  }
+  function unlockScroll() {
+    if (_lockedRoot) {
+      document.documentElement.style.overflow = '';
+      if (_padded) { document.documentElement.style.paddingRight = ''; _padded = false; }
+      _lockedRoot = false;
+    } else if (document.body.style.position === 'fixed') {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      window.scrollTo(0, _scrollY);
+    }
+  }
 
   // The header shrinks over ~350ms. Re-measure every frame while it moves so the
   // panel stays glued to it — sampling at a couple of timeouts instead left the
@@ -451,15 +489,22 @@
     if (except !== 'bag' && isOpen(_bagOverlay)) closeBag();
   }
 
-  var _openScrollY = 0;
-  function onPanelScroll() {
-    if (Math.abs((window.scrollY || 0) - _openScrollY) > 12) closePanels();
+  // Scrolling anywhere past the panel dismisses it. Gestures that start inside a
+  // panel are left alone — the results list and the bag's contents scroll on
+  // their own, and closing the thing you're reading would be absurd.
+  function onPanelGesture(e) {
+    var t = e.target;
+    if (t && t.closest && t.closest('.zwf-search-panel, .zwf-bag-panel')) return;
+    closePanels();
   }
   function armScrollClose() {
-    _openScrollY = window.scrollY || 0;
-    window.addEventListener('scroll', onPanelScroll, { passive: true });
+    window.addEventListener('wheel', onPanelGesture, { passive: true });
+    window.addEventListener('touchmove', onPanelGesture, { passive: true });
   }
-  function disarmScrollClose() { window.removeEventListener('scroll', onPanelScroll); }
+  function disarmScrollClose() {
+    window.removeEventListener('wheel', onPanelGesture);
+    window.removeEventListener('touchmove', onPanelGesture);
+  }
 
   // The mega-menu opens on CSS :hover, so it can't be gated — get out of its way
   // instead. Guarded by isOpen() so a mouseover storm costs one class check.
@@ -472,6 +517,7 @@
 
   function openSearch() {
     closePanels('search');
+    lockScroll();
     buildOverlay();
     catalog(); // warm the cache
     document.body.classList.add('zwf-searching');   // shrinks the header
@@ -486,6 +532,7 @@
     if (!_overlay) return;
     _overlay.classList.remove('open');
     document.body.classList.remove('zwf-searching');
+    unlockScroll();
     disarmScrollClose();
     window.removeEventListener('resize', syncSearchTop);
     // Keep tracking on the way out too: the header grows back while the panel
@@ -1275,6 +1322,7 @@
 
   function openBag() {
     closePanels('bag');
+    lockScroll();
     buildBagPanel();
     renderBagPanel();
     document.body.classList.add('zwf-searching');   // same header shrink as search
@@ -1289,6 +1337,7 @@
     _bagOverlay.classList.remove('open');
     document.body.classList.remove('zwf-searching');
     window.removeEventListener('resize', syncBagTop);
+    unlockScroll();
     disarmScrollClose();
     trackHeader(syncBagTop);
   }
