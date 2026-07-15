@@ -172,11 +172,11 @@
            security boundary. */
         const ZW_RBAC = {
             super_admin: ['*'],
-            manager: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','journal','subscribers','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','refund','return_process','product_write','order_write','user_manage','builder_edit','bulk_actions','export'],
+            manager: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','journal','subscribers','emails','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','refund','return_process','product_write','order_write','user_manage','builder_edit','bulk_actions','export'],
             finance: ['dashboard','analytics','finance','orders','receipts','tax','audit','refund','export'],
             fulfillment: ['dashboard','products','orders','receipts','shipping','returns','order_write','return_process','product_write','bulk_actions','export'],
             content: ['dashboard','products','sizecharts','reviews','questions','journal','website','settings','product_write','builder_edit','export'],
-            viewer: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','journal','subscribers','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','export']
+            viewer: ['dashboard','analytics','finance','products','legacy','sizecharts','reviews','questions','journal','subscribers','emails','commerce','meta','orders','receipts','shipping','returns','users','website','settings','tax','audit','flags','export']
         };
         const ZW_ROLE_LABELS = {
             super_admin:'Super Admin', manager:'Manager', finance:'Finance',
@@ -185,7 +185,7 @@
         // Preset access maps (page -> 'view'|'edit') — mirror of ROLE_PRESET_LEVELS
         // in functions/api/_rbac.js. Drives the "preset" button in the access matrix.
         const ZW_ROLE_PRESET_LEVELS = {
-            manager:{dashboard:'view',analytics:'view',finance:'edit',products:'edit',legacy:'edit',sizecharts:'edit',reviews:'edit',questions:'edit',journal:'edit',subscribers:'edit',commerce:'edit',meta:'edit',orders:'view',receipts:'edit',shipping:'edit',returns:'edit',users:'edit',website:'edit',settings:'edit',tax:'edit',audit:'view',flags:'edit'},
+            manager:{dashboard:'view',analytics:'view',finance:'edit',products:'edit',legacy:'edit',sizecharts:'edit',reviews:'edit',questions:'edit',journal:'edit',subscribers:'edit',emails:'edit',commerce:'edit',meta:'edit',orders:'view',receipts:'edit',shipping:'edit',returns:'edit',users:'edit',website:'edit',settings:'edit',tax:'edit',audit:'view',flags:'edit'},
             finance:{dashboard:'view',analytics:'view',finance:'edit',orders:'view',receipts:'view',tax:'edit',audit:'view'},
             fulfillment:{dashboard:'view',products:'view',orders:'view',receipts:'edit',shipping:'edit',returns:'edit'},
             content:{dashboard:'view',products:'edit',sizecharts:'edit',reviews:'edit',questions:'edit',journal:'edit',website:'edit',settings:'edit'}
@@ -219,6 +219,7 @@
             { id:'questions',  icon:'❓', label:'Q&A',         title:'Product Q&A',         group:'catalogue', kw:'questions answers product qa moderate ask reply' },
             { id:'journal',    icon:'📓', label:'Journal',     title:'Journal',             group:'storefront', kw:'blog journal posts articles lookbook content editorial stories news' },
             { id:'subscribers',icon:'📧', label:'Subscribers', title:'Newsletter Subscribers', group:'marketing', searchLabel:'Newsletter / Email list / Subscribers', kw:'newsletter subscribers email list mailing signups stay in the loop marketing send journal' },
+            { id:'emails',     icon:'✉️', label:'Emails',      title:'Email Activity',      group:'marketing', searchLabel:'Email activity / log / automated emails / send delays', kw:'email log activity sent review request abandoned cart journal delay days timing automated marketing history' },
             { id:'commerce',   icon:'🏷️', label:'Coupons',     title:'Coupons',             group:'marketing',     searchLabel:'Commerce / Coupons / Promotions', kw:'discount promo code voucher sale promotion loyalty' },
             { id:'meta',       icon:'📣', label:'Ads & Tracking', title:'Ads & Tracking', group:'marketing', searchLabel:'Meta / Facebook / Pixel / Conversions API / Google Ads / Analytics / GA4 / Merchant Center', kw:'facebook instagram pixel capi conversions api google ads ga4 gtag merchant center tracking utm marketing' },
             { id:'orders',     icon:'🛒', label:'Orders',      title:'Orders',              group:'operations',    mobile:'Orders', searchLabel:'Orders / Sales', kw:'orders sales transactions purchases fulfillment status tracking customer table awaiting shipped' },
@@ -1065,6 +1066,36 @@
                     <p class="zw-page-intro">Everyone who signed up via the &ldquo;Stay in the loop&rdquo; form. Send a journal post to this list from <strong>Admin &rarr; Journal</strong> (each published post has an <strong>Email to subscribers</strong> button).</p>
                     <div id="subStats" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px"></div>
                     <div id="subscribersList"></div>
+                </div>
+
+                <!-- Email Activity Page -->
+                <div id="emails" class="page">
+                    <div class="products-header">
+                        <h2>Email Activity</h2>
+                        <button class="btn btn-secondary" onclick="loadEmailActivity()">Refresh</button>
+                    </div>
+                    <p class="zw-page-intro">Everything the store sends automatically — review requests, abandoned-cart nudges, and journal emails — is logged here, and you control the timing below.</p>
+
+                    <!-- Timing controls -->
+                    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:22px;max-width:680px">
+                        <h3 style="margin:0 0 4px;font-size:1rem">Timing</h3>
+                        <p style="margin:0 0 16px;font-size:.82rem;color:var(--text-secondary)">How long to wait before each automated email goes out.</p>
+                        <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end">
+                            <label style="display:flex;flex-direction:column;gap:6px;font-size:.8rem;color:var(--text-secondary)">
+                                Review-request email — days after the order
+                                <input type="number" id="es-review-days" min="1" max="90" step="1" class="form-input" style="width:130px;padding:8px 10px;font-size:.9rem" value="5">
+                            </label>
+                            <label style="display:flex;flex-direction:column;gap:6px;font-size:.8rem;color:var(--text-secondary)">
+                                Abandoned-cart email — minutes after checkout
+                                <input type="number" id="es-cart-min" min="15" max="1440" step="5" class="form-input" style="width:150px;padding:8px 10px;font-size:.9rem" value="60">
+                            </label>
+                            <button class="btn btn-primary" id="es-save-btn" onclick="saveEmailSettings()">Save timing</button>
+                        </div>
+                        <p style="margin:12px 0 0;font-size:.76rem;color:var(--text-secondary)">These control when the scheduled jobs pick up an order/cart. The jobs still need their cron + token set up to actually send.</p>
+                    </div>
+
+                    <div id="emailStats" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px"></div>
+                    <div id="emailLogList"></div>
                 </div>
 
                 <!-- Reviews Page -->
@@ -3850,6 +3881,8 @@
                 loadJournalAdmin();
             } else if (page === 'subscribers') {
                 loadSubscribers();
+            } else if (page === 'emails') {
+                loadEmailActivity();
             }
         }
 
@@ -5942,6 +5975,77 @@
             URL.revokeObjectURL(a.href);
         }
         window.loadSubscribers = loadSubscribers; window.subscriberDelete = subscriberDelete; window.exportSubscribers = exportSubscribers;
+
+        // ─── Email Activity (email_log + email_settings timing) ──────────────────────
+        const EMAIL_TYPE_LABELS = { review_request: 'Review request', abandoned_cart: 'Abandoned cart', journal: 'Journal', order_confirmation: 'Order confirmation', other: 'Other' };
+        async function loadEmailActivity() {
+            // timing settings
+            try {
+                const { data } = await sb.from('site_settings').select('value').eq('key', 'email_settings').maybeSingle();
+                let v = data && data.value; if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+                v = v || {};
+                const rd = document.getElementById('es-review-days'), cm = document.getElementById('es-cart-min');
+                if (rd) rd.value = (isFinite(+v.reviewRequestDelayDays) && +v.reviewRequestDelayDays > 0) ? Math.floor(+v.reviewRequestDelayDays) : 5;
+                if (cm) cm.value = (isFinite(+v.abandonedCartDelayMin) && +v.abandonedCartDelayMin >= 15) ? Math.floor(+v.abandonedCartDelayMin) : 60;
+            } catch (_) {}
+            // log
+            const host = document.getElementById('emailLogList');
+            if (host) host.innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:20px;">Loading…</p>';
+            document.getElementById('emailStats').innerHTML = '';
+            try {
+                const { data, error } = await sb.from('email_log').select('*').order('created_at', { ascending: false }).limit(500);
+                if (error) throw error;
+                renderEmailLog(data || []);
+            } catch (e) { if (host) host.innerHTML = '<p style="color:#ef4444">Could not load email log.</p>'; }
+        }
+        function emailStatCard(label, value, color) {
+            return `<div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:14px 18px;min-width:110px"><div style="font-size:1.5rem;font-weight:800;line-height:1;${color ? `color:${color}` : ''}">${value}</div><div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-secondary);margin-top:4px">${label}</div></div>`;
+        }
+        function renderEmailLog(rows) {
+            const stats = document.getElementById('emailStats');
+            const failed = rows.filter(r => r.status === 'failed').length;
+            const byType = {};
+            rows.forEach(r => { byType[r.type] = (byType[r.type] || 0) + 1; });
+            stats.innerHTML = emailStatCard('Sent', rows.length - failed)
+                + (failed ? emailStatCard('Failed', failed, '#f85149') : '')
+                + Object.keys(byType).map(t => emailStatCard(EMAIL_TYPE_LABELS[t] || t, byType[t])).join('');
+            const host = document.getElementById('emailLogList');
+            if (!rows.length) { host.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:36px 20px;border:1px dashed var(--border);border-radius:10px;">No emails sent yet. Automated emails (review requests, abandoned-cart, journal) appear here once they go out.</div>'; return; }
+            host.innerHTML = `<div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px">
+                <table style="width:100%;border-collapse:collapse;font-size:.86rem">
+                    <thead><tr style="text-align:left;color:var(--text-secondary);font-size:.7rem;text-transform:uppercase;letter-spacing:.05em">
+                        <th style="padding:11px 14px">When</th><th style="padding:11px 14px">Type</th><th style="padding:11px 14px">Recipient</th><th style="padding:11px 14px">Subject</th><th style="padding:11px 14px">Status</th><th style="padding:11px 14px">Via</th>
+                    </tr></thead><tbody>${rows.map(emailLogRow).join('')}</tbody>
+                </table></div>`;
+        }
+        function emailLogRow(r) {
+            const when = r.created_at ? new Date(r.created_at).toLocaleString() : '';
+            const ok = r.status !== 'failed';
+            return `<tr style="border-top:1px solid var(--border)">
+                <td style="padding:10px 14px;white-space:nowrap;color:var(--text-secondary)">${when}</td>
+                <td style="padding:10px 14px;white-space:nowrap">${escapeHtml(EMAIL_TYPE_LABELS[r.type] || r.type)}</td>
+                <td style="padding:10px 14px">${escapeHtml(r.recipient || '')}</td>
+                <td style="padding:10px 14px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(r.subject || '')}</td>
+                <td style="padding:10px 14px"><span style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:${ok ? '#3fb950' : '#f85149'}">${ok ? 'Sent' : 'Failed'}</span></td>
+                <td style="padding:10px 14px;color:var(--text-secondary)">${escapeHtml(r.provider || '')}</td>
+            </tr>`;
+        }
+        async function saveEmailSettings() {
+            const reviewRequestDelayDays = Math.max(1, Math.min(90, parseInt(document.getElementById('es-review-days').value, 10) || 5));
+            const abandonedCartDelayMin = Math.max(15, Math.min(1440, parseInt(document.getElementById('es-cart-min').value, 10) || 60));
+            const btn = document.getElementById('es-save-btn'); const t = btn.textContent; btn.disabled = true; btn.textContent = 'Saving…';
+            try {
+                let existing = {};
+                try { const { data } = await sb.from('site_settings').select('value').eq('key', 'email_settings').maybeSingle(); existing = (data && (typeof data.value === 'string' ? JSON.parse(data.value) : data.value)) || {}; } catch (_) {}
+                const value = { ...existing, reviewRequestDelayDays, abandonedCartDelayMin };
+                const { error } = await sb.from('site_settings').upsert({ key: 'email_settings', value }, { onConflict: 'key' });
+                if (error) throw error;
+                try { await logAdminAudit('settings.update', 'site_settings', 'email_settings', value); } catch (_) {}
+                showToast('Timing saved ✓');
+            } catch (e) { showToast('Save failed: ' + ((e && e.message) || 'error'), 'error'); }
+            btn.disabled = false; btn.textContent = t;
+        }
+        window.loadEmailActivity = loadEmailActivity; window.saveEmailSettings = saveEmailSettings;
 
         // ─── Feature Flags (site_settings.feature_flags → read by flags.js) ──────────
         let _featureFlags = {};

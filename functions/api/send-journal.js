@@ -11,6 +11,7 @@
 import { cors, json, verifyAdmin } from './_commerce.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { loopsFallback } from './_email.js';
+import { logEmail } from './_email-log.js';
 
 const SITE = 'https://zuwera.store';
 const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
@@ -129,9 +130,12 @@ export async function onRequestPost({ request, env }) {
       try {
         const unsubUrl = `${SITE}/api/unsubscribe?token=${encodeURIComponent(sub.unsub_token)}`;
         const html = buildJournalEmail({ post, label, logoUrl, unsubUrl });
-        await sendEmail({ to: sub.email, subject, html, fromEmail, replyTo: fromEmail, resendKey, brevoKey, env, cache });
+        const res = await sendEmail({ to: sub.email, subject, html, fromEmail, replyTo: fromEmail, resendKey, brevoKey, env, cache });
+        await logEmail(env, { type: 'journal', recipient: sub.email, subject, status: 'sent', provider: res && res.provider, meta: { post_id: post.id, slug: post.slug } });
         sent += 1;
-      } catch (_) { /* skip failures, keep going */ }
+      } catch (_) {
+        await logEmail(env, { type: 'journal', recipient: sub.email, subject, status: 'failed', meta: { post_id: post.id } });
+      }
     }
 
     return json({ ok: true, sent, of: subs.length }, 200, cors(env));

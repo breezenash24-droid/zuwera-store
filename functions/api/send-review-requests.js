@@ -15,6 +15,7 @@
 import { json } from './_commerce.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { loopsFallback } from './_email.js';
+import { logEmail } from './_email-log.js';
 
 const SITE = 'https://zuwera.store';
 const LOGO_FALLBACK = 'https://zuwera.store/assets/Zuwera_Wordmark_White.png';
@@ -89,16 +90,17 @@ export async function onRequestPost({ request, env }) {
     if (!env.SUPABASE_URL || !key) return json({ ok: false, error: 'not configured' }, 500);
     const H = { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' };
 
-    // Master switch: feature_review_requests off → no sends.
-    const ff = await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?select=value&key=eq.feature_flags&limit=1`, { headers: H })
+    // Settings: master flag + admin-set delay (site_settings.email_settings).
+    const cfg = await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?select=key,value&key=in.(feature_flags,email_settings)`, { headers: H })
       .then((r) => (r.ok ? r.json() : [])).catch(() => []);
-    let flags = ff && ff[0] && ff[0].value;
-    if (typeof flags === 'string') { try { flags = JSON.parse(flags); } catch (_) { flags = null; } }
-    const flag = flags && flags.feature_review_requests;
+    const readVal = (k) => { let v = (cfg.find((x) => x.key === k) || {}).value; if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } } return v; };
+    const flags = readVal('feature_flags') || {};
+    const emailSettings = readVal('email_settings') || {};
+    const flag = flags.feature_review_requests;
     if (!flag || flag.enabled === false) return json({ ok: true, sent: 0, disabled: true }, 200);
 
-    // Days to wait after the order before asking (default 5).
-    const delayDays = Math.max(1, parseInt(env.REVIEW_REQUEST_DELAY_DAYS, 10) || 5);
+    // Days to wait after the order before asking. Admin setting → env → default 5.
+    const delayDays = Math.max(1, parseInt(emailSettings.reviewRequestDelayDays, 10) || parseInt(env.REVIEW_REQUEST_DELAY_DAYS, 10) || 5);
     const cutoff = new Date(Date.now() - delayDays * 86400 * 1000).toISOString();
     const rows = await fetch(`${env.SUPABASE_URL}/rest/v1/orders`
       + `?select=id,email,customer_name,items,created_at,status,review_requested_at`
@@ -116,6 +118,7 @@ export async function onRequestPost({ request, env }) {
     const fromEmail = resolveSetting('EMAIL_FROM', env, cache) || 'orders@zuwera.store';
     const logoUrl = resolveSetting('BRAND_LOGO_URL', env, cache) || LOGO_FALLBACK;
 
+    const SUBJECT = 'How was your Zuwera order?';
     const done = [];
     for (const row of rows) {
       try {
@@ -123,9 +126,12 @@ export async function onRequestPost({ request, env }) {
         if (typeof items === 'string') { try { items = JSON.parse(items); } catch (_) { items = []; } }
         if (!Array.isArray(items) || !items.length) { done.push(row.id); continue; } // nothing to review, but don't retry
         const html = buildEmail({ items, name: row.customer_name, logoUrl });
-        await sendEmail({ to: row.email, subject: 'How was your Zuwera order?', html, fromEmail, resendKey, brevoKey, env, cache });
+        const res = await sendEmail({ to: row.email, subject: SUBJECT, html, fromEmail, resendKey, brevoKey, env, cache });
+        await logEmail(env, { type: 'review_request', recipient: row.email, subject: SUBJECT, status: 'sent', provider: res && res.provider, meta: { order_id: row.id } });
         done.push(row.id);
-      } catch (_) { /* leave for the next run */ }
+      } catch (_) {
+        await logEmail(env, { type: 'review_request', recipient: row.email, subject: SUBJECT, status: 'failed', meta: { order_id: row.id } });
+      }
     }
     if (done.length) {
       const list = done.map((id) => encodeURIComponent(id)).join(',');
