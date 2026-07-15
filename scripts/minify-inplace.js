@@ -19,8 +19,16 @@
  *   - Every file is processed in its own try/catch: a file the minifier can't
  *     handle simply ships as-is instead of failing the build.
  *
- * Wired into postinstall AFTER bump-cache-version.js, so the ?v= hashes are
- * computed from the readable source (deterministic → stable per source version).
+ * Wired into postinstall BEFORE bump-cache-version.js. It used to run after, so
+ * the ?v= hash was taken from the readable source and this script then rewrote
+ * the file — the hash identified bytes that never shipped. Since npm can run
+ * postinstall more than once per build, the stamped hash came from an
+ * intermediate file state that depended on build history rather than content,
+ * so the same ?v= could survive a content change. With _headers serving JS as
+ * `immutable, max-age=31536000`, that pins returning browsers to old code for a
+ * year: a fresh curl saw the new file while real visitors kept running the old
+ * one. The hash must be taken from the bytes that actually ship, so this runs
+ * first and bump-cache-version.js always stamps last.
  */
 
 const fs = require('fs');
