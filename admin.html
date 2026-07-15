@@ -6289,6 +6289,7 @@
                                 <td style="max-width: 250px;">
                                     <div style="overflow: hidden; text-overflow: ellipsis; white-space: normal;">${displayBody}</div>
                                     ${r.admin_response ? `<div style="margin-top: 8px; padding: 8px; background: var(--admin-res-bg, rgba(248,145,165,0.1)); border-left: 2px solid var(--admin-res-text, var(--accent)); border-radius: 4px;"><strong style="color: var(--admin-res-text, var(--accent)); font-size: 0.8rem;">Zuwera Team</strong><p style="margin-top: 4px; font-size: 0.8rem; color: var(--admin-res-text, var(--text-secondary)); white-space: normal;">${displayAdminResponse}</p></div>` : ''}
+                                    ${Array.isArray(r.photos) && r.photos.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${r.photos.map(u => `<img src="${escapeAttr(u)}" title="Open full size" style="width:46px;height:46px;object-fit:cover;border-radius:4px;cursor:pointer" onclick="window.open('${escapeAttr(u)}','_blank')">`).join('')}</div>` : ''}
                                 </td>
                                 <td>
                                     <div class="action-buttons">
