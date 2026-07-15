@@ -1157,8 +1157,8 @@
                         <p style="color:var(--text-secondary);font-size:.78rem;margin:10px 0 14px;">Collapse threshold is in characters. Set it to <strong>0</strong> to never collapse reviews.</p>
                         <div style="border-top:1px solid var(--border);padding-top:16px;margin:4px 0 16px;max-width:640px;">
                             <label style="display:flex;align-items:flex-start;gap:11px;cursor:pointer;">
-                                <input type="checkbox" id="review-photo-approval" checked style="width:18px;height:18px;margin-top:2px;flex-shrink:0;accent-color:var(--accent,#F891A5);cursor:pointer;">
-                                <span style="font-size:.86rem;line-height:1.5;">Require my approval before review photos show publicly<br><span style="color:var(--text-secondary);font-size:.8rem;">Recommended. Customer photos stay hidden on product pages until you approve them in <strong>Reviews</strong> below — so nothing inappropriate can go live. Uncheck to show photos immediately.</span></span>
+                                <input type="checkbox" id="review-photo-approval" style="width:18px;height:18px;margin-top:2px;flex-shrink:0;accent-color:var(--accent,#F891A5);cursor:pointer;">
+                                <span style="font-size:.86rem;line-height:1.5;">Require my approval before review photos show publicly<br><span style="color:var(--text-secondary);font-size:.8rem;">Off by default: photos appear as soon as they're posted, and you can delete any inappropriate one in <strong>Reviews</strong> below. Turn this on to instead keep every photo hidden until you approve it.</span></span>
                             </label>
                         </div>
                         <button type="button" onclick="saveReviewSettings()" id="review-settings-save"
@@ -6292,7 +6292,8 @@
                 if (unitEl) unitEl.value = (v.maxUnit === 'words') ? 'words' : 'characters';
                 if (prevEl) prevEl.value = (isFinite(+v.previewChars) && +v.previewChars >= 0) ? Math.floor(+v.previewChars) : 320;
                 const apprEl = document.getElementById('review-photo-approval');
-                if (apprEl) apprEl.checked = v.photoApproval !== false;
+                if (apprEl) apprEl.checked = v.photoApproval === true;
+                _photoApprovalOn = v.photoApproval === true;
             } catch (_) {}
         }
 
@@ -6321,9 +6322,10 @@
             }
         }
 
+        let _photoApprovalOn = false;
         async function loadAdminReviews() {
             loadBannedWords();
-            loadReviewSettings();
+            await loadReviewSettings();
             try {
                 const container = document.getElementById('reviewsContainer');
                 container.innerHTML = '<p style="text-align:center;color:var(--text-secondary);">Loading reviews...</p>';
@@ -6404,9 +6406,9 @@
                                     <div style="overflow: hidden; text-overflow: ellipsis; white-space: normal;">${displayBody}</div>
                                     ${r.admin_response ? `<div style="margin-top: 8px; padding: 8px; background: var(--admin-res-bg, rgba(248,145,165,0.1)); border-left: 2px solid var(--admin-res-text, var(--accent)); border-radius: 4px;"><strong style="color: var(--admin-res-text, var(--accent)); font-size: 0.8rem;">Zuwera Team</strong><p style="margin-top: 4px; font-size: 0.8rem; color: var(--admin-res-text, var(--text-secondary)); white-space: normal;">${displayAdminResponse}</p></div>` : ''}
                                     ${Array.isArray(r.photos) && r.photos.length ? `<div style="margin-top:10px">
-                                        <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:${r.photos_approved ? '#3fb950' : '#f0a020'};margin-bottom:6px">${r.photos.length} photo${r.photos.length > 1 ? 's' : ''} · ${r.photos_approved ? 'Approved (public)' : 'Pending — hidden from shoppers'}</div>
-                                        <div style="display:flex;gap:9px;flex-wrap:wrap">${r.photos.map((u, idx) => `<div style="position:relative"><img src="${escapeAttr(u)}" title="Open full size" style="width:54px;height:54px;object-fit:cover;border-radius:5px;cursor:pointer;${r.photos_approved ? '' : 'outline:2px solid #f0a020;outline-offset:-1px'}" onclick="window.open('${escapeAttr(u)}','_blank')"><button title="Remove this photo" onclick="reviewPhotoRemove('${r.id}',${idx})" style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;border:none;background:#f85149;color:#fff;font-size:13px;line-height:1;cursor:pointer;padding:0">&times;</button></div>`).join('')}</div>
-                                        ${!r.photos_approved ? `<button onclick="reviewApprovePhotos('${r.id}')" style="margin-top:9px;padding:6px 14px;border:none;border-radius:6px;background:#3fb950;color:#09090b;font-weight:600;font-size:.78rem;cursor:pointer">&#10003; Approve photos</button>` : ''}
+                                        <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:${!_photoApprovalOn ? 'var(--text-secondary)' : (r.photos_approved ? '#3fb950' : '#f0a020')};margin-bottom:6px">${r.photos.length} photo${r.photos.length > 1 ? 's' : ''}${_photoApprovalOn ? (r.photos_approved ? ' · Approved (public)' : ' · Pending — hidden from shoppers') : ''}</div>
+                                        <div style="display:flex;gap:9px;flex-wrap:wrap">${r.photos.map((u, idx) => `<div style="position:relative"><img src="${escapeAttr(u)}" title="Open full size" style="width:54px;height:54px;object-fit:cover;border-radius:5px;cursor:pointer;${_photoApprovalOn && !r.photos_approved ? 'outline:2px solid #f0a020;outline-offset:-1px' : ''}" onclick="window.open('${escapeAttr(u)}','_blank')"><button title="Remove this photo" onclick="reviewPhotoRemove('${r.id}',${idx})" style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;border:none;background:#f85149;color:#fff;font-size:13px;line-height:1;cursor:pointer;padding:0">&times;</button></div>`).join('')}</div>
+                                        ${_photoApprovalOn && !r.photos_approved ? `<button onclick="reviewApprovePhotos('${r.id}')" style="margin-top:9px;padding:6px 14px;border:none;border-radius:6px;background:#3fb950;color:#09090b;font-weight:600;font-size:.78rem;cursor:pointer">&#10003; Approve photos</button>` : ''}
                                     </div>` : ''}
                                 </td>
                                 <td>
