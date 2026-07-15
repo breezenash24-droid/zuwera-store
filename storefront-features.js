@@ -1072,6 +1072,15 @@
     }
   }
 
+  // zwFlag() can't tell "not configured" from "off" — both are false. The raw map
+  // can, so this honours an explicit off while letting a never-configured flag use
+  // the default the admin registry advertises.
+  function flagOrDefault(f, key, dflt) {
+    var raw = window.__zwFlags && window.__zwFlags[key];
+    if (raw === undefined || raw === null) return dflt;
+    return f(key);
+  }
+
   function init(zwFlag) {
     var f = (typeof zwFlag === 'function') ? zwFlag : function () { return false; };
     var wantSearch = f('feature_search');
@@ -1082,7 +1091,12 @@
     var wantSupport = f('feature_support_widget');
     var wantQA = f('feature_qa');
     var wantBundles = f('feature_bundles');
-    var wantBagPanel = f('feature_bag_panel');
+    // Flags the admin registry seeds ON are still absent from site_settings until
+    // someone opens Feature Flags and hits Save — so "seeded on" silently meant
+    // OFF on the storefront. __zwFlags is the raw map, so an unconfigured flag is
+    // distinguishable from one that's been deliberately switched off: fall back to
+    // the seeded default only when the store has never had an opinion.
+    var wantBagPanel = flagOrDefault(f, 'feature_bag_panel', true);
     // NB: no early return on "nothing flagged" — the product page still needs to
     // apply its builder layout, which can contain unflagged optional blocks.
 
