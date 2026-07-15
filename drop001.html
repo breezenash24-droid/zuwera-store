@@ -1337,6 +1337,21 @@ function productMatchesTag(p, want) {
   return tags.some(function (t) { return String(t || '').trim().toLowerCase() === want.toLowerCase(); });
 }
 
+// ?q= — where the header search sends you on Enter. Every token has to appear
+// somewhere, so "black jacket" narrows instead of widening. NB: `subtitle` is the
+// human label ("Jackets"); the `category` column holds internal codes like MOT.
+function getRequestedQuery() {
+  return (new URLSearchParams(window.location.search).get('q') || '').trim();
+}
+function productMatchesQuery(p, want) {
+  if (!want) return true;
+  var hay = [p && p.title, p && p.subtitle, p && p.category, p && p.colorway, p && p.gender,
+    (p && Array.isArray(p.tags)) ? p.tags.join(' ') : '']
+    .filter(Boolean).join(' ').toLowerCase();
+  return want.toLowerCase().split(/\s+/).filter(Boolean)
+    .every(function (t) { return hay.indexOf(t) !== -1; });
+}
+
 function updateCollectionMeta(categoryLabel) {
   const label = categoryLabel || 'All Products';
   const title = categoryLabel ? `${label} - Zuwera` : 'Collection - Zuwera';
@@ -1459,6 +1474,7 @@ function updateCountdown() {
       const requestedCategory = getRequestedCategory();
       const requestedGender = getRequestedGender();
       const requestedTag = getRequestedTag();
+      const requestedQuery = getRequestedQuery();
       const requestedLabel = [requestedGender, requestedCategory].filter(Boolean).join(' · ') || requestedTag || '';
       updateCollectionMeta(requestedLabel);
 
@@ -1834,6 +1850,7 @@ function updateCountdown() {
           const status = (p.status || '').toLowerCase();
           if (status === 'legacy' || status === 'archived' || status === 'draft') return false;
           if (activeCategory && categoryLabelFromProduct(p).toLowerCase() !== activeCategory.toLowerCase()) return false;
+          if (!productMatchesQuery(p, requestedQuery)) return false;
           return productMatchesGender(p, requestedGender) && productMatchesTag(p, requestedTag);
         });
 
@@ -1845,7 +1862,11 @@ function updateCountdown() {
           return (a.sort_order || 0) - (b.sort_order || 0);
         });
 
-        const curLabel = [requestedGender, activeCategory].filter(Boolean).join(' · ') || requestedTag || '';
+        // Say what's being shown — landing on a filtered grid with no explanation
+        // reads like the catalogue lost half its products.
+        const curLabel = requestedQuery
+          ? '“' + requestedQuery + '”'
+          : ([requestedGender, activeCategory].filter(Boolean).join(' · ') || requestedTag || '');
         updateCollectionMeta(curLabel || (filteredProducts.length === 1 ? categoryLabelFromProduct(filteredProducts[0]) : ''));
         const _countEl = document.getElementById('plp-count');
         if (_countEl) _countEl.textContent = (curLabel ? curLabel + ' · ' : '') + filteredProducts.length + (filteredProducts.length === 1 ? ' Product' : ' Products');

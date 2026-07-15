@@ -374,6 +374,15 @@
     _overlay.addEventListener('click', function (e) { if (e.target === _overlay) closeSearch(); });
     var clearBtn = _overlay.querySelector('.zwf-search-clear');
     clearBtn.addEventListener('click', function () { _input.value = ''; clearBtn.hidden = true; runSearch(); _input.focus(); });
+    // Enter → the full catalogue, filtered. The panel is a peek; this is the
+    // "show me everything" escape hatch.
+    _input.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      var q = (_input.value || '').trim();
+      if (!q) return;
+      e.preventDefault();
+      location.assign('/drop001.html?q=' + encodeURIComponent(q));
+    });
     _input.addEventListener('input', function () { clearBtn.hidden = !_input.value; });
     _input.addEventListener('input', debounce(runSearch, 120));
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && _overlay && _overlay.classList.contains('open')) closeSearch(); });
@@ -473,7 +482,10 @@
 
   var ARROW_SVG = '<svg class="zwf-sr-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
   function searchRow(p) {
-    var meta = [p.category || p.subtitle || '', p.current_price != null ? '$' + p.current_price : ''].filter(Boolean).join(' · ');
+    // subtitle is the human label ("Jackets"); the category column holds internal
+    // codes (MOT / UOT), which is what shoppers were being shown. The product
+    // cards and the collection page both use subtitle — match them.
+    var meta = [p.subtitle || p.category || '', p.current_price != null ? '$' + p.current_price : ''].filter(Boolean).join(' · ');
     return '<a class="zwf-sr" href="' + esc(hrefOf(p)) + '">' + ARROW_SVG
       + '<span class="zwf-sr-nm">' + esc(p.title || 'Product') + '</span>'
       + (meta ? '<span class="zwf-sr-meta">' + esc(meta) + '</span>' : '')
@@ -1262,17 +1274,25 @@
   function initBagPanel() {
     ensureStyles();
     document.body.classList.add('zwf-bagpanel-on');   // hides the header account button
-    // Both header systems: #cart-btn (index/product) and .zw-hdr-bag (the rest).
-    var triggers = document.querySelectorAll('#cart-btn, .zw-hdr-bag');
-    Array.prototype.forEach.call(triggers, function (t) {
-      t.addEventListener('click', function (e) {
-        // Let modified clicks (new tab) and the bag page itself behave normally.
-        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
-        if (/\/bag(\.html)?$/.test(location.pathname)) return;
-        e.preventDefault();
-        if (_bagOverlay && _bagOverlay.classList.contains('open')) closeBag(); else openBag();
-      });
-    });
+
+    // The bag is wired three different ways:
+    //   index    — inline onclick → window.__zwOpenCart() → location.assign('/bag.html')
+    //   product  — a click listener → goToBagPage()
+    //   the rest — a plain <a href="bag.html">
+    // The first two navigate PROGRAMMATICALLY, so preventDefault() on a listener
+    // of our own can't stop them — we were racing them and losing, which is why
+    // clicking the bag still jumped to the page. Intercepting in the capture
+    // phase on document runs before all three, and stopping propagation there
+    // means none of them ever fire. One hook, no per-page special-casing.
+    document.addEventListener('click', function (e) {
+      var t = e.target && e.target.closest && e.target.closest('#cart-btn, .zw-hdr-bag');
+      if (!t) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;  // new-tab still works
+      if (/\/bag(\.html)?$/.test(location.pathname)) return;               // already on the bag page
+      e.preventDefault();
+      e.stopPropagation();
+      if (_bagOverlay && _bagOverlay.classList.contains('open')) closeBag(); else openBag();
+    }, true);
   }
 
   /* ── Builder preview: jump to a block ──────────────────────────────────────
