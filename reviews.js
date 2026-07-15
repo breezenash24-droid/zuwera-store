@@ -762,7 +762,7 @@ async function submitReview() {
     const res = await window.sb.from('reviews').update({
       rating: _reviewRating,
       body:   body || null,
-      photos: _reviewPhotos.length ? _reviewPhotos.slice() : null,
+      photos: _reviewPhotos.slice(),
       fit_rating: fit ? parseInt(fit) : null,
       comfort_rating: comfort ? parseInt(comfort) : null,
       recommend: recommend === 'yes' ? true : (recommend === 'no' ? false : null)
@@ -775,7 +775,7 @@ async function submitReview() {
       rating:        _reviewRating,
       body:          body || null,
       reviewer_name: reviewerName,
-      photos: _reviewPhotos.length ? _reviewPhotos.slice() : null,
+      photos: _reviewPhotos.slice(),
       fit_rating: fit ? parseInt(fit) : null,
       comfort_rating: comfort ? parseInt(comfort) : null,
       recommend: recommend === 'yes' ? true : (recommend === 'no' ? false : null)
