@@ -450,6 +450,27 @@
      code when one is configured. The code goes through the existing promo path,
      which is recomputed server-side at payment time — nothing here touches pricing. */
 
+  // Same rule the server uses (normalizePromoCode), so a set saved as "SET 10"
+  // matches the coupon SET10.
+  function normPromo(v) {
+    return String(v || '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+  }
+  // Codes that actually exist right now. sanitizeCommerceConfig drops inactive
+  // promos, so anything returned here is live. Used so a set never advertises a
+  // code that would fail at checkout (e.g. it was deleted, or never created).
+  var _promoCodesPromise = null;
+  function livePromoCodes() {
+    if (_promoCodesPromise) return _promoCodesPromise;
+    _promoCodesPromise = fetch('/api/commerce-config')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        var list = (j && j.config && j.config.promotions) || [];
+        return list.map(function (p) { return normPromo(p && p.code); }).filter(Boolean);
+      })
+      .catch(function () { return []; });
+    return _promoCodesPromise;
+  }
+
   var _bundlesPromise = null;
   function fetchBundles() {
     if (_bundlesPromise) return _bundlesPromise;
@@ -473,8 +494,8 @@
 
   function renderBundle(current) {
     if (!current) return;
-    Promise.all([fetchBundles(), catalog()]).then(function (res) {
-      var bundles = res[0] || [], all = res[1] || [];
+    Promise.all([fetchBundles(), catalog(), livePromoCodes()]).then(function (res) {
+      var bundles = res[0] || [], all = res[1] || [], codes = res[2] || [];
       var cid = String(current.id);
       var b = null;
       for (var i = 0; i < bundles.length; i++) {
@@ -493,8 +514,13 @@
       var sec = strip(b.name || 'Complete the set', others.map(function (p) { return pcardCard(p, false); }).join(''));
       sec.setAttribute('data-zwf', 'bundle');
       var titleEl = sec.querySelector('.zwf-strip-title');
+      // Only advertise the set's code if that coupon really exists and is live —
+      // otherwise the row would promise a discount that fails at checkout. The
+      // set still renders, just without the offer line.
+      var code = normPromo(b.promo_code);
+      var codeIsLive = code && codes.indexOf(code) >= 0;
       var metaHtml = (b.blurb ? '<p class="zwf-bundle-blurb">' + esc(b.blurb) + '</p>' : '')
-        + (b.promo_code ? '<p class="zwf-bundle-promo">Use code <strong>' + esc(b.promo_code) + '</strong> at checkout</p>' : '');
+        + (codeIsLive ? '<p class="zwf-bundle-promo">Use code <strong>' + esc(code) + '</strong> at checkout</p>' : '');
       if (titleEl && metaHtml) {
         var meta = document.createElement('div');
         meta.className = 'zwf-bundle-meta';
