@@ -830,6 +830,12 @@ function paintProductTab(container){
     d.querySelector('[data-action="vis"]').addEventListener('click',e=>{
       e.stopPropagation(); s.on = !s.on; paintProductTab(container); syncPreviewFrame();
     });
+    // Click the row → jump the preview to that block, like selecting a section does.
+    d.addEventListener('click',e=>{
+      if(e.target.closest('[data-action]')||e.target.closest('.drag-h')) return;
+      scrollPreviewToPdp(s.id);
+    });
+    d.style.cursor='pointer';
     if(!m.fixed){
       d.addEventListener('dragstart',e=>{ e.dataTransfer.setData('text/plain', s.id); d.style.opacity='.4'; });
       d.addEventListener('dragend',()=>{ d.style.opacity=''; });
@@ -1288,12 +1294,42 @@ async function copyLandingDraftLink(){
 // the saved DRAFT (preview=1), so it refreshes after each "Save Draft".
 function landingPreviewUrl(){ var s=landingSlug||'men'; if(s.indexOf('tag:')===0) return '/landing.html?tag='+encodeURIComponent(s.slice(4))+'&preview=1'; return '/landing.html?page='+encodeURIComponent(s)+'&preview=1'; }
 function reloadLandingPreview(){ const f=document.getElementById('pvIframe'); if(!f)return; f.onload=function(){ setTimeout(sendLandingCfg,120); }; f.src=landingPreviewUrl()+'&_cb='+Date.now(); }
+// The Product tab edits what stacks under a PRODUCT, so preview a real product
+// page rather than leaving the homepage up — you can't judge (or scroll to) a
+// block you can't see. Any live product will do; first by sort order.
+let pdpPreviewUrl=null;
+async function productPreviewUrl(){
+  if(pdpPreviewUrl) return pdpPreviewUrl;
+  try{
+    const {data}=await sb.from('products').select('id,title').eq('status','Live').order('sort_order',{ascending:true}).limit(1);
+    const p=data&&data[0];
+    if(p){
+      // mirrors product.html's slugOf()
+      const slug=String(p.title||'').replace(/^zuwera\s+/i,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'product';
+      pdpPreviewUrl='/product/'+slug+'?id='+encodeURIComponent(p.id)+'&builder=1';
+    }
+  }catch(_){}
+  return pdpPreviewUrl;
+}
 function syncPreviewFrame(){
   const f=document.getElementById('pvIframe'); if(!f) return;
-  if(curTab==='pages'){ reloadLandingPreview(); }
-  else {
-    try{ const cur=new URL(f.src,location.origin); if(cur.pathname.indexOf('landing')!==-1) f.src='/index.html?builder=1'; }catch(_){ f.src='/index.html?builder=1'; }
+  if(curTab==='pages'){ reloadLandingPreview(); return; }
+  if(curTab==='product'){
+    productPreviewUrl().then(u=>{
+      if(!u) return;
+      try{ if(new URL(f.src,location.origin).pathname.indexOf('/product/')===0) return; }catch(_){}
+      f.src=u;
+    });
+    return;
   }
+  // leaving pages/product → put the homepage back
+  try{
+    const cur=new URL(f.src,location.origin);
+    if(cur.pathname.indexOf('landing')!==-1||cur.pathname.indexOf('/product/')===0) f.src='/index.html?builder=1';
+  }catch(_){ f.src='/index.html?builder=1'; }
+}
+function scrollPreviewToPdp(id){
+  try{document.getElementById('pvIframe').contentWindow.postMessage({type:'ZW_SCROLL_TO_PDP_BLOCK',blockId:id},location.origin);}catch(e){}
 }
 
 // ── SEO TAB ───────────────────────────────────────────────────────────────

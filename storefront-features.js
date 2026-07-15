@@ -888,6 +888,45 @@
     // positions) — so there is no auto-insert on the homepage anymore.
   }
 
+  /* ── Builder preview: jump to a block ──────────────────────────────────────
+     The Page Builder's Product tab posts a block id when you click a row, so the
+     panel and the preview stay on the same thing instead of making you hunt for
+     it. Blocks render async, so we retry briefly before giving up.
+     SECURITY: same-origin only — mirrors storefront.js's builder listener. Without
+     it any site that framed us could drive this. */
+  (function builderScrollBridge() {
+    if (window.top === window.self) return;   // not framed → nothing to do
+    var SEL = {
+      more_from_release: '#related-products',
+      bundle: '[data-zwf="bundle"]',
+      recently_viewed: '[data-zwf="recently-viewed"]',
+      recommendations: '[data-zwf="recommendations"]',
+      qa: '[data-zwf="qa"]',
+    };
+    function flash(el) {
+      el.style.transition = 'outline-color .25s';
+      el.style.outline = '2px solid rgba(248,145,165,.9)';
+      el.style.outlineOffset = '4px';
+      setTimeout(function () { el.style.outlineColor = 'transparent'; }, 1200);
+      setTimeout(function () { el.style.outline = ''; el.style.outlineOffset = ''; }, 1600);
+    }
+    function go(id, tries) {
+      var sel = SEL[id];
+      if (!sel) return;
+      var el = document.querySelector(sel);
+      if (!el || el.offsetParent === null) {
+        if ((tries || 0) < 12) return setTimeout(function () { go(id, (tries || 0) + 1); }, 250);
+        return;
+      }
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      flash(el);
+    }
+    window.addEventListener('message', function (e) {
+      if (e.origin !== window.location.origin) return;
+      if (e.data && e.data.type === 'ZW_SCROLL_TO_PDP_BLOCK') go(String(e.data.blockId || ''), 0);
+    });
+  })();
+
   if (typeof window.zwWhenFlags === 'function') window.zwWhenFlags(init);
   else if (document.readyState !== 'loading') init(window.zwFlag);
   else document.addEventListener('DOMContentLoaded', function () { init(window.zwFlag); });
