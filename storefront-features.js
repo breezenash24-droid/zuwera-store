@@ -352,7 +352,7 @@
     });
   }
 
-  var _overlay = null, _input = null, _results = null, _scrollY = 0;
+  var _overlay = null, _input = null, _results = null;
   function buildOverlay() {
     if (_overlay) return;
     _overlay = document.createElement('div');
@@ -415,37 +415,10 @@
     _overlay.style.top = headerBottom() + 'px';
   }
 
-  // The old lock used body{position:fixed} unconditionally. modal-lock.js spells
-  // out why that's wrong: it breaks position:sticky — and journal/about/account/
-  // returns all have sticky headers, which now matters because the header stays
-  // visible. Desktop → overflow:hidden (freezes scroll, sticky intact);
-  // mobile → the position:fixed dance, which iOS still needs.
-  var _lockedRoot = false, _padded = false;
-  function lockScroll() {
-    if (isDesktop()) {
-      var sw = window.innerWidth - document.documentElement.clientWidth;
-      if (sw > 0) { document.documentElement.style.paddingRight = sw + 'px'; _padded = true; }
-      document.documentElement.style.overflow = 'hidden';
-      _lockedRoot = true;
-    } else {
-      _scrollY = window.scrollY || 0;
-      document.body.style.top = '-' + _scrollY + 'px';
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
-    }
-  }
-  function unlockScroll() {
-    if (_lockedRoot) {
-      document.documentElement.style.overflow = '';
-      if (_padded) { document.documentElement.style.paddingRight = ''; _padded = false; }
-      _lockedRoot = false;
-    } else {
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      window.scrollTo(0, _scrollY);
-    }
-  }
+  // No scroll lock lives here on purpose. Scrolling past a panel is how you
+  // dismiss it, so freezing the page would remove the only way out and force a
+  // Close button back. The old lockScroll()/unlockScroll() pair is deleted rather
+  // than left unused: calling it again would silently break scroll-to-dismiss.
 
   // The header shrinks over ~350ms. Re-measure every frame while it moves so the
   // panel stays glued to it — sampling at a couple of timeouts instead left the
@@ -462,23 +435,50 @@
     })();
   }
 
-  // Scrolling the page dismisses the panel, so there's nothing to hunt for. That
-  // only works if the page can actually scroll — the old scroll lock is exactly
-  // what forced a Close button to exist.
+  /* ── One panel at a time ───────────────────────────────────────────────────
+     Search, bag and the category mega-menu all hang off the same header, so two
+     of them open at once just buries one behind the other. Everything that opens
+     dismisses whatever else is open first.
+
+     Scrolling past a panel dismisses it, which is why neither locks the page:
+     a scroll lock is exactly what forced a Close button to exist. The bag used
+     to lock (overflow:hidden on the root), so it alone couldn't be scrolled
+     away — the same rule, two behaviours. */
+  function isOpen(el) { return !!el && el.classList.contains('open'); }
+
+  function closePanels(except) {
+    if (except !== 'search' && isOpen(_overlay)) closeSearch();
+    if (except !== 'bag' && isOpen(_bagOverlay)) closeBag();
+  }
+
   var _openScrollY = 0;
-  function onSearchScroll() {
-    if (Math.abs((window.scrollY || 0) - _openScrollY) > 12) closeSearch();
+  function onPanelScroll() {
+    if (Math.abs((window.scrollY || 0) - _openScrollY) > 12) closePanels();
+  }
+  function armScrollClose() {
+    _openScrollY = window.scrollY || 0;
+    window.addEventListener('scroll', onPanelScroll, { passive: true });
+  }
+  function disarmScrollClose() { window.removeEventListener('scroll', onPanelScroll); }
+
+  // The mega-menu opens on CSS :hover, so it can't be gated — get out of its way
+  // instead. Guarded by isOpen() so a mouseover storm costs one class check.
+  function watchCategoryHover() {
+    document.addEventListener('mouseover', function (e) {
+      if (!isOpen(_overlay) && !isOpen(_bagOverlay)) return;
+      if (e.target && e.target.closest && e.target.closest('.zw-navitem, #nav-category-links')) closePanels();
+    }, { passive: true });
   }
 
   function openSearch() {
+    closePanels('search');
     buildOverlay();
     catalog(); // warm the cache
     document.body.classList.add('zwf-searching');   // shrinks the header
     syncSearchTop();
     requestAnimationFrame(function () { _overlay.classList.add('open'); _input.focus(); });
     trackHeader(syncSearchTop);
-    _openScrollY = window.scrollY || 0;
-    window.addEventListener('scroll', onSearchScroll, { passive: true });
+    armScrollClose();
     window.addEventListener('resize', syncSearchTop);
   }
 
@@ -486,7 +486,7 @@
     if (!_overlay) return;
     _overlay.classList.remove('open');
     document.body.classList.remove('zwf-searching');
-    window.removeEventListener('scroll', onSearchScroll);
+    disarmScrollClose();
     window.removeEventListener('resize', syncSearchTop);
     // Keep tracking on the way out too: the header grows back while the panel
     // slides up, and they should move together.
@@ -1128,6 +1128,9 @@
     if (wantSearch) initSearch();
     if (wantSupport) initSupport();
     if (wantBagPanel) initBagPanel();
+    // Either panel can collide with the category mega-menu, so this arms as soon
+    // as one of them is on.
+    if (wantSearch || wantBagPanel) watchCategoryHover();
     if (wantLowStock) initLowStock(); // decorates homepage .pcard grids; no-op elsewhere
 
     // The optional blocks (new arrivals / journal / newsletter) have no flag of
@@ -1271,13 +1274,14 @@
   }
 
   function openBag() {
+    closePanels('bag');
     buildBagPanel();
     renderBagPanel();
-    lockScroll();
     document.body.classList.add('zwf-searching');   // same header shrink as search
     syncBagTop();
     requestAnimationFrame(function () { _bagOverlay.classList.add('open'); });
     trackHeader(syncBagTop);
+    armScrollClose();
     window.addEventListener('resize', syncBagTop);
   }
   function closeBag() {
@@ -1285,7 +1289,7 @@
     _bagOverlay.classList.remove('open');
     document.body.classList.remove('zwf-searching');
     window.removeEventListener('resize', syncBagTop);
-    unlockScroll();
+    disarmScrollClose();
     trackHeader(syncBagTop);
   }
 
