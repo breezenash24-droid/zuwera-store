@@ -184,6 +184,13 @@ export function sanitizeCommerceConfig(rawConfig = {}) {
         minSubtotal: Number(promo.minSubtotal || 0),
         description: String(promo.description || ''),
         active: promo.active !== false,
+        // Expiry + usage limits are set in Admin → Coupons and are checked by
+        // getPromotionForCode() / validate-promo. They MUST survive sanitising:
+        // dropping them here silently disabled both limits, so a code with
+        // "max uses 3" kept working forever.
+        expirationDate: promo.expirationDate ? String(promo.expirationDate) : '',
+        maxUsage: promo.maxUsage === undefined || promo.maxUsage === null || promo.maxUsage === '' ? null : Number(promo.maxUsage),
+        usageCount: Number(promo.usageCount || 0),
         targetProductIds: Array.isArray(promo.targetProductIds) ? promo.targetProductIds.map(String).filter(Boolean) : [],
         targetCollectionIds: Array.isArray(promo.targetCollectionIds) ? promo.targetCollectionIds.map(String).filter(Boolean) : [],
       })),
