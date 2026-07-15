@@ -193,9 +193,17 @@
     body.light-mode .rw-bar { background: rgba(9,9,11,.1); }
     .rw-bar-fill { height: 100%; background: currentColor; opacity: .8; transition: width .4s ease; }
     .rw-hint { font-size: .88rem; opacity: .75; margin: 0 0 16px; line-height: 1.5; }
-    .rw-btn { width: 100%; padding: 13px; border: none; border-radius: 6px; background: var(--paper); color: #09090b; font-weight: 700; font-size: .74rem; letter-spacing: .14em; text-transform: uppercase; cursor: pointer; }
-    body.light-mode .rw-btn { background: #09090b; color: #f4f1eb; }
-    .rw-btn:disabled { opacity: .35; cursor: not-allowed; }
+    .rw-tiers { display: flex; flex-direction: column; gap: 8px; }
+    .rw-tier { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; width: 100%;
+      padding: 13px 15px; border: 1px solid rgba(244,241,235,.2); border-radius: 6px; background: none;
+      color: inherit; cursor: pointer; text-align: left; transition: border-color .15s, background .15s; }
+    body.light-mode .rw-tier { border-color: rgba(9,9,11,.2); }
+    .rw-tier:not([disabled]):hover { border-color: currentColor; background: rgba(244,241,235,.05); }
+    body.light-mode .rw-tier:not([disabled]):hover { background: rgba(9,9,11,.04); }
+    .rw-tier[disabled] { opacity: .32; cursor: not-allowed; }
+    .rw-tier.busy { opacity: .5; }
+    .rw-tier-val { font-weight: 800; font-size: 1rem; }
+    .rw-tier-pts { font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; opacity: .6; }
     .rw-code-box { margin-top: 14px; padding: 14px; border: 1px dashed currentColor; border-radius: 8px; font-size: .8rem; line-height: 1.7; }
     .rw-code-box strong { font-size: 1.3rem; letter-spacing: .16em; }
     .rw-code-box span { display: block; opacity: .6; font-size: .74rem; margin-top: 6px; }
@@ -1092,19 +1100,32 @@ async function loadRewards() {
   if (loading) loading.style.display = 'none';
   if (!r || !r.ok || !r.enabled) { host.innerHTML = '<p class="acct-empty">Rewards aren\'t available right now.</p>'; return; }
 
-  const toGo = Math.max(0, r.redeemPoints - r.balance);
-  const pct = Math.max(0, Math.min(100, Math.round((r.balance / r.redeemPoints) * 100)));
+  const tiers = r.tiers || [];
+  const label = r.pointsLabel || 'points';
+  // Progress is measured against the next reward they can't afford yet.
+  const next = tiers.find(t => !t.canRedeem) || tiers[tiers.length - 1] || { points: 1 };
+  const pct = Math.max(0, Math.min(100, Math.round((r.balance / next.points) * 100)));
+  const toGo = Math.max(0, next.points - r.balance);
+
   host.innerHTML = `
     <div class="rw-card">
       <div class="rw-balance">${r.balance}</div>
-      <div class="rw-balance-label">point${r.balance === 1 ? '' : 's'}</div>
+      <div class="rw-balance-label">${escHtml(label)}</div>
       <div class="rw-bar"><div class="rw-bar-fill" style="width:${pct}%"></div></div>
-      <p class="rw-hint">${r.canRedeem
-        ? `You can redeem <strong>${r.redeemPoints} points</strong> for <strong>$${r.redeemValue} off</strong>.`
-        : `Earn <strong>${toGo}</strong> more point${toGo === 1 ? '' : 's'} to get <strong>$${r.redeemValue} off</strong>.`}</p>
-      <button class="rw-btn" id="rw-redeem" ${r.canRedeem ? '' : 'disabled'}>Redeem $${r.redeemValue} off</button>
+      <p class="rw-hint">${toGo > 0
+        ? `Earn <strong>${toGo}</strong> more to unlock <strong>$${next.value} off</strong>.`
+        : `You've unlocked every reward — nice.`}</p>
+      <div class="rw-tiers">
+        ${tiers.map(t => `
+          <button class="rw-tier" data-points="${t.points}" ${t.canRedeem ? '' : 'disabled'}>
+            <span class="rw-tier-val">$${t.value} off</span>
+            <span class="rw-tier-pts">${t.points} ${escHtml(label)}</span>
+          </button>`).join('')}
+      </div>
       <div id="rw-code"></div>
-      <p class="rw-earn">You earn ${r.pointsPerDollar} point${r.pointsPerDollar === 1 ? '' : 's'} per $1 spent when you're signed in.</p>
+      <p class="rw-earn">You earn ${r.pointsPerDollar} ${escHtml(label)} per $1 spent when you're signed in.${
+        r.minOrderToEarn > 0 ? ` Orders under $${r.minOrderToEarn} don't earn.` : ''}${
+        r.rewardMinSubtotal > 0 ? ` Rewards need a $${r.rewardMinSubtotal} order to use.` : ''}</p>
     </div>
     ${(r.history && r.history.length) ? `<div class="rw-history"><h3 class="rw-history-title">History</h3>${r.history.map(h => `
       <div class="rw-row">
@@ -1112,30 +1133,37 @@ async function loadRewards() {
         <span class="rw-pts ${h.points < 0 ? 'neg' : 'pos'}">${h.points > 0 ? '+' : ''}${h.points}</span>
       </div>`).join('')}</div>` : ''}`;
 
-  const btn = document.getElementById('rw-redeem');
-  if (btn && r.canRedeem) btn.addEventListener('click', redeemRewards);
+  host.querySelectorAll('.rw-tier:not([disabled])').forEach(b => {
+    b.addEventListener('click', () => redeemRewards(Number(b.dataset.points), b));
+  });
 }
-async function redeemRewards() {
-  const btn = document.getElementById('rw-redeem');
-  if (btn) { btn.disabled = true; btn.textContent = 'Redeeming…'; }
+async function redeemRewards(points, btn) {
+  const tiersEl = document.querySelector('.rw-tiers');
+  if (tiersEl) tiersEl.querySelectorAll('.rw-tier').forEach(b => { b.disabled = true; });
+  if (btn) btn.classList.add('busy');
   try {
     const { data } = await _sb.auth.getSession();
     const token = data && data.session && data.session.access_token;
     const j = await fetch('/api/loyalty', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accessToken: token, action: 'redeem' })
+      body: JSON.stringify({ accessToken: token, action: 'redeem', points })
     }).then(r => r.json());
     if (j && j.ok) {
+      const bits = [`Enter it at checkout for $${j.value} off. It works once.`];
+      if (j.minSubtotal > 0) bits.push(`Needs a $${j.minSubtotal} order.`);
+      if (j.expiresOn) bits.push(`Expires ${j.expiresOn}.`);
       document.getElementById('rw-code').innerHTML =
-        `<div class="rw-code-box">Your code<br><strong>${escHtml(j.code)}</strong><span>Enter it at checkout for $${j.value} off. It works once.</span></div>`;
-      if (btn) btn.style.display = 'none';
+        `<div class="rw-code-box">Your code<br><strong>${escHtml(j.code)}</strong><span>${escHtml(bits.join(' '))}</span></div>`;
+      if (tiersEl) tiersEl.style.display = 'none';
       _rewards = null; // force a refresh next time in
     } else {
-      if (btn) { btn.disabled = false; btn.textContent = 'Redeem'; }
+      if (btn) btn.classList.remove('busy');
+      if (tiersEl) tiersEl.querySelectorAll('.rw-tier').forEach(b => { b.disabled = false; });
       if (typeof showToast === 'function') showToast((j && j.error) || 'Could not redeem.', 'error');
     }
   } catch (_) {
-    if (btn) { btn.disabled = false; btn.textContent = 'Redeem'; }
+    if (btn) btn.classList.remove('busy');
+    if (tiersEl) tiersEl.querySelectorAll('.rw-tier').forEach(b => { b.disabled = false; });
     if (typeof showToast === 'function') showToast('Could not redeem.', 'error');
   }
 }

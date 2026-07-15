@@ -256,7 +256,10 @@ async function awardLoyaltyPoints(pi, meta, env) {
   if (v.enabled !== true) return;
 
   const perDollar = Number(v.pointsPerDollar) > 0 ? Number(v.pointsPerDollar) : 1;
+  const minOrder = Number(v.minOrderToEarn) > 0 ? Number(v.minOrderToEarn) : 0;
   const subtotalCents = parseInt(meta.subtotal_amount_cents || '0', 10) || 0;
+  // Orders under the admin's threshold earn nothing.
+  if (minOrder > 0 && subtotalCents < Math.round(minOrder * 100)) return;
   const points = Math.floor((subtotalCents / 100) * perDollar);
   if (points <= 0) return;
 
