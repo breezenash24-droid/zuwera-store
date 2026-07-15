@@ -219,6 +219,11 @@
       /* Our own clear button: the native type=search one renders in the UA's own
          blue, which appears nowhere else on the site. */
       '.zwf-search-clear{background:none;border:none;padding:.3rem;margin:0;cursor:pointer;color:inherit;display:inline-flex;align-items:center;justify-content:center;opacity:.45;transition:opacity .15s}',
+      // [hidden] is only a UA display:none, so the display above beat it and the
+      // button sat there permanently — clicking it on an empty field cleared
+      // nothing, which read as a close button that does not work. It may only
+      // appear when there is something to clear.
+      '.zwf-search-clear[hidden]{display:none}',
       '.zwf-search-clear:hover{opacity:.9}',
       '.zwf-search-clear svg{width:17px;height:17px;display:block}',
       '.zwf-search-results{overflow-y:auto;overscroll-behavior:contain;padding:1.4rem clamp(1rem,4vw,2.5rem) 2.4rem}',
@@ -352,7 +357,7 @@
     });
   }
 
-  var _overlay = null, _input = null, _results = null, _scrollY = 0;
+  var _overlay = null, _input = null, _results = null;
   function buildOverlay() {
     if (_overlay) return;
     _overlay = document.createElement('div');
@@ -398,15 +403,22 @@
   // hardcoded — the header shrinks when a panel opens and its height differs per
   // page (index stacks a fixed announcement bar above the nav; drop001 doesn't).
   //
-  // floor, NOT round: at fractional browser zoom the header's bottom lands on a
-  // sub-pixel (e.g. 96.6). Rounding up starts the panel below the header and
-  // leaves a hairline of page showing through — visible on one page and not
-  // another purely because their heights round differently. Flooring can only
-  // overlap by <1px, and panels paint at z-index 989 over the nav's 220, so an
-  // overlap is invisible. Both panels share this so they can't drift apart.
+  // Deliberately overlap the header's bottom edge by a pixel.
+  //
+  // rect.bottom is a border-box measurement, so it sits UNDER nav#nav's
+  // border-bottom (1px). Landing the panel exactly there leaves the sub-pixel
+  // remainder of that border peeking out as a hairline — measured on the
+  // homepage: nav.bottom 87.4, panel 87, so 0.6px of border still showed. It
+  // surfaces only on pages with an announcement bar because the bar offsets the
+  // nav (top:27px), which changes where the bottom edge lands between pixels.
+  //
+  // floor() gets us to the edge; it can't cover a border inside it. Panels paint
+  // at z-index 989 over the nav's 220, so eating that last pixel is free and the
+  // seam goes away on every page. Both panels share this so they can't drift.
   function headerBottom() {
     var h = headerEl();
-    return h ? Math.max(0, Math.floor(h.getBoundingClientRect().bottom)) : 0;
+    if (!h) return 0;
+    return Math.max(0, Math.floor(h.getBoundingClientRect().bottom) - 1);
   }
 
   function syncSearchTop() {
@@ -415,12 +427,18 @@
     _overlay.style.top = headerBottom() + 'px';
   }
 
-  // The old lock used body{position:fixed} unconditionally. modal-lock.js spells
-  // out why that's wrong: it breaks position:sticky — and journal/about/account/
-  // returns all have sticky headers, which now matters because the header stays
-  // visible. Desktop → overflow:hidden (freezes scroll, sticky intact);
-  // mobile → the position:fixed dance, which iOS still needs.
-  var _lockedRoot = false, _padded = false;
+  // The page must not move behind an open panel, but a scroll gesture is still
+  // how you dismiss one. Both are possible because the two are different things:
+  // the page is frozen, and the *gesture* (wheel/touchmove) is read directly.
+  // A plain scroll listener cannot do this — once the page is locked there is no
+  // scroll event left to hear.
+  //
+  // The lock uses overflow:hidden rather than body{position:fixed}: modal-lock.js
+  // spells out why the latter is wrong — it breaks position:sticky, and
+  // journal/about/account/returns all have sticky headers, which matters here
+  // because the header stays visible behind the panel. iOS still needs the fixed
+  // dance, hence the mobile branch.
+  var _lockedRoot = false, _padded = false, _scrollY = 0;
   function lockScroll() {
     if (isDesktop()) {
       var sw = window.innerWidth - document.documentElement.clientWidth;
@@ -439,7 +457,7 @@
       document.documentElement.style.overflow = '';
       if (_padded) { document.documentElement.style.paddingRight = ''; _padded = false; }
       _lockedRoot = false;
-    } else {
+    } else if (document.body.style.position === 'fixed') {
       document.body.style.position = '';
       document.body.style.top = '';
       document.body.style.width = '';
@@ -462,23 +480,58 @@
     })();
   }
 
-  // Scrolling the page dismisses the panel, so there's nothing to hunt for. That
-  // only works if the page can actually scroll — the old scroll lock is exactly
-  // what forced a Close button to exist.
-  var _openScrollY = 0;
-  function onSearchScroll() {
-    if (Math.abs((window.scrollY || 0) - _openScrollY) > 12) closeSearch();
+  /* ── One panel at a time ───────────────────────────────────────────────────
+     Search, bag and the category mega-menu all hang off the same header, so two
+     of them open at once just buries one behind the other. Everything that opens
+     dismisses whatever else is open first.
+
+     Scrolling past a panel dismisses it, which is why neither locks the page:
+     a scroll lock is exactly what forced a Close button to exist. The bag used
+     to lock (overflow:hidden on the root), so it alone couldn't be scrolled
+     away — the same rule, two behaviours. */
+  function isOpen(el) { return !!el && el.classList.contains('open'); }
+
+  function closePanels(except) {
+    if (except !== 'search' && isOpen(_overlay)) closeSearch();
+    if (except !== 'bag' && isOpen(_bagOverlay)) closeBag();
+  }
+
+  // Scrolling anywhere past the panel dismisses it. Gestures that start inside a
+  // panel are left alone — the results list and the bag's contents scroll on
+  // their own, and closing the thing you're reading would be absurd.
+  function onPanelGesture(e) {
+    var t = e.target;
+    if (t && t.closest && t.closest('.zwf-search-panel, .zwf-bag-panel')) return;
+    closePanels();
+  }
+  function armScrollClose() {
+    window.addEventListener('wheel', onPanelGesture, { passive: true });
+    window.addEventListener('touchmove', onPanelGesture, { passive: true });
+  }
+  function disarmScrollClose() {
+    window.removeEventListener('wheel', onPanelGesture);
+    window.removeEventListener('touchmove', onPanelGesture);
+  }
+
+  // The mega-menu opens on CSS :hover, so it can't be gated — get out of its way
+  // instead. Guarded by isOpen() so a mouseover storm costs one class check.
+  function watchCategoryHover() {
+    document.addEventListener('mouseover', function (e) {
+      if (!isOpen(_overlay) && !isOpen(_bagOverlay)) return;
+      if (e.target && e.target.closest && e.target.closest('.zw-navitem, #nav-category-links')) closePanels();
+    }, { passive: true });
   }
 
   function openSearch() {
+    closePanels('search');
+    lockScroll();
     buildOverlay();
     catalog(); // warm the cache
     document.body.classList.add('zwf-searching');   // shrinks the header
     syncSearchTop();
     requestAnimationFrame(function () { _overlay.classList.add('open'); _input.focus(); });
     trackHeader(syncSearchTop);
-    _openScrollY = window.scrollY || 0;
-    window.addEventListener('scroll', onSearchScroll, { passive: true });
+    armScrollClose();
     window.addEventListener('resize', syncSearchTop);
   }
 
@@ -486,7 +539,8 @@
     if (!_overlay) return;
     _overlay.classList.remove('open');
     document.body.classList.remove('zwf-searching');
-    window.removeEventListener('scroll', onSearchScroll);
+    unlockScroll();
+    disarmScrollClose();
     window.removeEventListener('resize', syncSearchTop);
     // Keep tracking on the way out too: the header grows back while the panel
     // slides up, and they should move together.
@@ -1128,6 +1182,9 @@
     if (wantSearch) initSearch();
     if (wantSupport) initSupport();
     if (wantBagPanel) initBagPanel();
+    // Either panel can collide with the category mega-menu, so this arms as soon
+    // as one of them is on.
+    if (wantSearch || wantBagPanel) watchCategoryHover();
     if (wantLowStock) initLowStock(); // decorates homepage .pcard grids; no-op elsewhere
 
     // The optional blocks (new arrivals / journal / newsletter) have no flag of
@@ -1271,13 +1328,15 @@
   }
 
   function openBag() {
+    closePanels('bag');
+    lockScroll();
     buildBagPanel();
     renderBagPanel();
-    lockScroll();
     document.body.classList.add('zwf-searching');   // same header shrink as search
     syncBagTop();
     requestAnimationFrame(function () { _bagOverlay.classList.add('open'); });
     trackHeader(syncBagTop);
+    armScrollClose();
     window.addEventListener('resize', syncBagTop);
   }
   function closeBag() {
@@ -1286,6 +1345,7 @@
     document.body.classList.remove('zwf-searching');
     window.removeEventListener('resize', syncBagTop);
     unlockScroll();
+    disarmScrollClose();
     trackHeader(syncBagTop);
   }
 
