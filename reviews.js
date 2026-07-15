@@ -45,9 +45,10 @@ const REVIEW_META_SEPARATOR = ' \u00b7 ';
 // the "View more" collapse threshold (0 = never collapse).
 let _reviewLimits = { maxUnit: 'characters', maxLength: 1000, previewChars: 320 };
 let _reviewLimitsLoaded = false;
-// When true (default), a review's photos stay hidden on the storefront until an
-// admin approves them (review_settings.photoApproval). Admin can turn this off.
-let _reviewPhotoApproval = true;
+// Off by default: photos show as soon as they're posted, and the admin can
+// delete anything inappropriate. Turn review_settings.photoApproval on to
+// instead hide photos until an admin approves them.
+let _reviewPhotoApproval = false;
 
 function reviewLen(str) {
   str = String(str || '');
@@ -78,7 +79,7 @@ async function ensureReviewLimits() {
       if (v.maxUnit === 'words' || v.maxUnit === 'characters') _reviewLimits.maxUnit = v.maxUnit;
       if (isFinite(+v.maxLength) && +v.maxLength > 0) _reviewLimits.maxLength = Math.floor(+v.maxLength);
       if (isFinite(+v.previewChars) && +v.previewChars >= 0) _reviewLimits.previewChars = Math.floor(+v.previewChars);
-      _reviewPhotoApproval = v.photoApproval !== false;
+      _reviewPhotoApproval = v.photoApproval === true;
     }
     _reviewLimitsLoaded = true;
   } catch (_) {}

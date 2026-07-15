@@ -1,9 +1,9 @@
 -- ============================================================================
 -- Review photo moderation — approval gate for review photos.
 --
--- Adds reviews.photos_approved (default false). The storefront shows a review's
--- photos only once they're approved (when review_settings.photoApproval is on,
--- which is the default). Admins approve/remove photos in Admin → Reviews.
+-- Adds reviews.photos_approved (default false). By default photos show as soon
+-- as they're posted and admins delete anything inappropriate in Admin → Reviews;
+-- turning review_settings.photoApproval on instead hides photos until approved.
 --
 -- A guard trigger forces photos_approved back to false for any non-admin insert
 -- or update, so shoppers can't self-approve their own photos.
