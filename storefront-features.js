@@ -385,7 +385,12 @@
       if (group) {
         host = group; before = group.querySelector('.zw-hdr-bag'); cls = 'zw-hdr-action';
       } else if (navRight) {
-        host = navRight;                                    // bag: no bag icon to sit before
+        // bag: no bag icon to sit before. Anchor on the hamburger instead — without
+        // it the button was appended and landed to the RIGHT of the hamburger, which
+        // is the only page where the order came out wrong. The hamburger is always
+        // the last thing in the header.
+        host = navRight;
+        before = navRight.querySelector('#mobile-menu-btn, .hamburger-btn');
       }
     }
     if (host && !document.querySelector('.zwf-search-btn')) {
