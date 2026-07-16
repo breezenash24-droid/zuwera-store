@@ -170,7 +170,13 @@ const checks = [
   {
     name: 'Mobile hamburger menu has stable footer utilities',
     pass: () => /#mobile-menu\.zw-mobile-menu\.open\{[\s\S]*animation:none/.test(files.cohesion)
-      && /#mobile-menu \.zw-mobile-primary-link:hover[\s\S]*padding-left:0/.test(files.cohesion)
+      // The hover rule must NOT change padding — that caused MEN/WOMEN/NEW to slide
+      // left on a touch tap (a tap fires :hover). Tapping dims via colour only. This
+      // guard used to REQUIRE padding-left:0 on hover, which was the bug's source.
+      // Comments stripped first, and matched only up to the rule's own closing brace,
+      // so an explanatory comment mentioning padding can't trip it.
+      && !/#mobile-menu \.zw-mobile-primary-link:hover,[^{}]*\{[^}]*padding/.test(
+           files.cohesion.replace(/\/\*[\s\S]*?\*\//g, ''))
       && /#mobile-menu\.zw-mobile-menu\{[\s\S]*width:100dvw/.test(files.cohesion)
       && /#mobile-menu\.zw-mobile-menu\{[\s\S]*overscroll-behavior:none/.test(files.cohesion)
       && /#mobile-menu\.zw-mobile-menu > \.zw-mobile-menu-panel\{[\s\S]*overflow-x:hidden/.test(files.cohesion)
