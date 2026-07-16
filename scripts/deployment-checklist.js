@@ -105,6 +105,23 @@ const checks = [
     // old enough to still have the removed search Close button. bump-cache-version
     // now stamps unversioned refs too; this fails the build if one ever ships that
     // the stamper wouldn't catch.
+    // .nav-link sizing lives once, in storefront-cohesion.css (1.05rem/600). Twice a
+    // page has shipped its own copy at the old 1.7rem/900 — index (fixed #175),
+    // landing (fixed later) — so MEN/WOMEN/NEW rendered a different size there than
+    // everywhere else. A page-local .nav-link may set colour/padding, never font-size
+    // or font-weight; those come from cohesion so every header matches.
+    name: 'No page defines its own .nav-link font-size / font-weight',
+    pass: () => {
+      const fs2 = require('fs');
+      const root2 = path.resolve(__dirname, '..');
+      return fs2.readdirSync(root2).filter((f) => f.endsWith('.html')).every((f) => {
+        const s = fs2.readFileSync(path.join(root2, f), 'utf8');
+        const rules = s.match(/\.nav-link\s*\{[^}]*\}/g) || [];
+        return rules.every((r) => !/font-size|font-weight/.test(r));
+      });
+    },
+  },
+  {
     name: 'Every local js/css reference is cache-bustable (has ?v=)',
     pass: () => {
       const fs2 = require('fs');
