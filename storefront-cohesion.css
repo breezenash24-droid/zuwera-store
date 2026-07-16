@@ -192,7 +192,16 @@ select:focus-visible{
 }
 
 /* Shared utility/action typography. */
-:is(.nbtn,.nav-back,.zw-nav-back,.cart-back,.ret-back,.nav-link,.mobile-nav-link,.acct-tab,.tab-btn,.calc-tab,.calc-toggle-btn,.section-label,.size-guide-link,.stock-info,.product-subtitle,.flinks a,.fig,.fcopy,.zw-footer-links a,.zw-footer-ig,.zw-footer-copy){
+/* .nav-link is deliberately NOT in this list. It's a nav category, not a utility
+   label — and being here it inherited .6rem/400/.14em, i.e. footer sizing, for the
+   header.
+   The trap: :is() takes the specificity of its MOST specific argument, and
+   `.flinks a` / `.zw-footer-links a` are class+element = (0,1,1). That lifts the
+   whole list to (0,1,1), so it silently outranked .nav-link's own (0,1,0) rules —
+   both cohesion's :3511 and index.html's — which have always said 1.7rem/900 and
+   never once applied. Adding a descendant selector here re-breaks every class in
+   the list, so keep the arguments to bare classes. */
+:is(.nbtn,.nav-back,.zw-nav-back,.cart-back,.ret-back,.mobile-nav-link,.acct-tab,.tab-btn,.calc-tab,.calc-toggle-btn,.section-label,.size-guide-link,.stock-info,.product-subtitle,.flinks a,.fig,.fcopy,.zw-footer-links a,.zw-footer-ig,.zw-footer-copy){
   font-family:var(--zw-font-mono) !important;
   font-size:.6rem;
   font-weight:400;
@@ -3508,7 +3517,9 @@ nav#nav.zw-nav-hidden, header.nav.zw-nav-hidden, nav.nav.zw-nav-hidden, nav.zw-n
    the fixed mega-menu and trap it at this width instead of full-bleed. Matches
    what index/landing already did locally. */
 .nav-center{ position:absolute; left:0; right:0; margin:0 auto; width:fit-content; display:flex; align-items:center; justify-content:center; gap:2.4rem; }
-.nav-link{ font-family:var(--zw-font-head,'Barlow Condensed',sans-serif); font-size:1.7rem; font-weight:900; letter-spacing:.02em; text-transform:uppercase; line-height:1; color:inherit; text-decoration:none; opacity:.92; white-space:nowrap; background:none; border:none; cursor:pointer; display:inline-flex; align-items:center; padding:.6rem .7rem; margin:-.6rem 0; }
+/* Matches .zw-mega-col a exactly (1.05rem/600/.02em) so the header categories and
+   the mega-menu subcategories read as one system — they are the same nav. */
+.nav-link{ font-family:var(--zw-font-head,'Barlow Condensed',sans-serif); font-size:1.05rem; font-weight:600; font-style:normal; letter-spacing:.02em; text-transform:uppercase; line-height:1; color:inherit; text-decoration:none; opacity:.92; white-space:nowrap; background:none; border:none; cursor:pointer; display:inline-flex; align-items:center; padding:.6rem .7rem; margin:-.6rem 0; }
 .nav-link:hover{ opacity:1; }
 @media (max-width:900px){ .nav-center{ display:none !important; } }
 
