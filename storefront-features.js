@@ -169,6 +169,13 @@
 
       /* search launcher — inherits .nbtn look from the nav */
       '.zwf-search-btn{background:none;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:.35rem}',
+      /* The launcher borrows .zw-hdr-action on the .zw-hdr-group headers for its
+         padding and colour — but that class carries a mobile-only ::before that
+         masks in a PERSON glyph (storefront-cohesion.css:1644, the unified account
+         icon). So the search button drew an account icon AND its own magnifier,
+         crammed into one slot. Kill the inherited glyph; the SVG inside is the icon.
+         Doubled class beats the .zw-hdr-action::before it's overriding. */
+      '.zw-hdr-action.zwf-search-btn::before,.zwf-search-btn::before{content:none!important;display:none!important}',
       '.zwf-search-btn svg{width:20px;height:20px;display:block}',
 
       /* search overlay — deliberate cream "spotlight" panel that reads on both themes */
@@ -589,7 +596,13 @@
     catalog(); // warm the cache
     document.body.classList.add('zwf-searching');   // shrinks the header
     syncSearchTop();
-    requestAnimationFrame(function () { _overlay.classList.add('open'); _input.focus(); });
+    // Focus NOW, synchronously, while we're still inside the click. Mobile Safari
+    // only raises the keyboard for a focus() that happens during the user gesture —
+    // inside requestAnimationFrame the gesture is already over, so it silently did
+    // nothing and the panel opened with no keyboard. The slide still runs in the
+    // next frame; only the focus has to be immediate.
+    try { _input.focus({ preventScroll: true }); } catch (_) { _input.focus(); }
+    requestAnimationFrame(function () { _overlay.classList.add('open'); });
     trackHeader(syncSearchTop);
     armScrollClose();
     window.addEventListener('resize', syncSearchTop);
