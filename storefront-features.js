@@ -1256,7 +1256,13 @@
           .then(function (r) { return r.ok ? r.json() : null; })
           .catch(function () { return null; })
           .then(function (cfg) {
-            var list = (cfg && Array.isArray(cfg.sections) && cfg.sections.length) ? cfg.sections : DEFAULT_PDP;
+            // An empty layout is a real answer — "nothing under the product",
+            // every block removed in the builder — and must be honoured. Only a
+            // missing or failed config falls back to the defaults.
+            // Testing .length conflated the two: /api/product-page-config already
+            // returns {sections: []} for an emptied layout, and this turned that
+            // straight back into all five, so removing every block was impossible.
+            var list = (cfg && Array.isArray(cfg.sections)) ? cfg.sections : DEFAULT_PDP;
             list.forEach(function (s) {
               if (!s || s.on === false) return;
               var fn = run[s.id];

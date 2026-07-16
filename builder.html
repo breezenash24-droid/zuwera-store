@@ -921,6 +921,7 @@ async function pdpSave(){
     const j=await res.json().catch(()=>({}));
     if(!res.ok||j.error) throw new Error(j.error||'Save failed');
     if(msg) msg.textContent='Saved — live on product pages.';
+    reloadProductPreview();   // show what was just saved, not what loaded first
   }catch(e){ if(msg) msg.textContent=e.message||'Save failed'; if(typeof showErr==='function') showErr(e.message); }
   if(btn){ btn.disabled=false; btn.textContent='💾 Save Product Layout'; }
 }
@@ -1362,6 +1363,15 @@ async function productPreviewUrl(){
     }
   }catch(_){}
   return pdpPreviewUrl;
+}
+// The preview reads the SAVED layout from /api/product-page-config, and
+// syncPreviewFrame() deliberately leaves an iframe alone once it's on a product
+// page (so switching tabs doesn't reload it). Together that meant the preview
+// never moved after a save — you changed the blocks and the page looked
+// identical. Mirrors reloadLandingPreview(), cache-buster included.
+function reloadProductPreview(){
+  const f=document.getElementById('pvIframe'); if(!f) return;
+  productPreviewUrl().then(u=>{ if(!u) return; f.src=u+'&_cb='+Date.now(); });
 }
 function syncPreviewFrame(){
   const f=document.getElementById('pvIframe'); if(!f) return;
