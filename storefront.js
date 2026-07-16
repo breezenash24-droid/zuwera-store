@@ -431,6 +431,15 @@ function showToast(msg) {
     } else {
       document.body.classList.remove('light-mode','super-light-mode');
     }
+    // Re-sync the status bar. syncThemeColor() runs once at boot and reads the body
+    // classes, which at that point come only from localStorage — so a first-time
+    // visitor (or anyone in incognito) has none, it resolves to #09090b, and
+    // <meta name="theme-color"> stays black. The classes above are the REAL theme
+    // arriving; without this the page turns super-light while iOS keeps painting the
+    // status bar black, forever, because nothing else touches that meta on index.
+    // product.html:1761 and storefront-theme.js:318 already do this after applying a
+    // theme — this path was the one that didn't.
+    if (window.__zwSyncThemeColor) window.__zwSyncThemeColor();
 
     // Apply navigation settings
     if (cfg.navSettings) {
