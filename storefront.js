@@ -3874,23 +3874,11 @@ document.addEventListener('click', function (e) {
 /* Swipe-down-to-close for the bottom-sheet modals (mirrors product.html).
    If the user drags down >80px while the sheet is scrolled to the very top,
    dismiss it by clicking the existing close button so all teardown runs. */
-function zwAttachSwipeClose(scrollEl, closeBtn) {
-  if (!scrollEl || !closeBtn) return;
-  let startY = 0, tracking = false;
-  scrollEl.addEventListener('touchstart', e => {
-    if (e.touches.length !== 1) { tracking = false; return; }
-    startY = e.touches[0].clientY;
-    tracking = scrollEl.scrollTop <= 0;
-  }, { passive: true });
-  scrollEl.addEventListener('touchmove', () => {
-    if (tracking && scrollEl.scrollTop > 0) tracking = false;
-  }, { passive: true });
-  scrollEl.addEventListener('touchend', e => {
-    if (!tracking) return; tracking = false;
-    const dy = e.changedTouches[0].clientY - startY;
-    if (dy > 80 && scrollEl.scrollTop <= 0) closeBtn.click();
-  }, { passive: true });
-}
+/* zwAttachSwipeClose now lives in storefront-features.js — the only file that loads
+   on every page with modals, and before this one (index.html line 74 vs 317). It was
+   defined here, so the fit finder on product pages (no storefront.js) had no
+   pull-to-close at all, and lang.js wrote a third copy. The call below uses the
+   shared global. */
 [
   ['all-reviews-modal', '.review-list-mbox', 'all-reviews-close'],
   ['review-modal', '.review-mbox', 'review-modal-close'],

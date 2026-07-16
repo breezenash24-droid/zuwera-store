@@ -302,7 +302,11 @@
       '  .zwf-modal-box{max-width:100%;max-height:calc(100dvh - 1.6rem - 36px - env(safe-area-inset-top,0px) - .5rem);border-radius:1.25rem 1.25rem 0 0;border-left:none;border-right:none;border-bottom:none;box-shadow:0 -8px 40px rgba(0,0,0,.28);transform:translateY(100%);transition:transform .42s cubic-bezier(.32,.72,0,1)}',
       '  .zwf-modal.open .zwf-modal-box{transform:translateY(0)}',
       '}',
-      '.zwf-modal-x{position:absolute;top:.9rem;right:1.1rem;background:none;border:none;font-size:1.5rem;line-height:1;cursor:pointer;color:inherit;opacity:.5}',
+      // Matches .mclose (storefront-cohesion.css:791) — the close button every other
+      // modal uses: 44px, square, bordered, tinted. This was a bare text × at half
+      // opacity, which is why it read as a different modal.
+      '.zwf-modal-x{position:absolute;top:.75rem;right:.75rem;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(128,128,128,.22);background:rgba(128,128,128,.08);color:inherit;border-radius:0;font-size:1.35rem;line-height:1;cursor:pointer;opacity:1;z-index:40}',
+      '.zwf-modal-x:hover{background:rgba(128,128,128,.16)}',
       '.zwf-modal-x:hover{opacity:1}',
       '.zwf-modal-title{font-family:var(--fw,inherit);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.04em;font-size:1.35rem;margin:0 0 .3rem}',
       '.zwf-modal-sub{font-family:var(--fb,inherit);font-size:.85rem;opacity:.6;margin:0 0 1.4rem;line-height:1.5}',
@@ -311,7 +315,12 @@
       '.zwf-field input,.zwf-field select{width:100%;padding:.7rem .8rem;background:rgba(9,9,11,.04);border:1px solid rgba(9,9,11,.16);border-radius:3px;color:inherit;font-family:var(--fb,inherit);font-size:.95rem;outline:none}',
       '.zwf-seg{display:flex;gap:.5rem}',
       '.zwf-seg button{flex:1;padding:.6rem .3rem;background:rgba(9,9,11,.04);border:1px solid rgba(9,9,11,.16);border-radius:3px;color:inherit;font-family:var(--fm,inherit);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}',
-      '.zwf-seg button.on{background:var(--ink,#09090b);color:var(--paper,#f4f1eb);border-color:var(--ink,#09090b)}',
+      // --ink/--paper are the PAGE colours and they flip with the theme: --ink is
+      // #09090b dark, but #F0EEE9 in light and #FFFFFF in super-light. So the selected
+      // chip filled itself with the page colour — white on white, which is why picking
+      // a fit made it vanish. --zw-ink/--zw-page are ink-on-page by definition, so
+      // inverting them is contrasty in every mode.
+      '.zwf-seg button.on{background:var(--zw-ink,#09090b);color:var(--zw-page,#f4f1eb);border-color:var(--zw-ink,#09090b)}',
       '.zwf-btn{width:100%;padding:.9rem;background:var(--ink,#09090b);color:var(--paper,#f4f1eb);border:none;border-radius:3px;font-family:var(--fm,inherit);font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;margin-top:.5rem}',
       '.zwf-btn:hover{opacity:.9}',
       '.zwf-result{text-align:center;padding:.6rem 0 .2rem}',
@@ -1006,6 +1015,36 @@
     return rec;
   }
 
+  /* Swipe-down-to-close, shared. It lived in storefront.js, which ONLY index.html
+     loads — so the fit finder (a product-page modal) could not reach it, and was
+     the one sheet on the site you could not pull down to dismiss. lang.js had
+     already written its own copy for the same reason.
+
+     This file is the right home: it loads on every page that has modals, and
+     BEFORE storefront.js (index.html line 74 vs 317), so that file's top-level
+     call still resolves. Same 80px threshold and the same "only when scrolled to
+     the top" rule as the original — pull-to-close must never fight a scrolling
+     list. Guarded, so there is exactly one behaviour no matter who defines it. */
+  if (!window.zwAttachSwipeClose) {
+    window.zwAttachSwipeClose = function (scrollEl, closeBtn) {
+      if (!scrollEl || !closeBtn) return;
+      var startY = 0, tracking = false;
+      scrollEl.addEventListener('touchstart', function (e) {
+        if (e.touches.length !== 1) { tracking = false; return; }
+        startY = e.touches[0].clientY;
+        tracking = scrollEl.scrollTop <= 0;
+      }, { passive: true });
+      scrollEl.addEventListener('touchmove', function () {
+        if (tracking && scrollEl.scrollTop > 0) tracking = false;
+      }, { passive: true });
+      scrollEl.addEventListener('touchend', function (e) {
+        if (!tracking) return; tracking = false;
+        var dy = e.changedTouches[0].clientY - startY;
+        if (dy > 80 && scrollEl.scrollTop <= 0) closeBtn.click();
+      }, { passive: true });
+    };
+  }
+
   function initFitFinder(p) {
     var header = document.querySelector('.size-header');
     if (!header || header.querySelector('.zwf-fit-btn')) return;
@@ -1053,6 +1092,9 @@
       document.body.appendChild(_fitModal);
       _fitModal.addEventListener('click', function (e) { if (e.target === _fitModal) closeFit(); });
       _fitModal.querySelector('.zwf-modal-x').addEventListener('click', closeFit);
+      // Pull down to dismiss, like every other bottom sheet. The box is the
+      // scroller (max-height + overflow-y), so it is what the gesture watches.
+      try { window.zwAttachSwipeClose(_fitModal.querySelector('.zwf-modal-box'), _fitModal.querySelector('.zwf-modal-x')); } catch (_) {}
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && _fitModal.classList.contains('open')) closeFit(); });
     }
     var body = _fitModal.querySelector('.zwf-fit-body');
