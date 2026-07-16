@@ -3579,13 +3579,21 @@ function animateAddToBag(sourceEl, imageSrc) {
 async function loadRelatedProducts() {
   try {
     if (!window.sb || !currentProduct?.id) return;
-    // Honour the Page Builder's Product tab — this block can be switched off
-    // there. Any hiccup reading the config leaves it visible (fail open), since
-    // it's decorative either way.
+    // Honour the Page Builder's Product tab — this block can be switched off or
+    // removed there. Two different "no row" cases have to stay apart:
+    //   config unreadable  -> hiccup, leave it visible (fail open; it's decorative)
+    //   read fine, no row  -> the admin removed the block; it stays gone
+    // Testing `row && row.on === false` treated both as "not configured" and
+    // showed the block, so removing it — including emptying the layout to get a
+    // bare product page — did nothing here. This is the only block product.html
+    // renders itself; the rest come from storefront-features.js, which reads the
+    // same layout literally.
     try {
       const cfg = await fetch('/api/product-page-config').then(r => r.ok ? r.json() : null).catch(() => null);
-      const row = cfg && Array.isArray(cfg.sections) && cfg.sections.find(s => s && s.id === 'more_from_release');
-      if (row && row.on === false) return;
+      if (cfg && Array.isArray(cfg.sections)) {
+        const row = cfg.sections.find(s => s && s.id === 'more_from_release');
+        if (!row || row.on === false) return;
+      }
     } catch (_) {}
     const { data } = await window.sb
       .from('products')
