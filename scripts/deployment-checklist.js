@@ -124,6 +124,29 @@ const checks = [
     },
   },
   {
+    // Font vars collapsed to one source: --zw-font-* (storefront-cohesion.css) holds
+    // the literals; every legacy name (--fw/--fb/--fm, --font-head/body/mono/display)
+    // is defined as an alias `var(--zw-font-*, …)`. A legacy definition with a bare
+    // literal re-splits the systems and reintroduces the "font setting didn't apply"
+    // class of bug, so it fails the build. (Uses like var(--fw) are fine — only
+    // DEFINITIONS are checked, and only the canonical may hold a literal.)
+    name: 'Legacy font vars alias --zw-font-* (single source of truth)',
+    pass: () => {
+      const fs2 = require('fs');
+      const root2 = path.resolve(__dirname, '..');
+      const legacy = /(?:^|[\s;{])(--(?:fw|fb|fm|font-head|font-body|font-mono|font-display))\s*:\s*([^;}]+)/g;
+      const targets = fs2.readdirSync(root2).filter((f) => /\.(css|html)$/.test(f));
+      return targets.every((f) => {
+        const s = fs2.readFileSync(path.join(root2, f), 'utf8');
+        let m;
+        while ((m = legacy.exec(s))) {
+          if (!/^var\(--zw-font-/.test(m[2].trim())) return false;  // a bare literal snuck in
+        }
+        return true;
+      });
+    },
+  },
+  {
     name: 'Every local js/css reference is cache-bustable (has ?v=)',
     pass: () => {
       const fs2 = require('fs');

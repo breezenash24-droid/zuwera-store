@@ -719,13 +719,13 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
 
 /* Product page typography alignment with the homepage brand system. */
 :root {
-  --font-head: 'Barlow Condensed', sans-serif;
-  --font-body: 'Barlow', sans-serif;
-  --font-mono: 'IBM Plex Mono', monospace;
-  --font-display: var(--font-head);
-  --fw: var(--font-head);
-  --fb: var(--font-body);
-  --fm: var(--font-mono);
+  --font-head: var(--zw-font-head, 'Barlow Condensed', sans-serif);
+  --font-body: var(--zw-font-body, 'Barlow', sans-serif);
+  --font-mono: var(--zw-font-mono, 'IBM Plex Mono', monospace);
+  --font-display:var(--zw-font-head, var(--font-head));
+  --fw:var(--zw-font-head, var(--font-head));
+  --fb:var(--zw-font-body, var(--font-body));
+  --fm:var(--zw-font-mono, var(--font-mono));
   --zw-font-head: var(--font-head);
   --zw-font-body: var(--font-body);
   --zw-font-mono: var(--font-mono);

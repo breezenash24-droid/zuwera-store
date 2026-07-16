@@ -348,9 +348,9 @@ try{var _zn=JSON.parse(localStorage.getItem('zw_nav_menu')||'null');if(_zn&&_zn.
   --gold:#F891A5; /* Pantone 708 C */
   --red:#c0392b;
   --success:#6fcf6f;        /* success/confirm green */
-  --fw: 'Barlow Condensed', sans-serif;
-  --fm: 'IBM Plex Mono', monospace;
-  --fb: 'Barlow', sans-serif;
+  --fw: var(--zw-font-head, 'Barlow Condensed', sans-serif);
+  --fm: var(--zw-font-mono, 'IBM Plex Mono', monospace);
+  --fb: var(--zw-font-body, 'Barlow', sans-serif);
   --mobile-nav-gap:0px;
 }
 html{scroll-behavior:smooth;font-size:16px;background:var(--ink);overscroll-behavior-y:auto}
