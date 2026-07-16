@@ -58,18 +58,6 @@
 
   // Lightweight product card — visually mirrors .pcard but stands alone (no
   // quick-add / swatch / review machinery, which live inside storefront.js).
-  function card(p) {
-    var img = imgOf(p);
-    return '<a class="zwf-card" href="' + esc(hrefOf(p)) + '">'
-      + '<div class="zwf-card-img">'
-      + (img ? '<img src="' + esc(img) + '" alt="' + esc(nameOf(p)) + '" loading="lazy" decoding="async">' : '')
-      + '</div>'
-      + '<div class="zwf-card-info">'
-      + '<p class="zwf-card-name">' + esc(nameOf(p)) + '</p>'
-      + (typeOf(p) ? '<p class="zwf-card-type">' + esc(typeOf(p)) + '</p>' : '')
-      + '<p class="zwf-card-price">' + money(priceOf(p)) + '</p>'
-      + '</div></a>';
-  }
 
   // Same card, but using the site's REAL product-card text classes (.pcard-name /
   // .pcard-cat / .pcard-price) so the fonts/sizes/colours match the homepage grid
@@ -89,10 +77,15 @@
       + '<div class="zwf-card-img">'
       + (img ? '<img src="' + esc(img) + '" alt="' + esc(nameOf(p)) + '" loading="lazy" decoding="async">' : '')
       + '</div>'
+      // The real card classes, not a copy of them. .pcard-name/.pcard-cat/
+      // .pcard-price are defined once in storefront-cohesion.css (which every page
+      // loads) and .pcard-name is one of the two selectors the admin's Typography
+      // panel drives — so these cards now follow the site's fonts instead of
+      // quietly ignoring them.
       + '<div class="zwf-card-info">'
-      + '<p class="zwf-pc-name">' + esc(nameOf(p)) + '</p>'
-      + (typeOf(p) ? '<p class="zwf-pc-cat">' + esc(typeOf(p)) + '</p>' : '')
-      + '<p class="zwf-pc-price">' + money(priceOf(p)) + '</p>'
+      + '<p class="pcard-name">' + esc(nameOf(p)) + '</p>'
+      + (typeOf(p) ? '<p class="pcard-cat">' + esc(typeOf(p)) + '</p>' : '')
+      + '<p class="pcard-price">' + money(priceOf(p)) + '</p>'
       + (showTime ? timeCaption(p) : '')
       + '</div></a>';
   }
@@ -152,15 +145,18 @@
       '.zwf-card-img img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.7,.2,1)}',
       '.zwf-card:hover .zwf-card-img img{transform:scale(1.04)}',
       '.zwf-card-info{padding:.7rem .1rem 0}',
-      '.zwf-card-name{font-family:var(--fw,inherit);font-weight:700;font-size:.9rem;letter-spacing:.02em;margin:0 0 .15rem;line-height:1.2}',
-      '.zwf-card-type{font-family:var(--fm,var(--fb,inherit));font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;opacity:.55;margin:0 0 .3rem}',
-      '.zwf-card-price{font-family:var(--fb,inherit);font-size:.85rem;opacity:.85;margin:0}',
-      /* on-page strip cards (recently-viewed / recommendations) — match the real
-         .pcard text EXACTLY (font/size/weight/style/tracking); colour adapts to the
-         page theme via inherit + opacity so it works on light and dark. */
-      '.zwf-pc-name{font-family:var(--fw,inherit);font-weight:700;font-style:italic;font-size:1.4rem;letter-spacing:.03em;line-height:1.1;margin:0 0 .3rem;color:inherit}',
-      '.zwf-pc-cat{font-family:var(--fm,var(--fb,inherit));font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;font-weight:500;opacity:.6;margin:0 0 .35rem}',
-      '.zwf-pc-price{font-family:var(--fw,inherit);font-size:1.05rem;font-weight:700;letter-spacing:.01em;opacity:.95;margin:0}',
+      /* Card text is NOT restyled here. These cards use .pcard-name/.pcard-cat/
+         .pcard-price — the real classes, defined once in storefront-cohesion.css
+         (loaded by every page) and driven by the admin's Typography panel.
+
+         There used to be a .zwf-pc-* copy of them, commented "match the real
+         .pcard text EXACTLY". It couldn't: it was copied from index.html's local
+         .pcard-name (700 / 1.4rem / .03em), while the rule that actually wins is
+         storefront-cohesion.css's :is(.pcard-name,.product-name), which is
+         !important and says 900 / 1.2rem / .02em / uppercase. So the strip cards
+         rendered lighter, smaller and in Title Case next to identical products in
+         the "More from this release" grid, and no font change in the admin ever
+         reached them. Copying values is what broke it; using the class is the fix. */
       '.zwf-rv-time{font-family:var(--fm,var(--fb,inherit));font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;opacity:.45;margin:.35rem 0 0}',
       '.zwf-strip{scroll-margin-top:96px}',
       '@media(prefers-reduced-motion:reduce){.zwf-card-img img{transition:none}.zwf-card:hover .zwf-card-img img{transform:none}}',
@@ -250,7 +246,6 @@
       '.zwf-sr-meta{margin-left:auto;font-family:var(--fm,inherit);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;opacity:.5;white-space:nowrap}',
       '.zwf-search-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1.1rem}',
       '@media(min-width:900px){.zwf-search-grid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}}',
-      '.zwf-search .zwf-card-name,.zwf-search .zwf-card-price{color:inherit}',
       '.zwf-empty{padding:3rem 1rem;text-align:center;opacity:.55;font-family:var(--fb,inherit)}',
       '@media(prefers-reduced-motion:reduce){.zwf-search,.zwf-search-panel{transition:none}}',
       /* Apple-ish: the panel slides out from beneath the header, which stays put
@@ -842,8 +837,8 @@
           return '<a class="zwf-card zwf-card--pcard" href="/journal.html?slug=' + encodeURIComponent(p.slug) + '">'
             + '<div class="zwf-card-img">' + (p.cover_image ? '<img src="' + esc(p.cover_image) + '" alt="' + esc(p.title) + '" loading="lazy" decoding="async">' : '') + '</div>'
             + '<div class="zwf-card-info">'
-            + '<p class="zwf-pc-name">' + esc(p.title) + '</p>'
-            + (date ? '<p class="zwf-pc-cat">' + esc(date) + '</p>' : '')
+            + '<p class="pcard-name">' + esc(p.title) + '</p>'
+            + (date ? '<p class="pcard-cat">' + esc(date) + '</p>' : '')
             + '</div></a>';
         }).join('');
         var sec = strip('From the journal', cards);
