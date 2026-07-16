@@ -111,7 +111,12 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
     .nav-logo{ display:flex; align-items:center; text-decoration:none; }
     .nav-logo img{ height:50px; width:auto; display:block; transition:filter .35s; filter:none; }
     .nav-center{ position:absolute; left:0; right:0; margin:0 auto; width:fit-content; display:flex; align-items:center; gap:2.4rem; }
-    .nav-link{ font-family:var(--fw,'Barlow Condensed',sans-serif); font-size:1.7rem; font-weight:900; font-style:normal; letter-spacing:.02em; text-transform:uppercase; line-height:1; color:#f4f1eb; opacity:.92; text-decoration:none; transition:color .2s,opacity .2s; background:none; border:none; cursor:pointer; display:inline-flex; align-items:center; padding:.6rem .7rem; margin:-.6rem 0; }
+    /* Font/size/weight/style live once, in storefront-cohesion.css's .nav-link
+       (1.05rem/600, unified in #175). This page kept a local copy at the OLD
+       1.7rem/900, so MEN/WOMEN/NEW rendered large-and-bold here while every
+       cohesion-driven page showed the unified size. Only genuinely page-local bits
+       stay: colour and the hitbox padding. */
+    .nav-link{ color:#f4f1eb; opacity:.92; transition:color .2s,opacity .2s; padding:.6rem .7rem; margin:-.6rem 0; }
     .nav-link:hover{ color:var(--white); opacity:1; }
     .nav-right{ display:flex; align-items:center; gap:.4rem; }
     body.light-mode nav#nav{ background:#F0EEE9; }
