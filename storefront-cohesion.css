@@ -413,6 +413,29 @@ body.light-mode #zw-lang-modal{
   pointer-events:auto;
   transition:opacity var(--zw-motion-modal) ease;
 }
+
+/* THE BACKDROP RULE, and it lives here — once.
+   Every modal overlay is fully transparent; the panel inside carries its own
+   background and shadow. The page behind is never dimmed or blurred.
+
+   This was previously written out per page (index.html, product.html) and so
+   applied on two pages only, while bag.html quietly did the opposite
+   (body.light-mode .modal{background:rgba(240,238,233,.65)}) — a 65% cream dim on
+   the one page that redefined it. Same class, three different answers depending on
+   which file you opened. Sitting with the rest of the .modal base means every page
+   gets it, including ones with no local .modal CSS at all (account, journal).
+
+   #zw-lang-modal is excluded from the base block above for its bespoke motion, so
+   it needs saying separately.
+
+   ONE exception, deliberate: reviews.js's .rvp-lightbox keeps rgba(0,0,0,.9). It's
+   a photo viewer — the dark surround is the point, and it isn't a .modal. */
+.modal,
+#zw-lang-modal{
+  background:transparent !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}
 .modal:not(#mobile-menu):not(#payment-modal):not(#zw-lang-modal) > :is(.mbox,.pbox,.review-mbox,.review-list-mbox,.review-dialog,.cbox){
   transition:transform var(--zw-motion-modal) cubic-bezier(.32,.72,0,1),
              opacity var(--zw-motion-modal) ease;
