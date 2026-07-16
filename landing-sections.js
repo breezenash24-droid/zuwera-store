@@ -99,7 +99,7 @@
     'anton':"'Anton',sans-serif",'league-gothic':"'League Gothic',sans-serif",'michroma':"'Michroma',sans-serif",
     'montserrat':"'Montserrat',sans-serif",'syne':"'Syne',sans-serif",'archivo-black':"'Archivo Black',sans-serif",
     'teko':"'Teko',sans-serif",'righteous':"'Righteous',display",'playfair-display':"'Playfair Display',serif",
-    'cinzel':"'Cinzel',serif",'futura':'"Futura", "Jost", sans-serif','futura-100-bold':'"Futura 100 Bold", "Futura", "Jost", sans-serif',
+    'cinzel':"'Cinzel',serif",'futura':'"Futura", "Jost", sans-serif','futura-100-demibold':'"Futura 100 Demibold", "Futura", "Jost", sans-serif','futura-100-bold':'"Futura 100 Bold", "Futura", "Jost", sans-serif',
     'futura-100-bold-oblique':'"Futura 100 Bold Oblique", "Futura", "Jost", sans-serif','barlow':"'Barlow',sans-serif",
     'inter':"'Inter',sans-serif",'dm-sans':"'DM Sans',sans-serif",'outfit':"'Outfit',sans-serif",'manrope':"'Manrope',sans-serif",
     'poppins':"'Poppins',sans-serif",'lato':"'Lato',sans-serif",'roboto':"'Roboto',sans-serif",'work-sans':"'Work Sans',sans-serif",'mulish':"'Mulish',sans-serif"
@@ -112,6 +112,7 @@
     'teko':'https://fonts.googleapis.com/css2?family=Teko:wght@600;700&display=swap','righteous':'https://fonts.googleapis.com/css2?family=Righteous&display=swap',
     'playfair-display':'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&display=swap','cinzel':'https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&display=swap',
     'futura':'https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap',
+    'futura-100-demibold':'https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap',
     'futura-100-bold':'https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap',
     'futura-100-bold-oblique':'https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap',
     'inter':'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap','dm-sans':'https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap',
