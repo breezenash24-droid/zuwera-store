@@ -2927,10 +2927,14 @@ body.light-mode #mobile-menu :is(#mobile-category-links,.mobile-nav-links){
   display:flex!important;
   align-items:center!important;
   justify-content:space-between!important;
-  min-height:52px!important;
-  padding:.7rem 1.25rem!important;
+  /* A touch more vertical air (min-height 52 -> 60, padding-block .7 -> 1rem) for
+     the cleaner, roomier rhythm — categories can breathe on a full-screen menu.
+     padding-LEFT stays 1.25rem across every state so a tap never shifts the text
+     sideways. */
+  min-height:60px!important;
+  padding:1rem 1.25rem!important;
   font-family:var(--zw-font-head,'Barlow Condensed',sans-serif)!important;
-  font-size:1.35rem!important;
+  font-size:1.5rem!important;
   font-weight:700!important;
   font-style:normal!important;
   line-height:1!important;
@@ -2950,16 +2954,12 @@ body.light-mode #mobile-menu :is(#mobile-category-links,.mobile-nav-links){
 }
 
 /* Chevron replacing the old arrow */
+/* No chevron. MEN/WOMEN/NEW link straight to a page (drop001.html?category=…),
+   they don't open a submenu — so a › implied an expansion that never happens.
+   Dropped, matching Apple's menu where tapping goes straight through. */
 #mobile-menu .zw-mobile-primary-link::after{
-  content:'›'!important;
-  font-family:inherit!important;
-  font-size:1.5rem!important;
-  font-style:normal!important;
-  font-weight:300!important;
-  color:rgba(244,241,235,.3)!important;
-  margin-left:auto!important;
-  flex-shrink:0!important;
-  transition:transform .15s,color .15s!important;
+  content:none!important;
+  display:none!important;
 }
 #mobile-menu .zw-mobile-primary-link:hover::after{
   color:rgba(244,241,235,.6)!important;
@@ -4066,61 +4066,4 @@ body.super-light-mode img[src*="wordmark-nav"]{ filter:none !important; }
   min-height: 50px;
   display: flex;
   align-items: center;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   MOBILE MENU → TOP PANEL (matches the bag panel)
-
-   The menu was a full-screen right-drawer; this converts it to a top-anchored
-   dropdown like the bag: it slides DOWN from under the header, the page shows
-   through below it, and it's never full-screen. Appended at end-of-file so it
-   wins the cascade over the ~160 earlier #mobile-menu rules without editing each.
-
-   Backdrop-tap-to-close already works (mobile-menu.js: event.target === el),
-   which only becomes reachable now that the overlay is transparent and partial.
-   Theme-awareness is unchanged (the existing light/super-light panel overrides
-   still apply). Swipe-down + the 44px close button come from the prior PRs.
-
-   FIRST PASS — needs on-device iteration. Tune the numbers below (max-height,
-   corner radius, top padding) once you see it on a phone.
-   ═══════════════════════════════════════════════════════════════════════════ */
-@media (max-width:900px){
-  /* Overlay: was an opaque full-screen fill; now a transparent hit-area so the
-     page shows through and a tap below the panel closes it. */
-  #mobile-menu.zw-mobile-menu{
-    background:transparent !important;
-    align-items:flex-start !important;   /* panel sits at the top, not stretched */
-    justify-content:stretch !important;
-    overflow:hidden !important;
-  }
-
-  /* Panel: a dropdown under the header. --zw-mobile-menu-offset is the header's
-     measured bottom (set by mobile-menu.js:syncMenuOffset), so it always sits
-     flush beneath whatever header the page has. Height is content-driven up to a
-     cap, so short menus don't fill the screen and the page stays visible below. */
-  #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel{
-    height:auto !important;
-    min-height:0 !important;
-    max-height:calc(100dvh - var(--zw-mobile-menu-offset, calc(56px + env(safe-area-inset-top,0px))) - 1rem) !important;
-    margin-top:var(--zw-mobile-menu-offset, calc(56px + env(safe-area-inset-top,0px))) !important;
-    padding-top:1.4rem !important;   /* it no longer clears a full-screen header */
-    border-radius:0 0 1.25rem 1.25rem !important;   /* free edge is the bottom */
-    box-shadow:0 22px 48px rgba(0,0,0,.28) !important;
-    overscroll-behavior:contain !important;
-  }
-
-  /* Slide down from the top with the bag/sheet timing, replacing the right-drawer
-     slide (zwDrawerIn). Closed state parks above its own top edge. */
-  #mobile-menu.zw-mobile-menu.open > .zw-mobile-menu-panel{
-    animation:zwMenuDropIn .42s cubic-bezier(.32,.72,0,1) both !important;
-  }
-  #mobile-menu.zw-mobile-menu.closing > .zw-mobile-menu-panel{
-    animation:zwMenuDropOut .34s cubic-bezier(.32,.72,0,1) both !important;
-  }
-}
-@keyframes zwMenuDropIn{ from{transform:translateY(-101%)} to{transform:translateY(0)} }
-@keyframes zwMenuDropOut{ from{transform:translateY(0)} to{transform:translateY(-101%)} }
-@media (prefers-reduced-motion:reduce){
-  #mobile-menu.zw-mobile-menu.open > .zw-mobile-menu-panel,
-  #mobile-menu.zw-mobile-menu.closing > .zw-mobile-menu-panel{ animation:none !important; }
 }
