@@ -283,6 +283,18 @@
          follows all three modes. */
       '.zwf-modal-box{position:relative;background:var(--zw-page,#fff);color:var(--zw-ink,#09090b);border:1px solid rgba(128,128,128,.18);width:100%;max-width:440px;border-radius:4px;padding:2rem 1.8rem;max-height:90vh;overflow-y:auto;transform:translateY(10px);transition:transform .26s cubic-bezier(.2,.7,.2,1);box-shadow:0 24px 60px -12px rgba(0,0,0,.3)}',
       '.zwf-modal.open .zwf-modal-box{transform:none}',
+      /* Mobile = bottom sheet, like every other non-header modal. This shell is
+         .zwf-modal, not .modal > .mbox, so storefront-cohesion.css's sheet rules
+         (which key off that structure) never reached it and it stayed a centred
+         card. Values copied from that block deliberately — same corner radius, same
+         max-height accounting for the nav and the safe area, same slide timing — so
+         it feels identical to quick-add, size guide and login. The header panels
+         (search, bag) stay top-anchored; they aren't modals. */
+      '@media(max-width:900px){',
+      '  .zwf-modal{align-items:flex-end;padding:0}',
+      '  .zwf-modal-box{max-width:100%;max-height:calc(100dvh - 1.6rem - 36px - env(safe-area-inset-top,0px) - .5rem);border-radius:1.25rem 1.25rem 0 0;border-left:none;border-right:none;border-bottom:none;box-shadow:0 -8px 40px rgba(0,0,0,.28);transform:translateY(100%);transition:transform .42s cubic-bezier(.32,.72,0,1)}',
+      '  .zwf-modal.open .zwf-modal-box{transform:translateY(0)}',
+      '}',
       '.zwf-modal-x{position:absolute;top:.9rem;right:1.1rem;background:none;border:none;font-size:1.5rem;line-height:1;cursor:pointer;color:inherit;opacity:.5}',
       '.zwf-modal-x:hover{opacity:1}',
       '.zwf-modal-title{font-family:var(--fw,inherit);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.04em;font-size:1.35rem;margin:0 0 .3rem}',
