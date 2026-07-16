@@ -2589,6 +2589,61 @@
                                         <div class="font-role-sample" id="font-mono-sample" style="font-size:.7rem;letter-spacing:.2em;text-transform:uppercase">RELEASE 001 · SIZE M · $89.00</div>
                                     </div>
                                 </div>
+
+                                <!-- Heading treatment. Moved here from the builder's
+                                     "Global Theme" panel, which only reached the
+                                     homepage (storefront.js loads on index alone), so
+                                     the font lived in one panel and its weight in
+                                     another. These drive --zw-fw-head / --zw-fst-head
+                                     and the tracking/case vars, which the hero,
+                                     marquee, strip titles, card names and section
+                                     heads all read. -->
+                                <div style="margin-top:22px;padding-top:18px;border-top:1px solid var(--border)">
+                                    <div style="font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:4px">Heading treatment</div>
+                                    <p style="font-size:.78rem;color:var(--text-secondary);margin:0 0 14px;line-height:1.5">Applies to every heading on the site — hero, marquee, section headings, strip titles and product names.</p>
+                                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px">
+                                        <div>
+                                            <label style="display:block;font-size:.72rem;color:var(--text-secondary);margin-bottom:5px">Weight</label>
+                                            <select class="font-select" id="font-head-weight" onchange="onHeadingTreatChange('headingWeight',this.value)" style="width:100%">
+                                                <option value="600">Demibold (600)</option>
+                                                <option value="700">Bold (700)</option>
+                                                <option value="800">Extra Bold (800)</option>
+                                                <option value="900">Black (900)</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label style="display:block;font-size:.72rem;color:var(--text-secondary);margin-bottom:5px">Style</label>
+                                            <select class="font-select" id="font-head-style" onchange="onHeadingTreatChange('headingStyle',this.value)" style="width:100%">
+                                                <option value="italic">Italic / Oblique</option>
+                                                <option value="normal">Upright</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label style="display:block;font-size:.72rem;color:var(--text-secondary);margin-bottom:5px">Letter spacing</label>
+                                            <select class="font-select" id="font-head-tracking" onchange="onHeadingTreatChange('headingTracking',this.value)" style="width:100%">
+                                                <option value="-0.02em">Tight</option>
+                                                <option value="normal">Normal</option>
+                                                <option value="0.04em">Wide</option>
+                                                <option value="0.1em">Extra wide</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label style="display:block;font-size:.72rem;color:var(--text-secondary);margin-bottom:5px">Capitalisation</label>
+                                            <select class="font-select" id="font-head-case" onchange="onHeadingTreatChange('headingCase',this.value)" style="width:100%">
+                                                <option value="uppercase">UPPERCASE</option>
+                                                <option value="none">As typed</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label style="display:block;font-size:.72rem;color:var(--text-secondary);margin-bottom:5px">Hero intro leading</label>
+                                            <select class="font-select" id="font-body-leading" onchange="onHeadingTreatChange('bodyLineHeight',this.value)" style="width:100%">
+                                                <option value="1.45">Tight</option>
+                                                <option value="1.75">Roomy</option>
+                                                <option value="2.1">Airy</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Tab: Section Overrides -->
@@ -11050,6 +11105,19 @@
             // copies its values into roles/sections; presets are just named snapshots.
             presets: [],
             activePreset: null,
+            // Heading treatment. These used to live ONLY in the builder's "Global
+            // Theme" panel, which is applied by storefront.js — a file only
+            // index.html loads. So the one control for heading weight and style
+            // reached the homepage and nothing else, and setting a font meant using
+            // two different panels. They drive --zw-fw-head / --zw-fst-head, which
+            // five heading rules read (hero, marquee, strip titles, card names,
+            // section heads). Defaults are the previous hardcoded values, so nothing
+            // moves until they're changed.
+            headingWeight: '900',
+            headingStyle: 'italic',
+            headingTracking: 'normal',
+            headingCase: 'uppercase',
+            bodyLineHeight: '1.75',
         });
 
         let _fontsState = _defaultFontsState();
@@ -11127,6 +11195,18 @@
             document.querySelectorAll('.font-tab-content').forEach(el => el.style.display = 'none');
             const content = document.getElementById('font-tab-' + tab);
             if (content) content.style.display = 'block';
+        }
+
+        /* Heading treatment. These drive --zw-fw-head / --zw-fst-head / --zw-head-tracking
+           / --zw-head-case / --zw-body-leading, which storefront-theme.js sets on every
+           page. They used to live only in the builder's "Global Theme" panel, applied by
+           storefront.js — a file only index.html loads — so the font was set in one panel
+           and its weight in another, and the weight reached one page. */
+        function onHeadingTreatChange(key, value) {
+            _pushFontHistory();
+            _fontsState[key] = value;
+            _updateUndoUI();
+            _refreshPreview();
         }
 
         function onFontRoleChange(role, fontName) {
@@ -11483,6 +11563,14 @@
             _renderSectionOverrides();
             _renderCustomFontsList();
             _renderFontPresets();   // undo/reset/load all land here, so chips stay in step
+            // Heading treatment selects follow the same path, so undo/reset/preset
+            // switches repaint them too.
+            [['font-head-weight', 'headingWeight'], ['font-head-style', 'headingStyle'],
+             ['font-head-tracking', 'headingTracking'], ['font-head-case', 'headingCase'],
+             ['font-body-leading', 'bodyLineHeight']].forEach(([id, key]) => {
+                const el = document.getElementById(id);
+                if (el) el.value = _fontsState[key];
+            });
             _refreshPreview();
         }
 
@@ -11510,6 +11598,11 @@
                         // on load and then wiped on the next save.
                         presets: Array.isArray(data.value.presets) ? data.value.presets : [],
                         activePreset: data.value.activePreset || null,
+                        headingWeight: data.value.headingWeight || '900',
+                        headingStyle: data.value.headingStyle || 'italic',
+                        headingTracking: data.value.headingTracking || 'normal',
+                        headingCase: data.value.headingCase || 'uppercase',
+                        bodyLineHeight: data.value.bodyLineHeight || '1.75',
                     };
                     (_fontsState.custom || []).forEach(f => { if (f.url) _loadFontUrl(f.url); });
                 } else if (data && data.value && (data.value.head || data.value.body || data.value.mono)) {

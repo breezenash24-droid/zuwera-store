@@ -160,6 +160,18 @@
         if (roles.mono.url) urls.push(roles.mono.url);
       }
 
+      // Heading treatment — now owned by Admin → Typography, and applied here, which
+      // means every page. It used to live only in the builder's "Global Theme" panel,
+      // applied by storefront.js: a file only index.html loads. So heading weight and
+      // style reached the homepage and nothing else, and setting a font meant using
+      // two panels. Fallbacks are the values those rules already hardcoded, so an
+      // older saved row (no headingWeight key) renders exactly as before.
+      vars['--zw-fw-head'] = fonts.headingWeight || '900';
+      vars['--zw-fst-head'] = fonts.headingStyle || 'italic';
+      vars['--zw-head-tracking'] = fonts.headingTracking || 'normal';
+      vars['--zw-head-case'] = fonts.headingCase || 'uppercase';
+      vars['--zw-body-leading'] = fonts.bodyLineHeight || '1.75';
+
       // Custom fonts
       if (Array.isArray(fonts.custom)) {
         fonts.custom.forEach(function(f) {

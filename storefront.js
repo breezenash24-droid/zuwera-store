@@ -487,33 +487,19 @@ function showToast(msg) {
         document.documentElement.style.setProperty('--zw-paper', cfg.themeSettings.surface_color);
       }
 
-      if (cfg.themeSettings.heading_font) {
-        const stack = _FONT_STACKS[cfg.themeSettings.heading_font];
-        if (stack) {
-          document.documentElement.style.setProperty('--fw', stack);
-          document.documentElement.style.setProperty('--zw-font-head', stack);
-        }
-        _loadBuilderFont(cfg.themeSettings.heading_font);
-      }
-      if (cfg.themeSettings.body_font) {
-        const stack = _FONT_STACKS[cfg.themeSettings.body_font];
-        if (stack) {
-          document.documentElement.style.setProperty('--fb', stack);
-          document.documentElement.style.setProperty('--zw-font-body', stack);
-        }
-        _loadBuilderFont(cfg.themeSettings.body_font);
-      }
-      if (cfg.themeSettings.heading_weight) {
-        document.documentElement.style.setProperty('--zw-fw-head', cfg.themeSettings.heading_weight);
-      } else {
-        document.documentElement.style.setProperty('--zw-fw-head', '900');
-      }
-      if (cfg.themeSettings.heading_style) {
-        document.documentElement.style.setProperty('--zw-fst-head', cfg.themeSettings.heading_style);
-        document.querySelectorAll('.hero-h1, .about-h2').forEach(el => el.style.fontStyle = cfg.themeSettings.heading_style);
-      } else {
-        document.documentElement.style.setProperty('--zw-fst-head', 'italic');
-      }
+      // Type is NOT applied here any more — Admin → Typography owns it
+      // (site_settings.fonts) and storefront-theme.js applies it on every page.
+      //
+      // This block wrote the same --fw / --zw-font-head / --zw-fw-head / --zw-fst-head
+      // variables that the Typography panel writes, but only ever ran on index.html —
+      // the sole page that loads storefront.js. So the two systems raced on the
+      // homepage (both async, last one wins) and this one reached nowhere else, which
+      // is why the builder's "Global Theme" fonts appeared to do nothing everywhere
+      // but the homepage, and why setting a font meant using two panels.
+      //
+      // Safe to drop: heading_font / body_font / heading_weight / heading_style are
+      // all unset in the published config, and no section carries a font override.
+      // The builder still shows type against the live preview — it just reads now.
       if (cfg.themeSettings.content_width) {
         document.documentElement.style.setProperty('--zw-max-w', cfg.themeSettings.content_width + 'px');
       }
