@@ -419,6 +419,21 @@
     _overlay.addEventListener('click', function (e) { if (e.target === _overlay) closeSearch(); });
     var clearBtn = _overlay.querySelector('.zwf-search-clear');
     clearBtn.addEventListener('click', function () { _input.value = ''; clearBtn.hidden = true; runSearch(); _input.focus(); });
+
+    // Dismissing the keyboard dismisses the panel. On a phone the keyboard IS the
+    // search — once it's gone the panel is just a bar in the way, and there's no
+    // Close button by design. Deferred one tick and guarded on where focus landed:
+    // tapping the clear button or a result also blurs the input, and those must not
+    // count. Desktop is untouched — blur there means clicking anything at all, and
+    // the pointer/scroll dismissals already cover it.
+    _input.addEventListener('blur', function () {
+      if (isDesktop()) return;
+      setTimeout(function () {
+        if (!isOpen(_overlay)) return;
+        if (_overlay.contains(document.activeElement)) return;   // moved within the panel
+        closePanels();
+      }, 80);
+    });
     // Enter → the full catalogue, filtered. The panel is a peek; this is the
     // "show me everything" escape hatch.
     _input.addEventListener('keydown', function (e) {
@@ -467,43 +482,14 @@
     _overlay.style.top = headerBottom() + 'px';
   }
 
-  // The page must not move behind an open panel, but a scroll gesture is still
-  // how you dismiss one. Both are possible because the two are different things:
-  // the page is frozen, and the *gesture* (wheel/touchmove) is read directly.
-  // A plain scroll listener cannot do this — once the page is locked there is no
-  // scroll event left to hear.
-  //
-  // The lock uses overflow:hidden rather than body{position:fixed}: modal-lock.js
-  // spells out why the latter is wrong — it breaks position:sticky, and
-  // journal/about/account/returns all have sticky headers, which matters here
-  // because the header stays visible behind the panel. iOS still needs the fixed
-  // dance, hence the mobile branch.
-  var _lockedRoot = false, _padded = false, _scrollY = 0;
-  function lockScroll() {
-    if (isDesktop()) {
-      var sw = window.innerWidth - document.documentElement.clientWidth;
-      if (sw > 0) { document.documentElement.style.paddingRight = sw + 'px'; _padded = true; }
-      document.documentElement.style.overflow = 'hidden';
-      _lockedRoot = true;
-    } else {
-      _scrollY = window.scrollY || 0;
-      document.body.style.top = '-' + _scrollY + 'px';
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
-    }
-  }
-  function unlockScroll() {
-    if (_lockedRoot) {
-      document.documentElement.style.overflow = '';
-      if (_padded) { document.documentElement.style.paddingRight = ''; _padded = false; }
-      _lockedRoot = false;
-    } else if (document.body.style.position === 'fixed') {
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      window.scrollTo(0, _scrollY);
-    }
-  }
+  // Scroll locking is NOT done here. modal-lock.js (ZWModalScrollLock) owns it for
+  // every modal on the site: it observes class changes, tracks [role="dialog"]
+  // among others, and treats pointer-events:none as closed — which is exactly how
+  // these overlays already behave. This file used to carry its own copy, so the
+  // search panel was being locked twice (it has role="dialog") by two systems each
+  // remembering their own scroll position, and the bag was locked only by the copy.
+  // One lock, one restore. The shared lock never touches wheel/touchmove, so the
+  // gesture-to-dismiss below still works.
 
   // The header shrinks over ~350ms. Re-measure every frame while it moves so the
   // panel stays glued to it — sampling at a couple of timeouts instead left the
@@ -591,7 +577,6 @@
 
   function openSearch() {
     closePanels('search');
-    lockScroll();
     buildOverlay();
     catalog(); // warm the cache
     document.body.classList.add('zwf-searching');   // shrinks the header
@@ -612,7 +597,6 @@
     if (!_overlay) return;
     _overlay.classList.remove('open');
     document.body.classList.remove('zwf-searching');
-    unlockScroll();
     disarmScrollClose();
     window.removeEventListener('resize', syncSearchTop);
     // Keep tracking on the way out too: the header grows back while the panel
@@ -1061,6 +1045,10 @@
     if (!_fitModal) {
       _fitModal = document.createElement('div');
       _fitModal.className = 'zwf-modal';
+      // Not .modal and no role -> modal-lock.js could not see it, so this was the
+      // one modal you could scroll behind.
+      _fitModal.setAttribute('role', 'dialog');
+      _fitModal.setAttribute('aria-label', 'Find your size');
       _fitModal.innerHTML = FORM_HTML;
       document.body.appendChild(_fitModal);
       _fitModal.addEventListener('click', function (e) { if (e.target === _fitModal) closeFit(); });
@@ -1360,6 +1348,10 @@
     ensureStyles();
     _bagOverlay = document.createElement('div');
     _bagOverlay.className = 'zwf-bag';
+    // role=dialog is load-bearing: modal-lock.js tracks [role="dialog"], and that
+    // shared lock is what freezes the page now.
+    _bagOverlay.setAttribute('role', 'dialog');
+    _bagOverlay.setAttribute('aria-label', 'Bag');
     _bagOverlay.innerHTML = '<div class="zwf-bag-panel"><div class="zwf-bag-inner"></div></div>';
     document.body.appendChild(_bagOverlay);
     _bagPanel = _bagOverlay.querySelector('.zwf-bag-inner');
@@ -1392,7 +1384,9 @@
       : '<a class="zwf-bag-link" href="/?auth=signin&next=' + encodeURIComponent(location.pathname) + '">' + ICON.acct + 'Sign in</a>';
 
     _bagPanel.innerHTML = '<div class="zwf-bag-hd"><h2>Bag' + (cart.length ? ' · ' + bagMoney(total) : '') + '</h2>'
-      + '<a class="zwf-bag-review" href="/bag.html">' + (cart.length ? 'Review bag' : 'Start shopping') + '</a></div>'
+      // An empty bag has nothing to review — Start shopping goes to the catalogue,
+      // not back to the empty bag page it is standing in for.
+      + '<a class="zwf-bag-review" href="' + (cart.length ? '/bag.html' : '/drop001.html') + '">' + (cart.length ? 'Review bag' : 'Start shopping') + '</a></div>'
       + items
       + '<div class="zwf-bag-links"><h3>' + (user ? esc(user.name) : 'My profile') + '</h3>'
       + links
@@ -1408,7 +1402,6 @@
 
   function openBag() {
     closePanels('bag');
-    lockScroll();
     buildBagPanel();
     renderBagPanel();
     document.body.classList.add('zwf-searching');   // same header shrink as search
@@ -1423,7 +1416,6 @@
     _bagOverlay.classList.remove('open');
     document.body.classList.remove('zwf-searching');
     window.removeEventListener('resize', syncBagTop);
-    unlockScroll();
     disarmScrollClose();
     trackHeader(syncBagTop);
   }
