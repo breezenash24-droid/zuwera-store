@@ -137,7 +137,13 @@
       /* shared card + strip — inherit page theme (color/background from page) */
       '.zwf-strip{padding:2.5rem 0;color:inherit}',
       '.zwf-strip-inner{max-width:1400px;margin:0 auto;padding:0 clamp(1rem,4vw,2.5rem)}',
-      '.zwf-strip-title{font-family:var(--fw,inherit);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.06em;font-size:clamp(1.1rem,3vw,1.6rem);margin:0 0 1.2rem}',
+      // Weight/style come from the theme, not from here. storefront.js sets
+      // --zw-fw-head/--zw-fst-head from the admin's heading settings, and
+      // .zw-hc-heading / .zw-mg-heading already read them — this hardcoded 900
+      // italic was the odd one out, so changing the heading weight or style moved
+      // the hero and the marquee and left every strip title behind. Fallbacks keep
+      // product pages (which never load storefront.js) exactly as they are.
+      '.zwf-strip-title{font-family:var(--fw,inherit);font-weight:var(--zw-fw-head,900);font-style:var(--zw-fst-head,italic);text-transform:uppercase;letter-spacing:.06em;font-size:clamp(1.1rem,3vw,1.6rem);margin:0 0 1.2rem}',
       '.zwf-row{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(150px,1fr);gap:1rem;overflow-x:auto;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;padding-bottom:.5rem;scrollbar-width:thin}',
       '@media(min-width:900px){.zwf-row{grid-auto-columns:minmax(200px,1fr)}}',
       '.zwf-card{scroll-snap-align:start;text-decoration:none;color:inherit;display:block}',

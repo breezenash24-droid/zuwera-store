@@ -999,8 +999,13 @@ body.light-mode :is(.pcard-cat,.product-category){
 
 :is(.pcard-name,.product-name){
   font-family:var(--zw-font-head) !important;
-  font-style:italic !important;        /* match the product-page title (ZUWERA VOGUE) */
-  font-weight:900 !important;
+  /* Weight/style follow the theme's heading settings (storefront.js sets these
+     from the admin), like .zw-hc-heading and .zw-mg-heading already do. The
+     fallbacks are the previous hardcoded values, so nothing moves until someone
+     actually changes the setting — and product pages, which never load
+     storefront.js, keep the italic 900 that matches the product title. */
+  font-style:var(--zw-fst-head, italic) !important;   /* match the product-page title (ZUWERA VOGUE) */
+  font-weight:var(--zw-fw-head, 900) !important;
   font-size:1.2rem !important;
   letter-spacing:.02em !important;
   line-height:1.05 !important;
