@@ -42,8 +42,18 @@ for (const entry of fs.readdirSync(root)) {
   }
 }
 
-// Match any `filename.js?v=anything` or `filename.css?v=anything` reference.
-const assetRef = /([\w.-]+\.(?:js|css))\?v=[A-Za-z0-9_-]+/g;
+// Match a local asset reference in src="" / href="", WITH OR WITHOUT an existing
+// ?v=. The `?v=` used to be mandatory, which quietly created permanent staleness:
+// seven pages referenced `src="/storefront-features.js"` with no query at all, so
+// this never matched them, nothing ever stamped them — and _headers serves JS as
+// `immutable, max-age=31536000`. Those pages pinned a year-old copy of the file
+// and could never be updated: the bag and returns pages were still running a build
+// old enough to have the removed search Close button. A missing ?v= must be added,
+// not skipped.
+//
+// Anchoring on src="/href=" keeps external URLs out (https:// can't match the name
+// group), and hashes[name] means only files we actually ship from root are touched.
+const assetRef = /((?:src|href)=")(\/?)([\w.-]+\.(?:js|css))(?:\?v=[A-Za-z0-9_-]+)?(")/g;
 
 let changedFiles = 0;
 for (const file of htmlFiles) {
@@ -51,8 +61,8 @@ for (const file of htmlFiles) {
   if (!fs.existsSync(fp)) continue;
 
   const original = fs.readFileSync(fp, 'utf8');
-  const updated = original.replace(assetRef, (match, name) => {
-    return hashes[name] ? `${name}?v=${hashes[name]}` : match;
+  const updated = original.replace(assetRef, (match, attr, slash, name, close) => {
+    return hashes[name] ? `${attr}${slash}${name}?v=${hashes[name]}${close}` : match;
   });
 
   if (updated !== original) {
