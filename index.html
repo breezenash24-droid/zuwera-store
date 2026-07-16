@@ -800,9 +800,22 @@ html.zw-boot-white #zw-boot{background:#FFFFFF!important}
   padding-bottom:1rem;border-bottom:1px solid rgba(244,241,235,.08);
   margin-bottom:2.5rem;
 }
+/* A section heading, like every other section heading. This was the last one
+   reading --fm (the MONO stack) at a hardcoded weight 400 and .68rem, so the
+   homepage showed an 11px mono label above one section and 26px display type above
+   the next — two systems on one page, and Design → Appearance's Heading
+   Font/Weight/Style moved every heading except this one.
+
+   Matches .zwf-strip-title exactly (storefront-features.js) so the strips and the
+   static sections are peers, and all five headings — hero, marquee, strips, card
+   names, this — now answer to the same three dropdowns. */
 .sec-head h2{
-  font-family:var(--fm);font-weight:400;
-  font-size:.68rem;letter-spacing:.22em;text-transform:uppercase;
+  font-family:var(--fw);
+  font-weight:var(--zw-fw-head, 900);
+  font-style:var(--zw-fst-head, italic);
+  font-size:clamp(1.1rem,3vw,1.6rem);
+  letter-spacing:.06em;
+  text-transform:uppercase;
 }
 .sec-head span{
   font-family:var(--fm);font-size:.58rem;letter-spacing:.15em;
