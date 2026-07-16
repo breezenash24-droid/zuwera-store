@@ -3013,12 +3013,12 @@ body.light-mode .zw-mobile-menu-secondary{
   background:rgba(244,241,235,.03)!important;
 }
 #mobile-menu .zw-mobile-secondary-link:active{color:rgba(244,241,235,.7)!important;}
+/* No chevron on the utility links either. Account / Track order / Support / Bag /
+   Size guide all go straight to a page, same as the categories — so for a uniform,
+   clean menu the › is dropped here too, not just on the primary links. */
 #mobile-menu .zw-mobile-secondary-link::after{
-  content:'›'!important;
-  font-size:.85rem!important;
-  font-weight:300!important;
-  opacity:.28!important;
-  flex-shrink:0!important;
+  content:none!important;
+  display:none!important;
 }
 body.light-mode #mobile-menu .zw-mobile-secondary-link{
   color:rgba(9,9,11,.38)!important;
