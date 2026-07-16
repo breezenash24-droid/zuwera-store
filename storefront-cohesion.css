@@ -2461,8 +2461,12 @@ body.super-light-mode #mobile-menu .zw-mobile-primary-link:last-child{
 
 #mobile-menu .zw-mobile-primary-link:hover,
 #mobile-menu .zw-mobile-primary-link:focus-visible{
+  /* Colour only — NO padding change. The base is padding:.7rem 1.25rem, and this
+     rule used to drop padding-left to 0, which slid the text left. On desktop that
+     was a hover animation; on touch a tap fires :hover instantly, so MEN/WOMEN/NEW
+     visibly jumped left when pressed. Tapping should just dim/highlight, not move —
+     the colour shift here plus the :active background is the whole feedback. */
   color:var(--zw-accent) !important;
-  padding-left:0 !important;
 }
 
 #mobile-menu .zw-mobile-menu-secondary{
