@@ -94,8 +94,10 @@ const checks = [
   },
   {
     name: 'Product page Size Guide opens modal',
-    pass: () => /id="sizeGuideLink"[^>]*openSizeGuideModal/.test(files.product)
-      && /id="viewSizeGuideBtn"[^>]*openSizeGuideModal/.test(files.product),
+    // The Select Size row used to carry a second link to the same modal; it was
+    // removed as a duplicate. The guard stands — the surviving entry point must
+    // still open the modal rather than navigating away to sizeguide.html.
+    pass: () => /id="viewSizeGuideBtn"[^>]*openSizeGuideModal/.test(files.product),
   },
   {
     name: 'Product controls render before media and reviews finish loading',
