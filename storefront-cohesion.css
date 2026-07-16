@@ -2875,15 +2875,18 @@ body.light-mode .zw-mobile-menu-top{border-bottom-color:rgba(9,9,11,.08)!importa
 }
 body.light-mode .zw-mobile-menu-kicker{color:rgba(9,9,11,.35)!important;}
 
-/* Close button: visible, top-right of panel */
+/* Close button: matches .mclose — the 44px square, bordered, tinted close every
+   other modal uses — so the menu's X reads as the same control as the rest of the
+   site rather than a smaller one-off. Was 36px transparent; now 44px with the same
+   faint fill .mclose carries. */
 #mobile-menu .zw-mobile-menu-close{
   display:flex!important;
   position:relative!important;
   top:auto!important; right:auto!important;
-  width:36px!important; height:36px!important;
-  min-height:36px!important;
-  border:1px solid rgba(244,241,235,.14)!important;
-  background:transparent!important;
+  width:44px!important; height:44px!important;
+  min-height:44px!important;
+  border:1px solid rgba(244,241,235,.1)!important;
+  background:rgba(9,9,11,.7)!important;
   border-radius:0!important;
   color:rgba(244,241,235,.55)!important;
   flex-shrink:0!important;
@@ -2894,8 +2897,13 @@ body.light-mode .zw-mobile-menu-kicker{color:rgba(9,9,11,.35)!important;}
   width:16px!important;
   height:1.5px!important;
 }
-body.light-mode #mobile-menu .zw-mobile-menu-close{
+body.light-mode #mobile-menu .zw-mobile-menu-close,
+body.super-light-mode #mobile-menu .zw-mobile-menu-close{
+  /* Light-theme fill for the 44px close, matching .mclose. Must live AFTER the base
+     rule above (which sets the dark rgba fill) or the dark box would show on the
+     white menu. */
   border-color:rgba(9,9,11,.12)!important;
+  background:rgba(9,9,11,.05)!important;
   color:rgba(9,9,11,.5)!important;
 }
 
