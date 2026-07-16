@@ -54,15 +54,14 @@ function hasDuplicateIds(html) {
 
 const checks = [
   {
-    // Was "full-screen overlay". The menu is now a top-anchored dropdown panel
-    // (matches the bag): slides down from under the header, page shows through
-    // below, backdrop transparent. The conversion is an end-of-file override, so
-    // this asserts the NEW markers rather than the old height:100dvh — the wiring,
-    // theme-aware panel, and shared markup checks below still hold.
-    name: 'Mobile hamburger menu opens as a top-anchored panel (bag-style)',
-    pass: () => /@keyframes zwMenuDropIn\{[\s\S]*translateY\(-101%\)/.test(files.cohesion)
-      && /#mobile-menu\.zw-mobile-menu\{[\s\S]*background:transparent/.test(files.cohesion)
-      && /#mobile-menu\.zw-mobile-menu > \.zw-mobile-menu-panel\{[\s\S]*max-height:calc\(100dvh - var\(--zw-mobile-menu-offset/.test(files.cohesion)
+    // The menu is a full-screen overlay (the top-panel experiment in #192 was
+    // reverted — a menu with this much content reads better full-screen, matching
+    // Apple). Primary links go straight to pages, so the chevron was dropped
+    // (content:none). Asserts full-screen + no chevron + the wiring/theme checks.
+    name: 'Mobile hamburger menu opens as a full-screen overlay',
+    pass: () => /#mobile-menu\.zw-mobile-menu\{[\s\S]*height:100dvh/.test(files.cohesion)
+      && /#mobile-menu \.zw-mobile-primary-link::after\{[\s\S]*content:none/.test(files.cohesion)
+      && /#mobile-menu\.zw-mobile-menu\{[\s\S]*background:var\(--zw-ink/.test(files.cohesion)
       && /ZUWERA technical mobile hamburger menu/.test(files.cohesion)
       && /zw-mobile-primary-link/.test(files.index + files.product + files.drop)
       && /zw-mobile-secondary-link/.test(files.index + files.product + files.drop)
