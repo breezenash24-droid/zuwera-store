@@ -2489,6 +2489,7 @@ body.super-light-mode #mobile-menu .zw-mobile-menu-secondary{
 #mobile-menu .zw-mobile-secondary-link{
   min-height:48px !important;
   padding:.8rem .85rem !important;
+  text-decoration:none !important;   /* same <a> default underline, off */
   display:flex !important;
   align-items:center !important;
   justify-content:space-between !important;
@@ -2804,10 +2805,15 @@ body.light-mode .zw-lang-trigger:hover{
 }
 
 /* Panel: partial width, slides in from the RIGHT */
+/* Full-screen panel. This was width:84%/max-width:360px — a right-drawer that left
+   a strip of the page showing on the left. A menu with this much content reads
+   better full-screen (matches Apple), so it now fills the viewport: no width cap,
+   no left border or side shadow, edge to edge. */
 #mobile-menu.zw-mobile-menu>.zw-mobile-menu-panel{
   position:relative!important;
-  width:84%!important;
-  max-width:360px!important;
+  width:100%!important;
+  width:100dvw!important;
+  max-width:100%!important;
   min-width:0!important;
   min-height:100dvh!important;
   height:100dvh!important;
@@ -2819,10 +2825,10 @@ body.light-mode .zw-lang-trigger:hover{
   flex-direction:column!important;
   gap:0!important;
   background:var(--zw-ink,#09090b)!important;
-  border-left:1px solid rgba(244,241,235,.09)!important;
+  border-left:none!important;
   border-right:none!important;
   border-radius:0!important;
-  box-shadow:-16px 0 40px rgba(0,0,0,.35)!important;
+  box-shadow:none!important;
   overflow-y:auto!important;
   overflow-x:hidden!important;
   overscroll-behavior:contain!important;
@@ -2840,12 +2846,18 @@ body.super-light-mode #mobile-menu.zw-mobile-menu>.zw-mobile-menu-panel{
 }
 
 /* Panel open animation: smoother slide from the RIGHT */
+/* Full-screen entrance: a quick fade with a small rise, not a slide from the right.
+   On a full-width panel a translateX slide reads as the whole page swiping across;
+   a fade is what a full-screen menu (Apple's included) uses. */
 #mobile-menu.zw-mobile-menu.open>.zw-mobile-menu-panel{
-  animation:zwDrawerIn .3s cubic-bezier(.25,.46,.45,.94) both!important;
+  animation:zwDrawerIn .28s cubic-bezier(.32,.72,0,1) both!important;
 }
 @keyframes zwDrawerIn{
-  from{transform:translateX(100%);opacity:.85}
-  to{transform:translateX(0);opacity:1}
+  from{transform:translateY(-8px);opacity:0}
+  to{transform:translateY(0);opacity:1}
+}
+@media (prefers-reduced-motion:reduce){
+  #mobile-menu.zw-mobile-menu.open>.zw-mobile-menu-panel{ animation:none!important; }
 }
 
 /* ── Header row ── */
@@ -2945,6 +2957,9 @@ body.light-mode #mobile-menu :is(#mobile-category-links,.mobile-nav-links){
      sideways. */
   min-height:60px!important;
   padding:1rem 1.25rem!important;
+  /* <a> defaults to underline; nothing set text-decoration, so MEN/WOMEN/NEW showed
+     an underline under each. Off — the row is clearly tappable without it. */
+  text-decoration:none!important;
   font-family:var(--zw-font-head,'Barlow Condensed',sans-serif)!important;
   font-size:1.5rem!important;
   font-weight:700!important;
