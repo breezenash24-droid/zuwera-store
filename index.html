@@ -429,9 +429,10 @@ nav#nav.scrolled{
   position:absolute;left:0;right:0;margin:0 auto;width:fit-content;
   display:flex;align-items:center;gap:2.4rem;
 }
+/* Size/weight/tracking live once, in storefront-cohesion.css's .nav-link. They were
+   duplicated here at 1.7rem/900 and, being later in source order, would override it. */
 .nav-link{
-font-size:1.7rem;font-weight:900;font-style:normal;
-  letter-spacing:.02em;text-transform:uppercase;line-height:1;
+  text-transform:uppercase;line-height:1;
   color:#f4f1eb;text-decoration:none;transition:color .2s;opacity:.92;
   /* Bigger click/tap target — padding makes the hitbox extend well beyond the
      glyphs. Negative vertical margin keeps the taller box from growing the nav. */
