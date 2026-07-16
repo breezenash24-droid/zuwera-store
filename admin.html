@@ -10972,6 +10972,13 @@
                 { name: 'Anton',            stack: "'Anton', sans-serif",            url: 'https://fonts.googleapis.com/css2?family=Anton&display=swap' },
                 { name: 'League Gothic',    stack: "'League Gothic', sans-serif",    url: 'https://fonts.googleapis.com/css2?family=League+Gothic&display=swap' },
                 { name: 'Michroma',         stack: "'Michroma', sans-serif",         url: 'https://fonts.googleapis.com/css2?family=Michroma&display=swap' },
+                // Futura is commercial and not on Google Fonts, so the stack tries the
+                // exact local cut, then any local Futura, then loads Jost — the open
+                // geometric substitute the other Futura entries already fall back to.
+                // Jost is variable 400-900, so 600 (Demibold) exists for visitors
+                // without Futura installed. The name alone doesn't set weight: pair it
+                // with Design → Appearance → Heading Weight → Demibold (600).
+                { name: 'Futura 100 Demibold', stack: '"Futura 100 Demibold", "Futura", "Jost", sans-serif', url: 'https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap' },
                 { name: 'Exo 2',            stack: "'Exo 2', sans-serif",            url: 'https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,400;0,700;1,900&display=swap' },
             ],
             body: [
