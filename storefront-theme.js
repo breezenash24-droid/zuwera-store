@@ -124,20 +124,29 @@
     if (fonts.roles) {
       var roles = fonts.roles;
 
+      // --zw-font-* is NOT optional. storefront-cohesion.css reads those names in
+      // 14 rules — and they're the !important ones that decide .nav-link, .nbtn,
+      // .pcard-name, .pcard-price, .pcard-cat. Setting only the legacy --fw/--fb/--fm
+      // meant a role change here landed on names those rules never read, so picking
+      // a new font in Admin → Typography visibly did nothing to half the page.
+      // storefront.js's theme path already sets both; this one didn't.
       if (roles.head && roles.head.stack) {
         vars['--font-head'] = roles.head.stack;
         vars['--font-display'] = roles.head.stack;
         vars['--fw'] = roles.head.stack;
+        vars['--zw-font-head'] = roles.head.stack;
         if (roles.head.url) urls.push(roles.head.url);
       }
       if (roles.body && roles.body.stack) {
         vars['--font-body'] = roles.body.stack;
         vars['--fb'] = roles.body.stack;
+        vars['--zw-font-body'] = roles.body.stack;
         if (roles.body.url) urls.push(roles.body.url);
       }
       if (roles.mono && roles.mono.stack) {
         vars['--font-mono'] = roles.mono.stack;
         vars['--fm'] = roles.mono.stack;
+        vars['--zw-font-mono'] = roles.mono.stack;
         if (roles.mono.url) urls.push(roles.mono.url);
       }
 
@@ -167,6 +176,7 @@
         vars['--font-head'] = headStack;
         vars['--font-display'] = headStack;
         vars['--fw'] = headStack;
+        vars['--zw-font-head'] = headStack;   // cohesion's !important rules read this name
         var headUrl = LEGACY_FONT_URLS[fonts.head] || _buildGoogleFontUrl(fonts.head);
         urls.push(headUrl);
       }
@@ -174,6 +184,7 @@
         var bodyStack = LEGACY_FONT_STACKS[fonts.body] || ("'" + fonts.body + "', sans-serif");
         vars['--font-body'] = bodyStack;
         vars['--fb'] = bodyStack;
+        vars['--zw-font-body'] = bodyStack;
         var bodyUrl = LEGACY_FONT_URLS[fonts.body] || _buildGoogleFontUrl(fonts.body);
         urls.push(bodyUrl);
       }
@@ -181,6 +192,7 @@
         var monoStack = LEGACY_FONT_STACKS[fonts.mono] || ("'" + fonts.mono + "', monospace");
         vars['--font-mono'] = monoStack;
         vars['--fm'] = monoStack;
+        vars['--zw-font-mono'] = monoStack;
         var monoUrl = LEGACY_FONT_URLS[fonts.mono] || _buildGoogleFontUrl(fonts.mono);
         urls.push(monoUrl);
       }
