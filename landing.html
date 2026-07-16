@@ -92,10 +92,10 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
       --black:#09090b; --white:#f4f1eb;
-      --font-head:'Barlow Condensed',sans-serif;
-      --font-body:'Barlow',sans-serif;
-      --font-mono:'IBM Plex Mono',monospace;
-      --fw:var(--font-head); --fb:var(--font-body); --fm:var(--font-mono);
+      --font-head:var(--zw-font-head, 'Barlow Condensed',sans-serif);
+      --font-body:var(--zw-font-body, 'Barlow',sans-serif);
+      --font-mono:var(--zw-font-mono, 'IBM Plex Mono',monospace);
+      --fw: var(--zw-font-head, var(--font-head)); --fb: var(--zw-font-body, var(--font-body)); --fm: var(--zw-font-mono, var(--font-mono));
       --border:rgba(244,241,235,0.1);
     }
     body { background:var(--black); color:var(--white); font-family:var(--font-body); font-weight:300; overflow-x:clip; }

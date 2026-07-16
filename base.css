@@ -11,13 +11,13 @@
   --accent: #F891A5;
 
   /* ── Fonts ── */
-  --font-display: 'Barlow Condensed', sans-serif;  /* hero / large display text */
-  --font-head:    'Barlow Condensed', sans-serif;  /* section headings */
-  --font-body:    'Barlow', sans-serif;             /* body copy, UI prose */
-  --font-mono:    'IBM Plex Mono', monospace;       /* labels, tags, data */
-  --fw: var(--font-head);
-  --fb: var(--font-body);
-  --fm: var(--font-mono);
+  --font-display: var(--zw-font-head, 'Barlow Condensed', sans-serif);  /* hero / large display text */
+  --font-head:    var(--zw-font-head, 'Barlow Condensed', sans-serif);  /* section headings */
+  --font-body:    var(--zw-font-body, 'Barlow', sans-serif);             /* body copy, UI prose */
+  --font-mono:    var(--zw-font-mono, 'IBM Plex Mono', monospace);       /* labels, tags, data */
+  --fw:var(--zw-font-head, var(--font-head));
+  --fb:var(--zw-font-body, var(--font-body));
+  --fm:var(--zw-font-mono, var(--font-mono));
 
   /* ── Type scale ── */
   --text-hero:    clamp(3.5rem, 8vw, 6rem);

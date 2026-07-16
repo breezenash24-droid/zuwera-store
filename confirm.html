@@ -42,12 +42,12 @@
     --black: #09090b;
     --white: #f4f1eb;
     --pink:  #F891A5;
-    --font-head: 'Barlow Condensed', sans-serif;
-    --font-body: 'Barlow', sans-serif;
-    --font-mono: 'IBM Plex Mono', monospace;
-    --fw: var(--font-head);
-    --fb: var(--font-body);
-    --fm: var(--font-mono);
+    --font-head: var(--zw-font-head, 'Barlow Condensed', sans-serif);
+    --font-body: var(--zw-font-body, 'Barlow', sans-serif);
+    --font-mono: var(--zw-font-mono, 'IBM Plex Mono', monospace);
+    --fw:var(--zw-font-head, var(--font-head));
+    --fb:var(--zw-font-body, var(--font-body));
+    --fm:var(--zw-font-mono, var(--font-mono));
   }
 
   html, body {
