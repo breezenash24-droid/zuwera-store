@@ -19,6 +19,7 @@ const files = {
   admin: read('admin.html'),
   cohesion: read('storefront-cohesion.css'),
   mobileMenu: read('mobile-menu.js'),
+  storefrontTheme: read('storefront-theme.js'),
   lang: read('lang.js'),
   imageUtils: read('image-utils.js'),
   imageConfig: read('functions/api/image-config.js'),
@@ -91,6 +92,25 @@ const checks = [
     name: 'Homepage footer Size Guide goes to dedicated page',
     pass: () => /<a(?=[^>]*id="footer-size-guide-link")(?=[^>]*href="\/sizeguide\.html")[^>]*>Size Guide<\/a>/.test(files.index)
       && !/id="footer-size-guide-link"[^>]*openSizeGuideModal/.test(files.index),
+  },
+  {
+    // The Typography panel's selectors live twice: admin.html's SECTION_DEFS (drives
+    // the admin preview) and storefront-theme.js's SECTION_SELECTORS (the only one
+    // that reaches the page). They drifted silently — 'nav' listed .nav-link in the
+    // admin and not on the storefront, so styling the header categories saved a
+    // setting that did nothing. Nobody could see that by reading either file alone.
+    name: 'Typography selector maps agree (admin SECTION_DEFS === storefront SECTION_SELECTORS)',
+    pass: () => {
+      const store = {};
+      const block = (files.storefrontTheme.match(/var SECTION_SELECTORS = \{([\s\S]*?)\};/) || [])[1];
+      if (!block) return false;
+      block.replace(/'([a-z-]+)':\s*'([^']*)'/g, (m, k, v) => { store[k] = v.replace(/\s+/g, ' ').trim(); return ''; });
+      const admin = {};
+      files.admin.replace(/id:\s*'([a-z-]+)',[^}]*?cssSel:\s*'([^']*)'/g, (m, k, v) => { admin[k] = v.replace(/\s+/g, ' ').trim(); return ''; });
+      const ids = Object.keys(store);
+      if (!ids.length) return false;
+      return ids.every((id) => admin[id] === store[id]);
+    },
   },
   {
     name: 'Product page Size Guide opens modal',

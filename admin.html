@@ -10993,7 +10993,13 @@
 
         const SECTION_DEFS = [
             { id: 'logo',         label: 'Logo / Wordmark',  role: 'head', sample: 'ZUWERA',                      cssSel: '.flogo, .nav-logo span, .zw-nav-logo span',       previewEl: '.fp-wordmark',             previewAll: false },
-            { id: 'nav',          label: 'Navigation Links',  role: 'mono', sample: 'SHOP · DROP 001 · BAG',       cssSel: '.nav-link, .nbtn, .mobile-nav-link, .zw-mobile-primary-link', previewEl: '.fp-navlink',              previewAll: true  },
+            // HEADER. Keep every cssSel below in lockstep with SECTION_SELECTORS in
+            // storefront-theme.js — that map is what actually reaches the page, and
+            // this one only drives the admin preview. They had already drifted: this
+            // listed .nav-link, the storefront's did not, so styling the categories
+            // here saved a setting that never applied to the header.
+            { id: 'nav',          label: 'Header Categories',  role: 'mono', sample: 'MEN · WOMEN · NEW',            cssSel: '.nav-link, .nbtn, .mobile-nav-link, .zw-mobile-primary-link, .zw-macc-toggle', previewEl: '.fp-navlink',              previewAll: true  },
+            { id: 'subnav',       label: 'Header Subcategories', role: 'head', sample: 'SWEATPANTS · JACKETS · SOCKS', cssSel: '.zw-mega-col a, .zw-mega-col h4, .zw-macc-panel a', previewEl: null,                       previewAll: false },
             { id: 'announce',     label: 'Announcement Bar',  role: 'mono', sample: 'FREE SHIPPING OVER $100',     cssSel: '#announcementText',                                previewEl: '.fp-announce',             previewAll: false },
             { id: 'hero-title',   label: 'Hero Heading',      role: 'head', sample: 'FOR THOSE WHO DREAM.',        cssSel: '.hero-h1',                                         previewEl: '.fp-heading',              previewAll: false },
             { id: 'hero-sub',     label: 'Hero Subtext',      role: 'body', sample: 'Bold athletic sportswear.',   cssSel: '.hero-sub',                                        previewEl: '.fp-subtext',              previewAll: false },
