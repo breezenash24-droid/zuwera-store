@@ -1013,11 +1013,18 @@ function renderThemeTab(container){
     ${colorF2('page_bg','Page Background',g.page_bg||'#09090b')}
     ${colorF2('surface_color','Card / Section Background',g.surface_color||'#111113')}
     <div class="fdiv"></div>
+    <!-- Typography is READ-ONLY here on purpose. It used to be editable in this panel
+         AND in Admin → Typography, both writing the same CSS variables — but this one
+         is applied by storefront.js, which only index.html loads. So these controls
+         reached the homepage and nothing else, while the panel labelled "Global Theme"
+         implied otherwise, and choosing a font meant visiting two places.
+         Kept visible because the preview beside it is the point: you can see the type
+         in situ. Editing happens in one place. -->
     <div class="tab-hd" style="margin-top:.2rem">Typography</div>
-    ${sel2('heading_font','Heading Font',g.heading_font||'barlow-condensed',[['barlow-condensed','Barlow Condensed (default)'],['oswald','Oswald — Bold & Geometric'],['bebas-neue','Bebas Neue — All-Caps Display'],['anton','Anton — Heavy Impact'],['league-gothic','League Gothic — Condensed'],['michroma','Michroma — Technical'],['montserrat','Montserrat — Bold & Premium'],['syne','Syne — Edgy & Modern'],['archivo-black','Archivo Black — Heavy'],['teko','Teko — Tall & Industrial'],['righteous','Righteous — Retro & Groovy'],['playfair-display','Playfair Display — High Fashion Serif'],['cinzel','Cinzel — Cinematic Serif'],['futura','Futura — Classic Geometric'],['futura-100-demibold','Futura 100 Demibold'],['futura-100-bold','Futura 100 Bold'],['futura-100-bold-oblique','Futura 100 Bold Oblique']])}
-    ${sel2('body_font','Body Font',g.body_font||'barlow',[['barlow','Barlow (default)'],['inter','Inter — Clean & Modern'],['dm-sans','DM Sans — Geometric'],['outfit','Outfit — Rounded'],['manrope','Manrope — Contemporary'],['poppins','Poppins — Friendly & Round'],['lato','Lato — Classic sans-serif'],['roboto','Roboto — Standard'],['work-sans','Work Sans — Clean'],['mulish','Mulish — Minimalist'],['futura','Futura — Classic Geometric'],['futura-100-demibold','Futura 100 Demibold'],['futura-100-bold','Futura 100 Bold'],['futura-100-bold-oblique','Futura 100 Bold Oblique']])}
-    ${sel2('heading_weight','Heading Weight',g.heading_weight||'900',[['600','Demibold (600)'],['700','Bold (700)'],['800','Extra Bold (800)'],['900','Black (900, default)']])}
-    ${sel2('heading_style','Heading Style',g.heading_style||'italic',[['italic','Italic / Oblique (default)'],['normal','Upright']])}
+    <div id="typoMirror" style="border:1px solid var(--bd);border-radius:3px;padding:.6rem .7rem;font-size:.62rem;line-height:1.9">
+      <div style="opacity:.55">Loading…</div>
+    </div>
+    <a href="/admin.html#fonts" target="_blank" rel="noopener" class="apply-btn" style="display:block;text-align:center;margin-top:.4rem;text-decoration:none">Edit in Admin → Typography</a>
     <div class="fdiv"></div>
     <div class="tab-hd" style="margin-top:.2rem">Layout</div>
     ${sel2('content_width','Content Max Width',g.content_width||'1100',[['900','Narrow (900px)'],['1100','Standard (1100px)'],['1200','Wide (1200px)'],['1400','Full Width (1400px)']])}
@@ -1033,12 +1040,39 @@ function renderThemeTab(container){
     <div class="field"><label>Additional CSS (applied site-wide)</label><textarea id="custom_css" rows="6" style="font-family:'IBM Plex Mono',monospace;font-size:.6rem" placeholder="/* your CSS */">${he(g.custom_css||'')}</textarea></div>
     <button onclick="saveTheme()" class="apply-btn" style="margin-top:.3rem">💾 Save Theme Settings</button>
   </div>`;
+  renderTypoMirror();   // fills the read-only Typography block from site_settings.fonts
   // wire events — update themeSettings and auto-preview on every change/input
   container.querySelectorAll('input,select,textarea').forEach(el=>{
     const sync=()=>{const k=el.dataset.k||el.id;if(k)themeSettings[k]=el.type==='checkbox'?el.checked:el.value;schedSend();};
     el.addEventListener('change',sync);
     el.addEventListener('input',sync);
   });
+}
+
+/* Show what Admin → Typography currently says, right next to the live preview.
+   Reads the same site_settings.fonts row the storefront reads, so it can never drift
+   from what the page actually renders — which is exactly what went wrong when this
+   panel had its own copy of these settings. */
+async function renderTypoMirror(){
+  const el=document.getElementById('typoMirror');
+  if(!el) return;
+  try{
+    const {data}=await sb.from('site_settings').select('value').eq('key','fonts').maybeSingle();
+    const v=(data&&data.value)||{};
+    const r=v.roles||{};
+    const row=(label,val)=>'<div style="display:flex;justify-content:space-between;gap:.6rem"><span style="opacity:.55">'+label+'</span><span style="text-align:right">'+he(val||'—')+'</span></div>';
+    const secs=Object.keys(v.sections||{}).filter(k=>v.sections[k]&&v.sections[k].stack).length;
+    el.innerHTML=
+      row('Heading',(r.head&&r.head.name)||'Barlow Condensed')
+      +row('Body',(r.body&&r.body.name)||'Barlow')
+      +row('Labels / Mono',(r.mono&&r.mono.name)||'IBM Plex Mono')
+      +row('Heading weight',v.headingWeight||'900')
+      +row('Heading style',v.headingStyle||'italic')
+      +(secs?row('Section overrides',secs+' set'):'')
+      +((v.presets||[]).length?row('Combinations',(v.presets||[]).length+' saved'):'');
+  }catch(e){
+    el.innerHTML='<div style="opacity:.55">Couldn’t load — check Admin → Typography.</div>';
+  }
 }
 
 async function saveTheme(){

@@ -1039,9 +1039,12 @@ body.light-mode :is(.pcard-cat,.product-category){
   font-style:var(--zw-fst-head, italic) !important;   /* match the product-page title (ZUWERA VOGUE) */
   font-weight:var(--zw-fw-head, 900) !important;
   font-size:1.2rem !important;
-  letter-spacing:.02em !important;
+  /* letter-spacing/text-transform follow Admin → Typography's heading treatment,
+     like weight/style above. Fallbacks are the previous fixed values, so an older
+     saved row renders unchanged. */
+  letter-spacing:var(--zw-head-tracking, .02em) !important;
   line-height:1.05 !important;
-  text-transform:uppercase !important;
+  text-transform:var(--zw-head-case, uppercase) !important;
   margin-bottom:.28rem !important;
 }
 
@@ -3730,7 +3733,7 @@ video.zw-hc-media, picture.zw-hc-media img { object-position: var(--zwh-pos, cen
 .zw-hc-content { transition: opacity .3s ease; }
 .zw-hc-slide.zw-hc-await .zw-hc-content { opacity: 0; transition: none; }
 .zw-hc-eyebrow { font-family:var(--fw); font-size:clamp(.9rem,2vw,1.3rem); font-weight:900; font-style:italic; letter-spacing:.12em; margin-bottom:.5rem; text-shadow:0 2px 8px rgba(0,0,0,.3); }
-.zw-hc-heading { font-family:var(--fw); font-size:clamp(2.5rem,8vw,5.5rem); font-weight:var(--zw-fw-head, 900); font-style:var(--zw-fst-head, italic); text-transform:uppercase; line-height:.95; letter-spacing:.04em; margin-bottom:1rem; text-shadow:0 2px 8px rgba(0,0,0,.3); }
+.zw-hc-heading { font-family:var(--fw); font-size:clamp(2.5rem,8vw,5.5rem); font-weight:var(--zw-fw-head, 900); font-style:var(--zw-fst-head, italic); text-transform:var(--zw-head-case, uppercase); line-height:.95; letter-spacing:var(--zw-head-tracking, .04em); margin-bottom:1rem; text-shadow:0 2px 8px rgba(0,0,0,.3); }
 .zw-hc-subtext { font-family:var(--fb); font-size:clamp(.95rem,2vw,1.1rem); opacity:.85; max-width:600px; margin-bottom:2rem; line-height:1.6; text-shadow:0 1px 4px rgba(0,0,0,.3); }
 .zw-hc-cta { display:inline-block; padding:.85rem 2.2rem; font-family:var(--fm); font-size:.7rem; font-weight:700; letter-spacing:.16em; text-transform:uppercase; text-decoration:none; transition:all .2s; border-radius:var(--zw-radius-control, 0); }
 .zw-hc-cta.btn-solid { background:var(--paper); color:var(--ink); border:1px solid var(--paper); }
@@ -3795,7 +3798,7 @@ video.zw-hc-media, picture.zw-hc-media img { object-position: var(--zwh-pos, cen
    BUILDER: MEDIA GRID
 ────────────────────────────────────────────────────────────────────────── */
 .builder-media-grid-section { position:relative; }
-.zw-mg-heading { font-family:var(--fw); font-size:clamp(1.6rem,4vw,2.4rem); letter-spacing:.08em; text-transform:uppercase; font-weight:var(--zw-fw-head, 900); font-style:var(--zw-fst-head, italic); margin-bottom:2rem; }
+.zw-mg-heading { font-family:var(--fw); font-size:clamp(1.6rem,4vw,2.4rem); letter-spacing:var(--zw-head-tracking, .08em); text-transform:var(--zw-head-case, uppercase); font-weight:var(--zw-fw-head, 900); font-style:var(--zw-fst-head, italic); margin-bottom:2rem; }
 .zw-mg-media-wrap { position:relative; overflow:hidden; }
 .zw-mg-media { display:block; width:100%; object-fit:cover; transition:transform .5s ease; }
 .zw-mg-card:hover .zw-mg-media { transform:scale(var(--zw-zoom-media, 1.03)); }
