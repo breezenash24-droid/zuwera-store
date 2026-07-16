@@ -99,6 +99,27 @@ const checks = [
     // that reaches the page). They drifted silently — 'nav' listed .nav-link in the
     // admin and not on the storefront, so styling the header categories saved a
     // setting that did nothing. Nobody could see that by reading either file alone.
+    // _headers serves .js/.css as `immutable, max-age=31536000`, so a reference with
+    // no ?v= can never be updated — the browser keeps its copy for a year. Seven
+    // pages shipped `src="/storefront-features.js"` bare and were pinned to a build
+    // old enough to still have the removed search Close button. bump-cache-version
+    // now stamps unversioned refs too; this fails the build if one ever ships that
+    // the stamper wouldn't catch.
+    name: 'Every local js/css reference is cache-bustable (has ?v=)',
+    pass: () => {
+      const fs2 = require('fs');
+      const root2 = path.resolve(__dirname, '..');
+      const pages = fs2.readdirSync(root2).filter((f) => f.endsWith('.html'));
+      return pages.every((f) => {
+        const s = fs2.readFileSync(path.join(root2, f), 'utf8');
+        const bare = [...s.matchAll(/(?:src|href)="(\/?[\w.-]+\.(?:js|css))"/gi)]
+          .map((m) => m[1].replace(/^\//, ''))
+          .filter((u) => !/^https?:/.test(u) && fs2.existsSync(path.join(root2, u)));
+        return bare.length === 0;
+      });
+    },
+  },
+  {
     name: 'Typography selector maps agree (admin SECTION_DEFS === storefront SECTION_SELECTORS)',
     pass: () => {
       const store = {};
