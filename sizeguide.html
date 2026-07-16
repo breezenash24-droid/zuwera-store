@@ -1425,10 +1425,8 @@
 </footer>
 
   <!-- COOKIE CONSENT -->
-  <div class="cookie-consent" id="cookieConsent">
-    <div class="cookie-text">
-      We use cookies to improve your experience. By continuing to use this site, you consent to our use of cookies stored in your browser.
-    </div>
+  <!-- Cookie banner: consent.js injects the shared one. This page used to ship
+       its own too, so two appeared. -->
     <div class="cookie-buttons">
       <button class="cookie-btn" id="cookieDecline">Decline</button>
       <button class="cookie-btn accept" id="cookieAccept">Accept</button>
@@ -1573,27 +1571,8 @@
     };
     let siteTechs = null;
 
-    // ------ COOKIE CONSENT ------
-    function initCookieConsent() {
-      const cookieConsent = document.getElementById('cookieConsent');
-      const cookieAccept = document.getElementById('cookieAccept');
-      const cookieDecline = document.getElementById('cookieDecline');
-
-      const consentGiven = localStorage.getItem('zw_cookie_consent');
-      if (!consentGiven) {
-        cookieConsent.classList.add('visible');
-      }
-
-      cookieAccept.addEventListener('click', () => {
-        localStorage.setItem('zw_cookie_consent', 'accepted');
-        cookieConsent.classList.remove('visible');
-      });
-
-      cookieDecline.addEventListener('click', () => {
-        localStorage.setItem('zw_cookie_consent', 'declined');
-        cookieConsent.classList.remove('visible');
-      });
-    }
+    // Cookie consent lives in consent.js (window.zwConsent) — one banner, every
+    // page. This page shipped its own as well, so two appeared.
 
     // ------ FETCH SIZE CHARTS ------
     async function fetchSizeCharts() {
@@ -2536,7 +2515,6 @@
 
     // ------ INIT ------
     function init() {
-      if (!isEmbedMode()) initCookieConsent();
       fetchSizeCharts();
       fetchSiteSettings();
       setupCalculator();
