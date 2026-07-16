@@ -54,17 +54,20 @@ function hasDuplicateIds(html) {
 
 const checks = [
   {
-    name: 'Mobile hamburger menu opens as full-screen overlay',
-    pass: () => /#mobile-menu\s*\{[\s\S]*height:100dvh/.test(files.cohesion)
+    // Was "full-screen overlay". The menu is now a top-anchored dropdown panel
+    // (matches the bag): slides down from under the header, page shows through
+    // below, backdrop transparent. The conversion is an end-of-file override, so
+    // this asserts the NEW markers rather than the old height:100dvh — the wiring,
+    // theme-aware panel, and shared markup checks below still hold.
+    name: 'Mobile hamburger menu opens as a top-anchored panel (bag-style)',
+    pass: () => /@keyframes zwMenuDropIn\{[\s\S]*translateY\(-101%\)/.test(files.cohesion)
+      && /#mobile-menu\.zw-mobile-menu\{[\s\S]*background:transparent/.test(files.cohesion)
+      && /#mobile-menu\.zw-mobile-menu > \.zw-mobile-menu-panel\{[\s\S]*max-height:calc\(100dvh - var\(--zw-mobile-menu-offset/.test(files.cohesion)
       && /ZUWERA technical mobile hamburger menu/.test(files.cohesion)
-      && /#mobile-menu\.zw-mobile-menu/.test(files.cohesion)
       && /zw-mobile-primary-link/.test(files.index + files.product + files.drop)
       && /zw-mobile-secondary-link/.test(files.index + files.product + files.drop)
       && /zw-mobile-bag-count/.test(files.index + files.product + files.drop)
-      && /#mobile-menu\.zw-mobile-menu\{[\s\S]*background:var\(--zw-ink/.test(files.cohesion)
-      && /#mobile-menu\.zw-mobile-menu > \.zw-mobile-menu-panel\{[\s\S]*background:var\(--zw-ink/.test(files.cohesion)
       && /body\.light-mode #mobile-menu\.zw-mobile-menu > \.zw-mobile-menu-panel\{[\s\S]*background:var\(--zw-paper/.test(files.cohesion)
-      && /#mobile-menu \.zw-mobile-menu-close\{[\s\S]*position:fixed/.test(files.cohesion)
       && /zw-mobile-menu-open/.test(files.mobileMenu)
       && /cartCount\(\)/.test(files.mobileMenu)
       && /\.modal:not\(#cart-modal\):not\(#mobile-menu\)/.test(files.cohesion)
