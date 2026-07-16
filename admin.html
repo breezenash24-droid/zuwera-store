@@ -2542,6 +2542,20 @@
                                 </div>
                             </div>
 
+                            <!-- Combinations: a whole typography set (base fonts + every
+                                 section override) saved under a name. Sits above the tabs
+                                 because a combination spans both of them. -->
+                            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;border:1px solid var(--border);border-radius:6px;margin-bottom:20px">
+                                <span style="font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-secondary)">Combinations</span>
+                                <div id="font-preset-chips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+                                <div style="margin-left:auto;display:flex;gap:6px;flex-shrink:0">
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="saveFontPreset()">+ Save current as…</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" id="fontPresetUpdate" disabled onclick="updateFontPreset()">Update</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" id="fontPresetRename" disabled onclick="renameFontPreset()">Rename</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" id="fontPresetDelete" disabled onclick="deleteFontPreset()">Delete</button>
+                                </div>
+                            </div>
+
                             <!-- Inner tabs -->
                             <div class="tabs" style="margin-bottom:20px">
                                 <button type="button" class="tab-button active" data-font-tab="base" onclick="switchFontTab('base')">Base Fonts</button>
@@ -11027,6 +11041,12 @@
             },
             sections: Object.fromEntries(SECTION_DEFS.map(s => [s.id, null])),
             custom: [],
+            // Saved combinations. roles/sections above stay the ACTIVE state — the
+            // storefront reads only those, so it needs no knowledge of presets and
+            // an older saved row without them still loads fine. Switching a preset
+            // copies its values into roles/sections; presets are just named snapshots.
+            presets: [],
+            activePreset: null,
         });
 
         let _fontsState = _defaultFontsState();
@@ -11323,6 +11343,113 @@
             showToast('Typography saved!', 'success');
         }
 
+        /* ── Combinations ──────────────────────────────────────────────────────
+           A preset is a named snapshot of { roles, sections }. roles/sections stay
+           the live state that gets saved and read by the storefront, so switching is
+           just a copy — the storefront never learns presets exist, and a saved row
+           from before this feature still loads.
+
+           Every mutation pushes onto _fontHistory first, so Undo covers preset
+           switches exactly like it covers a font change. */
+        function _fontPresetById(id) {
+            return (_fontsState.presets || []).find(p => p.id === id) || null;
+        }
+
+        function _renderFontPresets() {
+            const wrap = document.getElementById('font-preset-chips');
+            if (!wrap) return;
+            const list = _fontsState.presets || [];
+            const active = _fontsState.activePreset;
+            wrap.innerHTML = list.length
+                ? list.map(p => '<button type="button" class="btn btn-sm ' + (p.id === active ? 'btn-primary' : 'btn-secondary') +
+                    '" onclick="applyFontPreset(\'' + p.id + '\')">' + _fontEsc(p.name) + '</button>').join('')
+                : '<span style="font-size:.78rem;color:var(--text-secondary)">None yet — set your fonts, then “Save current as…”.</span>';
+            const on = !!_fontPresetById(active);
+            ['fontPresetUpdate', 'fontPresetRename', 'fontPresetDelete'].forEach(id => {
+                const b = document.getElementById(id);
+                if (b) b.disabled = !on;
+            });
+        }
+
+        function _fontEsc(v) {
+            return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function _pushFontHistory() {
+            _fontHistory.push(JSON.parse(JSON.stringify(_fontsState)));
+            if (_fontHistory.length > 20) _fontHistory.shift();
+        }
+
+        async function applyFontPreset(id) {
+            const p = _fontPresetById(id);
+            if (!p) return;
+            _pushFontHistory();
+            _fontsState.roles = JSON.parse(JSON.stringify(p.roles));
+            _fontsState.sections = JSON.parse(JSON.stringify(p.sections));
+            _fontsState.activePreset = id;
+            _applyStateToUI();
+            _updateUndoUI();
+            await saveFonts();
+            showToast('Switched to “' + p.name + '”', 'info');
+        }
+
+        async function saveFontPreset() {
+            const name = (prompt('Name this combination (e.g. “Futura Editorial”)') || '').trim();
+            if (!name) return;
+            _pushFontHistory();
+            const id = 'p' + Date.now().toString(36);
+            if (!Array.isArray(_fontsState.presets)) _fontsState.presets = [];
+            _fontsState.presets.push({
+                id, name,
+                roles: JSON.parse(JSON.stringify(_fontsState.roles)),
+                sections: JSON.parse(JSON.stringify(_fontsState.sections)),
+            });
+            _fontsState.activePreset = id;
+            _renderFontPresets();
+            _updateUndoUI();
+            await saveFonts();
+            showToast('Saved “' + name + '”', 'success');
+        }
+
+        async function updateFontPreset() {
+            const p = _fontPresetById(_fontsState.activePreset);
+            if (!p) return;
+            _pushFontHistory();
+            p.roles = JSON.parse(JSON.stringify(_fontsState.roles));
+            p.sections = JSON.parse(JSON.stringify(_fontsState.sections));
+            _updateUndoUI();
+            await saveFonts();
+            showToast('Updated “' + p.name + '”', 'success');
+        }
+
+        async function renameFontPreset() {
+            const p = _fontPresetById(_fontsState.activePreset);
+            if (!p) return;
+            const name = (prompt('Rename combination', p.name) || '').trim();
+            if (!name || name === p.name) return;
+            _pushFontHistory();
+            p.name = name;
+            _renderFontPresets();
+            _updateUndoUI();
+            await saveFonts();
+        }
+
+        async function deleteFontPreset() {
+            const p = _fontPresetById(_fontsState.activePreset);
+            if (!p) return;
+            if (!confirm('Delete “' + p.name + '”? Your current fonts stay as they are.')) return;
+            _pushFontHistory();
+            // Only the snapshot goes. roles/sections are the live state and keep
+            // whatever is on screen — deleting a combination must never restyle the site.
+            _fontsState.presets = (_fontsState.presets || []).filter(x => x.id !== p.id);
+            _fontsState.activePreset = null;
+            _renderFontPresets();
+            _updateUndoUI();
+            await saveFonts();
+            showToast('Deleted “' + p.name + '”', 'info');
+        }
+
         function undoFonts() {
             if (!_fontHistory.length) return;
             _fontsState = JSON.parse(JSON.stringify(_fontHistory.pop()));
@@ -11352,6 +11479,7 @@
             });
             _renderSectionOverrides();
             _renderCustomFontsList();
+            _renderFontPresets();   // undo/reset/load all land here, so chips stay in step
             _refreshPreview();
         }
 
@@ -11375,6 +11503,10 @@
                         },
                         sections: { ...Object.fromEntries(SECTION_DEFS.map(s=>[s.id,null])), ...(data.value.sections||{}) },
                         custom: data.value.custom || [],
+                        // Rebuilt field-by-field, so anything omitted here is dropped
+                        // on load and then wiped on the next save.
+                        presets: Array.isArray(data.value.presets) ? data.value.presets : [],
+                        activePreset: data.value.activePreset || null,
                     };
                     (_fontsState.custom || []).forEach(f => { if (f.url) _loadFontUrl(f.url); });
                 } else if (data && data.value && (data.value.head || data.value.body || data.value.mono)) {
