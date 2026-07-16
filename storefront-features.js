@@ -271,9 +271,17 @@
       '.zwf-fit-btn:hover{opacity:1}',
 
       /* shared modal (fit finder) — cream panel that reads on both themes */
-      '.zwf-modal{position:fixed;inset:0;z-index:4100;display:flex;align-items:center;justify-content:center;padding:1.2rem;background:rgba(9,9,11,.55);opacity:0;pointer-events:none;transition:opacity .22s ease}',
+      /* No dim. Same rule the search and bag panels follow — the page behind stays
+         exactly as it is. The box carries its own shadow and hairline instead, which
+         it needs anyway now that it's page-coloured: on super-light both the modal
+         and the page are pure white, so the dim was the only thing separating them. */
+      '.zwf-modal{position:fixed;inset:0;z-index:4100;display:flex;align-items:center;justify-content:center;padding:1.2rem;background:transparent;opacity:0;pointer-events:none;transition:opacity .22s ease}',
       '.zwf-modal.open{opacity:1;pointer-events:auto}',
-      '.zwf-modal-box{position:relative;background:#f4f1eb;color:#09090b;width:100%;max-width:440px;border-radius:4px;padding:2rem 1.8rem;max-height:90vh;overflow-y:auto;transform:translateY(10px);transition:transform .26s cubic-bezier(.2,.7,.2,1)}',
+      /* Page-coloured, not hardcoded cream. #f4f1eb is the dark theme's paper, so on
+         super-light (white page) the modal read as a cream slab that belonged to a
+         different site. --zw-page/--zw-ink are what the bag panel already uses, so it
+         follows all three modes. */
+      '.zwf-modal-box{position:relative;background:var(--zw-page,#fff);color:var(--zw-ink,#09090b);border:1px solid rgba(128,128,128,.18);width:100%;max-width:440px;border-radius:4px;padding:2rem 1.8rem;max-height:90vh;overflow-y:auto;transform:translateY(10px);transition:transform .26s cubic-bezier(.2,.7,.2,1);box-shadow:0 24px 60px -12px rgba(0,0,0,.3)}',
       '.zwf-modal.open .zwf-modal-box{transform:none}',
       '.zwf-modal-x{position:absolute;top:.9rem;right:1.1rem;background:none;border:none;font-size:1.5rem;line-height:1;cursor:pointer;color:inherit;opacity:.5}',
       '.zwf-modal-x:hover{opacity:1}',

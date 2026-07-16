@@ -255,6 +255,10 @@
 <script src="/posthog-init.js?v=6ebbeafc" defer></script>
 <style>body.super-light-mode{background:#FFFFFF!important;--bg:#FFFFFF}</style>
 <script src="consent.js?v=1" defer></script>
+<!-- Applies Admin → Typography (site_settings.fonts). Without it this page
+     ignored every font setting on the site — it was the only content page
+     that never loaded the applier. -->
+<script src="storefront-theme.js?v=1" defer></script>
 </head>
 <body>
 <script>(function(){try{var m=localStorage.getItem('zw_theme_mode');if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>

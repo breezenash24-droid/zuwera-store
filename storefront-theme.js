@@ -57,6 +57,12 @@
     'hero-sub':     '.hero-sub',
     'sec-head':     '.sec-head h2',
     'product-name': '.pcard-name',
+    // The product PAGE title is .product-title — a different class from the card's
+    // .pcard-name, so "Product Names" never touched it and nothing else did either.
+    'product-title': '.product-title, .product-subtitle',
+    'product-detail': '.accordion-header, .accordion-body, .colorway-section .section-label',
+    // Modals build their own markup, so none of the page's type reached them.
+    'modal':        '.zwf-modal-title, .zwf-modal-sub, .zwf-fit-btn, .zwf-fit-go, .zwf-fit-again, .quick-add-option-head, .quick-add-product-meta, .quick-add-empty-option',
     'price':        '.pcard-price, .pcard-cat',
     'btn':          '.add-to-cart-btn, .pcard-add-btn, #checkout-btn, #pay-submit',
     'footer':       '.fcopy, .flinks a, .fig',
