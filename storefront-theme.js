@@ -35,9 +35,19 @@
   }
 
   // CSS selectors for each section override target (must match SECTION_DEFS in admin.html)
+  // This map is what actually reaches the page. admin.html's SECTION_DEFS carries
+  // a cssSel copy for its own preview, and the two MUST stay identical — they had
+  // drifted: 'nav' listed .nav-link there and not here, so Typography → Header
+  // Categories saved a setting that never touched the header. Anything added to one
+  // has to be added to the other.
+  //
+  // The injected rules are !important, which matters: storefront-cohesion.css:195
+  // locks :is(.nbtn,…,.nav-link,…) to var(--zw-font-mono) !important, and only an
+  // equally-important rule injected later can override it.
   var SECTION_SELECTORS = {
     'logo':         '.flogo, .nav-logo span, .zw-nav-logo span',
-    'nav':          '.nbtn, .mobile-nav-link, .zw-mobile-primary-link',
+    'nav':          '.nav-link, .nbtn, .mobile-nav-link, .zw-mobile-primary-link, .zw-macc-toggle',
+    'subnav':       '.zw-mega-col a, .zw-mega-col h4, .zw-macc-panel a',
     'announce':     '#announcementText',
     'hero-title':   '.hero-h1',
     'hero-sub':     '.hero-sub',
