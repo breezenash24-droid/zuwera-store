@@ -48,6 +48,10 @@
     'logo':         '.flogo, .nav-logo span, .zw-nav-logo span',
     'nav':          '.nav-link, .nbtn, .mobile-nav-link, .zw-mobile-primary-link, .zw-macc-toggle',
     'subnav':       '.zw-mega-col a, .zw-mega-col h4, .zw-macc-panel a',
+    // The two header panels. Their text is built by storefront-features.js, so it
+    // never inherited any of the page's font settings — these are the only handle.
+    'bag':          '.zwf-bag-hd h2, .zwf-bag-nm, .zwf-bag-meta, .zwf-bag-price, .zwf-bag-review, .zwf-bag-links h3, .zwf-bag-link, .zwf-bag-empty',
+    'search':       '.zwf-search-input, .zwf-search-input::placeholder, .zwf-search-meta, .zwf-sr-nm, .zwf-sr-meta',
     'announce':     '#announcementText',
     'hero-title':   '.hero-h1',
     'hero-sub':     '.hero-sub',
