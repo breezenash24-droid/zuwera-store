@@ -3307,6 +3307,29 @@ body.light-mode .zwf-col, body.super-light-mode .zwf-col{ border-top-color:rgba(
 .zwf-col-head::-webkit-details-marker{ display:none; }
 .zwf-chev{ width:16px; height:16px; flex-shrink:0; stroke:currentColor; fill:none; stroke-width:2; transition:transform .25s ease; opacity:.7; }
 .zwf-col[open] .zwf-chev{ transform:rotate(180deg); }
+
+/* Ease the panel open, like the product page's accordions. The chevron above has
+   always eased; the links snapped, which is the mismatch.
+
+   These are native <details>, so product.html's toggleAccordion() trick (pin the
+   live max-height, reflow, collapse) can't apply — a closed <details> doesn't
+   render its content, so there's no height to animate from. ::details-content is
+   the only handle on that box, and interpolate-size unlocks animating to auto.
+
+   Progressive on purpose: where these aren't supported the column still opens,
+   just without the ease — which is exactly today's behaviour, so this can only
+   improve things. Timing matches the bottom sheets and the chevron. */
+.zwf-col{ interpolate-size:allow-keywords; }
+.zwf-col::details-content{
+  block-size:0;
+  overflow:hidden;
+  transition:block-size .32s cubic-bezier(.32,.72,0,1), content-visibility .32s allow-discrete;
+}
+.zwf-col[open]::details-content{ block-size:auto; }
+
+@media(prefers-reduced-motion:reduce){
+  .zwf-col::details-content{ transition:none; }
+}
 .zwf-col-links{ display:flex; flex-direction:column; gap:.9rem; padding:.1rem 0 1.3rem; }
 .zwf-col-links a{ font-family:inherit; font-size:.85rem; color:rgba(244,241,235,.5); text-decoration:none; transition:color .2s; width:fit-content; }
 body.light-mode .zwf-col-links a, body.super-light-mode .zwf-col-links a{ color:rgba(9,9,11,.5); }

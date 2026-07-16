@@ -321,7 +321,7 @@
       // a fit made it vanish. --zw-ink/--zw-page are ink-on-page by definition, so
       // inverting them is contrasty in every mode.
       '.zwf-seg button.on{background:var(--zw-ink,#09090b);color:var(--zw-page,#f4f1eb);border-color:var(--zw-ink,#09090b)}',
-      '.zwf-btn{width:100%;padding:.9rem;background:var(--ink,#09090b);color:var(--paper,#f4f1eb);border:none;border-radius:3px;font-family:var(--fm,inherit);font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;margin-top:.5rem}',
+      '.zwf-btn{width:100%;padding:.9rem;background:var(--zw-ink,#09090b);color:var(--zw-page,#f4f1eb);border:none;border-radius:3px;font-family:var(--fm,inherit);font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;margin-top:.5rem}',
       '.zwf-btn:hover{opacity:.9}',
       '.zwf-result{text-align:center;padding:.6rem 0 .2rem}',
       '.zwf-result-size{font-family:var(--fw,inherit);font-weight:900;font-style:italic;font-size:3.2rem;line-height:1;margin:.3rem 0}',
@@ -329,7 +329,7 @@
 
       /* support widget (floating) */
       '.zwf-support{position:fixed;right:20px;bottom:20px;z-index:900;display:flex;flex-direction:column;align-items:flex-end;gap:12px}',
-      '.zwf-support-fab{display:inline-flex;align-items:center;gap:.5rem;background:var(--ink,#09090b);color:var(--paper,#f4f1eb);border:none;border-radius:100px;padding:.7rem 1.1rem;font-family:var(--fm,inherit);font-size:.64rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.22)}',
+      '.zwf-support-fab{display:inline-flex;align-items:center;gap:.5rem;background:var(--zw-ink,#09090b);color:var(--zw-page,#f4f1eb);border:none;border-radius:100px;padding:.7rem 1.1rem;font-family:var(--fm,inherit);font-size:.64rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.22)}',
       '.zwf-support-fab svg{width:16px;height:16px}',
       '.zwf-support-panel{background:#f4f1eb;color:#09090b;width:250px;border-radius:10px;padding:1.2rem;box-shadow:0 12px 40px rgba(0,0,0,.28);opacity:0;transform:translateY(8px) scale(.98);transform-origin:bottom right;pointer-events:none;transition:opacity .2s ease,transform .2s ease}',
       '.zwf-support.open .zwf-support-panel{opacity:1;transform:none;pointer-events:auto}',
@@ -1166,7 +1166,7 @@
       '.zwf-qa-input{margin-bottom:.6rem;resize:vertical}',
       '.zwf-qa-row{display:flex;gap:.6rem;flex-wrap:wrap}',
       '.zwf-qa-name{flex:1;min-width:160px}',
-      '.zwf-qa-submit{background:var(--ink,#09090b);color:var(--paper,#f4f1eb);border:none;border-radius:3px;padding:.7rem 1.4rem;font-family:var(--fm,inherit);font-size:.68rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;white-space:nowrap}',
+      '.zwf-qa-submit{background:var(--zw-ink,#09090b);color:var(--zw-page,#f4f1eb);border:none;border-radius:3px;padding:.7rem 1.4rem;font-family:var(--fm,inherit);font-size:.68rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;white-space:nowrap}',
       '.zwf-qa-submit:disabled{opacity:.6;cursor:default}',
       '.zwf-qa-msg{font-family:var(--fb,inherit);font-size:.82rem;margin:.6rem 0 0;min-height:1rem}',
       '.zwf-qa-msg.err{color:#d64545}',
