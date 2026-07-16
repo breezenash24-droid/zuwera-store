@@ -516,13 +516,40 @@
     if (t && t.closest && t.closest('.zwf-search-panel, .zwf-bag-panel')) return;
     closePanels();
   }
+  // Move the pointer below an open panel and it closes, the same way the category
+  // mega-menu closes when you leave it. Only "below" matters: the panels are
+  // full-width, and above them is the header they hang from.
+  function openPanelEl() {
+    if (isOpen(_overlay)) return _overlay.querySelector('.zwf-search-panel');
+    if (isOpen(_bagOverlay)) return _bagOverlay.querySelector('.zwf-bag-panel');
+    return null;
+  }
+  function onPanelPointer(e) {
+    var p = openPanelEl();
+    if (!p) return;
+    // A little grace past the edge. These panels are tall and the last row of
+    // links sits right at the bottom, so closing the instant the pointer grazes
+    // past it would snatch the panel away mid-reach.
+    if (e.clientY > p.getBoundingClientRect().bottom + 16) closePanels();
+  }
+
+  var _pointerArm = 0;
   function armScrollClose() {
     window.addEventListener('wheel', onPanelGesture, { passive: true });
     window.addEventListener('touchmove', onPanelGesture, { passive: true });
+    // Not until the slide has landed. The panel's bottom edge sweeps down through
+    // the viewport during the .44s open, so a pointer already resting low would
+    // be "below" a panel that is still arriving and kill it on the way in.
+    clearTimeout(_pointerArm);
+    _pointerArm = setTimeout(function () {
+      document.addEventListener('mousemove', onPanelPointer, { passive: true });
+    }, 480);
   }
   function disarmScrollClose() {
     window.removeEventListener('wheel', onPanelGesture);
     window.removeEventListener('touchmove', onPanelGesture);
+    clearTimeout(_pointerArm);
+    document.removeEventListener('mousemove', onPanelPointer);
   }
 
   // The mega-menu opens on CSS :hover, so it can't be gated — get out of its way
