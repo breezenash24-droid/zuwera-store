@@ -726,9 +726,13 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
   --fw:var(--zw-font-head, var(--font-head));
   --fb:var(--zw-font-body, var(--font-body));
   --fm:var(--zw-font-mono, var(--font-mono));
-  --zw-font-head: var(--font-head);
-  --zw-font-body: var(--font-body);
-  --zw-font-mono: var(--font-mono);
+  /* Do NOT redefine --zw-font-* here. Those are the canonical literals from
+     storefront-cohesion.css; pointing them back at --font-head made a var() cycle
+     (--font-head → --zw-font-head → --font-head), which is invalid-at-computed-
+     value-time. With no custom font saved the theme JS never sets inline overrides,
+     so the whole cycle collapsed and .product-title fell back to the UA serif —
+     looking un-bold next to the Barlow Condensed 900 cards. Legacy names alias to
+     the canonical, never the reverse. */
   --review-head-font: var(--font-head);
   --review-body-font: var(--font-body);
   --review-mono-font: var(--font-mono);
@@ -981,6 +985,29 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
   .product-title {
     font-size: clamp(2rem, 13vw, 3rem) !important;
     max-width: 11ch;
+  }
+}
+/* "More From Release" — three 1fr columns are unusable on a phone (each card ~90px).
+   Turn the grid into a snap-scrolling row so cards keep a real size and the next one
+   peeks to signal there's more, matching the homepage product strips. The inline
+   grid style isn't !important, so these !important rules win. */
+@media (max-width: 900px) {
+  #related-grid {
+    display: flex !important;
+    grid-template-columns: none !important;
+    gap: 0.9rem !important;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scroll-padding-left: clamp(1.15rem, 5vw, 3rem);
+    padding-bottom: 0.4rem;
+    scrollbar-width: none;
+  }
+  #related-grid::-webkit-scrollbar { display: none; }
+  #related-grid > .pcard {
+    flex: 0 0 66%;
+    max-width: 230px;
+    scroll-snap-align: start;
   }
 }
 body.super-light-mode { background: #FFFFFF !important; }
@@ -2272,7 +2299,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addEventListener('resize', syncNavOffset);
   }
 
-  loadCartCount();
+  loadCartCount();
   try {
     // Wait for startWithSb() to run and kick off the product fetch.
     // _sbReady resolves the moment startWithSb sets _productFetchPromise,
