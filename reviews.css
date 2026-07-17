@@ -636,6 +636,11 @@ body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba
     border-radius: 2px;
     margin: -1rem auto 1.25rem;
   }
+  /* On the light / super-light sheet the near-white handle above was invisible on the
+     white surface — no pull indicator showed. Use a dark bar there so the sheet reads
+     as draggable in every theme. */
+  body.light-mode .review-mbox::before,
+  body.super-light-mode .review-mbox::before { background: rgba(9,9,11,.22); }
   /* Close btn stays visible — it's inside .review-mbox-hd which is above the fold */
   .review-mbox-hd .mclose { position: static !important; flex-shrink: 0; }
   .review-mbox-hd { display: flex !important; align-items: flex-start !important; justify-content: space-between !important; margin-bottom: 1.25rem !important; }
