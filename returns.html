@@ -183,7 +183,8 @@
       text-align: center;
       background: var(--subtle);
     }
-    .auth-prompt-icon { font-size: 2rem; margin-bottom: 1rem; opacity: .4; }
+    .auth-prompt-icon { margin-bottom: 1rem; opacity: .4; }
+    .auth-prompt-icon svg { width: 34px; height: 34px; display: block; margin: 0 auto; }
     .auth-prompt h2 { font-family: var(--fw); font-size: 1.4rem; letter-spacing: .05em; margin-bottom: .6rem; }
     .auth-prompt p { font-size: .78rem; color: var(--muted); line-height: 1.8; max-width: 340px; margin: 0 auto 1.8rem; }
     .auth-features {
@@ -686,7 +687,7 @@ body.super-light-mode .policy-section { border-color: rgba(9,9,11,.14); }
       var r=document.getElementById('page-root');
       if(!r)return;
       r.innerHTML='<div class="auth-prompt">'+
-        '<div class="auth-prompt-icon">?</div>'+
+        '<div class="auth-prompt-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>'+
         '<h2>Login to continue</h2>'+
         '<p>View your orders and start a return or exchange — all in one place.</p>'+
         '<div class="auth-features">'+
@@ -1492,7 +1493,7 @@ window.goNext = function() {
 function renderAuthPrompt() {
   return `
     <div class="auth-prompt">
-      <div class="auth-prompt-icon">?</div>
+      <div class="auth-prompt-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
       <h2>Login to continue</h2>
       <p>View your orders and start a return or exchange — all in one place.</p>
       <div class="auth-features">
