@@ -979,12 +979,18 @@ window.translateReviews = async function(domId) {
     _rm.style.removeProperty('background');
     if (window.ZWModalScrollLock) {
       window.ZWModalScrollLock.refresh();
-      // Safety net for the "page frozen after closing" report: if that first refresh
-      // ran while the sheet was still computed as visible, the body stays scroll-locked
-      // (position:fixed) with no later DOM mutation to retrigger the check. Re-check on
-      // the next frame, once the close has fully applied, so the lock always releases.
+      // The page kept freezing after this sheet closed: the scroll lock infers
+      // open/closed from computed styles, and here it left the body pinned. On the
+      // next frame — once the close has applied — decide from the source of truth
+      // (an overlay is open iff it carries its .open class). If nothing is actually
+      // open, force the lock off so the page can never be stranded unscrollable.
       requestAnimationFrame(function () {
-        if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh();
+        if (!window.ZWModalScrollLock) return;
+        var open = document.querySelector(
+          '.modal.open, .zwf-modal.open, .zwf-bag.open, .zwf-search.open, #payment-success.open, #zw-lang-modal.open'
+        );
+        if (!open && window.ZWModalScrollLock.release) window.ZWModalScrollLock.release();
+        else window.ZWModalScrollLock.refresh();
       });
     } else {
       document.body.style.overflow = '';
