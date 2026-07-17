@@ -47,8 +47,15 @@
     // site-wide 900px compact breakpoint so tablet widths (601-900px) get the
     // sheet too, instead of the centered desktop card.
     '@media(max-width:900px){',
-      '#zwlg-modal{align-items:flex-end;padding:0;}',
-      '#zwlg-modal .zwlg-box{width:100%;max-width:100%;max-height:var(--zw-sheet-max);border-radius:1.25rem 1.25rem 0 0;border-top:none;border-left:none;border-right:none;padding:2.4rem 1.4rem calc(1.8rem + env(safe-area-inset-bottom,0px));transform:translateY(100%);opacity:1;box-shadow:0 -8px 40px rgba(0,0,0,.28);transition:transform .42s cubic-bezier(.32,.72,0,1),opacity .24s ease;}',
+      // The sheet slides in with a SINGLE motion — transform only. The container
+      // stays fully opaque and just gates visibility (delayed on close so the sheet
+      // can slide back down before it's hidden). Previously the container also faded
+      // opacity 0->1 over .28s while the sheet slid over .42s, so the sheet ghosted in
+      // as it moved — the clunky, two-motion open. Now it's one clean slide on the
+      // shared --zw-ease-sheet curve, matching the bag/search panels and mobile menu.
+      '#zwlg-modal{align-items:flex-end;padding:0;opacity:1;visibility:hidden;transition:visibility 0s linear .44s;}',
+      '#zwlg-modal.open{opacity:1;visibility:visible;transition:visibility 0s;}',
+      '#zwlg-modal .zwlg-box{width:100%;max-width:100%;max-height:var(--zw-sheet-max);border-radius:1.25rem 1.25rem 0 0;border-top:none;border-left:none;border-right:none;padding:2.4rem 1.4rem calc(1.8rem + env(safe-area-inset-bottom,0px));transform:translateY(100%);opacity:1;box-shadow:0 -8px 40px rgba(0,0,0,.28);transition:transform .44s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1));}',
       '#zwlg-modal.open .zwlg-box{transform:translateY(0);}',
       '#zwlg-modal .zwlg-box::before{content:"";display:block;width:36px;height:4px;border-radius:2px;background:rgba(244,241,235,.18);margin:-1.4rem auto 1.2rem;}',
       // Close button matches the site standard (44px desktop → 38px on compact).
@@ -211,6 +218,11 @@
     build();
     var m = document.getElementById(MODAL_ID);
     switchTab(tab || 'signin');
+    // Commit the closed state (the sheet at translateY(100%)) before flipping to
+    // .open, so the FIRST open animates the slide instead of popping into place: on
+    // the first open build() has just inserted the element, and adding .open in the
+    // same frame gives the browser no rendered start state to transition from.
+    void m.offsetHeight;
     m.classList.add('open');
     m.setAttribute('aria-hidden', 'false');
     lock();
@@ -304,6 +316,9 @@
     var m = document.getElementById(MODAL_ID);
     if (!m) return;
     el('.zwlg-close', m).addEventListener('click', closeModal);
+    // Pull-down-to-close, like every other bottom sheet. On mobile the .zwlg-box is
+    // the sheet (max-height + overflow-y), so it's what the swipe gesture watches.
+    if (window.zwAttachSwipeClose) { try { window.zwAttachSwipeClose(el('.zwlg-box', m), el('.zwlg-close', m)); } catch (_) {} }
     m.addEventListener('click', function (e) { if (e.target === m) closeModal(); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && m.classList.contains('open')) closeModal(); });
     m.querySelectorAll('.zwlg-tab').forEach(function (b) { b.addEventListener('click', function () { switchTab(b.dataset.tab); }); });

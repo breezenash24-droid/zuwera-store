@@ -1033,6 +1033,11 @@
   if (!window.zwAttachSwipeClose) {
     window.zwAttachSwipeClose = function (scrollEl, closeBtn) {
       if (!scrollEl || !closeBtn) return;
+      // Idempotent: the global auto-wire below and any per-page wiring may both point
+      // at the same sheet, and duplicate touch listeners would fire closeBtn.click()
+      // twice per swipe. Mark the element so a second call is a no-op.
+      if (scrollEl.__zwSwipeClose) return;
+      scrollEl.__zwSwipeClose = true;
       var startY = 0, tracking = false;
       scrollEl.addEventListener('touchstart', function (e) {
         if (e.touches.length !== 1) { tracking = false; return; }
@@ -1048,6 +1053,50 @@
         if (dy > 80 && scrollEl.scrollTop <= 0) closeBtn.click();
       }, { passive: true });
     };
+  }
+
+  // ── Global pull-down-to-close for every .modal bottom sheet ──────────────────
+  // Each page used to wire swipe-close by hand (storefront.js on the homepage, an
+  // array in product.html), so a bottom sheet on a page without that wiring — or a
+  // new modal nobody remembered — had no pull-to-close. This wires them all from the
+  // DOM, on every page: each bottom-sheet box inside a .modal gets the gesture,
+  // pointed at that modal's close button. Idempotent (guard in zwAttachSwipeClose),
+  // so it coexists with the existing per-page calls. Payment and the nav drawer are
+  // excluded — they aren't swipe-dismissible.
+  function zwWireSheetSwipe() {
+    var boxes = document.querySelectorAll(
+      '.modal:not(#mobile-menu):not(#payment-modal):not(#payment-success) > ' +
+      ':is(.mbox,.review-mbox,.review-list-mbox,.review-dialog,.collection-review-box,.cbox)'
+    );
+    boxes.forEach(function (box) {
+      if (box.__zwSwipeClose) return;
+      var modal = box.parentElement;
+      if (!modal) return;
+      var closeBtn = modal.querySelector('.mclose')
+        || modal.querySelector('[aria-label="Close"]')
+        || modal.querySelector('[id$="-close"]');
+      if (closeBtn && window.zwAttachSwipeClose) window.zwAttachSwipeClose(box, closeBtn);
+    });
+  }
+  window.zwWireSheetSwipe = zwWireSheetSwipe;
+  var _wireQueued = false;
+  function zwQueueWireSheets() {
+    if (_wireQueued) return;
+    _wireQueued = true;
+    window.requestAnimationFrame(function () { _wireQueued = false; zwWireSheetSwipe(); });
+  }
+  function zwInitSheetSwipe() {
+    zwWireSheetSwipe();
+    // Catch modals inserted after load (quick-add, etc.). childList on <body> only —
+    // modals mount there — debounced to a frame so it never thrashes.
+    try {
+      new MutationObserver(zwQueueWireSheets).observe(document.body, { childList: true });
+    } catch (_) {}
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', zwInitSheetSwipe);
+  } else {
+    zwInitSheetSwipe();
   }
 
   function initFitFinder(p) {
