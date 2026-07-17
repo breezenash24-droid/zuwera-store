@@ -354,7 +354,9 @@ function initPaymentRequest(subtotalCents) {
 
   prButtonEl = elements.create('paymentRequestButton', {
     paymentRequest,
-    style: { paymentRequestButton: { type: 'buy', theme: 'light', height: '48px' } },
+    // theme follows the page so the button always contrasts: on the light/super-light
+    // checkout a 'light' button was white-on-white and invisible.
+    style: { paymentRequestButton: { type: 'buy', theme: document.body.classList.contains('light-mode') ? 'dark' : 'light', height: '48px' } },
   });
   paymentRequest.canMakePayment().then(result => {
     if (result) {
