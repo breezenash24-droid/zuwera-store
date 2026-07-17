@@ -2226,7 +2226,7 @@ body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel::befor
    to the right left over from the drawer era, so opening (quick fade-rise) and closing
    (slower sideways slide) felt like two different animations. */
 #mobile-menu.zw-mobile-menu.closing > .zw-mobile-menu-panel{
-  animation:zwDrawerOut .28s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1)) both !important;
+  animation:zwDrawerOut .35s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1)) both !important;
   pointer-events:none !important;
 }
 
@@ -2876,7 +2876,7 @@ body.super-light-mode #mobile-menu.zw-mobile-menu>.zw-mobile-menu-panel{
    On a full-width panel a translateX slide reads as the whole page swiping across;
    a fade is what a full-screen menu (Apple's included) uses. */
 #mobile-menu.zw-mobile-menu.open>.zw-mobile-menu-panel{
-  animation:zwDrawerIn .28s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1)) both!important;
+  animation:zwDrawerIn .35s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1)) both!important;
 }
 @keyframes zwDrawerIn{
   from{transform:translateY(-8px);opacity:0}
