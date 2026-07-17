@@ -2214,8 +2214,12 @@ body.super-light-mode #mobile-menu.zw-mobile-menu > .zw-mobile-menu-panel::befor
   display:flex !important;
   pointer-events:none !important;
 }
+/* Exit is the mirror of the entrance (zwDrawerIn): same .28s, same easing, reversed
+   motion — fade out with a small rise. It used to be zwMenuPanelOut, a .35s slide-off
+   to the right left over from the drawer era, so opening (quick fade-rise) and closing
+   (slower sideways slide) felt like two different animations. */
 #mobile-menu.zw-mobile-menu.closing > .zw-mobile-menu-panel{
-  animation:zwMenuPanelOut .35s cubic-bezier(.4,0,.6,1) both !important;
+  animation:zwDrawerOut .28s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1)) both !important;
   pointer-events:none !important;
 }
 
@@ -2871,8 +2875,14 @@ body.super-light-mode #mobile-menu.zw-mobile-menu>.zw-mobile-menu-panel{
   from{transform:translateY(-8px);opacity:0}
   to{transform:translateY(0);opacity:1}
 }
+/* Exact reverse of zwDrawerIn so open and close are symmetric. */
+@keyframes zwDrawerOut{
+  from{transform:translateY(0);opacity:1}
+  to{transform:translateY(-8px);opacity:0}
+}
 @media (prefers-reduced-motion:reduce){
-  #mobile-menu.zw-mobile-menu.open>.zw-mobile-menu-panel{ animation:none!important; }
+  #mobile-menu.zw-mobile-menu.open>.zw-mobile-menu-panel,
+  #mobile-menu.zw-mobile-menu.closing>.zw-mobile-menu-panel{ animation:none!important; }
 }
 
 /* ── Header row ── */
