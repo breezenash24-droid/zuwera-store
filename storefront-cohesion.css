@@ -3253,6 +3253,17 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.18)!important;}
     padding:calc(1.6rem + 36px + env(safe-area-inset-top,0px)) 0 0 !important;
   }
 
+  /* The review modals (write + all-reviews) were the one bottom-sheet exception:
+     reviews.css animates .review-mbox / .review-list-mbox with `modalIn` — a centred
+     fade — and a CSS animation overrides a transition, so it beat the sheet's
+     transform-based slide-up. The box ended up bottom-anchored (from the rule above)
+     but animating like a centred modal, which read as "not a bottom sheet" and,
+     mid-animation, as an overlay that didn't settle. Drop the competing animation so
+     the shared sheet motion (translateY(100%) -> 0) takes over like every other sheet. */
+  .modal:not(#mobile-menu):not(#cart-modal):not(#payment-modal) > :is(.review-mbox,.review-list-mbox){
+    animation:none !important;
+  }
+
   /* ── Drag handle: a consistent grab-bar at the top of every bottom sheet.
      The review / all-reviews sheets (.review-mbox / .review-list-mbox) already
      carry their own matching handle, so they're excluded here to avoid doubles;
