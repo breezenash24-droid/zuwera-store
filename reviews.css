@@ -612,8 +612,10 @@ body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba
   #review-modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(#all-reviews-modal) > .review-mbox {
     width: 100vw !important;
     max-width: none !important;
-    /* Override the storefront full-height rule */
-    height: auto !important;
+    /* Fill the sheet to the bottom edge like the all-reviews sheet (was height:auto,
+       which left a short form floating with the page showing beneath it). The compose
+       box below grows into the extra space so there's no empty gap. */
+    height: var(--zw-sheet-max) !important;
     min-height: 0 !important;
     max-height: var(--zw-sheet-max) !important;
     overflow-y: auto !important;
@@ -626,6 +628,9 @@ body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba
     margin: 0 !important;
     position: relative !important;
   }
+  /* The compose box grows to fill the sheet so a short form still reaches the bottom
+     (the sheet is a fixed height now) — more room to write, no empty gap under it. */
+  #review-modal .review-mbox .review-body-field { flex: 1 1 auto !important; }
   /* Drag handle */
   .review-mbox::before {
     content: '';
