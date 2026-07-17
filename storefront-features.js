@@ -188,13 +188,13 @@
       '.zwf-search.open{pointer-events:auto}',
       /* translate3d + will-change keeps this on the compositor — no layout or
          paint per frame, so it stays at 60fps. */
-      '.zwf-search-panel{background:var(--ink,#09090b);color:var(--paper,#f4f1eb);width:100%;max-height:min(72vh,560px);display:flex;flex-direction:column;transform:translate3d(0,-101%,0);will-change:transform;transition:transform .44s cubic-bezier(.32,.72,0,1);box-shadow:0 22px 48px rgba(0,0,0,.22)}',
+      '.zwf-search-panel{background:var(--ink,#09090b);color:var(--paper,#f4f1eb);width:100%;max-height:min(72vh,560px);display:flex;flex-direction:column;transform:translate3d(0,-101%,0);will-change:transform;transition:transform .44s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1));box-shadow:0 22px 48px rgba(0,0,0,.22)}',
       '.zwf-search.open .zwf-search-panel{transform:translate3d(0,0,0)}',
       /* ── bag panel ── shares the search panel's mechanics: no dim, no blur,
          compositor-only slide, clipped so it hides above. */
       '.zwf-bag{position:fixed;inset:0;z-index:989;display:flex;flex-direction:column;background:transparent;pointer-events:none;overflow:hidden}',
       '.zwf-bag.open{pointer-events:auto}',
-      '.zwf-bag-panel{background:var(--zw-page,#fff);color:var(--zw-ink,#09090b);width:100%;max-height:min(76vh,620px);display:flex;flex-direction:column;overflow:hidden;transform:translate3d(0,-101%,0);will-change:transform;transition:transform .44s cubic-bezier(.32,.72,0,1);box-shadow:0 22px 48px rgba(0,0,0,.18)}',
+      '.zwf-bag-panel{background:var(--zw-page,#fff);color:var(--zw-ink,#09090b);width:100%;max-height:min(76vh,620px);display:flex;flex-direction:column;overflow:hidden;transform:translate3d(0,-101%,0);will-change:transform;transition:transform .44s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1));box-shadow:0 22px 48px rgba(0,0,0,.18)}',
       '.zwf-bag.open .zwf-bag-panel{transform:translate3d(0,0,0)}',
       /* A parked panel must not cast a shadow. Both panels sit at -101%, so their
          bottom edge is a few px ABOVE the overlay — but the shadow (offset 22,
@@ -211,7 +211,7 @@
       '.zwf-bag-inner{overflow-y:auto;padding:clamp(1.2rem,3vw,2rem) clamp(1rem,4vw,2.5rem) clamp(1.6rem,4vw,2.4rem);max-width:1100px;margin:0 auto;width:100%}',
       '.zwf-bag-hd{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.2rem}',
       '.zwf-bag-hd h2{font-family:var(--fw,inherit);font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.03em;font-size:clamp(1.3rem,3vw,1.9rem);margin:0}',
-      '.zwf-bag-review{border:none;border-radius:100px;background:var(--zw-ink,#09090b);color:var(--zw-page,#fff);padding:.72rem 1.5rem;cursor:pointer;font-family:var(--fm,inherit);font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap}',
+      '.zwf-bag-review{border:none;border-radius:var(--zw-radius-pill, 999px);background:var(--zw-ink,#09090b);color:var(--zw-page,#fff);padding:.72rem 1.5rem;cursor:pointer;font-family:var(--fm,inherit);font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap}',
       '.zwf-bag-review:hover{opacity:.85}',
       '.zwf-bag-items{display:flex;flex-direction:column;gap:.9rem;margin-bottom:1.6rem}',
       '.zwf-bag-item{display:flex;align-items:center;gap:1rem;text-decoration:none;color:inherit}',
@@ -265,7 +265,7 @@
          and shrinks slightly. The overlay's top is set in JS to the header's
          measured bottom, so the header is never covered and stays clickable. */
       'body.zwf-searching :is(nav#nav,nav.nav,header.nav,nav.zw-nav){padding-top:.3rem!important;padding-bottom:.3rem!important}',
-      'body.zwf-searching :is(.nav-logo,.zw-nav-logo) img{transform:scale(.86);transition:transform .34s cubic-bezier(.22,.61,.36,1)}',
+      'body.zwf-searching :is(.nav-logo,.zw-nav-logo) img{transform:scale(.86);transition:transform .34s var(--zw-ease-standard, cubic-bezier(.22,.61,.36,1))}',
       '.zwf-search-panel{overflow:hidden}',
       '@media(max-width:899px){.zwf-search-panel{max-height:100%}}',
 
@@ -299,7 +299,7 @@
          (search, bag) stay top-anchored; they aren't modals. */
       '@media(max-width:900px){',
       '  .zwf-modal{align-items:flex-end;padding:0}',
-      '  .zwf-modal-box{max-width:100%;max-height:calc(100dvh - 1.6rem - 36px - env(safe-area-inset-top,0px) - .5rem);border-radius:1.25rem 1.25rem 0 0;border-left:none;border-right:none;border-bottom:none;box-shadow:0 -8px 40px rgba(0,0,0,.28);transform:translateY(100%);transition:transform .42s cubic-bezier(.32,.72,0,1)}',
+      '  .zwf-modal-box{max-width:100%;max-height:calc(100dvh - 1.6rem - 36px - env(safe-area-inset-top,0px) - .5rem);border-radius:1.25rem 1.25rem 0 0;border-left:none;border-right:none;border-bottom:none;box-shadow:0 -8px 40px rgba(0,0,0,.28);transform:translateY(100%);transition:transform .42s var(--zw-ease-sheet, cubic-bezier(.32,.72,0,1))}',
       '  .zwf-modal.open .zwf-modal-box{transform:translateY(0)}',
       '}',
       // Matches .mclose (storefront-cohesion.css:791) — the close button every other
@@ -329,7 +329,7 @@
 
       /* support widget (floating) */
       '.zwf-support{position:fixed;right:20px;bottom:20px;z-index:900;display:flex;flex-direction:column;align-items:flex-end;gap:12px}',
-      '.zwf-support-fab{display:inline-flex;align-items:center;gap:.5rem;background:var(--zw-ink,#09090b);color:var(--zw-page,#f4f1eb);border:none;border-radius:100px;padding:.7rem 1.1rem;font-family:var(--fm,inherit);font-size:.64rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.22)}',
+      '.zwf-support-fab{display:inline-flex;align-items:center;gap:.5rem;background:var(--zw-ink,#09090b);color:var(--zw-page,#f4f1eb);border:none;border-radius:var(--zw-radius-pill, 999px);padding:.7rem 1.1rem;font-family:var(--fm,inherit);font-size:.64rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.22)}',
       '.zwf-support-fab svg{width:16px;height:16px}',
       '.zwf-support-panel{background:#f4f1eb;color:#09090b;width:250px;border-radius:10px;padding:1.2rem;box-shadow:0 12px 40px rgba(0,0,0,.28);opacity:0;transform:translateY(8px) scale(.98);transform-origin:bottom right;pointer-events:none;transition:opacity .2s ease,transform .2s ease}',
       '.zwf-support.open .zwf-support-panel{opacity:1;transform:none;pointer-events:auto}',
