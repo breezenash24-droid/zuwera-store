@@ -218,6 +218,11 @@
     build();
     var m = document.getElementById(MODAL_ID);
     switchTab(tab || 'signin');
+    // Commit the closed state (the sheet at translateY(100%)) before flipping to
+    // .open, so the FIRST open animates the slide instead of popping into place: on
+    // the first open build() has just inserted the element, and adding .open in the
+    // same frame gives the browser no rendered start state to transition from.
+    void m.offsetHeight;
     m.classList.add('open');
     m.setAttribute('aria-hidden', 'false');
     lock();
@@ -311,6 +316,9 @@
     var m = document.getElementById(MODAL_ID);
     if (!m) return;
     el('.zwlg-close', m).addEventListener('click', closeModal);
+    // Pull-down-to-close, like every other bottom sheet. On mobile the .zwlg-box is
+    // the sheet (max-height + overflow-y), so it's what the swipe gesture watches.
+    if (window.zwAttachSwipeClose) { try { window.zwAttachSwipeClose(el('.zwlg-box', m), el('.zwlg-close', m)); } catch (_) {} }
     m.addEventListener('click', function (e) { if (e.target === m) closeModal(); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && m.classList.contains('open')) closeModal(); });
     m.querySelectorAll('.zwlg-tab').forEach(function (b) { b.addEventListener('click', function () { switchTab(b.dataset.tab); }); });

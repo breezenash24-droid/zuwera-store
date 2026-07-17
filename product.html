@@ -4390,6 +4390,10 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
      existing close button (so all teardown logic runs). */
   function zwAttachSwipeClose(scrollEl, closeBtn){
     if(!scrollEl || !closeBtn) return;
+    // Shared guard with storefront-features.js's global auto-wire so a sheet wired
+    // here isn't wired twice (which would fire the close click twice per swipe).
+    if(scrollEl.__zwSwipeClose) return;
+    scrollEl.__zwSwipeClose = true;
     let startY = 0, tracking = false;
     scrollEl.addEventListener('touchstart', e => {
       if(e.touches.length !== 1){ tracking = false; return; }
