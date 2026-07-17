@@ -988,29 +988,11 @@ body.light-mode .nav #cart-btn.desktop-bag-btn:hover {
     max-width: 11ch;
   }
 }
-/* "More From Release" — three 1fr columns are unusable on a phone (each card ~90px).
-   Turn the grid into a snap-scrolling row so cards keep a real size and the next one
-   peeks to signal there's more, matching the homepage product strips. The inline
-   grid style isn't !important, so these !important rules win. */
-@media (max-width: 900px) {
-  #related-grid {
-    display: flex !important;
-    grid-template-columns: none !important;
-    gap: 0.9rem !important;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    scroll-padding-left: clamp(1.15rem, 5vw, 3rem);
-    padding-bottom: 0.4rem;
-    scrollbar-width: none;
-  }
-  #related-grid::-webkit-scrollbar { display: none; }
-  #related-grid > .pcard {
-    flex: 0 0 66%;
-    max-width: 230px;
-    scroll-snap-align: start;
-  }
-}
+/* "More From Release" uses the site's platform grid (.zw-plat-grid + data-lg/md/sm),
+   the SAME system the homepage product strips use: a 3-up grid on desktop and an
+   edge-to-edge horizontal swipe (cards at 82vw, next one peeking) on tablet/mobile.
+   The markup carries the classes/attributes; all the behaviour lives in
+   storefront-cohesion.css so there are no product-page rules to fight it. */
 body.super-light-mode { background: #FFFFFF !important; }
 </style>
 <script src="image-utils.js?v=e6f0ec04" defer></script>
@@ -1360,7 +1342,7 @@ body.super-light-mode { background: #FFFFFF !important; }
     <!-- RELATED PRODUCTS — "More from Release 001", populated by JS -->
     <section id="related-products" style="display:none;max-width:1240px;margin:0 auto;padding:3rem clamp(1.15rem,5vw,3rem) 1rem">
       <p class="section-label" style="margin-bottom:1.4rem">More From Release 001</p>
-      <div class="pgrid" id="related-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem"></div>
+      <div class="pgrid zw-plat-grid" id="related-grid" data-lg="grid" data-md="swipe" data-sm="swipe" style="--col-lg:3"></div>
     </section>
 
   </div>
