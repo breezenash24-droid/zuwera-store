@@ -106,6 +106,13 @@ body.light-mode .zw-hdr-bag:hover,body.super-light-mode .zw-hdr-bag:hover{border
   /* One pill token replaces 99px / 100px / 999px — all render identically on the
      short elements they're used on (buttons, badges, chips). */
   --zw-radius-pill:999px;
+  /* Bottom-sheet height cap. Every mobile sheet uses this ONE value so none rises
+     behind the fixed header: it's the full viewport minus a header's-worth of top
+     inset (padding + the 36px drag handle + the notch safe-area). max-height means
+     short sheets still hug their content — this only caps the tall ones. It matches
+     what the bag/search/fit-finder sheets already used; login, reviews and the
+     quick-add sheet were the odd ones at a flat 92–96dvh that overshot the header. */
+  --zw-sheet-max:calc(100dvh - 1.6rem - 36px - env(safe-area-inset-top,0px) - .5rem);
 
   /* ── Type scale ── */
   --zw-text-hero:clamp(3.5rem,8vw,6rem);    /* hero headlines */
@@ -1302,7 +1309,7 @@ body.light-mode .heart-btn{
   #size-fit-modal > .review-dialog{
     width:100% !important;
     max-width:100% !important;
-    max-height:calc(100dvh - 1.6rem - 36px - env(safe-area-inset-top,0px) - .5rem) !important;
+    max-height:var(--zw-sheet-max) !important;
     margin:0 !important;
     border:none !important;
     border-radius:1.25rem 1.25rem 0 0 !important;
@@ -3232,7 +3239,7 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.18)!important;}
     min-height:0 !important;
     height:auto !important;
     /* max-height matches overlay padding-top so modal never goes behind nav */
-    max-height:calc(100dvh - 1.6rem - 36px - env(safe-area-inset-top,0px) - .5rem) !important;
+    max-height:var(--zw-sheet-max) !important;
     border-radius:1.25rem 1.25rem 0 0 !important;
     border-top:none !important;
     border-left:none !important;
@@ -3259,7 +3266,7 @@ body.light-mode .zw-mobile-menu-year{color:rgba(9,9,11,.18)!important;}
   .quick-add-review-modal > .mbox.quick-add-product-box{
     min-height:0 !important;
     height:auto !important;
-    max-height:92dvh !important;
+    max-height:var(--zw-sheet-max) !important;
     border-radius:1.25rem 1.25rem 0 0 !important;
     border-top:none !important;
     overflow-y:auto !important;
