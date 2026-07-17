@@ -24,10 +24,19 @@ const htmlFiles = fs
   .filter((f) => f.endsWith('.html') && fs.statSync(path.join(root, f)).isFile())
   .sort();
 
+// Global cache-bust salt. Bump this string to force EVERY asset ?v= to change on
+// the next deploy — even for files whose bytes are identical — so every browser
+// refetches all JS/CSS on its next page load. Cloudflare runs this script on each
+// deploy, so committing a new salt here is what actually forces the site-wide
+// refresh (the committed HTML seeds get re-stamped by that same run). The nuclear
+// option for when an update isn't reaching cached visitors; normal deploys don't
+// need it because content-hashing already busts changed files.
+const CACHE_BUST = '2026-07-16.1';
+
 function contentHash(filePath) {
   try {
     const buf = fs.readFileSync(filePath);
-    return crypto.createHash('sha256').update(buf).digest('hex').slice(0, 8);
+    return crypto.createHash('sha256').update(CACHE_BUST).update(buf).digest('hex').slice(0, 8);
   } catch (_) {
     return null;
   }
