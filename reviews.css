@@ -602,7 +602,14 @@ body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba
 
   /* ── Write-a-review modal: bottom sheet ── */
   #review-modal { align-items: flex-end !important; padding: 0 !important; }
-  .review-mbox {
+  /* The desktop modal-skin rule in storefront-cohesion.css (~line 477) applies a
+     square radius, a full border and a downward drop-shadow to .review-mbox, and its
+     4-id :not() chain out-ranks a bare `.review-mbox` selector — so this sheet used to
+     render as a bordered, square-cornered card instead of a rounded bottom sheet like
+     every other modal. Scope this rule to #review-modal with a matching 5-id
+     specificity so the sheet skin wins on mobile. (.review-mbox only ever lives inside
+     #review-modal, so the scoping changes nothing else.) */
+  #review-modal:not(#cart-modal):not(#mobile-menu):not(#payment-modal):not(#all-reviews-modal) > .review-mbox {
     width: 100vw !important;
     max-width: none !important;
     /* Override the storefront full-height rule */
@@ -611,10 +618,11 @@ body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba
     max-height: var(--zw-sheet-max) !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
-    border-radius: var(--zw-radius-modal) var(--zw-radius-modal) 0 0 !important;
+    /* Rounded top like every other bottom sheet (was the tight modal radius). */
+    border-radius: 1.25rem 1.25rem 0 0 !important;
     padding: 2rem 1.4rem calc(2rem + env(safe-area-inset-bottom,0px)) !important;
-    border-top: 2px solid var(--admin-res-text, var(--zw-accent)) !important;
-    border-left: none !important; border-right: none !important; border-bottom: none !important;
+    border: none !important;
+    box-shadow: 0 -8px 40px rgba(0,0,0,.28) !important;
     margin: 0 !important;
     position: relative !important;
   }

@@ -974,7 +974,21 @@ window.translateReviews = async function(domId) {
     if (!_rm) return;
     _rm.classList.remove('open');
     _rm.setAttribute('aria-hidden', 'true');
-    if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); } else { document.body.style.overflow = ''; }
+    // openReviewForm set an inline background:transparent!important on the container;
+    // clear it so nothing stray lingers after close.
+    _rm.style.removeProperty('background');
+    if (window.ZWModalScrollLock) {
+      window.ZWModalScrollLock.refresh();
+      // Safety net for the "page frozen after closing" report: if that first refresh
+      // ran while the sheet was still computed as visible, the body stays scroll-locked
+      // (position:fixed) with no later DOM mutation to retrigger the check. Re-check on
+      // the next frame, once the close has fully applied, so the lock always releases.
+      requestAnimationFrame(function () {
+        if (window.ZWModalScrollLock) window.ZWModalScrollLock.refresh();
+      });
+    } else {
+      document.body.style.overflow = '';
+    }
   }
   if (_rm) {
     _rm.addEventListener('click', e => { if (e.target === e.currentTarget) closeReviewModal(); });
