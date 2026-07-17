@@ -14,7 +14,7 @@
    reused as foreground colors elsewhere, e.g. .pcard-add-btn, and
    overriding them globally made buttons/text invisible.) */
 (function(){try{
-  var m=localStorage.getItem('zw_homepage_theme_mode')||localStorage.getItem('zw_theme_mode');
+  var m=localStorage.getItem('zw_homepage_theme_mode')||localStorage.getItem('zw_theme_mode')||'super-light';
   var h=document.documentElement;
   if(m==='super-light'||m==='light'){
     var bg=m==='super-light'?'#FFFFFF':'#F0EEE9';
@@ -1964,7 +1964,7 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
      add light-mode to <body> from the cached mode BEFORE first paint so the nav,
      hero, sections etc. render in light mode instead of flashing dark until
      deferred storefront.js applies the class. Mirrors what drop001/account do. -->
-<script>(function(){try{var m=localStorage.getItem('zw_homepage_theme_mode')||localStorage.getItem('zw_theme_mode');if(m==='light')document.body.classList.add('light-mode');else if(m==='super-light')document.body.classList.add('light-mode','super-light-mode');}catch(_){}})()</script>
+<script>(function(){try{var m=localStorage.getItem('zw_homepage_theme_mode')||localStorage.getItem('zw_theme_mode')||'super-light';if(m==='light')document.body.classList.add('light-mode');else if(m==='super-light')document.body.classList.add('light-mode','super-light-mode');}catch(_){}})()</script>
 <!-- Boot cover: themed layer held over the content on a page-builder reload while
      storefront.js reflows the layout, so the reflow doesn't visibly "jump". Shown
      only when html.zw-pb-pending (set synchronously in <head>); faded out by
@@ -1974,7 +1974,7 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
      scroll (the nav itself does, which is what bleeds). Themed to match the nav so
      it's seamless, sized to the status-bar strip only — adds no header height. -->
 <div id="zw-notch-cover" style="position:fixed;top:0;left:0;right:0;height:max(env(safe-area-inset-top,0px) - 48px,14px);z-index:2147483647;pointer-events:none;background:#FFFFFF;transform:translateZ(0);-webkit-transform:translateZ(0);will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden"></div>
-<script>try{var _nm=localStorage.getItem('zw_homepage_theme_mode')||localStorage.getItem('zw_theme_mode');document.getElementById('zw-notch-cover').style.background=_nm==='light'?'#F0EEE9':_nm==='super-light'?'#FFFFFF':'#09090b';}catch(_){}</script>
+<script>try{var _nm=localStorage.getItem('zw_homepage_theme_mode')||localStorage.getItem('zw_theme_mode')||'super-light';document.getElementById('zw-notch-cover').style.background=_nm==='light'?'#F0EEE9':_nm==='super-light'?'#FFFFFF':'#09090b';}catch(_){}</script>
 <a class="skip-link" href="#main-content">Skip to content</a>
 
 

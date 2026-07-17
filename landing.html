@@ -33,7 +33,7 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
 <script>
 /* THEME FLASH PREVENTION — runs before any CSS loads */
 (function(){try{
-  var m=window.__zwLM();
+  var m=window.__zwLM()||'super-light';
   var h=document.documentElement;
   if(m==='super-light'||m==='light'){
     var bg=m==='super-light'?'#FFFFFF':'#F0EEE9';
@@ -225,7 +225,7 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to content</a>
-<script>(function(){try{var m=window.__zwLM();if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
+<script>(function(){try{var m=window.__zwLM()||'super-light';if(m==='light'){document.body.classList.add('light-mode');document.documentElement.style.backgroundColor='#F0EEE9';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#F0EEE9');}else if(m==='super-light'){document.body.classList.add('light-mode','super-light-mode');document.documentElement.style.backgroundColor='#FFFFFF';var mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.setAttribute('content','#FFFFFF');}}catch(_){}})()</script>
 <script>
 (function() {
   function applyThemeMode(mode) {
@@ -237,7 +237,7 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
     if (meta) meta.setAttribute('content', color);
     document.documentElement.style.backgroundColor = color;
   }
-  try { applyThemeMode(window.__zwLM() || 'dark'); } catch(_) { applyThemeMode('dark'); }
+  try { applyThemeMode(window.__zwLM() || 'super-light'); } catch(_) { applyThemeMode('super-light'); }
   window.__zwApplyAdminTheme = applyThemeMode;
   window.__zwSyncThemeColor = function() {
     var m = document.body.classList.contains('super-light-mode') ? 'super-light'
