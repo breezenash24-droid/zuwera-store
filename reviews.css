@@ -608,7 +608,7 @@ body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba
     /* Override the storefront full-height rule */
     height: auto !important;
     min-height: 0 !important;
-    max-height: 92dvh !important;
+    max-height: var(--zw-sheet-max) !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
     border-radius: var(--zw-radius-modal) var(--zw-radius-modal) 0 0 !important;
@@ -638,8 +638,8 @@ body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba
     padding: 0 !important;
   }
   #all-reviews-modal > .review-list-mbox {
-    height: 92dvh !important;
-    max-height: 92dvh !important;
+    height: var(--zw-sheet-max) !important;
+    max-height: var(--zw-sheet-max) !important;
     width: 100vw !important;
     max-width: none !important;
     border-radius: var(--zw-radius-modal) var(--zw-radius-modal) 0 0 !important;
