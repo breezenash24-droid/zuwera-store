@@ -315,6 +315,23 @@ const checks = [
       return result.status === 0;
     },
   },
+  {
+    // The header pre-paint (product/index) renders the search magnifier BEFORE
+    // storefront-features.js does, so the two must draw the identical icon — otherwise
+    // the pre-rendered one would visibly swap to a different glyph when the script runs.
+    // Pin the pre-paint's SVG to features.js's SEARCH_SVG so a change to one without the
+    // other is caught here instead of shipping as a flash.
+    name: 'Header pre-paint search icon matches storefront-features.js SEARCH_SVG',
+    pass: () => {
+      const m = read('storefront-features.js').match(/var SEARCH_SVG\s*=\s*'([^']+)'/);
+      if (!m) return true; // can't locate the source icon — nothing to pin against
+      const svg = m[1];
+      return ['product.html', 'index.html'].every((f) => {
+        const s = read(f);
+        return !s.includes('zwf-search-btn') || s.includes(svg);
+      });
+    },
+  },
 ];
 
 let failed = 0;
