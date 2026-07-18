@@ -13,7 +13,7 @@
  *   action: 'balance' | 'redeem'   (redeem takes the chosen tier's `points`)
  */
 
-import { cors, json } from './_commerce.js';
+import { cors, json, mutateSetting } from './_commerce.js';
 
 const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
@@ -80,44 +80,41 @@ function randomCode() {
   return 'ZW' + s;
 }
 
-// Add a single-use fixed-amount promo to commerce_config.promotions.
-async function mintRewardCode(env, H, { value, expiryDays, minSubtotal }) {
-  const rows = await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?select=value&key=eq.commerce_config&limit=1`, { headers: H, cache: 'no-store' })
-    .then((r) => (r.ok ? r.json() : [])).catch(() => []);
-  const cfg = (rows && rows[0] && rows[0].value) || {};
-  const promos = Array.isArray(cfg.promotions) ? cfg.promotions : [];
-
-  const taken = new Set(promos.map((p) => String((p && p.code) || '').toUpperCase()));
-  let code = randomCode();
-  let guard = 0;
-  while (taken.has(code) && guard++ < 10) code = randomCode();
-
+// Add a single-use fixed-amount promo to commerce_config.promotions. The code is
+// chosen and appended INSIDE the atomic mutator so a concurrent mint (loyalty or
+// referral) can't overwrite it — the commerce_config lost-update bug.
+async function mintRewardCode(env, { value, expiryDays, minSubtotal }) {
   let expirationDate = '';
   if (expiryDays > 0) {
     const d = new Date(Date.now() + expiryDays * 86400000);
     expirationDate = d.toISOString().slice(0, 10); // YYYY-MM-DD, as the checks expect
   }
 
-  promos.push({
-    code,
-    label: 'Loyalty reward',
-    description: `Your reward — $${value} off`,
-    type: 'fixed',
-    value,
-    minSubtotal: minSubtotal || 0,
-    active: true,
-    expirationDate,
-    maxUsage: 1,
-    usageCount: 0,
-    targetProductIds: [],
-    targetCollectionIds: [],
+  let code = '';
+  await mutateSetting(env, 'commerce_config', (cfg) => {
+    cfg = cfg || {};
+    const promos = Array.isArray(cfg.promotions) ? cfg.promotions.slice() : [];
+    const taken = new Set(promos.map((p) => String((p && p.code) || '').toUpperCase()));
+    code = randomCode();
+    let guard = 0;
+    while (taken.has(code) && guard++ < 10) code = randomCode();
+    promos.push({
+      code,
+      label: 'Loyalty reward',
+      description: `Your reward — $${value} off`,
+      type: 'fixed',
+      value,
+      minSubtotal: minSubtotal || 0,
+      active: true,
+      expirationDate,
+      maxUsage: 1,
+      usageCount: 0,
+      targetProductIds: [],
+      targetCollectionIds: [],
+    });
+    return { ...cfg, promotions: promos };
   });
-  cfg.promotions = promos;
-
-  const r = await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?key=eq.commerce_config`, {
-    method: 'PATCH', headers: { ...H, Prefer: 'return=minimal' }, body: JSON.stringify({ value: cfg }),
-  });
-  if (!r.ok) throw new Error('Could not create your reward code.');
+  if (!code) throw new Error('Could not create your reward code.');
   return { code, expirationDate };
 }
 
@@ -174,36 +171,63 @@ export async function onRequestPost({ request, env }) {
       const tier = wanted > 0 ? s.tiers.find((t) => t.points === wanted) : s.tiers[0];
       if (!tier) return json({ ok: false, error: 'That reward is no longer available.' }, 400, cors(env));
 
-      const balance = await balanceOf(env, H, userId);
-      if (balance < tier.points) {
-        return json({ ok: false, error: `You need ${tier.points} ${s.pointsLabel} for that reward — you have ${balance}.` }, 400, cors(env));
+      // Spend atomically: redeem_loyalty() checks the balance and writes the spend
+      // row in one advisory-locked step, so concurrent redeems can't double-spend.
+      // Falls back to the legacy check-then-insert if the RPC isn't deployed yet —
+      // run supabase-atomic-settings.sql to activate the atomic path.
+      let spendId = null;
+      let balanceAfter = null;
+      const rpc = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/redeem_loyalty`, {
+        method: 'POST', headers: H,
+        body: JSON.stringify({ p_user_id: userId, p_points: tier.points }),
+      });
+
+      if (rpc.ok) {
+        const out = await rpc.json().catch(() => null);
+        const row = Array.isArray(out) ? out[0] : out;
+        spendId = row && (row.spend_id != null ? row.spend_id : row.spendId);
+        balanceAfter = row && (row.new_balance != null ? row.new_balance : row.newBalance);
+      } else if (rpc.status === 404) {
+        // RPC not deployed — legacy path (NOT concurrency-safe; run the migration).
+        const balance = await balanceOf(env, H, userId);
+        if (balance < tier.points) {
+          return json({ ok: false, error: `You need ${tier.points} ${s.pointsLabel} for that reward — you have ${balance}.` }, 400, cors(env));
+        }
+        const spendRes = await fetch(`${env.SUPABASE_URL}/rest/v1/loyalty_ledger`, {
+          method: 'POST', headers: { ...H, Prefer: 'return=representation' },
+          body: JSON.stringify({ user_id: userId, points: -tier.points, reason: 'redeem' }),
+        });
+        if (!spendRes.ok) return json({ ok: false, error: 'Could not redeem right now.' }, 500, cors(env));
+        spendId = ((await spendRes.json().catch(() => []))[0] || {}).id || null;
+        balanceAfter = balance - tier.points;
+      } else {
+        // RPC ran and rejected — most commonly an insufficient balance.
+        const txt = await rpc.text().catch(() => '');
+        if (/insufficient_balance/.test(txt)) {
+          const balance = await balanceOf(env, H, userId).catch(() => 0);
+          return json({ ok: false, error: `You need ${tier.points} ${s.pointsLabel} for that reward — you have ${balance}.` }, 400, cors(env));
+        }
+        return json({ ok: false, error: 'Could not redeem right now.' }, 500, cors(env));
       }
 
-      // Spend first, then mint. If minting fails, hand the points back so a
-      // failure can never silently eat someone's balance.
-      const spendRes = await fetch(`${env.SUPABASE_URL}/rest/v1/loyalty_ledger`, {
-        method: 'POST', headers: { ...H, Prefer: 'return=representation' },
-        body: JSON.stringify({ user_id: userId, points: -tier.points, reason: 'redeem' }),
-      });
-      if (!spendRes.ok) return json({ ok: false, error: 'Could not redeem right now.' }, 500, cors(env));
-      const spendRow = (await spendRes.json().catch(() => []))[0];
-
+      // Points are spent. Mint the reward code; if minting fails, hand the points
+      // back so a failure can never silently eat someone's balance.
       let minted;
       try {
-        minted = await mintRewardCode(env, H, {
+        minted = await mintRewardCode(env, {
           value: tier.value, expiryDays: s.rewardExpiryDays, minSubtotal: s.rewardMinSubtotal,
         });
       } catch (e) {
-        if (spendRow && spendRow.id) {
-          await fetch(`${env.SUPABASE_URL}/rest/v1/loyalty_ledger?id=eq.${encodeURIComponent(spendRow.id)}`, {
+        if (spendId) {
+          await fetch(`${env.SUPABASE_URL}/rest/v1/loyalty_ledger?id=eq.${encodeURIComponent(spendId)}`, {
             method: 'DELETE', headers: { ...H, Prefer: 'return=minimal' },
           }).catch(() => {});
         }
         return json({ ok: false, error: (e && e.message) || 'Could not redeem right now.' }, 500, cors(env));
       }
 
-      if (spendRow && spendRow.id) {
-        await fetch(`${env.SUPABASE_URL}/rest/v1/loyalty_ledger?id=eq.${encodeURIComponent(spendRow.id)}`, {
+      if (spendId) {
+        await fetch(`${env.SUPABASE_URL}/rest/v1/loyalty_ledger?id=eq.${encodeURIComponent(spendId)}`, {
           method: 'PATCH', headers: { ...H, Prefer: 'return=minimal' }, body: JSON.stringify({ promo_code: minted.code }),
         }).catch(() => {});
       }
@@ -211,7 +235,7 @@ export async function onRequestPost({ request, env }) {
       return json({
         ok: true, code: minted.code, value: tier.value,
         expiresOn: minted.expirationDate || '', minSubtotal: s.rewardMinSubtotal,
-        balance: balance - tier.points,
+        balance: balanceAfter != null ? balanceAfter : await balanceOf(env, H, userId),
       }, 200, cors(env));
     }
 

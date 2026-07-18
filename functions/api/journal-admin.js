@@ -10,6 +10,7 @@
  */
 
 import { cors, json, verifyAdmin } from './_commerce.js';
+import { permsHave } from './_rbac.js';
 
 function serviceKey(env) {
   return env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || env.SUPABASE_ANON_KEY || '';
@@ -38,6 +39,14 @@ export async function onRequestPost({ request, env }) {
     const base = `${env.SUPABASE_URL}/rest/v1/journal_posts`;
 
     const action = String(body.action || 'list');
+
+    // Reads need journal page access; writes (save/delete) need builder_edit —
+    // mirrors the UI's per-role gating so a limited role can't mutate posts by
+    // calling the API directly.
+    const needed = (action === 'save' || action === 'delete') ? 'builder_edit' : 'journal';
+    if (!permsHave(admin.permissions, needed)) {
+      return json({ ok: false, error: 'Your role does not have access to the journal.' }, 403, cors(env));
+    }
 
     if (action === 'list') {
       const r = await fetch(`${base}?select=*&order=created_at.desc&limit=500`, { headers: H, cache: 'no-store' });

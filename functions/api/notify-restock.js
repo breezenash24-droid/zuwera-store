@@ -15,7 +15,7 @@
  * Body: { productId, accessToken }
  */
 
-import { cors, json, verifyAdmin } from './_commerce.js';
+import { cors, json, verifyAdminCan } from './_commerce.js';
 import { fetchSiteSettings, resolveSetting } from './_settings.js';
 import { loopsFallback } from './_email.js';
 
@@ -102,8 +102,9 @@ export async function onRequestPost({ request, env }) {
     if (!accessToken) return json({ ok: false, error: 'Missing access token' }, 401, cors(env));
     if (!productId)   return json({ ok: false, error: 'Missing productId' }, 400, cors(env));
 
-    const admin = await verifyAdmin(env, accessToken);
-    if (!admin) return json({ ok: false, error: 'Admin access required' }, 403, cors(env));
+    // Sending restock notifications is a product/inventory action — gate on product_write.
+    const admin = await verifyAdminCan(env, accessToken, 'product_write');
+    if (!admin) return json({ ok: false, error: 'Your role does not have permission to manage products.' }, 403, cors(env));
 
     const key = serviceKey(env);
     if (!env.SUPABASE_URL || !key) return json({ ok: false, error: 'Supabase not configured' }, 500, cors(env));
