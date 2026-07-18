@@ -131,6 +131,18 @@
   padding-bottom: 1.25rem;
   border-bottom: 1px solid rgba(244,241,235,.08);
 }
+/* Pin the write-a-review header (brand + title + close) to the top of the sheet as the
+   form scrolls, so the close button stays reachable ("moves with the page") instead of
+   scrolling out of view. Opaque bg per theme — same colour as the sheet — covers the
+   form passing beneath it. */
+#review-modal .review-mbox-hd {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background: #0f0f0f;
+}
+body.light-mode #review-modal .review-mbox-hd { background: #F0EEE9; }
+body.super-light-mode #review-modal .review-mbox-hd { background: #FFFFFF; }
 .review-mbox-eyebrow {
   display: inline-flex;
   align-items: center;
