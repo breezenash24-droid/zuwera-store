@@ -389,6 +389,7 @@ body.super-light-mode .zw-fav-size-picker{background:#FFFFFF!important;border-co
 /* Fill the account button with the signed-in name synchronously (the nav has
    just been parsed) so it doesn't flash "Account" then the name. The .zw-authed
    CSS above already handled the Login↔Account visibility before paint. */
+(function(){try{if(localStorage.getItem('zw_bp')!=='0')document.body.classList.add('zwf-bagpanel-on');}catch(_){}})();
 (function(){try{
   var u=window.__zwSessionUser;if(!u)return;
   var a=document.getElementById('account-btn');if(!a)return;
