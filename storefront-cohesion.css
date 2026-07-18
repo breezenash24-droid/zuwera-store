@@ -89,11 +89,20 @@ body.light-mode .zw-hdr-bag:hover,body.super-light-mode .zw-hdr-bag:hover{border
   --zw-line-light:rgba(9,9,11,.1);
   --zw-muted-dark:rgba(244,241,235,.5);
   --zw-muted-light:rgba(9,9,11,.5);
-  /* ── Font families ── */
-  --zw-font-head:'Barlow Condensed',sans-serif;
-  --zw-font-body:'Barlow',sans-serif;
-  --zw-font-mono:'IBM Plex Mono',monospace;
-  /* --font-* and --fw/fb/fm canonical variables are defined in base.css */
+  /* ── Font families ──
+     These are the FIRST-PAINT defaults, used before storefront-theme.js applies the
+     admin fonts from site_settings.fonts (~0.5s after load). They are kept in sync
+     with the live admin config by scripts/stamp-config-defaults.js at build time, so
+     an uncached first load already paints the current brand fonts instead of the old
+     Barlow/IBM-Plex defaults and then swapping (the "old header words" flash).
+     --font-* / --fw/fb/fm in base.css read these names, so aligning here is enough. */
+  --zw-font-head:"Futura 100 Demibold", "Futura", "Jost", sans-serif;   /* zw:font-head */
+  --zw-font-body:"Futura 100 Demibold", "Futura", "Jost", sans-serif;   /* zw:font-body */
+  --zw-font-mono:"Futura 100 Demibold", "Futura", "Jost", sans-serif;   /* zw:font-mono */
+  /* Heading treatment first-paint defaults (also stamped from the admin config). */
+  --zw-fst-head:normal;        /* zw:fst-head */
+  --zw-head-tracking:normal;   /* zw:head-tracking */
+  --zw-head-case:uppercase;    /* zw:head-case */
 
   /* ── Motion & radius tokens ──
      The two easings that do the site's real work, named. Everything else was a
