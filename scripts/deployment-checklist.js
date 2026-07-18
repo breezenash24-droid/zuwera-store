@@ -326,7 +326,9 @@ const checks = [
       const m = read('storefront-features.js').match(/var SEARCH_SVG\s*=\s*'([^']+)'/);
       if (!m) return true; // can't locate the source icon — nothing to pin against
       const svg = m[1];
-      return ['product.html', 'index.html'].every((f) => {
+      // Any page that pre-renders the magnifier (has .zwf-search-btn markup) must embed
+      // the identical SVG — checked across all HTML, so new pages are covered automatically.
+      return fs.readdirSync(root).filter((f) => f.endsWith('.html')).every((f) => {
         const s = read(f);
         return !s.includes('zwf-search-btn') || s.includes(svg);
       });

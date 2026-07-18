@@ -276,6 +276,12 @@ window.__zwLM=function(){try{var sp=new URLSearchParams(location.search);var tag
     })();
     </script>
   </nav>
+<script>/* Header feature pre-paint: render the search magnifier (and hide the old
+   login/account buttons) on the first frame from the cached feature state
+   (zw_bp/zw_srch, refreshed every load by storefront-features.js) so the header does not
+   settle ~0.5s in. Matches initSearch's host/anchor/class for whichever header this page
+   uses; the magnifier markup is pinned to features.js by scripts/deployment-checklist.js. */
+(function(){try{if(localStorage.getItem('zw_bp')!=='0')document.body.classList.add('zwf-bagpanel-on');if(localStorage.getItem('zw_srch')==='1'){var nr=document.querySelector('.nav-right'),ct=nr&&nr.querySelector('#cart-btn'),host,before,cls;if(nr&&ct){host=nr;before=ct;cls='nbtn';}else{var g=document.querySelector('.zw-hdr-group');if(g){host=g;before=g.querySelector('.zw-hdr-bag');cls='zw-hdr-action';}}if(host&&!host.querySelector('.zwf-search-btn')){var sb=document.createElement('button');sb.type='button';sb.className=cls+' zwf-search-btn';sb.setAttribute('aria-label','Search');sb.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>';if(before)host.insertBefore(sb,before);else host.appendChild(sb);}}}catch(_){}})();</script>
 
   <div id="mobile-menu" class="modal zw-mobile-menu" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="mobile-menu-title">
     <div class="mbox zw-mobile-menu-panel">
