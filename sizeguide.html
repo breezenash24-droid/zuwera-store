@@ -1424,14 +1424,9 @@
   </div>
 </footer>
 
-  <!-- COOKIE CONSENT -->
-  <!-- Cookie banner: consent.js injects the shared one. This page used to ship
-       its own too, so two appeared. -->
-    <div class="cookie-buttons">
-      <button class="cookie-btn" id="cookieDecline">Decline</button>
-      <button class="cookie-btn accept" id="cookieAccept">Accept</button>
-    </div>
-  </div>
+  <!-- Cookie consent is owned entirely by consent.js (the shared banner), and it is
+       suppressed inside an iframe — so the size guide, embedded on the product page,
+       shows no banner at all. The page's own leftover banner markup was removed. -->
 
   <script>
     // ------ SUPABASE CONFIG ------

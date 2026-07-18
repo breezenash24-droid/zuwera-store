@@ -78,6 +78,11 @@
   }
 
   function init() {
+    // Never surface the banner in an embedded context (e.g. the size-guide iframe on the
+    // product page). The visitor makes their choice once on the top-level site; a second
+    // banner inside an iframe is redundant and confusing. zwConsent still reads the shared
+    // localStorage choice here, so anything gating on it behaves correctly.
+    try { if (window.self !== window.top) { hide(); return; } } catch (_) { hide(); return; }
     var s = get();
     if (s === 'accepted') { fire('zw-consent-accepted'); hide(); return; } // returning consenter → let trackers start
     if (s === 'declined') { hide(); return; }
