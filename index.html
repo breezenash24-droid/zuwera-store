@@ -2018,6 +2018,11 @@ body.super-light-mode #mobile-menu{background:#FFFFFF!important}
     </button>
   </div>
 </nav>
+<script>/* Header auth first-paint: set the login/account buttons from the cached session
+   BEFORE paint, mirroring what auth.js does after its async getSession (~0.5s). Without
+   this the header flashed both the login AND account button (and, signed in, "Account"
+   before the name) until that resolved. auth.js re-applies the same values later. */
+(function(){try{var v=JSON.parse(localStorage.getItem('zuwera-auth')||'null');var s=v&&(v.currentSession||v);var u=s&&s.user,e=s&&s.expires_at;var i=!!(u&&s.access_token&&(!e||e*1000>Date.now()));var L=document.getElementById('login-btn'),A=document.getElementById('account-btn'),O=document.getElementById('logout-btn');if(L)L.style.display=i?'none':'inline-flex';if(A){A.style.display=i?'inline-flex':'none';if(i){var n=(u.user_metadata&&(u.user_metadata.full_name||u.user_metadata.name))||(u.email||'').split('@')[0]||'';A.textContent=(n||'').split(' ')[0];}}if(O)O.style.display=i?'inline-flex':'none';}catch(_){}})();</script>
 
 
 <!-- MOBILE MENU MODAL -->
