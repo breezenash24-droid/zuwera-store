@@ -18,7 +18,7 @@
  *   action: 'get'
  */
 
-import { cors, json } from './_commerce.js';
+import { cors, json, mutateSetting } from './_commerce.js';
 
 const SUPABASE_URL = 'https://qfgnrsifcwdubkolsgsq.supabase.co';
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFmZ25yc2lmY3dkdWJrb2xzZ3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDgzMTUsImV4cCI6MjA4ODU4NDMxNX0.wthoTJEdQhLKnrTwq7nuzAB3Q3FV5rOGVcyi5v1jyLY';
@@ -85,31 +85,31 @@ async function mintReferral(env, H, user, s) {
   }
   if (!row) throw new Error('Could not create your referral code.');
 
-  // Matching promo so the friend's code actually discounts at checkout.
-  const cRows = await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?select=value&key=eq.commerce_config&limit=1`, { headers: H, cache: 'no-store' })
-    .then((r) => (r.ok ? r.json() : [])).catch(() => []);
-  const cfg = (cRows && cRows[0] && cRows[0].value) || {};
-  const promos = Array.isArray(cfg.promotions) ? cfg.promotions : [];
-  if (!promos.some((p) => String((p && p.code) || '').toUpperCase() === code.toUpperCase())) {
-    promos.push({
-      code,
-      label: 'Referral',
-      description: `A friend sent you $${s.friendType === 'fixed' ? s.friendValue + ' off' : s.friendValue + '% off'}`,
-      type: s.friendType,
-      value: s.friendValue,
-      minSubtotal: s.friendMinSubtotal || 0,
-      active: true,
-      expirationDate: '',
-      maxUsage: s.maxUsesPerCode > 0 ? s.maxUsesPerCode : null,
-      usageCount: 0,
-      targetProductIds: [],
-      targetCollectionIds: [],
-    });
-    cfg.promotions = promos;
-    await fetch(`${env.SUPABASE_URL}/rest/v1/site_settings?key=eq.commerce_config`, {
-      method: 'PATCH', headers: { ...H, Prefer: 'return=minimal' }, body: JSON.stringify({ value: cfg }),
-    });
-  }
+  // Matching promo so the friend's code actually discounts at checkout. Appended
+  // inside the atomic mutator so a concurrent mint can't drop it (commerce_config
+  // lost-update bug). `code` is fixed by the unique-constrained row above, so it
+  // doesn't change across CAS retries.
+  await mutateSetting(env, 'commerce_config', (cfg) => {
+    cfg = cfg || {};
+    const promos = Array.isArray(cfg.promotions) ? cfg.promotions.slice() : [];
+    if (!promos.some((p) => String((p && p.code) || '').toUpperCase() === code.toUpperCase())) {
+      promos.push({
+        code,
+        label: 'Referral',
+        description: `A friend sent you $${s.friendType === 'fixed' ? s.friendValue + ' off' : s.friendValue + '% off'}`,
+        type: s.friendType,
+        value: s.friendValue,
+        minSubtotal: s.friendMinSubtotal || 0,
+        active: true,
+        expirationDate: '',
+        maxUsage: s.maxUsesPerCode > 0 ? s.maxUsesPerCode : null,
+        usageCount: 0,
+        targetProductIds: [],
+        targetCollectionIds: [],
+      });
+    }
+    return { ...cfg, promotions: promos };
+  });
   return code;
 }
 

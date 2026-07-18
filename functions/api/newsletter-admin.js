@@ -9,6 +9,7 @@
  */
 
 import { cors, json, verifyAdmin } from './_commerce.js';
+import { permsHave } from './_rbac.js';
 
 function serviceKey(env) {
   return env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || env.SUPABASE_ANON_KEY || '';
@@ -33,6 +34,14 @@ export async function onRequestPost({ request, env }) {
     const H = { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' };
     const base = `${env.SUPABASE_URL}/rest/v1/newsletter_subscribers`;
     const action = String(body.action || 'list');
+
+    // Reads need subscribers page access; writes (delete) need builder_edit —
+    // mirrors the UI's per-role gating so a limited role can't mutate the list
+    // by calling the API directly.
+    const needed = (action === 'delete') ? 'builder_edit' : 'subscribers';
+    if (!permsHave(admin.permissions, needed)) {
+      return json({ ok: false, error: 'Your role does not have access to subscribers.' }, 403, cors(env));
+    }
 
     if (action === 'list') {
       const r = await fetch(`${base}?select=id,email,status,source,created_at,unsubscribed_at&order=created_at.desc&limit=5000`, { headers: H, cache: 'no-store' });

@@ -3,7 +3,7 @@ import {
   getCommerceBundle,
   getOrdersForUser,
   json,
-  setSetting,
+  mutateSetting,
   upsertTimelineEntry,
   verifyUser,
 } from './_commerce.js';
@@ -133,11 +133,10 @@ export async function onRequestPost({ request, env }) {
         })),
         updatedAt: new Date().toISOString(),
       };
-      const nextProfiles = {
-        ...(bundle.customerProfiles || {}),
+      await mutateSetting(env, 'commerce_customer_profiles', (cur) => ({
+        ...(cur || {}),
         [user.id]: nextProfile,
-      };
-      await setSetting(env, 'commerce_customer_profiles', nextProfiles);
+      }));
 
       // Sync to Loops in background (non-blocking, non-fatal)
       syncToLoops(env, {
@@ -207,21 +206,24 @@ export async function onRequestPost({ request, env }) {
         country: matchedOrder.ship_country || 'US',
       };
 
-      const requests = Array.isArray(bundle.returnsState?.requests) ? [...bundle.returnsState.requests] : [];
-      requests.unshift(nextRequest);
-      await setSetting(env, 'commerce_returns', { requests: requests.slice(0, 500) });
+      await mutateSetting(env, 'commerce_returns', (cur) => {
+        const list = Array.isArray(cur?.requests) ? cur.requests : [];
+        return { requests: [nextRequest, ...list].slice(0, 500) };
+      });
 
-      const nextOrderOps = { ...(bundle.orderOps || {}) };
-      const existingOrderOps = nextOrderOps[nextRequest.orderId] || {};
-      nextOrderOps[nextRequest.orderId] = {
-        ...existingOrderOps,
-        timeline: upsertTimelineEntry(existingOrderOps.timeline, {
-          actor: user.email || 'customer',
-          type: 'return_requested',
-          message: `${nextRequest.resolution} requested by customer`,
-        }),
-      };
-      await setSetting(env, 'commerce_order_ops', nextOrderOps);
+      await mutateSetting(env, 'commerce_order_ops', (cur) => {
+        const ops = { ...(cur || {}) };
+        const existingOrderOps = ops[nextRequest.orderId] || {};
+        ops[nextRequest.orderId] = {
+          ...existingOrderOps,
+          timeline: upsertTimelineEntry(existingOrderOps.timeline, {
+            actor: user.email || 'customer',
+            type: 'return_requested',
+            message: `${nextRequest.resolution} requested by customer`,
+          }),
+        };
+        return ops;
+      });
 
       return json({ success: true, request: nextRequest }, 200, cors(env));
     }
@@ -235,14 +237,16 @@ export async function onRequestPost({ request, env }) {
       }
       const updated = existing.filter((_, i) => i !== idx).map((a, i) => ({ ...a, isPrimary: i === 0 }));
       const nextProfile = { ...currentProfile, savedAddresses: updated, updatedAt: new Date().toISOString() };
-      await setSetting(env, 'commerce_customer_profiles', { ...(bundle.customerProfiles || {}), [user.id]: nextProfile });
+      await mutateSetting(env, 'commerce_customer_profiles', (cur) => ({ ...(cur || {}), [user.id]: nextProfile }));
       return json({ success: true, profile: nextProfile }, 200, cors(env));
     }
 
     if (action === 'delete_profile_data') {
-      const nextProfiles = { ...(bundle.customerProfiles || {}) };
-      delete nextProfiles[user.id];
-      await setSetting(env, 'commerce_customer_profiles', nextProfiles);
+      await mutateSetting(env, 'commerce_customer_profiles', (cur) => {
+        const next = { ...(cur || {}) };
+        delete next[user.id];
+        return next;
+      });
       return json({ success: true }, 200, cors(env));
     }
 
