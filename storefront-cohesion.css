@@ -61,6 +61,18 @@ a,button,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:t
    an identical header. Spacing lives in .zw-hdr-group so it never depends on
    each page's own nav container gap. !important guards against page-level
    `a {}` / nav-anchor resets. Colours are mode-aware via --paper/--ink. */
+/* When the bag-panel header is on, the old login/account buttons are replaced by the
+   search + bag header, so hide them. storefront-features.js also injects this at runtime,
+   but having it here (render-blocking) lets the header pre-paint add body.zwf-bagpanel-on
+   from the cached feature state and hide #account-btn ("Nash") on the FIRST frame — before
+   that deferred script loads — instead of flashing the old button for ~0.5s. */
+html body.zwf-bagpanel-on :is(#login-btn,#account-btn,#hdr-login){display:none !important}
+/* Search magnifier launcher — base style at first paint so the header pre-paint can
+   render it (before storefront-features.js's runtime styles load) without it looking
+   like the .nbtn text button it borrows its class from. */
+.zwf-search-btn{background:none !important;border:none !important;cursor:pointer;display:inline-flex !important;align-items:center;justify-content:center;padding:.35rem !important;min-width:0 !important;width:auto !important;height:auto !important;font-size:0 !important;color:inherit}
+.zwf-search-btn svg{width:20px;height:20px;display:block}
+.zwf-search-btn::before{content:none !important;display:none !important}
 .zw-hdr-group{display:inline-flex;align-items:center;gap:.4rem}
 .zw-hdr-action{font-family:var(--zw-font-mono) !important;font-size:.6rem !important;letter-spacing:.18em !important;text-transform:uppercase !important;color:rgba(244,241,235,.55) !important;text-decoration:none !important;padding:.55rem .9rem !important;transition:color .2s !important;display:inline-flex;align-items:center;line-height:1}
 .zw-hdr-action:hover{color:var(--paper) !important}

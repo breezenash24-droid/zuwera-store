@@ -393,14 +393,21 @@
         before = navRight.querySelector('#mobile-menu-btn, .hamburger-btn');
       }
     }
-    if (host && !document.querySelector('.zwf-search-btn')) {
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = cls + ' zwf-search-btn';
-      btn.setAttribute('aria-label', 'Search');
-      btn.innerHTML = SEARCH_SVG;
-      if (before) host.insertBefore(btn, before); else host.appendChild(btn);
-      btn.addEventListener('click', openSearch);
+    if (host) {
+      // The header pre-paint snippet may have already rendered the magnifier (so it's
+      // there on the first frame instead of popping in late). Reuse it if so; only
+      // create when it's missing. Either way, wire the click here — the pre-paint can't
+      // attach the openSearch handler — guarding against a double-bind.
+      var btn = document.querySelector('.zwf-search-btn');
+      if (!btn) {
+        btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = cls + ' zwf-search-btn';
+        btn.setAttribute('aria-label', 'Search');
+        btn.innerHTML = SEARCH_SVG;
+        if (before) host.insertBefore(btn, before); else host.appendChild(btn);
+      }
+      if (!btn.__zwSearchWired) { btn.__zwSearchWired = true; btn.addEventListener('click', openSearch); }
     }
 
     // "/" opens search (unless typing in a field).
@@ -1339,6 +1346,20 @@
     if (wantSearch) initSearch();
     if (wantSupport) initSupport();
     if (wantBagPanel) initBagPanel();
+    // Remember the resolved header-feature state so the NEXT load can apply it BEFORE
+    // paint. This script is deferred and runs ~0.5s in, so a returning logged-in visitor
+    // sees the old #account-btn ("Nash") for a beat before the bag-panel header hides it,
+    // and the search magnifier pops in late. The pre-paint snippet in the header pages
+    // reads zw_bp / zw_srch. Cache '0' for an explicit OFF so it stops adding them.
+    try {
+      localStorage.setItem('zw_bp', wantBagPanel ? '1' : '0');
+      localStorage.setItem('zw_srch', wantSearch ? '1' : '0');
+      // Undo an optimistic pre-paint if this store actually has the panel switched off.
+      if (!wantBagPanel && document.body) document.body.classList.remove('zwf-bagpanel-on');
+      // Same for search: if it's off now, drop a magnifier the pre-paint rendered from a
+      // stale cache (initSearch never ran, so it's unwired and does nothing).
+      if (!wantSearch) { var _pre = document.querySelector('.zwf-search-btn'); if (_pre && !_pre.__zwSearchWired) _pre.remove(); }
+    } catch (_) {}
     // Either panel can collide with the category mega-menu, so this arms as soon
     // as one of them is on.
     if (wantSearch || wantBagPanel) watchCategoryHover();
