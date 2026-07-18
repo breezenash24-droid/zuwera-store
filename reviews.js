@@ -468,6 +468,24 @@ function openReviewForm(pid, pname) {
   reviewModal.style.setProperty('background', 'transparent', 'important');
   reviewModal.style.setProperty('backdrop-filter', 'none', 'important');
   reviewModal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+  // Force the bottom-sheet layout inline (highest priority) so it's a real bottom sheet
+  // — anchored to the bottom edge, full sheet height, rounded top — regardless of any
+  // cached/older reviews.css or a higher-specificity rule that would otherwise centre it.
+  // Cleared again in closeReviewModal.
+  if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) {
+    var _SH = 'var(--zw-sheet-max, calc(100dvh - 7rem))';
+    reviewModal.style.setProperty('align-items', 'flex-end', 'important');
+    reviewModal.style.setProperty('padding', '0', 'important');
+    var _rbox = reviewModal.querySelector('.review-mbox');
+    if (_rbox) {
+      _rbox.style.setProperty('height', _SH, 'important');
+      _rbox.style.setProperty('max-height', _SH, 'important');
+      _rbox.style.setProperty('width', '100vw', 'important');
+      _rbox.style.setProperty('max-width', 'none', 'important');
+      _rbox.style.setProperty('margin', '0', 'important');
+      _rbox.style.setProperty('border-radius', '1.25rem 1.25rem 0 0', 'important');
+    }
+  }
   if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); } else { document.body.style.overflow = 'hidden'; }
   window.requestAnimationFrame(() => {
     try { document.querySelector('#star-selector button')?.focus({ preventScroll: true }); } catch (_) {}
@@ -554,6 +572,22 @@ function openEditReviewForm(id, rating, pid) {
   editModal.style.setProperty('background', 'transparent', 'important');
   editModal.style.setProperty('backdrop-filter', 'none', 'important');
   editModal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+  // Same forced bottom-sheet layout as openReviewForm (this is a separate entry point,
+  // reachable from a review's Edit button). Cleared in closeReviewModal.
+  if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) {
+    var _SH = 'var(--zw-sheet-max, calc(100dvh - 7rem))';
+    editModal.style.setProperty('align-items', 'flex-end', 'important');
+    editModal.style.setProperty('padding', '0', 'important');
+    var _ebox = editModal.querySelector('.review-mbox');
+    if (_ebox) {
+      _ebox.style.setProperty('height', _SH, 'important');
+      _ebox.style.setProperty('max-height', _SH, 'important');
+      _ebox.style.setProperty('width', '100vw', 'important');
+      _ebox.style.setProperty('max-width', 'none', 'important');
+      _ebox.style.setProperty('margin', '0', 'important');
+      _ebox.style.setProperty('border-radius', '1.25rem 1.25rem 0 0', 'important');
+    }
+  }
   if (window.ZWModalScrollLock) { window.ZWModalScrollLock.refresh(); } else { document.body.style.overflow = 'hidden'; }
 }
 
@@ -977,24 +1011,26 @@ window.translateReviews = async function(domId) {
     // openReviewForm set an inline background:transparent!important on the container;
     // clear it so nothing stray lingers after close.
     _rm.style.removeProperty('background');
-    if (window.ZWModalScrollLock) {
-      window.ZWModalScrollLock.refresh();
-      // The page kept freezing after this sheet closed: the scroll lock infers
-      // open/closed from computed styles, and here it left the body pinned. On the
-      // next frame — once the close has applied — decide from the source of truth
-      // (an overlay is open iff it carries its .open class). If nothing is actually
-      // open, force the lock off so the page can never be stranded unscrollable.
-      requestAnimationFrame(function () {
-        if (!window.ZWModalScrollLock) return;
-        var open = document.querySelector(
-          '.modal.open, .zwf-modal.open, .zwf-bag.open, .zwf-search.open, #payment-success.open, #zw-lang-modal.open'
-        );
-        if (!open && window.ZWModalScrollLock.release) window.ZWModalScrollLock.release();
-        else window.ZWModalScrollLock.refresh();
-      });
+    // Clear the inline bottom-sheet layout forced on open.
+    ['align-items', 'padding'].forEach(function (p) { _rm.style.removeProperty(p); });
+    var _cbox = _rm.querySelector('.review-mbox');
+    if (_cbox) ['height', 'max-height', 'width', 'max-width', 'margin', 'border-radius'].forEach(function (p) { _cbox.style.removeProperty(p); });
+    // FREE THE PAGE FIRST, unconditionally. The review sheet is a top-level modal, so
+    // closing it must release the scroll lock — full stop. The old code inferred
+    // open/closed from computed styles and kept stranding the body pinned (frozen on
+    // both mobile and desktop). Release outright, then re-engage on the next frame ONLY
+    // if some OTHER overlay is genuinely still open.
+    if (window.ZWModalScrollLock && window.ZWModalScrollLock.release) {
+      window.ZWModalScrollLock.release();
     } else {
-      document.body.style.overflow = '';
+      var b = document.body, h = document.documentElement;
+      b.style.position = ''; b.style.removeProperty('top'); b.style.overflow = ''; h.style.overflow = '';
     }
+    requestAnimationFrame(function () {
+      if (window.ZWModalScrollLock && document.querySelector(
+        '.modal.open, .zwf-modal.open, .zwf-bag.open, .zwf-search.open, #payment-success.open, #zw-lang-modal.open'
+      )) window.ZWModalScrollLock.refresh();
+    });
   }
   if (_rm) {
     _rm.addEventListener('click', e => { if (e.target === e.currentTarget) closeReviewModal(); });
