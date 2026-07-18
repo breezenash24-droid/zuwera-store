@@ -175,7 +175,26 @@
     });
   }
 
+  // Source of truth for "is anything actually open". Overlays declare their open state
+  // with an .open class (removed synchronously on close); payment/QR screens may show
+  // without one, so those are checked by display. This exists because hasActiveOverlay()
+  // infers open/closed from computed visibility/pointer-events, and that inference kept
+  // MISJUDGING a sheet mid-close — leaving the body pinned and the page frozen (the
+  // write-a-review sheet froze the page on close, mobile AND desktop). If nothing is
+  // genuinely open, the page MUST be free; never let the inference hold the lock.
+  function hasOpenOverlay() {
+    if (document.querySelector(
+      '.modal.open, [role="dialog"].open, .zwf-modal.open, .zwf-bag.open, .zwf-search.open,' +
+      '#mobile-menu.open, #zw-lang-modal.open, #payment-success.open, #apple-pay-qr-modal.open'
+    )) return true;
+    return ['payment-success', 'apple-pay-qr-modal'].some(function (id) {
+      var el = document.getElementById(id);
+      return el && window.getComputedStyle(el).display !== 'none';
+    });
+  }
+
   function refresh() {
+    if (!hasOpenOverlay()) { unlockScroll(); return; }
     if (hasActiveOverlay()) {
       lockScroll();
     } else {
