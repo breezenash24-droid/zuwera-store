@@ -977,7 +977,7 @@ function refreshHeartButtons() {
     btn.classList.toggle('active', ids.has(btn.dataset.productId));
   });
 }
-window.refreshHeartButtons = refreshHeartButtons; // expose globally for products.js
+window.refreshHeartButtons = refreshHeartButtons; // exposed globally for the storefront product grids
 
 function refreshCartFavs() {
   const loggedOut = $('fav-logged-out-msg');
