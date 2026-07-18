@@ -806,7 +806,7 @@
                         <div>
                             <h2>Feature Flags</h2>
                             <p style="color:var(--text-secondary);font-size:.85rem;margin-top:6px;max-width:660px;line-height:1.65;">
-                                Turn features on/off and roll them out gradually. Set a rollout %, and only that share of visitors sees the feature — it's sticky per visitor (raising the % only ever adds people). Gate code with <code style="background:var(--bg-secondary);padding:1px 5px;border-radius:4px;">window.zwFlag('key')</code>. Saving is live for everyone immediately — no deploy.<br>
+                                Turn features on/off and roll them out gradually. Set a rollout %, and only that share of visitors sees the feature — it's sticky per visitor (raising the % only ever adds people). Gate code with <code style="background:var(--bg-secondary);padding:1px 5px;border-radius:4px;">window.zwFlag('key')</code>. Saving is live for everyone immediately — no deploy. Each built-in feature can also be toggled from its own page (Q&A, Bundles, Products, Emails, Size Charts, Settings); this page is the full control with rollout + results.<br>
                                 <span style="opacity:.85;">Measuring: every flag is auto-reported to PostHog (break any funnel/metric down by <code style="background:var(--bg-secondary);padding:1px 5px;border-radius:4px;">$feature/key</code>, or use PostHog Experiments). Run <code style="background:var(--bg-secondary);padding:1px 5px;border-radius:4px;">supabase-feature-flags.sql</code> once and orders get stamped with the variant, so the per-flag order/revenue split shows below.</span>
                             </p>
                         </div>
@@ -847,6 +847,7 @@
                         </div>
                     </div>
                     <p class="zw-page-intro">All your products live here. Click <strong>+ Add Product</strong> to create a new one. Set its status to <strong>Live</strong> when it's ready for customers to buy. <strong>Draft</strong> = hidden from store. <strong>Coming Soon</strong> = shows a waitlist button.</p>
+                    <div id="pageFlags-products" style="margin:14px 0 22px;"></div>
                     <!-- Back-in-stock demand (from sold-out size notify signups) -->
                     <div id="restock-demand" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px 20px;margin-bottom:20px;">
                         <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;letter-spacing:.08em;margin-bottom:10px;">📬 Restock Demand</div>
@@ -935,6 +936,7 @@
                         <button class="btn btn-primary" id="addSizeChartBtn">+ Add Size</button>
                     </div>
                     <p class="zw-page-intro">Create sizing guides for your products. Customers can view these when choosing their size at checkout. Add a chart per garment type (e.g. tops, bottoms).</p>
+                    <div id="pageFlags-sizecharts" style="margin:14px 0 22px;"></div>
                     <div class="search-filter">
                         <select id="sizeChartCategoryFilter" class="form-select" style="width: 250px;">
                             <option value="men_tops">Men's Tops</option>
@@ -958,7 +960,8 @@
                         <h2>Product Q&amp;A</h2>
                         <button class="btn btn-secondary" onclick="loadQuestions()">Refresh</button>
                     </div>
-                    <p class="zw-page-intro">Questions customers ask on product pages land here as <strong>pending</strong>. Answer one to publish the question + answer publicly, or hide/delete it. Turn the feature on in <strong>Feature Flags → feature_qa</strong>.</p>
+                    <p class="zw-page-intro">Questions customers ask on product pages land here as <strong>pending</strong>. Answer one to publish the question + answer publicly, or hide/delete it.</p>
+                    <div id="pageFlags-questions" style="margin:14px 0 22px;"></div>
                     <div id="qaAdminList"></div>
                 </div>
 
@@ -1037,7 +1040,8 @@
                         <h2>Bundles</h2>
                         <button class="btn btn-primary" onclick="bundleEdit(null)">+ New Bundle</button>
                     </div>
-                    <p class="zw-page-intro">Group pieces that go together. On any product in a set, shoppers see a <strong>&ldquo;complete the set&rdquo;</strong> row with the other pieces — a simple way to lift order value. Turn the row on in <strong>Feature Flags &rarr; feature_bundles</strong>.</p>
+                    <p class="zw-page-intro">Group pieces that go together. On any product in a set, shoppers see a <strong>&ldquo;complete the set&rdquo;</strong> row with the other pieces — a simple way to lift order value.</p>
+                    <div id="pageFlags-bundles" style="margin:14px 0 22px;"></div>
                     <p class="zw-page-intro" style="margin-top:-6px">Add an <strong>offer</strong> by picking one of your coupons — or creating one right here. Either way, saving locks that code to <em>only</em> this set's products, so it can't be spent on anything else. It still lives in <strong>Coupons</strong> if you want to change the discount later.</p>
                     <div id="bundleEditor" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px">
                         <input type="hidden" id="bn-id">
@@ -1189,6 +1193,7 @@
                         </div>
                     </div>
                     <p class="zw-page-intro">Everything the store sends automatically — review requests, abandoned-cart nudges, and journal emails — is logged here, and you control the timing below.</p>
+                    <div id="pageFlags-emails" style="margin:14px 0 22px;"></div>
 
                     <!-- Scheduled-send status: switching a flag on isn't enough for the
                          timed emails; something external has to call them on a schedule.
@@ -1967,6 +1972,11 @@
                     <div class="page-header" style="margin-bottom:24px;">
                         <h2>Site Settings</h2>
                         <p class="zw-page-intro">Control how your store behaves — your banner message, shipping rules, return policy, legal pages, FAQs, and more. Hit the <strong>Save</strong> button in each section after making changes.</p>
+                    </div>
+                    <div style="margin-bottom:26px;">
+                        <h3 style="margin:0 0 4px;font-size:1.05rem;">Storefront features</h3>
+                        <p style="margin:0 0 14px;color:var(--text-secondary);font-size:.85rem;">Optional customer-facing features — header search, recently-viewed, the bag panel, and the support widget. Each toggle saves immediately and goes live.</p>
+                        <div id="pageFlags-settings"></div>
                     </div>
 
                     <!-- ── Section: Storefront chrome ── -->
@@ -4076,6 +4086,8 @@
             } else if (page === 'emails') {
                 loadEmailActivity();
             }
+            // Render any feature toggles that belong on this page (no-op where there are none).
+            try { renderPageFlags(page); } catch (_) {}
         }
 
         // ─── Collapsible nav groups ──────────────────────────────────────────────
@@ -6782,20 +6794,20 @@
         // then storefront code (zwFlag) sees false and the feature stays hidden.
         // Extended as new feature batches ship.
         const ZW_FEATURE_REGISTRY = [
-            { key: 'feature_search',          desc: 'Product search — a magnifier in the header opens instant search across your catalog.' },
-            { key: 'feature_recently_viewed', desc: 'Recently viewed — a “recently viewed” row on the homepage and product pages (per visitor).' },
-            { key: 'feature_recommendations', desc: 'You may also like — related-product recommendations on product pages.' },
-            { key: 'feature_low_stock',       desc: 'Low-stock chip — a “Low Stock” badge on homepage product cards when real stock is at/below the product’s threshold. (Product & collection pages already show their own stock cues.)' },
-            { key: 'feature_fit_finder',      desc: 'Fit finder — a “Find your size” quiz next to the size guide that recommends a size.' },
-            { key: 'feature_support_widget',  desc: 'Support widget — a floating Help button (email us, track order, returns, FAQ).' },
+            { key: 'feature_search', page: 'settings',          desc: 'Product search — a magnifier in the header opens instant search across your catalog.' },
+            { key: 'feature_recently_viewed', page: 'settings', desc: 'Recently viewed — a “recently viewed” row on the homepage and product pages (per visitor).' },
+            { key: 'feature_recommendations', page: 'products', desc: 'You may also like — related-product recommendations on product pages.' },
+            { key: 'feature_low_stock', page: 'products',       desc: 'Low-stock chip — a “Low Stock” badge on homepage product cards when real stock is at/below the product’s threshold. (Product & collection pages already show their own stock cues.)' },
+            { key: 'feature_fit_finder', page: 'sizecharts',      desc: 'Fit finder — a “Find your size” quiz next to the size guide that recommends a size.' },
+            { key: 'feature_support_widget', page: 'settings',  desc: 'Support widget — a floating Help button (email us, track order, returns, FAQ).' },
             // Back in stock is an EXISTING live feature, so it defaults ON. Turn OFF to
             // hide the "notify me" prompt on sold-out sizes AND stop the restock emails.
-            { key: 'feature_back_in_stock',   desc: 'Back in stock — the “notify me when it’s back” prompt on sold-out sizes + the auto-email to the waitlist when you restock a size. On by default.', enabled: true, rollout: 100 },
-            { key: 'feature_qa',              desc: 'Product Q&A — a Questions & Answers section on product pages. Customers ask; you answer/publish in Admin → Q&A.' },
-            { key: 'feature_abandoned_cart',  desc: 'Abandoned-cart recovery — emails shoppers who started checkout (entered their email) but didn’t buy. Kill-switch for the scheduled recovery emails (needs the hourly cron + ABANDONED_CART_TOKEN set up). On by default.', enabled: true, rollout: 100 },
-            { key: 'feature_review_requests', desc: 'Review-request emails — a few days after an order, emails the customer asking them to review what they bought (with a photo). Kill-switch for the scheduled emails (needs the daily cron + REVIEW_REQUEST_TOKEN set up).' },
-            { key: 'feature_bundles',         desc: 'Bundles — a “complete the set” row on product pages showing the other pieces in a set you build in Admin → Bundles (plus the set’s promo code, if you give it one).' },
-            { key: 'feature_bag_panel',       desc: 'Bag panel — clicking the bag opens a panel under the header (what’s in the bag, Review bag, account + support) instead of jumping to the bag page. Also hides the separate account button, since account moves into the panel. On by default — turn it off to go back to the bag page.', enabled: true, rollout: 100 },
+            { key: 'feature_back_in_stock', page: 'products',   desc: 'Back in stock — the “notify me when it’s back” prompt on sold-out sizes + the auto-email to the waitlist when you restock a size. On by default.', enabled: true, rollout: 100 },
+            { key: 'feature_qa', page: 'questions',              desc: 'Product Q&A — a Questions & Answers section on product pages. Customers ask; you answer/publish in Admin → Q&A.' },
+            { key: 'feature_abandoned_cart', page: 'emails',  desc: 'Abandoned-cart recovery — emails shoppers who started checkout (entered their email) but didn’t buy. Kill-switch for the scheduled recovery emails (needs the hourly cron + ABANDONED_CART_TOKEN set up). On by default.', enabled: true, rollout: 100 },
+            { key: 'feature_review_requests', page: 'emails', desc: 'Review-request emails — a few days after an order, emails the customer asking them to review what they bought (with a photo). Kill-switch for the scheduled emails (needs the daily cron + REVIEW_REQUEST_TOKEN set up).' },
+            { key: 'feature_bundles', page: 'bundles',         desc: 'Bundles — a “complete the set” row on product pages showing the other pieces in a set you build in Admin → Bundles (plus the set’s promo code, if you give it one).' },
+            { key: 'feature_bag_panel', page: 'settings',       desc: 'Bag panel — clicking the bag opens a panel under the header (what’s in the bag, Review bag, account + support) instead of jumping to the bag page. Also hides the separate account button, since account moves into the panel. On by default — turn it off to go back to the bag page.', enabled: true, rollout: 100 },
         ];
         function _flagVid() {
             try { let id = localStorage.getItem('zw_vid'); if (!id) { id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2)); localStorage.setItem('zw_vid', id); } return id; } catch (_) { return 'anon'; }
@@ -6828,6 +6840,7 @@
                 const { data: ords } = await sb.from('orders').select('total,feature_flags').not('feature_flags', 'is', null).limit(3000);
                 _flagOrders = ords || [];
             } catch (_) { _flagOrders = []; }
+            _flagsLoaded = true;
             renderFeatureFlags();
         }
 
@@ -6907,6 +6920,89 @@
                 _featureFlags[n] = _featureFlags[n] || {}; _featureFlags[n].description = e.target.value;
             }));
         }
+
+        // ─── Contextual per-page feature toggles ─────────────────────────────────
+        // Each curated flag also renders its on/off + rollout on its feature's own admin
+        // page (ZW_FEATURE_REGISTRY .page). Shares _featureFlags with the Feature Flags
+        // page and auto-saves on change — no separate Save button in context.
+        let _flagsLoaded = false;
+        async function ensureFeatureFlagsLoaded() {
+            if (_flagsLoaded) return;
+            try {
+                const { data } = await sb.from('site_settings').select('value').eq('key', 'feature_flags').maybeSingle();
+                let v = data && data.value;
+                if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { v = null; } }
+                _featureFlags = (v && typeof v === 'object') ? v : {};
+            } catch (_) { _featureFlags = _featureFlags || {}; }
+            ZW_FEATURE_REGISTRY.forEach(f => {
+                if (!_featureFlags[f.key]) _featureFlags[f.key] = { enabled: f.enabled === true, rollout: (typeof f.rollout === 'number' ? f.rollout : 0), description: f.desc };
+                else if (!_featureFlags[f.key].description) _featureFlags[f.key].description = f.desc;
+            });
+            _flagsLoaded = true;
+        }
+        async function _saveFeatureFlagsQuiet() {
+            const now = new Date().toISOString();
+            Object.keys(_featureFlags).forEach(n => {
+                const f = _featureFlags[n]; if (!f || typeof f !== 'object') { _featureFlags[n] = { enabled: false, rollout: 0 }; return; }
+                f.enabled = f.enabled !== false;
+                f.rollout = Math.max(0, Math.min(100, parseInt(f.rollout, 10) || 0));
+                f.updated_at = now;
+            });
+            try {
+                const { error } = await sb.from('site_settings').upsert({ key: 'feature_flags', value: _featureFlags }, { onConflict: 'key' });
+                if (error) throw error;
+                try { await logAdminAudit('settings.update', 'site_settings', 'feature_flags', {}); } catch (_) {}
+                return true;
+            } catch (e) { showToast('Could not save: ' + (e.message || e), 'error'); return false; }
+        }
+        async function renderPageFlags(pageId) {
+            const host = document.getElementById('pageFlags-' + pageId);
+            if (!host) return;
+            await ensureFeatureFlagsLoaded();
+            const flags = ZW_FEATURE_REGISTRY.filter(f => f.page === pageId);
+            if (!flags.length) { host.innerHTML = ''; return; }
+            host.innerHTML = flags.map(f => {
+                const st = _featureFlags[f.key] || {};
+                const enabled = st.enabled !== false;
+                const rollout = (typeof st.rollout === 'number') ? Math.max(0, Math.min(100, st.rollout)) : 100;
+                const label = (f.desc || f.key).split('—')[0].trim();
+                const detail = (f.desc || '').indexOf('—') !== -1 ? f.desc.slice(f.desc.indexOf('—') + 1).trim() : '';
+                const audColor = !enabled ? '#f85149' : (rollout >= 100 ? '#3fb950' : '#fbbf24');
+                return `
+                <div style="background:var(--bg-secondary);border:1px solid var(--border);border-left:3px solid ${audColor};border-radius:10px;padding:14px 16px;margin-bottom:10px;">
+                  <label style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;cursor:pointer;">
+                    <span style="min-width:0;">
+                      <span style="font-weight:600;color:var(--text-primary);">${escapeHtml(label)}</span>
+                      ${detail ? `<span style="display:block;font-size:.78rem;color:var(--text-secondary);margin-top:3px;line-height:1.5;">${escapeHtml(detail)}</span>` : ''}
+                    </span>
+                    <input type="checkbox" data-pf-enabled="${escapeAttr(f.key)}" ${enabled ? 'checked' : ''} style="flex-shrink:0;width:20px;height:20px;accent-color:var(--accent,#F891A5);cursor:pointer;margin-top:2px;">
+                  </label>
+                  <div style="display:flex;align-items:center;gap:10px;margin-top:12px;${enabled ? '' : 'opacity:.4;pointer-events:none;'}">
+                    <span style="font-size:.74rem;color:var(--text-secondary);white-space:nowrap;">Show to</span>
+                    <input type="range" min="0" max="100" step="1" value="${rollout}" data-pf-rollout="${escapeAttr(f.key)}" style="flex:1;accent-color:var(--accent,#F891A5);">
+                    <span data-pf-pct="${escapeAttr(f.key)}" style="font-size:.78rem;font-weight:600;min-width:56px;text-align:right;">${rollout >= 100 ? 'Everyone' : rollout + '%'}</span>
+                  </div>
+                </div>`;
+            }).join('');
+            host.querySelectorAll('[data-pf-enabled]').forEach(el => el.addEventListener('change', async e => {
+                const k = e.target.getAttribute('data-pf-enabled');
+                _featureFlags[k] = _featureFlags[k] || {}; _featureFlags[k].enabled = e.target.checked;
+                await _saveFeatureFlagsQuiet();
+                renderPageFlags(pageId);
+                showToast(e.target.checked ? 'Feature turned on — live for visitors now' : 'Feature turned off — live now');
+            }));
+            host.querySelectorAll('[data-pf-rollout]').forEach(el => {
+                el.addEventListener('input', e => {
+                    const k = e.target.getAttribute('data-pf-rollout');
+                    const val = parseInt(e.target.value, 10) || 0;
+                    _featureFlags[k] = _featureFlags[k] || {}; _featureFlags[k].rollout = val;
+                    const pct = host.querySelector(`[data-pf-pct="${k}"]`); if (pct) pct.textContent = val >= 100 ? 'Everyone' : val + '%';
+                });
+                el.addEventListener('change', async () => { await _saveFeatureFlagsQuiet(); renderPageFlags(pageId); showToast('Rollout saved — live now'); });
+            });
+        }
+        window.renderPageFlags = renderPageFlags;
+
         window.addFeatureFlag = function () {
             const nameEl = document.getElementById('newFlagName');
             const descEl = document.getElementById('newFlagDesc');
