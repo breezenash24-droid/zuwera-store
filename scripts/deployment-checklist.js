@@ -26,7 +26,6 @@ const files = {
   uploadProductImage: read('functions/api/upload-product-image.js'),
   deleteProductImages: read('functions/api/delete-product-images.js'),
   checkout: read('checkout.js'),
-  cart: read('cart.js'),
   auth: read('auth.js'),
   sizeguide: read('sizeguide.html'),
 };
@@ -226,7 +225,7 @@ const checks = [
     name: 'Cart shell and empty-bag button are wired',
     pass: () => /id="cart-modal"/.test(files.index)
       && /id="cart-btn"/.test(files.index)
-      && /renderCart|cartItems|cart-count/.test(files.cart + files.index),
+      && /renderCart|cartItems|cart-count/.test(files.index),
   },
   {
     name: 'Storefront login modal is wired to separated customer auth storage',
