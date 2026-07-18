@@ -178,7 +178,7 @@
   }
 
   function quickAddFinalizeReviewedItem(cartItem) {
-    var cart = JSON.parse(localStorage.getItem('cart') || '[]') || [];
+    var cart; try { cart = JSON.parse(localStorage.getItem('cart') || '[]') || []; } catch (_) { cart = []; }
     var existIdx = cart.findIndex(function (i) {
       return i.productId === cartItem.productId && i.size === cartItem.size && i.colorName === cartItem.colorName;
     });
