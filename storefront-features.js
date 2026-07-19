@@ -225,6 +225,7 @@
       '.zwf-bag-link{display:flex;align-items:center;gap:.7rem;padding:.5rem 0;text-decoration:none;color:inherit;font-family:var(--fb,inherit);font-size:.95rem}',
       '.zwf-bag-link:hover{opacity:.65}',
       '.zwf-bag-link svg{width:17px;height:17px;opacity:.55;flex-shrink:0}',
+      '.zwf-bag-count{margin-left:auto;min-width:1.35em;height:1.35em;padding:0 .45em;border-radius:1em;background:var(--zw-accent,#F891A5);color:#fff;font-family:var(--fm,var(--fb,inherit));font-size:.68rem;font-weight:600;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}',
       /* The account button moves INTO this panel, so hide the header one while
          the feature is on (both header systems). */
       'body.zwf-bagpanel-on :is(#login-btn,#account-btn,#hdr-login){display:none!important}',
@@ -1494,9 +1495,14 @@
     }).join('') + (cart.length > 6 ? '<a class="zwf-bag-meta" style="text-decoration:none;color:inherit" href="/bag.html">+ ' + (cart.length - 6) + ' more</a>' : '') + '</div>'
       : '<p class="zwf-bag-empty">Your bag is empty.</p>';
 
+    var favCount = (typeof window.zwFavoritesCount === 'number')
+      ? window.zwFavoritesCount
+      : (function () { try { return parseInt(localStorage.getItem('zw_fav_count') || '0', 10) || 0; } catch (_) { return 0; } })();
+    if (!(favCount > 0)) favCount = 0;
+    var savesBadge = favCount ? '<span class="zwf-bag-count">' + (favCount > 99 ? '99+' : favCount) + '</span>' : '';
     var links = user
       ? '<a class="zwf-bag-link" href="/account.html#orders">' + ICON.orders + 'Orders</a>'
-        + '<a class="zwf-bag-link" href="/account.html#saved">' + ICON.saves + 'Your saves</a>'
+        + '<a class="zwf-bag-link" href="/account.html#saved">' + ICON.saves + 'Your saves' + savesBadge + '</a>'
         + '<a class="zwf-bag-link" href="/account.html#profile">' + ICON.acct + 'Account</a>'
       : '<a class="zwf-bag-link" href="/?auth=signin&next=' + encodeURIComponent(location.pathname) + '">' + ICON.acct + 'Sign in</a>';
 
@@ -1510,6 +1516,10 @@
       + '<a class="zwf-bag-link" href="mailto:nasirubreeze@zuwera.store">' + ICON.help + 'Support</a>'
       + '</div>';
   }
+
+  // Re-render the panel when the saved-items count changes (favorites load async
+  // after sign-in), so "Your saves" gets its badge without reopening the bag.
+  window.addEventListener('zw-favs-changed', function () { if (_bagPanel) renderBagPanel(); });
 
   function syncBagTop() {
     if (!_bagOverlay) return;
