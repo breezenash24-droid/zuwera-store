@@ -115,7 +115,11 @@
   border: 1px solid rgba(244,241,235,.08);
   border-top: 2px solid var(--zw-accent);
   position: relative;
-  padding: 3rem 3.2rem 2.6rem;
+  /* No top padding on the box: the sticky header (below) carries it instead, so
+     the header sits at the scroll-top from the first frame and pins with ZERO
+     slide — matching the size-guide / size-fit modals whose headers never move.
+     With the old 3rem here, the sticky header slid up ~48px before catching. */
+  padding: 0 3.2rem 2.6rem;
   animation: modalIn .2s ease;
   max-width: 1200px;
   width: min(1200px, 98vw);
@@ -381,6 +385,11 @@ body.super-light-mode #review-modal .review-mbox-hd { background: #FFFFFF; }
     margin-bottom: -44px;      /* = button height, so it fully overlaps the corner */
     z-index: 5;
   }
+  /* Desktop: the write-review sticky header owns the top padding the box gave up
+     (base .review-mbox is now `padding-top:0`), so it sits flush at scroll-top and
+     pins with ZERO slide. Kept desktop-only — the ≤900px bottom-sheet has its own
+     2rem box padding via an !important rule. */
+  #review-modal .review-mbox-hd { padding-top: 3rem; }
 }
 /* Keep the reviews-list close visible even when it (sticky) scrolls over the
    black "Write a review" bar. The shared .mclose sets a near-transparent
