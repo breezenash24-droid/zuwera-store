@@ -1560,6 +1560,34 @@ function teardownAnnouncementBarScroll() {
   }
 }
 
+// Fold the bar's OWN height so the nav + product push up/down into the reclaimed
+// space (content-push) instead of the bar sliding away as an overlay. Mirrors the
+// homepage helper in storefront.js.
+function zwSetBarFold(barEl, hidden) {
+  if (!barEl) return;
+  if (hidden) {
+    if (!barEl.style.maxHeight || barEl.style.maxHeight === 'none') {
+      barEl.style.maxHeight = barEl.offsetHeight + 'px';
+      void barEl.offsetHeight;
+    }
+    barEl.style.maxHeight = '0px';
+    barEl.style.paddingTop = '0px';
+    barEl.style.paddingBottom = '0px';
+    barEl.style.opacity = '0';
+    barEl.style.pointerEvents = 'none';
+  } else {
+    barEl.style.paddingTop = '';
+    barEl.style.paddingBottom = '';
+    barEl.style.opacity = '1';
+    barEl.style.pointerEvents = '';
+    const wasCollapsed = barEl.style.maxHeight === '0px';
+    barEl.style.maxHeight = 'none';
+    const full = barEl.offsetHeight;
+    if (wasCollapsed) { barEl.style.maxHeight = '0px'; void barEl.offsetHeight; }
+    barEl.style.maxHeight = full + 'px';
+  }
+}
+
 function setAnnouncementBarLayout(barEl, navEl, isVisible) {
   if (!navEl) return;
   const spacerEl = document.getElementById('bar-spacer');
@@ -1607,6 +1635,9 @@ function applyAnnouncementBar(mode, msgText) {
   barEl.style.transform = 'translateY(0)';
   barEl.style.opacity = '1';
   barEl.style.pointerEvents = '';
+  barEl.style.maxHeight = '';        // clear any leftover fold from a previous mode
+  barEl.style.paddingTop = '';
+  barEl.style.paddingBottom = '';
 
   const textEl = document.getElementById('announcementText');
   const fallbackText = (barEl.dataset.defaultText || (textEl ? textEl.textContent : '') || '').trim();
@@ -1671,15 +1702,15 @@ function applyAnnouncementBar(mode, msgText) {
     return;
   }
 
-  barEl.style.transition = 'transform 0.45s ease, opacity 0.45s ease';
+  // Content-push: fold the bar's height while the nav (transition:top) + spacer
+  // collapse in lockstep, so the product pushes up to fill — no overlay slide.
+  barEl.style.transition = 'max-height 0.45s ease, padding 0.45s ease, opacity 0.3s ease';
   let lastScrollY = window.scrollY;
   let isHidden = false;
   const scrollActivationAt = Date.now() + 450;
   const spacerEl2 = document.getElementById('bar-spacer');
   const syncAnnouncementState = (hidden) => {
-    barEl.style.transform = hidden ? 'translateY(-100%)' : '';
-    barEl.style.opacity = hidden ? '0' : '1';
-    barEl.style.pointerEvents = hidden ? 'none' : '';
+    zwSetBarFold(barEl, hidden);
     if (spacerEl2) spacerEl2.style.height = hidden ? '0' : barEl.offsetHeight + 'px';
     setAnnouncementBarLayout(barEl, navEl, !hidden);
   };

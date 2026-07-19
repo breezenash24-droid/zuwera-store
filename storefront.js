@@ -2006,6 +2006,35 @@ function teardownAnnouncementBarScroll() {
   }
 }
 
+// Fold (collapse) or unfold the bar's OWN height so it pushes the nav + page
+// content up/down into the reclaimed space, instead of sliding away as an overlay.
+// max-height (not height:auto) so both directions animate; padding folds with it;
+// the real height is measured each time so the fold matches the bar exactly.
+function zwSetBarFold(barEl, hidden) {
+  if (!barEl) return;
+  if (hidden) {
+    if (!barEl.style.maxHeight || barEl.style.maxHeight === 'none') {
+      barEl.style.maxHeight = barEl.offsetHeight + 'px';
+      void barEl.offsetHeight;                 // commit the start height before collapsing
+    }
+    barEl.style.maxHeight = '0px';
+    barEl.style.paddingTop = '0px';
+    barEl.style.paddingBottom = '0px';
+    barEl.style.opacity = '0';
+    barEl.style.pointerEvents = 'none';
+  } else {
+    barEl.style.paddingTop = '';
+    barEl.style.paddingBottom = '';
+    barEl.style.opacity = '1';
+    barEl.style.pointerEvents = '';
+    const wasCollapsed = barEl.style.maxHeight === '0px';
+    barEl.style.maxHeight = 'none';             // uncap to read the true height
+    const full = barEl.offsetHeight;
+    if (wasCollapsed) { barEl.style.maxHeight = '0px'; void barEl.offsetHeight; }
+    barEl.style.maxHeight = full + 'px';        // animate 0 -> full (or just set on first show)
+  }
+}
+
 function setAnnouncementBarLayout(barEl, navEl, isVisible) {
   // Mobile: bar top is handled by CSS variable --nav-h, no JS needed
   // Desktop: nav pushed below bar via nav.style.top; spacer holds bar height in flow
@@ -2056,6 +2085,9 @@ function applyAnnouncementBar(mode, msgText) {
   barEl.style.opacity = '1';
   barEl.style.pointerEvents = '';
   barEl.style.transform = '';
+  barEl.style.maxHeight = '';        // clear any leftover fold from a previous mode
+  barEl.style.paddingTop = '';
+  barEl.style.paddingBottom = '';
   if (navEl) navEl.style.transform = ''; // safety: clear any stale nav transform from earlier versions
 
   const textEl = document.getElementById('announcementText');
@@ -2129,7 +2161,9 @@ function applyAnnouncementBar(mode, msgText) {
     return;
   }
 
-  barEl.style.transition = 'transform 0.45s ease, opacity 0.45s ease';
+  // Content-push: the bar FOLDS its height while the nav (transition:top) and the
+  // spacer collapse in lockstep, so the page pushes up to fill — no overlay slide.
+  barEl.style.transition = 'max-height 0.45s ease, padding 0.45s ease, opacity 0.3s ease';
   let lastScrollY = window.scrollY;
   let isHidden = false;
   const scrollActivationAt = Date.now() + 450;
@@ -2138,17 +2172,13 @@ function applyAnnouncementBar(mode, msgText) {
   const syncAnnouncementState = (hidden) => {
     clearTimeout(_barHideTimer);
     if (hidden) {
-      barEl.style.transform = 'translateY(-100%)';
-      barEl.style.opacity = '0';
-      barEl.style.pointerEvents = 'none';
+      zwSetBarFold(barEl, true);
       if (spacerEl) spacerEl.style.height = '0';
-      _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; if (window.__zwUpdateHeaderHeight) window.__zwUpdateHeaderHeight(); }, 460);
+      _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; if (window.__zwUpdateHeaderHeight) window.__zwUpdateHeaderHeight(); }, 480);
     } else {
       barEl.style.display = 'flex';
       void barEl.offsetHeight;
-      barEl.style.transform = 'translateY(0)';
-      barEl.style.opacity = '1';
-      barEl.style.pointerEvents = '';
+      zwSetBarFold(barEl, false);
       if (spacerEl) spacerEl.style.height = barEl.offsetHeight + 'px';
     }
     setAnnouncementBarLayout(barEl, navEl, !hidden);
