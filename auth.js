@@ -79,8 +79,13 @@ const _authEls = {
 if (_sb) {
   _sb.auth.onAuthStateChange((event, session) => {
     _currentUser = session?.user ?? null;
-    // Keep the bag panel's login signal fresh across client-side sign in/out.
-    window.__zwSessionUser = _currentUser || null;
+    // Keep the login signal fresh, but never clobber the pre-paint's value with a
+    // stray null (e.g. an empty INITIAL_SESSION before the client restores, or a
+    // second client that doesn't hold the session) — only an explicit sign-out
+    // clears it. The bag panel also reads the session from storage directly, so
+    // this is just belt-and-suspenders.
+    if (_currentUser) window.__zwSessionUser = _currentUser;
+    else if (event === 'SIGNED_OUT') window.__zwSessionUser = null;
 
     updateHeaderForAuth();
     if (event === 'PASSWORD_RECOVERY') {

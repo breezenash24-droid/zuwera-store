@@ -1436,10 +1436,38 @@
   }
   // Two header systems, two ways to tell. __zwSessionUser is the pre-read some
   // pages do; elsewhere the visible account button is the signal.
+  // Read the signed-in user straight from the auth session in localStorage — the
+  // same robust parse the header pre-paint uses (handles the base64- prefix and
+  // chunked .0/.1 keys). Self-contained so the bag panel detects login on EVERY
+  // page regardless of whether that page's pre-paint set window.__zwSessionUser
+  // or whether another script cleared it (the per-page inconsistency this fixes).
+  function bagReadSession() {
+    try {
+      var b = null, ck = {}, j;
+      for (j = 0; j < localStorage.length; j++) {
+        var kk = localStorage.key(j); if (!kk) continue;
+        var mm = kk.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:\.(\d+))?$/);
+        if (!mm) continue;
+        if (mm[1] === undefined) b = localStorage.getItem(kk); else ck[mm[1]] = localStorage.getItem(kk);
+      }
+      var ord = Object.keys(ck).map(Number).sort(function (a, b) { return a - b; });
+      var str = ord.length ? ord.map(function (n) { return ck[n]; }).join('') : b;
+      if (!str) return null;
+      if (str.indexOf('base64-') === 0) {
+        var bin = atob(str.slice(7).replace(/-/g, '+').replace(/_/g, '/'));
+        str = new TextDecoder().decode(Uint8Array.from(bin, function (c) { return c.charCodeAt(0); }));
+      }
+      var raw = JSON.parse(str);
+      var se = raw && raw.currentSession ? raw.currentSession : raw;
+      if (se && se.user && (Number(se.expires_at || 0) * 1000 > Date.now() || se.refresh_token)) return se.user;
+    } catch (_) {}
+    return null;
+  }
+
   function bagUser() {
-    if (window.__zwSessionUser) {
-      var u = window.__zwSessionUser;
-      return { name: (u.user_metadata && u.user_metadata.full_name) || (u.email || '').split('@')[0] || 'Account' };
+    var u = window.__zwSessionUser || bagReadSession();
+    if (u) {
+      return { name: (u.user_metadata && (u.user_metadata.full_name || u.user_metadata.name)) || (u.email || '').split('@')[0] || 'Account' };
     }
     // Read index's own signed-in marker (updateNav() in storefront.js adds .show
     // to #account-btn), NOT visibility: zwf-bagpanel-on display:none's this very
