@@ -115,16 +115,30 @@
   border: 1px solid rgba(244,241,235,.08);
   border-top: 2px solid var(--zw-accent);
   position: relative;
-  /* No top padding on the box: the sticky header (below) carries it instead, so
-     the header sits at the scroll-top from the first frame and pins with ZERO
-     slide — matching the size-guide / size-fit modals whose headers never move.
-     With the old 3rem here, the sticky header slid up ~48px before catching. */
+  /* Flex column: the header is a fixed row (flex:0) and only .review-mbox-body
+     scrolls — the same fixed-header pattern the size-guide / size-fit modals use.
+     position:sticky was unreliable inside this box and let the header scroll away
+     with the form; this makes it structurally impossible to move. The box keeps
+     its horizontal + bottom padding, so header and body sit inside it. */
+  display: flex;
+  flex-direction: column;
   padding: 0 3.2rem 2.6rem;
   animation: modalIn .2s ease;
   max-width: 1200px;
   width: min(1200px, 98vw);
   max-height: 96dvh;
   overflow-y: auto;
+}
+/* Fixed header — never scrolls. */
+.review-mbox-hd { flex: 0 0 auto; }
+/* The one scrolling region: the whole form below the header. min-height:0 lets it
+   shrink inside the flex column so its own overflow (not the box's) does the work. */
+.review-mbox-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  /* Room for the fold-out scrollbar without shifting content sideways. */
+  scrollbar-gutter: stable;
 }
 .review-mbox-hd {
   display: flex;
@@ -650,7 +664,10 @@ body.light-mode .view-all-btn { background: rgba(9,9,11,.04); border-color: rgba
     position: relative !important;
   }
   /* The compose box grows to fill the sheet so a short form still reaches the bottom
-     (the sheet is a fixed height now) — more room to write, no empty gap under it. */
+     (the sheet is a fixed height now) — more room to write, no empty gap under it.
+     The body must be a flex column for the textarea's flex:1 to take effect now
+     that the form lives inside .review-mbox-body. */
+  #review-modal .review-mbox-body { display: flex; flex-direction: column; }
   #review-modal .review-mbox .review-body-field { flex: 1 1 auto !important; }
   /* Drag handle */
   .review-mbox::before {
