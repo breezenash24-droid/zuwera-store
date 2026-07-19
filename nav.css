@@ -48,7 +48,7 @@
   isolation: isolate;
   border-bottom: 1px solid var(--c08);
   box-shadow: 0 1px 12px rgba(0,0,0,0.3);
-  transition: top .35s ease, background .35s ease, box-shadow .35s ease;
+  transition: top .25s cubic-bezier(.32,.72,0,1), background .35s ease, box-shadow .35s ease;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
