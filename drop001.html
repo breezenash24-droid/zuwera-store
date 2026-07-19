@@ -1694,6 +1694,8 @@ function updateCountdown() {
         const productId = btn?.dataset?.productId;
         if (!productId) return;
         if (!collectionUser) {
+          // Open the login modal on THIS page instead of bouncing to the homepage.
+          if (window.zwOpenAuth) { window.zwOpenAuth('signin'); return; }
           window.location.href = 'index.html?auth=signin';
           return;
         }

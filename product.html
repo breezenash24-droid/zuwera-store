@@ -2233,7 +2233,8 @@ async function loadProductFavorites() {
 
 document.getElementById('saveProductBtn')?.addEventListener('click', async function() {
   if (!currentUser) {
-    if (typeof openAuthModal === 'function') openAuthModal('signin');
+    if (window.zwOpenAuth) window.zwOpenAuth('signin');
+    else if (typeof openAuthModal === 'function') openAuthModal('signin');
     else window.location.href = 'index.html?auth=signin';
     return;
   }
@@ -4462,6 +4463,7 @@ document.getElementById('mobile-menu')?.addEventListener('click', e => {
   // Favorites links (placeholder ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â no auth modal on product page)
   document.getElementById('fav-signin-link')?.addEventListener('click', () => {
     document.body.style.overflow = '';
+    if (window.zwOpenAuth) { window.zwOpenAuth('signin'); return; }
     if (typeof openAuthModal === 'function') openAuthModal('signin'); else window.location.href = 'index.html?auth=signin';
   });
 

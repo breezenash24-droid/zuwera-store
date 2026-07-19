@@ -373,6 +373,20 @@
 
   window.zwOpenLogin = openModal;
 
+  // Universal "require login" opener for JS triggers (heart/favorite buttons, save
+  // buttons) that used to hard-redirect to the homepage (index.html?auth=signin).
+  // Prefers the page's own in-place #auth-modal where it exists (index/product), so
+  // the heart matches that page's header login; everywhere else it falls back to
+  // this on-page zwlg-modal. Loaded on every customer page, so it never navigates.
+  window.zwOpenAuth = function (tab) {
+    tab = tab || 'signin';
+    if (typeof window.openAuthModal === 'function' && document.getElementById('auth-modal')) {
+      window.openAuthModal(tab);
+      return;
+    }
+    openModal(tab);
+  };
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bind, { once: true });
   } else {
