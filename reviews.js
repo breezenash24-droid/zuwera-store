@@ -800,7 +800,7 @@ async function submitReview() {
     errEl.innerHTML = 'Please sign in to post your review — your draft will be kept. ' +
       '<button type="button" id="review-signin-btn" style="background:none;border:none;color:inherit;text-decoration:underline;cursor:pointer;font:inherit;padding:0;">Sign In</button>';
     document.getElementById('review-signin-btn')?.addEventListener('click', () => {
-      const open = window.openAuthModal || window.openAuth || window.__zwOpenAuth;
+      const open = window.zwOpenAuth || window.openAuthModal || window.openAuth || window.__zwOpenAuth;
       if (typeof open === 'function') open('signin');
       else window.location.href = '/account.html';
     });

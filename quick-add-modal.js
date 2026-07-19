@@ -393,7 +393,7 @@
     // Early-access gate: admin-enabled members-only window (see storefront-theme.js).
     if (typeof window.zwEarlyAccessBlocked === 'function' && window.zwEarlyAccessBlocked()) {
       toast('Early access is for members — sign in to shop first.');
-      var openAuthFn = window.openAuthModal || window.openAuth || window.__zwOpenAuth;
+      var openAuthFn = window.zwOpenAuth || window.openAuthModal || window.openAuth || window.__zwOpenAuth;
       if (typeof openAuthFn === 'function') openAuthFn('signin');
       return;
     }

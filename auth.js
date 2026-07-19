@@ -1015,7 +1015,14 @@ function refreshCartFavs() {
 }
 
 async function toggleFavorite(btn) {
-  if (!_currentUser) { openAuthModal('signin'); return; }
+  if (!_currentUser) {
+    // Open login on the CURRENT page (zwOpenAuth prefers #auth-modal where it
+    // exists, else the on-page zwlg-modal) instead of failing silently on pages
+    // that have no #auth-modal.
+    if (window.zwOpenAuth) window.zwOpenAuth('signin');
+    else openAuthModal('signin');
+    return;
+  }
   const pid     = btn.dataset.productId;
   const pname   = btn.dataset.productName;
   const price   = btn.dataset.price;
