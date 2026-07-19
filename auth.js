@@ -79,6 +79,8 @@ const _authEls = {
 if (_sb) {
   _sb.auth.onAuthStateChange((event, session) => {
     _currentUser = session?.user ?? null;
+    // Keep the bag panel's login signal fresh across client-side sign in/out.
+    window.__zwSessionUser = _currentUser || null;
 
     updateHeaderForAuth();
     if (event === 'PASSWORD_RECOVERY') {
@@ -976,6 +978,11 @@ function refreshHeartButtons() {
   document.querySelectorAll('.heart-btn').forEach(btn => {
     btn.classList.toggle('active', ids.has(btn.dataset.productId));
   });
+  // Publish the saves count so the bag panel can badge "Your saves". This runs
+  // after every favorites change (load / add / remove / logout reset).
+  window.zwFavoritesCount = _userFavorites.length;
+  try { localStorage.setItem('zw_fav_count', String(_userFavorites.length)); } catch (_) {}
+  try { window.dispatchEvent(new CustomEvent('zw-favs-changed', { detail: { count: _userFavorites.length } })); } catch (_) {}
 }
 window.refreshHeartButtons = refreshHeartButtons; // exposed globally for the storefront product grids
 

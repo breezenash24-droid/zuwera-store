@@ -3313,6 +3313,11 @@ function applyHeartFill(btn, active) {
 function refreshHearts() {
   const ids = new Set(_favs.map(f => f.product_id));
   document.querySelectorAll('.heart-btn').forEach(b => applyHeartFill(b, ids.has(b.dataset.productId)));
+  // Publish the saves count (homepage owns favorites here, not auth.js) so the bag
+  // panel can badge "Your saves" and stay in sync cross-page.
+  window.zwFavoritesCount = _favs.length;
+  try { localStorage.setItem('zw_fav_count', String(_favs.length)); } catch (_) {}
+  try { window.dispatchEvent(new CustomEvent('zw-favs-changed', { detail: { count: _favs.length } })); } catch (_) {}
 }
 
 const _homeFavoriteCache = new Map();
