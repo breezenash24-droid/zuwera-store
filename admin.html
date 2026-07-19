@@ -848,6 +848,20 @@
                     </div>
                     <p class="zw-page-intro">All your products live here. Click <strong>+ Add Product</strong> to create a new one. Set its status to <strong>Live</strong> when it's ready for customers to buy. <strong>Draft</strong> = hidden from store. <strong>Coming Soon</strong> = shows a waitlist button.</p>
                     <div id="pageFlags-products" style="margin:14px 0 22px;"></div>
+                    <!-- Product Presets: named snapshots of the live lineup + product-page layout -->
+                    <div id="product-presets-panel" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px 20px;margin-bottom:20px;">
+                        <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+                            <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;letter-spacing:.08em;">🎚 Product Presets</div>
+                            <span style="font-size:.72rem;color:var(--text-secondary);">Snapshot which products are live (and their order) + your product-page layout, then switch the whole site in one click.</span>
+                        </div>
+                        <div id="productPresetChips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;"></div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <button type="button" class="btn btn-secondary btn-sm" data-req-edit="products" onclick="saveProductPreset()">+ Save current as…</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="prodPresetUpdate" data-req-edit="products" disabled onclick="updateProductPreset()">Update</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="prodPresetRename" data-req-edit="products" disabled onclick="renameProductPreset()">Rename</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="prodPresetDelete" data-req-edit="products" disabled onclick="deleteProductPreset()">Delete</button>
+                        </div>
+                    </div>
                     <!-- Back-in-stock demand (from sold-out size notify signups) -->
                     <div id="restock-demand" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px 20px;margin-bottom:20px;">
                         <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;letter-spacing:.08em;margin-bottom:10px;">📬 Restock Demand</div>
@@ -7886,6 +7900,178 @@
             displayProductsTable(getFilteredSortedProducts());
         }
 
+        /* ── Product Presets ────────────────────────────────────────────────────
+           A preset is a named snapshot of { the live lineup — each visible product's
+           status + order — and the current product-page layout }. Switching re-applies
+           it: bulk-sets product statuses/sort_order and copies the saved layout into
+           site_settings.product_page. The storefront never learns presets exist; it
+           just shows whatever's live, so an older store with no presets still works.
+           Stored in site_settings.product_presets (admins have RLS write access, same
+           as feature_flags etc.). */
+        let _productPresets = { presets: [], activePreset: null };
+
+        async function loadProductPresets() {
+            try {
+                const { data } = await sb.from('site_settings').select('value').eq('key', 'product_presets').maybeSingle();
+                const v = data && data.value;
+                _productPresets = {
+                    presets: Array.isArray(v && v.presets) ? v.presets : [],
+                    activePreset: (v && v.activePreset) || null,
+                };
+            } catch (_) { _productPresets = { presets: [], activePreset: null }; }
+            renderProductPresets();
+        }
+
+        function _prodPresetById(id) {
+            return (_productPresets.presets || []).find(p => p.id === id) || null;
+        }
+
+        function renderProductPresets() {
+            const wrap = document.getElementById('productPresetChips');
+            if (!wrap) return;
+            const list = _productPresets.presets || [];
+            const active = _productPresets.activePreset;
+            wrap.innerHTML = list.length
+                ? list.map(p => '<button type="button" class="btn btn-sm ' + (p.id === active ? 'btn-primary' : 'btn-secondary') +
+                    '" data-req-edit="products" onclick="switchProductPreset(\'' + p.id + '\')">' + escapeHtml(p.name) +
+                    ' <span style="opacity:.55;font-weight:600;">' + ((p.products || []).length) + '</span></button>').join('')
+                : '<span style="font-size:.78rem;color:var(--text-secondary)">None yet — set your products live the way you want, then “Save current as…”.</span>';
+            const on = !!_prodPresetById(active);
+            ['prodPresetUpdate', 'prodPresetRename', 'prodPresetDelete'].forEach(id => {
+                const b = document.getElementById(id);
+                if (b) b.disabled = !on;
+            });
+        }
+
+        // Snapshot the current live lineup: visible products (not Draft, not Legacy),
+        // in sort_order, each with its real status so a Sold Out item stays Sold Out.
+        function _snapshotLiveLineup() {
+            return (_allProducts || [])
+                .filter(p => { const s = p.status || 'Draft'; return s !== 'Draft' && s !== 'Legacy'; })
+                .slice()
+                .sort((a, b) => (a.sort_order ?? 1e9) - (b.sort_order ?? 1e9))
+                .map(p => ({ id: String(p.id), status: p.status || 'Live' }));
+        }
+
+        async function _currentProductPageLayout() {
+            try {
+                const { data } = await sb.from('site_settings').select('value').eq('key', 'product_page').maybeSingle();
+                return (data && data.value) || null;
+            } catch (_) { return null; }
+        }
+
+        async function _saveProductPresetsState() {
+            const { error } = await sb.from('site_settings').upsert({ key: 'product_presets', value: _productPresets }, { onConflict: 'key' });
+            if (error) throw error;
+        }
+
+        window.saveProductPreset = async function() {
+            const name = (prompt('Name this preset (e.g. “Drop 001”, “Holiday”)') || '').trim();
+            if (!name) return;
+            try {
+                const products = _snapshotLiveLineup();
+                const productPage = await _currentProductPageLayout();
+                const id = 'pp' + Date.now().toString(36);
+                _productPresets.presets.push({ id, name, products, productPage, savedAt: new Date().toISOString() });
+                _productPresets.activePreset = id;
+                await _saveProductPresetsState();
+                try { await logAdminAudit('product_preset.create', 'site_settings', id, { name, count: products.length }); } catch (_) {}
+                renderProductPresets();
+                showToast('Saved preset “' + name + '” (' + products.length + ' products)', 'success');
+            } catch (e) { showToast('Could not save preset: ' + e.message, 'error'); }
+        };
+
+        window.updateProductPreset = async function() {
+            const p = _prodPresetById(_productPresets.activePreset);
+            if (!p) return;
+            if (!confirm('Update “' + p.name + '” to match what’s live now (products + layout)?')) return;
+            try {
+                p.products = _snapshotLiveLineup();
+                p.productPage = await _currentProductPageLayout();
+                p.savedAt = new Date().toISOString();
+                await _saveProductPresetsState();
+                renderProductPresets();
+                showToast('Updated “' + p.name + '”', 'success');
+            } catch (e) { showToast('Could not update preset: ' + e.message, 'error'); }
+        };
+
+        window.renameProductPreset = async function() {
+            const p = _prodPresetById(_productPresets.activePreset);
+            if (!p) return;
+            const name = (prompt('Rename preset', p.name) || '').trim();
+            if (!name || name === p.name) return;
+            try { p.name = name; await _saveProductPresetsState(); renderProductPresets(); showToast('Renamed', 'success'); }
+            catch (e) { showToast('Could not rename: ' + e.message, 'error'); }
+        };
+
+        window.deleteProductPreset = async function() {
+            const p = _prodPresetById(_productPresets.activePreset);
+            if (!p) return;
+            if (!confirm('Delete preset “' + p.name + '”? Your live products don’t change — this only removes the saved snapshot.')) return;
+            try {
+                _productPresets.presets = _productPresets.presets.filter(x => x.id !== p.id);
+                _productPresets.activePreset = null;
+                await _saveProductPresetsState();
+                renderProductPresets();
+                showToast('Deleted “' + p.name + '”', 'info');
+            } catch (e) { showToast('Could not delete: ' + e.message, 'error'); }
+        };
+
+        // Switch the live site to a preset: publish its products (in order, keeping each
+        // one's saved status), hide everything else that's visible (never Legacy), then
+        // apply the saved product-page layout.
+        window.switchProductPreset = async function(id) {
+            const p = _prodPresetById(id);
+            if (!p) return;
+            const wanted = p.products || [];
+            if (!confirm('Switch the live site to “' + p.name + '”?\n\nThis publishes the preset’s ' + wanted.length + ' product' + (wanted.length !== 1 ? 's' : '') + ' (and hides the rest)' + (p.productPage ? ' and applies its product-page layout' : '') + '.')) return;
+            const chips = document.getElementById('productPresetChips');
+            if (chips) chips.style.opacity = '.5';
+            try {
+                const wantedIds = wanted.map(x => String(x.id));
+                const wantedSet = new Set(wantedIds);
+
+                // 1. Publish the preset's products in order (preserve each saved status).
+                for (let i = 0; i < wanted.length; i++) {
+                    const { error } = await sb.from('products')
+                        .update({ status: wanted[i].status || 'Live', sort_order: i })
+                        .eq('id', wanted[i].id);
+                    if (error) throw error;
+                }
+                // 2. Hide everything else that's currently visible — never touch Legacy.
+                const toHide = (_allProducts || [])
+                    .filter(pr => { const s = pr.status || 'Draft'; return !wantedSet.has(String(pr.id)) && s !== 'Legacy' && s !== 'Draft'; })
+                    .map(pr => String(pr.id));
+                if (toHide.length) {
+                    const { error } = await sb.from('products').update({ status: 'Draft' }).in('id', toHide);
+                    if (error) throw error;
+                }
+                // 3. Apply the saved product-page layout, if the preset captured one.
+                if (p.productPage) {
+                    const { error } = await sb.from('site_settings').upsert({ key: 'product_page', value: p.productPage }, { onConflict: 'key' });
+                    if (error) throw error;
+                }
+                // 4. Mark active + persist.
+                _productPresets.activePreset = id;
+                await _saveProductPresetsState();
+                try { await logAdminAudit('product_preset.switch', 'products', id, { name: p.name, published: wanted.length, hidden: toHide.length }); } catch (_) {}
+
+                // Reflect the new statuses/order in the loaded catalogue so the table matches.
+                (_allProducts || []).forEach(pr => {
+                    const idx = wantedIds.indexOf(String(pr.id));
+                    if (idx > -1) { pr.status = wanted[idx].status || 'Live'; pr.sort_order = idx; }
+                    else if (toHide.includes(String(pr.id))) { pr.status = 'Draft'; }
+                });
+                renderProductPresets();
+                renderProducts();
+                showToast('Switched to “' + p.name + '” — live now', 'success');
+            } catch (e) {
+                showToast('Switch failed: ' + e.message, 'error');
+            } finally {
+                if (chips) chips.style.opacity = '';
+            }
+        };
+
         /* Back-in-stock demand summary — grouped counts per product/size. */
         async function loadRestockDemand() {
             try {
@@ -7925,6 +8111,7 @@
                 _allProducts = products || [];
                 populateCategoryFilter();
                 renderProducts();
+                loadProductPresets();
             } catch (error) {
                 console.error('Error loading products:', error);
                 showToast('Failed to load products: ' + error.message, 'error');
