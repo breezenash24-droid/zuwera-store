@@ -2120,7 +2120,7 @@ function applyAnnouncementBar(mode, msgText) {
   // appearance (0 -> height, once settings load) doesn't animate a push-down.
   requestAnimationFrame(() => requestAnimationFrame(() => {
     const sp = document.getElementById('bar-spacer');
-    if (sp) sp.style.transition = 'height .45s ease';
+    if (sp) sp.style.transition = 'height .35s ease';
   }));
 
   if (normalizedMode !== 'scroll' && normalizedMode !== 'scrolloff') return;
@@ -2163,7 +2163,9 @@ function applyAnnouncementBar(mode, msgText) {
 
   // Content-push: the bar FOLDS its height while the nav (transition:top) and the
   // spacer collapse in lockstep, so the page pushes up to fill — no overlay slide.
-  barEl.style.transition = 'max-height 0.45s ease, padding 0.45s ease, opacity 0.3s ease';
+  // All three pieces share this exact duration/easing so they move as one; opacity
+  // matches the fold so the text never shows in a half-height bar on reveal.
+  barEl.style.transition = 'max-height 0.35s ease, padding 0.35s ease, opacity 0.35s ease';
   let lastScrollY = window.scrollY;
   let isHidden = false;
   const scrollActivationAt = Date.now() + 450;
@@ -2174,7 +2176,7 @@ function applyAnnouncementBar(mode, msgText) {
     if (hidden) {
       zwSetBarFold(barEl, true);
       if (spacerEl) spacerEl.style.height = '0';
-      _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; if (window.__zwUpdateHeaderHeight) window.__zwUpdateHeaderHeight(); }, 480);
+      _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; if (window.__zwUpdateHeaderHeight) window.__zwUpdateHeaderHeight(); }, 380);
     } else {
       barEl.style.display = 'flex';
       void barEl.offsetHeight;
