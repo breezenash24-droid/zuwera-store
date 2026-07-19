@@ -2120,7 +2120,7 @@ function applyAnnouncementBar(mode, msgText) {
   // appearance (0 -> height, once settings load) doesn't animate a push-down.
   requestAnimationFrame(() => requestAnimationFrame(() => {
     const sp = document.getElementById('bar-spacer');
-    if (sp) sp.style.transition = 'height .35s ease';
+    if (sp) sp.style.transition = 'height .25s cubic-bezier(.32,.72,0,1)';
   }));
 
   if (normalizedMode !== 'scroll' && normalizedMode !== 'scrolloff') return;
@@ -2134,7 +2134,7 @@ function applyAnnouncementBar(mode, msgText) {
     barEl.style.transition = 'opacity .3s ease';
     let lastScrollY = window.scrollY;
     let isHidden = false;
-    const scrollActivationAt = Date.now() + 450;
+    const scrollActivationAt = Date.now() + 150;
     const syncAnnouncementState = (hidden) => {
       barEl.style.opacity = hidden ? '0' : '1';
       barEl.style.pointerEvents = hidden ? 'none' : '';
@@ -2149,7 +2149,7 @@ function applyAnnouncementBar(mode, msgText) {
       // 'scroll' reappears at the top / on scroll-up; 'scrolloff' stays gone.
       if (normalizedMode !== 'scrolloff' && (currentY <= 16 || scrollingUp)) {
         if (isHidden) { isHidden = false; syncAnnouncementState(false); }
-      } else if (currentY > 80 && scrollingDown) {
+      } else if (currentY > 40 && scrollingDown) {
         if (!isHidden) {
           isHidden = true; syncAnnouncementState(true);
           if (normalizedMode === 'scrolloff') teardownAnnouncementBarScroll();
@@ -2165,10 +2165,11 @@ function applyAnnouncementBar(mode, msgText) {
   // spacer collapse in lockstep, so the page pushes up to fill — no overlay slide.
   // All three pieces share this exact duration/easing so they move as one; opacity
   // matches the fold so the text never shows in a half-height bar on reveal.
-  barEl.style.transition = 'max-height 0.35s ease, padding 0.35s ease, opacity 0.35s ease';
+  // Ease-out (fast start, gentle settle) so it feels snappy, not laggy like `ease`.
+  barEl.style.transition = 'max-height 0.25s cubic-bezier(.32,.72,0,1), padding 0.25s cubic-bezier(.32,.72,0,1), opacity 0.25s cubic-bezier(.32,.72,0,1)';
   let lastScrollY = window.scrollY;
   let isHidden = false;
-  const scrollActivationAt = Date.now() + 450;
+  const scrollActivationAt = Date.now() + 150;
   let _barHideTimer = null;
   const spacerEl = document.getElementById('bar-spacer');
   const syncAnnouncementState = (hidden) => {
@@ -2176,7 +2177,7 @@ function applyAnnouncementBar(mode, msgText) {
     if (hidden) {
       zwSetBarFold(barEl, true);
       if (spacerEl) spacerEl.style.height = '0';
-      _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; if (window.__zwUpdateHeaderHeight) window.__zwUpdateHeaderHeight(); }, 380);
+      _barHideTimer = setTimeout(() => { barEl.style.display = 'none'; if (window.__zwUpdateHeaderHeight) window.__zwUpdateHeaderHeight(); }, 290);
     } else {
       barEl.style.display = 'flex';
       void barEl.offsetHeight;
@@ -2196,7 +2197,7 @@ function applyAnnouncementBar(mode, msgText) {
     // detaches, so it stays gone until the page is reopened.
     if (normalizedMode !== 'scrolloff' && (currentY <= 16 || scrollingUp)) {
       if (isHidden) { isHidden = false; syncAnnouncementState(false); }
-    } else if (currentY > 80 && scrollingDown) {
+    } else if (currentY > 40 && scrollingDown) {
       if (!isHidden) {
         isHidden = true; syncAnnouncementState(true);
         if (normalizedMode === 'scrolloff') teardownAnnouncementBarScroll();
