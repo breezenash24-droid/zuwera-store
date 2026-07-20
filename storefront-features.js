@@ -1426,6 +1426,14 @@
      compositor-only slide, and it tracks the header while that shrinks. */
 
   var _bagOverlay = null, _bagPanel = null;
+  // Ground-truth signed-in user from the live Supabase client (window.sb), cached
+  // once it resolves. This is the ONLY reliable, page-independent signal: pages
+  // without auth.js (about/journal/policies/returns/sizeguide/account) never set
+  // window.__zwSessionUser, so the bag used to fall back to hand-parsing
+  // localStorage — which is why it read "Sign in" for a signed-in shopper on those
+  // pages but not on product/index. The client reads the same 'zuwera-auth' session
+  // correctly everywhere, so we consult it and re-render the panel when it answers.
+  var _bagLiveUser = null;
 
   function bagCart() {
     try { return JSON.parse(localStorage.getItem('cart') || '[]') || []; } catch (_) { return []; }
@@ -1464,11 +1472,42 @@
     return null;
   }
 
-  function bagUser() {
-    var u = window.__zwSessionUser || bagReadSession();
-    if (u) {
-      return { name: (u.user_metadata && (u.user_metadata.full_name || u.user_metadata.name)) || (u.email || '').split('@')[0] || 'Account' };
+  // Map a raw Supabase user object → the { name } shape the panel renders.
+  function bagUserName(u) {
+    return { name: (u.user_metadata && (u.user_metadata.full_name || u.user_metadata.name)) || (u.email || '').split('@')[0] || 'Account' };
+  }
+
+  // Ask the live client for the session and cache the answer. getSession() is
+  // async (and onAuthStateChange fires later), so whenever the answer arrives we
+  // re-render an already-open panel — the "Sign in" line flips to the account
+  // links without the shopper reopening the bag. Best-effort: if window.sb isn't
+  // ready yet, the synchronous fallbacks in bagUser() still cover the common pages.
+  function bagBootstrapSession() {
+    var sb = window.sb;
+    if (!sb || !sb.auth) return;
+    function apply(user) {
+      _bagLiveUser = user || null;
+      if (user) window.__zwSessionUser = user;
+      if (_bagPanel) renderBagPanel();
     }
+    try {
+      if (sb.auth.getSession) {
+        sb.auth.getSession().then(function (r) {
+          apply(r && r.data && r.data.session && r.data.session.user);
+        }).catch(function () {});
+      }
+      if (sb.auth.onAuthStateChange) {
+        sb.auth.onAuthStateChange(function (event, session) {
+          if (event === 'SIGNED_OUT') apply(null);
+          else apply(session && session.user);
+        });
+      }
+    } catch (_) {}
+  }
+
+  function bagUser() {
+    var u = window.__zwSessionUser || _bagLiveUser || bagReadSession();
+    if (u) return bagUserName(u);
     // Read index's own signed-in marker (updateNav() in storefront.js adds .show
     // to #account-btn), NOT visibility: zwf-bagpanel-on display:none's this very
     // button, so an offsetParent check reads every signed-in visitor as signed
@@ -1578,6 +1617,7 @@
   function initBagPanel() {
     ensureStyles();
     document.body.classList.add('zwf-bagpanel-on');   // hides the header account button
+    bagBootstrapSession();   // resolve the signed-in user from the live client (all pages)
 
     // The bag is wired three different ways:
     //   index    — inline onclick → window.__zwOpenCart() → location.assign('/bag.html')
