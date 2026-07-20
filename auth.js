@@ -152,6 +152,8 @@ function updateHeaderForAuth() {
 
 // ── Auth Modal ─────────────────────────────────────────────────────
 function openAuthModal(tab) {
+  if (typeof window.closeMobileMenu === 'function') window.closeMobileMenu();
+  if (window.zwEnsureSupabase) { try { window.zwEnsureSupabase(); } catch (_) {} }
   const cart = document.getElementById('cart-modal');
   _authReturnModalId = cart?.classList.contains('open') ? 'cart-modal' : null;
   if (cart?.classList.contains('open')) {
@@ -324,18 +326,25 @@ on('signin-submit', 'click', async () => {
   setBtn('signin-submit', true, 'Login');
 
   await zwRunTurnstile(async (captchaToken) => {
-    if (_sb) {
+    let client = window.sb || _sb;
+    if (!client && window.zwEnsureSupabase) {
+      try { client = await window.zwEnsureSupabase(); } catch (_) {}
+    }
+    if (client) {
       const signInOpts = captchaToken ? { captchaToken } : {};
-      const { error } = await _sb.auth.signInWithPassword({ email, password: pass, options: signInOpts });
+      const { error } = await client.auth.signInWithPassword({ email, password: pass, options: signInOpts });
       if (error) {
         err.textContent = error.message === 'Email not confirmed' ? 'Please check your email and verify your account first.' : error.message;
         setBtn('signin-submit', false, 'Login');
         return;
       }
+      setBtn('signin-submit', false, 'Login');
+      closeAuthModal();
+      showToast('Welcome back!');
+    } else {
+      err.textContent = 'Unable to connect to login service. Please try again.';
+      setBtn('signin-submit', false, 'Login');
     }
-    setBtn('signin-submit', false, 'Login');
-    closeAuthModal();
-    showToast('Welcome back!');
   });
 });
 

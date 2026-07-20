@@ -1571,7 +1571,7 @@
       ? '<a class="zwf-bag-link" href="/account.html#orders">' + ICON.orders + 'Orders</a>'
         + '<a class="zwf-bag-link" href="/account.html#saved">' + ICON.saves + 'Your saves' + savesBadge + '</a>'
         + '<a class="zwf-bag-link" href="/account.html#profile">' + ICON.acct + 'Account</a>'
-      : '<a class="zwf-bag-link" href="/?auth=signin&next=' + encodeURIComponent(location.pathname) + '">' + ICON.acct + 'Sign in</a>';
+      : '<a class="zwf-bag-link" data-zw-login href="/?auth=signin&next=' + encodeURIComponent(location.pathname) + '">' + ICON.acct + 'Sign in</a>';
 
     _bagPanel.innerHTML = '<div class="zwf-bag-hd"><h2>Bag' + (cart.length ? ' · ' + bagMoney(total) : '') + '</h2>'
       // An empty bag has nothing to review — Start shopping goes to the catalogue,
