@@ -75,6 +75,46 @@
     });
   }
 
+  function syncMenuAuthLink() {
+    var u = window.__zwSessionUser;
+    if (!u) {
+      try {
+        var b = null, ck = {};
+        for (var j = 0; j < localStorage.length; j++) {
+          var kk = localStorage.key(j);
+          if (!kk) continue;
+          var mm = kk.match(/^(?:zuwera-auth|sb-[a-z0-9-]+-auth-token)(?:\.(\d+))?$/);
+          if (!mm) continue;
+          if (mm[1] === undefined) b = localStorage.getItem(kk); else ck[mm[1]] = localStorage.getItem(kk);
+        }
+        var ord = Object.keys(ck).map(Number).sort(function (a, b) { return a - b; });
+        var str = ord.length ? ord.map(function (n) { return ck[n]; }).join('') : b;
+        if (str) {
+          if (str.indexOf('base64-') === 0) {
+            var bin = atob(str.slice(7).replace(/-/g, '+').replace(/_/g, '/'));
+            str = new TextDecoder().decode(Uint8Array.from(bin, function (c) { return c.charCodeAt(0); }));
+          }
+          var raw = JSON.parse(str);
+          var se = raw && raw.currentSession ? raw.currentSession : raw;
+          if (se && se.user && (Number(se.expires_at || 0) * 1000 > Date.now() || se.refresh_token)) u = se.user;
+        }
+      } catch (_) {}
+    }
+    document.querySelectorAll('.zw-mobile-auth-link').forEach(function (el) {
+      if (u) {
+        var name = (u.user_metadata && (u.user_metadata.full_name || u.user_metadata.name)) || (u.email || '').split('@')[0] || 'Account';
+        var firstName = (name || '').split(' ')[0] || 'Account';
+        el.textContent = 'Account (' + firstName + ')';
+        el.setAttribute('href', '/account.html');
+        el.removeAttribute('data-zw-login');
+      } else {
+        el.textContent = 'Sign In';
+        el.setAttribute('href', '/?auth=signin');
+        el.setAttribute('data-zw-login', 'true');
+      }
+    });
+  }
+
   function syncMenuOffset() {
     var el = menu();
     if (!el) return;
@@ -154,6 +194,7 @@
     if (el.classList.contains('open')) return false;
     syncMenuOffset();
     syncMenuBagCount();
+    syncMenuAuthLink();
     el.classList.add('open');
     el.setAttribute('aria-hidden', 'false');
     document.body.classList.add('zw-mobile-menu-open');
@@ -262,6 +303,7 @@
     syncScrollLock();
     syncMenuOffset();
     syncMenuBagCount();
+    syncMenuAuthLink();
   });
 
   document.addEventListener('keydown', function (event) {
@@ -300,6 +342,7 @@
 
   window.addEventListener('resize', syncMenuOffset, { passive: true });
   window.addEventListener('orientationchange', syncMenuOffset, { passive: true });
-  window.addEventListener('storage', syncMenuBagCount);
-  document.addEventListener('visibilitychange', syncMenuBagCount);
+  window.addEventListener('storage', function () { syncMenuBagCount(); syncMenuAuthLink(); });
+  document.addEventListener('visibilitychange', function () { syncMenuBagCount(); syncMenuAuthLink(); });
 })();
+

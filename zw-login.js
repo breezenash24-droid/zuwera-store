@@ -215,6 +215,7 @@
   }
 
   function openModal(tab) {
+    if (typeof window.closeMobileMenu === 'function') window.closeMobileMenu();
     // Homepage loads the Supabase SDK lazily — start it the moment the modal
     // opens so the client is ready by the time the user submits.
     if (window.zwEnsureSupabase) { try { window.zwEnsureSupabase(); } catch (_) {} }

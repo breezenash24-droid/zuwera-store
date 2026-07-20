@@ -3089,15 +3089,17 @@ function setPageScrollLock(locked) {
   requestAnimationFrame(() => { root.style.scrollBehavior = prevScrollBehavior; });
 }
 function openAuth(tab) {
+  if (typeof window.closeMobileMenu === 'function') window.closeMobileMenu();
+  if (window.zwEnsureSupabase) { try { window.zwEnsureSupabase(); } catch (_) {} }
   const cartModal = document.getElementById('cart-modal');
   _authReturnModalId = cartModal?.classList.contains('open') ? 'cart-modal' : null;
   if (_authReturnModalId) cartModal.classList.remove('open');
-  document.getElementById('auth-modal').classList.add('open');
+  document.getElementById('auth-modal')?.classList.add('open');
   setPageScrollLock(true);
   switchAuthTab(tab || 'signin');
 }
 function closeAuth() {
-  document.getElementById('auth-modal').classList.remove('open');
+  document.getElementById('auth-modal')?.classList.remove('open');
   const shouldReturnToCart = _authReturnModalId === 'cart-modal';
   _authReturnModalId = null;
   if (shouldReturnToCart) {
@@ -3116,20 +3118,20 @@ function switchAuthTab(t) {
   document.querySelectorAll('#auth-modal .atab').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
   document.querySelectorAll('#auth-modal .apanel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + t)?.classList.add('active');
-          ['signin-error','signup-error','forgot-error','update-password-error'].forEach(id => { const e = document.getElementById(id); if(e) e.textContent = ''; });
+  ['signin-error','signup-error','forgot-error','update-password-error'].forEach(id => { const e = document.getElementById(id); if(e) e.textContent = ''; });
   const fs = document.getElementById('forgot-success'); if(fs) fs.style.display = 'none';
   const ss = document.getElementById('signup-success'); if (ss) ss.style.display = 'none';
   const sb = document.getElementById('signup-submit'); if (sb) sb.style.display = 'block';
 }
 document.querySelectorAll('#auth-modal .atab').forEach(b => b.addEventListener('click', () => switchAuthTab(b.dataset.tab)));
-document.getElementById('auth-modal-close').addEventListener('click', closeAuth);
-document.getElementById('auth-modal').addEventListener('click', e => { if(e.target === e.currentTarget) closeAuth(); });
-document.getElementById('login-btn').addEventListener('click', (e) => {
+document.getElementById('auth-modal-close')?.addEventListener('click', closeAuth);
+document.getElementById('auth-modal')?.addEventListener('click', e => { if(e.target === e.currentTarget) closeAuth(); });
+document.getElementById('login-btn')?.addEventListener('click', (e) => {
   e.preventDefault();
   window.__zwOpenAuth('signin');
 });
-document.getElementById('forgot-link').addEventListener('click', e => { e.preventDefault(); switchAuthTab('forgot'); });
-document.getElementById('back-to-signin').addEventListener('click', e => { e.preventDefault(); switchAuthTab('signin'); });
+document.getElementById('forgot-link')?.addEventListener('click', e => { e.preventDefault(); switchAuthTab('forgot'); });
+document.getElementById('back-to-signin')?.addEventListener('click', e => { e.preventDefault(); switchAuthTab('signin'); });
 
 const _urlParams = new URLSearchParams(window.location.search);
 const _authAction = _urlParams.get('auth');
@@ -3164,31 +3166,38 @@ function zwShakeAuth() {
   box.classList.remove('zw-shake'); void box.offsetWidth; box.classList.add('zw-shake');
 }
 
-document.getElementById('signin-submit').addEventListener('click', async () => {
-  const email = document.getElementById('signin-email').value.trim();
-  const pass = document.getElementById('signin-password').value;
-  const err = document.getElementById('signin-error');
-  err.textContent = '';
-  if (!email || !pass) { err.textContent = 'Please fill in all fields.'; zwShakeAuth(); return; }
-  setDisabled('signin-submit', true, 'Login');
-  const runSignIn = async (captchaToken) => {
-    if (_sb) {
-      const signInOpts = captchaToken ? { captchaToken } : {};
-      const { error } = await _sb.auth.signInWithPassword({ email, password: pass, options: signInOpts });
+// Only attach fallback submit handler if auth.js didn't handle it
+if (!window.__zwAuthSubmitBound && document.getElementById('signin-submit')) {
+  window.__zwAuthSubmitBound = true;
+  document.getElementById('signin-submit').addEventListener('click', async () => {
+    const email = document.getElementById('signin-email').value.trim();
+    const pass = document.getElementById('signin-password').value;
+    const err = document.getElementById('signin-error');
+    err.textContent = '';
+    if (!email || !pass) { err.textContent = 'Please fill in all fields.'; zwShakeAuth(); return; }
+    setDisabled('signin-submit', true, 'Login');
+    let client = window.sb || _sb;
+    if (!client && window.zwEnsureSupabase) {
+      try { client = await window.zwEnsureSupabase(); } catch (_) {}
+    }
+    if (client) {
+      const { error } = await client.auth.signInWithPassword({ email, password: pass });
       if (error) {
         err.textContent = error.message === 'Email not confirmed' ? 'Please check your email and verify your account.' : error.message;
         setDisabled('signin-submit', false, 'Login');
         zwShakeAuth();
         return;
       }
+      setDisabled('signin-submit', false, 'Login');
+      closeAuth();
+      showToast('Welcome back!');
+      if (_authNext) { window.location.href = _authNext; return; }
+    } else {
+      err.textContent = 'Unable to connect to login service. Please try again.';
+      setDisabled('signin-submit', false, 'Login');
     }
-    setDisabled('signin-submit', false, 'Login');
-    closeAuth();
-    showToast('Welcome back!');
-    if (_authNext) { window.location.href = _authNext; return; }
-  };
-  await runSignIn(null);
-});
+  });
+}
 
 document.getElementById('signup-submit').addEventListener('click', async () => {
   const name = document.getElementById('signup-name').value.trim();
